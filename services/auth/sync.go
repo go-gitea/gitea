@@ -15,7 +15,7 @@ import (
 func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 	log.Trace("Doing: SyncExternalUsers")
 
-	ls, err := auth.FindSources(ctx, auth.FindSourcesOptions{})
+	ls, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{})
 	if err != nil {
 		log.Error("SyncExternalUsers: %v", err)
 		return err

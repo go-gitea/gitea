@@ -9,8 +9,8 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/services/context"
 )
 
 func MonitorDiagnosis(ctx *context.Context) {
@@ -58,4 +58,11 @@ func MonitorDiagnosis(ctx *context.Context) {
 		return
 	}
 	_ = pprof.Lookup("goroutine").WriteTo(f, 1)
+
+	f, err = zipWriter.CreateHeader(&zip.FileHeader{Name: "heap.dat", Method: zip.Deflate, Modified: time.Now()})
+	if err != nil {
+		ctx.ServerError("Failed to create zip file", err)
+		return
+	}
+	_ = pprof.Lookup("heap").WriteTo(f, 0)
 }

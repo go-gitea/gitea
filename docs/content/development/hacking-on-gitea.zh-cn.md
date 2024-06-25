@@ -25,7 +25,7 @@ menu:
 
 ## 安装 Golang
 
-您需要 [安装 go]( https://golang.org/doc/install ) 并设置您的 go 环境。
+您需要 [安装 go]( https://go.dev/doc/install ) 并设置您的 go 环境。
 
 接下来，[使用 npm 安装 Node.js](https://nodejs.org/en/download/) ，这是构建
 JavaScript 和 CSS 文件的必要工具。最低支持的 Node.js 版本是 @minNodeVersion@
@@ -201,7 +201,7 @@ REPO_INDEXER_CONN_STR = http://elastic:changeme@localhost:9200
 
 ### 构建和添加 SVGs
 
-SVG 图标是使用 `make svg` 目标构建的，该目标将 `build/generate-svg.js` 中定义的图标源编译到输出目录 `public/img/svg` 中。可以在 `web_src/svg` 目录中添加自定义图标。
+SVG 图标是使用 `make svg` 命令构建的，该命令将图标资源编译到输出目录 `public/assets/img/svg` 中。可以在 `web_src/svg` 目录中添加自定义图标。
 
 ### 构建 Logo
 
@@ -228,10 +228,10 @@ Gitea Logo的 PNG 和 SVG 版本是使用 `TAGS="gitea" make generate-images` �
 make generate-swagger
 ```
 
-您应该验证生成的 Swagger 文件并使用以下命令对其进行拼写检查：
+您应该验证生成的 Swagger 文件：
 
 ```bash
-make swagger-validate misspell-check
+make swagger-validate
 ```
 
 您应该提交更改后的 swagger JSON 文件。持续集成服务器将使用以下方法检查是否已完成：
@@ -307,12 +307,8 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build test-sqlite
 该网站的文档位于 `docs/` 中。如果你改变了文档内容，你可以使用以下测试方法进行持续集成：
 
 ```bash
-# 来自 Gitea 中的 docs 目录
-make trans-copy clean build
+make lint-md
 ```
-
-运行此任务依赖于 [Hugo](https://gohugo.io/)。请注意：这可能会生成一些未跟踪的 Git 对象，
-需要被清理干净。
 
 ## Visual Studio Code
 

@@ -8,9 +8,9 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -80,8 +80,8 @@ func AdoptRepository(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	ownerName := ctx.Params(":username")
-	repoName := ctx.Params(":reponame")
+	ownerName := ctx.PathParam(":username")
+	repoName := ctx.PathParam(":reponame")
 
 	ctxUser, err := user_model.GetUserByName(ctx, ownerName)
 	if err != nil {
@@ -142,8 +142,8 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	ownerName := ctx.Params(":username")
-	repoName := ctx.Params(":reponame")
+	ownerName := ctx.PathParam(":username")
+	repoName := ctx.PathParam(":reponame")
 
 	ctxUser, err := user_model.GetUserByName(ctx, ownerName)
 	if err != nil {

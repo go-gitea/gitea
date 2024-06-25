@@ -70,14 +70,24 @@ type PackageFileDescriptor struct {
 	Properties PackagePropertyList
 }
 
-// PackageWebLink returns the package web link
+// PackageWebLink returns the relative package web link
 func (pd *PackageDescriptor) PackageWebLink() string {
 	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
-// FullWebLink returns the package version web link
-func (pd *PackageDescriptor) FullWebLink() string {
+// VersionWebLink returns the relative package version web link
+func (pd *PackageDescriptor) VersionWebLink() string {
 	return fmt.Sprintf("%s/%s", pd.PackageWebLink(), url.PathEscape(pd.Version.LowerVersion))
+}
+
+// PackageHTMLURL returns the absolute package HTML URL
+func (pd *PackageDescriptor) PackageHTMLURL() string {
+	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HTMLURL(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+}
+
+// VersionHTMLURL returns the absolute package version HTML URL
+func (pd *PackageDescriptor) VersionHTMLURL() string {
+	return fmt.Sprintf("%s/%s", pd.PackageHTMLURL(), url.PathEscape(pd.Version.LowerVersion))
 }
 
 // CalculateBlobSize returns the total blobs size in bytes

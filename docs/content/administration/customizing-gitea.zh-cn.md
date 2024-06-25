@@ -42,11 +42,11 @@ Gitea 引用 `custom` 目录中的自定义配置文件来覆盖配置、模板�
 
 将自定义的公共文件（比如页面和图片）作为 webroot 放在 `custom/public/` 中来让 Gitea 提供这些自定义内容（符号链接将被追踪）。
 
-举例说明：`image.png` 存放在 `custom/public/`中，那么它可以通过链接 http://gitea.domain.tld/assets/image.png 访问。
+举例说明：`image.png` 存放在 `custom/public/assets/`中，那么它可以通过链接 http://gitea.domain.tld/assets/image.png 访问。
 
 ## 修改默认头像
 
-替换以下目录中的 png 图片： `custom/public/img/avatar\_default.png`
+替换以下目录中的 png 图片： `custom/public/assets/img/avatar\_default.png`
 
 ## 自定义 Gitea 页面
 

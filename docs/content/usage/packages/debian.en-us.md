@@ -27,7 +27,7 @@ The following examples use `apt`.
 To register the Debian registry add the url to the list of known apt sources:
 
 ```shell
-echo "deb https://gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
+echo "deb [signed-by=/etc/apt/keyrings/gitea-{owner}.asc] https://gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 ```
 
 | Placeholder    | Description |
@@ -39,13 +39,13 @@ echo "deb https://gitea.example.com/api/packages/{owner}/debian {distribution} {
 If the registry is private, provide credentials in the url. You can use a password or a [personal access token](development/api-usage.md#authentication):
 
 ```shell
-echo "deb https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
+echo "deb [signed-by=/etc/apt/keyrings/gitea-{owner}.asc] https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 ```
 
 The Debian registry files are signed with a PGP key which must be known to apt:
 
 ```shell
-sudo curl https://gitea.example.com/api/packages/{owner}/debian/repository.key -o /etc/apt/trusted.gpg.d/gitea-{owner}.asc
+sudo curl https://gitea.example.com/api/packages/{owner}/debian/repository.key -o /etc/apt/keyrings/gitea-{owner}.asc
 ```
 
 Afterwards update the local package index:

@@ -135,7 +135,7 @@ var ErrLFSObjectNotExist = db.ErrNotExist{Resource: "LFS Meta object"}
 
 // NewLFSMetaObject stores a given populated LFSMetaObject structure in the database
 // if it is not already present.
-func NewLFSMetaObject(ctx context.Context, m *LFSMetaObject) (*LFSMetaObject, error) {
+func NewLFSMetaObject(ctx context.Context, repoID int64, p lfs.Pointer) (*LFSMetaObject, error) {
 	var err error
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -144,16 +144,15 @@ func NewLFSMetaObject(ctx context.Context, m *LFSMetaObject) (*LFSMetaObject, er
 	}
 	defer committer.Close()
 
-	has, err := db.GetByBean(ctx, m)
+	m, exist, err := db.Get[LFSMetaObject](ctx, builder.Eq{"repository_id": repoID, "oid": p.Oid})
 	if err != nil {
 		return nil, err
-	}
-
-	if has {
+	} else if exist {
 		m.Existing = true
 		return m, committer.Commit()
 	}
 
+	m = &LFSMetaObject{Pointer: p, RepositoryID: repoID}
 	if err = db.Insert(ctx, m); err != nil {
 		return nil, err
 	}

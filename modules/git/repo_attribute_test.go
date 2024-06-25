@@ -24,7 +24,7 @@ func Test_nulSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
 	select {
 	case attr := <-wr.ReadAttribute():
 		assert.Equal(t, ".gitignore\"\n", attr.Filename)
-		assert.Equal(t, "linguist-vendored", attr.Attribute)
+		assert.Equal(t, AttributeLinguistVendored, attr.Attribute)
 		assert.Equal(t, "unspecified", attr.Value)
 	case <-time.After(100 * time.Millisecond):
 		assert.FailNow(t, "took too long to read an attribute from the list")
@@ -38,7 +38,7 @@ func Test_nulSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
 	select {
 	case attr := <-wr.ReadAttribute():
 		assert.Equal(t, ".gitignore\"\n", attr.Filename)
-		assert.Equal(t, "linguist-vendored", attr.Attribute)
+		assert.Equal(t, AttributeLinguistVendored, attr.Attribute)
 		assert.Equal(t, "unspecified", attr.Value)
 	case <-time.After(100 * time.Millisecond):
 		assert.FailNow(t, "took too long to read an attribute from the list")
@@ -77,21 +77,21 @@ func Test_nulSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, attributeTriple{
 		Filename:  "shouldbe.vendor",
-		Attribute: "linguist-vendored",
+		Attribute: AttributeLinguistVendored,
 		Value:     "set",
 	}, attr)
 	attr = <-wr.ReadAttribute()
 	assert.NoError(t, err)
 	assert.EqualValues(t, attributeTriple{
 		Filename:  "shouldbe.vendor",
-		Attribute: "linguist-generated",
+		Attribute: AttributeLinguistGenerated,
 		Value:     "unspecified",
 	}, attr)
 	attr = <-wr.ReadAttribute()
 	assert.NoError(t, err)
 	assert.EqualValues(t, attributeTriple{
 		Filename:  "shouldbe.vendor",
-		Attribute: "linguist-language",
+		Attribute: AttributeLinguistLanguage,
 		Value:     "unspecified",
 	}, attr)
 }

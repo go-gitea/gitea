@@ -22,21 +22,21 @@
 			{{if .Team.Description}}
 				{{.Team.Description}}
 			{{else}}
-				<span class="text grey italic">{{ctx.Locale.Tr "org.teams.no_desc"}}</span>
+				<span class="text grey tw-italic">{{ctx.Locale.Tr "org.teams.no_desc"}}</span>
 			{{end}}
 		</div>
 		{{if eq .Team.LowerName "owners"}}
 			<div class="item">
-				{{ctx.Locale.Tr "org.teams.owners_permission_desc" | Str2html}}
+				{{ctx.Locale.Tr "org.teams.owners_permission_desc"}}
 			</div>
 		{{else}}
 			<div class="item">
 				<h3>{{ctx.Locale.Tr "org.team_access_desc"}}</h3>
 				<ul>
 					{{if .Team.IncludesAllRepositories}}
-						<li>{{ctx.Locale.Tr "org.teams.all_repositories" | Str2html}}</li>
+						<li>{{ctx.Locale.Tr "org.teams.all_repositories"}}</li>
 					{{else}}
-						<li>{{ctx.Locale.Tr "org.teams.specific_repositories" | Str2html}}</li>
+						<li>{{ctx.Locale.Tr "org.teams.specific_repositories"}}</li>
 					{{end}}
 					{{if .Team.CanCreateOrgRepo}}
 						<li>{{ctx.Locale.Tr "org.teams.can_create_org_repo"}}</li>
@@ -44,10 +44,10 @@
 				</ul>
 				{{if (eq .Team.AccessMode 2)}}
 					<h3>{{ctx.Locale.Tr "org.settings.permission"}}</h3>
-					{{ctx.Locale.Tr "org.teams.write_permission_desc" | Str2html}}
+					{{ctx.Locale.Tr "org.teams.write_permission_desc"}}
 				{{else if (eq .Team.AccessMode 3)}}
 					<h3>{{ctx.Locale.Tr "org.settings.permission"}}</h3>
-					{{ctx.Locale.Tr "org.teams.admin_permission_desc" | Str2html}}
+					{{ctx.Locale.Tr "org.teams.admin_permission_desc"}}
 				{{else}}
 					<table class="ui table">
 						<thead>
@@ -79,7 +79,7 @@
 	</div>
 	{{if .IsOrganizationOwner}}
 		<div class="ui bottom attached segment">
-			<a class="ui teal small button" href="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/edit">{{svg "octicon-gear"}} {{ctx.Locale.Tr "org.teams.settings"}}</a>
+			<a class="ui small button" href="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/edit">{{svg "octicon-gear"}} {{ctx.Locale.Tr "org.teams.settings"}}</a>
 		</div>
 	{{end}}
 </div>
@@ -88,7 +88,7 @@
 		{{ctx.Locale.Tr "org.teams.leave"}}
 	</div>
 	<div class="content">
-		<p>{{ctx.Locale.Tr "org.teams.leave.detail" `<span class="name"></span>` | Safe}}</p>
+		<p>{{ctx.Locale.Tr "org.teams.leave.detail" (`<span class="name"></span>`|SafeHTML)}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

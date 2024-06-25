@@ -1,5 +1,5 @@
 {{if eq .HookType "matrix"}}
-	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://matrix.org/" (ctx.Locale.Tr "repo.settings.web_hook_name_matrix") | Str2html}}</p>
+	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://matrix.org/" (ctx.Locale.Tr "repo.settings.web_hook_name_matrix")}}</p>
 	<form class="ui form" action="{{.BaseLink}}/matrix/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_HomeserverURL}}error{{end}}">

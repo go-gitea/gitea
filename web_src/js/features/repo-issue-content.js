@@ -1,8 +1,10 @@
 import $ from 'jquery';
 import {svg} from '../svg.js';
 import {showErrorToast} from '../modules/toast.js';
+import {GET, POST} from '../modules/fetch.js';
+import {showElem} from '../utils/dom.js';
 
-const {appSubUrl, csrfToken} = window.config;
+const {appSubUrl} = window.config;
 let i18nTextEdited;
 let i18nTextOptions;
 let i18nTextDeleteFromHistory;
@@ -15,9 +17,9 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
   $dialog = $(`
 <div class="ui modal content-history-detail-dialog">
   ${svg('octicon-x', 16, 'close icon inside')}
-  <div class="header gt-df gt-ac gt-sb">
+  <div class="header tw-flex tw-items-center tw-justify-between">
     <div>${itemTitleHtml}</div>
-    <div class="ui dropdown dialog-header-options gt-mr-5 gt-hidden">
+    <div class="ui dropdown dialog-header-options tw-mr-8 tw-hidden">
       ${i18nTextOptions}
       ${svg('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
@@ -31,19 +33,27 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
   $dialog.find('.dialog-header-options').dropdown({
     showOnFocus: false,
     allowReselection: true,
-    onChange(_value, _text, $item) {
+    async onChange(_value, _text, $item) {
       const optionItem = $item.data('option-item');
       if (optionItem === 'delete') {
         if (window.confirm(i18nTextDeleteFromHistoryConfirm)) {
-          $.post(`${issueBaseUrl}/content-history/soft-delete?comment_id=${commentId}&history_id=${historyId}`, {
-            _csrf: csrfToken,
-          }).done((resp) => {
+          try {
+            const params = new URLSearchParams();
+            params.append('comment_id', commentId);
+            params.append('history_id', historyId);
+
+            const response = await POST(`${issueBaseUrl}/content-history/soft-delete?${params.toString()}`);
+            const resp = await response.json();
+
             if (resp.ok) {
               $dialog.modal('hide');
             } else {
               showErrorToast(resp.message);
             }
-          });
+          } catch (error) {
+            console.error('Error:', error);
+            showErrorToast('An error occurred while deleting the history.');
+          }
         }
       } else { // required by eslint
         showErrorToast(`unknown option item: ${optionItem}`);
@@ -51,22 +61,29 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
     },
     onHide() {
       $(this).dropdown('clear', true);
-    }
+    },
   });
   $dialog.modal({
-    onShow() {
-      $.ajax({
-        url: `${issueBaseUrl}/content-history/detail?comment_id=${commentId}&history_id=${historyId}`,
-        data: {
-          _csrf: csrfToken,
-        },
-      }).done((resp) => {
-        $dialog.find('.comment-diff-data').removeClass('is-loading').html(resp.diffHtml);
+    async onShow() {
+      try {
+        const params = new URLSearchParams();
+        params.append('comment_id', commentId);
+        params.append('history_id', historyId);
+
+        const url = `${issueBaseUrl}/content-history/detail?${params.toString()}`;
+        const response = await GET(url);
+        const resp = await response.json();
+
+        const commentDiffData = $dialog.find('.comment-diff-data')[0];
+        commentDiffData?.classList.remove('is-loading');
+        commentDiffData.innerHTML = resp.diffHtml;
         // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
         if (resp.canSoftDelete) {
-          $dialog.find('.dialog-header-options').removeClass('gt-hidden');
+          showElem($dialog.find('.dialog-header-options'));
         }
-      });
+      } catch (error) {
+        console.error('Error:', error);
+      }
     },
     onHidden() {
       $dialog.remove();
@@ -103,7 +120,7 @@ function showContentHistoryMenu(issueBaseUrl, $item, commentId) {
   });
 }
 
-export function initRepoIssueContentHistory() {
+export async function initRepoIssueContentHistory() {
   const issueIndex = $('#issueIndex').val();
   if (!issueIndex) return;
 
@@ -114,12 +131,10 @@ export function initRepoIssueContentHistory() {
   const repoLink = $('#repolink').val();
   const issueBaseUrl = `${appSubUrl}/${repoLink}/issues/${issueIndex}`;
 
-  $.ajax({
-    url: `${issueBaseUrl}/content-history/overview`,
-    data: {
-      _csrf: csrfToken,
-    },
-  }).done((resp) => {
+  try {
+    const response = await GET(`${issueBaseUrl}/content-history/overview`);
+    const resp = await response.json();
+
     i18nTextEdited = resp.i18n.textEdited;
     i18nTextDeleteFromHistory = resp.i18n.textDeleteFromHistory;
     i18nTextDeleteFromHistoryConfirm = resp.i18n.textDeleteFromHistoryConfirm;
@@ -133,5 +148,7 @@ export function initRepoIssueContentHistory() {
       const $itemComment = $(`#issuecomment-${commentId}`);
       showContentHistoryMenu(issueBaseUrl, $itemComment, commentId);
     }
-  });
+  } catch (error) {
+    console.error('Error:', error);
+  }
 }

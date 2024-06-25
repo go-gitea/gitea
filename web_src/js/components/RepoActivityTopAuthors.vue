@@ -47,11 +47,11 @@ const sfc = {
     this.colors.barColor = refStyle.backgroundColor;
     this.colors.textColor = refStyle.color;
     this.colors.textAltColor = refAltStyle.color;
-  }
+  },
 };
 
 export function initRepoActivityTopAuthorsChart() {
-  const el = document.getElementById('repo-activity-top-authors-chart');
+  const el = document.querySelector('#repo-activity-top-authors-chart');
   if (el) {
     createApp(sfc).mount(el);
   }

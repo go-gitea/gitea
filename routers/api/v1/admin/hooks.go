@@ -8,12 +8,13 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -37,7 +38,7 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	sysHooks, err := webhook.GetSystemWebhooks(ctx, util.OptionalBoolNone)
+	sysHooks, err := webhook.GetSystemWebhooks(ctx, optional.None[bool]())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetSystemWebhooks", err)
 		return
@@ -72,7 +73,7 @@ func GetHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64(":id")
 	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -141,7 +142,7 @@ func EditHook(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.EditHookOption)
 
 	// TODO in body params
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64(":id")
 	utils.EditSystemHook(ctx, form, hookID)
 }
 
@@ -163,7 +164,7 @@ func DeleteHook(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64(":id")
 	if err := webhook.DeleteDefaultSystemWebhook(ctx, hookID); err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.NotFound()

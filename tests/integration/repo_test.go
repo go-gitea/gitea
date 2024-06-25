@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -27,11 +28,9 @@ func TestViewRepo(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	noDescription := htmlDoc.doc.Find("#repo-desc").Children()
 	repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
 	repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
 
-	assert.True(t, noDescription.HasClass("no-description"))
 	assert.True(t, repoTopics.HasClass("repo-topic"))
 	assert.True(t, repoSummary.HasClass("repository-menu"))
 
@@ -76,7 +75,7 @@ func testViewRepo(t *testing.T) {
 		})
 
 		// convert "2017-06-14 21:54:21 +0800" to "Wed, 14 Jun 2017 13:54:21 UTC"
-		htmlTimeString, _ := s.Find("relative-time.time-since").Attr("datetime")
+		htmlTimeString, _ := s.Find("relative-time").Attr("datetime")
 		htmlTime, _ := time.Parse(time.RFC3339, htmlTimeString)
 		f.commitTime = htmlTime.In(time.Local).Format(time.RFC1123)
 		items = append(items, f)
@@ -176,30 +175,6 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	assert.Equal(t, "link_link: svg octicon-file-symlink-file", items[4])
 }
 
-// TestViewAsRepoAdmin tests PR #2167
-func TestViewAsRepoAdmin(t *testing.T) {
-	for user, expectedNoDescription := range map[string]bool{
-		"user2": true,
-		"user4": false,
-	} {
-		defer tests.PrepareTestEnv(t)()
-
-		session := loginUser(t, user)
-
-		req := NewRequest(t, "GET", "/user2/repo1.git")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		noDescription := htmlDoc.doc.Find("#repo-desc").Children()
-		repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
-		repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
-
-		assert.Equal(t, expectedNoDescription, noDescription.HasClass("no-description"))
-		assert.True(t, repoTopics.HasClass("repo-topic"))
-		assert.True(t, repoSummary.HasClass("repository-menu"))
-	}
-}
-
 // TestViewFileInRepo repo description, topics and summary should not be displayed when viewing a file
 func TestViewFileInRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
@@ -210,7 +185,7 @@ func TestViewFileInRepo(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	description := htmlDoc.doc.Find("#repo-desc")
+	description := htmlDoc.doc.Find(".repo-description")
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
 
@@ -229,7 +204,7 @@ func TestBlameFileInRepo(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	description := htmlDoc.doc.Find("#repo-desc")
+	description := htmlDoc.doc.Find(".repo-description")
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
 
@@ -248,7 +223,7 @@ func TestViewRepoDirectory(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	description := htmlDoc.doc.Find("#repo-desc")
+	description := htmlDoc.doc.Find(".repo-description")
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
 
@@ -447,4 +422,13 @@ func TestGeneratedSourceLink(t *testing.T) {
 		assert.True(t, exists)
 		assert.Equal(t, "/user27/repo49/src/commit/aacbdfe9e1c4b47f60abe81849045fa4e96f1d75/test/test.txt", dataURL)
 	})
+}
+
+func TestViewCommit(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	req := NewRequest(t, "GET", "/user2/repo1/commit/0123456789012345678901234567890123456789")
+	req.Header.Add("Accept", "text/html")
+	resp := MakeRequest(t, req, http.StatusNotFound)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "non-existing commit should render 404 page")
 }

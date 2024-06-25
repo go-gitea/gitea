@@ -24,13 +24,16 @@ func TestAPIReposGitRefs(t *testing.T) {
 		"refs/heads/master", // Branch
 		"refs/tags/v1.1",    // Tag
 	} {
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/%s?token="+token, user.Name, ref)
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/%s", user.Name, ref).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
 	}
 	// Test getting all refs
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/refs?token="+token, user.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/refs", user.Name).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 	// Test getting non-existent refs
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/refs/heads/unknown?token="+token, user.Name)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/refs/heads/unknown", user.Name).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }

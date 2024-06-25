@@ -139,7 +139,7 @@ export function easyMDEToolbarActions(EasyMDE, editor) {
       },
       icon: svg('octicon-chevron-right'),
       title: 'Add Inline Code',
-    }
+    },
   };
 
   for (const [key, value] of Object.entries(actions)) {

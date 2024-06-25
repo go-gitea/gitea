@@ -1,161 +1,124 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {createCodeEditor} from './codeeditor.js';
-import {hideElem, showElem} from '../utils/dom.js';
+import {hideElem, queryElems, showElem} from '../utils/dom.js';
 import {initMarkupContent} from '../markup/content.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
-
-const {csrfToken} = window.config;
+import {POST} from '../modules/fetch.js';
 
 function initEditPreviewTab($form) {
-  const $tabMenu = $form.find('.tabular.menu');
+  const $tabMenu = $form.find('.repo-editor-menu');
   $tabMenu.find('.item').tab();
-  const $previewTab = $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`);
+  const $previewTab = $tabMenu.find('a[data-tab="preview"]');
   if ($previewTab.length) {
-    $previewTab.on('click', function () {
+    $previewTab.on('click', async function () {
       const $this = $(this);
       let context = `${$this.data('context')}/`;
       const mode = $this.data('markup-mode') || 'comment';
-      const treePathEl = $form.find('input#tree_path');
-      if (treePathEl.length > 0) {
-        context += treePathEl.val();
+      const $treePathEl = $form.find('input#tree_path');
+      if ($treePathEl.length > 0) {
+        context += $treePathEl.val();
       }
       context = context.substring(0, context.lastIndexOf('/'));
-      $.post($this.data('url'), {
-        _csrf: csrfToken,
-        mode,
-        context,
-        text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val(),
-        file_path: treePathEl.val(),
-      }, (data) => {
-        const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
-        renderPreviewPanelContent($previewPanel, data);
-      });
+
+      const formData = new FormData();
+      formData.append('mode', mode);
+      formData.append('context', context);
+      formData.append('text', $form.find('.tab[data-tab="write"] textarea').val());
+      formData.append('file_path', $treePathEl.val());
+      try {
+        const response = await POST($this.data('url'), {data: formData});
+        const data = await response.text();
+        const $previewPanel = $form.find('.tab[data-tab="preview"]');
+        if ($previewPanel.length) {
+          renderPreviewPanelContent($previewPanel, data);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
     });
   }
-}
-
-function initEditDiffTab($form) {
-  const $tabMenu = $form.find('.tabular.menu');
-  $tabMenu.find('.item').tab();
-  $tabMenu.find(`.item[data-tab="${$tabMenu.data('diff')}"]`).on('click', function () {
-    const $this = $(this);
-    $.post($this.data('url'), {
-      _csrf: csrfToken,
-      context: $this.data('context'),
-      content: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val(),
-    }, (data) => {
-      const $diffPreviewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('diff')}"]`);
-      $diffPreviewPanel.html(data);
-    });
-  });
-}
-
-function initEditorForm() {
-  if ($('.repository .edit.form').length === 0) {
-    return;
-  }
-
-  initEditPreviewTab($('.repository .edit.form'));
-  initEditDiffTab($('.repository .edit.form'));
-}
-
-function getCursorPosition($e) {
-  const el = $e.get(0);
-  let pos = 0;
-  if ('selectionStart' in el) {
-    pos = el.selectionStart;
-  } else if ('selection' in document) {
-    el.focus();
-    const Sel = document.selection.createRange();
-    const SelLength = document.selection.createRange().text.length;
-    Sel.moveStart('character', -el.value.length);
-    pos = Sel.text.length - SelLength;
-  }
-  return pos;
 }
 
 export function initRepoEditor() {
-  initEditorForm();
+  const $editArea = $('.repository.editor textarea#edit_area');
+  if (!$editArea.length) return;
 
-  $('.js-quick-pull-choice-option').on('change', function () {
-    if ($(this).val() === 'commit-to-new-branch') {
-      showElem($('.quick-pull-branch-name'));
-      $('.quick-pull-branch-name input').prop('required', true);
-    } else {
-      hideElem($('.quick-pull-branch-name'));
-      $('.quick-pull-branch-name input').prop('required', false);
-    }
-    $('#commit-button').text($(this).attr('button_text'));
-  });
-
-  const joinTreePath = ($fileNameEl) => {
-    const parts = [];
-    $('.breadcrumb span.section').each(function () {
-      const element = $(this);
-      if (element.find('a').length) {
-        parts.push(element.find('a').text());
+  for (const el of queryElems('.js-quick-pull-choice-option')) {
+    el.addEventListener('input', () => {
+      if (el.value === 'commit-to-new-branch') {
+        showElem('.quick-pull-branch-name');
+        document.querySelector('.quick-pull-branch-name input').required = true;
       } else {
-        parts.push(element.text());
+        hideElem('.quick-pull-branch-name');
+        document.querySelector('.quick-pull-branch-name input').required = false;
       }
+      document.querySelector('#commit-button').textContent = el.getAttribute('data-button-text');
     });
-    if ($fileNameEl.val()) parts.push($fileNameEl.val());
-    $('#tree_path').val(parts.join('/'));
-  };
+  }
 
-  const $editFilename = $('#file-name');
-  $editFilename.on('input', function () {
-    const parts = $(this).val().split('/');
-
+  const filenameInput = document.querySelector('#file-name');
+  function joinTreePath() {
+    const parts = [];
+    for (const el of document.querySelectorAll('.breadcrumb span.section')) {
+      const link = el.querySelector('a');
+      parts.push(link ? link.textContent : el.textContent);
+    }
+    if (filenameInput.value) {
+      parts.push(filenameInput.value);
+    }
+    document.querySelector('#tree_path').value = parts.join('/');
+  }
+  filenameInput.addEventListener('input', function () {
+    const parts = filenameInput.value.split('/');
     if (parts.length > 1) {
       for (let i = 0; i < parts.length; ++i) {
         const value = parts[i];
         if (i < parts.length - 1) {
           if (value.length) {
-            $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(this));
-            $('<div class="breadcrumb-divider">/</div>').insertBefore($(this));
+            $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(filenameInput));
+            $('<div class="breadcrumb-divider">/</div>').insertBefore($(filenameInput));
           }
         } else {
-          $(this).val(value);
+          filenameInput.value = value;
         }
         this.setSelectionRange(0, 0);
       }
     }
-
-    joinTreePath($(this));
+    joinTreePath();
   });
-
-  $editFilename.on('keydown', function (e) {
-    const $section = $('.breadcrumb span.section');
-
+  filenameInput.addEventListener('keydown', function (e) {
+    const sections = queryElems('.breadcrumb span.section');
+    const dividers = queryElems('.breadcrumb .breadcrumb-divider');
     // Jump back to last directory once the filename is empty
-    if (e.code === 'Backspace' && getCursorPosition($(this)) === 0 && $section.length > 0) {
+    if (e.code === 'Backspace' && filenameInput.selectionStart === 0 && sections.length > 0) {
       e.preventDefault();
-      const $divider = $('.breadcrumb .breadcrumb-divider');
-      const value = $section.last().find('a').text();
-      $(this).val(value + $(this).val());
+      const lastSection = sections[sections.length - 1];
+      const lastDivider = dividers.length ? dividers[dividers.length - 1] : null;
+      const value = lastSection.querySelector('a').textContent;
+      filenameInput.value = value + filenameInput.value;
       this.setSelectionRange(value.length, value.length);
-      $section.last().remove();
-      $divider.last().remove();
-      joinTreePath($(this));
+      lastDivider?.remove();
+      lastSection.remove();
+      joinTreePath();
     }
   });
 
-  const $editArea = $('.repository.editor textarea#edit_area');
-  if (!$editArea.length) return;
+  const $form = $('.repository.editor .edit.form');
+  initEditPreviewTab($form);
 
   (async () => {
-    const editor = await createCodeEditor($editArea[0], $editFilename[0]);
+    const editor = await createCodeEditor($editArea[0], filenameInput);
 
     // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
     // to enable or disable the commit button
-    const $commitButton = $('#commit-button');
+    const commitButton = document.querySelector('#commit-button');
     const $editForm = $('.ui.edit.form');
     const dirtyFileClass = 'dirty-file';
 
     // Disabling the button at the start
     if ($('input[name="page_has_posted"]').val() !== 'true') {
-      $commitButton.prop('disabled', true);
+      commitButton.disabled = true;
     }
 
     // Registering a custom listener for the file path and the file content
@@ -163,9 +126,9 @@ export function initRepoEditor() {
       silent: true,
       dirtyClass: dirtyFileClass,
       fieldSelector: ':input:not(.commit-form-wrapper :input)',
-      change() {
-        const dirty = $(this).hasClass(dirtyFileClass);
-        $commitButton.prop('disabled', !dirty);
+      change($form) {
+        const dirty = $form[0]?.classList.contains(dirtyFileClass);
+        commitButton.disabled = !dirty;
       },
     });
 
@@ -177,24 +140,24 @@ export function initRepoEditor() {
       editor.setValue(value);
     }
 
-    $commitButton.on('click', (event) => {
+    commitButton?.addEventListener('click', (e) => {
       // A modal which asks if an empty file should be committed
-      if ($editArea.val().length === 0) {
+      if (!$editArea.val()) {
         $('#edit-empty-content-modal').modal({
           onApprove() {
             $('.edit.form').trigger('submit');
           },
         }).modal('show');
-        event.preventDefault();
+        e.preventDefault();
       }
     });
   })();
 }
 
-export function renderPreviewPanelContent($panelPreviewer, data) {
-  $panelPreviewer.html(data);
+export function renderPreviewPanelContent($previewPanel, data) {
+  $previewPanel.html(data);
   initMarkupContent();
 
-  const refIssues = $panelPreviewer.find('p .ref-issue');
-  attachRefIssueContextPopup(refIssues);
+  const $refIssues = $previewPanel.find('p .ref-issue');
+  attachRefIssueContextPopup($refIssues);
 }

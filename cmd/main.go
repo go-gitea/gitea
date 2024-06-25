@@ -10,12 +10,12 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli/v2"
 )
 
 // cmdHelp is our own help subcommand with more information
+// Keep in mind that the "./gitea help"(subcommand) is different from "./gitea --help"(flag), the flag doesn't parse the config or output "DEFAULT CONFIGURATION:" information
 func cmdHelp() *cli.Command {
 	c := &cli.Command{
 		Name:      "help",
@@ -47,16 +47,10 @@ DEFAULT CONFIGURATION:
 	return c
 }
 
-var helpFlag = cli.HelpFlag
-
-func init() {
-	// cli.HelpFlag = nil TODO: after https://github.com/urfave/cli/issues/1794 we can use this
-}
-
 func appGlobalFlags() []cli.Flag {
 	return []cli.Flag{
 		// make the builtin flags at the top
-		helpFlag,
+		cli.HelpFlag,
 
 		// shared configuration flags, they are for global and for each sub-command at the same time
 		// eg: such command is valid: "./gitea --config /tmp/app.ini web --config /tmp/app.ini", while it's discouraged indeed
@@ -118,23 +112,30 @@ func prepareWorkPathAndCustomConf(action cli.ActionFunc) func(ctx *cli.Context) 
 	}
 }
 
-func NewMainApp(version, versionExtra string) *cli.App {
+type AppVersion struct {
+	Version string
+	Extra   string
+}
+
+func NewMainApp(appVer AppVersion) *cli.App {
 	app := cli.NewApp()
 	app.Name = "Gitea"
+	app.HelpName = "gitea"
 	app.Usage = "A painless self-hosted Git service"
-	app.Description = `By default, Gitea will start serving using the web-server with no argument, which can alternatively be run by running the subcommand "web".`
-	app.Version = version + versionExtra
+	app.Description = `Gitea program contains "web" and other subcommands. If no subcommand is given, it starts the web server by default. Use "web" subcommand for more web server arguments, use other subcommands for other purposes.`
+	app.Version = appVer.Version + appVer.Extra
 	app.EnableBashCompletion = true
 
 	// these sub-commands need to use config file
 	subCmdWithConfig := []*cli.Command{
+		cmdHelp(), // the "help" sub-command was used to show the more information for "work path" and "custom config"
 		CmdWeb,
 		CmdServ,
 		CmdHook,
+		CmdKeys,
 		CmdDump,
 		CmdAdmin,
 		CmdMigrate,
-		CmdKeys,
 		CmdDoctor,
 		CmdManager,
 		CmdEmbedded,
@@ -142,12 +143,7 @@ func NewMainApp(version, versionExtra string) *cli.App {
 		CmdDumpRepository,
 		CmdRestoreRepository,
 		CmdActions,
-		cmdHelp(), // the "help" sub-command was used to show the more information for "work path" and "custom config"
 	}
-
-	cmdConvert := util.ToPointer(*cmdDoctorConvert)
-	cmdConvert.Hidden = true // still support the legacy "./gitea doctor" by the hidden sub-command, remove it in next release
-	subCmdWithConfig = append(subCmdWithConfig, cmdConvert)
 
 	// these sub-commands do not need the config file, and they do not depend on any path or environment variable.
 	subCmdStandalone := []*cli.Command{

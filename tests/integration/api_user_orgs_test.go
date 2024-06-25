@@ -29,6 +29,7 @@ func TestUserOrgs(t *testing.T) {
 
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
 	org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
+	org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
 
 	assert.Equal(t, []*api.Organization{
 		{
@@ -54,6 +55,18 @@ func TestUserOrgs(t *testing.T) {
 			Website:     "",
 			Location:    "",
 			Visibility:  "public",
+		},
+		{
+			ID:          35,
+			Name:        org35.Name,
+			UserName:    org35.Name,
+			FullName:    org35.FullName,
+			Email:       org35.Email,
+			AvatarURL:   org35.AvatarLink(db.DefaultContext),
+			Description: "",
+			Website:     "",
+			Location:    "",
+			Visibility:  "private",
 		},
 	}, orgs)
 
@@ -74,8 +87,8 @@ func getUserOrgs(t *testing.T, userDoer, userCheck string) (orgs []*api.Organiza
 	if len(userDoer) != 0 {
 		token = getUserToken(t, userDoer, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser)
 	}
-	urlStr := fmt.Sprintf("/api/v1/users/%s/orgs?token=%s", userCheck, token)
-	req := NewRequest(t, "GET", urlStr)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/orgs", userCheck)).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &orgs)
 	return orgs
@@ -95,12 +108,14 @@ func TestMyOrgs(t *testing.T) {
 
 	normalUsername := "user2"
 	token := getUserToken(t, normalUsername, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser)
-	req = NewRequest(t, "GET", "/api/v1/user/orgs?token="+token)
+	req = NewRequest(t, "GET", "/api/v1/user/orgs").
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var orgs []*api.Organization
 	DecodeJSON(t, resp, &orgs)
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
 	org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
+	org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
 
 	assert.Equal(t, []*api.Organization{
 		{
@@ -126,6 +141,18 @@ func TestMyOrgs(t *testing.T) {
 			Website:     "",
 			Location:    "",
 			Visibility:  "public",
+		},
+		{
+			ID:          35,
+			Name:        org35.Name,
+			UserName:    org35.Name,
+			FullName:    org35.FullName,
+			Email:       org35.Email,
+			AvatarURL:   org35.AvatarLink(db.DefaultContext),
+			Description: "",
+			Website:     "",
+			Location:    "",
+			Visibility:  "private",
 		},
 	}, orgs)
 }

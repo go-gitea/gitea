@@ -40,7 +40,7 @@
 		<div class="field {{if .Err_KeepPattern}}error{{end}}">
 			<label>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.pattern"}}:</label>
 			<input name="keep_pattern" type="text" value="{{.CleanupRule.KeepPattern}}">
-			<p>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.pattern.container" | Safe}}</p>
+			<p>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.pattern.container"}}</p>
 		</div>
 		<div class="divider"></div>
 		<p>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.remove.title"}}</p>

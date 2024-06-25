@@ -37,7 +37,6 @@ func InitDBEngine(ctx context.Context) (err error) {
 		log.Info("Backing off for %d seconds", int64(setting.Database.DBConnectBackoff/time.Second))
 		time.Sleep(setting.Database.DBConnectBackoff)
 	}
-	db.HasEngine = true
 	config.SetDynGetter(system_model.NewDatabaseDynKeyGetter())
 	return nil
 }

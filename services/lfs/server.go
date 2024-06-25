@@ -5,6 +5,7 @@ package lfs
 
 import (
 	stdCtx "context"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -25,15 +26,14 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/services/context"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/minio/sha256-simd"
 )
 
 // requestContext contain variables from the HTTP request.
@@ -82,7 +82,7 @@ var rangeHeaderRegexp = regexp.MustCompile(`bytes=(\d+)\-(\d*).*`)
 // DownloadHandler gets the content from the content store
 func DownloadHandler(ctx *context.Context) {
 	rc := getRequestContext(ctx)
-	p := lfs_module.Pointer{Oid: ctx.Params("oid")}
+	p := lfs_module.Pointer{Oid: ctx.PathParam("oid")}
 
 	meta := getAuthenticatedMeta(ctx, rc, p, false)
 	if meta == nil {
@@ -137,7 +137,7 @@ func DownloadHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(contentLength, 10))
 	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
 
-	filename := ctx.Params("filename")
+	filename := ctx.PathParam("filename")
 	if len(filename) > 0 {
 		decodedFilename, err := base64.RawURLEncoding.DecodeString(filename)
 		if err == nil {
@@ -232,7 +232,7 @@ func BatchHandler(ctx *context.Context) {
 					return
 				}
 				if accessible {
-					_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
+					_, err := git_model.NewLFSMetaObject(ctx, repository.ID, p)
 					if err != nil {
 						log.Error("Unable to create LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
 						writeStatus(ctx, http.StatusInternalServerError)
@@ -272,9 +272,9 @@ func BatchHandler(ctx *context.Context) {
 func UploadHandler(ctx *context.Context) {
 	rc := getRequestContext(ctx)
 
-	p := lfs_module.Pointer{Oid: ctx.Params("oid")}
+	p := lfs_module.Pointer{Oid: ctx.PathParam("oid")}
 	var err error
-	if p.Size, err = strconv.ParseInt(ctx.Params("size"), 10, 64); err != nil {
+	if p.Size, err = strconv.ParseInt(ctx.PathParam("size"), 10, 64); err != nil {
 		writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
 	}
 
@@ -325,7 +325,7 @@ func UploadHandler(ctx *context.Context) {
 			log.Error("Error putting LFS MetaObject [%s] into content store. Error: %v", p.Oid, err)
 			return err
 		}
-		_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
+		_, err := git_model.NewLFSMetaObject(ctx, repository.ID, p)
 		return err
 	}
 
@@ -384,8 +384,8 @@ func decodeJSON(req *http.Request, v any) error {
 
 func getRequestContext(ctx *context.Context) *requestContext {
 	return &requestContext{
-		User:          ctx.Params("username"),
-		Repo:          strings.TrimSuffix(ctx.Params("reponame"), ".git"),
+		User:          ctx.PathParam("username"),
+		Repo:          strings.TrimSuffix(ctx.PathParam("reponame"), ".git"),
 		Authorization: ctx.Req.Header.Get("Authorization"),
 	}
 }
@@ -453,7 +453,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 
 		if download {
 			var link *lfs_module.Link
-			if setting.LFS.Storage.MinioConfig.ServeDirect {
+			if setting.LFS.Storage.ServeDirect() {
 				// If we have a signed url (S3, object storage), redirect to this directly.
 				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid)
 				if u != nil && err == nil {
@@ -477,7 +477,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 			}
 
 			// This is only needed to workaround https://github.com/git-lfs/git-lfs/issues/3662
-			verifyHeader["Accept"] = lfs_module.MediaType
+			verifyHeader["Accept"] = lfs_module.AcceptHeader
 
 			rep.Actions["verify"] = &lfs_module.Link{Href: rc.VerifyLink(pointer), Header: verifyHeader}
 		}

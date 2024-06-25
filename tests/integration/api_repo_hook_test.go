@@ -27,17 +27,14 @@ func TestAPICreateHook(t *testing.T) {
 	// user1 is an admin user
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	completeURL := func(lastSegment string) string {
-		return fmt.Sprintf("/api/v1/repos/%s/%s/%s?token=%s", owner.Name, repo.Name, lastSegment, token)
-	}
-	req := NewRequestWithJSON(t, "POST", completeURL("hooks"), api.CreateHookOption{
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/%s", owner.Name, repo.Name, "hooks"), api.CreateHookOption{
 		Type: "gitea",
 		Config: api.CreateHookOptionConfig{
 			"content_type": "json",
 			"url":          "http://example.com/",
 		},
 		AuthorizationHeader: "Bearer s3cr3t",
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var apiHook *api.Hook

@@ -16,6 +16,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ___________
@@ -128,11 +130,11 @@ func (t *Team) GetUnitsMap() map[string]string {
 	m := make(map[string]string)
 	if t.AccessMode >= perm.AccessModeAdmin {
 		for _, u := range unit.Units {
-			m[u.NameKey] = t.AccessMode.String()
+			m[u.NameKey] = t.AccessMode.ToString()
 		}
 	} else {
 		for _, u := range t.Units {
-			m[u.Unit().NameKey] = u.AccessMode.String()
+			m[u.Unit().NameKey] = u.AccessMode.ToString()
 		}
 	}
 	return m
@@ -172,23 +174,27 @@ func (t *Team) LoadMembers(ctx context.Context) (err error) {
 	return err
 }
 
-// UnitEnabled returns if the team has the given unit type enabled
+// UnitEnabled returns true if the team has the given unit type enabled
 func (t *Team) UnitEnabled(ctx context.Context, tp unit.Type) bool {
 	return t.UnitAccessMode(ctx, tp) > perm.AccessModeNone
 }
 
-// UnitAccessMode returns if the team has the given unit type enabled
+// UnitAccessMode returns the access mode for the given unit type, "none" for non-existent units
 func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode {
+	accessMode, _ := t.UnitAccessModeEx(ctx, tp)
+	return accessMode
+}
+
+func (t *Team) UnitAccessModeEx(ctx context.Context, tp unit.Type) (accessMode perm.AccessMode, exist bool) {
 	if err := t.LoadUnits(ctx); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
-
-	for _, unit := range t.Units {
-		if unit.Type == tp {
-			return unit.AccessMode
+	for _, u := range t.Units {
+		if u.Type == tp {
+			return u.AccessMode, true
 		}
 	}
-	return perm.AccessModeNone
+	return perm.AccessModeNone, false
 }
 
 // IsUsableTeamName tests if a name could be as team name
@@ -203,14 +209,10 @@ func IsUsableTeamName(name string) error {
 
 // GetTeam returns team by given team name and organization.
 func GetTeam(ctx context.Context, orgID int64, name string) (*Team, error) {
-	t := &Team{
-		OrgID:     orgID,
-		LowerName: strings.ToLower(name),
-	}
-	has, err := db.GetByBean(ctx, t)
+	t, exist, err := db.Get[Team](ctx, builder.Eq{"org_id": orgID, "lower_name": strings.ToLower(name)})
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		return nil, ErrTeamNotExist{orgID, 0, name}
 	}
 	return t, nil
@@ -224,9 +226,8 @@ func GetTeamIDsByNames(ctx context.Context, orgID int64, names []string, ignoreN
 		if err != nil {
 			if ignoreNonExistent {
 				continue
-			} else {
-				return nil, err
 			}
+			return nil, err
 		}
 		ids = append(ids, u.ID)
 	}

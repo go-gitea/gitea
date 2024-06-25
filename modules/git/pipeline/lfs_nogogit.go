@@ -8,35 +8,16 @@ package pipeline
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"code.gitea.io/gitea/modules/git"
 )
 
-// LFSResult represents commits found using a provided pointer file hash
-type LFSResult struct {
-	Name           string
-	SHA            string
-	Summary        string
-	When           time.Time
-	ParentHashes   []git.SHA1
-	BranchName     string
-	FullCommitName string
-}
-
-type lfsResultSlice []*LFSResult
-
-func (a lfsResultSlice) Len() int           { return len(a) }
-func (a lfsResultSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a lfsResultSlice) Less(i, j int) bool { return a[j].When.After(a[i].When) }
-
 // FindLFSFile finds commits that contain a provided pointer file hash
-func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
+func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, error) {
 	resultsMap := map[string]*LFSResult{}
 	results := make([]*LFSResult, 0)
 
@@ -75,7 +56,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	fnameBuf := make([]byte, 4096)
 	modeBuf := make([]byte, 40)
-	workingShaBuf := make([]byte, 20)
+	workingShaBuf := make([]byte, objectID.Type().FullLength()/2)
 
 	for scan.Scan() {
 		// Get the next commit ID
@@ -123,20 +104,19 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 					return nil, err
 				}
 
-				_, err := batchStdinWriter.Write([]byte(curCommit.Tree.ID.String() + "\n"))
-				if err != nil {
+				if _, err := batchStdinWriter.Write([]byte(curCommit.Tree.ID.String() + "\n")); err != nil {
 					return nil, err
 				}
 				curPath = ""
 			case "tree":
 				var n int64
 				for n < size {
-					mode, fname, sha20byte, count, err := git.ParseTreeLine(batchReader, modeBuf, fnameBuf, workingShaBuf)
+					mode, fname, binObjectID, count, err := git.ParseTreeLine(objectID.Type(), batchReader, modeBuf, fnameBuf, workingShaBuf)
 					if err != nil {
 						return nil, err
 					}
 					n += int64(count)
-					if bytes.Equal(sha20byte, hash[:]) {
+					if bytes.Equal(binObjectID, objectID.RawValue()) {
 						result := LFSResult{
 							Name:         curPath + string(fname),
 							SHA:          curCommit.ID.String(),
@@ -146,9 +126,9 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 						}
 						resultsMap[curCommit.ID.String()+":"+curPath+string(fname)] = &result
 					} else if string(mode) == git.EntryModeTree.String() {
-						sha40Byte := make([]byte, 40)
-						git.To40ByteSHA(sha20byte, sha40Byte)
-						trees = append(trees, sha40Byte)
+						hexObjectID := make([]byte, objectID.Type().FullLength())
+						git.BinToHex(objectID.Type(), binObjectID, hexObjectID)
+						trees = append(trees, hexObjectID)
 						paths = append(paths, curPath+string(fname)+"/")
 					}
 				}
@@ -170,6 +150,10 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 				} else {
 					break commitReadingLoop
 				}
+			default:
+				if err := git.DiscardFull(batchReader, size+1); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -180,8 +164,8 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	for _, result := range resultsMap {
 		hasParent := false
-		for _, parentHash := range result.ParentHashes {
-			if _, hasParent = resultsMap[parentHash.String()+":"+result.Name]; hasParent {
+		for _, parentID := range result.ParentHashes {
+			if _, hasParent = resultsMap[parentID.String()+":"+result.Name]; hasParent {
 				break
 			}
 		}
@@ -229,7 +213,6 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 				errChan <- err
 				break
 			}
-
 		}
 	}()
 
@@ -238,7 +221,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 	select {
 	case err, has := <-errChan:
 		if has {
-			return nil, fmt.Errorf("Unable to obtain name for LFS files. Error: %w", err)
+			return nil, lfsError("unable to obtain name for LFS files", err)
 		}
 	default:
 	}

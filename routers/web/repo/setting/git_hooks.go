@@ -6,8 +6,8 @@ package setting
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/services/context"
 )
 
 // GitHooks hooks of a repository
@@ -30,7 +30,7 @@ func GitHooksEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.githooks")
 	ctx.Data["PageIsSettingsGitHooks"] = true
 
-	name := ctx.Params(":name")
+	name := ctx.PathParam(":name")
 	hook, err := ctx.Repo.GitRepo.GetHook(name)
 	if err != nil {
 		if err == git.ErrNotValidHook {
@@ -46,7 +46,7 @@ func GitHooksEdit(ctx *context.Context) {
 
 // GitHooksEditPost response for editing a git hook of a repository
 func GitHooksEditPost(ctx *context.Context) {
-	name := ctx.Params(":name")
+	name := ctx.PathParam(":name")
 	hook, err := ctx.Repo.GitRepo.GetHook(name)
 	if err != nil {
 		if err == git.ErrNotValidHook {

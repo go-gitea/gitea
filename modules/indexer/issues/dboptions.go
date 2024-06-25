@@ -6,13 +6,14 @@ package issues
 import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/optional"
 )
 
 func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOptions {
 	searchOpt := &SearchOptions{
 		Keyword:   keyword,
 		RepoIDs:   opts.RepoIDs,
-		AllPublic: false,
+		AllPublic: opts.AllPublic,
 		IsPull:    opts.IsPull,
 		IsClosed:  opts.IsClosed,
 	}
@@ -37,20 +38,24 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		searchOpt.MilestoneIDs = opts.MilestoneIDs
 	}
 
+	if opts.ProjectID > 0 {
+		searchOpt.ProjectID = optional.Some(opts.ProjectID)
+	} else if opts.ProjectID == -1 { // FIXME: this is inconsistent from other places
+		searchOpt.ProjectID = optional.Some[int64](0) // Those issues with no project(projectid==0)
+	}
+
 	// See the comment of issues_model.SearchOptions for the reason why we need to convert
-	convertID := func(id int64) *int64 {
+	convertID := func(id int64) optional.Option[int64] {
 		if id > 0 {
-			return &id
+			return optional.Some(id)
 		}
 		if id == db.NoConditionID {
-			var zero int64
-			return &zero
+			return optional.None[int64]()
 		}
 		return nil
 	}
 
-	searchOpt.ProjectID = convertID(opts.ProjectID)
-	searchOpt.ProjectBoardID = convertID(opts.ProjectBoardID)
+	searchOpt.ProjectColumnID = convertID(opts.ProjectColumnID)
 	searchOpt.PosterID = convertID(opts.PosterID)
 	searchOpt.AssigneeID = convertID(opts.AssigneeID)
 	searchOpt.MentionID = convertID(opts.MentionedID)
@@ -59,16 +64,16 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 	searchOpt.SubscriberID = convertID(opts.SubscriberID)
 
 	if opts.UpdatedAfterUnix > 0 {
-		searchOpt.UpdatedAfterUnix = &opts.UpdatedAfterUnix
+		searchOpt.UpdatedAfterUnix = optional.Some(opts.UpdatedAfterUnix)
 	}
 	if opts.UpdatedBeforeUnix > 0 {
-		searchOpt.UpdatedBeforeUnix = &opts.UpdatedBeforeUnix
+		searchOpt.UpdatedBeforeUnix = optional.Some(opts.UpdatedBeforeUnix)
 	}
 
 	searchOpt.Paginator = opts.Paginator
 
 	switch opts.SortType {
-	case "":
+	case "", "latest":
 		searchOpt.SortBy = SortByCreatedDesc
 	case "oldest":
 		searchOpt.SortBy = SortByCreatedAsc
@@ -86,7 +91,7 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		searchOpt.SortBy = SortByDeadlineDesc
 	case "priority", "priorityrepo", "project-column-sorting":
 		// Unsupported sort type for search
-		searchOpt.SortBy = SortByUpdatedDesc
+		fallthrough
 	default:
 		searchOpt.SortBy = SortByUpdatedDesc
 	}

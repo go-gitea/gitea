@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -26,25 +25,27 @@ var (
 
 	// Database holds the database settings
 	Database = struct {
-		Type              DatabaseType
-		Host              string
-		Name              string
-		User              string
-		Passwd            string
-		Schema            string
-		SSLMode           string
-		Path              string
-		LogSQL            bool
-		MysqlCharset      string
-		Timeout           int // seconds
-		SQLiteJournalMode string
-		DBConnectRetries  int
-		DBConnectBackoff  time.Duration
-		MaxIdleConns      int
-		MaxOpenConns      int
-		ConnMaxLifetime   time.Duration
-		IterateBufferSize int
-		AutoMigration     bool
+		Type               DatabaseType
+		Host               string
+		Name               string
+		User               string
+		Passwd             string
+		Schema             string
+		SSLMode            string
+		Path               string
+		LogSQL             bool
+		MysqlCharset       string
+		CharsetCollation   string
+		Timeout            int // seconds
+		SQLiteJournalMode  string
+		DBConnectRetries   int
+		DBConnectBackoff   time.Duration
+		MaxIdleConns       int
+		MaxOpenConns       int
+		ConnMaxLifetime    time.Duration
+		IterateBufferSize  int
+		AutoMigration      bool
+		SlowQueryThreshold time.Duration
 	}{
 		Timeout:           500,
 		IterateBufferSize: 50,
@@ -68,7 +69,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	}
 	Database.Schema = sec.Key("SCHEMA").String()
 	Database.SSLMode = sec.Key("SSL_MODE").MustString("disable")
-	Database.MysqlCharset = sec.Key("MYSQL_CHARSET").MustString("utf8mb4") // do not document it, end users won't need it.
+	Database.CharsetCollation = sec.Key("CHARSET_COLLATION").String()
 
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
@@ -87,6 +88,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	Database.DBConnectRetries = sec.Key("DB_RETRIES").MustInt(10)
 	Database.DBConnectBackoff = sec.Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 	Database.AutoMigration = sec.Key("AUTO_MIGRATION").MustBool(true)
+	Database.SlowQueryThreshold = sec.Key("SLOW_QUERY_THRESHOLD").MustDuration(5 * time.Second)
 }
 
 // DBConnStr returns database connection string
@@ -106,8 +108,8 @@ func DBConnStr() (string, error) {
 		if tls == "disable" { // allow (Postgres-inspired) default value to work in MySQL
 			tls = "false"
 		}
-		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%scharset=%s&parseTime=true&tls=%s",
-			Database.User, Database.Passwd, connType, Database.Host, Database.Name, paramSep, Database.MysqlCharset, tls)
+		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%sparseTime=true&tls=%s",
+			Database.User, Database.Passwd, connType, Database.Host, Database.Name, paramSep, tls)
 	case "postgres":
 		connStr = getPostgreSQLConnectionString(Database.Host, Database.User, Database.Passwd, Database.Name, Database.SSLMode)
 	case "mssql":
@@ -117,7 +119,7 @@ func DBConnStr() (string, error) {
 		if !EnableSQLite3 {
 			return "", errors.New("this Gitea binary was not built with SQLite3 support")
 		}
-		if err := os.MkdirAll(path.Dir(Database.Path), os.ModePerm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(Database.Path), os.ModePerm); err != nil {
 			return "", fmt.Errorf("Failed to create directories: %w", err)
 		}
 		journalMode := ""
@@ -169,8 +171,8 @@ func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbsslMode s
 		RawQuery: dbParam,
 	}
 	query := connURL.Query()
-	if dbHost[0] == '/' { // looks like a unix socket
-		query.Add("host", dbHost)
+	if strings.HasPrefix(host, "/") { // looks like a unix socket
+		query.Add("host", host)
 		connURL.Host = ":" + port
 	}
 	query.Set("sslmode", dbsslMode)

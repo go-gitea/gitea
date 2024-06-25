@@ -31,8 +31,7 @@ func TestAPIRepoBranchesPlain(t *testing.T) {
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 		link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/org3/%s/branches", repo3.Name)) // a plain repo
-		link.RawQuery = url.Values{"token": {token}}.Encode()
-		resp := MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+		resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 		bs, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 
@@ -43,15 +42,14 @@ func TestAPIRepoBranchesPlain(t *testing.T) {
 		assert.EqualValues(t, "master", branches[1].Name)
 
 		link2, _ := url.Parse(fmt.Sprintf("/api/v1/repos/org3/%s/branches/test_branch", repo3.Name))
-		link2.RawQuery = url.Values{"token": {token}}.Encode()
-		resp = MakeRequest(t, NewRequest(t, "GET", link2.String()), http.StatusOK)
+		resp = MakeRequest(t, NewRequest(t, "GET", link2.String()).AddTokenAuth(token), http.StatusOK)
 		bs, err = io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 		var branch api.Branch
 		assert.NoError(t, json.Unmarshal(bs, &branch))
 		assert.EqualValues(t, "test_branch", branch.Name)
 
-		req := NewRequest(t, "POST", link.String())
+		req := NewRequest(t, "POST", link.String()).AddTokenAuth(token)
 		req.Header.Add("Content-Type", "application/json")
 		req.Body = io.NopCloser(bytes.NewBufferString(`{"new_branch_name":"test_branch2", "old_branch_name": "test_branch", "old_ref_name":"refs/heads/test_branch"}`))
 		resp = MakeRequest(t, req, http.StatusCreated)
@@ -62,7 +60,7 @@ func TestAPIRepoBranchesPlain(t *testing.T) {
 		assert.EqualValues(t, "test_branch2", branch2.Name)
 		assert.EqualValues(t, branch.Commit.ID, branch2.Commit.ID)
 
-		resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+		resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 		bs, err = io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 
@@ -76,8 +74,7 @@ func TestAPIRepoBranchesPlain(t *testing.T) {
 		link3, _ := url.Parse(fmt.Sprintf("/api/v1/repos/org3/%s/branches/test_branch2", repo3.Name))
 		MakeRequest(t, NewRequest(t, "DELETE", link3.String()), http.StatusNotFound)
 
-		link3.RawQuery = url.Values{"token": {token}}.Encode()
-		MakeRequest(t, NewRequest(t, "DELETE", link3.String()), http.StatusNoContent)
+		MakeRequest(t, NewRequest(t, "DELETE", link3.String()).AddTokenAuth(token), http.StatusNoContent)
 		assert.NoError(t, err)
 	})
 }
@@ -91,8 +88,7 @@ func TestAPIRepoBranchesMirror(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/org3/%s/branches", repo5.Name)) // a mirror repo
-	link.RawQuery = url.Values{"token": {token}}.Encode()
-	resp := MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	bs, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 
@@ -103,15 +99,14 @@ func TestAPIRepoBranchesMirror(t *testing.T) {
 	assert.EqualValues(t, "master", branches[1].Name)
 
 	link2, _ := url.Parse(fmt.Sprintf("/api/v1/repos/org3/%s/branches/test_branch", repo5.Name))
-	link2.RawQuery = url.Values{"token": {token}}.Encode()
-	resp = MakeRequest(t, NewRequest(t, "GET", link2.String()), http.StatusOK)
+	resp = MakeRequest(t, NewRequest(t, "GET", link2.String()).AddTokenAuth(token), http.StatusOK)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	var branch api.Branch
 	assert.NoError(t, json.Unmarshal(bs, &branch))
 	assert.EqualValues(t, "test_branch", branch.Name)
 
-	req := NewRequest(t, "POST", link.String())
+	req := NewRequest(t, "POST", link.String()).AddTokenAuth(token)
 	req.Header.Add("Content-Type", "application/json")
 	req.Body = io.NopCloser(bytes.NewBufferString(`{"new_branch_name":"test_branch2", "old_branch_name": "test_branch", "old_ref_name":"refs/heads/test_branch"}`))
 	resp = MakeRequest(t, req, http.StatusForbidden)
@@ -119,7 +114,7 @@ func TestAPIRepoBranchesMirror(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\""+setting.AppURL+"api/swagger\"}\n", string(bs))
 
-	resp = MakeRequest(t, NewRequest(t, "DELETE", link2.String()), http.StatusForbidden)
+	resp = MakeRequest(t, NewRequest(t, "DELETE", link2.String()).AddTokenAuth(token), http.StatusForbidden)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\""+setting.AppURL+"api/swagger\"}\n", string(bs))

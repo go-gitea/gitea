@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/contexttest"
+	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +18,7 @@ func TestTestHook(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	ctx, _ := contexttest.MockAPIContext(t, "user2/repo1/wiki/_pages")
-	ctx.SetParams(":id", "1")
+	ctx.SetPathParam(":id", "1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadRepoCommit(t, ctx)
 	contexttest.LoadUser(t, ctx, 2)

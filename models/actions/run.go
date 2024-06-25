@@ -46,10 +46,13 @@ type ActionRun struct {
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status                       `xorm:"index"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
-	Started           timeutil.TimeStamp
-	Stopped           timeutil.TimeStamp
-	Created           timeutil.TimeStamp `xorm:"created"`
-	Updated           timeutil.TimeStamp `xorm:"updated"`
+	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
+	Started timeutil.TimeStamp
+	Stopped timeutil.TimeStamp
+	// PreviousDuration is used for recording previous duration
+	PreviousDuration time.Duration
+	Created          timeutil.TimeStamp `xorm:"created"`
+	Updated          timeutil.TimeStamp `xorm:"updated"`
 }
 
 func init() {
@@ -69,6 +72,13 @@ func (run *ActionRun) Link() string {
 		return ""
 	}
 	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.Index)
+}
+
+func (run *ActionRun) WorkflowLink() string {
+	if run.Repo == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s/actions/?workflow=%s", run.Repo.Link(), run.WorkflowID)
 }
 
 // RefLink return the url of run's ref
@@ -95,13 +105,10 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 		return nil
 	}
 
-	if run.Repo == nil {
-		repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
-		if err != nil {
-			return err
-		}
-		run.Repo = repo
+	if err := run.LoadRepo(ctx); err != nil {
+		return err
 	}
+
 	if err := run.Repo.LoadAttributes(ctx); err != nil {
 		return err
 	}
@@ -117,8 +124,21 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
+func (run *ActionRun) LoadRepo(ctx context.Context) error {
+	if run == nil || run.Repo != nil {
+		return nil
+	}
+
+	repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
+	if err != nil {
+		return err
+	}
+	run.Repo = repo
+	return nil
+}
+
 func (run *ActionRun) Duration() time.Duration {
-	return calculateDuration(run.Started, run.Stopped, run.Status)
+	return calculateDuration(run.Started, run.Stopped, run.Status) + run.PreviousDuration
 }
 
 func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
@@ -141,6 +161,10 @@ func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, err
 		return &payload, nil
 	}
 	return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
+}
+
+func (run *ActionRun) IsSchedule() bool {
+	return run.ScheduleID > 0
 }
 
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
@@ -167,14 +191,16 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 	return err
 }
 
-// CancelRunningJobs cancels all running and waiting jobs associated with a specific workflow.
-func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string) error {
-	// Find all runs in the specified repository, reference, and workflow with statuses 'Running' or 'Waiting'.
-	runs, total, err := FindRuns(ctx, FindRunOptions{
-		RepoID:     repoID,
-		Ref:        ref,
-		WorkflowID: workflowID,
-		Status:     []Status{StatusRunning, StatusWaiting},
+// CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.
+// It's useful when a new run is triggered, and all previous runs needn't be continued anymore.
+func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
+	// Find all runs in the specified repository, reference, and workflow with non-final status
+	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
+		RepoID:       repoID,
+		Ref:          ref,
+		WorkflowID:   workflowID,
+		TriggerEvent: event,
+		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked},
 	})
 	if err != nil {
 		return err
@@ -188,7 +214,7 @@ func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string
 	// Iterate over each found run and cancel its associated jobs.
 	for _, run := range runs {
 		// Find all jobs associated with the current run.
-		jobs, _, err := FindRunJobs(ctx, FindRunJobOptions{
+		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
 			RunID: run.ID,
 		})
 		if err != nil {
@@ -236,11 +262,11 @@ func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string
 
 // InsertRun inserts a run
 func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
-	ctx, commiter, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 	if err != nil {
@@ -305,7 +331,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		}
 	}
 
-	return commiter.Commit()
+	return committer.Commit()
 }
 
 func GetRunByID(ctx context.Context, id int64) (*ActionRun, error) {
@@ -333,6 +359,23 @@ func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error)
 	}
 
 	return run, nil
+}
+
+func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, branch, event string) (*ActionRun, error) {
+	var run ActionRun
+	q := db.GetEngine(ctx).Where("repo_id=?", repoID).
+		And("ref = ?", branch).
+		And("workflow_id = ?", workflowFile)
+	if event != "" {
+		q.And("event = ?", event)
+	}
+	has, err := q.Desc("id").Get(&run)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.NewNotExistErrorf("run with repo_id %d, ref %s, workflow_id %s", repoID, branch, workflowFile)
+	}
+	return &run, nil
 }
 
 // UpdateRun updates a run.

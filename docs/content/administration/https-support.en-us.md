@@ -35,7 +35,7 @@ CERT_FILE = cert.pem
 KEY_FILE  = key.pem
 ```
 
-Note that if your certificate is signed by a third party certificate authority (i.e. not self-signed), then cert.pem should contain the certificate chain. The server certificate must be the first entry in cert.pem, followed by the intermediaries in order (if any). The root certificate does not have to be included because the connecting client must already have it in order to estalbish the trust relationship.
+Note that if your certificate is signed by a third party certificate authority (i.e. not self-signed), then cert.pem should contain the certificate chain. The server certificate must be the first entry in cert.pem, followed by the intermediaries in order (if any). The root certificate does not have to be included because the connecting client must already have it in order to establish the trust relationship.
 To learn more about the config values, please checkout the [Config Cheat Sheet](administration/config-cheat-sheet.md#server-server).
 
 For the `CERT_FILE` or `KEY_FILE` field, the file path is relative to the `GITEA_CUSTOM` environment variable when it is a relative path. It can be an absolute path as well.

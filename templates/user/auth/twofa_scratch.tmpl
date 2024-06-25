@@ -2,20 +2,19 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user signin">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form tw-max-w-2xl tw-m-auto" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<h3 class="ui top attached header">
 					{{ctx.Locale.Tr "twofa_scratch"}}
 				</h3>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
-					<div class="required inline field">
+					<div class="required field">
 						<label for="token">{{ctx.Locale.Tr "auth.scratch_code"}}</label>
 						<input id="token" name="token" type="text" autocomplete="off" autofocus required>
 					</div>
 
 					<div class="inline field">
-						<label></label>
 						<button class="ui primary button">{{ctx.Locale.Tr "auth.verify"}}</button>
 					</div>
 				</div>

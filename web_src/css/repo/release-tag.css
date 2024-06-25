@@ -1,10 +1,11 @@
-.repository.releases #release-list {
-  margin-top: 12px;
-  padding-top: 12px;
+#release-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--page-spacing);
   padding-left: 0;
 }
 
-.repository.releases #release-list .release-list-title {
+#release-list .release-list-title {
   font-size: 2rem;
   font-weight: var(--font-weight-normal);
   display: flex;
@@ -13,58 +14,81 @@
   margin: 0;
 }
 
-.repository.releases #release-list > li .meta {
-  padding-top: 25px;
+#release-list .release-entry {
+  display: flex;
+  gap: var(--page-spacing);
+}
+
+#release-list .release-entry .meta {
+  flex: 0 0 150px;
   position: relative;
   text-align: right;
   display: flex;
   flex-direction: column;
-  gap: 1em;
+  gap: 10px;
 }
 
-.repository.releases #release-list > li .detail {
-  padding-bottom: 20px;
-  border-left: 1px solid var(--color-secondary);
+#release-list .release-entry .detail {
+  flex: 1;
+  margin: 0;
 }
 
-.repository.releases #release-list > li .detail .author img {
+@media (max-width: 767.98px) {
+  #release-list .release-entry {
+    flex-direction: column;
+    gap: var(--page-spacing);
+  }
+  #release-list .release-entry .meta {
+    margin-left: 6px;
+    flex-direction: row;
+    flex-basis: auto;
+    display: flex;
+    align-items: center;
+  }
+  #release-list .js-branch-tag-selector {
+    margin-left: auto;
+  }
+  #release-list .branch-selector-dropdown .menu { /* open menu to left */
+    right: 0;
+    left: auto;
+  }
+}
+
+#release-list .release-entry .detail .author img {
   margin-bottom: 2px; /* the legacy trick to align the avatar vertically, no better solution at the moment */
 }
 
-.repository.releases #release-list > li .detail .download .list {
+#release-list .release-entry .detail .download .list {
   padding-left: 0;
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
-  background: var(--color-light);
 }
 
-.repository.releases #release-list > li .detail .download .list li {
+#release-list .release-entry .detail .download .list li {
   display: flex;
   justify-content: space-between;
   padding: 8px;
   border-bottom: 1px solid var(--color-secondary);
 }
 
-.repository.releases #release-list > li .detail .download .list li:last-child {
+#release-list .release-entry .detail .download[open] summary {
+  margin-bottom: 10px;
+}
+
+#release-list .download-icon {
+  margin-right: .25rem;
+  color: var(--color-text-light-1);
+}
+
+#release-list .release-entry .detail .download .list li:last-child {
   border-bottom: none;
 }
 
-.repository.releases #release-list > li .detail .dot {
-  width: 10px;
-  height: 10px;
-  background-color: var(--color-secondary-dark-3);
-  position: absolute;
-  left: -5.5px;
-  top: 30px;
-  border-radius: var(--border-radius-circle);
-  border: 2.5px solid var(--color-body);
-}
-
-.repository.tags #tags-table .tag {
+#tags-table .tag-list-row {
   padding: 8px 12px;
 }
 
-.repository.tags #tags-table .release-tag-name {
+#tags-table .tag-list-row-title {
   font-size: 18px;
   font-weight: var(--font-weight-normal);
 }

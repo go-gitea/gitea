@@ -4,6 +4,7 @@
 package lfs
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"hash"
@@ -12,8 +13,6 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
-
-	"github.com/minio/sha256-simd"
 )
 
 var (

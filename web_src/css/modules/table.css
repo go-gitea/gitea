@@ -1,0 +1,385 @@
+/* based on Fomantic UI segment module, with just the parts extracted that we use. If you find any
+   unused rules here after refactoring, please remove them. */
+
+.ui.table {
+  width: 100%;
+  margin: 1em 0;
+  border: 1px solid var(--color-secondary);
+  border-radius: 0.28571429rem;
+  vertical-align: middle;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: var(--color-text);
+  background: var(--color-box-body);
+  border-color: var(--color-secondary);
+  text-align: start;
+}
+
+.ui.table:first-child {
+  margin-top: 0;
+}
+.ui.table:last-child {
+  margin-bottom: 0;
+}
+.ui.table > thead,
+.ui.table > tbody {
+  text-align: inherit;
+  vertical-align: inherit;
+}
+
+.ui.table > thead > tr > th {
+  background: var(--color-box-header);
+  text-align: inherit;
+  color: var(--color-text);
+  padding: 6px 5px;
+  vertical-align: inherit;
+  font-weight: var(--font-weight-normal);
+  border-bottom: 1px solid var(--color-secondary);
+  border-left: none;
+}
+.ui.table > thead > tr > th:first-child {
+  border-left: none;
+}
+.ui.table > thead > tr:first-child > th:first-child {
+  border-radius: 0.28571429rem 0 0;
+}
+.ui.table > thead > tr:first-child > th:last-child {
+  border-radius: 0 0.28571429rem 0 0;
+}
+.ui.table > thead > tr:first-child > th:only-child {
+  border-radius: 0.28571429rem 0.28571429rem 0 0;
+}
+
+.ui.table > tfoot > tr > th,
+.ui.table > tfoot > tr > td {
+  border-top: 1px solid var(--color-secondary);
+  background: var(--color-box-body);
+  text-align: inherit;
+  color: var(--color-text);
+  padding: 0.78571429em;
+  vertical-align: inherit;
+  font-weight: var(--font-weight-normal);
+}
+.ui.table > tfoot > tr > th:first-child,
+.ui.table > tfoot > tr > td:first-child {
+  border-left: none;
+}
+.ui.table > tfoot > tr:first-child > th:first-child,
+.ui.table > tfoot > tr:first-child > td:first-child {
+  border-radius: 0 0 0 0.28571429rem;
+}
+.ui.table > tfoot > tr:first-child > th:last-child,
+.ui.table > tfoot > tr:first-child > td:last-child {
+  border-radius: 0 0 0.28571429rem;
+}
+.ui.table > tfoot > tr:first-child > th:only-child,
+.ui.table > tfoot > tr:first-child > td:only-child {
+  border-radius: 0 0 0.28571429rem 0.28571429rem;
+}
+
+.ui.table > tr > td,
+.ui.table > tbody > tr > td {
+  border-top: 1px solid var(--color-secondary-alpha-50);
+  padding: 6px 5px;
+  text-align: inherit;
+}
+.ui.table > tr:first-child > td,
+.ui.table > tbody > tr:first-child > td {
+  border-top: none;
+}
+
+.ui.table.segment {
+  padding: 0;
+}
+.ui.table.segment::after {
+  display: none;
+}
+
+@media only screen and (max-width: 767.98px) {
+  .ui.table:not(.unstackable) {
+    width: 100%;
+    padding: 0;
+  }
+  .ui.table:not(.unstackable) > thead,
+  .ui.table:not(.unstackable) > thead > tr,
+  .ui.table:not(.unstackable) > tfoot,
+  .ui.table:not(.unstackable) > tfoot > tr,
+  .ui.table:not(.unstackable) > tbody,
+  .ui.table:not(.unstackable) > tr,
+  .ui.table:not(.unstackable) > tbody > tr,
+  .ui.table:not(.unstackable) > tr > th,
+  .ui.table:not(.unstackable) > thead > tr > th,
+  .ui.table:not(.unstackable) > tbody > tr > th,
+  .ui.table:not(.unstackable) > tfoot > tr > th,
+  .ui.table:not(.unstackable) > tr > td,
+  .ui.table:not(.unstackable) > tbody > tr > td,
+  .ui.table:not(.unstackable) > tfoot > tr > td {
+    display: block !important;
+    width: auto !important;
+  }
+  .ui.table:not(.unstackable) > thead {
+    display: block;
+  }
+  .ui.table:not(.unstackable) > tfoot {
+    display: block;
+  }
+  .ui.ui.ui.ui.table:not(.unstackable) > tr,
+  .ui.ui.ui.ui.table:not(.unstackable) > thead > tr,
+  .ui.ui.ui.ui.table:not(.unstackable) > tbody > tr,
+  .ui.ui.ui.ui.table:not(.unstackable) > tfoot > tr {
+    padding-top: 1em;
+    padding-bottom: 1em;
+  }
+  .ui.ui.ui.ui.table:not(.unstackable) > tr > th,
+  .ui.ui.ui.ui.table:not(.unstackable) > thead > tr > th,
+  .ui.ui.ui.ui.table:not(.unstackable) > tbody > tr > th,
+  .ui.ui.ui.ui.table:not(.unstackable) > tfoot > tr > th,
+  .ui.ui.ui.ui.table:not(.unstackable) > tr > td,
+  .ui.ui.ui.ui.table:not(.unstackable) > tbody > tr > td,
+  .ui.ui.ui.ui.table:not(.unstackable) > tfoot > tr > td {
+    background: none;
+    border: none;
+    padding: 0.25em 0.75em;
+  }
+  .ui.table:not(.unstackable) > tr > th:first-child,
+  .ui.table:not(.unstackable) > thead > tr > th:first-child,
+  .ui.table:not(.unstackable) > tbody > tr > th:first-child,
+  .ui.table:not(.unstackable) > tfoot > tr > th:first-child,
+  .ui.table:not(.unstackable) > tr > td:first-child,
+  .ui.table:not(.unstackable) > tbody > tr > td:first-child,
+  .ui.table:not(.unstackable) > tfoot > tr > td:first-child {
+    font-weight: var(--font-weight-normal);
+  }
+}
+
+.ui.table[class*="left aligned"],
+.ui.table [class*="left aligned"] {
+  text-align: left;
+}
+
+.ui.table[class*="center aligned"],
+.ui.table [class*="center aligned"] {
+  text-align: center;
+}
+
+.ui.table[class*="right aligned"],
+.ui.table [class*="right aligned"] {
+  text-align: right;
+}
+
+.ui.table[class*="top aligned"],
+.ui.table [class*="top aligned"] {
+  vertical-align: top;
+}
+
+.ui.table[class*="middle aligned"],
+.ui.table [class*="middle aligned"] {
+  vertical-align: middle;
+}
+
+.ui.table th.collapsing,
+.ui.table td.collapsing {
+  width: 1px;
+  white-space: nowrap;
+}
+
+.ui.fixed.table {
+  table-layout: fixed;
+}
+.ui.fixed.table th,
+.ui.fixed.table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ui.attached.table {
+  top: 0;
+  bottom: 0;
+  border-radius: 0;
+  margin: 0 -1px;
+  width: calc(100% + 2px);
+  max-width: calc(100% + 2px);
+  border: 1px solid var(--color-secondary);
+}
+.ui.attached + .ui.attached.table:not(.top) {
+  border-top: none;
+}
+
+.ui[class*="bottom attached"].table {
+  bottom: 0;
+  margin-top: 0;
+  top: 0;
+  margin-bottom: 1em;
+  border-radius: 0 0 0.28571429rem 0.28571429rem;
+}
+.ui[class*="bottom attached"].table:last-child {
+  margin-bottom: 0;
+}
+
+.ui.striped.table > tr:nth-child(2n),
+.ui.striped.table > tbody > tr:nth-child(2n) {
+  background: var(--color-light);
+}
+
+.ui.table[class*="single line"],
+.ui.table [class*="single line"] {
+  white-space: nowrap;
+}
+
+/* Column Width */
+.ui.table th.one.wide,
+.ui.table td.one.wide {
+  width: 6.25%;
+}
+.ui.table th.two.wide,
+.ui.table td.two.wide {
+  width: 12.5%;
+}
+.ui.table th.three.wide,
+.ui.table td.three.wide {
+  width: 18.75%;
+}
+.ui.table th.four.wide,
+.ui.table td.four.wide {
+  width: 25%;
+}
+.ui.table th.five.wide,
+.ui.table td.five.wide {
+  width: 31.25%;
+}
+.ui.table th.six.wide,
+.ui.table td.six.wide {
+  width: 37.5%;
+}
+.ui.table th.seven.wide,
+.ui.table td.seven.wide {
+  width: 43.75%;
+}
+.ui.table th.eight.wide,
+.ui.table td.eight.wide {
+  width: 50%;
+}
+.ui.table th.nine.wide,
+.ui.table td.nine.wide {
+  width: 56.25%;
+}
+.ui.table th.ten.wide,
+.ui.table td.ten.wide {
+  width: 62.5%;
+}
+.ui.table th.eleven.wide,
+.ui.table td.eleven.wide {
+  width: 68.75%;
+}
+.ui.table th.twelve.wide,
+.ui.table td.twelve.wide {
+  width: 75%;
+}
+.ui.table th.thirteen.wide,
+.ui.table td.thirteen.wide {
+  width: 81.25%;
+}
+.ui.table th.fourteen.wide,
+.ui.table td.fourteen.wide {
+  width: 87.5%;
+}
+.ui.table th.fifteen.wide,
+.ui.table td.fifteen.wide {
+  width: 93.75%;
+}
+.ui.table th.sixteen.wide,
+.ui.table td.sixteen.wide {
+  width: 100%;
+}
+
+.ui.basic.table {
+  background: transparent;
+  border: 1px solid var(--color-secondary);
+}
+.ui.basic.table > thead > tr > th,
+.ui.basic.table > tbody > tr > th,
+.ui.basic.table > tfoot > tr > th,
+.ui.basic.table > tr > th {
+  background: transparent;
+  border-left: none;
+}
+.ui.basic.table > tbody > tr {
+  border-bottom: 1px solid var(--color-secondary);
+}
+.ui.basic.table > tbody > tr > td,
+.ui.basic.table > tfoot > tr > td,
+.ui.basic.table > tr > td {
+  background: transparent;
+}
+.ui.basic.striped.table > tbody > tr:nth-child(2n) {
+  background: var(--color-light);
+}
+
+.ui[class*="very basic"].table {
+  border: none;
+}
+.ui[class*="very basic"].table:not(.striped) > tr > th:first-child,
+.ui[class*="very basic"].table:not(.striped) > thead > tr > th:first-child,
+.ui[class*="very basic"].table:not(.striped) > tbody > tr > th:first-child,
+.ui[class*="very basic"].table:not(.striped) > tfoot > tr > th:first-child,
+.ui[class*="very basic"].table:not(.striped) > tr > td:first-child,
+.ui[class*="very basic"].table:not(.striped) > tbody > tr > td:first-child,
+.ui[class*="very basic"].table:not(.striped) > tfoot > tr > td:first-child {
+  padding-left: 0;
+}
+.ui[class*="very basic"].table:not(.striped) > tr > th:last-child,
+.ui[class*="very basic"].table:not(.striped) > thead > tr > th:last-child,
+.ui[class*="very basic"].table:not(.striped) > tbody > tr > th:last-child,
+.ui[class*="very basic"].table:not(.striped) > tfoot > tr > th:last-child,
+.ui[class*="very basic"].table:not(.striped) > tr > td:last-child,
+.ui[class*="very basic"].table:not(.striped) > tbody > tr > td:last-child,
+.ui[class*="very basic"].table:not(.striped) > tfoot > tr > td:last-child {
+  padding-right: 0;
+}
+.ui[class*="very basic"].table:not(.striped) > thead > tr:first-child > th {
+  padding-top: 0;
+}
+
+.ui.celled.table > tr > th,
+.ui.celled.table > thead > tr > th,
+.ui.celled.table > tbody > tr > th,
+.ui.celled.table > tfoot > tr > th,
+.ui.celled.table > tr > td,
+.ui.celled.table > tbody > tr > td,
+.ui.celled.table > tfoot > tr > td {
+  border-left: 1px solid var(--color-secondary-alpha-50);
+}
+.ui.celled.table > tr > th:first-child,
+.ui.celled.table > thead > tr > th:first-child,
+.ui.celled.table > tbody > tr > th:first-child,
+.ui.celled.table > tfoot > tr > th:first-child,
+.ui.celled.table > tr > td:first-child,
+.ui.celled.table > tbody > tr > td:first-child,
+.ui.celled.table > tfoot > tr > td:first-child {
+  border-left: none;
+}
+
+.ui.compact.table > tr > th,
+.ui.compact.table > thead > tr > th,
+.ui.compact.table > tbody > tr > th,
+.ui.compact.table > tfoot > tr > th {
+  padding-left: 0.7em;
+  padding-right: 0.7em;
+}
+.ui.compact.table > tr > td,
+.ui.compact.table > tbody > tr > td,
+.ui.compact.table > tfoot > tr > td {
+  padding: 0.5em 0.7em;
+}
+
+/* use more horizontal padding on first and last items for visuals */
+.ui.table > thead > tr > th:first-of-type,
+.ui.table > tbody > tr > td:first-of-type,
+.ui.table > tr > td:first-of-type {
+  padding-left: 10px;
+}
+.ui.table > thead > tr > th:last-of-type,
+.ui.table > tbody > tr > td:last-of-type,
+.ui.table > tr > td:last-of-type {
+  padding-right: 10px;
+}

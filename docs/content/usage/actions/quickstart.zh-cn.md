@@ -23,7 +23,7 @@ menu:
 您可以按照[文档](installation/from-package.md) 来设置一个新实例或升级现有实例。
 无论您如何安装或运行Gitea，只要版本号是1.19.0或更高即可。
 
-默认情况下，Actions是禁用的，因此您需要将以下内容添加到配置文件中以启用它：
+从1.21.0开始，默认情况下，Actions是启用的。如果您正在使用1.21.0之前的版本，您需要将以下内容添加到配置文件中以启用它：
 
 ```ini
 [actions]
@@ -112,7 +112,7 @@ jobs:
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by Gitea!"
       - run: echo "🔎 The name of your branch is ${{ gitea.ref }} and your repository is ${{ gitea.repository }}."
       - name: Check out repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: echo "💡 The ${{ gitea.repository }} repository has been cloned to the runner."
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: List files in the repository

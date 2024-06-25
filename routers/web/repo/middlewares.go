@@ -9,8 +9,10 @@ import (
 
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/services/context"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 // SetEditorconfigIfExists set editor config as render variable
@@ -55,8 +57,12 @@ func SetDiffViewStyle(ctx *context.Context) {
 	}
 
 	ctx.Data["IsSplitStyle"] = style == "split"
-	if err := user_model.UpdateUserDiffViewStyle(ctx, ctx.Doer, style); err != nil {
-		ctx.ServerError("ErrUpdateDiffViewStyle", err)
+
+	opts := &user_service.UpdateOptions{
+		DiffViewStyle: optional.Some(style),
+	}
+	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+		ctx.ServerError("UpdateUser", err)
 	}
 }
 
@@ -92,23 +98,15 @@ func SetWhitespaceBehavior(ctx *context.Context) {
 // SetShowOutdatedComments set the show outdated comments option as context variable
 func SetShowOutdatedComments(ctx *context.Context) {
 	showOutdatedCommentsValue := ctx.FormString("show-outdated")
-	// var showOutdatedCommentsValue string
-
 	if showOutdatedCommentsValue != "true" && showOutdatedCommentsValue != "false" {
 		// invalid or no value for this form string -> use default or stored user setting
+		showOutdatedCommentsValue = "true"
 		if ctx.IsSigned {
-			showOutdatedCommentsValue, _ = user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyShowOutdatedComments, "false")
-		} else {
-			// not logged in user -> use the default value
-			showOutdatedCommentsValue = "false"
+			showOutdatedCommentsValue, _ = user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyShowOutdatedComments, showOutdatedCommentsValue)
 		}
-	} else {
+	} else if ctx.IsSigned {
 		// valid value -> update user setting if user is logged in
-		if ctx.IsSigned {
-			_ = user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyShowOutdatedComments, showOutdatedCommentsValue)
-		}
+		_ = user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyShowOutdatedComments, showOutdatedCommentsValue)
 	}
-
-	showOutdatedComments, _ := strconv.ParseBool(showOutdatedCommentsValue)
-	ctx.Data["ShowOutdatedComments"] = showOutdatedComments
+	ctx.Data["ShowOutdatedComments"], _ = strconv.ParseBool(showOutdatedCommentsValue)
 }

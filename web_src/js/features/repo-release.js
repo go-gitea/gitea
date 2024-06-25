@@ -1,26 +1,26 @@
-import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.js';
 import {initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 
 export function initRepoRelease() {
-  $(document).on('click', '.remove-rel-attach', function() {
-    const uuid = $(this).data('uuid');
-    const id = $(this).data('id');
-    $(`input[name='attachment-del-${uuid}']`).attr('value', true);
-    hideElem($(`#attachment-${id}`));
+  document.addEventListener('click', (e) => {
+    if (e.target.matches('.remove-rel-attach')) {
+      const uuid = e.target.getAttribute('data-uuid');
+      const id = e.target.getAttribute('data-id');
+      document.querySelector(`input[name='attachment-del-${uuid}']`).value = 'true';
+      hideElem(`#attachment-${id}`);
+    }
   });
 }
 
 export function initRepoReleaseNew() {
-  const $repoReleaseNew = $('.repository.new.release');
-  if (!$repoReleaseNew.length) return;
+  if (!document.querySelector('.repository.new.release')) return;
 
   initTagNameEditor();
   initRepoReleaseEditor();
 }
 
 function initTagNameEditor() {
-  const el = document.getElementById('tag-name-editor');
+  const el = document.querySelector('#tag-name-editor');
   if (!el) return;
 
   const existingTags = JSON.parse(el.getAttribute('data-existing-tags'));
@@ -30,9 +30,10 @@ function initTagNameEditor() {
   const newTagHelperText = el.getAttribute('data-tag-helper-new');
   const existingTagHelperText = el.getAttribute('data-tag-helper-existing');
 
-  document.getElementById('tag-name').addEventListener('keyup', (e) => {
-    const value = e.target.value;
-    const tagHelper = document.getElementById('tag-helper');
+  const tagNameInput = document.querySelector('#tag-name');
+  const hideTargetInput = function(tagNameInput) {
+    const value = tagNameInput.value;
+    const tagHelper = document.querySelector('#tag-helper');
     if (existingTags.includes(value)) {
       // If the tag already exists, hide the target branch selector.
       hideElem('#tag-target-selector');
@@ -41,13 +42,17 @@ function initTagNameEditor() {
       showElem('#tag-target-selector');
       tagHelper.textContent = value ? newTagHelperText : defaultTagHelperText;
     }
+  };
+  hideTargetInput(tagNameInput); // update on page load because the input may have a value
+  tagNameInput.addEventListener('input', (e) => {
+    hideTargetInput(e.target);
   });
 }
 
 function initRepoReleaseEditor() {
-  const $editor = $('.repository.new.release .combo-markdown-editor');
-  if ($editor.length === 0) {
+  const editor = document.querySelector('.repository.new.release .combo-markdown-editor');
+  if (!editor) {
     return;
   }
-  const _promise = initComboMarkdownEditor($editor);
+  initComboMarkdownEditor(editor);
 }

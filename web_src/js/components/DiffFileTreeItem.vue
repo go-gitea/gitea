@@ -7,7 +7,7 @@ export default {
   props: {
     item: {
       type: Object,
-      required: true
+      required: true,
     },
   },
   data: () => ({
@@ -37,7 +37,7 @@ export default {
   >
     <!-- file -->
     <SvgIcon name="octicon-file"/>
-    <span class="gt-ellipsis gt-f1">{{ item.name }}</span>
+    <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
     <SvgIcon :name="getIconForDiffType(item.file.Type).name" :class="getIconForDiffType(item.file.Type).classes"/>
   </a>
   <div v-else class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">

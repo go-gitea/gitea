@@ -125,7 +125,6 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 		if mode.Colorize {
 			buf = append(buf, resetBytes...)
 		}
-
 	}
 	if flags&(Lshortfile|Llongfile) != 0 {
 		if mode.Colorize {

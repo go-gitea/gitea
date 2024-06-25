@@ -18,3 +18,23 @@
   log_length: 707
   log_size: 90179
   log_expired: 0
+-
+  id: 48
+  job_id: 193
+  attempt: 1
+  runner_id: 1
+  status: 6 # 6 is the status code for "running", running task can upload artifacts
+  started: 1683636528
+  stopped: 1683636626
+  repo_id: 4
+  owner_id: 1
+  commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
+  is_fork_pull_request: 0
+  token_hash: ffffcfffffffbffffffffffffffffefffffffafffffffffffffffffffffffffffffdffffffffffffffffffffffffffffffff
+  token_salt: ffffffffff
+  token_last_eight: ffffffff
+  log_filename: artifact-test2/2f/47.log
+  log_in_storage: 1
+  log_length: 707
+  log_size: 90179
+  log_expired: 0

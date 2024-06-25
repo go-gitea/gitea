@@ -27,7 +27,8 @@ func TestAPIRepoTags(t *testing.T) {
 
 	repoName := "repo1"
 
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/tags?token=%s", user.Name, repoName, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/tags", user.Name, repoName).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var tags []*api.Tag
@@ -41,7 +42,7 @@ func TestAPIRepoTags(t *testing.T) {
 	assert.Equal(t, setting.AppURL+"user2/repo1/archive/v1.1.zip", tags[0].ZipballURL)
 	assert.Equal(t, setting.AppURL+"user2/repo1/archive/v1.1.tar.gz", tags[0].TarballURL)
 
-	newTag := createNewTagUsingAPI(t, session, token, user.Name, repoName, "gitea/22", "", "nice!\nand some text")
+	newTag := createNewTagUsingAPI(t, token, user.Name, repoName, "gitea/22", "", "nice!\nand some text")
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &tags)
 	assert.Len(t, tags, 2)
@@ -55,27 +56,29 @@ func TestAPIRepoTags(t *testing.T) {
 	}
 
 	// get created tag
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/tags/%s?token=%s", user.Name, repoName, newTag.Name, token)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/tags/%s", user.Name, repoName, newTag.Name).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	var tag *api.Tag
 	DecodeJSON(t, resp, &tag)
 	assert.EqualValues(t, newTag, tag)
 
 	// delete tag
-	delReq := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/tags/%s?token=%s", user.Name, repoName, newTag.Name, token)
+	delReq := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/tags/%s", user.Name, repoName, newTag.Name).
+		AddTokenAuth(token)
 	MakeRequest(t, delReq, http.StatusNoContent)
 
 	// check if it's gone
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func createNewTagUsingAPI(t *testing.T, session *TestSession, token, ownerName, repoName, name, target, msg string) *api.Tag {
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/tags?token=%s", ownerName, repoName, token)
+func createNewTagUsingAPI(t *testing.T, token, ownerName, repoName, name, target, msg string) *api.Tag {
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/tags", ownerName, repoName)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateTagOption{
 		TagName: name,
 		Message: msg,
 		Target:  target,
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var respObj api.Tag

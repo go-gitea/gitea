@@ -284,7 +284,7 @@ syntax and shouldn't be touched without fully understanding these components.
 
 Google Analytics, Matomo (previously Piwik), and other analytics services can be added to Gitea. To add the tracking code, refer to the `Other additions to the page` section of this document, and add the JavaScript to the `$GITEA_CUSTOM/templates/custom/header.tmpl` file.
 
-## Customizing gitignores, labels, licenses, locales, and readmes.
+## Customizing gitignores, labels, licenses, locales, and readmes
 
 Place custom files in corresponding sub-folder under `custom/options`.
 
@@ -381,7 +381,7 @@ To make a custom theme available to all users:
 
 1. Add a CSS file to `$GITEA_CUSTOM/public/assets/css/theme-<theme-name>.css`.
   The value of `$GITEA_CUSTOM` of your instance can be queried by calling `gitea help` and looking up the value of "CustomPath".
-2. Add `<theme-name>` to the comma-separated list of setting `THEMES` in `app.ini`
+2. Add `<theme-name>` to the comma-separated list of setting `THEMES` in `app.ini`, or leave `THEMES` empty to allow all themes.
 
 Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).
 

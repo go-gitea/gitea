@@ -131,7 +131,7 @@ func TestCountOrganizations(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	expected, err := db.GetEngine(db.DefaultContext).Where("type=?", user_model.UserTypeOrganization).Count(&organization.Organization{})
 	assert.NoError(t, err)
-	cnt, err := organization.CountOrgs(db.DefaultContext, organization.FindOrgOptions{IncludePrivate: true})
+	cnt, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{IncludePrivate: true})
 	assert.NoError(t, err)
 	assert.Equal(t, expected, cnt)
 }
@@ -183,7 +183,7 @@ func TestIsPublicMembership(t *testing.T) {
 func TestFindOrgs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	orgs, err := organization.FindOrgs(db.DefaultContext, organization.FindOrgOptions{
+	orgs, err := db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
 		UserID:         4,
 		IncludePrivate: true,
 	})
@@ -192,14 +192,14 @@ func TestFindOrgs(t *testing.T) {
 		assert.EqualValues(t, 3, orgs[0].ID)
 	}
 
-	orgs, err = organization.FindOrgs(db.DefaultContext, organization.FindOrgOptions{
+	orgs, err = db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
 		UserID:         4,
 		IncludePrivate: false,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, orgs, 0)
 
-	total, err := organization.CountOrgs(db.DefaultContext, organization.FindOrgOptions{
+	total, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
 		UserID:         4,
 		IncludePrivate: true,
 	})
@@ -291,15 +291,15 @@ func TestAccessibleReposEnv_CountRepos(t *testing.T) {
 func TestAccessibleReposEnv_RepoIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-	testSuccess := func(userID, _, pageSize int64, expectedRepoIDs []int64) {
+	testSuccess := func(userID int64, expectedRepoIDs []int64) {
 		env, err := organization.AccessibleReposEnv(db.DefaultContext, org, userID)
 		assert.NoError(t, err)
 		repoIDs, err := env.RepoIDs(1, 100)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedRepoIDs, repoIDs)
 	}
-	testSuccess(2, 1, 100, []int64{3, 5, 32})
-	testSuccess(4, 0, 100, []int64{3, 32})
+	testSuccess(2, []int64{3, 5, 32})
+	testSuccess(4, []int64{3, 32})
 }
 
 func TestAccessibleReposEnv_Repos(t *testing.T) {

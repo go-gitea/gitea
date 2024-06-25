@@ -9,7 +9,7 @@ import (
 	"io"
 )
 
-func (repo *Repository) getTree(id SHA1) (*Tree, error) {
+func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 	wr, rd, cancel := repo.CatFileBatch(repo.Ctx)
 	defer cancel()
 
@@ -28,7 +28,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 		if err != nil {
 			return nil, err
 		}
-		tag, err := parseTagData(data)
+		tag, err := parseTagData(id.Type(), data)
 		if err != nil {
 			return nil, err
 		}
@@ -51,13 +51,20 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 	case "tree":
 		tree := NewTree(repo, id)
 		tree.ResolvedID = id
-		tree.entries, err = catBatchParseTreeEntries(tree, rd, size)
+		objectFormat, err := repo.GetObjectFormat()
+		if err != nil {
+			return nil, err
+		}
+		tree.entries, err = catBatchParseTreeEntries(objectFormat, tree, rd, size)
 		if err != nil {
 			return nil, err
 		}
 		tree.entriesParsed = true
 		return tree, nil
 	default:
+		if err := DiscardFull(rd, size+1); err != nil {
+			return nil, err
+		}
 		return nil, ErrNotExist{
 			ID: id.String(),
 		}
@@ -66,7 +73,11 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 
 // GetTree find the tree object in the repository.
 func (repo *Repository) GetTree(idStr string) (*Tree, error) {
-	if len(idStr) != SHAFullLength {
+	objectFormat, err := repo.GetObjectFormat()
+	if err != nil {
+		return nil, err
+	}
+	if len(idStr) != objectFormat.FullLength() {
 		res, err := repo.GetRefCommitID(idStr)
 		if err != nil {
 			return nil, err

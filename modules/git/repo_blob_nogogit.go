@@ -5,7 +5,7 @@
 
 package git
 
-func (repo *Repository) getBlob(id SHA1) (*Blob, error) {
+func (repo *Repository) getBlob(id ObjectID) (*Blob, error) {
 	if id.IsZero() {
 		return nil, ErrNotExist{id.String(), ""}
 	}

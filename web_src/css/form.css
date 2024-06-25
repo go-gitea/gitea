@@ -32,13 +32,15 @@ textarea,
 .ui.form input[type="text"],
 .ui.form input[type="time"],
 .ui.form input[type="url"],
-.ui.selection.dropdown,
-.ui.checkbox label::before,
-.ui.checkbox input:checked ~ label::before,
-.ui.checkbox input:not([type="radio"]):indeterminate ~ label::before {
+.ui.selection.dropdown {
   background: var(--color-input-background);
   border-color: var(--color-input-border);
   color: var(--color-input-text);
+}
+
+/* fix fomantic small dropdown having inconsistent padding with input */
+.ui.small.selection.dropdown {
+  padding: .67857143em 1.6em .67857143em 1em;
 }
 
 input:hover,
@@ -58,12 +60,7 @@ textarea:hover,
 .ui.form input[type="text"]:hover,
 .ui.form input[type="time"]:hover,
 .ui.form input[type="url"]:hover,
-.ui.selection.dropdown:hover,
-.ui.checkbox label:hover::before,
-.ui.checkbox label:active::before,
-.ui.radio.checkbox label::after,
-.ui.radio.checkbox input:focus ~ label::before,
-.ui.radio.checkbox input:checked ~ label::before {
+.ui.selection.dropdown:hover {
   background: var(--color-input-background);
   border-color: var(--color-input-border-hover);
   color: var(--color-input-text);
@@ -86,11 +83,7 @@ textarea:focus,
 .ui.form input[type="text"]:focus,
 .ui.form input[type="time"]:focus,
 .ui.form input[type="url"]:focus,
-.ui.selection.dropdown:focus,
-.ui.checkbox input:focus ~ label::before,
-.ui.checkbox input:not([type="radio"]):indeterminate:focus ~ label::before,
-.ui.checkbox input:checked:focus ~ label::before,
-.ui.radio.checkbox input:focus:checked ~ label::before {
+.ui.selection.dropdown:focus {
   background: var(--color-input-background);
   border-color: var(--color-primary);
   color: var(--color-input-text);
@@ -101,56 +94,19 @@ textarea:focus,
 .ui.form .inline.fields .field > label,
 .ui.form .inline.fields .field > p,
 .ui.form .inline.field > label,
-.ui.form .inline.field > p,
-.ui.checkbox label,
-.ui.checkbox + label,
-.ui.checkbox label:hover,
-.ui.checkbox + label:hover,
-.ui.checkbox input:focus ~ label,
-.ui.checkbox input:active ~ label {
+.ui.form .inline.field > p {
   color: var(--color-text);
 }
 
 .ui.form .required.fields:not(.grouped) > .field > label::after,
 .ui.form .required.fields.grouped > label::after,
 .ui.form .required.field > label::after,
-.ui.form .required.fields:not(.grouped) > .field > .checkbox::after,
-.ui.form .required.field > .checkbox::after,
 .ui.form label.required::after {
   color: var(--color-red);
 }
 
-.ui.input,
-.ui.checkbox input:focus ~ label::after,
-.ui.checkbox input:checked ~ label::after,
-.ui.checkbox label:active::after,
-.ui.checkbox input:not([type="radio"]):indeterminate ~ label::after,
-.ui.checkbox input:not([type="radio"]):indeterminate:focus ~ label::after,
-.ui.checkbox input:checked:focus ~ label::after,
-.ui.disabled.checkbox label,
-.ui.checkbox input[disabled] ~ label {
+.ui.input {
   color: var(--color-input-text);
-}
-
-.ui.radio.checkbox input:focus ~ label::after,
-.ui.radio.checkbox input:checked ~ label::after,
-.ui.radio.checkbox input:focus:checked ~ label::after {
-  background: var(--color-input-text);
-}
-
-.ui.toggle.checkbox label::before {
-  background: var(--color-input-toggle-background);
-}
-
-.ui.toggle.checkbox label,
-.ui.toggle.checkbox input:checked ~ label,
-.ui.toggle.checkbox input:focus:checked ~ label {
-  color: var(--color-text) !important;
-}
-
-.ui.toggle.checkbox input:checked ~ label::before,
-.ui.toggle.checkbox input:focus:checked ~ label::before {
-  background: var(--color-primary) !important;
 }
 
 /* match <select> padding to <input> */
@@ -239,11 +195,8 @@ textarea:focus,
   }
 }
 
-.user.activate form,
 .user.forgot.password form,
 .user.reset.password form,
-.user.link-account form,
-.user.signin form,
 .user.signup form {
   margin: auto;
   width: 700px !important;
@@ -275,12 +228,7 @@ textarea:focus,
   .user.signup form .header {
     padding-left: 280px !important;
   }
-  .user.activate form .inline.field > label,
-  .user.forgot.password form .inline.field > label,
-  .user.reset.password form .inline.field > label,
-  .user.link-account form .inline.field > label,
-  .user.signin form .inline.field > label,
-  .user.signup form .inline.field > label {
+  .user.activate form .inline.field > label {
     text-align: right;
     width: 250px !important;
     word-wrap: break-word;
@@ -300,21 +248,6 @@ textarea:focus,
   .user.signin form .optional .title,
   .user.signup form .optional .title {
     margin-left: 250px !important;
-  }
-  .user.activate form .inline.field > input,
-  .user.forgot.password form .inline.field > input,
-  .user.reset.password form .inline.field > input,
-  .user.link-account form .inline.field > input,
-  .user.signin form .inline.field > input,
-  .user.signup form .inline.field > input,
-  .user.activate form .inline.field > textarea,
-  .user.forgot.password form .inline.field > textarea,
-  .user.reset.password form .inline.field > textarea,
-  .user.link-account form .inline.field > textarea,
-  .user.signin form .inline.field > textarea,
-  .user.signup form .inline.field > textarea,
-  .oauth-login-link {
-    width: 50%;
   }
 }
 
@@ -362,14 +295,7 @@ textarea:focus,
   .user.reset.password form .inline.field > label,
   .user.link-account form .inline.field > label,
   .user.signin form .inline.field > label,
-  .user.signup form .inline.field > label,
-  .user.activate form input,
-  .user.forgot.password form input,
-  .user.reset.password form input,
-  .user.link-account form input,
-  .user.signin form input,
-  .user.signup form input,
-  .oauth-login-link {
+  .user.signup form .inline.field > label {
     width: 100% !important;
   }
 }
@@ -487,9 +413,9 @@ textarea:focus,
   .repository.new.repo form label,
   .repository.new.migrate form label,
   .repository.new.fork form label,
-  .repository.new.repo form input,
-  .repository.new.migrate form input,
-  .repository.new.fork form input,
+  .repository.new.repo form .inline.field > input,
+  .repository.new.migrate form .inline.field > input,
+  .repository.new.fork form .inline.field > input,
   .repository.new.fork form .field a,
   .repository.new.repo form .selection.dropdown,
   .repository.new.migrate form .selection.dropdown,
@@ -520,6 +446,10 @@ textarea:focus,
   .repository.new.repo .ui.form .selection.dropdown:not(.owner) {
     width: 100% !important;
   }
+}
+
+.ui.form .field > .selection.dropdown {
+  min-width: 14em; /* matches the default min width */
 }
 
 .new.webhook form .help {

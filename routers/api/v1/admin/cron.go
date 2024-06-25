@@ -6,11 +6,11 @@ package admin
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/cron"
 )
 
@@ -74,7 +74,7 @@ func PostCronTask(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	task := cron.GetTask(ctx.Params(":task"))
+	task := cron.GetTask(ctx.PathParam(":task"))
 	if task == nil {
 		ctx.NotFound()
 		return

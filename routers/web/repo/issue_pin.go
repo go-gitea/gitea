@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/context"
 )
 
 // IssuePinOrUnpin pin or unpin a Issue
@@ -39,7 +39,7 @@ func IssuePinOrUnpin(ctx *context.Context) {
 
 // IssueUnpin unpins a Issue
 func IssueUnpin(ctx *context.Context) {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
 		log.Error(err.Error())
@@ -87,6 +87,12 @@ func IssuePinMove(ctx *context.Context) {
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
 		log.Error(err.Error())
+		return
+	}
+
+	if issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.Status(http.StatusNotFound)
+		log.Error("Issue does not belong to this repository")
 		return
 	}
 

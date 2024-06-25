@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/context"
 )
 
 type languageResponse []*repo_model.LanguageStat

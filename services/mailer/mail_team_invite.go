@@ -50,7 +50,7 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 		inviteURL = fmt.Sprintf("%suser/login?redirect_to=%s", setting.AppURL, inviteRedirect)
 	}
 
-	subject := locale.Tr("mail.team_invite.subject", inviter.DisplayName(), org.DisplayName())
+	subject := locale.TrString("mail.team_invite.subject", inviter.DisplayName(), org.DisplayName())
 	mailMeta := map[string]any{
 		"locale":       locale,
 		"Inviter":      inviter,

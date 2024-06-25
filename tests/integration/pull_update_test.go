@@ -40,7 +40,8 @@ func TestAPIPullUpdate(t *testing.T) {
 
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?token="+token, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index)
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
@@ -68,7 +69,8 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase&token="+token, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index)
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
@@ -175,8 +177,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 	assert.NoError(t, err)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "Test Pull -to-update-"})
-	pr, err := issues_model.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
-	assert.NoError(t, err)
+	assert.NoError(t, issue.LoadPullRequest(db.DefaultContext))
 
-	return pr
+	return issue.PullRequest
 }

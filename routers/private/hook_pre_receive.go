@@ -16,11 +16,11 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/web"
+	gitea_context "code.gitea.io/gitea/services/context"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -121,9 +121,9 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		case refFullName.IsBranch():
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
 		case refFullName.IsTag():
-			preReceiveTag(ourCtx, oldCommitID, newCommitID, refFullName)
-		case git.SupportProcReceive && refFullName.IsFor():
-			preReceiveFor(ourCtx, oldCommitID, newCommitID, refFullName)
+			preReceiveTag(ourCtx, refFullName)
+		case git.DefaultFeatures().SupportProcReceive && refFullName.IsFor():
+			preReceiveFor(ourCtx, refFullName)
 		default:
 			ourCtx.AssertCanWriteCode()
 		}
@@ -145,8 +145,9 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 	repo := ctx.Repo.Repository
 	gitRepo := ctx.Repo.GitRepo
+	objectFormat := ctx.Repo.GetObjectFormat()
 
-	if branchName == repo.DefaultBranch && newCommitID == git.EmptySHA {
+	if branchName == repo.DefaultBranch && newCommitID == objectFormat.EmptyObjectID().String() {
 		log.Warn("Forbidden: Branch: %s is the default branch in %-v and cannot be deleted", branchName, repo)
 		ctx.JSON(http.StatusForbidden, private.Response{
 			UserMsg: fmt.Sprintf("branch %s is the default branch and cannot be deleted", branchName),
@@ -174,7 +175,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	// First of all we need to enforce absolutely:
 	//
 	// 1. Detect and prevent deletion of the branch
-	if newCommitID == git.EmptySHA {
+	if newCommitID == objectFormat.EmptyObjectID().String() {
 		log.Warn("Forbidden: Branch: %s in %-v is protected from deletion", branchName, repo)
 		ctx.JSON(http.StatusForbidden, private.Response{
 			UserMsg: fmt.Sprintf("branch %s is protected from deletion", branchName),
@@ -183,7 +184,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	}
 
 	// 2. Disallow force pushes to protected branches
-	if git.EmptySHA != oldCommitID {
+	if oldCommitID != objectFormat.EmptyObjectID().String() {
 		output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").AddDynamicArguments(oldCommitID, "^"+newCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
 		if err != nil {
 			log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
@@ -197,7 +198,6 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 				UserMsg: fmt.Sprintf("branch %s is protected from force push", branchName),
 			})
 			return
-
 		}
 	}
 
@@ -359,7 +359,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 				})
 				return
 			}
-			log.Error("Unable to check if mergable: protected branch %s in %-v and pr #%d. Error: %v", ctx.opts.UserID, branchName, repo, pr.Index, err)
+			log.Error("Unable to check if mergeable: protected branch %s in %-v and pr #%d. Error: %v", ctx.opts.UserID, branchName, repo, pr.Index, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
 				Err: fmt.Sprintf("Unable to get status of pull request %d. Error: %v", ctx.opts.PullRequestID, err),
 			})
@@ -368,7 +368,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	}
 }
 
-func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID string, refFullName git.RefName) {
+func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
 	if !ctx.AssertCanWriteCode() {
 		return
 	}
@@ -404,7 +404,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID string, refF
 	}
 }
 
-func preReceiveFor(ctx *preReceiveContext, oldCommitID, newCommitID string, refFullName git.RefName) {
+func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {
 	if !ctx.AssertCreatePullRequest() {
 		return
 	}
@@ -480,11 +480,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 			})
 			return false
 		}
-		ctx.userPerm.Units = ctx.Repo.Repository.Units
-		ctx.userPerm.UnitsMode = make(map[unit.Type]perm_model.AccessMode)
-		for _, u := range ctx.Repo.Repository.Units {
-			ctx.userPerm.UnitsMode[u.Type] = ctx.userPerm.AccessMode
-		}
+		ctx.userPerm.SetUnitsWithDefaultAccessMode(ctx.Repo.Repository.Units, ctx.userPerm.AccessMode)
 	} else {
 		user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
 		if err != nil {

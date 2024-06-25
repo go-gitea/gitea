@@ -13,12 +13,12 @@ import (
 
 func Test_AddConfidentialClientColumnToOAuth2ApplicationTable(t *testing.T) {
 	// premigration
-	type OAuth2Application struct {
+	type oauth2Application struct {
 		ID int64
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(OAuth2Application))
+	x, deferable := base.PrepareTestEnv(t, 0, new(oauth2Application))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
@@ -36,7 +36,7 @@ func Test_AddConfidentialClientColumnToOAuth2ApplicationTable(t *testing.T) {
 	}
 
 	got := []ExpectedOAuth2Application{}
-	if err := x.Table("o_auth2_application").Select("id, confidential_client").Find(&got); !assert.NoError(t, err) {
+	if err := x.Table("oauth2_application").Select("id, confidential_client").Find(&got); !assert.NoError(t, err) {
 		return
 	}
 

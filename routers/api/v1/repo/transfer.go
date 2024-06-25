@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -13,10 +14,10 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -117,7 +118,11 @@ func Transfer(ctx *context.APIContext) {
 			return
 		}
 
-		ctx.InternalServerError(err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "BlockedUser", err)
+		} else {
+			ctx.InternalServerError(err)
+		}
 		return
 	}
 
@@ -230,5 +235,5 @@ func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
 		return repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams)
 	}
 
-	return models.CancelRepositoryTransfer(ctx, ctx.Repo.Repository)
+	return repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository)
 }

@@ -48,7 +48,8 @@ func TestAPIReposGitBlobs(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test using access token for a private repo that the user of the token owns
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s?token=%s", user2.Name, repo16.Name, repo16ReadmeSHA, token)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s", user2.Name, repo16.Name, repo16ReadmeSHA).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
 	// Test using bad sha
@@ -56,11 +57,13 @@ func TestAPIReposGitBlobs(t *testing.T) {
 	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test using org repo "org3/repo3" where user2 is a collaborator
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s?token=%s", org3.Name, repo3.Name, repo3ReadmeSHA, token)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s", org3.Name, repo3.Name, repo3ReadmeSHA).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
 	// Test using org repo "org3/repo3" where user2 is a collaborator
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s?token=%s", org3.Name, repo3.Name, repo3ReadmeSHA, token)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s", org3.Name, repo3.Name, repo3ReadmeSHA).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
 	// Test using org repo "org3/repo3" with no user token

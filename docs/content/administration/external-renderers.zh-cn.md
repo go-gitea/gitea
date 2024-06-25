@@ -37,12 +37,10 @@ FROM gitea/gitea:@version@
 COPY custom/app.ini /data/gitea/conf/app.ini
 [...]
 
-RUN apk --no-cache add asciidoctor freetype freetype-dev gcc g++ libpng libffi-dev py-pip python3-dev py3-pip py3-pyzmq
+RUN apk --no-cache add asciidoctor freetype freetype-dev gcc g++ libpng libffi-dev pandoc python3-dev py3-pyzmq pipx
 # 安装其他您需要的外部渲染器的软件包
 
-RUN pip3 install --upgrade pip
-RUN pip3 install -U setuptools
-RUN pip3 install jupyter docutils
+RUN pipx install jupyter docutils --include-deps
 # 在上面添加您需要安装的任何其他 Python 软件包
 ```
 
@@ -194,7 +192,7 @@ ALLOW_DATA_URI_IMAGES = true
 }
 ```
 
-将您的样式表添加到自定义目录中，例如 `custom/public/css/my-style-XXXXX.css`，并使用自定义的头文件 `custom/templates/custom/header.tmpl` 进行导入：
+将您的样式表添加到自定义目录中，例如 `custom/public/assets/css/my-style-XXXXX.css`，并使用自定义的头文件 `custom/templates/custom/header.tmpl` 进行导入：
 
 ```html
 <link rel="stylesheet" href="{{AppSubUrl}}/assets/css/my-style-XXXXX.css" />

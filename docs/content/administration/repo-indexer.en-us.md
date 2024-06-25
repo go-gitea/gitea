@@ -17,6 +17,12 @@ menu:
 
 # Repository indexer
 
+## Builtin repository code search without indexer
+
+Users could do repository-level code search without setting up a repository indexer.
+The builtin code search is based on the `git grep` command, which is fast and efficient for small repositories.
+Better code search support could be achieved by setting up the repository indexer.
+
 ## Setting up the repository indexer
 
 Gitea can search through the files of the repositories by enabling this function in your [`app.ini`](administration/config-cheat-sheet.md):

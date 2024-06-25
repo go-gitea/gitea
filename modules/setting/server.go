@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"net"
 	"net/url"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -41,16 +40,16 @@ const (
 	LandingPageLogin         LandingPage = "/user/login"
 )
 
+// Server settings
 var (
-	// AppName is the Application name, used in the page title.
-	// It maps to ini:"APP_NAME"
-	AppName string
 	// AppURL is the Application ROOT_URL. It always has a '/' suffix
 	// It maps to ini:"ROOT_URL"
 	AppURL string
 	// AppSubURL represents the sub-url mounting point for gitea. It is either "" or starts with '/' and ends without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL string
+	// UseSubURLPath makes Gitea handle requests with sub-path like "/sub-path/owner/repo/...", to make it easier to debug sub-path related problems without a reverse proxy.
+	UseSubURLPath bool
 	// AppDataPath is the default path for storing data.
 	// It maps to ini:"APP_DATA_PATH" in [server] and defaults to AppWorkPath + "/data"
 	AppDataPath string
@@ -59,8 +58,6 @@ var (
 	LocalURL string
 	// AssetVersion holds a opaque value that is used for cache-busting assets
 	AssetVersion string
-
-	// Server settings
 
 	Protocol                   Scheme
 	UseProxyProtocol           bool // `ini:"USE_PROXY_PROTOCOL"`
@@ -276,9 +273,10 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
 	AppURL = strings.TrimRight(appURL.String(), "/") + "/"
 
-	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
+	// AppSubURL should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
+	UseSubURLPath = sec.Key("USE_SUB_URL_PATH").MustBool(false)
 	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
 
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
@@ -315,23 +313,24 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
-	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
+	OfflineMode = sec.Key("OFFLINE_MODE").MustBool(true)
 	if len(StaticRootPath) == 0 {
 		StaticRootPath = AppWorkPath
 	}
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
-	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
+	AppDataPath = sec.Key("APP_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data"))
 	if !filepath.IsAbs(AppDataPath) {
 		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
 	}
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
-	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(path.Join(AppWorkPath, "data/tmp/pprof"))
+	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data/tmp/pprof"))
 	if !filepath.IsAbs(PprofDataPath) {
 		PprofDataPath = filepath.Join(AppWorkPath, PprofDataPath)
 	}
+	checkOverlappedPath("[server].PPROF_DATA_PATH", PprofDataPath)
 
 	landingPage := sec.Key("LANDING_PAGE").MustString("home")
 	switch landingPage {
@@ -341,8 +340,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		LandingPageURL = LandingPageOrganizations
 	case "login":
 		LandingPageURL = LandingPageLogin
-	case "":
-	case "home":
+	case "", "home":
 		LandingPageURL = LandingPageHome
 	default:
 		LandingPageURL = LandingPage(landingPage)

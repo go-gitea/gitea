@@ -1,36 +1,40 @@
-import $ from 'jquery';
-import prettyMilliseconds from 'pretty-ms';
 import {createTippy} from '../modules/tippy.js';
+import {GET} from '../modules/fetch.js';
+import {hideElem, showElem} from '../utils/dom.js';
+import {logoutFromWorker} from '../modules/worker.js';
 
-const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking, assetVersionEncoded} = window.config;
+const {appSubUrl, notificationSettings, enableTimeTracking, assetVersionEncoded} = window.config;
 
 export function initStopwatch() {
   if (!enableTimeTracking) {
     return;
   }
 
-  const stopwatchEl = document.querySelector('.active-stopwatch-trigger');
+  const stopwatchEls = document.querySelectorAll('.active-stopwatch');
   const stopwatchPopup = document.querySelector('.active-stopwatch-popup');
 
-  if (!stopwatchEl || !stopwatchPopup) {
+  if (!stopwatchEls.length || !stopwatchPopup) {
     return;
   }
 
-  stopwatchEl.removeAttribute('href'); // intended for noscript mode only
-
-  createTippy(stopwatchEl, {
-    content: stopwatchPopup,
-    placement: 'bottom-end',
-    trigger: 'click',
-    maxWidth: 'none',
-    interactive: true,
-    hideOnClick: true,
-  });
-
   // global stop watch (in the head_navbar), it should always work in any case either the EventSource or the PeriodicPoller is used.
-  const currSeconds = $('.stopwatch-time').attr('data-seconds');
-  if (currSeconds) {
-    updateStopwatchTime(currSeconds);
+  const seconds = stopwatchEls[0]?.getAttribute('data-seconds');
+  if (seconds) {
+    updateStopwatchTime(parseInt(seconds));
+  }
+
+  for (const stopwatchEl of stopwatchEls) {
+    stopwatchEl.removeAttribute('href'); // intended for noscript mode only
+
+    createTippy(stopwatchEl, {
+      content: stopwatchPopup.cloneNode(true),
+      placement: 'bottom-end',
+      trigger: 'click',
+      maxWidth: 'none',
+      interactive: true,
+      hideOnClick: true,
+      theme: 'default',
+    });
   }
 
   let usingPeriodicPoller = false;
@@ -74,7 +78,7 @@ export function initStopwatch() {
           type: 'close',
         });
         worker.port.close();
-        window.location.href = appSubUrl;
+        logoutFromWorker();
       } else if (event.data.type === 'close') {
         worker.port.postMessage({
           type: 'close',
@@ -112,52 +116,51 @@ async function updateStopwatchWithCallback(callback, timeout) {
 }
 
 async function updateStopwatch() {
-  const data = await $.ajax({
-    type: 'GET',
-    url: `${appSubUrl}/user/stopwatches`,
-    headers: {'X-Csrf-Token': csrfToken},
-  });
+  const response = await GET(`${appSubUrl}/user/stopwatches`);
+  if (!response.ok) {
+    console.error('Failed to fetch stopwatch data');
+    return false;
+  }
+  const data = await response.json();
   return updateStopwatchData(data);
 }
 
 function updateStopwatchData(data) {
   const watch = data[0];
-  const btnEl = $('.active-stopwatch-trigger');
+  const btnEls = document.querySelectorAll('.active-stopwatch');
   if (!watch) {
-    clearStopwatchTimer();
-    btnEl.addClass('gt-hidden');
+    hideElem(btnEls);
   } else {
     const {repo_owner_name, repo_name, issue_index, seconds} = watch;
     const issueUrl = `${appSubUrl}/${repo_owner_name}/${repo_name}/issues/${issue_index}`;
-    $('.stopwatch-link').attr('href', issueUrl);
-    $('.stopwatch-commit').attr('action', `${issueUrl}/times/stopwatch/toggle`);
-    $('.stopwatch-cancel').attr('action', `${issueUrl}/times/stopwatch/cancel`);
-    $('.stopwatch-issue').text(`${repo_owner_name}/${repo_name}#${issue_index}`);
+    document.querySelector('.stopwatch-link')?.setAttribute('href', issueUrl);
+    document.querySelector('.stopwatch-commit')?.setAttribute('action', `${issueUrl}/times/stopwatch/toggle`);
+    document.querySelector('.stopwatch-cancel')?.setAttribute('action', `${issueUrl}/times/stopwatch/cancel`);
+    const stopwatchIssue = document.querySelector('.stopwatch-issue');
+    if (stopwatchIssue) stopwatchIssue.textContent = `${repo_owner_name}/${repo_name}#${issue_index}`;
     updateStopwatchTime(seconds);
-    btnEl.removeClass('gt-hidden');
+    showElem(btnEls);
   }
   return Boolean(data.length);
 }
 
-let updateTimeIntervalId = null; // holds setInterval id when active
-function clearStopwatchTimer() {
-  if (updateTimeIntervalId !== null) {
-    clearInterval(updateTimeIntervalId);
-    updateTimeIntervalId = null;
-  }
-}
+// TODO: This flickers on page load, we could avoid this by making a custom
+// element to render time periods. Feeding a datetime in backend does not work
+// when time zone between server and client differs.
 function updateStopwatchTime(seconds) {
-  const secs = parseInt(seconds);
-  if (!Number.isFinite(secs)) return;
-
-  clearStopwatchTimer();
-  const $stopwatch = $('.stopwatch-time');
-  const start = Date.now();
-  const updateUi = () => {
-    const delta = Date.now() - start;
-    const dur = prettyMilliseconds(secs * 1000 + delta, {compact: true});
-    $stopwatch.text(dur);
-  };
-  updateUi();
-  updateTimeIntervalId = setInterval(updateUi, 1000);
+  if (!Number.isFinite(seconds)) return;
+  const datetime = (new Date(Date.now() - seconds * 1000)).toISOString();
+  for (const parent of document.querySelectorAll('.header-stopwatch-dot')) {
+    const existing = parent.querySelector(':scope > relative-time');
+    if (existing) {
+      existing.setAttribute('datetime', datetime);
+    } else {
+      const el = document.createElement('relative-time');
+      el.setAttribute('format', 'micro');
+      el.setAttribute('datetime', datetime);
+      el.setAttribute('lang', 'en-US');
+      el.setAttribute('title', ''); // make <relative-time> show no title and therefor no tooltip
+      parent.append(el);
+    }
+  }
 }

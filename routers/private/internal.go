@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 
 	"gitea.com/go-chi/binding"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
@@ -48,8 +48,8 @@ func bind[T any](_ T) any {
 
 // Routes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
-func Routes() *web.Route {
-	r := web.NewRoute()
+func Routes() *web.Router {
+	r := web.NewRouter()
 	r.Use(context.PrivateContexter())
 	r.Use(CheckInternalToken)
 	// Log the real ip address of the request from SSH is really helpful for diagnosing sometimes.

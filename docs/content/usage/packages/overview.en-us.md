@@ -42,7 +42,7 @@ The following package managers are currently supported:
 | [PyPI](usage/packages/pypi.md) | Python | `pip`, `twine` |
 | [RPM](usage/packages/rpm.md) | - | `yum`, `dnf`, `zypper` |
 | [RubyGems](usage/packages/rubygems.md) | Ruby | `gem`, `Bundler` |
-| [Swift](usage/packages/rubygems.md) | Swift | `swift` |
+| [Swift](usage/packages/swift.md) | Swift | `swift` |
 | [Vagrant](usage/packages/vagrant.md) | - | `vagrant` |
 
 **The following paragraphs only apply if Packages are not globally disabled!**

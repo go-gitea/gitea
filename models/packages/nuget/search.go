@@ -55,7 +55,7 @@ func CountPackages(ctx context.Context, opts *packages_model.PackageSearchOption
 
 func toConds(opts *packages_model.PackageSearchOptions) builder.Cond {
 	var cond builder.Cond = builder.Eq{
-		"package.is_internal": opts.IsInternal.IsTrue(),
+		"package.is_internal": opts.IsInternal.Value(),
 		"package.owner_id":    opts.OwnerID,
 		"package.type":        packages_model.TypeNuGet,
 	}

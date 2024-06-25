@@ -22,12 +22,16 @@ Even though Gitea Actions is designed to be compatible with GitHub Actions, ther
 ### Absolute action URLs
 
 Gitea Actions supports defining actions via absolute URL, which means that you can use actions from any git repository.
-Like `uses: https://github.com/actions/checkout@v3` or `uses: http://your_gitea.com/owner/repo@branch`.
+Like `uses: https://github.com/actions/checkout@v4` or `uses: http://your_gitea.com/owner/repo@branch`.
 
 ### Actions written in Go
 
 Gitea Actions supports writing actions in Go.
 See [Creating Go Actions](https://blog.gitea.com/creating-go-actions/).
+
+### Support the non-standard syntax @yearly, @monthly, @weekly, @daily, @hourly on schedule
+
+Github Actions doesn't support that. https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
 
 ## Unsupported workflows syntax
 
@@ -104,11 +108,19 @@ See [Creating an annotation for an error](https://docs.github.com/en/actions/usi
 
 It's ignored by Gitea Actions now.
 
+### Expressions
+
+For [expressions](https://docs.github.com/en/actions/learn-github-actions/expressions), only [`always()`](https://docs.github.com/en/actions/learn-github-actions/expressions#always) is supported.
+
 ## Missing UI features
 
 ### Pre and Post steps
 
 Pre and Post steps don't have their own section in the job log user interface.
+
+### Services steps
+
+Services steps don't have their own section in the job log user interface.
 
 ## Different behavior
 
@@ -116,10 +128,10 @@ Pre and Post steps don't have their own section in the job log user interface.
 
 Previously (Pre 1.21.0), `[actions].DEFAULT_ACTIONS_URL` defaulted to `https://gitea.com`.
 We have since restricted this option to only allow two values (`github` and `self`).
-When set to `github`, the new default, Gitea will download non-fully-qualified actions from <https://github.com>.
-For example, if you use `uses: actions/checkout@v3`, it will download the checkout repository from <https://github.com/actions/checkout.git>.
+When set to `github`, the new default, Gitea will download non-fully-qualified actions from `https://github.com`.
+For example, if you use `uses: actions/checkout@v4`, it will download the checkout repository from `https://github.com/actions/checkout.git`.
 
-If you want to download an action from another git hoster, you can use an absolute URL, e.g. `uses: https://gitea.com/actions/checkout@v3`.
+If you want to download an action from another git hoster, you can use an absolute URL, e.g. `uses: https://gitea.com/actions/checkout@v4`.
 
 If your Gitea instance is in an intranet or a restricted area, you can set the URL to `self` to only download actions from your own instance by default.
 Of course, you can still use absolute URLs in workflows.

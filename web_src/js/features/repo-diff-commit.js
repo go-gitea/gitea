@@ -35,11 +35,11 @@ function addBranches(area, branches, defaultBranch) {
 
 function addLink(parent, href, text, tooltip) {
   const link = document.createElement('a');
-  link.classList.add('muted', 'gt-px-2');
+  link.classList.add('muted', 'tw-px-1');
   link.href = href;
   link.textContent = text;
   if (tooltip) {
-    link.classList.add('gt-border-secondary', 'gt-rounded');
+    link.classList.add('tw-border', 'tw-border-secondary', 'tw-rounded');
     link.setAttribute('data-tooltip-content', tooltip);
   }
   parent.append(link);

@@ -1,8 +1,6 @@
 <script>
-import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
-import {useLightTextOnBackground} from '../utils/color.js';
-import tinycolor from 'tinycolor2';
+import {GET} from '../modules/fetch.js';
 
 const {appSubUrl, i18n} = window.config;
 
@@ -11,6 +9,7 @@ export default {
   data: () => ({
     loading: false,
     issue: null,
+    renderedLabels: '',
     i18nErrorOccurred: i18n.error_occurred,
     i18nErrorMessage: null,
   }),
@@ -30,6 +29,9 @@ export default {
     icon() {
       if (this.issue.pull_request !== null) {
         if (this.issue.state === 'open') {
+          if (this.issue.pull_request.draft === true) {
+            return 'octicon-git-pull-request-draft'; // WIP PR
+          }
           return 'octicon-git-pull-request'; // Open PR
         } else if (this.issue.pull_request.merged === true) {
           return 'octicon-git-merge'; // Merged PR
@@ -42,26 +44,18 @@ export default {
     },
 
     color() {
-      if (this.issue.state === 'open') {
-        return 'green';
-      } else if (this.issue.pull_request !== null && this.issue.pull_request.merged === true) {
-        return 'purple';
-      }
-      return 'red';
-    },
-
-    labels() {
-      return this.issue.labels.map((label) => {
-        let textColor;
-        const {r, g, b} = tinycolor(label.color).toRgb();
-        if (useLightTextOnBackground(r, g, b)) {
-          textColor = '#eeeeee';
-        } else {
-          textColor = '#111111';
+      if (this.issue.pull_request !== null) {
+        if (this.issue.pull_request.draft === true) {
+          return 'grey'; // WIP PR
+        } else if (this.issue.pull_request.merged === true) {
+          return 'purple'; // Merged PR
         }
-        return {name: label.name, color: `#${label.color}`, textColor};
-      });
-    }
+      }
+      if (this.issue.state === 'open') {
+        return 'green'; // Open Issue
+      }
+      return 'red'; // Closed Issue
+    },
   },
   mounted() {
     this.$refs.root.addEventListener('ce-load-context-popup', (e) => {
@@ -72,45 +66,47 @@ export default {
     });
   },
   methods: {
-    load(data) {
+    async load(data) {
       this.loading = true;
       this.i18nErrorMessage = null;
-      $.get(`${appSubUrl}/${data.owner}/${data.repo}/issues/${data.index}/info`).done((issue) => {
-        this.issue = issue;
-      }).fail((jqXHR) => {
-        if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
-          this.i18nErrorMessage = jqXHR.responseJSON.message;
-        } else {
-          this.i18nErrorMessage = i18n.network_error;
+
+      try {
+        const response = await GET(`${appSubUrl}/${data.owner}/${data.repo}/issues/${data.index}/info`); // backend: GetIssueInfo
+        const respJson = await response.json();
+        if (!response.ok) {
+          this.i18nErrorMessage = respJson.message ?? i18n.network_error;
+          return;
         }
-      }).always(() => {
+        this.issue = respJson.convertedIssue;
+        this.renderedLabels = respJson.renderedLabels;
+      } catch {
+        this.i18nErrorMessage = i18n.network_error;
+      } finally {
         this.loading = false;
-      });
-    }
-  }
+      }
+    },
+  },
 };
 </script>
 <template>
   <div ref="root">
-    <div v-if="loading" class="ui active centered inline loader"/>
-    <div v-if="!loading && issue !== null">
-      <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
-      <p><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
-      <p>{{ body }}</p>
-      <div>
-        <div
-          v-for="label in labels"
-          :key="label.name"
-          class="ui label"
-          :style="{ color: label.textColor, backgroundColor: label.color }"
-        >
-          {{ label.name }}
-        </div>
+    <div v-if="loading" class="tw-h-12 tw-w-12 is-loading"/>
+    <div v-if="!loading && issue !== null" class="tw-flex tw-flex-col tw-gap-2">
+      <div class="tw-text-12">{{ issue.repository.full_name }} on {{ createdAt }}</div>
+      <div class="flex-text-block">
+        <svg-icon :name="icon" :class="['text', color]"/>
+        <span class="issue-title tw-font-semibold tw-break-anywhere">
+          {{ issue.title }}
+          <span class="index">#{{ issue.number }}</span>
+        </span>
       </div>
+      <div v-if="body">{{ body }}</div>
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <div v-if="issue.labels.length" v-html="renderedLabels"/>
     </div>
-    <div v-if="!loading && issue === null">
-      <p><small>{{ i18nErrorOccurred }}</small></p>
-      <p>{{ i18nErrorMessage }}</p>
+    <div class="tw-flex tw-flex-col tw-gap-2" v-if="!loading && issue === null">
+      <div class="tw-text-12">{{ i18nErrorOccurred }}</div>
+      <div>{{ i18nErrorMessage }}</div>
     </div>
   </div>
 </template>

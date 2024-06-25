@@ -27,7 +27,8 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 	session := loginUser(t, adminUsername)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 	query := "user2"
-	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
+	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var results SearchResults
@@ -84,8 +85,8 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 	session := loginUser(t, adminUsername)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 	query := "user31"
-	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
-	req.SetBasicAuth(token, "x-oauth-basic")
+	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var results SearchResults

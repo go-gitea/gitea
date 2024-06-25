@@ -120,7 +120,7 @@ func doGitCloneFail(u *url.URL) func(*testing.T) {
 func doGitInitTestRepository(dstPath string) func(*testing.T) {
 	return func(t *testing.T) {
 		// Init repository in dstPath
-		assert.NoError(t, git.InitRepository(git.DefaultContext, dstPath, false))
+		assert.NoError(t, git.InitRepository(git.DefaultContext, dstPath, false, git.Sha1ObjectFormat.Name()))
 		// forcibly set default branch to master
 		_, _, err := git.NewCommand(git.DefaultContext, "symbolic-ref", "HEAD", git.BranchPrefix+"master").RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
@@ -157,6 +157,24 @@ func doGitPushTestRepositoryFail(dstPath string, args ...string) func(*testing.T
 	return func(t *testing.T) {
 		_, _, err := git.NewCommand(git.DefaultContext, "push").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.Error(t, err)
+	}
+}
+
+func doGitAddSomeCommits(dstPath, branch string) func(*testing.T) {
+	return func(t *testing.T) {
+		doGitCheckoutBranch(dstPath, branch)(t)
+
+		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, fmt.Sprintf("file-%s.txt", branch)), []byte(fmt.Sprintf("file %s", branch)), 0o644))
+		assert.NoError(t, git.AddChanges(dstPath, true))
+		signature := git.Signature{
+			Email: "test@test.test",
+			Name:  "test",
+		}
+		assert.NoError(t, git.CommitChanges(dstPath, git.CommitChangesOptions{
+			Committer: &signature,
+			Author:    &signature,
+			Message:   fmt.Sprintf("update %s", branch),
+		}))
 	}
 }
 

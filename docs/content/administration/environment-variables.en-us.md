@@ -27,14 +27,15 @@ GITEA_CUSTOM=/home/gitea/custom ./gitea web
 
 ## From Go language
 
-As Gitea is written in Go, it uses some Go variables, such as:
+As Gitea is written in Go, it uses some variables that influence the behaviour of Go's runtime, such as:
 
-- `GOOS`
-- `GOARCH`
-- [`GOPATH`](https://golang.org/cmd/go/#hdr-GOPATH_environment_variable)
+- `GOMEMLIMIT`
+- `GOGC`
+- `GOMAXPROCS`
+- `GODEBUG`
 
 For documentation about each of the variables available, refer to the
-[official Go documentation](https://golang.org/cmd/go/#hdr-Environment_variables).
+[official Go documentation on runtime environment variables](https://pkg.go.dev/runtime#hdr-Environment_Variables).
 
 ## Gitea files
 

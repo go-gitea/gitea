@@ -318,3 +318,24 @@ func TestDeleteIssueActions(t *testing.T) {
 	assert.NoError(t, activities_model.DeleteIssueActions(db.DefaultContext, issue.RepoID, issue.ID, issue.Index))
 	unittest.AssertCount(t, &activities_model.Action{}, 0)
 }
+
+func TestRepoActions(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	_ = db.TruncateBeans(db.DefaultContext, &activities_model.Action{})
+	for i := 0; i < 3; i++ {
+		_ = db.Insert(db.DefaultContext, &activities_model.Action{
+			UserID:    2 + int64(i),
+			ActUserID: 2,
+			RepoID:    repo.ID,
+			OpType:    activities_model.ActionCommentIssue,
+		})
+	}
+	count, _ := db.Count[activities_model.Action](db.DefaultContext, &db.ListOptions{})
+	assert.EqualValues(t, 3, count)
+	actions, _, err := activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+		RequestedRepo: repo,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, actions, 1)
+}

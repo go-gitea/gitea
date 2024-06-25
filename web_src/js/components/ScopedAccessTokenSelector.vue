@@ -39,36 +39,36 @@ const sfc = {
         'repository',
         'user');
       return categories;
-    }
+    },
   },
 
   mounted() {
-    document.getElementById('scoped-access-submit').addEventListener('click', this.onClickSubmit);
+    document.querySelector('#scoped-access-submit').addEventListener('click', this.onClickSubmit);
   },
 
   unmounted() {
-    document.getElementById('scoped-access-submit').removeEventListener('click', this.onClickSubmit);
+    document.querySelector('#scoped-access-submit').removeEventListener('click', this.onClickSubmit);
   },
 
   methods: {
     onClickSubmit(e) {
       e.preventDefault();
 
-      const warningEl = document.getElementById('scoped-access-warning');
+      const warningEl = document.querySelector('#scoped-access-warning');
       // check that at least one scope has been selected
-      for (const el of document.getElementsByClassName('access-token-select')) {
+      for (const el of document.querySelectorAll('.access-token-select')) {
         if (el.value) {
           // Hide the error if it was visible from previous attempt.
           hideElem(warningEl);
           // Submit the form.
-          document.getElementById('scoped-access-form').submit();
+          document.querySelector('#scoped-access-form').submit();
           // Don't show the warning.
           return;
         }
       }
       // no scopes selected, show validation error
       showElem(warningEl);
-    }
+    },
   },
 };
 
@@ -78,7 +78,7 @@ export default sfc;
  * Initialize category toggle sections
  */
 export function initScopedAccessTokenCategories() {
-  for (const el of document.getElementsByClassName('scoped-access-token-mount')) {
+  for (const el of document.querySelectorAll('.scoped-access-token-mount')) {
     createApp({})
       .component('scoped-access-token-selector', sfc)
       .mount(el);
@@ -87,7 +87,7 @@ export function initScopedAccessTokenCategories() {
 
 </script>
 <template>
-  <div v-for="category in categories" :key="category" class="field gt-pl-2 gt-pb-2 access-token-category">
+  <div v-for="category in categories" :key="category" class="field tw-pl-1 tw-pb-1 access-token-category">
     <label class="category-label" :for="'access-token-scope-' + category">
       {{ category }}
     </label>

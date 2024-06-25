@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/packages/maven"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -35,8 +36,8 @@ func TestPackageMaven(t *testing.T) {
 	filename := fmt.Sprintf("%s-%s.jar", packageName, packageVersion)
 
 	putFile := func(t *testing.T, path, content string, expectedStatus int) {
-		req := NewRequestWithBody(t, "PUT", root+path, strings.NewReader(content))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequestWithBody(t, "PUT", root+path, strings.NewReader(content)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, expectedStatus)
 	}
 
@@ -84,14 +85,14 @@ func TestPackageMaven(t *testing.T) {
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "HEAD", fmt.Sprintf("%s/%s/%s", root, packageVersion, filename))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "HEAD", fmt.Sprintf("%s/%s/%s", root, packageVersion, filename)).
+			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		checkHeaders(t, resp.Header(), "application/java-archive", 4)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s", root, packageVersion, filename))
-		req = AddBasicAuthHeader(req, user.Name)
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s", root, packageVersion, filename)).
+			AddBasicAuth(user.Name)
 		resp = MakeRequest(t, req, http.StatusOK)
 
 		checkHeaders(t, resp.Header(), "application/java-archive", 4)
@@ -165,14 +166,14 @@ func TestPackageMaven(t *testing.T) {
 	t.Run("DownloadPOM", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "HEAD", fmt.Sprintf("%s/%s/%s.pom", root, packageVersion, filename))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "HEAD", fmt.Sprintf("%s/%s/%s.pom", root, packageVersion, filename)).
+			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		checkHeaders(t, resp.Header(), "text/xml", int64(len(pomContent)))
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s.pom", root, packageVersion, filename))
-		req = AddBasicAuthHeader(req, user.Name)
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s.pom", root, packageVersion, filename)).
+			AddBasicAuth(user.Name)
 		resp = MakeRequest(t, req, http.StatusOK)
 
 		checkHeaders(t, resp.Header(), "text/xml", int64(len(pomContent)))
@@ -188,8 +189,8 @@ func TestPackageMaven(t *testing.T) {
 	t.Run("DownloadChecksums", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/1.2.3/%s", root, filename))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/1.2.3/%s", root, filename)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 
 		for key, checksum := range map[string]string{
@@ -198,8 +199,8 @@ func TestPackageMaven(t *testing.T) {
 			"sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
 			"sha512": "ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff",
 		} {
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s.%s", root, packageVersion, filename, key))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s.%s", root, packageVersion, filename, key)).
+				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			assert.Equal(t, checksum, resp.Body.String())
@@ -209,8 +210,8 @@ func TestPackageMaven(t *testing.T) {
 	t.Run("DownloadMetadata", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", root+"/maven-metadata.xml")
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "GET", root+"/maven-metadata.xml").
+			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		expectedMetadata := `<?xml version="1.0" encoding="UTF-8"?>` + "\n<metadata><groupId>com.gitea</groupId><artifactId>test-project</artifactId><versioning><release>1.0.1</release><latest>1.0.1</latest><versions><version>1.0.1</version></versions></versioning></metadata>"
@@ -225,8 +226,8 @@ func TestPackageMaven(t *testing.T) {
 			"sha256": "3f48322f81c4b2c3bb8649ae1e5c9801476162b520e1c2734ac06b2c06143208",
 			"sha512": "cb075aa2e2ef1a83cdc14dd1e08c505b72d633399b39e73a21f00f0deecb39a3e2c79f157c1163f8a3854828750706e0dec3a0f5e4778e91f8ec2cf351a855f2",
 		} {
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/maven-metadata.xml.%s", root, key))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/maven-metadata.xml.%s", root, key)).
+				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			assert.Equal(t, checksum, resp.Body.String())
@@ -240,5 +241,14 @@ func TestPackageMaven(t *testing.T) {
 		putFile(t, "/maven-metadata.xml", "test", http.StatusOK)
 		putFile(t, fmt.Sprintf("/%s/maven-metadata.xml", snapshotVersion), "test", http.StatusCreated)
 		putFile(t, fmt.Sprintf("/%s/maven-metadata.xml", snapshotVersion), "test-overwrite", http.StatusCreated)
+	})
+
+	t.Run("InvalidFile", func(t *testing.T) {
+		ver := packageVersion + "-invalid"
+		putFile(t, fmt.Sprintf("/%s/%s", ver, filename), "any invalid content", http.StatusCreated)
+		req := NewRequestf(t, "GET", "/%s/-/packages/maven/%s-%s/%s", user.Name, groupID, artifactID, ver)
+		resp := MakeRequest(t, req, http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "No metadata.")
+		assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 	})
 }
