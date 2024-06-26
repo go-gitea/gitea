@@ -4,6 +4,7 @@
 package auth
 
 import (
+	"encoding/binary"
 	"errors"
 	"net/http"
 
@@ -12,9 +13,7 @@ import (
 	wa "code.gitea.io/gitea/modules/auth/webauthn"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/externalaccount"
 
@@ -49,15 +48,15 @@ func WebAuthn(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplWebAuthn)
 }
 
-// WebAuthnLoginAssertion submits a WebAuthn challenge to the browser
-func WebAuthnLoginAssertion1(ctx *context.Context) {
+// WebAuthnPasskeyAssertion submits a WebAuthn challenge for the passkey login to the browser
+func WebAuthnPasskeyAssertion(ctx *context.Context) {
 	assertion, sessionData, err := wa.WebAuthn.BeginDiscoverableLogin()
 	if err != nil {
 		ctx.ServerError("webauthn.BeginDiscoverableLogin", err)
 		return
 	}
 
-	if err := ctx.Session.Set("webauthnAssertion", sessionData); err != nil {
+	if err := ctx.Session.Set("webauthnAssertion-passkey-todo", sessionData); err != nil {
 		ctx.ServerError("Session.Set", err)
 		return
 	}
@@ -65,30 +64,11 @@ func WebAuthnLoginAssertion1(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, assertion)
 }
 
-// SignInPost response for sign in request
-func WebAuthnLogin(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("sign_in")
-
-	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
-	if err != nil {
-		ctx.ServerError("UserSignIn", err)
-		return
-	}
-	ctx.Data["OAuth2Providers"] = oauth2Providers
-	ctx.Data["Title"] = ctx.Tr("sign_in")
-	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
-	ctx.Data["PageIsSignIn"] = true
-	ctx.Data["PageIsLogin"] = true
-	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplSignIn)
-		return
-	}
-
-	sessionData, okData := ctx.Session.Get("webauthnAssertion").(*webauthn.SessionData)
+// WebAuthnPasskeyLogin handles the WebAuthn login process using a Passkey
+func WebAuthnPasskeyLogin(ctx *context.Context) {
+	sessionData, okData := ctx.Session.Get("webauthnAssertion-passkey-todo").(*webauthn.SessionData)
 	if !okData || sessionData == nil {
-		ctx.ServerError("UserSignIn", errors.New("not in WebAuthn session"))
+		ctx.ServerError("ctx.Session.Get", errors.New("not in WebAuthn session"))
 		return
 	}
 	defer func() {
@@ -96,11 +76,20 @@ func WebAuthnLogin(ctx *context.Context) {
 	}()
 
 	// Validate the parsed response.
-	// func(rawID, userHandle []byte) (user User, err error)
+	userID := int64(-1)
 	cred, err := wa.WebAuthn.FinishDiscoverableLogin(func(rawID, userHandle []byte) (webauthn.User, error) {
-		user := &wa.User{}
-		// TODO: get actual user using rawID and userHandle from database
-		return user, nil
+		var n int
+		userID, n = binary.Varint(userHandle)
+		if n <= 0 {
+			return nil, errors.New("invalid rawID")
+		}
+
+		user, err := user_model.GetUserByID(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+
+		return (*wa.User)(user), nil
 	}, *sessionData, ctx.Req)
 	if err != nil {
 		// Failed authentication attempt.
@@ -109,7 +98,16 @@ func WebAuthnLogin(ctx *context.Context) {
 		return
 	}
 
-	userID := int64(1)
+	if !cred.Flags.UserPresent {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+
+	if userID == -1 {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+
 	user, err := user_model.GetUserByID(ctx, userID)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
@@ -145,7 +143,7 @@ func WebAuthnLogin(ctx *context.Context) {
 		}
 	}
 
-	remember := ctx.Session.Get("twofaRemember").(bool)
+	remember := false // TODO: implement remember me
 	redirect := handleSignInFull(ctx, user, remember, false)
 	if redirect == "" {
 		redirect = setting.AppSubURL + "/"

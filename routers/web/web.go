@@ -535,8 +535,8 @@ func registerRoutes(m *web.Router) {
 		})
 		m.Group("/webauthn", func() {
 			m.Get("", auth.WebAuthn)
-			m.Get("/passkey/assertion", auth.WebAuthnLoginAssertion1)
-			m.Get("/passkey/login", auth.WebAuthnLogin)
+			m.Get("/passkey/assertion", auth.WebAuthnPasskeyAssertion)
+			m.Post("/passkey/login", auth.WebAuthnPasskeyLogin)
 			m.Get("/assertion", auth.WebAuthnLoginAssertion)
 			m.Post("/assertion", auth.WebAuthnLoginAssertionPost)
 		})

@@ -4,8 +4,24 @@ import {GET, POST} from '../modules/fetch.js';
 
 const {appSubUrl} = window.config;
 
-async function doWebAuthn(assertionUrl) {
-  const res = await GET(assertionUrl);
+export async function initUserAuthWebAuthn() {
+  if (!detectWebAuthnSupport()) {
+    return;
+  }
+
+  const elSignInPasskeyBtn = document.querySelector('.signin-passkey');
+  if (elSignInPasskeyBtn) {
+    elSignInPasskeyBtn.addEventListener('click', loginPasskey);
+  }
+
+  const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
+  if (elPrompt) {
+    login2FA();
+  }
+}
+
+async function loginPasskey() {
+  const res = await GET(`${appSubUrl}/user/webauthn/passkey/assertion`);
   if (res.status !== 200) {
     webAuthnError('unknown');
     return;
@@ -17,7 +33,59 @@ async function doWebAuthn(assertionUrl) {
     cred.id = decodeURLEncodedBase64(cred.id);
   }
 
-  console.log('leggo3', options);
+  try {
+    const credential = await navigator.credentials.get({
+      publicKey: options.publicKey,
+    });
+
+    // Move data into Arrays in case it is super long
+    const authData = new Uint8Array(credential.response.authenticatorData);
+    const clientDataJSON = new Uint8Array(credential.response.clientDataJSON);
+    const rawId = new Uint8Array(credential.rawId);
+    const sig = new Uint8Array(credential.response.signature);
+    const userHandle = new Uint8Array(credential.response.userHandle);
+
+    const res = await POST(`${appSubUrl}/user/webauthn/passkey/login`, {
+      data: {
+        id: credential.id,
+        rawId: encodeURLEncodedBase64(rawId),
+        type: credential.type,
+        clientExtensionResults: credential.getClientExtensionResults(),
+        response: {
+          authenticatorData: encodeURLEncodedBase64(authData),
+          clientDataJSON: encodeURLEncodedBase64(clientDataJSON),
+          signature: encodeURLEncodedBase64(sig),
+          userHandle: encodeURLEncodedBase64(userHandle),
+        },
+      },
+    });
+    if (res.status === 500) {
+      webAuthnError('unknown');
+      return;
+    } else if (res.status !== 200) {
+      webAuthnError('unable-to-process');
+      return;
+    }
+    const reply = await res.json();
+
+    window.location.href = reply?.redirect ?? `${appSubUrl}/`;
+  } catch (err) {
+    webAuthnError('general', err.message);
+  }
+}
+
+async function login2FA() {
+  const res = await GET(`${appSubUrl}/user/webauthn/assertion`);
+  if (res.status !== 200) {
+    webAuthnError('unknown');
+    return;
+  }
+
+  const options = await res.json();
+  options.publicKey.challenge = decodeURLEncodedBase64(options.publicKey.challenge);
+  for (const cred of options.publicKey.allowCredentials ?? []) {
+    cred.id = decodeURLEncodedBase64(cred.id);
+  }
 
   try {
     const credential = await navigator.credentials.get({
@@ -38,24 +106,6 @@ async function doWebAuthn(assertionUrl) {
     } catch (err) {
       webAuthnError('general', err.message);
     }
-  }
-}
-
-export async function initUserAuthWebAuthn() {
-  console.log('moin initUserAuthWebAuthn');
-
-  if (!detectWebAuthnSupport()) {
-    return;
-  }
-
-  const elSignInPasskeyBtn = document.querySelector('.signin-passkey');
-  if (elSignInPasskeyBtn) {
-    elSignInPasskeyBtn.onclick = () => doWebAuthn(`${appSubUrl}/user/webauthn/passkey/assertion`);
-  }
-
-  const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
-  if (elPrompt) {
-    doWebAuthn(`${appSubUrl}/user/webauthn/assertion`);
   }
 }
 
