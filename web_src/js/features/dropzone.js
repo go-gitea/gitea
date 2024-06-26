@@ -4,7 +4,7 @@ import {clippie} from 'clippie';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {GET, POST} from '../modules/fetch.js';
 import {showErrorToast} from '../modules/toast.js';
-import {createElementFromHTML, createElement} from '../utils/dom.js';
+import {createElementFromHTML, createElement, elemGetAttributeNumber} from '../utils/dom.js';
 
 const {csrfToken, i18n} = window.config;
 
@@ -52,8 +52,8 @@ export async function initDropzone(dropzoneEl) {
   const dzInst = await createDropzone(dropzoneEl, {
     url: dropzoneEl.getAttribute('data-upload-url'),
     headers: {'X-Csrf-Token': csrfToken},
-    maxFiles: dropzoneEl.getAttribute('data-max-file'),
-    maxFilesize: dropzoneEl.getAttribute('data-max-size'),
+    maxFiles: elemGetAttributeNumber('data-max-file', null), // match dropzone default value, no limit
+    maxFilesize: elemGetAttributeNumber('data-max-size', 256), // match dropzone default value: 256 MiB
     acceptedFiles: ['*/*', ''].includes(dropzoneEl.getAttribute('data-accepts')) ? null : dropzoneEl.getAttribute('data-accepts'),
     addRemoveLinks: true,
     dictDefaultMessage: dropzoneEl.getAttribute('data-default-message'),
