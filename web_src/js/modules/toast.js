@@ -33,8 +33,11 @@ function showToast(message, level, {gravity, position, duration, useHtmlBody, pr
       const toastDupNumEl = toastEl.querySelector('.toast-duplicate-number');
       showElem(toastDupNumEl);
       toastDupNumEl.textContent = String(Number(toastDupNumEl.textContent) + 1);
-      toastDupNumEl.classList.remove('pulse');
-      requestAnimationFrame(() => toastDupNumEl.classList.add('pulse'));
+      toastDupNumEl.classList.add('pulse');
+      if (!toastDupNumEl.getAttribute('data-animation-event-attached')) {
+        toastDupNumEl.addEventListener('animationend', () => toastDupNumEl.classList.remove('pulse'));
+        toastDupNumEl.setAttribute('data-animation-event-attached', 'true');
+      }
       return;
     }
   }
