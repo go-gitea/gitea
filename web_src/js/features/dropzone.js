@@ -4,7 +4,7 @@ import {clippie} from 'clippie';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {GET, POST} from '../modules/fetch.js';
 import {showErrorToast} from '../modules/toast.js';
-import {createElementFromHTML, createElementFromObject} from '../utils/dom.js';
+import {createElementFromHTML, createElement} from '../utils/dom.js';
 
 const {csrfToken, i18n} = window.config;
 
@@ -69,7 +69,7 @@ export async function initDropzone(dropzoneEl) {
   dzInst.on('success', (file, data) => {
     file.uuid = data.uuid;
     fileUuidDict[file.uuid] = {submitted: false};
-    const input = createElementFromObject('input', {name: 'files', type: 'hidden', id: `dropzone-file-${data.uuid}`, value: data.uuid});
+    const input = createElement('input', {name: 'files', type: 'hidden', id: `dropzone-file-${data.uuid}`, value: data.uuid});
     dropzoneEl.querySelector('.files').append(input);
     addCopyLink(file);
   });
@@ -107,7 +107,7 @@ export async function initDropzone(dropzoneEl) {
         dzInst.emit('complete', attachment);
         addCopyLink(attachment);
         fileUuidDict[attachment.uuid] = {submitted: true};
-        const input = createElementFromObject('input', {name: 'files', type: 'hidden', id: `dropzone-file-${attachment.uuid}`, value: attachment.uuid});
+        const input = createElement('input', {name: 'files', type: 'hidden', id: `dropzone-file-${attachment.uuid}`, value: attachment.uuid});
         dropzoneEl.querySelector('.files').append(input);
       }
       if (!dropzoneEl.querySelector('.dz-preview')) {
