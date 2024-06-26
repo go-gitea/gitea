@@ -241,7 +241,7 @@ const sfc = {
           ]);
         } catch (err) {
           if (err instanceof TypeError) return; // avoid network error while unloading page
-          showErrorToast(err.message, {preventDuplicates: true});
+          showErrorToast(err.message);
           // reset all step loading states, we can't easily tell which one failed at this point
           for (let i = 0; i < this.currentJob.steps.length; i++) {
             if (this.currentJobStepsStates[i].loading) {
