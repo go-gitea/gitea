@@ -36,14 +36,14 @@
 }
 
 .toast-duplicate-number::before {
-  content: '(';
+  content: "(";
 }
 .toast-duplicate-number {
   display: inline-flex;
   margin: 0 2px;
 }
 .toast-duplicate-number::after {
-  content: ')';
+  content: ")";
 }
 
 .toast-close:hover {
