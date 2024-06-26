@@ -26,7 +26,7 @@ function showToast(message, level, {gravity, position, duration, useHtmlBody, pr
   const body = useHtmlBody ? String(message) : htmlEscape(message);
   const key = `${level}-${body}`;
 
-  // prevent showing duplicate toasts with same level and message, hide all existing toasts with same key
+  // prevent showing duplicate toasts with same level and message, and give a visual feedback for end users
   if (preventDuplicates) {
     const toastEl = document.querySelector(`.toastify[data-toast-unique-key="${CSS.escape(key)}"]`);
     if (toastEl) {
@@ -34,9 +34,7 @@ function showToast(message, level, {gravity, position, duration, useHtmlBody, pr
       showElem(toastDupNumEl);
       toastDupNumEl.textContent = String(Number(toastDupNumEl.textContent) + 1);
       toastDupNumEl.classList.remove('pulse');
-      requestAnimationFrame(() => {
-        toastDupNumEl.classList.add('pulse');
-      });
+      requestAnimationFrame(() => toastDupNumEl.classList.add('pulse'));
       return;
     }
   }
