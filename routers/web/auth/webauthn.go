@@ -56,7 +56,7 @@ func WebAuthnPasskeyAssertion(ctx *context.Context) {
 		return
 	}
 
-	if err := ctx.Session.Set("webauthnAssertion-passkey-todo", sessionData); err != nil {
+	if err := ctx.Session.Set("webauthnPasskeyAssertion", sessionData); err != nil {
 		ctx.ServerError("Session.Set", err)
 		return
 	}
@@ -66,25 +66,25 @@ func WebAuthnPasskeyAssertion(ctx *context.Context) {
 
 // WebAuthnPasskeyLogin handles the WebAuthn login process using a Passkey
 func WebAuthnPasskeyLogin(ctx *context.Context) {
-	sessionData, okData := ctx.Session.Get("webauthnAssertion-passkey-todo").(*webauthn.SessionData)
+	sessionData, okData := ctx.Session.Get("webauthnPasskeyAssertion").(*webauthn.SessionData)
 	if !okData || sessionData == nil {
 		ctx.ServerError("ctx.Session.Get", errors.New("not in WebAuthn session"))
 		return
 	}
 	defer func() {
-		_ = ctx.Session.Delete("webauthnAssertion")
+		_ = ctx.Session.Delete("webauthnPasskeyAssertion")
 	}()
 
 	// Validate the parsed response.
-	userID := int64(-1)
+	var user *user_model.User
 	cred, err := wa.WebAuthn.FinishDiscoverableLogin(func(rawID, userHandle []byte) (webauthn.User, error) {
-		var n int
-		userID, n = binary.Varint(userHandle)
+		userID, n := binary.Varint(userHandle)
 		if n <= 0 {
 			return nil, errors.New("invalid rawID")
 		}
 
-		user, err := user_model.GetUserByID(ctx, userID)
+		var err error
+		user, err = user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			return nil, err
 		}
@@ -103,14 +103,8 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 		return
 	}
 
-	if userID == -1 {
+	if user == nil {
 		ctx.Status(http.StatusBadRequest)
-		return
-	}
-
-	user, err := user_model.GetUserByID(ctx, userID)
-	if err != nil {
-		ctx.ServerError("UserSignIn", err)
 		return
 	}
 
@@ -148,7 +142,6 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 	if redirect == "" {
 		redirect = setting.AppSubURL + "/"
 	}
-	_ = ctx.Session.Delete("twofaUid")
 
 	ctx.JSONRedirect(redirect)
 }
