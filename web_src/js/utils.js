@@ -146,5 +146,5 @@ export function serializeXml(node) {
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function isWellKnownImageFilename(fn) {
-  return /\.(jpe?g|png|gif|webp|svg)$/i.test(fn);
+  return /\.(jpe?g|png|gif|webp|svg|heic)$/i.test(fn);
 }
