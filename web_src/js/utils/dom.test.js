@@ -1,11 +1,11 @@
-import {createElement, createElementFromHTML, elemGetAttributeNumber} from './dom.js';
+import {createElementFromAttrs, createElementFromHTML, elemGetAttributeNumber} from './dom.js';
 
 test('createElementFromHTML', () => {
   expect(createElementFromHTML('<a>foo<span>bar</span></a>').outerHTML).toEqual('<a>foo<span>bar</span></a>');
 });
 
-test('createElement', () => {
-  const el = createElement('button', {
+test('createElementFromAttrs', () => {
+  const el = createElementFromAttrs('button', {
     id: 'the-id',
     class: 'cls-1 cls-2',
     'data-foo': 'the-data',
