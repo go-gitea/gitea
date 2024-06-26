@@ -462,44 +462,55 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 	return nil
 }
 
+func checkTreePathProtected(ctx context.Context, protectedBranch *git_model.ProtectedBranch, doer *user_model.User, treePaths []string) error {
+	globUnprotected := protectedBranch.GetUnprotectedFilePatterns()
+	globProtected := protectedBranch.GetProtectedFilePatterns()
+	canUserPush := protectedBranch.CanUserPush(ctx, doer)
+	for _, treePath := range treePaths {
+		isUnprotectedFile := false
+		if len(globUnprotected) != 0 {
+			isUnprotectedFile = protectedBranch.IsUnprotectedFile(globUnprotected, treePath)
+		}
+		if !canUserPush && !isUnprotectedFile {
+			return models.ErrUserCannotCommit{
+				UserName: doer.LowerName,
+			}
+		}
+		if !isUnprotectedFile && protectedBranch.IsProtectedFile(globProtected, treePath) {
+			return models.ErrFilePathProtected{
+				Path: treePath,
+			}
+		}
+	}
+	return nil
+}
+
 // VerifyBranchProtection verify the branch protection for modifying the given treePath on the given branch
 func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, branchName string, treePaths []string) error {
 	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branchName)
 	if err != nil {
 		return err
 	}
-	if protectedBranch != nil {
-		protectedBranch.Repo = repo
-		globUnprotected := protectedBranch.GetUnprotectedFilePatterns()
-		globProtected := protectedBranch.GetProtectedFilePatterns()
-		canUserPush := protectedBranch.CanUserPush(ctx, doer)
-		for _, treePath := range treePaths {
-			isUnprotectedFile := false
-			if len(globUnprotected) != 0 {
-				isUnprotectedFile = protectedBranch.IsUnprotectedFile(globUnprotected, treePath)
+	if protectedBranch == nil { // no matched rule for branch name
+		return nil
+	}
+
+	protectedBranch.Repo = repo
+	if err := checkTreePathProtected(ctx, protectedBranch, doer, treePaths); err != nil {
+		return err
+	}
+
+	if protectedBranch.RequireSignedCommits {
+		_, _, _, err := asymkey_service.SignCRUDAction(ctx, repo.RepoPath(), doer, repo.RepoPath(), branchName)
+		if err != nil {
+			if !asymkey_service.IsErrWontSign(err) {
+				return err
 			}
-			if !canUserPush && !isUnprotectedFile {
-				return models.ErrUserCannotCommit{
-					UserName: doer.LowerName,
-				}
-			}
-			if protectedBranch.IsProtectedFile(globProtected, treePath) {
-				return models.ErrFilePathProtected{
-					Path: treePath,
-				}
-			}
-		}
-		if protectedBranch.RequireSignedCommits {
-			_, _, _, err := asymkey_service.SignCRUDAction(ctx, repo.RepoPath(), doer, repo.RepoPath(), branchName)
-			if err != nil {
-				if !asymkey_service.IsErrWontSign(err) {
-					return err
-				}
-				return models.ErrUserCannotCommit{
-					UserName: doer.LowerName,
-				}
+			return models.ErrUserCannotCommit{
+				UserName: doer.LowerName,
 			}
 		}
 	}
+
 	return nil
 }
