@@ -35,6 +35,10 @@
   align-items: center;
 }
 
+.toast-icon svg {
+  width: 30px;
+}
+
 .toast-duplicate-number::before {
   content: "(";
 }
