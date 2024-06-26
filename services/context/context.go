@@ -201,7 +201,10 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 
 			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 0, "no-transform")
-			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
+
+			if setting.UseXFrameOptions {
+				ctx.Resp.Header().Set(`X-Frame-Options`, setting.XFrameOptions)
+			}
 
 			ctx.Data["SystemConfig"] = setting.Config()
 			ctx.Data["CsrfToken"] = ctx.Csrf.GetToken()

@@ -200,7 +200,6 @@ menu:
 - `MAX_AGE`: **10m**: 缓存响应的最大时间
 - `ALLOW_CREDENTIALS`: **false**: 允许带有凭据的请求
 - `HEADERS`: **Content-Type,User-Agent**: 允许请求携带的头部
-- `X_FRAME_OPTIONS`: **SAMEORIGIN**: 详见 `X-Frame-Options`HTTP头部.
 
 ## 界面 (`ui`)
 
@@ -551,6 +550,7 @@ Gitea 创建以下非唯一队列：
   - off - 不检查密码复杂性
 - `PASSWORD_CHECK_PWN`: **false**：检查密码是否在 [HaveIBeenPwned](https://haveibeenpwned.com/Passwords) 中曝光。
 - `SUCCESSFUL_TOKENS_CACHE_SIZE`: **20**：缓存成功的令牌哈希。API 令牌在数据库中存储为 pbkdf2 哈希，但这意味着在存在多个 API 操作时可能会有显着的哈希负载。此缓存将在 LRU 缓存中存储成功的哈希令牌，以在性能和安全性之间保持平衡。
+- `X_FRAME_OPTIONS`: **SAMEORIGIN**: HTML 和 API 请求的 X-FRAME-OPTIONS 标头的值。 设置为`false`以删除标头。
 
 ## Camo (`camo`)
 

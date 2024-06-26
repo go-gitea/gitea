@@ -202,7 +202,6 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MAX_AGE`: **10m**: max time to cache response
 - `ALLOW_CREDENTIALS`: **false**: allow request with credentials
 - `HEADERS`: **Content-Type,User-Agent**: additional headers that are permitted in requests
-- `X_FRAME_OPTIONS`: **SAMEORIGIN**: Set the `X-Frame-Options` header value.
 
 ## UI (`ui`)
 
@@ -583,6 +582,7 @@ And the following unique queues:
 - `PASSWORD_CHECK_PWN`: **false**: Check [HaveIBeenPwned](https://haveibeenpwned.com/Passwords) to see if a password has been exposed.
 - `SUCCESSFUL_TOKENS_CACHE_SIZE`: **20**: Cache successful token hashes. API tokens are stored in the DB as pbkdf2 hashes however, this means that there is a potentially significant hashing load when there are multiple API operations. This cache will store the successfully hashed tokens in a LRU cache as a balance between performance and security.
 - `DISABLE_QUERY_AUTH_TOKEN`: **false**: Reject API tokens sent in URL query string (Accept Header-based API tokens only). This setting will default to `true` in Gitea 1.23 and be deprecated in Gitea 1.24.
+- `X_FRAME_OPTIONS`: **SAMEORIGIN**: The value of the X-FRAME-OPTIONS header for HTML and API requests. Set to `false to remove the header.
 
 ## Camo (`camo`)
 

@@ -17,13 +17,11 @@ var CORSConfig = struct {
 	MaxAge           time.Duration
 	AllowCredentials bool
 	Headers          []string
-	XFrameOptions    string
 }{
-	AllowDomain:   []string{"*"},
-	Methods:       []string{"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-	Headers:       []string{"Content-Type", "User-Agent"},
-	MaxAge:        10 * time.Minute,
-	XFrameOptions: "SAMEORIGIN",
+	AllowDomain: []string{"*"},
+	Methods:     []string{"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+	Headers:     []string{"Content-Type", "User-Agent"},
+	MaxAge:      10 * time.Minute,
 }
 
 func loadCorsFrom(rootCfg ConfigProvider) {

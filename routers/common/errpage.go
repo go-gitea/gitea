@@ -34,7 +34,10 @@ func RenderPanicErrorPage(w http.ResponseWriter, req *http.Request, err any) {
 	routing.UpdatePanicError(req.Context(), err)
 
 	httpcache.SetCacheControlInHeader(w.Header(), 0, "no-transform")
-	w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
+
+	if setting.UseXFrameOptions {
+		w.Header().Set(`X-Frame-Options`, setting.XFrameOptions)
+	}
 
 	tmplCtx := context.TemplateContext{}
 	tmplCtx["Locale"] = middleware.Locale(w, req)
