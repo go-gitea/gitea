@@ -21,12 +21,24 @@ const levels = {
 };
 
 // See https://github.com/apvarun/toastify-js#api for options
-function showToast(message, level, {gravity, position, duration, useHtmlBody, ...other} = {}) {
+function showToast(message, level, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other} = {}) {
+  const body = useHtmlBody ? String(message) : htmlEscape(message);
+  const key = `${level}-${body}`;
+
+  // prevent showing duplicate toasts with same level and message, hide all existing toasts with same key
+  if (preventDuplicates) {
+    const toastElements = document.querySelectorAll(`.toastify[data-toast-unique-key="${CSS.escape(key)}"]`);
+    for (const el of toastElements) {
+      el.remove(); // "hideToast" only removes the toast after an unchangeable delay, so we need to remove it immediately to make the "reposition" work with new toasts
+      el._toastInst?.hideToast();
+    }
+  }
+
   const {icon, background, duration: levelDuration} = levels[level ?? 'info'];
   const toast = Toastify({
     text: `
       <div class='toast-icon'>${svg(icon)}</div>
-      <div class='toast-body'>${useHtmlBody ? message : htmlEscape(message)}</div>
+      <div class='toast-body'>${body}</div>
       <button class='toast-close'>${svg('octicon-x')}</button>
     `,
     escapeMarkup: false,
@@ -39,6 +51,8 @@ function showToast(message, level, {gravity, position, duration, useHtmlBody, ..
 
   toast.showToast();
   toast.toastElement.querySelector('.toast-close').addEventListener('click', () => toast.hideToast());
+  toast.toastElement.setAttribute('data-toast-unique-key', key);
+  toast.toastElement._toastInst = toast;
   return toast;
 }
 
