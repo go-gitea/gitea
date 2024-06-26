@@ -41,8 +41,6 @@ function addCopyLink(file) {
  * @param {HTMLElement} dropzoneEl
  */
 export async function initDropzone(dropzoneEl) {
-  if (!dropzoneEl) return null;
-
   const listAttachmentsUrl = dropzoneEl.closest('[data-attachment-url]')?.getAttribute('data-attachment-url');
   const removeAttachmentUrl = dropzoneEl.getAttribute('data-remove-url');
   const attachmentBaseLinkUrl = dropzoneEl.getAttribute('data-link-url');
