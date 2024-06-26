@@ -1,6 +1,5 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user signin openid">
-	{{template "user/auth/signin_navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header center">
@@ -28,6 +27,11 @@
 			</div>
 			<div class="inline field">
 				<button class="ui primary button">{{ctx.Locale.Tr "sign_in"}}</button>
+			</div>
+			<div class="field">
+				<a href="{{AppSubUrl}}/user/login">
+					{{ctx.Locale.Tr "sign_in_with_username_password"}}
+				</a>
 			</div>
 			</form>
 		</div>
