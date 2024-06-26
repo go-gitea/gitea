@@ -4,26 +4,21 @@ import {GET, POST} from '../modules/fetch.js';
 
 const {appSubUrl} = window.config;
 
-export async function initUserAuthWebAuthn() {
-  const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
-  if (!elPrompt) {
-    return;
-  }
-
-  if (!detectWebAuthnSupport()) {
-    return;
-  }
-
-  const res = await GET(`${appSubUrl}/user/webauthn/passkey/assertion`);
+async function doWebAuthn(assertionUrl) {
+  const res = await GET(assertionUrl);
   if (res.status !== 200) {
     webAuthnError('unknown');
     return;
   }
+
   const options = await res.json();
   options.publicKey.challenge = decodeURLEncodedBase64(options.publicKey.challenge);
-  for (const cred of options.publicKey.allowCredentials) {
+  for (const cred of options.publicKey.allowCredentials ?? []) {
     cred.id = decodeURLEncodedBase64(cred.id);
   }
+
+  console.log('leggo3', options);
+
   try {
     const credential = await navigator.credentials.get({
       publicKey: options.publicKey,
@@ -43,6 +38,24 @@ export async function initUserAuthWebAuthn() {
     } catch (err) {
       webAuthnError('general', err.message);
     }
+  }
+}
+
+export async function initUserAuthWebAuthn() {
+  console.log('moin initUserAuthWebAuthn');
+
+  if (!detectWebAuthnSupport()) {
+    return;
+  }
+
+  const elSignInPasskeyBtn = document.querySelector('.signin-passkey');
+  if (elSignInPasskeyBtn) {
+    elSignInPasskeyBtn.onclick = () => doWebAuthn(`${appSubUrl}/user/webauthn/passkey/assertion`);
+  }
+
+  const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
+  if (elPrompt) {
+    doWebAuthn(`${appSubUrl}/user/webauthn/assertion`);
   }
 }
 
