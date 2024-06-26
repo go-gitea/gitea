@@ -1,7 +1,7 @@
 import {htmlEscape} from 'escape-goat';
 import {svg} from '../svg.js';
-import Toastify from 'toastify-js';
-import {showElem} from '../utils/dom.js'; // don't use "async import", because when network error occurs, the "async import" also fails and nothing is shown
+import {showElem} from '../utils/dom.js';
+import Toastify from 'toastify-js'; // don't use "async import", because when network error occurs, the "async import" also fails and nothing is shown
 
 const levels = {
   info: {
