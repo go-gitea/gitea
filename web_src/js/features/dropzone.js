@@ -65,6 +65,10 @@ export async function initDropzone(dropzoneEl) {
   };
   if (dropzoneEl.hasAttribute('data-max-file')) opts.maxFiles = Number(dropzoneEl.getAttribute('data-max-file'));
   if (dropzoneEl.hasAttribute('data-max-size')) opts.maxFilesize = Number(dropzoneEl.getAttribute('data-max-size'));
+
+  // there is a bug in dropzone: if a non-image file is uploaded, then it tries to request the file from server by something like:
+  // "http://localhost:3000/owner/repo/issues/[object%20Event]"
+  // the reason is that the preview "callback(dataURL)" is assign to "img.onerror" then "thumbnail" uses the error object as the dataURL and generates '<img src="[object Event]">'
   const dzInst = await createDropzone(dropzoneEl, opts);
   dzInst.on('success', (file, data) => {
     file.uuid = data.uuid;
