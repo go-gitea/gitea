@@ -19,8 +19,8 @@ func (n *websocketNotifier) DeleteComment(ctx context.Context, doer *user_model.
 		return
 	}
 
-	n.pubsub.Publish(ctx, pubsub.Message{
-		Data:  d,
-		Topic: fmt.Sprintf("repo:%s/%s", c.RefRepo.OwnerName, c.RefRepo.Name),
+	topic := fmt.Sprintf("repo:%s/%s", c.RefRepo.OwnerName, c.RefRepo.Name)
+	n.pubsub.Publish(ctx, topic, pubsub.Message{
+		Data: d,
 	})
 }

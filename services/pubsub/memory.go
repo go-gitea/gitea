@@ -21,10 +21,10 @@ func NewMemory() Broker {
 	}
 }
 
-func (p *Memory) Publish(_ context.Context, message Message) {
+func (p *Memory) Publish(_ context.Context, _topic string, message Message) {
 	p.Lock()
 
-	topic, ok := p.topics[message.Topic]
+	topic, ok := p.topics[_topic]
 	if !ok {
 		p.Unlock()
 		return

@@ -9,15 +9,12 @@ import "context"
 type Message struct {
 	// Data is the actual data in the entry.
 	Data []byte `json:"data"`
-
-	// Topic is the topic of the message.
-	Topic string `json:"topic"`
 }
 
 // Subscriber receives published messages.
 type Subscriber func(Message)
 
 type Broker interface {
-	Publish(c context.Context, message Message)
+	Publish(c context.Context, topic string, message Message)
 	Subscribe(c context.Context, topic string, subscriber Subscriber)
 }

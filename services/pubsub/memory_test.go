@@ -17,8 +17,7 @@ func TestPubsub(t *testing.T) {
 		wg sync.WaitGroup
 
 		testMessage = Message{
-			Data:  []byte("test"),
-			Topic: "hello-world",
+			Data: []byte("test"),
 		}
 	)
 
@@ -39,7 +38,7 @@ func TestPubsub(t *testing.T) {
 
 	wg.Add(2)
 	go func() {
-		broker.Publish(ctx, testMessage)
+		broker.Publish(ctx, "hello-world", testMessage)
 	}()
 
 	wg.Wait()
