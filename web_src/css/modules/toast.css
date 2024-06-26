@@ -41,6 +41,7 @@
 .toast-duplicate-number {
   display: inline-flex;
   margin: 0 2px;
+  user-select: none;
 }
 .toast-duplicate-number::after {
   content: ")";
