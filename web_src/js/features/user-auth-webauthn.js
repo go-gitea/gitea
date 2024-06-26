@@ -14,7 +14,7 @@ export async function initUserAuthWebAuthn() {
     return;
   }
 
-  const res = await GET(`${appSubUrl}/user/webauthn/assertion`);
+  const res = await GET(`${appSubUrl}/user/webauthn/passkey/assertion`);
   if (res.status !== 200) {
     webAuthnError('unknown');
     return;
