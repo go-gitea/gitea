@@ -318,18 +318,3 @@ export function createElementFromAttrs(tagName, attrs) {
   }
   return el;
 }
-
-/**
- * Get a number from an element attribute. If the attribute doesn't exist, return the default value.
- * If the attribute exists but is not a number, throw an error.
- * @param {HTMLElement} el
- * @param {string} attr
- * @param {number|null} def
- * @returns {number|null}
- */
-export function elemGetAttributeNumber(el, attr, def = null) {
-  if (!el.hasAttribute(attr)) return def; // getAttribute also returns null for non-existing attribute
-  const v = parseInt(el.getAttribute(attr));
-  if (Number.isNaN(v)) throw new Error(`Attribute "${attr}" is not a number`);
-  return v;
-}

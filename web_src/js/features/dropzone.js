@@ -4,7 +4,7 @@ import {clippie} from 'clippie';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {GET, POST} from '../modules/fetch.js';
 import {showErrorToast} from '../modules/toast.js';
-import {createElementFromHTML, createElementFromAttrs, elemGetAttributeNumber} from '../utils/dom.js';
+import {createElementFromHTML, createElementFromAttrs} from '../utils/dom.js';
 
 const {csrfToken, i18n} = window.config;
 
@@ -49,11 +49,9 @@ export async function initDropzone(dropzoneEl) {
 
   let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
   let fileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
-  const dzInst = await createDropzone(dropzoneEl, {
+  const opts = {
     url: dropzoneEl.getAttribute('data-upload-url'),
     headers: {'X-Csrf-Token': csrfToken},
-    maxFiles: elemGetAttributeNumber('data-max-file', null), // match dropzone default value, no limit
-    maxFilesize: elemGetAttributeNumber('data-max-size', 256), // match dropzone default value: 256 MiB
     acceptedFiles: ['*/*', ''].includes(dropzoneEl.getAttribute('data-accepts')) ? null : dropzoneEl.getAttribute('data-accepts'),
     addRemoveLinks: true,
     dictDefaultMessage: dropzoneEl.getAttribute('data-default-message'),
@@ -64,8 +62,10 @@ export async function initDropzone(dropzoneEl) {
     thumbnailMethod: 'contain',
     thumbnailWidth: 480,
     thumbnailHeight: 480,
-  });
-
+  };
+  if (dropzoneEl.hasAttribute('data-max-file')) opts.maxFiles = Number(dropzoneEl.getAttribute('data-max-file'));
+  if (dropzoneEl.hasAttribute('data-max-size')) opts.maxFilesize = Number(dropzoneEl.getAttribute('data-max-size'));
+  const dzInst = await createDropzone(dropzoneEl, opts);
   dzInst.on('success', (file, data) => {
     file.uuid = data.uuid;
     fileUuidDict[file.uuid] = {submitted: false};
