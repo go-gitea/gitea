@@ -77,7 +77,8 @@ export async function initDropzone(dropzoneEl) {
   dzInst.on('removedfile', async (file) => {
     if (disableRemovedfileEvent) return;
     document.querySelector(`#dropzone-file-${file.uuid}`)?.remove();
-    if (removeAttachmentUrl && !fileUuidDict[file.uuid].submitted) {
+    // when the uploaded file number reaches the limit, there is no uuid in the dict, and it doesn't need to be removed from server
+    if (removeAttachmentUrl && fileUuidDict[file.uuid] && !fileUuidDict[file.uuid].submitted) {
       await POST(removeAttachmentUrl, {data: new URLSearchParams({file: file.uuid})});
     }
   });
