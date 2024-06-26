@@ -1,5 +1,6 @@
 import {devices} from '@playwright/test';
 import {env} from 'node:process';
+import type {PlaywrightTestConfig} from '@playwright/test';
 
 const BASE_URL = env.GITEA_URL?.replace?.(/\/$/g, '') || 'http://localhost:3000';
 
@@ -94,4 +95,4 @@ export default {
   outputDir: 'tests/e2e/test-artifacts/',
   /* Folder for test artifacts such as screenshots, videos, traces, etc. */
   snapshotDir: 'tests/e2e/test-snapshots/',
-};
+} satisfies PlaywrightTestConfig;
