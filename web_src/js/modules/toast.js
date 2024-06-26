@@ -21,20 +21,12 @@ const levels = {
 };
 
 // See https://github.com/apvarun/toastify-js#api for options
-function showToast(message, level, {gravity, position, duration, useHtmlBody, preventDuplicates, ...other} = {}) {
-  const body = String(useHtmlBody ? message : htmlEscape(message));
-  const key = `${level}-${body}`;
-
-  // prevent showing duplicate toasts with same level and message
-  if (preventDuplicates && document.querySelector(`.toastify[data-key="${CSS.escape(key)}"]`)) {
-    return;
-  }
-
+function showToast(message, level, {gravity, position, duration, useHtmlBody, ...other} = {}) {
   const {icon, background, duration: levelDuration} = levels[level ?? 'info'];
   const toast = Toastify({
     text: `
       <div class='toast-icon'>${svg(icon)}</div>
-      <div class='toast-body'>${body}</div>
+      <div class='toast-body'>${useHtmlBody ? message : htmlEscape(message)}</div>
       <button class='toast-close'>${svg('octicon-x')}</button>
     `,
     escapeMarkup: false,
@@ -46,7 +38,6 @@ function showToast(message, level, {gravity, position, duration, useHtmlBody, pr
   });
 
   toast.showToast();
-  toast.toastElement.setAttribute('data-key', key);
   toast.toastElement.querySelector('.toast-close').addEventListener('click', () => toast.hideToast());
   return toast;
 }
