@@ -22,7 +22,7 @@ export async function initUserAuthWebAuthn() {
 
 async function loginPasskey() {
   const res = await GET(`${appSubUrl}/user/webauthn/passkey/assertion`);
-  if (res.status !== 200) {
+  if (!res.ok) {
     webAuthnError('unknown');
     return;
   }
@@ -62,7 +62,7 @@ async function loginPasskey() {
     if (res.status === 500) {
       webAuthnError('unknown');
       return;
-    } else if (res.status !== 200) {
+    } else if (!res.ok) {
       webAuthnError('unable-to-process');
       return;
     }
@@ -134,7 +134,7 @@ async function verifyAssertion(assertedCredential) {
   if (res.status === 500) {
     webAuthnError('unknown');
     return;
-  } else if (res.status !== 200) {
+  } else if (!res.ok) {
     webAuthnError('unable-to-process');
     return;
   }
@@ -230,7 +230,7 @@ async function webAuthnRegisterRequest() {
   if (res.status === 409) {
     webAuthnError('duplicated');
     return;
-  } else if (res.status !== 200) {
+  } else if (!res.ok) {
     webAuthnError('unknown');
     return;
   }
