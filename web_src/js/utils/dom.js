@@ -304,3 +304,17 @@ export function createElementFromHTML(htmlString) {
   div.innerHTML = htmlString.trim();
   return div.firstChild;
 }
+
+export function createElementFromAttrs(tagName, attrs) {
+  const el = document.createElement(tagName);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value === undefined || value === null) continue;
+    if (value === true) {
+      el.toggleAttribute(key, value);
+    } else {
+      el.setAttribute(key, String(value));
+    }
+    // TODO: in the future we could make it also support "textContent" and "innerHTML" properties if needed
+  }
+  return el;
+}
