@@ -8,6 +8,10 @@ import {createElementFromHTML, createElementFromAttrs} from '../utils/dom.js';
 
 const {csrfToken, i18n} = window.config;
 
+// dropzone has its owner event dispatcher (emitter)
+export const DropzoneCustomEventReloadFiles = 'dropzone-custom-reload-files';
+export const DropzoneCustomEventRemovedFile = 'dropzone-custom-removed-file';
+
 async function createDropzone(el, opts) {
   const [{Dropzone}] = await Promise.all([
     import(/* webpackChunkName: "dropzone" */'dropzone'),
@@ -68,16 +72,18 @@ export async function initDropzone(dropzoneEl) {
   // "http://localhost:3000/owner/repo/issues/[object%20Event]"
   // the reason is that the preview "callback(dataURL)" is assign to "img.onerror" then "thumbnail" uses the error object as the dataURL and generates '<img src="[object Event]">'
   const dzInst = await createDropzone(dropzoneEl, opts);
-  dzInst.on('success', (file, data) => {
-    file.uuid = data.uuid;
+  dzInst.on('success', (file, resp) => {
+    file.uuid = resp.uuid;
     fileUuidDict[file.uuid] = {submitted: false};
-    const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${data.uuid}`, value: data.uuid});
+    const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${resp.uuid}`, value: resp.uuid});
     dropzoneEl.querySelector('.files').append(input);
     addCopyLink(file);
   });
 
   dzInst.on('removedfile', async (file) => {
     if (disableRemovedfileEvent) return;
+
+    dzInst.emit(DropzoneCustomEventRemovedFile, {fileUuid: file.uuid});
     document.querySelector(`#dropzone-file-${file.uuid}`)?.remove();
     // when the uploaded file number reaches the limit, there is no uuid in the dict, and it doesn't need to be removed from server
     if (removeAttachmentUrl && fileUuidDict[file.uuid] && !fileUuidDict[file.uuid].submitted) {
@@ -91,7 +97,7 @@ export async function initDropzone(dropzoneEl) {
     }
   });
 
-  dzInst.on('reload', async () => {
+  dzInst.on(DropzoneCustomEventReloadFiles, async () => {
     try {
       const resp = await GET(listAttachmentsUrl);
       const respData = await resp.json();
@@ -129,6 +135,6 @@ export async function initDropzone(dropzoneEl) {
     dzInst.removeFile(file);
   });
 
-  if (listAttachmentsUrl) dzInst.emit('reload');
+  if (listAttachmentsUrl) dzInst.emit(DropzoneCustomEventReloadFiles);
   return dzInst;
 }

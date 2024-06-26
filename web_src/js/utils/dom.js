@@ -1,5 +1,4 @@
 import {debounce} from 'throttle-debounce';
-import {extname} from '../utils.js';
 
 function elementsCall(el, func, ...args) {
   if (typeof el === 'string' || el instanceof String) {

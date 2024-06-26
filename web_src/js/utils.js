@@ -8,7 +8,9 @@ export function basename(path = '') {
 
 // transform /path/to/file.ext to .ext
 export function extname(path = '') {
+  const lastSlashIndex = path.lastIndexOf('/');
   const lastPointIndex = path.lastIndexOf('.');
+  if (lastSlashIndex > lastPointIndex) return '';
   return lastPointIndex < 0 ? '' : path.substring(lastPointIndex);
 }
 
@@ -142,3 +144,7 @@ export function serializeXml(node) {
 }
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export function isWellKnownImageFilename(fn) {
+  return /\.(jpe?g|png|gif|webp|svg)$/i.test(fn);
+}
