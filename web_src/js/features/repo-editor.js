@@ -5,6 +5,7 @@ import {hideElem, queryElems, showElem} from '../utils/dom.js';
 import {initMarkupContent} from '../markup/content.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
 import {POST} from '../modules/fetch.js';
+import {initDropzone} from './dropzone.js';
 
 function initEditPreviewTab($form) {
   const $tabMenu = $form.find('.repo-editor-menu');
@@ -41,8 +42,11 @@ function initEditPreviewTab($form) {
 }
 
 export function initRepoEditor() {
-  const $editArea = $('.repository.editor textarea#edit_area');
-  if (!$editArea.length) return;
+  const dropzoneUpload = document.querySelector('.page-content.repository.editor.upload .dropzone');
+  if (dropzoneUpload) initDropzone(dropzoneUpload);
+
+  const editArea = document.querySelector('.page-content.repository.editor textarea#edit_area');
+  if (!editArea) return;
 
   for (const el of queryElems('.js-quick-pull-choice-option')) {
     el.addEventListener('input', () => {
@@ -108,7 +112,7 @@ export function initRepoEditor() {
   initEditPreviewTab($form);
 
   (async () => {
-    const editor = await createCodeEditor($editArea[0], filenameInput);
+    const editor = await createCodeEditor(editArea, filenameInput);
 
     // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
     // to enable or disable the commit button
@@ -142,7 +146,7 @@ export function initRepoEditor() {
 
     commitButton?.addEventListener('click', (e) => {
       // A modal which asks if an empty file should be committed
-      if (!$editArea.val()) {
+      if (!editArea.value) {
         $('#edit-empty-content-modal').modal({
           onApprove() {
             $('.edit.form').trigger('submit');
