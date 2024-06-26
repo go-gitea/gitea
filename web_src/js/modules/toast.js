@@ -57,7 +57,6 @@ function showToast(message, level, {gravity, position, duration, useHtmlBody, pr
   toast.showToast();
   toast.toastElement.querySelector('.toast-close').addEventListener('click', () => toast.hideToast());
   toast.toastElement.setAttribute('data-toast-unique-key', key);
-  toast.toastElement._toastInst = toast;
   return toast;
 }
 
