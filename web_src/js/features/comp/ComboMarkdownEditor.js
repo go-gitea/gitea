@@ -11,6 +11,7 @@ import {initTextExpander} from './TextExpander.js';
 import {showErrorToast} from '../../modules/toast.js';
 import {POST} from '../../modules/fetch.js';
 import {initTextareaMarkdown} from './EditorMarkdown.js';
+import {initDropzone} from '../dropzone.js';
 
 let elementIdCounter = 0;
 
@@ -47,7 +48,7 @@ class ComboMarkdownEditor {
     this.prepareEasyMDEToolbarActions();
     this.setupContainer();
     this.setupTab();
-    this.setupDropzone();
+    await this.setupDropzone(); // textarea depends on dropzone
     this.setupTextarea();
 
     await this.switchToUserPreference();
@@ -114,11 +115,28 @@ class ComboMarkdownEditor {
     }
   }
 
-  setupDropzone() {
+  async setupDropzone() {
     const dropzoneParentContainer = this.container.getAttribute('data-dropzone-parent-container');
     if (dropzoneParentContainer) {
       this.dropzone = this.container.closest(this.container.getAttribute('data-dropzone-parent-container'))?.querySelector('.dropzone');
+      if (this.dropzone) this.attachedDropzoneInst = await initDropzone(this.dropzone);
     }
+  }
+
+  dropzoneGetFiles() {
+    if (!this.dropzone) return null;
+    return Array.from(this.dropzone.querySelectorAll('.files [name=files]'), (el) => el.value);
+  }
+
+  dropzoneReloadFiles() {
+    if (!this.dropzone) return;
+    this.attachedDropzoneInst.emit('reload');
+  }
+
+  dropzoneSubmitReload() {
+    if (!this.dropzone) return;
+    this.attachedDropzoneInst.emit('submit');
+    this.attachedDropzoneInst.emit('reload');
   }
 
   setupTab() {
