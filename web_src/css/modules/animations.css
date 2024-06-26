@@ -97,7 +97,7 @@ code.language-math.is-loading::after {
     transform: scale(1);
   }
   50% {
-    transform: scale(1.8);
+    transform: scale(1.5);
   }
   100% {
     transform: scale(1);
@@ -105,7 +105,7 @@ code.language-math.is-loading::after {
 }
 
 .pulse {
-  animation: pulse 2s linear;
+  animation: pulse 200ms linear;
 }
 
 .ui.modal,

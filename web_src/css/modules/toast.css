@@ -29,10 +29,21 @@
   background: transparent;
   border: none;
   display: flex;
-  width: 30px;
-  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
   justify-content: center;
   align-items: center;
+}
+
+.toast-duplicate-number::before {
+  content: '(';
+}
+.toast-duplicate-number {
+  display: inline-flex;
+  margin: 0 2px;
+}
+.toast-duplicate-number::after {
+  content: ')';
 }
 
 .toast-close:hover {

@@ -1,6 +1,7 @@
 import {htmlEscape} from 'escape-goat';
 import {svg} from '../svg.js';
-import Toastify from 'toastify-js'; // don't use "async import", because when network error occurs, the "async import" also fails and nothing is shown
+import Toastify from 'toastify-js';
+import {showElem} from "../utils/dom.js"; // don't use "async import", because when network error occurs, the "async import" also fails and nothing is shown
 
 const levels = {
   info: {
@@ -27,17 +28,23 @@ function showToast(message, level, {gravity, position, duration, useHtmlBody, pr
 
   // prevent showing duplicate toasts with same level and message, hide all existing toasts with same key
   if (preventDuplicates) {
-    const toastElements = document.querySelectorAll(`.toastify[data-toast-unique-key="${CSS.escape(key)}"]`);
-    for (const el of toastElements) {
-      el.remove(); // "hideToast" only removes the toast after an unchangeable delay, so we need to remove it immediately to make the "reposition" work with new toasts
-      el._toastInst?.hideToast();
+    const toastEl = document.querySelector(`.toastify[data-toast-unique-key="${CSS.escape(key)}"]`);
+    if (toastEl) {
+      const toastDupNumEl = toastEl.querySelector('.toast-duplicate-number');
+      showElem(toastDupNumEl);
+      toastDupNumEl.textContent = String(Number(toastDupNumEl.textContent) + 1);
+      toastDupNumEl.classList.remove('pulse');
+      requestAnimationFrame(() => {
+        toastDupNumEl.classList.add('pulse');
+      });
+      return;
     }
   }
 
   const {icon, background, duration: levelDuration} = levels[level ?? 'info'];
   const toast = Toastify({
     text: `
-      <div class='toast-icon'>${svg(icon)}</div>
+      <div class='toast-icon'>${svg(icon)}<span class="toast-duplicate-number tw-hidden">1</span></div>
       <div class='toast-body'>${body}</div>
       <button class='toast-close'>${svg('octicon-x')}</button>
     `,
