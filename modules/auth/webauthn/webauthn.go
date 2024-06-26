@@ -33,7 +33,7 @@ func Init() {
 			AuthenticatorSelection: protocol.AuthenticatorSelection{
 				UserVerification: protocol.VerificationDiscouraged,
 			},
-			AttestationPreference: protocol.PreferNoAttestation,
+			AttestationPreference: protocol.PreferDirectAttestation,
 		},
 	}
 }
