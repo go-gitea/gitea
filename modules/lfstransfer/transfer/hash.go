@@ -2,6 +2,7 @@ package transfer
 
 import (
 	"encoding/hex"
+	"fmt"
 	"hash"
 	"io"
 )
@@ -38,5 +39,41 @@ func (h *HashingReader) Read(p []byte) (int, error) {
 	n, err := h.r.Read(p)
 	h.size += int64(n)
 	h.hash.Write(p[:n])
+	return n, err
+}
+
+var _ io.Reader = (*VerifyingReader)(nil)
+
+// VerifyingReader is a reader that hashes the data it reads.
+// At EOF, it compares the OID and size with expected values and replaces EOF
+// with an error in the case of mismatch.
+type VerifyingReader struct {
+	r            *HashingReader
+	expectedOid  string
+	expectedSize int64
+}
+
+// NewVerifyingReader creates a new VerifyingReader.
+func NewVerifyingReader(r *HashingReader, oid string, size int64) *VerifyingReader {
+	return &VerifyingReader{
+		r:            r,
+		expectedOid:  oid,
+		expectedSize: size,
+	}
+}
+
+// Read reads data from the underlying HashingReader.
+// At EOF, it compares results and returns error if OID or size mismatch
+func (v *VerifyingReader) Read(p []byte) (int, error) {
+	n, err := v.r.Read(p)
+	if err == io.EOF {
+		// stream consumed, now check for mismatch
+		if v.r.Size() != v.expectedSize {
+			err = fmt.Errorf("%w: invalid object size, expected %v, got %v", ErrCorruptData, v.expectedSize, v.r.Size())
+		}
+		if v.r.Oid() != v.expectedOid {
+			err = fmt.Errorf("%w: invalid object ID, expected %v, got %v", ErrCorruptData, v.expectedOid, v.r.Oid())
+		}
+	}
 	return n, err
 }

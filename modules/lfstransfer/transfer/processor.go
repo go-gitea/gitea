@@ -1,7 +1,6 @@
 package transfer
 
 import (
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
@@ -161,27 +160,11 @@ func (p *Processor) PutObject(oid string) (Status, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := p.handler.Reader()
-	rdr := NewHashingReader(r, sha256.New())
-	state, err := p.backend.StartUpload(oid, rdr, args)
+	rdr := io.Reader(p.handler.Reader())
+	// we don't need to verify data here because the backend already does
+	//rdr = NewVerifyingReader(NewHashingReader(rdr, sha256.New()), oid, expectedSize)
+	err = p.backend.Upload(oid, expectedSize, rdr, args)
 	if err != nil {
-		return nil, err
-	}
-	defer state.Close() // nolint: errcheck
-	actualSize := rdr.Size()
-	if actualSize != expectedSize {
-		err := fmt.Errorf("invalid size, expected %d, got %d", expectedSize, actualSize)
-		if actualSize > expectedSize {
-			err = fmt.Errorf("%w: %s", ErrExtraData, err)
-		} else {
-			err = fmt.Errorf("%w: %s", ErrMissingData, err)
-		}
-		return nil, err
-	}
-	if actualOid := rdr.Oid(); actualOid != oid {
-		return nil, fmt.Errorf("%w: %s", ErrCorruptData, fmt.Sprintf("invalid object ID, expected %s, got %s", oid, actualOid))
-	}
-	if err := p.backend.FinishUpload(state, args); err != nil {
 		return nil, err
 	}
 	return SuccessStatus(), nil
@@ -197,7 +180,11 @@ func (p *Processor) VerifyObject(oid string) (Status, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrParseError, err)
 	}
-	return p.backend.Verify(oid, args)
+	size, err := SizeFromArgs(args)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrParseError, err)
+	}
+	return p.backend.Verify(oid, size, args)
 }
 
 // GetObject writes an object ID to the transfer protocol.
@@ -210,18 +197,14 @@ func (p *Processor) GetObject(oid string) (Status, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrParseError, err)
 	}
-	r, err := p.backend.Download(oid, args)
+	r, size, err := p.backend.Download(oid, args)
 	if errors.Is(err, fs.ErrNotExist) {
 		return NewStatus(StatusNotFound, fmt.Sprintf("object %s not found", oid)), nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	info, err := r.Stat()
-	if err != nil {
-		return nil, err
-	}
-	return NewSuccessStatusWithReader(r, fmt.Sprintf("size=%d", info.Size())), nil
+	return NewSuccessStatusWithReader(r, fmt.Sprintf("size=%d", size)), nil
 }
 
 // Lock writes a lock to the transfer protocol.
