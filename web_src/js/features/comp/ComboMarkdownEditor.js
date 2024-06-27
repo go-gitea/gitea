@@ -3,7 +3,7 @@ import '@github/text-expander-element';
 import $ from 'jquery';
 import {attachTribute} from '../tribute.js';
 import {hideElem, showElem, autosize, isElemVisible} from '../../utils/dom.js';
-import {initEasyMDEPaste, initTextareaPaste} from './Paste.js';
+import {initEasyMDEPaste, initTextareaUpload} from './EditorUpload.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
@@ -11,7 +11,7 @@ import {initTextExpander} from './TextExpander.js';
 import {showErrorToast} from '../../modules/toast.js';
 import {POST} from '../../modules/fetch.js';
 import {initTextareaMarkdown} from './EditorMarkdown.js';
-import {initDropzone} from '../dropzone.js';
+import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.js';
 
 let elementIdCounter = 0;
 
@@ -111,7 +111,7 @@ class ComboMarkdownEditor {
 
     initTextareaMarkdown(this.textarea);
     if (this.dropzone) {
-      initTextareaPaste(this.textarea, this.dropzone);
+      initTextareaUpload(this.textarea, this.dropzone);
     }
   }
 
@@ -130,13 +130,13 @@ class ComboMarkdownEditor {
 
   dropzoneReloadFiles() {
     if (!this.dropzone) return;
-    this.attachedDropzoneInst.emit('reload');
+    this.attachedDropzoneInst.emit(DropzoneCustomEventReloadFiles);
   }
 
   dropzoneSubmitReload() {
     if (!this.dropzone) return;
     this.attachedDropzoneInst.emit('submit');
-    this.attachedDropzoneInst.emit('reload');
+    this.attachedDropzoneInst.emit(DropzoneCustomEventReloadFiles);
   }
 
   setupTab() {
