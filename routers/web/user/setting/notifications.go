@@ -37,50 +37,43 @@ func NotificationPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsNotifications"] = true
 
-	// Set Email Notification Preference
-	if ctx.FormString("_method") == "EMAIL" {
+	method := ctx.FormString("_method")
+	if method == "EMAIL" || method == "UI" {
 		preference := ctx.FormString("preference")
 		if !(preference == user_model.NotificationsEnabled ||
 			preference == user_model.NotificationsOnMention ||
 			preference == user_model.NotificationsDisabled ||
 			preference == user_model.NotificationsAndYourOwn) {
-			log.Error("Email notifications preference change returned unrecognized option %s: %s", preference, ctx.Doer.Name)
-			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
+			log.Error("Notifications preference change returned unrecognized option %s: %s", preference, ctx.Doer.Name)
+			ctx.ServerError("SetNotificationsPreference", errors.New("option unrecognized"))
 			return
 		}
-		opts := &user.UpdateOptions{
-			EmailNotificationsPreference: optional.Some(preference),
+		if method == "EMAIL" {
+			opts := &user.UpdateOptions{
+				EmailNotificationsPreference: optional.Some(preference),
+			}
+			if err := user.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+				log.Error("Set Email Notifications preference failed: %v", err)
+				ctx.ServerError("UpdateUser", err)
+				return
+			}
+			log.Trace("Email notifications preference made %s: %s", preference, ctx.Doer.Name)
+			ctx.Flash.Success(ctx.Tr("settings.email_preference_set_success"))
+
+		} else {
+
+			opts := &user.UpdateOptions{
+				UINotificationsPreference: optional.Some(preference),
+			}
+			if err := user.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+				log.Error("Set UI Notifications preference failed: %v", err)
+				ctx.ServerError("UpdateUser", err)
+				return
+			}
+			log.Trace("UI notifications preference made %s: %s", preference, ctx.Doer.Name)
+			ctx.Flash.Success(ctx.Tr("settings.ui_preference_set_success"))
 		}
-		if err := user.UpdateUser(ctx, ctx.Doer, opts); err != nil {
-			log.Error("Set Email Notifications failed: %v", err)
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-		log.Trace("Email notifications preference made %s: %s", preference, ctx.Doer.Name)
-		ctx.Flash.Success(ctx.Tr("settings.email_preference_set_success"))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/notifications")
-		return
-		// Set UI Notification Preference
-	} else if ctx.FormString("_method") == "UI" {
-		preference := ctx.FormString("preference")
-		if !(preference == user_model.NotificationsEnabled ||
-			preference == user_model.NotificationsOnMention ||
-			preference == user_model.NotificationsDisabled ||
-			preference == user_model.NotificationsAndYourOwn) {
-			log.Error("UI notifications preference change returned unrecognized option %s: %s", preference, ctx.Doer.Name)
-			ctx.ServerError("SetUIPreference", errors.New("option unrecognized"))
-			return
-		}
-		opts := &user.UpdateOptions{
-			UINotificationsPreference: optional.Some(preference),
-		}
-		if err := user.UpdateUser(ctx, ctx.Doer, opts); err != nil {
-			log.Error("Set UI Notifications failed: %v", err)
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-		log.Trace("UI notifications preference made %s: %s", preference, ctx.Doer.Name)
-		ctx.Flash.Success(ctx.Tr("settings.ui_preference_set_success"))
+
 		ctx.Redirect(setting.AppSubURL + "/user/settings/notifications")
 		return
 	}
