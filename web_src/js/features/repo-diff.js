@@ -26,7 +26,7 @@ function initRepoDiffReviewButton() {
       const num = parseInt(counter.getAttribute('data-pending-comment-number')) + 1 || 1;
       counter.setAttribute('data-pending-comment-number', num);
       counter.textContent = num;
-      animateOnce(reviewBox, 'pulse');
+      animateOnce(reviewBox, 'pulse-1p5-200');
     });
   });
 }

@@ -33,7 +33,7 @@ function showToast(message, level, {gravity, position, duration, useHtmlBody, pr
       const toastDupNumEl = toastEl.querySelector('.toast-duplicate-number');
       showElem(toastDupNumEl);
       toastDupNumEl.textContent = String(Number(toastDupNumEl.textContent) + 1);
-      animateOnce(toastDupNumEl, 'pulse');
+      animateOnce(toastDupNumEl, 'pulse-1p5-200');
       return;
     }
   }
