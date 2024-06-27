@@ -21,7 +21,11 @@ func NewInlineRenderer() renderer.NodeRenderer {
 
 func (r *InlineRenderer) renderInline(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		_, _ = w.WriteString(`<code class="language-math is-loading">`)
+		if _, ok := n.(*InlineBlock); ok {
+			_, _ = w.WriteString(`<pre class="code-block is-loading"><code class="chroma language-math display">`)
+		} else {
+			_, _ = w.WriteString(`<code class="language-math is-loading">`)
+		}
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
 			segment := c.(*ast.Text).Segment
 			value := util.EscapeHTML(segment.Value(source))
@@ -36,11 +40,16 @@ func (r *InlineRenderer) renderInline(w util.BufWriter, source []byte, n ast.Nod
 		}
 		return ast.WalkSkipChildren, nil
 	}
-	_, _ = w.WriteString(`</code>`)
+	if _, ok := n.(*InlineBlock); ok {
+		_, _ = w.WriteString(`</code></pre>`)
+	} else {
+		_, _ = w.WriteString(`</code>`)
+	}
 	return ast.WalkContinue, nil
 }
 
 // RegisterFuncs registers the renderer for inline math nodes
 func (r *InlineRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindInline, r.renderInline)
+	reg.Register(KindInlineBlock, r.renderInline)
 }
