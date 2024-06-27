@@ -119,11 +119,36 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 	})
 }
 
+type IndexObjectInfo struct {
+	Mode     string
+	Object   ObjectID
+	Filename string
+}
+
+// AddObjectsToIndex adds the provided object hashes to the index at the provided filenames
+func (repo *Repository) AddObjectsToIndex(objects ...IndexObjectInfo) error {
+	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "-z", "--index-info")
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	buffer := new(bytes.Buffer)
+	for _, object := range objects {
+		buffer.WriteString(object.Mode + " ")
+		buffer.WriteString(object.Object.String())
+		buffer.WriteByte('\t')
+		buffer.WriteString(object.Filename)
+		buffer.WriteByte('\000')
+	}
+	return cmd.Run(&RunOpts{
+		Dir:    repo.Path,
+		Stdin:  bytes.NewReader(buffer.Bytes()),
+		Stdout: stdout,
+		Stderr: stderr,
+	})
+}
+
 // AddObjectToIndex adds the provided object hash to the index at the provided filename
 func (repo *Repository) AddObjectToIndex(mode string, object ObjectID, filename string) error {
-	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments(mode, object.String(), filename)
-	_, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
-	return err
+	return repo.AddObjectsToIndex(IndexObjectInfo{Mode: mode, Object: object, Filename: filename})
 }
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
