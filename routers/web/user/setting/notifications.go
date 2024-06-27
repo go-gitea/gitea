@@ -22,7 +22,7 @@ const (
 
 // Notifications render manage access token page
 func Notifications(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings.notifications")
+	ctx.Data["Title"] = ctx.Tr("notifications")
 	ctx.Data["PageIsSettingsNotifications"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
 	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
