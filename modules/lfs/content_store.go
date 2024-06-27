@@ -16,6 +16,8 @@ import (
 )
 
 var (
+	// ErrObjectNotInStore occurs if the OID is not in store
+	ErrObjectNotInStore = errors.New("content hash does not match OID")
 	// ErrHashMismatch occurs if the content has does not match OID
 	ErrHashMismatch = errors.New("content hash does not match OID")
 	// ErrSizeMismatch occurs if the content size does not match
@@ -87,6 +89,20 @@ func (s *ContentStore) Exists(pointer Pointer) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+// GetMeta takes a pointer with OID and returns a pointer with Size
+func (s *ContentStore) GetMeta(pointer Pointer) (Pointer, error) {
+	p := pointer.RelativePath()
+	fi, err := s.ObjectStorage.Stat(p)
+	if os.IsNotExist(err) {
+		return pointer, ErrObjectNotInStore
+	} else if err != nil {
+		log.Error("Unable stat file: %s for LFS OID[%s] Error: %v", p, pointer.Oid, err)
+		return pointer, err
+	}
+	pointer.Size = fi.Size()
+	return pointer, nil
 }
 
 // Verify returns true if the object exists in the content store and size is correct.
