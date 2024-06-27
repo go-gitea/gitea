@@ -11,7 +11,7 @@ import {
 let uploadIdCounter = 0;
 
 function uploadFile(dropzoneEl, file) {
-  return new Promise((resolve, _) => {
+  return new Promise((resolve) => {
     const curUploadId = uploadIdCounter++;
     file._giteaUploadId = curUploadId;
     const dropzoneInst = dropzoneEl.dropzone;
