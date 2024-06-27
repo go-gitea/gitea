@@ -145,6 +145,10 @@ export function serializeXml(node) {
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export function isWellKnownImageFilename(fn) {
-  return /\.(jpe?g|png|gif|webp|svg|heic)$/i.test(fn);
+export function isImageFile({name, type}) {
+  return /\.(jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/');
+}
+
+export function isVideoFile({name, type}) {
+  return /\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/');
 }

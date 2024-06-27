@@ -5,12 +5,14 @@ import {showTemporaryTooltip} from '../modules/tippy.js';
 import {GET, POST} from '../modules/fetch.js';
 import {showErrorToast} from '../modules/toast.js';
 import {createElementFromHTML, createElementFromAttrs} from '../utils/dom.js';
+import {isImageFile, isVideoFile} from '../utils.js';
 
 const {csrfToken, i18n} = window.config;
 
 // dropzone has its owner event dispatcher (emitter)
 export const DropzoneCustomEventReloadFiles = 'dropzone-custom-reload-files';
 export const DropzoneCustomEventRemovedFile = 'dropzone-custom-removed-file';
+export const DropzoneCustomEventUploadDone = 'dropzone-custom-upload-done';
 
 async function createDropzone(el, opts) {
   const [{Dropzone}] = await Promise.all([
@@ -18,6 +20,26 @@ async function createDropzone(el, opts) {
     import(/* webpackChunkName: "dropzone" */'dropzone/dist/dropzone.css'),
   ]);
   return new Dropzone(el, opts);
+}
+
+export function generateMarkdownLinkForAttachment(file, {width, dppx} = {}) {
+  let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
+  if (isImageFile(file)) {
+    fileMarkdown = `!${fileMarkdown}`;
+    if (width > 0 && dppx > 1) {
+      // Scale down images from HiDPI monitors. This uses the <img> tag because it's the only
+      // method to change image size in Markdown that is supported by all implementations.
+      // Make the image link relative to the repo path, then the final URL is "/sub-path/owner/repo/attachments/{uuid}"
+      fileMarkdown = `<img width="${Math.round(width / dppx)}" alt="${htmlEscape(file.name)}" src="attachments/${htmlEscape(file.uuid)}">`;
+    } else {
+      // Markdown always renders the image with a relative path, so the final URL is "/sub-path/owner/repo/attachments/{uuid}"
+      // TODO: it should also use relative path for consistency, because absolute is ambiguous for "/sub-path/attachments" or "/attachments"
+      fileMarkdown = `![${file.name}](/attachments/${file.uuid})`;
+    }
+  } else if (isVideoFile(file)) {
+    fileMarkdown = `<video src="attachments/${htmlEscape(file.uuid)}" title="${htmlEscape(file.name)}" controls></video>`;
+  }
+  return fileMarkdown;
 }
 
 function addCopyLink(file) {
@@ -29,13 +51,7 @@ function addCopyLink(file) {
 </div>`);
   copyLinkEl.addEventListener('click', async (e) => {
     e.preventDefault();
-    let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
-    if (file.type?.startsWith('image/')) {
-      fileMarkdown = `!${fileMarkdown}`;
-    } else if (file.type?.startsWith('video/')) {
-      fileMarkdown = `<video src="/attachments/${htmlEscape(file.uuid)}" title="${htmlEscape(file.name)}" controls></video>`;
-    }
-    const success = await clippie(fileMarkdown);
+    const success = await clippie(generateMarkdownLinkForAttachment(file));
     showTemporaryTooltip(e.target, success ? i18n.copy_success : i18n.copy_error);
   });
   file.previewTemplate.append(copyLinkEl);
@@ -78,6 +94,7 @@ export async function initDropzone(dropzoneEl) {
     const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${resp.uuid}`, value: resp.uuid});
     dropzoneEl.querySelector('.files').append(input);
     addCopyLink(file);
+    dzInst.emit(DropzoneCustomEventUploadDone, {file});
   });
 
   dzInst.on('removedfile', async (file) => {
@@ -110,13 +127,14 @@ export async function initDropzone(dropzoneEl) {
       for (const el of dropzoneEl.querySelectorAll('.dz-preview')) el.remove();
       fileUuidDict = {};
       for (const attachment of respData) {
-        const imgSrc = `${attachmentBaseLinkUrl}/${attachment.uuid}`;
-        dzInst.emit('addedfile', attachment);
-        dzInst.emit('thumbnail', attachment, imgSrc);
-        dzInst.emit('complete', attachment);
-        addCopyLink(attachment);
-        fileUuidDict[attachment.uuid] = {submitted: true};
-        const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${attachment.uuid}`, value: attachment.uuid});
+        const file = {name: attachment.name, uuid: attachment.uuid, size: attachment.size};
+        const imgSrc = `${attachmentBaseLinkUrl}/${file.uuid}`;
+        dzInst.emit('addedfile', file);
+        dzInst.emit('thumbnail', file, imgSrc);
+        dzInst.emit('complete', file);
+        addCopyLink(file); // it is from server response, so no "type"
+        fileUuidDict[file.uuid] = {submitted: true};
+        const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${file.uuid}`, value: file.uuid});
         dropzoneEl.querySelector('.files').append(input);
       }
       if (!dropzoneEl.querySelector('.dz-preview')) {

@@ -26,4 +26,5 @@ test('imageInfo', async () => {
   expect(await imageInfo(await dataUriToBlob(pngNoPhys))).toEqual({width: 1, dppx: 1});
   expect(await imageInfo(await dataUriToBlob(pngPhys))).toEqual({width: 2, dppx: 2});
   expect(await imageInfo(await dataUriToBlob(pngEmpty))).toEqual({width: 0, dppx: 1});
+  expect(await imageInfo(await dataUriToBlob(`data:image/gif;base64,`))).toEqual({});
 });

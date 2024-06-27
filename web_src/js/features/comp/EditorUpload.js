@@ -1,25 +1,27 @@
-import {htmlEscape} from 'escape-goat';
 import {imageInfo} from '../../utils/image.js';
 import {replaceTextareaSelection} from '../../utils/dom.js';
 import {isUrl} from '../../utils/url.js';
-import {isWellKnownImageFilename} from '../../utils.js';
 import {triggerEditorContentChanged} from './EditorMarkdown.js';
-import {DropzoneCustomEventRemovedFile} from '../dropzone.js';
+import {
+  DropzoneCustomEventRemovedFile,
+  DropzoneCustomEventUploadDone,
+  generateMarkdownLinkForAttachment,
+} from '../dropzone.js';
 
 let uploadIdCounter = 0;
 
 function uploadFile(dropzoneEl, file) {
   return new Promise((resolve, _) => {
-    file._giteaUploadId = uploadIdCounter++;
+    const curUploadId = uploadIdCounter++;
+    file._giteaUploadId = curUploadId;
     const dropzoneInst = dropzoneEl.dropzone;
-    const onSuccess = (successFile, successResp) => {
-      if (successFile._giteaUploadId === file._giteaUploadId) {
-        resolve({uuid: successResp.uuid});
+    const onUploadDone = ({file}) => {
+      if (file._giteaUploadId === curUploadId) {
+        dropzoneInst.off(DropzoneCustomEventUploadDone, onUploadDone);
+        resolve();
       }
-      dropzoneInst.off('success', onSuccess);
     };
-    // TODO: handle errors (or maybe not needed at the moment)
-    dropzoneInst.on('success', onSuccess);
+    dropzoneInst.on(DropzoneCustomEventUploadDone, onUploadDone);
     dropzoneInst.handleFiles([file]);
   });
 }
@@ -90,42 +92,16 @@ class CodeMirrorEditor {
   }
 }
 
-function isImageFile(file) {
-  return file.type?.startsWith('image/') || isWellKnownImageFilename(file.name);
-}
-
 async function handleUploadFiles(editor, dropzoneEl, files, e) {
   e.preventDefault();
   for (const file of files) {
     const name = file.name.slice(0, file.name.lastIndexOf('.'));
-    const isImage = isImageFile(file);
-
-    let placeholder = `[${name}](uploading ...)`;
-    if (isImage) placeholder = `!${placeholder}`;
+    const {width, dppx} = await imageInfo(file);
+    const placeholder = `[${name}](uploading ...)`;
 
     editor.insertPlaceholder(placeholder);
-    const {uuid} = await uploadFile(dropzoneEl, file);
-
-    let fileMarkdownLink;
-    if (isImage) {
-      const {width, dppx} = await imageInfo(file);
-      if (width > 0 && dppx > 1) {
-        // Scale down images from HiDPI monitors. This uses the <img> tag because it's the only
-        // method to change image size in Markdown that is supported by all implementations.
-        // Make the image link relative to the repo path, then the final URL is "/sub-path/owner/repo/attachments/{uuid}"
-        const url = `attachments/${uuid}`;
-        fileMarkdownLink = `<img width="${Math.round(width / dppx)}" alt="${htmlEscape(name)}" src="${htmlEscape(url)}">`;
-      } else {
-        // Markdown always renders the image with a relative path, so the final URL is "/sub-path/owner/repo/attachments/{uuid}"
-        // TODO: it should also use relative path for consistency, because absolute is ambiguous for "/sub-path/attachments" or "/attachments"
-        const url = `/attachments/${uuid}`;
-        fileMarkdownLink = `![${name}](${url})`;
-      }
-    } else {
-      const url = `/attachments/${uuid}`;
-      fileMarkdownLink = `[${name}](${url})`;
-    }
-    editor.replacePlaceholder(placeholder, fileMarkdownLink);
+    await uploadFile(dropzoneEl, file); // the "file" will get its "uuid" during the upload
+    editor.replacePlaceholder(placeholder, generateMarkdownLinkForAttachment(file, {width, dppx}));
   }
 }
 
