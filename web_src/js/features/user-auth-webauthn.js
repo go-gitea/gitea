@@ -76,7 +76,7 @@ async function loginPasskey() {
 
 async function login2FA() {
   const res = await GET(`${appSubUrl}/user/webauthn/assertion`);
-  if (res.status !== 200) {
+  if (!res.ok) {
     webAuthnError('unknown');
     return;
   }
