@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/lfstransfer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
@@ -40,6 +41,7 @@ const (
 	verbUploadArchive   = "git-upload-archive"
 	verbReceivePack     = "git-receive-pack"
 	verbLfsAuthenticate = "git-lfs-authenticate"
+	verbLfsTransfer     = "git-lfs-transfer"
 )
 
 // CmdServ represents the available serv sub-command.
@@ -83,9 +85,11 @@ var (
 		verbUploadArchive:   true,
 		verbReceivePack:     true,
 		verbLfsAuthenticate: true,
+		verbLfsTransfer:     true,
 	}
 	allowedCommandsLfs = map[string]bool{
 		verbLfsAuthenticate: true,
+		verbLfsTransfer:     true,
 	}
 	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
@@ -138,7 +142,7 @@ func getAccessMode(verb string, lfsVerb string) perm.AccessMode {
 		return perm.AccessModeRead
 	case verbReceivePack:
 		return perm.AccessModeWrite
-	case verbLfsAuthenticate:
+	case verbLfsAuthenticate, verbLfsTransfer:
 		switch lfsVerb {
 		case "upload":
 			return perm.AccessModeWrite
@@ -296,6 +300,15 @@ func runServ(c *cli.Context) error {
 	results, extra := private.ServCommand(ctx, keyID, username, reponame, requestedMode, verb, lfsVerb)
 	if extra.HasError() {
 		return fail(ctx, extra.UserMsg, "ServCommand failed: %s", extra.Error)
+	}
+
+	// LFS SSH protocol
+	if verb == verbLfsTransfer {
+		token, err := getLFSAuthToken(ctx, lfsVerb, results)
+		if err != nil {
+			return err
+		}
+		return lfstransfer.Main(ctx, repoPath, lfsVerb, token)
 	}
 
 	// LFS token authentication
