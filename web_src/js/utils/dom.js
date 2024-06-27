@@ -306,3 +306,14 @@ export function createElementFromAttrs(tagName, attrs) {
   }
   return el;
 }
+
+export function animateOnce(el, animationClassName) {
+  return new Promise((resolve) => {
+    el.addEventListener('animationend', function onAnimationEnd() {
+      el.classList.remove(animationClassName);
+      el.removeEventListener('animationend', onAnimationEnd);
+      resolve();
+    }, {once: true});
+    el.classList.add(animationClassName);
+  });
+}
