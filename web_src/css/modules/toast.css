@@ -22,29 +22,27 @@
   overflow-wrap: anywhere;
 }
 
-.toast-close,
-.toast-icon {
-  color: currentcolor;
+.toast-close {
   border-radius: var(--border-radius);
-  background: transparent;
-  border: none;
-  display: flex;
-  min-width: 30px;
-  min-height: 30px;
+  width: 30px;
+  height: 30px;
   justify-content: center;
-  align-items: center;
 }
 
-.toast-icon svg {
+.toast-icon {
+  display: inline-flex;
   width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
 }
 
 .toast-duplicate-number::before {
   content: "(";
 }
 .toast-duplicate-number {
-  display: inline-flex;
-  margin: 0 2px;
+  display: inline-block;
+  margin-right: 5px;
   user-select: none;
 }
 .toast-duplicate-number::after {

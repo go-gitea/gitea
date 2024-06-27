@@ -45,9 +45,9 @@ function showToast(message, level, {gravity, position, duration, useHtmlBody, pr
   const {icon, background, duration: levelDuration} = levels[level ?? 'info'];
   const toast = Toastify({
     text: `
-      <div class='toast-icon'>${svg(icon)}<span class="toast-duplicate-number tw-hidden">1</span></div>
-      <div class='toast-body'>${body}</div>
-      <button class='toast-close'>${svg('octicon-x')}</button>
+      <div class='toast-icon'>${svg(icon)}</div>
+      <div class='toast-body'><span class="toast-duplicate-number tw-hidden">1</span>${body}</div>
+      <button class='btn toast-close'>${svg('octicon-x')}</button>
     `,
     escapeMarkup: false,
     gravity: gravity ?? 'top',
