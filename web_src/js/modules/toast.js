@@ -1,6 +1,6 @@
 import {htmlEscape} from 'escape-goat';
 import {svg} from '../svg.js';
-import {showElem} from '../utils/dom.js';
+import {animateOnce, showElem} from '../utils/dom.js';
 import Toastify from 'toastify-js'; // don't use "async import", because when network error occurs, the "async import" also fails and nothing is shown
 
 const levels = {
@@ -33,11 +33,7 @@ function showToast(message, level, {gravity, position, duration, useHtmlBody, pr
       const toastDupNumEl = toastEl.querySelector('.toast-duplicate-number');
       showElem(toastDupNumEl);
       toastDupNumEl.textContent = String(Number(toastDupNumEl.textContent) + 1);
-      toastDupNumEl.classList.add('pulse');
-      if (!toastDupNumEl.getAttribute('data-animation-event-attached')) {
-        toastDupNumEl.addEventListener('animationend', () => toastDupNumEl.classList.remove('pulse'));
-        toastDupNumEl.setAttribute('data-animation-event-attached', 'true');
-      }
+      animateOnce(toastDupNumEl, 'pulse');
       return;
     }
   }
