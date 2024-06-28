@@ -10,9 +10,6 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"fmt"
-	"github.com/ProtonMail/go-crypto/openpgp/armor"
-	"github.com/ProtonMail/go-crypto/openpgp/packet"
-	"github.com/pkg/errors"
 	"io"
 	"net/http"
 	"strings"
@@ -26,6 +23,9 @@ import (
 	arch_model "code.gitea.io/gitea/modules/packages/arch"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -245,11 +245,15 @@ nYAR`),
 		req = NewRequestWithBody(t, "DELETE", rootURL+"/base/test2/1.0.0-1", nil).
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
-
 		req = NewRequest(t, "GET", rootURL+"/base/x86_64/base.db")
 		MakeRequest(t, req, http.StatusNotFound)
-	})
 
+		req = NewRequest(t, "GET", rootURL+"/default/x86_64/base.db")
+		respPkg = MakeRequest(t, req, http.StatusOK)
+		files, err = listGzipFiles(respPkg.Body.Bytes())
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(files))
+	})
 }
 
 func getProperty(data, key string) string {
@@ -279,9 +283,7 @@ func listGzipFiles(data []byte) (fstest.MapFS, error) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			if err != nil {
-				return nil, err
-			}
+			return nil, err
 		}
 		if cur.Typeflag != tar.TypeReg {
 			continue

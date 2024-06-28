@@ -170,14 +170,13 @@ func flushDB(ctx context.Context, ownerID int64, distro, arch string) (*packages
 	}
 	gw := gzip.NewWriter(db)
 	tw := tar.NewWriter(gw)
-	defer tw.Close()
-	defer gw.Close()
+	count := 0
 	for _, pkg := range pkgs {
 		versions, err := packages_model.GetVersionsByPackageName(
 			ctx, ownerID, packages_model.TypeArch, pkg.Name,
 		)
 		if err != nil {
-			return nil, errors.Join(db.Close(), err)
+			return nil, errors.Join(tw.Close(), gw.Close(), db.Close(), err)
 		}
 		sort.Slice(versions, func(i, j int) bool {
 			return versions[i].CreatedUnix > versions[j].CreatedUnix
@@ -197,7 +196,7 @@ func flushDB(ctx context.Context, ownerID int64, distro, arch string) (*packages
 				ctx, packages_model.PropertyTypeFile, pf.ID, arch_module.PropertyDescription,
 			)
 			if err != nil {
-				return nil, errors.Join(db.Close(), err)
+				return nil, errors.Join(tw.Close(), gw.Close(), db.Close(), err)
 			}
 			if len(pps) >= 1 {
 				meta := []byte(pps[0].Value)
@@ -207,14 +206,20 @@ func flushDB(ctx context.Context, ownerID int64, distro, arch string) (*packages
 					Mode: int64(os.ModePerm),
 				}
 				if err = tw.WriteHeader(header); err != nil {
-					return nil, errors.Join(db.Close(), err)
+					return nil, errors.Join(tw.Close(), gw.Close(), db.Close(), err)
 				}
 				if _, err := tw.Write(meta); err != nil {
-					return nil, errors.Join(db.Close(), err)
+					return nil, errors.Join(tw.Close(), gw.Close(), db.Close(), err)
 				}
+				count++
 				break
 			}
 		}
+	}
+	defer gw.Close()
+	defer tw.Close()
+	if count == 0 {
+		return nil, errors.Join(db.Close(), io.EOF)
 	}
 	return db, nil
 }
