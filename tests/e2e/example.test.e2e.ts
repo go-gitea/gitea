@@ -1,4 +1,3 @@
-// @ts-check
 import {test, expect} from '@playwright/test';
 import {login_user, save_visual, load_logged_in_context} from './utils_e2e.ts';
 
