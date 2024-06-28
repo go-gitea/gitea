@@ -160,7 +160,7 @@ checkdepend = ola
 makedepend = cmake
 backup = usr/bin/paket1
 `
-	p, err := ParsePackageInfo(strings.NewReader(PKGINFO))
+	p, err := ParsePackageInfo(strings.NewReader(`PKGINFO`))
 	assert.NoError(t, err)
 	assert.Equal(t, Package{
 		Name:    "a",
@@ -436,6 +436,7 @@ dummy6
 		FileMetadata: FileMetadata{
 			CompressedSize: 401,
 			InstalledSize:  1500453,
+			MD5:            "5016660ef3d9aa148a7b72a08d3df1b2",
 			SHA256:         "9fa4ede47e35f5971e4f26ecadcbfb66ab79f1d638317ac80334a3362dedbabd",
 			BuildDate:      1681646714,
 			Packager:       "Jelle van der Waa <jelle@archlinux.org>",

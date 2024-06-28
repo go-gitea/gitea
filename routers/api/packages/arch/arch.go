@@ -237,6 +237,10 @@ func RemovePackage(ctx *context.Context) {
 		}
 	}
 	if deleted {
+		err = arch_service.BuildCustomRepositoryFiles(ctx, ctx.Package.Owner.ID, distro)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.Error(http.StatusNotFound)

@@ -42,7 +42,28 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 	}
 	for _, pf := range pfs {
 		if strings.HasSuffix(pf.Name, ".db") {
-			arch := strings.TrimSuffix(strings.TrimPrefix(pf.Name, pf.CompositeKey), ".db")
+			arch := strings.TrimSuffix(strings.TrimPrefix(pf.Name, fmt.Sprintf("%s-", pf.CompositeKey)), ".db")
+			if err := BuildPacmanDB(ctx, ownerID, pf.CompositeKey, arch); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func BuildCustomRepositoryFiles(ctx context.Context, ownerID int64, disco string) error {
+	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
+	if err != nil {
+		return err
+	}
+	// remove old db files
+	pfs, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
+	if err != nil {
+		return err
+	}
+	for _, pf := range pfs {
+		if strings.HasSuffix(pf.Name, ".db") && pf.CompositeKey == disco {
+			arch := strings.TrimSuffix(strings.TrimPrefix(pf.Name, fmt.Sprintf("%s-", pf.CompositeKey)), ".db")
 			if err := BuildPacmanDB(ctx, ownerID, pf.CompositeKey, arch); err != nil {
 				return err
 			}
@@ -85,24 +106,21 @@ func BuildPacmanDB(ctx context.Context, ownerID int64, distro, arch string) erro
 		return err
 	}
 	for _, pf := range pfs {
-		if pf.CompositeKey == distro && strings.Contains(pf.CompositeKey, arch) {
+		if pf.CompositeKey == distro && strings.HasPrefix(pf.Name, fmt.Sprintf("%s-%s", distro, arch)) {
 			// remove distro and arch
 			if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
 				return err
 			}
 		}
 	}
-	db, err := packages_module.NewHashedBuffer()
+
+	db, err := flushDB(ctx, ownerID, distro, arch)
 	if errors.Is(err, io.EOF) {
-		return err
+		return nil
 	} else if err != nil {
 		return err
 	}
 	defer db.Close()
-	err = flushDB(ctx, ownerID, distro, arch, db)
-	if err != nil {
-		return nil
-	}
 	// Create db signature cache
 	_, err = db.Seek(0, io.SeekStart)
 	if err != nil {
@@ -138,13 +156,17 @@ func BuildPacmanDB(ctx context.Context, ownerID int64, distro, arch string) erro
 	return nil
 }
 
-func flushDB(ctx context.Context, ownerID int64, distro, arch string, db *packages_module.HashedBuffer) error {
+func flushDB(ctx context.Context, ownerID int64, distro, arch string) (*packages_module.HashedBuffer, error) {
 	pkgs, err := packages_model.GetPackagesByType(ctx, ownerID, packages_model.TypeArch)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(pkgs) == 0 {
-		return io.EOF
+		return nil, io.EOF
+	}
+	db, err := packages_module.NewHashedBuffer()
+	if err != nil {
+		return nil, err
 	}
 	gw := gzip.NewWriter(db)
 	tw := tar.NewWriter(gw)
@@ -155,7 +177,7 @@ func flushDB(ctx context.Context, ownerID int64, distro, arch string, db *packag
 			ctx, ownerID, packages_model.TypeArch, pkg.Name,
 		)
 		if err != nil {
-			return err
+			return nil, errors.Join(db.Close(), err)
 		}
 		sort.Slice(versions, func(i, j int) bool {
 			return versions[i].CreatedUnix > versions[j].CreatedUnix
@@ -175,7 +197,7 @@ func flushDB(ctx context.Context, ownerID int64, distro, arch string, db *packag
 				ctx, packages_model.PropertyTypeFile, pf.ID, arch_module.PropertyDescription,
 			)
 			if err != nil {
-				return err
+				return nil, errors.Join(db.Close(), err)
 			}
 			if len(pps) >= 1 {
 				meta := []byte(pps[0].Value)
@@ -185,16 +207,16 @@ func flushDB(ctx context.Context, ownerID int64, distro, arch string, db *packag
 					Mode: int64(os.ModePerm),
 				}
 				if err = tw.WriteHeader(header); err != nil {
-					return err
+					return nil, errors.Join(db.Close(), err)
 				}
 				if _, err := tw.Write(meta); err != nil {
-					return err
+					return nil, errors.Join(db.Close(), err)
 				}
 				break
 			}
 		}
 	}
-	return nil
+	return db, nil
 }
 
 // GetPackageFile Get data related to provided filename and distribution, for package files

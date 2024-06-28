@@ -4,12 +4,20 @@
 package integration
 
 import (
+	"archive/tar"
+	"bufio"
 	"bytes"
+	"compress/gzip"
 	"encoding/base64"
 	"fmt"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
+	"github.com/pkg/errors"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
@@ -60,18 +68,31 @@ uHHN9r74usjkduX5VEhNz9TnxV9trSabvYAwuIZffN0zSeZM3c3GUHX8dG6jeUgHGgBbgB9cUDHJ
 M80KWnAdnYAR
 `),
 		"aarch64": unPack(`
-KLUv/QBYRRQAVmSLSbCWag6dY6d8VNtVR3rpBnWdBbkDAxM38Dj3XG3FK01TCKlWtKXyhOyOAkVM
-tttyu2KP3HC0f/cR1ERIUxznCyzBnRiwcCQO/3doAGkAfQBFHAeRpq6d5/7hZxo+SVPXr+Pun2jJ
-dx76jqI7m1joybPk6cdUy10u9qSps4lpbxT0Y+545zPrfMxvJ0riPVq7bdx5utnfug+EXfvfBa33
-gV3Mu3/vZz/wWru958WstVtPBJ4dHQo+XGcWy1n1YjJxY/zhy8SNq/3w81HJ6/b5kwg9zVPDh78r
-DWi7Bh/NBe+Hnzsex1mZBtUZGipyeaZpuCjPzDjgunfZhz/bac0kNkWsX+R5JE1dLwPLWe5++DsP
-kaaupKnDrI06aeoPH3c8BilgUEhRTq4mA00giHSJiknLyIpaVg0KiJUPkwoMzhQZtSmptSywEaFA
-KQcPqgc1JHBPTRGlFouDxwbWBwAEll46im5YB95rH/Q+ENbl5FzIYIGrvSSziWlVxnHQhz+eWeex
-yjj+8HkeyyF06yrjRx9+F8uZ0ImKlYZ2nooBKS4zdPjQYmmyI0YCHRldLcwDR3CQVFx1uLERsuW0
-f1SwgbHSfSWhwFkZIIZwIlRlJWL4QtEXD09uhpgIq5jk54mmNtuB4HRVQEUmlVXrflJesIC3hASY
-rvTGClcUD5CMgBpcUjItJ568aDS6HgEmdFtLNjxB0UlVUylRERImXiOwPBY1CAcgIi40gqUX7hIj
-IOACGSLqYpPAD5iSNlT2MJRJwREAF4FRHPBlCJMQPRcwaGAsDJA2+KIArkIJGNtCydULTuN1oBh/
-+zKkEblAsgjGqVgUwKLP+UOMOGCpAhICtg6ncFJH`),
+KLUv/QBYdRQAVuSMS7BUbg7Un8q21hxCopsOMn6UGTzJRbHI753uOeMdxZ+V7ajoEbUkUXbXhXW/
+7FanWzv7B/EcMxhodFqyZkUcB9LOGVN/h9MqG7zFFmoAaQB8AEFrvpXntn3V/cXXaE7Lc9uP5uFP
+VXPl+ue7qnJ9Zp8vU3PVvYu9HvbAL8+tz4y+0O1J3TPXqbZ5l3+lapk5ee+L577qXvdf+Atn+P69
+4Qz8QhpYw4/xd78Q3/v6Wg28974u1Ojc2ODseAGpHs2crYG4kef84uNGnu198fWQuVq+8ymQmp5p
+z4vPbRjOaBC+FxziF1/3TJI5U3ezMlQdPZ3baA7SMhnMunvHvfg5rrO6zOeY94+rJstzW/zgetfD
+Lz7XP+W5bXluUW+hXp77xc89kwFRTF1PrKxAFpgXT7ZWhjzYjpRIStGyNCAGBYM6AnGrkKKCAmAH
+k3HBI8VyBBYdGdApmoqJYQE62EeIADCkBF1VOW0WYnz/+y6ufTMaDQ2GDDme7Wapz4xa3JpvLz6Z
+6q1Ji1vzi79q0vxR+ba4dejF76OZ80nV0aJqX3VjKCsuP1g0EWDSURyw0JVDZWlEzsnmYLdh8wDS
+I2dkIEMjxsSOiAlJjH4HIwbTjayZJidXVxKQYH2gICOCBhK7KqMlLZ4gMCU1BapYlsTAXnywepyy
+jMBmtEhxyCnCZdUAwYKxAxeRFVk4TCL0aYgWjt3kHTg9SjVStppI2YCSWshUEFGdmJmyCVGpnqIU
+KNlA0hEjIOACGSLqYpXAD5SSNVT2MJRJwREAF4FRHPBlCJMSNwFguGAWDJBg+KIArkIJGNtCydUL
+TuN1oBh/+zKkEblAsgjGqVgUwKLP+UOMOGCpAhICtg6ncFJH`),
+		"other": unPack(`
+KLUv/QBYbRMABuOHS9BSNQdQ56F+xNFoV3CijY54JYt3VqV1iUU3xmj00y2pyBOCuokbhDYpvNsj
+ZJeCxqH+nQFpMf4Wa92okaZoF4eH6HsXXCBo+qy3Fn4AigBgAEaYrLCQEuAom6YbHyuKZAFYksqi
+sSOFiRs0WDmlACk0CnpnaAeKiCS3BlwVkViJEbDS43lFNbLkZEmGhc305Nn4AMLGiUkBDiMTG5Vz
+q4ZISjCofEfR1NpXijvP2X95Hu1e+zLalc0+mjeT3Z/FPGvt62WymbX2dXMDIYKDLjjP8n03RrPf
+A1vOApwGOh2MgE2LpgZrgXLDF2CUJ15idG2J8GCSgcc2ZVRgA8+RHD0k2VJjg6mRUgGGhBWEyEcz
+5EePLhUeWlYhoFCKONxUiBiIUiQeDIqiQwkjLiyqnF5eGs6a2gGRapbU9JRyuXAlPemYajlJojJd
+GBBJjo5GxFRkITOAvLhSCr2TDz4uzdU8Yh3i/SHP4qh3vTG2s9198NP8M+pdR73BvIP6qPeDjzsW
+gTi+jXrXWOe5P/jZxOeod/287v6JljzNP99RNM0a+/x4ljz3LNV2t5v9qHfW2Pyg24u54zSfObWX
+Y9bYrCTHtwdfPPPOYiU5fvB5FssfNN2V5EIPfg9LnM+JhtVEO8+FZw5LXA068YNPhimu9sHPQiWv
+qc6fE9BTnxIe/LTKatab+WYu7T74uWNRxJW5W5Ux0bDLuG1ioCwjg4DvGgBcgB8cUDHJ1RQ89neE
+wvjbNUMiIZdo5hbHgEpANwMkDnL0Jr7kVFg+0pZKjBkmklNgBH1YI8dQOAAKbr6EF5wYM80KWnAd
+nYAR`),
 	}
 
 	t.Run("RepositoryKey", func(t *testing.T) {
@@ -123,18 +144,182 @@ IOACGSLqYpPAD5iSNlT2MJRJwREAF4FRHPBlCJMQPRcwaGAsDJA2+KIArkIJGNtCydULTuN1oBh/
 		req = NewRequestWithBody(t, "PUT", rootURL+"/other", bytes.NewReader(pkgs["any"])).
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
+		req = NewRequestWithBody(t, "PUT", rootURL+"/other", bytes.NewReader(pkgs["aarch64"])).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequestWithBody(t, "PUT", rootURL+"/base", bytes.NewReader(pkgs["other"])).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+		req = NewRequestWithBody(t, "PUT", rootURL+"/base", bytes.NewReader(pkgs["x86_64"])).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+		req = NewRequestWithBody(t, "PUT", rootURL+"/base", bytes.NewReader(pkgs["aarch64"])).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
 	})
 
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
+		req := NewRequest(t, "GET", rootURL+"/default/x86_64/test-1.0.0-1-x86_64.pkg.tar.zst")
+		resp := MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, pkgs["x86_64"], resp.Body.Bytes())
+
+		req = NewRequest(t, "GET", rootURL+"/default/x86_64/test-1.0.0-1-any.pkg.tar.zst")
+		resp = MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, pkgs["any"], resp.Body.Bytes())
+
+		req = NewRequest(t, "GET", rootURL+"/default/x86_64/test-1.0.0-1-aarch64.pkg.tar.zst")
+		MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequest(t, "GET", rootURL+"/other/x86_64/test-1.0.0-1-x86_64.pkg.tar.zst")
+		MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequest(t, "GET", rootURL+"/other/x86_64/test-1.0.0-1-any.pkg.tar.zst")
+		resp = MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, pkgs["any"], resp.Body.Bytes())
 	})
 
-	t.Run("Sign", func(t *testing.T) {
+	t.Run("SignVerify", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequest(t, "GET", rootURL+"/repository.key")
+		respPub := MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", rootURL+"/other/x86_64/test-1.0.0-1-any.pkg.tar.zst")
+		respPkg := MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", rootURL+"/other/x86_64/test-1.0.0-1-any.pkg.tar.zst.sig")
+		respSig := MakeRequest(t, req, http.StatusOK)
+
+		if err := gpgVerify(respPub.Body.Bytes(), respSig.Body.Bytes(), respPkg.Body.Bytes()); err != nil {
+			t.Fatal(err)
+		}
 	})
 
-	t.Run("Database", func(t *testing.T) {
-	})
+	t.Run("Repository", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequest(t, "GET", rootURL+"/repository.key")
+		respPub := MakeRequest(t, req, http.StatusOK)
 
+		req = NewRequest(t, "GET", rootURL+"/base/x86_64/base.db")
+		respPkg := MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", rootURL+"/base/x86_64/base.db.sig")
+		respSig := MakeRequest(t, req, http.StatusOK)
+
+		if err := gpgVerify(respPub.Body.Bytes(), respSig.Body.Bytes(), respPkg.Body.Bytes()); err != nil {
+			t.Fatal(err)
+		}
+		files, err := listGzipFiles(respPkg.Body.Bytes())
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(files))
+		for s, d := range files {
+			name := getProperty(string(d.Data), "NAME")
+			ver := getProperty(string(d.Data), "VERSION")
+			assert.Equal(t, name+"-"+ver+"/desc", s)
+			fn := getProperty(string(d.Data), "FILENAME")
+			pgp := getProperty(string(d.Data), "PGPSIG")
+			req = NewRequest(t, "GET", rootURL+"/base/x86_64/"+fn+".sig")
+			respSig := MakeRequest(t, req, http.StatusOK)
+			decodeString, err := base64.StdEncoding.DecodeString(pgp)
+			assert.NoError(t, err)
+			assert.Equal(t, respSig.Body.Bytes(), decodeString)
+		}
+	})
 	t.Run("Delete", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequestWithBody(t, "DELETE", rootURL+"/base/notfound/1.0.0-1", nil).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequestWithBody(t, "DELETE", rootURL+"/base/test/1.0.0-1", nil).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		req = NewRequest(t, "GET", rootURL+"/base/x86_64/base.db")
+		respPkg := MakeRequest(t, req, http.StatusOK)
+		files, err := listGzipFiles(respPkg.Body.Bytes())
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(files))
+
+		req = NewRequestWithBody(t, "DELETE", rootURL+"/base/test2/1.0.0-1", nil).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		req = NewRequest(t, "GET", rootURL+"/base/x86_64/base.db")
+		MakeRequest(t, req, http.StatusNotFound)
 	})
+
+}
+
+func getProperty(data, key string) string {
+	r := bufio.NewReader(strings.NewReader(data))
+	for {
+		line, _, err := r.ReadLine()
+		if err != nil {
+			return ""
+		}
+		if strings.Contains(string(line), "%"+key+"%") {
+			readLine, _, _ := r.ReadLine()
+			return string(readLine)
+		}
+	}
+}
+
+func listGzipFiles(data []byte) (fstest.MapFS, error) {
+	reader, err := gzip.NewReader(bytes.NewBuffer(data))
+	defer reader.Close()
+	if err != nil {
+		return nil, err
+	}
+	tarRead := tar.NewReader(reader)
+	files := make(fstest.MapFS)
+	for {
+		cur, err := tarRead.Next()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			if err != nil {
+				return nil, err
+			}
+		}
+		if cur.Typeflag != tar.TypeReg {
+			continue
+		}
+		data, err := io.ReadAll(tarRead)
+		if err != nil {
+			return nil, err
+		}
+		files[cur.Name] = &fstest.MapFile{Data: data}
+	}
+	return files, nil
+}
+
+func gpgVerify(pub, sig, data []byte) error {
+	sigPack, err := packet.Read(bytes.NewBuffer(sig))
+	if err != nil {
+		return err
+	}
+	signature, ok := sigPack.(*packet.Signature)
+	if !ok {
+		return errors.New("invalid sign key")
+	}
+	pubBlock, err := armor.Decode(bytes.NewReader(pub))
+	if err != nil {
+		return err
+	}
+	pack, err := packet.Read(pubBlock.Body)
+	if err != nil {
+		return err
+	}
+	publicKey, ok := pack.(*packet.PublicKey)
+	if !ok {
+		return errors.New("invalid public key")
+	}
+	hash := signature.Hash.New()
+	_, err = hash.Write(data)
+	if err != nil {
+		return err
+	}
+	return publicKey.VerifySignature(hash, signature)
 }

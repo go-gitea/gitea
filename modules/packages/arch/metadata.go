@@ -309,7 +309,7 @@ func (p *Package) Desc() string {
 	}
 
 	var buf bytes.Buffer
-	for i := 0; i < 40; i += 2 {
+	for i := 0; i < len(entries); i += 2 {
 		if entries[i+1] != "" {
 			_, _ = fmt.Fprintf(&buf, "%%%s%%\n%s\n\n", entries[i], entries[i+1])
 		}
