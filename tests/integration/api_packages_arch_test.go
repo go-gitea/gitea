@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	packages "code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	arch_model "code.gitea.io/gitea/modules/packages/arch"
@@ -126,6 +126,7 @@ IOACGSLqYpPAD5iSNlT2MJRJwREAF4FRHPBlCJMQPRcwaGAsDJA2+KIArkIJGNtCydULTuN1oBh/
 	})
 
 	t.Run("Download", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 	})
 
 	t.Run("Sign", func(t *testing.T) {

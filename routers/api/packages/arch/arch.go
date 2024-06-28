@@ -221,6 +221,10 @@ func RemovePackage(ctx *context.Context) {
 		return
 	}
 	files, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 	deleted := false
 	for _, file := range files {
 		if file.CompositeKey == distro {
