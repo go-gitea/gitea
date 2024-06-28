@@ -94,7 +94,7 @@ func Code(ctx *context.APIContext) {
 			RepoIDs:        repoIDs,
 			Keyword:        keyword,
 			IsKeywordFuzzy: isFuzzy,
-			IsHtmlSafe:     false,
+			IsHTMLSafe:     false,
 			Paginator: &db.ListOptions{
 				Page:     page,
 				PageSize: setting.API.DefaultPagingNum,

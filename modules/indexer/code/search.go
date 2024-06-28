@@ -102,7 +102,7 @@ func RawSearchResultCode(filename, language string, lineNums []int, code string)
 	return lines
 }
 
-func searchResult(result *internal.SearchResult, startIndex, endIndex int, escapeHtml bool) (*Result, error) {
+func searchResult(result *internal.SearchResult, startIndex, endIndex int, escapeHTML bool) (*Result, error) {
 	startLineNum := 1 + strings.Count(result.Content[:startIndex], "\n")
 
 	var formattedLinesBuffer bytes.Buffer
@@ -134,7 +134,7 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int, escap
 	}
 
 	var lines []*ResultLine
-	if escapeHtml {
+	if escapeHTML {
 		lines = HighlightSearchResultCode(result.Filename, result.Language, lineNums, formattedLinesBuffer.String())
 	} else {
 		lines = RawSearchResultCode(result.Filename, result.Language, lineNums, formattedLinesBuffer.String())
@@ -166,13 +166,13 @@ func PerformSearch(ctx context.Context, opts *SearchOptions) (int, []*Result, []
 	displayResults := make([]*Result, len(results))
 
 	nLinesBuffer := 0
-	if opts.IsHtmlSafe {
+	if opts.IsHTMLSafe {
 		nLinesBuffer = 1
 	}
 
 	for i, result := range results {
 		startIndex, endIndex := indices(result.Content, result.StartIndex, result.EndIndex, nLinesBuffer)
-		displayResults[i], err = searchResult(result, startIndex, endIndex, opts.IsHtmlSafe)
+		displayResults[i], err = searchResult(result, startIndex, endIndex, opts.IsHTMLSafe)
 		if err != nil {
 			return 0, nil, nil, err
 		}

@@ -26,7 +26,7 @@ type SearchOptions struct {
 	Language string
 
 	IsKeywordFuzzy bool
-	IsHtmlSafe     bool
+	IsHTMLSafe     bool
 
 	db.Paginator
 }

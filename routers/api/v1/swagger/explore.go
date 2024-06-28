@@ -10,6 +10,6 @@ import (
 // ExploreCode
 // swagger:response ExploreCode
 type swaggerResponseExploreCode struct {
-	// out:body
-	Body api.ExploreCodeResult  `json:"body"`
+	// in:body
+	Body api.ExploreCodeResult `json:"body"`
 }
