@@ -25,14 +25,9 @@ import (
 // https://man.archlinux.org/man/PKGBUILD.5
 
 const (
-	PropertyDescription    = "arch.description"
-	PropertySignature      = "arch.signature"
-	PropertyCompressedSize = "arch.compsize"
-	PropertyInstalledSize  = "arch.inssize"
-	PropertyBuildDate      = "arch.builddate"
-	PropertyPackager       = "arch.packager"
-	PropertyArch           = "arch.architecture"
-	PropertyDistribution   = "arch.distribution"
+	PropertyDescription  = "arch.description"
+	PropertyArch         = "arch.architecture"
+	PropertyDistribution = "arch.distribution"
 
 	SettingKeyPrivate = "arch.key.private"
 	SettingKeyPublic  = "arch.key.public"

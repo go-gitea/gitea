@@ -80,41 +80,6 @@ func TestPackageArch(t *testing.T) {
 		)
 	)
 
-	t.Run("PushWithSignature", func(t *testing.T) {
-		for _, p := range pushBatch {
-			t.Run(p.File, func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				url := fmt.Sprintf(
-					"/api/packages/%s/arch/archlinux/%s",
-					user.Name, base64.RawURLEncoding.EncodeToString(sign),
-				)
-
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).
-					AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusCreated)
-
-				pv, err := packages.GetVersionByNameAndVersion(
-					db.DefaultContext, user.ID, packages.TypeArch, p.Name, p.Ver,
-				)
-				assert.NoError(t, err)
-
-				pf, err := packages.GetFileForVersionByName(
-					db.DefaultContext, pv.ID, p.File, "archlinux",
-				)
-				assert.NoError(t, err)
-				assert.NotNil(t, pf)
-
-				pps, err := packages.GetPropertiesByName(
-					db.DefaultContext, packages.PropertyTypeFile,
-					pf.ID, arch.PropertySignature,
-				)
-				assert.NoError(t, err)
-				assert.Len(t, pps, 1)
-			})
-		}
-	})
-
 	t.Run("PushWithoutSignature", func(t *testing.T) {
 		for _, p := range pushBatch {
 			t.Run(p.File, func(t *testing.T) {

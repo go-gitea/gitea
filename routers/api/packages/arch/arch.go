@@ -4,16 +4,7 @@
 package arch
 
 import (
-	"encoding/base64"
-	"errors"
-	"fmt"
-	"io"
-	"net/http"
-	"strings"
-	"time"
-
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/base"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
 	"code.gitea.io/gitea/modules/util"
@@ -21,6 +12,12 @@ import (
 	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 	arch_service "code.gitea.io/gitea/services/packages/arch"
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -99,13 +96,9 @@ func Push(ctx *context.Context) {
 	}
 
 	properties := map[string]string{
-		arch_module.PropertyDescription:    p.Desc(),
-		arch_module.PropertyCompressedSize: base.FileSize(p.FileMetadata.CompressedSize),
-		arch_module.PropertyInstalledSize:  base.FileSize(p.FileMetadata.InstalledSize),
-		arch_module.PropertyBuildDate:      time.Unix(p.FileMetadata.BuildDate, 0).Format(time.RFC3339),
-		arch_module.PropertyPackager:       p.FileMetadata.Packager,
-		arch_module.PropertyArch:           p.FileMetadata.Arch,
-		arch_module.PropertyDistribution:   distro,
+		arch_module.PropertyDescription:  p.Desc(),
+		arch_module.PropertyArch:         p.FileMetadata.Arch,
+		arch_module.PropertyDistribution: distro,
 	}
 
 	version, _, err := packages_service.CreatePackageOrAddFileToExisting(
@@ -229,8 +222,10 @@ func Remove(ctx *context.Context) {
 		return
 	}
 	files, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
+	deleted := false
 	for _, file := range files {
 		if file.CompositeKey == distro {
+			deleted = true
 			err := packages_service.RemovePackageFileAndVersionIfUnreferenced(ctx, ctx.ContextUser, file)
 			if err != nil {
 				apiError(ctx, http.StatusInternalServerError, err)
@@ -238,5 +233,10 @@ func Remove(ctx *context.Context) {
 			}
 		}
 	}
-	ctx.Status(http.StatusNoContent)
+	if deleted {
+		ctx.Status(http.StatusNoContent)
+	} else {
+		ctx.Error(http.StatusNotFound)
+	}
+
 }
