@@ -6,9 +6,20 @@ ignorePatterns:
   - /web_src/fomantic
   - /public/assets/js
 
+parser: "@typescript-eslint/parser"
+
 parserOptions:
   sourceType: module
   ecmaVersion: latest
+  project: true
+  extraFileExtensions: [".vue"]
+
+settings:
+  import/extensions: [".js", ".ts"]
+  import/parsers:
+    "@typescript-eslint/parser": [".js", ".ts"]
+  import/resolver:
+    typescript: true
 
 plugins:
   - "@eslint-community/eslint-plugin-eslint-comments"
@@ -103,6 +114,22 @@ overrides:
   - files: ["web_src/js/modules/fetch.js", "web_src/js/standalone/**/*"]
     rules:
       no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression]
+  - files: ["**/*.vue"]
+    plugins:
+      - eslint-plugin-vue
+      - eslint-plugin-vue-scoped-css
+    extends:
+      - plugin:vue/vue3-recommended
+      - plugin:vue-scoped-css/vue3-recommended
+    rules:
+      vue/attributes-order: [0]
+      vue/html-closing-bracket-spacing: [2, {startTag: never, endTag: never, selfClosingTag: never}]
+      vue/max-attributes-per-line: [0]
+      vue/singleline-html-element-content-newline: [0]
+  - files: ["tests/e2e/**"]
+    plugins:
+      - eslint-plugin-playwright
+    extends: plugin:playwright/recommended
 
 rules:
   "@eslint-community/eslint-comments/disable-enable-pair": [2]
@@ -264,7 +291,7 @@ rules:
   i/no-internal-modules: [0]
   i/no-mutable-exports: [0]
   i/no-named-as-default-member: [0]
-  i/no-named-as-default: [2]
+  i/no-named-as-default: [0]
   i/no-named-default: [0]
   i/no-named-export: [0]
   i/no-namespace: [0]
@@ -274,7 +301,7 @@ rules:
   i/no-restricted-paths: [0]
   i/no-self-import: [2]
   i/no-unassigned-import: [0]
-  i/no-unresolved: [2, {commonjs: true, ignore: ["\\?.+$", ^vitest/]}]
+  i/no-unresolved: [2, {commonjs: true, ignore: ["\\?.+$"]}]
   i/no-unused-modules: [2, {unusedExports: true}]
   i/no-useless-path-segments: [2, {commonjs: true}]
   i/no-webpack-loader-syntax: [2]
