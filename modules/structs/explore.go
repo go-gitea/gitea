@@ -3,7 +3,7 @@
 
 package structs // import "code.gitea.io/gitea/modules/structs"
 
-// ExploreCodeSearchItem A single search match
+// ExploreCodeSearchItem A code search match
 // swagger:model
 type ExploreCodeSearchItem struct {
 	RepoName   string `json:"repoName"`
@@ -12,7 +12,7 @@ type ExploreCodeSearchItem struct {
 	LineText   string `json:"lineText"`
 }
 
-// ExploreCodeResult all returned search results
+// ExploreCodeResult all returned code search results
 // swagger:model
 type ExploreCodeResult struct {
 	Total   int                     `json:"total"`

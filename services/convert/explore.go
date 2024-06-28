@@ -15,7 +15,7 @@ func ToExploreCodeSearchResults(total int, results []*code_indexer.Result, repoM
 		if repo := repoMaps[res.RepoID]; repo != nil {
 			for _, r := range res.Lines {
 				out.Results = append(out.Results, api.ExploreCodeSearchItem{
-					RepoName:   repo.Name,
+					RepoName:   repo.FullName(),
 					FilePath:   res.Filename,
 					LineNumber: r.Num,
 					LineText:   r.RawContent,

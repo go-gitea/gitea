@@ -17,18 +17,43 @@ import (
 
 // Code explore code
 func Code(ctx *context.APIContext) {
+	// swagger:operation GET /explore/code explore codeSearch
+	// ---
+	// summary: Search for code
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: q
+	//   in: query
+	//   description: keyword
+	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: fuzzy
+	//   in: query
+	//   description: whether to search fuzzy or strict
+	//   type: boolean
+	// responses:
+	//   "200":
+	//     description: "SearchResults of a successful search"
+	//     schema:
+	//			 "$ref": "#/definitions/ExploreCodeResult"
 	if !setting.Indexer.RepoIndexerEnabled {
 		ctx.NotFound("Indexer not enabled")
 		return
 	}
 
-	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
 
 	isFuzzy := ctx.FormOptionalBool("fuzzy").ValueOrDefault(true)
 
 	if keyword == "" {
-		ctx.JSON(http.StatusInternalServerError, api.SearchError{OK: false, Error: "No keyword provided"})
+		ctx.JSON(http.StatusInternalServerError, api.SearchError{
+			OK:    false,
+			Error: "No keyword provided",
+		})
 		return
 	}
 
@@ -50,7 +75,10 @@ func Code(ctx *context.APIContext) {
 	if ctx.Doer == nil || !isAdmin {
 		repoIDs, err = repo_model.FindUserCodeAccessibleRepoIDs(ctx, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("FindUserCodeAccessibleRepoIDs", err)
+			ctx.JSON(http.StatusInternalServerError, api.SearchError{
+				OK:    false,
+				Error: err.Error(),
+			})
 			return
 		}
 	}
@@ -67,7 +95,6 @@ func Code(ctx *context.APIContext) {
 			Keyword:        keyword,
 			IsKeywordFuzzy: isFuzzy,
 			IsHtmlSafe:     false,
-			Language:       language,
 			Paginator: &db.ListOptions{
 				Page:     page,
 				PageSize: setting.API.DefaultPagingNum,
@@ -75,7 +102,10 @@ func Code(ctx *context.APIContext) {
 		})
 		if err != nil {
 			if code_indexer.IsAvailable(ctx) {
-				ctx.ServerError("SearchResults", err)
+				ctx.JSON(http.StatusInternalServerError, api.SearchError{
+					OK:    false,
+					Error: err.Error(),
+				})
 				return
 			}
 		}
@@ -96,7 +126,10 @@ func Code(ctx *context.APIContext) {
 
 		repoMaps, err = repo_model.GetRepositoriesMapByIDs(ctx, loadRepoIDs)
 		if err != nil {
-			ctx.ServerError("GetRepositoriesMapByIDs", err)
+			ctx.JSON(http.StatusInternalServerError, api.SearchError{
+				OK:    false,
+				Error: err.Error(),
+			})
 			return
 		}
 

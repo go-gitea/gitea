@@ -1009,6 +1009,46 @@
         }
       }
     },
+    "/explore/code": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "explore"
+        ],
+        "summary": "Search for code",
+        "operationId": "codeSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "keyword",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "whether to search fuzzy or strict",
+            "name": "fuzzy",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SearchResults of a successful search",
+            "schema": {
+              "$ref": "#/definitions/ExploreCodeResult"
+            }
+          }
+        }
+      }
+    },
     "/gitignore/templates": {
       "get": {
         "produces": [
@@ -21331,6 +21371,49 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ExploreCodeResult": {
+      "description": "ExploreCodeResult all returned code search results",
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ExploreCodeSearchItem"
+          },
+          "x-go-name": "Results"
+        },
+        "total": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Total"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ExploreCodeSearchItem": {
+      "description": "ExploreCodeSearchItem A code search match",
+      "type": "object",
+      "properties": {
+        "lineNumber": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LineNumber"
+        },
+        "lineText": {
+          "type": "string",
+          "x-go-name": "LineText"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "FilePath"
+        },
+        "repoName": {
+          "type": "string",
+          "x-go-name": "RepoName"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ExternalTracker": {
       "description": "ExternalTracker represents settings for external tracker",
       "type": "object",
@@ -25395,6 +25478,17 @@
       "description": "EmptyRepository",
       "schema": {
         "$ref": "#/definitions/APIError"
+      }
+    },
+    "ExploreCode": {
+      "description": "ExploreCode",
+      "schema": {
+        "$ref": "#/definitions/ExploreCodeResult"
+      },
+      "headers": {
+        "body": {
+          "description": "out:body"
+        }
       }
     },
     "FileDeleteResponse": {
