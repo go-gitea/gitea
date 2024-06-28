@@ -5,15 +5,10 @@ package arch
 
 import (
 	"archive/tar"
-	"code.gitea.io/gitea/modules/packages"
-	"code.gitea.io/gitea/modules/util"
 	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ProtonMail/go-crypto/openpgp"
-	"github.com/ProtonMail/go-crypto/openpgp/armor"
-	"github.com/ProtonMail/go-crypto/openpgp/packet"
 	"io"
 	"os"
 	"sort"
@@ -21,9 +16,15 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/packages"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
+	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
+
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
 func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages_model.PackageVersion, error) {
@@ -91,11 +92,9 @@ func BuildPacmanDB(ctx context.Context, ownerID int64, distro, arch string) erro
 				return err
 			}
 		}
-
 	}
 	db, err := packages_module.NewHashedBuffer()
 	if errors.Is(err, io.EOF) {
-
 		return err
 	} else if err != nil {
 		return err
@@ -140,7 +139,7 @@ func BuildPacmanDB(ctx context.Context, ownerID int64, distro, arch string) erro
 	return nil
 }
 
-func flushDB(ctx context.Context, ownerID int64, distro string, arch string, db *packages_module.HashedBuffer) error {
+func flushDB(ctx context.Context, ownerID int64, distro, arch string, db *packages_module.HashedBuffer) error {
 	pkgs, err := packages_model.GetPackagesByType(ctx, ownerID, packages_model.TypeArch)
 	if err != nil {
 		return err
@@ -176,7 +175,6 @@ func flushDB(ctx context.Context, ownerID int64, distro string, arch string, db 
 			pps, err := packages_model.GetPropertiesByName(
 				ctx, packages_model.PropertyTypeFile, pf.ID, arch_module.PropertyDescription,
 			)
-
 			if err != nil {
 				return err
 			}

@@ -4,400 +4,136 @@
 package integration
 
 import (
-	"archive/tar"
-	"bufio"
 	"bytes"
-	"compress/gzip"
 	"encoding/base64"
-	"encoding/hex"
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
+	"strings"
 	"testing"
-	"testing/fstest"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/packages"
+	packages "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/packages/arch"
+	arch_model "code.gitea.io/gitea/modules/packages/arch"
 	"code.gitea.io/gitea/tests"
 
-	"github.com/mholt/archiver/v3"
-	"github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPackageArch(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer tests.PrepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	unPack := func(s string) []byte {
+		data, _ := base64.StdEncoding.DecodeString(strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(s), "\n", ""), "\r", ""))
+		return data
+	}
+	rootURL := fmt.Sprintf("/api/packages/%s/arch", user.Name)
 
-	var (
-		user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-		sign = []byte{1, 2, 3, 4, 5, 6}
-
-		pushBatch = []*TestArchPackage{
-			BuildArchPackage(t, "git", "1-1", "x86_64"),
-			BuildArchPackage(t, "git", "2-1", "x86_64"),
-			BuildArchPackage(t, "git", "1-1", "i686"),
-			BuildArchPackage(t, "adwaita", "1-1", "any"),
-			BuildArchPackage(t, "adwaita", "2-1", "any"),
-		}
-
-		removeBatch = []*TestArchPackage{
-			BuildArchPackage(t, "curl", "1-1", "x86_64"),
-			BuildArchPackage(t, "curl", "2-1", "x86_64"),
-			BuildArchPackage(t, "dock", "1-1", "any"),
-			BuildArchPackage(t, "dock", "2-1", "any"),
-		}
-
-		firstDatabaseBatch = []*TestArchPackage{
-			BuildArchPackage(t, "pacman", "1-1", "x86_64"),
-			BuildArchPackage(t, "pacman", "1-1", "i686"),
-			BuildArchPackage(t, "htop", "1-1", "x86_64"),
-			BuildArchPackage(t, "htop", "1-1", "i686"),
-			BuildArchPackage(t, "dash", "1-1", "any"),
-		}
-
-		secondDatabaseBatch = []*TestArchPackage{
-			BuildArchPackage(t, "pacman", "2-1", "x86_64"),
-			BuildArchPackage(t, "htop", "2-1", "i686"),
-			BuildArchPackage(t, "dash", "2-1", "any"),
-		}
-
-		PacmanDBx86 = BuildPacmanDb(t,
-			secondDatabaseBatch[0].Pkg,
-			firstDatabaseBatch[2].Pkg,
-			secondDatabaseBatch[2].Pkg,
-		)
-
-		PacmanDBi686 = BuildPacmanDb(t,
-			firstDatabaseBatch[0].Pkg,
-			secondDatabaseBatch[1].Pkg,
-			secondDatabaseBatch[2].Pkg,
-		)
-	)
-
-	t.Run("PushWithoutSignature", func(t *testing.T) {
-		for _, p := range pushBatch {
-			t.Run(p.File, func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				url := fmt.Sprintf("/api/packages/%s/arch/parabola", user.Name)
-
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).
-					AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusCreated)
-
-				pv, err := packages.GetVersionByNameAndVersion(
-					db.DefaultContext, user.ID, packages.TypeArch, p.Name, p.Ver,
-				)
-				assert.NoError(t, err)
-
-				pf, err := packages.GetFileForVersionByName(
-					db.DefaultContext, pv.ID, p.File, "parabola",
-				)
-				assert.NoError(t, err)
-				assert.NotNil(t, pf)
-			})
-		}
-	})
-
-	t.Run("GetPackage", func(t *testing.T) {
-		for _, p := range pushBatch {
-			t.Run(p.File, func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				url := fmt.Sprintf(
-					"/api/packages/%s/arch/artix/%s",
-					user.Name, base64.RawURLEncoding.EncodeToString(sign),
-				)
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).
-					AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusCreated)
-
-				url = fmt.Sprintf(
-					"/api/packages/%s/arch/artix/%s/%s",
-					user.Name, p.Arch, p.File,
-				)
-				req = NewRequest(t, "GET", url)
-				resp := MakeRequest(t, req, http.StatusOK)
-				assert.Equal(t, p.Data, resp.Body.Bytes())
-			})
-		}
-	})
-
-	t.Run("GetSignature", func(t *testing.T) {
-		for _, p := range pushBatch {
-			t.Run(p.File, func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				url := fmt.Sprintf(
-					"/api/packages/%s/arch/arco/%s",
-					user.Name, base64.RawURLEncoding.EncodeToString(sign),
-				)
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).
-					AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusCreated)
-
-				url = fmt.Sprintf(
-					"/api/packages/%s/arch/arco/%s/%s.sig",
-					user.Name, p.Arch, p.File,
-				)
-				req = NewRequest(t, "GET", url)
-				resp := MakeRequest(t, req, http.StatusOK)
-				assert.Equal(t, sign, resp.Body.Bytes())
-			})
-		}
-	})
-
-	t.Run("GetPacmanDatabase", func(t *testing.T) {
-		for _, p := range firstDatabaseBatch {
-			url := fmt.Sprintf(
-				"/api/packages/%s/arch/ion/%s",
-				user.Name, base64.RawURLEncoding.EncodeToString(sign),
-			)
-			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).
-				AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusCreated)
-		}
-
-		// Package versions for db are sorted by 'UnixTime', second delay required
-		time.Sleep(time.Second)
-
-		for _, p := range secondDatabaseBatch {
-			url := fmt.Sprintf(
-				"/api/packages/%s/arch/ion/%s",
-				user.Name, base64.RawURLEncoding.EncodeToString(sign),
-			)
-			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).
-				AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusCreated)
-		}
-
-		t.Run("x86_64", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			url := fmt.Sprintf(
-				"/api/packages/%s/arch/ion/x86_64/user.db.tar.gz", user.Name,
-			)
-			req := NewRequest(t, "GET", url)
-			resp := MakeRequest(t, req, http.StatusOK)
-
-			CompareTarGzEntries(t, PacmanDBx86, resp.Body.Bytes())
-		})
-
-		t.Run("i686", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			url := fmt.Sprintf(
-				"/api/packages/%s/arch/ion/i686/user.db", user.Name,
-			)
-			req := NewRequest(t, "GET", url)
-			resp := MakeRequest(t, req, http.StatusOK)
-
-			CompareTarGzEntries(t, PacmanDBi686, resp.Body.Bytes())
-		})
-	})
-
-	t.Run("Remove", func(t *testing.T) {
-		for _, p := range removeBatch {
-			t.Run(p.File, func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				url := fmt.Sprintf(
-					"/api/packages/%s/arch/manjaro/%s",
-					user.Name, base64.RawURLEncoding.EncodeToString(sign),
-				)
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).
-					AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusCreated)
-
-				url = fmt.Sprintf(
-					"/api/packages/%s/arch/%s/%s", user.Name, p.Name, p.Ver,
-				)
-				req = NewRequest(t, "DELETE", url).AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusNoContent)
-
-				_, err := packages.GetVersionByNameAndVersion(
-					db.DefaultContext, user.ID, packages.TypeArch, p.Name, p.Ver,
-				)
-				assert.ErrorIs(t, err, packages.ErrPackageNotExist)
-			})
-		}
-	})
-}
-
-type TestArchPackage struct {
-	Pkg  arch.Package
-	Data []byte
-	File string
-	Name string
-	Ver  string
-	Arch string
-}
-
-func BuildArchPackage(t *testing.T, name, ver, architecture string) *TestArchPackage {
-	fs := fstest.MapFS{
-		"pkginfo": &fstest.MapFile{
-			Data: []byte(fmt.Sprintf(
-				"pkgname = %s\npkgbase = %s\npkgver = %s\narch = %s\n",
-				name, name, ver, architecture,
-			)),
-			Mode:    os.ModePerm,
-			ModTime: time.Now(),
-		},
-		"mtree": &fstest.MapFile{
-			Data:    []byte("test"),
-			Mode:    os.ModePerm,
-			ModTime: time.Now(),
-		},
+	pkgs := map[string][]byte{
+		"any": unPack(`
+KLUv/QBYXRMABmOHSbCWag6dY6d8VNtVR3rpBnWdBbkDAxM38Dj3XG3FK01TCKlWtMV9QpskYdsm
+e6fh5gWqM8edeurYNESoIUz/RmtyQy68HVrBj1p+AIoAYABFSJh4jcDyWNQgHIKIuNgIll64S4oY
+FFIUk6vJQBMIIl2iYtIysqKWVYMCYvXDpAKTMzVGwZTUWhbciFCglIMH1QMbEtjHpohSi8XRYwPr
+AwACSy/fzxO1FobizlP7sFgHcpx90Pus94Edjcc9GOustbD3PBprLUxH50IGC1sfw31c7LOfT4Qe
+nh0KP1uKywwdPrRYmuyIkWBHRlcLfeBIDpKKqw44N0K2nNAfFW5grHRfSShyVgaEIZwIVVmFGL7O
+88XDE5whJm4NkwA91dRoPBCcrgqozKSyah1QygsWkCshAaYrvbHCFdUTJCOgBpeUTMuJJ6+SRtcj
+wIRua8mGJyg7qWoqJQq9z/4+DU1rHrEO8f6QZ3HUu3IM7GY37u+jeWjUu45637yN+qj338cdi0Uc
+y0a9a+e5//1cYnPUu37dxr15khzNQ9/PE80aC/1okjz9mGo3bqP5Ue+scflGshdzx2g28061k2PW
+uKwzjmV/XzTzzmKdcfz3eRbJoRPddcaP/n4PSZqQeYa1PDtPQzOHJK0amfjvz0IUV/v38xHJK/rz
+JtFpalPD30drDWi7Bl8NB3J/P3csijQyldWZ8gy3TNslLsozMw74DhoAXoAfnE8xydUUHPZ3hML4
+2zVDGiEXSGYRx4BKQDcDJA5S9Ca25FRgPtSWSowZJpJTYAR9WCPHUDgACm6+hBecGDPNClpwHZ2A
+EQ==
+`),
+		"x86_64": unPack(`
+KLUv/QBYnRMAFmOJS7BUbg7Un8q21hxCopsOMn6UGTzJRbHI753uOeMdxZ+V7ajoETVxl9CSBCR5
+2a3K1vr1gwyp9gCTH422bRNxHEg7Z0z9HV4rH/DGFn8AjABjAFQ2oaUVMRRGViVoqmxAVKuoKQVM
+NJRwTDl9NcHCClliWjTpWin6sRUZsXSipWlAipQnleThRgFF5QTAzpth0UPFkhQeJRnYOaqSScEC
+djCPDwE8pQTfVXW9F7bmznX3YTNZDeP7IHgxDazNQhp+UDa798KeRgvvvbCamgsYdL461TfvcmlY
+djFowWYH5yaH5ztZcemh4omAkm7iQIWvGypNIXJQNgc7DVuHjx06I4MZGTIkeEBIOIL0OxcvnGps
+0TwxycqKYESrwwQYEDKI2F0hNXH1/PCQ2BS4Ykki48EAaflAbRHxYrRQbdAZ4oXVAMGCkYOXkBRb
+NkwjNCoIF07ByTlyfJhmoHQtCbFYDN+941783KqzusznmPePXJPluS1+cL/74Rd/1UHluW15blFv
+ol6e+8XPPZNDPN/Kc9vOdX/xNZrT8twWnH34U9Xkqw76rqqrPjPQl6nJde9i74e/8Mtz6zOjT3R7
+Uve8BrabpT4zanE83158MtVbkxbH84vPNWkGqeu2OF704vfRzAGl6mhRtXPdmOrRzFla+BO+DL34
+uHHN9r74usjkduX5VEhNz9TnxV9trSabvYAwuIZffN0zSeZM3c3GUHX8dG6jeUgHGgBbgB9cUDHJ
+1RR09teBwvjbNUMaIRdIZhHHgEpANwMkDpL0JsbkVFA+0JZKjBkmklNgBH1YI8dQOAAKbr6EF5wY
+M80KWnAdnYAR
+`),
+		"aarch64": unPack(`
+KLUv/QBYRRQAVmSLSbCWag6dY6d8VNtVR3rpBnWdBbkDAxM38Dj3XG3FK01TCKlWtKXyhOyOAkVM
+tttyu2KP3HC0f/cR1ERIUxznCyzBnRiwcCQO/3doAGkAfQBFHAeRpq6d5/7hZxo+SVPXr+Pun2jJ
+dx76jqI7m1joybPk6cdUy10u9qSps4lpbxT0Y+545zPrfMxvJ0riPVq7bdx5utnfug+EXfvfBa33
+gV3Mu3/vZz/wWru958WstVtPBJ4dHQo+XGcWy1n1YjJxY/zhy8SNq/3w81HJ6/b5kwg9zVPDh78r
+DWi7Bh/NBe+Hnzsex1mZBtUZGipyeaZpuCjPzDjgunfZhz/bac0kNkWsX+R5JE1dLwPLWe5++DsP
+kaaupKnDrI06aeoPH3c8BilgUEhRTq4mA00giHSJiknLyIpaVg0KiJUPkwoMzhQZtSmptSywEaFA
+KQcPqgc1JHBPTRGlFouDxwbWBwAEll46im5YB95rH/Q+ENbl5FzIYIGrvSSziWlVxnHQhz+eWeex
+yjj+8HkeyyF06yrjRx9+F8uZ0ImKlYZ2nooBKS4zdPjQYmmyI0YCHRldLcwDR3CQVFx1uLERsuW0
+f1SwgbHSfSWhwFkZIIZwIlRlJWL4QtEXD09uhpgIq5jk54mmNtuB4HRVQEUmlVXrflJesIC3hASY
+rvTGClcUD5CMgBpcUjItJ568aDS6HgEmdFtLNjxB0UlVUylRERImXiOwPBY1CAcgIi40gqUX7hIj
+IOACGSLqYpPAD5iSNlT2MJRJwREAF4FRHPBlCJMQPRcwaGAsDJA2+KIArkIJGNtCydULTuN1oBh/
++zKkEblAsgjGqVgUwKLP+UOMOGCpAhICtg6ncFJH`),
 	}
 
-	pinf, err := fs.Stat("pkginfo")
-	assert.NoError(t, err)
+	t.Run("RepositoryKey", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-	pfile, err := fs.Open("pkginfo")
-	assert.NoError(t, err)
+		req := NewRequest(t, "GET", rootURL+"/repository.key")
+		resp := MakeRequest(t, req, http.StatusOK)
 
-	parcname, err := archiver.NameInArchive(pinf, ".PKGINFO", ".PKGINFO")
-	assert.NoError(t, err)
-
-	minf, err := fs.Stat("mtree")
-	assert.NoError(t, err)
-
-	mfile, err := fs.Open("mtree")
-	assert.NoError(t, err)
-
-	marcname, err := archiver.NameInArchive(minf, ".MTREE", ".MTREE")
-	assert.NoError(t, err)
-
-	var buf bytes.Buffer
-
-	archive := archiver.NewTarZstd()
-	archive.Create(&buf)
-
-	err = archive.Write(archiver.File{
-		FileInfo: archiver.FileInfo{
-			FileInfo:   pinf,
-			CustomName: parcname,
-		},
-		ReadCloser: pfile,
+		assert.Equal(t, "application/pgp-keys", resp.Header().Get("Content-Type"))
+		assert.Contains(t, resp.Body.String(), "-----BEGIN PGP PUBLIC KEY BLOCK-----")
 	})
-	assert.NoError(t, errors.Join(pfile.Close(), err))
 
-	err = archive.Write(archiver.File{
-		FileInfo: archiver.FileInfo{
-			FileInfo:   minf,
-			CustomName: marcname,
-		},
-		ReadCloser: mfile,
-	})
-	assert.NoError(t, errors.Join(mfile.Close(), archive.Close(), err))
+	t.Run("Upload", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-	sha256, size := archPkgParams(buf.Bytes())
+		req := NewRequestWithBody(t, "PUT", rootURL+"/default", bytes.NewReader(pkgs["any"]))
+		MakeRequest(t, req, http.StatusUnauthorized)
 
-	return &TestArchPackage{
-		Data: buf.Bytes(),
-		Name: name,
-		Ver:  ver,
-		Arch: architecture,
-		File: fmt.Sprintf("%s-%s-%s.pkg.tar.zst", name, ver, architecture),
-		Pkg: arch.Package{
-			Name:    name,
-			Version: ver,
-			VersionMetadata: arch.VersionMetadata{
-				Base: name,
-			},
-			FileMetadata: arch.FileMetadata{
-				CompressedSize: size,
-				SHA256:         hex.EncodeToString(sha256),
-				Arch:           architecture,
-			},
-		},
-	}
-}
+		req = NewRequestWithBody(t, "PUT", rootURL+"/default", bytes.NewReader(pkgs["any"])).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
 
-func archPkgParams(b []byte) ([]byte, int64) {
-	sha256 := sha256.New()
-	c := counter{bytes.NewReader(b), 0}
-
-	br := bufio.NewReader(io.TeeReader(&c, sha256))
-
-	io.ReadAll(br)
-	return sha256.Sum(nil), int64(c.n)
-}
-
-type counter struct {
-	io.Reader
-	n int
-}
-
-func (w *counter) Read(p []byte) (int, error) {
-	n, err := w.Reader.Read(p)
-	w.n += n
-	return n, err
-}
-
-func BuildPacmanDb(t *testing.T, pkgs ...arch.Package) []byte {
-	entries := map[string][]byte{}
-	for _, p := range pkgs {
-		entries[fmt.Sprintf("%s-%s/desc", p.Name, p.Version)] = []byte(p.Desc())
-	}
-	b, err := arch.CreatePacmanDb(entries)
-	if err != nil {
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeArch)
 		assert.NoError(t, err)
-		return nil
-	}
-	return b.Bytes()
-}
+		assert.Len(t, pvs, 1)
 
-func CompareTarGzEntries(t *testing.T, expected, actual []byte) {
-	fgz, err := gzip.NewReader(bytes.NewReader(expected))
-	if err != nil {
+		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
 		assert.NoError(t, err)
-		return
-	}
-	ftar := tar.NewReader(fgz)
+		assert.Nil(t, pd.SemVer)
+		assert.IsType(t, &arch_model.VersionMetadata{}, pd.Metadata)
+		assert.Equal(t, "test", pd.Package.Name)
+		assert.Equal(t, "1.0.0-1", pd.Version.Version)
 
-	validatemap := map[string]struct{}{}
-
-	for {
-		h, err := ftar.Next()
-		if err != nil {
-			break
-		}
-
-		validatemap[h.Name] = struct{}{}
-	}
-
-	sgz, err := gzip.NewReader(bytes.NewReader(actual))
-	if err != nil {
+		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 		assert.NoError(t, err)
-		return
-	}
-	star := tar.NewReader(sgz)
+		assert.Len(t, pfs, 2) // zst and zst.sig
+		assert.True(t, pfs[0].IsLead)
 
-	for {
-		h, err := star.Next()
-		if err != nil {
-			break
-		}
+		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(len(pkgs["any"])), pb.Size)
 
-		_, ok := validatemap[h.Name]
-		if !ok {
-			assert.Fail(t, "Unexpected entry in archive: "+h.Name)
-		}
-		delete(validatemap, h.Name)
-	}
+		req = NewRequestWithBody(t, "PUT", rootURL+"/default", bytes.NewReader(pkgs["any"])).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusConflict)
+		req = NewRequestWithBody(t, "PUT", rootURL+"/default", bytes.NewReader(pkgs["x86_64"])).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+		req = NewRequestWithBody(t, "PUT", rootURL+"/other", bytes.NewReader(pkgs["any"])).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+	})
 
-	if len(validatemap) == 0 {
-		return
-	}
+	t.Run("Download", func(t *testing.T) {
+	})
 
-	for e := range validatemap {
-		assert.Fail(t, "Entry not found in archive: "+e)
-	}
+	t.Run("Sign", func(t *testing.T) {
+	})
+
+	t.Run("Database", func(t *testing.T) {
+	})
+
+	t.Run("Delete", func(t *testing.T) {
+	})
 }

@@ -3,16 +3,40 @@
 <div class="ui attached segment">
 	<div class="ui form">
 		<div class="field">
-			<label>{{svg "octicon-gear"}} {{ctx.Locale.Tr "packages.arch.pacmanconf"}}</label>
+			<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.arch.pacman.helper.gpg"}}</label>
 			<div class="markup">
-				<pre
-					class="code-block"><code>[{{.PackageDescriptor.Owner.LowerName}}.{{.RegistryHost}}]
-SigLevel = Required
-Server = <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/arch/$distribution/$arch"></origin-url></code></pre>
+				<pre class="code-block"><code>wget -O sign.gpg <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/arch/repository.key"></origin-url>
+pacman-key --add sign.gpg
+
+# {{ctx.Locale.Tr "packages.arch.pacman.helper.gpg.id"}}
+# {{ctx.Locale.Tr "packages.arch.pacman.helper.pacman" "https://wiki.archlinux.org/title/pacman" "https://wiki.archlinux.org/title/Pacman/Package_signing"}}
+pacman-key --lsign-key "Key ID"</code></pre>
 			</div>
 		</div>
 		<div class="field">
-			<label>{{svg "octicon-sync"}} {{ctx.Locale.Tr "packages.arch.pacmansync"}}</label>
+			<label>{{svg "octicon-gear"}} {{ctx.Locale.Tr "packages.arch.pacman.conf"}}</label>
+			<div class="markup">
+				<pre
+					class="code-block"><code>
+{{- if gt (len $.Groups) 1 -}}
+# {{ctx.Locale.Tr "packages.arch.pacman.repo.multi"  $.PackageDescriptor.Package.LowerName}}
+
+{{end -}}
+{{- $GroupSize := (len .Groups) -}}
+{{-  range $i,$v :=  .Groups -}}
+{{- if gt $i 0}}
+{{end -}}{{- if gt $GroupSize 1 -}}
+# {{ctx.Locale.Tr "packages.arch.pacman.repo.multi.item" .}}
+{{end -}}
+[{{$.PackageDescriptor.Owner.LowerName}}.{{$.RegistryHost}}]
+SigLevel = Required
+Server = <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/arch/{{.}}/$arch"></origin-url>
+{{end -}}
+</code></pre>
+			</div>
+		</div>
+		<div class="field">
+			<label>{{svg "octicon-sync"}} {{ctx.Locale.Tr "packages.arch.pacman.sync"}}</label>
 			<div class="markup">
 				<pre class="code-block"><code>pacman -Sy {{.PackageDescriptor.Package.LowerName}}</code></pre>
 			</div>
@@ -115,99 +139,8 @@ Server = <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.O
 				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Backup ", "}}</td>
 			</tr>
 			{{end}}
-
-			{{if .PackageDescriptor.Metadata.Xdata}}
-			<tr>
-				<td class="collapsing">
-					<h5>{{ctx.Locale.Tr "packages.arch.version.xdata"}}</h5>
-				</td>
-				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Xdata ", "}}</td>
-			</tr>
-			{{end}}
 		</tbody>
 	</table>
 </div>
 
-{{range .PackageDescriptor.Files}}
-<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.arch.file.properties"}}: {{.File.Name}}</h4>
-<div class="ui attached segment">
-	<table class="ui very basic compact table">
-		{{$CompressedSize := ""}}
-		{{$InstalledSize := ""}}
-		{{$SHA256 := ""}}
-		{{$BuildDate := ""}}
-		{{$Packager := ""}}
-		{{$Architecture := ""}}
-		{{$Distribution := ""}}
-
-		{{range .Properties}}
-			{{if eq .Name "arch.compsize"}}
-				{{$CompressedSize = .Value}}
-			{{end}}
-			{{if eq .Name "arch.inssize"}}
-				{{$InstalledSize = .Value}}
-			{{end}}
-			{{if eq .Name "arch.sha256"}}
-				{{$SHA256 = .Value}}
-			{{end}}
-			{{if eq .Name "arch.builddate"}}
-				{{$BuildDate = .Value}}
-			{{end}}
-			{{if eq .Name "arch.packager"}}
-				{{$Packager = .Value}}
-			{{end}}
-			{{if eq .Name "arch.architecture"}}
-				{{$Architecture = .Value}}
-			{{end}}
-			{{if eq .Name "arch.distribution"}}
-				{{$Distribution = .Value}}
-			{{end}}
-		{{end}}
-		<tbody>
-			<tr>
-				<td class="collapsing">
-					<h5>{{ctx.Locale.Tr "packages.arch.file.architecture"}}</h5>
-				</td>
-				<td>{{$Architecture}}</td>
-			</tr>
-			<tr>
-				<td class="collapsing">
-					<h5>{{ctx.Locale.Tr "packages.arch.file.distribution"}}</h5>
-				</td>
-				<td>{{$Distribution}}</td>
-			</tr>
-			<tr>
-				<td class="collapsing">
-					<h5>{{ctx.Locale.Tr "packages.arch.file.compsize"}}</h5>
-				</td>
-				<td>{{$CompressedSize}}</td>
-			</tr>
-			<tr>
-				<td class="collapsing">
-					<h5>{{ctx.Locale.Tr "packages.arch.file.inssize"}}</h5>
-				</td>
-				<td>{{$InstalledSize}}</td>
-			</tr>
-			<tr>
-				<td class="collapsing">
-					<h5>{{ctx.Locale.Tr "packages.arch.file.sha256"}}</h5>
-				</td>
-				<td>{{$SHA256}}</td>
-			</tr>
-			<tr>
-				<td class="collapsing">
-					<h5>{{ctx.Locale.Tr "packages.arch.file.builddate"}}</h5>
-				</td>
-				<td>{{$BuildDate}}</td>
-			</tr>
-			<tr>
-				<td class="collapsing">
-					<h5>{{ctx.Locale.Tr "packages.arch.file.packager"}}</h5>
-				</td>
-				<td>{{$Packager}}</td>
-			</tr>
-		</tbody>
-	</table>
-</div>
-{{end}}
 {{end}}

@@ -4,6 +4,13 @@
 package arch
 
 import (
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+
 	packages_model "code.gitea.io/gitea/models/packages"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
@@ -12,12 +19,6 @@ import (
 	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 	arch_service "code.gitea.io/gitea/services/packages/arch"
-	"encoding/base64"
-	"errors"
-	"fmt"
-	"io"
-	"net/http"
-	"strings"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -39,10 +40,8 @@ func GetRepositoryKey(ctx *context.Context) {
 	})
 }
 
-func Push(ctx *context.Context) {
-	var (
-		distro = ctx.PathParam("distro")
-	)
+func PushPackage(ctx *context.Context) {
+	distro := ctx.PathParam("distro")
 
 	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
@@ -118,7 +117,7 @@ func Push(ctx *context.Context) {
 				Filename:     fmt.Sprintf("%s-%s-%s.pkg.tar.zst", p.Name, p.Version, p.FileMetadata.Arch),
 				CompositeKey: distro,
 			},
-			OverwriteExisting: true,
+			OverwriteExisting: false,
 			IsLead:            true,
 			Creator:           ctx.ContextUser,
 			Data:              buf,
@@ -157,7 +156,7 @@ func Push(ctx *context.Context) {
 	ctx.Status(http.StatusCreated)
 }
 
-func Get(ctx *context.Context) {
+func GetPackageOrDB(ctx *context.Context) {
 	var (
 		file   = ctx.PathParam("file")
 		distro = ctx.PathParam("distro")
@@ -204,7 +203,7 @@ func Get(ctx *context.Context) {
 	ctx.Status(http.StatusNotFound)
 }
 
-func Remove(ctx *context.Context) {
+func RemovePackage(ctx *context.Context) {
 	var (
 		distro = ctx.PathParam("distro")
 		pkg    = ctx.PathParam("package")
@@ -238,5 +237,4 @@ func Remove(ctx *context.Context) {
 	} else {
 		ctx.Error(http.StatusNotFound)
 	}
-
 }

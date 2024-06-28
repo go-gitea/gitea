@@ -6,7 +6,6 @@ package arch
 import (
 	"bufio"
 	"bytes"
-	"code.gitea.io/gitea/modules/packages"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -15,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 

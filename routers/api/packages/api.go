@@ -128,11 +128,10 @@ func CommonRoutes() *web.Router {
 				r.Get("", arch.GetRepositoryKey)
 			})
 			r.Group("/{distro}", func() {
-				r.Put("", reqPackageAccess(perm.AccessModeWrite), arch.Push)
-				r.Get("/{arch}/{file}", arch.Get)
-				r.Delete("/{package}/{version}", reqPackageAccess(perm.AccessModeWrite), arch.Remove)
+				r.Put("", reqPackageAccess(perm.AccessModeWrite), arch.PushPackage)
+				r.Get("/{arch}/{file}", arch.GetPackageOrDB)
+				r.Delete("/{package}/{version}", reqPackageAccess(perm.AccessModeWrite), arch.RemovePackage)
 			})
-
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
 			r.Group("/api/v1/crates", func() {
