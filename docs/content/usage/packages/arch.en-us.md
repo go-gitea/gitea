@@ -59,4 +59,3 @@ curl -X DELETE \
 ## Clients
 
 Any `pacman` compatible package manager or AUR-helper can be used to install packages from gitea ([yay](https://github.com/Jguer/yay), [paru](https://github.com/Morganamilo/paru), [pikaur](https://github.com/actionless/pikaur), [aura](https://github.com/fosskers/aura)). Also, any HTTP client can be used to execute get/push/remove operations ([curl](https://curl.se/), [postman](https://www.postman.com/), [thunder-client](https://www.thunderclient.com/)).
-
