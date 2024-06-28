@@ -28,18 +28,19 @@ type Result struct {
 type ResultLine struct {
 	Num              int
 	FormattedContent template.HTML
+	RawContent       string
 }
 
 type SearchResultLanguages = internal.SearchResultLanguages
 
 type SearchOptions = internal.SearchOptions
 
-func indices(content string, selectionStartIndex, selectionEndIndex int) (int, int) {
+func indices(content string, selectionStartIndex, selectionEndIndex, numLinesBuffer int) (int, int) {
 	startIndex := selectionStartIndex
 	numLinesBefore := 0
 	for ; startIndex > 0; startIndex-- {
 		if content[startIndex-1] == '\n' {
-			if numLinesBefore == 1 {
+			if numLinesBefore == numLinesBuffer {
 				break
 			}
 			numLinesBefore++
@@ -50,7 +51,7 @@ func indices(content string, selectionStartIndex, selectionEndIndex int) (int, i
 	numLinesAfter := 0
 	for ; endIndex < len(content); endIndex++ {
 		if content[endIndex] == '\n' {
-			if numLinesAfter == 1 {
+			if numLinesAfter == numLinesBuffer {
 				break
 			}
 			numLinesAfter++
@@ -86,7 +87,22 @@ func HighlightSearchResultCode(filename, language string, lineNums []int, code s
 	return lines
 }
 
-func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Result, error) {
+func RawSearchResultCode(filename, language string, lineNums []int, code string) []*ResultLine {
+	// we should highlight the whole code block first, otherwise it doesn't work well with multiple line highlighting
+	rawLines := strings.Split(code, "\n")
+
+	// The lineNums outputted by highlight.Code might not match the original lineNums, because "highlight" removes the last `\n`
+	lines := make([]*ResultLine, min(len(rawLines), len(lineNums)))
+	for i := 0; i < len(lines); i++ {
+		lines[i] = &ResultLine{
+			Num:        lineNums[i],
+			RawContent: rawLines[i],
+		}
+	}
+	return lines
+}
+
+func searchResult(result *internal.SearchResult, startIndex, endIndex int, escapeHtml bool) (*Result, error) {
 	startLineNum := 1 + strings.Count(result.Content[:startIndex], "\n")
 
 	var formattedLinesBuffer bytes.Buffer
@@ -117,6 +133,13 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 		index += len(line)
 	}
 
+	var lines []*ResultLine
+	if escapeHtml {
+		lines = HighlightSearchResultCode(result.Filename, result.Language, lineNums, formattedLinesBuffer.String())
+	} else {
+		lines = RawSearchResultCode(result.Filename, result.Language, lineNums, formattedLinesBuffer.String())
+	}
+
 	return &Result{
 		RepoID:      result.RepoID,
 		Filename:    result.Filename,
@@ -124,7 +147,7 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 		UpdatedUnix: result.UpdatedUnix,
 		Language:    result.Language,
 		Color:       result.Color,
-		Lines:       HighlightSearchResultCode(result.Filename, result.Language, lineNums, formattedLinesBuffer.String()),
+		Lines:       lines,
 	}, nil
 }
 
@@ -142,9 +165,14 @@ func PerformSearch(ctx context.Context, opts *SearchOptions) (int, []*Result, []
 
 	displayResults := make([]*Result, len(results))
 
+	nLinesBuffer := 0
+	if opts.IsHtmlSafe {
+		nLinesBuffer = 1
+	}
+
 	for i, result := range results {
-		startIndex, endIndex := indices(result.Content, result.StartIndex, result.EndIndex)
-		displayResults[i], err = searchResult(result, startIndex, endIndex)
+		startIndex, endIndex := indices(result.Content, result.StartIndex, result.EndIndex, nLinesBuffer)
+		displayResults[i], err = searchResult(result, startIndex, endIndex, opts.IsHtmlSafe)
 		if err != nil {
 			return 0, nil, nil, err
 		}

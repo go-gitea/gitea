@@ -80,6 +80,7 @@ func CodeSearch(ctx *context.Context) {
 			Keyword:        keyword,
 			IsKeywordFuzzy: isFuzzy,
 			Language:       language,
+			IsHtmlSafe:     true,
 			Paginator: &db.ListOptions{
 				Page:     page,
 				PageSize: setting.UI.RepoSearchPagingNum,
