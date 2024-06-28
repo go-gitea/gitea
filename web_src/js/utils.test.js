@@ -1,7 +1,7 @@
 import {
   basename, extname, isObject, stripTags, parseIssueHref,
   parseUrl, translateMonth, translateDay, blobToDataURI,
-  toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64,
+  toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile,
 } from './utils.js';
 
 test('basename', () => {
@@ -15,6 +15,7 @@ test('extname', () => {
   expect(extname('/path/')).toEqual('');
   expect(extname('/path')).toEqual('');
   expect(extname('file.js')).toEqual('.js');
+  expect(extname('/my.path/file')).toEqual('');
 });
 
 test('isObject', () => {
@@ -111,4 +112,19 @@ test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
   expect(encodeURLEncodedBase64(uint8array('a'))).toEqual('YQ'); // standard base64: "YQ=="
   expect(Array.from(decodeURLEncodedBase64('YQ'))).toEqual(Array.from(uint8array('a')));
   expect(Array.from(decodeURLEncodedBase64('YQ=='))).toEqual(Array.from(uint8array('a')));
+});
+
+test('file detection', () => {
+  for (const name of ['a.jpg', '/a.jpeg', '.file.png', '.webp', 'file.svg']) {
+    expect(isImageFile({name})).toBeTruthy();
+  }
+  for (const name of ['', 'a.jpg.x', '/path.png/x', 'webp']) {
+    expect(isImageFile({name})).toBeFalsy();
+  }
+  for (const name of ['a.mpg', '/a.mpeg', '.file.mp4', '.webm', 'file.mkv']) {
+    expect(isVideoFile({name})).toBeTruthy();
+  }
+  for (const name of ['', 'a.mpg.x', '/path.mp4/x', 'webm']) {
+    expect(isVideoFile({name})).toBeFalsy();
+  }
 });

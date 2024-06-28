@@ -91,7 +91,6 @@ import {
   initGlobalDeleteButton,
   initGlobalShowModal,
 } from './features/common-button.js';
-import {initGlobalDropzone} from './features/dropzone.js';
 import {initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.js';
 
 initGiteaFomantic();
@@ -135,7 +134,6 @@ onDomReady(() => {
     initGlobalButtonClickOnEnter,
     initGlobalButtons,
     initGlobalCopyToClipboardListener,
-    initGlobalDropzone,
     initGlobalEnterQuickSubmit,
     initGlobalFormDirtyLeaveConfirm,
     initGlobalDeleteButton,

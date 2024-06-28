@@ -32,8 +32,8 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 func Push(ctx *context.Context) {
 	var (
-		distro = ctx.Params("distro")
-		sign   = ctx.Params("sign")
+		distro = ctx.PathParam("distro")
+		sign   = ctx.PathParam("sign")
 	)
 
 	upload, needToClose, err := ctx.UploadStream()
@@ -126,10 +126,10 @@ func Push(ctx *context.Context) {
 
 func Get(ctx *context.Context) {
 	var (
-		file   = ctx.Params("file")
-		owner  = ctx.Params("username")
-		distro = ctx.Params("distro")
-		arch   = ctx.Params("arch")
+		file   = ctx.PathParam("file")
+		owner  = ctx.PathParam("username")
+		distro = ctx.PathParam("distro")
+		arch   = ctx.PathParam("arch")
 	)
 
 	if strings.HasSuffix(file, ".pkg.tar.zst") {
@@ -184,10 +184,10 @@ func Get(ctx *context.Context) {
 
 func Remove(ctx *context.Context) {
 	var (
-		pkg    = ctx.Params("package")
-		ver    = ctx.Params("version")
-		distro = ctx.Params("distro")
-		arch   = ctx.Params("arch")
+		pkg    = ctx.PathParam("package")
+		ver    = ctx.PathParam("version")
+		distro = ctx.PathParam("distro")
+		arch   = ctx.PathParam("arch")
 	)
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{

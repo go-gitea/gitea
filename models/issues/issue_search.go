@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -13,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
 
 	"xorm.io/builder"
@@ -116,13 +118,29 @@ func applyLabelsCondition(sess *xorm.Session, opts *IssuesOptions) {
 		if opts.LabelIDs[0] == 0 {
 			sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label)")
 		} else {
-			for i, labelID := range opts.LabelIDs {
+			// deduplicate the label IDs for inclusion and exclusion
+			includedLabelIDs := make(container.Set[int64])
+			excludedLabelIDs := make(container.Set[int64])
+			for _, labelID := range opts.LabelIDs {
 				if labelID > 0 {
-					sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
-						fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+					includedLabelIDs.Add(labelID)
 				} else if labelID < 0 { // 0 is not supported here, so just ignore it
-					sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
+					excludedLabelIDs.Add(-labelID)
 				}
+			}
+			// ... and use them in a subquery of the form :
+			//  where (select count(*) from issue_label where issue_id=issue.id and label_id in (2, 4, 6)) = 3
+			// This equality is guaranteed thanks to unique index (issue_id,label_id) on table issue_label.
+			if len(includedLabelIDs) > 0 {
+				subQuery := builder.Select("count(*)").From("issue_label").Where(builder.Expr("issue_id = issue.id")).
+					And(builder.In("label_id", includedLabelIDs.Values()))
+				sess.Where(builder.Eq{strconv.Itoa(len(includedLabelIDs)): subQuery})
+			}
+			// or (select count(*)...) = 0 for excluded labels
+			if len(excludedLabelIDs) > 0 {
+				subQuery := builder.Select("count(*)").From("issue_label").Where(builder.Expr("issue_id = issue.id")).
+					And(builder.In("label_id", excludedLabelIDs.Values()))
+				sess.Where(builder.Eq{"0": subQuery})
 			}
 		}
 	}

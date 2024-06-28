@@ -1,19 +1,29 @@
-import {htmlEscape} from 'escape-goat';
-import {POST} from '../../modules/fetch.js';
 import {imageInfo} from '../../utils/image.js';
-import {getPastedContent, replaceTextareaSelection} from '../../utils/dom.js';
+import {replaceTextareaSelection} from '../../utils/dom.js';
 import {isUrl} from '../../utils/url.js';
+import {triggerEditorContentChanged} from './EditorMarkdown.js';
+import {
+  DropzoneCustomEventRemovedFile,
+  DropzoneCustomEventUploadDone,
+  generateMarkdownLinkForAttachment,
+} from '../dropzone.js';
 
-async function uploadFile(file, uploadUrl) {
-  const formData = new FormData();
-  formData.append('file', file, file.name);
+let uploadIdCounter = 0;
 
-  const res = await POST(uploadUrl, {data: formData});
-  return await res.json();
-}
-
-export function triggerEditorContentChanged(target) {
-  target.dispatchEvent(new CustomEvent('ce-editor-content-changed', {bubbles: true}));
+function uploadFile(dropzoneEl, file) {
+  return new Promise((resolve) => {
+    const curUploadId = uploadIdCounter++;
+    file._giteaUploadId = curUploadId;
+    const dropzoneInst = dropzoneEl.dropzone;
+    const onUploadDone = ({file}) => {
+      if (file._giteaUploadId === curUploadId) {
+        dropzoneInst.off(DropzoneCustomEventUploadDone, onUploadDone);
+        resolve();
+      }
+    };
+    dropzoneInst.on(DropzoneCustomEventUploadDone, onUploadDone);
+    dropzoneInst.handleFiles([file]);
+  });
 }
 
 class TextareaEditor {
@@ -82,46 +92,23 @@ class CodeMirrorEditor {
   }
 }
 
-async function handleClipboardImages(editor, dropzone, images, e) {
-  const uploadUrl = dropzone.getAttribute('data-upload-url');
-  const filesContainer = dropzone.querySelector('.files');
-
-  if (!dropzone || !uploadUrl || !filesContainer || !images.length) return;
-
+async function handleUploadFiles(editor, dropzoneEl, files, e) {
   e.preventDefault();
-  e.stopPropagation();
+  for (const file of files) {
+    const name = file.name.slice(0, file.name.lastIndexOf('.'));
+    const {width, dppx} = await imageInfo(file);
+    const placeholder = `[${name}](uploading ...)`;
 
-  for (const img of images) {
-    const name = img.name.slice(0, img.name.lastIndexOf('.'));
-
-    const placeholder = `![${name}](uploading ...)`;
     editor.insertPlaceholder(placeholder);
-
-    const {uuid} = await uploadFile(img, uploadUrl);
-    const {width, dppx} = await imageInfo(img);
-
-    let text;
-    if (width > 0 && dppx > 1) {
-      // Scale down images from HiDPI monitors. This uses the <img> tag because it's the only
-      // method to change image size in Markdown that is supported by all implementations.
-      // Make the image link relative to the repo path, then the final URL is "/sub-path/owner/repo/attachments/{uuid}"
-      const url = `attachments/${uuid}`;
-      text = `<img width="${Math.round(width / dppx)}" alt="${htmlEscape(name)}" src="${htmlEscape(url)}">`;
-    } else {
-      // Markdown always renders the image with a relative path, so the final URL is "/sub-path/owner/repo/attachments/{uuid}"
-      // TODO: it should also use relative path for consistency, because absolute is ambiguous for "/sub-path/attachments" or "/attachments"
-      const url = `/attachments/${uuid}`;
-      text = `![${name}](${url})`;
-    }
-    editor.replacePlaceholder(placeholder, text);
-
-    const input = document.createElement('input');
-    input.setAttribute('name', 'files');
-    input.setAttribute('type', 'hidden');
-    input.setAttribute('id', uuid);
-    input.value = uuid;
-    filesContainer.append(input);
+    await uploadFile(dropzoneEl, file); // the "file" will get its "uuid" during the upload
+    editor.replacePlaceholder(placeholder, generateMarkdownLinkForAttachment(file, {width, dppx}));
   }
+}
+
+export function removeAttachmentLinksFromMarkdown(text, fileUuid) {
+  text = text.replace(new RegExp(`!?\\[([^\\]]+)\\]\\(/?attachments/${fileUuid}\\)`, 'g'), '');
+  text = text.replace(new RegExp(`<img[^>]+src="/?attachments/${fileUuid}"[^>]*>`, 'g'), '');
+  return text;
 }
 
 function handleClipboardText(textarea, e, {text, isShiftDown}) {
@@ -139,16 +126,37 @@ function handleClipboardText(textarea, e, {text, isShiftDown}) {
   // else, let the browser handle it
 }
 
-export function initEasyMDEPaste(easyMDE, dropzone) {
+// extract text and images from "paste" event
+function getPastedContent(e) {
+  const images = [];
+  for (const item of e.clipboardData?.items ?? []) {
+    if (item.type?.startsWith('image/')) {
+      images.push(item.getAsFile());
+    }
+  }
+  const text = e.clipboardData?.getData?.('text') ?? '';
+  return {text, images};
+}
+
+export function initEasyMDEPaste(easyMDE, dropzoneEl) {
+  const editor = new CodeMirrorEditor(easyMDE.codemirror);
   easyMDE.codemirror.on('paste', (_, e) => {
     const {images} = getPastedContent(e);
-    if (images.length) {
-      handleClipboardImages(new CodeMirrorEditor(easyMDE.codemirror), dropzone, images, e);
-    }
+    if (!images.length) return;
+    handleUploadFiles(editor, dropzoneEl, images, e);
+  });
+  easyMDE.codemirror.on('drop', (_, e) => {
+    if (!e.dataTransfer.files.length) return;
+    handleUploadFiles(editor, dropzoneEl, e.dataTransfer.files, e);
+  });
+  dropzoneEl.dropzone.on(DropzoneCustomEventRemovedFile, ({fileUuid}) => {
+    const oldText = easyMDE.codemirror.getValue();
+    const newText = removeAttachmentLinksFromMarkdown(oldText, fileUuid);
+    if (oldText !== newText) easyMDE.codemirror.setValue(newText);
   });
 }
 
-export function initTextareaPaste(textarea, dropzone) {
+export function initTextareaUpload(textarea, dropzoneEl) {
   let isShiftDown = false;
   textarea.addEventListener('keydown', (e) => {
     if (e.shiftKey) isShiftDown = true;
@@ -159,9 +167,17 @@ export function initTextareaPaste(textarea, dropzone) {
   textarea.addEventListener('paste', (e) => {
     const {images, text} = getPastedContent(e);
     if (images.length) {
-      handleClipboardImages(new TextareaEditor(textarea), dropzone, images, e);
+      handleUploadFiles(new TextareaEditor(textarea), dropzoneEl, images, e);
     } else if (text) {
       handleClipboardText(textarea, e, {text, isShiftDown});
     }
+  });
+  textarea.addEventListener('drop', (e) => {
+    if (!e.dataTransfer.files.length) return;
+    handleUploadFiles(new TextareaEditor(textarea), dropzoneEl, e.dataTransfer.files, e);
+  });
+  dropzoneEl.dropzone.on(DropzoneCustomEventRemovedFile, ({fileUuid}) => {
+    const newText = removeAttachmentLinksFromMarkdown(textarea.value, fileUuid);
+    if (textarea.value !== newText) textarea.value = newText;
   });
 }

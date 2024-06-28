@@ -1,4 +1,6 @@
-import {triggerEditorContentChanged} from './Paste.js';
+export function triggerEditorContentChanged(target) {
+  target.dispatchEvent(new CustomEvent('ce-editor-content-changed', {bubbles: true}));
+}
 
 function handleIndentSelection(textarea, e) {
   const selStart = textarea.selectionStart;

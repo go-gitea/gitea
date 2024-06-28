@@ -535,7 +535,7 @@ td .commit-summary {
   min-width: 100px;
 }
 
-#new-issue .avatar {
+#new-issue .comment .avatar {
   width: 3em;
 }
 

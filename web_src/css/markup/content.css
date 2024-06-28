@@ -2,7 +2,11 @@
   overflow: hidden;
   font-size: 16px;
   line-height: 1.5 !important;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+
+.conversation-holder .markup {
+  overflow-wrap: anywhere; /* prevent overflow in code comments. TODO: properly restrict .conversation-holder width and remove this */
 }
 
 .markup > *:first-child {
