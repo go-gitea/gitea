@@ -10,7 +10,6 @@ import (
 // AddSkipSeconderyAuthToOAuth2ApplicationTable: add SkipSecondaryAuthorization column, setting existing rows to false
 func AddSkipSecondaryAuthColumnToOAuth2ApplicationTable(x *xorm.Engine) error {
 	type oauth2Application struct {
-		ID                         int64
 		SkipSecondaryAuthorization bool `xorm:"NOT NULL DEFAULT FALSE"`
 	}
 	return x.Sync(new(oauth2Application))
