@@ -121,7 +121,7 @@ func Push(ctx *context.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.Status(http.StatusCreated)
 }
 
 func Get(ctx *context.Context) {
@@ -184,33 +184,25 @@ func Get(ctx *context.Context) {
 
 func Remove(ctx *context.Context) {
 	var (
-		pkg    = ctx.PathParam("package")
-		ver    = ctx.PathParam("version")
-		distro = ctx.PathParam("distro")
-		arch   = ctx.PathParam("arch")
+		pkg = ctx.PathParam("package")
+		ver = ctx.PathParam("version")
 	)
 
-	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
-		OwnerID:      ctx.Package.Owner.ID,
-		PackageType:  packages_model.TypeArch,
-		Query:        fmt.Sprintf("%s-%s-%s.pkg.tar.zst", pkg, arch, ver),
-		CompositeKey: distro,
-	})
+	pv, err := packages_model.GetVersionByNameAndVersion(
+		ctx, ctx.Package.Owner.ID, packages_model.TypeArch, pkg, ver,
+	)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	if len(pfs) != 1 {
-		apiError(ctx, http.StatusNotFound, nil)
-		return
-	}
-
-	if err := packages_service.RemovePackageFileAndVersionIfUnreferenced(ctx, ctx.Doer, pfs[0]); err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
+		return
+	}
+
+	err = packages_service.RemovePackageVersion(ctx, ctx.Doer, pv)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

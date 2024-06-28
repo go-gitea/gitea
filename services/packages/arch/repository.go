@@ -6,7 +6,7 @@ package arch
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -45,7 +45,7 @@ func GetPackageSignature(ctx context.Context, distro, file string, ownderID int6
 
 	for _, pp := range proprs {
 		if pp.Name == arch_module.PropertySignature {
-			b, err := hex.DecodeString(pp.Value)
+			b, err := base64.RawURLEncoding.DecodeString(pp.Value)
 			if err != nil {
 				return nil, err
 			}

@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -35,6 +36,7 @@ func TestPackageArch(t *testing.T) {
 
 	var (
 		user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		sign = []byte{1, 2, 3, 4, 5, 6}
 
 		pushBatch = []*TestArchPackage{
 			BuildArchPackage(t, "git", "1-1", "x86_64"),
@@ -76,8 +78,6 @@ func TestPackageArch(t *testing.T) {
 			secondDatabaseBatch[1].Pkg,
 			secondDatabaseBatch[2].Pkg,
 		)
-
-		signdata = []byte{1, 2, 3, 4}
 	)
 
 	t.Run("PushWithSignature", func(t *testing.T) {
@@ -86,12 +86,13 @@ func TestPackageArch(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
 				url := fmt.Sprintf(
-					"/api/packages/%s/arch/push/%s/archlinux/%s",
-					user.Name, p.File, hex.EncodeToString(signdata),
+					"/api/packages/%s/arch/archlinux/%s",
+					user.Name, base64.RawURLEncoding.EncodeToString(sign),
 				)
 
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusOK)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).
+					AddBasicAuth(user.Name)
+				MakeRequest(t, req, http.StatusCreated)
 
 				pv, err := packages.GetVersionByNameAndVersion(
 					db.DefaultContext, user.ID, packages.TypeArch, p.Name, p.Ver,
@@ -119,13 +120,11 @@ func TestPackageArch(t *testing.T) {
 			t.Run(p.File, func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				url := fmt.Sprintf(
-					"/api/packages/%s/arch/push/%s/parabola",
-					user.Name, p.File,
-				)
+				url := fmt.Sprintf("/api/packages/%s/arch/parabola", user.Name)
 
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusOK)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).
+					AddBasicAuth(user.Name)
+				MakeRequest(t, req, http.StatusCreated)
 
 				pv, err := packages.GetVersionByNameAndVersion(
 					db.DefaultContext, user.ID, packages.TypeArch, p.Name, p.Ver,
@@ -147,11 +146,12 @@ func TestPackageArch(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
 				url := fmt.Sprintf(
-					"/api/packages/%s/arch/push/%s/artix/%s",
-					user.Name, p.File, hex.EncodeToString(signdata),
+					"/api/packages/%s/arch/artix/%s",
+					user.Name, base64.RawURLEncoding.EncodeToString(sign),
 				)
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusOK)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).
+					AddBasicAuth(user.Name)
+				MakeRequest(t, req, http.StatusCreated)
 
 				url = fmt.Sprintf(
 					"/api/packages/%s/arch/artix/%s/%s",
@@ -170,11 +170,12 @@ func TestPackageArch(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
 				url := fmt.Sprintf(
-					"/api/packages/%s/arch/push/%s/arco/%s",
-					user.Name, p.File, hex.EncodeToString(signdata),
+					"/api/packages/%s/arch/arco/%s",
+					user.Name, base64.RawURLEncoding.EncodeToString(sign),
 				)
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusOK)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).
+					AddBasicAuth(user.Name)
+				MakeRequest(t, req, http.StatusCreated)
 
 				url = fmt.Sprintf(
 					"/api/packages/%s/arch/arco/%s/%s.sig",
@@ -182,68 +183,37 @@ func TestPackageArch(t *testing.T) {
 				)
 				req = NewRequest(t, "GET", url)
 				resp := MakeRequest(t, req, http.StatusOK)
-				assert.Equal(t, signdata, resp.Body.Bytes())
+				assert.Equal(t, sign, resp.Body.Bytes())
 			})
 		}
 	})
 
-	t.Run("Remove", func(t *testing.T) {
-		for _, p := range removeBatch {
-			t.Run(p.File, func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				url := fmt.Sprintf(
-					"/api/packages/%s/arch/push/%s/manjaro/%s",
-					user.Name, p.File, hex.EncodeToString(signdata),
-				)
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusOK)
-
-				url = fmt.Sprintf(
-					"/api/packages/%s/arch/remove/%s/%s",
-					user.Name, p.Name, p.Ver,
-				)
-				req = NewRequest(t, "DELETE", url).AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusOK)
-
-				_, err := packages.GetVersionByNameAndVersion(
-					db.DefaultContext, user.ID, packages.TypeArch, p.Name, p.Ver,
-				)
-				assert.ErrorIs(t, err, packages.ErrPackageNotExist)
-			})
+	t.Run("GetPacmanDatabase", func(t *testing.T) {
+		for _, p := range firstDatabaseBatch {
+			url := fmt.Sprintf(
+				"/api/packages/%s/arch/ion/%s",
+				user.Name, base64.RawURLEncoding.EncodeToString(sign),
+			)
+			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusCreated)
 		}
-	})
 
-	t.Run("PacmanDatabase", func(t *testing.T) {
-		prepareDatabasePackages := func(t *testing.T) {
-			for _, p := range firstDatabaseBatch {
-				url := fmt.Sprintf(
-					"/api/packages/%s/arch/push/%s/ion/%s",
-					user.Name, p.File, hex.EncodeToString(signdata),
-				)
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusOK)
-			}
+		// Package versions for db are sorted by 'UnixTime', second delay required
+		time.Sleep(time.Second)
 
-			// While creating pacman database, package versions are sorted by
-			// UnixTime, second delay is required to ensure that newer package
-			// version creation time differs from older packages.
-			time.Sleep(time.Second)
-
-			for _, p := range secondDatabaseBatch {
-				url := fmt.Sprintf(
-					"/api/packages/%s/arch/push/%s/ion/%s",
-					user.Name, p.File, hex.EncodeToString(signdata),
-				)
-				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusOK)
-			}
+		for _, p := range secondDatabaseBatch {
+			url := fmt.Sprintf(
+				"/api/packages/%s/arch/ion/%s",
+				user.Name, base64.RawURLEncoding.EncodeToString(sign),
+			)
+			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusCreated)
 		}
 
 		t.Run("x86_64", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-
-			prepareDatabasePackages(t)
 
 			url := fmt.Sprintf(
 				"/api/packages/%s/arch/ion/x86_64/user.db.tar.gz", user.Name,
@@ -257,8 +227,6 @@ func TestPackageArch(t *testing.T) {
 		t.Run("i686", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			prepareDatabasePackages(t)
-
 			url := fmt.Sprintf(
 				"/api/packages/%s/arch/ion/i686/user.db", user.Name,
 			)
@@ -267,6 +235,33 @@ func TestPackageArch(t *testing.T) {
 
 			CompareTarGzEntries(t, PacmanDBi686, resp.Body.Bytes())
 		})
+	})
+
+	t.Run("Remove", func(t *testing.T) {
+		for _, p := range removeBatch {
+			t.Run(p.File, func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				url := fmt.Sprintf(
+					"/api/packages/%s/arch/manjaro/%s",
+					user.Name, base64.RawURLEncoding.EncodeToString(sign),
+				)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data)).
+					AddBasicAuth(user.Name)
+				MakeRequest(t, req, http.StatusCreated)
+
+				url = fmt.Sprintf(
+					"/api/packages/%s/arch/%s/%s", user.Name, p.Name, p.Ver,
+				)
+				req = NewRequest(t, "DELETE", url).AddBasicAuth(user.Name)
+				MakeRequest(t, req, http.StatusNoContent)
+
+				_, err := packages.GetVersionByNameAndVersion(
+					db.DefaultContext, user.ID, packages.TypeArch, p.Name, p.Ver,
+				)
+				assert.ErrorIs(t, err, packages.ErrPackageNotExist)
+			})
+		}
 	})
 }
 
@@ -364,7 +359,7 @@ func archPkgParams(b []byte) ([]byte, int64) {
 	sha256 := sha256.New()
 	c := counter{bytes.NewReader(b), 0}
 
-	br := bufio.NewReader(io.TeeReader(&c, io.MultiWriter(sha256)))
+	br := bufio.NewReader(io.TeeReader(&c, sha256))
 
 	io.ReadAll(br)
 	return sha256.Sum(nil), int64(c.n)

@@ -16,10 +16,6 @@ menu:
 
 Gitea has a Arch Linux package registry, which can act as a fully working [Arch linux mirror](https://wiki.archlinux.org/title/mirrors) and connected directly in `/etc/pacman.conf`. Gitea automatically creates pacman database for packages in user/organization space when a new Arch package is uploaded.
 
-**Table of Contents**
-
-{{< toc >}}
-
 ## Install packages
 
 First, you need to update your pacman configuration, adding following lines:
@@ -38,28 +34,29 @@ pacman -Sy package
 
 ## Upload packages
 
-When uploading the package to gitea, you have to prepare package file with the `.pkg.tar.zst` extension and its `.pkg.tar.zst.sig` signature. You can use [curl](https://curl.se/) or any other HTTP client, Gitea supports multiple [authentication schemes](https://docs.gitea.com/usage/authentication). The upload command will create 3 files: package, signature and desc file for the pacman database (which will be created automatically on request).
+When uploading the package to gitea, you have to prepare package file with the `.pkg.tar.zst` extension and optionally its `.pkg.tar.zst.sig` signature. You can use [curl](https://curl.se/) or any other HTTP client, Gitea supports multiple [authentication schemes](https://docs.gitea.com/usage/authentication). The upload command will create 3 files: package, signature and desc file for the pacman database (which will be created automatically on request).
 
 The following command will upload arch package and related signature to gitea with basic authentification:
 
 ```sh
 curl -X PUT \
-  https://{domain}/api/packages/{owner}/arch/push/{package-1-1-x86_64.pkg.tar.zst}/{archlinux}/$(xxd -p package-1-1-x86_64.pkg.tar.zst.sig | tr -d '\n') \
+  https://{domain}/api/packages/{owner}/arch/{package-1-1-x86_64.pkg.tar.zst}/{archlinux}/$(xxd -p package-1-1-x86_64.pkg.tar.zst.sig | tr -d '\n') \
   --user your_username:your_token_or_password \
   --header "Content-Type: application/octet-stream" \
   --data-binary '@/path/to/package/file/package-1-1-x86_64.pkg.tar.zst'
 ```
 
-## Delete packages
+## Remove packages
 
 The `DELETE` method will remove specific package version, and all package files related to that version:
 
 ```sh
 curl -X DELETE \
-  https://{domain}/api/packages/{user}/arch/remove/{package}/{version} \
+  https://{domain}/api/packages/{user}/arch/{package}/{version} \
   --user your_username:your_token_or_password
 ```
 
 ## Clients
 
-Any `pacman` compatible package manager or AUR-helper can be used to install packages from gitea ([yay](https://github.com/Jguer/yay), [paru](https://github.com/Morganamilo/paru), [pikaur](https://github.com/actionless/pikaur), [aura](https://github.com/fosskers/aura)). Alternatively, you can try [pack](https://fmnx.su/core/pack) which supports full gitea API (install/push/remove). Also, any HTTP client can be used to execute get/push/remove operations ([curl](https://curl.se/), [postman](https://www.postman.com/), [thunder-client](https://www.thunderclient.com/)).
+Any `pacman` compatible package manager or AUR-helper can be used to install packages from gitea ([yay](https://github.com/Jguer/yay), [paru](https://github.com/Morganamilo/paru), [pikaur](https://github.com/actionless/pikaur), [aura](https://github.com/fosskers/aura)). Also, any HTTP client can be used to execute get/push/remove operations ([curl](https://curl.se/), [postman](https://www.postman.com/), [thunder-client](https://www.thunderclient.com/)).
+
