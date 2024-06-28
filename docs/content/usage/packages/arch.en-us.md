@@ -34,13 +34,13 @@ pacman -Sy package
 
 ## Upload packages
 
-When uploading the package to gitea, you have to prepare package file with the `.pkg.tar.zst` extension and optionally its `.pkg.tar.zst.sig` signature. You can use [curl](https://curl.se/) or any other HTTP client, Gitea supports multiple [authentication schemes](https://docs.gitea.com/usage/authentication). The upload command will create 3 files: package, signature and desc file for the pacman database (which will be created automatically on request).
+When uploading the package to gitea, you have to prepare package file with the `.pkg.tar.zst` extension 。You can use [curl](https://curl.se/) or any other HTTP client, Gitea supports multiple [authentication schemes](https://docs.gitea.com/usage/authentication). The upload command will create 3 files: package, signature and desc file for the pacman database (which will be created automatically on request).
 
 The following command will upload arch package and related signature to gitea with basic authentification:
 
 ```sh
 curl -X PUT \
-  https://{domain}/api/packages/{owner}/arch/{package-1-1-x86_64.pkg.tar.zst}/{archlinux}/$(xxd -p package-1-1-x86_64.pkg.tar.zst.sig | tr -d '\n') \
+  https://{domain}/api/packages/{owner}/arch/{group} \
   --user your_username:your_token_or_password \
   --header "Content-Type: application/octet-stream" \
   --data-binary '@/path/to/package/file/package-1-1-x86_64.pkg.tar.zst'
@@ -52,7 +52,7 @@ The `DELETE` method will remove specific package version, and all package files 
 
 ```sh
 curl -X DELETE \
-  https://{domain}/api/packages/{user}/arch/{package}/{version} \
+  https://{domain}/api/packages/{user}/arch/{group}/{package}/{version} \
   --user your_username:your_token_or_password
 ```
 
