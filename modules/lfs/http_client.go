@@ -181,6 +181,10 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 		} else {
 			link, ok := object.Actions["download"]
 			if !ok {
+				// no actions block in response, try legacy response schema
+				link, ok = object.Links["download"]
+			}
+			if !ok {
 				log.Debug("%+v", object)
 				return errors.New("missing action 'download'")
 			}

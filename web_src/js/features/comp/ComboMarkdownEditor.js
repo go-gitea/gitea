@@ -264,7 +264,9 @@ class ComboMarkdownEditor {
     });
     this.applyEditorHeights(this.container.querySelector('.CodeMirror-scroll'), this.options.editorHeights);
     await attachTribute(this.easyMDE.codemirror.getInputField(), {mentions: true, emoji: true});
-    initEasyMDEPaste(this.easyMDE, this.dropzone);
+    if (this.dropzone) {
+      initEasyMDEPaste(this.easyMDE, this.dropzone);
+    }
     hideElem(this.textareaMarkdownToolbar);
   }
 

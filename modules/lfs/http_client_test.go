@@ -59,6 +59,17 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 				},
 			},
 		}
+	} else if strings.Contains(url, "legacy-batch-request-download") {
+		batchResponse = &BatchResponse{
+			Transfer: "dummy",
+			Objects: []*ObjectResponse{
+				{
+					Links: map[string]*Link{
+						"download": {},
+					},
+				},
+			},
+		}
 	} else if strings.Contains(url, "valid-batch-request-upload") {
 		batchResponse = &BatchResponse{
 			Transfer: "dummy",
@@ -228,6 +239,11 @@ func TestHTTPClientDownload(t *testing.T) {
 		{
 			endpoint:      "https://unknown-actions-map.io",
 			expectederror: "missing action 'download'",
+		},
+		// case 11
+		{
+			endpoint:      "https://legacy-batch-request-download.io",
+			expectederror: "",
 		},
 	}
 
