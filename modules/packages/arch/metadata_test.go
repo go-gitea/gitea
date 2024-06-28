@@ -5,14 +5,14 @@ package arch
 
 import (
 	"bytes"
-	"encoding/base64"
 	"errors"
-	"io"
 	"os"
 	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
+
+	"code.gitea.io/gitea/modules/packages"
 
 	"github.com/mholt/archiver/v3"
 	"github.com/stretchr/testify/assert"
@@ -82,7 +82,12 @@ arch = x86_64
 		})
 		assert.NoError(t, errors.Join(mfile.Close(), archive.Close(), err))
 
-		_, err = ParsePackage(&buf, []byte{}, 0)
+		reader, err := packages.CreateHashedBufferFromReader(&buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer reader.Close()
+		_, err = ParsePackage(reader)
 
 		assert.NoError(t, err)
 	})
@@ -94,8 +99,12 @@ arch = x86_64
 		archive.Create(&buf)
 
 		assert.NoError(t, archive.Close())
-
-		_, err = ParsePackage(&buf, []byte{}, 0)
+		reader, err := packages.CreateHashedBufferFromReader(&buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer reader.Close()
+		_, err = ParsePackage(reader)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), ".PKGINFO file not found")
@@ -118,8 +127,12 @@ arch = x86_64
 			ReadCloser: pfile,
 		})
 		assert.NoError(t, errors.Join(pfile.Close(), archive.Close(), err))
-
-		_, err = ParsePackage(&buf, []byte{}, 0)
+		reader, err := packages.CreateHashedBufferFromReader(&buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer reader.Close()
+		_, err = ParsePackage(reader)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), ".MTREE file not found")
@@ -430,21 +443,4 @@ dummy6
 		},
 	}
 	assert.Equal(t, pkgdesc, md.Desc())
-}
-
-func TestCreatePacmanDb(t *testing.T) {
-	const dbarchive = "H4sIAAAAAAAA/0rLzEnVS60oYaAhMDAwMDA3NwfTBgYG6LSBgYEpEtuAwcDQwMzUgEHBgJaOgoHS4pLEIgYDiu1C99wQASmlubmVA+2IUTAKRsEoGAV0B4AAAAD//2VF3KIACAAA"
-
-	db, err := CreatePacmanDb(map[string][]byte{
-		"file.ext": []byte("dummy"),
-	})
-	assert.NoError(t, err)
-
-	actual, err := io.ReadAll(db)
-	assert.NoError(t, err)
-
-	expected, err := base64.RawStdEncoding.DecodeString(dbarchive)
-	assert.NoError(t, err)
-
-	assert.Equal(t, expected, actual)
 }
