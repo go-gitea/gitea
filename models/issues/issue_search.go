@@ -118,29 +118,29 @@ func applyLabelsCondition(sess *xorm.Session, opts *IssuesOptions) {
 		if opts.LabelIDs[0] == 0 {
 			sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label)")
 		} else {
-			// We sort and deduplicate the labels' ids
-			IncludedLabelIDs := make(container.Set[int64])
-			ExcludedLabelIDs := make(container.Set[int64])
+			// deduplicate the label IDs for inclusion and exclusion
+			includedLabelIDs := make(container.Set[int64])
+			excludedLabelIDs := make(container.Set[int64])
 			for _, labelID := range opts.LabelIDs {
 				if labelID > 0 {
-					IncludedLabelIDs.Add(labelID)
+					includedLabelIDs.Add(labelID)
 				} else if labelID < 0 { // 0 is not supported here, so just ignore it
-					ExcludedLabelIDs.Add(-labelID)
+					excludedLabelIDs.Add(-labelID)
 				}
 			}
 			// ... and use them in a subquery of the form :
 			//  where (select count(*) from issue_label where issue_id=issue.id and label_id in (2, 4, 6)) = 3
 			// This equality is guaranteed thanks to unique index (issue_id,label_id) on table issue_label.
-			if len(IncludedLabelIDs) > 0 {
-				subquery := builder.Select("count(*)").From("issue_label").Where(builder.Expr("issue_id = issue.id")).
-					And(builder.In("label_id", IncludedLabelIDs.Values()))
-				sess.Where(builder.Eq{strconv.Itoa(len(IncludedLabelIDs)): subquery})
+			if len(includedLabelIDs) > 0 {
+				subQuery := builder.Select("count(*)").From("issue_label").Where(builder.Expr("issue_id = issue.id")).
+					And(builder.In("label_id", includedLabelIDs.Values()))
+				sess.Where(builder.Eq{strconv.Itoa(len(includedLabelIDs)): subQuery})
 			}
 			// or (select count(*)...) = 0 for excluded labels
-			if len(ExcludedLabelIDs) > 0 {
-				subquery := builder.Select("count(*)").From("issue_label").Where(builder.Expr("issue_id = issue.id")).
-					And(builder.In("label_id", ExcludedLabelIDs.Values()))
-				sess.Where(builder.Eq{"0": subquery})
+			if len(excludedLabelIDs) > 0 {
+				subQuery := builder.Select("count(*)").From("issue_label").Where(builder.Expr("issue_id = issue.id")).
+					And(builder.In("label_id", excludedLabelIDs.Values()))
+				sess.Where(builder.Eq{"0": subQuery})
 			}
 		}
 	}

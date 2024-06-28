@@ -47,6 +47,7 @@ type BatchResponse struct {
 type ObjectResponse struct {
 	Pointer
 	Actions map[string]*Link `json:"actions,omitempty"`
+	Links   map[string]*Link `json:"_links,omitempty"`
 	Error   *ObjectError     `json:"error,omitempty"`
 }
 
