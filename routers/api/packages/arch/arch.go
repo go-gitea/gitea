@@ -4,7 +4,6 @@
 package arch
 
 import (
-	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -30,10 +29,22 @@ func apiError(ctx *context.Context, status int, obj any) {
 	})
 }
 
+func GetRepositoryKey(ctx *context.Context) {
+	_, pub, err := arch_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.ServeContent(strings.NewReader(pub), &context.ServeHeaderOptions{
+		ContentType: "application/pgp-keys",
+		Filename:    "repository.key",
+	})
+}
+
 func Push(ctx *context.Context) {
 	var (
 		distro = ctx.PathParam("distro")
-		sign   = ctx.PathParam("sign")
 	)
 
 	upload, needToClose, err := ctx.UploadStream()
@@ -52,9 +63,7 @@ func Push(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	_, _, sha256, _ := buf.Sums()
-
-	p, err := arch_module.ParsePackage(buf, sha256, buf.Size())
+	p, err := arch_module.ParsePackage(buf)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -65,27 +74,41 @@ func Push(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	sign, err := arch_service.NewFileSign(ctx, ctx.Package.Owner.ID, buf)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer sign.Close()
+	_, err = buf.Seek(0, io.SeekStart)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	// update gpg sign
+	pgp, err := io.ReadAll(sign)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	p.FileMetadata.PgpSigned = base64.StdEncoding.EncodeToString(pgp)
+	_, err = sign.Seek(0, io.SeekStart)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 
 	properties := map[string]string{
 		arch_module.PropertyDescription:    p.Desc(),
 		arch_module.PropertyCompressedSize: base.FileSize(p.FileMetadata.CompressedSize),
 		arch_module.PropertyInstalledSize:  base.FileSize(p.FileMetadata.InstalledSize),
-		arch_module.PropertySHA256:         p.FileMetadata.SHA256,
 		arch_module.PropertyBuildDate:      time.Unix(p.FileMetadata.BuildDate, 0).Format(time.RFC3339),
 		arch_module.PropertyPackager:       p.FileMetadata.Packager,
 		arch_module.PropertyArch:           p.FileMetadata.Arch,
 		arch_module.PropertyDistribution:   distro,
 	}
-	if sign != "" {
-		_, err := base64.RawURLEncoding.DecodeString(sign)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-		properties[arch_module.PropertySignature] = sign
-	}
 
-	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+	version, _, err := packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -110,29 +133,45 @@ func Push(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile:
+		switch {
+		case errors.Is(err, packages_model.ErrDuplicatePackageVersion), errors.Is(err, packages_model.ErrDuplicatePackageFile):
 			apiError(ctx, http.StatusConflict, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+		case errors.Is(err, packages_service.ErrQuotaTotalCount), errors.Is(err, packages_service.ErrQuotaTypeSize), errors.Is(err, packages_service.ErrQuotaTotalSize):
 			apiError(ctx, http.StatusForbidden, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
 	}
-
+	// add sign file
+	_, err = packages_service.AddFileToPackageVersionInternal(ctx, version, &packages_service.PackageFileCreationInfo{
+		PackageFileInfo: packages_service.PackageFileInfo{
+			CompositeKey: distro,
+			Filename:     fmt.Sprintf("%s-%s-%s.pkg.tar.zst.sig", p.Name, p.Version, p.FileMetadata.Arch),
+		},
+		OverwriteExisting: true,
+		IsLead:            false,
+		Creator:           ctx.Doer,
+		Data:              sign,
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+	}
+	if err = arch_service.BuildPacmanDB(ctx, ctx.Package.Owner.ID, distro, p.FileMetadata.Arch); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 	ctx.Status(http.StatusCreated)
 }
 
 func Get(ctx *context.Context) {
 	var (
 		file   = ctx.PathParam("file")
-		owner  = ctx.PathParam("username")
 		distro = ctx.PathParam("distro")
 		arch   = ctx.PathParam("arch")
 	)
 
-	if strings.HasSuffix(file, ".pkg.tar.zst") {
+	if strings.HasSuffix(file, ".pkg.tar.zst") || strings.HasSuffix(file, ".pkg.tar.zst.sig") {
 		pkg, err := arch_service.GetPackageFile(ctx, distro, file, ctx.Package.Owner.ID)
 		if err != nil {
 			if errors.Is(err, util.ErrNotExist) {
@@ -149,8 +188,12 @@ func Get(ctx *context.Context) {
 		return
 	}
 
-	if strings.HasSuffix(file, ".pkg.tar.zst.sig") {
-		sig, err := arch_service.GetPackageSignature(ctx, distro, file, ctx.Package.Owner.ID)
+	if strings.HasSuffix(file, ".db.tar.gz") ||
+		strings.HasSuffix(file, ".db") ||
+		strings.HasSuffix(file, ".db.tar.gz.sig") ||
+		strings.HasSuffix(file, ".db.sig") {
+		pkg, err := arch_service.GetPackageDBFile(ctx, distro, arch, ctx.Package.Owner.ID,
+			strings.HasSuffix(file, ".sig"))
 		if err != nil {
 			if errors.Is(err, util.ErrNotExist) {
 				apiError(ctx, http.StatusNotFound, err)
@@ -159,21 +202,7 @@ func Get(ctx *context.Context) {
 			}
 			return
 		}
-
-		ctx.ServeContent(sig, &context.ServeHeaderOptions{
-			Filename: file,
-		})
-		return
-	}
-
-	if strings.HasSuffix(file, ".db.tar.gz") || strings.HasSuffix(file, ".db") {
-		db, err := arch_service.CreatePacmanDb(ctx, owner, arch, distro, ctx.Package.Owner.ID)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-
-		ctx.ServeContent(bytes.NewReader(db.Bytes()), &context.ServeHeaderOptions{
+		ctx.ServeContent(pkg, &context.ServeHeaderOptions{
 			Filename: file,
 		})
 		return
@@ -184,10 +213,10 @@ func Get(ctx *context.Context) {
 
 func Remove(ctx *context.Context) {
 	var (
-		pkg = ctx.PathParam("package")
-		ver = ctx.PathParam("version")
+		distro = ctx.PathParam("distro")
+		pkg    = ctx.PathParam("package")
+		ver    = ctx.PathParam("version")
 	)
-
 	pv, err := packages_model.GetVersionByNameAndVersion(
 		ctx, ctx.Package.Owner.ID, packages_model.TypeArch, pkg, ver,
 	)
@@ -199,12 +228,15 @@ func Remove(ctx *context.Context) {
 		}
 		return
 	}
-
-	err = packages_service.RemovePackageVersion(ctx, ctx.Doer, pv)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
+	files, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
+	for _, file := range files {
+		if file.CompositeKey == distro {
+			err := packages_service.RemovePackageFileAndVersionIfUnreferenced(ctx, ctx.ContextUser, file)
+			if err != nil {
+				apiError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+		}
 	}
-
 	ctx.Status(http.StatusNoContent)
 }

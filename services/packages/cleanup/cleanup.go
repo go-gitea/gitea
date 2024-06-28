@@ -4,6 +4,7 @@
 package container
 
 import (
+	arch_service "code.gitea.io/gitea/services/packages/arch"
 	"context"
 	"fmt"
 	"time"
@@ -131,6 +132,10 @@ func ExecuteCleanupRules(outerCtx context.Context) error {
 			} else if pcr.Type == packages_model.TypeRpm {
 				if err := rpm_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
 					return fmt.Errorf("CleanupRule [%d]: rpm.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
+				}
+			} else if pcr.Type == packages_model.TypeArch {
+				if err := arch_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
+					return fmt.Errorf("CleanupRule [%d]: arch.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
 				}
 			}
 		}

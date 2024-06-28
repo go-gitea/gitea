@@ -4,15 +4,13 @@
 package arch
 
 import (
-	"archive/tar"
 	"bufio"
 	"bytes"
-	"compress/gzip"
+	"code.gitea.io/gitea/modules/packages"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -31,11 +29,16 @@ const (
 	PropertySignature      = "arch.signature"
 	PropertyCompressedSize = "arch.compsize"
 	PropertyInstalledSize  = "arch.inssize"
-	PropertySHA256         = "arch.sha256"
 	PropertyBuildDate      = "arch.builddate"
 	PropertyPackager       = "arch.packager"
 	PropertyArch           = "arch.architecture"
 	PropertyDistribution   = "arch.distribution"
+
+	SettingKeyPrivate = "arch.key.private"
+	SettingKeyPublic  = "arch.key.public"
+
+	RepositoryPackage = "_arch"
+	RepositoryVersion = "_repository"
 )
 
 var (
@@ -71,21 +74,28 @@ type VersionMetadata struct {
 	Xdata        []string `json:"xdata,omitempty"`
 }
 
-// Metadata related to specific pakcage file.
+// FileMetadata Metadata related to specific package file.
 // This metadata might vary for different architecture and distribution.
 type FileMetadata struct {
 	CompressedSize int64  `json:"compressed_size"`
 	InstalledSize  int64  `json:"installed_size"`
+	MD5            string `json:"md5"`
 	SHA256         string `json:"sha256"`
 	BuildDate      int64  `json:"build_date"`
 	Packager       string `json:"packager"`
 	Arch           string `json:"arch"`
+	PgpSigned      string `json:"pgp"`
 }
 
-// Function that receives arch package archive data and returns it's metadata.
-func ParsePackage(r io.Reader, sha256 []byte, size int64) (*Package, error) {
+// ParsePackage Function that receives arch package archive data and returns it's metadata.
+func ParsePackage(r *packages.HashedBuffer) (*Package, error) {
+	md5, _, sha256, _ := r.Sums()
+	_, err := r.Seek(0, io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
 	zstd := archiver.NewTarZstd()
-	err := zstd.Open(r, 0)
+	err = zstd.Open(r, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -123,13 +133,14 @@ func ParsePackage(r io.Reader, sha256 []byte, size int64) (*Package, error) {
 		return nil, util.NewInvalidArgumentErrorf(".MTREE file not found")
 	}
 
-	pkg.FileMetadata.CompressedSize = size
+	pkg.FileMetadata.CompressedSize = r.Size()
+	pkg.FileMetadata.MD5 = hex.EncodeToString(md5)
 	pkg.FileMetadata.SHA256 = hex.EncodeToString(sha256)
 
 	return pkg, nil
 }
 
-// Function that accepts reader for .PKGINFO file from package archive,
+// ParsePackageInfo Function that accepts reader for .PKGINFO file from package archive,
 // validates all field according to PKGBUILD spec and returns package.
 func ParsePackageInfo(r io.Reader) (*Package, error) {
 	p := &Package{}
@@ -207,7 +218,7 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 	return p, errors.Join(scanner.Err(), ValidatePackageSpec(p))
 }
 
-// Arch package validation according to PKGBUILD specification.
+// ValidatePackageSpec Arch package validation according to PKGBUILD specification.
 func ValidatePackageSpec(p *Package) error {
 	if !reName.MatchString(p.Name) {
 		return util.NewInvalidArgumentErrorf("invalid package name")
@@ -274,9 +285,9 @@ func ValidatePackageSpec(p *Package) error {
 	return nil
 }
 
-// Create pacman package description file.
+// Desc Create pacman package description file.
 func (p *Package) Desc() string {
-	entries := [44]string{
+	entries := []string{
 		"FILENAME", fmt.Sprintf("%s-%s-%s.pkg.tar.zst", p.Name, p.Version, p.FileMetadata.Arch),
 		"NAME", p.Name,
 		"BASE", p.VersionMetadata.Base,
@@ -285,7 +296,9 @@ func (p *Package) Desc() string {
 		"GROUPS", strings.Join(p.VersionMetadata.Groups, "\n"),
 		"CSIZE", fmt.Sprintf("%d", p.FileMetadata.CompressedSize),
 		"ISIZE", fmt.Sprintf("%d", p.FileMetadata.InstalledSize),
+		"MD5SUM", p.FileMetadata.MD5,
 		"SHA256SUM", p.FileMetadata.SHA256,
+		"PGPSIG", p.FileMetadata.PgpSigned,
 		"URL", p.VersionMetadata.ProjectURL,
 		"LICENSE", strings.Join(p.VersionMetadata.License, "\n"),
 		"ARCH", p.FileMetadata.Arch,
@@ -303,34 +316,8 @@ func (p *Package) Desc() string {
 	var buf bytes.Buffer
 	for i := 0; i < 40; i += 2 {
 		if entries[i+1] != "" {
-			fmt.Fprintf(&buf, "%%%s%%\n%s\n\n", entries[i], entries[i+1])
+			_, _ = fmt.Fprintf(&buf, "%%%s%%\n%s\n\n", entries[i], entries[i+1])
 		}
 	}
 	return buf.String()
-}
-
-// Create pacman database archive based on provided package metadata structs.
-func CreatePacmanDb(entries map[string][]byte) (*bytes.Buffer, error) {
-	var b bytes.Buffer
-
-	gw := gzip.NewWriter(&b)
-	tw := tar.NewWriter(gw)
-
-	for name, content := range entries {
-		header := &tar.Header{
-			Name: name,
-			Size: int64(len(content)),
-			Mode: int64(os.ModePerm),
-		}
-
-		if err := tw.WriteHeader(header); err != nil {
-			return nil, errors.Join(err, tw.Close(), gw.Close())
-		}
-
-		if _, err := tw.Write(content); err != nil {
-			return nil, errors.Join(err, tw.Close(), gw.Close())
-		}
-	}
-
-	return &b, errors.Join(tw.Close(), gw.Close())
 }
