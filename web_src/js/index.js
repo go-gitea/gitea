@@ -226,7 +226,7 @@ onDomReady(() => {
     initPdfViewer,
     initScopedAccessTokenCategories,
     initColorPickers,
-    
+
     initOAuth2SettingsDisableCheckbox,
   ]);
 });
