@@ -75,10 +75,20 @@ export function initRepoEditor() {
   }
   filenameInput.addEventListener('input', function () {
     const parts = filenameInput.value.split('/');
+    const links = document.querySelectorAll('.breadcrumb span.section');
+    const dividers = document.querySelectorAll('.breadcrumb-divider');
     if (parts.length > 1) {
       let containSpace = false;
       for (let i = 0; i < parts.length; ++i) {
         const value = parts[i];
+        if (value.trim() === '..') {
+          // remove previous tree path
+          if (links.length > 0) {
+            links[links.length - 1].remove();
+            dividers[dividers.length - 1].remove();
+          }
+          continue;
+        }
         if (i < parts.length - 1) {
           if (value.length) {
             $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(filenameInput));
