@@ -63,15 +63,6 @@ func (p *Permission) HasUnits() bool {
 	return len(p.units) > 0
 }
 
-// GetFirstUnitRepoID returns the repo ID of the first unit, it is a fragile design and should NOT be used anymore
-// deprecated
-func (p *Permission) GetFirstUnitRepoID() int64 {
-	if len(p.units) > 0 {
-		return p.units[0].RepoID
-	}
-	return 0
-}
-
 // UnitAccessMode returns current user access mode to the specify unit of the repository
 // It also considers "everyone access mode"
 func (p *Permission) UnitAccessMode(unitType unit.Type) perm_model.AccessMode {
