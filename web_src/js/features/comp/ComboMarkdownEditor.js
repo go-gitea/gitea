@@ -3,7 +3,7 @@ import '@github/text-expander-element';
 import $ from 'jquery';
 import {attachTribute} from '../tribute.js';
 import {hideElem, showElem, autosize, isElemVisible} from '../../utils/dom.js';
-import {initEasyMDEPaste, initTextareaPaste} from './Paste.js';
+import {initEasyMDEPaste, initTextareaUpload} from './EditorUpload.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
@@ -11,6 +11,7 @@ import {initTextExpander} from './TextExpander.js';
 import {showErrorToast} from '../../modules/toast.js';
 import {POST} from '../../modules/fetch.js';
 import {initTextareaMarkdown} from './EditorMarkdown.js';
+import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.js';
 
 let elementIdCounter = 0;
 
@@ -47,7 +48,7 @@ class ComboMarkdownEditor {
     this.prepareEasyMDEToolbarActions();
     this.setupContainer();
     this.setupTab();
-    this.setupDropzone();
+    await this.setupDropzone(); // textarea depends on dropzone
     this.setupTextarea();
 
     await this.switchToUserPreference();
@@ -110,15 +111,32 @@ class ComboMarkdownEditor {
 
     initTextareaMarkdown(this.textarea);
     if (this.dropzone) {
-      initTextareaPaste(this.textarea, this.dropzone);
+      initTextareaUpload(this.textarea, this.dropzone);
     }
   }
 
-  setupDropzone() {
+  async setupDropzone() {
     const dropzoneParentContainer = this.container.getAttribute('data-dropzone-parent-container');
     if (dropzoneParentContainer) {
       this.dropzone = this.container.closest(this.container.getAttribute('data-dropzone-parent-container'))?.querySelector('.dropzone');
+      if (this.dropzone) this.attachedDropzoneInst = await initDropzone(this.dropzone);
     }
+  }
+
+  dropzoneGetFiles() {
+    if (!this.dropzone) return null;
+    return Array.from(this.dropzone.querySelectorAll('.files [name=files]'), (el) => el.value);
+  }
+
+  dropzoneReloadFiles() {
+    if (!this.dropzone) return;
+    this.attachedDropzoneInst.emit(DropzoneCustomEventReloadFiles);
+  }
+
+  dropzoneSubmitReload() {
+    if (!this.dropzone) return;
+    this.attachedDropzoneInst.emit('submit');
+    this.attachedDropzoneInst.emit(DropzoneCustomEventReloadFiles);
   }
 
   setupTab() {
@@ -246,7 +264,9 @@ class ComboMarkdownEditor {
     });
     this.applyEditorHeights(this.container.querySelector('.CodeMirror-scroll'), this.options.editorHeights);
     await attachTribute(this.easyMDE.codemirror.getInputField(), {mentions: true, emoji: true});
-    initEasyMDEPaste(this.easyMDE, this.dropzone);
+    if (this.dropzone) {
+      initEasyMDEPaste(this.easyMDE, this.dropzone);
+    }
     hideElem(this.textareaMarkdownToolbar);
   }
 

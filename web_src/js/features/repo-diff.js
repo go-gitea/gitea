@@ -7,7 +7,7 @@ import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.js';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.js';
 import {initImageDiff} from './imagediff.js';
 import {showErrorToast} from '../modules/toast.js';
-import {submitEventSubmitter, queryElemSiblings, hideElem, showElem} from '../utils/dom.js';
+import {submitEventSubmitter, queryElemSiblings, hideElem, showElem, animateOnce} from '../utils/dom.js';
 import {POST, GET} from '../modules/fetch.js';
 
 const {pageData, i18n} = window.config;
@@ -26,11 +26,7 @@ function initRepoDiffReviewButton() {
       const num = parseInt(counter.getAttribute('data-pending-comment-number')) + 1 || 1;
       counter.setAttribute('data-pending-comment-number', num);
       counter.textContent = num;
-
-      reviewBox.classList.remove('pulse');
-      requestAnimationFrame(() => {
-        reviewBox.classList.add('pulse');
-      });
+      animateOnce(reviewBox, 'pulse-1p5-200');
     });
   });
 }
