@@ -538,14 +538,14 @@ func actionToTemplate(issue *issues_model.Issue, actionType activities_model.Act
 }
 
 func fromDisplayName(u *user_model.User) string {
-	/*
-		var ctx bytes.Buffer
-		setting.Mailer.FromDisplayNameFormatTemplate.Execute(&ctx, map[string]any{
-			"DisplayName":  u.DisplayName(),
-			"AppName" ...
-			"AppHost" ...
-		})
-			return ctx.String()
-	*/
-	return u.GetCompleteName()
+	var ctx bytes.Buffer
+	err := setting.MailService.FromDisplayNameFormatTemplate.Execute(&ctx, map[string]any{
+		"DisplayName": u.DisplayName(),
+		"AppName":     setting.AppName,
+		"Domain":      setting.Domain,
+	})
+	if err != nil {
+		return u.GetCompleteName()
+	}
+	return ctx.String()
 }
