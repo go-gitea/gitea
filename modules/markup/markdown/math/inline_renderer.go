@@ -21,11 +21,11 @@ func NewInlineRenderer() renderer.NodeRenderer {
 
 func (r *InlineRenderer) renderInline(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
+		extraClass := ""
 		if _, ok := n.(*InlineBlock); ok {
-			_, _ = w.WriteString(`<pre class="code-block is-loading"><code class="chroma language-math display">`)
-		} else {
-			_, _ = w.WriteString(`<code class="language-math is-loading">`)
+			extraClass = "display "
 		}
+		_, _ = w.WriteString(`<code class="language-math ` + extraClass + `is-loading">`)
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
 			segment := c.(*ast.Text).Segment
 			value := util.EscapeHTML(segment.Value(source))
@@ -40,11 +40,7 @@ func (r *InlineRenderer) renderInline(w util.BufWriter, source []byte, n ast.Nod
 		}
 		return ast.WalkSkipChildren, nil
 	}
-	if _, ok := n.(*InlineBlock); ok {
-		_, _ = w.WriteString(`</code></pre>`)
-	} else {
-		_, _ = w.WriteString(`</code>`)
-	}
+	_, _ = w.WriteString(`</code>`)
 	return ast.WalkContinue, nil
 }
 

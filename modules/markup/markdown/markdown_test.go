@@ -557,11 +557,11 @@ func TestMathBlock(t *testing.T) {
 		},
 		{
 			"$$a$$ test",
-			`<p></p><pre class="code-block is-loading"><code class="chroma language-math display">a</code></pre> test<p></p>` + nl,
+			`<p><code class="language-math display is-loading">a</code> test</p>` + nl,
 		},
 		{
 			"test $$a$$",
-			`<p>test </p><pre class="code-block is-loading"><code class="chroma language-math display">a</code></pre><p></p>` + nl,
+			`<p>test <code class="language-math display is-loading">a</code></p>` + nl,
 		},
 	}
 

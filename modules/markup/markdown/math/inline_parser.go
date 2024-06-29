@@ -97,7 +97,11 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 			break
 		}
 		suceedingCharacter := line[pos]
-		if !isPunctuation(suceedingCharacter) && !(suceedingCharacter == ' ') && !isBracket(suceedingCharacter) {
+		// check valid ending character
+		if !isPunctuation(suceedingCharacter) &&
+			!(suceedingCharacter == ' ') &&
+			!(suceedingCharacter == '\n') &&
+			!isBracket(suceedingCharacter) {
 			return nil
 		}
 		if line[ender-1] != '\\' {
