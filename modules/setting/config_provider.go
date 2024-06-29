@@ -326,7 +326,7 @@ func LogStartupProblem(skip int, level log.Level, format string, args ...any) {
 
 func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead because this fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
+		LogStartupProblem(1, log.ERROR, "Deprecated config option `[%s].%s` is present, please use `[%s].%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
 	}
 }
 
