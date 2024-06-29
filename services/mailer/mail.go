@@ -130,8 +130,6 @@ func SendActivateEmailMail(u *user_model.User, email string) {
 		return
 	}
 
-	email = fmt.Sprintf("%s <%s>", u.DisplayName(), email) // TODO: do we need to sanitize the display name?
-
 	msg := NewMessage(email, locale.TrString("mail.activate_email"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, activate email", u.ID)
 
