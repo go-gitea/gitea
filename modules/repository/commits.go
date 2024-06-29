@@ -42,8 +42,8 @@ func NewPushCommits() *PushCommits {
 	return &PushCommits{}
 }
 
-// toAPIPayloadCommit converts a single PushCommit to an api.PayloadCommit object.
-func (pc *PushCommits) toAPIPayloadCommit(ctx context.Context, emailUsers map[string]*user_model.User, repoPath, repoLink string, commit *PushCommit) (*api.PayloadCommit, error) {
+// ToAPIPayloadCommit converts a single PushCommit to an api.PayloadCommit object.
+func ToAPIPayloadCommit(ctx context.Context, emailUsers map[string]*user_model.User, repoPath, repoLink string, commit *PushCommit) (*api.PayloadCommit, error) {
 	var err error
 	authorUsername := ""
 	author, ok := emailUsers[commit.AuthorEmail]
@@ -105,7 +105,7 @@ func (pc *PushCommits) ToAPIPayloadCommits(ctx context.Context, repoPath, repoLi
 	emailUsers := make(map[string]*user_model.User)
 
 	for i, commit := range pc.Commits {
-		apiCommit, err := pc.toAPIPayloadCommit(ctx, emailUsers, repoPath, repoLink, commit)
+		apiCommit, err := ToAPIPayloadCommit(ctx, emailUsers, repoPath, repoLink, commit)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -117,7 +117,7 @@ func (pc *PushCommits) ToAPIPayloadCommits(ctx context.Context, repoPath, repoLi
 	}
 	if pc.HeadCommit != nil && headCommit == nil {
 		var err error
-		headCommit, err = pc.toAPIPayloadCommit(ctx, emailUsers, repoPath, repoLink, pc.HeadCommit)
+		headCommit, err = ToAPIPayloadCommit(ctx, emailUsers, repoPath, repoLink, pc.HeadCommit)
 		if err != nil {
 			return nil, nil, err
 		}
