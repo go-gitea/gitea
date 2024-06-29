@@ -46,7 +46,7 @@ func SendRepoTransferNotifyMail(ctx context.Context, doer, newOwner *user_model.
 		return nil
 	}
 
-	return sendRepoTransferNotifyMailPerLang(newOwner.Language, newOwner, doer, []string{newOwner}, repo)
+	return sendRepoTransferNotifyMailPerLang(newOwner.Language, newOwner, doer, []*user_model.User{newOwner}, repo)
 }
 
 // sendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created for each language
