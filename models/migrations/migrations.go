@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
+	"src.techknowlogick.com/xormigrate"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 )
@@ -48,8 +49,8 @@ type migration struct {
 }
 
 // NewMigration creates a new migration
-func NewMigration(desc string, fn func(*xorm.Engine) error) Migration {
-	return &migration{desc, fn}
+func NewMigration(desc string, fn func(*xorm.Engine) error) *xormigrate.Migration {
+	return &xormigrate.Migration{ID: desc, Migrate: fn}
 }
 
 // Description returns the migration's description
@@ -74,7 +75,7 @@ var noopMigration = func(_ *xorm.Engine) error { return nil }
 // This is a sequence of migrations. Add new migrations to the bottom of the list.
 // If you want to "retire" a migration, remove it from the top of the list and
 // update minDBVersion accordingly
-var migrations = []Migration{
+var migrations = []*xormigrate.Migration{
 	// Gitea 1.5.0 ends at v69
 
 	// v70 -> v71
@@ -688,17 +689,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 	}
 
 	// Migrate
-	for i, m := range migrations[v-minDBVersion:] {
-		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
-		// Reset the mapper between each migration - migrations are not supposed to depend on each other
-		x.SetMapper(names.GonicMapper{})
-		if err = m.Migrate(x); err != nil {
-			return fmt.Errorf("migration[%d]: %s failed: %w", v+int64(i), m.Description(), err)
-		}
-		currentVersion.Version = v + int64(i) + 1
-		if _, err = x.ID(1).Update(currentVersion); err != nil {
-			return err
-		}
-	}
-	return nil
+	m := xormigrate.New(x, migrations)
+
+	return m.Migrate()
 }
