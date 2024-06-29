@@ -314,7 +314,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	for _, recipient := range recipients {
 		msg := NewMessageFrom(
 			recipient.Email,
-			ctx.Doer.GetCompleteName(),
+			fromDisplayName(ctx.Doer),
 			setting.MailService.FromEmail,
 			subject,
 			mailBody.String(),
@@ -535,4 +535,17 @@ func actionToTemplate(issue *issues_model.Issue, actionType activities_model.Act
 		template = "issue/default"
 	}
 	return typeName, name, template
+}
+
+func fromDisplayName(u *user_model.User) string {
+	/*
+		var ctx bytes.Buffer
+		setting.Mailer.FromDisplayNameFormatTemplate.Execute(&ctx, map[string]any{
+			"DisplayName":  u.DisplayName(),
+			"AppName" ...
+			"AppHost" ...
+		})
+			return ctx.String()
+	*/
+	return u.GetCompleteName()
 }
