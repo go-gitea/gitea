@@ -50,10 +50,6 @@
   background: none;
 }
 
-.ui.comments .comment .avatar {
-  width: 30px;
-}
-
 .ui.comments .comment > .content {
   display: flex;
   flex-direction: column;

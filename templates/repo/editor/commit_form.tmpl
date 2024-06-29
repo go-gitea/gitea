@@ -1,5 +1,5 @@
 <div class="commit-form-wrapper">
-	{{ctx.AvatarUtils.Avatar .SignedUser 48 "commit-avatar"}}
+	{{ctx.AvatarUtils.Avatar .SignedUser 40 "commit-avatar"}}
 	<div class="commit-form">
 		<h3>{{- if .CanCommitToBranch.WillSign}}
 			<span title="{{ctx.Locale.Tr "repo.signing.will_sign" .CanCommitToBranch.SigningKey}}">{{svg "octicon-lock" 24}}</span>

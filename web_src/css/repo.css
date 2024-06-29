@@ -460,14 +460,12 @@ td .commit-summary {
 }
 
 .repository.file.editor .commit-form-wrapper {
-  padding-left: 64px;
+  padding-left: 48px;
 }
 
 .repository.file.editor .commit-form-wrapper .commit-avatar {
   float: left;
-  margin-left: -64px;
-  width: 3em;
-  height: auto;
+  margin-left: -48px;
 }
 
 .repository.file.editor .commit-form-wrapper .commit-form {
@@ -533,10 +531,6 @@ td .commit-summary {
 .repository.options #interval {
   width: 100px !important;
   min-width: 100px;
-}
-
-#new-issue .comment .avatar {
-  width: 3em;
 }
 
 .repository.new.issue .comment.form .content::before,
@@ -1216,16 +1210,6 @@ td .commit-summary {
   border: 1px solid var(--color-light-border);
 }
 
-.repository #commits-table td.sha .sha.label .ui.signature.avatar,
-.repository #repo-files-table .sha.label .ui.signature.avatar,
-.repository #repo-file-commit-box .sha.label .ui.signature.avatar,
-.repository #rev-list .sha.label .ui.signature.avatar,
-.repository .timeline-item.commits-list .singular-commit .sha.label .ui.signature.avatar {
-  height: 16px;
-  margin-bottom: 0;
-  width: 16px;
-}
-
 .repository #commits-table td.sha .sha.label .detail.icon,
 .repository #repo-files-table .sha.label .detail.icon,
 .repository #repo-file-commit-box .sha.label .detail.icon,
@@ -1240,14 +1224,6 @@ td .commit-summary {
   border-bottom: 0;
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
-}
-
-.repository #commits-table td.sha .sha.label .detail.icon img,
-.repository #repo-files-table .sha.label .detail.icon img,
-.repository #repo-file-commit-box .sha.label .detail.icon img,
-.repository #rev-list .sha.label .detail.icon img,
-.repository .timeline-item.commits-list .singular-commit .sha.label .detail.icon img {
-  margin-right: 0;
 }
 
 .repository #commits-table td.sha .sha.label .detail.icon .svg,
@@ -1931,8 +1907,6 @@ td .commit-summary {
 }
 
 .user-cards .list .item .avatar {
-  width: 48px;
-  height: 48px;
   float: left;
   display: block;
   margin-right: 10px;
