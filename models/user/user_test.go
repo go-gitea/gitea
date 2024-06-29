@@ -537,7 +537,7 @@ func TestEmailTo(t *testing.T) {
 	}{
 		{"Awareness Hub", "awareness@hub.net", "Awareness Hub <awareness@hub.net>"},
 		{"name@example.com", "name@example.com", "name@example.com"},
-		{"Hi Its <Mee>", "ee@mail.box", "Hi Its Mee ee@mail.box"},
+		{"Hi Its <Mee>", "ee@mail.box", "Hi Its Mee <ee@mail.box>"},
 		{"Sinéad.O'Connor", "sinead.oconnor@gmail.com", "sinead.oconnor@gmail.com"},
 		{"Æsir", "aesir@gmx.de", "aesir@gmx.de"},
 		{"new😀user", "new.user@alo.com", "new.user@alo.com"},
