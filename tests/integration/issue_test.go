@@ -641,13 +641,13 @@ func TestGetIssueInfo(t *testing.T) {
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var respStruct struct {
-		ConvertedIssue api.Issue
-		RenderedLabels template.HTML
+		Issue      api.Issue     `json:"issue"`
+		LabelsHTML template.HTML `json:"labelsHtml"`
 	}
 	DecodeJSON(t, resp, &respStruct)
 
-	assert.EqualValues(t, issue.ID, respStruct.ConvertedIssue.ID)
-	assert.Contains(t, string(respStruct.RenderedLabels), `"labels-list"`)
+	assert.EqualValues(t, issue.ID, respStruct.Issue.ID)
+	assert.Contains(t, string(respStruct.LabelsHTML), `"labels-list"`)
 }
 
 func TestUpdateIssueDeadline(t *testing.T) {
