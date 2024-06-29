@@ -34,7 +34,7 @@ func SendRepoTransferNotifyMail(ctx context.Context, doer, newOwner *user_model.
 				// don't send emails to inactive users
 				continue
 			}
-			langMap[user.Language] = append(langMap[user.Language], user.Email)
+			langMap[user.Language] = append(langMap[user.Language], user.EmailTo())
 		}
 
 		for lang, tos := range langMap {
@@ -46,7 +46,7 @@ func SendRepoTransferNotifyMail(ctx context.Context, doer, newOwner *user_model.
 		return nil
 	}
 
-	return sendRepoTransferNotifyMailPerLang(newOwner.Language, newOwner, doer, []string{newOwner.Email}, repo)
+	return sendRepoTransferNotifyMailPerLang(newOwner.Language, newOwner, doer, []string{newOwner.EmailTo()}, repo)
 }
 
 // sendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created for each language
