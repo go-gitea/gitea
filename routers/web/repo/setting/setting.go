@@ -940,6 +940,33 @@ func SettingsPost(ctx *context.Context) {
 		log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
+	case "visibility":
+		if repo.IsFork {
+			ctx.Flash.Error(ctx.Tr("repo.settings.visibility.fork_error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		var err error
+
+		if repo.IsPrivate {
+			err = repo_service.MakeRepoPublic(ctx, repo)
+		} else {
+			err = repo_service.MakeRepoPrivate(ctx, repo)
+		}
+
+		if err != nil {
+			log.Error("Tried to change the visibility of the repo: %s", err)
+			ctx.Flash.Error(ctx.Tr("repo.settings.visibility.error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.visibility.success"))
+
+		log.Trace("Repository visibility changed: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
 	default:
 		ctx.NotFound("", nil)
 	}

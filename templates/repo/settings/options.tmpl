@@ -23,20 +23,6 @@
 						<label>{{ctx.Locale.Tr "repo.template_helper"}}</label>
 					</div>
 				</div>
-				{{if not .Repository.IsFork}}
-					<div class="inline field">
-						<label>{{ctx.Locale.Tr "repo.visibility"}}</label>
-						<div class="ui checkbox" {{if and (not .Repository.IsPrivate) (gt .Repository.NumStars 0)}}data-tooltip-content="{{ctx.Locale.Tr "repo.stars_remove_warning"}}"{{end}}>
-							{{if .IsAdmin}}
-								<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}>
-							{{else}}
-								<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}{{if and $.ForcePrivate .Repository.IsPrivate}} disabled{{end}}>
-								{{if and .Repository.IsPrivate $.ForcePrivate}}<input type="hidden" name="private" value="{{.Repository.IsPrivate}}">{{end}}
-							{{end}}
-							<label>{{ctx.Locale.Tr "repo.visibility_helper"}} {{if .Repository.NumForks}}<span class="text red">{{ctx.Locale.Tr "repo.visibility_fork_helper"}}</span>{{end}}</label>
-						</div>
-					</div>
-				{{end}}
 				<div class="field {{if .Err_Description}}error{{end}}">
 					<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>
 					<textarea id="description" name="description" rows="2" maxlength="2048">{{.Repository.Description}}</textarea>
@@ -786,6 +772,27 @@
 		</h4>
 		<div class="ui attached error danger segment">
 			<div class="flex-list">
+				{{if not .Repository.IsFork}}
+					<div class="flex-item tw-items-center">
+						<div class="flex-item-main">
+							<div class="flex-item-title">{{ctx.Locale.Tr "repo.visibility"}}</div>
+							{{if .Repository.IsPrivate}}
+								<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.visibility.public.text"}}</div>
+							{{else}}
+								<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.visibility.private.text"}}</div>
+							{{end}}
+						</div>
+						<div class="flex-item-trailing">
+							<button class="ui basic red show-modal button" data-modal="#visibility-repo-modal">
+								{{if .Repository.IsPrivate}}
+									{{ctx.Locale.Tr "repo.settings.visibility.public.button"}}
+								{{else}}
+									{{ctx.Locale.Tr "repo.settings.visibility.private.button"}}
+								{{end}}
+							</button>
+						</div>
+					</div>
+				{{end}}
 				{{if .Repository.IsMirror}}
 					<div class="flex-item">
 						<div class="flex-item-main">
@@ -1011,6 +1018,34 @@
 			</form>
 		</div>
 	</div>
+
+	{{if not .Repository.IsFork}}
+		<div class="ui g-modal-confirm modal" id="visibility-repo-modal">
+			<div class="header">
+				{{ctx.Locale.Tr "repo.visibility"}}
+			</div>
+			<div class="content">
+					{{if .Repository.IsPrivate}}
+						<p>{{ctx.Locale.Tr "repo.settings.visibility.public.bullet_title"}}</p>
+						<ul>
+							<li>{{ctx.Locale.Tr "repo.settings.visibility.public.bullet_one"}}</li>
+						</ul>
+					{{else}}
+						<p>{{ctx.Locale.Tr "repo.settings.visibility.private.bullet_title"}}</p>
+						<ul>
+							<li>{{ctx.Locale.Tr "repo.settings.visibility.private.bullet_one"}}</li>
+							<li>{{ctx.Locale.Tr "repo.settings.visibility.private.bullet_two"}}{{if .Repository.NumForks}}<span class="text red">{{ctx.Locale.Tr "repo.visibility_fork_helper"}}</span>{{end}}</li>
+						</ul>
+					{{end}}
+			</div>
+			<form action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="action" value="visibility">
+				<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
+				{{template "base/modal_actions_confirm" .}}
+			</form>
+		</div>
+	{{end}}
 
 	{{if .Repository.UnitEnabled $.Context ctx.Consts.RepoUnitTypeWiki}}
 	<div class="ui small modal" id="delete-wiki-modal">
