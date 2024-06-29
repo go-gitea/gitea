@@ -1,14 +1,16 @@
 import {encode, decode} from 'uint8-to-base64';
 
 // transform /path/to/file.ext to file.ext
-export function basename(path = '') {
+export function basename(path) {
   const lastSlashIndex = path.lastIndexOf('/');
   return lastSlashIndex < 0 ? path : path.substring(lastSlashIndex + 1);
 }
 
 // transform /path/to/file.ext to .ext
-export function extname(path = '') {
+export function extname(path) {
+  const lastSlashIndex = path.lastIndexOf('/');
   const lastPointIndex = path.lastIndexOf('.');
+  if (lastSlashIndex > lastPointIndex) return '';
   return lastPointIndex < 0 ? '' : path.substring(lastPointIndex);
 }
 
@@ -142,3 +144,11 @@ export function serializeXml(node) {
 }
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export function isImageFile({name, type}) {
+  return /\.(jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/');
+}
+
+export function isVideoFile({name, type}) {
+  return /\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/');
+}
