@@ -210,7 +210,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
 	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json
 	if task != nil {
-		steps, logs, err := convertToViewModel(ctx, req.LogCursors, resp, task)
+		steps, logs, err := convertToViewModel(ctx, req.LogCursors, task)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
