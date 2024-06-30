@@ -109,7 +109,7 @@ export function initRepoEditor() {
         if (!warningDiv) {
           warningDiv = document.createElement('div');
           warningDiv.classList.add('ui', 'warning', 'message', 'flash-message', 'flash-warning');
-          warningDiv.innerHTML = '<p>Parent directory contains leading or trailing whitespace.</p>';
+          warningDiv.innerHTML = '<p>Parent directory contains leading or trailing whitespace.</p><p>These whitespaces will be removed.</p>';
           const inputContainer = document.querySelector('.repo-editor-header');
           inputContainer.insertAdjacentElement('beforebegin', warningDiv);
         }
