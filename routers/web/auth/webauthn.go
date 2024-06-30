@@ -4,6 +4,7 @@
 package auth
 
 import (
+	"encoding/binary"
 	"errors"
 	"net/http"
 
@@ -45,6 +46,104 @@ func WebAuthn(ctx *context.Context) {
 	ctx.Data["HasTwoFactor"] = hasTwoFactor
 
 	ctx.HTML(http.StatusOK, tplWebAuthn)
+}
+
+// WebAuthnPasskeyAssertion submits a WebAuthn challenge for the passkey login to the browser
+func WebAuthnPasskeyAssertion(ctx *context.Context) {
+	assertion, sessionData, err := wa.WebAuthn.BeginDiscoverableLogin()
+	if err != nil {
+		ctx.ServerError("webauthn.BeginDiscoverableLogin", err)
+		return
+	}
+
+	if err := ctx.Session.Set("webauthnPasskeyAssertion", sessionData); err != nil {
+		ctx.ServerError("Session.Set", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, assertion)
+}
+
+// WebAuthnPasskeyLogin handles the WebAuthn login process using a Passkey
+func WebAuthnPasskeyLogin(ctx *context.Context) {
+	sessionData, okData := ctx.Session.Get("webauthnPasskeyAssertion").(*webauthn.SessionData)
+	if !okData || sessionData == nil {
+		ctx.ServerError("ctx.Session.Get", errors.New("not in WebAuthn session"))
+		return
+	}
+	defer func() {
+		_ = ctx.Session.Delete("webauthnPasskeyAssertion")
+	}()
+
+	// Validate the parsed response.
+	var user *user_model.User
+	cred, err := wa.WebAuthn.FinishDiscoverableLogin(func(rawID, userHandle []byte) (webauthn.User, error) {
+		userID, n := binary.Varint(userHandle)
+		if n <= 0 {
+			return nil, errors.New("invalid rawID")
+		}
+
+		var err error
+		user, err = user_model.GetUserByID(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+
+		return (*wa.User)(user), nil
+	}, *sessionData, ctx.Req)
+	if err != nil {
+		// Failed authentication attempt.
+		log.Info("Failed authentication attempt for passkey from %s: %v", ctx.RemoteAddr(), err)
+		ctx.Status(http.StatusForbidden)
+		return
+	}
+
+	if !cred.Flags.UserPresent {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+
+	if user == nil {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+
+	// Ensure that the credential wasn't cloned by checking if CloneWarning is set.
+	// (This is set if the sign counter is less than the one we have stored.)
+	if cred.Authenticator.CloneWarning {
+		log.Info("Failed authentication attempt for %s from %s: cloned credential", user.Name, ctx.RemoteAddr())
+		ctx.Status(http.StatusForbidden)
+		return
+	}
+
+	// Success! Get the credential and update the sign count with the new value we received.
+	dbCred, err := auth.GetWebAuthnCredentialByCredID(ctx, user.ID, cred.ID)
+	if err != nil {
+		ctx.ServerError("GetWebAuthnCredentialByCredID", err)
+		return
+	}
+
+	dbCred.SignCount = cred.Authenticator.SignCount
+	if err := dbCred.UpdateSignCount(ctx); err != nil {
+		ctx.ServerError("UpdateSignCount", err)
+		return
+	}
+
+	// Now handle account linking if that's requested
+	if ctx.Session.Get("linkAccount") != nil {
+		if err := externalaccount.LinkAccountFromStore(ctx, ctx.Session, user); err != nil {
+			ctx.ServerError("LinkAccountFromStore", err)
+			return
+		}
+	}
+
+	remember := false // TODO: implement remember me
+	redirect := handleSignInFull(ctx, user, remember, false)
+	if redirect == "" {
+		redirect = setting.AppSubURL + "/"
+	}
+
+	ctx.JSONRedirect(redirect)
 }
 
 // WebAuthnLoginAssertion submits a WebAuthn challenge to the browser
