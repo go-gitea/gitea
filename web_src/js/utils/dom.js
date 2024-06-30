@@ -270,7 +270,7 @@ export function replaceTextareaSelection(textarea, text) {
 
   textarea.contentEditable = 'true';
   try {
-    success = document.execCommand('insertText', false, text);
+    success = document.execCommand('insertText', false, text); // eslint-disable-line deprecation/deprecation
   } catch {
     success = false;
   }
