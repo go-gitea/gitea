@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -415,20 +414,24 @@ func (u *User) DisplayName() string {
 	return u.Name
 }
 
+var emailToReplacer = strings.NewReplacer(
+	"\n", "",
+	"\r", "",
+	"<", "",
+	">", "",
+	",", "",
+	":", "",
+	";", "",
+)
+
 // EmailTo returns full name and email.
 func (u *User) EmailTo() string {
-	// we don't deal with utf8 to ascii conversion
-	if u.DisplayName() != strings.Trim(strconv.QuoteToASCII(u.DisplayName()), `"`) {
+	sanitizedDisplayName := emailToReplacer.Replace(u.DisplayName())
+
+	// we don't deal with non ascii strings
+	if !isLatin(sanitizedDisplayName) {
 		return u.Email
 	}
-	// ok just be sure we don't let the user break things somehow
-	sanitizedDisplayName := strings.ReplaceAll(u.DisplayName(), "\n", "")
-	sanitizedDisplayName = strings.ReplaceAll(sanitizedDisplayName, "\r", "")
-	sanitizedDisplayName = strings.ReplaceAll(sanitizedDisplayName, "<", "")
-	sanitizedDisplayName = strings.ReplaceAll(sanitizedDisplayName, ">", "")
-	sanitizedDisplayName = strings.ReplaceAll(sanitizedDisplayName, ",", "")
-	sanitizedDisplayName = strings.ReplaceAll(sanitizedDisplayName, ":", "")
-	sanitizedDisplayName = strings.ReplaceAll(sanitizedDisplayName, ";", "")
 
 	// should be an edge case but nice to have
 	if sanitizedDisplayName == u.Email {
@@ -442,6 +445,15 @@ func (u *User) EmailTo() string {
 	}
 
 	return fmt.Sprintf("%s <%s>", add.Name, add.Address)
+}
+
+func isLatin(s string) bool {
+	for _, char := range s {
+		if !unicode.IsLetter(char) && !unicode.IsDigit(char) {
+			return false
+		}
+	}
+	return true
 }
 
 // GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
