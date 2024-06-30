@@ -49,11 +49,13 @@ func View(ctx *context_module.Context) {
 }
 
 type ViewRequest struct {
-	LogCursors []struct {
-		Step     int   `json:"step"`
-		Cursor   int64 `json:"cursor"`
-		Expanded bool  `json:"expanded"`
-	} `json:"logCursors"`
+	LogCursors []LogCursor `json:"logCursors"`
+}
+
+type LogCursor struct {
+	Step     int   `json:"step"`
+	Cursor   int64 `json:"cursor"`
+	Expanded bool  `json:"expanded"`
 }
 
 type ViewResponse struct {
@@ -217,7 +219,7 @@ func ViewPost(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func convertToViewModel(ctx context.Context, cursors []LogCursors, resp *ViewResponse, task *actions_model.ActionTask) ([]*ViewJobStep, []*ViewStepLog, error) {
+func convertToViewModel(ctx context.Context, cursors []LogCursor, resp *ViewResponse, task *actions_model.ActionTask) ([]*ViewJobStep, []*ViewStepLog, error) {
 	var viewJobs []*ViewJobStep
 	var logs []*ViewStepLog
 
