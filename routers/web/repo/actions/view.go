@@ -205,27 +205,33 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
 	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json
 	if task != nil {
-		loadTaskAttrib(ctx, req, resp, task)
-		if ctx.Written() {
+		steps, logs, err := convertToViewModel(ctx, req.LogCursors, resp, task)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
+		resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, steps...)
+		resp.Logs.StepsLog = append(resp.Logs.StepsLog, logs...)
 	}
 
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func loadTaskAttrib(ctx *context_module.Context, req *ViewRequest, resp *ViewResponse, task *actions_model.ActionTask) {
+func convertToViewModel(ctx context.Context, cursors []LogCursors, resp *ViewResponse, task *actions_model.ActionTask) ([]*ViewJobStep, []*ViewStepLog, error) {
+	var viewJobs []*ViewJobStep
+	var logs []*ViewStepLog
+
 	steps := actions.FullSteps(task)
 
 	for _, v := range steps {
-		resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &ViewJobStep{
+		viewJobs = append(viewJobs, &ViewJobStep{
 			Summary:  v.Name,
 			Duration: v.Duration().String(),
 			Status:   v.Status.String(),
 		})
 	}
 
-	for _, cursor := range req.LogCursors {
+	for _, cursor := range cursors {
 		if !cursor.Expanded {
 			continue
 		}
@@ -250,8 +256,7 @@ func loadTaskAttrib(ctx *context_module.Context, req *ViewRequest, resp *ViewRes
 			var err error
 			logRows, err := actions.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, err.Error())
-				return
+				return nil, nil, err
 			}
 
 			for i, row := range logRows {
@@ -263,13 +268,15 @@ func loadTaskAttrib(ctx *context_module.Context, req *ViewRequest, resp *ViewRes
 			}
 		}
 
-		resp.Logs.StepsLog = append(resp.Logs.StepsLog, &ViewStepLog{
+		logs = append(logs, &ViewStepLog{
 			Step:    cursor.Step,
 			Cursor:  cursor.Cursor + int64(len(logLines)),
 			Lines:   logLines,
 			Started: int64(step.Started),
 		})
 	}
+
+	return viewJobs, logs, nil
 }
 
 // Rerun will rerun jobs in the given run
