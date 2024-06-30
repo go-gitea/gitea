@@ -424,12 +424,14 @@ var emailToReplacer = strings.NewReplacer(
 	";", "",
 )
 
+var isAZ09 = regexp.MustCompile(`^[a-zA-Z0-9 ]+$`)
+
 // EmailTo returns full name and email.
 func (u *User) EmailTo() string {
 	sanitizedDisplayName := emailToReplacer.Replace(u.DisplayName())
 
 	// we don't deal with non ascii strings
-	if !isLatin(sanitizedDisplayName) {
+	if !isAZ09.Match([]byte(sanitizedDisplayName)) {
 		return u.Email
 	}
 
@@ -445,15 +447,6 @@ func (u *User) EmailTo() string {
 	}
 
 	return fmt.Sprintf("%s <%s>", add.Name, add.Address)
-}
-
-func isLatin(s string) bool {
-	for _, char := range s {
-		if !unicode.IsLetter(char) && !unicode.IsDigit(char) {
-			return false
-		}
-	}
-	return true
 }
 
 // GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
