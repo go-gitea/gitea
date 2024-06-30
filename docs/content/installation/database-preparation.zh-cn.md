@@ -17,7 +17,7 @@ menu:
 
 # 数据库准备
 
-在使用 Gitea 前，您需要准备一个数据库。Gitea 支持 PostgreSQL（>= 12）、MySQL（>= 8.0）、MariaDB（>= 10.4）、SQLite（内置） 和 MSSQL（>= 2012 SP4）这几种数据库。本页将指导您准备数据库。由于 PostgreSQL 和 MySQL 在生产环境中被广泛使用，因此本文档将仅涵盖这两种数据库。如果您计划使用 SQLite，则可以忽略本章内容。
+在使用 Gitea 前，您需要准备一个数据库。Gitea 支持 PostgreSQL（>= 12）、MySQL（>= 8.0）、MariaDB（>= 10.4）、SQLite（内置） 和 MSSQL（>= 2017）这几种数据库。本页将指导您准备数据库。由于 PostgreSQL 和 MySQL 在生产环境中被广泛使用，因此本文档将仅涵盖这两种数据库。如果您计划使用 SQLite，则可以忽略本章内容。
 
 如果您使用不受支持的数据库版本，请通过 [联系我们](/help/support) 以获取有关我们的扩展支持的信息。我们可以为旧数据库提供测试和支持，并将这些修复集成到 Gitea 代码库中。
 
