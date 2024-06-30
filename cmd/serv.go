@@ -124,6 +124,27 @@ func handleCliResponseExtra(extra private.ResponseExtra) error {
 	return nil
 }
 
+func getLFSAuthToken(ctx context.Context, lfsVerb string, results *private.ServCommandResults) (string, error) {
+	now := time.Now()
+	claims := lfs.Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
+			NotBefore: jwt.NewNumericDate(now),
+		},
+		RepoID: results.RepoID,
+		Op:     lfsVerb,
+		UserID: results.UserID,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
+	if err != nil {
+		return "", fail(ctx, "Failed to sign JWT Token", "Failed to sign JWT token: %v", err)
+	}
+	return fmt.Sprintf("Bearer %s", tokenString), nil
+}
+
 func runServ(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
@@ -264,29 +285,16 @@ func runServ(c *cli.Context) error {
 	if verb == lfsAuthenticateVerb {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
-		now := time.Now()
-		claims := lfs.Claims{
-			RegisteredClaims: jwt.RegisteredClaims{
-				ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
-				NotBefore: jwt.NewNumericDate(now),
-			},
-			RepoID: results.RepoID,
-			Op:     lfsVerb,
-			UserID: results.UserID,
-		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-		// Sign and get the complete encoded token as a string using the secret
-		tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
+		token, err := getLFSAuthToken(ctx, lfsVerb, results)
 		if err != nil {
-			return fail(ctx, "Failed to sign JWT Token", "Failed to sign JWT token: %v", err)
+			return err
 		}
 
 		tokenAuthentication := &git_model.LFSTokenResponse{
 			Header: make(map[string]string),
 			Href:   url,
 		}
-		tokenAuthentication.Header["Authorization"] = fmt.Sprintf("Bearer %s", tokenString)
+		tokenAuthentication.Header["Authorization"] = token
 
 		enc := json.NewEncoder(os.Stdout)
 		err = enc.Encode(tokenAuthentication)
