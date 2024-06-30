@@ -35,7 +35,7 @@ func DetectHeaders(h http.Header) (*WorkflowInfo, bool) {
 }
 
 func GetFeedbackToActionRun(ctx context.Context, draft *actions_model.ActionRun, draftInfo *WorkflowInfo) ([]*actions_model.ActionRun, error) {
-	feedbackResponse, err := doApiCall(ctx, draftInfo)
+	feedbackResponse, err := doAPICall(ctx, draftInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func GetExternalRunJobs(ctx context.Context, run *actions_model.ActionRun) ([]*a
 		return nil, nil, fmt.Errorf("could parse payload: %w", err)
 	}
 
-	feedbackResponse, err := doApiCall(ctx, info)
+	feedbackResponse, err := doAPICall(ctx, info)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -61,7 +61,7 @@ func GetExternalRunJobs(ctx context.Context, run *actions_model.ActionRun) ([]*a
 	return jobs, info, err
 }
 
-func doApiCall(ctx context.Context, info *WorkflowInfo) (*cicd_feedback.PipelineResponse, error) {
+func doAPICall(ctx context.Context, info *WorkflowInfo) (*cicd_feedback.PipelineResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, info.PipelineURI, nil)
@@ -94,9 +94,9 @@ func LoadLogs(ctx context.Context, step *cicd_feedback.Step, info *WorkflowInfo)
 	defer cancel()
 
 	builder := &strings.Builder{}
-	for _, log := range step.Outputs.Logs {
+	for i := range step.Outputs.Logs {
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, log.URI, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, step.Outputs.Logs[i].URI, nil)
 		if err != nil {
 			return "", fmt.Errorf("error creating request: %w", err)
 		}
