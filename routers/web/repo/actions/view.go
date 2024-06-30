@@ -284,14 +284,14 @@ func loadExternalTask(ctx *context_module.Context, req *ViewRequest, resp *ViewR
 	}
 }
 
-func convertToViewModel(ctx *context_module.Context, cursors []LogCursor, resp *ViewResponse, task *actions_model.ActionTask) ([]*ViewJobStep, []*ViewStepLog, error) {
+func convertToViewModel(ctx *context_module.Context, cursors []LogCursor, task *actions_model.ActionTask) ([]*ViewJobStep, []*ViewStepLog, error) {
 	var viewJobs []*ViewJobStep
 	var logs []*ViewStepLog
 
 	steps := actions.FullSteps(task)
 
 	for _, v := range steps {
-		resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &ViewJobStep{
+		viewJobs = append(viewJobs, &ViewJobStep{
 			Summary:  v.Name,
 			Duration: v.Duration().String(),
 			Status:   v.Status.String(),
