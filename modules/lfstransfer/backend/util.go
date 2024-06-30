@@ -40,11 +40,20 @@ const (
 
 // SSH protocol argument keys
 const (
+	argCursor    = "cursor"
 	argExpiresAt = "expires-at"
 	argID        = "id"
+	argLimit     = "limit"
+	argPath      = "path"
 	argRefname   = "refname"
 	argToken     = "token"
 	argTransfer  = "transfer"
+)
+
+// unknown username constants
+const (
+	userUnknown = "unknown"
+	userSelf    = "unknown-self"
 )
 
 // Operations enum
