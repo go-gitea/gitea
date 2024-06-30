@@ -25,7 +25,7 @@ const Version = "1"
 // Capabilities is a list of Git LFS capabilities supported by this package.
 var Capabilities = []string{
 	"version=" + Version,
-	// "locking",
+	"locking",
 }
 
 var _ transfer.Backend = &GiteaBackend{}
@@ -291,5 +291,5 @@ func (g *GiteaBackend) Verify(oid string, size int64, args transfer.Args) (trans
 
 // LockBackend implements transfer.Backend.
 func (g *GiteaBackend) LockBackend(_ transfer.Args) transfer.LockBackend {
-	return (transfer.LockBackend)(nil)
+	return newGiteaLockBackend(g)
 }
