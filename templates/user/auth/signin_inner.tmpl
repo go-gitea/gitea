@@ -10,8 +10,6 @@
 		{{end}}
 	</h4>
 	<div class="ui attached segment">
-		{{template "user/auth/webauthn_error" .}}
-
 		<form class="ui form" action="{{.SignInLink}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="required field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
@@ -49,27 +47,13 @@
 			</div>
 		</form>
 
-		{{if .OAuth2Providers}}
-		<div class="divider divider-text">
-			{{ctx.Locale.Tr "sign_in_or"}}
-		</div>
-		<div id="oauth2-login-navigator" class="tw-py-1">
-			<div class="tw-flex tw-flex-col tw-justify-center">
-				<div id="oauth2-login-navigator-inner" class="tw-flex tw-flex-col tw-flex-wrap tw-items-center tw-gap-2">
-					{{range $provider := .OAuth2Providers}}
-						<a class="{{$provider.Name}} ui button tw-flex tw-items-center tw-justify-center tw-py-2 tw-w-full oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$provider.DisplayName}}">
-							{{$provider.IconHTML 28}}
-							{{ctx.Locale.Tr "sign_in_with_provider" $provider.DisplayName}}
-						</a>
-					{{end}}
-				</div>
-			</div>
-		</div>
-		{{end}}
+		{{template "user/auth/oauth_container" .}}
 	</div>
 </div>
 
 <div class="ui container fluid">
+	{{template "user/auth/webauthn_error" .}}
+
 	<div class="ui attached segment header top tw-max-w-2xl tw-m-auto tw-flex tw-flex-col tw-items-center">
 		<a class="signin-passkey">{{ctx.Locale.Tr "auth.signin_passkey"}}</a>
 
