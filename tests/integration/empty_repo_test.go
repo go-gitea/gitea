@@ -6,9 +6,11 @@ package integration
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -23,6 +25,17 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func testAPINewFile(t *testing.T, session *TestSession, user, repo, branch, treePath, content string) *httptest.ResponseRecorder {
+	url := fmt.Sprintf("/%s/%s/_new/%s", user, repo, branch)
+	req := NewRequestWithValues(t, "POST", url, map[string]string{
+		"_csrf":         GetCSRF(t, session, "/user/settings"),
+		"commit_choice": "direct",
+		"tree_path":     treePath,
+		"content":       content,
+	})
+	return session.MakeRequest(t, req, http.StatusSeeOther)
+}
 
 func TestEmptyRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()

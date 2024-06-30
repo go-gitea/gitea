@@ -5,11 +5,9 @@ slug: "badge"
 sidebar_position: 11
 toc: false
 draft: false
-aliases:
-  - /en-us/badge
 menu:
   sidebar:
-    parent: "usage"
+    parent: "actions"
     name: "Badge"
     sidebar_position: 11
     identifier: "Badge"
@@ -27,7 +25,7 @@ It is designed to be compatible with [GitHub Actions workflow badge](https://doc
 You can use the following URL to get the badge:
 
 ```
-https://your-gitea-instance.com/{owner}/{repo}/actions/workflows/{workflow_file}?branch={branch}&event={event}
+https://your-gitea-instance.com/{owner}/{repo}/actions/workflows/{workflow_file}/badge.svg?branch={branch}&event={event}
 ```
 
 - `{owner}`: The owner of the repository.

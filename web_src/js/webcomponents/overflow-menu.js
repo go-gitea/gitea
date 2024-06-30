@@ -4,7 +4,7 @@ import {isDocumentFragmentOrElementNode} from '../utils/dom.js';
 import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg';
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
-  updateItems = throttle(100, () => {
+  updateItems = throttle(100, () => { // eslint-disable-line unicorn/consistent-function-scoping -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/2088
     if (!this.tippyContent) {
       const div = document.createElement('div');
       div.classList.add('tippy-target');
@@ -61,6 +61,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     }
 
     const itemFlexSpace = this.menuItemsEl.querySelector('.item-flex-space');
+    const itemOverFlowMenuButton = this.querySelector('.overflow-menu-button');
 
     // move items in tippy back into the menu items for subsequent measurement
     for (const item of this.tippyItems || []) {
@@ -72,7 +73,9 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     }
 
     // measure which items are partially outside the element and move them into the button menu
+    // flex space and overflow menu are excluded from measurement
     itemFlexSpace?.style.setProperty('display', 'none', 'important');
+    itemOverFlowMenuButton?.style.setProperty('display', 'none', 'important');
     this.tippyItems = [];
     const menuRight = this.offsetLeft + this.offsetWidth;
     const menuItems = this.menuItemsEl.querySelectorAll('.item, .item-flex-space');
@@ -89,6 +92,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       }
     }
     itemFlexSpace?.style.removeProperty('display');
+    itemOverFlowMenuButton?.style.removeProperty('display');
 
     // if there are no overflown items, remove any previously created button
     if (!this.tippyItems?.length) {

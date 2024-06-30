@@ -262,18 +262,6 @@ export function isElemVisible(element) {
   return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
 }
 
-// extract text and images from "paste" event
-export function getPastedContent(e) {
-  const images = [];
-  for (const item of e.clipboardData?.items ?? []) {
-    if (item.type?.startsWith('image/')) {
-      images.push(item.getAsFile());
-    }
-  }
-  const text = e.clipboardData?.getData?.('text') ?? '';
-  return {text, images};
-}
-
 // replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this
 export function replaceTextareaSelection(textarea, text) {
   const before = textarea.value.slice(0, textarea.selectionStart ?? undefined);
@@ -296,4 +284,36 @@ export function replaceTextareaSelection(textarea, text) {
     textarea.value = `${before}${text}${after}`;
     textarea.dispatchEvent(new CustomEvent('change', {bubbles: true, cancelable: true}));
   }
+}
+
+// Warning: Do not enter any unsanitized variables here
+export function createElementFromHTML(htmlString) {
+  const div = document.createElement('div');
+  div.innerHTML = htmlString.trim();
+  return div.firstChild;
+}
+
+export function createElementFromAttrs(tagName, attrs) {
+  const el = document.createElement(tagName);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value === undefined || value === null) continue;
+    if (value === true) {
+      el.toggleAttribute(key, value);
+    } else {
+      el.setAttribute(key, String(value));
+    }
+    // TODO: in the future we could make it also support "textContent" and "innerHTML" properties if needed
+  }
+  return el;
+}
+
+export function animateOnce(el, animationClassName) {
+  return new Promise((resolve) => {
+    el.addEventListener('animationend', function onAnimationEnd() {
+      el.classList.remove(animationClassName);
+      el.removeEventListener('animationend', onAnimationEnd);
+      resolve();
+    }, {once: true});
+    el.classList.add(animationClassName);
+  });
 }

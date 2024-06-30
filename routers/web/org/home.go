@@ -28,14 +28,14 @@ const (
 
 // Home show organization home page
 func Home(ctx *context.Context) {
-	uname := ctx.Params(":username")
+	uname := ctx.PathParam(":username")
 
 	if strings.HasSuffix(uname, ".keys") || strings.HasSuffix(uname, ".gpg") {
 		ctx.NotFound("", nil)
 		return
 	}
 
-	ctx.SetParams(":org", uname)
+	ctx.SetPathParam(":org", uname)
 	context.HandleOrgAssignment(ctx)
 	if ctx.Written() {
 		return

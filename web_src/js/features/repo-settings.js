@@ -1,51 +1,50 @@
 import $ from 'jquery';
 import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.js';
-import {onInputDebounce, toggleElem} from '../utils/dom.js';
+import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.js';
 import {POST} from '../modules/fetch.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoSettingsCollaboration() {
   // Change collaborator access mode
-  $('.page-content.repository .ui.dropdown.access-mode').each((_, el) => {
-    const $dropdown = $(el);
-    const $text = $dropdown.find('> .text');
-    $dropdown.dropdown({
-      async action(_text, value) {
-        const lastValue = el.getAttribute('data-last-value');
+  for (const dropdownEl of queryElems('.page-content.repository .ui.dropdown.access-mode')) {
+    const textEl = dropdownEl.querySelector(':scope > .text');
+    $(dropdownEl).dropdown({
+      async action(text, value) {
+        dropdownEl.classList.add('is-loading', 'loading-icon-2px');
+        const lastValue = dropdownEl.getAttribute('data-last-value');
+        $(dropdownEl).dropdown('hide');
         try {
-          el.setAttribute('data-last-value', value);
-          $dropdown.dropdown('hide');
-          const data = new FormData();
-          data.append('uid', el.getAttribute('data-uid'));
-          data.append('mode', value);
-          await POST(el.getAttribute('data-url'), {data});
+          const uid = dropdownEl.getAttribute('data-uid');
+          await POST(dropdownEl.getAttribute('data-url'), {data: new URLSearchParams({uid, 'mode': value})});
+          textEl.textContent = text;
+          dropdownEl.setAttribute('data-last-value', value);
         } catch {
-          $text.text('(error)'); // prevent from misleading users when error occurs
-          el.setAttribute('data-last-value', lastValue);
+          textEl.textContent = '(error)'; // prevent from misleading users when error occurs
+          dropdownEl.setAttribute('data-last-value', lastValue);
+        } finally {
+          dropdownEl.classList.remove('is-loading');
         }
       },
-      onChange(_value, text, _$choice) {
-        $text.text(text); // update the text when using keyboard navigating
-      },
       onHide() {
-        // set to the really selected value, defer to next tick to make sure `action` has finished its work because the calling order might be onHide -> action
+        // set to the really selected value, defer to next tick to make sure `action` has finished
+        // its work because the calling order might be onHide -> action
         setTimeout(() => {
-          const $item = $dropdown.dropdown('get item', el.getAttribute('data-last-value'));
+          const $item = $(dropdownEl).dropdown('get item', dropdownEl.getAttribute('data-last-value'));
           if ($item) {
-            $dropdown.dropdown('set selected', el.getAttribute('data-last-value'));
+            $(dropdownEl).dropdown('set selected', dropdownEl.getAttribute('data-last-value'));
           } else {
-            $text.text('(none)'); // prevent from misleading users when the access mode is undefined
+            textEl.textContent = '(none)'; // prevent from misleading users when the access mode is undefined
           }
         }, 0);
       },
     });
-  });
+  }
 }
 
 export function initRepoSettingSearchTeamBox() {
-  const searchTeamBox = document.getElementById('search-team-box');
+  const searchTeamBox = document.querySelector('#search-team-box');
   if (!searchTeamBox) return;
 
   $(searchTeamBox).search({
@@ -79,29 +78,29 @@ export function initRepoSettingGitHook() {
 export function initRepoSettingBranches() {
   if (!document.querySelector('.repository.settings.branches')) return;
 
-  for (const el of document.getElementsByClassName('toggle-target-enabled')) {
+  for (const el of document.querySelectorAll('.toggle-target-enabled')) {
     el.addEventListener('change', function () {
       const target = document.querySelector(this.getAttribute('data-target'));
       target?.classList.toggle('disabled', !this.checked);
     });
   }
 
-  for (const el of document.getElementsByClassName('toggle-target-disabled')) {
+  for (const el of document.querySelectorAll('.toggle-target-disabled')) {
     el.addEventListener('change', function () {
       const target = document.querySelector(this.getAttribute('data-target'));
       if (this.checked) target?.classList.add('disabled'); // only disable, do not auto enable
     });
   }
 
-  document.getElementById('dismiss_stale_approvals')?.addEventListener('change', function () {
-    document.getElementById('ignore_stale_approvals_box')?.classList.toggle('disabled', this.checked);
+  document.querySelector('#dismiss_stale_approvals')?.addEventListener('change', function () {
+    document.querySelector('#ignore_stale_approvals_box')?.classList.toggle('disabled', this.checked);
   });
 
   // show the `Matched` mark for the status checks that match the pattern
   const markMatchedStatusChecks = () => {
-    const patterns = (document.getElementById('status_check_contexts').value || '').split(/[\r\n]+/);
+    const patterns = (document.querySelector('#status_check_contexts').value || '').split(/[\r\n]+/);
     const validPatterns = patterns.map((item) => item.trim()).filter(Boolean);
-    const marks = document.getElementsByClassName('status-check-matched-mark');
+    const marks = document.querySelectorAll('.status-check-matched-mark');
 
     for (const el of marks) {
       let matched = false;
@@ -116,5 +115,5 @@ export function initRepoSettingBranches() {
     }
   };
   markMatchedStatusChecks();
-  document.getElementById('status_check_contexts').addEventListener('input', onInputDebounce(markMatchedStatusChecks));
+  document.querySelector('#status_check_contexts').addEventListener('input', onInputDebounce(markMatchedStatusChecks));
 }

@@ -10,6 +10,7 @@ import (
 	"net/mail"
 	"regexp"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
@@ -353,14 +354,12 @@ func ChangeInactivePrimaryEmail(ctx context.Context, uid int64, oldEmailAddr, ne
 
 // VerifyActiveEmailCode verifies active email code when active account
 func VerifyActiveEmailCode(ctx context.Context, code, email string) *EmailAddress {
-	minutes := setting.Service.ActiveCodeLives
-
 	if user := GetVerifyUser(ctx, code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
 		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
 
-		if base.VerifyTimeLimitCode(data, minutes, prefix) {
+		if base.VerifyTimeLimitCode(time.Now(), data, setting.Service.ActiveCodeLives, prefix) {
 			emailAddress := &EmailAddress{UID: user.ID, Email: email}
 			if has, _ := db.GetEngine(ctx).Get(emailAddress); has {
 				return emailAddress

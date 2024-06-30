@@ -260,7 +260,7 @@ type discordConvertor struct {
 
 var _ payloadConvertor[DiscordPayload] = discordConvertor{}
 
-func newDiscordRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+func newDiscordRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &DiscordMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
 		return nil, nil, fmt.Errorf("newDiscordRequest meta json: %w", err)

@@ -3,12 +3,12 @@ import {hideElem, showElem} from '../utils/dom.js';
 import {GET} from '../modules/fetch.js';
 
 export function initRepoGraphGit() {
-  const graphContainer = document.getElementById('git-graph-container');
+  const graphContainer = document.querySelector('#git-graph-container');
   if (!graphContainer) return;
 
-  document.getElementById('flow-color-monochrome')?.addEventListener('click', () => {
-    document.getElementById('flow-color-monochrome').classList.add('active');
-    document.getElementById('flow-color-colored')?.classList.remove('active');
+  document.querySelector('#flow-color-monochrome')?.addEventListener('click', () => {
+    document.querySelector('#flow-color-monochrome').classList.add('active');
+    document.querySelector('#flow-color-colored')?.classList.remove('active');
     graphContainer.classList.remove('colored');
     graphContainer.classList.add('monochrome');
     const params = new URLSearchParams(window.location.search);
@@ -30,9 +30,9 @@ export function initRepoGraphGit() {
     }
   });
 
-  document.getElementById('flow-color-colored')?.addEventListener('click', () => {
-    document.getElementById('flow-color-colored').classList.add('active');
-    document.getElementById('flow-color-monochrome')?.classList.remove('active');
+  document.querySelector('#flow-color-colored')?.addEventListener('click', () => {
+    document.querySelector('#flow-color-colored').classList.add('active');
+    document.querySelector('#flow-color-monochrome')?.classList.remove('active');
     graphContainer.classList.add('colored');
     graphContainer.classList.remove('monochrome');
     for (const link of document.querySelectorAll('.pagination a')) {
@@ -60,7 +60,7 @@ export function initRepoGraphGit() {
     const ajaxUrl = new URL(url);
     ajaxUrl.searchParams.set('div-only', 'true');
     window.history.replaceState({}, '', queryString ? `?${queryString}` : window.location.pathname);
-    document.getElementById('pagination').innerHTML = '';
+    document.querySelector('#pagination').innerHTML = '';
     hideElem('#rel-container');
     hideElem('#rev-container');
     showElem('#loading-indicator');
@@ -69,9 +69,9 @@ export function initRepoGraphGit() {
       const html = await response.text();
       const div = document.createElement('div');
       div.innerHTML = html;
-      document.getElementById('pagination').innerHTML = div.getElementById('pagination').innerHTML;
-      document.getElementById('rel-container').innerHTML = div.getElementById('rel-container').innerHTML;
-      document.getElementById('rev-container').innerHTML = div.getElementById('rev-container').innerHTML;
+      document.querySelector('#pagination').innerHTML = div.querySelector('#pagination').innerHTML;
+      document.querySelector('#rel-container').innerHTML = div.querySelector('#rel-container').innerHTML;
+      document.querySelector('#rev-container').innerHTML = div.querySelector('#rev-container').innerHTML;
       hideElem('#loading-indicator');
       showElem('#rel-container');
       showElem('#rev-container');
@@ -82,7 +82,7 @@ export function initRepoGraphGit() {
     dropdownSelected.splice(0, 0, '...flow-hide-pr-refs');
   }
 
-  const flowSelectRefsDropdown = document.getElementById('flow-select-refs-dropdown');
+  const flowSelectRefsDropdown = document.querySelector('#flow-select-refs-dropdown');
   $(flowSelectRefsDropdown).dropdown('set selected', dropdownSelected);
   $(flowSelectRefsDropdown).dropdown({
     clearable: true,
@@ -115,7 +115,7 @@ export function initRepoGraphGit() {
     if (e.target.matches('#rev-list li')) {
       const flow = e.target.getAttribute('data-flow');
       if (flow === '0') return;
-      document.getElementById(`flow-${flow}`)?.classList.add('highlight');
+      document.querySelector(`#flow-${flow}`)?.classList.add('highlight');
       e.target.classList.add('hover');
       for (const item of document.querySelectorAll(`#rev-list li[data-flow='${flow}']`)) {
         item.classList.add('highlight');
@@ -136,7 +136,7 @@ export function initRepoGraphGit() {
     if (e.target.matches('#rev-list li')) {
       const flow = e.target.getAttribute('data-flow');
       if (flow === '0') return;
-      document.getElementById(`flow-${flow}`)?.classList.remove('highlight');
+      document.querySelector(`#flow-${flow}`)?.classList.remove('highlight');
       e.target.classList.remove('hover');
       for (const item of document.querySelectorAll(`#rev-list li[data-flow='${flow}']`)) {
         item.classList.remove('highlight');

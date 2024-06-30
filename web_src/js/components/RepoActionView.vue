@@ -325,7 +325,7 @@ const sfc = {
 export default sfc;
 
 export function initRepositoryActionView() {
-  const el = document.getElementById('repo-action-view');
+  const el = document.querySelector('#repo-action-view');
   if (!el) return;
 
   // TODO: the parent element's full height doesn't work well now,
@@ -797,7 +797,7 @@ export function initRepositoryActionView() {
 }
 </style>
 
-<style>
+<style> /* eslint-disable-line vue-scoped-css/enforce-style-type */
 /* some elements are not managed by vue, so we need to use global style */
 .job-status-rotate {
   animation: job-status-rotate-keyframes 1s linear infinite;

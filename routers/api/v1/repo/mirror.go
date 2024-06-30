@@ -224,7 +224,7 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 		return
 	}
 
-	mirrorName := ctx.Params(":name")
+	mirrorName := ctx.PathParam(":name")
 	// Get push mirror of a specific repo by remoteName
 	pushMirror, exist, err := db.Get[repo_model.PushMirror](ctx, repo_model.PushMirrorOptions{
 		RepoID:     ctx.Repo.Repository.ID,
@@ -325,7 +325,7 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 		return
 	}
 
-	remoteName := ctx.Params(":name")
+	remoteName := ctx.PathParam(":name")
 	// Delete push mirror on repo by name.
 	err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{RepoID: ctx.Repo.Repository.ID, RemoteName: remoteName})
 	if err != nil {
@@ -383,6 +383,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 	if err = mirror_service.AddPushMirrorRemote(ctx, pushMirror, address); err != nil {
 		if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: pushMirror.ID, RepoID: pushMirror.RepoID}); err != nil {
 			ctx.ServerError("DeletePushMirrors", err)
+			return
 		}
 		ctx.ServerError("AddPushMirrorRemote", err)
 		return

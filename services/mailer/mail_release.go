@@ -57,7 +57,8 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_mo
 
 	var err error
 	rel.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
-		Ctx: ctx,
+		Ctx:  ctx,
+		Repo: rel.Repo,
 		Links: markup.Links{
 			Base: rel.Repo.HTMLURL(),
 		},
