@@ -70,11 +70,12 @@
 </div>
 
 <div class="ui container fluid">
-	<div class="ui attached segment tw-max-w-2xl tw-m-auto tw-flex tw-flex-col tw-items-center">
+	<div class="ui attached segment header top tw-max-w-2xl tw-m-auto tw-flex tw-flex-col tw-items-center">
 		<a class="signin-passkey">{{ctx.Locale.Tr "auth.signin_passkey"}}</a>
 
 		{{if .ShowRegistrationButton}}
 			<div class="field">
+				<span>{{ctx.Locale.Tr "auth.need_account"}}</span>
 				<a href="{{AppSubUrl}}/user/sign_up">{{ctx.Locale.Tr "auth.sign_up_now"}}</a>
 			</div>
 		{{end}}

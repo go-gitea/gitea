@@ -1,8 +1,9 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user signin{{if .LinkAccountMode}} icon{{end}}">
-	{{template "user/auth/signin_navbar" .}}
 	<div class="ui middle very relaxed page grid">
 		<div class="column tw-flex tw-flex-col tw-gap-4 tw-max-w-2xl tw-m-auto">
+			<img class="logo tw-mx-auto" width="100" height="100" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}">
+
 			{{template "user/auth/signin_inner" .}}
 		</div>
 	</div>
