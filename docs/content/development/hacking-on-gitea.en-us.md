@@ -191,22 +191,6 @@ Before committing, make sure the linters pass:
 make lint-frontend
 ```
 
-## Typescript
-
-Gitea is in the process of migrating to type-safe Typescript. Here are some specific guidelines regarding Typescript in the codebase:
-
-### Use type aliases instead of interfaces
-
-Prefer to use type aliases because they can represent any type and are generally more flexible to use than interfaces.
-
-### Use separate type imports
-
-We use `verbatimModuleSyntax` so type imports and non-type imports from the same file must be split into two `import type` statements. This enables the typescript compiler to completely eliminate the type import statements during compilation.
-
-### Use `@ts-expect-error` instead of `@ts-ignore`
-
-Both annotations should be avoided, but if you have to use them, use `@ts-expect-error` because it will not leave ineffective statements after the issue is fixed.
-
 ### Configuring local ElasticSearch instance
 
 Start local ElasticSearch instance using docker:
