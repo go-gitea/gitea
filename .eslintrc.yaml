@@ -13,7 +13,7 @@ parserOptions:
   ecmaVersion: latest
   project: true
   extraFileExtensions: [".vue"]
-  parser: "@typescript-eslint/parser"
+  parser: "@typescript-eslint/parser" # for vue plugin - https://eslint.vuejs.org/user-guide/#how-to-use-a-custom-parser
 
 settings:
   import/extensions: [".js", ".ts"]
