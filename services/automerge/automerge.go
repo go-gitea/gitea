@@ -245,9 +245,21 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 		defer headGitRepo.Close()
 	}
 
-	headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
-	if pr.HeadRepo == nil || !headBranchExist {
-		log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch: %s]", pr, pr.HeadRepoID, pr.HeadBranch)
+	switch pr.Flow {
+	case issues_model.PullRequestFlowGithub:
+		headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
+		if pr.HeadRepo == nil || !headBranchExist {
+			log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch: %s]", pr, pr.HeadRepoID, pr.HeadBranch)
+			return
+		}
+	case issues_model.PullRequestFlowAGit:
+		headBranchExist := git.IsReferenceExist(ctx, baseGitRepo.Path, pr.GetGitRefName())
+		if !headBranchExist {
+			log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch(Agit): %s]", pr, pr.HeadRepoID, pr.HeadBranch)
+			return
+		}
+	default:
+		log.Error("wrong flow type %d", pr.Flow)
 		return
 	}
 
