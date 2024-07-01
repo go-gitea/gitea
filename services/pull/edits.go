@@ -22,6 +22,11 @@ func SetAllowEdits(ctx context.Context, doer *user_model.User, pr *issues_model.
 		return ErrUserHasNoPermissionForAction
 	}
 
+	if doer.ID == pr.Issue.PosterID {
+		pr.AllowMaintainerEdit = allow
+		return issues_model.UpdateAllowEdits(ctx, pr)
+	}
+
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return err
 	}

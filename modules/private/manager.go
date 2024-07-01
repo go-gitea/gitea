@@ -36,6 +36,29 @@ func ReloadTemplates(ctx context.Context) ResponseExtra {
 	return requestJSONClientMsg(req, "Reloaded")
 }
 
+// Shutdown calls the internal shutdown function
+func GetSSHInfo(ctx context.Context) string {
+	reqURL := setting.LocalURL + "ssh_info"
+	req := newInternalRequest(ctx, reqURL, "GET")
+
+	resp, err := req.Response()
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return ""
+	}
+
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ""
+	}
+
+	return string(content)
+}
+
 // FlushOptions represents the options for the flush call
 type FlushOptions struct {
 	Timeout     time.Duration
