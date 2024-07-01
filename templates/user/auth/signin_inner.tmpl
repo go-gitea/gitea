@@ -18,7 +18,7 @@
 			</div>
 			{{if or (not .DisablePassword) .LinkAccountMode}}
 			<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
-				<div class="tw-flex tw-justify-between">
+				<div class="tw-flex tw-justify-between tw-mb-[4px]">
 					<label for="password">{{ctx.Locale.Tr "password"}}</label>
 					<a href="{{AppSubUrl}}/user/forgot_password">{{ctx.Locale.Tr "auth.forgot_password"}}</a>
 				</div>
