@@ -5,12 +5,15 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -69,13 +72,12 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		}
 	}
 
-	var generateRepo *repo_model.Repository
-	if err = db.WithTx(ctx, func(ctx context.Context) error {
-		generateRepo, err = generateRepository(ctx, doer, owner, templateRepo, opts)
-		if err != nil {
-			return err
-		}
+	generateRepo, err := generateRepository(ctx, doer, owner, templateRepo, opts)
+	if err != nil {
+		return nil, err
+	}
 
+	if err = db.WithTx(ctx, func(ctx context.Context) error {
 		// Git Content
 		if opts.GitContent && !templateRepo.IsEmpty {
 			if err = GenerateGitContent(ctx, templateRepo, generateRepo); err != nil {
@@ -124,8 +126,23 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 			}
 		}
 
+		// update repository status to be ready
+		generateRepo.Status = repo_model.RepositoryReady
+		if err = repo_model.UpdateRepositoryCols(ctx, generateRepo, "status"); err != nil {
+			return fmt.Errorf("UpdateRepositoryCols: %w", err)
+		}
+
 		return nil
 	}); err != nil {
+		if generateRepo != nil {
+			if errDelete := DeleteRepositoryDirectly(ctx, doer, generateRepo.ID); errDelete != nil {
+				log.Error("Rollback deleteRepository: %v", errDelete)
+				// add system notice
+				if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when generate repository: %v", errDelete); err != nil {
+					log.Error("CreateRepositoryNotice: %v", err)
+				}
+			}
+		}
 		return nil, err
 	}
 

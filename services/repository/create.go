@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -240,13 +241,15 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		ObjectFormatName:                opts.ObjectFormatName,
 	}
 
-	var rollbackRepo *repo_model.Repository
+	needsUpdateStatus := opts.Status != repo_model.RepositoryReady
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := repo_module.CreateRepositoryByExample(ctx, doer, u, repo, false, false); err != nil {
-			return err
-		}
+		return repo_module.CreateRepositoryByExample(ctx, doer, u, repo, false, false)
+	}); err != nil {
+		return nil, err
+	}
 
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// No need for init mirror.
 		if opts.IsMirror {
 			return nil
@@ -285,8 +288,6 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		// Initialize Issue Labels if selected
 		if len(opts.IssueLabels) > 0 {
 			if err = repo_module.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
-				rollbackRepo = repo
-				rollbackRepo.OwnerID = u.ID
 				return fmt.Errorf("InitializeLabels: %w", err)
 			}
 		}
@@ -299,15 +300,25 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
 			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-			rollbackRepo = repo
-			rollbackRepo.OwnerID = u.ID
 			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}
+
+		if needsUpdateStatus {
+			repo.Status = repo_model.RepositoryReady
+			if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+				return fmt.Errorf("UpdateRepositoryCols: %w", err)
+			}
+		}
+
 		return nil
 	}); err != nil {
-		if rollbackRepo != nil {
-			if errDelete := DeleteRepositoryDirectly(ctx, doer, rollbackRepo.ID); errDelete != nil {
+		if repo != nil {
+			if errDelete := DeleteRepositoryDirectly(ctx, doer, repo.ID); errDelete != nil {
 				log.Error("Rollback deleteRepository: %v", errDelete)
+				// add system notice
+				if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when create repository: %v", errDelete); err != nil {
+					log.Error("CreateRepositoryNotice: %v", err)
+				}
 			}
 		}
 

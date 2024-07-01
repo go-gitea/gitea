@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
@@ -48,28 +49,31 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		IsPrivate:                       opts.IsPrivate,
 		IsFsckEnabled:                   !opts.IsMirror,
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
-		Status:                          opts.Status,
+		Status:                          repo_model.RepositoryBeingMigrated,
 		IsEmpty:                         !opts.AutoInit,
 	}
 
+	repoPath := repo_model.RepoPath(u.Name, repo.Name)
+	isExist, err := util.IsExist(repoPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		return nil, err
+	}
+	if !isExist {
+		return nil, repo_model.ErrRepoNotExist{
+			OwnerName: u.Name,
+			Name:      repo.Name,
+		}
+	}
+
+	// create the repository database operations first
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		repoPath := repo_model.RepoPath(u.Name, repo.Name)
-		isExist, err := util.IsExist(repoPath)
-		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
-			return err
-		}
-		if !isExist {
-			return repo_model.ErrRepoNotExist{
-				OwnerName: u.Name,
-				Name:      repo.Name,
-			}
-		}
+		return repo_module.CreateRepositoryByExample(ctx, doer, u, repo, true, false)
+	}); err != nil {
+		return nil, err
+	}
 
-		if err := repo_module.CreateRepositoryByExample(ctx, doer, u, repo, true, false); err != nil {
-			return err
-		}
-
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// Re-fetch the repository from database before updating it (else it would
 		// override changes that were done earlier with sql)
 		if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
@@ -97,8 +101,24 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}
+
+		// update repository status
+		repo.Status = repo_model.RepositoryReady
+		if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+			return fmt.Errorf("UpdateRepositoryCols: %w", err)
+		}
+
 		return nil
 	}); err != nil {
+		if repo != nil {
+			if errDelete := DeleteRepositoryDirectly(ctx, doer, repo.ID); errDelete != nil {
+				log.Error("Rollback deleteRepository: %v", errDelete)
+				// add system notice
+				if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when adopt repository: %v", errDelete); err != nil {
+					log.Error("CreateRepositoryNotice: %v", err)
+				}
+			}
+		}
 		return nil, err
 	}
 
