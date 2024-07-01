@@ -37,6 +37,7 @@ require (
 	github.com/ethantkoenig/rupture v1.0.1
 	github.com/felixge/fgprof v0.9.4
 	github.com/fsnotify/fsnotify v1.7.0
+	github.com/git-lfs/pktline v0.0.0-20210330133718-06e9096e2825
 	github.com/gliderlabs/ssh v0.3.7
 	github.com/go-ap/activitypub v0.0.0-20240408091739-ba76b44c2594
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
