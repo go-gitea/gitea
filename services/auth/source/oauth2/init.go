@@ -30,6 +30,11 @@ const ProviderHeaderKey = "gitea-oauth2-provider"
 
 // Init initializes the oauth source
 func Init(ctx context.Context) error {
+	// if oauth is disabled, we don't need to initialize anything
+	if !setting.OAuth2.Enable {
+		return
+	}
+
 	if err := InitSigningKey(); err != nil {
 		return err
 	}
