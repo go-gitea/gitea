@@ -731,3 +731,29 @@ export function initArchivedLabelHandler() {
     toggleElem(label, label.classList.contains('checked'));
   }
 }
+
+export function initIssueProjectColumnSelector() {
+  const root = document.querySelector('.select-issue-project-board');
+  if (!root) return;
+
+  const link = root.getAttribute('data-url');
+
+  for (const board of document.querySelectorAll('.select-issue-project-board .item')) {
+    board.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      try {
+        const response = await POST(`${link}${board.getAttribute('data-board-id')}`);
+        if (response.ok) {
+          const data = await response.json();
+          window.location.href = data.redirect;
+        }
+      } catch (error) {
+        console.error(error);
+      }
+
+      return false;
+    });
+  }
+}

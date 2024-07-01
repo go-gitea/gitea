@@ -579,6 +579,72 @@ func SetDefaultProjectColumn(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
+// MoveColumnForIssue move a issue to other board
+func MoveColumnForIssue(ctx *context.Context) {
+	if ctx.Doer == nil {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only signed in users are allowed to perform this action.",
+		})
+		return
+	}
+
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only authorized users are allowed to perform this action.",
+		})
+		return
+	}
+
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if issues_model.IsErrIssueNotExist(err) {
+			ctx.NotFound("GetIssueByIndex", err)
+		} else {
+			ctx.ServerError("GetIssueByIndex", err)
+		}
+		return
+	}
+
+	if err := issue.LoadProject(ctx); err != nil {
+		ctx.ServerError("LoadProject", err)
+		return
+	}
+	if issue.Project == nil {
+		ctx.NotFound("Project not found", nil)
+		return
+	}
+
+	if err = issue.LoadProjectIssue(ctx); err != nil {
+		ctx.ServerError("LoadProjectIssue", err)
+		return
+	}
+
+	column, err := project_model.GetColumn(ctx, ctx.ParamsInt64(":columnID"))
+	if err != nil {
+		if project_model.IsErrProjectColumnNotExist(err) {
+			ctx.NotFound("ErrProjectColumnNotExist", nil)
+		} else {
+			ctx.ServerError("GetColumn", err)
+		}
+		return
+	}
+
+	if column.ProjectID != issue.Project.ID {
+		ctx.NotFound("ColumnNotInProject", nil)
+		return
+	}
+
+	err = project_model.MoveIssueToColumnTail(ctx, issue.ProjectIssue, column)
+	if err != nil {
+		ctx.NotFound("MoveIssueToBoardTail", nil)
+		return
+	}
+
+	issue.Repo = ctx.Repo.Repository
+
+	ctx.JSONRedirect(issue.HTMLURL())
+}
+
 // MoveIssues moves or keeps issues in a column and sorts them inside that column
 func MoveIssues(ctx *context.Context) {
 	if ctx.Doer == nil {

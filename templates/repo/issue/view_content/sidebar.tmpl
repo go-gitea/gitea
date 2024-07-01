@@ -193,13 +193,25 @@
 				{{end}}
 			</div>
 		</div>
-		<div class="ui select-project list">
+		<div class="ui select-project-current list">
 			<span class="no-select item {{if .Issue.Project}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
 			<div class="selected">
 				{{if .Issue.Project}}
-					<a class="item muted sidebar-item-link" href="{{.Issue.Project.Link ctx}}">
+					<a class="item muted sidebar-item-link tw-block" href="{{.Issue.Project.Link ctx}}">
 						{{svg .Issue.Project.IconName 18 "tw-mr-2"}}{{.Issue.Project.Title}}
 					</a>
+					<div class="ui dropdown jump {{if not .CanWriteProjects}}disabled{{end}} select-issue-project-board item tw-mx-0 tw-pr-2" data-url="{{$.Issue.Link}}/move_project_column/">
+						<span class="text">
+							{{ctx.Locale.Tr "repo.issues.move_project_boad"}}: {{.Issue.ProjectIssue.ProjectColumn.Title}}
+						</span>
+						<div class="menu">
+							{{if .ProjectColumns}}
+								{{range .ProjectColumns}}
+									<div class="item no-select" data-project-id="{{.ProjectID}}" data-board-id="{{.ID}}">{{.Title}}</div>
+								{{end}}
+							{{end}}
+						</div>
+					</div>
 				{{end}}
 			</div>
 		</div>

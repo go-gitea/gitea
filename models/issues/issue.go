@@ -147,6 +147,8 @@ type Issue struct {
 
 	// For view issue page.
 	ShowRole RoleDescriptor `xorm:"-"`
+
+	ProjectIssue *project_model.ProjectIssue `xorm:"-"`
 }
 
 var (
@@ -333,6 +335,10 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 	}
 
 	if err = issue.LoadProject(ctx); err != nil {
+		return err
+	}
+
+	if err = issue.LoadProjectIssue(ctx); err != nil {
 		return err
 	}
 

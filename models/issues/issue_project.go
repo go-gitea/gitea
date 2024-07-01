@@ -28,6 +28,25 @@ func (issue *Issue) LoadProject(ctx context.Context) (err error) {
 	return err
 }
 
+func (issue *Issue) LoadProjectIssue(ctx context.Context) (err error) {
+	if issue.Project == nil {
+		return nil
+	}
+
+	if issue.ProjectIssue != nil {
+		return nil
+	}
+
+	issue.ProjectIssue, err = project_model.GetProjectIssueByIssueID(ctx, issue.ID)
+	if err != nil {
+		return err
+	}
+
+	issue.ProjectIssue.Project = issue.Project
+
+	return issue.ProjectIssue.LoadProjectColumn(ctx)
+}
+
 func (issue *Issue) projectID(ctx context.Context) int64 {
 	var ip project_model.ProjectIssue
 	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)

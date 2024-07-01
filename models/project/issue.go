@@ -14,12 +14,14 @@ import (
 
 // ProjectIssue saves relation from issue to a project
 type ProjectIssue struct { //revive:disable-line:exported
-	ID        int64 `xorm:"pk autoincr"`
-	IssueID   int64 `xorm:"INDEX"`
-	ProjectID int64 `xorm:"INDEX"`
+	ID        int64    `xorm:"pk autoincr"`
+	IssueID   int64    `xorm:"INDEX"`
+	ProjectID int64    `xorm:"INDEX"`
+	Project   *Project `xorm:"-"`
 
 	// ProjectColumnID should not be zero since 1.22. If it's zero, the issue will not be displayed on UI and it might result in errors.
-	ProjectColumnID int64 `xorm:"'project_board_id' INDEX"`
+	ProjectColumnID int64   `xorm:"'project_board_id' INDEX"`
+	ProjectColumn   *Column `xorm:"-"`
 
 	// the sorting order on the column
 	Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
@@ -31,6 +33,50 @@ func init() {
 
 func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error {
 	_, err := db.GetEngine(ctx).Where("project_id=?", projectID).Delete(&ProjectIssue{})
+	return err
+}
+
+type ErrProjectIssueNotExist struct {
+	IssueID int64
+}
+
+func (e ErrProjectIssueNotExist) Error() string {
+	return fmt.Sprintf("can't find project issue [issue_id: %d]", e.IssueID)
+}
+
+func IsErrProjectIssueNotExist(e error) bool {
+	_, ok := e.(ErrProjectIssueNotExist)
+	return ok
+}
+
+func GetProjectIssueByIssueID(ctx context.Context, issueID int64) (*ProjectIssue, error) {
+	issue := &ProjectIssue{}
+
+	has, err := db.GetEngine(ctx).Where("issue_id = ?", issueID).Get(issue)
+	if err != nil {
+		return nil, err
+	}
+
+	if !has {
+		return nil, ErrProjectIssueNotExist{IssueID: issueID}
+	}
+
+	return issue, nil
+}
+
+func (issue *ProjectIssue) LoadProjectColumn(ctx context.Context) error {
+	if issue.ProjectColumn != nil {
+		return nil
+	}
+
+	var err error
+
+	if issue.ProjectColumnID == 0 {
+		issue.ProjectColumn, err = issue.Project.GetDefaultColumn(ctx)
+		return err
+	}
+
+	issue.ProjectColumn, err = GetColumn(ctx, issue.ProjectColumnID)
 	return err
 }
 
@@ -100,6 +146,41 @@ func MoveIssuesOnProjectColumn(ctx context.Context, column *Column, sortedIssueI
 	})
 }
 
+func MoveIssueToColumnTail(ctx context.Context, issue *ProjectIssue, toColumn *Column) error {
+	nextSorting, err := toColumn.getNextSorting(ctx)
+	if err != nil {
+		return err
+	}
+
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		_, err = db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?",
+			toColumn.ID, nextSorting, issue.IssueID)
+
+		return err
+	})
+}
+
+func (c *Column) getNextSorting(ctx context.Context) (int64, error) {
+	res := struct {
+		MaxSorting int64
+		IssueCount int64
+	}{}
+
+	if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").
+		Table("project_issue").
+		Where("project_id=?", c.ProjectID).
+		And("project_board_id=?", c.ID).
+		Get(&res); err != nil {
+		return 0, err
+	}
+
+	if res.IssueCount > 0 {
+		return res.MaxSorting + 1, nil
+	}
+
+	return 0, nil
+}
+
 func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Column) error {
 	if c.ProjectID != newColumn.ProjectID {
 		return fmt.Errorf("columns have to be in the same project")
@@ -109,15 +190,8 @@ func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Colum
 		return nil
 	}
 
-	res := struct {
-		MaxSorting int64
-		IssueCount int64
-	}{}
-	if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").
-		Table("project_issue").
-		Where("project_id=?", newColumn.ProjectID).
-		And("project_board_id=?", newColumn.ID).
-		Get(&res); err != nil {
+	nextSorting, err := newColumn.getNextSorting(ctx)
+	if err != nil {
 		return err
 	}
 
@@ -129,7 +203,6 @@ func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Colum
 		return nil
 	}
 
-	nextSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for i, issue := range issues {
 			issue.ProjectColumnID = newColumn.ID
