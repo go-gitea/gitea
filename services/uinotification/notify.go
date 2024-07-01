@@ -75,6 +75,11 @@ func (ns *notificationService) CreateIssueComment(ctx context.Context, doer *use
 	}
 	_ = ns.issueQueue.Push(opts)
 	for _, mention := range mentions {
+		// Avoid notifying users according to their setting.
+		if mention.UINotificationsPreference != user_model.NotificationsEnabled &&
+			mention.UINotificationsPreference != user_model.NotificationsOnMention {
+			continue
+		}
 		opts := issueNotificationOpts{
 			IssueID:              issue.ID,
 			NotificationAuthorID: doer.ID,
@@ -92,7 +97,13 @@ func (ns *notificationService) NewIssue(ctx context.Context, issue *issues_model
 		IssueID:              issue.ID,
 		NotificationAuthorID: issue.Poster.ID,
 	})
+
 	for _, mention := range mentions {
+		// Avoid notifying users according to their setting.
+		if mention.UINotificationsPreference != user_model.NotificationsEnabled &&
+			mention.UINotificationsPreference != user_model.NotificationsOnMention {
+			continue
+		}
 		_ = ns.issueQueue.Push(issueNotificationOpts{
 			IssueID:              issue.ID,
 			NotificationAuthorID: issue.Poster.ID,
@@ -145,6 +156,15 @@ func (ns *notificationService) NewPullRequest(ctx context.Context, pr *issues_mo
 		return
 	}
 	for _, id := range repoWatchers {
+		// Exclude users based on their notification prefs.
+		user, err := user_model.GetUserByID(ctx, id)
+		if err != nil {
+			log.Error("GetUserByID: %v", err)
+			return
+		}
+		if user.UINotificationsPreference != user_model.NotificationsEnabled {
+			continue
+		}
 		toNotify.Add(id)
 	}
 	issueParticipants, err := issues_model.GetParticipantsIDsByIssueID(ctx, pr.IssueID)
@@ -153,12 +173,30 @@ func (ns *notificationService) NewPullRequest(ctx context.Context, pr *issues_mo
 		return
 	}
 	for _, id := range issueParticipants {
+		// Exclude users based on their notification prefs.
+		user, err := user_model.GetUserByID(ctx, id)
+		if err != nil {
+			log.Error("GetUserByID: %v", err)
+			return
+		}
+		if user.UINotificationsPreference != user_model.NotificationsEnabled {
+			continue
+		}
 		toNotify.Add(id)
 	}
-	delete(toNotify, pr.Issue.PosterID)
+	// Check if user should not be mentioned on their own actions.
+	if pr.Issue.Poster.UINotificationsPreference != user_model.NotificationsAndYourOwn {
+		delete(toNotify, pr.Issue.PosterID)
+	}
 	for _, mention := range mentions {
+		// Exclude users based on their notification preferences.
+		if mention.UINotificationsPreference != user_model.NotificationsEnabled &&
+			mention.UINotificationsPreference != user_model.NotificationsOnMention {
+			continue
+		}
 		toNotify.Add(mention.ID)
 	}
+	// Exclude users based on their notification preferences.
 	for receiverID := range toNotify {
 		_ = ns.issueQueue.Push(issueNotificationOpts{
 			IssueID:              pr.Issue.ID,
@@ -178,6 +216,11 @@ func (ns *notificationService) PullRequestReview(ctx context.Context, pr *issues
 	}
 	_ = ns.issueQueue.Push(opts)
 	for _, mention := range mentions {
+		// Exclude users based on their notification preferences.
+		if mention.UINotificationsPreference != user_model.NotificationsEnabled &&
+			mention.UINotificationsPreference != user_model.NotificationsOnMention {
+			continue
+		}
 		opts := issueNotificationOpts{
 			IssueID:              pr.Issue.ID,
 			NotificationAuthorID: r.Reviewer.ID,
@@ -192,6 +235,11 @@ func (ns *notificationService) PullRequestReview(ctx context.Context, pr *issues
 
 func (ns *notificationService) PullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, c *issues_model.Comment, mentions []*user_model.User) {
 	for _, mention := range mentions {
+		// Exclude users based on their notification preferences.
+		if mention.UINotificationsPreference != user_model.NotificationsEnabled &&
+			mention.UINotificationsPreference != user_model.NotificationsOnMention {
+			continue
+		}
 		_ = ns.issueQueue.Push(issueNotificationOpts{
 			IssueID:              pr.Issue.ID,
 			NotificationAuthorID: c.Poster.ID,

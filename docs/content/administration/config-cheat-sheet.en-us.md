@@ -516,6 +516,7 @@ And the following unique queues:
 ## Admin (`admin`)
 
 - `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**: Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
+- `DEFAULT_UI_NOTIFICATIONS`: **enabled**: Default configuration for UI notifications for users (user configurable). Options: enabled, onmention, disabled
 - `DISABLE_REGULAR_ORG_CREATION`: **false**: Disallow regular (non-admin) users from creating organizations.
 - `USER_DISABLED_FEATURES`: **_empty_** Disabled features for users, could be `deletion`, `manage_ssh_keys`, `manage_gpg_keys` and more features can be added in future.
   - `deletion`: User cannot delete their own account.

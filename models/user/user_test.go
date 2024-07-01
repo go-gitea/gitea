@@ -137,18 +137,40 @@ func TestEmailNotificationPreferences(t *testing.T) {
 		expected string
 		userID   int64
 	}{
-		{user_model.EmailNotificationsEnabled, 1},
-		{user_model.EmailNotificationsEnabled, 2},
-		{user_model.EmailNotificationsOnMention, 3},
-		{user_model.EmailNotificationsOnMention, 4},
-		{user_model.EmailNotificationsEnabled, 5},
-		{user_model.EmailNotificationsEnabled, 6},
-		{user_model.EmailNotificationsDisabled, 7},
-		{user_model.EmailNotificationsEnabled, 8},
-		{user_model.EmailNotificationsOnMention, 9},
+		{user_model.NotificationsEnabled, 1},
+		{user_model.NotificationsEnabled, 2},
+		{user_model.NotificationsOnMention, 3},
+		{user_model.NotificationsOnMention, 4},
+		{user_model.NotificationsEnabled, 5},
+		{user_model.NotificationsEnabled, 6},
+		{user_model.NotificationsDisabled, 7},
+		{user_model.NotificationsEnabled, 8},
+		{user_model.NotificationsOnMention, 9},
 	} {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.userID})
 		assert.Equal(t, test.expected, user.EmailNotificationsPreference)
+	}
+}
+
+func TestUINotificationPreferences(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	for _, test := range []struct {
+		expected string
+		userID   int64
+	}{
+		{user_model.NotificationsEnabled, 1},
+		{user_model.NotificationsEnabled, 2},
+		{user_model.NotificationsOnMention, 3},
+		{user_model.NotificationsOnMention, 4},
+		{user_model.NotificationsEnabled, 5},
+		{user_model.NotificationsEnabled, 6},
+		{user_model.NotificationsDisabled, 7},
+		{user_model.NotificationsEnabled, 8},
+		{user_model.NotificationsOnMention, 9},
+	} {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.userID})
+		assert.Equal(t, test.expected, user.UINotificationsPreference)
 	}
 }
 
