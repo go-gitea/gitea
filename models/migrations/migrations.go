@@ -591,6 +591,8 @@ var migrations = []Migration{
 
 	// v299 -> v300
 	NewMigration("Add content version to issue and comment table", v1_23.AddContentVersionToIssueAndComment),
+	// v300 -> v301
+	NewMigration("Add TimeEstimate to issue table", v1_23.AddTimeEstimateColumnToIssueTable),
 }
 
 // GetCurrentDBVersion returns the current db version
