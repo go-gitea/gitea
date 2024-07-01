@@ -75,9 +75,20 @@ export function initRepoEditor() {
   }
   filenameInput.addEventListener('input', function () {
     const parts = filenameInput.value.split('/');
+    const links = document.querySelectorAll('.breadcrumb span.section');
+    const dividers = document.querySelectorAll('.breadcrumb-divider');
     if (parts.length > 1) {
+      let containSpace = false;
       for (let i = 0; i < parts.length; ++i) {
         const value = parts[i];
+        if (value.trim() === '..') {
+          // remove previous tree path
+          if (links.length > 0) {
+            links[links.length - 1].remove();
+            dividers[dividers.length - 1].remove();
+          }
+          continue;
+        }
         if (i < parts.length - 1) {
           if (value.length) {
             $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(filenameInput));
@@ -87,6 +98,24 @@ export function initRepoEditor() {
           filenameInput.value = value;
         }
         this.setSelectionRange(0, 0);
+        containSpace |= value.trim() !== value;
+      }
+      let warningDiv = document.querySelector('.ui.warning.message.flash-message.flash-warning');
+      containSpace |= Array.from(links).some((link) => {
+        const value = link.querySelector('a').textContent;
+        return value.trim() !== value;
+      });
+      if (containSpace) {
+        if (!warningDiv) {
+          warningDiv = document.createElement('div');
+          warningDiv.classList.add('ui', 'warning', 'message', 'flash-message', 'flash-warning');
+          warningDiv.innerHTML = '<p>Parent directory contains leading or trailing whitespace.</p><p>These whitespaces will be removed.</p>';
+          const inputContainer = document.querySelector('.repo-editor-header');
+          inputContainer.insertAdjacentElement('beforebegin', warningDiv);
+        }
+        warningDiv.style.display = 'block';
+      } else if (warningDiv) {
+        warningDiv.style.display = 'none';
       }
     }
     joinTreePath();

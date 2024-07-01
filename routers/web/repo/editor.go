@@ -392,6 +392,14 @@ func EditFilePost(ctx *context.Context) {
 // NewFilePost response for creating file
 func NewFilePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditRepoFileForm)
+
+	// trim leading and trailing spaces from the tree path
+	treePath := strings.Split(form.TreePath, "/")
+	for i, v := range treePath {
+		treePath[i] = strings.TrimSpace(v)
+	}
+	form.TreePath = strings.Join(treePath, "/")
+
 	editFilePost(ctx, *form, true)
 }
 
