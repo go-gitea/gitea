@@ -162,7 +162,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		}
 
 		queries = append(queries, bleve.NewDisjunctionQuery([]query.Query{
-			inner_bleve.MatchPhraseQuery(options.Keyword, "title", issueIndexerAnalyzer, fuzziness),
+			inner_bleve.FuzzyQuery(options.Keyword, "title", fuzziness),
 			inner_bleve.MatchPhraseQuery(options.Keyword, "content", issueIndexerAnalyzer, fuzziness),
 			inner_bleve.MatchPhraseQuery(options.Keyword, "comments", issueIndexerAnalyzer, fuzziness),
 		}...))
