@@ -12,27 +12,19 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
-// hookNames is a list of Git server hooks' name that are supported.
-var hookNames = []string{
-	"pre-receive",
-	"update",
-	"post-receive",
-}
+var hookNames = []string{"pre-receive", "update", "post-receive"}
 
-// ErrNotValidHook error when a git hook is not valid
-var ErrNotValidHook = errors.New("not a valid Git hook")
-
-// IsValidHookName returns true if given name is a valid Git hook.
-func IsValidHookName(name string) bool {
-	for _, hn := range hookNames {
-		if hn == name {
-			return true
-		}
+// hookNames contains the hook name (key) linked with the filename of the resulting hook.
+func GetHookNames() map[string]string {
+	return map[string]string{
+		"pre-receive":  setting.GitHookPrereceiveName,
+		"update":       setting.GitHookUpdateName,
+		"post-receive": setting.GitHookPostreceiveName,
 	}
-	return false
 }
 
 // Hook represents a Git hook.
@@ -44,6 +36,19 @@ type Hook struct {
 	path     string // Hook file path.
 }
 
+// ErrNotValidHook error when a git hook is not valid
+var ErrNotValidHook = errors.New("not a valid Git hook")
+
+// IsValidHookName returns true if given name is a valid Git hook.
+func IsValidHookName(name string) bool {
+	for hn := range GetHookNames() {
+		if hn == name {
+			return true
+		}
+	}
+	return false
+}
+
 // GetHook returns a Git hook by given name and repository.
 func GetHook(repoPath, name string) (*Hook, error) {
 	if !IsValidHookName(name) {
@@ -51,7 +56,7 @@ func GetHook(repoPath, name string) (*Hook, error) {
 	}
 	h := &Hook{
 		name: name,
-		path: path.Join(repoPath, "hooks", name+".d", name),
+		path: filepath.Join(repoPath, "hooks", name+".d", GetHookNames()[name]),
 	}
 	samplePath := filepath.Join(repoPath, "hooks", name+".sample")
 	if isFile(h.path) {
@@ -107,9 +112,9 @@ func ListHooks(repoPath string) (_ []*Hook, err error) {
 		return nil, errors.New("hooks path does not exist")
 	}
 
-	hooks := make([]*Hook, len(hookNames))
-	for i, name := range hookNames {
-		hooks[i], err = GetHook(repoPath, name)
+	hooks := make([]*Hook, len(GetHookNames()))
+	for i := range hookNames {
+		hooks[i], err = GetHook(repoPath, hookNames[i])
 		if err != nil {
 			return nil, err
 		}

@@ -319,6 +319,18 @@
 				<dd>{{.Git.Timeout.Pull}} {{ctx.Locale.Tr "tool.raw_seconds"}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.git_gc_timeout"}}</dt>
 				<dd>{{.Git.Timeout.GC}} {{ctx.Locale.Tr "tool.raw_seconds"}}</dd>
+
+				<div class="divider"></div>
+
+				<dt>{{ctx.Locale.Tr "admin.config.git_hookprereceivename"}}</dt>
+				<dd>{{.GitHookPrereceiveName}}</dd>
+
+				<dt>{{ctx.Locale.Tr "admin.config.git_hookupdatename"}}</dt>
+				<dd>{{.GitHookUpdateName}}</dd>
+
+				<dt>{{ctx.Locale.Tr "admin.config.git_postreceivename"}}</dt>
+				<dd>{{.GitHookPostreceiveName}}</dd>
+
 			</dl>
 		</div>
 

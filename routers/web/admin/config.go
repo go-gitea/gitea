@@ -130,7 +130,9 @@ func Config(ctx *context.Context) {
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = util.ToTitleCase(setting.RunMode)
 	ctx.Data["GitVersion"] = git.DefaultFeatures().VersionInfo()
-
+	ctx.Data["GitHookPrereceiveName"] = setting.GitHookPrereceiveName
+	ctx.Data["GitHookUpdateName"] = setting.GitHookUpdateName
+	ctx.Data["GitHookPostreceiveName"] = setting.GitHookPostreceiveName
 	ctx.Data["AppDataPath"] = setting.AppDataPath
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
 	ctx.Data["CustomRootPath"] = setting.CustomPath

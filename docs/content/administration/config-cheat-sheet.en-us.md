@@ -1125,6 +1125,12 @@ This section only does "set" config, a removed config key from this section won'
 - `core.logAllRefUpdates`: **true**
 - `gc.reflogExpire`: **90**
 
+### Git - Hook options (`git.hooks`)
+
+- `GIT_HOOK_PRERECEIVE_NAME`: **pre-receive**: Specifies the name of the pre-receive hook. Wont accept paths as value, will only accept filenames.
+- `GIT_HOOK_UPDATE_NAME`: **update**: Specifies the name of the update hook. Wont accept paths as value, will only accept filenames.
+- `GIT_HOOK_POSTRECEIVE_NAME`: **post-receive**: Specifies the name of the post-receive hook. Wont accept paths as value, will only accept filenames.
+
 ## Metrics (`metrics`)
 
 - `ENABLED`: **false**: Enables /metrics endpoint for prometheus.
