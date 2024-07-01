@@ -153,7 +153,7 @@ export function initRepoCodeView() {
     });
 
     $(window).on('hashchange', () => {
-      let m = rangeAnchorRegex.exec(window.location.hash.match);
+      let m = rangeAnchorRegex.exec(window.location.hash);
       const $linesEls = $(getLineEls());
       let $first;
       if (m) {
@@ -170,7 +170,7 @@ export function initRepoCodeView() {
           return;
         }
       }
-      m = singleAnchorRegex.exec(window.location.hash.match);
+      m = singleAnchorRegex.exec(window.location.hash);
       if (m) {
         $first = $linesEls.filter(`[rel=L${m[2]}]`);
         if ($first.length) {
