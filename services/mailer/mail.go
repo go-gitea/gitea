@@ -82,7 +82,7 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 		return
 	}
 
-	msg := NewMessage(u.Email, subject, content.String())
+	msg := NewMessage(u.EmailTo(), subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, %s", u.ID, info)
 
 	SendAsync(msg)
@@ -158,7 +158,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		return
 	}
 
-	msg := NewMessage(u.Email, locale.TrString("mail.register_notify"), content.String())
+	msg := NewMessage(u.EmailTo(), locale.TrString("mail.register_notify"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
 	SendAsync(msg)
@@ -189,7 +189,7 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 		return
 	}
 
-	msg := NewMessage(u.Email, subject, content.String())
+	msg := NewMessage(u.EmailTo(), subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, add collaborator", u.ID)
 
 	SendAsync(msg)
@@ -314,7 +314,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	for _, recipient := range recipients {
 		msg := NewMessageFrom(
 			recipient.Email,
-			ctx.Doer.GetCompleteName(),
+			fromDisplayName(ctx.Doer),
 			setting.MailService.FromEmail,
 			subject,
 			mailBody.String(),
@@ -535,4 +535,17 @@ func actionToTemplate(issue *issues_model.Issue, actionType activities_model.Act
 		template = "issue/default"
 	}
 	return typeName, name, template
+}
+
+func fromDisplayName(u *user_model.User) string {
+	var ctx bytes.Buffer
+	err := setting.MailService.FromDisplayNameFormatTemplate.Execute(&ctx, map[string]any{
+		"DisplayName": u.DisplayName(),
+		"AppName":     setting.AppName,
+		"Domain":      setting.Domain,
+	})
+	if err != nil {
+		return u.GetCompleteName()
+	}
+	return ctx.String()
 }
