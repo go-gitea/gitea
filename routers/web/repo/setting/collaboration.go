@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/mailer"
 	org_service "code.gitea.io/gitea/services/org"
@@ -114,19 +115,32 @@ func CollaborationPost(ctx *context.Context) {
 		mailer.SendCollaboratorMail(u, ctx.Doer, ctx.Repo.Repository)
 	}
 
+	audit.RecordRepositoryCollaboratorAdd(ctx, ctx.Doer, ctx.Repo.Repository, u)
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_collaborator_success"))
 	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 }
 
 // ChangeCollaborationAccessMode response for changing access of a collaboration
 func ChangeCollaborationAccessMode(ctx *context.Context) {
+	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
+	if err != nil {
+		log.Error("GetUserByID: %v", err)
+		return
+	}
+
+	accessMode := perm.AccessMode(ctx.FormInt("mode"))
+
 	if err := repo_model.ChangeCollaborationAccessMode(
 		ctx,
 		ctx.Repo.Repository,
-		ctx.FormInt64("uid"),
-		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
+		u.ID,
+		accessMode); err != nil {
 		log.Error("ChangeCollaborationAccessMode: %v", err)
+		return
 	}
+
+	audit.RecordRepositoryCollaboratorAccess(ctx, ctx.Doer, ctx.Repo.Repository, u, accessMode)
 }
 
 // DeleteCollaboration delete a collaboration for a repository
@@ -142,6 +156,8 @@ func DeleteCollaboration(ctx *context.Context) {
 		if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, collaborator); err != nil {
 			ctx.Flash.Error("DeleteCollaboration: " + err.Error())
 		} else {
+			audit.RecordRepositoryCollaboratorRemove(ctx, ctx.Doer, ctx.Repo.Repository, collaborator)
+
 			ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
 		}
 	}
@@ -186,7 +202,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err = org_service.TeamAddRepository(ctx, team, ctx.Repo.Repository); err != nil {
+	if err = org_service.TeamAddRepository(ctx, ctx.Doer, team, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("TeamAddRepository", err)
 		return
 	}
@@ -209,10 +225,12 @@ func DeleteTeam(ctx *context.Context) {
 		return
 	}
 
-	if err = repo_service.RemoveRepositoryFromTeam(ctx, team, ctx.Repo.Repository.ID); err != nil {
+	if err = repo_service.RemoveRepositoryFromTeam(ctx, ctx.Doer, team, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("team.RemoveRepositorys", err)
 		return
 	}
+
+	audit.RecordRepositoryCollaboratorTeamRemove(ctx, ctx.Doer, ctx.Repo.Repository, team)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_team_success"))
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/collaboration")

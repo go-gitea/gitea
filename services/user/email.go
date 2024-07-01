@@ -12,10 +12,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/audit"
 )
 
 // AdminAddOrSetPrimaryEmailAddress is used by admins to add or set a user's primary email address
-func AdminAddOrSetPrimaryEmailAddress(ctx context.Context, u *user_model.User, emailStr string) error {
+func AdminAddOrSetPrimaryEmailAddress(ctx context.Context, doer, u *user_model.User, emailStr string) error {
 	if strings.EqualFold(u.Email, emailStr) {
 		return nil
 	}
@@ -65,10 +66,16 @@ func AdminAddOrSetPrimaryEmailAddress(ctx context.Context, u *user_model.User, e
 
 	u.Email = emailStr
 
-	return user_model.UpdateUserCols(ctx, u, "email")
+	if err := user_model.UpdateUserCols(ctx, u, "email"); err != nil {
+		return err
+	}
+
+	audit.RecordUserEmailPrimaryChange(ctx, doer, u, email)
+
+	return nil
 }
 
-func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailStr string) error {
+func ReplacePrimaryEmailAddress(ctx context.Context, doer, u *user_model.User, emailStr string) error {
 	if strings.EqualFold(u.Email, emailStr) {
 		return nil
 	}
@@ -109,15 +116,29 @@ func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailSt
 		if _, err := user_model.InsertEmailAddress(ctx, email); err != nil {
 			return err
 		}
+
+		u.Email = emailStr
+
+		if err := user_model.UpdateUserCols(ctx, u, "email"); err != nil {
+			return err
+		}
+
+		audit.RecordUserEmailPrimaryChange(ctx, doer, u, email)
+	} else {
+		u.Email = emailStr
+
+		if err := user_model.UpdateUserCols(ctx, u, "email"); err != nil {
+			return err
+		}
 	}
 
-	u.Email = emailStr
-
-	return user_model.UpdateUserCols(ctx, u, "email")
+	return nil
 }
 
-func AddEmailAddresses(ctx context.Context, u *user_model.User, emails []string) error {
-	for _, emailStr := range emails {
+func AddEmailAddresses(ctx context.Context, doer, u *user_model.User, emailsToAdd []string) error {
+	emails := make([]*user_model.EmailAddress, 0, len(emailsToAdd))
+
+	for _, emailStr := range emailsToAdd {
 		if err := user_model.ValidateEmail(emailStr); err != nil {
 			return err
 		}
@@ -141,13 +162,21 @@ func AddEmailAddresses(ctx context.Context, u *user_model.User, emails []string)
 		if _, err := user_model.InsertEmailAddress(ctx, email); err != nil {
 			return err
 		}
+
+		emails = append(emails, email)
+	}
+
+	for _, email := range emails {
+		audit.RecordUserEmailAdd(ctx, doer, u, email)
 	}
 
 	return nil
 }
 
-func DeleteEmailAddresses(ctx context.Context, u *user_model.User, emails []string) error {
-	for _, emailStr := range emails {
+func DeleteEmailAddresses(ctx context.Context, doer, u *user_model.User, emailsToRemove []string) error {
+	emails := make([]*user_model.EmailAddress, 0, len(emailsToRemove))
+
+	for _, emailStr := range emailsToRemove {
 		// Check if address exists
 		email, err := user_model.GetEmailAddressOfUser(ctx, emailStr, u.ID)
 		if err != nil {
@@ -161,6 +190,12 @@ func DeleteEmailAddresses(ctx context.Context, u *user_model.User, emails []stri
 		if _, err := db.DeleteByID[user_model.EmailAddress](ctx, email.ID); err != nil {
 			return err
 		}
+
+		emails = append(emails, email)
+	}
+
+	for _, email := range emails {
+		audit.RecordUserEmailRemove(ctx, doer, u, email)
 	}
 
 	return nil

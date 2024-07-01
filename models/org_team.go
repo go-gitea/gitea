@@ -55,36 +55,39 @@ func AddRepository(ctx context.Context, t *organization.Team, repo *repo_model.R
 
 // addAllRepositories adds all repositories to the team.
 // If the team already has some repositories they will be left unchanged.
-func addAllRepositories(ctx context.Context, t *organization.Team) error {
+func addAllRepositories(ctx context.Context, t *organization.Team) ([]*repo_model.Repository, error) {
 	orgRepos, err := organization.GetOrgRepositories(ctx, t.OrgID)
 	if err != nil {
-		return fmt.Errorf("get org repos: %w", err)
+		return nil, fmt.Errorf("get org repos: %w", err)
 	}
 
+	added := make([]*repo_model.Repository, 0, len(orgRepos))
 	for _, repo := range orgRepos {
 		if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repo.ID) {
 			if err := AddRepository(ctx, t, repo); err != nil {
-				return fmt.Errorf("AddRepository: %w", err)
+				return nil, fmt.Errorf("AddRepository: %w", err)
 			}
+			added = append(added, repo)
 		}
 	}
 
-	return nil
+	return added, nil
 }
 
 // AddAllRepositories adds all repositories to the team
-func AddAllRepositories(ctx context.Context, t *organization.Team) (err error) {
+func AddAllRepositories(ctx context.Context, t *organization.Team) ([]*repo_model.Repository, error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer committer.Close()
 
-	if err = addAllRepositories(ctx, t); err != nil {
-		return err
+	added, err := addAllRepositories(ctx, t)
+	if err != nil {
+		return nil, err
 	}
 
-	return committer.Commit()
+	return added, committer.Commit()
 }
 
 // RemoveAllRepositories removes all repositories from team and recalculates access
@@ -204,7 +207,7 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 
 	// Add all repositories to the team if it has access to all of them.
 	if t.IncludesAllRepositories {
-		err = addAllRepositories(ctx, t)
+		_, err = addAllRepositories(ctx, t)
 		if err != nil {
 			return fmt.Errorf("addAllRepositories: %w", err)
 		}
@@ -282,7 +285,7 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 
 	// Add all repositories to the team if it has access to all of them.
 	if includeAllChanged && t.IncludesAllRepositories {
-		err = addAllRepositories(ctx, t)
+		_, err = addAllRepositories(ctx, t)
 		if err != nil {
 			return fmt.Errorf("addAllRepositories: %w", err)
 		}

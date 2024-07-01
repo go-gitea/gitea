@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
@@ -91,6 +92,8 @@ func DeployKeysPost(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.RecordRepositoryDeployKeyAdd(ctx, ctx.Doer, ctx.Repo.Repository, key)
 
 	log.Trace("Deploy key added: %d", ctx.Repo.Repository.ID)
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_key_success", key.Name))

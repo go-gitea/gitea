@@ -68,3 +68,19 @@ func NewActionsUser() *User {
 func (u *User) IsActions() bool {
 	return u != nil && u.ID == ActionsUserID
 }
+
+func NewCLIUser() *User {
+	return &User{
+		ID:        -3,
+		Name:      "CLI",
+		LowerName: "cli",
+	}
+}
+
+func NewAuthenticationSourceUser() *User {
+	return &User{
+		ID:        -4,
+		Name:      "AuthenticationSource",
+		LowerName: "authenticationsource",
+	}
+}

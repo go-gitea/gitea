@@ -63,7 +63,7 @@ func AddEmail(ctx *context.APIContext) {
 		return
 	}
 
-	if err := user_service.AddEmailAddresses(ctx, ctx.Doer, form.Emails); err != nil {
+	if err := user_service.AddEmailAddresses(ctx, ctx.Doer, ctx.Doer, form.Emails); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", "Email address has been used: "+err.(user_model.ErrEmailAlreadyUsed).Email)
 		} else if user_model.IsErrEmailCharIsNotSupported(err) || user_model.IsErrEmailInvalid(err) {
@@ -120,7 +120,7 @@ func DeleteEmail(ctx *context.APIContext) {
 		return
 	}
 
-	if err := user_service.DeleteEmailAddresses(ctx, ctx.Doer, form.Emails); err != nil {
+	if err := user_service.DeleteEmailAddresses(ctx, ctx.Doer, ctx.Doer, form.Emails); err != nil {
 		if user_model.IsErrEmailAddressNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteEmailAddresses", err)
 		} else {

@@ -25,6 +25,7 @@ import (
 	timeutil "code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	gitea_context "code.gitea.io/gitea/services/context"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -227,6 +228,10 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 					Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
 				})
 				return
+			}
+
+			if isPrivate.Has() {
+				audit.RecordRepositoryVisibility(ctx, pusher, repo)
 			}
 		}
 	}

@@ -36,6 +36,7 @@ import (
 	web_routers "code.gitea.io/gitea/routers/web"
 	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/automerge"
@@ -171,6 +172,8 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(svg.Init)
 
 	actions_service.Init()
+
+	mustInit(audit.Init)
 
 	// Finally start up the cron
 	cron.NewContext(ctx)

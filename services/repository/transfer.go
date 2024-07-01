@@ -21,6 +21,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/audit"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -53,10 +54,14 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 		return err
 	}
 
+	audit.RecordRepositoryTransferFinish(ctx, doer, newRepo, oldOwner)
+
 	for _, team := range teams {
 		if err := models.AddRepository(ctx, team, newRepo); err != nil {
 			return err
 		}
+
+		audit.RecordRepositoryCollaboratorTeamAdd(ctx, doer, newRepo, team)
 	}
 
 	notify_service.TransferRepository(ctx, doer, repo, oldOwner.Name)
@@ -354,6 +359,9 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
 	repo.Name = newRepoName
+
+	audit.RecordRepositoryName(ctx, doer, repo, oldRepoName)
+
 	notify_service.RenameRepository(ctx, doer, repo, oldRepoName)
 
 	return nil
@@ -405,6 +413,8 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	if err := models.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams); err != nil {
 		return err
 	}
+
+	audit.RecordRepositoryTransferStart(ctx, doer, repo, newOwner)
 
 	// notify users who are able to accept / reject transfer
 	notify_service.RepoPendingTransfer(ctx, doer, newOwner, repo)

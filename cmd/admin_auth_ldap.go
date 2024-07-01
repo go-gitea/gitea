@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/auth/source/ldap"
 
 	"github.com/urfave/cli/v2"
@@ -308,58 +310,26 @@ func (a *authService) getAuthSource(ctx context.Context, c *cli.Context, authTyp
 
 // addLdapBindDn adds a new LDAP via Bind DN authentication source.
 func (a *authService) addLdapBindDn(c *cli.Context) error {
-	if err := argsSet(c, "name", "security-protocol", "host", "port", "user-search-base", "user-filter", "email-attribute"); err != nil {
-		return err
-	}
-
-	ctx, cancel := installSignals()
-	defer cancel()
-
-	if err := a.initDB(ctx); err != nil {
-		return err
-	}
-
-	authSource := &auth.Source{
-		Type:     auth.LDAP,
-		IsActive: true, // active by default
-		Cfg: &ldap.Source{
-			Enabled: true, // always true
-		},
-	}
-
-	parseAuthSource(c, authSource)
-	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
-		return err
-	}
-
-	return a.createAuthSource(ctx, authSource)
+	return a.addLdapSource(c, auth.LDAP, "name", "security-protocol", "host", "port", "user-search-base", "user-filter", "email-attribute")
 }
 
 // updateLdapBindDn updates a new LDAP via Bind DN authentication source.
 func (a *authService) updateLdapBindDn(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
-	if err := a.initDB(ctx); err != nil {
-		return err
-	}
-
-	authSource, err := a.getAuthSource(ctx, c, auth.LDAP)
-	if err != nil {
-		return err
-	}
-
-	parseAuthSource(c, authSource)
-	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
-		return err
-	}
-
-	return a.updateAuthSource(ctx, authSource)
+	return a.updateLdapSource(c, auth.LDAP)
 }
 
 // addLdapSimpleAuth adds a new LDAP (simple auth) authentication source.
 func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
-	if err := argsSet(c, "name", "security-protocol", "host", "port", "user-dn", "user-filter", "email-attribute"); err != nil {
+	return a.addLdapSource(c, auth.DLDAP, "name", "security-protocol", "host", "port", "user-dn", "user-filter", "email-attribute")
+}
+
+// updateLdapBindDn updates a new LDAP (simple auth) authentication source.
+func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
+	return a.updateLdapSource(c, auth.DLDAP)
+}
+
+func (a *authService) addLdapSource(c *cli.Context, authType auth.Type, args ...string) error {
+	if err := argsSet(c, args...); err != nil {
 		return err
 	}
 
@@ -369,9 +339,12 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}
+	if err := audit.Init(); err != nil {
+		return err
+	}
 
 	authSource := &auth.Source{
-		Type:     auth.DLDAP,
+		Type:     authType,
 		IsActive: true, // active by default
 		Cfg: &ldap.Source{
 			Enabled: true, // always true
@@ -383,19 +356,27 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	return a.createAuthSource(ctx, authSource)
+	if err := a.createAuthSource(ctx, authSource); err != nil {
+		return err
+	}
+
+	audit.RecordSystemAuthenticationSourceAdd(ctx, user_model.NewCLIUser(), authSource)
+
+	return nil
 }
 
-// updateLdapBindDn updates a new LDAP (simple auth) authentication source.
-func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
+func (a *authService) updateLdapSource(c *cli.Context, authType auth.Type) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}
+	if err := audit.Init(); err != nil {
+		return err
+	}
 
-	authSource, err := a.getAuthSource(ctx, c, auth.DLDAP)
+	authSource, err := a.getAuthSource(ctx, c, authType)
 	if err != nil {
 		return err
 	}
@@ -405,5 +386,11 @@ func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	return a.updateAuthSource(ctx, authSource)
+	if err := a.updateAuthSource(ctx, authSource); err != nil {
+		return err
+	}
+
+	audit.RecordSystemAuthenticationSourceUpdate(ctx, user_model.NewCLIUser(), authSource)
+
+	return nil
 }

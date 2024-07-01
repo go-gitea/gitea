@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/audit"
 
 	"github.com/google/uuid"
 )
@@ -66,6 +67,8 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {
 		return user, err
 	}
+
+	audit.RecordUserCreate(ctx, user_model.NewAuthenticationSourceUser(), user)
 
 	return user, nil
 }

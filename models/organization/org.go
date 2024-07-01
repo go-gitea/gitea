@@ -91,6 +91,11 @@ func OrgFromUser(user *user_model.User) *Organization {
 	return (*Organization)(user)
 }
 
+// UserFromOrg converts organization to user
+func UserFromOrg(org *Organization) *user_model.User {
+	return (*user_model.User)(org)
+}
+
 // TableName represents the real table name of Organization
 func (Organization) TableName() string {
 	return "user"

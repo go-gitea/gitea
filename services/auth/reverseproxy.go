@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/audit"
 
 	gouuid "github.com/google/uuid"
 )
@@ -169,6 +170,8 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		log.Error("CreateUser: %v", err)
 		return nil
 	}
+
+	audit.RecordUserCreate(req.Context(), user_model.NewAuthenticationSourceUser(), user)
 
 	return user
 }

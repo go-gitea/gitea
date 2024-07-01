@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/agit"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/audit"
 	org_service "code.gitea.io/gitea/services/org"
 	"code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
@@ -31,7 +32,7 @@ import (
 )
 
 // RenameUser renames a user
-func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
+func RenameUser(ctx context.Context, doer, u *user_model.User, newUserName string) error {
 	// Non-local users are not allowed to change their username.
 	if !u.IsOrganization() && !u.IsLocal() {
 		return user_model.ErrUserIsNotLocal{
@@ -115,13 +116,16 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 		}
 		return err
 	}
+
+	audit.RecordUserName(ctx, doer, u)
+
 	return nil
 }
 
 // DeleteUser completely and permanently deletes everything of a user,
 // but issues/comments/pulls will be kept and shown as someone has been deleted,
 // unless the user is younger than USER_DELETE_WITH_COMMENTS_MAX_DAYS.
-func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
+func DeleteUser(ctx context.Context, doer, u *user_model.User, purge bool) error {
 	if u.IsOrganization() {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
 	}
@@ -190,7 +194,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 			for _, org := range orgs {
 				if err := models.RemoveOrgUser(ctx, org, u); err != nil {
 					if organization.IsErrLastOrgOwner(err) {
-						err = org_service.DeleteOrganization(ctx, org, true)
+						err = org_service.DeleteOrganization(ctx, doer, org, true)
 						if err != nil {
 							return fmt.Errorf("unable to delete organization %d: %w", org.ID, err)
 						}
@@ -274,11 +278,13 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 	}
 
+	audit.RecordUserDelete(ctx, doer, u)
+
 	return nil
 }
 
 // DeleteInactiveUsers deletes all inactive users and their email addresses.
-func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
+func DeleteInactiveUsers(ctx context.Context, doer *user_model.User, olderThan time.Duration) error {
 	inactiveUsers, err := user_model.GetInactiveUsers(ctx, olderThan)
 	if err != nil {
 		return err
@@ -286,7 +292,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 
 	// FIXME: should only update authorized_keys file once after all deletions.
 	for _, u := range inactiveUsers {
-		if err = DeleteUser(ctx, u, false); err != nil {
+		if err = DeleteUser(ctx, doer, u, false); err != nil {
 			// Ignore inactive users that were ever active but then were set inactive by admin
 			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) || models.IsErrUserOwnPackages(err) {
 				continue

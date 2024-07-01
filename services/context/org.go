@@ -98,7 +98,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		if ctx.Org == nil {
 			ctx.Org = &Organization{}
 		}
-		ctx.Org.Organization = (*organization.Organization)(ctx.ContextUser)
+		ctx.Org.Organization = organization.OrgFromUser(ctx.ContextUser)
 	} else {
 		// ContextUser is an individual User
 		return

@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/audit"
 )
 
 // Ensure the struct implements the interface.
@@ -155,6 +156,8 @@ func validateTOTP(req *http.Request, u *user_model.User) error {
 	if ok, err := twofa.ValidateTOTP(req.Header.Get("X-Gitea-OTP")); err != nil {
 		return err
 	} else if !ok {
+		audit.RecordUserAuthenticationFailTwoFactor(req.Context(), u)
+
 		return util.NewInvalidArgumentErrorf("invalid provided OTP")
 	}
 	return nil

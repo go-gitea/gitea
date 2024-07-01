@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/ldap"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
@@ -301,13 +302,15 @@ func NewAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	if err := auth.CreateSource(ctx, &auth.Source{
+	source := &auth.Source{
 		Type:          auth.Type(form.Type),
 		Name:          form.Name,
 		IsActive:      form.IsActive,
 		IsSyncEnabled: form.IsSyncEnabled,
 		Cfg:           config,
-	}); err != nil {
+	}
+
+	if err := auth.CreateSource(ctx, source); err != nil {
 		if auth.IsErrSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthNew, form)
@@ -320,6 +323,8 @@ func NewAuthSourcePost(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.RecordSystemAuthenticationSourceAdd(ctx, ctx.Doer, source)
 
 	log.Trace("Authentication created by admin(%s): %s", ctx.Doer.Name, form.Name)
 
@@ -434,6 +439,9 @@ func EditAuthSourcePost(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.RecordSystemAuthenticationSourceUpdate(ctx, ctx.Doer, source)
+
 	log.Trace("Authentication changed by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.update_success"))
@@ -448,7 +456,7 @@ func DeleteAuthSource(ctx *context.Context) {
 		return
 	}
 
-	if err = auth_service.DeleteSource(ctx, source); err != nil {
+	if err = auth_service.DeleteSource(ctx, ctx.Doer, source); err != nil {
 		if auth.IsErrSourceInUse(err) {
 			ctx.Flash.Error(ctx.Tr("admin.auths.still_in_used"))
 		} else {
@@ -457,6 +465,7 @@ func DeleteAuthSource(ctx *context.Context) {
 		ctx.JSONRedirect(setting.AppSubURL + "/admin/auths/" + url.PathEscape(ctx.PathParam(":authid")))
 		return
 	}
+
 	log.Trace("Authentication deleted by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.deletion_success"))

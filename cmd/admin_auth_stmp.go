@@ -155,7 +155,7 @@ func runAddSMTP(c *cli.Context) error {
 		smtpConfig.Auth = "PLAIN"
 	}
 
-	return auth_model.CreateSource(ctx, &auth_model.Source{
+	return createSource(ctx, &auth_model.Source{
 		Type:     auth_model.SMTP,
 		Name:     c.String("name"),
 		IsActive: active,
@@ -196,5 +196,5 @@ func runUpdateSMTP(c *cli.Context) error {
 
 	source.Cfg = smtpConfig
 
-	return auth_model.UpdateSource(ctx, source)
+	return updateSource(ctx, source)
 }

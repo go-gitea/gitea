@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -235,5 +236,11 @@ func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
 		return repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams)
 	}
 
-	return repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository)
+	if err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
+		return err
+	}
+
+	audit.RecordRepositoryTransferCancel(ctx, ctx.Doer, ctx.Repo.Repository)
+
+	return nil
 }

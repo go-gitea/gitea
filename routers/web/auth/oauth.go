@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/audit"
 	auth_service "code.gitea.io/gitea/services/auth"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
@@ -556,6 +557,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
 		return
 	}
+
 	grant, err := app.GetGrantByUserID(ctx, ctx.Doer.ID)
 	if err != nil {
 		handleServerError(ctx, form.State, form.RedirectURI)
@@ -579,6 +581,18 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		}, form.RedirectURI)
 		return
 	}
+
+	owner, err := user_model.GetUserByID(ctx, app.UID)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
+		handleAuthorizeError(ctx, AuthorizeError{
+			State:            form.State,
+			ErrorDescription: "cannot find user",
+			ErrorCode:        ErrorCodeServerError,
+		}, form.RedirectURI)
+		return
+	}
+
+	audit.RecordUserOAuth2ApplicationGrant(ctx, ctx.Doer, owner, app, grant)
 
 	if len(form.Nonce) > 0 {
 		err := grant.SetNonce(ctx, form.Nonce)
@@ -1166,7 +1180,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			SetLastLogin: true,
 		}
 		opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(ctx, user_model.NewAuthenticationSourceUser(), u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -1203,7 +1217,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	opts := &user_service.UpdateOptions{}
 	opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
 	if opts.IsAdmin.Has() || opts.IsRestricted.Has() {
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(ctx, user_model.NewAuthenticationSourceUser(), u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}

@@ -66,7 +66,7 @@ func ProfilePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateProfileForm)
 
 	if form.Name != "" {
-		if err := user_service.RenameUser(ctx, ctx.Doer, form.Name); err != nil {
+		if err := user_service.RenameUser(ctx, ctx.Doer, ctx.Doer, form.Name); err != nil {
 			switch {
 			case user_model.IsErrUserIsNotLocal(err):
 				ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
@@ -96,12 +96,11 @@ func ProfilePost(ctx *context.Context) {
 		Visibility:          optional.Some(form.Visibility),
 		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
 	}
-	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
 
-	log.Trace("User settings updated: %s", ctx.Doer.Name)
 	ctx.Flash.Success(ctx.Tr("settings.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
@@ -363,7 +362,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 	opts := &user_service.UpdateOptions{
 		Theme: optional.Some(form.Theme),
 	}
-	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.theme_update_success"))
@@ -389,7 +388,7 @@ func UpdateUserLang(ctx *context.Context) {
 	opts := &user_service.UpdateOptions{
 		Language: optional.Some(form.Language),
 	}
-	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}

@@ -62,7 +62,7 @@ func runChangePassword(c *cli.Context) error {
 		Password:           optional.Some(c.String("password")),
 		MustChangePassword: optional.Some(c.Bool("must-change-password")),
 	}
-	if err := user_service.UpdateAuth(ctx, user, opts); err != nil {
+	if err := user_service.UpdateAuth(ctx, user_model.NewCLIUser(), user, opts); err != nil {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
 			return fmt.Errorf("password is not long enough, needs to be at least %d characters", setting.MinPasswordLength)

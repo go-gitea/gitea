@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
@@ -58,8 +60,8 @@ func Webhooks(ctx *context.Context) {
 }
 
 type ownerRepoCtx struct {
-	OwnerID         int64
-	RepoID          int64
+	Owner           *user_model.User
+	Repo            *repo_model.Repository
 	IsAdmin         bool
 	IsSystemWebhook bool
 	Link            string
@@ -71,7 +73,7 @@ type ownerRepoCtx struct {
 func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &ownerRepoCtx{
-			RepoID:      ctx.Repo.Repository.ID,
+			Repo:        ctx.Repo.Repository,
 			Link:        path.Join(ctx.Repo.RepoLink, "settings/hooks"),
 			LinkNew:     path.Join(ctx.Repo.RepoLink, "settings/hooks"),
 			NewTemplate: tplHookNew,
@@ -80,7 +82,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 
 	if ctx.Data["PageIsOrgSettings"] == true {
 		return &ownerRepoCtx{
-			OwnerID:     ctx.ContextUser.ID,
+			Owner:       ctx.ContextUser,
 			Link:        path.Join(ctx.Org.OrgLink, "settings/hooks"),
 			LinkNew:     path.Join(ctx.Org.OrgLink, "settings/hooks"),
 			NewTemplate: tplOrgHookNew,
@@ -89,7 +91,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 
 	if ctx.Data["PageIsUserSettings"] == true {
 		return &ownerRepoCtx{
-			OwnerID:     ctx.Doer.ID,
+			Owner:       ctx.Doer,
 			Link:        path.Join(setting.AppSubURL, "/user/settings/hooks"),
 			LinkNew:     path.Join(setting.AppSubURL, "/user/settings/hooks"),
 			NewTemplate: tplUserHookNew,
@@ -229,8 +231,17 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		}
 	}
 
+	repoID := int64(0)
+	if orCtx.Repo != nil {
+		repoID = orCtx.Repo.ID
+	}
+	ownerID := int64(0)
+	if orCtx.Owner != nil {
+		ownerID = orCtx.Owner.ID
+	}
+
 	w := &webhook.Webhook{
-		RepoID:          orCtx.RepoID,
+		RepoID:          repoID,
 		URL:             params.URL,
 		HTTPMethod:      params.HTTPMethod,
 		ContentType:     params.ContentType,
@@ -239,7 +250,7 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		IsActive:        params.WebhookForm.Active,
 		Type:            params.Type,
 		Meta:            string(meta),
-		OwnerID:         orCtx.OwnerID,
+		OwnerID:         ownerID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
 	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
@@ -254,6 +265,8 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
+
+	audit.RecordWebhookAdd(ctx, ctx.Doer, orCtx.Owner, orCtx.Repo, w)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
 	ctx.Redirect(orCtx.Link)
@@ -306,6 +319,8 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 		ctx.ServerError("UpdateWebhook", err)
 		return
 	}
+
+	audit.RecordWebhookUpdate(ctx, ctx.Doer, orCtx.Owner, orCtx.Repo, w)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
@@ -591,10 +606,10 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 	ctx.Data["BaseLinkNew"] = orCtx.LinkNew
 
 	var w *webhook.Webhook
-	if orCtx.RepoID > 0 {
-		w, err = webhook.GetWebhookByRepoID(ctx, orCtx.RepoID, ctx.PathParamInt64(":id"))
-	} else if orCtx.OwnerID > 0 {
-		w, err = webhook.GetWebhookByOwnerID(ctx, orCtx.OwnerID, ctx.PathParamInt64(":id"))
+	if orCtx.Repo != nil {
+		w, err = webhook.GetWebhookByRepoID(ctx, orCtx.Repo.ID, ctx.PathParamInt64(":id"))
+	} else if orCtx.Owner != nil {
+		w, err = webhook.GetWebhookByOwnerID(ctx, orCtx.Owner.ID, ctx.PathParamInt64(":id"))
 	} else if orCtx.IsAdmin {
 		w, err = webhook.GetSystemOrDefaultWebhook(ctx, ctx.PathParamInt64(":id"))
 	}
@@ -728,9 +743,17 @@ func ReplayWebhook(ctx *context.Context) {
 
 // DeleteWebhook delete a webhook
 func DeleteWebhook(ctx *context.Context) {
+	hook, err := webhook.GetWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.ServerError("GetWebhookByRepoID", err)
+		return
+	}
+
 	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByRepoID: " + err.Error())
 	} else {
+		audit.RecordWebhookRemove(ctx, ctx.Doer, nil, ctx.Repo.Repository, hook)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 

@@ -205,13 +205,13 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 			ctx.Error(http.StatusUnprocessableEntity, "alreadyAdded", fmt.Errorf("team '%s' is already added to repo", team.Name))
 			return
 		}
-		err = org_service.TeamAddRepository(ctx, team, ctx.Repo.Repository)
+		err = org_service.TeamAddRepository(ctx, ctx.Doer, team, ctx.Repo.Repository)
 	} else {
 		if !repoHasTeam {
 			ctx.Error(http.StatusUnprocessableEntity, "notAdded", fmt.Errorf("team '%s' was not added to repo", team.Name))
 			return
 		}
-		err = repo_service.RemoveRepositoryFromTeam(ctx, team, ctx.Repo.Repository.ID)
+		err = repo_service.RemoveRepositoryFromTeam(ctx, ctx.Doer, team, ctx.Repo.Repository)
 	}
 	if err != nil {
 		ctx.InternalServerError(err)

@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
@@ -207,6 +208,8 @@ func NewUserPost(ctx *context.Context) {
 		ctx.Flash.Warning(ctx.Tr("form.email_domain_is_not_allowed", u.Email))
 	}
 
+	audit.RecordUserCreate(ctx, ctx.Doer, u)
+
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	// Send email notification.
@@ -348,7 +351,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if form.UserName != "" {
-		if err := user_service.RenameUser(ctx, u, form.UserName); err != nil {
+		if err := user_service.RenameUser(ctx, ctx.Doer, u, form.UserName); err != nil {
 			switch {
 			case user_model.IsErrUserIsNotLocal(err):
 				ctx.Data["Err_UserName"] = true
@@ -391,7 +394,7 @@ func EditUserPost(ctx *context.Context) {
 		authOpts.LoginSource = optional.Some(authSource)
 	}
 
-	if err := user_service.UpdateAuth(ctx, u, authOpts); err != nil {
+	if err := user_service.UpdateAuth(ctx, ctx.Doer, u, authOpts); err != nil {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
 			ctx.Data["Err_Password"] = true
@@ -406,13 +409,13 @@ func EditUserPost(ctx *context.Context) {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplUserEdit, &form)
 		default:
-			ctx.ServerError("UpdateUser", err)
+			ctx.ServerError("UpdateAuth", err)
 		}
 		return
 	}
 
 	if form.Email != "" {
-		if err := user_service.AdminAddOrSetPrimaryEmailAddress(ctx, u, form.Email); err != nil {
+		if err := user_service.AdminAddOrSetPrimaryEmailAddress(ctx, ctx.Doer, u, form.Email); err != nil {
 			switch {
 			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
 				ctx.Data["Err_Email"] = true
@@ -445,7 +448,7 @@ func EditUserPost(ctx *context.Context) {
 		Language:                optional.Some(form.Language),
 	}
 
-	if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, u, opts); err != nil {
 		if models.IsErrDeleteLastAdminUser(err) {
 			ctx.RenderWithErr(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
 		} else {
@@ -499,7 +502,7 @@ func DeleteUser(ctx *context.Context) {
 		return
 	}
 
-	if err = user_service.DeleteUser(ctx, u, ctx.FormBool("purge")); err != nil {
+	if err = user_service.DeleteUser(ctx, ctx.Doer, u, ctx.FormBool("purge")); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))

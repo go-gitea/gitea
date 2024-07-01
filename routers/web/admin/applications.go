@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -20,9 +21,10 @@ var (
 	tplSettingsOauth2ApplicationEdit base.TplName = "admin/applications/oauth2_edit"
 )
 
-func newOAuth2CommonHandlers() *user_setting.OAuth2CommonHandlers {
+func newOAuth2CommonHandlers(doer *user_model.User) *user_setting.OAuth2CommonHandlers {
 	return &user_setting.OAuth2CommonHandlers{
-		OwnerID:            0,
+		Doer:               doer,
+		Owner:              nil,
 		BasePathList:       fmt.Sprintf("%s/admin/applications", setting.AppSubURL),
 		BasePathEditPrefix: fmt.Sprintf("%s/admin/applications/oauth2", setting.AppSubURL),
 		TplAppEdit:         tplSettingsOauth2ApplicationEdit,
@@ -51,7 +53,7 @@ func ApplicationsPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.applications")
 	ctx.Data["PageIsAdminApplications"] = true
 
-	oa := newOAuth2CommonHandlers()
+	oa := newOAuth2CommonHandlers(ctx.Doer)
 	oa.AddApp(ctx)
 }
 
@@ -59,7 +61,7 @@ func ApplicationsPost(ctx *context.Context) {
 func EditApplication(ctx *context.Context) {
 	ctx.Data["PageIsAdminApplications"] = true
 
-	oa := newOAuth2CommonHandlers()
+	oa := newOAuth2CommonHandlers(ctx.Doer)
 	oa.EditShow(ctx)
 }
 
@@ -68,7 +70,7 @@ func EditApplicationPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.applications")
 	ctx.Data["PageIsAdminApplications"] = true
 
-	oa := newOAuth2CommonHandlers()
+	oa := newOAuth2CommonHandlers(ctx.Doer)
 	oa.EditSave(ctx)
 }
 
@@ -77,13 +79,13 @@ func ApplicationsRegenerateSecret(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsAdminApplications"] = true
 
-	oa := newOAuth2CommonHandlers()
+	oa := newOAuth2CommonHandlers(ctx.Doer)
 	oa.RegenerateSecret(ctx)
 }
 
 // DeleteApplication deletes the given oauth2 application
 func DeleteApplication(ctx *context.Context) {
-	oa := newOAuth2CommonHandlers()
+	oa := newOAuth2CommonHandlers(ctx.Doer)
 	oa.DeleteApp(ctx)
 }
 

@@ -30,6 +30,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
@@ -402,6 +403,9 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 		if err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
 			return err
 		}
+
+		audit.RecordRepositoryTransferCancel(ctx, ctx.Doer, ctx.Repo.Repository)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
 	}
 

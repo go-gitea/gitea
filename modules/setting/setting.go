@@ -148,6 +148,8 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
 	loadOtherFrom(cfg)
+	loadQueueFrom(cfg)
+	loadAuditFrom(cfg)
 	return nil
 }
 
@@ -212,7 +214,7 @@ func LoadSettings() {
 	loadMigrationsFrom(CfgProvider)
 	loadIndexerFrom(CfgProvider)
 	loadTaskFrom(CfgProvider)
-	LoadQueueSettings()
+	loadQueueFrom(CfgProvider)
 	loadProjectFrom(CfgProvider)
 	loadMimeTypeMapFrom(CfgProvider)
 	loadFederationFrom(CfgProvider)

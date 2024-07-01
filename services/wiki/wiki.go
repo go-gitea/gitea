@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/audit"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -351,12 +352,15 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 }
 
 // DeleteWiki removes the actual and local copy of repository wiki.
-func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
+func DeleteWiki(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) error {
 	if err := repo_service.UpdateRepositoryUnits(ctx, repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
 		return err
 	}
 
 	system_model.RemoveAllWithNotice(ctx, "Delete repository wiki", repo.WikiPath())
+
+	audit.RecordRepositoryWikiDelete(ctx, doer, repo)
+
 	return nil
 }
 

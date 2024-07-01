@@ -14,6 +14,7 @@ import (
 	pwd "code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/audit"
 
 	"github.com/urfave/cli/v2"
 )
@@ -103,6 +104,9 @@ func runCreateUser(c *cli.Context) error {
 			return err
 		}
 	}
+	if err := audit.Init(); err != nil {
+		return err
+	}
 
 	var password string
 	if c.IsSet("password") {
@@ -162,6 +166,8 @@ func runCreateUser(c *cli.Context) error {
 		return fmt.Errorf("CreateUser: %w", err)
 	}
 
+	audit.RecordUserCreate(ctx, user_model.NewCLIUser(), u)
+
 	if c.Bool("access-token") {
 		t := &auth_model.AccessToken{
 			Name: "gitea-admin",
@@ -171,6 +177,8 @@ func runCreateUser(c *cli.Context) error {
 		if err := auth_model.NewAccessToken(ctx, t); err != nil {
 			return err
 		}
+
+		audit.RecordUserAccessTokenAdd(ctx, user_model.NewCLIUser(), u, t)
 
 		fmt.Printf("Access token was successfully created... %s\n", t.Token)
 	}

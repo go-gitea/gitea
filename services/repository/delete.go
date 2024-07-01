@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/audit"
 
 	"xorm.io/builder"
 )
@@ -401,18 +402,13 @@ func HasRepository(ctx context.Context, t *organization.Team, repoID int64) bool
 
 // RemoveRepositoryFromTeam removes repository from team of organization.
 // If the team shall include all repositories the request is ignored.
-func RemoveRepositoryFromTeam(ctx context.Context, t *organization.Team, repoID int64) error {
-	if !HasRepository(ctx, t, repoID) {
+func RemoveRepositoryFromTeam(ctx context.Context, doer *user_model.User, t *organization.Team, repo *repo_model.Repository) error {
+	if !HasRepository(ctx, t, repo.ID) {
 		return nil
 	}
 
 	if t.IncludesAllRepositories {
 		return nil
-	}
-
-	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-	if err != nil {
-		return err
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -425,7 +421,13 @@ func RemoveRepositoryFromTeam(ctx context.Context, t *organization.Team, repoID 
 		return err
 	}
 
-	return committer.Commit()
+	if err := committer.Commit(); err != nil {
+		return err
+	}
+
+	audit.RecordRepositoryCollaboratorTeamRemove(ctx, doer, repo, t)
+
+	return nil
 }
 
 // DeleteOwnerRepositoriesDirectly calls DeleteRepositoryDirectly for all repos of the given owner

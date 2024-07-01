@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/repo"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -234,6 +235,8 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.UnprotectedFilePatterns = f.UnprotectedFilePatterns
 	protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
 
+	isNewProtectedBranch := protectBranch.ID == 0
+
 	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
@@ -245,6 +248,12 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("UpdateProtectBranch", err)
 		return
+	}
+
+	if isNewProtectedBranch {
+		audit.RecordRepositoryBranchProtectionAdd(ctx, ctx.Doer, ctx.Repo.Repository, protectBranch)
+	} else {
+		audit.RecordRepositoryBranchProtectionUpdate(ctx, ctx.Doer, ctx.Repo.Repository, protectBranch)
 	}
 
 	// FIXME: since we only need to recheck files protected rules, we could improve this
@@ -291,6 +300,8 @@ func DeleteProtectedBranchRulePost(ctx *context.Context) {
 		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
 		return
 	}
+
+	audit.RecordRepositoryBranchProtectionRemove(ctx, ctx.Doer, ctx.Repo.Repository, rule)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success", rule.RuleName))
 	ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))

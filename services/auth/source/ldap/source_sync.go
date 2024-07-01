@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/audit"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -132,22 +133,37 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			err = user_model.CreateUser(ctx, usr, overwriteDefault)
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.authSource.Name, su.Username, err)
-			}
+			} else {
+				audit.RecordUserCreate(ctx, user_model.NewAuthenticationSourceUser(), usr)
 
-			if err == nil && isAttributeSSHPublicKeySet {
-				log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.authSource.Name, usr.Name)
-				if asymkey_model.AddPublicKeysBySource(ctx, usr, source.authSource, su.SSHPublicKey) {
-					sshKeysNeedUpdate = true
+				if isAttributeSSHPublicKeySet {
+					log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.authSource.Name, usr.Name)
+					if addedKeys := asymkey_model.AddPublicKeysBySource(ctx, usr, source.authSource, su.SSHPublicKey); len(addedKeys) > 0 {
+						sshKeysNeedUpdate = true
+
+						for _, key := range addedKeys {
+							audit.RecordUserKeySSHAdd(ctx, user_model.NewAuthenticationSourceUser(), usr, key)
+						}
+					}
 				}
-			}
 
-			if err == nil && len(source.AttributeAvatar) > 0 {
-				_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
+				if len(source.AttributeAvatar) > 0 {
+					_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
+				}
 			}
 		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
-			if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, usr, source.authSource, su.SSHPublicKey) {
-				sshKeysNeedUpdate = true
+			if isAttributeSSHPublicKeySet {
+				if addedKeys, deletedKeys := asymkey_model.SynchronizePublicKeys(ctx, usr, source.authSource, su.SSHPublicKey); len(addedKeys) > 0 || len(deletedKeys) > 0 {
+					sshKeysNeedUpdate = true
+
+					for _, key := range addedKeys {
+						audit.RecordUserKeySSHAdd(ctx, user_model.NewAuthenticationSourceUser(), usr, key)
+					}
+					for _, key := range deletedKeys {
+						audit.RecordUserKeySSHRemove(ctx, user_model.NewAuthenticationSourceUser(), usr, key)
+					}
+				}
 			}
 
 			// Check if user data has changed
@@ -170,11 +186,11 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 					opts.IsRestricted = optional.Some(su.IsRestricted)
 				}
 
-				if err := user_service.UpdateUser(ctx, usr, opts); err != nil {
+				if err := user_service.UpdateUser(ctx, user_model.NewAuthenticationSourceUser(), usr, opts); err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.authSource.Name, usr.Name, err)
 				}
 
-				if err := user_service.ReplacePrimaryEmailAddress(ctx, usr, su.Mail); err != nil {
+				if err := user_service.ReplacePrimaryEmailAddress(ctx, user_model.NewAuthenticationSourceUser(), usr, su.Mail); err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s primary email %s: %v", source.authSource.Name, usr.Name, su.Mail, err)
 				}
 			}
@@ -220,7 +236,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			opts := &user_service.UpdateOptions{
 				IsActive: optional.Some(false),
 			}
-			if err := user_service.UpdateUser(ctx, usr, opts); err != nil {
+			if err := user_service.UpdateUser(ctx, user_model.NewAuthenticationSourceUser(), usr, opts); err != nil {
 				log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
 			}
 		}

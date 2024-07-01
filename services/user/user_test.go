@@ -34,7 +34,7 @@ func TestDeleteUser(t *testing.T) {
 		ownedRepos := make([]*repo_model.Repository, 0, 10)
 		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&ownedRepos, &repo_model.Repository{OwnerID: userID}))
 		if len(ownedRepos) > 0 {
-			err := DeleteUser(db.DefaultContext, user, false)
+			err := DeleteUser(db.DefaultContext, user, user, false)
 			assert.Error(t, err)
 			assert.True(t, models.IsErrUserOwnRepos(err))
 			return
@@ -49,7 +49,7 @@ func TestDeleteUser(t *testing.T) {
 				return
 			}
 		}
-		assert.NoError(t, DeleteUser(db.DefaultContext, user, false))
+		assert.NoError(t, DeleteUser(db.DefaultContext, user, user, false))
 		unittest.AssertNotExistsBean(t, &user_model.User{ID: userID})
 		unittest.CheckConsistencyFor(t, &user_model.User{}, &repo_model.Repository{})
 	}
@@ -59,7 +59,7 @@ func TestDeleteUser(t *testing.T) {
 	test(11)
 
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
-	assert.Error(t, DeleteUser(db.DefaultContext, org, false))
+	assert.Error(t, DeleteUser(db.DefaultContext, org, org, false))
 }
 
 func TestPurgeUser(t *testing.T) {
@@ -67,7 +67,7 @@ func TestPurgeUser(t *testing.T) {
 		assert.NoError(t, unittest.PrepareTestDatabase())
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
 
-		err := DeleteUser(db.DefaultContext, user, true)
+		err := DeleteUser(db.DefaultContext, user, user, true)
 		assert.NoError(t, err)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{ID: userID})
@@ -79,7 +79,7 @@ func TestPurgeUser(t *testing.T) {
 	test(11)
 
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
-	assert.Error(t, DeleteUser(db.DefaultContext, org, false))
+	assert.Error(t, DeleteUser(db.DefaultContext, org, org, false))
 }
 
 func TestCreateUser(t *testing.T) {
@@ -94,7 +94,7 @@ func TestCreateUser(t *testing.T) {
 
 	assert.NoError(t, user_model.CreateUser(db.DefaultContext, user))
 
-	assert.NoError(t, DeleteUser(db.DefaultContext, user, false))
+	assert.NoError(t, DeleteUser(db.DefaultContext, user, user, false))
 }
 
 func TestRenameUser(t *testing.T) {
@@ -106,11 +106,11 @@ func TestRenameUser(t *testing.T) {
 			Type:      user_model.UserTypeIndividual,
 			LoginType: auth.OAuth2,
 		}
-		assert.ErrorIs(t, RenameUser(db.DefaultContext, u, "user_rename"), user_model.ErrUserIsNotLocal{})
+		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, u, "user_rename"), user_model.ErrUserIsNotLocal{})
 	})
 
 	t.Run("Same username", func(t *testing.T) {
-		assert.NoError(t, RenameUser(db.DefaultContext, user, user.Name))
+		assert.NoError(t, RenameUser(db.DefaultContext, user, user, user.Name))
 	})
 
 	t.Run("Non usable username", func(t *testing.T) {
@@ -118,7 +118,7 @@ func TestRenameUser(t *testing.T) {
 		for _, username := range usernames {
 			t.Run(username, func(t *testing.T) {
 				assert.Error(t, user_model.IsUsableUsername(username))
-				assert.Error(t, RenameUser(db.DefaultContext, user, username))
+				assert.Error(t, RenameUser(db.DefaultContext, user, user, username))
 			})
 		}
 	})
@@ -128,7 +128,7 @@ func TestRenameUser(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &user_model.User{ID: user.ID, Name: caps})
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: user.Name})
 
-		assert.NoError(t, RenameUser(db.DefaultContext, user, caps))
+		assert.NoError(t, RenameUser(db.DefaultContext, user, user, caps))
 
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: caps})
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: caps})
@@ -137,17 +137,17 @@ func TestRenameUser(t *testing.T) {
 	t.Run("Already exists", func(t *testing.T) {
 		existUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, existUser.Name), user_model.ErrUserAlreadyExist{Name: existUser.Name})
-		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, existUser.LowerName), user_model.ErrUserAlreadyExist{Name: existUser.LowerName})
+		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, user, existUser.Name), user_model.ErrUserAlreadyExist{Name: existUser.Name})
+		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, user, existUser.LowerName), user_model.ErrUserAlreadyExist{Name: existUser.LowerName})
 		newUsername := fmt.Sprintf("uSEr%d", existUser.ID)
-		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, newUsername), user_model.ErrUserAlreadyExist{Name: newUsername})
+		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, user, newUsername), user_model.ErrUserAlreadyExist{Name: newUsername})
 	})
 
 	t.Run("Normal", func(t *testing.T) {
 		oldUsername := user.Name
 		newUsername := "User_Rename"
 
-		assert.NoError(t, RenameUser(db.DefaultContext, user, newUsername))
+		assert.NoError(t, RenameUser(db.DefaultContext, user, user, newUsername))
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: newUsername, LowerName: strings.ToLower(newUsername)})
 
 		redirectUID, err := user_model.LookupUserRedirect(db.DefaultContext, oldUsername)
@@ -184,7 +184,7 @@ func TestCreateUser_Issue5882(t *testing.T) {
 
 		assert.Equal(t, !u.AllowCreateOrganization, v.disableOrgCreation)
 
-		assert.NoError(t, DeleteUser(db.DefaultContext, v.user, false))
+		assert.NoError(t, DeleteUser(db.DefaultContext, v.user, v.user, false))
 	}
 }
 
@@ -203,7 +203,7 @@ func TestDeleteInactiveUsers(t *testing.T) {
 	addUser("user-active-5", "user-active-5@test.com", timeutil.TimeStampNow().Add(-300), true)
 	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-inactive-10"})
 	unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{Email: "user-inactive-10@test.com"})
-	assert.NoError(t, DeleteInactiveUsers(db.DefaultContext, 8*time.Minute))
+	assert.NoError(t, DeleteInactiveUsers(db.DefaultContext, user_model.NewGhostUser(), 8*time.Minute))
 	unittest.AssertNotExistsBean(t, &user_model.User{Name: "user-inactive-10"})
 	unittest.AssertNotExistsBean(t, &user_model.EmailAddress{Email: "user-inactive-10@test.com"})
 	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-inactive-5"})

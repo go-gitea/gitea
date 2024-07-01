@@ -14,6 +14,7 @@ import (
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/optional"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/audit"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -60,7 +61,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 				opts.IsRestricted = optional.Some(sr.IsRestricted)
 			}
 			if opts.IsAdmin.Has() || opts.IsRestricted.Has() {
-				if err := user_service.UpdateUser(ctx, user, opts); err != nil {
+				if err := user_service.UpdateUser(ctx, user_model.NewAuthenticationSourceUser(), user, opts); err != nil {
 					return nil, err
 				}
 			}
@@ -68,9 +69,18 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	}
 
 	if user != nil {
-		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, user, source.authSource, sr.SSHPublicKey) {
-			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
-				return user, err
+		if isAttributeSSHPublicKeySet {
+			if addedKeys, deletedKeys := asymkey_model.SynchronizePublicKeys(ctx, user, source.authSource, sr.SSHPublicKey); len(addedKeys) > 0 || len(deletedKeys) > 0 {
+				for _, key := range addedKeys {
+					audit.RecordUserKeySSHAdd(ctx, user_model.NewAuthenticationSourceUser(), user, key)
+				}
+				for _, key := range deletedKeys {
+					audit.RecordUserKeySSHRemove(ctx, user_model.NewAuthenticationSourceUser(), user, key)
+				}
+
+				if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
+					return user, err
+				}
 			}
 		}
 	} else {
@@ -94,9 +104,17 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 			return user, err
 		}
 
-		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(ctx, user, source.authSource, sr.SSHPublicKey) {
-			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
-				return user, err
+		audit.RecordUserCreate(ctx, user_model.NewAuthenticationSourceUser(), user)
+
+		if isAttributeSSHPublicKeySet {
+			if addedKeys := asymkey_model.AddPublicKeysBySource(ctx, user, source.authSource, sr.SSHPublicKey); len(addedKeys) > 0 {
+				for _, key := range addedKeys {
+					audit.RecordUserKeySSHAdd(ctx, user_model.NewAuthenticationSourceUser(), user, key)
+				}
+
+				if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
+					return user, err
+				}
 			}
 		}
 		if len(source.AttributeAvatar) > 0 {

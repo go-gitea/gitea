@@ -51,5 +51,10 @@
 			</div>
 		</details>
 		{{end}}
+		{{if .EnableAuditLogs}}
+			<a class="{{if .PageIsSettingsAudit}}active {{end}}item" href="{{.RepoLink}}/settings/audit_logs">
+				{{ctx.Locale.Tr "admin.monitor.audit.title"}}
+			</a>
+		{{end}}
 	</div>
 </div>

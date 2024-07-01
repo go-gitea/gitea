@@ -14,6 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/audit"
 )
 
 // Authenticate queries if the provided login/password is authenticates against the SMTP server
@@ -82,6 +83,8 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {
 		return user, err
 	}
+
+	audit.RecordUserCreate(ctx, user_model.NewAuthenticationSourceUser(), user)
 
 	return user, nil
 }

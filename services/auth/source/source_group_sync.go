@@ -12,6 +12,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/audit"
 )
 
 type syncType int
@@ -104,11 +105,15 @@ func syncGroupsToTeamsCached(ctx context.Context, user *user_model.User, orgTeam
 					log.Error("group sync: Could not add user to team: %v", err)
 					return err
 				}
+
+				audit.RecordOrganizationTeamMemberAdd(ctx, user_model.NewAuthenticationSourceUser(), org, team, user)
 			} else if action == syncRemove && isMember {
 				if err := models.RemoveTeamMember(ctx, team, user); err != nil {
 					log.Error("group sync: Could not remove user from team: %v", err)
 					return err
 				}
+
+				audit.RecordOrganizationTeamMemberRemove(ctx, user_model.NewAuthenticationSourceUser(), org, team, user)
 			}
 		}
 	}

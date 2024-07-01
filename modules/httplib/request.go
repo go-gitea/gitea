@@ -204,3 +204,14 @@ func TimeoutDialer(cTimeout time.Duration) func(ctx context.Context, net, addr s
 func (r *Request) GoString() string {
 	return fmt.Sprintf("%s %s", r.req.Method, r.url)
 }
+
+func TryGetIPAddress(ctx context.Context) string {
+	if req, _ := ctx.Value(RequestContextKey).(*http.Request); req != nil {
+		host, _, err := net.SplitHostPort(req.RemoteAddr)
+		if err != nil {
+			return req.RemoteAddr
+		}
+		return host
+	}
+	return ""
+}

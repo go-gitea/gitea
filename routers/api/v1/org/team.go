@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	org_service "code.gitea.io/gitea/services/org"
@@ -249,6 +250,8 @@ func CreateTeam(ctx *context.APIContext) {
 		return
 	}
 
+	audit.RecordOrganizationTeamAdd(ctx, ctx.Doer, ctx.Org.Organization, team)
+
 	apiTeam, err := convert.ToTeam(ctx, team, true)
 	if err != nil {
 		ctx.InternalServerError(err)
@@ -284,6 +287,13 @@ func EditTeam(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditTeamOption)
 	team := ctx.Org.Team
+
+	org, err := organization.GetOrgByID(ctx, team.OrgID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetOrgByID", err)
+		return
+	}
+
 	if err := team.LoadUnits(ctx); err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -336,6 +346,11 @@ func EditTeam(ctx *context.APIContext) {
 		return
 	}
 
+	audit.RecordOrganizationTeamUpdate(ctx, ctx.Doer, org, team)
+	if isAuthChanged {
+		audit.RecordOrganizationTeamPermission(ctx, ctx.Doer, org, team)
+	}
+
 	apiTeam, err := convert.ToTeam(ctx, team)
 	if err != nil {
 		ctx.InternalServerError(err)
@@ -362,10 +377,19 @@ func DeleteTeam(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	org, err := organization.GetOrgByID(ctx, ctx.Org.Team.OrgID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetOrgByID", err)
+		return
+	}
+
 	if err := models.DeleteTeam(ctx, ctx.Org.Team); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteTeam", err)
 		return
 	}
+
+	audit.RecordOrganizationTeamRemove(ctx, ctx.Doer, org, ctx.Org.Team)
+
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -504,6 +528,15 @@ func AddTeamMember(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	org, err := organization.GetOrgByID(ctx, ctx.Org.Team.OrgID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetOrgByID", err)
+		return
+	}
+
+	audit.RecordOrganizationTeamMemberAdd(ctx, ctx.Doer, org, ctx.Org.Team, u)
+
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -541,6 +574,15 @@ func RemoveTeamMember(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "RemoveTeamMember", err)
 		return
 	}
+
+	org, err := organization.GetOrgByID(ctx, ctx.Org.Team.OrgID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetOrgByID", err)
+		return
+	}
+
+	audit.RecordOrganizationTeamMemberRemove(ctx, ctx.Doer, org, ctx.Org.Team, u)
+
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -700,7 +742,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
-	if err := org_service.TeamAddRepository(ctx, ctx.Org.Team, repo); err != nil {
+	if err := org_service.TeamAddRepository(ctx, ctx.Doer, ctx.Org.Team, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "TeamAddRepository", err)
 		return
 	}
@@ -752,10 +794,11 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
-	if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, repo.ID); err != nil {
+	if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Doer, ctx.Org.Team, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "RemoveRepository", err)
 		return
 	}
+
 	ctx.Status(http.StatusNoContent)
 }
 
