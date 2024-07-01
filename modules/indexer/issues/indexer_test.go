@@ -31,6 +31,7 @@ func TestDBSearchIssues(t *testing.T) {
 	InitIssueIndexer(true)
 
 	t.Run("search issues with keyword", searchIssueWithKeyword)
+	t.Run("search issues by index", searchIssueByIndex)
 	t.Run("search issues in repo", searchIssueInRepo)
 	t.Run("search issues by ID", searchIssueByID)
 	t.Run("search issues is pr", searchIssueIsPull)
@@ -75,6 +76,43 @@ func searchIssueWithKeyword(t *testing.T) {
 				RepoIDs: []int64{1},
 			},
 			[]int64{1},
+		},
+	}
+
+	for _, test := range tests {
+		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		if !assert.NoError(t, err) {
+			return
+		}
+		assert.Equal(t, test.expectedIDs, issueIDs)
+	}
+}
+
+func searchIssueByIndex(t *testing.T) {
+	tests := []struct {
+		opts        SearchOptions
+		expectedIDs []int64
+	}{
+		{
+			SearchOptions{
+				Keyword: "1000",
+				RepoIDs: []int64{1},
+			},
+			[]int64{},
+		},
+		{
+			SearchOptions{
+				Keyword: "2",
+				RepoIDs: []int64{1, 2, 3, 32},
+			},
+			[]int64{17, 12, 7, 2},
+		},
+		{
+			SearchOptions{
+				Keyword: "1",
+				RepoIDs: []int64{58},
+			},
+			[]int64{19},
 		},
 	}
 
