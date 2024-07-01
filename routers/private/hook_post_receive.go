@@ -323,7 +323,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 func loadContextCacheUser(ctx context.Context, id int64) (*user_model.User, error) {
 	return cache.GetWithContextCache(ctx, "hook_post_receive_user", id, func() (*user_model.User, error) {
-		return user_model.GetUserByID(ctx, id)
+		return user_model.GetPossibleUserByID(ctx, id)
 	})
 }
 
