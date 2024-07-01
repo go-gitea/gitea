@@ -136,6 +136,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 	}
 
 	pushWhitelistUsernames := getWhitelistEntities(readers, bp.WhitelistUserIDs)
+	forcePushWhitelistUsernames := getWhitelistEntities(readers, bp.ForcePushWhitelistUserIDs)
 	mergeWhitelistUsernames := getWhitelistEntities(readers, bp.MergeWhitelistUserIDs)
 	approvalsWhitelistUsernames := getWhitelistEntities(readers, bp.ApprovalsWhitelistUserIDs)
 
@@ -145,6 +146,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 	}
 
 	pushWhitelistTeams := getWhitelistEntities(teamReaders, bp.WhitelistTeamIDs)
+	forcePushWhitelistTeams := getWhitelistEntities(teamReaders, bp.ForcePushWhitelistTeamIDs)
 	mergeWhitelistTeams := getWhitelistEntities(teamReaders, bp.MergeWhitelistTeamIDs)
 	approvalsWhitelistTeams := getWhitelistEntities(teamReaders, bp.ApprovalsWhitelistTeamIDs)
 
@@ -161,6 +163,11 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		PushWhitelistUsernames:        pushWhitelistUsernames,
 		PushWhitelistTeams:            pushWhitelistTeams,
 		PushWhitelistDeployKeys:       bp.WhitelistDeployKeys,
+		EnableForcePush:               bp.CanForcePush,
+		EnableForcePushWhitelist:      bp.EnableForcePushWhitelist,
+		ForcePushWhitelistUsernames:   forcePushWhitelistUsernames,
+		ForcePushWhitelistTeams:       forcePushWhitelistTeams,
+		ForcePushWhitelistDeployKeys:  bp.ForcePushWhitelistDeployKeys,
 		EnableMergeWhitelist:          bp.EnableMergeWhitelist,
 		MergeWhitelistUsernames:       mergeWhitelistUsernames,
 		MergeWhitelistTeams:           mergeWhitelistTeams,
