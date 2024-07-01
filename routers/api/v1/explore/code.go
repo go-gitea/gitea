@@ -8,42 +8,52 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/base"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/convert"
 )
 
-const (
-	// tplExploreCode explore code page template
-	tplExploreCode base.TplName = "explore/code"
-)
-
-// Code render explore code page
-func Code(ctx *context.Context) {
+// Code explore code
+func Code(ctx *context.APIContext) {
+	// swagger:operation GET /explore/code explore codeSearch
+	// ---
+	// summary: Search for code
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: q
+	//   in: query
+	//   description: keyword
+	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: fuzzy
+	//   in: query
+	//   description: whether to search fuzzy or strict
+	//   type: boolean
+	// responses:
+	//   "200":
+	//     description: "SearchResults of a successful search"
+	//     schema:
+	//			 "$ref": "#/definitions/ExploreCodeResult"
 	if !setting.Indexer.RepoIndexerEnabled {
-		ctx.Redirect(setting.AppSubURL + "/explore")
+		ctx.NotFound("Indexer not enabled")
 		return
 	}
 
-	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["Title"] = ctx.Tr("explore")
-	ctx.Data["PageIsExplore"] = true
-	ctx.Data["PageIsExploreCode"] = true
-
-	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
 
 	isFuzzy := ctx.FormOptionalBool("fuzzy").ValueOrDefault(true)
 
-	ctx.Data["Keyword"] = keyword
-	ctx.Data["Language"] = language
-	ctx.Data["IsFuzzy"] = isFuzzy
-	ctx.Data["PageIsViewCode"] = true
-
 	if keyword == "" {
-		ctx.HTML(http.StatusOK, tplExploreCode)
+		ctx.JSON(http.StatusInternalServerError, api.SearchError{
+			OK:    false,
+			Error: "No keyword provided",
+		})
 		return
 	}
 
@@ -65,37 +75,39 @@ func Code(ctx *context.Context) {
 	if ctx.Doer == nil || !isAdmin {
 		repoIDs, err = repo_model.FindUserCodeAccessibleRepoIDs(ctx, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("FindUserCodeAccessibleRepoIDs", err)
+			ctx.JSON(http.StatusInternalServerError, api.SearchError{
+				OK:    false,
+				Error: err.Error(),
+			})
 			return
 		}
 	}
 
 	var (
-		total                 int
-		searchResults         []*code_indexer.Result
-		searchResultLanguages []*code_indexer.SearchResultLanguages
+		total         int
+		searchResults []*code_indexer.Result
+		repoMaps      map[int64]*repo_model.Repository
 	)
 
 	if (len(repoIDs) > 0) || isAdmin {
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
+		total, searchResults, _, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
 			RepoIDs:        repoIDs,
 			Keyword:        keyword,
 			IsKeywordFuzzy: isFuzzy,
-			IsHTMLSafe:     true,
-			Language:       language,
+			IsHTMLSafe:     false,
 			Paginator: &db.ListOptions{
 				Page:     page,
-				PageSize: setting.UI.RepoSearchPagingNum,
+				PageSize: setting.API.DefaultPagingNum,
 			},
 		})
 		if err != nil {
 			if code_indexer.IsAvailable(ctx) {
-				ctx.ServerError("SearchResults", err)
+				ctx.JSON(http.StatusInternalServerError, api.SearchError{
+					OK:    false,
+					Error: err.Error(),
+				})
 				return
 			}
-			ctx.Data["CodeIndexerUnavailable"] = true
-		} else {
-			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
 		}
 
 		loadRepoIDs := make([]int64, 0, len(searchResults))
@@ -112,13 +124,14 @@ func Code(ctx *context.Context) {
 			}
 		}
 
-		repoMaps, err := repo_model.GetRepositoriesMapByIDs(ctx, loadRepoIDs)
+		repoMaps, err = repo_model.GetRepositoriesMapByIDs(ctx, loadRepoIDs)
 		if err != nil {
-			ctx.ServerError("GetRepositoriesMapByIDs", err)
+			ctx.JSON(http.StatusInternalServerError, api.SearchError{
+				OK:    false,
+				Error: err.Error(),
+			})
 			return
 		}
-
-		ctx.Data["RepoMaps"] = repoMaps
 
 		if len(loadRepoIDs) != len(repoMaps) {
 			// Remove deleted repos from search results
@@ -133,13 +146,5 @@ func Code(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["SearchResults"] = searchResults
-	ctx.Data["SearchResultLanguages"] = searchResultLanguages
-
-	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParamString("l", language)
-	ctx.Data["Page"] = pager
-
-	ctx.HTML(http.StatusOK, tplExploreCode)
+	ctx.JSON(http.StatusOK, convert.ToExploreCodeSearchResults(total, searchResults, repoMaps))
 }
