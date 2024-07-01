@@ -1,6 +1,6 @@
 module code.gitea.io/gitea
 
-go 1.22
+go 1.22.2
 
 require (
 	code.gitea.io/actions-proto-go v0.4.0
