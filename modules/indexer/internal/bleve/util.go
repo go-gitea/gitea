@@ -50,12 +50,14 @@ func openIndexer(path string, latestVersion int) (bleve.Index, int, error) {
 
 func GuessFuzzinessByKeyword(s string) int {
 	// according to https://github.com/blevesearch/bleve/issues/1563, the supported max fuzziness is 2
-	// magic number 4 was chosen to determine the levenshtein distance per each character of a keyword
-	// BUT, when using CJK (eg: `갃갃갃` `啊啊啊`), it mismatches a lot.
+	// BUT, when using CJK (eg: `갃갃갃` `啊啊啊`), it mismatches a lot
+	// which we need to live with, as we need to support not just ASCII
+	// in case of code points >= 128 we will increase the fuzziness to 2
+	// the standard is 1
 	for _, r := range s {
 		if r >= 128 {
-			return 0
+			return 2
 		}
 	}
-	return min(2, len(s)/4)
+	return 1
 }
