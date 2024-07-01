@@ -91,9 +91,9 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	}
 	if len(issue.Assignees) > 0 {
 		for _, assignee := range issue.Assignees {
-			apiIssue.Assignees = append(apiIssue.Assignees, ToUser(ctx, assignee, nil))
+			apiIssue.Assignees = append(apiIssue.Assignees, ToUser(ctx, assignee, doer))
 		}
-		apiIssue.Assignee = ToUser(ctx, issue.Assignees[0], nil) // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
+		apiIssue.Assignee = ToUser(ctx, issue.Assignees[0], doer) // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
 	if issue.IsPull {
 		if err := issue.LoadPullRequest(ctx); err != nil {

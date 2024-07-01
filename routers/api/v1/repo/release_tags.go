@@ -63,7 +63,7 @@ func GetReleaseByTag(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release))
+	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release, ctx.Doer))
 }
 
 // DeleteReleaseByTag delete a release from a repository by tag name

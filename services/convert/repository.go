@@ -13,16 +13,17 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToRepo converts a Repository to api.Repository
-func ToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission) *api.Repository {
-	return innerToRepo(ctx, repo, permissionInRepo, false)
+func ToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission, doer *user_model.User) *api.Repository {
+	return innerToRepo(ctx, repo, permissionInRepo, false, doer)
 }
 
-func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission, isParent bool) *api.Repository {
+func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission, isParent bool, doer *user_model.User) *api.Repository {
 	var parent *api.Repository
 
 	if !permissionInRepo.HasUnits() && permissionInRepo.AccessMode > perm.AccessModeNone {
@@ -51,7 +52,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 			//        But there isn't a good way to get the permission of the parent repo, because the doer is not passed in.
 			//        Use the permission of the current repo to keep the behavior consistent with the old API.
 			//        Maybe the right way is setting the permission of the parent repo to nil, empty is better than wrong.
-			parent = innerToRepo(ctx, repo.BaseRepo, permissionInRepo, true)
+			parent = innerToRepo(ctx, repo.BaseRepo, permissionInRepo, true, doer)
 		}
 	}
 
@@ -165,7 +166,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 			if err := t.LoadAttributes(ctx); err != nil {
 				log.Warn("LoadAttributes of RepoTransfer: %v", err)
 			} else {
-				transfer = ToRepoTransfer(ctx, t)
+				transfer = ToRepoTransfer(ctx, t, doer)
 			}
 		}
 	}
@@ -242,12 +243,12 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 }
 
 // ToRepoTransfer convert a models.RepoTransfer to a structs.RepeTransfer
-func ToRepoTransfer(ctx context.Context, t *models.RepoTransfer) *api.RepoTransfer {
+func ToRepoTransfer(ctx context.Context, t *models.RepoTransfer, doer *user_model.User) *api.RepoTransfer {
 	teams, _ := ToTeams(ctx, t.Teams, false)
 
 	return &api.RepoTransfer{
-		Doer:      ToUser(ctx, t.Doer, nil),
-		Recipient: ToUser(ctx, t.Recipient, nil),
+		Doer:      ToUser(ctx, t.Doer, doer),
+		Recipient: ToUser(ctx, t.Recipient, doer),
 		Teams:     teams,
 	}
 }

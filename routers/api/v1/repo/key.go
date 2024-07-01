@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
@@ -25,16 +26,16 @@ import (
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
-func appendPrivateInformation(ctx stdCtx.Context, apiKey *api.DeployKey, key *asymkey_model.DeployKey, repository *repo_model.Repository) (*api.DeployKey, error) {
+func appendPrivateInformation(ctx stdCtx.Context, apiKey *api.DeployKey, key *asymkey_model.DeployKey, repository *repo_model.Repository, doer *user_model.User) (*api.DeployKey, error) {
 	apiKey.ReadOnly = key.Mode == perm.AccessModeRead
 	if repository.ID == key.RepoID {
-		apiKey.Repository = convert.ToRepo(ctx, repository, access_model.Permission{AccessMode: key.Mode})
+		apiKey.Repository = convert.ToRepo(ctx, repository, access_model.Permission{AccessMode: key.Mode}, doer)
 	} else {
 		repo, err := repo_model.GetRepositoryByID(ctx, key.RepoID)
 		if err != nil {
 			return apiKey, err
 		}
-		apiKey.Repository = convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: key.Mode})
+		apiKey.Repository = convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: key.Mode}, doer)
 	}
 	return apiKey, nil
 }
@@ -105,7 +106,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 		}
 		apiKeys[i] = convert.ToDeployKey(apiLink, keys[i])
 		if ctx.Doer.IsAdmin || ((ctx.Repo.Repository.ID == keys[i].RepoID) && (ctx.Doer.ID == ctx.Repo.Owner.ID)) {
-			apiKeys[i], _ = appendPrivateInformation(ctx, apiKeys[i], keys[i], ctx.Repo.Repository)
+			apiKeys[i], _ = appendPrivateInformation(ctx, apiKeys[i], keys[i], ctx.Repo.Repository, ctx.Doer)
 		}
 	}
 
@@ -167,7 +168,7 @@ func GetDeployKey(ctx *context.APIContext) {
 	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	apiKey := convert.ToDeployKey(apiLink, key)
 	if ctx.Doer.IsAdmin || ((ctx.Repo.Repository.ID == key.RepoID) && (ctx.Doer.ID == ctx.Repo.Owner.ID)) {
-		apiKey, _ = appendPrivateInformation(ctx, apiKey, key, ctx.Repo.Repository)
+		apiKey, _ = appendPrivateInformation(ctx, apiKey, key, ctx.Repo.Repository, ctx.Doer)
 	}
 	ctx.JSON(http.StatusOK, apiKey)
 }

@@ -89,7 +89,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
 	files := ctx.FormString("files") == "" || ctx.FormBool("files")
 
-	cmt, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, note.Commit, nil,
+	cmt, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, note.Commit, nil, ctx.Doer,
 		convert.ToCommitOptions{
 			Stat:         true,
 			Verification: verification,
