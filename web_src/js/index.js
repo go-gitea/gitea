@@ -78,6 +78,7 @@ import {initDirAuto} from './modules/dirauto.js';
 import {initRepositorySearch} from './features/repo-search.js';
 import {initColorPickers} from './features/colorpicker.js';
 import {initAdminSelfCheck} from './features/admin/selfcheck.js';
+import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.js';
 import {initGlobalFetchAction} from './features/common-fetch-action.js';
 import {
   initFootLanguageMenu,
@@ -225,5 +226,7 @@ onDomReady(() => {
     initPdfViewer,
     initScopedAccessTokenCategories,
     initColorPickers,
+
+    initOAuth2SettingsDisableCheckbox,
   ]);
 });
