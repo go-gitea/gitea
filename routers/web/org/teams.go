@@ -59,9 +59,9 @@ func Teams(ctx *context.Context) {
 	}
 	ctx.Data["Teams"] = ctx.Org.Teams
 
-	err := shared_user.LoadHeaderCount(ctx)
+	err := shared_user.RenderOrgHeader(ctx)
 	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
+		ctx.ServerError("RenderOrgHeader", err)
 		return
 	}
 
