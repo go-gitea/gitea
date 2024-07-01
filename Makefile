@@ -439,7 +439,7 @@ lint-editorconfig:
 
 .PHONY: lint-actions
 lint-actions:
-	$(GO) run $(ACTIONLINT_PACKAGE)
+	SHELLCHECK_OPTS='-e SC2129' $(GO) run $(ACTIONLINT_PACKAGE)
 
 .PHONY: lint-templates
 lint-templates: .venv node_modules
