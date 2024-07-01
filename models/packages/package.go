@@ -6,9 +6,11 @@ package packages
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -189,25 +191,65 @@ type Package struct {
 
 // TryInsertPackage inserts a package. If a package exists already, ErrDuplicatePackage is returned
 func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
-	e := db.GetEngine(ctx)
+	switch {
+	case setting.Database.Type.IsMySQL():
+		if _, err := db.GetEngine(ctx).Exec("INSERT INTO package (owner_id,`type`,lower_name,name,semver_compatible) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE 1=1",
+			p.OwnerID, p.Type, p.LowerName, p.Name, p.SemverCompatible); err != nil {
+			return nil, err
+		}
+	case setting.Database.Type.IsPostgreSQL(), setting.Database.Type.IsSQLite3():
+		if _, err := db.GetEngine(ctx).Exec("INSERT INTO package (owner_id,`type`,lower_name,name,semver_compatible) VALUES (?,?,?,?,?) ON CONFLICT (owner_id,`type`,lower_name) DO UPDATE SET lower_name=lower_name",
+			p.OwnerID, p.Type, p.LowerName, p.Name, p.SemverCompatible); err != nil {
+			return nil, err
+		}
+	case setting.Database.Type.IsMSSQL():
+		r := func(s string) string {
+			return strings.ReplaceAll(s, "'", "''")
+		}
+		sql := fmt.Sprintf(`
+		MERGE INTO package WITH (HOLDLOCK) AS target USING (
+			SELECT
+				%d AS owner_id,
+				'%s' AS [type],
+				'%s' AS lower_name,
+				'%s' AS name,
+				%s AS semver_compatible
+			) AS source (
+				owner_id, [type], lower_name, name, semver_compatible
+			) ON (
+				target.owner_id = source.owner_id
+  			AND target.[type] = source.[type]
+				AND target.lower_name = source.lower_name
+			) WHEN MATCHED
+  				THEN UPDATE SET 1 = 1
+				WHEN NOT MATCHED
+  				THEN INSERT (
+						owner_id, [type], lower_name, name, semver_compatible
+					) VALUES (
+						%d, '%s', '%s', '%s', %s
+					)`,
+			p.OwnerID, r(string(p.Type)), r(p.LowerName), r(p.Name), strconv.FormatBool(p.SemverCompatible),
+			p.OwnerID, r(string(p.Type)), r(p.LowerName), r(p.Name), strconv.FormatBool(p.SemverCompatible),
+		)
 
-	existing := &Package{}
+		if _, err := db.GetEngine(ctx).Exec(sql); err != nil {
+			return nil, err
+		}
+	}
 
-	has, err := e.Where(builder.Eq{
+	var existing Package
+	has, err := db.GetEngine(ctx).Where(builder.Eq{
 		"owner_id":   p.OwnerID,
 		"type":       p.Type,
 		"lower_name": p.LowerName,
-	}).Get(existing)
+	}).Get(&existing)
 	if err != nil {
 		return nil, err
 	}
-	if has {
-		return existing, ErrDuplicatePackage
+	if !has {
+		return nil, util.ErrNotExist
 	}
-	if _, err = e.Insert(p); err != nil {
-		return nil, err
-	}
-	return p, nil
+	return &existing, nil
 }
 
 // DeletePackageByID deletes a package by id

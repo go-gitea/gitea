@@ -5,11 +5,13 @@ package packages
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -44,11 +46,55 @@ type PackageFile struct {
 
 // TryInsertFile inserts a file. If the file exists already ErrDuplicatePackageFile is returned
 func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
-	e := db.GetEngine(ctx)
+	switch {
+	case setting.Database.Type.IsMySQL():
+		if _, err := db.GetEngine(ctx).Exec("INSERT INTO package_file (version_id,blob_id,name,lower_name,composite_key,is_lead) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE 1=1",
+			pf.VersionID, pf.BlobID, pf.Name, pf.LowerName, pf.CompositeKey, pf.IsLead); err != nil {
+			return nil, err
+		}
+	case setting.Database.Type.IsPostgreSQL(), setting.Database.Type.IsSQLite3():
+		if _, err := db.GetEngine(ctx).Exec("INSERT INTO package_file (version_id,blob_id,name,lower_name,composite_key,is_lead) VALUES (?,?,?,?,?,?) ON CONFLICT (version_id,lower_name,composite_key) DO UPDATE SET lower_name=lower_name",
+			pf.VersionID, pf.BlobID, pf.Name, pf.LowerName, pf.CompositeKey, pf.IsLead); err != nil {
+			return nil, err
+		}
+	case setting.Database.Type.IsMSSQL():
+		r := func(s string) string {
+			return strings.ReplaceAll(s, "'", "''")
+		}
+		sql := fmt.Sprintf(`
+		MERGE INTO package_file WITH (HOLDLOCK) AS target USING (
+			SELECT
+				%d AS version_id,
+				%d AS blob_id,
+				'%s' AS name,
+				'%s' AS lower_name,
+				'%s' AS composite_key,
+				%s AS is_lead
+			) AS source (
+				version_id, blob_id, name, lower_name, composite_key, is_lead
+			) ON (
+				target.version_id = source.version_id
+  			AND target.lower_name = source.lower_name
+				AND target.composite_key = source.composite_key
+			) WHEN MATCHED
+  				THEN UPDATE SET 1 = 1
+				WHEN NOT MATCHED
+  				THEN INSERT (
+						version_id, blob_id, name, lower_name, composite_key, is_lead
+					) VALUES (
+						%d, %d, '%s', '%s', '%s', %s
+					)`,
+			pf.VersionID, pf.BlobID, r(pf.Name), r(pf.LowerName), r(pf.CompositeKey), strconv.FormatBool(pf.IsLead),
+			pf.VersionID, pf.BlobID, r(pf.Name), r(pf.LowerName), r(pf.CompositeKey), strconv.FormatBool(pf.IsLead),
+		)
+
+		if _, err := db.GetEngine(ctx).Exec(sql); err != nil {
+			return nil, err
+		}
+	}
 
 	existing := &PackageFile{}
-
-	has, err := e.Where(builder.Eq{
+	has, err := db.GetEngine(ctx).Where(builder.Eq{
 		"version_id":    pf.VersionID,
 		"lower_name":    pf.LowerName,
 		"composite_key": pf.CompositeKey,
@@ -56,13 +102,10 @@ func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
 	if err != nil {
 		return nil, err
 	}
-	if has {
-		return existing, ErrDuplicatePackageFile
+	if !has {
+		return nil, util.ErrNotExist
 	}
-	if _, err = e.Insert(pf); err != nil {
-		return nil, err
-	}
-	return pf, nil
+	return existing, nil
 }
 
 // GetFilesByVersionID gets all files of a version
