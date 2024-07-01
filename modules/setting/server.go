@@ -203,6 +203,9 @@ func loadServerFrom(rootCfg ConfigProvider) {
 				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_DIRECTORY", "server", "ACME_DIRECTORY", "v1.19.0")
 				AcmeLiveDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
 			}
+			if !filepath.IsAbs(AcmeLiveDirectory) {
+				AcmeLiveDirectory = filepath.Join(AppDataPath, AcmeLiveDirectory)
+			}
 
 			if sec.HasKey("ACME_EMAIL") {
 				AcmeEmail = sec.Key("ACME_EMAIL").MustString("")
