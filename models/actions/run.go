@@ -53,6 +53,8 @@ type ActionRun struct {
 	PreviousDuration time.Duration
 	Created          timeutil.TimeStamp `xorm:"created"`
 	Updated          timeutil.TimeStamp `xorm:"updated"`
+	// External is true if it's an cicd_feedback pipeline
+	External bool `xorm:"NOT NULL DEFAULT false"`
 }
 
 func init() {
@@ -284,6 +286,10 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 			return err
 		}
 		run.Repo = repo
+	}
+
+	if run.External {
+		return committer.Commit()
 	}
 
 	if err := updateRepoRunsNumbers(ctx, run.Repo); err != nil {
