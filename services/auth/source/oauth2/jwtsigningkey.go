@@ -336,6 +336,10 @@ func InitSigningKey() error {
 // loadOrCreateAsymmetricKey checks if the configured private key exists.
 // If it does not exist a new random key gets generated and saved on the configured path.
 func loadOrCreateAsymmetricKey() (any, error) {
+	if !filepath.IsAbs(setting.OAuth2.JWTSigningPrivateKeyFile) {
+		setting.OAuth2.JWTSigningPrivateKeyFile = filepath.Join(setting.AppDataPath, setting.OAuth2.JWTSigningPrivateKeyFile)
+	}
+
 	keyPath := setting.OAuth2.JWTSigningPrivateKeyFile
 
 	isExist, err := util.IsExist(keyPath)
