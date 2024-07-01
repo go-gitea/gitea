@@ -35,7 +35,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 2
@@ -72,7 +72,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 3
@@ -109,7 +109,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 4
@@ -146,7 +146,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 5
@@ -183,7 +183,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 6
@@ -220,7 +220,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 7
@@ -257,7 +257,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 8
@@ -294,7 +294,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 9
@@ -331,7 +331,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 10
@@ -368,7 +368,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 11
@@ -405,7 +405,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 12
@@ -442,7 +442,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 13
@@ -479,7 +479,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 14
@@ -516,7 +516,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 15
@@ -553,7 +553,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 16
@@ -590,7 +590,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 17
@@ -627,7 +627,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 18
@@ -664,7 +664,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 19
@@ -701,7 +701,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 20
@@ -738,7 +738,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 21
@@ -775,7 +775,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 22
@@ -812,7 +812,7 @@
   visibility: 1
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 23
@@ -849,7 +849,7 @@
   visibility: 2
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 24
@@ -886,7 +886,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 25
@@ -923,7 +923,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 26
@@ -960,7 +960,7 @@
   visibility: 0
   repo_admin_change_team_access: true
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 27
@@ -997,7 +997,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 28
@@ -1034,7 +1034,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 29
@@ -1071,7 +1071,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 30
@@ -1108,7 +1108,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 31
@@ -1145,7 +1145,7 @@
   visibility: 2
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 32
@@ -1182,7 +1182,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 33
@@ -1219,7 +1219,7 @@
   visibility: 1
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 34
@@ -1257,7 +1257,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 35
@@ -1294,7 +1294,7 @@
   visibility: 2
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 36
@@ -1331,7 +1331,7 @@
   visibility: 1
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 37
@@ -1368,7 +1368,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 38
@@ -1405,7 +1405,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 39
@@ -1442,7 +1442,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 40
@@ -1479,7 +1479,7 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0
 
 -
   id: 41
@@ -1516,4 +1516,4 @@
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
-  keep_activity_private: false
+  activity_visibility: 0

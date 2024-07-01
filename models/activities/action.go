@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -139,21 +140,22 @@ func (at ActionType) InActions(actions ...string) bool {
 // repository. It implemented interface base.Actioner so that can be
 // used in template render.
 type Action struct {
-	ID          int64 `xorm:"pk autoincr"`
-	UserID      int64 `xorm:"INDEX"` // Receiver user id.
-	OpType      ActionType
-	ActUserID   int64            // Action user id.
-	ActUser     *user_model.User `xorm:"-"`
-	RepoID      int64
-	Repo        *repo_model.Repository `xorm:"-"`
-	CommentID   int64                  `xorm:"INDEX"`
-	Comment     *issues_model.Comment  `xorm:"-"`
-	Issue       *issues_model.Issue    `xorm:"-"` // get the issue id from content
-	IsDeleted   bool                   `xorm:"NOT NULL DEFAULT false"`
-	RefName     string
-	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
-	Content     string             `xorm:"TEXT"`
-	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+	ID            int64 `xorm:"pk autoincr"`
+	UserID        int64 `xorm:"INDEX"` // Receiver user id.
+	OpType        ActionType
+	ActUserID     int64            // Action user id.
+	ActUser       *user_model.User `xorm:"-"`
+	RepoID        int64
+	Repo          *repo_model.Repository `xorm:"-"`
+	CommentID     int64                  `xorm:"INDEX"`
+	Comment       *issues_model.Comment  `xorm:"-"`
+	Issue         *issues_model.Issue    `xorm:"-"` // get the issue id from content
+	IsDeleted     bool                   `xorm:"NOT NULL DEFAULT false"`
+	RefName       string
+	IsPrivate     bool               `xorm:"NOT NULL DEFAULT false"`
+	IsPrivateView bool               `xorm:"-"`
+	Content       string             `xorm:"TEXT"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 }
 
 func init() {
@@ -457,14 +459,43 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	opts.SetDefaultValues()
 	sess = db.SetSessionPagination(sess, &opts)
 
-	actions := make([]*Action, 0, opts.PageSize)
+	actions := make(ActionList, 0, opts.PageSize)
 	count, err := sess.Desc("`action`.created_unix").FindAndCount(&actions)
 	if err != nil {
 		return nil, 0, fmt.Errorf("FindAndCount: %w", err)
 	}
 
-	if err := ActionList(actions).LoadAttributes(ctx); err != nil {
+	if err := actions.LoadAttributes(ctx); err != nil {
 		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
+	}
+
+	if opts.Actor != nil && opts.RequestedUser != nil {
+		isPrivateForActor := !opts.Actor.IsAdmin && opts.Actor.ID != opts.RequestedUser.ID
+
+		// cache user repo read permissions
+		canReadRepo := make(map[int64]optional.Option[bool], 0)
+
+		for _, action := range actions {
+			action.IsPrivateView = isPrivateForActor && action.IsPrivate
+
+			if action.IsPrivateView && action.Repo.Owner.IsOrganization() {
+				if !canReadRepo[action.Repo.ID].Has() {
+					perm, err := access_model.GetUserRepoPermission(ctx, action.Repo, opts.Actor)
+					if err != nil {
+						return nil, 0, fmt.Errorf("GetUserRepoPermission: %w", err)
+					}
+					canRead := perm.CanRead(unit.TypeCode)
+					action.IsPrivateView = !canRead
+					canReadRepo[action.Repo.ID] = optional.Option[bool]{canRead}
+				}
+
+				action.IsPrivateView = !canReadRepo[action.Repo.ID].Value()
+			}
+		}
+	} else {
+		for _, action := range actions {
+			action.IsPrivateView = action.IsPrivate
+		}
 	}
 
 	return actions, count, nil
@@ -472,8 +503,13 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 
 // ActivityReadable return whether doer can read activities of user
 func ActivityReadable(user, doer *user_model.User) bool {
-	return !user.KeepActivityPrivate ||
-		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
+	if doer != nil && (doer.IsAdmin || user.ID == doer.ID) {
+		return true
+	}
+	if user.ActivityVisibility.ShowNone() {
+		return false
+	}
+	return true
 }
 
 func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.Cond, error) {
@@ -491,14 +527,17 @@ func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	if opts.Actor == nil {
 		cond = cond.And(builder.In("act_user_id",
 			builder.Select("`user`.id").Where(
-				builder.Eq{"keep_activity_private": false, "visibility": structs.VisibleTypePublic},
+				builder.Eq{"visibility": structs.VisibleTypePublic},
+			).Where(
+				builder.Neq{"activity_visibility": structs.ActivityVisibilityNone},
 			).From("`user`"),
 		))
 	} else if !opts.Actor.IsAdmin {
 		uidCond := builder.Select("`user`.id").From("`user`").Where(
-			builder.Eq{"keep_activity_private": false}.
-				And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
-			Or(builder.Eq{"id": opts.Actor.ID})
+			builder.Neq{"activity_visibility": structs.ActivityVisibilityNone},
+		).Where(
+			builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited),
+		).Or(builder.Eq{"id": opts.Actor.ID})
 
 		if opts.RequestedUser != nil {
 			if opts.RequestedUser.IsOrganization() {
@@ -518,8 +557,9 @@ func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 		cond = cond.And(builder.In("act_user_id", uidCond))
 	}
 
+	includePrivateRepos := opts.RequestedUser != nil && opts.RequestedUser.ActivityVisibility.ShowAll()
 	// check readable repositories by doer/actor
-	if opts.Actor == nil || !opts.Actor.IsAdmin {
+	if !includePrivateRepos && (opts.Actor == nil || !opts.Actor.IsAdmin) {
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
 

@@ -40,7 +40,7 @@ func TestUpdateUser(t *testing.T) {
 		IsActive:                     optional.Some(false),
 		IsAdmin:                      optional.Some(true),
 		Visibility:                   optional.Some(structs.VisibleTypePrivate),
-		KeepActivityPrivate:          optional.Some(true),
+		ActivityVisibility:           optional.Some(structs.ActivityVisibilityNone),
 		Language:                     optional.Some("lang"),
 		Theme:                        optional.Some("theme"),
 		DiffViewStyle:                optional.Some("split"),
@@ -62,7 +62,7 @@ func TestUpdateUser(t *testing.T) {
 	assert.Equal(t, opts.IsActive.Value(), user.IsActive)
 	assert.Equal(t, opts.IsAdmin.Value(), user.IsAdmin)
 	assert.Equal(t, opts.Visibility.Value(), user.Visibility)
-	assert.Equal(t, opts.KeepActivityPrivate.Value(), user.KeepActivityPrivate)
+	assert.Equal(t, opts.ActivityVisibility.Value(), user.ActivityVisibility)
 	assert.Equal(t, opts.Language.Value(), user.Language)
 	assert.Equal(t, opts.Theme.Value(), user.Theme)
 	assert.Equal(t, opts.DiffViewStyle.Value(), user.DiffViewStyle)
@@ -82,7 +82,7 @@ func TestUpdateUser(t *testing.T) {
 	assert.Equal(t, opts.IsActive.Value(), user.IsActive)
 	assert.Equal(t, opts.IsAdmin.Value(), user.IsAdmin)
 	assert.Equal(t, opts.Visibility.Value(), user.Visibility)
-	assert.Equal(t, opts.KeepActivityPrivate.Value(), user.KeepActivityPrivate)
+	assert.Equal(t, opts.ActivityVisibility.Value(), user.ActivityVisibility)
 	assert.Equal(t, opts.Language.Value(), user.Language)
 	assert.Equal(t, opts.Theme.Value(), user.Theme)
 	assert.Equal(t, opts.DiffViewStyle.Value(), user.DiffViewStyle)

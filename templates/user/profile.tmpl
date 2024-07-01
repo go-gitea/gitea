@@ -8,13 +8,14 @@
 			<div class="ui twelve wide column tw-mb-4">
 				{{template "user/overview/header" .}}
 				{{if eq .TabName "activity"}}
-					{{if .ContextUser.KeepActivityPrivate}}
+					{{if and .ContextUser.ActivityVisibility.ShowNone (not .IsAdmin) (ne .ContextUser.ID .SignedUserID)}}
 						<div class="ui info message">
 							<p>{{ctx.Locale.Tr "user.disabled_public_activity"}}</p>
 						</div>
+					{{else}}
+						{{template "user/heatmap" .}}
+						{{template "user/dashboard/feeds" .}}
 					{{end}}
-					{{template "user/heatmap" .}}
-					{{template "user/dashboard/feeds" .}}
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
 						{{template "shared/repo_search" .}}

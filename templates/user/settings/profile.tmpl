@@ -71,17 +71,28 @@
 					</div>
 				</div>
 
-				<div class="field">
-					<div class="ui checkbox">
-						<label data-tooltip-content="{{ctx.Locale.Tr "settings.keep_email_private_popup" .SignedUser.GetPlaceholderEmail}}"><strong>{{ctx.Locale.Tr "settings.keep_email_private"}}</strong></label>
-						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
+				<div class="inline field">
+					<span class="inline field" data-tooltip-content="{{ctx.Locale.Tr "settings.activity_visibility_popup"}}"><label>{{ctx.Locale.Tr "settings.activity_visibility"}}</label></span>
+					<div class="ui selection type dropdown">
+						<input type="hidden" id="activity_visibility" name="activity_visibility" value="{{printf "%d" .SignedUser.ActivityVisibility}}">
+						<div class="text">
+							{{if .SignedUser.ActivityVisibility.ShowPublic}}{{ctx.Locale.Tr "public"}}{{end}}
+							{{if .SignedUser.ActivityVisibility.ShowAll}}{{ctx.Locale.Tr "all"}}{{end}}
+							{{if .SignedUser.ActivityVisibility.ShowNone}}{{ctx.Locale.Tr "none"}}{{end}}
+						</div>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.activity_visibility.public_popup"}}" data-value="0">{{ctx.Locale.Tr "public"}}</div>
+							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.activity_visibility.all_popup"}}" data-value="1">{{ctx.Locale.Tr "all"}}</div>
+							<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.activity_visibility.none_popup"}}" data-value="2">{{ctx.Locale.Tr "none"}}</div>
+						</div>
 					</div>
 				</div>
 
 				<div class="field">
-					<div class="ui checkbox" id="keep-activity-private">
-						<label data-tooltip-content="{{ctx.Locale.Tr "settings.keep_activity_private_popup"}}"><strong>{{ctx.Locale.Tr "settings.keep_activity_private"}}</strong></label>
-						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}}>
+					<div class="ui checkbox">
+						<label data-tooltip-content="{{ctx.Locale.Tr "settings.keep_email_private_popup" .SignedUser.GetPlaceholderEmail}}"><strong>{{ctx.Locale.Tr "settings.keep_email_private"}}</strong></label>
+						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
 					</div>
 				</div>
 

@@ -18469,6 +18469,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ActivityVisibility": {
+      "description": "ActivityVisibility defines the activities shown",
+      "type": "integer",
+      "format": "int64",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "AddCollaboratorOption": {
       "description": "AddCollaboratorOption options when adding a user as a collaborator of a repository",
       "type": "object",
@@ -24910,6 +24916,9 @@
       "description": "UserSettings represents user settings",
       "type": "object",
       "properties": {
+        "activity_visibility": {
+          "$ref": "#/definitions/ActivityVisibility"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
@@ -24921,10 +24930,6 @@
         "full_name": {
           "type": "string",
           "x-go-name": "FullName"
-        },
-        "hide_activity": {
-          "type": "boolean",
-          "x-go-name": "HideActivity"
         },
         "hide_email": {
           "description": "Privacy",
@@ -24954,6 +24959,9 @@
       "description": "UserSettingsOptions represents options to change user settings",
       "type": "object",
       "properties": {
+        "activity_visibility": {
+          "$ref": "#/definitions/ActivityVisibility"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
@@ -24965,10 +24973,6 @@
         "full_name": {
           "type": "string",
           "x-go-name": "FullName"
-        },
-        "hide_activity": {
-          "type": "boolean",
-          "x-go-name": "HideActivity"
         },
         "hide_email": {
           "description": "Privacy",
