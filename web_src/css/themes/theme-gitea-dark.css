@@ -1,6 +1,10 @@
 @import "../chroma/dark.css";
 @import "../codemirror/dark.css";
 
+gitea-theme-meta-info {
+  --theme-display-name: "Dark";
+}
+
 :root {
   --is-dark-theme: true;
   --color-primary: #4183c4;

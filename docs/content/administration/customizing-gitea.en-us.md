@@ -383,12 +383,27 @@ To make a custom theme available to all users:
   The value of `$GITEA_CUSTOM` of your instance can be queried by calling `gitea help` and looking up the value of "CustomPath".
 2. Add `<theme-name>` to the comma-separated list of setting `THEMES` in `app.ini`, or leave `THEMES` empty to allow all themes.
 
+A custom theme file named `theme-my-theme.css` will be displayed as `my-theme` on the user's theme selection page.
+It could add theme meta information into the custom theme CSS file to provide more information about the theme.
+
+If a custom theme is a dark theme, please set the global css variable `--is-dark-theme: true` in the `:root` block.
+This allows Gitea to adjust the Monaco code editor's theme accordingly.
+An "auto" theme could be implemented by using "theme-gitea-auto.css" as a reference.
+
+```css
+gitea-theme-meta-info {
+  --theme-display-name: "My Awesome Theme"; /* this theme will be display as "My Awesome Theme" on the UI */
+}
+:root {
+  --is-dark-theme: true; /* if it is a dark theme */
+  --color-primary: #112233;
+  /* more custom theme variables ... */
+}
+```
+
 Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).
 
 The default theme sources can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/css/themes).
-
-If your custom theme is considered a dark theme, set the global css variable `--is-dark-theme` to `true`.
-This allows Gitea to adjust the Monaco code editor's theme accordingly.
 
 ## Customizing fonts
 

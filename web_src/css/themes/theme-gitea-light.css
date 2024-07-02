@@ -1,6 +1,10 @@
 @import "../chroma/light.css";
 @import "../codemirror/light.css";
 
+gitea-theme-meta-info {
+  --theme-display-name: "Light";
+}
+
 :root {
   --is-dark-theme: false;
   --color-primary: #4183c4;
