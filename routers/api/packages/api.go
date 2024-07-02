@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/packages/alpine"
+	"code.gitea.io/gitea/routers/api/packages/arch"
 	"code.gitea.io/gitea/routers/api/packages/cargo"
 	"code.gitea.io/gitea/routers/api/packages/chef"
 	"code.gitea.io/gitea/routers/api/packages/composer"
@@ -119,6 +120,17 @@ func CommonRoutes() *web.Router {
 						r.Delete("", reqPackageAccess(perm.AccessModeWrite), alpine.DeletePackageFile)
 					})
 				})
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/arch", func() {
+			r.Group("/repository.key", func() {
+				r.Head("", arch.GetRepositoryKey)
+				r.Get("", arch.GetRepositoryKey)
+			})
+			r.Group("/{distro}", func() {
+				r.Put("", reqPackageAccess(perm.AccessModeWrite), arch.PushPackage)
+				r.Get("/{arch}/{file}", arch.GetPackageOrDB)
+				r.Delete("/{package}/{version}", reqPackageAccess(perm.AccessModeWrite), arch.RemovePackage)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
