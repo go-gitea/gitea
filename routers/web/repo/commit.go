@@ -81,8 +81,18 @@ func Commits(ctx *context.Context) {
 		ctx.ServerError("CommitsByRange", err)
 		return
 	}
-	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(ctx, commits, ctx.Repo.Repository)
 
+	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(ctx, commits, ctx.Repo.Repository)
+	commitIDs := make([]string, 0, len(commits))
+	for _, c := range commits {
+		commitIDs = append(commitIDs, c.ID.String())
+	}
+	commitsTagsMap, err := repo_model.FindTagsByCommitIDs(ctx, ctx.Repo.Repository.ID, commitIDs...)
+	if err != nil {
+		ctx.ServerError("CommitsByRange", err)
+		return
+	}
+	ctx.Data["CommitsTagsMap"] = commitsTagsMap
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
