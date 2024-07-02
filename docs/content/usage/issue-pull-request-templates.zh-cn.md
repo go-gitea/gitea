@@ -113,6 +113,7 @@ name: "Template Name"
 about: "This template is for testing!"
 title: "[TEST] "
 ref: "main"
+assignees: ["user1"]
 labels:
 
 - bug
@@ -123,7 +124,7 @@ labels:
 This is the template!
 ```
 
-上面的示例表示用户从列表中选择一个工单模板时，列表会展示模板名称 `Template Name` 和模板描述 `This template is for testing!`。 同时，标题会预先填充为 `[TEST]`，而正文将预先填充 `This is the template!`。 最后，Issue 还会被分配两个标签，`bug` 和 `help needed`，并且将问题指向 `main` 分支。
+上面的示例表示用户从列表中选择一个工单模板时，列表会展示模板名称 `Template Name` 和模板描述 `This template is for testing!`。 同时，标题会预先填充为 `[TEST]`，而正文将预先填充 `This is the template!`。该 Issue 会被指派给 `user1`。 最后，Issue 还会被分配两个标签，`bug` 和 `help needed`，并且将问题指向 `main` 分支。
 
 ## YAML 模板语法
 

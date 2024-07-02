@@ -108,6 +108,7 @@ name: "Template Name"
 about: "This template is for testing!"
 title: "[TEST] "
 ref: "main"
+assignees: ["user1"]
 labels:
 
 - bug
@@ -120,7 +121,9 @@ This is the template!
 
 In the above example, when a user is presented with the list of issues they can submit, this would show as `Template Name` with the description
 `This template is for testing!`. When submitting an issue with the above example, the issue title would be pre-populated with
-`[TEST] ` while the issue body would be pre-populated with `This is the template!`. The issue would also be assigned two labels,
+`[TEST] ` while the issue body would be pre-populated with `This is the template!`. 
+The issue would be assigned to `user1`. 
+The issue would also be assigned two labels,
 `bug` and `help needed`, and the issue will have a reference to `main`.
 
 ## Syntax for yaml template
