@@ -17,6 +17,12 @@
 				{{ctx.Locale.Tr "sign_in_with_provider" "OpenID"}}
 				</a>
 			{{end}}
+			{{if .EnableSSPI}}
+				<a class="ui button tw-flex tw-items-center tw-justify-center tw-py-2 tw-w-full" rel="nofollow" href="{{AppSubUrl}}/user/login?auth_with_sspi=1">
+					{{svg "fontawesome-windows"}}
+					&nbsp;SSPI
+				</a>
+			{{end}}
 		</div>
 	</div>
 </div>

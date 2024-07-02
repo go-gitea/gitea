@@ -54,12 +54,11 @@
 </div>
 
 <div class="ui container fluid">
-	{{template "user/auth/webauthn_error" .}}
-
 	<div class="ui attached segment header top tw-flex tw-flex-col tw-items-center">
 		{{if not .LinkAccountMode}}
-		<div class="inline field">
-			<a href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "auth.register_helper_msg"}}</a>
+		<div class="field">
+			<span>{{ctx.Locale.Tr "auth.already_have_account"}}</span>
+			<a href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "auth.sign_in_now"}}</a>
 		</div>
 		{{end}}
 	</div>
