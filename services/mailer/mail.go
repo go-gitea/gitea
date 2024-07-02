@@ -82,7 +82,7 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 		return
 	}
 
-	msg := NewMessage(u.Email, subject, content.String())
+	msg := NewMessage(u.EmailTo(), subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, %s", u.ID, info)
 
 	SendAsync(msg)
@@ -158,7 +158,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		return
 	}
 
-	msg := NewMessage(u.Email, locale.TrString("mail.register_notify"), content.String())
+	msg := NewMessage(u.EmailTo(), locale.TrString("mail.register_notify"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
 	SendAsync(msg)
@@ -189,7 +189,7 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 		return
 	}
 
-	msg := NewMessage(u.Email, subject, content.String())
+	msg := NewMessage(u.EmailTo(), subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, add collaborator", u.ID)
 
 	SendAsync(msg)

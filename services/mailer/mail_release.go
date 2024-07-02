@@ -40,10 +40,10 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 		return
 	}
 
-	langMap := make(map[string][]string)
+	langMap := make(map[string][]*user_model.User)
 	for _, user := range recipients {
 		if user.ID != rel.PublisherID {
-			langMap[user.Language] = append(langMap[user.Language], user.Email)
+			langMap[user.Language] = append(langMap[user.Language], user)
 		}
 	}
 
@@ -52,7 +52,7 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 	}
 }
 
-func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_model.Release) {
+func mailNewRelease(ctx context.Context, lang string, tos []*user_model.User, rel *repo_model.Release) {
 	locale := translation.NewLocale(lang)
 
 	var err error
@@ -89,7 +89,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_mo
 	publisherName := rel.Publisher.DisplayName()
 	msgID := generateMessageIDForRelease(rel)
 	for _, to := range tos {
-		msg := NewMessageFrom(to, publisherName, setting.MailService.FromEmail, subject, mailBody.String())
+		msg := NewMessageFrom(to.EmailTo(), publisherName, setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = subject
 		msg.SetHeader("Message-ID", msgID)
 		msgs = append(msgs, msg)
