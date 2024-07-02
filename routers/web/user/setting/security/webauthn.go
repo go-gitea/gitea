@@ -45,7 +45,9 @@ func WebAuthnRegister(ctx *context.Context) {
 		return
 	}
 
-	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration((*wa.User)(ctx.Doer))
+	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration((*wa.User)(ctx.Doer), webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
+		ResidentKey: protocol.ResidentKeyRequirementRequired,
+	}))
 	if err != nil {
 		ctx.ServerError("Unable to BeginRegistration", err)
 		return

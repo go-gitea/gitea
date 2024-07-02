@@ -21,9 +21,18 @@ var defaultInlineDollarParser = &inlineParser{
 	end:   []byte{'$'},
 }
 
+var defaultDualDollarParser = &inlineParser{
+	start: []byte{'$', '$'},
+	end:   []byte{'$', '$'},
+}
+
 // NewInlineDollarParser returns a new inline parser
 func NewInlineDollarParser() parser.InlineParser {
 	return defaultInlineDollarParser
+}
+
+func NewInlineDualDollarParser() parser.InlineParser {
+	return defaultDualDollarParser
 }
 
 var defaultInlineBracketParser = &inlineParser{
@@ -38,7 +47,7 @@ func NewInlineBracketParser() parser.InlineParser {
 
 // Trigger triggers this parser on $ or \
 func (parser *inlineParser) Trigger() []byte {
-	return parser.start[0:1]
+	return parser.start
 }
 
 func isPunctuation(b byte) bool {
@@ -88,7 +97,11 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 			break
 		}
 		suceedingCharacter := line[pos]
-		if !isPunctuation(suceedingCharacter) && !(suceedingCharacter == ' ') && !isBracket(suceedingCharacter) {
+		// check valid ending character
+		if !isPunctuation(suceedingCharacter) &&
+			!(suceedingCharacter == ' ') &&
+			!(suceedingCharacter == '\n') &&
+			!isBracket(suceedingCharacter) {
 			return nil
 		}
 		if line[ender-1] != '\\' {
@@ -101,12 +114,21 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 
 	block.Advance(opener)
 	_, pos := block.Position()
-	node := NewInline()
+	var node ast.Node
+	if parser == defaultDualDollarParser {
+		node = NewInlineBlock()
+	} else {
+		node = NewInline()
+	}
 	segment := pos.WithStop(pos.Start + ender - opener)
 	node.AppendChild(node, ast.NewRawTextSegment(segment))
 	block.Advance(ender - opener + len(parser.end))
 
-	trimBlock(node, block)
+	if parser == defaultDualDollarParser {
+		trimBlock(&(node.(*InlineBlock)).Inline, block)
+	} else {
+		trimBlock(node.(*Inline), block)
+	}
 	return node
 }
 
