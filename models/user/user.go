@@ -426,7 +426,7 @@ var emailToReplacer = strings.NewReplacer(
 
 var isAZ09 = regexp.MustCompile(`^[a-zA-Z0-9 ]+$`)
 
-// EmailTo returns full name and email.
+// EmailTo returns a string suitable to be put into a e-mail `To:` header.
 func (u *User) EmailTo() string {
 	sanitizedDisplayName := emailToReplacer.Replace(u.DisplayName())
 
