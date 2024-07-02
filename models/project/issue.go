@@ -76,6 +76,19 @@ func (p *Project) NumOpenIssues(ctx context.Context) int {
 	return int(c)
 }
 
+func AddIssueToColumn(ctx context.Context, issueID int64, newColumn *Column) error {
+	return db.Insert(ctx, &ProjectIssue{
+		IssueID:         issueID,
+		ProjectID:       newColumn.ProjectID,
+		ProjectColumnID: newColumn.ID,
+	})
+}
+
+func MoveIssueToAnotherColumn(ctx context.Context, issueID int64, newColumn *Column) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id=? WHERE issue_id=?", newColumn.ID, issueID)
+	return err
+}
+
 // MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
 func MoveIssuesOnProjectColumn(ctx context.Context, column *Column, sortedIssueIDs map[int64]int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
