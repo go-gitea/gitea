@@ -104,11 +104,8 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 	buffer := new(bytes.Buffer)
 	for _, file := range filenames {
 		if file != "" {
-			buffer.WriteString("0 ")
-			buffer.WriteString(objectFormat.EmptyObjectID().String())
-			buffer.WriteByte('\t')
-			buffer.WriteString(file)
-			buffer.WriteByte('\000')
+			// using format: mode SP type SP sha1 TAB path
+			buffer.WriteString("0 blob " + objectFormat.EmptyObjectID().String() + "\t" + file + "\000")
 		}
 	}
 	return cmd.Run(&RunOpts{
@@ -132,11 +129,8 @@ func (repo *Repository) AddObjectsToIndex(objects ...IndexObjectInfo) error {
 	stderr := new(bytes.Buffer)
 	buffer := new(bytes.Buffer)
 	for _, object := range objects {
-		buffer.WriteString(object.Mode + " ")
-		buffer.WriteString(object.Object.String())
-		buffer.WriteByte('\t')
-		buffer.WriteString(object.Filename)
-		buffer.WriteByte('\000')
+		// using format: mode SP type SP sha1 TAB path
+		buffer.WriteString(object.Mode + " blob " + object.Object.String() + "\t" + object.Filename + "\000")
 	}
 	return cmd.Run(&RunOpts{
 		Dir:    repo.Path,
