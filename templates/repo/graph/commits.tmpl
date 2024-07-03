@@ -42,9 +42,7 @@
 									</a>
 								{{end}}
 							{{else if eq $refGroup "tags"}}
-								<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/src/tag/{{.ShortName|PathEscape}}">
-									{{svg "octicon-tag"}} {{.ShortName}}
-								</a>
+								{{- template "repo/tag/name" dict "RepoLink" $.Repository.Link "TagName" .ShortName -}}
 							{{else if eq $refGroup "remotes"}}
 								<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/src/commit/{{$commit.Rev|PathEscape}}">
 									{{svg "octicon-cross-reference"}} {{.ShortName}}
