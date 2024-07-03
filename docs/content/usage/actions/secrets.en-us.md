@@ -34,4 +34,11 @@ The following rules apply to secret names:
 
 For example, a secret created at the repository level must have a unique name in that repository, and a secret created at the organization level must have a unique name at that level.
 
+### Using secrets
+
+After creating configuration variables, they will be automatically filled in the `secrets` context.
+They can be accessed through expressions like `${{ secrets.SECRET_NAME }}` in the workflow.
+
+### Precedence
+
 If a secret with the same name exists at multiple levels, the secret at the lowest level takes precedence. For example, if an organization-level secret has the same name as a repository-level secret, then the repository-level secret takes precedence.
