@@ -548,6 +548,7 @@ func fromDisplayName(u *user_model.User) string {
 		if err == nil {
 			return ctx.String()
 		}
+		log.Error("fromDisplayName: %w", err)
 	}
 	return u.GetCompleteName()
 }
