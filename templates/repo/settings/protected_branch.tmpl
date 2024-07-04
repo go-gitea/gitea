@@ -104,7 +104,7 @@
 				</div>
 				<div class="field">
 					<div class="ui radio checkbox">
-						<input type="radio" name="enable_force_push" value="all" class="toggle-target-disabled" data-target="#force_push_whitelist_box" {{if and (.Rule.CanForcePush) (not .Rule.EnableForcePushWhitelist)}}checked{{end}}>
+						<input type="radio" name="enable_force_push" value="all" class="toggle-target-disabled" data-target="#force_push_whitelist_box" {{if and (.Rule.CanForcePush) (not .Rule.EnableForcePushAllowlist)}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "repo.settings.protect_enable_force_push_all"}}</label>
 						<p class="help">{{ctx.Locale.Tr "repo.settings.protect_enable_force_push_all_desc"}}</p>
 					</div>
@@ -112,12 +112,12 @@
 				<div class="grouped fields">
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input type="radio" name="enable_force_push" value="whitelist" class="toggle-target-enabled" data-target="#force_push_whitelist_box" {{if and (.Rule.CanForcePush) (.Rule.EnableForcePushWhitelist)}}checked{{end}}>
-							<label>{{ctx.Locale.Tr "repo.settings.protect_enable_force_push_whitelist"}}</label>
-							<p class="help">{{ctx.Locale.Tr "repo.settings.protect_enable_force_push_whitelist_desc"}}</p>
+							<input type="radio" name="enable_force_push" value="whitelist" class="toggle-target-enabled" data-target="#force_push_whitelist_box" {{if and (.Rule.CanForcePush) (.Rule.EnableForcePushAllowlist)}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_enable_force_push_allowlist"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.protect_enable_force_push_allowlist_desc"}}</p>
 						</div>
 					</div>
-					<div id="force_push_whitelist_box" class="grouped fields {{if not .Rule.EnableForcePushWhitelist}}disabled{{end}}">
+					<div id="force_push_whitelist_box" class="grouped fields {{if not .Rule.EnableForcePushAllowlist}}disabled{{end}}">
 						<div class="checkbox-sub-item field">
 							<label>{{ctx.Locale.Tr "repo.settings.protect_force_push_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
@@ -134,9 +134,9 @@
 						</div>
 						{{if .Owner.IsOrganization}}
 							<div class="checkbox-sub-item field">
-								<label>{{ctx.Locale.Tr "repo.settings.protect_force_push_whitelist_teams"}}</label>
+								<label>{{ctx.Locale.Tr "repo.settings.protect_force_push_allowlist_teams"}}</label>
 								<div class="ui multiple search selection dropdown">
-									<input type="hidden" name="force_push_whitelist_teams" value="{{.force_push_whitelist_teams}}">
+									<input type="hidden" name="force_push_allowlist_teams" value="{{.force_push_allowlist_teams}}">
 									<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
 									<div class="menu">
 										{{range .Teams}}
@@ -151,8 +151,8 @@
 						{{end}}
 						<div class="checkbox-sub-item field">
 							<div class="ui checkbox">
-								<input type="checkbox" name="force_push_whitelist_deploy_keys" {{if .Rule.ForcePushWhitelistDeployKeys}}checked{{end}}>
-								<label>{{ctx.Locale.Tr "repo.settings.protect_force_push_whitelist_deploy_keys"}}</label>
+								<input type="checkbox" name="force_push_allowlist_deploy_keys" {{if .Rule.ForcePushAllowlistDeployKeys}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "repo.settings.protect_force_push_allowlist_deploy_keys"}}</label>
 							</div>
 						</div>
 					</div>

@@ -77,7 +77,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 	c.Data["Users"] = users
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(rule.WhitelistUserIDs), ",")
-	c.Data["force_push_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ForcePushWhitelistUserIDs), ",")
+	c.Data["force_push_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ForcePushAllowlistUserIDs), ",")
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistUserIDs), ",")
 	c.Data["status_check_contexts"] = strings.Join(rule.StatusCheckContexts, "\n")
@@ -92,7 +92,7 @@ func SettingsProtectedBranch(c *context.Context) {
 		}
 		c.Data["Teams"] = teams
 		c.Data["whitelist_teams"] = strings.Join(base.Int64sToStrings(rule.WhitelistTeamIDs), ",")
-		c.Data["force_push_whitelist_teams"] = strings.Join(base.Int64sToStrings(rule.ForcePushWhitelistTeamIDs), ",")
+		c.Data["force_push_allowlist_teams"] = strings.Join(base.Int64sToStrings(rule.ForcePushAllowlistTeamIDs), ",")
 		c.Data["merge_whitelist_teams"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistTeamIDs), ",")
 		c.Data["approvals_whitelist_teams"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistTeamIDs), ",")
 	}
@@ -151,7 +151,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		}
 	}
 
-	var whitelistUsers, whitelistTeams, forcePushWhitelistUsers, forcePushWhitelistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams []int64
+	var whitelistUsers, whitelistTeams, forcePushAllowlistUsers, forcePushAllowlistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams []int64
 	protectBranch.RuleName = f.RuleName
 	if f.RequiredApprovals < 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_approvals_min"))
@@ -183,22 +183,22 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	switch f.EnableForcePush {
 	case "all":
 		protectBranch.CanForcePush = true
-		protectBranch.EnableForcePushWhitelist = false
-		protectBranch.ForcePushWhitelistDeployKeys = false
+		protectBranch.EnableForcePushAllowlist = false
+		protectBranch.ForcePushAllowlistDeployKeys = false
 	case "whitelist":
 		protectBranch.CanForcePush = true
-		protectBranch.EnableForcePushWhitelist = true
-		protectBranch.ForcePushWhitelistDeployKeys = f.ForcePushWhitelistDeployKeys
-		if strings.TrimSpace(f.ForcePushWhitelistUsers) != "" {
-			forcePushWhitelistUsers, _ = base.StringsToInt64s(strings.Split(f.ForcePushWhitelistUsers, ","))
+		protectBranch.EnableForcePushAllowlist = true
+		protectBranch.ForcePushAllowlistDeployKeys = f.ForcePushAllowlistDeployKeys
+		if strings.TrimSpace(f.ForcePushAllowlistUsers) != "" {
+			forcePushAllowlistUsers, _ = base.StringsToInt64s(strings.Split(f.ForcePushAllowlistUsers, ","))
 		}
-		if strings.TrimSpace(f.ForcePushWhitelistTeams) != "" {
-			forcePushWhitelistTeams, _ = base.StringsToInt64s(strings.Split(f.ForcePushWhitelistTeams, ","))
+		if strings.TrimSpace(f.ForcePushAllowlistTeams) != "" {
+			forcePushAllowlistTeams, _ = base.StringsToInt64s(strings.Split(f.ForcePushAllowlistTeams, ","))
 		}
 	default:
 		protectBranch.CanForcePush = false
-		protectBranch.EnableForcePushWhitelist = false
-		protectBranch.ForcePushWhitelistDeployKeys = false
+		protectBranch.EnableForcePushAllowlist = false
+		protectBranch.ForcePushAllowlistDeployKeys = false
 	}
 
 	protectBranch.EnableMergeWhitelist = f.EnableMergeWhitelist
@@ -260,8 +260,8 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
-		ForcePushUserIDs: forcePushWhitelistUsers,
-		ForcePushTeamIDs: forcePushWhitelistTeams,
+		ForcePushUserIDs: forcePushAllowlistUsers,
+		ForcePushTeamIDs: forcePushAllowlistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,

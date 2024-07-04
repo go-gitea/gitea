@@ -483,7 +483,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelistPush, userToWhit
 			assert.NoError(t, err)
 			formData["force_push_whitelist_users"] = strconv.FormatInt(user.ID, 10)
 			formData["enable_force_push"] = "whitelist"
-			formData["enable_force_push_whitelist"] = "on"
+			formData["enable_force_push_allowlist"] = "on"
 		}
 
 		// Send the request to update branch protection settings

@@ -38,22 +38,22 @@ type ProtectedBranch struct {
 	isPlainName                   bool                   `xorm:"-"`
 	CanPush                       bool                   `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist               bool
-	WhitelistUserIDs              []int64 `xorm:"JSON TEXT"`
-	WhitelistTeamIDs              []int64 `xorm:"JSON TEXT"`
+	WhitelistUserIDs              []int64 `json:"whitelist_user_ids" xorm:"JSON TEXT"`
+	WhitelistTeamIDs              []int64 `json:"whitelist_team_ids" xorm:"JSON TEXT"`
 	WhitelistDeployKeys           bool    `xorm:"NOT NULL DEFAULT false"`
 	CanForcePush                  bool    `xorm:"NOT NULL DEFAULT false"`
-	EnableForcePushWhitelist      bool
-	ForcePushWhitelistUserIDs     []int64  `xorm:"JSON TEXT"`
-	ForcePushWhitelistTeamIDs     []int64  `xorm:"JSON TEXT"`
-	ForcePushWhitelistDeployKeys  bool     `xorm:"NOT NULL DEFAULT false"`
+	EnableForcePushAllowlist      bool
+	ForcePushAllowlistUserIDs     []int64  `json:"force_push_allowlist_user_ids" xorm:"JSON TEXT"`
+	ForcePushAllowlistTeamIDs     []int64  `json:"force_push_allowlist_team_ids" xorm:"JSON TEXT"`
+	ForcePushAllowlistDeployKeys  bool     `xorm:"NOT NULL DEFAULT false"`
 	EnableMergeWhitelist          bool     `xorm:"NOT NULL DEFAULT false"`
-	MergeWhitelistUserIDs         []int64  `xorm:"JSON TEXT"`
-	MergeWhitelistTeamIDs         []int64  `xorm:"JSON TEXT"`
+	MergeWhitelistUserIDs         []int64  `json:"merge_whitelist_user_ids" xorm:"JSON TEXT"`
+	MergeWhitelistTeamIDs         []int64  `json:"merge_whitelist_team_ids" xorm:"JSON TEXT"`
 	EnableStatusCheck             bool     `xorm:"NOT NULL DEFAULT false"`
 	StatusCheckContexts           []string `xorm:"JSON TEXT"`
 	EnableApprovalsWhitelist      bool     `xorm:"NOT NULL DEFAULT false"`
-	ApprovalsWhitelistUserIDs     []int64  `xorm:"JSON TEXT"`
-	ApprovalsWhitelistTeamIDs     []int64  `xorm:"JSON TEXT"`
+	ApprovalsWhitelistUserIDs     []int64  `json:"approvals_whitelist_user_ids" xorm:"JSON TEXT"`
+	ApprovalsWhitelistTeamIDs     []int64  `json:"approvals_whitelist_team_ids" xorm:"JSON TEXT"`
 	RequiredApprovals             int64    `xorm:"NOT NULL DEFAULT 0"`
 	BlockOnRejectedReviews        bool     `xorm:"NOT NULL DEFAULT false"`
 	BlockOnOfficialReviewRequests bool     `xorm:"NOT NULL DEFAULT false"`
@@ -155,19 +155,19 @@ func (protectBranch *ProtectedBranch) CanUserForcePush(ctx context.Context, user
 		return false
 	}
 
-	if !protectBranch.EnableForcePushWhitelist {
+	if !protectBranch.EnableForcePushAllowlist {
 		return protectBranch.CanUserPush(ctx, user)
 	}
 
-	if slices.Contains(protectBranch.ForcePushWhitelistUserIDs, user.ID) {
+	if slices.Contains(protectBranch.ForcePushAllowlistUserIDs, user.ID) {
 		return protectBranch.CanUserPush(ctx, user)
 	}
 
-	if len(protectBranch.ForcePushWhitelistTeamIDs) == 0 {
+	if len(protectBranch.ForcePushAllowlistTeamIDs) == 0 {
 		return false
 	}
 
-	in, err := organization.IsUserInTeams(ctx, user.ID, protectBranch.ForcePushWhitelistTeamIDs)
+	in, err := organization.IsUserInTeams(ctx, user.ID, protectBranch.ForcePushAllowlistTeamIDs)
 	if err != nil {
 		log.Error("IsUserInTeams: %v", err)
 		return false
@@ -363,11 +363,11 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	}
 	protectBranch.WhitelistUserIDs = whitelist
 
-	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.ForcePushWhitelistUserIDs, opts.ForcePushUserIDs)
+	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.ForcePushAllowlistUserIDs, opts.ForcePushUserIDs)
 	if err != nil {
 		return err
 	}
-	protectBranch.ForcePushWhitelistUserIDs = whitelist
+	protectBranch.ForcePushAllowlistUserIDs = whitelist
 
 	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.MergeWhitelistUserIDs, opts.MergeUserIDs)
 	if err != nil {
@@ -388,11 +388,11 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	}
 	protectBranch.WhitelistTeamIDs = whitelist
 
-	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.ForcePushWhitelistTeamIDs, opts.ForcePushTeamIDs)
+	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.ForcePushAllowlistTeamIDs, opts.ForcePushTeamIDs)
 	if err != nil {
 		return err
 	}
-	protectBranch.ForcePushWhitelistTeamIDs = whitelist
+	protectBranch.ForcePushAllowlistTeamIDs = whitelist
 
 	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.MergeWhitelistTeamIDs, opts.MergeTeamIDs)
 	if err != nil {
@@ -517,29 +517,29 @@ func DeleteProtectedBranch(ctx context.Context, repo *repo_model.Repository, id 
 
 // removeIDsFromProtectedBranch is a helper function to remove IDs from protected branch options
 func removeIDsFromProtectedBranch(ctx context.Context, p *ProtectedBranch, userID, teamID int64, columnNames []string) error {
-	lenUserIDs, lenForcePushIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistUserIDs), len(p.ForcePushWhitelistUserIDs), len(p.ApprovalsWhitelistUserIDs), len(p.MergeWhitelistUserIDs)
-	lenTeamIDs, lenForcePushTeamIDs, lenApprovalTeamIDs, lenMergeTeamIDs := len(p.WhitelistTeamIDs), len(p.ForcePushWhitelistTeamIDs), len(p.ApprovalsWhitelistTeamIDs), len(p.MergeWhitelistTeamIDs)
+	lenUserIDs, lenForcePushIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistUserIDs), len(p.ForcePushAllowlistUserIDs), len(p.ApprovalsWhitelistUserIDs), len(p.MergeWhitelistUserIDs)
+	lenTeamIDs, lenForcePushTeamIDs, lenApprovalTeamIDs, lenMergeTeamIDs := len(p.WhitelistTeamIDs), len(p.ForcePushAllowlistTeamIDs), len(p.ApprovalsWhitelistTeamIDs), len(p.MergeWhitelistTeamIDs)
 
 	if userID > 0 {
 		p.WhitelistUserIDs = util.SliceRemoveAll(p.WhitelistUserIDs, userID)
-		p.ForcePushWhitelistUserIDs = util.SliceRemoveAll(p.ForcePushWhitelistUserIDs, userID)
+		p.ForcePushAllowlistUserIDs = util.SliceRemoveAll(p.ForcePushAllowlistUserIDs, userID)
 		p.ApprovalsWhitelistUserIDs = util.SliceRemoveAll(p.ApprovalsWhitelistUserIDs, userID)
 		p.MergeWhitelistUserIDs = util.SliceRemoveAll(p.MergeWhitelistUserIDs, userID)
 	}
 
 	if teamID > 0 {
 		p.WhitelistTeamIDs = util.SliceRemoveAll(p.WhitelistTeamIDs, teamID)
-		p.ForcePushWhitelistTeamIDs = util.SliceRemoveAll(p.ForcePushWhitelistTeamIDs, teamID)
+		p.ForcePushAllowlistTeamIDs = util.SliceRemoveAll(p.ForcePushAllowlistTeamIDs, teamID)
 		p.ApprovalsWhitelistTeamIDs = util.SliceRemoveAll(p.ApprovalsWhitelistTeamIDs, teamID)
 		p.MergeWhitelistTeamIDs = util.SliceRemoveAll(p.MergeWhitelistTeamIDs, teamID)
 	}
 
 	if (lenUserIDs != len(p.WhitelistUserIDs) ||
-		lenForcePushIDs != len(p.ForcePushWhitelistUserIDs) ||
+		lenForcePushIDs != len(p.ForcePushAllowlistUserIDs) ||
 		lenApprovalIDs != len(p.ApprovalsWhitelistUserIDs) ||
 		lenMergeIDs != len(p.MergeWhitelistUserIDs)) ||
 		(lenTeamIDs != len(p.WhitelistTeamIDs) ||
-			lenForcePushTeamIDs != len(p.ForcePushWhitelistTeamIDs) ||
+			lenForcePushTeamIDs != len(p.ForcePushAllowlistTeamIDs) ||
 			lenApprovalTeamIDs != len(p.ApprovalsWhitelistTeamIDs) ||
 			lenMergeTeamIDs != len(p.MergeWhitelistTeamIDs)) {
 		if _, err := db.GetEngine(ctx).ID(p.ID).Cols(columnNames...).Update(p); err != nil {
@@ -552,10 +552,10 @@ func removeIDsFromProtectedBranch(ctx context.Context, p *ProtectedBranch, userI
 // RemoveUserIDFromProtectedBranch removes all user ids from protected branch options
 func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, userID int64) error {
 	columnNames := []string{
-		"whitelist_user_i_ds",
-		"force_push_whitelist_user_i_ds",
-		"merge_whitelist_user_i_ds",
-		"approvals_whitelist_user_i_ds",
+		"whitelist_user_ids",
+		"force_push_whitelist_user_ids",
+		"merge_whitelist_user_ids",
+		"approvals_whitelist_user_ids",
 	}
 	return removeIDsFromProtectedBranch(ctx, p, userID, 0, columnNames)
 }
@@ -563,10 +563,10 @@ func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, us
 // RemoveTeamIDFromProtectedBranch removes all team ids from protected branch options
 func RemoveTeamIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, teamID int64) error {
 	columnNames := []string{
-		"whitelist_team_i_ds",
-		"force_push_whitelist_team_i_ds",
-		"merge_whitelist_team_i_ds",
-		"approvals_whitelist_team_i_ds",
+		"whitelist_team_ids",
+		"force_push_whitelist_team_ids",
+		"merge_whitelist_team_ids",
+		"approvals_whitelist_team_ids",
 	}
 	return removeIDsFromProtectedBranch(ctx, p, 0, teamID, columnNames)
 }

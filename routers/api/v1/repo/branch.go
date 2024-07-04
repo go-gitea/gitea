@@ -553,7 +553,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
 		return
 	}
-	forcePushWhitelistUsers, err := user_model.GetUserIDsByNames(ctx, form.ForcePushWhitelistUsernames, false)
+	forcePushAllowlistUsers, err := user_model.GetUserIDsByNames(ctx, form.ForcePushAllowlistUsernames, false)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
@@ -580,7 +580,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
 		return
 	}
-	var whitelistTeams, forcePushWhitelistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
+	var whitelistTeams, forcePushAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
 	if repo.Owner.IsOrganization() {
 		whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.PushWhitelistTeams, false)
 		if err != nil {
@@ -591,7 +591,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetTeamIDsByNames", err)
 			return
 		}
-		forcePushWhitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.ForcePushWhitelistTeams, false)
+		forcePushAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.ForcePushAllowlistTeams, false)
 		if err != nil {
 			if organization.IsErrTeamNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
@@ -627,8 +627,8 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		EnableWhitelist:               form.EnablePush && form.EnablePushWhitelist,
 		WhitelistDeployKeys:           form.EnablePush && form.EnablePushWhitelist && form.PushWhitelistDeployKeys,
 		CanForcePush:                  form.EnablePush && form.EnableForcePush,
-		EnableForcePushWhitelist:      form.EnablePush && form.EnableForcePush && form.EnableForcePushWhitelist,
-		ForcePushWhitelistDeployKeys:  form.EnablePush && form.EnableForcePush && form.EnableForcePushWhitelist && form.ForcePushWhitelistDeployKeys,
+		EnableForcePushAllowlist:      form.EnablePush && form.EnableForcePush && form.EnableForcePushAllowlist,
+		ForcePushAllowlistDeployKeys:  form.EnablePush && form.EnableForcePush && form.EnableForcePushAllowlist && form.ForcePushAllowlistDeployKeys,
 		EnableMergeWhitelist:          form.EnableMergeWhitelist,
 		EnableStatusCheck:             form.EnableStatusCheck,
 		StatusCheckContexts:           form.StatusCheckContexts,
@@ -647,8 +647,8 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
-		ForcePushUserIDs: forcePushWhitelistUsers,
-		ForcePushTeamIDs: forcePushWhitelistTeams,
+		ForcePushUserIDs: forcePushAllowlistUsers,
+		ForcePushTeamIDs: forcePushAllowlistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,
@@ -782,18 +782,18 @@ func EditBranchProtection(ctx *context.APIContext) {
 	if form.EnableForcePush != nil {
 		if !*form.EnableForcePush {
 			protectBranch.CanForcePush = false
-			protectBranch.EnableForcePushWhitelist = false
-			protectBranch.ForcePushWhitelistDeployKeys = false
+			protectBranch.EnableForcePushAllowlist = false
+			protectBranch.ForcePushAllowlistDeployKeys = false
 		} else {
 			protectBranch.CanForcePush = true
-			if form.EnableForcePushWhitelist != nil {
-				if !*form.EnableForcePushWhitelist {
-					protectBranch.EnableForcePushWhitelist = false
-					protectBranch.ForcePushWhitelistDeployKeys = false
+			if form.EnableForcePushAllowlist != nil {
+				if !*form.EnableForcePushAllowlist {
+					protectBranch.EnableForcePushAllowlist = false
+					protectBranch.ForcePushAllowlistDeployKeys = false
 				} else {
-					protectBranch.EnableForcePushWhitelist = true
-					if form.ForcePushWhitelistDeployKeys != nil {
-						protectBranch.ForcePushWhitelistDeployKeys = *form.ForcePushWhitelistDeployKeys
+					protectBranch.EnableForcePushAllowlist = true
+					if form.ForcePushAllowlistDeployKeys != nil {
+						protectBranch.ForcePushAllowlistDeployKeys = *form.ForcePushAllowlistDeployKeys
 					}
 				}
 			}
@@ -852,7 +852,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		protectBranch.BlockOnOutdatedBranch = *form.BlockOnOutdatedBranch
 	}
 
-	var whitelistUsers, forcePushWhitelistUsers, mergeWhitelistUsers, approvalsWhitelistUsers []int64
+	var whitelistUsers, forcePushAllowlistUsers, mergeWhitelistUsers, approvalsWhitelistUsers []int64
 	if form.PushWhitelistUsernames != nil {
 		whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.PushWhitelistUsernames, false)
 		if err != nil {
@@ -866,8 +866,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 	} else {
 		whitelistUsers = protectBranch.WhitelistUserIDs
 	}
-	if form.ForcePushWhitelistUsernames != nil {
-		forcePushWhitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.ForcePushWhitelistUsernames, false)
+	if form.ForcePushAllowlistDeployKeys != nil {
+		forcePushAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.ForcePushAllowlistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
@@ -877,7 +877,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 			return
 		}
 	} else {
-		forcePushWhitelistUsers = protectBranch.ForcePushWhitelistUserIDs
+		forcePushAllowlistUsers = protectBranch.ForcePushAllowlistUserIDs
 	}
 	if form.MergeWhitelistUsernames != nil {
 		mergeWhitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.MergeWhitelistUsernames, false)
@@ -906,7 +906,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		approvalsWhitelistUsers = protectBranch.ApprovalsWhitelistUserIDs
 	}
 
-	var whitelistTeams, forcePushWhitelistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
+	var whitelistTeams, forcePushAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
 	if repo.Owner.IsOrganization() {
 		if form.PushWhitelistTeams != nil {
 			whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.PushWhitelistTeams, false)
@@ -921,8 +921,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 		} else {
 			whitelistTeams = protectBranch.WhitelistTeamIDs
 		}
-		if form.ForcePushWhitelistTeams != nil {
-			forcePushWhitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.ForcePushWhitelistTeams, false)
+		if form.ForcePushAllowlistTeams != nil {
+			forcePushAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.ForcePushAllowlistTeams, false)
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
 					ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
@@ -932,7 +932,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 				return
 			}
 		} else {
-			forcePushWhitelistTeams = protectBranch.ForcePushWhitelistTeamIDs
+			forcePushAllowlistTeams = protectBranch.ForcePushAllowlistTeamIDs
 		}
 		if form.MergeWhitelistTeams != nil {
 			mergeWhitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.MergeWhitelistTeams, false)
@@ -965,8 +965,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
-		ForcePushUserIDs: forcePushWhitelistUsers,
-		ForcePushTeamIDs: forcePushWhitelistTeams,
+		ForcePushUserIDs: forcePushAllowlistUsers,
+		ForcePushTeamIDs: forcePushAllowlistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,
