@@ -89,7 +89,9 @@ const sfc = {
     // load job data and then auto-reload periodically
     // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
     await this.loadJob();
-    this.intervalID = setInterval(this.loadJob, 1000);
+    this.intervalID = setInterval(() => {
+      this.loadJob();
+    }, 1000);
     document.body.addEventListener('click', this.closeDropdown);
     this.hashChangeListener();
     window.addEventListener('hashchange', this.hashChangeListener);
