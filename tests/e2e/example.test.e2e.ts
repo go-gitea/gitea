@@ -7,21 +7,21 @@ test.beforeAll(async ({browser}, workerInfo) => {
 
 test('homepage', async ({page}) => {
   const response = await page.goto('/');
-  await expect(response?.status()).toBe(200); // Status OK
+  expect(response?.status()).toBe(200); // Status OK
   await expect(page).toHaveTitle(/^Gitea: Git with a cup of tea\s*$/);
   await expect(page.locator('.logo')).toHaveAttribute('src', '/assets/img/logo.svg');
 });
 
 test('register', async ({page}, workerInfo) => {
   const response = await page.goto('/user/sign_up');
-  await expect(response?.status()).toBe(200); // Status OK
-  await page.type('input[name=user_name]', `e2e-test-${workerInfo.workerIndex}`);
-  await page.type('input[name=email]', `e2e-test-${workerInfo.workerIndex}@test.com`);
-  await page.type('input[name=password]', 'test123test123');
-  await page.type('input[name=retype]', 'test123test123');
+  expect(response?.status()).toBe(200); // Status OK
+  await page.locator('input[name=user_name]').fill(`e2e-test-${workerInfo.workerIndex}`);
+  await page.locator('input[name=email]').fill(`e2e-test-${workerInfo.workerIndex}@test.com`);
+  await page.locator('input[name=password]').fill('test123test123');
+  await page.locator('input[name=retype]').fill('test123test123');
   await page.click('form button.ui.primary.button:visible');
   // Make sure we routed to the home page. Else login failed.
-  await expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/`);
+  expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/`);
   await expect(page.locator('.secondary-nav span>img.ui.avatar')).toBeVisible();
   await expect(page.locator('.ui.positive.message.flash-success')).toHaveText('Account was successfully created. Welcome!');
 
@@ -30,15 +30,15 @@ test('register', async ({page}, workerInfo) => {
 
 test('login', async ({page}, workerInfo) => {
   const response = await page.goto('/user/login');
-  await expect(response?.status()).toBe(200); // Status OK
+  expect(response?.status()).toBe(200); // Status OK
 
-  await page.type('input[name=user_name]', `user2`);
-  await page.type('input[name=password]', `password`);
+  await page.locator('input[name=user_name]').fill(`user2`);
+  await page.locator('input[name=password]').fill(`password`);
   await page.click('form button.ui.primary.button:visible');
 
   await page.waitForLoadState('networkidle'); // eslint-disable-line playwright/no-networkidle
 
-  await expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/`);
+  expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/`);
 
   save_visual(page);
 });
@@ -50,7 +50,7 @@ test('logged in user', async ({browser}, workerInfo) => {
   await page.goto('/');
 
   // Make sure we routed to the home page. Else login failed.
-  await expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/`);
+  expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/`);
 
   save_visual(page);
 });
