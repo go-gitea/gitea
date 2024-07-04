@@ -9,6 +9,8 @@
 	{{end}}
 </h4>
 <div class="ui attached segment">
+	{{template "user/auth/webauthn_error" .}}
+
 	<form class="ui form tw-max-w-2xl tw-m-auto" action="{{.SignInLink}}" method="post">
 	{{.CsrfTokenHtml}}
 	<div class="required field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
@@ -48,6 +50,10 @@
 			<a href="{{AppSubUrl}}/user/sign_up">{{ctx.Locale.Tr "auth.sign_up_now"}}</a>
 		</div>
 	{{end}}
+
+	<div class="field">
+		<a class="signin-passkey">{{ctx.Locale.Tr "auth.signin_passkey"}}</a>
+	</div>
 
 	{{if .OAuth2Providers}}
 	<div class="divider divider-text">
