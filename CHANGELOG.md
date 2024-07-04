@@ -58,7 +58,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix push multiple branches error with tests (#31151) (#31153)
   * Fix API repository object format missed (#31118) (#31132)
   * Fix missing memcache import (#31105) (#31109)
-  * *Upgrade `github.com/hashicorp/go-retryablehttp` (#31499)
+  * Upgrade `github.com/hashicorp/go-retryablehttp` (#31499)
   * Fix double border in system status table (#31363) (#31401)
   * Fix bug filtering issues which have no project (#31337) (#31367)
   * Fix #31185 try fix lfs download from bitbucket failed (#31201) (#31329)
