@@ -58,7 +58,7 @@ overrides:
       worker: true
     rules:
       no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, status, statusbar, stop, toolbar, top]
-  - files: ["*.config.*"]
+  - files: ["*.config.*", "**/*.d.ts"]
     rules:
       i/no-unused-modules: [0]
   - files: ["**/*.test.*", "web_src/js/test/setup.ts"]
@@ -133,9 +133,6 @@ overrides:
     plugins:
       - eslint-plugin-playwright
     extends: plugin:playwright/recommended
-  - files: ["**/*.d.ts"]
-    rules:
-      i/no-unused-modules: [0]
 
 rules:
   "@eslint-community/eslint-comments/disable-enable-pair": [2]
