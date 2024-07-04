@@ -19,7 +19,7 @@ export function initRepoIssueTimeTracking() {
       },
     }).modal('show');
     $('.issue-start-time-modal input').on('keydown', (e) => {
-      if ((e.keyCode || e.key) === 13) {
+      if (e.key === 'Enter') {
         $('#add_time_manual_form').trigger('submit');
       }
     });
@@ -146,7 +146,7 @@ export function initRepoIssueSidebarList() {
   });
 
   $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
-    if (e.altKey && e.keyCode === 13) {
+    if (e.altKey && e.key === 'Enter') {
       const selectedItem = document.querySelector('.menu .ui.dropdown.label-filter .menu .item.selected');
       if (selectedItem) {
         excludeLabel(selectedItem);
