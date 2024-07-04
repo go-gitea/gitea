@@ -38,22 +38,22 @@ type ProtectedBranch struct {
 	isPlainName                   bool                   `xorm:"-"`
 	CanPush                       bool                   `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist               bool
-	WhitelistUserIDs              []int64 `json:"whitelist_user_ids" xorm:"JSON TEXT"`
-	WhitelistTeamIDs              []int64 `json:"whitelist_team_ids" xorm:"JSON TEXT"`
+	WhitelistUserIDs              []int64 `xorm:"whitelist_user_ids JSON TEXT"`
+	WhitelistTeamIDs              []int64 `xorm:"whitelist_team_ids JSON TEXT"`
 	WhitelistDeployKeys           bool    `xorm:"NOT NULL DEFAULT false"`
 	CanForcePush                  bool    `xorm:"NOT NULL DEFAULT false"`
 	EnableForcePushAllowlist      bool
-	ForcePushAllowlistUserIDs     []int64  `json:"force_push_allowlist_user_ids" xorm:"JSON TEXT"`
-	ForcePushAllowlistTeamIDs     []int64  `json:"force_push_allowlist_team_ids" xorm:"JSON TEXT"`
+	ForcePushAllowlistUserIDs     []int64  `xorm:"force_push_allowlist_user_ids JSON TEXT"`
+	ForcePushAllowlistTeamIDs     []int64  `xorm:"force_push_allowlist_team_ids JSON TEXT"`
 	ForcePushAllowlistDeployKeys  bool     `xorm:"NOT NULL DEFAULT false"`
 	EnableMergeWhitelist          bool     `xorm:"NOT NULL DEFAULT false"`
-	MergeWhitelistUserIDs         []int64  `json:"merge_whitelist_user_ids" xorm:"JSON TEXT"`
-	MergeWhitelistTeamIDs         []int64  `json:"merge_whitelist_team_ids" xorm:"JSON TEXT"`
+	MergeWhitelistUserIDs         []int64  `xorm:"merge_whitelist_user_ids JSON TEXT"`
+	MergeWhitelistTeamIDs         []int64  `xorm:"merge_whitelist_team_ids JSON TEXT"`
 	EnableStatusCheck             bool     `xorm:"NOT NULL DEFAULT false"`
 	StatusCheckContexts           []string `xorm:"JSON TEXT"`
 	EnableApprovalsWhitelist      bool     `xorm:"NOT NULL DEFAULT false"`
-	ApprovalsWhitelistUserIDs     []int64  `json:"approvals_whitelist_user_ids" xorm:"JSON TEXT"`
-	ApprovalsWhitelistTeamIDs     []int64  `json:"approvals_whitelist_team_ids" xorm:"JSON TEXT"`
+	ApprovalsWhitelistUserIDs     []int64  `xorm:"approvals_whitelist_user_ids JSON TEXT"`
+	ApprovalsWhitelistTeamIDs     []int64  `xorm:"approvals_whitelist_team_ids JSON TEXT"`
 	RequiredApprovals             int64    `xorm:"NOT NULL DEFAULT 0"`
 	BlockOnRejectedReviews        bool     `xorm:"NOT NULL DEFAULT false"`
 	BlockOnOfficialReviewRequests bool     `xorm:"NOT NULL DEFAULT false"`
