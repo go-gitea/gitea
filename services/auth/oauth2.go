@@ -63,6 +63,14 @@ func (o *OAuth2) Name() string {
 // representing whether the token exists or not
 func parseToken(req *http.Request) (string, bool) {
 	_ = req.ParseForm()
+
+	// attempt to read the token from the POST body, which does not pose a security issue
+	// and is mandated for certain flows like OIDC introspection:
+	// https://datatracker.ietf.org/doc/html/rfc7662#section-2.1
+	if token := req.PostForm.Get("token"); token != "" {
+		return token, true
+	}
+
 	if !setting.DisableQueryAuthToken {
 		// Check token.
 		if token := req.Form.Get("token"); token != "" {
