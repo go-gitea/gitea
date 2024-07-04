@@ -7,11 +7,11 @@ import {showErrorToast} from '../modules/toast.js';
 const {appSubUrl} = window.config;
 
 export function initRepoTopicBar() {
-  const mgrBtn = document.getElementById('manage_topic');
+  const mgrBtn = document.querySelector('#manage_topic');
   if (!mgrBtn) return;
 
-  const editDiv = document.getElementById('topic_edit');
-  const viewDiv = document.getElementById('repo-topics');
+  const editDiv = document.querySelector('#topic_edit');
+  const viewDiv = document.querySelector('#repo-topics');
   const topicDropdown = editDiv.querySelector('.ui.dropdown');
   let lastErrorToast;
 
@@ -28,7 +28,7 @@ export function initRepoTopicBar() {
     mgrBtn.focus();
   });
 
-  document.getElementById('save_topic').addEventListener('click', async (e) => {
+  document.querySelector('#save_topic').addEventListener('click', async (e) => {
     lastErrorToast?.hideToast();
     const topics = editDiv.querySelector('input[name=topics]').value;
 
@@ -102,16 +102,16 @@ export function initRepoTopicBar() {
 
         if (res.topics) {
           let found = false;
-          for (let i = 0; i < res.topics.length; i++) {
+          for (const {topic_name} of res.topics) {
             // skip currently added tags
-            if (current_topics.includes(res.topics[i].topic_name)) {
+            if (current_topics.includes(topic_name)) {
               continue;
             }
 
-            if (res.topics[i].topic_name.toLowerCase() === query.toLowerCase()) {
+            if (topic_name.toLowerCase() === query.toLowerCase()) {
               found_query = true;
             }
-            formattedResponse.results.push({description: res.topics[i].topic_name, 'data-value': res.topics[i].topic_name});
+            formattedResponse.results.push({description: topic_name, 'data-value': topic_name});
             found = true;
           }
           formattedResponse.success = found;

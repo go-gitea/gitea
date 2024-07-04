@@ -30,7 +30,7 @@ menu:
 要注册软件包注册表，您需要配置一个新的软件包源。
 
 ```shell
-npm config set {scope}:registry https://gitea.example.com/api/packages/{owner}/npm/
+npm config set {scope}:registry=https://gitea.example.com/api/packages/{owner}/npm/
 npm config set -- '//gitea.example.com/api/packages/{owner}/npm/:_authToken' "{token}"
 ```
 
@@ -43,7 +43,7 @@ npm config set -- '//gitea.example.com/api/packages/{owner}/npm/:_authToken' "{t
 例如：
 
 ```shell
-npm config set @test:registry https://gitea.example.com/api/packages/testuser/npm/
+npm config set @test:registry=https://gitea.example.com/api/packages/testuser/npm/
 npm config set -- '//gitea.example.com/api/packages/testuser/npm/:_authToken' "personal_access_token"
 ```
 

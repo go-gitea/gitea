@@ -161,6 +161,7 @@ func (f *AuthorizationForm) Validate(req *http.Request, errs binding.Errors) bin
 // GrantApplicationForm form for authorizing oauth2 clients
 type GrantApplicationForm struct {
 	ClientID    string `binding:"Required"`
+	Granted     bool
 	RedirectURI string
 	State       string
 	Scope       string

@@ -19,11 +19,10 @@ export async function pngChunks(blob) {
   return chunks;
 }
 
-// decode a image and try to obtain width and dppx. If will never throw but instead
+// decode a image and try to obtain width and dppx. It will never throw but instead
 // return default values.
 export async function imageInfo(blob) {
-  let width = 0; // 0 means no width could be determined
-  let dppx = 1; // 1 dot per pixel for non-HiDPI screens
+  let width = 0, dppx = 1; // dppx: 1 dot per pixel for non-HiDPI screens
 
   if (blob.type === 'image/png') { // only png is supported currently
     try {
@@ -41,6 +40,8 @@ export async function imageInfo(blob) {
         }
       }
     } catch {}
+  } else {
+    return {}; // no image info for non-image files
   }
 
   return {width, dppx};

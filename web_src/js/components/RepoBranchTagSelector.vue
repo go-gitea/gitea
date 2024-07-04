@@ -85,7 +85,7 @@ const sfc = {
         this.isViewBranch = false;
         this.$refs.dropdownRefName.textContent = item.name;
         if (this.setAction) {
-          document.getElementById(this.branchForm)?.setAttribute('action', url);
+          document.querySelector(`#${this.branchForm}`)?.setAttribute('action', url);
         } else {
           $(`#${this.branchForm} input[name="refURL"]`).val(url);
         }

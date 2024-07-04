@@ -1,12 +1,11 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
-import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
+import {createTippy, showTemporaryTooltip} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {toAbsoluteUrl} from '../utils.js';
-import {initDropzone} from './common-global.js';
-import {POST, GET} from '../modules/fetch.js';
+import {GET, POST} from '../modules/fetch.js';
 import {showErrorToast} from '../modules/toast.js';
 
 const {appSubUrl} = window.config;
@@ -44,14 +43,14 @@ export function initRepoIssueTimeTracking() {
 
 async function updateDeadline(deadlineString) {
   hideElem('#deadline-err-invalid-date');
-  document.getElementById('deadline-loader')?.classList.add('is-loading');
+  document.querySelector('#deadline-loader')?.classList.add('is-loading');
 
   let realDeadline = null;
   if (deadlineString !== '') {
     const newDate = Date.parse(deadlineString);
 
     if (Number.isNaN(newDate)) {
-      document.getElementById('deadline-loader')?.classList.remove('is-loading');
+      document.querySelector('#deadline-loader')?.classList.remove('is-loading');
       showElem('#deadline-err-invalid-date');
       return false;
     }
@@ -59,7 +58,7 @@ async function updateDeadline(deadlineString) {
   }
 
   try {
-    const response = await POST(document.getElementById('update-issue-deadline-form').getAttribute('action'), {
+    const response = await POST(document.querySelector('#update-issue-deadline-form').getAttribute('action'), {
       data: {due_date: realDeadline},
     });
 
@@ -70,7 +69,7 @@ async function updateDeadline(deadlineString) {
     }
   } catch (error) {
     console.error(error);
-    document.getElementById('deadline-loader').classList.remove('is-loading');
+    document.querySelector('#deadline-loader').classList.remove('is-loading');
     showElem('#deadline-err-invalid-date');
   }
 }
@@ -125,7 +124,7 @@ export function initRepoIssueSidebarList() {
             }
             filteredResponse.results.push({
               name: `<div class="gt-ellipsis">#${issue.number} ${htmlEscape(issue.title)}</div>
-<div class="text small gt-word-break">${htmlEscape(issue.repository.full_name)}</div>`,
+<div class="text small tw-break-anywhere">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id,
             });
           });
@@ -182,7 +181,7 @@ export function initRepoIssueCommentDelete() {
           counter.textContent = String(num);
         }
 
-        document.getElementById(deleteButton.getAttribute('data-comment-id'))?.remove();
+        document.querySelector(`#${deleteButton.getAttribute('data-comment-id')}`)?.remove();
 
         if (conversationHolder && !conversationHolder.querySelector('.comment')) {
           const path = conversationHolder.getAttribute('data-path');
@@ -278,11 +277,12 @@ export function initRepoPullRequestUpdate() {
 
   $('.update-button > .dropdown').dropdown({
     onChange(_text, _value, $choice) {
-      const url = $choice[0].getAttribute('data-do');
+      const choiceEl = $choice[0];
+      const url = choiceEl.getAttribute('data-do');
       if (url) {
         const buttonText = pullUpdateButton.querySelector('.button-text');
         if (buttonText) {
-          buttonText.textContent = $choice.text();
+          buttonText.textContent = choiceEl.textContent;
         }
         pullUpdateButton.setAttribute('data-do', url);
       }
@@ -297,7 +297,7 @@ export function initRepoPullRequestMergeInstruction() {
 }
 
 export function initRepoPullRequestAllowMaintainerEdit() {
-  const wrapper = document.getElementById('allow-edits-from-maintainers');
+  const wrapper = document.querySelector('#allow-edits-from-maintainers');
   if (!wrapper) return;
   const checkbox = wrapper.querySelector('input[type="checkbox"]');
   checkbox.addEventListener('input', async () => {
@@ -409,21 +409,13 @@ export function initRepoIssueComments() {
   });
 }
 
-export async function handleReply($el) {
-  hideElem($el);
-  const $form = $el.closest('.comment-code-cloud').find('.comment-form');
-  showElem($form);
+export async function handleReply(el) {
+  const form = el.closest('.comment-code-cloud').querySelector('.comment-form');
+  const textarea = form.querySelector('textarea');
 
-  const $textarea = $form.find('textarea');
-  let editor = getComboMarkdownEditor($textarea);
-  if (!editor) {
-    // FIXME: the initialization of the dropzone is not consistent.
-    // When the page is loaded, the dropzone is initialized by initGlobalDropzone, but the editor is not initialized.
-    // When the form is submitted and partially reload, none of them is initialized.
-    const dropzone = $form.find('.dropzone')[0];
-    if (!dropzone.dropzone) initDropzone(dropzone);
-    editor = await initComboMarkdownEditor($form.find('.combo-markdown-editor'));
-  }
+  hideElem(el);
+  showElem(form);
+  const editor = getComboMarkdownEditor(textarea) ?? await initComboMarkdownEditor(form.querySelector('.combo-markdown-editor'));
   editor.focus();
   return editor;
 }
@@ -485,7 +477,7 @@ export function initRepoPullRequestReview() {
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
     e.preventDefault();
-    await handleReply($(this));
+    await handleReply(this);
   });
 
   const $reviewBox = $('.review-box-panel');
@@ -553,8 +545,6 @@ export function initRepoPullRequestReview() {
         $td.find("input[name='line']").val(idx);
         $td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
         $td.find("input[name='path']").val(path);
-
-        initDropzone($td.find('.dropzone')[0]);
         const editor = await initComboMarkdownEditor($td.find('.combo-markdown-editor'));
         editor.focus();
       } catch (error) {
@@ -567,14 +557,15 @@ export function initRepoPullRequestReview() {
 export function initRepoIssueReferenceIssue() {
   // Reference issue
   $(document).on('click', '.reference-issue', function (event) {
-    const $this = $(this);
-    const content = $(`#${$this.data('target')}`).text();
-    const poster = $this.data('poster-username');
-    const reference = toAbsoluteUrl($this.data('reference'));
-    const $modal = $($this.data('modal'));
-    $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
-    $modal.modal('show');
-
+    const target = this.getAttribute('data-target');
+    const content = document.querySelector(`#${target}`)?.textContent ?? '';
+    const poster = this.getAttribute('data-poster-username');
+    const reference = toAbsoluteUrl(this.getAttribute('data-reference'));
+    const modalSelector = this.getAttribute('data-modal');
+    const modal = document.querySelector(modalSelector);
+    const textarea = modal.querySelector('textarea[name="content"]');
+    textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
+    $(modal).modal('show');
     event.preventDefault();
   });
 }
@@ -626,9 +617,12 @@ export function initRepoIssueTitleEdit() {
     showElem(issueTitleDisplay);
     showElem('#pull-desc-display');
   });
+
+  const pullDescEditor = document.querySelector('#pull-desc-editor'); // it may not exist for a merged PR
+  const prTargetUpdateUrl = pullDescEditor?.getAttribute('data-target-update-url');
+
   const editSaveButton = issueTitleEditor.querySelector('.ui.primary.button');
   editSaveButton.addEventListener('click', async () => {
-    const prTargetUpdateUrl = editSaveButton.getAttribute('data-target-update-url');
     const newTitle = issueTitleInput.value.trim();
     try {
       if (newTitle && newTitle !== oldTitle) {
@@ -668,19 +662,24 @@ export function initRepoIssueBranchSelect() {
   });
 }
 
-export function initSingleCommentEditor($commentForm) {
+export async function initSingleCommentEditor($commentForm) {
   // pages:
-  // * normal new issue/pr page, no status-button
-  // * issue/pr view page, with comment form, has status-button
+  // * normal new issue/pr page: no status-button, no comment-button (there is only a normal submit button which can submit empty content)
+  // * issue/pr view page: with comment form, has status-button and comment-button
   const opts = {};
-  const statusButton = document.getElementById('status-button');
-  if (statusButton) {
-    opts.onContentChanged = (editor) => {
-      const statusText = statusButton.getAttribute(editor.value().trim() ? 'data-status-and-comment' : 'data-status');
-      statusButton.textContent = statusText;
-    };
-  }
-  initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
+  const statusButton = document.querySelector('#status-button');
+  const commentButton = document.querySelector('#comment-button');
+  opts.onContentChanged = (editor) => {
+    const editorText = editor.value().trim();
+    if (statusButton) {
+      statusButton.textContent = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
+    }
+    if (commentButton) {
+      commentButton.disabled = !editorText;
+    }
+  };
+  const editor = await initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
+  opts.onContentChanged(editor); // sync state of buttons with the initial content
 }
 
 export function initIssueTemplateCommentEditors($commentForm) {

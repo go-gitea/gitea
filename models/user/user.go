@@ -304,7 +304,7 @@ func (u *User) OrganisationLink() string {
 func (u *User) GenerateEmailActivateCode(email string) string {
 	code := base.CreateTimeLimitCode(
 		fmt.Sprintf("%d%s%s%s%s", u.ID, email, u.LowerName, u.Passwd, u.Rands),
-		setting.Service.ActiveCodeLives, nil)
+		setting.Service.ActiveCodeLives, time.Now(), nil)
 
 	// Add tail hex username
 	code += hex.EncodeToString([]byte(u.LowerName))
@@ -791,14 +791,11 @@ func GetVerifyUser(ctx context.Context, code string) (user *User) {
 
 // VerifyUserActiveCode verifies active code when active account
 func VerifyUserActiveCode(ctx context.Context, code string) (user *User) {
-	minutes := setting.Service.ActiveCodeLives
-
 	if user = GetVerifyUser(ctx, code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
 		data := fmt.Sprintf("%d%s%s%s%s", user.ID, user.Email, user.LowerName, user.Passwd, user.Rands)
-
-		if base.VerifyTimeLimitCode(data, minutes, prefix) {
+		if base.VerifyTimeLimitCode(time.Now(), data, setting.Service.ActiveCodeLives, prefix) {
 			return user
 		}
 	}
@@ -859,6 +856,10 @@ func GetUserByID(ctx context.Context, id int64) (*User, error) {
 
 // GetUserByIDs returns the user objects by given IDs if exists.
 func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
 	users := make([]*User, 0, len(ids))
 	err := db.GetEngine(ctx).In("id", ids).
 		Table("user").

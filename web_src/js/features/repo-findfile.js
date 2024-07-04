@@ -55,8 +55,8 @@ export function filterRepoFilesWeighted(files, filter) {
     const filterLower = filter.toLowerCase();
     // TODO: for large repo, this loop could be slow, maybe there could be one more limit:
     // ... && filterResult.length < threshold * 20,  wait for more feedbacks
-    for (let i = 0; i < files.length; i++) {
-      const res = strSubMatch(files[i], filterLower);
+    for (const file of files) {
+      const res = strSubMatch(file, filterLower);
       if (res.length > 1) { // length==1 means unmatched, >1 means having matched sub strings
         filterResult.push({matchResult: res, matchWeight: calcMatchedWeight(res)});
       }
@@ -106,11 +106,11 @@ async function loadRepoFiles() {
 }
 
 export function initFindFileInRepo() {
-  repoFindFileInput = document.getElementById('repo-file-find-input');
+  repoFindFileInput = document.querySelector('#repo-file-find-input');
   if (!repoFindFileInput) return;
 
   repoFindFileTableBody = document.querySelector('#repo-find-file-table tbody');
-  repoFindFileNoResult = document.getElementById('repo-find-file-no-result');
+  repoFindFileNoResult = document.querySelector('#repo-find-file-no-result');
   repoFindFileInput.addEventListener('input', () => filterRepoFiles(repoFindFileInput.value));
 
   loadRepoFiles();

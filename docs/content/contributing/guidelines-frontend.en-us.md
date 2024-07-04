@@ -47,7 +47,7 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 9. Avoid unnecessary `!important` in CSS, add comments to explain why it's necessary if it can't be avoided.
 10. Avoid mixing different events in one event listener, prefer to use individual event listeners for every event.
 11. Custom event names are recommended to use `ce-` prefix.
-12. Prefer using Tailwind CSS which is available via `tw-` prefix, e.g. `tw-relative`. Gitea's helper CSS classes use `gt-` prefix (`gt-word-break`), while Gitea's own private framework-level CSS classes use `g-` prefix (`g-modal-confirm`).
+12. Prefer using Tailwind CSS which is available via `tw-` prefix, e.g. `tw-relative`. Gitea's helper CSS classes use `gt-` prefix (`gt-ellipsis`), while Gitea's own private framework-level CSS classes use `g-` prefix (`g-modal-confirm`).
 13. Avoid inline scripts & styles as much as possible, it's recommended to put JS code into JS files and use CSS classes. If inline scripts & styles are unavoidable, explain the reason why it can't be avoided.
 
 ### Accessibility / ARIA
@@ -78,6 +78,22 @@ To make UI consistent, Vue components can use Fomantic-UI CSS classes.
 We use htmx for simple interactions. You can see an example for simple interactions where htmx should be used in this [PR](https://github.com/go-gitea/gitea/pull/28908). Do not use htmx if you require more advanced reactivity, use another framework (Vue/Vanilla JS).
 Although mixing different frameworks is discouraged,
 it should also work if the mixing is necessary and the code is well-designed and maintainable.
+
+### Typescript
+
+Gitea is in the process of migrating to type-safe Typescript. Here are some specific guidelines regarding Typescript in the codebase:
+
+#### Use type aliases instead of interfaces
+
+Prefer to use type aliases because they can represent any type and are generally more flexible to use than interfaces.
+
+#### Use separate type imports
+
+We use `verbatimModuleSyntax` so type and non-type imports from the same file must be split into two `import type` statements. This enables the typescript compiler to completely eliminate the type import statements during compilation.
+
+#### Use `@ts-expect-error` instead of `@ts-ignore`
+
+Both annotations should be avoided, but if you have to use them, use `@ts-expect-error` because it will not leave ineffective statements after the issue is fixed.
 
 ### `async` Functions
 

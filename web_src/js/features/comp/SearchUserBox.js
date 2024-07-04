@@ -5,7 +5,7 @@ const {appSubUrl} = window.config;
 const looksLikeEmailAddressCheck = /^\S+@\S+$/;
 
 export function initCompSearchUserBox() {
-  const searchUserBox = document.getElementById('search-user-box');
+  const searchUserBox = document.querySelector('#search-user-box');
   if (!searchUserBox) return;
 
   const $searchUserBox = $(searchUserBox);

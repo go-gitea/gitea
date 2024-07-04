@@ -6,7 +6,7 @@ import {GET} from '../modules/fetch.js';
 const {i18n} = window.config;
 
 export function initCopyContent() {
-  const btn = document.getElementById('copy-content');
+  const btn = document.querySelector('#copy-content');
   if (!btn || btn.classList.contains('disabled')) return;
 
   btn.addEventListener('click', async () => {

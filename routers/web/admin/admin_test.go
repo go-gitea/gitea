@@ -87,6 +87,6 @@ func TestSelfCheckPost(t *testing.T) {
 	err := json.Unmarshal(resp.Body.Bytes(), &data)
 	assert.NoError(t, err)
 	assert.Equal(t, []string{
-		ctx.Locale.TrString("admin.self_check.location_origin_mismatch", "http://frontend/sub/", "http://host/sub/"),
+		ctx.Locale.TrString("admin.self_check.location_origin_mismatch", "http://frontend/sub/", "http://config/sub/"),
 	}, data.Problems)
 }

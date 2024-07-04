@@ -18,14 +18,15 @@ import (
 // Mailer represents mail service.
 type Mailer struct {
 	// Mailer
-	Name                 string `ini:"NAME"`
-	From                 string `ini:"FROM"`
-	EnvelopeFrom         string `ini:"ENVELOPE_FROM"`
-	OverrideEnvelopeFrom bool   `ini:"-"`
-	FromName             string `ini:"-"`
-	FromEmail            string `ini:"-"`
-	SendAsPlainText      bool   `ini:"SEND_AS_PLAIN_TEXT"`
-	SubjectPrefix        string `ini:"SUBJECT_PREFIX"`
+	Name                 string              `ini:"NAME"`
+	From                 string              `ini:"FROM"`
+	EnvelopeFrom         string              `ini:"ENVELOPE_FROM"`
+	OverrideEnvelopeFrom bool                `ini:"-"`
+	FromName             string              `ini:"-"`
+	FromEmail            string              `ini:"-"`
+	SendAsPlainText      bool                `ini:"SEND_AS_PLAIN_TEXT"`
+	SubjectPrefix        string              `ini:"SUBJECT_PREFIX"`
+	OverrideHeader       map[string][]string `ini:"-"`
 
 	// SMTP sender
 	Protocol             string `ini:"PROTOCOL"`
@@ -149,6 +150,12 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	MailService = &Mailer{}
 	if err := sec.MapTo(MailService); err != nil {
 		log.Fatal("Unable to map [mailer] section on to MailService. Error: %v", err)
+	}
+
+	overrideHeader := rootCfg.Section("mailer.override_header").Keys()
+	MailService.OverrideHeader = make(map[string][]string)
+	for _, key := range overrideHeader {
+		MailService.OverrideHeader[key.Name()] = key.Strings(",")
 	}
 
 	// Infer SMTPPort if not set

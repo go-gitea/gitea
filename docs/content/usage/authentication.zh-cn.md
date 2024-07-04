@@ -194,7 +194,7 @@ PAM提供了一种机制，通过对用户进行PAM认证来自动将其添加�
 
   - 如果使用公共 SMTP 主机或有多个域的 SMTP 主机，限制哪些域可以登录
     限制哪些域可以登录。
-  - 示例: `gitea.io,mydomain.com,mydomain2.com`
+  - 示例: `gitea.com,mydomain.com,mydomain2.com`
 
 - 强制使用 SMTPS
   - 默认情况下将使用SMTPS连接到端口465.如果您希望将smtp用于其他端口，自行设置
