@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"mime"
 	"net/mail"
 	"net/url"
 	"path/filepath"
@@ -424,16 +425,9 @@ var emailToReplacer = strings.NewReplacer(
 	";", "",
 )
 
-var isAZ09 = regexp.MustCompile(`^[a-zA-Z0-9 ]+$`)
-
 // EmailTo returns a string suitable to be put into a e-mail `To:` header.
 func (u *User) EmailTo() string {
 	sanitizedDisplayName := emailToReplacer.Replace(u.DisplayName())
-
-	// we don't deal with non ascii strings
-	if !isAZ09.Match([]byte(sanitizedDisplayName)) {
-		return u.Email
-	}
 
 	// should be an edge case but nice to have
 	if sanitizedDisplayName == u.Email {
@@ -446,7 +440,7 @@ func (u *User) EmailTo() string {
 		return u.Email
 	}
 
-	return fmt.Sprintf("%s <%s>", add.Name, add.Address)
+	return fmt.Sprintf("%s <%s>", mime.QEncoding.Encode("utf-8", add.Name), add.Address)
 }
 
 // GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
