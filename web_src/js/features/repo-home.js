@@ -102,16 +102,16 @@ export function initRepoTopicBar() {
 
         if (res.topics) {
           let found = false;
-          for (let i = 0; i < res.topics.length; i++) {
+          for (const {topic_name} of res.topics) {
             // skip currently added tags
-            if (current_topics.includes(res.topics[i].topic_name)) {
+            if (current_topics.includes(topic_name)) {
               continue;
             }
 
-            if (res.topics[i].topic_name.toLowerCase() === query.toLowerCase()) {
+            if (topic_name.toLowerCase() === query.toLowerCase()) {
               found_query = true;
             }
-            formattedResponse.results.push({description: res.topics[i].topic_name, 'data-value': res.topics[i].topic_name});
+            formattedResponse.results.push({description: topic_name, 'data-value': topic_name});
             found = true;
           }
           formattedResponse.success = found;
