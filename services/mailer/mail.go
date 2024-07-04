@@ -540,7 +540,7 @@ func actionToTemplate(issue *issues_model.Issue, actionType activities_model.Act
 func fromDisplayName(u *user_model.User) string {
 	var ctx bytes.Buffer
 	err := setting.MailService.FromDisplayNameFormatTemplate.Execute(&ctx, map[string]any{
-		"DisplayName": u.DisplayName(),
+		"DisplayName": mime.QEncoding.Encode("utf-8", u.DisplayName()),
 		"AppName":     setting.AppName,
 		"Domain":      setting.Domain,
 	})
