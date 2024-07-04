@@ -89,7 +89,9 @@ const sfc = {
     // load job data and then auto-reload periodically
     // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
     await this.loadJob();
-    this.intervalID = setInterval(this.loadJob, 1000);
+    this.intervalID = setInterval(() => {
+      this.loadJob();
+    }, 1000);
     document.body.addEventListener('click', this.closeDropdown);
     this.hashChangeListener();
     window.addEventListener('hashchange', this.hashChangeListener);
@@ -797,7 +799,7 @@ export function initRepositoryActionView() {
 }
 </style>
 
-<style>
+<style> /* eslint-disable-line vue-scoped-css/enforce-style-type */
 /* some elements are not managed by vue, so we need to use global style */
 .job-status-rotate {
   animation: job-status-rotate-keyframes 1s linear infinite;
