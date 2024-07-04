@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 import {SvgIcon} from '../svg.ts';
 import {toggleElem} from '../utils/dom.ts';
 

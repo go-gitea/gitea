@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import {loadMoreFiles} from '../features/repo-diff.ts';
 import {toggleElem} from '../utils/dom.ts';

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 import {createApp} from 'vue';
 import {hideElem, showElem} from '../utils/dom.ts';
 

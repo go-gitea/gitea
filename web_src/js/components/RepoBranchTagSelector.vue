@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
 import {SvgIcon} from '../svg.ts';

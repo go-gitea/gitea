@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 

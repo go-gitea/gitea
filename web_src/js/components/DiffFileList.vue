@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 import {loadMoreFiles} from '../features/repo-diff.ts';
 import {diffTreeStore} from '../modules/stores.ts';
 
