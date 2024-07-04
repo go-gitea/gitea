@@ -4,7 +4,7 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.22.1](https://github.com/go-gitea/gitea/releases/tag/1.22.1) - 2024-06-28
+## [1.22.1](https://github.com/go-gitea/gitea/releases/tag/1.22.1) - 2024-07-04
 
 * SECURITY
   * Add replacement module for `mholt/archiver` (#31267) (#31270)
