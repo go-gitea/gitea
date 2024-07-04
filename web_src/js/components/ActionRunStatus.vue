@@ -3,7 +3,7 @@
     action status accepted: success, skipped, waiting, blocked, running, failure, cancelled, unknown
 -->
 <script>
-import {SvgIcon} from '../svg.js';
+import {SvgIcon} from '../svg.ts';
 
 export default {
   components: {SvgIcon},

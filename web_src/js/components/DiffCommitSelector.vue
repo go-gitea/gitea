@@ -1,6 +1,6 @@
 <script>
-import {SvgIcon} from '../svg.js';
-import {GET} from '../modules/fetch.js';
+import {SvgIcon} from '../svg.ts';
+import {GET} from '../modules/fetch.ts';
 
 export default {
   components: {SvgIcon},
