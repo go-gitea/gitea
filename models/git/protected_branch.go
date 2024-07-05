@@ -40,15 +40,15 @@ type ProtectedBranch struct {
 	EnableWhitelist               bool
 	WhitelistUserIDs              []int64 `xorm:"JSON TEXT"`
 	WhitelistTeamIDs              []int64 `xorm:"JSON TEXT"`
+	EnableMergeWhitelist          bool     `xorm:"NOT NULL DEFAULT false"`
 	WhitelistDeployKeys           bool    `xorm:"NOT NULL DEFAULT false"`
-	MergeWhitelistUserIDs         []int64  `xorm:"merge_whitelist_user_ids JSON TEXT"`
-	MergeWhitelistTeamIDs         []int64  `xorm:"merge_whitelist_team_ids JSON TEXT"`
+	MergeWhitelistUserIDs         []int64  `xorm:"JSON TEXT"`
+	MergeWhitelistTeamIDs         []int64  `xorm:"JSON TEXT"`
 	CanForcePush                  bool    `xorm:"NOT NULL DEFAULT false"`
 	EnableForcePushAllowlist      bool
 	ForcePushAllowlistUserIDs     []int64  `xorm:"force_push_allowlist_user_ids JSON TEXT"`
 	ForcePushAllowlistTeamIDs     []int64  `xorm:"force_push_allowlist_team_ids JSON TEXT"`
 	ForcePushAllowlistDeployKeys  bool     `xorm:"NOT NULL DEFAULT false"`
-	EnableMergeWhitelist          bool     `xorm:"NOT NULL DEFAULT false"`
 	EnableStatusCheck             bool     `xorm:"NOT NULL DEFAULT false"`
 	StatusCheckContexts           []string `xorm:"JSON TEXT"`
 	EnableApprovalsWhitelist      bool     `xorm:"NOT NULL DEFAULT false"`
