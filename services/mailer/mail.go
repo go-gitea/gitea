@@ -541,12 +541,12 @@ func fromDisplayName(u *user_model.User) string {
 	if setting.MailService.FromDisplayNameFormatTemplate != nil {
 		var ctx bytes.Buffer
 		err := setting.MailService.FromDisplayNameFormatTemplate.Execute(&ctx, map[string]any{
-			"DisplayName": mime.QEncoding.Encode("utf-8", u.DisplayName()),
+			"DisplayName": u.DisplayName(),
 			"AppName":     setting.AppName,
 			"Domain":      setting.Domain,
 		})
 		if err == nil {
-			return ctx.String()
+			return mime.QEncoding.Encode("utf-8", ctx.String())
 		}
 		log.Error("fromDisplayName: %w", err)
 	}
