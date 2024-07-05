@@ -434,4 +434,21 @@ func TestFromDisplayName(t *testing.T) {
 			assert.EqualValues(t, tc.fromDisplayName, got)
 		})
 	}
+
+	t.Run("template with all available vars", func(t *testing.T) {
+		template, err = texttmpl.New("mailFrom").Parse("{{ .DisplayName }} (by {{ .AppName }} on [{{ .Domain }}])")
+		assert.NoError(t, err)
+		setting.MailService = &setting.Mailer{FromDisplayNameFormatTemplate: template}
+		oldAppName := setting.AppName
+		setting.AppName = "Code IT"
+		oldDomain := setting.Domain
+		setting.Domain = "code.it"
+		defer func() {
+			setting.AppName = oldAppName
+			setting.Domain = oldDomain
+		}()
+
+		assert.EqualValues(t, "Mister X (by Code IT on [code.it])", fromDisplayName(&user_model.User{FullName: "Mister X", Name: "tmp"}))
+	})
+
 }
