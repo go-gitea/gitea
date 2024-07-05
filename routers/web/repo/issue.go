@@ -2262,7 +2262,7 @@ func UpdateIssueTimeEstimate(ctx *context.Context) {
 		return
 	}
 
-	if err := issue_service.ChangeTimeEstimate(issue, ctx.Doer, total); err != nil {
+	if err := issue_service.ChangeTimeEstimate(ctx, issue, ctx.Doer, total); err != nil {
 		ctx.ServerError("ChangeTimeEstimate", err)
 		return
 	}

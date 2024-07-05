@@ -939,8 +939,8 @@ func insertIssue(ctx context.Context, issue *Issue) error {
 }
 
 // ChangeIssueTimeEstimate changes the plan time of this issue, as the given user.
-func ChangeIssueTimeEstimate(issue *Issue, doer *user_model.User, timeEstimate int64) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeIssueTimeEstimate(ctx context.Context, issue *Issue, doer *user_model.User, timeEstimate int64) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
