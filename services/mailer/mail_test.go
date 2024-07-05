@@ -450,5 +450,4 @@ func TestFromDisplayName(t *testing.T) {
 
 		assert.EqualValues(t, "Mister X (by Code IT on [code.it])", fromDisplayName(&user_model.User{FullName: "Mister X", Name: "tmp"}))
 	})
-
 }
