@@ -1,12 +1,11 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
-import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
+import {createTippy, showTemporaryTooltip} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {toAbsoluteUrl} from '../utils.js';
-import {initDropzone} from './common-global.js';
-import {POST, GET} from '../modules/fetch.js';
+import {GET, POST} from '../modules/fetch.js';
 import {showErrorToast} from '../modules/toast.js';
 
 const {appSubUrl} = window.config;
@@ -410,21 +409,13 @@ export function initRepoIssueComments() {
   });
 }
 
-export async function handleReply($el) {
-  hideElem($el);
-  const $form = $el.closest('.comment-code-cloud').find('.comment-form');
-  showElem($form);
+export async function handleReply(el) {
+  const form = el.closest('.comment-code-cloud').querySelector('.comment-form');
+  const textarea = form.querySelector('textarea');
 
-  const $textarea = $form.find('textarea');
-  let editor = getComboMarkdownEditor($textarea);
-  if (!editor) {
-    // FIXME: the initialization of the dropzone is not consistent.
-    // When the page is loaded, the dropzone is initialized by initGlobalDropzone, but the editor is not initialized.
-    // When the form is submitted and partially reload, none of them is initialized.
-    const dropzone = $form.find('.dropzone')[0];
-    if (!dropzone.dropzone) initDropzone(dropzone);
-    editor = await initComboMarkdownEditor($form.find('.combo-markdown-editor'));
-  }
+  hideElem(el);
+  showElem(form);
+  const editor = getComboMarkdownEditor(textarea) ?? await initComboMarkdownEditor(form.querySelector('.combo-markdown-editor'));
   editor.focus();
   return editor;
 }
@@ -486,7 +477,7 @@ export function initRepoPullRequestReview() {
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
     e.preventDefault();
-    await handleReply($(this));
+    await handleReply(this);
   });
 
   const $reviewBox = $('.review-box-panel');
@@ -554,8 +545,6 @@ export function initRepoPullRequestReview() {
         $td.find("input[name='line']").val(idx);
         $td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
         $td.find("input[name='path']").val(path);
-
-        initDropzone($td.find('.dropzone')[0]);
         const editor = await initComboMarkdownEditor($td.find('.combo-markdown-editor'));
         editor.focus();
       } catch (error) {
@@ -673,19 +662,24 @@ export function initRepoIssueBranchSelect() {
   });
 }
 
-export function initSingleCommentEditor($commentForm) {
+export async function initSingleCommentEditor($commentForm) {
   // pages:
-  // * normal new issue/pr page, no status-button
-  // * issue/pr view page, with comment form, has status-button
+  // * normal new issue/pr page: no status-button, no comment-button (there is only a normal submit button which can submit empty content)
+  // * issue/pr view page: with comment form, has status-button and comment-button
   const opts = {};
   const statusButton = document.querySelector('#status-button');
-  if (statusButton) {
-    opts.onContentChanged = (editor) => {
-      const statusText = statusButton.getAttribute(editor.value().trim() ? 'data-status-and-comment' : 'data-status');
-      statusButton.textContent = statusText;
-    };
-  }
-  initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
+  const commentButton = document.querySelector('#comment-button');
+  opts.onContentChanged = (editor) => {
+    const editorText = editor.value().trim();
+    if (statusButton) {
+      statusButton.textContent = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
+    }
+    if (commentButton) {
+      commentButton.disabled = !editorText;
+    }
+  };
+  const editor = await initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
+  opts.onContentChanged(editor); // sync state of buttons with the initial content
 }
 
 export function initIssueTemplateCommentEditors($commentForm) {

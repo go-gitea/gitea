@@ -307,7 +307,7 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 
 	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
-	if markupType := markup.Type(readmeFile.Name()); markupType != "" {
+	if markupType := markup.DetectMarkupTypeByFileName(readmeFile.Name()); markupType != "" {
 		ctx.Data["IsMarkup"] = true
 		ctx.Data["MarkupType"] = markupType
 
@@ -499,7 +499,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 		readmeExist := util.IsReadmeFileName(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
 
-		markupType := markup.Type(blob.Name())
+		markupType := markup.DetectMarkupTypeByFileName(blob.Name())
 		// If the markup is detected by custom markup renderer it should not be reset later on
 		// to not pass it down to the render context.
 		detected := false
@@ -607,7 +607,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 
 		// TODO: this logic duplicates with "isRepresentableAsText=true", it is not the same as "LFSFileGet" in "lfs.go"
 		// It is used by "external renders", markupRender will execute external programs to get rendered content.
-		if markupType := markup.Type(blob.Name()); markupType != "" {
+		if markupType := markup.DetectMarkupTypeByFileName(blob.Name()); markupType != "" {
 			rd := io.MultiReader(bytes.NewReader(buf), dataRc)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
@@ -772,7 +772,7 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 // Home render repository home page
 func Home(ctx *context.Context) {
 	if setting.Other.EnableFeed {
-		isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
+		isFeed, _, showFeedType := feed.GetFeedType(ctx.PathParam(":reponame"), ctx.Req)
 		if isFeed {
 			switch {
 			case ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType):

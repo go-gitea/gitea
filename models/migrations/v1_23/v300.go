@@ -3,14 +3,15 @@
 
 package v1_23 //nolint
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
-func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
-	type Issue struct {
-		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
+func AddForcePushBranchProtection(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		CanForcePush                 bool    `xorm:"NOT NULL DEFAULT false"`
+		EnableForcePushAllowlist     bool    `xorm:"NOT NULL DEFAULT false"`
+		ForcePushAllowlistUserIDs    []int64 `xorm:"JSON TEXT"`
+		ForcePushAllowlistTeamIDs    []int64 `xorm:"JSON TEXT"`
+		ForcePushAllowlistDeployKeys bool    `xorm:"NOT NULL DEFAULT false"`
 	}
-
-	return x.Sync(new(Issue))
+	return x.Sync(new(ProtectedBranch))
 }

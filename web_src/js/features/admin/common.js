@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {checkAppUrl} from '../common-global.js';
+import {checkAppUrl} from '../common-page.js';
 import {hideElem, showElem, toggleElem} from '../../utils/dom.js';
 import {POST} from '../../modules/fetch.js';
 

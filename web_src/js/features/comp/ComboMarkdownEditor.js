@@ -3,13 +3,15 @@ import '@github/text-expander-element';
 import $ from 'jquery';
 import {attachTribute} from '../tribute.js';
 import {hideElem, showElem, autosize, isElemVisible} from '../../utils/dom.js';
-import {initEasyMDEPaste, initTextareaPaste} from './Paste.js';
+import {initEasyMDEPaste, initTextareaUpload} from './EditorUpload.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
 import {initTextExpander} from './TextExpander.js';
 import {showErrorToast} from '../../modules/toast.js';
 import {POST} from '../../modules/fetch.js';
+import {initTextareaMarkdown} from './EditorMarkdown.js';
+import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.js';
 
 let elementIdCounter = 0;
 
@@ -46,7 +48,7 @@ class ComboMarkdownEditor {
     this.prepareEasyMDEToolbarActions();
     this.setupContainer();
     this.setupTab();
-    this.setupDropzone();
+    await this.setupDropzone(); // textarea depends on dropzone
     this.setupTextarea();
 
     await this.switchToUserPreference();
@@ -84,17 +86,6 @@ class ComboMarkdownEditor {
       if (el.nodeName === 'BUTTON' && !el.getAttribute('type')) el.setAttribute('type', 'button');
     }
 
-    this.textarea.addEventListener('keydown', (e) => {
-      if (e.shiftKey) {
-        e.target._shiftDown = true;
-      }
-    });
-    this.textarea.addEventListener('keyup', (e) => {
-      if (!e.shiftKey) {
-        e.target._shiftDown = false;
-      }
-    });
-
     const monospaceButton = this.container.querySelector('.markdown-switch-monospace');
     const monospaceEnabled = localStorage?.getItem('markdown-editor-monospace') === 'true';
     const monospaceText = monospaceButton.getAttribute(monospaceEnabled ? 'data-disable-text' : 'data-enable-text');
@@ -118,35 +109,53 @@ class ComboMarkdownEditor {
       await this.switchToEasyMDE();
     });
 
+    initTextareaMarkdown(this.textarea);
     if (this.dropzone) {
-      initTextareaPaste(this.textarea, this.dropzone);
+      initTextareaUpload(this.textarea, this.dropzone);
     }
   }
 
-  setupDropzone() {
+  async setupDropzone() {
     const dropzoneParentContainer = this.container.getAttribute('data-dropzone-parent-container');
     if (dropzoneParentContainer) {
       this.dropzone = this.container.closest(this.container.getAttribute('data-dropzone-parent-container'))?.querySelector('.dropzone');
+      if (this.dropzone) this.attachedDropzoneInst = await initDropzone(this.dropzone);
     }
   }
 
+  dropzoneGetFiles() {
+    if (!this.dropzone) return null;
+    return Array.from(this.dropzone.querySelectorAll('.files [name=files]'), (el) => el.value);
+  }
+
+  dropzoneReloadFiles() {
+    if (!this.dropzone) return;
+    this.attachedDropzoneInst.emit(DropzoneCustomEventReloadFiles);
+  }
+
+  dropzoneSubmitReload() {
+    if (!this.dropzone) return;
+    this.attachedDropzoneInst.emit('submit');
+    this.attachedDropzoneInst.emit(DropzoneCustomEventReloadFiles);
+  }
+
   setupTab() {
-    const $container = $(this.container);
-    const tabs = $container[0].querySelectorAll('.tabular.menu > .item');
+    const tabs = this.container.querySelectorAll('.tabular.menu > .item');
 
     // Fomantic Tab requires the "data-tab" to be globally unique.
     // So here it uses our defined "data-tab-for" and "data-tab-panel" to generate the "data-tab" attribute for Fomantic.
-    const tabEditor = Array.from(tabs).find((tab) => tab.getAttribute('data-tab-for') === 'markdown-writer');
-    const tabPreviewer = Array.from(tabs).find((tab) => tab.getAttribute('data-tab-for') === 'markdown-previewer');
-    tabEditor.setAttribute('data-tab', `markdown-writer-${elementIdCounter}`);
-    tabPreviewer.setAttribute('data-tab', `markdown-previewer-${elementIdCounter}`);
-    const panelEditor = $container[0].querySelector('.ui.tab[data-tab-panel="markdown-writer"]');
-    const panelPreviewer = $container[0].querySelector('.ui.tab[data-tab-panel="markdown-previewer"]');
+    this.tabEditor = Array.from(tabs).find((tab) => tab.getAttribute('data-tab-for') === 'markdown-writer');
+    this.tabPreviewer = Array.from(tabs).find((tab) => tab.getAttribute('data-tab-for') === 'markdown-previewer');
+    this.tabEditor.setAttribute('data-tab', `markdown-writer-${elementIdCounter}`);
+    this.tabPreviewer.setAttribute('data-tab', `markdown-previewer-${elementIdCounter}`);
+
+    const panelEditor = this.container.querySelector('.ui.tab[data-tab-panel="markdown-writer"]');
+    const panelPreviewer = this.container.querySelector('.ui.tab[data-tab-panel="markdown-previewer"]');
     panelEditor.setAttribute('data-tab', `markdown-writer-${elementIdCounter}`);
     panelPreviewer.setAttribute('data-tab', `markdown-previewer-${elementIdCounter}`);
     elementIdCounter++;
 
-    tabEditor.addEventListener('click', () => {
+    this.tabEditor.addEventListener('click', () => {
       requestAnimationFrame(() => {
         this.focus();
       });
@@ -154,11 +163,11 @@ class ComboMarkdownEditor {
 
     $(tabs).tab();
 
-    this.previewUrl = tabPreviewer.getAttribute('data-preview-url');
-    this.previewContext = tabPreviewer.getAttribute('data-preview-context');
+    this.previewUrl = this.tabPreviewer.getAttribute('data-preview-url');
+    this.previewContext = this.tabPreviewer.getAttribute('data-preview-context');
     this.previewMode = this.options.previewMode ?? 'comment';
     this.previewWiki = this.options.previewWiki ?? false;
-    tabPreviewer.addEventListener('click', async () => {
+    this.tabPreviewer.addEventListener('click', async () => {
       const formData = new FormData();
       formData.append('mode', this.previewMode);
       formData.append('context', this.previewContext);
@@ -168,6 +177,10 @@ class ComboMarkdownEditor {
       const data = await response.text();
       renderPreviewPanelContent($(panelPreviewer), data);
     });
+  }
+
+  switchTabToEditor() {
+    this.tabEditor.click();
   }
 
   prepareEasyMDEToolbarActions() {
@@ -251,7 +264,9 @@ class ComboMarkdownEditor {
     });
     this.applyEditorHeights(this.container.querySelector('.CodeMirror-scroll'), this.options.editorHeights);
     await attachTribute(this.easyMDE.codemirror.getInputField(), {mentions: true, emoji: true});
-    initEasyMDEPaste(this.easyMDE, this.dropzone);
+    if (this.dropzone) {
+      initEasyMDEPaste(this.easyMDE, this.dropzone);
+    }
     hideElem(this.textareaMarkdownToolbar);
   }
 

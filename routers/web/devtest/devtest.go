@@ -62,5 +62,5 @@ func Tmpl(ctx *context.Context) {
 		time.Sleep(2 * time.Second)
 	}
 
-	ctx.HTML(http.StatusOK, base.TplName("devtest"+path.Clean("/"+ctx.Params("sub"))))
+	ctx.HTML(http.StatusOK, base.TplName("devtest"+path.Clean("/"+ctx.PathParam("sub"))))
 }

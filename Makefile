@@ -31,7 +31,7 @@ GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.6.0
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.0
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.5.1
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@db51e79a0e37c572d8b59ae0c58bf2bbbbe53285
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.31.0
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
@@ -375,11 +375,13 @@ lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
 
 .PHONY: lint-js
 lint-js: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue $(ESLINT_FILES)
+	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
+	npx tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue $(ESLINT_FILES) --fix
+	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
+	npx tsc
 
 .PHONY: lint-css
 lint-css: node_modules
@@ -967,7 +969,7 @@ generate-gitignore:
 
 .PHONY: generate-images
 generate-images: | node_modules
-	npm install --no-save fabric@6.0.0-beta20 imagemin-zopfli@7
+	npm install --no-save fabric@6 imagemin-zopfli@7
 	node tools/generate-images.js $(TAGS)
 
 .PHONY: generate-manpage

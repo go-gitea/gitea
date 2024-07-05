@@ -372,20 +372,12 @@ func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	return ErrUnsupportedRenderExtension{extension}
 }
 
-// Type returns if markup format via the filename
-func Type(filename string) string {
+// DetectMarkupTypeByFileName returns the possible markup format type via the filename
+func DetectMarkupTypeByFileName(filename string) string {
 	if parser := GetRendererByFileName(filename); parser != nil {
 		return parser.Name()
 	}
 	return ""
-}
-
-// IsMarkupFile reports whether file is a markup type file
-func IsMarkupFile(name, markup string) bool {
-	if parser := GetRendererByFileName(name); parser != nil {
-		return parser.Name() == markup
-	}
-	return false
 }
 
 func PreviewableExtensions() []string {

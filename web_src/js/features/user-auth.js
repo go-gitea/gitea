@@ -1,4 +1,4 @@
-import {checkAppUrl} from './common-global.js';
+import {checkAppUrl} from './common-page.js';
 
 export function initUserAuthOauth2() {
   const outer = document.querySelector('#oauth2-login-navigator');

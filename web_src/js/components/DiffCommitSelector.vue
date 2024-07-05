@@ -132,7 +132,7 @@ export default {
       }));
       this.commits.reverse();
       this.lastReviewCommitSha = results.last_review_commit_sha || null;
-      if (this.lastReviewCommitSha && this.commits.findIndex((x) => x.id === this.lastReviewCommitSha) === -1) {
+      if (this.lastReviewCommitSha && !this.commits.some((x) => x.id === this.lastReviewCommitSha)) {
         // the lastReviewCommit is not available (probably due to a force push)
         // reset the last review commit sha
         this.lastReviewCommitSha = null;

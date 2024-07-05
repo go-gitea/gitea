@@ -19,13 +19,23 @@ import (
 
 	"gitea.com/go-chi/session"
 	"github.com/chi-middleware/proxy"
-	chi "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5"
 )
 
 // ProtocolMiddlewares returns HTTP protocol related middlewares, and it provides a global panic recovery
 func ProtocolMiddlewares() (handlers []any) {
-	// first, normalize the URL path
-	handlers = append(handlers, normalizeRequestPathMiddleware)
+	// make sure chi uses EscapedPath(RawPath) as RoutePath, then "%2f" could be handled correctly
+	handlers = append(handlers, func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			ctx := chi.RouteContext(req.Context())
+			if req.URL.RawPath == "" {
+				ctx.RoutePath = req.URL.EscapedPath()
+			} else {
+				ctx.RoutePath = req.URL.RawPath
+			}
+			next.ServeHTTP(resp, req)
+		})
+	})
 
 	// prepare the ContextData and panic recovery
 	handlers = append(handlers, func(next http.Handler) http.Handler {
@@ -73,58 +83,6 @@ func ProtocolMiddlewares() (handlers []any) {
 	}
 
 	return handlers
-}
-
-func normalizeRequestPathMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		// escape the URL RawPath to ensure that all routing is done using a correctly escaped URL
-		req.URL.RawPath = req.URL.EscapedPath()
-
-		urlPath := req.URL.RawPath
-		rctx := chi.RouteContext(req.Context())
-		if rctx != nil && rctx.RoutePath != "" {
-			urlPath = rctx.RoutePath
-		}
-
-		normalizedPath := strings.TrimRight(urlPath, "/")
-		// the following code block is a slow-path for replacing all repeated slashes "//" to one single "/"
-		// if the path doesn't have repeated slashes, then no need to execute it
-		if strings.Contains(normalizedPath, "//") {
-			buf := &strings.Builder{}
-			prevWasSlash := false
-			for _, chr := range normalizedPath {
-				if chr != '/' || !prevWasSlash {
-					buf.WriteRune(chr)
-				}
-				prevWasSlash = chr == '/'
-			}
-			normalizedPath = buf.String()
-		}
-
-		if setting.UseSubURLPath {
-			remainingPath, ok := strings.CutPrefix(normalizedPath, setting.AppSubURL+"/")
-			if ok {
-				normalizedPath = "/" + remainingPath
-			} else if normalizedPath == setting.AppSubURL {
-				normalizedPath = "/"
-			} else if !strings.HasPrefix(normalizedPath+"/", "/v2/") {
-				// do not respond to other requests, to simulate a real sub-path environment
-				http.Error(resp, "404 page not found, sub-path is: "+setting.AppSubURL, http.StatusNotFound)
-				return
-			}
-			// TODO: it's not quite clear about how req.URL and rctx.RoutePath work together.
-			// Fortunately, it is only used for debug purpose, we have enough time to figure it out in the future.
-			req.URL.RawPath = normalizedPath
-			req.URL.Path = normalizedPath
-		}
-
-		if rctx == nil {
-			req.URL.Path = normalizedPath
-		} else {
-			rctx.RoutePath = normalizedPath
-		}
-		next.ServeHTTP(resp, req)
-	})
 }
 
 func Sessioner() func(next http.Handler) http.Handler {
