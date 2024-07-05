@@ -7,8 +7,8 @@ import "xorm.io/xorm"
 
 func AddForcePushBranchProtection(x *xorm.Engine) error {
 	type ProtectedBranch struct {
-		CanForcePush                 bool `xorm:"NOT NULL DEFAULT false"`
-		EnableForcePushAllowlist     bool
+		CanForcePush                 bool    `xorm:"NOT NULL DEFAULT false"`
+		EnableForcePushAllowlist     bool    `xorm:"NOT NULL DEFAULT false"`
 		ForcePushAllowlistUserIDs    []int64 `xorm:"JSON TEXT"`
 		ForcePushAllowlistTeamIDs    []int64 `xorm:"JSON TEXT"`
 		ForcePushAllowlistDeployKeys bool    `xorm:"NOT NULL DEFAULT false"`
