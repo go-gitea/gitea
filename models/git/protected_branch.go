@@ -52,8 +52,8 @@ type ProtectedBranch struct {
 	EnableStatusCheck             bool     `xorm:"NOT NULL DEFAULT false"`
 	StatusCheckContexts           []string `xorm:"JSON TEXT"`
 	EnableApprovalsWhitelist      bool     `xorm:"NOT NULL DEFAULT false"`
-	ApprovalsWhitelistUserIDs     []int64  `xorm:"approvals_whitelist_user_ids JSON TEXT"`
-	ApprovalsWhitelistTeamIDs     []int64  `xorm:"approvals_whitelist_team_ids JSON TEXT"`
+	ApprovalsWhitelistUserIDs     []int64  `xorm:"JSON TEXT"`
+	ApprovalsWhitelistTeamIDs     []int64  `xorm:"JSON TEXT"`
 	RequiredApprovals             int64    `xorm:"NOT NULL DEFAULT 0"`
 	BlockOnRejectedReviews        bool     `xorm:"NOT NULL DEFAULT false"`
 	BlockOnOfficialReviewRequests bool     `xorm:"NOT NULL DEFAULT false"`
