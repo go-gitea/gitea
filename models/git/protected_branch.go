@@ -46,8 +46,8 @@ type ProtectedBranch struct {
 	MergeWhitelistTeamIDs         []int64  `xorm:"JSON TEXT"`
 	CanForcePush                  bool     `xorm:"NOT NULL DEFAULT false"`
 	EnableForcePushAllowlist      bool     `xorm:"NOT NULL DEFAULT false"`
-	ForcePushAllowlistUserIDs     []int64  `xorm:"force_push_allowlist_user_ids JSON TEXT"`
-	ForcePushAllowlistTeamIDs     []int64  `xorm:"force_push_allowlist_team_ids JSON TEXT"`
+	ForcePushAllowlistUserIDs     []int64  `xorm:"JSON TEXT"`
+	ForcePushAllowlistTeamIDs     []int64  `xorm:"JSON TEXT"`
 	ForcePushAllowlistDeployKeys  bool     `xorm:"NOT NULL DEFAULT false"`
 	EnableStatusCheck             bool     `xorm:"NOT NULL DEFAULT false"`
 	StatusCheckContexts           []string `xorm:"JSON TEXT"`
@@ -552,10 +552,10 @@ func removeIDsFromProtectedBranch(ctx context.Context, p *ProtectedBranch, userI
 // RemoveUserIDFromProtectedBranch removes all user ids from protected branch options
 func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, userID int64) error {
 	columnNames := []string{
-		"whitelist_user_ids",
-		"force_push_whitelist_user_ids",
-		"merge_whitelist_user_ids",
-		"approvals_whitelist_user_ids",
+		"whitelist_user_i_ds",
+		"force_push_whitelist_user_i_ds",
+		"merge_whitelist_user_i_ds",
+		"approvals_whitelist_user_i_ds",
 	}
 	return removeIDsFromProtectedBranch(ctx, p, userID, 0, columnNames)
 }
@@ -563,10 +563,10 @@ func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, us
 // RemoveTeamIDFromProtectedBranch removes all team ids from protected branch options
 func RemoveTeamIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, teamID int64) error {
 	columnNames := []string{
-		"whitelist_team_ids",
-		"force_push_whitelist_team_ids",
-		"merge_whitelist_team_ids",
-		"approvals_whitelist_team_ids",
+		"whitelist_team_i_ds",
+		"force_push_whitelist_team_i_ds",
+		"merge_whitelist_team_i_ds",
+		"approvals_whitelist_team_i_ds",
 	}
 	return removeIDsFromProtectedBranch(ctx, p, 0, teamID, columnNames)
 }
