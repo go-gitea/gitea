@@ -553,7 +553,7 @@ func removeIDsFromProtectedBranch(ctx context.Context, p *ProtectedBranch, userI
 func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, userID int64) error {
 	columnNames := []string{
 		"whitelist_user_i_ds",
-		"force_push_whitelist_user_i_ds",
+		"force_push_allowlist_user_i_ds",
 		"merge_whitelist_user_i_ds",
 		"approvals_whitelist_user_i_ds",
 	}
@@ -564,7 +564,7 @@ func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, us
 func RemoveTeamIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, teamID int64) error {
 	columnNames := []string{
 		"whitelist_team_i_ds",
-		"force_push_whitelist_team_i_ds",
+		"force_push_allowlist_team_i_ds",
 		"merge_whitelist_team_i_ds",
 		"approvals_whitelist_team_i_ds",
 	}

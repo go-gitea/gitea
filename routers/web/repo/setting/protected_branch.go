@@ -77,7 +77,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 	c.Data["Users"] = users
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(rule.WhitelistUserIDs), ",")
-	c.Data["force_push_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ForcePushAllowlistUserIDs), ",")
+	c.Data["force_push_allowlist_users"] = strings.Join(base.Int64sToStrings(rule.ForcePushAllowlistUserIDs), ",")
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistUserIDs), ",")
 	c.Data["status_check_contexts"] = strings.Join(rule.StatusCheckContexts, "\n")

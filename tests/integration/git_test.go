@@ -481,7 +481,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelistPush, userToWhit
 		if userToWhitelistForcePush != "" {
 			user, err := user_model.GetUserByName(db.DefaultContext, userToWhitelistForcePush)
 			assert.NoError(t, err)
-			formData["force_push_whitelist_users"] = strconv.FormatInt(user.ID, 10)
+			formData["force_push_allowlist_users"] = strconv.FormatInt(user.ID, 10)
 			formData["enable_force_push"] = "whitelist"
 			formData["enable_force_push_allowlist"] = "on"
 		}
