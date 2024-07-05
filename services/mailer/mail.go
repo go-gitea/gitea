@@ -158,7 +158,8 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		return
 	}
 
-	msg := NewMessage(u.Email, locale.TrString("mail.register_notify"), content.String())
+	appname := setting.AppName
+	msg := NewMessage(u.Email, locale.TrString("mail.register_notify", appname), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
 	SendAsync(msg)
