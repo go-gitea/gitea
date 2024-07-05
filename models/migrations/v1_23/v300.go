@@ -7,11 +7,11 @@ import "xorm.io/xorm"
 
 func AddForcePushBranchProtection(x *xorm.Engine) error {
 	type ProtectedBranch struct {
-	CanForcePush                 bool    `xorm:"NOT NULL DEFAULT false"`
-	EnableForcePushAllowlist     bool
-	ForcePushAllowlistUserIDs    []int64  `xorm:"force_push_allowlist_user_ids JSON TEXT"`
-	ForcePushAllowlistTeamIDs    []int64  `xorm:"force_push_allowlist_team_ids JSON TEXT"`
-	ForcePushAllowlistDeployKeys bool     `xorm:"NOT NULL DEFAULT false"`	}
-
+		CanForcePush                 bool    `xorm:"NOT NULL DEFAULT false"`
+		EnableForcePushAllowlist     bool
+		ForcePushAllowlistUserIDs    []int64  `xorm:"force_push_allowlist_user_ids JSON TEXT"`
+		ForcePushAllowlistTeamIDs    []int64  `xorm:"force_push_allowlist_team_ids JSON TEXT"`
+		ForcePushAllowlistDeployKeys bool     `xorm:"NOT NULL DEFAULT false"`
+	}
 	return x.Sync(new(ProtectedBranch))
 }
