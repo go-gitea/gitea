@@ -189,6 +189,7 @@ body:
     id: terms
     attributes:
       label: Code of Conduct
+      hide_label: true
       description: By submitting this issue, you agree to follow our [Code of Conduct](https://example.com)
       options:
         - label: I agree to follow this project's Code of Conduct
@@ -218,13 +219,14 @@ You can use a `textarea` element to add a multi-line text field to your form. Co
 
 Attributes:
 
-| Key         | Description                                                                                                                                                                   | Required | Type   | Default      | Valid values              |
-|-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|--------|--------------|---------------------------|
-| label       | A brief description of the expected user input, which is also displayed in the form.                                                                                          | Required | String | -            | -                         |
-| description | A description of the text area to provide context or guidance, which is displayed in the form.                                                                                | Optional | String | Empty String | -                         |
-| placeholder | A semi-opaque placeholder that renders in the text area when empty.                                                                                                           | Optional | String | Empty String | -                         |
-| value       | Text that is pre-filled in the text area.                                                                                                                                     | Optional | String | -            | -                         |
-| render      | If a value is provided, submitted text will be formatted into a codeblock. When this key is provided, the text area will not expand for file attachments or Markdown editing. | Optional | String | -            | Languages known to Gitea. |
+| Key         | Description                                                                                                                                                                   | Required | Type    | Default      | Valid values              |
+|-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|--------------|---------------------------|
+| label       | A brief description of the expected user input, which is also displayed in the form.                                                                                          | Required | String  | -            | -                         |
+| hide_label  | If true, the label normally used as a headline is not visible.                                                                                                                | Optional | Boolean | false        | -                         |
+| description | A description of the text area to provide context or guidance, which is displayed in the form.                                                                                | Optional | String  | Empty String | -                         |
+| placeholder | A semi-opaque placeholder that renders in the text area when empty.                                                                                                           | Optional | String  | Empty String | -                         |
+| value       | Text that is pre-filled in the text area.                                                                                                                                     | Optional | String  | -            | -                         |
+| render      | If a value is provided, submitted text will be formatted into a codeblock. When this key is provided, the text area will not expand for file attachments or Markdown editing. | Optional | String  | -            | Languages known to Gitea. |
 
 Validations:
 
@@ -240,12 +242,13 @@ You can use an `input` element to add a single-line text field to your form.
 
 Attributes:
 
-| Key         | Description                                                                                | Required | Type   | Default      | Valid values |
-|-------------|--------------------------------------------------------------------------------------------|----------|--------|--------------|--------------|
-| label       | A brief description of the expected user input, which is also displayed in the form.       | Required | String | -            | -            |
-| description | A description of the field to provide context or guidance, which is displayed in the form. | Optional | String | Empty String | -            |
-| placeholder | A semi-transparent placeholder that renders in the field when empty.                       | Optional | String | Empty String | -            |
-| value       | Text that is pre-filled in the field.                                                      | Optional | String | -            | -            |
+| Key         | Description                                                                                | Required | Type    | Default      | Valid values |
+|-------------|--------------------------------------------------------------------------------------------|----------|---------|--------------|--------------|
+| label       | A brief description of the expected user input, which is also displayed in the form.       | Required | String  | -            | -            |
+| hide_label  | If true, the label normally used as a headline is not visible.                             | Optional | Boolean | false        | -            |
+| description | A description of the field to provide context or guidance, which is displayed in the form. | Optional | String  | Empty String | -            |
+| placeholder | A semi-transparent placeholder that renders in the field when empty.                       | Optional | String  | Empty String | -            |
+| value       | Text that is pre-filled in the field.                                                      | Optional | String  | -            | -            |
 
 Validations:
 
@@ -266,6 +269,7 @@ Attributes:
 | Key         | Description                                                                                         | Required | Type         | Default      | Valid values |
 |-------------|-----------------------------------------------------------------------------------------------------|----------|--------------|--------------|--------------|
 | label       | A brief description of the expected user input, which is displayed in the form.                     | Required | String       | -            | -            |
+| hide_label  | If true, the label normally used as a headline is not visible.                                      | Optional | Boolean | false        | -            |
 | description | A description of the dropdown to provide extra context or guidance, which is displayed in the form. | Optional | String       | Empty String | -            |
 | multiple    | Determines if the user can select more than one option.                                             | Optional | Boolean      | false        | -            |
 | options     | An array of options the user can choose from. Cannot be empty and all choices must be distinct.     | Required | String array | -            | -            |
@@ -284,11 +288,12 @@ You can use the `checkboxes` element to add a set of checkboxes to your form.
 
 Attributes:
 
-| Key         | Description                                                                                           | Required | Type   | Default      | Valid values |
-| ----------- | ----------------------------------------------------------------------------------------------------- | -------- | ------ | ------------ | ------------ |
-| label       | A brief description of the expected user input, which is displayed in the form.                       | Required | String | -            | -            |
-| description | A description of the set of checkboxes, which is displayed in the form. Supports Markdown formatting. | Optional | String | Empty String | -            |
-| options     | An array of checkboxes that the user can select. For syntax, see below.                               | Required | Array  | -            | -            |
+| Key         | Description                                                                                           | Required | Type    | Default      | Valid values |
+|-------------|-------------------------------------------------------------------------------------------------------|----------|---------|--------------|--------------|
+| label       | A brief description of the expected user input, which is displayed in the form.                       | Required | String  | -            | -            |
+| hide_label  | If true, the label normally used as a headline is not visible.                                        | Optional | Boolean | false        | -            |
+| description | A description of the set of checkboxes, which is displayed in the form. Supports Markdown formatting. | Optional | String  | Empty String | -            |
+| options     | An array of checkboxes that the user can select. For syntax, see below.                               | Required | Array   | -            | -            |
 
 For each value in the options array, you can set the following keys.
 
