@@ -217,5 +217,5 @@ func (opts FindExternalUserOptions) ToOrders() string {
 }
 
 func IterateExternalLogin(ctx context.Context, opts FindExternalUserOptions, f func(ctx context.Context, u *ExternalLoginUser) error) error {
-	return db.Iterate[ExternalLoginUser](ctx, opts.ToConds(), f)
+	return db.Iterate(ctx, opts.ToConds(), f)
 }
