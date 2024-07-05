@@ -38,8 +38,8 @@ type ProtectedBranch struct {
 	isPlainName                   bool                   `xorm:"-"`
 	CanPush                       bool                   `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist               bool
-	WhitelistUserIDs              []int64 `xorm:"whitelist_user_ids JSON TEXT"`
-	WhitelistTeamIDs              []int64 `xorm:"whitelist_team_ids JSON TEXT"`
+	WhitelistUserIDs              []int64 `xorm:"JSON TEXT"`
+	WhitelistTeamIDs              []int64 `xorm:"JSON TEXT"`
 	WhitelistDeployKeys           bool    `xorm:"NOT NULL DEFAULT false"`
 	CanForcePush                  bool    `xorm:"NOT NULL DEFAULT false"`
 	EnableForcePushAllowlist      bool
