@@ -1,35 +1,50 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user signin openid">
-	{{template "user/auth/signin_navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
-		<h4 class="ui top attached header center">
-			{{svg "fontawesome-openid"}}
-			OpenID
-		</h4>
-		<div class="ui attached segment">
-			<form class="ui form tw-m-auto" action="{{.Link}}" method="post">
-			{{.CsrfTokenHtml}}
-			<div class="inline field">
-				{{ctx.Locale.Tr "auth.openid_signin_desc"}}
-			</div>
-			<div class="required field {{if .Err_OpenID}}error{{end}}">
-				<label for="openid">
-				{{svg "fontawesome-openid"}}
-				OpenID URI
-				</label>
-				<input id="openid" name="openid" value="{{.openid}}" autofocus required>
-			</div>
-			<div class="inline field">
-				<div class="ui checkbox">
-					<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
-					<input name="remember" type="checkbox">
+	<div class="ui middle very relaxed page grid">
+		<div class="column tw-flex tw-flex-col tw-gap-4 tw-max-w-2xl tw-m-auto">
+			<a href="{{AppSubUrl}}/user/login" class="tw-mx-auto">
+				<img width="100" height="100" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}">
+			</a>
+
+			<div class="ui container fluid">
+				{{template "base/alert" .}}
+				<h4 class="ui top attached header center">
+					{{svg "fontawesome-openid"}}
+					OpenID
+				</h4>
+				<div class="ui attached segment">
+					<form class="ui form tw-m-auto" action="{{.Link}}" method="post">
+						{{.CsrfTokenHtml}}
+						<div class="inline field">
+							{{ctx.Locale.Tr "auth.openid_signin_desc"}}
+						</div>
+						<div class="required field {{if .Err_OpenID}}error{{end}}">
+							<label for="openid">
+							{{svg "fontawesome-openid"}}
+							OpenID URI
+							</label>
+							<input id="openid" name="openid" value="{{.openid}}" autofocus required>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox">
+								<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
+								<input name="remember" type="checkbox">
+							</div>
+						</div>
+						<div class="inline field">
+							<button class="ui primary button tw-w-full">{{ctx.Locale.Tr "sign_in"}}</button>
+						</div>
+					</form>
 				</div>
 			</div>
-			<div class="inline field">
-				<button class="ui primary button">{{ctx.Locale.Tr "sign_in"}}</button>
+
+			<div class="ui container fluid">
+				{{template "user/auth/webauthn_error" .}}
+
+				<div class="ui attached segment header top tw-flex tw-flex-col tw-items-center">
+					<a href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "auth.back_to_sign_in"}}</a>
+				</div>
 			</div>
-			</form>
 		</div>
 	</div>
 </div>

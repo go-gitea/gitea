@@ -1,5 +1,5 @@
 {{if .EnableCaptcha}}{{if eq .CaptchaType "image"}}
-	<div class="inline field">
+	<div class="inline field tw-text-center">
 		{{.Captcha.CreateHTML}}
 	</div>
 	<div class="required field {{if .Err_Captcha}}error{{end}}">
@@ -7,18 +7,17 @@
 		<input id="captcha" name="captcha" value="{{.captcha}}" autocomplete="off">
 	</div>
 {{else if eq .CaptchaType "recaptcha"}}
-	<div class="inline field required">
+	<div class="inline field tw-text-center required">
 		<div id="captcha" data-captcha-type="g-recaptcha" class="g-recaptcha-style" data-sitekey="{{.RecaptchaSitekey}}"></div>
 	</div>
 	<script src='{{URLJoin .RecaptchaURL "api.js"}}'></script>
 {{else if eq .CaptchaType "hcaptcha"}}
-	<div class="inline field required">
+	<div class="inline field tw-text-center required">
 		<div id="captcha" data-captcha-type="h-captcha" class="h-captcha-style" data-sitekey="{{.HcaptchaSitekey}}"></div>
 	</div>
 	<script src='https://hcaptcha.com/1/api.js'></script>
 {{else if eq .CaptchaType "mcaptcha"}}
-	<div class="inline field">
-		<label></label>
+	<div class="inline field tw-text-center">
 		<div class="m-captcha-style" id="mcaptcha__widget-container"></div>
 		<div id="captcha" data-captcha-type="m-captcha" data-sitekey="{{.McaptchaSitekey}}" data-instance-url="{{.McaptchaURL}}"></div>
 	</div>

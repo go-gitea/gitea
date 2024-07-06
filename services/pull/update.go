@@ -117,27 +117,25 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		return false, false, err
 	}
 
-	// can't do rebase on protected branch because need force push
-	if pb == nil {
-		if err := pr.LoadBaseRepo(ctx); err != nil {
-			return false, false, err
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return false, false, err
+	}
+	prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
+	if err != nil {
+		if repo_model.IsErrUnitTypeNotExist(err) {
+			return false, false, nil
 		}
-		prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
-		if err != nil {
-			if repo_model.IsErrUnitTypeNotExist(err) {
-				return false, false, nil
-			}
-			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
-			return false, false, err
-		}
-		rebaseAllowed = prUnit.PullRequestsConfig().AllowRebaseUpdate
+		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
+		return false, false, err
 	}
 
-	// Update function need push permission
+	rebaseAllowed = prUnit.PullRequestsConfig().AllowRebaseUpdate
+
+	// If branch protected, disable rebase unless user is whitelisted to force push (which extends regular push)
 	if pb != nil {
 		pb.Repo = pull.BaseRepo
-		if !pb.CanUserPush(ctx, user) {
-			return false, false, nil
+		if !pb.CanUserForcePush(ctx, user) {
+			rebaseAllowed = false
 		}
 	}
 
