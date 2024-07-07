@@ -17,7 +17,7 @@ export type Config = {
   pageData: Record<string, any>,
   notificationSettings: Record<string, any>,
   enableTimeTracking: boolean,
-  mentionValues: MentionValue[],
+  mentionValues?: MentionValue[],
   mermaidMaxSourceCharacters: number,
   i18n: Record<string, string>,
 }
