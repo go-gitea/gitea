@@ -564,6 +564,8 @@ var migrations = []*xormigrate.Migration{
 
 	// v299 -> v300
 	NewMigration("Add content version to issue and comment table", v1_23.AddContentVersionToIssueAndComment),
+	// v300 -> v301
+	NewMigration("Add force-push branch protection support", v1_23.AddForcePushBranchProtection),
 }
 
 // EnsureUpToDate will check if the db is at the correct version
