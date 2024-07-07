@@ -1,4 +1,4 @@
-type MentionValue = {
+export type MentionValue = {
   key: string,
   value: string,
   name: string,
