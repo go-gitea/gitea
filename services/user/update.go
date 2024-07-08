@@ -35,6 +35,7 @@ type UpdateOptions struct {
 	IsActive                     optional.Option[bool]
 	IsAdmin                      optional.Option[bool]
 	EmailNotificationsPreference optional.Option[string]
+	UINotificationsPreference    optional.Option[string]
 	SetLastLogin                 bool
 	RepoAdminChangeTeamAccess    optional.Option[bool]
 }
@@ -150,6 +151,12 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		u.EmailNotificationsPreference = opts.EmailNotificationsPreference.Value()
 
 		cols = append(cols, "email_notifications_preference")
+	}
+
+	if opts.UINotificationsPreference.Has() {
+		u.UINotificationsPreference = opts.UINotificationsPreference.Value()
+
+		cols = append(cols, "ui_notifications_preference")
 	}
 
 	if opts.SetLastLogin {

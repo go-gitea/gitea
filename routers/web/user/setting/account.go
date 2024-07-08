@@ -154,10 +154,10 @@ func EmailPost(ctx *context.Context) {
 	// Set Email Notification Preference
 	if ctx.FormString("_method") == "NOTIFICATION" {
 		preference := ctx.FormString("preference")
-		if !(preference == user_model.EmailNotificationsEnabled ||
-			preference == user_model.EmailNotificationsOnMention ||
-			preference == user_model.EmailNotificationsDisabled ||
-			preference == user_model.EmailNotificationsAndYourOwn) {
+		if !(preference == user_model.NotificationsEnabled ||
+			preference == user_model.NotificationsOnMention ||
+			preference == user_model.NotificationsDisabled ||
+			preference == user_model.NotificationsAndYourOwn) {
 			log.Error("Email notifications preference change returned unrecognized option %s: %s", preference, ctx.Doer.Name)
 			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
 			return
@@ -316,6 +316,8 @@ func loadAccountData(ctx *context.Context) {
 	}
 	ctx.Data["Emails"] = emails
 	ctx.Data["EmailNotificationsPreference"] = ctx.Doer.EmailNotificationsPreference
+	ctx.Data["UINotificationsPreference"] = ctx.Doer.UINotificationsPreference
+
 	ctx.Data["ActivationsPending"] = pendingActivation
 	ctx.Data["CanAddEmails"] = !pendingActivation || !setting.Service.RegisterEmailConfirm
 	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)

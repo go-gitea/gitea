@@ -63,15 +63,16 @@ const (
 	UserTypeRemoteUser
 )
 
+// Constants used as user-setting for both Email and UI notifications.
 const (
-	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications except your own
-	EmailNotificationsEnabled = "enabled"
-	// EmailNotificationsOnMention indicates that the user would like to be notified via email when mentioned.
-	EmailNotificationsOnMention = "onmention"
-	// EmailNotificationsDisabled indicates that the user would not like to be notified via email.
-	EmailNotificationsDisabled = "disabled"
-	// EmailNotificationsAndYourOwn indicates that the user would like to receive all email notifications and your own
-	EmailNotificationsAndYourOwn = "andyourown"
+	// NotificationsEnabled indicates that the user would like to receive all notifications except your own
+	NotificationsEnabled = "enabled"
+	// NotificationsOnMention indicates that the user would like to be notified when mentioned.
+	NotificationsOnMention = "onmention"
+	// NotificationsDisabled indicates that the user would not like to be notified.
+	NotificationsDisabled = "disabled"
+	// NotificationsAndYourOwn indicates that the user would like to receive all notifications and their own
+	NotificationsAndYourOwn = "andyourown"
 )
 
 // User represents the object of individual and member of organization.
@@ -84,6 +85,7 @@ type User struct {
 	Email                        string `xorm:"NOT NULL"`
 	KeepEmailPrivate             bool
 	EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
+	UINotificationsPreference    string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
 	Passwd                       string `xorm:"NOT NULL"`
 	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'argon2'"`
 
@@ -608,6 +610,7 @@ type CreateUserOverwriteOptions struct {
 	Visibility                   *structs.VisibleType
 	AllowCreateOrganization      optional.Option[bool]
 	EmailNotificationsPreference *string
+	UINotificationsPreference    *string
 	MaxRepoCreation              *int
 	Theme                        *string
 	IsRestricted                 optional.Option[bool]
@@ -635,6 +638,8 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 	u.Visibility = setting.Service.DefaultUserVisibilityMode
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
 	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
+	u.UINotificationsPreference = setting.Admin.DefaultUINotification
+
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
 	u.IsRestricted = setting.Service.DefaultUserIsRestricted
@@ -659,6 +664,9 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 		}
 		if overwrite.EmailNotificationsPreference != nil {
 			u.EmailNotificationsPreference = *overwrite.EmailNotificationsPreference
+		}
+		if overwrite.UINotificationsPreference != nil {
+			u.UINotificationsPreference = *overwrite.UINotificationsPreference
 		}
 		if overwrite.MaxRepoCreation != nil {
 			u.MaxRepoCreation = *overwrite.MaxRepoCreation
@@ -954,7 +962,7 @@ func GetUserEmailsByNames(ctx context.Context, names []string) []string {
 		if err != nil {
 			continue
 		}
-		if u.IsMailable() && u.EmailNotificationsPreference != EmailNotificationsDisabled {
+		if u.IsMailable() && u.EmailNotificationsPreference != NotificationsDisabled {
 			mails = append(mails, u.Email)
 		}
 	}
@@ -974,7 +982,7 @@ func GetMaileableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([
 			Where("`type` = ?", UserTypeIndividual).
 			And("`prohibit_login` = ?", false).
 			And("`is_active` = ?", true).
-			In("`email_notifications_preference`", EmailNotificationsEnabled, EmailNotificationsOnMention, EmailNotificationsAndYourOwn).
+			In("`email_notifications_preference`", NotificationsEnabled, NotificationsOnMention, NotificationsAndYourOwn).
 			Find(&ous)
 	}
 
@@ -983,7 +991,7 @@ func GetMaileableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([
 		Where("`type` = ?", UserTypeIndividual).
 		And("`prohibit_login` = ?", false).
 		And("`is_active` = ?", true).
-		In("`email_notifications_preference`", EmailNotificationsEnabled, EmailNotificationsAndYourOwn).
+		In("`email_notifications_preference`", NotificationsEnabled, NotificationsAndYourOwn).
 		Find(&ous)
 }
 

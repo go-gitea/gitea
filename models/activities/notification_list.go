@@ -156,6 +156,14 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 			continue
 		}
 
+		// Filter users by their notification preference.
+		// At this point we exclude:
+		// user that don't have all notifications enabled or users only get notification on mention and this is one ...
+		if !(user.UINotificationsPreference == user_model.NotificationsEnabled ||
+			user.UINotificationsPreference == user_model.NotificationsOnMention) {
+			continue
+		}
+
 		if notificationExists(notifications, issue.ID, userID) {
 			if err = updateIssueNotification(ctx, userID, issue.ID, commentID, notificationAuthorID); err != nil {
 				return err

@@ -170,11 +170,12 @@ func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (
 		Email:    email,
 		Language: cfg.DefaultLanguage,
 	}
-	emailNotificationPreference := user_model.EmailNotificationsDisabled
+	notificationPreference := user_model.NotificationsDisabled
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
 		IsActive:                     optional.Some(cfg.AutoActivateUsers),
 		KeepEmailPrivate:             optional.Some(true),
-		EmailNotificationsPreference: &emailNotificationPreference,
+		EmailNotificationsPreference: &notificationPreference,
+		UINotificationsPreference:    &notificationPreference,
 	}
 	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {
 		return nil, err
