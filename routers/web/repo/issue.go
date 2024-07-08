@@ -1777,7 +1777,9 @@ func ViewIssue(ctx *context.Context) {
 			}
 		} else if comment.Type == issues_model.CommentTypeChangeTimeEstimate {
 			timeSec, _ := util.ToInt64(comment.Content)
-			comment.Content = util.SecToTimeExact(timeSec, timeSec < 60)
+			timeStr := util.SecToTimeExact(timeSec, timeSec < 60)
+
+			comment.RenderedContent = templates.SanitizeHTML(timeStr)
 		}
 
 		if comment.Type == issues_model.CommentTypeClose || comment.Type == issues_model.CommentTypeMergePull {
