@@ -4,7 +4,7 @@
 		<a class="{{if .PageIsSettingsProfile}}active {{end}}item" href="{{AppSubUrl}}/user/settings">
 			{{ctx.Locale.Tr "settings.profile"}}
 		</a>
-		{{if not (and ($.UserDisabledFeatures.Contains "manage_credentials") (not $.EnablenNotifyMail))}}
+		{{if not (and ($.UserDisabledFeatures.Contains "manage_credentials" "deletion") (not $.EnableNotifyMail))}}
 		<a class="{{if .PageIsSettingsAccount}}active {{end}}item" href="{{AppSubUrl}}/user/settings/account">
 			{{ctx.Locale.Tr "settings.account"}}
 		</a>

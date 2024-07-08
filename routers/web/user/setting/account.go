@@ -34,6 +34,11 @@ const (
 
 // Account renders change user's password, user's email and user suicide page
 func Account(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials, setting.UserFeatureDeletion) && !setting.Service.EnableNotifyMail {
+		ctx.NotFound("Not Found", fmt.Errorf("account setting are not allowed to be changed"))
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("settings.account")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
@@ -54,6 +59,8 @@ func AccountPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.ChangePasswordForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
+	ctx.Data["Email"] = ctx.Doer.Email
+	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
 
 	if ctx.HasError() {
 		loadAccountData(ctx)
@@ -103,6 +110,8 @@ func EmailPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddEmailForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
+	ctx.Data["Email"] = ctx.Doer.Email
+	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
 
 	// Make email address primary.
 	if ctx.FormString("_method") == "PRIMARY" {
@@ -256,6 +265,8 @@ func DeleteAccount(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
+	ctx.Data["Email"] = ctx.Doer.Email
+	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
 
 	if _, _, err := auth.UserSignIn(ctx, ctx.Doer.Name, ctx.FormString("password")); err != nil {
 		switch {
