@@ -94,6 +94,69 @@
 						<p class="help">{{ctx.Locale.Tr "repo.settings.require_signed_commits_desc"}}</p>
 					</div>
 				</div>
+				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_force_push"}}</h5>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="enable_force_push" value="none" class="toggle-target-disabled" data-target="#force_push_allowlist_box" {{if not .Rule.CanForcePush}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.settings.protect_disable_force_push"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.protect_disable_force_push_desc"}}</p>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="enable_force_push" value="all" class="toggle-target-disabled" data-target="#force_push_allowlist_box" {{if and (.Rule.CanForcePush) (not .Rule.EnableForcePushAllowlist)}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.settings.protect_enable_force_push_all"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.protect_enable_force_push_all_desc"}}</p>
+					</div>
+				</div>
+				<div class="grouped fields">
+					<div class="field">
+						<div class="ui radio checkbox">
+							<input type="radio" name="enable_force_push" value="whitelist" class="toggle-target-enabled" data-target="#force_push_allowlist_box" {{if and (.Rule.CanForcePush) (.Rule.EnableForcePushAllowlist)}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_enable_force_push_allowlist"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.protect_enable_force_push_allowlist_desc"}}</p>
+						</div>
+					</div>
+					<div id="force_push_allowlist_box" class="grouped fields {{if not .Rule.EnableForcePushAllowlist}}disabled{{end}}">
+						<div class="checkbox-sub-item field">
+							<label>{{ctx.Locale.Tr "repo.settings.protect_force_push_allowlist_users"}}</label>
+							<div class="ui multiple search selection dropdown">
+								<input type="hidden" name="force_push_allowlist_users" value="{{.force_push_allowlist_users}}">
+								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
+								<div class="menu">
+									{{range .Users}}
+										<div class="item" data-value="{{.ID}}">
+											{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
+										</div>
+									{{end}}
+								</div>
+							</div>
+						</div>
+						{{if .Owner.IsOrganization}}
+							<div class="checkbox-sub-item field">
+								<label>{{ctx.Locale.Tr "repo.settings.protect_force_push_allowlist_teams"}}</label>
+								<div class="ui multiple search selection dropdown">
+									<input type="hidden" name="force_push_allowlist_teams" value="{{.force_push_allowlist_teams}}">
+									<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
+									<div class="menu">
+										{{range .Teams}}
+											<div class="item" data-value="{{.ID}}">
+												{{svg "octicon-people"}}
+												{{.Name}}
+											</div>
+										{{end}}
+									</div>
+								</div>
+							</div>
+						{{end}}
+						<div class="checkbox-sub-item field">
+							<div class="ui checkbox">
+								<input type="checkbox" name="force_push_allowlist_deploy_keys" {{if .Rule.ForcePushAllowlistDeployKeys}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "repo.settings.protect_force_push_allowlist_deploy_keys"}}</label>
+							</div>
+						</div>
+					</div>
+				</div>
 				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_pull_request_approvals"}}</h5>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_required_approvals"}}</label>
