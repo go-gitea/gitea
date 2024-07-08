@@ -1,6 +1,6 @@
-<script>
-import {SvgIcon} from '../svg.js';
-import {toggleElem} from '../utils/dom.js';
+<script lang="ts">
+import {SvgIcon} from '../svg.ts';
+import {toggleElem} from '../utils/dom.ts';
 
 const {csrfToken, pageData} = window.config;
 
