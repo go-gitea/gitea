@@ -26,5 +26,10 @@
     "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": false,
     "exactOptionalPropertyTypes": false,
+    "sourceMap": true,
+    "types": [
+      "vitest/globals",
+      "./types.d.ts",
+    ],
   }
 }

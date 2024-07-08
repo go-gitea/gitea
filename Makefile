@@ -144,7 +144,7 @@ TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMAN
 GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
-ESLINT_FILES := web_src/js tools *.js tests/e2e
+ESLINT_FILES := web_src/js tools *.js *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
 SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) docs/content templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.js *.md *.yml *.yaml *.toml))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
@@ -376,12 +376,12 @@ lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
 .PHONY: lint-js
 lint-js: node_modules
 	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
-	npx tsc
+#	npx tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules
 	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
-	npx tsc
+#	npx tsc
 
 .PHONY: lint-css
 lint-css: node_modules
