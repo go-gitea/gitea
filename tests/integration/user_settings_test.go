@@ -392,3 +392,14 @@ func TestUserSettingsRepos(t *testing.T) {
 
 	assertNavbar(t, doc)
 }
+
+func TestUserSettingsBlockedUsers(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user/settings/blocked_users")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+
+	assertNavbar(t, doc)
+}
