@@ -140,6 +140,19 @@ export default {
         },
       },
       {
+        test: /\.js$/i,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: 'esbuild-loader',
+            options: {
+              loader: 'js',
+              target: 'es2020',
+            },
+          },
+        ],
+      },
+      {
         test: /\.ts$/i,
         exclude: /node_modules/,
         use: [
