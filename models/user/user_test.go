@@ -529,6 +529,29 @@ func Test_NormalizeUserFromEmail(t *testing.T) {
 	}
 }
 
+func TestEmailTo(t *testing.T) {
+	testCases := []struct {
+		fullName string
+		mail     string
+		result   string
+	}{
+		{"Awareness Hub", "awareness@hub.net", "Awareness Hub <awareness@hub.net>"},
+		{"name@example.com", "name@example.com", "name@example.com"},
+		{"Hi Its <Mee>", "ee@mail.box", "Hi Its Mee <ee@mail.box>"},
+		{"Sinéad.O'Connor", "sinead.oconnor@gmail.com", "=?utf-8?q?Sin=C3=A9ad.O'Connor?= <sinead.oconnor@gmail.com>"},
+		{"Æsir", "aesir@gmx.de", "=?utf-8?q?=C3=86sir?= <aesir@gmx.de>"},
+		{"new😀user", "new.user@alo.com", "=?utf-8?q?new=F0=9F=98=80user?= <new.user@alo.com>"},
+		{`"quoted"`, "quoted@test.com", "quoted <quoted@test.com>"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.result, func(t *testing.T) {
+			testUser := &user_model.User{FullName: testCase.fullName, Email: testCase.mail}
+			assert.EqualValues(t, testCase.result, testUser.EmailTo())
+		})
+	}
+}
+
 func TestDisabledUserFeatures(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

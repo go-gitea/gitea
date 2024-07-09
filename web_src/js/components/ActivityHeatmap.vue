@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 // TODO: Switch to upstream after https://github.com/razorness/vue3-calendar-heatmap/pull/34 is merged
 import {CalendarHeatmap} from '@silverwind/vue3-calendar-heatmap';
 

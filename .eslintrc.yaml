@@ -58,10 +58,10 @@ overrides:
       worker: true
     rules:
       no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, status, statusbar, stop, toolbar, top]
-  - files: ["*.config.*"]
+  - files: ["*.config.*", "**/*.d.ts"]
     rules:
       i/no-unused-modules: [0]
-  - files: ["**/*.test.*", "web_src/js/test/setup.js"]
+  - files: ["**/*.test.*", "web_src/js/test/setup.ts"]
     env:
       vitest-globals/env: true
     rules:
@@ -114,7 +114,7 @@ overrides:
       vitest/valid-describe-callback: [2]
       vitest/valid-expect: [2]
       vitest/valid-title: [2]
-  - files: ["web_src/js/modules/fetch.js", "web_src/js/standalone/**/*"]
+  - files: ["web_src/js/modules/fetch.ts", "web_src/js/standalone/**/*"]
     rules:
       no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression]
   - files: ["**/*.vue"]
@@ -467,7 +467,7 @@ rules:
   no-dupe-else-if: [2]
   no-dupe-keys: [2]
   no-duplicate-case: [2]
-  no-duplicate-imports: [2]
+  no-duplicate-imports: [0]
   no-else-return: [2]
   no-empty-character-class: [2]
   no-empty-function: [0]
@@ -619,7 +619,7 @@ rules:
   no-restricted-exports: [0]
   no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, location, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, self, status, statusbar, stop, toolbar, top, __dirname, __filename]
   no-restricted-imports: [0]
-  no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression, {selector: "CallExpression[callee.name='fetch']", message: "use modules/fetch.js instead"}]
+  no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression, {selector: "CallExpression[callee.name='fetch']", message: "use modules/fetch.ts instead"}]
   no-return-assign: [0]
   no-script-url: [2]
   no-self-assign: [2, {props: true}]
