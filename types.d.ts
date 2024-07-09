@@ -11,3 +11,8 @@ interface Window {
   jQuery: typeof import('@types/jquery'),
   htmx: typeof import('htmx.org'),
 }
+
+declare module 'htmx.org/dist/htmx.esm.js' {
+  const value = await import('htmx.org');
+  export default value;
+}
