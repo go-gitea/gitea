@@ -240,7 +240,7 @@ export function initRepoCommentForm() {
   initListSubmits('select-reviewers-modify', 'assignees');
 
   function selectItem(select_id, input_id) {
-    const $menu = $(`${select_id} .menu`);
+    const $menu = $(`${select_id} .menu:not(.no-select)`);
     const $list = $(`.ui${select_id}.list`);
     const hasUpdateAction = $menu.data('action') === 'update';
 
