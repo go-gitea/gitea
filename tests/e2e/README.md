@@ -65,7 +65,7 @@ TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=gitea_test TEST_MSSQL_USERNAME=
 
 ## Running individual tests
 
-Example command to run `example.test.e2e.js` test file:
+Example command to run `example.test.e2e.ts` test file:
 
 _Note: unlike integration tests, this filtering is at the file level, not function_
 

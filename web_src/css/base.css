@@ -477,6 +477,20 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
+.status-page-error {
+  margin-top: max(45vh - 90px, 80px);
+  margin-bottom: 80px;
+}
+
+.status-page-error-title {
+  font-size: 48px;
+  margin-bottom: 14px; /* some elements below may use tw-my-4 or tw-my-8, so use 14px as a minimal margin */
+  line-height: initial;
+  text-align: center;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-light-2);
+}
+
 /* add margin below .secondary nav when it is the first child */
 .page-content > :first-child.secondary-nav {
   margin-bottom: 14px;

@@ -123,12 +123,6 @@
   padding-bottom: 1px;
 }
 
-#git-graph-container #rev-list .author img.ui.avatar {
-  width: auto;
-  height: 18px;
-  max-width: none;
-}
-
 #git-graph-container #graph-raw-list {
   margin: 0;
 }
