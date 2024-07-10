@@ -864,36 +864,6 @@ func Routes() *web.Router {
 		})
 	}
 
-	m.Group("/{username}", func() {
-		m.Group("/projects", func() {
-			// m.Group("", func() {
-			// 	m.Get("", org.Projects)
-			// 	m.Get("/{id}", org.ViewProject)
-			// }, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
-			m.Group("", func() { //nolint:dupl
-				// m.Get("/new", org.RenderNewProject)
-				m.Post("", bind(api.CreateProjectOption{}), org.CreateProject)
-				// m.Group("/{id}", func() {
-				// 	m.Post("", web.Bind(forms.EditProjectColumnForm{}), org.AddColumnToProjectPost)
-				// 	m.Post("/move", project.MoveColumns)
-				// 	m.Post("/delete", org.DeleteProject)
-
-				// 	m.Get("/edit", org.RenderEditProject)
-				// 	m.Post("/edit", web.Bind(forms.CreateProjectForm{}), org.EditProjectPost)
-				// 	m.Post("/{action:open|close}", org.ChangeProjectStatus)
-
-				// 	m.Group("/{columnID}", func() {
-				// 		m.Put("", web.Bind(forms.EditProjectColumnForm{}), org.EditProjectColumn)
-				// 		m.Delete("", org.DeleteProjectColumn)
-				// 		m.Post("/default", org.SetDefaultProjectColumn)
-				// 		m.Post("/move", org.MoveIssues)
-				// 	})
-				// })
-			})
-		}, repoAssignment())
-
-	})
-
 	m.Group("", func() {
 		// Miscellaneous (no scope required)
 		if setting.API.EnableSwagger {
@@ -987,6 +957,10 @@ func Routes() *web.Router {
 				m.Get("/starred", user.GetStarredRepos)
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
+
+				m.Group("/projects", func() {
+					m.Post("", bind(api.CreateProjectOption{}), org.CreateProject)
+				})
 			}, context.UserAssignmentAPI())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
