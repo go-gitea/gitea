@@ -87,11 +87,9 @@ func HighlightSearchResultCode(filename, language string, lineNums []int, code s
 	return lines
 }
 
-func RawSearchResultCode(filename, language string, lineNums []int, code string) []*ResultLine {
-	// we should highlight the whole code block first, otherwise it doesn't work well with multiple line highlighting
+func rawSearchResultCode(lineNums []int, code string) []*ResultLine {
 	rawLines := strings.Split(code, "\n")
 
-	// The lineNums outputted by highlight.Code might not match the original lineNums, because "highlight" removes the last `\n`
 	lines := make([]*ResultLine, min(len(rawLines), len(lineNums)))
 	for i := 0; i < len(lines); i++ {
 		lines[i] = &ResultLine{
@@ -137,7 +135,7 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int, escap
 	if escapeHTML {
 		lines = HighlightSearchResultCode(result.Filename, result.Language, lineNums, formattedLinesBuffer.String())
 	} else {
-		lines = RawSearchResultCode(result.Filename, result.Language, lineNums, formattedLinesBuffer.String())
+		lines = rawSearchResultCode(lineNums, formattedLinesBuffer.String())
 	}
 
 	return &Result{

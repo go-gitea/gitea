@@ -1,10 +1,11 @@
-// Copyright 2021 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package explore
 
 import (
 	"net/http"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -33,7 +34,7 @@ func Code(ctx *context.APIContext) {
 	//   type: integer
 	// - name: fuzzy
 	//   in: query
-	//   description: whether to search fuzzy or strict
+	//   description: whether to search fuzzy or strict (defaults to true)
 	//   type: boolean
 	// responses:
 	//   "200":
@@ -50,9 +51,9 @@ func Code(ctx *context.APIContext) {
 	isFuzzy := ctx.FormOptionalBool("fuzzy").ValueOrDefault(true)
 
 	if keyword == "" {
-		ctx.JSON(http.StatusInternalServerError, api.SearchError{
-			OK:    false,
-			Error: "No keyword provided",
+		ctx.JSON(http.StatusOK, api.ExploreCodeResult{
+			Total:   0,
+			Results: make([]api.ExploreCodeSearchItem, 0),
 		})
 		return
 	}
@@ -71,7 +72,6 @@ func Code(ctx *context.APIContext) {
 		isAdmin = ctx.Doer.IsAdmin
 	}
 
-	// guest user or non-admin user
 	if ctx.Doer == nil || !isAdmin {
 		repoIDs, err = repo_model.FindUserCodeAccessibleRepoIDs(ctx, ctx.Doer)
 		if err != nil {
@@ -112,14 +112,7 @@ func Code(ctx *context.APIContext) {
 
 		loadRepoIDs := make([]int64, 0, len(searchResults))
 		for _, result := range searchResults {
-			var find bool
-			for _, id := range loadRepoIDs {
-				if id == result.RepoID {
-					find = true
-					break
-				}
-			}
-			if !find {
+			if !slices.Contains(loadRepoIDs, result.RepoID) {
 				loadRepoIDs = append(loadRepoIDs, result.RepoID)
 			}
 		}

@@ -10,7 +10,10 @@ import (
 )
 
 func ToExploreCodeSearchResults(total int, results []*code_indexer.Result, repoMaps map[int64]*repo_model.Repository) api.ExploreCodeResult {
-	out := api.ExploreCodeResult{Total: total}
+	out := api.ExploreCodeResult{
+		Total:   total,
+		Results: make([]api.ExploreCodeSearchItem, 0, len(results)),
+	}
 	for _, res := range results {
 		if repo := repoMaps[res.RepoID]; repo != nil {
 			for _, r := range res.Lines {

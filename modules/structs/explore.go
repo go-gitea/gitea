@@ -1,7 +1,7 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package structs // import "code.gitea.io/gitea/modules/structs"
+package structs
 
 // ExploreCodeSearchItem A code search match
 // swagger:model
