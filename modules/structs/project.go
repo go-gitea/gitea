@@ -8,8 +8,8 @@ type Project struct {
 	ID           int64  `json:"id"`
 	Title        string `json:"title"`
 	Description  string `json:"description"`
-	TemplateType string `json:"template_type"`
-	CardType     string `json:"card_type"`
+	TemplateType uint8  `json:"template_type"`
+	CardType     uint8  `json:"card_type"`
 }
 
 type CreateProjectOption struct {
