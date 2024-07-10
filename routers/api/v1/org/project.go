@@ -3,8 +3,12 @@ package org
 import (
 	"log"
 	"net/http"
+	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
+	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
@@ -58,4 +62,42 @@ func ChangeProjectStatus(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]any{"message": "project status updated successfully"})
+}
+
+// Projects renders the home page of projects
+func GetProjects(ctx *context.APIContext) {
+	ctx.Data["Title"] = ctx.Tr("repo.projects")
+
+	sortType := ctx.FormTrim("sort")
+
+	isShowClosed := strings.ToLower(ctx.FormTrim("state")) == "closed"
+	keyword := ctx.FormTrim("q")
+	page := ctx.FormInt("page")
+	if page <= 1 {
+		page = 1
+	}
+
+	var projectType project_model.Type
+	if ctx.ContextUser.IsOrganization() {
+		projectType = project_model.TypeOrganization
+	} else {
+		projectType = project_model.TypeIndividual
+	}
+	projects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.IssuePagingNum,
+		},
+		OwnerID:  ctx.ContextUser.ID,
+		IsClosed: optional.Some(isShowClosed),
+		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
+		Type:     projectType,
+		Title:    keyword,
+	})
+	if err != nil {
+		ctx.ServerError("FindProjects", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, projects)
 }

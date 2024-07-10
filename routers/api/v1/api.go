@@ -964,6 +964,73 @@ func Routes() *web.Router {
 			}, context.UserAssignmentAPI(), individualPermsChecker)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
+		// m.Group("/projects", func() {
+		// 	m.Group("", func() {
+		// 		m.Get("", org.Projects)
+		// 		m.Get("/{id}", org.ViewProject)
+		// 	}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
+		// 	m.Group("", func() { //nolint:dupl
+		// 		m.Get("/new", org.RenderNewProject)
+		// 		m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
+		// 		m.Group("/{id}", func() {
+		// 			m.Post("", web.Bind(forms.EditProjectColumnForm{}), org.AddColumnToProjectPost)
+		// 			m.Post("/move", project.MoveColumns)
+		// 			m.Post("/delete", org.DeleteProject)
+
+		// 			m.Get("/edit", org.RenderEditProject)
+		// 			m.Post("/edit", web.Bind(forms.CreateProjectForm{}), org.EditProjectPost)
+		// 			m.Post("/{action:open|close}", org.ChangeProjectStatus)
+
+		// 			m.Group("/{columnID}", func() {
+		// 				m.Put("", web.Bind(forms.EditProjectColumnForm{}), org.EditProjectColumn)
+		// 				m.Delete("", org.DeleteProjectColumn)
+		// 				m.Post("/default", org.SetDefaultProjectColumn)
+		// 				m.Post("/move", org.MoveIssues)
+		// 			})
+		// 		})
+		// 	}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
+		// 		if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
+		// 			ctx.NotFound("NewProject", nil)
+		// 			return
+		// 		}
+		// 	})
+		// }, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
+		// Users (requires user scope)
+		m.Group("/{username}/-", func() {
+			m.Group("/projects", func() {
+				m.Group("", func() {
+					m.Get("", org.GetProjects)
+					// m.Get("/{id}", org.ViewProject)
+				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
+				m.Group("", func() {
+					m.Post("", bind(api.CreateProjectOption{}), org.CreateProject)
+					m.Group("/{id}", func() {
+						m.Post("/{action:open|close}", org.ChangeProjectStatus)
+					})
+				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.APIContext) {
+					if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
+						ctx.NotFound("NewProject", nil)
+						return
+					}
+				})
+			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), context.UserAssignmentAPI())
+
+		m.Group("/{org}/-", func() {
+			m.Group("/projects", func() {
+				m.Group("", func() {
+					// m.Get("", org.Projects)
+					// m.Get("/{id}", org.ViewProject)
+				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
+				m.Group("", func() {
+					m.Post("", bind(api.CreateProjectOption{}), org.CreateProject)
+					m.Group("/{id}", func() {
+						m.Post("/{action:open|close}", org.ChangeProjectStatus)
+					})
+				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true))
+			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), orgAssignment(true))
+
 		// Users (requires user scope)
 		m.Group("/users", func() {
 			m.Group("/{username}", func() {
@@ -979,19 +1046,7 @@ func Routes() *web.Router {
 				m.Get("/starred", user.GetStarredRepos)
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
-
-				m.Group("/projects", func() {
-					m.Post("", bind(api.CreateProjectOption{}), org.CreateProject)
-					m.Group("/{id}", func() {
-						m.Post("/{action:open|close}", org.ChangeProjectStatus)
-					})
-				})
-			}, context.UserAssignmentAPI(), reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.APIContext) {
-				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
-					ctx.NotFound("NewProject", nil)
-					return
-				}
-			})
+			}, context.UserAssignmentAPI())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Users (requires user scope)
