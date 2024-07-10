@@ -517,18 +517,14 @@ And the following unique queues:
 
 - `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**: Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
 - `DISABLE_REGULAR_ORG_CREATION`: **false**: Disallow regular (non-admin) users from creating organizations.
-- `USER_DISABLED_FEATURES`: **_empty_** Disabled features for users, could be `deletion`, `manage_ssh_keys`, `manage_gpg_keys`, `manage_mfa`, `manage_credentials` and more features can be added in future.
+- `USER_DISABLED_FEATURES`: **_empty_** Disabled features for users, could be `deletion`, `manage_ssh_keys`, `manage_gpg_keys` and more features can be added in future.
   - `deletion`: User cannot delete their own account.
   - `manage_ssh_keys`: User cannot configure ssh keys.
   - `manage_gpg_keys`: User cannot configure gpg keys.
-  - `manage_mfa`: a User cannot configure mfa devices.
-  - `manage_credentials`: a user cannot configure emails, passwords, or openid
-- `EXTERNAL_USER_DISABLE_FEATURES`: **_empty_**: Comma separated list of disabled features ONLY if the user has an external login type (eg. LDAP, Oauth, etc.), could be `deletion`, `manage_ssh_keys`, `manage_gpg_keys`, `manage_mfa`, `manage_credentials`. This setting is independent from `USER_DISABLED_FEATURES` and supplements its behavior.
+- `EXTERNAL_USER_DISABLE_FEATURES`: **_empty_**: Comma separated list of disabled features ONLY if the user has an external login type (eg. LDAP, Oauth, etc.), could be `deletion`, `manage_ssh_keys`, `manage_gpg_keys`. This setting is independent from `USER_DISABLED_FEATURES` and supplements its behavior.
   - `deletion`: User cannot delete their own account.
   - `manage_ssh_keys`: User cannot configure ssh keys.
   - `manage_gpg_keys`: User cannot configure gpg keys.
-  - `manage_mfa`: a User cannot configure mfa devices.
-  - `manage_credentials`: a user cannot configure emails, passwords, or openid
 
 ## Security (`security`)
 
@@ -759,7 +755,6 @@ and
 - `HELO_HOSTNAME`: **(retrieved from system)**: HELO hostname.
 - `FROM`: **_empty_**: Mail from address, RFC 5322. This can be just an email address, or the "Name" \<email@example.com\> format.
 - `ENVELOPE_FROM`: **_empty_**: Address set as the From address on the SMTP mail envelope. Set to `<>` to send an empty address.
-- `FROM_DISPLAY_NAME_FORMAT`: **{{ .DisplayName }}**: If gitea sends mails on behave of users, it will just use the name also displayed in the WebUI. If you want e.g. `Mister X (by CodeIt) <gitea@codeit.net>`, set it to `{{ .DisplayName }} (by {{ .AppName }})`. Available Variables: `.DisplayName`, `.AppName` and `.Domain`.
 - `SUBJECT_PREFIX`: **_empty_**: Prefix to be placed before e-mail subject lines.
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be command or full path).
 - `SENDMAIL_ARGS`: **_empty_**: Specify any extra sendmail arguments. (NOTE: you should be aware that email addresses can look like options - if your `sendmail` command takes options you must set the option terminator `--`)
