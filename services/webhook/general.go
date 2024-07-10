@@ -91,12 +91,11 @@ func getIssuesCommentInfo(p *api.IssueCommentPayload) (title, link, by, operator
 	return title, link, by, operator
 }
 
-func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter, withSender bool) (string, string, string, int) {
-	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-	issueTitle := fmt.Sprintf("#%d %s", p.Index, p.Issue.Title)
+func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter, withSender bool) (text, issueTitle, extraMarkdown string, color int) {
+	color = yellowColor
+	issueTitle = fmt.Sprintf("#%d %s", p.Index, p.Issue.Title)
 	titleLink := linkFormatter(fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Index), issueTitle)
-	var text string
-	color := yellowColor
+	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 
 	switch p.Action {
 	case api.HookIssueOpened:
@@ -135,26 +134,23 @@ func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter, with
 		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName))
 	}
 
-	var attachmentText string
 	if p.Action == api.HookIssueOpened || p.Action == api.HookIssueEdited {
-		attachmentText = p.Issue.Body
+		extraMarkdown = p.Issue.Body
 	}
 
-	return text, issueTitle, attachmentText, color
+	return text, issueTitle, extraMarkdown, color
 }
 
-func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkFormatter, withSender bool) (string, string, string, int) {
-	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-	issueTitle := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
+func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkFormatter, withSender bool) (text, issueTitle, extraMarkdown string, color int) {
+	color = yellowColor
+	issueTitle = fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
 	titleLink := linkFormatter(p.PullRequest.URL, issueTitle)
-	var text string
-	var attachmentText string
-	color := yellowColor
+	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 
 	switch p.Action {
 	case api.HookIssueOpened:
 		text = fmt.Sprintf("[%s] Pull request opened: %s", repoLink, titleLink)
-		attachmentText = p.PullRequest.Body
+		extraMarkdown = p.PullRequest.Body
 		color = greenColor
 	case api.HookIssueClosed:
 		if p.PullRequest.HasMerged {
@@ -168,7 +164,7 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 		text = fmt.Sprintf("[%s] Pull request re-opened: %s", repoLink, titleLink)
 	case api.HookIssueEdited:
 		text = fmt.Sprintf("[%s] Pull request edited: %s", repoLink, titleLink)
-		attachmentText = p.PullRequest.Body
+		extraMarkdown = p.PullRequest.Body
 	case api.HookIssueAssigned:
 		list := make([]string, len(p.PullRequest.Assignees))
 		for i, user := range p.PullRequest.Assignees {
@@ -193,7 +189,7 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 		text = fmt.Sprintf("[%s] Pull request milestone cleared: %s", repoLink, titleLink)
 	case api.HookIssueReviewed:
 		text = fmt.Sprintf("[%s] Pull request reviewed: %s", repoLink, titleLink)
-		attachmentText = p.Review.Content
+		extraMarkdown = p.Review.Content
 	case api.HookIssueReviewRequested:
 		text = fmt.Sprintf("[%s] Pull request review requested: %s", repoLink, titleLink)
 	case api.HookIssueReviewRequestRemoved:
@@ -203,7 +199,7 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName))
 	}
 
-	return text, issueTitle, attachmentText, color
+	return text, issueTitle, extraMarkdown, color
 }
 
 func getReleasePayloadInfo(p *api.ReleasePayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
