@@ -755,7 +755,7 @@ and
 - `HELO_HOSTNAME`: **(retrieved from system)**: HELO hostname.
 - `FROM`: **_empty_**: Mail from address, RFC 5322. This can be just an email address, or the "Name" \<email@example.com\> format.
 - `ENVELOPE_FROM`: **_empty_**: Address set as the From address on the SMTP mail envelope. Set to `<>` to send an empty address.
-- `FROM_DISPLAY_NAME_FORMAT`: **{{ .DisplayName }}**: If gitea sends mails on behave of users, it will just use the name also displayed in the WebUI. If you want e.g. `Mister X (by CodeIt) <gitea@codeit.net>`, set it to `{{ .DisplayName }} (by {{ .AppName }})`. Beside **DisplayName** and **AppName** we have support for **Domain** too.
+- `FROM_DISPLAY_NAME_FORMAT`: **{{ .DisplayName }}**: If gitea sends mails on behave of users, it will just use the name also displayed in the WebUI. If you want e.g. `Mister X (by CodeIt) <gitea@codeit.net>`, set it to `{{ .DisplayName }} (by {{ .AppName }})`. Available Variables: `.DisplayName`, `.AppName` and `.Domain`.
 - `SUBJECT_PREFIX`: **_empty_**: Prefix to be placed before e-mail subject lines.
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be command or full path).
 - `SENDMAIL_ARGS`: **_empty_**: Specify any extra sendmail arguments. (NOTE: you should be aware that email addresses can look like options - if your `sendmail` command takes options you must set the option terminator `--`)
