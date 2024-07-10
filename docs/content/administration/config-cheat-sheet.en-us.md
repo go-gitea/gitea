@@ -517,14 +517,18 @@ And the following unique queues:
 
 - `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**: Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
 - `DISABLE_REGULAR_ORG_CREATION`: **false**: Disallow regular (non-admin) users from creating organizations.
-- `USER_DISABLED_FEATURES`: **_empty_** Disabled features for users, could be `deletion`, `manage_ssh_keys`, `manage_gpg_keys` and more features can be added in future.
+- `USER_DISABLED_FEATURES`: **_empty_** Disabled features for users, could be `deletion`, `manage_ssh_keys`, `manage_gpg_keys`, `manage_mfa`, `manage_credentials` and more features can be added in future.
   - `deletion`: User cannot delete their own account.
   - `manage_ssh_keys`: User cannot configure ssh keys.
   - `manage_gpg_keys`: User cannot configure gpg keys.
-- `EXTERNAL_USER_DISABLE_FEATURES`: **_empty_**: Comma separated list of disabled features ONLY if the user has an external login type (eg. LDAP, Oauth, etc.), could be `deletion`, `manage_ssh_keys`, `manage_gpg_keys`. This setting is independent from `USER_DISABLED_FEATURES` and supplements its behavior.
+  - `manage_mfa`: a User cannot configure mfa devices.
+  - `manage_credentials`: a user cannot configure emails, passwords, or openid
+- `EXTERNAL_USER_DISABLE_FEATURES`: **_empty_**: Comma separated list of disabled features ONLY if the user has an external login type (eg. LDAP, Oauth, etc.), could be `deletion`, `manage_ssh_keys`, `manage_gpg_keys`, `manage_mfa`, `manage_credentials`. This setting is independent from `USER_DISABLED_FEATURES` and supplements its behavior.
   - `deletion`: User cannot delete their own account.
   - `manage_ssh_keys`: User cannot configure ssh keys.
   - `manage_gpg_keys`: User cannot configure gpg keys.
+  - `manage_mfa`: a User cannot configure mfa devices.
+  - `manage_credentials`: a user cannot configure emails, passwords, or openid
 
 ## Security (`security`)
 
