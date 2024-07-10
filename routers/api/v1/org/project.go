@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
+// CreateProject creates a new project
 func CreateProject(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateProjectOption)
 
@@ -36,4 +37,25 @@ func CreateProject(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusCreated, map[string]int64{"id": project.ID})
+}
+
+// ChangeProjectStatus updates the status of a project between "open" and "close"
+func ChangeProjectStatus(ctx *context.APIContext) {
+	var toClose bool
+	switch ctx.PathParam(":action") {
+	case "open":
+		toClose = false
+	case "close":
+		toClose = true
+	default:
+		ctx.NotFound("ChangeProjectStatus", nil)
+		return
+	}
+	id := ctx.PathParamInt64(":id")
+
+	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, 0, id, toClose); err != nil {
+		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, map[string]any{"message": "project status updated successfully"})
 }

@@ -811,6 +811,28 @@ func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 	}
 }
 
+func reqUnitAccess(unitType unit.Type, accessMode perm.AccessMode, ignoreGlobal bool) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		// only check global disabled units when ignoreGlobal is false
+		if !ignoreGlobal && unitType.UnitGlobalDisabled() {
+			ctx.NotFound("Repo unit is is disabled: "+unitType.LogString(), nil)
+			return
+		}
+
+		if ctx.ContextUser == nil {
+			ctx.NotFound("ContextUser is nil", nil)
+			return
+		}
+
+		if ctx.ContextUser.IsOrganization() {
+			if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
+				ctx.NotFound("ContextUser is org but doer has no access to unit", nil)
+				return
+			}
+		}
+	}
+}
+
 // Routes registers all v1 APIs routes to web application.
 func Routes() *web.Router {
 	m := web.NewRouter()
@@ -960,8 +982,16 @@ func Routes() *web.Router {
 
 				m.Group("/projects", func() {
 					m.Post("", bind(api.CreateProjectOption{}), org.CreateProject)
+					m.Group("/{id}", func() {
+						m.Post("/{action:open|close}", org.ChangeProjectStatus)
+					})
 				})
-			}, context.UserAssignmentAPI())
+			}, context.UserAssignmentAPI(), reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.APIContext) {
+				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
+					ctx.NotFound("NewProject", nil)
+					return
+				}
+			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Users (requires user scope)
