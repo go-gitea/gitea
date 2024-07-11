@@ -4,8 +4,8 @@ import {showErrorToast} from './modules/toast.ts';
 import 'idiomorph/dist/idiomorph-ext.js';
 
 // https://htmx.org/reference/#config
-htmx.config.requestClass = 'is-loading';
-htmx.config.scrollIntoViewOnBoost = false;
+window.htmx.config.requestClass = 'is-loading';
+window.htmx.config.scrollIntoViewOnBoost = false;
 
 // https://htmx.org/events/#htmx:sendError
 document.body.addEventListener('htmx:sendError', (event) => {
