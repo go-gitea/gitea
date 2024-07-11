@@ -36,6 +36,8 @@ func newFeishuTextPayload(text string) FeishuPayload {
 	}
 }
 
+type feishuConvertor struct{}
+
 // Create implements PayloadConvertor Create method
 func (fc feishuConvertor) Create(p *api.CreatePayload) (FeishuPayload, error) {
 	// created tag/branch
@@ -164,10 +166,7 @@ func (fc feishuConvertor) Package(p *api.PackagePayload) (FeishuPayload, error) 
 	return newFeishuTextPayload(text), nil
 }
 
-type feishuConvertor struct{}
-
-var _ payloadConvertor[FeishuPayload] = feishuConvertor{}
-
 func newFeishuRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
-	return newJSONRequest(feishuConvertor{}, w, t, true)
+	var pc payloadConvertor[FeishuPayload] = feishuConvertor{}
+	return newJSONRequest(pc, w, t, true)
 }

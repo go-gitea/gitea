@@ -1,11 +1,11 @@
-<script>
-import {SvgIcon} from '../svg.js';
+<script lang="ts">
+import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
-import {toggleElem} from '../utils/dom.js';
-import {formatDatetime} from '../utils/time.js';
-import {renderAnsi} from '../render/ansi.js';
-import {GET, POST, DELETE} from '../modules/fetch.js';
+import {toggleElem} from '../utils/dom.ts';
+import {formatDatetime} from '../utils/time.ts';
+import {renderAnsi} from '../render/ansi.ts';
+import {GET, POST, DELETE} from '../modules/fetch.ts';
 
 const sfc = {
   name: 'RepoActionView',
