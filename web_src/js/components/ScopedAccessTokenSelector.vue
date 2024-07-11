@@ -1,6 +1,6 @@
-<script>
+<script lang="ts">
 import {createApp} from 'vue';
-import {hideElem, showElem} from '../utils/dom.js';
+import {hideElem, showElem} from '../utils/dom.ts';
 
 const sfc = {
   props: {
