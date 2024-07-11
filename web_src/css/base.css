@@ -1362,6 +1362,7 @@ table th[data-sortt-desc] .svg {
   gap: .25rem;
   vertical-align: middle;
   min-width: 0; /* make ellipsis work */
+  flex-wrap: wrap;
 }
 
 .ui.ui.dropdown.selection {
