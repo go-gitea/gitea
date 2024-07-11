@@ -231,12 +231,13 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 		log.Error("no mailer.FROM provided, email system may not work.")
 	}
 
-	if MailService.FromDisplayNameFormat == "" {
-		MailService.FromDisplayNameFormat = "{{ .DisplayName }}"
-		var err error
-		MailService.FromDisplayNameFormatTemplate, err = template.New("mailFrom").Parse(MailService.FromDisplayNameFormat)
+	MailService.FromDisplayNameFormatTemplate, _ = template.New("mailFrom").Parse("{{ .DisplayName }}")
+	if MailService.FromDisplayNameFormat != "" {
+		template, err := template.New("mailFrom").Parse(MailService.FromDisplayNameFormat)
 		if err != nil {
 			log.Error("mailer.FROM_DISPLAY_NAME_FORMAT is no valid template: %v", err)
+		} else {
+			MailService.FromDisplayNameFormatTemplate = template
 		}
 	}
 
