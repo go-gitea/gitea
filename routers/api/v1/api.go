@@ -976,9 +976,9 @@ func Routes() *web.Router {
 					m.Post("", bind(api.CreateProjectOption{}), org.CreateProject)
 					m.Group("/{id}", func() {
 						m.Post("", bind(api.EditProjectColumnOption{}), org.AddColumnToProject)
+						m.Delete("", org.DeleteProject)
+						m.Put("", bind(api.CreateProjectOption{}), org.EditProject)
 						m.Post("/move", org.MoveColumns)
-						m.Post("/delete", org.DeleteProject)
-						m.Post("/edit", bind(api.CreateProjectOption{}), org.EditProject)
 						m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
 						m.Group("/{columnID}", func() {
@@ -998,20 +998,39 @@ func Routes() *web.Router {
 
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), context.UserAssignmentAPI())
 
-		// m.Group("orgs/{org}/-", func() {
-		// 	m.Group("/projects", func() {
-		// 		m.Group("", func() {
-		// 			// m.Get("", org.Projects)
-		// 			// m.Get("/{id}", org.ViewProject)
-		// 		}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
-		// 		m.Group("", func() {
-		// 			m.Post("", bind(api.CreateProjectOption{}), org.CreateProject)
-		// 			m.Group("/{id}", func() {
-		// 				m.Post("/{action:open|close}", org.ChangeProjectStatus)
-		// 			})
-		// 		}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true))
-		// 	}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
-		// }, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), orgAssignment(true))
+		// Organizations (requires orgs scope)
+		m.Group("orgs/{org}/-", func() {
+			m.Group("/projects", func() {
+				m.Group("", func() {
+					m.Get("", org.GetProjects)
+					m.Get("/{id}", org.GetProject)
+				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
+
+				m.Group("", func() {
+					m.Post("", bind(api.CreateProjectOption{}), org.CreateProject)
+					m.Group("/{id}", func() {
+						m.Post("", bind(api.EditProjectColumnOption{}), org.AddColumnToProject)
+						m.Delete("", org.DeleteProject)
+						m.Put("", bind(api.CreateProjectOption{}), org.EditProject)
+						m.Post("/move", org.MoveColumns)
+						m.Post("/{action:open|close}", org.ChangeProjectStatus)
+
+						m.Group("/{columnID}", func() {
+							m.Put("", bind(api.EditProjectColumnOption{}), org.EditProjectColumn)
+							m.Delete("", org.DeleteProjectColumn)
+							m.Post("/default", org.SetDefaultProjectColumn)
+							m.Post("/move", org.MoveIssues)
+						})
+					})
+				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.APIContext) {
+					if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
+						ctx.NotFound("NewProject", nil)
+						return
+					}
+				})
+			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
+
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), orgAssignment(true))
 
 		// Users (requires user scope)
 		m.Group("/users", func() {
