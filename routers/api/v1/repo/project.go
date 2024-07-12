@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -460,24 +461,13 @@ func MoveIssues(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, map[string]string{"message": "issues moved successfully"})
 }
 
-func getActionIssues(ctx *context.APIContext) issues_model.IssueList {
-	type updateIssuesForm struct {
-		Issues []int64 `json:"issues"`
-	}
+func getActionIssues(ctx *context.APIContext, issuesIDs []int64) issues_model.IssueList {
 
-	form := &updateIssuesForm{}
-
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.ServerError("DecodeMovedIssuesForm", err)
+	if len(issuesIDs) == 0 {
 		return nil
 	}
 
-	if len(form.Issues) == 0 {
-		return nil
-	}
-
-	issueIDs := form.Issues
-	issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
+	issues, err := issues_model.GetIssuesByIDs(ctx, issuesIDs)
 	if err != nil {
 		ctx.ServerError("GetIssuesByIDs", err)
 		return nil
@@ -504,7 +494,21 @@ func getActionIssues(ctx *context.APIContext) issues_model.IssueList {
 
 // UpdateIssueProject change an issue's project
 func UpdateIssueProject(ctx *context.APIContext) {
-	issues := getActionIssues(ctx)
+	type updateIssuesForm struct {
+		ProjectID int64   `json:"project_id"`
+		Issues    []int64 `json:"issues"`
+	}
+
+	form := &updateIssuesForm{}
+
+	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+		ctx.ServerError("DecodeMovedIssuesForm", err)
+		return
+	}
+
+	log.Println("form", form)
+	log.Println(ctx.Repo.Repository.ID)
+	issues := getActionIssues(ctx, form.Issues)
 	if ctx.Written() {
 		return
 	}
@@ -518,7 +522,7 @@ func UpdateIssueProject(ctx *context.APIContext) {
 		return
 	}
 
-	projectID := ctx.FormInt64("project_id")
+	projectID := form.ProjectID
 	for _, issue := range issues {
 		if issue.Project != nil && issue.Project.ID == projectID {
 			continue

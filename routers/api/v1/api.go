@@ -417,6 +417,18 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 	}
 }
 
+// reqRepoWriterOr returns a middleware for requiring repository write to one of the unit permission
+func reqRepoWriterOr(unitTypes ...unit.Type) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		for _, unitType := range unitTypes {
+			if ctx.Repo.CanWrite(unitType) {
+				return
+			}
+		}
+		ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+	}
+}
+
 // reqRepoBranchWriter user should have a permission to write to a branch, or be a site admin
 func reqRepoBranchWriter(ctx *context.APIContext) {
 	options, ok := web.GetForm(ctx).(api.FileOptionInterface)
@@ -1060,6 +1072,10 @@ func Routes() *web.Router {
 					})
 				}, reqRepoWriter(unit.TypeProjects), mustNotBeArchived)
 			}, individualPermsChecker)
+
+			m.Group("/{type:issues|pulls}", func() {
+				m.Post("/projects", reqRepoWriterOr(unit.TypeIssues, unit.TypePullRequests), reqRepoWriter(unit.TypeProjects), repo.UpdateIssueProject)
+			}, individualPermsChecker)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryRepository), reqToken(), repoAssignment(), reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)
 
 		// Organizations (requires orgs scope)
@@ -1116,6 +1132,10 @@ func Routes() *web.Router {
 					})
 				}, reqRepoWriter(unit.TypeProjects), mustNotBeArchived)
 			})
+
+			m.Group("/{type:issues|pulls}", func() {
+				m.Post("/projects", reqRepoWriterOr(unit.TypeIssues, unit.TypePullRequests), reqRepoWriter(unit.TypeProjects), repo.UpdateIssueProject)
+			}, reqRepoWriter(unit.TypeProjects), mustNotBeArchived)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization, auth_model.AccessTokenScopeCategoryRepository), reqToken(), repoAssignment(), reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)
 
 		// Users (requires user scope)
