@@ -12,13 +12,13 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
-	attachment_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // CreateProject creates a new project
@@ -40,7 +40,7 @@ func CreateProject(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, project)
+	ctx.JSON(http.StatusCreated, convert.ToProject(ctx, project))
 }
 
 // Projects renders the home page of projects
@@ -63,7 +63,7 @@ func GetProjects(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, projects)
+	ctx.JSON(http.StatusOK, convert.ToProjects(ctx, projects))
 }
 
 // TODO: Send issues as well
@@ -91,55 +91,20 @@ func GetProject(ctx *context.APIContext) {
 		return
 	}
 
-	if project.CardType != project_model.CardTypeTextOnly {
-		issuesAttachmentMap := make(map[int64][]*attachment_model.Attachment)
-		for _, issuesList := range issuesMap {
-			for _, issue := range issuesList {
-				if issueAttachment, err := attachment_model.GetAttachmentsByIssueIDImagesLatest(ctx, issue.ID); err == nil {
-					issuesAttachmentMap[issue.ID] = issueAttachment
-				}
-			}
-		}
-		ctx.Data["issuesAttachmentMap"] = issuesAttachmentMap
-	}
-
-	linkedPrsMap := make(map[int64][]*issues_model.Issue)
-	for _, issuesList := range issuesMap {
-		for _, issue := range issuesList {
-			var referencedIDs []int64
-			for _, comment := range issue.Comments {
-				if comment.RefIssueID != 0 && comment.RefIsPull {
-					referencedIDs = append(referencedIDs, comment.RefIssueID)
-				}
-			}
-
-			if len(referencedIDs) > 0 {
-				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-					IssueIDs: referencedIDs,
-					IsPull:   optional.Some(true),
-				}); err == nil {
-					linkedPrsMap[issue.ID] = linkedPrs
-				}
-			}
-		}
-	}
-
-	issues := make(map[int64][]*issues_model.Issue)
+	issues := issues_model.IssueList{}
 
 	for _, column := range columns {
 		if empty := issuesMap[column.ID]; len(empty) == 0 {
 			continue
 		}
-		issues[column.ID] = issuesMap[column.ID]
-
+		issues = append(issues, issuesMap[column.ID]...)
 	}
 
-	data := map[string]any{
-		"project": project,
-		"columns": columns,
-	}
-
-	ctx.JSON(http.StatusOK, data)
+	ctx.JSON(http.StatusOK, map[string]any{
+		"project": convert.ToProject(ctx, project),
+		"columns": convert.ToColumns(ctx, columns),
+		"issues":  convert.ToAPIIssueList(ctx, ctx.Doer, issues),
+	})
 }
 
 // EditProject updates a project
@@ -166,7 +131,7 @@ func EditProject(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, p)
+	ctx.JSON(http.StatusOK, convert.ToProject(ctx, p))
 }
 
 // DeleteProject delete a project
@@ -240,7 +205,7 @@ func AddColumnToProject(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, column)
+	ctx.JSON(http.StatusCreated, convert.ToColumn(ctx, column))
 }
 
 // CheckProjectColumnChangePermissions check permission
@@ -307,7 +272,7 @@ func EditProjectColumn(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, column)
+	ctx.JSON(http.StatusOK, convert.ToColumn(ctx, column))
 }
 
 // DeleteProjectColumn allows for the deletion of a project column
