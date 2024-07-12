@@ -38,8 +38,8 @@
 					{{range $framework, $dependencies := .PackageDescriptor.Metadata.Dependencies}}
 						{{range $dependencies}}
 						<tr>
-							<td>{{.ID}}</td>
-							<td>{{.Version}}</td>
+							<td><a target="_blank" rel="noreferrer" href="https://www.nuget.org/packages/{{.ID}}">{{.ID}}</a></td>
+							<td><a target="_blank" rel="noreferrer" href="https://www.nuget.org/packages/{{.ID}}/{{.Version}}">{{.Version}}</a></td>
 							<td>{{$framework}}</td>
 						</tr>
 						{{end}}
