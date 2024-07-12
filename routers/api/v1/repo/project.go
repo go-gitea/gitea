@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 )
@@ -454,6 +455,81 @@ func MoveIssues(ctx *context.APIContext) {
 	if err = project_model.MoveIssuesOnProjectColumn(ctx, column, sortedIssueIDs); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectColumn", err)
 		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]string{"message": "issues moved successfully"})
+}
+
+func getActionIssues(ctx *context.APIContext) issues_model.IssueList {
+	type updateIssuesForm struct {
+		Issues []int64 `json:"issues"`
+	}
+
+	form := &updateIssuesForm{}
+
+	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+		ctx.ServerError("DecodeMovedIssuesForm", err)
+		return nil
+	}
+
+	if len(form.Issues) == 0 {
+		return nil
+	}
+
+	issueIDs := form.Issues
+	issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
+	if err != nil {
+		ctx.ServerError("GetIssuesByIDs", err)
+		return nil
+	}
+	// Check access rights for all issues
+	issueUnitEnabled := ctx.Repo.CanRead(unit.TypeIssues)
+	prUnitEnabled := ctx.Repo.CanRead(unit.TypePullRequests)
+	for _, issue := range issues {
+		if issue.RepoID != ctx.Repo.Repository.ID {
+			ctx.NotFound("some issue's RepoID is incorrect", errors.New("some issue's RepoID is incorrect"))
+			return nil
+		}
+		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
+			ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
+			return nil
+		}
+		if err = issue.LoadAttributes(ctx); err != nil {
+			ctx.ServerError("LoadAttributes", err)
+			return nil
+		}
+	}
+	return issues
+}
+
+// UpdateIssueProject change an issue's project
+func UpdateIssueProject(ctx *context.APIContext) {
+	issues := getActionIssues(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := issues.LoadProjects(ctx); err != nil {
+		ctx.ServerError("LoadProjects", err)
+		return
+	}
+	if _, err := issues.LoadRepositories(ctx); err != nil {
+		ctx.ServerError("LoadProjects", err)
+		return
+	}
+
+	projectID := ctx.FormInt64("project_id")
+	for _, issue := range issues {
+		if issue.Project != nil && issue.Project.ID == projectID {
+			continue
+		}
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, 0); err != nil {
+			if errors.Is(err, util.ErrPermissionDenied) {
+				continue
+			}
+			ctx.ServerError("IssueAssignOrRemoveProject", err)
+			return
+		}
 	}
 
 	ctx.JSON(http.StatusOK, map[string]string{"message": "issues moved successfully"})

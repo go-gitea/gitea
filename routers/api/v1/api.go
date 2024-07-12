@@ -614,6 +614,21 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 	}
 }
 
+func mustEnableRepoProjects(ctx *context.APIContext) {
+	if unit.TypeProjects.UnitGlobalDisabled() {
+		ctx.NotFound("EnableRepoProjects", nil)
+		return
+	}
+
+	if ctx.Repo.Repository != nil {
+		projectsUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeProjects)
+		if !ctx.Repo.CanRead(unit.TypeProjects) || !projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo) {
+			ctx.NotFound("MustEnableRepoProjects", nil)
+			return
+		}
+	}
+}
+
 func mustEnableIssues(ctx *context.APIContext) {
 	if !ctx.Repo.CanRead(unit.TypeIssues) {
 		if log.IsTrace() {
@@ -996,7 +1011,7 @@ func Routes() *web.Router {
 				m.Group("", func() {
 					m.Get("", org.GetProjects)
 					m.Get("/{id}", org.GetProject)
-				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
+				})
 
 				m.Group("", func() {
 					m.Post("", bind(api.CreateProjectOption{}), org.CreateProject)
@@ -1014,13 +1029,8 @@ func Routes() *web.Router {
 							m.Post("/move", org.MoveIssues)
 						})
 					})
-				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.APIContext) {
-					if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
-						ctx.NotFound("NewProject", nil)
-						return
-					}
-				})
-			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
+				}, reqSelfOrAdmin())
+			}, individualPermsChecker)
 
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), context.UserAssignmentAPI())
 
@@ -1030,7 +1040,7 @@ func Routes() *web.Router {
 				m.Group("", func() {
 					m.Get("", repo.GetProjects)
 					m.Get("/{id}", repo.GetProject)
-				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
+				})
 
 				m.Group("", func() {
 					m.Post("", bind(api.CreateProjectOption{}), repo.CreateProject)
@@ -1048,15 +1058,9 @@ func Routes() *web.Router {
 							m.Post("/move", repo.MoveIssues)
 						})
 					})
-				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.APIContext) {
-					if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
-						ctx.NotFound("NewProject", nil)
-						return
-					}
-				})
-			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
-
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryRepository), reqToken(), repoAssignment())
+				}, reqRepoWriter(unit.TypeProjects), mustNotBeArchived)
+			}, individualPermsChecker)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryRepository), reqToken(), repoAssignment(), reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)
 
 		// Organizations (requires orgs scope)
 		m.Group("orgs/{org}/-", func() {
@@ -1064,7 +1068,7 @@ func Routes() *web.Router {
 				m.Group("", func() {
 					m.Get("", org.GetProjects)
 					m.Get("/{id}", org.GetProject)
-				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
+				})
 
 				m.Group("", func() {
 					m.Post("", bind(api.CreateProjectOption{}), org.CreateProject)
@@ -1082,15 +1086,9 @@ func Routes() *web.Router {
 							m.Post("/move", org.MoveIssues)
 						})
 					})
-				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.APIContext) {
-					if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
-						ctx.NotFound("NewProject", nil)
-						return
-					}
-				})
-			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
-
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), orgAssignment(true))
+				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true))
+			})
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), orgAssignment(true), reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 
 		// Organizations (requires orgs scope)
 		m.Group("orgs/{org}/{reponame}", func() {
@@ -1098,7 +1096,7 @@ func Routes() *web.Router {
 				m.Group("", func() {
 					m.Get("", repo.GetProjects)
 					m.Get("/{id}", repo.GetProject)
-				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
+				})
 
 				m.Group("", func() {
 					m.Post("", bind(api.CreateProjectOption{}), repo.CreateProject)
@@ -1116,15 +1114,9 @@ func Routes() *web.Router {
 							m.Post("/move", repo.MoveIssues)
 						})
 					})
-				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.APIContext) {
-					if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
-						ctx.NotFound("NewProject", nil)
-						return
-					}
-				})
-			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
-
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryRepository), reqToken(), repoAssignment())
+				}, reqRepoWriter(unit.TypeProjects), mustNotBeArchived)
+			})
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization, auth_model.AccessTokenScopeCategoryRepository), reqToken(), repoAssignment(), reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)
 
 		// Users (requires user scope)
 		m.Group("/users", func() {
