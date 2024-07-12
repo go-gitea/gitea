@@ -188,8 +188,6 @@ type FindExternalUserOptions struct {
 	HasRefreshToken bool
 	Expired         bool
 	OrderBy         string
-	Limit           int
-	Start           int
 }
 
 func (opts FindExternalUserOptions) ToConds() builder.Cond {
