@@ -161,8 +161,8 @@ func UpdateExternalUserByExternalID(ctx context.Context, external *ExternalLogin
 }
 
 // EnsureLinkExternalToUser link the external user to the user
-func EnsureLinkExternalToUser(external *ExternalLoginUser) error {
-	has, err := db.Exist[ExternalLoginUser](db.DefaultContext, builder.Eq{
+func EnsureLinkExternalToUser(ctx context.Context, external *ExternalLoginUser) error {
+	has, err := db.Exist[ExternalLoginUser](ctx, builder.Eq{
 		"external_id":     external.ExternalID,
 		"login_source_id": external.LoginSourceID,
 	})
@@ -171,11 +171,11 @@ func EnsureLinkExternalToUser(external *ExternalLoginUser) error {
 	}
 
 	if has {
-		_, err = db.GetEngine(db.DefaultContext).Where("external_id=? AND login_source_id=?", external.ExternalID, external.LoginSourceID).AllCols().Update(external)
+		_, err = db.GetEngine(ctx).Where("external_id=? AND login_source_id=?", external.ExternalID, external.LoginSourceID).AllCols().Update(external)
 		return err
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).Insert(external)
+	_, err = db.GetEngine(ctx).Insert(external)
 	return err
 }
 

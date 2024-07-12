@@ -78,7 +78,7 @@ func EnsureLinkExternalToUser(ctx context.Context, user *user_model.User, gothUs
 		return err
 	}
 
-	return user_model.EnsureLinkExternalToUser(externalLoginUser)
+	return user_model.EnsureLinkExternalToUser(ctx, externalLoginUser)
 }
 
 // UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
