@@ -91,6 +91,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/packages"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
+	"code.gitea.io/gitea/routers/api/v1/shared/project"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/actions"
@@ -137,6 +138,7 @@ func sudo() func(ctx *context.APIContext) {
 func repoAssignment() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		userName := ctx.PathParam("username")
+		orgName := ctx.PathParam("org")
 		repoName := ctx.PathParam("reponame")
 
 		var (
@@ -145,25 +147,49 @@ func repoAssignment() func(ctx *context.APIContext) {
 		)
 
 		// Check if the user is the same as the repository owner.
-		if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
-			owner = ctx.Doer
-		} else {
-			owner, err = user_model.GetUserByName(ctx, userName)
+		if userName != "" {
+			if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
+				owner = ctx.Doer
+			} else {
+				owner, err = user_model.GetUserByName(ctx, userName)
+				if err != nil {
+					if user_model.IsErrUserNotExist(err) {
+						if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
+							context.RedirectToUser(ctx.Base, userName, redirectUserID)
+						} else if user_model.IsErrUserRedirectNotExist(err) {
+							ctx.NotFound("GetUserByName", err)
+						} else {
+							ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
+						}
+					} else {
+						ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+					}
+					return
+				}
+			}
+		}
+
+		if orgName != "" {
+			org, err := organization.GetOrgByName(ctx, orgName)
 			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
-						context.RedirectToUser(ctx.Base, userName, redirectUserID)
+				if organization.IsErrOrgNotExist(err) {
+					redirectUserID, err := user_model.LookupUserRedirect(ctx, orgName)
+					if err == nil {
+						context.RedirectToUser(ctx.Base, orgName, redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
-						ctx.NotFound("GetUserByName", err)
+						ctx.NotFound()
 					} else {
 						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
 					}
 				} else {
-					ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+					ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
 				}
 				return
 			}
+			ctx.Org.Organization = org
+			owner = org.AsUser()
 		}
+
 		ctx.Repo.Owner = owner
 		ctx.ContextUser = owner
 
@@ -978,7 +1004,7 @@ func Routes() *web.Router {
 						m.Post("", bind(api.EditProjectColumnOption{}), org.AddColumnToProject)
 						m.Delete("", org.DeleteProject)
 						m.Put("", bind(api.CreateProjectOption{}), org.EditProject)
-						m.Post("/move", org.MoveColumns)
+						m.Post("/move", project.MoveColumns)
 						m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
 						m.Group("/{columnID}", func() {
@@ -998,6 +1024,40 @@ func Routes() *web.Router {
 
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), context.UserAssignmentAPI())
 
+		// Users (requires user scope)
+		m.Group("users/{username}/{reponame}", func() {
+			m.Group("/projects", func() {
+				m.Group("", func() {
+					m.Get("", repo.GetProjects)
+					m.Get("/{id}", repo.GetProject)
+				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
+
+				m.Group("", func() {
+					m.Post("", bind(api.CreateProjectOption{}), repo.CreateProject)
+					m.Group("/{id}", func() {
+						m.Post("", bind(api.EditProjectColumnOption{}), repo.AddColumnToProject)
+						m.Delete("", repo.DeleteProject)
+						m.Put("", bind(api.CreateProjectOption{}), repo.EditProject)
+						m.Post("/move", project.MoveColumns)
+						m.Post("/{action:open|close}", repo.ChangeProjectStatus)
+
+						m.Group("/{columnID}", func() {
+							m.Put("", bind(api.EditProjectColumnOption{}), repo.EditProjectColumn)
+							m.Delete("", repo.DeleteProjectColumn)
+							m.Post("/default", repo.SetDefaultProjectColumn)
+							m.Post("/move", repo.MoveIssues)
+						})
+					})
+				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.APIContext) {
+					if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
+						ctx.NotFound("NewProject", nil)
+						return
+					}
+				})
+			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
+
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryRepository), reqToken(), repoAssignment())
+
 		// Organizations (requires orgs scope)
 		m.Group("orgs/{org}/-", func() {
 			m.Group("/projects", func() {
@@ -1012,7 +1072,7 @@ func Routes() *web.Router {
 						m.Post("", bind(api.EditProjectColumnOption{}), org.AddColumnToProject)
 						m.Delete("", org.DeleteProject)
 						m.Put("", bind(api.CreateProjectOption{}), org.EditProject)
-						m.Post("/move", org.MoveColumns)
+						m.Post("/move", project.MoveColumns)
 						m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
 						m.Group("/{columnID}", func() {
@@ -1031,6 +1091,40 @@ func Routes() *web.Router {
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
 
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), orgAssignment(true))
+
+		// Organizations (requires orgs scope)
+		m.Group("orgs/{org}/{reponame}", func() {
+			m.Group("/projects", func() {
+				m.Group("", func() {
+					m.Get("", repo.GetProjects)
+					m.Get("/{id}", repo.GetProject)
+				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
+
+				m.Group("", func() {
+					m.Post("", bind(api.CreateProjectOption{}), repo.CreateProject)
+					m.Group("/{id}", func() {
+						m.Post("", bind(api.EditProjectColumnOption{}), repo.AddColumnToProject)
+						m.Delete("", repo.DeleteProject)
+						m.Put("", bind(api.CreateProjectOption{}), repo.EditProject)
+						m.Post("/move", project.MoveColumns)
+						m.Post("/{action:open|close}", repo.ChangeProjectStatus)
+
+						m.Group("/{columnID}", func() {
+							m.Put("", bind(api.EditProjectColumnOption{}), repo.EditProjectColumn)
+							m.Delete("", repo.DeleteProjectColumn)
+							m.Post("/default", repo.SetDefaultProjectColumn)
+							m.Post("/move", repo.MoveIssues)
+						})
+					})
+				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.APIContext) {
+					if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
+						ctx.NotFound("NewProject", nil)
+						return
+					}
+				})
+			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
+
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryRepository), reqToken(), repoAssignment())
 
 		// Users (requires user scope)
 		m.Group("/users", func() {

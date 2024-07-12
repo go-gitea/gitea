@@ -1,4 +1,4 @@
-package org
+package repo
 
 import (
 	"encoding/json"
@@ -9,8 +9,10 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
 	attachment_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
@@ -22,18 +24,13 @@ func CreateProject(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateProjectOption)
 
 	project := &project_model.Project{
-		OwnerID:      ctx.ContextUser.ID,
+		RepoID:       ctx.Repo.Repository.ID,
 		Title:        form.Title,
 		Description:  form.Content,
 		CreatorID:    ctx.Doer.ID,
 		TemplateType: project_model.TemplateType(form.TemplateType),
 		CardType:     project_model.CardType(form.CardType),
-	}
-
-	if ctx.ContextUser.IsOrganization() {
-		project.Type = project_model.TypeOrganization
-	} else {
-		project.Type = project_model.TypeIndividual
+		Type:         project_model.TypeRepository,
 	}
 
 	if err := project_model.NewProject(ctx, project); err != nil {
@@ -44,45 +41,19 @@ func CreateProject(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, project)
 }
 
-// ChangeProjectStatus updates the status of a project between "open" and "close"
-func ChangeProjectStatus(ctx *context.APIContext) {
-	var toClose bool
-	switch ctx.PathParam(":action") {
-	case "open":
-		toClose = false
-	case "close":
-		toClose = true
-	default:
-		ctx.NotFound("ChangeProjectStatus", nil)
-		return
-	}
-	id := ctx.PathParamInt64(":id")
-
-	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, 0, id, toClose); err != nil {
-		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
-		return
-	}
-	ctx.JSON(http.StatusOK, map[string]any{"message": "project status updated successfully"})
-}
-
 // Projects renders the home page of projects
 func GetProjects(ctx *context.APIContext) {
 	sortType := ctx.FormTrim("sort")
 
 	isShowClosed := strings.ToLower(ctx.FormTrim("state")) == "closed"
 	keyword := ctx.FormTrim("q")
+	repo := ctx.Repo.Repository
 
-	var projectType project_model.Type
-	if ctx.ContextUser.IsOrganization() {
-		projectType = project_model.TypeOrganization
-	} else {
-		projectType = project_model.TypeIndividual
-	}
 	projects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
-		OwnerID:  ctx.ContextUser.ID,
+		RepoID:   repo.ID,
 		IsClosed: optional.Some(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
-		Type:     projectType,
+		Type:     project_model.TypeRepository,
 		Title:    keyword,
 	})
 	if err != nil {
@@ -101,7 +72,7 @@ func GetProject(ctx *context.APIContext) {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
-	if project.OwnerID != ctx.ContextUser.ID {
+	if project.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound("", nil)
 		return
 	}
@@ -179,7 +150,7 @@ func EditProject(ctx *context.APIContext) {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
-	if p.OwnerID != ctx.ContextUser.ID {
+	if p.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound("", nil)
 		return
 	}
@@ -203,7 +174,7 @@ func DeleteProject(ctx *context.APIContext) {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
-	if p.OwnerID != ctx.ContextUser.ID {
+	if p.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound("", nil)
 		return
 	}
@@ -218,15 +189,39 @@ func DeleteProject(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, map[string]any{"message": "project deleted successfully"})
 }
 
-// AddColumnToProject adds a new column to a project
-func AddColumnToProject(ctx *context.APIContext) {
-	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
-	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+// ChangeProjectStatus updates the status of a project between "open" and "close"
+func ChangeProjectStatus(ctx *context.APIContext) {
+	var toClose bool
+	switch ctx.PathParam(":action") {
+	case "open":
+		toClose = false
+	case "close":
+		toClose = true
+	default:
+		ctx.NotFound("ChangeProjectStatus", nil)
 		return
 	}
-	if project.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound("", nil)
+	id := ctx.PathParamInt64(":id")
+
+	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
+		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, map[string]any{"message": "project status updated successfully"})
+}
+
+// AddColumnToProject adds a new column to a project
+func AddColumnToProject(ctx *context.APIContext) {
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only authorized users are allowed to perform this action.",
+		})
+		return
+	}
+
+	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":id"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 
@@ -247,10 +242,17 @@ func AddColumnToProject(ctx *context.APIContext) {
 }
 
 // CheckProjectColumnChangePermissions check permission
-func CheckProjectColumnChangePermissions(ctx *context.APIContext) (*project_model.Project, *project_model.Column) {
+func checkProjectColumnChangePermissions(ctx *context.APIContext) (*project_model.Project, *project_model.Column) {
 	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
+		})
+		return nil, nil
+	}
+
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only authorized users are allowed to perform this action.",
 		})
 		return nil, nil
 	}
@@ -273,7 +275,7 @@ func CheckProjectColumnChangePermissions(ctx *context.APIContext) (*project_mode
 		return nil, nil
 	}
 
-	if project.OwnerID != ctx.ContextUser.ID {
+	if project.RepoID != ctx.Repo.Repository.ID {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
 			"message": fmt.Sprintf("ProjectColumn[%d] is not in Repository[%d] as expected", column.ID, project.ID),
 		})
@@ -285,7 +287,7 @@ func CheckProjectColumnChangePermissions(ctx *context.APIContext) (*project_mode
 // EditProjectColumn allows a project column's to be updated
 func EditProjectColumn(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.EditProjectColumnOption)
-	_, column := CheckProjectColumnChangePermissions(ctx)
+	_, column := checkProjectColumnChangePermissions(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -315,6 +317,13 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 		return
 	}
 
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only authorized users are allowed to perform this action.",
+		})
+		return
+	}
+
 	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
@@ -333,7 +342,7 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 		return
 	}
 
-	if project.OwnerID != ctx.ContextUser.ID {
+	if project.RepoID != ctx.Repo.Repository.ID {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
 			"message": fmt.Sprintf("ProjectColumn[%d] is not in Owner[%d] as expected", pb.ID, ctx.ContextUser.ID),
 		})
@@ -350,7 +359,7 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 
 // SetDefaultProjectColumn set default column for uncategorized issues/pulls
 func SetDefaultProjectColumn(ctx *context.APIContext) {
-	project, column := CheckProjectColumnChangePermissions(ctx)
+	project, column := checkProjectColumnChangePermissions(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -372,12 +381,19 @@ func MoveIssues(ctx *context.APIContext) {
 		return
 	}
 
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only authorized users are allowed to perform this action.",
+		})
+		return
+	}
+
 	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
-	if project.OwnerID != ctx.ContextUser.ID {
+	if project.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound("InvalidRepoID", nil)
 		return
 	}
