@@ -181,7 +181,9 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 	downloadObjects := func(pointers []lfs.Pointer) error {
 		err := lfsClient.Download(ctx, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
 			if objectError != nil {
-				return objectError
+				log.Error("Repo[%-v]: Ignoring LFS object %-v: %v", repo, p, objectError)
+				// TODO: Optionally return error to ensure data integrity of LFS objects
+				return nil
 			}
 
 			defer content.Close()
