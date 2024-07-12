@@ -31,6 +31,10 @@
   padding: 0 5px;
 }
 
+#user-heatmap .vch__day__square:hover {
+  outline: 1.5px solid var(--color-text);
+}
+
 /* move the "? contributions in the last ? months" text from top to bottom */
 #user-heatmap .total-contributions {
   font-size: 11px;

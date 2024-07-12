@@ -85,7 +85,7 @@ func PushCreateRepo(ctx context.Context, authUser, owner *user_model.User, repoN
 
 	repo, err := CreateRepository(ctx, authUser, owner, CreateRepoOptions{
 		Name:      repoName,
-		IsPrivate: setting.Repository.DefaultPushCreatePrivate,
+		IsPrivate: setting.Repository.DefaultPushCreatePrivate || setting.Repository.ForcePrivate,
 	})
 	if err != nil {
 		return nil, err

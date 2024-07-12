@@ -1,7 +1,7 @@
 <h4 class="ui top attached header">
 	{{.CustomHeaderTitle}}
 	<div class="ui right type dropdown">
-		<div class="text gt-df gt-ac">
+		<div class="text tw-flex tw-items-center">
 			{{template "shared/webhook/icon" (dict "Size" 20 "HookType" .ctxData.HookType)}}
 			{{ctx.Locale.Tr (print "repo.settings.web_hook_name_" .ctxData.HookType)}}
 		</div>

@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -79,7 +80,7 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	}
 	ctxname := fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)
 	state := toCommitStatus(job.Status)
-	if statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{ListAll: true}); err == nil {
+	if statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptionsAll); err == nil {
 		for _, v := range statuses {
 			if v.Context == ctxname {
 				if v.State == state {
@@ -122,18 +123,13 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	if err != nil {
 		return fmt.Errorf("HashTypeInterfaceFromHashString: %w", err)
 	}
-	if err := git_model.NewCommitStatus(ctx, git_model.NewCommitStatusOptions{
-		Repo:    repo,
-		SHA:     commitID,
-		Creator: creator,
-		CommitStatus: &git_model.CommitStatus{
-			SHA:         sha,
-			TargetURL:   fmt.Sprintf("%s/jobs/%d", run.Link(), index),
-			Description: description,
-			Context:     ctxname,
-			CreatorID:   creator.ID,
-			State:       state,
-		},
+	if err := commitstatus_service.CreateCommitStatus(ctx, repo, creator, commitID.String(), &git_model.CommitStatus{
+		SHA:         sha,
+		TargetURL:   fmt.Sprintf("%s/jobs/%d", run.Link(), index),
+		Description: description,
+		Context:     ctxname,
+		CreatorID:   creator.ID,
+		State:       state,
 	}); err != nil {
 		return fmt.Errorf("NewCommitStatus: %w", err)
 	}

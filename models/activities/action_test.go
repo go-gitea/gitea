@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +34,8 @@ func TestAction_GetRepoLink(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	comment := unittest.AssertExistsAndLoadBean(t, &issue_model.Comment{ID: 2})
 	action := &activities_model.Action{RepoID: repo.ID, CommentID: comment.ID}
-	setting.AppSubURL = "/suburl"
+	defer test.MockVariableValue(&setting.AppURL, "https://try.gitea.io/suburl/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/suburl")()
 	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
 	assert.Equal(t, expected, action.GetRepoLink(db.DefaultContext))
 	assert.Equal(t, repo.HTMLURL(), action.GetRepoAbsoluteLink(db.DefaultContext))
@@ -317,4 +319,25 @@ func TestDeleteIssueActions(t *testing.T) {
 	unittest.AssertCount(t, &activities_model.Action{}, 2)
 	assert.NoError(t, activities_model.DeleteIssueActions(db.DefaultContext, issue.RepoID, issue.ID, issue.Index))
 	unittest.AssertCount(t, &activities_model.Action{}, 0)
+}
+
+func TestRepoActions(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	_ = db.TruncateBeans(db.DefaultContext, &activities_model.Action{})
+	for i := 0; i < 3; i++ {
+		_ = db.Insert(db.DefaultContext, &activities_model.Action{
+			UserID:    2 + int64(i),
+			ActUserID: 2,
+			RepoID:    repo.ID,
+			OpType:    activities_model.ActionCommentIssue,
+		})
+	}
+	count, _ := db.Count[activities_model.Action](db.DefaultContext, &db.ListOptions{})
+	assert.EqualValues(t, 3, count)
+	actions, _, err := activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+		RequestedRepo: repo,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, actions, 1)
 }

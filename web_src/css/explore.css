@@ -1,10 +1,8 @@
-.explore .navbar {
-  margin-bottom: 15px !important;
-  background-color: var(--color-header-wrapper) !important;
+.explore .secondary-nav {
   border-width: 1px !important;
 }
 
-.explore .navbar .svg {
+.explore .secondary-nav .svg {
   width: 16px;
   text-align: center;
   margin-right: 5px;

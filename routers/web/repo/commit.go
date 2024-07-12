@@ -212,8 +212,6 @@ func SearchCommits(ctx *context.Context) {
 
 // FileHistory show a file's reversions
 func FileHistory(ctx *context.Context) {
-	ctx.Data["IsRepoToolbarCommits"] = true
-
 	fileName := ctx.Repo.TreePath
 	if len(fileName) == 0 {
 		Commits(ctx)
@@ -259,12 +257,12 @@ func FileHistory(ctx *context.Context) {
 }
 
 func LoadBranchesAndTags(ctx *context.Context) {
-	response, err := git_service.LoadBranchesAndTags(ctx, ctx.Repo, ctx.Params("sha"))
+	response, err := git_service.LoadBranchesAndTags(ctx, ctx.Repo, ctx.PathParam("sha"))
 	if err == nil {
 		ctx.JSON(http.StatusOK, response)
 		return
 	}
-	ctx.NotFoundOrServerError(fmt.Sprintf("could not load branches and tags the commit %s belongs to", ctx.Params("sha")), git.IsErrNotExist, err)
+	ctx.NotFoundOrServerError(fmt.Sprintf("could not load branches and tags the commit %s belongs to", ctx.PathParam("sha")), git.IsErrNotExist, err)
 }
 
 // Diff show different from current commit to previous commit
@@ -273,7 +271,7 @@ func Diff(ctx *context.Context) {
 
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
-	commitID := ctx.Params(":sha")
+	commitID := ctx.PathParam(":sha")
 	var (
 		gitRepo *git.Repository
 		err     error
@@ -351,7 +349,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
 
-	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptions{ListAll: true})
+	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptionsAll)
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
@@ -384,6 +382,7 @@ func Diff(ctx *context.Context) {
 			},
 			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo: ctx.Repo.GitRepo,
+			Repo:    ctx.Repo.Repository,
 			Ctx:     ctx,
 		}, template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
 		if err != nil {
@@ -421,13 +420,13 @@ func RawDiff(ctx *context.Context) {
 	}
 	if err := git.GetRawDiff(
 		gitRepo,
-		ctx.Params(":sha"),
-		git.RawDiffType(ctx.Params(":ext")),
+		ctx.PathParam(":sha"),
+		git.RawDiffType(ctx.PathParam(":ext")),
 		ctx.Resp,
 	); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetRawDiff",
-				errors.New("commit "+ctx.Params(":sha")+" does not exist."))
+				errors.New("commit "+ctx.PathParam(":sha")+" does not exist."))
 			return
 		}
 		ctx.ServerError("GetRawDiff", err)

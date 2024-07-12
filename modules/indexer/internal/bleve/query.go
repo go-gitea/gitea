@@ -20,17 +20,11 @@ func NumericEqualityQuery(value int64, field string) *query.NumericRangeQuery {
 }
 
 // MatchPhraseQuery generates a match phrase query for the given phrase, field and analyzer
-func MatchPhraseQuery(matchPhrase, field, analyzer string) *query.MatchPhraseQuery {
+func MatchPhraseQuery(matchPhrase, field, analyzer string, fuzziness int) *query.MatchPhraseQuery {
 	q := bleve.NewMatchPhraseQuery(matchPhrase)
 	q.FieldVal = field
 	q.Analyzer = analyzer
-	return q
-}
-
-// PrefixQuery generates a match prefix query for the given prefix and field
-func PrefixQuery(matchPrefix, field string) *query.PrefixQuery {
-	q := bleve.NewPrefixQuery(matchPrefix)
-	q.FieldVal = field
+	q.Fuzziness = fuzziness
 	return q
 }
 

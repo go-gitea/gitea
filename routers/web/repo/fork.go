@@ -101,10 +101,8 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	}
 
 	branches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID: ctx.Repo.Repository.ID,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		RepoID:          ctx.Repo.Repository.ID,
+		ListOptions:     db.ListOptionsAll,
 		IsDeletedBranch: optional.Some(false),
 		// Add it as the first option
 		ExcludeBranchNames: []string{ctx.Repo.Repository.DefaultBranch},

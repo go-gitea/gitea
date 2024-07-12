@@ -16,8 +16,8 @@
 
 .tippy-box {
   position: relative;
-  background-color: var(--color-body);
-  color: var(--color-secondary-dark-6);
+  background-color: var(--color-menu);
+  color: var(--color-text);
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
   font-size: 1rem;
@@ -25,8 +25,18 @@
 
 .tippy-content {
   position: relative;
-  padding: 1rem; /* if you need different padding, use different data-theme */
   z-index: 1;
+}
+
+/* bare theme, no styling at all, except box-shadow */
+.tippy-box[data-theme="bare"] {
+  border: none;
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+
+.tippy-box[data-theme="bare"] .tippy-content {
+  padding: 0;
+  background: transparent;
 }
 
 /* tooltip theme for text tooltips */
@@ -155,5 +165,5 @@
 }
 
 .tippy-svg-arrow-inner {
-  fill: var(--color-body);
+  fill: var(--color-menu);
 }

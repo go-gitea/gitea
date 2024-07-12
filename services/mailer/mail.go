@@ -82,7 +82,7 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 		return
 	}
 
-	msg := NewMessage(u.Email, subject, content.String())
+	msg := NewMessage(u.EmailTo(), subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, %s", u.ID, info)
 
 	SendAsync(msg)
@@ -158,7 +158,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		return
 	}
 
-	msg := NewMessage(u.Email, locale.TrString("mail.register_notify"), content.String())
+	msg := NewMessage(u.EmailTo(), locale.TrString("mail.register_notify", setting.AppName), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
 	SendAsync(msg)
@@ -189,7 +189,7 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 		return
 	}
 
-	msg := NewMessage(u.Email, subject, content.String())
+	msg := NewMessage(u.EmailTo(), subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, add collaborator", u.ID)
 
 	SendAsync(msg)
@@ -220,7 +220,8 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	// This is the body of the new issue or comment, not the mail body
 	body, err := markdown.RenderString(&markup.RenderContext{
-		Ctx: ctx,
+		Ctx:  ctx,
+		Repo: ctx.Issue.Repo,
 		Links: markup.Links{
 			AbsolutePrefix: true,
 			Base:           ctx.Issue.Repo.HTMLURL(),
@@ -289,8 +290,8 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
-	msgID := createReference(ctx.Issue, ctx.Comment, ctx.ActionType)
-	reference := createReference(ctx.Issue, nil, activities_model.ActionType(0))
+	msgID := generateMessageIDForIssue(ctx.Issue, ctx.Comment, ctx.ActionType)
+	reference := generateMessageIDForIssue(ctx.Issue, nil, activities_model.ActionType(0))
 
 	var replyPayload []byte
 	if ctx.Comment != nil {
@@ -362,7 +363,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	return msgs, nil
 }
 
-func createReference(issue *issues_model.Issue, comment *issues_model.Comment, actionType activities_model.ActionType) string {
+func generateMessageIDForIssue(issue *issues_model.Issue, comment *issues_model.Comment, actionType activities_model.ActionType) string {
 	var path string
 	if issue.IsPull {
 		path = "pulls"
@@ -387,6 +388,10 @@ func createReference(issue *issues_model.Issue, comment *issues_model.Comment, a
 	}
 
 	return fmt.Sprintf("<%s/%s/%d%s@%s>", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
+}
+
+func generateMessageIDForRelease(release *repo_model.Release) string {
+	return fmt.Sprintf("<%s/releases/%d@%s>", release.Repo.FullName(), release.ID, setting.Domain)
 }
 
 func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient *user_model.User) map[string]string {

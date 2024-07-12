@@ -82,7 +82,7 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_model.User, oldContent string) error {
+func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion int, doer *user_model.User, oldContent string) error {
 	if err := c.LoadIssue(ctx); err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_mode
 		}
 	}
 
-	if err := issues_model.UpdateComment(ctx, c, doer); err != nil {
+	if err := issues_model.UpdateComment(ctx, c, contentVersion, doer); err != nil {
 		return err
 	}
 

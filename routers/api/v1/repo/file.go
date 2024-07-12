@@ -145,7 +145,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 
-	// OK, now the blob is known to have at most 1024 bytes we can simply read this in in one go (This saves reading it twice)
+	// OK, now the blob is known to have at most 1024 bytes we can simply read this in one go (This saves reading it twice)
 	dataRc, err := blob.DataAsync()
 	if err != nil {
 		ctx.ServerError("DataAsync", err)
@@ -201,7 +201,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 
-	if setting.LFS.Storage.MinioConfig.ServeDirect {
+	if setting.LFS.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name())
 		if u != nil && err == nil {
@@ -294,7 +294,7 @@ func GetArchive(ctx *context.APIContext) {
 }
 
 func archiveDownload(ctx *context.APIContext) {
-	uri := ctx.Params("*")
+	uri := ctx.PathParam("*")
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
@@ -319,8 +319,14 @@ func archiveDownload(ctx *context.APIContext) {
 func download(ctx *context.APIContext, archiveName string, archiver *repo_model.RepoArchiver) {
 	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
 
+	// Add nix format link header so tarballs lock correctly:
+	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
+	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.tar.gz?rev=%s>; rel="immutable"`,
+		ctx.Repo.Repository.APIURL(),
+		archiver.CommitID, archiver.CommitID))
+
 	rPath := archiver.RelativePath()
-	if setting.RepoArchive.Storage.MinioConfig.ServeDirect {
+	if setting.RepoArchive.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
@@ -387,7 +393,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 		return
 	}
 
-	fileName := ctx.Params("filename")
+	fileName := ctx.PathParam("filename")
 	def, err := ec.GetDefinitionForFilename(fileName)
 	if def == nil {
 		ctx.NotFound(err)
@@ -571,7 +577,7 @@ func CreateFile(ctx *context.APIContext) {
 		Files: []*files_service.ChangeRepoFile{
 			{
 				Operation:     "create",
-				TreePath:      ctx.Params("*"),
+				TreePath:      ctx.PathParam("*"),
 				ContentReader: contentReader,
 			},
 		},
@@ -675,7 +681,7 @@ func UpdateFile(ctx *context.APIContext) {
 				ContentReader: contentReader,
 				SHA:           apiOpts.SHA,
 				FromTreePath:  apiOpts.FromPath,
-				TreePath:      ctx.Params("*"),
+				TreePath:      ctx.PathParam("*"),
 			},
 		},
 		Message:   apiOpts.Message,
@@ -834,7 +840,7 @@ func DeleteFile(ctx *context.APIContext) {
 			{
 				Operation: "delete",
 				SHA:       apiOpts.SHA,
-				TreePath:  ctx.Params("*"),
+				TreePath:  ctx.PathParam("*"),
 			},
 		},
 		Message:   apiOpts.Message,
@@ -929,7 +935,7 @@ func GetContents(ctx *context.APIContext) {
 		return
 	}
 
-	treePath := ctx.Params("*")
+	treePath := ctx.PathParam("*")
 	ref := ctx.FormTrim("ref")
 
 	if fileList, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, treePath, ref); err != nil {

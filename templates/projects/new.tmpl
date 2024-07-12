@@ -25,11 +25,11 @@
 			<div class="field">
 				<label>{{ctx.Locale.Tr "repo.projects.template.desc"}}</label>
 				<div class="ui selection dropdown">
-					<input type="hidden" name="board_type" value="{{.type}}">
+					<input type="hidden" name="template_type" value="{{.type}}">
 					<div class="default text">{{ctx.Locale.Tr "repo.projects.template.desc_helper"}}</div>
 					<div class="menu">
-						{{range $element := .BoardTypes}}
-							<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{ctx.Locale.Tr $element.Translation}}</div>
+						{{range $element := .TemplateConfigs}}
+							<div class="item" data-id="{{$element.TemplateType}}" data-value="{{$element.TemplateType}}">{{ctx.Locale.Tr $element.Translation}}</div>
 						{{end}}
 					</div>
 				</div>

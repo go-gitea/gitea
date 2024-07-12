@@ -107,7 +107,6 @@ func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 	err := hook.SetHeaderAuthorization("Bearer s3cr3t-t0ken")
 	assert.NoError(t, err)
 	assert.NoError(t, webhook_model.CreateWebhook(db.DefaultContext, hook))
-	db.GetEngine(db.DefaultContext).NoAutoTime().DB().Logger.ShowSQL(true)
 
 	hookTask := &webhook_model.HookTask{
 		HookID:         hook.ID,

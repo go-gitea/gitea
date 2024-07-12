@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -72,5 +73,21 @@ func TestRenderConversation(t *testing.T) {
 		ctx.Data["ShowOutdatedComments"] = false
 		renderConversation(ctx, preparedComment, "timeline")
 		assert.Contains(t, resp.Body.String(), `<div id="code-comments-`)
+	})
+	run("diff non-existing review", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
+		err := db.TruncateBeans(db.DefaultContext, &issues_model.Review{})
+		assert.NoError(t, err)
+		ctx.Data["ShowOutdatedComments"] = true
+		renderConversation(ctx, preparedComment, "diff")
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.NotContains(t, resp.Body.String(), `status-page-500`)
+	})
+	run("timeline non-existing review", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
+		err := db.TruncateBeans(db.DefaultContext, &issues_model.Review{})
+		assert.NoError(t, err)
+		ctx.Data["ShowOutdatedComments"] = true
+		renderConversation(ctx, preparedComment, "timeline")
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.NotContains(t, resp.Body.String(), `status-page-500`)
 	})
 }

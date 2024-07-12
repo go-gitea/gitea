@@ -367,7 +367,6 @@ type RunStdError interface {
 	error
 	Unwrap() error
 	Stderr() string
-	IsExitCode(code int) bool
 }
 
 type runStdError struct {
@@ -392,9 +391,9 @@ func (r *runStdError) Stderr() string {
 	return r.stderr
 }
 
-func (r *runStdError) IsExitCode(code int) bool {
+func IsErrorExitCode(err error, code int) bool {
 	var exitError *exec.ExitError
-	if errors.As(r.err, &exitError) {
+	if errors.As(err, &exitError) {
 		return exitError.ExitCode() == code
 	}
 	return false

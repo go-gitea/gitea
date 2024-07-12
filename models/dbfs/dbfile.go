@@ -215,16 +215,15 @@ func fileTimestampToTime(timestamp int64) time.Time {
 	return time.UnixMicro(timestamp)
 }
 
-func (f *file) loadMetaByPath() (*dbfsMeta, error) {
+func (f *file) loadMetaByPath() error {
 	var fileMeta dbfsMeta
 	if ok, err := db.GetEngine(f.ctx).Where("full_path = ?", f.fullPath).Get(&fileMeta); err != nil {
-		return nil, err
+		return err
 	} else if ok {
 		f.metaID = fileMeta.ID
 		f.blockSize = fileMeta.BlockSize
-		return &fileMeta, nil
 	}
-	return nil, nil
+	return nil
 }
 
 func (f *file) open(flag int) (err error) {
@@ -288,10 +287,7 @@ func (f *file) createEmpty() error {
 	if err != nil {
 		return err
 	}
-	if _, err = f.loadMetaByPath(); err != nil {
-		return err
-	}
-	return nil
+	return f.loadMetaByPath()
 }
 
 func (f *file) truncate() error {
@@ -368,8 +364,5 @@ func buildPath(path string) string {
 func newDbFile(ctx context.Context, path string) (*file, error) {
 	path = buildPath(path)
 	f := &file{ctx: ctx, fullPath: path, blockSize: defaultFileBlockSize}
-	if _, err := f.loadMetaByPath(); err != nil {
-		return nil, err
-	}
-	return f, nil
+	return f, f.loadMetaByPath()
 }

@@ -19,7 +19,7 @@ The package registry code is divided into multiple modules to split the function
 
 ## Models
 
-Every package registry implementation uses the same underlaying models:
+Every package registry implementation uses the same underlying models:
 
 | Model | Description |
 | - | - |

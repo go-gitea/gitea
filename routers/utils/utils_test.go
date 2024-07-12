@@ -5,46 +5,7 @@ package utils
 
 import (
 	"testing"
-
-	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/stretchr/testify/assert"
 )
-
-func TestIsExternalURL(t *testing.T) {
-	setting.AppURL = "https://try.gitea.io/"
-	type test struct {
-		Expected bool
-		RawURL   string
-	}
-	newTest := func(expected bool, rawURL string) test {
-		return test{Expected: expected, RawURL: rawURL}
-	}
-	for _, test := range []test{
-		newTest(false,
-			"https://try.gitea.io"),
-		newTest(true,
-			"https://example.com/"),
-		newTest(true,
-			"//example.com"),
-		newTest(true,
-			"http://example.com"),
-		newTest(false,
-			"a/"),
-		newTest(false,
-			"https://try.gitea.io/test?param=false"),
-		newTest(false,
-			"test?param=false"),
-		newTest(false,
-			"//try.gitea.io/test?param=false"),
-		newTest(false,
-			"/hey/hey/hey#3244"),
-		newTest(true,
-			"://missing protocol scheme"),
-	} {
-		assert.Equal(t, test.Expected, IsExternalURL(test.RawURL))
-	}
-}
 
 func TestSanitizeFlashErrorString(t *testing.T) {
 	tests := []struct {

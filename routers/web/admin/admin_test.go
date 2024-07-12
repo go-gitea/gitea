@@ -4,7 +4,13 @@
 package admin
 
 import (
+	"net/http"
 	"testing"
+
+	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -65,4 +71,22 @@ func TestShadowPassword(t *testing.T) {
 	for _, k := range kases {
 		assert.EqualValues(t, k.Result, shadowPassword(k.Provider, k.CfgItem))
 	}
+}
+
+func TestSelfCheckPost(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "http://config/sub/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+
+	ctx, resp := contexttest.MockContext(t, "GET http://host/sub/admin/self_check?location_origin=http://frontend")
+	SelfCheckPost(ctx)
+	assert.EqualValues(t, http.StatusOK, resp.Code)
+
+	data := struct {
+		Problems []string `json:"problems"`
+	}{}
+	err := json.Unmarshal(resp.Body.Bytes(), &data)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{
+		ctx.Locale.TrString("admin.self_check.location_origin_mismatch", "http://frontend/sub/", "http://config/sub/"),
+	}, data.Problems)
 }

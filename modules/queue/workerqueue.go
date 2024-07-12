@@ -40,8 +40,6 @@ type WorkerPoolQueue[T any] struct {
 	workerMaxNum    int
 	workerActiveNum int
 	workerNumMu     sync.Mutex
-
-	workerStartedCounter int32
 }
 
 type flushType chan struct{}

@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -87,12 +88,17 @@ func RefBlame(ctx *context.Context) {
 
 	ctx.Data["IsBlame"] = true
 
-	ctx.Data["FileSize"] = blob.Size()
+	fileSize := blob.Size()
+	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileName"] = blob.Name()
 
-	ctx.Data["NumLines"], err = blob.GetBlobLineCount()
-	ctx.Data["NumLinesSet"] = true
+	if fileSize >= setting.UI.MaxDisplayFileSize {
+		ctx.Data["IsFileTooLarge"] = true
+		ctx.HTML(http.StatusOK, tplRepoHome)
+		return
+	}
 
+	ctx.Data["NumLines"], err = blob.GetBlobLineCount()
 	if err != nil {
 		ctx.NotFound("GetBlobLineCount", err)
 		return
@@ -278,9 +284,9 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 
 				var avatar string
 				if commit.User != nil {
-					avatar = string(avatarUtils.Avatar(commit.User, 18, "gt-mr-3"))
+					avatar = string(avatarUtils.Avatar(commit.User, 18))
 				} else {
-					avatar = string(avatarUtils.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "gt-mr-3"))
+					avatar = string(avatarUtils.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "tw-mr-2"))
 				}
 
 				br.Avatar = gotemplate.HTML(avatar)

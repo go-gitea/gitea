@@ -53,6 +53,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 		FullName:    user.FullName,
 		Email:       user.GetPlaceholderEmail(),
 		AvatarURL:   user.AvatarLink(ctx),
+		HTMLURL:     user.HTMLURL(),
 		Created:     user.CreatedUnix.AsTime(),
 		Restricted:  user.IsRestricted,
 		Location:    user.Location,
@@ -75,6 +76,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 	if authed {
 		result.IsAdmin = user.IsAdmin
 		result.LoginName = user.LoginName
+		result.SourceID = user.LoginSource
 		result.LastLogin = user.LastLoginUnix.AsTime()
 		result.Language = user.Language
 		result.IsActive = user.IsActive
@@ -102,7 +104,7 @@ func User2UserSettings(user *user_model.User) api.UserSettings {
 func ToUserAndPermission(ctx context.Context, user, doer *user_model.User, accessMode perm.AccessMode) api.RepoCollaboratorPermission {
 	return api.RepoCollaboratorPermission{
 		User:       ToUser(ctx, user, doer),
-		Permission: accessMode.String(),
-		RoleName:   accessMode.String(),
+		Permission: accessMode.ToString(),
+		RoleName:   accessMode.ToString(),
 	}
 }

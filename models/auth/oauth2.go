@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -137,6 +138,11 @@ func (app *OAuth2Application) TableName() string {
 
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
+	// OAuth2 requires the redirect URI to be an exact match, no dynamic parts are allowed.
+	// https://stackoverflow.com/questions/55524480/should-dynamic-query-parameters-be-present-in-the-redirection-uri-for-an-oauth2
+	// https://www.rfc-editor.org/rfc/rfc6819#section-5.2.3.3
+	// https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+	// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics-12#section-3.1
 	contains := func(s string) bool {
 		s = strings.TrimSuffix(strings.ToLower(s), "/")
 		for _, u := range app.RedirectURIs {
@@ -289,7 +295,7 @@ func UpdateOAuth2Application(ctx context.Context, opts UpdateOAuth2ApplicationOp
 		return nil, err
 	}
 	if app.UID != opts.UserID {
-		return nil, fmt.Errorf("UID mismatch")
+		return nil, errors.New("UID mismatch")
 	}
 	builtinApps := BuiltinApplications()
 	if _, builtin := builtinApps[app.ClientID]; builtin {

@@ -76,26 +76,26 @@ export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
-      fileURLToPath(new URL('web_src/js/jquery.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/globals.ts', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/semantic.js', import.meta.url)),
-      fileURLToPath(new URL('web_src/js/index.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/index.ts', import.meta.url)),
       fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
       fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
     ],
     webcomponents: [
-      fileURLToPath(new URL('web_src/js/webcomponents/index.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/webcomponents/index.ts', import.meta.url)),
     ],
     swagger: [
-      fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/standalone/swagger.ts', import.meta.url)),
       fileURLToPath(new URL('web_src/css/standalone/swagger.css', import.meta.url)),
     ],
     'eventsource.sharedworker': [
-      fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.ts', import.meta.url)),
     ],
     ...(!isProduction && {
       devtest: [
-        fileURLToPath(new URL('web_src/js/standalone/devtest.js', import.meta.url)),
+        fileURLToPath(new URL('web_src/js/standalone/devtest.ts', import.meta.url)),
         fileURLToPath(new URL('web_src/css/standalone/devtest.css', import.meta.url)),
       ],
     }),
@@ -153,6 +153,19 @@ export default {
         ],
       },
       {
+        test: /\.ts$/i,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: 'esbuild-loader',
+            options: {
+              loader: 'ts',
+              target: 'es2020',
+            },
+          },
+        ],
+      },
+      {
         test: /\.css$/i,
         use: [
           {
@@ -171,14 +184,13 @@ export default {
             loader: 'postcss-loader',
             options: {
               postcssOptions: {
-                map: false, // https://github.com/postcss/postcss/issues/1914
                 plugins: [
                   tailwindcssNesting(postcssNesting({edition: '2024-02'})),
                   tailwindcss(tailwindConfig),
                 ],
               },
             },
-          }
+          },
         ],
       },
       {
@@ -191,21 +203,11 @@ export default {
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name].[contenthash:8][ext]',
-        }
-      },
-      {
-        test: /\.png$/i,
-        type: 'asset/resource',
-        generator: {
-          filename: 'img/webpack/[name].[contenthash:8][ext]',
-        }
+        },
       },
     ],
   },
   plugins: [
-    new webpack.ProvidePlugin({ // for htmx extensions
-      htmx: 'htmx.org',
-    }),
     new DefinePlugin({
       __VUE_OPTIONS_API__: true, // at the moment, many Vue components still use the Vue Options API
       __VUE_PROD_DEVTOOLS__: false, // do not enable devtools support in production

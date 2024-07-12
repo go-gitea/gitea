@@ -339,7 +339,6 @@ func (pm *Manager) ProcessStacktraces(flat, noSystem bool) ([]*Process, int, int
 	}
 	sort.Slice(processes, after(processes))
 	if !flat {
-
 		var sortChildren func(process *Process)
 
 		sortChildren = func(process *Process) {

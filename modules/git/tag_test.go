@@ -12,24 +12,28 @@ import (
 
 func Test_parseTagData(t *testing.T) {
 	testData := []struct {
-		data []byte
-		tag  Tag
+		data     string
+		expected Tag
 	}{
-		{data: []byte(`object 3b114ab800c6432ad42387ccf6bc8d4388a2885a
+		{
+			data: `object 3b114ab800c6432ad42387ccf6bc8d4388a2885a
 type commit
 tag 1.22.0
 tagger Lucas Michot <lucas@semalead.com> 1484491741 +0100
 
-`), tag: Tag{
-			Name:      "",
-			ID:        Sha1ObjectFormat.EmptyObjectID(),
-			Object:    &Sha1Hash{0x3b, 0x11, 0x4a, 0xb8, 0x0, 0xc6, 0x43, 0x2a, 0xd4, 0x23, 0x87, 0xcc, 0xf6, 0xbc, 0x8d, 0x43, 0x88, 0xa2, 0x88, 0x5a},
-			Type:      "commit",
-			Tagger:    &Signature{Name: "Lucas Michot", Email: "lucas@semalead.com", When: time.Unix(1484491741, 0)},
-			Message:   "",
-			Signature: nil,
-		}},
-		{data: []byte(`object 7cdf42c0b1cc763ab7e4c33c47a24e27c66bfccc
+`,
+			expected: Tag{
+				Name:      "",
+				ID:        Sha1ObjectFormat.EmptyObjectID(),
+				Object:    MustIDFromString("3b114ab800c6432ad42387ccf6bc8d4388a2885a"),
+				Type:      "commit",
+				Tagger:    &Signature{Name: "Lucas Michot", Email: "lucas@semalead.com", When: time.Unix(1484491741, 0).In(time.FixedZone("", 3600))},
+				Message:   "",
+				Signature: nil,
+			},
+		},
+		{
+			data: `object 7cdf42c0b1cc763ab7e4c33c47a24e27c66bfccc
 type commit
 tag 1.22.1
 tagger Lucas Michot <lucas@semalead.com> 1484553735 +0100
@@ -37,37 +41,57 @@ tagger Lucas Michot <lucas@semalead.com> 1484553735 +0100
 test message
 o
 
-ono`), tag: Tag{
-			Name:      "",
-			ID:        Sha1ObjectFormat.EmptyObjectID(),
-			Object:    &Sha1Hash{0x7c, 0xdf, 0x42, 0xc0, 0xb1, 0xcc, 0x76, 0x3a, 0xb7, 0xe4, 0xc3, 0x3c, 0x47, 0xa2, 0x4e, 0x27, 0xc6, 0x6b, 0xfc, 0xcc},
-			Type:      "commit",
-			Tagger:    &Signature{Name: "Lucas Michot", Email: "lucas@semalead.com", When: time.Unix(1484553735, 0)},
-			Message:   "test message\no\n\nono",
-			Signature: nil,
-		}},
+ono`,
+			expected: Tag{
+				Name:      "",
+				ID:        Sha1ObjectFormat.EmptyObjectID(),
+				Object:    MustIDFromString("7cdf42c0b1cc763ab7e4c33c47a24e27c66bfccc"),
+				Type:      "commit",
+				Tagger:    &Signature{Name: "Lucas Michot", Email: "lucas@semalead.com", When: time.Unix(1484553735, 0).In(time.FixedZone("", 3600))},
+				Message:   "test message\no\n\nono",
+				Signature: nil,
+			},
+		},
+		{
+			data: `object 7cdf42c0b1cc763ab7e4c33c47a24e27c66bfaaa
+type commit
+tag v0
+tagger dummy user <dummy-email@example.com> 1484491741 +0100
+
+dummy message
+-----BEGIN SSH SIGNATURE-----
+dummy signature
+-----END SSH SIGNATURE-----
+`,
+			expected: Tag{
+				Name:    "",
+				ID:      Sha1ObjectFormat.EmptyObjectID(),
+				Object:  MustIDFromString("7cdf42c0b1cc763ab7e4c33c47a24e27c66bfaaa"),
+				Type:    "commit",
+				Tagger:  &Signature{Name: "dummy user", Email: "dummy-email@example.com", When: time.Unix(1484491741, 0).In(time.FixedZone("", 3600))},
+				Message: "dummy message",
+				Signature: &CommitSignature{
+					Signature: `-----BEGIN SSH SIGNATURE-----
+dummy signature
+-----END SSH SIGNATURE-----`,
+					Payload: `object 7cdf42c0b1cc763ab7e4c33c47a24e27c66bfaaa
+type commit
+tag v0
+tagger dummy user <dummy-email@example.com> 1484491741 +0100
+
+dummy message`,
+				},
+			},
+		},
 	}
 
 	for _, test := range testData {
-		tag, err := parseTagData(Sha1ObjectFormat, test.data)
+		tag, err := parseTagData(Sha1ObjectFormat, []byte(test.data))
 		assert.NoError(t, err)
-		assert.EqualValues(t, test.tag.ID, tag.ID)
-		assert.EqualValues(t, test.tag.Object, tag.Object)
-		assert.EqualValues(t, test.tag.Name, tag.Name)
-		assert.EqualValues(t, test.tag.Message, tag.Message)
-		assert.EqualValues(t, test.tag.Type, tag.Type)
-		if test.tag.Signature != nil && assert.NotNil(t, tag.Signature) {
-			assert.EqualValues(t, test.tag.Signature.Signature, tag.Signature.Signature)
-			assert.EqualValues(t, test.tag.Signature.Payload, tag.Signature.Payload)
-		} else {
-			assert.Nil(t, tag.Signature)
-		}
-		if test.tag.Tagger != nil && assert.NotNil(t, tag.Tagger) {
-			assert.EqualValues(t, test.tag.Tagger.Name, tag.Tagger.Name)
-			assert.EqualValues(t, test.tag.Tagger.Email, tag.Tagger.Email)
-			assert.EqualValues(t, test.tag.Tagger.When.Unix(), tag.Tagger.When.Unix())
-		} else {
-			assert.Nil(t, tag.Tagger)
-		}
+		assert.Equal(t, test.expected, *tag)
 	}
+
+	tag, err := parseTagData(Sha1ObjectFormat, []byte("type commit\n\nfoo\n-----BEGIN SSH SIGNATURE-----\ncorrupted..."))
+	assert.NoError(t, err)
+	assert.Equal(t, "foo\n-----BEGIN SSH SIGNATURE-----\ncorrupted...", tag.Message)
 }

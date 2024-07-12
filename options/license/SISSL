@@ -36,13 +36,13 @@ Sun Industry Standards Source License - Version 1.1
 
 2.0 SOURCE CODE LICENSE
 
-     2.1 The Initial Developer Grant  The Initial Developer hereby grants You a world-wide, royalty-free, non-exclusive license, subject to third party intellectual property claims: 
+     2.1 The Initial Developer Grant  The Initial Developer hereby grants You a world-wide, royalty-free, non-exclusive license, subject to third party intellectual property claims: 
 
           (a) under intellectual property rights (other than patent or trademark) Licensable by Initial Developer to use, reproduce, modify, display, perform, sublicense and distribute the Original Code (or portions thereof) with or without Modifications, and/or as part of a Larger Work; and
 
           (b) under Patents Claims infringed by the making, using or selling of Original Code, to make, have made, use, practice, sell, and offer for sale, and/or otherwise dispose of the Original Code (or portions thereof).
           (c) the licenses granted in this Section 2.1(a) and (b) are effective on the date Initial Developer first distributes Original Code under the terms of this License.
-          (d) Notwithstanding Section 2.1(b) above, no patent license is granted: 1) for code that You delete from the Original Code; 2) separate from the Original Code; or 3) for infringements caused by: i) the modification of the Original Code or ii) the combination of the Original Code with other software or devices, including but not limited to Modifications. 
+          (d) Notwithstanding Section 2.1(b) above, no patent license is granted: 1) for code that You delete from the Original Code; 2) separate from the Original Code; or 3) for infringements caused by: i) the modification of the Original Code or ii) the combination of the Original Code with other software or devices, including but not limited to Modifications. 
 
 3.0 DISTRIBUTION OBLIGATIONS
 
@@ -92,14 +92,14 @@ This License represents the complete agreement concerning subject matter hereof.
 
 EXHIBIT A - Sun Standards License
 
-"The contents of this file are subject to the Sun Standards License Version 1.1 (the "License"); You may not use this file except in compliance with the License. You may obtain a copy of the License at _______________________________.
+"The contents of this file are subject to the Sun Standards License Version 1.1 (the "License"); You may not use this file except in compliance with the License. You may obtain a copy of the License at _______________________________.
 
-Software distributed under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, either 
+Software distributed under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, either 
 express or implied. See the License for the specific language governing rights and limitations under the License.
 
 The Original Code is ______________________________________.
 
-The Initial Developer of the Original Code is: 
+The Initial Developer of the Original Code is: 
 Sun Microsystems, Inc..
 
 Portions created by: _______________________________________

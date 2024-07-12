@@ -12,6 +12,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -19,9 +20,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	pull_service "code.gitea.io/gitea/services/pull"
+	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
@@ -322,5 +325,121 @@ func TestSkipCI(t *testing.T) {
 
 		// the pr title contains a configured skip-ci string, so there is still only 1 record
 		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
+	})
+}
+
+func TestCreateDeleteRefEvent(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		// create the repo
+		repo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
+			Name:          "create-delete-ref-event",
+			Description:   "test create delete ref ci event",
+			AutoInit:      true,
+			Gitignores:    "Go",
+			License:       "MIT",
+			Readme:        "Default",
+			DefaultBranch: "main",
+			IsPrivate:     false,
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, repo)
+
+		// enable actions
+		err = repo_service.UpdateRepositoryUnits(db.DefaultContext, repo, []repo_model.RepoUnit{{
+			RepoID: repo.ID,
+			Type:   unit_model.TypeActions,
+		}}, nil)
+		assert.NoError(t, err)
+
+		// add workflow file to the repo
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      ".gitea/workflows/createdelete.yml",
+					ContentReader: strings.NewReader("name: test\non:\n  [create,delete]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+				},
+			},
+			Message:   "add workflow",
+			OldBranch: "main",
+			NewBranch: "main",
+			Author: &files_service.IdentityOptions{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addWorkflowToBaseResp)
+
+		// Get the commit ID of the default branch
+		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
+		assert.NoError(t, err)
+
+		// create a branch
+		err = repo_service.CreateNewBranchFromCommit(db.DefaultContext, user2, repo, gitRepo, branch.CommitID, "test-create-branch")
+		assert.NoError(t, err)
+		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			Title:      "add workflow",
+			RepoID:     repo.ID,
+			Event:      "create",
+			Ref:        "refs/heads/test-create-branch",
+			WorkflowID: "createdelete.yml",
+			CommitSHA:  branch.CommitID,
+		})
+		assert.NotNil(t, run)
+
+		// create a tag
+		err = release_service.CreateNewTag(db.DefaultContext, user2, repo, branch.CommitID, "test-create-tag", "test create tag event")
+		assert.NoError(t, err)
+		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			Title:      "add workflow",
+			RepoID:     repo.ID,
+			Event:      "create",
+			Ref:        "refs/tags/test-create-tag",
+			WorkflowID: "createdelete.yml",
+			CommitSHA:  branch.CommitID,
+		})
+		assert.NotNil(t, run)
+
+		// delete the branch
+		err = repo_service.DeleteBranch(db.DefaultContext, user2, repo, gitRepo, "test-create-branch")
+		assert.NoError(t, err)
+		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			Title:      "add workflow",
+			RepoID:     repo.ID,
+			Event:      "delete",
+			Ref:        "main",
+			WorkflowID: "createdelete.yml",
+			CommitSHA:  branch.CommitID,
+		})
+		assert.NotNil(t, run)
+
+		// delete the tag
+		tag, err := repo_model.GetRelease(db.DefaultContext, repo.ID, "test-create-tag")
+		assert.NoError(t, err)
+		err = release_service.DeleteReleaseByID(db.DefaultContext, repo, tag, user2, true)
+		assert.NoError(t, err)
+		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			Title:      "add workflow",
+			RepoID:     repo.ID,
+			Event:      "delete",
+			Ref:        "main",
+			WorkflowID: "createdelete.yml",
+			CommitSHA:  branch.CommitID,
+		})
+		assert.NotNil(t, run)
 	})
 }

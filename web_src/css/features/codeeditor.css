@@ -21,6 +21,11 @@
   background-color: transparent !important;
 }
 
+.monaco-editor,
+.monaco-editor .overflow-guard {
+  border-radius: var(--border-radius);
+}
+
 /* these seem unthemeable */
 .monaco-scrollable-element > .scrollbar > .slider {
   background: var(--color-primary) !important;
