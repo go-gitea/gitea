@@ -23,7 +23,7 @@
 
 .monaco-editor,
 .monaco-editor .overflow-guard {
-  border-radius: var(--border-radius);
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 /* these seem unthemeable */
