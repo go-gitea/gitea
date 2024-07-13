@@ -4,7 +4,7 @@ import {animateOnce, showElem} from '../utils/dom.ts';
 import Toastify from 'toastify-js'; // don't use "async import", because when network error occurs, the "async import" also fails and nothing is shown
 import type {Intent} from '../types.ts';
 import type {SvgName} from '../svg.ts';
-import type {Options as ToastifyOption} from 'toastify-js';
+import type {Options} from 'toastify-js';
 
 type ToastLevels = {
   [intent: string]: {
@@ -35,7 +35,7 @@ const levels: ToastLevels = {
 type ToastOpts = {
   useHtmlBody?: boolean,
   preventDuplicates?: boolean,
-} & ToastifyOption;
+} & Options;
 
 // See https://github.com/apvarun/toastify-js#api for options
 function showToast(message: string, level: Intent, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}) {
