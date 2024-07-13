@@ -1,9 +1,3 @@
-export type RequestData = string | FormData | URLSearchParams;
-
-export type RequestOpts = {
-  data?: RequestData,
-} & RequestInit;
-
 export type MentionValue = {
   key: string,
   value: string,
@@ -29,3 +23,9 @@ export type Config = {
 }
 
 export type Intent = 'error' | 'warning' | 'info';
+
+export type RequestData = string | FormData | URLSearchParams;
+
+export type RequestOpts = {
+  data?: RequestData,
+} & RequestInit;
