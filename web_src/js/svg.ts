@@ -153,12 +153,12 @@ export type SvgName = keyof typeof svgs;
 //  most of the SVG icons in assets couldn't be used directly.
 
 // retrieve an HTML string for given SVG icon name, size and additional classes
-export function svg(name, size = 16, className = '') {
+export function svg(name: SvgName, size = 16, className = '') {
   if (!(name in svgs)) throw new Error(`Unknown SVG icon: ${name}`);
   if (size === 16 && !className) return svgs[name];
 
   const document = parseDom(svgs[name], 'image/svg+xml');
-  const svgNode = document.firstChild;
+  const svgNode = document.firstChild as SVGElement;
   if (size !== 16) {
     svgNode.setAttribute('width', String(size));
     svgNode.setAttribute('height', String(size));
@@ -167,7 +167,7 @@ export function svg(name, size = 16, className = '') {
   return serializeXml(svgNode);
 }
 
-export function svgParseOuterInner(name) {
+export function svgParseOuterInner(name: SvgName) {
   const svgStr = svgs[name];
   if (!svgStr) throw new Error(`Unknown SVG icon: ${name}`);
 
@@ -181,7 +181,7 @@ export function svgParseOuterInner(name) {
   const svgInnerHtml = svgStr.slice(p1 + 1, p2);
   const svgOuterHtml = svgStr.slice(0, p1 + 1) + svgStr.slice(p2);
   const svgDoc = parseDom(svgOuterHtml, 'image/svg+xml');
-  const svgOuter = svgDoc.firstChild;
+  const svgOuter = svgDoc.firstChild as SVGElement;
   return {svgOuter, svgInnerHtml};
 }
 
