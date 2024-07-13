@@ -41,8 +41,19 @@
 					<div class="item">very large item test 3</div>
 				</div>
 			</div>
-			<div class="ui multiple clearable search selection dropdown">
-				<input type="hidden" value="1">
+			<div class="ui buttons">
+				<button class="ui button">Button with Dropdown</button>
+				<div class="ui dropdown button icon">
+					{{svg "octicon-triangle-down"}}
+					<div class="menu">
+						<div class="item">item</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div>
+			<div class="ui multiple clearable search selection dropdown tw-max-w-[220px]">
+				<input type="hidden" value="1,2,3,4,5,10">
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				{{svg "octicon-x" 14 "remove icon"}}
 				<div class="default text">clearable search dropdown</div>
@@ -58,15 +69,6 @@
 					<div class="item" data-value="9">very large item test 1</div>
 					<div class="item" data-value="10">very large item test 2</div>
 					<div class="item" data-value="11">very large item test 3</div>
-				</div>
-			</div>
-			<div class="ui buttons">
-				<button class="ui button">Button with Dropdown</button>
-				<div class="ui dropdown button icon">
-					{{svg "octicon-triangle-down"}}
-					<div class="menu">
-						<div class="item">item</div>
-					</div>
 				</div>
 			</div>
 		</div>
