@@ -26,17 +26,6 @@
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-/* these seem unthemeable */
-.monaco-scrollable-element > .scrollbar > .slider {
-  background: var(--color-primary) !important;
-}
-.monaco-scrollable-element > .scrollbar > .slider:hover {
-  background: var(--color-primary-dark-1) !important;
-}
-.monaco-scrollable-element > .scrollbar > .slider:active {
-  background: var(--color-primary-dark-2) !important;
-}
-
 /* fomantic styles destroy this element only visible on IOS, restore it */
 .monaco-editor .iPadShowKeyboard {
   border: none !important;
