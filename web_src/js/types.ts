@@ -1,3 +1,9 @@
+export type RequestData = string | FormData | URLSearchParams;
+
+export type RequestOpts = {
+  data?: RequestData,
+} & RequestInit;
+
 export type MentionValue = {
   key: string,
   value: string,

@@ -1,15 +1,10 @@
 import {isObject} from '../utils.ts';
+import type {RequestData, RequestOpts} from '../types.ts';
 
 const {csrfToken} = window.config;
 
 // safe HTTP methods that don't need a csrf token
 const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
-
-type RequestData = string | FormData | URLSearchParams;
-
-type RequestOpts = {
-  data?: RequestData,
-} & RequestInit;
 
 // fetch wrapper, use below method name functions and the `data` option to pass in data
 // which will automatically set an appropriate headers. For json content, only object
