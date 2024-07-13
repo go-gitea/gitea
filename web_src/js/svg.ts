@@ -146,6 +146,8 @@ const svgs = {
   'octicon-x-circle-fill': octiconXCircleFill,
 };
 
+export type SvgName = keyof typeof svgs;
+
 // TODO: use a more general approach to access SVG icons.
 //  At the moment, developers must check, pick and fill the names manually,
 //  most of the SVG icons in assets couldn't be used directly.

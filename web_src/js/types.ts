@@ -21,3 +21,5 @@ export type Config = {
   mermaidMaxSourceCharacters: number,
   i18n: Record<string, string>,
 }
+
+export type Intent = 'error' | 'warning' | 'info';
