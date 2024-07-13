@@ -12,7 +12,7 @@ interface Window {
   htmx: typeof import('htmx.org'),
   _globalHandlerErrors: Array<ErrorEvent & PromiseRejectionEvent> & {
     _inited: boolean,
-    push: (e: any) => any,
+    push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
   },
 }
 
