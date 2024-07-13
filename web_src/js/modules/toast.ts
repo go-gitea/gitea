@@ -7,7 +7,7 @@ import type {SvgName} from '../svg.ts';
 import type {Options} from 'toastify-js';
 
 type ToastLevels = {
-  [intent: string]: {
+  [intent in Intent]: {
     icon: SvgName,
     background: string,
     duration: number,
