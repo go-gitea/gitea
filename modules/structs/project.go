@@ -22,6 +22,7 @@ type Project struct {
 }
 
 type CreateProjectOption struct {
+	// required:true
 	Title        string `json:"title" binding:"Required;MaxSize(100)"`
 	Content      string `json:"content"`
 	TemplateType uint8  `json:"template_type"`

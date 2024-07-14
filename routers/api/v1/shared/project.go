@@ -41,6 +41,34 @@ func ProjectHandler(model string, fn func(ctx *context.APIContext, model string)
 
 // CreateProject creates a new project
 func CreateProject(ctx *context.APIContext, model string) {
+	// swagger: operation POST /users/{username}/{reponame}/projects project createProject
+	// ---
+	// summary: Create a project
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: owner of the project
+	//   type: string
+	//   required: true
+	// - name: reponame
+	//   in: path
+	//   description: repository name
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateProjectOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Project"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	err := checkModelType(model)
 
 	if err != nil {
