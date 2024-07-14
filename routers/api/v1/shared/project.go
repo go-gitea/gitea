@@ -1,10 +1,12 @@
-package repo
+// Copyright 2017 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package shared
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -21,18 +23,51 @@ import (
 	"code.gitea.io/gitea/services/convert"
 )
 
+var errInvalidModelType = errors.New("invalid model type")
+
+func checkModelType(model string) error {
+	if model != "repo" && model != "org" {
+		return errInvalidModelType
+	}
+	return nil
+}
+
+// ProjectHandler is a handler for project actions
+func ProjectHandler(model string, fn func(ctx *context.APIContext, model string)) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		fn(ctx, model)
+	}
+}
+
 // CreateProject creates a new project
-func CreateProject(ctx *context.APIContext) {
+func CreateProject(ctx *context.APIContext, model string) {
+	err := checkModelType(model)
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CreateProject", err)
+		return
+	}
+
 	form := web.GetForm(ctx).(*api.CreateProjectOption)
 
 	project := &project_model.Project{
-		RepoID:       ctx.Repo.Repository.ID,
 		Title:        form.Title,
 		Description:  form.Content,
 		CreatorID:    ctx.Doer.ID,
 		TemplateType: project_model.TemplateType(form.TemplateType),
 		CardType:     project_model.CardType(form.CardType),
-		Type:         project_model.TypeRepository,
+	}
+
+	if model == "repo" {
+		project.Type = project_model.TypeRepository
+		project.RepoID = ctx.Repo.Repository.ID
+	} else {
+		if ctx.ContextUser.IsOrganization() {
+			project.Type = project_model.TypeOrganization
+		} else {
+			project.Type = project_model.TypeIndividual
+		}
+		project.OwnerID = ctx.ContextUser.ID
 	}
 
 	if err := project_model.NewProject(ctx, project); err != nil {
@@ -43,21 +78,40 @@ func CreateProject(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, convert.ToProject(ctx, project))
 }
 
-// Projects renders the home page of projects
-func GetProjects(ctx *context.APIContext) {
+// GetProjects returns a list of projects
+func GetProjects(ctx *context.APIContext, model string) {
+	err := checkModelType(model)
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetProjects", err)
+		return
+	}
+
 	sortType := ctx.FormTrim("sort")
 
 	isShowClosed := strings.ToLower(ctx.FormTrim("state")) == "closed"
-	keyword := ctx.FormTrim("q")
-	repo := ctx.Repo.Repository
 
-	projects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
-		RepoID:   repo.ID,
+	searchOptions := project_model.SearchOptions{
 		IsClosed: optional.Some(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
-		Type:     project_model.TypeRepository,
-		Title:    keyword,
-	})
+	}
+
+	if model == "repo" {
+		repo := ctx.Repo.Repository
+		searchOptions.RepoID = repo.ID
+		searchOptions.Type = project_model.TypeRepository
+	} else {
+		searchOptions.OwnerID = ctx.ContextUser.ID
+
+		if ctx.ContextUser.IsOrganization() {
+			searchOptions.Type = project_model.TypeOrganization
+		} else {
+			searchOptions.Type = project_model.TypeIndividual
+		}
+	}
+
+	projects, err := db.Find[project_model.Project](ctx, &searchOptions)
+
 	if err != nil {
 		ctx.ServerError("FindProjects", err)
 		return
@@ -66,15 +120,18 @@ func GetProjects(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToProjects(ctx, projects))
 }
 
-// GetProject returns a project by ID
-func GetProject(ctx *context.APIContext) {
+// GetProject returns a project
+func GetProject(ctx *context.APIContext, model string) {
+	err := checkModelType(model)
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetProject", err)
+		return
+	}
+
 	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
-		return
-	}
-	if project.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("", nil)
 		return
 	}
 
@@ -106,46 +163,52 @@ func GetProject(ctx *context.APIContext) {
 	})
 }
 
-// EditProject updates a project
-func EditProject(ctx *context.APIContext) {
+// EditProject edits a project
+func EditProject(ctx *context.APIContext, model string) {
+	err := checkModelType(model)
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "EditProject", err)
+		return
+	}
+
 	form := web.GetForm(ctx).(*api.CreateProjectOption)
 	projectID := ctx.PathParamInt64(":id")
 
-	p, err := project_model.GetProjectByID(ctx, projectID)
+	project, err := project_model.GetProjectByID(ctx, projectID)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
-	if p.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("", nil)
-		return
-	}
 
-	p.Title = form.Title
-	p.Description = form.Content
-	p.CardType = project_model.CardType(form.CardType)
+	project.Title = form.Title
+	project.Description = form.Content
+	project.CardType = project_model.CardType(form.CardType)
 
-	if err = project_model.UpdateProject(ctx, p); err != nil {
+	if err = project_model.UpdateProject(ctx, project); err != nil {
 		ctx.ServerError("UpdateProjects", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToProject(ctx, p))
+	ctx.JSON(http.StatusOK, convert.ToProject(ctx, project))
 }
 
-// DeleteProject delete a project
-func DeleteProject(ctx *context.APIContext) {
-	p, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
+// DeleteProject deletes a project
+func DeleteProject(ctx *context.APIContext, model string) {
+	err := checkModelType(model)
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "DeleteProject", err)
+		return
+	}
+
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
-	if p.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("", nil)
-		return
-	}
 
-	err = project_model.DeleteProjectByID(ctx, p.ID)
+	err = project_model.DeleteProjectByID(ctx, project.ID)
 
 	if err != nil {
 		ctx.ServerError("DeleteProjectByID", err)
@@ -169,25 +232,40 @@ func ChangeProjectStatus(ctx *context.APIContext) {
 	}
 	id := ctx.PathParamInt64(":id")
 
-	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
+	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, 0, id, toClose); err != nil {
 		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]any{"message": "project status updated successfully"})
 }
 
-// AddColumnToProject adds a new column to a project
-func AddColumnToProject(ctx *context.APIContext) {
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
-		ctx.JSON(http.StatusForbidden, map[string]string{
-			"message": "Only authorized users are allowed to perform this action.",
-		})
+func AddColumnToProject(ctx *context.APIContext, model string) {
+	var err error
+	err = checkModelType(model)
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "AddColumnToProject", err)
 		return
 	}
 
-	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":id"))
+	if model == "repo" {
+		if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+			ctx.JSON(http.StatusForbidden, map[string]string{
+				"message": "Only authorized users are allowed to perform this action.",
+			})
+			return
+		}
+	}
+
+	var project *project_model.Project
+	if model == "repo" {
+		project, err = project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":id"))
+	} else {
+		project, err = project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
+	}
+
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		ctx.NotFoundOrServerError("GetProjectForRepoByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 
@@ -207,8 +285,8 @@ func AddColumnToProject(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, convert.ToColumn(ctx, column))
 }
 
-// CheckProjectColumnChangePermissions check permission
-func checkProjectColumnChangePermissions(ctx *context.APIContext) (*project_model.Project, *project_model.Column) {
+// checkProjectColumnChangePermissions check permission
+func checkProjectColumnChangePermissions(ctx *context.APIContext, model string) (*project_model.Project, *project_model.Column) {
 	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
@@ -216,11 +294,13 @@ func checkProjectColumnChangePermissions(ctx *context.APIContext) (*project_mode
 		return nil, nil
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
-		ctx.JSON(http.StatusForbidden, map[string]string{
-			"message": "Only authorized users are allowed to perform this action.",
-		})
-		return nil, nil
+	if model == "repo" {
+		if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+			ctx.JSON(http.StatusForbidden, map[string]string{
+				"message": "Only authorized users are allowed to perform this action.",
+			})
+			return nil, nil
+		}
 	}
 
 	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
@@ -241,19 +321,35 @@ func checkProjectColumnChangePermissions(ctx *context.APIContext) (*project_mode
 		return nil, nil
 	}
 
-	if project.RepoID != ctx.Repo.Repository.ID {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
-			"message": fmt.Sprintf("ProjectColumn[%d] is not in Repository[%d] as expected", column.ID, project.ID),
-		})
-		return nil, nil
+	if model == "repo" {
+		if project.RepoID != ctx.Repo.Repository.ID {
+			ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
+				"message": fmt.Sprintf("ProjectColumn[%d] is not in Repository[%d] as expected", column.ID, project.ID),
+			})
+			return nil, nil
+		}
+	} else {
+		if project.OwnerID != ctx.ContextUser.ID {
+			ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
+				"message": fmt.Sprintf("ProjectColumn[%d] is not in Repository[%d] as expected", column.ID, project.ID),
+			})
+			return nil, nil
+		}
 	}
 	return project, column
 }
 
 // EditProjectColumn allows a project column's to be updated
-func EditProjectColumn(ctx *context.APIContext) {
+func EditProjectColumn(ctx *context.APIContext, model string) {
+	err := checkModelType(model)
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "EditProjectColumn", err)
+		return
+	}
+
 	form := web.GetForm(ctx).(*api.EditProjectColumnOption)
-	_, column := checkProjectColumnChangePermissions(ctx)
+	_, column := checkProjectColumnChangePermissions(ctx, model)
 	if ctx.Written() {
 		return
 	}
@@ -275,7 +371,14 @@ func EditProjectColumn(ctx *context.APIContext) {
 }
 
 // DeleteProjectColumn allows for the deletion of a project column
-func DeleteProjectColumn(ctx *context.APIContext) {
+func DeleteProjectColumn(ctx *context.APIContext, model string) {
+	err := checkModelType(model)
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "DeleteProjectColumn", err)
+		return
+	}
+
 	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
@@ -283,11 +386,13 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
-		ctx.JSON(http.StatusForbidden, map[string]string{
-			"message": "Only authorized users are allowed to perform this action.",
-		})
-		return
+	if model == "repo" {
+		if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+			ctx.JSON(http.StatusForbidden, map[string]string{
+				"message": "Only authorized users are allowed to perform this action.",
+			})
+			return
+		}
 	}
 
 	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
@@ -308,11 +413,20 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 		return
 	}
 
-	if project.RepoID != ctx.Repo.Repository.ID {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
-			"message": fmt.Sprintf("ProjectColumn[%d] is not in Owner[%d] as expected", pb.ID, ctx.ContextUser.ID),
-		})
-		return
+	if model == "repo" {
+		if project.RepoID != ctx.Repo.Repository.ID {
+			ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
+				"message": fmt.Sprintf("ProjectColumn[%d] is not in Owner[%d] as expected", pb.ID, ctx.ContextUser.ID),
+			})
+			return
+		}
+	} else {
+		if project.OwnerID != ctx.ContextUser.ID {
+			ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
+				"message": fmt.Sprintf("ProjectColumn[%d] is not in Owner[%d] as expected", pb.ID, ctx.ContextUser.ID),
+			})
+			return
+		}
 	}
 
 	if err := project_model.DeleteColumnByID(ctx, ctx.PathParamInt64(":columnID")); err != nil {
@@ -324,8 +438,15 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 }
 
 // SetDefaultProjectColumn set default column for uncategorized issues/pulls
-func SetDefaultProjectColumn(ctx *context.APIContext) {
-	project, column := checkProjectColumnChangePermissions(ctx)
+func SetDefaultProjectColumn(ctx *context.APIContext, model string) {
+	err := checkModelType(model)
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "SetDefaultProjectColumn", err)
+		return
+	}
+
+	project, column := checkProjectColumnChangePermissions(ctx, model)
 	if ctx.Written() {
 		return
 	}
@@ -339,7 +460,14 @@ func SetDefaultProjectColumn(ctx *context.APIContext) {
 }
 
 // MoveIssues moves or keeps issues in a column and sorts them inside that column
-func MoveIssues(ctx *context.APIContext) {
+func MoveIssues(ctx *context.APIContext, model string) {
+	err := checkModelType(model)
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "MoveIssues", err)
+		return
+	}
+
 	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
@@ -347,20 +475,18 @@ func MoveIssues(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
-		ctx.JSON(http.StatusForbidden, map[string]string{
-			"message": "Only authorized users are allowed to perform this action.",
-		})
-		return
+	if model == "repo" {
+		if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+			ctx.JSON(http.StatusForbidden, map[string]string{
+				"message": "Only authorized users are allowed to perform this action.",
+			})
+			return
+		}
 	}
 
 	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
-		return
-	}
-	if project.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("InvalidRepoID", nil)
 		return
 	}
 
@@ -436,7 +562,7 @@ func getActionIssues(ctx *context.APIContext, issuesIDs []int64) issues_model.Is
 		ctx.ServerError("GetIssuesByIDs", err)
 		return nil
 	}
-	// Check access rights for all issues
+
 	issueUnitEnabled := ctx.Repo.CanRead(unit.TypeIssues)
 	prUnitEnabled := ctx.Repo.CanRead(unit.TypePullRequests)
 	for _, issue := range issues {
@@ -470,8 +596,6 @@ func UpdateIssueProject(ctx *context.APIContext) {
 		return
 	}
 
-	log.Println("form", form)
-	log.Println(ctx.Repo.Repository.ID)
 	issues := getActionIssues(ctx, form.Issues)
 	if ctx.Written() {
 		return
@@ -501,4 +625,42 @@ func UpdateIssueProject(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]string{"message": "issues moved successfully"})
+}
+
+// MoveColumns moves or keeps columns in a project and sorts them inside that project
+func MoveColumns(ctx *context.APIContext) {
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		return
+	}
+	if !project.CanBeAccessedByOwnerRepo(ctx.ContextUser.ID, ctx.Repo.Repository) {
+		ctx.NotFound("CanBeAccessedByOwnerRepo", nil)
+		return
+	}
+
+	type movedColumnsForm struct {
+		Columns []struct {
+			ColumnID int64 `json:"columnID"`
+			Sorting  int64 `json:"sorting"`
+		} `json:"columns"`
+	}
+
+	form := &movedColumnsForm{}
+	if err = json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+		ctx.ServerError("DecodeMovedColumnsForm", err)
+		return
+	}
+
+	sortedColumnIDs := make(map[int64]int64)
+	for _, column := range form.Columns {
+		sortedColumnIDs[column.Sorting] = column.ColumnID
+	}
+
+	if err = project_model.MoveColumnsOnProject(ctx, project, sortedColumnIDs); err != nil {
+		ctx.ServerError("MoveColumnsOnProject", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]string{"message": "columns moved successfully"})
 }

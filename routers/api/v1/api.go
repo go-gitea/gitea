@@ -91,7 +91,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/packages"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
-	"code.gitea.io/gitea/routers/api/v1/shared/project"
+	project_shared "code.gitea.io/gitea/routers/api/v1/shared"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/actions"
@@ -1019,24 +1019,24 @@ func Routes() *web.Router {
 		m.Group("/{username}/-", func() {
 			m.Group("/projects", func() {
 				m.Group("", func() {
-					m.Get("", org.GetProjects)
-					m.Get("/{id}", org.GetProject)
+					m.Get("", project_shared.ProjectHandler("org", project_shared.GetProjects))
+					m.Get("/{id}", project_shared.ProjectHandler("org", project_shared.GetProject))
 				})
 
 				m.Group("", func() {
-					m.Post("", bind(api.CreateProjectOption{}), org.CreateProject)
+					m.Post("", bind(api.CreateProjectOption{}), project_shared.ProjectHandler("org", project_shared.CreateProject))
 					m.Group("/{id}", func() {
-						m.Post("", bind(api.EditProjectColumnOption{}), org.AddColumnToProject)
-						m.Delete("", org.DeleteProject)
-						m.Put("", bind(api.CreateProjectOption{}), org.EditProject)
-						m.Post("/move", project.MoveColumns)
-						m.Post("/{action:open|close}", org.ChangeProjectStatus)
+						m.Post("", bind(api.EditProjectColumnOption{}), project_shared.ProjectHandler("org", project_shared.AddColumnToProject))
+						m.Delete("", project_shared.ProjectHandler("org", project_shared.DeleteProject))
+						m.Put("", bind(api.CreateProjectOption{}), project_shared.ProjectHandler("org", project_shared.EditProject))
+						m.Post("/move", project_shared.MoveColumns)
+						m.Post("/{action:open|close}", project_shared.ChangeProjectStatus)
 
 						m.Group("/{columnID}", func() {
-							m.Put("", bind(api.EditProjectColumnOption{}), org.EditProjectColumn)
-							m.Delete("", org.DeleteProjectColumn)
-							m.Post("/default", org.SetDefaultProjectColumn)
-							m.Post("/move", org.MoveIssues)
+							m.Put("", bind(api.EditProjectColumnOption{}), project_shared.ProjectHandler("org", project_shared.EditProjectColumn))
+							m.Delete("", project_shared.ProjectHandler("org", project_shared.DeleteProjectColumn))
+							m.Post("/default", project_shared.ProjectHandler("org", project_shared.SetDefaultProjectColumn))
+							m.Post("/move", project_shared.ProjectHandler("org", project_shared.MoveIssues))
 						})
 					})
 				}, reqSelfOrAdmin(), reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true))
@@ -1048,31 +1048,31 @@ func Routes() *web.Router {
 		m.Group("/{username}/{reponame}", func() {
 			m.Group("/projects", func() {
 				m.Group("", func() {
-					m.Get("", repo.GetProjects)
-					m.Get("/{id}", repo.GetProject)
+					m.Get("", project_shared.ProjectHandler("repo", project_shared.GetProjects))
+					m.Get("/{id}", project_shared.ProjectHandler("repo", project_shared.GetProject))
 				})
 
 				m.Group("", func() {
-					m.Post("", bind(api.CreateProjectOption{}), repo.CreateProject)
+					m.Post("", bind(api.CreateProjectOption{}), project_shared.ProjectHandler("repo", project_shared.CreateProject))
 					m.Group("/{id}", func() {
-						m.Post("", bind(api.EditProjectColumnOption{}), repo.AddColumnToProject)
-						m.Delete("", repo.DeleteProject)
-						m.Put("", bind(api.CreateProjectOption{}), repo.EditProject)
-						m.Post("/move", project.MoveColumns)
-						m.Post("/{action:open|close}", repo.ChangeProjectStatus)
+						m.Post("", bind(api.EditProjectColumnOption{}), project_shared.ProjectHandler("repo", project_shared.AddColumnToProject))
+						m.Delete("", project_shared.ProjectHandler("repo", project_shared.DeleteProject))
+						m.Put("", bind(api.CreateProjectOption{}), project_shared.ProjectHandler("repo", project_shared.EditProject))
+						m.Post("/move", project_shared.MoveColumns)
+						m.Post("/{action:open|close}", project_shared.ChangeProjectStatus)
 
 						m.Group("/{columnID}", func() {
-							m.Put("", bind(api.EditProjectColumnOption{}), repo.EditProjectColumn)
-							m.Delete("", repo.DeleteProjectColumn)
-							m.Post("/default", repo.SetDefaultProjectColumn)
-							m.Post("/move", repo.MoveIssues)
+							m.Put("", bind(api.EditProjectColumnOption{}), project_shared.ProjectHandler("repo", project_shared.EditProjectColumn))
+							m.Delete("", project_shared.ProjectHandler("repo", project_shared.DeleteProjectColumn))
+							m.Post("/default", project_shared.ProjectHandler("repo", project_shared.SetDefaultProjectColumn))
+							m.Post("/move", project_shared.ProjectHandler("repo", project_shared.MoveIssues))
 						})
 					})
 				}, reqRepoWriter(unit.TypeProjects), mustNotBeArchived)
 			}, individualPermsChecker)
 
 			m.Group("/{type:issues|pulls}", func() {
-				m.Post("/projects", reqRepoWriterOr(unit.TypeIssues, unit.TypePullRequests), reqRepoWriter(unit.TypeProjects), repo.UpdateIssueProject)
+				m.Post("/projects", reqRepoWriterOr(unit.TypeIssues, unit.TypePullRequests), reqRepoWriter(unit.TypeProjects), project_shared.UpdateIssueProject)
 			}, individualPermsChecker)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization, auth_model.AccessTokenScopeCategoryRepository), reqToken(), repoAssignment(), reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)
 
