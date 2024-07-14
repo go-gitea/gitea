@@ -138,7 +138,6 @@ func sudo() func(ctx *context.APIContext) {
 func repoAssignment() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		userName := ctx.PathParam("username")
-		orgName := ctx.PathParam("org")
 		repoName := ctx.PathParam("reponame")
 
 		var (
@@ -147,47 +146,24 @@ func repoAssignment() func(ctx *context.APIContext) {
 		)
 
 		// Check if the user is the same as the repository owner.
-		if userName != "" {
-			if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
-				owner = ctx.Doer
-			} else {
-				owner, err = user_model.GetUserByName(ctx, userName)
-				if err != nil {
-					if user_model.IsErrUserNotExist(err) {
-						if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
-							context.RedirectToUser(ctx.Base, userName, redirectUserID)
-						} else if user_model.IsErrUserRedirectNotExist(err) {
-							ctx.NotFound("GetUserByName", err)
-						} else {
-							ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
-						}
-					} else {
-						ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
-					}
-					return
-				}
-			}
-		}
-
-		if orgName != "" {
-			org, err := organization.GetOrgByName(ctx, orgName)
+		if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
+			owner = ctx.Doer
+		} else {
+			owner, err = user_model.GetUserByName(ctx, userName)
 			if err != nil {
-				if organization.IsErrOrgNotExist(err) {
-					redirectUserID, err := user_model.LookupUserRedirect(ctx, orgName)
-					if err == nil {
-						context.RedirectToUser(ctx.Base, orgName, redirectUserID)
+				if user_model.IsErrUserNotExist(err) {
+					if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
+						context.RedirectToUser(ctx.Base, userName, redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
-						ctx.NotFound()
+						ctx.NotFound("GetUserByName", err)
 					} else {
 						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
 					}
 				} else {
-					ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
+					ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 				}
 				return
 			}
-			ctx.Org.Organization = org
-			owner = org.AsUser()
 		}
 
 		ctx.Repo.Owner = owner
@@ -390,9 +366,11 @@ func reqOwner() func(ctx *context.APIContext) {
 // reqSelfOrAdmin doer should be the same as the contextUser or site admin
 func reqSelfOrAdmin() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.IsUserSiteAdmin() && ctx.ContextUser != ctx.Doer {
-			ctx.Error(http.StatusForbidden, "reqSelfOrAdmin", "doer should be the site admin or be same as the contextUser")
-			return
+		if ctx.ContextUser.IsIndividual() {
+			if !ctx.IsUserSiteAdmin() && ctx.ContextUser != ctx.Doer {
+				ctx.Error(http.StatusForbidden, "reqSelfOrAdmin", "doer should be the site admin or be same as the contextUser")
+				return
+			}
 		}
 	}
 }
@@ -591,24 +569,24 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		ctx.Org = new(context.APIOrganization)
 
+		if ctx.ContextUser == nil {
+			if ctx.Org.Organization == nil {
+				getOrganizationByParams(ctx)
+				ctx.ContextUser = ctx.Org.Organization.AsUser()
+			}
+		} else if ctx.ContextUser.IsOrganization() {
+			if ctx.Org == nil {
+				ctx.Org = &context.APIOrganization{}
+			}
+			ctx.Org.Organization = (*organization.Organization)(ctx.ContextUser)
+		} else {
+			// ContextUser is an individual User
+			return
+		}
+
 		var err error
 		if assignOrg {
-			ctx.Org.Organization, err = organization.GetOrgByName(ctx, ctx.PathParam(":org"))
-			if err != nil {
-				if organization.IsErrOrgNotExist(err) {
-					redirectUserID, err := user_model.LookupUserRedirect(ctx, ctx.PathParam(":org"))
-					if err == nil {
-						context.RedirectToUser(ctx.Base, ctx.PathParam(":org"), redirectUserID)
-					} else if user_model.IsErrUserRedirectNotExist(err) {
-						ctx.NotFound("GetOrgByName", err)
-					} else {
-						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
-					}
-				} else {
-					ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
-				}
-				return
-			}
+			getOrganizationByParams(ctx)
 			ctx.ContextUser = ctx.Org.Organization.AsUser()
 		}
 
@@ -623,6 +601,29 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 				return
 			}
 		}
+	}
+}
+
+func getOrganizationByParams(ctx *context.APIContext) {
+	orgName := ctx.PathParam(":org")
+
+	var err error
+
+	ctx.Org.Organization, err = organization.GetOrgByName(ctx, orgName)
+	if err != nil {
+		if organization.IsErrOrgNotExist(err) {
+			redirectUserID, err := user_model.LookupUserRedirect(ctx, ctx.PathParam(":org"))
+			if err == nil {
+				context.RedirectToUser(ctx.Base, ctx.PathParam(":org"), redirectUserID)
+			} else if user_model.IsErrUserRedirectNotExist(err) {
+				ctx.NotFound("GetOrgByName", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
+			}
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
+		}
+		return
 	}
 }
 
@@ -1018,7 +1019,7 @@ func Routes() *web.Router {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
 		// Users (requires user scope)
-		m.Group("users/{username}/-", func() {
+		m.Group("/{username}/-", func() {
 			m.Group("/projects", func() {
 				m.Group("", func() {
 					m.Get("", org.GetProjects)
@@ -1041,13 +1042,13 @@ func Routes() *web.Router {
 							m.Post("/move", org.MoveIssues)
 						})
 					})
-				}, reqSelfOrAdmin())
+				}, reqSelfOrAdmin(), reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true))
 			}, individualPermsChecker)
 
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), context.UserAssignmentAPI())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), reqToken(), context.UserAssignmentAPI(), orgAssignment(), reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 
 		// Users (requires user scope)
-		m.Group("users/{username}/{reponame}", func() {
+		m.Group("/{username}/{reponame}", func() {
 			m.Group("/projects", func() {
 				m.Group("", func() {
 					m.Get("", repo.GetProjects)
@@ -1076,67 +1077,7 @@ func Routes() *web.Router {
 			m.Group("/{type:issues|pulls}", func() {
 				m.Post("/projects", reqRepoWriterOr(unit.TypeIssues, unit.TypePullRequests), reqRepoWriter(unit.TypeProjects), repo.UpdateIssueProject)
 			}, individualPermsChecker)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryRepository), reqToken(), repoAssignment(), reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)
-
-		// Organizations (requires orgs scope)
-		m.Group("orgs/{org}/-", func() {
-			m.Group("/projects", func() {
-				m.Group("", func() {
-					m.Get("", org.GetProjects)
-					m.Get("/{id}", org.GetProject)
-				})
-
-				m.Group("", func() {
-					m.Post("", bind(api.CreateProjectOption{}), org.CreateProject)
-					m.Group("/{id}", func() {
-						m.Post("", bind(api.EditProjectColumnOption{}), org.AddColumnToProject)
-						m.Delete("", org.DeleteProject)
-						m.Put("", bind(api.CreateProjectOption{}), org.EditProject)
-						m.Post("/move", project.MoveColumns)
-						m.Post("/{action:open|close}", org.ChangeProjectStatus)
-
-						m.Group("/{columnID}", func() {
-							m.Put("", bind(api.EditProjectColumnOption{}), org.EditProjectColumn)
-							m.Delete("", org.DeleteProjectColumn)
-							m.Post("/default", org.SetDefaultProjectColumn)
-							m.Post("/move", org.MoveIssues)
-						})
-					})
-				}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true))
-			})
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), orgAssignment(true), reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
-
-		// Organizations (requires orgs scope)
-		m.Group("orgs/{org}/{reponame}", func() {
-			m.Group("/projects", func() {
-				m.Group("", func() {
-					m.Get("", repo.GetProjects)
-					m.Get("/{id}", repo.GetProject)
-				})
-
-				m.Group("", func() {
-					m.Post("", bind(api.CreateProjectOption{}), repo.CreateProject)
-					m.Group("/{id}", func() {
-						m.Post("", bind(api.EditProjectColumnOption{}), repo.AddColumnToProject)
-						m.Delete("", repo.DeleteProject)
-						m.Put("", bind(api.CreateProjectOption{}), repo.EditProject)
-						m.Post("/move", project.MoveColumns)
-						m.Post("/{action:open|close}", repo.ChangeProjectStatus)
-
-						m.Group("/{columnID}", func() {
-							m.Put("", bind(api.EditProjectColumnOption{}), repo.EditProjectColumn)
-							m.Delete("", repo.DeleteProjectColumn)
-							m.Post("/default", repo.SetDefaultProjectColumn)
-							m.Post("/move", repo.MoveIssues)
-						})
-					})
-				}, reqRepoWriter(unit.TypeProjects), mustNotBeArchived)
-			})
-
-			m.Group("/{type:issues|pulls}", func() {
-				m.Post("/projects", reqRepoWriterOr(unit.TypeIssues, unit.TypePullRequests), reqRepoWriter(unit.TypeProjects), repo.UpdateIssueProject)
-			}, reqRepoWriter(unit.TypeProjects), mustNotBeArchived)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization, auth_model.AccessTokenScopeCategoryRepository), reqToken(), repoAssignment(), reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization, auth_model.AccessTokenScopeCategoryRepository), reqToken(), repoAssignment(), reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)
 
 		// Users (requires user scope)
 		m.Group("/users", func() {
@@ -1672,6 +1613,7 @@ func Routes() *web.Router {
 		m.Post("/orgs", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Get("/orgs", org.GetAll, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization))
 		m.Group("/orgs/{org}", func() {
+
 			m.Combo("").Get(org.Get).
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)

@@ -72,7 +72,6 @@ func GetProjects(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToProjects(ctx, projects))
 }
 
-// TODO: Send issues as well
 // GetProject returns a project by ID
 func GetProject(ctx *context.APIContext) {
 	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
