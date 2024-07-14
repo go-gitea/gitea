@@ -579,9 +579,6 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 				ctx.Org = &context.APIOrganization{}
 			}
 			ctx.Org.Organization = (*organization.Organization)(ctx.ContextUser)
-		} else {
-			// ContextUser is an individual User
-			return
 		}
 
 		var err error
