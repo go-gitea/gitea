@@ -5,7 +5,6 @@ package auth
 
 import (
 	go_context "context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"html"
@@ -329,8 +328,16 @@ func getOAuthGroupsForUser(ctx go_context.Context, user *user_model.User) ([]str
 
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
-	if ctx.Doer == nil {
-		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
+	clientIDValid := false
+	if clientID, clientSecret, err := parseBasicAuth(ctx); err == nil {
+		if app, err := auth.GetOAuth2ApplicationByClientID(ctx, clientID); err == nil {
+			if app.ValidateClientSecret([]byte(clientSecret)) {
+				clientIDValid = true
+			}
+		}
+	}
+	if !clientIDValid {
+		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm=""`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}
@@ -634,47 +641,46 @@ func OIDCKeys(ctx *context.Context) {
 	}
 }
 
+func parseBasicAuth(ctx *context.Context) (username, password string, err error) {
+	authHeader := ctx.Req.Header.Get("Authorization")
+	authContent := strings.SplitN(authHeader, " ", 2)
+	if len(authContent) == 2 && authContent[0] == "Basic" {
+		return base.BasicAuthDecode(authContent[1])
+	}
+	return "", "", errors.New("invalid basic authentication")
+}
+
 // AccessTokenOAuth manages all access token requests by the client
 func AccessTokenOAuth(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AccessTokenForm)
 	// if there is no ClientID or ClientSecret in the request body, fill these fields by the Authorization header and ensure the provided field matches the Authorization header
 	if form.ClientID == "" || form.ClientSecret == "" {
-		authHeader := ctx.Req.Header.Get("Authorization")
-		authContent := strings.SplitN(authHeader, " ", 2)
-		if len(authContent) == 2 && authContent[0] == "Basic" {
-			payload, err := base64.StdEncoding.DecodeString(authContent[1])
-			if err != nil {
-				handleAccessTokenError(ctx, AccessTokenError{
-					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-					ErrorDescription: "cannot parse basic auth header",
-				})
-				return
-			}
-			pair := strings.SplitN(string(payload), ":", 2)
-			if len(pair) != 2 {
-				handleAccessTokenError(ctx, AccessTokenError{
-					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-					ErrorDescription: "cannot parse basic auth header",
-				})
-				return
-			}
-			if form.ClientID != "" && form.ClientID != pair[0] {
-				handleAccessTokenError(ctx, AccessTokenError{
-					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-					ErrorDescription: "client_id in request body inconsistent with Authorization header",
-				})
-				return
-			}
-			form.ClientID = pair[0]
-			if form.ClientSecret != "" && form.ClientSecret != pair[1] {
-				handleAccessTokenError(ctx, AccessTokenError{
-					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-					ErrorDescription: "client_secret in request body inconsistent with Authorization header",
-				})
-				return
-			}
-			form.ClientSecret = pair[1]
+		clientID, clientSecret, err := parseBasicAuth(ctx)
+		if err != nil {
+			// present and valid Basic auth header is required in this case:
+			handleAccessTokenError(ctx, AccessTokenError{
+				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+				ErrorDescription: "cannot parse basic auth header",
+			})
+			return
 		}
+		// validate that any fields present in the form match the Basic auth header
+		if form.ClientID != "" && form.ClientID != clientID {
+			handleAccessTokenError(ctx, AccessTokenError{
+				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+				ErrorDescription: "client_id in request body inconsistent with Authorization header",
+			})
+			return
+		}
+		form.ClientID = clientID
+		if form.ClientSecret != "" && form.ClientSecret != clientSecret {
+			handleAccessTokenError(ctx, AccessTokenError{
+				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+				ErrorDescription: "client_secret in request body inconsistent with Authorization header",
+			})
+			return
+		}
+		form.ClientSecret = clientSecret
 	}
 
 	serverKey := oauth2.DefaultSigningKey
