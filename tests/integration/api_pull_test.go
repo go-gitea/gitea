@@ -61,6 +61,27 @@ func TestAPIViewPulls(t *testing.T) {
 	}
 }
 
+func TestAPIViewPullsByBaseHead(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	ctx := NewAPITestContext(t, "user2", repo.Name, auth_model.AccessTokenScopeReadRepository)
+
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/master/branch2", owner.Name, repo.Name).
+		AddTokenAuth(ctx.Token)
+	resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+
+	pull := &api.PullRequest{}
+	DecodeJSON(t, resp, pull)
+	assert.EqualValues(t, 3, pull.Index)
+	assert.EqualValues(t, 2, pull.ID)
+
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/master/branch-not-exist", owner.Name, repo.Name).
+		AddTokenAuth(ctx.Token)
+	ctx.Session.MakeRequest(t, req, http.StatusNotFound)
+}
+
 // TestAPIMergePullWIP ensures that we can't merge a WIP pull request
 func TestAPIMergePullWIP(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
@@ -100,6 +121,23 @@ func TestAPICreatePullSuccess(t *testing.T) {
 		Head:  fmt.Sprintf("%s:master", owner11.Name),
 		Base:  "master",
 		Title: "create a failure pr",
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+	MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
+}
+
+func TestAPICreatePullSameRepoSuccess(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner.Name, repo.Name), &api.CreatePullRequestOption{
+		Head:  fmt.Sprintf("%s:pr-to-update", owner.Name),
+		Base:  "master",
+		Title: "successfully create a PR between branches of the same repository",
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 	MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
@@ -185,23 +223,33 @@ func TestAPIEditPull(t *testing.T) {
 
 	session := loginUser(t, owner10.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	title := "create a success pr"
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &api.CreatePullRequestOption{
 		Head:  "develop",
 		Base:  "master",
-		Title: "create a success pr",
+		Title: title,
 	}).AddTokenAuth(token)
-	pull := new(api.PullRequest)
+	apiPull := new(api.PullRequest)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, pull)
-	assert.EqualValues(t, "master", pull.Base.Name)
+	DecodeJSON(t, resp, apiPull)
+	assert.EqualValues(t, "master", apiPull.Base.Name)
 
-	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), &api.EditPullRequestOption{
+	newTitle := "edit a this pr"
+	newBody := "edited body"
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, apiPull.Index), &api.EditPullRequestOption{
 		Base:  "feature/1",
-		Title: "edit a this pr",
+		Title: newTitle,
+		Body:  &newBody,
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, pull)
-	assert.EqualValues(t, "feature/1", pull.Base.Name)
+	DecodeJSON(t, resp, apiPull)
+	assert.EqualValues(t, "feature/1", apiPull.Base.Name)
+	// check comment history
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: apiPull.ID})
+	err := pull.LoadIssue(db.DefaultContext)
+	assert.NoError(t, err)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pull.Issue.ID, OldTitle: title, NewTitle: newTitle})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.ContentHistory{IssueID: pull.Issue.ID, ContentText: newBody, IsFirstCreated: false})
 
 	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), &api.EditPullRequestOption{
 		Base: "not-exist",

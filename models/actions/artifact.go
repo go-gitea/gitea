@@ -26,6 +26,8 @@ const (
 	ArtifactStatusUploadConfirmed                           // 2， ArtifactStatusUploadConfirmed is the status of an artifact upload that is confirmed
 	ArtifactStatusUploadError                               // 3， ArtifactStatusUploadError is the status of an artifact upload that is errored
 	ArtifactStatusExpired                                   // 4, ArtifactStatusExpired is the status of an artifact that is expired
+	ArtifactStatusPendingDeletion                           // 5, ArtifactStatusPendingDeletion is the status of an artifact that is pending deletion
+	ArtifactStatusDeleted                                   // 6, ArtifactStatusDeleted is the status of an artifact that is deleted
 )
 
 func init() {
@@ -147,8 +149,28 @@ func ListNeedExpiredArtifacts(ctx context.Context) ([]*ActionArtifact, error) {
 		Where("expired_unix < ? AND status = ?", timeutil.TimeStamp(time.Now().Unix()), ArtifactStatusUploadConfirmed).Find(&arts)
 }
 
+// ListPendingDeleteArtifacts returns all artifacts in pending-delete status.
+// limit is the max number of artifacts to return.
+func ListPendingDeleteArtifacts(ctx context.Context, limit int) ([]*ActionArtifact, error) {
+	arts := make([]*ActionArtifact, 0, limit)
+	return arts, db.GetEngine(ctx).
+		Where("status = ?", ArtifactStatusPendingDeletion).Limit(limit).Find(&arts)
+}
+
 // SetArtifactExpired sets an artifact to expired
 func SetArtifactExpired(ctx context.Context, artifactID int64) error {
 	_, err := db.GetEngine(ctx).Where("id=? AND status = ?", artifactID, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: int64(ArtifactStatusExpired)})
+	return err
+}
+
+// SetArtifactNeedDelete sets an artifact to need-delete, cron job will delete it
+func SetArtifactNeedDelete(ctx context.Context, runID int64, name string) error {
+	_, err := db.GetEngine(ctx).Where("run_id=? AND artifact_name=? AND status = ?", runID, name, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: int64(ArtifactStatusPendingDeletion)})
+	return err
+}
+
+// SetArtifactDeleted sets an artifact to deleted
+func SetArtifactDeleted(ctx context.Context, artifactID int64) error {
+	_, err := db.GetEngine(ctx).ID(artifactID).Cols("status").Update(&ActionArtifact{Status: int64(ArtifactStatusDeleted)})
 	return err
 }

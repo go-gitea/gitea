@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -156,7 +157,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 		}
 
 		// Apply changes and commit.
-		if err = repo_module.InitRepoCommit(ctx, tmpDir, repo, u, opts.DefaultBranch); err != nil {
+		if err = initRepoCommit(ctx, tmpDir, repo, u, opts.DefaultBranch); err != nil {
 			return fmt.Errorf("initRepoCommit: %w", err)
 		}
 	}
@@ -172,15 +173,11 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 	}
 
 	repo.DefaultBranch = setting.Repository.DefaultBranch
+	repo.DefaultWikiBranch = setting.Repository.DefaultBranch
 
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
-		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
-		if err != nil {
-			return fmt.Errorf("openRepository: %w", err)
-		}
-		defer gitRepo.Close()
-		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+		if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 
@@ -217,6 +214,10 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		}
 	}
 
+	if opts.ObjectFormatName == "" {
+		opts.ObjectFormatName = git.Sha1ObjectFormat.Name()
+	}
+
 	repo := &repo_model.Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,
@@ -235,6 +236,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		TrustModel:                      opts.TrustModel,
 		IsMirror:                        opts.IsMirror,
 		DefaultBranch:                   opts.DefaultBranch,
+		DefaultWikiBranch:               setting.Repository.DefaultBranch,
 		ObjectFormatName:                opts.ObjectFormatName,
 	}
 

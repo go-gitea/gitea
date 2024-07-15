@@ -96,7 +96,7 @@ func (err ErrBranchNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrPushOutOfDate represents an error if merging fails due to unrelated histories
+// ErrPushOutOfDate represents an error if merging fails due to the base branch being updated
 type ErrPushOutOfDate struct {
 	StdOut string
 	StdErr string

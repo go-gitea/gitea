@@ -20,10 +20,10 @@ import (
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/indexer/issues/meilisearch"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // IndexerMetadata is used to send data to the queue, so it contains only the ids.
@@ -220,7 +220,7 @@ func PopulateIssueIndexer(ctx context.Context) error {
 			ListOptions: db_model.ListOptions{Page: page, PageSize: repo_model.RepositoryListDefaultPageSize},
 			OrderBy:     db_model.SearchOrderByID,
 			Private:     true,
-			Collaborate: util.OptionalBoolFalse,
+			Collaborate: optional.Some(false),
 		})
 		if err != nil {
 			log.Error("SearchRepositoryByName: %v", err)
@@ -308,7 +308,7 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, err
 
 // CountIssues counts issues by options. It is a shortcut of SearchIssues(ctx, opts) but only returns the total count.
 func CountIssues(ctx context.Context, opts *SearchOptions) (int64, error) {
-	opts = opts.Copy(func(options *SearchOptions) { opts.Paginator = &db_model.ListOptions{PageSize: 0} })
+	opts = opts.Copy(func(options *SearchOptions) { options.Paginator = &db_model.ListOptions{PageSize: 0} })
 
 	_, total, err := SearchIssues(ctx, opts)
 	return total, err

@@ -5,7 +5,7 @@ package utils
 
 import (
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 

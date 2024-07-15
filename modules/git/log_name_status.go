@@ -143,19 +143,19 @@ func (g *LogNameStatusRepoParser) Next(treepath string, paths2ids map[string]int
 	}
 
 	// Our "line" must look like: <commitid> SP (<parent> SP) * NUL
-	commitIds := string(g.next)
+	commitIDs := string(g.next)
 	if g.buffull {
 		more, err := g.rd.ReadString('\x00')
 		if err != nil {
 			return nil, err
 		}
-		commitIds += more
+		commitIDs += more
 	}
-	commitIds = commitIds[:len(commitIds)-1]
-	splitIds := strings.Split(commitIds, " ")
-	ret.CommitID = splitIds[0]
-	if len(splitIds) > 1 {
-		ret.ParentIDs = splitIds[1:]
+	commitIDs = commitIDs[:len(commitIDs)-1]
+	splitIDs := strings.Split(commitIDs, " ")
+	ret.CommitID = splitIDs[0]
+	if len(splitIDs) > 1 {
+		ret.ParentIDs = splitIDs[1:]
 	}
 
 	// now read the next "line"

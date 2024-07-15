@@ -4,9 +4,9 @@
 package base
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 
-	"github.com/minio/sha256-simd"
 	"golang.org/x/crypto/pbkdf2"
 )
 

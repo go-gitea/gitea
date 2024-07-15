@@ -14,12 +14,12 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 	alpine_service "code.gitea.io/gitea/services/packages/alpine"
 )
@@ -72,8 +72,8 @@ func GetRepositoryFile(ctx *context.Context) {
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
-			Filename:     alpine_service.IndexFilename,
-			CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.Params("branch"), ctx.Params("repository"), ctx.Params("architecture")),
+			Filename:     alpine_service.IndexArchiveFilename,
+			CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.PathParam("branch"), ctx.PathParam("repository"), ctx.PathParam("architecture")),
 		},
 	)
 	if err != nil {
@@ -89,19 +89,19 @@ func GetRepositoryFile(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
-	branch := strings.TrimSpace(ctx.Params("branch"))
-	repository := strings.TrimSpace(ctx.Params("repository"))
+	branch := strings.TrimSpace(ctx.PathParam("branch"))
+	repository := strings.TrimSpace(ctx.PathParam("repository"))
 	if branch == "" || repository == "" {
 		apiError(ctx, http.StatusBadRequest, "invalid branch or repository")
 		return
 	}
 
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
@@ -182,19 +182,38 @@ func UploadPackageFile(ctx *context.Context) {
 }
 
 func DownloadPackageFile(ctx *context.Context) {
-	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
+	branch := ctx.PathParam("branch")
+	repository := ctx.PathParam("repository")
+	architecture := ctx.PathParam("architecture")
+
+	opts := &packages_model.PackageFileSearchOptions{
 		OwnerID:      ctx.Package.Owner.ID,
 		PackageType:  packages_model.TypeAlpine,
-		Query:        ctx.Params("filename"),
-		CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.Params("branch"), ctx.Params("repository"), ctx.Params("architecture")),
-	})
+		Query:        ctx.PathParam("filename"),
+		CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, architecture),
+	}
+	pfs, _, err := packages_model.SearchFiles(ctx, opts)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if len(pfs) != 1 {
-		apiError(ctx, http.StatusNotFound, nil)
-		return
+	if len(pfs) == 0 {
+		// Try again with architecture 'noarch'
+		if architecture == alpine_module.NoArch {
+			apiError(ctx, http.StatusNotFound, nil)
+			return
+		}
+
+		opts.CompositeKey = fmt.Sprintf("%s|%s|%s", branch, repository, alpine_module.NoArch)
+		if pfs, _, err = packages_model.SearchFiles(ctx, opts); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		if len(pfs) == 0 {
+			apiError(ctx, http.StatusNotFound, nil)
+			return
+		}
 	}
 
 	s, u, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
@@ -211,12 +230,12 @@ func DownloadPackageFile(ctx *context.Context) {
 }
 
 func DeletePackageFile(ctx *context.Context) {
-	branch, repository, architecture := ctx.Params("branch"), ctx.Params("repository"), ctx.Params("architecture")
+	branch, repository, architecture := ctx.PathParam("branch"), ctx.PathParam("repository"), ctx.PathParam("architecture")
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:      ctx.Package.Owner.ID,
 		PackageType:  packages_model.TypeAlpine,
-		Query:        ctx.Params("filename"),
+		Query:        ctx.PathParam("filename"),
 		CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, architecture),
 	})
 	if err != nil {

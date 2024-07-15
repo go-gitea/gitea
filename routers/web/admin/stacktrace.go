@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"runtime"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 )
 
 // Stacktrace show admin monitor goroutines page
@@ -40,7 +40,7 @@ func Stacktrace(ctx *context.Context) {
 
 // StacktraceCancel cancels a process
 func StacktraceCancel(ctx *context.Context) {
-	pid := ctx.Params("pid")
+	pid := ctx.PathParam("pid")
 	process.GetManager().Cancel(process.IDType(pid))
 	ctx.JSONRedirect(setting.AppSubURL + "/admin/monitor/stacktrace")
 }

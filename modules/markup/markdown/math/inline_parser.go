@@ -21,9 +21,18 @@ var defaultInlineDollarParser = &inlineParser{
 	end:   []byte{'$'},
 }
 
+var defaultDualDollarParser = &inlineParser{
+	start: []byte{'$', '$'},
+	end:   []byte{'$', '$'},
+}
+
 // NewInlineDollarParser returns a new inline parser
 func NewInlineDollarParser() parser.InlineParser {
 	return defaultInlineDollarParser
+}
+
+func NewInlineDualDollarParser() parser.InlineParser {
+	return defaultDualDollarParser
 }
 
 var defaultInlineBracketParser = &inlineParser{
@@ -38,12 +47,19 @@ func NewInlineBracketParser() parser.InlineParser {
 
 // Trigger triggers this parser on $ or \
 func (parser *inlineParser) Trigger() []byte {
-	return parser.start[0:1]
+	return parser.start
+}
+
+func isPunctuation(b byte) bool {
+	return b == '.' || b == '!' || b == '?' || b == ',' || b == ';' || b == ':'
+}
+
+func isBracket(b byte) bool {
+	return b == ')'
 }
 
 func isAlphanumeric(b byte) bool {
-	// Github only cares about 0-9A-Za-z
-	return (b >= '0' && b <= '9') || (b >= 'A' && b <= 'Z') || (b >= 'a' && b <= 'z')
+	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
 }
 
 // Parse parses the current line and returns a result of parsing.
@@ -56,7 +72,7 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 	}
 
 	precedingCharacter := block.PrecendingCharacter()
-	if precedingCharacter < 256 && isAlphanumeric(byte(precedingCharacter)) {
+	if precedingCharacter < 256 && (isAlphanumeric(byte(precedingCharacter)) || isPunctuation(byte(precedingCharacter))) {
 		// need to exclude things like `a$` from being considered a start
 		return nil
 	}
@@ -75,26 +91,44 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 		ender += pos
 
 		// Now we want to check the character at the end of our parser section
-		// that is ender + len(parser.end)
+		// that is ender + len(parser.end) and check if char before ender is '\'
 		pos = ender + len(parser.end)
 		if len(line) <= pos {
 			break
 		}
-		if !isAlphanumeric(line[pos]) {
+		suceedingCharacter := line[pos]
+		// check valid ending character
+		if !isPunctuation(suceedingCharacter) &&
+			!(suceedingCharacter == ' ') &&
+			!(suceedingCharacter == '\n') &&
+			!isBracket(suceedingCharacter) {
+			return nil
+		}
+		if line[ender-1] != '\\' {
 			break
 		}
+
 		// move the pointer onwards
 		ender += len(parser.end)
 	}
 
 	block.Advance(opener)
 	_, pos := block.Position()
-	node := NewInline()
+	var node ast.Node
+	if parser == defaultDualDollarParser {
+		node = NewInlineBlock()
+	} else {
+		node = NewInline()
+	}
 	segment := pos.WithStop(pos.Start + ender - opener)
 	node.AppendChild(node, ast.NewRawTextSegment(segment))
 	block.Advance(ender - opener + len(parser.end))
 
-	trimBlock(node, block)
+	if parser == defaultDualDollarParser {
+		trimBlock(&(node.(*InlineBlock)).Inline, block)
+	} else {
+		trimBlock(node.(*Inline), block)
+	}
 	return node
 }
 

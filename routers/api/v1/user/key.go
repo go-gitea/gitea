@@ -5,19 +5,20 @@ package user
 
 import (
 	std_ctx "context"
+	"fmt"
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -54,7 +55,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	var count int
 
 	fingerprint := ctx.FormString("fingerprint")
-	username := ctx.Params("username")
+	username := ctx.PathParam("username")
 
 	if fingerprint != "" {
 		var userID int64 // Unrestricted
@@ -178,7 +179,7 @@ func GetPublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := asymkey_model.GetPublicKeyByID(ctx, ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetPublicKeyByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
@@ -198,6 +199,11 @@ func GetPublicKey(ctx *context.APIContext) {
 
 // CreateUserPublicKey creates new public key to given user by ID.
 func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid int64) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
+		ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+		return
+	}
+
 	content, err := asymkey_model.CheckPublicKeyString(form.Key)
 	if err != nil {
 		repo.HandleCheckKeyStringError(ctx, err)
@@ -263,7 +269,12 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	id := ctx.ParamsInt64(":id")
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
+		ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+		return
+	}
+
+	id := ctx.PathParamInt64(":id")
 	externallyManaged, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, id)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {

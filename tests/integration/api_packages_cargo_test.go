@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -18,7 +17,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
 	"code.gitea.io/gitea/modules/setting"
@@ -78,7 +77,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 	assert.NoError(t, err)
 
 	readGitContent := func(t *testing.T, path string) string {
-		gitRepo, err := git.OpenRepository(db.DefaultContext, repo.RepoPath())
+		gitRepo, err := gitrepo.OpenRepository(db.DefaultContext, repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 

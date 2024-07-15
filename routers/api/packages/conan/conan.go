@@ -15,13 +15,13 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	conan_model "code.gitea.io/gitea/models/packages/conan"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -72,11 +72,11 @@ func baseURL(ctx *context.Context) string {
 // ExtractPathParameters is a middleware to extract common parameters from path
 func ExtractPathParameters(ctx *context.Context) {
 	rref, err := conan_module.NewRecipeReference(
-		ctx.Params("name"),
-		ctx.Params("version"),
-		ctx.Params("user"),
-		ctx.Params("channel"),
-		ctx.Params("recipe_revision"),
+		ctx.PathParam("name"),
+		ctx.PathParam("version"),
+		ctx.PathParam("user"),
+		ctx.PathParam("channel"),
+		ctx.PathParam("recipe_revision"),
 	)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -85,14 +85,14 @@ func ExtractPathParameters(ctx *context.Context) {
 
 	ctx.Data[recipeReferenceKey] = rref
 
-	reference := ctx.Params("package_reference")
+	reference := ctx.PathParam("package_reference")
 
 	var pref *conan_module.PackageReference
 	if reference != "" {
 		pref, err = conan_module.NewPackageReference(
 			rref,
 			reference,
-			ctx.Params("package_revision"),
+			ctx.PathParam("package_revision"),
 		)
 		if err != nil {
 			apiError(ctx, http.StatusBadRequest, err)
@@ -304,18 +304,18 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
-	filename := ctx.Params("filename")
+	filename := ctx.PathParam("filename")
 	if !fileFilter.Contains(filename) {
 		apiError(ctx, http.StatusBadRequest, nil)
 		return
 	}
 
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
@@ -444,7 +444,7 @@ func DownloadPackageFile(ctx *context.Context) {
 func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
-	filename := ctx.Params("filename")
+	filename := ctx.PathParam("filename")
 	if !fileFilter.Contains(filename) {
 		apiError(ctx, http.StatusBadRequest, nil)
 		return

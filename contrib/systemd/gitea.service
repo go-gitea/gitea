@@ -1,6 +1,5 @@
 [Unit]
 Description=Gitea (Git with a cup of tea)
-After=syslog.target
 After=network.target
 ###
 # Don't forget to add the database service dependencies

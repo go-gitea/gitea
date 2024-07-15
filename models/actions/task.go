@@ -11,6 +11,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -215,11 +216,11 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 }
 
 func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
-	ctx, commiter, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, false, err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	e := db.GetEngine(ctx)
 
@@ -227,7 +228,9 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if runner.RepoID != 0 {
 		jobCond = builder.Eq{"repo_id": runner.RepoID}
 	} else if runner.OwnerID != 0 {
-		jobCond = builder.In("repo_id", builder.Select("id").From("repository").Where(builder.Eq{"owner_id": runner.OwnerID}))
+		jobCond = builder.In("repo_id", builder.Select("`repository`.id").From("repository").
+			Join("INNER", "repo_unit", "`repository`.id = `repo_unit`.repo_id").
+			Where(builder.Eq{"`repository`.owner_id": runner.OwnerID, "`repo_unit`.type": unit.TypeActions}))
 	}
 	if jobCond.IsValid() {
 		jobCond = builder.In("run_id", builder.Select("id").From("action_run").Where(jobCond))
@@ -319,7 +322,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 
 	task.Job = job
 
-	if err := commiter.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return nil, false, err
 	}
 
@@ -344,11 +347,11 @@ func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionT
 		stepStates[v.Id] = v
 	}
 
-	ctx, commiter, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	e := db.GetEngine(ctx)
 
@@ -409,7 +412,7 @@ func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionT
 		}
 	}
 
-	if err := commiter.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return nil, err
 	}
 

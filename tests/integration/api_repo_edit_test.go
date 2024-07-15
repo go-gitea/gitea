@@ -65,6 +65,7 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 	allowRebase := false
 	allowRebaseMerge := false
 	allowSquash := false
+	allowFastForwardOnly := false
 	if unit, err := repo.GetUnit(db.DefaultContext, unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
@@ -73,6 +74,7 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 		allowRebase = config.AllowRebase
 		allowRebaseMerge = config.AllowRebaseMerge
 		allowSquash = config.AllowSquash
+		allowFastForwardOnly = config.AllowFastForwardOnly
 	}
 	archived := repo.IsArchived
 	return &api.EditRepoOption{
@@ -92,6 +94,7 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 		AllowRebase:               &allowRebase,
 		AllowRebaseMerge:          &allowRebaseMerge,
 		AllowSquash:               &allowSquash,
+		AllowFastForwardOnly:      &allowFastForwardOnly,
 		Archived:                  &archived,
 	}
 }

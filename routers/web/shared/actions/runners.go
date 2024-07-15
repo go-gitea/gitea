@@ -8,10 +8,10 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -79,9 +79,8 @@ func RunnerDetails(ctx *context.Context, page int, runnerID, ownerID, repoID int
 			Page:     page,
 			PageSize: 30,
 		},
-		Status:      actions_model.StatusUnknown, // Unknown means all
-		IDOrderDesc: true,
-		RunnerID:    runner.ID,
+		Status:   actions_model.StatusUnknown, // Unknown means all
+		RunnerID: runner.ID,
 	}
 
 	tasks, count, err := db.FindAndCount[actions_model.ActionTask](ctx, opts)

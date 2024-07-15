@@ -5,6 +5,7 @@
 package org
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -20,12 +21,11 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/utils"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	org_service "code.gitea.io/gitea/services/org"
@@ -72,20 +72,20 @@ func Teams(ctx *context.Context) {
 func TeamsAction(ctx *context.Context) {
 	page := ctx.FormString("page")
 	var err error
-	switch ctx.Params(":action") {
+	switch ctx.PathParam(":action") {
 	case "join":
 		if !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = models.AddTeamMember(ctx, ctx.Org.Team, ctx.Doer.ID)
+		err = models.AddTeamMember(ctx, ctx.Org.Team, ctx.Doer)
 	case "leave":
-		err = models.RemoveTeamMember(ctx, ctx.Org.Team, ctx.Doer.ID)
+		err = models.RemoveTeamMember(ctx, ctx.Org.Team, ctx.Doer)
 		if err != nil {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			} else {
-				log.Error("Action(%s): %v", ctx.Params(":action"), err)
+				log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
 				ctx.JSON(http.StatusOK, map[string]any{
 					"ok":  false,
 					"err": err.Error(),
@@ -101,18 +101,18 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 
-		uid := ctx.FormInt64("uid")
-		if uid == 0 {
+		user, _ := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
+		if user == nil {
 			ctx.Redirect(ctx.Org.OrgLink + "/teams")
 			return
 		}
 
-		err = models.RemoveTeamMember(ctx, ctx.Org.Team, uid)
+		err = models.RemoveTeamMember(ctx, ctx.Org.Team, user)
 		if err != nil {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			} else {
-				log.Error("Action(%s): %v", ctx.Params(":action"), err)
+				log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
 				ctx.JSON(http.StatusOK, map[string]any{
 					"ok":  false,
 					"err": err.Error(),
@@ -127,7 +127,7 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		uname := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("uname")))
+		uname := strings.ToLower(ctx.FormString("uname"))
 		var u *user_model.User
 		u, err = user_model.GetUserByName(ctx, uname)
 		if err != nil {
@@ -162,7 +162,7 @@ func TeamsAction(ctx *context.Context) {
 		if ctx.Org.Team.IsMember(ctx, u.ID) {
 			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 		} else {
-			err = models.AddTeamMember(ctx, ctx.Org.Team, u.ID)
+			err = models.AddTeamMember(ctx, ctx.Org.Team, u)
 		}
 
 		page = "team"
@@ -179,7 +179,7 @@ func TeamsAction(ctx *context.Context) {
 		}
 
 		if err := org_model.RemoveInviteByID(ctx, iid, ctx.Org.Team.ID); err != nil {
-			log.Error("Action(%s): %v", ctx.Params(":action"), err)
+			log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
 			ctx.ServerError("RemoveInviteByID", err)
 			return
 		}
@@ -190,8 +190,10 @@ func TeamsAction(ctx *context.Context) {
 	if err != nil {
 		if org_model.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
+		} else if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Flash.Error(ctx.Tr("org.teams.members.blocked_user"))
 		} else {
-			log.Error("Action(%s): %v", ctx.Params(":action"), err)
+			log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
 			ctx.JSON(http.StatusOK, map[string]any{
 				"ok":  false,
 				"err": err.Error(),
@@ -232,7 +234,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	}
 
 	var err error
-	action := ctx.Params(":action")
+	action := ctx.PathParam(":action")
 	switch action {
 	case "add":
 		repoName := path.Base(ctx.FormString("repo_name"))
@@ -257,7 +259,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	}
 
 	if err != nil {
-		log.Error("Action(%s): '%s' %v", ctx.Params(":action"), ctx.Org.Team.Name, err)
+		log.Error("Action(%s): '%s' %v", ctx.PathParam(":action"), ctx.Org.Team.Name, err)
 		ctx.ServerError("TeamsRepoAction", err)
 		return
 	}
@@ -591,7 +593,7 @@ func TeamInvitePost(ctx *context.Context) {
 		return
 	}
 
-	if err := models.AddTeamMember(ctx, team, ctx.Doer.ID); err != nil {
+	if err := models.AddTeamMember(ctx, team, ctx.Doer); err != nil {
 		ctx.ServerError("AddTeamMember", err)
 		return
 	}
@@ -604,7 +606,7 @@ func TeamInvitePost(ctx *context.Context) {
 }
 
 func getTeamInviteFromContext(ctx *context.Context) (*org_model.TeamInvite, *org_model.Organization, *org_model.Team, *user_model.User, error) {
-	invite, err := org_model.GetInviteByToken(ctx, ctx.Params("token"))
+	invite, err := org_model.GetInviteByToken(ctx, ctx.PathParam("token"))
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

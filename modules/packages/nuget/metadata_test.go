@@ -6,7 +6,6 @@ package nuget
 import (
 	"archive/zip"
 	"bytes"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,6 +18,7 @@ const (
 	projectURL        = "https://gitea.io"
 	description       = "Package Description"
 	releaseNotes      = "Package Release Notes"
+	readme            = "Readme"
 	repositoryURL     = "https://gitea.io/gitea/gitea"
 	targetFramework   = ".NETStandard2.1"
 	dependencyID      = "System.Text.Json"
@@ -36,6 +36,7 @@ const nuspecContent = `<?xml version="1.0" encoding="utf-8"?>
     <description>` + description + `</description>
     <releaseNotes>` + releaseNotes + `</releaseNotes>
     <repository url="` + repositoryURL + `" />
+    <readme>README.md</readme>
     <dependencies>
       <group targetFramework="` + targetFramework + `">
         <dependency id="` + dependencyID + `" version="` + dependencyVersion + `" exclude="Build,Analyzers" />
@@ -60,17 +61,19 @@ const symbolsNuspecContent = `<?xml version="1.0" encoding="utf-8"?>
 </package>`
 
 func TestParsePackageMetaData(t *testing.T) {
-	createArchive := func(name, content string) []byte {
+	createArchive := func(files map[string]string) []byte {
 		var buf bytes.Buffer
 		archive := zip.NewWriter(&buf)
-		w, _ := archive.Create(name)
-		w.Write([]byte(content))
+		for name, content := range files {
+			w, _ := archive.Create(name)
+			w.Write([]byte(content))
+		}
 		archive.Close()
 		return buf.Bytes()
 	}
 
 	t.Run("MissingNuspecFile", func(t *testing.T) {
-		data := createArchive("dummy.txt", "")
+		data := createArchive(map[string]string{"dummy.txt": ""})
 
 		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
 		assert.Nil(t, np)
@@ -78,7 +81,7 @@ func TestParsePackageMetaData(t *testing.T) {
 	})
 
 	t.Run("MissingNuspecFileInRoot", func(t *testing.T) {
-		data := createArchive("sub/package.nuspec", "")
+		data := createArchive(map[string]string{"sub/package.nuspec": ""})
 
 		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
 		assert.Nil(t, np)
@@ -86,7 +89,7 @@ func TestParsePackageMetaData(t *testing.T) {
 	})
 
 	t.Run("InvalidNuspecFile", func(t *testing.T) {
-		data := createArchive("package.nuspec", "")
+		data := createArchive(map[string]string{"package.nuspec": ""})
 
 		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
 		assert.Nil(t, np)
@@ -94,10 +97,10 @@ func TestParsePackageMetaData(t *testing.T) {
 	})
 
 	t.Run("InvalidPackageId", func(t *testing.T) {
-		data := createArchive("package.nuspec", `<?xml version="1.0" encoding="utf-8"?>
+		data := createArchive(map[string]string{"package.nuspec": `<?xml version="1.0" encoding="utf-8"?>
 		<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
 		  <metadata></metadata>
-		</package>`)
+		</package>`})
 
 		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
 		assert.Nil(t, np)
@@ -105,30 +108,34 @@ func TestParsePackageMetaData(t *testing.T) {
 	})
 
 	t.Run("InvalidPackageVersion", func(t *testing.T) {
-		data := createArchive("package.nuspec", `<?xml version="1.0" encoding="utf-8"?>
+		data := createArchive(map[string]string{"package.nuspec": `<?xml version="1.0" encoding="utf-8"?>
 		<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
 		  <metadata>
-			<id>`+id+`</id>
+			<id>` + id + `</id>
 		  </metadata>
-		</package>`)
+		</package>`})
 
 		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
 		assert.Nil(t, np)
 		assert.ErrorIs(t, err, ErrNuspecInvalidVersion)
 	})
 
-	t.Run("Valid", func(t *testing.T) {
-		data := createArchive("package.nuspec", nuspecContent)
+	t.Run("MissingReadme", func(t *testing.T) {
+		data := createArchive(map[string]string{"package.nuspec": nuspecContent})
 
 		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
 		assert.NoError(t, err)
 		assert.NotNil(t, np)
+		assert.Empty(t, np.Metadata.Readme)
 	})
-}
 
-func TestParseNuspecMetaData(t *testing.T) {
 	t.Run("Dependency Package", func(t *testing.T) {
-		np, err := ParseNuspecMetaData(strings.NewReader(nuspecContent))
+		data := createArchive(map[string]string{
+			"package.nuspec": nuspecContent,
+			"README.md":      readme,
+		})
+
+		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
 		assert.NoError(t, err)
 		assert.NotNil(t, np)
 		assert.Equal(t, DependencyPackage, np.PackageType)
@@ -139,6 +146,7 @@ func TestParseNuspecMetaData(t *testing.T) {
 		assert.Equal(t, projectURL, np.Metadata.ProjectURL)
 		assert.Equal(t, description, np.Metadata.Description)
 		assert.Equal(t, releaseNotes, np.Metadata.ReleaseNotes)
+		assert.Equal(t, readme, np.Metadata.Readme)
 		assert.Equal(t, repositoryURL, np.Metadata.RepositoryURL)
 		assert.Len(t, np.Metadata.Dependencies, 1)
 		assert.Contains(t, np.Metadata.Dependencies, targetFramework)
@@ -148,13 +156,15 @@ func TestParseNuspecMetaData(t *testing.T) {
 		assert.Equal(t, dependencyVersion, deps[0].Version)
 
 		t.Run("NormalizedVersion", func(t *testing.T) {
-			np, err := ParseNuspecMetaData(strings.NewReader(`<?xml version="1.0" encoding="utf-8"?>
-<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
-  <metadata>
-	<id>test</id>
-	<version>1.04.5.2.5-rc.1+metadata</version>
-  </metadata>
-</package>`))
+			data := createArchive(map[string]string{"package.nuspec": `<?xml version="1.0" encoding="utf-8"?>
+				<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+				  <metadata>
+					<id>test</id>
+					<version>1.04.5.2.5-rc.1+metadata</version>
+				  </metadata>
+				</package>`})
+
+			np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
 			assert.NoError(t, err)
 			assert.NotNil(t, np)
 			assert.Equal(t, "1.4.5.2-rc.1", np.Version)
@@ -162,7 +172,9 @@ func TestParseNuspecMetaData(t *testing.T) {
 	})
 
 	t.Run("Symbols Package", func(t *testing.T) {
-		np, err := ParseNuspecMetaData(strings.NewReader(symbolsNuspecContent))
+		data := createArchive(map[string]string{"package.nuspec": symbolsNuspecContent})
+
+		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
 		assert.NoError(t, err)
 		assert.NotNil(t, np)
 		assert.Equal(t, SymbolsPackage, np.PackageType)

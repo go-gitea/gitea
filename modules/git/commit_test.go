@@ -125,6 +125,73 @@ empty commit`, commitFromReader.Signature.Payload)
 	assert.EqualValues(t, commitFromReader, commitFromReader2)
 }
 
+func TestCommitWithEncodingFromReader(t *testing.T) {
+	commitString := `feaf4ba6bc635fec442f46ddd4512416ec43c2c2 commit 1074
+tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
+parent 47b24e7ab977ed31c5a39989d570847d6d0052af
+author KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
+committer KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
+encoding ISO-8859-1
+gpgsig -----BEGIN PGP SIGNATURE-----
+ 
+ iQGzBAABCgAdFiEE9HRrbqvYxPT8PXbefPSEkrowAa8FAmYGg7IACgkQfPSEkrow
+ Aa9olwv+P0HhtCM6CRvlUmPaqswRsDPNR4i66xyXGiSxdI9V5oJL7HLiQIM7KrFR
+ gizKa2COiGtugv8fE+TKqXKaJx6uJUJEjaBd8E9Af9PrAzjWj+A84lU6/PgPS8hq
+ zOfZraLOEWRH4tZcS+u2yFLu3ez2Wqh1xW5LNy7xqEedMXEFD1HwSJ0+pjacNkzr
+ frp6Asyt7xRI6YmgFJZJoRsS3Ktr6rtKeRL2IErSQQyorOqj6gKrglhrhfG/114j
+ FKB1v4or0WZ1DE8iP2SJZ3n+/K1IuWAINh7MVdb7PndfBPEa+IL+ucNk5uzEE8Jd
+ G8smGxXUeFEt2cP1dj2W8EgAxuA9sTnH9dqI5aRqy5ifDjuya7Emm8sdOUvtGdmn
+ SONRzusmu5n3DgV956REL7x62h7JuqmBz/12HZkr0z0zgXkcZ04q08pSJATX5N1F
+ yN+tWxTsWg+zhDk96d5Esdo9JMjcFvPv0eioo30GAERaz1hoD7zCMT4jgUFTQwgz
+ jw4YcO5u
+ =r3UU
+ -----END PGP SIGNATURE-----
+
+ISO-8859-1`
+
+	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
+	gitRepo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))
+	assert.NoError(t, err)
+	assert.NotNil(t, gitRepo)
+	defer gitRepo.Close()
+
+	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
+	assert.NoError(t, err)
+	if !assert.NotNil(t, commitFromReader) {
+		return
+	}
+	assert.EqualValues(t, sha, commitFromReader.ID)
+	assert.EqualValues(t, `-----BEGIN PGP SIGNATURE-----
+
+iQGzBAABCgAdFiEE9HRrbqvYxPT8PXbefPSEkrowAa8FAmYGg7IACgkQfPSEkrow
+Aa9olwv+P0HhtCM6CRvlUmPaqswRsDPNR4i66xyXGiSxdI9V5oJL7HLiQIM7KrFR
+gizKa2COiGtugv8fE+TKqXKaJx6uJUJEjaBd8E9Af9PrAzjWj+A84lU6/PgPS8hq
+zOfZraLOEWRH4tZcS+u2yFLu3ez2Wqh1xW5LNy7xqEedMXEFD1HwSJ0+pjacNkzr
+frp6Asyt7xRI6YmgFJZJoRsS3Ktr6rtKeRL2IErSQQyorOqj6gKrglhrhfG/114j
+FKB1v4or0WZ1DE8iP2SJZ3n+/K1IuWAINh7MVdb7PndfBPEa+IL+ucNk5uzEE8Jd
+G8smGxXUeFEt2cP1dj2W8EgAxuA9sTnH9dqI5aRqy5ifDjuya7Emm8sdOUvtGdmn
+SONRzusmu5n3DgV956REL7x62h7JuqmBz/12HZkr0z0zgXkcZ04q08pSJATX5N1F
+yN+tWxTsWg+zhDk96d5Esdo9JMjcFvPv0eioo30GAERaz1hoD7zCMT4jgUFTQwgz
+jw4YcO5u
+=r3UU
+-----END PGP SIGNATURE-----
+`, commitFromReader.Signature.Signature)
+	assert.EqualValues(t, `tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
+parent 47b24e7ab977ed31c5a39989d570847d6d0052af
+author KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
+committer KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
+encoding ISO-8859-1
+
+ISO-8859-1`, commitFromReader.Signature.Payload)
+	assert.EqualValues(t, "KN4CK3R <admin@oldschoolhack.me>", commitFromReader.Author.String())
+
+	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
+	assert.NoError(t, err)
+	commitFromReader.CommitMessage += "\n\n"
+	commitFromReader.Signature.Payload += "\n\n"
+	assert.EqualValues(t, commitFromReader, commitFromReader2)
+}
+
 func TestHasPreviousCommit(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 

@@ -126,17 +126,20 @@ func TestGetCommitFilesChanged(t *testing.T) {
 	assert.NoError(t, err)
 	defer repo.Close()
 
+	objectFormat, err := repo.GetObjectFormat()
+	assert.NoError(t, err)
+
 	testCases := []struct {
 		base, head string
 		files      []string
 	}{
 		{
-			repo.objectFormat.EmptyObjectID().String(),
+			objectFormat.EmptyObjectID().String(),
 			"95bb4d39648ee7e325106df01a621c530863a653",
 			[]string{"file1.txt"},
 		},
 		{
-			repo.objectFormat.EmptyObjectID().String(),
+			objectFormat.EmptyObjectID().String(),
 			"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
 			[]string{"file2.txt"},
 		},
@@ -146,7 +149,7 @@ func TestGetCommitFilesChanged(t *testing.T) {
 			[]string{"file2.txt"},
 		},
 		{
-			repo.objectFormat.EmptyTree().String(),
+			objectFormat.EmptyTree().String(),
 			"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
 			[]string{"file1.txt", "file2.txt"},
 		},

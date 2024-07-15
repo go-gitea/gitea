@@ -19,12 +19,12 @@
 			{{range .Milestones}}
 				<li class="milestone-card">
 					<div class="milestone-header">
-						<h3 class="flex-text-block gt-m-0">
+						<h3 class="flex-text-block tw-m-0">
 							{{svg "octicon-milestone" 16}}
 							<a class="muted" href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
 						</h3>
-						<div class="gt-df gt-ac">
-							<span class="gt-mr-3">{{.Completeness}}%</span>
+						<div class="tw-flex tw-items-center">
+							<span class="tw-mr-2">{{.Completeness}}%</span>
 							<progress value="{{.Completeness}}" max="100"></progress>
 						</div>
 					</div>
@@ -47,14 +47,14 @@
 							{{if .UpdatedUnix}}
 								<div class="flex-text-block">
 									{{svg "octicon-clock"}}
-									{{ctx.Locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix ctx.Locale) | Safe}}
+									{{ctx.Locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix ctx.Locale)}}
 								</div>
 							{{end}}
 							<div class="flex-text-block">
 								{{if .IsClosed}}
 									{{$closedDate:= TimeSinceUnix .ClosedDateUnix ctx.Locale}}
 									{{svg "octicon-clock" 14}}
-									{{ctx.Locale.Tr "repo.milestones.closed" $closedDate | Safe}}
+									{{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
 								{{else}}
 									{{if .DeadlineString}}
 										<span class="flex-text-inline {{if .IsOverdue}}text red{{end}}">
@@ -82,7 +82,7 @@
 					</div>
 					{{if .Content}}
 						<div class="markup content">
-							{{.RenderedContent|Str2html}}
+							{{.RenderedContent}}
 						</div>
 					{{end}}
 				</li>

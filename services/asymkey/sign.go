@@ -13,8 +13,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -167,7 +169,8 @@ Loop:
 }
 
 // SignWikiCommit determines if we should sign the commits to this repository wiki
-func SignWikiCommit(ctx context.Context, repoWikiPath string, u *user_model.User) (bool, string, *git.Signature, error) {
+func SignWikiCommit(ctx context.Context, repo *repo_model.Repository, u *user_model.User) (bool, string, *git.Signature, error) {
+	repoWikiPath := repo.WikiPath()
 	rules := signingModeFromStrings(setting.Repository.Signing.Wiki)
 	signingKey, sig := SigningKey(ctx, repoWikiPath)
 	if signingKey == "" {
@@ -201,7 +204,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			gitRepo, err := git.OpenRepository(ctx, repoWikiPath)
+			gitRepo, err := gitrepo.OpenWikiRepository(ctx, repo)
 			if err != nil {
 				return false, "", nil, err
 			}

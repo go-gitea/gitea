@@ -141,7 +141,7 @@ func readSQLFromFile(version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(charset.RemoveBOMIfPresent(bytes)), nil
+	return string(charset.MaybeRemoveBOM(bytes, charset.ConvertOpts{})), nil
 }
 
 func restoreOldDB(t *testing.T, version string) bool {

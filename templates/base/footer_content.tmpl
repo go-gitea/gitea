@@ -1,6 +1,8 @@
 <footer class="page-footer" role="group" aria-label="{{ctx.Locale.Tr "aria.footer"}}">
 	<div class="left-links" role="contentinfo" aria-label="{{ctx.Locale.Tr "aria.footer.software"}}">
-		<a target="_blank" rel="noopener noreferrer" href="https://about.gitea.com">{{ctx.Locale.Tr "powered_by" "Gitea"}}</a>
+		{{if ShowFooterPoweredBy}}
+			<a target="_blank" rel="noopener noreferrer" href="https://about.gitea.com">{{ctx.Locale.Tr "powered_by" "Gitea"}}</a>
+		{{end}}
 		{{if (or .ShowFooterVersion .PageIsAdmin)}}
 			{{ctx.Locale.Tr "version"}}:
 			{{if .IsAdmin}}

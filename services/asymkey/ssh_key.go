@@ -43,8 +43,8 @@ func DeletePublicKey(ctx context.Context, doer *user_model.User, id int64) (err 
 	committer.Close()
 
 	if key.Type == asymkey_model.KeyTypePrincipal {
-		return asymkey_model.RewriteAllPrincipalKeys(ctx)
+		return RewriteAllPrincipalKeys(ctx)
 	}
 
-	return asymkey_model.RewriteAllPublicKeys(ctx)
+	return RewriteAllPublicKeys(ctx)
 }

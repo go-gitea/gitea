@@ -9,7 +9,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 )
 
@@ -17,8 +17,7 @@ import (
 // isForcePush will be true if oldCommit isn't on the branch
 // Commit on baseBranch will skip
 func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
-	repoPath := repo.RepoPath()
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repoPath)
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, false, err
 	}
@@ -47,7 +46,7 @@ func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldC
 		return commitIDs, isForcePush, err
 	}
 
-	// Find commits between new and old commit exclusing base branch commits
+	// Find commits between new and old commit excluding base branch commits
 	commits, err := gitRepo.CommitsBetweenNotBase(newCommit, oldCommit, baseBranch)
 	if err != nil {
 		return nil, false, err

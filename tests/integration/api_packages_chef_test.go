@@ -11,6 +11,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -33,7 +34,6 @@ import (
 	chef_router "code.gitea.io/gitea/routers/api/packages/chef"
 	"code.gitea.io/gitea/tests"
 
-	"github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -169,7 +169,7 @@ nwIDAQAB
 			assert.Nil(t, u)
 			assert.Error(t, err)
 
-			signRequest := func(t *testing.T, rw *RequestWrapper, version string) {
+			signRequest := func(rw *RequestWrapper, version string) {
 				req := rw.Request
 				username := req.Header.Get("X-Ops-Userid")
 				if version != "1.0" && version != "1.3" {
@@ -255,7 +255,7 @@ nwIDAQAB
 				t.Run(v, func(t *testing.T) {
 					defer tests.PrintCurrentTest(t)()
 
-					signRequest(t, req, v)
+					signRequest(req, v)
 					u, err = auth.Verify(req.Request, nil, nil, nil)
 					assert.NotNil(t, u)
 					assert.NoError(t, err)

@@ -103,7 +103,7 @@ func generateSaveInternalToken(rootCfg ConfigProvider) {
 func loadSecurityFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("security")
 	InstallLock = HasInstallLock(rootCfg)
-	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
+	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(31)
 	SecretKey = loadSecret(sec, "SECRET_KEY_URI", "SECRET_KEY")
 	if SecretKey == "" {
 		// FIXME: https://github.com/go-gitea/gitea/issues/16832

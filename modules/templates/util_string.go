@@ -4,7 +4,8 @@
 package templates
 
 import (
-	"regexp"
+	"fmt"
+	"html/template"
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
@@ -18,16 +19,25 @@ func NewStringUtils() *StringUtils {
 	return &stringUtils
 }
 
+func (su *StringUtils) ToString(v any) string {
+	switch v := v.(type) {
+	case string:
+		return v
+	case template.HTML:
+		return string(v)
+	case fmt.Stringer:
+		return v.String()
+	default:
+		return fmt.Sprint(v)
+	}
+}
+
 func (su *StringUtils) HasPrefix(s, prefix string) bool {
 	return strings.HasPrefix(s, prefix)
 }
 
 func (su *StringUtils) Contains(s, substr string) bool {
 	return strings.Contains(s, substr)
-}
-
-func (su *StringUtils) ReplaceAllStringRegex(s, regex, new string) string {
-	return regexp.MustCompile(regex).ReplaceAllString(s, new)
 }
 
 func (su *StringUtils) Split(s, sep string) []string {
@@ -45,4 +55,8 @@ func (su *StringUtils) Cut(s, sep string) []any {
 
 func (su *StringUtils) EllipsisString(s string, max int) string {
 	return base.EllipsisString(s, max)
+}
+
+func (su *StringUtils) ToUpper(s string) string {
+	return strings.ToUpper(s)
 }

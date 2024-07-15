@@ -14,18 +14,18 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
 // ServNoCommand returns information about the provided keyid
 func ServNoCommand(ctx *context.PrivateContext) {
-	keyID := ctx.ParamsInt64(":keyid")
+	keyID := ctx.PathParamInt64(":keyid")
 	if keyID <= 0 {
 		ctx.JSON(http.StatusBadRequest, private.Response{
 			UserMsg: fmt.Sprintf("Bad key id: %d", keyID),
@@ -77,9 +77,9 @@ func ServNoCommand(ctx *context.PrivateContext) {
 
 // ServCommand returns information about the provided keyid
 func ServCommand(ctx *context.PrivateContext) {
-	keyID := ctx.ParamsInt64(":keyid")
-	ownerName := ctx.Params(":owner")
-	repoName := ctx.Params(":repo")
+	keyID := ctx.PathParamInt64(":keyid")
+	ownerName := ctx.PathParam(":owner")
+	repoName := ctx.PathParam(":repo")
 	mode := perm.AccessMode(ctx.FormInt("mode"))
 
 	// Set the basic parts of the results to return
@@ -297,7 +297,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			}
 		} else {
 			// Because of the special ref "refs/for" we will need to delay write permission check
-			if git.SupportProcReceive && unitType == unit.TypeCode {
+			if git.DefaultFeatures().SupportProcReceive && unitType == unit.TypeCode {
 				mode = perm.AccessModeRead
 			}
 

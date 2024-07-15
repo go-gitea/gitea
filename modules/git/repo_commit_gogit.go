@@ -41,7 +41,10 @@ func (repo *Repository) RemoveReference(name string) error {
 
 // ConvertToHash returns a Hash object from a potential ID string
 func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
-	objectFormat := repo.objectFormat
+	objectFormat, err := repo.GetObjectFormat()
+	if err != nil {
+		return nil, err
+	}
 	if len(commitID) == hash.HexSize && objectFormat.IsValid(commitID) {
 		ID, err := NewIDFromString(commitID)
 		if err == nil {

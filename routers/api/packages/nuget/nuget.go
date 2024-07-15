@@ -17,13 +17,14 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	nuget_model "code.gitea.io/gitea/models/packages/nuget"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -35,7 +36,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 	})
 }
 
-func xmlResponse(ctx *context.Context, status int, obj any) {
+func xmlResponse(ctx *context.Context, status int, obj any) { //nolint:unparam
 	ctx.Resp.Header().Set("Content-Type", "application/atom+xml; charset=utf-8")
 	ctx.Resp.WriteHeader(status)
 	if _, err := ctx.Resp.Write([]byte(xml.Header)); err != nil {
@@ -95,20 +96,34 @@ func FeedCapabilityResource(ctx *context.Context) {
 	xmlResponse(ctx, http.StatusOK, Metadata)
 }
 
-var searchTermExtract = regexp.MustCompile(`'([^']+)'`)
+var (
+	searchTermExtract = regexp.MustCompile(`'([^']+)'`)
+	searchTermExact   = regexp.MustCompile(`\s+eq\s+'`)
+)
 
-func getSearchTerm(ctx *context.Context) string {
+func getSearchTerm(ctx *context.Context) packages_model.SearchValue {
 	searchTerm := strings.Trim(ctx.FormTrim("searchTerm"), "'")
-	if searchTerm == "" {
-		// $filter contains a query like:
-		// (((Id ne null) and substringof('microsoft',tolower(Id)))
-		// We don't support these queries, just extract the search term.
-		match := searchTermExtract.FindStringSubmatch(ctx.FormTrim("$filter"))
-		if len(match) == 2 {
-			searchTerm = strings.TrimSpace(match[1])
+	if searchTerm != "" {
+		return packages_model.SearchValue{
+			Value:      searchTerm,
+			ExactMatch: false,
 		}
 	}
-	return searchTerm
+
+	// $filter contains a query like:
+	// (((Id ne null) and substringof('microsoft',tolower(Id)))
+	// https://www.odata.org/documentation/odata-version-2-0/uri-conventions/ section 4.5
+	// We don't support these queries, just extract the search term.
+	filter := ctx.FormTrim("$filter")
+	match := searchTermExtract.FindStringSubmatch(filter)
+	if len(match) == 2 {
+		return packages_model.SearchValue{
+			Value:      strings.TrimSpace(match[1]),
+			ExactMatch: searchTermExact.MatchString(filter),
+		}
+	}
+
+	return packages_model.SearchValue{}
 }
 
 // https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
@@ -117,12 +132,10 @@ func SearchServiceV2(ctx *context.Context) {
 	paginator := db.NewAbsoluteListOptions(skip, take)
 
 	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID: ctx.Package.Owner.ID,
-		Type:    packages_model.TypeNuGet,
-		Name: packages_model.SearchValue{
-			Value: getSearchTerm(ctx),
-		},
-		IsInternal: util.OptionalBoolFalse,
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages_model.TypeNuGet,
+		Name:       getSearchTerm(ctx),
+		IsInternal: optional.Some(false),
 		Paginator:  paginator,
 	})
 	if err != nil {
@@ -168,11 +181,9 @@ func SearchServiceV2(ctx *context.Context) {
 // http://docs.oasis-open.org/odata/odata/v4.0/errata03/os/complete/part2-url-conventions/odata-v4.0-errata03-os-part2-url-conventions-complete.html#_Toc453752351
 func SearchServiceV2Count(ctx *context.Context) {
 	count, err := nuget_model.CountPackages(ctx, &packages_model.PackageSearchOptions{
-		OwnerID: ctx.Package.Owner.ID,
-		Name: packages_model.SearchValue{
-			Value: getSearchTerm(ctx),
-		},
-		IsInternal: util.OptionalBoolFalse,
+		OwnerID:    ctx.Package.Owner.ID,
+		Name:       getSearchTerm(ctx),
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -187,7 +198,7 @@ func SearchServiceV3(ctx *context.Context) {
 	pvs, count, err := nuget_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
 		Name:       packages_model.SearchValue{Value: ctx.FormTrim("q")},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator: db.NewAbsoluteListOptions(
 			ctx.FormInt("skip"),
 			ctx.FormInt("take"),
@@ -215,7 +226,7 @@ func SearchServiceV3(ctx *context.Context) {
 
 // https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#registration-index
 func RegistrationIndex(ctx *context.Context) {
-	packageName := ctx.Params("id")
+	packageName := ctx.PathParam("id")
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName)
 	if err != nil {
@@ -243,8 +254,8 @@ func RegistrationIndex(ctx *context.Context) {
 
 // https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
 func RegistrationLeafV2(ctx *context.Context) {
-	packageName := ctx.Params("id")
-	packageVersion := ctx.Params("version")
+	packageName := ctx.PathParam("id")
+	packageVersion := ctx.PathParam("version")
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName, packageVersion)
 	if err != nil {
@@ -272,8 +283,8 @@ func RegistrationLeafV2(ctx *context.Context) {
 
 // https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#registration-leaf
 func RegistrationLeafV3(ctx *context.Context) {
-	packageName := ctx.Params("id")
-	packageVersion := strings.TrimSuffix(ctx.Params("version"), ".json")
+	packageName := ctx.PathParam("id")
+	packageVersion := strings.TrimSuffix(ctx.PathParam("version"), ".json")
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName, packageVersion)
 	if err != nil {
@@ -313,7 +324,7 @@ func EnumeratePackageVersionsV2(ctx *context.Context) {
 			ExactMatch: true,
 			Value:      packageName,
 		},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator:  paginator,
 	})
 	if err != nil {
@@ -358,7 +369,7 @@ func EnumeratePackageVersionsV2Count(ctx *context.Context) {
 			ExactMatch: true,
 			Value:      strings.Trim(ctx.FormTrim("id"), "'"),
 		},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -370,7 +381,7 @@ func EnumeratePackageVersionsV2Count(ctx *context.Context) {
 
 // https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#enumerate-package-versions
 func EnumeratePackageVersionsV3(ctx *context.Context) {
-	packageName := ctx.Params("id")
+	packageName := ctx.PathParam("id")
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName)
 	if err != nil {
@@ -387,11 +398,12 @@ func EnumeratePackageVersionsV3(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#download-package-content-nupkg
+// https://learn.microsoft.com/en-us/nuget/api/package-base-address-resource#download-package-manifest-nuspec
+// https://learn.microsoft.com/en-us/nuget/api/package-base-address-resource#download-package-content-nupkg
 func DownloadPackageFile(ctx *context.Context) {
-	packageName := ctx.Params("id")
-	packageVersion := ctx.Params("version")
-	filename := ctx.Params("filename")
+	packageName := ctx.PathParam("id")
+	packageVersion := ctx.PathParam("version")
+	filename := ctx.PathParam("filename")
 
 	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
@@ -430,7 +442,7 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	_, _, err := packages_service.CreatePackageAndAddFile(
+	pv, _, err := packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -456,6 +468,33 @@ func UploadPackage(ctx *context.Context) {
 		switch err {
 		case packages_model.ErrDuplicatePackageVersion:
 			apiError(ctx, http.StatusConflict, err)
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	nuspecBuf, err := packages_module.CreateHashedBufferFromReaderWithSize(np.NuspecContent, np.NuspecContent.Len())
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer nuspecBuf.Close()
+
+	_, err = packages_service.AddFileToPackageVersionInternal(
+		ctx,
+		pv,
+		&packages_service.PackageFileCreationInfo{
+			PackageFileInfo: packages_service.PackageFileInfo{
+				Filename: strings.ToLower(fmt.Sprintf("%s.nuspec", np.ID)),
+			},
+			Data: nuspecBuf,
+		},
+	)
+	if err != nil {
+		switch err {
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
 		default:
@@ -565,13 +604,13 @@ func UploadSymbolPackage(ctx *context.Context) {
 func processUploadedFile(ctx *context.Context, expectedType nuget_module.PackageType) (*nuget_module.Package, *packages_module.HashedBuffer, []io.Closer) {
 	closables := make([]io.Closer, 0, 2)
 
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return nil, nil, closables
 	}
 
-	if close {
+	if needToClose {
 		closables = append(closables, upload)
 	}
 
@@ -604,9 +643,9 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 
 // https://github.com/dotnet/symstore/blob/main/docs/specs/Simple_Symbol_Query_Protocol.md#request
 func DownloadSymbolFile(ctx *context.Context) {
-	filename := ctx.Params("filename")
-	guid := ctx.Params("guid")[:32]
-	filename2 := ctx.Params("filename2")
+	filename := ctx.PathParam("filename")
+	guid := ctx.PathParam("guid")[:32]
+	filename2 := ctx.PathParam("filename2")
 
 	if filename != filename2 {
 		apiError(ctx, http.StatusBadRequest, nil)
@@ -646,8 +685,8 @@ func DownloadSymbolFile(ctx *context.Context) {
 // DeletePackage hard deletes the package
 // https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#delete-a-package
 func DeletePackage(ctx *context.Context) {
-	packageName := ctx.Params("id")
-	packageVersion := ctx.Params("version")
+	packageName := ctx.PathParam("id")
+	packageVersion := ctx.PathParam("version")
 
 	err := packages_service.RemovePackageVersionByNameAndVersion(
 		ctx,

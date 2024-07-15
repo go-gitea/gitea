@@ -19,12 +19,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -67,14 +68,14 @@ func TestGiteaUploadRepo(t *testing.T) {
 
 	milestones, err := db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
 		RepoID:   repo.ID,
-		IsClosed: util.OptionalBoolFalse,
+		IsClosed: optional.Some(false),
 	})
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 1)
 
 	milestones, err = db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
 		RepoID:   repo.ID,
-		IsClosed: util.OptionalBoolTrue,
+		IsClosed: optional.Some(true),
 	})
 	assert.NoError(t, err)
 	assert.Empty(t, milestones)
@@ -107,7 +108,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 
 	issues, err := issues_model.Issues(db.DefaultContext, &issues_model.IssuesOptions{
 		RepoIDs:  []int64{repo.ID},
-		IsPull:   util.OptionalBoolFalse,
+		IsPull:   optional.Some(false),
 		SortType: "oldest",
 	})
 	assert.NoError(t, err)
@@ -249,7 +250,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		Author:    &signature,
 		Message:   "Initial Commit",
 	}))
-	fromGitRepo, err := git.OpenRepository(git.DefaultContext, fromRepo.RepoPath())
+	fromGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, fromRepo)
 	assert.NoError(t, err)
 	defer fromGitRepo.Close()
 	baseSHA, err := fromGitRepo.GetBranchCommitID(baseRef)
@@ -292,7 +293,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		Author:    &signature,
 		Message:   "branch2 commit",
 	}))
-	forkGitRepo, err := git.OpenRepository(git.DefaultContext, forkRepo.RepoPath())
+	forkGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, forkRepo)
 	assert.NoError(t, err)
 	defer forkGitRepo.Close()
 	forkHeadSHA, err := forkGitRepo.GetBranchCommitID(forkHeadRef)

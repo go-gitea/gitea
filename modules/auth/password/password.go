@@ -5,14 +5,21 @@ package password
 
 import (
 	"bytes"
-	goContext "context"
+	"context"
 	"crypto/rand"
+	"errors"
+	"html/template"
 	"math/big"
 	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
+)
+
+var (
+	ErrComplexity = errors.New("password not complex enough")
+	ErrMinLength  = errors.New("password not long enough")
 )
 
 // complexity contains information about a particular kind of password complexity
@@ -56,16 +63,16 @@ func NewComplexity() {
 func setupComplexity(values []string) {
 	if len(values) != 1 || values[0] != "off" {
 		for _, val := range values {
-			if complex, ok := charComplexities[val]; ok {
-				validChars += complex.ValidChars
-				requiredList = append(requiredList, complex)
+			if complexity, ok := charComplexities[val]; ok {
+				validChars += complexity.ValidChars
+				requiredList = append(requiredList, complexity)
 			}
 		}
 		if len(requiredList) == 0 {
 			// No valid character classes found; use all classes as default
-			for _, complex := range charComplexities {
-				validChars += complex.ValidChars
-				requiredList = append(requiredList, complex)
+			for _, complexity := range charComplexities {
+				validChars += complexity.ValidChars
+				requiredList = append(requiredList, complexity)
 			}
 		}
 	}
@@ -101,26 +108,29 @@ func Generate(n int) (string, error) {
 			}
 			buffer[j] = validChars[rnd.Int64()]
 		}
-		pwned, err := IsPwned(goContext.Background(), string(buffer))
-		if err != nil {
+
+		if err := IsPwned(context.Background(), string(buffer)); err != nil {
+			if errors.Is(err, ErrIsPwned) {
+				continue
+			}
 			return "", err
 		}
-		if IsComplexEnough(string(buffer)) && !pwned && string(buffer[0]) != " " && string(buffer[n-1]) != " " {
+		if IsComplexEnough(string(buffer)) && string(buffer[0]) != " " && string(buffer[n-1]) != " " {
 			return string(buffer), nil
 		}
 	}
 }
 
 // BuildComplexityError builds the error message when password complexity checks fail
-func BuildComplexityError(locale translation.Locale) string {
+func BuildComplexityError(locale translation.Locale) template.HTML {
 	var buffer bytes.Buffer
-	buffer.WriteString(locale.Tr("form.password_complexity"))
+	buffer.WriteString(locale.TrString("form.password_complexity"))
 	buffer.WriteString("<ul>")
 	for _, c := range requiredList {
 		buffer.WriteString("<li>")
-		buffer.WriteString(locale.Tr(c.TrNameOne))
+		buffer.WriteString(locale.TrString(c.TrNameOne))
 		buffer.WriteString("</li>")
 	}
 	buffer.WriteString("</ul>")
-	return buffer.String()
+	return template.HTML(buffer.String())
 }

@@ -10,11 +10,10 @@ import (
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 
 	"gitea.com/go-chi/binding"
 )
@@ -109,11 +108,7 @@ func (f *RegisterForm) Validate(req *http.Request, errs binding.Errors) binding.
 // domains in the whitelist or if it doesn't match any of
 // domains in the blocklist, if any such list is not empty.
 func (f *RegisterForm) IsEmailDomainAllowed() bool {
-	if len(setting.Service.EmailDomainAllowList) == 0 {
-		return !validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, f.Email)
-	}
-
-	return validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, f.Email)
+	return user_model.IsEmailDomainAllowed(f.Email)
 }
 
 // MustChangePasswordForm form for updating your password after account creation
@@ -166,6 +161,7 @@ func (f *AuthorizationForm) Validate(req *http.Request, errs binding.Errors) bin
 // GrantApplicationForm form for authorizing oauth2 clients
 type GrantApplicationForm struct {
 	ClientID    string `binding:"Required"`
+	Granted     bool
 	RedirectURI string
 	State       string
 	Scope       string
@@ -277,27 +273,13 @@ func (f *AddEmailForm) Validate(req *http.Request, errs binding.Errors) binding.
 
 // UpdateThemeForm form for updating a users' theme
 type UpdateThemeForm struct {
-	Theme string `binding:"Required;MaxSize(30)"`
+	Theme string `binding:"Required;MaxSize(255)"`
 }
 
 // Validate validates the field
 func (f *UpdateThemeForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// IsThemeExists checks if the theme is a theme available in the config.
-func (f UpdateThemeForm) IsThemeExists() bool {
-	var exists bool
-
-	for _, v := range setting.UI.Themes {
-		if strings.EqualFold(v, f.Theme) {
-			exists = true
-			break
-		}
-	}
-
-	return exists
 }
 
 // ChangePasswordForm form for changing password
@@ -446,6 +428,17 @@ type PackageSettingForm struct {
 
 // Validate validates the fields
 func (f *PackageSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type BlockUserForm struct {
+	Action  string `binding:"Required;In(block,unblock,note)"`
+	Blockee string `binding:"Required"`
+	Note    string
+}
+
+func (f *BlockUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

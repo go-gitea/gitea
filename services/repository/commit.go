@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	gitea_ctx "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/util"
+	gitea_ctx "code.gitea.io/gitea/services/context"
 )
 
 type ContainedLinks struct { // TODO: better name?

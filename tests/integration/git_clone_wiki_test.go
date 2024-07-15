@@ -45,6 +45,7 @@ func TestRepoCloneWiki(t *testing.T) {
 			assertFileExist(t, filepath.Join(dstPath, "Page-With-Image.md"))
 			assertFileExist(t, filepath.Join(dstPath, "Page-With-Spaced-Name.md"))
 			assertFileExist(t, filepath.Join(dstPath, "images"))
+			assertFileExist(t, filepath.Join(dstPath, "files/Non-Renderable-File.zip"))
 			assertFileExist(t, filepath.Join(dstPath, "jpeg.jpg"))
 		})
 	})

@@ -5,6 +5,7 @@ package integration
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -21,9 +22,9 @@ import (
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
-	"github.com/minio/sha256-simd"
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/assert"
 )
@@ -83,7 +84,7 @@ func TestPackageContainer(t *testing.T) {
 			Token string `json:"token"`
 		}
 
-		authenticate := []string{`Bearer realm="` + setting.AppURL + `v2/token",service="container_registry",scope="*"`}
+		defaultAuthenticateValues := []string{`Bearer realm="` + setting.AppURL + `v2/token",service="container_registry",scope="*"`}
 
 		t.Run("Anonymous", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
@@ -91,7 +92,7 @@ func TestPackageContainer(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
 			resp := MakeRequest(t, req, http.StatusUnauthorized)
 
-			assert.ElementsMatch(t, authenticate, resp.Header().Values("WWW-Authenticate"))
+			assert.ElementsMatch(t, defaultAuthenticateValues, resp.Header().Values("WWW-Authenticate"))
 
 			req = NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL))
 			resp = MakeRequest(t, req, http.StatusOK)
@@ -106,6 +107,20 @@ func TestPackageContainer(t *testing.T) {
 			req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL)).
 				AddTokenAuth(anonymousToken)
 			MakeRequest(t, req, http.StatusOK)
+
+			defer test.MockVariableValue(&setting.Service.RequireSignInView, true)()
+
+			req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
+			MakeRequest(t, req, http.StatusUnauthorized)
+
+			req = NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL))
+			MakeRequest(t, req, http.StatusUnauthorized)
+
+			defer test.MockVariableValue(&setting.AppURL, "https://domain:8443/sub-path/")()
+			defer test.MockVariableValue(&setting.AppSubURL, "/sub-path")()
+			req = NewRequest(t, "GET", "/v2")
+			resp = MakeRequest(t, req, http.StatusUnauthorized)
+			assert.Equal(t, `Bearer realm="https://domain:8443/v2/token",service="container_registry",scope="*"`, resp.Header().Get("WWW-Authenticate"))
 		})
 
 		t.Run("User", func(t *testing.T) {
@@ -114,7 +129,7 @@ func TestPackageContainer(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
 			resp := MakeRequest(t, req, http.StatusUnauthorized)
 
-			assert.ElementsMatch(t, authenticate, resp.Header().Values("WWW-Authenticate"))
+			assert.ElementsMatch(t, defaultAuthenticateValues, resp.Header().Values("WWW-Authenticate"))
 
 			req = NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL)).
 				AddBasicAuth(user.Name)
