@@ -86,7 +86,10 @@ func addObjectFormatNameToRepository(x *xorm.Engine) error {
 		ObjectFormatName string `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
 	}
 
-	if err := x.Sync(new(Repository)); err != nil {
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreIndices:    true,
+		IgnoreConstrains: true,
+	}, new(Repository)); err != nil {
 		return err
 	}
 

@@ -47,7 +47,6 @@ overrides:
   - files: ["web_src/**/*"]
     globals:
       __webpack_public_path__: true
-      htmx: true
       process: false # https://github.com/webpack/webpack/issues/15833
   - files: ["web_src/**/*", "docs/**/*"]
     env:
@@ -61,7 +60,15 @@ overrides:
   - files: ["*.config.*"]
     rules:
       i/no-unused-modules: [0]
-  - files: ["**/*.test.*", "web_src/js/test/setup.js"]
+  - files: ["**/*.d.ts"]
+    rules:
+      i/no-unused-modules: [0]
+      "@typescript-eslint/consistent-type-definitions": [0]
+      "@typescript-eslint/consistent-type-imports": [0]
+  - files: ["web_src/js/types.ts"]
+    rules:
+      i/no-unused-modules: [0]
+  - files: ["**/*.test.*", "web_src/js/test/setup.ts"]
     env:
       vitest-globals/env: true
     rules:
@@ -114,7 +121,7 @@ overrides:
       vitest/valid-describe-callback: [2]
       vitest/valid-expect: [2]
       vitest/valid-title: [2]
-  - files: ["web_src/js/modules/fetch.js", "web_src/js/standalone/**/*"]
+  - files: ["web_src/js/modules/fetch.ts", "web_src/js/standalone/**/*"]
     rules:
       no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression]
   - files: ["**/*.vue"]
@@ -467,7 +474,7 @@ rules:
   no-dupe-else-if: [2]
   no-dupe-keys: [2]
   no-duplicate-case: [2]
-  no-duplicate-imports: [2]
+  no-duplicate-imports: [0]
   no-else-return: [2]
   no-empty-character-class: [2]
   no-empty-function: [0]
@@ -619,7 +626,7 @@ rules:
   no-restricted-exports: [0]
   no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, location, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, self, status, statusbar, stop, toolbar, top, __dirname, __filename]
   no-restricted-imports: [0]
-  no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression, {selector: "CallExpression[callee.name='fetch']", message: "use modules/fetch.js instead"}]
+  no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression, {selector: "CallExpression[callee.name='fetch']", message: "use modules/fetch.ts instead"}]
   no-return-assign: [0]
   no-script-url: [2]
   no-self-assign: [2, {props: true}]
