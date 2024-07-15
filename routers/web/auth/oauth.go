@@ -326,6 +326,14 @@ func getOAuthGroupsForUser(ctx go_context.Context, user *user_model.User) ([]str
 	return groups, nil
 }
 
+func parseBasicAuth(ctx *context.Context) (username, password string, err error) {
+	authHeader := ctx.Req.Header.Get("Authorization")
+	if authType, authData, ok := strings.Cut(authHeader, " "); ok && authType == "Basic" {
+		return base.BasicAuthDecode(authData)
+	}
+	return "", "", errors.New("invalid basic authentication")
+}
+
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
 	clientIDValid := false
@@ -641,45 +649,39 @@ func OIDCKeys(ctx *context.Context) {
 	}
 }
 
-func parseBasicAuth(ctx *context.Context) (username, password string, err error) {
-	authHeader := ctx.Req.Header.Get("Authorization")
-	if authType, authData, ok := strings.Cut(authHeader, " "); ok && authType == "Basic" {
-		return base.BasicAuthDecode(authData)
-	}
-	return "", "", errors.New("invalid basic authentication")
-}
-
 // AccessTokenOAuth manages all access token requests by the client
 func AccessTokenOAuth(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AccessTokenForm)
 	// if there is no ClientID or ClientSecret in the request body, fill these fields by the Authorization header and ensure the provided field matches the Authorization header
 	if form.ClientID == "" || form.ClientSecret == "" {
-		clientID, clientSecret, err := parseBasicAuth(ctx)
-		if err != nil {
-			// present and valid Basic auth header is required in this case:
-			handleAccessTokenError(ctx, AccessTokenError{
-				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-				ErrorDescription: "cannot parse basic auth header",
-			})
-			return
+		authHeader := ctx.Req.Header.Get("Authorization")
+		if authType, authData, ok := strings.Cut(authHeader, " "); ok && authType == "Basic" {
+			clientID, clientSecret, err := base.BasicAuthDecode(authData)
+			if err != nil {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "cannot parse basic auth header",
+				})
+				return
+			}
+			// validate that any fields present in the form match the Basic auth header
+			if form.ClientID != "" && form.ClientID != clientID {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "client_id in request body inconsistent with Authorization header",
+				})
+				return
+			}
+			form.ClientID = clientID
+			if form.ClientSecret != "" && form.ClientSecret != clientSecret {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "client_secret in request body inconsistent with Authorization header",
+				})
+				return
+			}
+			form.ClientSecret = clientSecret
 		}
-		// validate that any fields present in the form match the Basic auth header
-		if form.ClientID != "" && form.ClientID != clientID {
-			handleAccessTokenError(ctx, AccessTokenError{
-				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-				ErrorDescription: "client_id in request body inconsistent with Authorization header",
-			})
-			return
-		}
-		form.ClientID = clientID
-		if form.ClientSecret != "" && form.ClientSecret != clientSecret {
-			handleAccessTokenError(ctx, AccessTokenError{
-				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-				ErrorDescription: "client_secret in request body inconsistent with Authorization header",
-			})
-			return
-		}
-		form.ClientSecret = clientSecret
 	}
 
 	serverKey := oauth2.DefaultSigningKey
