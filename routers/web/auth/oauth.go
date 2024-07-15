@@ -339,9 +339,7 @@ func IntrospectOAuth(ctx *context.Context) {
 	clientIDValid := false
 	if clientID, clientSecret, err := parseBasicAuth(ctx); err == nil {
 		if app, err := auth.GetOAuth2ApplicationByClientID(ctx, clientID); err == nil {
-			if app.ValidateClientSecret([]byte(clientSecret)) {
-				clientIDValid = true
-			}
+			clientIDValid = app.ValidateClientSecret([]byte(clientSecret))
 		}
 	}
 	if !clientIDValid {
