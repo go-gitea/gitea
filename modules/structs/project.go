@@ -21,10 +21,26 @@ type Project struct {
 	ClosedDateUnix int64 `json:"closed_date_unix"`
 }
 
+// CreateProjectOption options for creating a project
 type CreateProjectOption struct {
 	// required:true
 	Title        string `json:"title" binding:"Required;MaxSize(100)"`
 	Content      string `json:"content"`
 	TemplateType uint8  `json:"template_type"`
 	CardType     uint8  `json:"card_type"`
+}
+
+// EditProjectOption options for editing a project
+type EditProjectOption struct {
+	Title    string `json:"title" binding:"MaxSize(100)"`
+	Content  string `json:"content"`
+	CardType uint8  `json:"card_type"`
+}
+
+// MoveColumnsOption options for moving columns
+type MovedColumnsOption struct {
+	Columns []struct {
+		ColumnID int64 `json:"columnID"`
+		Sorting  int64 `json:"sorting"`
+	} `json:"columns"`
 }

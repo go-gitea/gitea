@@ -115,6 +115,20 @@ type EditIssueOption struct {
 	RemoveDeadline *bool      `json:"unset_due_date"`
 }
 
+// MoveIssuesOption options for moving issues
+type MovedIssuesOption struct {
+	Issues []struct {
+		IssueID int64 `json:"issueID"`
+		Sorting int64 `json:"sorting"`
+	} `json:"issues"`
+}
+
+// UpdateIssuesOption options for updating issues
+type UpdateIssuesOption struct {
+	ProjectID int64   `json:"project_id"`
+	Issues    []int64 `json:"issues"`
+}
+
 // EditDeadlineOption options for creating a deadline
 type EditDeadlineOption struct {
 	// required:true

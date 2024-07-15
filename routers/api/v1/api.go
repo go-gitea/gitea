@@ -1026,9 +1026,9 @@ func Routes() *web.Router {
 				m.Group("", func() {
 					m.Post("", bind(api.CreateProjectOption{}), project_shared.ProjectHandler("org", project_shared.CreateProject))
 					m.Group("/{id}", func() {
-						m.Post("", bind(api.EditProjectColumnOption{}), project_shared.ProjectHandler("org", project_shared.AddColumnToProject))
+						m.Post("", bind(api.CreateProjectColumnOption{}), project_shared.ProjectHandler("org", project_shared.AddColumnToProject))
 						m.Delete("", project_shared.ProjectHandler("org", project_shared.DeleteProject))
-						m.Put("", bind(api.CreateProjectOption{}), project_shared.ProjectHandler("org", project_shared.EditProject))
+						m.Put("", bind(api.EditProjectOption{}), project_shared.ProjectHandler("org", project_shared.EditProject))
 						m.Post("/move", project_shared.MoveColumns)
 						m.Post("/{action:open|close}", project_shared.ChangeProjectStatus)
 
@@ -1055,9 +1055,9 @@ func Routes() *web.Router {
 				m.Group("", func() {
 					m.Post("", bind(api.CreateProjectOption{}), project_shared.ProjectHandler("repo", project_shared.CreateProject))
 					m.Group("/{id}", func() {
-						m.Post("", bind(api.EditProjectColumnOption{}), project_shared.ProjectHandler("repo", project_shared.AddColumnToProject))
+						m.Post("", bind(api.CreateProjectColumnOption{}), project_shared.ProjectHandler("repo", project_shared.AddColumnToProject))
 						m.Delete("", project_shared.ProjectHandler("repo", project_shared.DeleteProject))
-						m.Put("", bind(api.CreateProjectOption{}), project_shared.ProjectHandler("repo", project_shared.EditProject))
+						m.Put("", bind(api.EditProjectOption{}), project_shared.ProjectHandler("repo", project_shared.EditProject))
 						m.Post("/move", project_shared.MoveColumns)
 						m.Post("/{action:open|close}", project_shared.ChangeProjectStatus)
 

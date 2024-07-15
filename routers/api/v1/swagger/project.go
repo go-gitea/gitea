@@ -13,3 +13,17 @@ type swaggerResponseProject struct {
 	// in:body
 	Body api.Project `json:"body"`
 }
+
+// ProjectList
+// swagger:response ProjectList
+type swaggerResponseProjectList struct {
+	// in:body
+	Body []api.Project `json:"body"`
+}
+
+// Column
+// swagger:response Column
+type swaggerResponseColumn struct {
+	// in:body
+	Body api.Column `json:"body"`
+}

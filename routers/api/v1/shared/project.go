@@ -41,9 +41,10 @@ func ProjectHandler(model string, fn func(ctx *context.APIContext, model string)
 
 // CreateProject creates a new project
 func CreateProject(ctx *context.APIContext, model string) {
-	// swagger: operation POST /users/{username}/{reponame}/projects project createProject
+	// swagger:operation POST /{username}/{repo}/projects project createProject
 	// ---
-	// summary: Create a project
+	// summary: Create a new project
+	// description: Creates a new project for a given user and repository.
 	// consumes:
 	// - application/json
 	// produces:
@@ -52,22 +53,30 @@ func CreateProject(ctx *context.APIContext, model string) {
 	// - name: username
 	//   in: path
 	//   description: owner of the project
-	//   type: string
 	//   required: true
-	// - name: reponame
+	//   type: string
+	// - name: repo
 	//   in: path
-	//   description: repository name
-	//   type: string
+	//   description: repository name. If left '-', the project will be created for the user
 	//   required: true
+	//   type: string
 	// - name: body
 	//   in: body
+	//   description: Project data
+	//   required: true
 	//   schema:
 	//     "$ref": "#/definitions/CreateProjectOption"
 	// responses:
-	//   "200":
+	//   "201":
 	//     "$ref": "#/responses/Project"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "412":
+	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	err := checkModelType(model)
 
@@ -108,6 +117,33 @@ func CreateProject(ctx *context.APIContext, model string) {
 
 // GetProjects returns a list of projects
 func GetProjects(ctx *context.APIContext, model string) {
+	// swagger:operation GET /{username}/{repo}/projects project getProjects
+	// ---
+	// summary: Get a list of projects
+	// description: Returns a list of projects for a given user and repository.
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: owner of the project
+	//   required: true
+	//   type: string
+	// - name: repo
+	//   in: path
+	//   description: repository name. If left '-', the projects will be returned for the user
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ProjectList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+
 	err := checkModelType(model)
 
 	if err != nil {
@@ -150,6 +186,37 @@ func GetProjects(ctx *context.APIContext, model string) {
 
 // GetProject returns a project
 func GetProject(ctx *context.APIContext, model string) {
+	// swagger:operation GET /{username}/{repo}/projects/{id} project getProject
+	// ---
+	// summary: Get a project
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: owner of the project
+	//   required: true
+	//   type: string
+	// - name: repo
+	//   in: path
+	//   description: repository name. If left '-', the project will be returned for the user
+	//   required: true
+	//   type: string
+	// - name: id
+	//   in: path
+	//   description: project ID
+	//   required: true
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Project"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+
 	err := checkModelType(model)
 
 	if err != nil {
@@ -193,6 +260,39 @@ func GetProject(ctx *context.APIContext, model string) {
 
 // EditProject edits a project
 func EditProject(ctx *context.APIContext, model string) {
+	// swagger:operation PUT /{username}/{repo}/projects/{id} project editProject
+	// ---
+	// summary: Edit a project
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: owner of the project
+	//   required: true
+	//   type: string
+	// - name: repo
+	//   in: path
+	//   description: repository name. If left '-', the project will be edited for the user
+	//   required: true
+	//   type: string
+	// - name: id
+	//   in: path
+	//   description: project ID
+	//   required: true
+	//   type: integer
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Project"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "412":
+	//     "$ref": "#/responses/error"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+
 	err := checkModelType(model)
 
 	if err != nil {
@@ -223,6 +323,36 @@ func EditProject(ctx *context.APIContext, model string) {
 
 // DeleteProject deletes a project
 func DeleteProject(ctx *context.APIContext, model string) {
+	// swagger:operation DELETE /{username}/{repo}/projects/{id} project deleteProject
+	// ---
+	// summary: Delete a project
+	// description: Deletes a specific project for a given user and repository.
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: owner of the project
+	//   required: true
+	//   type: string
+	// - name: repo
+	//   in: path
+	//   description: repository name. If left '-', the project will be deleted for the user
+	//   required: true
+	//   type: string
+	// - name: id
+	//   in: path
+	//   description: project ID
+	//   required: true
+	//   type: integer
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+
 	err := checkModelType(model)
 
 	if err != nil {
@@ -243,11 +373,50 @@ func DeleteProject(ctx *context.APIContext, model string) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{"message": "project deleted successfully"})
+	ctx.Status(http.StatusNoContent)
 }
 
 // ChangeProjectStatus updates the status of a project between "open" and "close"
 func ChangeProjectStatus(ctx *context.APIContext) {
+	// swagger:operation POST /{username}/{repo}/projects/{id}/{action} project changeProjectStatus
+	// ---
+	// summary: Change the status of a project
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: owner of the project
+	//   required: true
+	//   type: string
+	// - name: repo
+	//   in: path
+	//   description: repository name. If left '-', the project status will be changed for the user
+	//   required: true
+	//   type: string
+	// - name: id
+	//   in: path
+	//   description: project ID
+	//   required: true
+	//   type: integer
+	// - name: action
+	//   in: path
+	//   description: action to perform (open or close)
+	//   required: true
+	//   type: string
+	//   enum:
+	//   - open
+	//   - close
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+
 	var toClose bool
 	switch ctx.PathParam(":action") {
 	case "open":
@@ -264,10 +433,54 @@ func ChangeProjectStatus(ctx *context.APIContext) {
 		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]any{"message": "project status updated successfully"})
+	ctx.Status(http.StatusNoContent)
 }
 
+// AddColumnToProject adds a new column to a project
 func AddColumnToProject(ctx *context.APIContext, model string) {
+	// swagger:operation POST /{username}/{repo}/projects/{id} project addColumnToProject
+	// ---
+	// summary: Add a column to a project
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: owner of the project
+	//   required: true
+	//   type: string
+	// - name: repo
+	//   in: path
+	//   description: repository name. If left '-', the column will be added to the user's project
+	//   required: true
+	//   type: string
+	// - name: id
+	//   in: path
+	//   description: project ID
+	//   required: true
+	//   type: integer
+	// - name: body
+	//   in: body
+	//   description: column data
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/CreateProjectColumnOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Column"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "412":
+	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+
 	var err error
 	err = checkModelType(model)
 
@@ -313,7 +526,6 @@ func AddColumnToProject(ctx *context.APIContext, model string) {
 	ctx.JSON(http.StatusCreated, convert.ToColumn(ctx, column))
 }
 
-// checkProjectColumnChangePermissions check permission
 func checkProjectColumnChangePermissions(ctx *context.APIContext, model string) (*project_model.Project, *project_model.Column) {
 	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
@@ -369,6 +581,54 @@ func checkProjectColumnChangePermissions(ctx *context.APIContext, model string) 
 
 // EditProjectColumn allows a project column's to be updated
 func EditProjectColumn(ctx *context.APIContext, model string) {
+	// swagger:operation PUT /{username}/{repo}/projects/{id}/{column-id} project editProjectColumn
+	// ---
+	// summary: Edit a project column
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: owner of the project
+	//   required: true
+	//   type: string
+	// - name: repo
+	//   in: path
+	//   description: repository name. If left '-', the column will be edited for the user's project
+	//   required: true
+	//   type: string
+	// - name: id
+	//   in: path
+	//   description: project ID
+	//   required: true
+	//   type: integer
+	// - name: column-id
+	//   in: path
+	//   description: column ID
+	//   required: true
+	//   type: integer
+	// - name: body
+	//   in: body
+	//   description: column data
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/EditProjectColumnOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Column"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "412":
+	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+
 	err := checkModelType(model)
 
 	if err != nil {
@@ -400,6 +660,40 @@ func EditProjectColumn(ctx *context.APIContext, model string) {
 
 // DeleteProjectColumn allows for the deletion of a project column
 func DeleteProjectColumn(ctx *context.APIContext, model string) {
+	// swagger:operation DELETE /{username}/{repo}/projects/{id}/{column-id} project deleteProjectColumn
+	// ---
+	// summary: Delete a project column
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: owner of the project
+	//   required: true
+	//   type: string
+	// - name: repo
+	//   in: path
+	//   description: repository name. If left '-', the column will be deleted for the user's project
+	//   required: true
+	//   type: string
+	// - name: id
+	//   in: path
+	//   description: project ID
+	//   required: true
+	//   type: integer
+	// - name: column-id
+	//   in: path
+	//   description: column ID
+	//   required: true
+	//   type: integer
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+
 	err := checkModelType(model)
 
 	if err != nil {
@@ -462,11 +756,45 @@ func DeleteProjectColumn(ctx *context.APIContext, model string) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]string{"message": "column deleted successfully"})
+	ctx.Status(http.StatusNoContent)
 }
 
-// SetDefaultProjectColumn set default column for uncategorized issues/pulls
+// SetDefaultProjectColumn set default column for issues/pulls
 func SetDefaultProjectColumn(ctx *context.APIContext, model string) {
+	// swagger:operation POST /{username}/{repo}/projects/{id}/{column-id}/default project setDefaultProjectColumn
+	// ---
+	// summary: Set default column for issues/pulls
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: owner of the project
+	//   required: true
+	//   type: string
+	// - name: repo
+	//   in: path
+	//   description: repository name. If left '-', the column will be set as default for the user's project
+	//   required: true
+	//   type: string
+	// - name: id
+	//   in: path
+	//   description: project ID
+	//   required: true
+	//   type: integer
+	// - name: column-id
+	//   in: path
+	//   description: column ID
+	//   required: true
+	//   type: integer
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+
 	err := checkModelType(model)
 
 	if err != nil {
@@ -484,11 +812,121 @@ func SetDefaultProjectColumn(ctx *context.APIContext, model string) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]string{"message": "default column set successfully"})
+	ctx.Status(http.StatusNoContent)
+}
+
+// MoveColumns moves or keeps columns in a project and sorts them inside that project
+func MoveColumns(ctx *context.APIContext) {
+	// swagger:operation PUT /{username}/{repo}/projects/{id}/move project moveColumns
+	// ---
+	// summary: Move columns in a project
+	// consumes:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: owner of the project
+	//   required: true
+	//   type: string
+	// - name: repo
+	//   in: path
+	//   description: repository name. If left '-', the columns will be moved for the user's project
+	//   required: true
+	//   type: string
+	// - name: id
+	//   in: path
+	//   description: project ID
+	//   required: true
+	//   type: integer
+	// - name: body
+	//   in: body
+	//   description: columns data
+	//   required: true
+	//   schema:
+	//    "$ref": "#/definitions/MovedColumnsOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		return
+	}
+	if !project.CanBeAccessedByOwnerRepo(ctx.ContextUser.ID, ctx.Repo.Repository) {
+		ctx.NotFound("CanBeAccessedByOwnerRepo", nil)
+		return
+	}
+
+	form := &api.MovedColumnsOption{}
+	if err = json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+		ctx.ServerError("DecodeMovedColumnsForm", err)
+		return
+	}
+
+	sortedColumnIDs := make(map[int64]int64)
+	for _, column := range form.Columns {
+		sortedColumnIDs[column.Sorting] = column.ColumnID
+	}
+
+	if err = project_model.MoveColumnsOnProject(ctx, project, sortedColumnIDs); err != nil {
+		ctx.ServerError("MoveColumnsOnProject", err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
 
 // MoveIssues moves or keeps issues in a column and sorts them inside that column
 func MoveIssues(ctx *context.APIContext, model string) {
+	// swagger:operation POST /{username}/{repo}/projects/{id}/{column-id}/move project moveIssues
+	// ---
+	// summary: Move issues in a column
+	// consumes:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: owner of the project
+	//   required: true
+	//   type: string
+	// - name: repo
+	//   in: path
+	//   description: repository name.
+	//   required: true
+	//   type: string
+	// - name: id
+	//   in: path
+	//   description: project ID
+	//   required: true
+	//   type: integer
+	// - name: column-id
+	//   in: path
+	//   description: column ID
+	//   required: true
+	//   type: integer
+	// - name: body
+	//   in: body
+	//   description: issues data
+	//   required: true
+	//   schema:
+	//    "$ref": "#/definitions/MovedIssuesOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+
 	err := checkModelType(model)
 
 	if err != nil {
@@ -529,14 +967,7 @@ func MoveIssues(ctx *context.APIContext, model string) {
 		return
 	}
 
-	type movedIssuesForm struct {
-		Issues []struct {
-			IssueID int64 `json:"issueID"`
-			Sorting int64 `json:"sorting"`
-		} `json:"issues"`
-	}
-
-	form := &movedIssuesForm{}
+	form := &api.MovedIssuesOption{}
 	if err = json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
 		ctx.ServerError("DecodeMovedIssuesForm", err)
 		return
@@ -576,7 +1007,7 @@ func MoveIssues(ctx *context.APIContext, model string) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]string{"message": "issues moved successfully"})
+	ctx.Status(http.StatusNoContent)
 }
 
 func getActionIssues(ctx *context.APIContext, issuesIDs []int64) issues_model.IssueList {
@@ -612,12 +1043,47 @@ func getActionIssues(ctx *context.APIContext, issuesIDs []int64) issues_model.Is
 
 // UpdateIssueProject change an issue's project
 func UpdateIssueProject(ctx *context.APIContext) {
-	type updateIssuesForm struct {
-		ProjectID int64   `json:"project_id"`
-		Issues    []int64 `json:"issues"`
-	}
+	// swagger:operation POST /{username}/{repo}/{type}/projects project updateIssueProject
+	// ---
+	// summary: Change an issue's project
+	// consumes:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: owner of the project
+	//   required: true
+	//   type: string
+	// - name: repo
+	//   in: path
+	//   description: repository name.
+	//   required: true
+	//   type: string
+	// - name: type
+	//   in: path
+	//   description: issue type (issues or pulls)
+	//   required: true
+	//   type: string
+	//   enum:
+	//   - issues
+	//   - pulls
+	// - name: body
+	//   in: body
+	//   description: issues data
+	//   required: true
+	//   schema:
+	//    "$ref": "#/definitions/UpdateIssuesOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
-	form := &updateIssuesForm{}
+	form := &api.UpdateIssuesOption{}
 
 	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
 		ctx.ServerError("DecodeMovedIssuesForm", err)
@@ -652,43 +1118,5 @@ func UpdateIssueProject(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, map[string]string{"message": "issues moved successfully"})
-}
-
-// MoveColumns moves or keeps columns in a project and sorts them inside that project
-func MoveColumns(ctx *context.APIContext) {
-	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
-	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
-		return
-	}
-	if !project.CanBeAccessedByOwnerRepo(ctx.ContextUser.ID, ctx.Repo.Repository) {
-		ctx.NotFound("CanBeAccessedByOwnerRepo", nil)
-		return
-	}
-
-	type movedColumnsForm struct {
-		Columns []struct {
-			ColumnID int64 `json:"columnID"`
-			Sorting  int64 `json:"sorting"`
-		} `json:"columns"`
-	}
-
-	form := &movedColumnsForm{}
-	if err = json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.ServerError("DecodeMovedColumnsForm", err)
-		return
-	}
-
-	sortedColumnIDs := make(map[int64]int64)
-	for _, column := range form.Columns {
-		sortedColumnIDs[column.Sorting] = column.ColumnID
-	}
-
-	if err = project_model.MoveColumnsOnProject(ctx, project, sortedColumnIDs); err != nil {
-		ctx.ServerError("MoveColumnsOnProject", err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, map[string]string{"message": "columns moved successfully"})
+	ctx.Status(http.StatusNoContent)
 }
