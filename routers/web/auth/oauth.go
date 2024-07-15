@@ -643,9 +643,8 @@ func OIDCKeys(ctx *context.Context) {
 
 func parseBasicAuth(ctx *context.Context) (username, password string, err error) {
 	authHeader := ctx.Req.Header.Get("Authorization")
-	authContent := strings.SplitN(authHeader, " ", 2)
-	if len(authContent) == 2 && authContent[0] == "Basic" {
-		return base.BasicAuthDecode(authContent[1])
+	if authType, authData, ok := strings.Cut(authHeader, " "); ok && authType == "Basic" {
+		return base.BasicAuthDecode(authData)
 	}
 	return "", "", errors.New("invalid basic authentication")
 }
