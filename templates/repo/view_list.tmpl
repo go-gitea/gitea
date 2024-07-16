@@ -36,7 +36,7 @@
 							{{if $entry.IsDir}}
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
 								{{svg "octicon-file-directory-fill"}}
-								<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
+								<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" data-tooltip-content title="{{$subJumpablePathName}}">
 									{{$subJumpablePathFields := StringUtils.Split $subJumpablePathName "/"}}
 									{{$subJumpablePathFieldLast := (Eval (len $subJumpablePathFields) "-" 1)}}
 									{{if eq $subJumpablePathFieldLast 0}}
@@ -48,7 +48,9 @@
 								</a>
 							{{else}}
 								{{svg (printf "octicon-%s" (EntryIcon $entry))}}
-								<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
+								{{$symLinkEntry := $entry}}
+								{{if $entry.IsLink}}{{$symLinkEntry = $entry.TryFollowingLinks}}{{end}}
+								<a class="muted" href="{{$.TreeLink}}/{{$symLinkEntry.FullPath}}" data-tooltip-content title="{{$symLinkEntry.FullPath}}">{{$entry.Name}}</a>
 							{{end}}
 						{{end}}
 					</span>
