@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -1148,9 +1147,39 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 	groups := getClaimedGroups(oauth2Source, &gothUser)
 
+	opts := &user_service.UpdateOptions{}
+
+	// Reactivate user if they are deactivated
+	if !u.IsActive {
+		opts.IsActive = optional.Some(true)
+	}
+
+	// Update GroupClaims
+	opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
+
+	if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
+		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
+			ctx.ServerError("SyncGroupsToTeams", err)
+			return
+		}
+	}
+
+	if err := externalaccount.EnsureLinkExternalToUser(ctx, u, gothUser); err != nil {
+		ctx.ServerError("EnsureLinkExternalToUser", err)
+		return
+	}
+
 	// If this user is enrolled in 2FA and this source doesn't override it,
 	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
 	if !needs2FA {
+		// Register last login
+		opts.SetLastLogin = true
+
+		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+			ctx.ServerError("UpdateUser", err)
+			return
+		}
+
 		if err := updateSession(ctx, nil, map[string]any{
 			"uid":   u.ID,
 			"uname": u.Name,
@@ -1161,29 +1190,6 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 		// Clear whatever CSRF cookie has right now, force to generate a new one
 		ctx.Csrf.DeleteCookie(ctx)
-
-		opts := &user_service.UpdateOptions{
-			SetLastLogin: true,
-		}
-		opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-
-		if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
-			if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
-				ctx.ServerError("SyncGroupsToTeams", err)
-				return
-			}
-		}
-
-		// update external user information
-		if err := externalaccount.UpdateExternalUser(ctx, u, gothUser); err != nil {
-			if !errors.Is(err, util.ErrNotExist) {
-				log.Error("UpdateExternalUser failed: %v", err)
-			}
-		}
 
 		if err := resetLocale(ctx, u); err != nil {
 			ctx.ServerError("resetLocale", err)
@@ -1200,18 +1206,9 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		return
 	}
 
-	opts := &user_service.UpdateOptions{}
-	opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
-	if opts.IsAdmin.Has() || opts.IsRestricted.Has() {
+	if opts.IsActive.Has() || opts.IsAdmin.Has() || opts.IsRestricted.Has() {
 		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
-			return
-		}
-	}
-
-	if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
-		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
-			ctx.ServerError("SyncGroupsToTeams", err)
 			return
 		}
 	}
