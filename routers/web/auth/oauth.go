@@ -340,6 +340,11 @@ func IntrospectOAuth(ctx *context.Context) {
 	if clientID, clientSecret, err := parseBasicAuth(ctx); err == nil {
 		if app, err := auth.GetOAuth2ApplicationByClientID(ctx, clientID); err == nil {
 			clientIDValid = app.ValidateClientSecret([]byte(clientSecret))
+		} else if !auth.IsErrOauthClientIDInvalid(err) {
+			// this is likely a database error; log it and respond without details
+			log.Error("Error retrieving client_id: %v", err)
+			ctx.Error(http.StatusInternalServerError)
+			return
 		}
 	}
 	if !clientIDValid {
