@@ -457,6 +457,16 @@ func TestOAuthIntrospection(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), introspectParsed))
 	assert.True(t, introspectParsed.Active)
 
+	// successful request with a valid client_id/client_secret, but an invalid token
+	req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{
+		"token": "xyzzy",
+	})
+	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OjRNSzhOYTZSNTVzbWRDWTBXdUNDdW1aNmhqUlBuR1k1c2FXVlJISGpKaUE9")
+	resp = MakeRequest(t, req, http.StatusOK)
+	introspectParsed = new(introspectResponse)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), introspectParsed))
+	assert.False(t, introspectParsed.Active)
+
 	// unsuccessful request with an invalid client_id/client_secret
 	req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{
 		"token": parsed.AccessToken,
