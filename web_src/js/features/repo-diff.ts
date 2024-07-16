@@ -19,15 +19,35 @@ function initRepoDiffReviewButton() {
   const counter = reviewBox.querySelector('.review-comments-counter');
   if (!counter) return;
 
-  $(document).on('click', 'button[name="pending_review"]', (e) => {
-    const $form = $(e.target).closest('form');
-    // Watch for the form's submit event.
-    $form.on('submit', () => {
-      const num = parseInt(counter.getAttribute('data-pending-comment-number')) + 1 || 1;
+  function handleFormSubmit($form, $textarea) {
+    $form.one('submit', (event) => {
+      if ($textarea.val().trim() === '') {
+        event.preventDefault();
+        return;
+      }
+      const num = (parseInt(counter.getAttribute('data-pending-comment-number')) || 0) + 1;
       counter.setAttribute('data-pending-comment-number', num);
       counter.textContent = num;
       animateOnce(reviewBox, 'pulse-1p5-200');
     });
+  }
+
+  // Handle submit on click
+  $(document).on('click', 'button[name="pending_review"]', (e) => {
+    const $form = $(e.target).closest('form');
+    const $textarea = $form.find('textarea');
+    handleFormSubmit($form, $textarea);
+    $form.trigger('submit');
+  });
+
+  // Handle submit by ctrl+enter
+  $(document).on('keydown', 'textarea', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      const $textarea = $(e.target);
+      const $form = $textarea.closest('form');
+      handleFormSubmit($form, $textarea);
+      $form.trigger('submit');
+    }
   });
 }
 
