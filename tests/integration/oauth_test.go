@@ -443,6 +443,7 @@ func TestOAuthIntrospection(t *testing.T) {
 	assert.True(t, len(parsed.AccessToken) > 10)
 	assert.True(t, len(parsed.RefreshToken) > 10)
 
+	// successful request with a valid client_id/client_secret and a valid token
 	req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{
 		"token": parsed.AccessToken,
 	})
@@ -455,4 +456,12 @@ func TestOAuthIntrospection(t *testing.T) {
 	introspectParsed := new(introspectResponse)
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), introspectParsed))
 	assert.True(t, introspectParsed.Active)
+
+	// unsuccessful request with an invalid client_id/client_secret
+	req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{
+		"token": parsed.AccessToken,
+	})
+	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OjRNSzhOYTZSNTVzbWRDWTBXdUNDdW1aNmhqUlBuR1k1c2FXVlJISGpK")
+	resp = MakeRequest(t, req, http.StatusUnauthorized)
+	assert.Contains(t, resp.Body.String(), "no valid authorization")
 }
