@@ -10,6 +10,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
@@ -111,28 +112,47 @@ func (source *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
 func dial(source *Source) (*ldap.Conn, error) {
 	log.Trace("Dialing LDAP with security protocol (%v) without verifying: %v", source.SecurityProtocol, source.SkipVerify)
 
-	tlsConfig := &tls.Config{
-		ServerName:         source.Host,
-		InsecureSkipVerify: source.SkipVerify,
-	}
+	ldap.DefaultTimeout = time.Second * 15
+	// HostList is a list of hosts separated by commas
+	hostList := strings.Split(source.HostList, ",")
 
-	if source.SecurityProtocol == SecurityProtocolLDAPS {
-		return ldap.DialTLS("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)), tlsConfig)
-	}
+	for _, host := range hostList {
+		tlsConfig := &tls.Config{
+			ServerName:         host,
+			InsecureSkipVerify: source.SkipVerify,
+		}
 
-	conn, err := ldap.Dial("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)))
-	if err != nil {
-		return nil, fmt.Errorf("error during Dial: %w", err)
-	}
+		if source.SecurityProtocol == SecurityProtocolLDAPS {
+			conn, err := ldap.DialTLS("tcp", net.JoinHostPort(host, strconv.Itoa(source.Port)), tlsConfig)
 
-	if source.SecurityProtocol == SecurityProtocolStartTLS {
-		if err = conn.StartTLS(tlsConfig); err != nil {
-			conn.Close()
-			return nil, fmt.Errorf("error during StartTLS: %w", err)
+			if err != nil {
+				// Connection failed, try again with the next host.
+				log.Trace("error during Dial for host %s: %w", host, err)
+				continue
+			}
+			conn.SetTimeout(time.Second * 10)
+
+			return conn, err
+		}
+
+		conn, err := ldap.Dial("tcp", net.JoinHostPort(host, strconv.Itoa(source.Port)))
+		if err != nil {
+			log.Trace("error during Dial for host %s: %w", host, err)
+			continue
+		}
+		conn.SetTimeout(time.Second * 10)
+
+		if source.SecurityProtocol == SecurityProtocolStartTLS {
+			if err = conn.StartTLS(tlsConfig); err != nil {
+				conn.Close()
+				log.Trace("error during StartTLS for host %s: %w", host, err)
+				continue
+			}
 		}
 	}
 
-	return conn, nil
+	// All servers were unreachable
+	return nil, fmt.Errorf("dial failed for all provided servers: %s", hostList)
 }
 
 func bindUser(l *ldap.Conn, userDN, passwd string) error {
@@ -257,7 +277,7 @@ func (source *Source) SearchEntry(name, passwd string, directBind bool) *SearchR
 	}
 	l, err := dial(source)
 	if err != nil {
-		log.Error("LDAP Connect error, %s:%v", source.Host, err)
+		log.Error("LDAP Connect error, %s:%v", source.HostList, err)
 		source.Enabled = false
 		return nil
 	}
@@ -421,7 +441,7 @@ func (source *Source) UsePagedSearch() bool {
 func (source *Source) SearchEntries() ([]*SearchResult, error) {
 	l, err := dial(source)
 	if err != nil {
-		log.Error("LDAP Connect error, %s:%v", source.Host, err)
+		log.Error("LDAP Connect error, %s:%v", source.HostList, err)
 		source.Enabled = false
 		return nil, err
 	}

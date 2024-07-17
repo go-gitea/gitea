@@ -59,7 +59,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				IsSyncEnabled: true,
 				Cfg: &ldap.Source{
 					Name:                  "ldap (via Bind DN) source full",
-					Host:                  "ldap-bind-server full",
+					HostList:              "ldap-bind-server full",
 					Port:                  9876,
 					SecurityProtocol:      ldap.SecurityProtocol(1),
 					SkipVerify:            true,
@@ -99,7 +99,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				IsActive: true,
 				Cfg: &ldap.Source{
 					Name:             "ldap (via Bind DN) source min",
-					Host:             "ldap-bind-server min",
+					HostList:         "ldap-bind-server min",
 					Port:             1234,
 					SecurityProtocol: ldap.SecurityProtocol(0),
 					UserBase:         "ou=Users,dc=min-domain-bind,dc=org",
@@ -280,7 +280,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				IsActive: false,
 				Cfg: &ldap.Source{
 					Name:                  "ldap (simple auth) source full",
-					Host:                  "ldap-simple-server full",
+					HostList:              "ldap-simple-server full",
 					Port:                  987,
 					SecurityProtocol:      ldap.SecurityProtocol(2),
 					SkipVerify:            true,
@@ -317,7 +317,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				IsActive: true,
 				Cfg: &ldap.Source{
 					Name:             "ldap (simple auth) source min",
-					Host:             "ldap-simple-server min",
+					HostList:         "ldap-simple-server min",
 					Port:             123,
 					SecurityProtocol: ldap.SecurityProtocol(0),
 					UserDN:           "cn=%s,ou=Users,dc=min-domain-simple,dc=org",
@@ -526,7 +526,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				IsSyncEnabled: true,
 				Cfg: &ldap.Source{
 					Name:                  "ldap (via Bind DN) source full",
-					Host:                  "ldap-bind-server full",
+					HostList:              "ldap-bind-server full",
 					Port:                  9876,
 					SecurityProtocol:      ldap.SecurityProtocol(1),
 					SkipVerify:            true,
@@ -630,7 +630,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 			authSource: &auth.Source{
 				Type: auth.LDAP,
 				Cfg: &ldap.Source{
-					Host: "ldap-server",
+					HostList: "ldap-server",
 				},
 			},
 		},
@@ -978,7 +978,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				IsActive: false,
 				Cfg: &ldap.Source{
 					Name:                  "ldap (simple auth) source full",
-					Host:                  "ldap-simple-server full",
+					HostList:              "ldap-simple-server full",
 					Port:                  987,
 					SecurityProtocol:      ldap.SecurityProtocol(2),
 					SkipVerify:            true,
@@ -1078,7 +1078,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 			authSource: &auth.Source{
 				Type: auth.DLDAP,
 				Cfg: &ldap.Source{
-					Host: "ldap-server",
+					HostList: "ldap-server",
 				},
 			},
 		},

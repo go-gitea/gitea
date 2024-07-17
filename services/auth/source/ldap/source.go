@@ -25,7 +25,7 @@ import (
 // Source Basic LDAP authentication service
 type Source struct {
 	Name                  string // canonical name (ie. corporate.ad)
-	Host                  string // LDAP host
+	HostList              string // list containing LDAP host(s)
 	Port                  int    // port number
 	SecurityProtocol      SecurityProtocol
 	SkipVerify            bool

@@ -207,7 +207,7 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 		config.Name = c.String("name")
 	}
 	if c.IsSet("host") {
-		config.Host = c.String("host")
+		config.HostList = c.String("hostlist")
 	}
 	if c.IsSet("port") {
 		config.Port = c.Int("port")
