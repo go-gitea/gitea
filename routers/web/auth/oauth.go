@@ -338,14 +338,14 @@ func parseBasicAuth(ctx *context.Context) (username, password string, err error)
 func IntrospectOAuth(ctx *context.Context) {
 	clientIDValid := false
 	if clientID, clientSecret, err := parseBasicAuth(ctx); err == nil {
-		if app, err := auth.GetOAuth2ApplicationByClientID(ctx, clientID); err == nil {
-			clientIDValid = app.ValidateClientSecret([]byte(clientSecret))
-		} else if !auth.IsErrOauthClientIDInvalid(err) {
+		app, err := auth.GetOAuth2ApplicationByClientID(ctx, clientID)
+		if err != nil && !auth.IsErrOauthClientIDInvalid(err) {
 			// this is likely a database error; log it and respond without details
 			log.Error("Error retrieving client_id: %v", err)
 			ctx.Error(http.StatusInternalServerError)
 			return
 		}
+		clientIDValid = err == nil && app.ValidateClientSecret([]byte(clientSecret))
 	}
 	if !clientIDValid {
 		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm=""`)
