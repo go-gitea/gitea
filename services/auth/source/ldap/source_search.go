@@ -127,7 +127,6 @@ func dial(source *Source) (*ldap.Conn, error) {
 
 		if source.SecurityProtocol == SecurityProtocolLDAPS {
 			conn, err := ldap.DialTLS("tcp", net.JoinHostPort(host, strconv.Itoa(source.Port)), tlsConfig)
-
 			if err != nil {
 				// Connection failed, try again with the next host.
 				log.Trace("error during Dial for host %s: %w", host, err)
