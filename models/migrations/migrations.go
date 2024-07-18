@@ -585,7 +585,6 @@ func EnsureUpToDate(x *xorm.Engine) error {
 	return nil
 }
 
-
 // Migrate database to current version
 func Migrate(x *xorm.Engine) error {
 	// Set a new clean the default mapper to GonicMapper as that is the default for Gitea.

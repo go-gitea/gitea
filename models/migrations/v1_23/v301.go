@@ -8,14 +8,16 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"src.techknowlogick.com/xormigrate"
 
+	"src.techknowlogick.com/xormigrate"
 	"xorm.io/xorm"
 )
 
-const minDBVersion = 70 // Gitea 1.5.3
-const oldMigrationsCount = 230
-const expectedVersion = minDBVersion+oldMigrationsCount
+const (
+	minDBVersion       = 70 // Gitea 1.5.3
+	oldMigrationsCount = 230
+	expectedVersion    = minDBVersion + oldMigrationsCount
+)
 
 var oldMigrationNames = []string{
 	"add issue_dependencies",
@@ -101,8 +103,8 @@ var oldMigrationNames = []string{
 	"add primary key to repo_topic",
 	"set default password algorithm to Argon2",
 	"add TrustModel field to Repository",
-"add Team review request support",
-"add timestamps to Star, Label, Follow, Watch and Collaboration",
+	"add Team review request support",
+	"add timestamps to Star, Label, Follow, Watch and Collaboration",
 	"add changed_protected_files column for pull_request table",
 	"fix publisher ID for tag releases",
 	"ensure repo topics are up-to-date",
