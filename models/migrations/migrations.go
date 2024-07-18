@@ -130,7 +130,7 @@ var migrations = []*xormigrate.Migration{
 	// Gitea 1.10.0 ends at v102
 
 	// v102 -> v103
-	NewMigration("update migration repositories' service type", v1_11.DropColumnHeadUserNameOnPullRequest),
+	NewMigration("update migration repositories' service type v2", v1_11.DropColumnHeadUserNameOnPullRequest),
 	// v103 -> v104
 	NewMigration("Add WhitelistDeployKeys to protected branch", v1_11.AddWhitelistDeployKeysToBranches),
 	// v104 -> v105
