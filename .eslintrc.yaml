@@ -512,7 +512,7 @@ rules:
   no-jquery/no-box-model: [2]
   no-jquery/no-browser: [2]
   no-jquery/no-camel-case: [2]
-  no-jquery/no-class-state: [0]
+  no-jquery/no-class-state: [2]
   no-jquery/no-class: [0]
   no-jquery/no-clone: [2]
   no-jquery/no-closest: [0]
