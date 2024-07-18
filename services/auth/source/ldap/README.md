@@ -32,8 +32,9 @@ share the following fields:
   * A name to assign to the new method of authorization.
 
 * Host **(required)**
-  * The address where the LDAP server can be reached.
+  * The list of addresses where the LDAP server(s) can be reached.
   * Example: mydomain.com
+  * Example (with multiple server hosts): mydomain.com, myotherdomain.com, mytempdomain.com
 
 * Port **(required)**
   * The port to use when connecting to the server.

@@ -113,8 +113,11 @@ func dial(source *Source) (*ldap.Conn, error) {
 	log.Trace("Dialing LDAP with security protocol (%v) without verifying: %v", source.SecurityProtocol, source.SkipVerify)
 
 	ldap.DefaultTimeout = time.Second * 15
+	// Remove any extra spaces in HostList string
+	tempHostList := strings.ReplaceAll(source.HostList, " ", "")
 	// HostList is a list of hosts separated by commas
-	hostList := strings.Split(source.HostList, ",")
+	hostList := strings.Split(tempHostList, ",")
+	// hostList := strings.Split(source.HostList, ",")
 
 	for _, host := range hostList {
 		tlsConfig := &tls.Config{
