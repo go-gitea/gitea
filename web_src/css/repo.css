@@ -2136,6 +2136,12 @@ td .commit-summary {
   align-items: center;
 }
 
+/* Reduce emoji sizes to fit within a label. */
+.label > .emoji {
+  font-size: .857143rem;
+  line-height: 1.3;
+}
+
 .labels-list .label {
   padding: 0 6px;
   min-height: 20px;
