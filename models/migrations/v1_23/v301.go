@@ -50,6 +50,7 @@ var oldMigrationNames = []string{
 	"add repo_admin_change_team_access to user",
 	"add original author name and id on migrated release",
 	"add task table and status column for repository table",
+	"update migration repositories' service type",
 	"change length of some external login users columns",
 	"update migration repositories' service type",
 	"Add WhitelistDeployKeys to protected branch",
