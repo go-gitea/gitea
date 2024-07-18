@@ -585,6 +585,12 @@ func EnsureUpToDate(x *xorm.Engine) error {
 	return nil
 }
 
+// EnsureUpToDate will check if the db is completely new
+func IsFreshDB(x *xorm.Engine) (bool, error) {
+	exist, err := x.IsTableExist(&xormigrate.Migration{})
+	return !exist, err
+}
+
 // Migrate database to current version
 func Migrate(x *xorm.Engine) error {
 	// Set a new clean the default mapper to GonicMapper as that is the default for Gitea.
