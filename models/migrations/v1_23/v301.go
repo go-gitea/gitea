@@ -52,7 +52,7 @@ var oldMigrationNames = []string{
 	"add task table and status column for repository table",
 	"update migration repositories' service type",
 	"change length of some external login users columns",
-	"update migration repositories' service type",
+	"update migration repositories' service type v2",
 	"Add WhitelistDeployKeys to protected branch",
 	"remove unnecessary columns from label",
 	"add includes_all_repositories to teams",
