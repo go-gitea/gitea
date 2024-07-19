@@ -2,8 +2,8 @@
     Please also update the template file above if this vue is modified.
     action status accepted: success, skipped, waiting, blocked, running, failure, cancelled, unknown
 -->
-<script>
-import {SvgIcon} from '../svg.js';
+<script lang="ts">
+import {SvgIcon} from '../svg.ts';
 
 export default {
   components: {SvgIcon},

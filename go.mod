@@ -109,7 +109,7 @@ require (
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
 	github.com/yuin/goldmark-meta v1.1.0
 	golang.org/x/crypto v0.24.0
-	golang.org/x/image v0.15.0
+	golang.org/x/image v0.18.0
 	golang.org/x/net v0.26.0
 	golang.org/x/oauth2 v0.21.0
 	golang.org/x/sys v0.21.0
@@ -123,7 +123,7 @@ require (
 	mvdan.cc/xurls/v2 v2.5.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.13
-	xorm.io/xorm v1.3.8
+	xorm.io/xorm v1.3.9
 )
 
 require (

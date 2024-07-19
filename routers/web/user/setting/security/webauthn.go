@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/auth"
+	user_model "code.gitea.io/gitea/models/user"
 	wa "code.gitea.io/gitea/modules/auth/webauthn"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -23,6 +24,11 @@ import (
 
 // WebAuthnRegister initializes the webauthn registration procedure
 func WebAuthnRegister(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
 	form := web.GetForm(ctx).(*forms.WebauthnRegistrationForm)
 	if form.Name == "" {
 		// Set name to the hexadecimal of the current time
@@ -45,7 +51,9 @@ func WebAuthnRegister(ctx *context.Context) {
 		return
 	}
 
-	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration((*wa.User)(ctx.Doer))
+	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration((*wa.User)(ctx.Doer), webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
+		ResidentKey: protocol.ResidentKeyRequirementRequired,
+	}))
 	if err != nil {
 		ctx.ServerError("Unable to BeginRegistration", err)
 		return
@@ -62,6 +70,11 @@ func WebAuthnRegister(ctx *context.Context) {
 
 // WebauthnRegisterPost receives the response of the security key
 func WebauthnRegisterPost(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
 	name, ok := ctx.Session.Get("webauthnName").(string)
 	if !ok || name == "" {
 		ctx.ServerError("Get webauthnName", errors.New("no webauthnName"))
@@ -111,6 +124,11 @@ func WebauthnRegisterPost(ctx *context.Context) {
 
 // WebauthnDelete deletes an security key by id
 func WebauthnDelete(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
 	form := web.GetForm(ctx).(*forms.WebauthnDeleteForm)
 	if _, err := auth.DeleteCredential(ctx, form.ID, ctx.Doer.ID); err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
