@@ -110,12 +110,14 @@ export function initRepoEditor() {
           warningDiv = document.createElement('div');
           warningDiv.classList.add('ui', 'warning', 'message', 'flash-message', 'flash-warning');
           warningDiv.innerHTML = '<p>Parent directory contains leading or trailing whitespace.</p><p>These whitespaces will be removed.</p>';
+          // Add display 'block' because display is set to 'none' in formantic\build\semantic.css
+          warningDiv.style.display = 'block';
           const inputContainer = document.querySelector('.repo-editor-header');
           inputContainer.insertAdjacentElement('beforebegin', warningDiv);
         }
-        warningDiv.style.display = 'block';
+        showElem(warningDiv);
       } else if (warningDiv) {
-        warningDiv.style.display = 'none';
+        hideElem(warningDiv);
       }
     }
     joinTreePath();
