@@ -157,7 +157,9 @@ func DelRepoDivergenceFromCache(ctx context.Context, repoID int64) error {
 		return err
 	}
 	for i := range dbBranches {
-		DelDivergenceFromCache(repoID, dbBranches[i].Name)
+		if err := DelDivergenceFromCache(repoID, dbBranches[i].Name); err != nil {
+			log.Error("DelDivergenceFromCache: %v", err)
+		}
 	}
 	return nil
 }
