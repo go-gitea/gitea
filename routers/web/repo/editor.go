@@ -317,7 +317,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				case git.EntryModeBlob:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path), tplEditFile, &form)
 				default:
-					ctx.Error(http.StatusInternalServerError, err.Error())
+					ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_invalid", fileErr.Path), tplEditFile, &form)
 				}
 			} else {
 				ctx.Error(http.StatusInternalServerError, err.Error())
@@ -392,14 +392,6 @@ func EditFilePost(ctx *context.Context) {
 // NewFilePost response for creating file
 func NewFilePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditRepoFileForm)
-
-	// trim leading and trailing spaces from the tree path
-	treePath := strings.Split(form.TreePath, "/")
-	for i, v := range treePath {
-		treePath[i] = strings.TrimSpace(v)
-	}
-	form.TreePath = strings.Join(treePath, "/")
-
 	editFilePost(ctx, *form, true)
 }
 
