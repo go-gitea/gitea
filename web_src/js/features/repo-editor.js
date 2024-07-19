@@ -81,7 +81,8 @@ export function initRepoEditor() {
       let containSpace = false;
       for (let i = 0; i < parts.length; ++i) {
         const value = parts[i];
-        if (value.trim() === '..') {
+        const trimValue = value.trim();
+        if (trimValue === '..') {
           // remove previous tree path
           if (links.length > 0) {
             links[links.length - 1].remove();
@@ -90,7 +91,7 @@ export function initRepoEditor() {
           continue;
         }
         if (i < parts.length - 1) {
-          if (value.length) {
+          if (trimValue.length) {
             $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(filenameInput));
             $('<div class="breadcrumb-divider">/</div>').insertBefore($(filenameInput));
           }
@@ -98,7 +99,7 @@ export function initRepoEditor() {
           filenameInput.value = value;
         }
         this.setSelectionRange(0, 0);
-        containSpace |= value.trim() !== value;
+        containSpace |= (trimValue !== value && trimValue !== '');
       }
       let warningDiv = document.querySelector('.ui.warning.message.flash-message.flash-warning.space-related');
       containSpace |= Array.from(links).some((link) => {
