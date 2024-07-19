@@ -1,6 +1,6 @@
-<script>
-import {loadMoreFiles} from '../features/repo-diff.js';
-import {diffTreeStore} from '../modules/stores.js';
+<script lang="ts">
+import {loadMoreFiles} from '../features/repo-diff.ts';
+import {diffTreeStore} from '../modules/stores.ts';
 
 export default {
   data: () => {
