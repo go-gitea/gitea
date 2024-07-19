@@ -147,6 +147,23 @@ func DelDivergenceFromCache(repoID int64, branchName string) error {
 	return cache.GetCache().Delete(getDivergenceCacheKey(repoID, branchName))
 }
 
+// DelRepoDivergenceFromCache deletes all divergence caches of a repository
+func DelRepoDivergenceFromCache(ctx context.Context, repoID int64) error {
+	dbBranches, err := db.Find[git_model.Branch](ctx, git_model.FindBranchOptions{
+		RepoID:      repoID,
+		ListOptions: db.ListOptionsAll,
+	})
+	if err != nil {
+		return err
+	}
+	for i := range dbBranches {
+		if err := DelDivergenceFromCache(repoID, dbBranches[i].Name); err != nil {
+			log.Error("DelDivergenceFromCache: %v", err)
+		}
+	}
+	return nil
+}
+
 func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *git_model.Branch, protectedBranches *git_model.ProtectedBranchRules,
 	repoIDToRepo map[int64]*repo_model.Repository,
 	repoIDToGitRepo map[int64]*git.Repository,
