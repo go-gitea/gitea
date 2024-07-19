@@ -100,7 +100,7 @@ export function initRepoEditor() {
         this.setSelectionRange(0, 0);
         containSpace |= value.trim() !== value;
       }
-      let warningDiv = document.querySelector('.ui.warning.message.flash-message.flash-warning');
+      let warningDiv = document.querySelector('.ui.warning.message.flash-message.flash-warning.space-related');
       containSpace |= Array.from(links).some((link) => {
         const value = link.querySelector('a').textContent;
         return value.trim() !== value;
@@ -108,7 +108,7 @@ export function initRepoEditor() {
       if (containSpace) {
         if (!warningDiv) {
           warningDiv = document.createElement('div');
-          warningDiv.classList.add('ui', 'warning', 'message', 'flash-message', 'flash-warning');
+          warningDiv.classList.add('ui', 'warning', 'message', 'flash-message', 'flash-warning', 'space-related');
           warningDiv.innerHTML = '<p>Parent directory contains leading or trailing whitespace.</p><p>These whitespaces will be removed.</p>';
           // Add display 'block' because display is set to 'none' in formantic\build\semantic.css
           warningDiv.style.display = 'block';
