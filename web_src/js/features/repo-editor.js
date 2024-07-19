@@ -75,8 +75,8 @@ export function initRepoEditor() {
   }
   filenameInput.addEventListener('input', function () {
     const parts = filenameInput.value.split('/');
-    const links = document.querySelectorAll('.breadcrumb span.section');
-    const dividers = document.querySelectorAll('.breadcrumb-divider');
+    const links = Array.from(document.querySelectorAll('.breadcrumb span.section'));
+    const dividers = Array.from(document.querySelectorAll('.breadcrumb .breadcrumb-divider'));
     if (parts.length > 1) {
       let containSpace = false;
       for (let i = 0; i < parts.length; ++i) {
@@ -85,15 +85,21 @@ export function initRepoEditor() {
         if (trimValue === '..') {
           // remove previous tree path
           if (links.length > 0) {
-            links[links.length - 1].remove();
-            dividers[dividers.length - 1].remove();
+            const link = links.pop();
+            const divider = dividers.pop();
+            link.remove();
+            divider.remove();
           }
           continue;
         }
         if (i < parts.length - 1) {
           if (trimValue.length) {
-            $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(filenameInput));
-            $('<div class="breadcrumb-divider">/</div>').insertBefore($(filenameInput));
+            const $link = $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`);
+            const $divider = $('<div class="breadcrumb-divider">/</div>');
+            links.push($link.get(0));
+            dividers.push($divider.get(0));
+            $link.insertBefore($(filenameInput));
+            $divider.insertBefore($(filenameInput));
           }
         } else {
           filenameInput.value = value;
