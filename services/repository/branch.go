@@ -149,7 +149,7 @@ func DelDivergenceFromCache(repoID int64, branchName string) error {
 
 // DelRepoDivergenceFromCache deletes all divergence caches of a repository
 func DelRepoDivergenceFromCache(ctx context.Context, repoID int64) error {
-	dbBranches, _, err := db.FindAndCount[git_model.Branch](ctx, git_model.FindBranchOptions{
+	dbBranches, err := db.Find[git_model.Branch](ctx, git_model.FindBranchOptions{
 		RepoID:      repoID,
 		ListOptions: db.ListOptionsAll,
 	})
