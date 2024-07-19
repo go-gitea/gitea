@@ -95,7 +95,7 @@ func enumeratePackages(ctx *context.Context, filename string, pvs []*packages_mo
 
 // ServePackageSpecification serves the compressed Gemspec file of a package
 func ServePackageSpecification(ctx *context.Context) {
-	filename := ctx.Params("filename")
+	filename := ctx.PathParam("filename")
 
 	if !strings.HasSuffix(filename, ".gemspec.rz") {
 		apiError(ctx, http.StatusNotImplemented, nil)
@@ -164,7 +164,7 @@ func ServePackageSpecification(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
-	filename := ctx.Params("filename")
+	filename := ctx.PathParam("filename")
 
 	pvs, err := getVersionsByFilename(ctx, filename)
 	if err != nil {
@@ -299,7 +299,7 @@ func DeletePackage(ctx *context.Context) {
 // GetPackageInfo returns a custom text based format for the single rubygem with a line for each version of the rubygem
 // ref: https://guides.rubygems.org/rubygems-org-compact-index-api/
 func GetPackageInfo(ctx *context.Context) {
-	packageName := ctx.Params("packagename")
+	packageName := ctx.PathParam("packagename")
 	versions, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeRubyGems, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)

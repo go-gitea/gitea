@@ -177,9 +177,9 @@ func InitWebInstalled(ctx context.Context) {
 }
 
 // NormalRoutes represents non install routes
-func NormalRoutes() *web.Route {
+func NormalRoutes() *web.Router {
 	_ = templates.HTMLRenderer()
-	r := web.NewRoute()
+	r := web.NewRouter()
 	r.Use(common.ProtocolMiddlewares()...)
 
 	r.Mount("/", web_routers.Routes())

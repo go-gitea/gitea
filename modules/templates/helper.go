@@ -36,16 +36,16 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// html/template related functions
 		"dict":         dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
-		"Iif":          Iif,
-		"Eval":         Eval,
-		"SafeHTML":     SafeHTML,
+		"Iif":          iif,
+		"Eval":         evalTokens,
+		"SafeHTML":     safeHTML,
 		"HTMLFormat":   HTMLFormat,
-		"HTMLEscape":   HTMLEscape,
-		"QueryEscape":  QueryEscape,
-		"JSEscape":     JSEscapeSafe,
+		"HTMLEscape":   htmlEscape,
+		"QueryEscape":  queryEscape,
+		"JSEscape":     jsEscapeSafe,
 		"SanitizeHTML": SanitizeHTML,
 		"URLJoin":      util.URLJoin,
-		"DotEscape":    DotEscape,
+		"DotEscape":    dotEscape,
 
 		"PathEscape":         url.PathEscape,
 		"PathEscapeSegments": util.PathEscapeSegments,
@@ -59,9 +59,9 @@ func NewFuncMap() template.FuncMap {
 		// svg / avatar / icon / color
 		"svg":           svg.RenderHTML,
 		"EntryIcon":     base.EntryIcon,
-		"MigrationIcon": MigrationIcon,
-		"ActionIcon":    ActionIcon,
-		"SortArrow":     SortArrow,
+		"MigrationIcon": migrationIcon,
+		"ActionIcon":    actionIcon,
+		"SortArrow":     sortArrow,
 		"ContrastColor": util.ContrastColor,
 
 		// -----------------------------------------------------------------
@@ -139,7 +139,7 @@ func NewFuncMap() template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
-		"UserThemeName": UserThemeName,
+		"UserThemeName": userThemeName,
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
@@ -155,28 +155,28 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// render
 		"RenderCommitMessage":            RenderCommitMessage,
-		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
+		"RenderCommitMessageLinkSubject": renderCommitMessageLinkSubject,
 
-		"RenderCommitBody": RenderCommitBody,
-		"RenderCodeBlock":  RenderCodeBlock,
-		"RenderIssueTitle": RenderIssueTitle,
-		"RenderEmoji":      RenderEmoji,
-		"ReactionToEmoji":  ReactionToEmoji,
+		"RenderCommitBody": renderCommitBody,
+		"RenderCodeBlock":  renderCodeBlock,
+		"RenderIssueTitle": renderIssueTitle,
+		"RenderEmoji":      renderEmoji,
+		"ReactionToEmoji":  reactionToEmoji,
 
 		"RenderMarkdownToHtml": RenderMarkdownToHtml,
-		"RenderLabel":          RenderLabel,
+		"RenderLabel":          renderLabel,
 		"RenderLabels":         RenderLabels,
 
 		// -----------------------------------------------------------------
 		// misc
 		"ShortSha":                 base.ShortSha,
 		"ActionContent2Commits":    ActionContent2Commits,
-		"IsMultilineCommitMessage": IsMultilineCommitMessage,
+		"IsMultilineCommitMessage": isMultilineCommitMessage,
 		"CommentMustAsDiff":        gitdiff.CommentMustAsDiff,
 		"MirrorRemoteAddress":      mirrorRemoteAddress,
 
-		"FilenameIsImage": FilenameIsImage,
-		"TabSizeClass":    TabSizeClass,
+		"FilenameIsImage": filenameIsImage,
+		"TabSizeClass":    tabSizeClass,
 	}
 }
 
@@ -197,8 +197,8 @@ func HTMLFormat(s string, rawArgs ...any) template.HTML {
 	return template.HTML(fmt.Sprintf(s, args...))
 }
 
-// SafeHTML render raw as HTML
-func SafeHTML(s any) template.HTML {
+// safeHTML render raw as HTML
+func safeHTML(s any) template.HTML {
 	switch v := s.(type) {
 	case string:
 		return template.HTML(v)
@@ -213,7 +213,7 @@ func SanitizeHTML(s string) template.HTML {
 	return template.HTML(markup.Sanitize(s))
 }
 
-func HTMLEscape(s any) template.HTML {
+func htmlEscape(s any) template.HTML {
 	switch v := s.(type) {
 	case string:
 		return template.HTML(html.EscapeString(v))
@@ -223,22 +223,22 @@ func HTMLEscape(s any) template.HTML {
 	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
-func JSEscapeSafe(s string) template.HTML {
+func jsEscapeSafe(s string) template.HTML {
 	return template.HTML(template.JSEscapeString(s))
 }
 
-func QueryEscape(s string) template.URL {
+func queryEscape(s string) template.URL {
 	return template.URL(url.QueryEscape(s))
 }
 
-// DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls
-func DotEscape(raw string) string {
+// dotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent auto-linkers from detecting these as urls
+func dotEscape(raw string) string {
 	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
 }
 
-// Iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,
-// and it could be simply used as "{{Iif expr trueVal}}" (omit the falseVal).
-func Iif(condition any, vals ...any) any {
+// iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,
+// and it could be simply used as "{{iif expr trueVal}}" (omit the falseVal).
+func iif(condition any, vals ...any) any {
 	if isTemplateTruthy(condition) {
 		return vals[0]
 	} else if len(vals) > 1 {
@@ -273,19 +273,19 @@ func isTemplateTruthy(v any) bool {
 	}
 }
 
-// Eval the expression and return the result, see the comment of eval.Expr for details.
+// evalTokens evaluates the expression by tokens and returns the result, see the comment of eval.Expr for details.
 // To use this helper function in templates, pass each token as a separate parameter.
 //
 //	{{ $int64 := Eval $var "+" 1 }}
 //	{{ $float64 := Eval $var "+" 1.0 }}
 //
 // Golang's template supports comparable int types, so the int64 result can be used in later statements like {{if lt $int64 10}}
-func Eval(tokens ...any) (any, error) {
+func evalTokens(tokens ...any) (any, error) {
 	n, err := eval.Expr(tokens...)
 	return n.Value, err
 }
 
-func UserThemeName(user *user_model.User) string {
+func userThemeName(user *user_model.User) string {
 	if user == nil || user.Theme == "" {
 		return setting.UI.DefaultTheme
 	}

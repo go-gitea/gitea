@@ -22,7 +22,7 @@ func TestRoute1(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	recorder.Body = buff
 
-	r := NewRoute()
+	r := NewRouter()
 	r.Get("/{username}/{reponame}/{type:issues|pulls}", func(resp http.ResponseWriter, req *http.Request) {
 		username := chi.URLParam(req, "username")
 		assert.EqualValues(t, "gitea", username)
@@ -45,7 +45,7 @@ func TestRoute2(t *testing.T) {
 
 	hit := -1
 
-	r := NewRoute()
+	r := NewRouter()
 	r.Group("/{username}/{reponame}", func() {
 		r.Group("", func() {
 			r.Get("/{type:issues|pulls}", func(resp http.ResponseWriter, req *http.Request) {
@@ -121,8 +121,8 @@ func TestRoute3(t *testing.T) {
 
 	hit := -1
 
-	m := NewRoute()
-	r := NewRoute()
+	m := NewRouter()
+	r := NewRouter()
 	r.Mount("/api/v1", m)
 
 	m.Group("/repos", func() {
@@ -189,7 +189,7 @@ func TestRouteNormalizePath(t *testing.T) {
 		recorder.Body = bytes.NewBuffer(nil)
 
 		actualPaths := paths{EscapedPath: "(none)", RawPath: "(none)", Path: "(none)"}
-		r := NewRoute()
+		r := NewRouter()
 		r.Get("/*", func(resp http.ResponseWriter, req *http.Request) {
 			actualPaths.EscapedPath = req.URL.EscapedPath()
 			actualPaths.RawPath = req.URL.RawPath

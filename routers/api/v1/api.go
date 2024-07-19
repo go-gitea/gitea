@@ -136,8 +136,8 @@ func sudo() func(ctx *context.APIContext) {
 
 func repoAssignment() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		userName := ctx.Params("username")
-		repoName := ctx.Params("reponame")
+		userName := ctx.PathParam("username")
+		repoName := ctx.PathParam("reponame")
 
 		var (
 			owner *user_model.User
@@ -555,12 +555,12 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 
 		var err error
 		if assignOrg {
-			ctx.Org.Organization, err = organization.GetOrgByName(ctx, ctx.Params(":org"))
+			ctx.Org.Organization, err = organization.GetOrgByName(ctx, ctx.PathParam(":org"))
 			if err != nil {
 				if organization.IsErrOrgNotExist(err) {
-					redirectUserID, err := user_model.LookupUserRedirect(ctx, ctx.Params(":org"))
+					redirectUserID, err := user_model.LookupUserRedirect(ctx, ctx.PathParam(":org"))
 					if err == nil {
-						context.RedirectToUser(ctx.Base, ctx.Params(":org"), redirectUserID)
+						context.RedirectToUser(ctx.Base, ctx.PathParam(":org"), redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetOrgByName", err)
 					} else {
@@ -575,7 +575,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 		}
 
 		if assignTeam {
-			ctx.Org.Team, err = organization.GetTeamByID(ctx, ctx.ParamsInt64(":teamid"))
+			ctx.Org.Team, err = organization.GetTeamByID(ctx, ctx.PathParamInt64(":teamid"))
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
 					ctx.NotFound()
@@ -812,8 +812,8 @@ func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 }
 
 // Routes registers all v1 APIs routes to web application.
-func Routes() *web.Route {
-	m := web.NewRoute()
+func Routes() *web.Router {
+	m := web.NewRouter()
 
 	m.Use(securityHeaders())
 	if setting.CORSConfig.Enabled {
@@ -837,7 +837,7 @@ func Routes() *web.Route {
 	}))
 
 	addActionsRoutes := func(
-		m *web.Route,
+		m *web.Router,
 		reqChecker func(ctx *context.APIContext),
 		act actions.API,
 	) {
