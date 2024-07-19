@@ -116,7 +116,7 @@ export function initRepoEditor() {
         if (!warningDiv) {
           warningDiv = document.createElement('div');
           warningDiv.classList.add('ui', 'warning', 'message', 'flash-message', 'flash-warning', 'space-related');
-          warningDiv.innerHTML = '<p>Parent directory contains leading or trailing whitespace.</p><p>These whitespaces will be removed.</p>';
+          warningDiv.innerHTML = '<p>Parent directory contains leading or trailing whitespace.</p>';
           // Add display 'block' because display is set to 'none' in formantic\build\semantic.css
           warningDiv.style.display = 'block';
           const inputContainer = document.querySelector('.repo-editor-header');
