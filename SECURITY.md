@@ -14,7 +14,7 @@ Please **DO NOT** file a public issue, instead send your report privately to `se
 
 Due to the sensitive nature of security information, you can use the below GPG public key to encrypt your mail body.
 
-The PGP key is valid until June 24, 2024.
+The PGP key is valid until July 9, 2025.
 
 ```
 Key ID: 6FCD2D5B

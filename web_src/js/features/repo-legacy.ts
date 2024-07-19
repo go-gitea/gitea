@@ -125,7 +125,7 @@ export function initRepoCommentForm() {
 
     $listMenu.find('.item:not(.no-select)').on('click', function (e) {
       e.preventDefault();
-      if ($(this).hasClass('ban-change')) {
+      if (this.classList.contains('ban-change')) {
         return false;
       }
 
@@ -140,7 +140,7 @@ export function initRepoCommentForm() {
           if (this.getAttribute('data-scope') !== scope) {
             return true;
           }
-          if (this !== clickedItem && !$(this).hasClass('checked')) {
+          if (this !== clickedItem && !this.classList.contains('checked')) {
             return true;
           }
         } else if (this !== clickedItem) {
@@ -148,7 +148,7 @@ export function initRepoCommentForm() {
           return true;
         }
 
-        if ($(this).hasClass('checked')) {
+        if (this.classList.contains('checked')) {
           $(this).removeClass('checked');
           $(this).find('.octicon-check').addClass('tw-invisible');
           if (hasUpdateAction) {
@@ -187,7 +187,7 @@ export function initRepoCommentForm() {
 
       const listIds = [];
       $(this).parent().find('.item').each(function () {
-        if ($(this).hasClass('checked')) {
+        if (this.classList.contains('checked')) {
           listIds.push($(this).data('id'));
           $($(this).data('id-selector')).removeClass('tw-hidden');
         } else {

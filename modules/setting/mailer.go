@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/mail"
 	"strings"
+	"text/template"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -46,6 +47,10 @@ type Mailer struct {
 	SendmailArgs        []string      `ini:"-"`
 	SendmailTimeout     time.Duration `ini:"SENDMAIL_TIMEOUT"`
 	SendmailConvertCRLF bool          `ini:"SENDMAIL_CONVERT_CRLF"`
+
+	// Customization
+	FromDisplayNameFormat         string             `ini:"FROM_DISPLAY_NAME_FORMAT"`
+	FromDisplayNameFormatTemplate *template.Template `ini:"-"`
 }
 
 // MailService the global mailer
@@ -224,6 +229,16 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 		MailService.FromEmail = parsed.Address
 	} else {
 		log.Error("no mailer.FROM provided, email system may not work.")
+	}
+
+	MailService.FromDisplayNameFormatTemplate, _ = template.New("mailFrom").Parse("{{ .DisplayName }}")
+	if MailService.FromDisplayNameFormat != "" {
+		template, err := template.New("mailFrom").Parse(MailService.FromDisplayNameFormat)
+		if err != nil {
+			log.Error("mailer.FROM_DISPLAY_NAME_FORMAT is no valid template: %v", err)
+		} else {
+			MailService.FromDisplayNameFormatTemplate = template
+		}
 	}
 
 	switch MailService.EnvelopeFrom {
