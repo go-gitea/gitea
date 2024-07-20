@@ -405,7 +405,6 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 			return
 		}
 		chunks, err = listChunksByRunIDV4(r.fs, runID, artifact.ID, blockList)
-
 		if err != nil {
 			log.Error("Error merge chunks: %v", err)
 			ctx.Error(http.StatusInternalServerError, "Error merge chunks")

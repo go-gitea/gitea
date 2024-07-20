@@ -123,7 +123,7 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 	return chunksMap, nil
 }
 
-func listChunksByRunIDV4(st storage.ObjectStorage, runID int64, artifactID int64, blist *BlockList) ([]*chunkFileItem, error) {
+func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blist *BlockList) ([]*chunkFileItem, error) {
 	storageDir := fmt.Sprintf("tmp%d", runID)
 	var chunks []*chunkFileItem
 	chunkMap := map[string]*chunkFileItem{}
