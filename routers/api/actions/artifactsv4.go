@@ -24,8 +24,15 @@ package actions
 // PUT: http://localhost:3000/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact?sig=mO7y35r4GyjN7fwg0DTv3-Fv1NDXD84KLEgLpoPOtDI=&expires=2024-01-23+21%3A48%3A37.20833956+%2B0100+CET&artifactName=test&taskID=75&comp=block
 // 1.3. Continue Upload Zip Content to Blobstorage (unauthenticated request), repeat until everything is uploaded
 // PUT: http://localhost:3000/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact?sig=mO7y35r4GyjN7fwg0DTv3-Fv1NDXD84KLEgLpoPOtDI=&expires=2024-01-23+21%3A48%3A37.20833956+%2B0100+CET&artifactName=test&taskID=75&comp=appendBlock
-// 1.4. Unknown xml payload to Blobstorage (unauthenticated request), ignored for now
+// 1.4. BlockList xml payload to Blobstorage (unauthenticated request)
+// Files of about 800MB are parallel in parallel and / or out of order, this file is needed to enshure the correct order
 // PUT: http://localhost:3000/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact?sig=mO7y35r4GyjN7fwg0DTv3-Fv1NDXD84KLEgLpoPOtDI=&expires=2024-01-23+21%3A48%3A37.20833956+%2B0100+CET&artifactName=test&taskID=75&comp=blockList
+// Request
+// <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+// <BlockList>
+// 	<Latest>blockId1</Latest>
+// 	<Latest>blockId2</Latest>
+// </BlockList>
 // 1.5. FinalizeArtifact
 // Post: /twirp/github.actions.results.api.v1.ArtifactService/FinalizeArtifact
 // Request
@@ -82,6 +89,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
@@ -295,31 +303,55 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 	comp := ctx.Req.URL.Query().Get("comp")
 	switch comp {
 	case "block", "appendBlock":
-		// get artifact by name
-		artifact, err := r.getArtifactByName(ctx, task.Job.RunID, artifactName)
-		if err != nil {
-			log.Error("Error artifact not found: %v", err)
-			ctx.Error(http.StatusNotFound, "Error artifact not found")
-			return
-		}
+		blockid := ctx.Req.URL.Query().Get("blockid")
+		if blockid == "" {
+			// get artifact by name
+			artifact, err := r.getArtifactByName(ctx, task.Job.RunID, artifactName)
+			if err != nil {
+				log.Error("Error artifact not found: %v", err)
+				ctx.Error(http.StatusNotFound, "Error artifact not found")
+				return
+			}
 
-		_, err = appendUploadChunk(r.fs, ctx, artifact, artifact.FileSize, ctx.Req.ContentLength, artifact.RunID)
+			_, err = appendUploadChunk(r.fs, ctx, artifact, artifact.FileSize, ctx.Req.ContentLength, artifact.RunID)
+			if err != nil {
+				log.Error("Error runner api getting task: task is not running")
+				ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+				return
+			}
+			artifact.FileCompressedSize += ctx.Req.ContentLength
+			artifact.FileSize += ctx.Req.ContentLength
+			if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+				log.Error("Error UpdateArtifactByID: %v", err)
+				ctx.Error(http.StatusInternalServerError, "Error UpdateArtifactByID")
+				return
+			}
+		} else {
+			_, err := r.fs.Save(fmt.Sprintf("tmp%d/block-%d-%d-%s", task.Job.RunID, task.Job.RunID, ctx.Req.ContentLength, blockid), ctx.Req.Body, -1)
+			if err != nil {
+				log.Error("Error runner api getting task: task is not running")
+				ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+				return
+			}
+		}
+		ctx.JSON(http.StatusCreated, "appended")
+	case "blocklist":
+		_, err := r.fs.Save(fmt.Sprintf("tmp%d/%d-blocklist", task.Job.RunID, task.Job.RunID), ctx.Req.Body, -1)
 		if err != nil {
 			log.Error("Error runner api getting task: task is not running")
 			ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
 			return
 		}
-		artifact.FileCompressedSize += ctx.Req.ContentLength
-		artifact.FileSize += ctx.Req.ContentLength
-		if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
-			log.Error("Error UpdateArtifactByID: %v", err)
-			ctx.Error(http.StatusInternalServerError, "Error UpdateArtifactByID")
-			return
-		}
-		ctx.JSON(http.StatusCreated, "appended")
-	case "blocklist":
 		ctx.JSON(http.StatusCreated, "created")
 	}
+}
+
+type BlockList struct {
+	Latest []string `xml:"Latest"`
+}
+
+type Latest struct {
+	Value string `xml:",chardata"`
 }
 
 func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
@@ -340,18 +372,49 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 		ctx.Error(http.StatusNotFound, "Error artifact not found")
 		return
 	}
-	chunkMap, err := listChunksByRunID(r.fs, runID)
+
+	blockListName := fmt.Sprintf("tmp%d/%d-blocklist", runID, runID)
+	var chunks []*chunkFileItem
+	s, err := r.fs.Open(blockListName)
 	if err != nil {
-		log.Error("Error merge chunks: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error merge chunks")
-		return
+		log.Warn("Error merge chunks: %v", err)
+		chunkMap, err := listChunksByRunID(r.fs, runID)
+		if err != nil {
+			log.Error("Error merge chunks: %v", err)
+			ctx.Error(http.StatusInternalServerError, "Error merge chunks")
+			return
+		}
+		chunks, ok = chunkMap[artifact.ID]
+		if !ok {
+			log.Error("Error merge chunks")
+			ctx.Error(http.StatusInternalServerError, "Error merge chunks")
+			return
+		}
+	} else {
+		err = r.fs.Delete(blockListName)
+		if err != nil {
+			log.Warn("Failed to delete blockList %s: %v", blockListName, err)
+		}
+
+		xdec := xml.NewDecoder(s)
+		blockList := &BlockList{}
+		err = xdec.Decode(blockList)
+		if err != nil {
+			log.Error("Error merge chunks: %v", err)
+			ctx.Error(http.StatusInternalServerError, "Error merge chunks")
+			return
+		}
+		chunks, err = listChunksByRunIDV4(r.fs, runID, artifact.ID, blockList)
+
+		if err != nil {
+			log.Error("Error merge chunks: %v", err)
+			ctx.Error(http.StatusInternalServerError, "Error merge chunks")
+			return
+		}
+		artifact.FileSize = chunks[len(chunks)-1].End + 1
+		artifact.FileCompressedSize = chunks[len(chunks)-1].End + 1
 	}
-	chunks, ok := chunkMap[artifact.ID]
-	if !ok {
-		log.Error("Error merge chunks")
-		ctx.Error(http.StatusInternalServerError, "Error merge chunks")
-		return
-	}
+
 	checksum := ""
 	if req.Hash != nil {
 		checksum = req.Hash.Value
