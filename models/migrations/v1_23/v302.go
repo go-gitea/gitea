@@ -270,14 +270,8 @@ func MigrateToXormigrate(x *xorm.Engine) error {
 	if err != nil {
 		return fmt.Errorf("get: %w", err)
 	} else if !has {
-		// If the version record does not exist we think
-		// it is a fresh installation and we can skip all migrations.
-		currentVersion.ID = 0
-		currentVersion.Version = expectedVersion
-
-		if _, err = x.InsertOne(currentVersion); err != nil {
-			return fmt.Errorf("insert: %w", err)
-		}
+		// This should not happen
+		return fmt.Errorf("could not get version", err)
 	}
 
 	v := currentVersion.Version
