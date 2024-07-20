@@ -607,6 +607,7 @@ func Migrate(x *xorm.Engine) error {
 
 	// Migrate
 	m := xormigrate.New(x, migrations)
+	m.InitSchema(noopMigration)
 
 	return m.Migrate()
 }
