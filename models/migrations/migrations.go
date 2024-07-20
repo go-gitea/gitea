@@ -607,7 +607,12 @@ func Migrate(x *xorm.Engine) error {
 
 	// Migrate
 	m := xormigrate.New(x, migrations)
-	m.InitSchema(noopMigration)
+
+	if exist, _ := x.IsTableExist("version"); !exist {
+		// if the version table exists, we still have the old migration system
+		// and the schema init should not run then
+		m.InitSchema(noopMigration)
+	}
 
 	return m.Migrate()
 }
