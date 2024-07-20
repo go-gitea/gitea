@@ -271,6 +271,8 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 		return
 	}
 	artifact.ContentEncoding = ArtifactV4ContentEncoding
+	artifact.FileSize = 0
+	artifact.FileCompressedSize = 0
 	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 		log.Error("Error UpdateArtifactByID: %v", err)
 		ctx.Error(http.StatusInternalServerError, "Error UpdateArtifactByID")
@@ -299,11 +301,6 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 			log.Error("Error artifact not found: %v", err)
 			ctx.Error(http.StatusNotFound, "Error artifact not found")
 			return
-		}
-
-		if comp == "block" {
-			artifact.FileSize = 0
-			artifact.FileCompressedSize = 0
 		}
 
 		_, err = appendUploadChunk(r.fs, ctx, artifact, artifact.FileSize, ctx.Req.ContentLength, artifact.RunID)
