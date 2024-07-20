@@ -271,7 +271,7 @@ func MigrateToXormigrate(x *xorm.Engine) error {
 		return fmt.Errorf("get: %w", err)
 	} else if !has {
 		// This should not happen
-		return fmt.Errorf("could not get version", err)
+		return fmt.Errorf("could not get version")
 	}
 
 	v := currentVersion.Version
