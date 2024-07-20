@@ -327,7 +327,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 				return
 			}
 		} else {
-			_, err := r.fs.Save(fmt.Sprintf("tmp%d/block-%d-%d-%s", task.Job.RunID, task.Job.RunID, ctx.Req.ContentLength, blockid), ctx.Req.Body, -1)
+			_, err := r.fs.Save(fmt.Sprintf("tmp%d/block-%d-%d-%s", task.Job.RunID, task.Job.RunID, ctx.Req.ContentLength, base64.URLEncoding.EncodeToString([]byte(blockid))), ctx.Req.Body, -1)
 			if err != nil {
 				log.Error("Error runner api getting task: task is not running")
 				ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")

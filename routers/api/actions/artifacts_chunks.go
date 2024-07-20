@@ -140,10 +140,15 @@ func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blis
 		// no matter the subdirectory setting in storage config
 		item := chunkFileItem{Path: storageDir + "/" + baseName, ArtifactID: artifactID}
 		var size int64
-		var chunkName string
-		if _, err := fmt.Sscanf(baseName, "block-%d-%d-%s", &item.RunID, &size, &chunkName); err != nil {
+		var b64chunkName string
+		if _, err := fmt.Sscanf(baseName, "block-%d-%d-%s", &item.RunID, &size, &b64chunkName); err != nil {
 			return fmt.Errorf("parse content range error: %v", err)
 		}
+		rchunkName, err := base64.URLEncoding.DecodeString(b64chunkName)
+		if err != nil {
+			return fmt.Errorf("failed to parse chunkName: %v", err)
+		}
+		chunkName := string(rchunkName)
 		item.End = item.Start + size - 1
 		if _, ok := chunkMap[chunkName]; ok {
 			chunkMap[chunkName] = &item
