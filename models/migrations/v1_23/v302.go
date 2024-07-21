@@ -298,7 +298,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 	}
 
 	// add migrations that already have been run
-	for _, i := range oldMigrationNames {
+	for _, i := range oldMigrationNames[:v-minDBVersion] {
 		if _, err := x.Insert(&xormigrate.Migration{ID: i}); err != nil {
 			return err
 		}
