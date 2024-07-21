@@ -32,22 +32,22 @@ const (
 var _ internal.Indexer = &Indexer{}
 
 // Indexer implements Indexer interface
-type Indexer struct {
-	inner                    *inner_elasticsearch.Indexer
+type IndexerV8 struct {
+	inner                    *inner_elasticsearch.IndexerV8
 	indexer_internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
 }
 
 // NewIndexer creates a new elasticsearch indexer
-func NewIndexer(url, indexerName string) *Indexer {
-	inner := inner_elasticsearch.NewIndexer(url, indexerName, issueIndexerLatestVersion, defaultMapping)
-	indexer := &Indexer{
+func NewIndexerV8(url, indexerName string) *IndexerV8 {
+	inner := inner_elasticsearch.NewIndexerV8(url, indexerName, issueIndexerLatestVersion, defaultMappingV8)
+	indexer := &IndexerV8{
 		inner:   inner,
 		Indexer: inner,
 	}
 	return indexer
 }
 
-var defaultMapping = &types8.TypeMapping{
+var defaultMappingV8 = &types8.TypeMapping{
 	Properties: map[string]types8.Property{
 		"id":        types8.NewIntegerNumberProperty(),
 		"repo_id":   types8.NewIntegerNumberProperty(),
@@ -78,7 +78,7 @@ var defaultMapping = &types8.TypeMapping{
 }
 
 // Index will save the index data
-func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) error {
+func (b *IndexerV8) Index(ctx context.Context, issues ...*internal.IndexerData) error {
 	if len(issues) == 0 {
 		return nil
 	} else if len(issues) == 1 {
@@ -109,7 +109,7 @@ func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) er
 }
 
 // Delete deletes indexes by ids
-func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
+func (b *IndexerV8) Delete(ctx context.Context, ids ...int64) error {
 	if len(ids) == 0 {
 		return nil
 	}
@@ -149,7 +149,7 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
+func (b *IndexerV8) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
 	query := &types8.Query{
 		Bool: &types8.BoolQuery{
 			Must: make([]types8.Query, 0),
@@ -340,7 +340,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.SortBy == "" {
 		options.SortBy = internal.SortByCreatedAsc
 	}
-	field, fieldSort := parseSortBy(options.SortBy)
+	field, fieldSort := parseSortByV8(options.SortBy)
 	sort := []types8.SortCombinations{
 		&types8.SortOptions{SortOptions: map[string]types8.FieldSort{
 			field: fieldSort,
@@ -377,15 +377,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}, nil
 }
 
-func toAnySlice[T any](s []T) []any {
-	ret := make([]any, 0, len(s))
-	for _, item := range s {
-		ret = append(ret, item)
-	}
-	return ret
-}
-
-func parseSortBy(sortBy internal.SortBy) (string, types8.FieldSort) {
+func parseSortByV8(sortBy internal.SortBy) (string, types8.FieldSort) {
 	field := strings.TrimPrefix(string(sortBy), "-")
 	sort := types8.FieldSort{
 		Order: &sortorder8.Asc,

@@ -23,14 +23,14 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
 
-	"github.com/elastic/go-elasticsearch/v8/typedapi/core/bulk"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/some"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/highlightertype"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/sortorder"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/termvectoroption"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/textquerytype"
+	bulkV8 "github.com/elastic/go-elasticsearch/v8/typedapi/core/bulk"
+	searchV8 "github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
+	someV8 "github.com/elastic/go-elasticsearch/v8/typedapi/some"
+	typesV8 "github.com/elastic/go-elasticsearch/v8/typedapi/types"
+	highlightertypeV8 "github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/highlightertype"
+	sortorderV8 "github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/sortorder"
+	termvectoroptionV8 "github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/termvectoroption"
+	textquerytypeV8 "github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/textquerytype"
 	"github.com/go-enry/go-enry/v2"
 )
 
@@ -38,40 +38,40 @@ const (
 	esRepoIndexerLatestVersion = 1
 )
 
-var _ internal.Indexer = &Indexer{}
+var _ internal.Indexer = &IndexerV8{}
 
-// Indexer implements Indexer interface
-type Indexer struct {
-	inner                    *inner_elasticsearch.Indexer
+// IndexerV8 implements Indexer interface
+type IndexerV8 struct {
+	inner                    *inner_elasticsearch.IndexerV8
 	indexer_internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
 }
 
 // NewIndexer creates a new elasticsearch indexer
-func NewIndexer(url, indexerName string) *Indexer {
-	inner := inner_elasticsearch.NewIndexer(url, indexerName, esRepoIndexerLatestVersion, defaultMapping)
-	indexer := &Indexer{
+func NewIndexerV8(url, indexerName string) *IndexerV8 {
+	inner := inner_elasticsearch.NewIndexerV8(url, indexerName, esRepoIndexerLatestVersion, defaultMappingV8)
+	indexer := &IndexerV8{
 		inner:   inner,
 		Indexer: inner,
 	}
 	return indexer
 }
 
-var defaultMapping = &types.TypeMapping{
-	Properties: map[string]types.Property{
-		"repo_id": types.NewLongNumberProperty(),
-		"content": &types.TextProperty{
-			Fields:     make(map[string]types.Property, 0),
+var defaultMappingV8 = &typesV8.TypeMapping{
+	Properties: map[string]typesV8.Property{
+		"repo_id": typesV8.NewLongNumberProperty(),
+		"content": &typesV8.TextProperty{
+			Fields:     make(map[string]typesV8.Property, 0),
 			Meta:       make(map[string]string, 0),
-			Properties: make(map[string]types.Property, 0),
-			TermVector: &termvectoroption.Withpositions,
+			Properties: make(map[string]typesV8.Property, 0),
+			TermVector: &termvectoroptionV8.Withpositions,
 		},
-		"commit_id":  types.NewKeywordProperty(),
-		"language":   types.NewKeywordProperty(),
-		"updated_at": types.NewLongNumberProperty(),
+		"commit_id":  typesV8.NewKeywordProperty(),
+		"language":   typesV8.NewKeywordProperty(),
+		"updated_at": typesV8.NewLongNumberProperty(),
 	},
 }
 
-func (b *Indexer) addUpdate(ctx context.Context, blk *bulk.Bulk, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update internal.FileUpdate, repo *repo_model.Repository) error {
+func (b *IndexerV8) addUpdate(ctx context.Context, blk *bulkV8.Bulk, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update internal.FileUpdate, repo *repo_model.Repository) error {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil
@@ -116,9 +116,9 @@ func (b *Indexer) addUpdate(ctx context.Context, blk *bulk.Bulk, batchWriter git
 	}
 	id := internal.FilenameIndexerID(repo.ID, update.Filename)
 
-	return blk.IndexOp(types.IndexOperation{
-		Index_: some.String(b.inner.VersionedIndexName()),
-		Id_:    some.String(id),
+	return blk.IndexOp(typesV8.IndexOperation{
+		Index_: someV8.String(b.inner.VersionedIndexName()),
+		Id_:    someV8.String(id),
 	}, map[string]any{
 		"id":         id,
 		"repo_id":    repo.ID,
@@ -129,16 +129,16 @@ func (b *Indexer) addUpdate(ctx context.Context, blk *bulk.Bulk, batchWriter git
 	})
 }
 
-func (b *Indexer) addDelete(blk *bulk.Bulk, filename string, repo *repo_model.Repository) error {
+func (b *IndexerV8) addDelete(blk *bulkV8.Bulk, filename string, repo *repo_model.Repository) error {
 	id := internal.FilenameIndexerID(repo.ID, filename)
-	return blk.DeleteOp(types.DeleteOperation{
-		Index_: some.String(b.inner.VersionedIndexName()),
-		Id_:    some.String(id),
+	return blk.DeleteOp(typesV8.DeleteOperation{
+		Index_: someV8.String(b.inner.VersionedIndexName()),
+		Id_:    someV8.String(id),
 	})
 }
 
 // Index will save the index data
-func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
+func (b *IndexerV8) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	if len(changes.Updates) == 0 && len(changes.RemovedFilenames) == 0 {
 		return nil
 	}
@@ -176,10 +176,10 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 }
 
 // Delete deletes indexes by ids
-func (b *Indexer) Delete(ctx context.Context, repoID int64) error {
+func (b *IndexerV8) Delete(ctx context.Context, repoID int64) error {
 	_, err := b.inner.Client.DeleteByQuery(b.inner.VersionedIndexName()).
-		Query(&types.Query{
-			Term: map[string]types.TermQuery{
+		Query(&typesV8.Query{
+			Term: map[string]typesV8.TermQuery{
 				"repo_id": {Value: repoID},
 			},
 		}).
@@ -204,7 +204,7 @@ func indexPos(content, start, end string) (int, int) {
 	return startIdx, startIdx + len(start) + endIdx + len(end)
 }
 
-func convertResult(searchResult *search.Response, kw string, pageSize int) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
+func convertResultV8(searchResult *searchV8.Response, kw string, pageSize int) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
 	hits := make([]*internal.SearchResult, 0, pageSize)
 	for _, hit := range searchResult.Hits.Hits {
 		// FIXME: There is no way to get the position the keyword on the content currently on the same request.
@@ -248,14 +248,14 @@ func convertResult(searchResult *search.Response, kw string, pageSize int) (int6
 	return searchResult.Hits.Total.Value, hits, extractAggregates(searchResult), nil
 }
 
-func extractAggregates(searchResult *search.Response) []*internal.SearchResultLanguages {
+func extractAggregates(searchResult *searchV8.Response) []*internal.SearchResultLanguages {
 	var searchResultLanguages []*internal.SearchResultLanguages
 	agg, found := searchResult.Aggregations["language"]
 	if found {
 		searchResultLanguages = make([]*internal.SearchResultLanguages, 0, 10)
 
-		languageAgg := agg.(*types.StringTermsAggregate)
-		buckets := languageAgg.Buckets.([]types.StringTermsBucket)
+		languageAgg := agg.(*typesV8.StringTermsAggregate)
+		buckets := languageAgg.Buckets.([]typesV8.StringTermsBucket)
 		for _, bucket := range buckets {
 			searchResultLanguages = append(searchResultLanguages, &internal.SearchResultLanguages{
 				Language: bucket.Key.(string),
@@ -268,33 +268,33 @@ func extractAggregates(searchResult *search.Response) []*internal.SearchResultLa
 }
 
 // Search searches for codes and language stats by given conditions.
-func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
+func (b *IndexerV8) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
 	// searchType := esMultiMatchTypePhrasePrefix
-	searchType := &textquerytype.Phraseprefix
+	searchType := &textquerytypeV8.Phraseprefix
 	if opts.IsKeywordFuzzy {
-		searchType = &textquerytype.Bestfields
+		searchType = &textquerytypeV8.Bestfields
 	}
 
-	kwQuery := types.Query{
-		MultiMatch: &types.MultiMatchQuery{
+	kwQuery := typesV8.Query{
+		MultiMatch: &typesV8.MultiMatchQuery{
 			Query:  opts.Keyword,
 			Fields: []string{"content"},
 			Type:   searchType,
 		},
 	}
-	query := &types.Query{
-		Bool: &types.BoolQuery{
-			Must: []types.Query{kwQuery},
+	query := &typesV8.Query{
+		Bool: &typesV8.BoolQuery{
+			Must: []typesV8.Query{kwQuery},
 		},
 	}
 	if len(opts.RepoIDs) > 0 {
-		repoIDs := make([]types.FieldValue, 0, len(opts.RepoIDs))
+		repoIDs := make([]typesV8.FieldValue, 0, len(opts.RepoIDs))
 		for _, repoID := range opts.RepoIDs {
-			repoIDs = append(repoIDs, types.FieldValue(repoID))
+			repoIDs = append(repoIDs, typesV8.FieldValue(repoID))
 		}
-		repoQuery := types.Query{
-			Terms: &types.TermsQuery{
-				TermsQuery: map[string]types.TermsQueryField{
+		repoQuery := typesV8.Query{
+			Terms: &typesV8.TermsQuery{
+				TermsQuery: map[string]typesV8.TermsQueryField{
 					"repo_id": repoIDs,
 				},
 			},
@@ -305,13 +305,13 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	var (
 		start, pageSize = opts.GetSkipTake()
 		kw              = "<em>" + opts.Keyword + "</em>"
-		aggregation     = map[string]types.Aggregations{
+		aggregation     = map[string]typesV8.Aggregations{
 			"language": {
-				Terms: &types.TermsAggregation{
-					Field: some.String("language"),
-					Size:  some.Int(10),
-					Order: map[string]sortorder.SortOrder{
-						"_count": sortorder.Desc,
+				Terms: &typesV8.TermsAggregation{
+					Field: someV8.String("language"),
+					Size:  someV8.Int(10),
+					Order: map[string]sortorderV8.SortOrder{
+						"_count": sortorderV8.Desc,
 					},
 				},
 			},
@@ -324,11 +324,11 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 			Aggregations(aggregation).
 			Query(query).
 			Highlight(
-				&types.Highlight{
-					Fields: map[string]types.HighlightField{
+				&typesV8.Highlight{
+					Fields: map[string]typesV8.HighlightField{
 						"content": {
-							NumberOfFragments: some.Int(0), // return all highting content on fragments
-							Type:              &highlightertype.Fvh,
+							NumberOfFragments: someV8.Int(0), // return all highting content on fragments
+							Type:              &highlightertypeV8.Fvh,
 						},
 					},
 				},
@@ -340,11 +340,11 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 			return 0, nil, nil, err
 		}
 
-		return convertResult(searchResult, kw, pageSize)
+		return convertResultV8(searchResult, kw, pageSize)
 	}
 
-	langQuery := types.Query{
-		Match: map[string]types.MatchQuery{
+	langQuery := typesV8.Query{
+		Match: map[string]typesV8.MatchQuery{
 			"language": {
 				Query: opts.Language,
 			},
@@ -365,11 +365,11 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		Index(b.inner.VersionedIndexName()).
 		Query(query).
 		Highlight(
-			&types.Highlight{
-				Fields: map[string]types.HighlightField{
+			&typesV8.Highlight{
+				Fields: map[string]typesV8.HighlightField{
 					"content": {
-						NumberOfFragments: some.Int(0), // return all highting content on fragments
-						Type:              &highlightertype.Fvh,
+						NumberOfFragments: someV8.Int(0), // return all highting content on fragments
+						Type:              &highlightertypeV8.Fvh,
 					},
 				},
 			},
@@ -381,7 +381,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		return 0, nil, nil, err
 	}
 
-	total, hits, _, err := convertResult(searchResult, kw, pageSize)
+	total, hits, _, err := convertResultV8(searchResult, kw, pageSize)
 
 	return total, hits, extractAggregates(countResult), err
 }

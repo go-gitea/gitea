@@ -14,7 +14,7 @@ import (
 )
 
 // VersionedIndexName returns the full index name with version
-func (i *Indexer) VersionedIndexName() string {
+func (i *IndexerV8) VersionedIndexName() string {
 	return versionedIndexName(i.indexName, i.version)
 }
 
@@ -26,7 +26,7 @@ func versionedIndexName(indexName string, version int) string {
 	return fmt.Sprintf("%s.v%d", indexName, version)
 }
 
-func (i *Indexer) createIndex(ctx context.Context) error {
+func (i *IndexerV8) createIndex(ctx context.Context) error {
 	createIndex, err := i.Client.Indices.Create(i.VersionedIndexName()).Request(&create8.Request{
 		Mappings: i.mapping,
 	}).Do(ctx)
@@ -42,7 +42,7 @@ func (i *Indexer) createIndex(ctx context.Context) error {
 	return nil
 }
 
-func (i *Indexer) initClient() (*elasticsearch8.TypedClient, error) {
+func (i *IndexerV8) initClient() (*elasticsearch8.TypedClient, error) {
 	cfg := elasticsearch8.Config{
 		Addresses: []string{i.url},
 	}
@@ -56,7 +56,7 @@ func (i *Indexer) initClient() (*elasticsearch8.TypedClient, error) {
 	return elasticsearch8.NewTypedClient(cfg)
 }
 
-func (i *Indexer) checkOldIndexes(ctx context.Context) {
+func (i *IndexerV8) checkOldIndexes(ctx context.Context) {
 	for v := 0; v < i.version; v++ {
 		indexName := versionedIndexName(i.indexName, v)
 		exists, err := i.Client.Indices.Exists(indexName).Do(ctx)
