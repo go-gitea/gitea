@@ -4,6 +4,8 @@
 package git
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -127,4 +129,10 @@ func (l *LimitedReaderCloser) Read(p []byte) (n int, err error) {
 // Close implements io.Closer
 func (l *LimitedReaderCloser) Close() error {
 	return l.C.Close()
+}
+
+func HashFilePathForWebUI(s string) string {
+	h := sha1.New()
+	_, _ = h.Write([]byte(s))
+	return hex.EncodeToString(h.Sum(nil))
 }

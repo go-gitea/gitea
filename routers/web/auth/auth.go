@@ -368,7 +368,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		return setting.AppSubURL + "/"
 	}
 
-	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" && httplib.IsCurrentGiteaSiteURL(redirectTo) {
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" && httplib.IsCurrentGiteaSiteURL(ctx, redirectTo) {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
 		if obeyRedirect {
 			ctx.RedirectToCurrentSite(redirectTo)
@@ -622,10 +622,8 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 
 	// update external user information
 	if gothUser != nil {
-		if err := externalaccount.UpdateExternalUser(ctx, u, *gothUser); err != nil {
-			if !errors.Is(err, util.ErrNotExist) {
-				log.Error("UpdateExternalUser failed: %v", err)
-			}
+		if err := externalaccount.EnsureLinkExternalToUser(ctx, u, *gothUser); err != nil {
+			log.Error("EnsureLinkExternalToUser failed: %v", err)
 		}
 	}
 
@@ -831,6 +829,7 @@ func ActivateEmail(ctx *context.Context) {
 	if email := user_model.VerifyActiveEmailCode(ctx, code, emailStr); email != nil {
 		if err := user_model.ActivateEmail(ctx, email); err != nil {
 			ctx.ServerError("ActivateEmail", err)
+			return
 		}
 
 		log.Trace("Email activated: %s", email.Email)

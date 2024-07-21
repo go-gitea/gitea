@@ -49,10 +49,11 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 
 	// TODO validate redirect URI
 	app, err := auth.CreateOAuth2Application(ctx, auth.CreateOAuth2ApplicationOptions{
-		Name:               form.Name,
-		RedirectURIs:       util.SplitTrimSpace(form.RedirectURIs, "\n"),
-		UserID:             oa.OwnerID,
-		ConfidentialClient: form.ConfidentialClient,
+		Name:                       form.Name,
+		RedirectURIs:               util.SplitTrimSpace(form.RedirectURIs, "\n"),
+		UserID:                     oa.OwnerID,
+		ConfidentialClient:         form.ConfidentialClient,
+		SkipSecondaryAuthorization: form.SkipSecondaryAuthorization,
 	})
 	if err != nil {
 		ctx.ServerError("CreateOAuth2Application", err)
@@ -73,7 +74,7 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 
 // EditShow displays the given application
 func (oa *OAuth2CommonHandlers) EditShow(ctx *context.Context) {
-	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.ParamsInt64("id"))
+	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if auth.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound("Application not found", err)
@@ -102,11 +103,12 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 	// TODO validate redirect URI
 	var err error
 	if ctx.Data["App"], err = auth.UpdateOAuth2Application(ctx, auth.UpdateOAuth2ApplicationOptions{
-		ID:                 ctx.ParamsInt64("id"),
-		Name:               form.Name,
-		RedirectURIs:       util.SplitTrimSpace(form.RedirectURIs, "\n"),
-		UserID:             oa.OwnerID,
-		ConfidentialClient: form.ConfidentialClient,
+		ID:                         ctx.PathParamInt64("id"),
+		Name:                       form.Name,
+		RedirectURIs:               util.SplitTrimSpace(form.RedirectURIs, "\n"),
+		UserID:                     oa.OwnerID,
+		ConfidentialClient:         form.ConfidentialClient,
+		SkipSecondaryAuthorization: form.SkipSecondaryAuthorization,
 	}); err != nil {
 		ctx.ServerError("UpdateOAuth2Application", err)
 		return
@@ -117,7 +119,7 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 
 // RegenerateSecret regenerates the secret
 func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
-	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.ParamsInt64("id"))
+	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if auth.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound("Application not found", err)
@@ -142,7 +144,7 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 
 // DeleteApp deletes the given oauth2 application
 func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
-	if err := auth.DeleteOAuth2Application(ctx, ctx.ParamsInt64("id"), oa.OwnerID); err != nil {
+	if err := auth.DeleteOAuth2Application(ctx, ctx.PathParamInt64("id"), oa.OwnerID); err != nil {
 		ctx.ServerError("DeleteOAuth2Application", err)
 		return
 	}
@@ -153,7 +155,7 @@ func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 
 // RevokeGrant revokes the grant
 func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
-	if err := auth.RevokeOAuth2Grant(ctx, ctx.ParamsInt64("grantId"), oa.OwnerID); err != nil {
+	if err := auth.RevokeOAuth2Grant(ctx, ctx.PathParamInt64("grantId"), oa.OwnerID); err != nil {
 		ctx.ServerError("RevokeOAuth2Grant", err)
 		return
 	}

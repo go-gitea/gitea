@@ -23,7 +23,6 @@ import (
 	pull_model "code.gitea.io/gitea/models/pull"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -746,7 +745,7 @@ parsingLoop:
 	diffLineTypeBuffers[DiffLineAdd] = new(bytes.Buffer)
 	diffLineTypeBuffers[DiffLineDel] = new(bytes.Buffer)
 	for _, f := range diff.Files {
-		f.NameHash = base.EncodeSha1(f.Name)
+		f.NameHash = git.HashFilePathForWebUI(f.Name)
 
 		for _, buffer := range diffLineTypeBuffers {
 			buffer.Reset()
@@ -1062,7 +1061,7 @@ func readFileName(rd *strings.Reader) (string, bool) {
 	char, _ := rd.ReadByte()
 	_ = rd.UnreadByte()
 	if char == '"' {
-		fmt.Fscanf(rd, "%q ", &name)
+		_, _ = fmt.Fscanf(rd, "%q ", &name)
 		if len(name) == 0 {
 			log.Error("Reader has no file name: reader=%+v", rd)
 			return "", true
@@ -1074,12 +1073,12 @@ func readFileName(rd *strings.Reader) (string, bool) {
 	} else {
 		// This technique is potentially ambiguous it may not be possible to uniquely identify the filenames from the diff line alone
 		ambiguity = true
-		fmt.Fscanf(rd, "%s ", &name)
+		_, _ = fmt.Fscanf(rd, "%s ", &name)
 		char, _ := rd.ReadByte()
 		_ = rd.UnreadByte()
 		for !(char == 0 || char == '"' || char == 'b') {
 			var suffix string
-			fmt.Fscanf(rd, "%s ", &suffix)
+			_, _ = fmt.Fscanf(rd, "%s ", &suffix)
 			name += " " + suffix
 			char, _ = rd.ReadByte()
 			_ = rd.UnreadByte()
@@ -1143,7 +1142,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	// so if we are using at least this version of git we don't have to tell ParsePatch to do
 	// the skipping for us
 	parsePatchSkipToFile := opts.SkipTo
-	if opts.SkipTo != "" && git.CheckGitVersionAtLeast("2.31") == nil {
+	if opts.SkipTo != "" && git.DefaultFeatures().CheckVersionAtLeast("2.31") {
 		cmdDiff.AddOptionFormat("--skip-to=%s", opts.SkipTo)
 		parsePatchSkipToFile = ""
 	}

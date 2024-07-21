@@ -1,5 +1,5 @@
-<script>
-import {SvgIcon} from '../svg.js';
+<script lang="ts">
+import {SvgIcon} from '../svg.ts';
 import {
   Chart,
   Legend,
@@ -9,15 +9,15 @@ import {
   LineElement,
   Filler,
 } from 'chart.js';
-import {GET} from '../modules/fetch.js';
+import {GET} from '../modules/fetch.ts';
 import {Line as ChartLine} from 'vue-chartjs';
 import {
   startDaysBetween,
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
-} from '../utils/time.js';
-import {chartJsColors} from '../utils/color.js';
-import {sleep} from '../utils.js';
+} from '../utils/time.ts';
+import {chartJsColors} from '../utils/color.ts';
+import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 
 const {pageData} = window.config;
@@ -67,7 +67,7 @@ export default {
           const weekValues = Object.values(this.data);
           const start = weekValues[0].week;
           const end = firstStartDateAfterDate(new Date());
-          const startDays = startDaysBetween(new Date(start), new Date(end));
+          const startDays = startDaysBetween(start, end);
           this.data = fillEmptyStartDaysWithZeroes(startDays, this.data);
           this.errorText = '';
         } else {

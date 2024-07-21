@@ -90,7 +90,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 
 	pullMirrorsRequested := 0
 	if pullLimit != 0 {
-		if err := repo_model.MirrorsIterate(ctx, pullLimit, func(idx int, bean any) error {
+		if err := repo_model.MirrorsIterate(ctx, pullLimit, func(_ int, bean any) error {
 			if err := handler(bean); err != nil {
 				return err
 			}

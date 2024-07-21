@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func resultFilenames(t testing.TB, doc *HTMLDoc) []string {
+func resultFilenames(doc *HTMLDoc) []string {
 	filenameSelections := doc.doc.Find(".repository.search").Find(".repo-search-result").Find(".header").Find("span.file")
 	result := make([]string, filenameSelections.Length())
 	filenameSelections.Each(func(i int, selection *goquery.Selection) {
@@ -56,6 +56,6 @@ func testSearch(t *testing.T, url string, expected []string) {
 	req := NewRequest(t, "GET", url)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	filenames := resultFilenames(t, NewHTMLParser(t, resp.Body))
+	filenames := resultFilenames(NewHTMLParser(t, resp.Body))
 	assert.EqualValues(t, expected, filenames)
 }

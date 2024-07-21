@@ -29,6 +29,7 @@ type GrepOptions struct {
 	ContextLineNumber int
 	IsFuzzy           bool
 	MaxLineLength     int // the maximum length of a line to parse, exceeding chars will be truncated
+	PathspecList      []string
 }
 
 func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepOptions) ([]*GrepResult, error) {
@@ -62,6 +63,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 		cmd.AddOptionValues("-e", strings.TrimLeft(search, "-"))
 	}
 	cmd.AddDynamicArguments(util.IfZero(opts.RefName, "HEAD"))
+	cmd.AddDashesAndList(opts.PathspecList...)
 	opts.MaxResultLimit = util.IfZero(opts.MaxResultLimit, 50)
 	stderr := bytes.Buffer{}
 	err = cmd.Run(&RunOpts{

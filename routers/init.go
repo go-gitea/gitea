@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/routing"
 	actions_router "code.gitea.io/gitea/routers/api/actions"
@@ -112,7 +113,10 @@ func InitWebInstallPage(ctx context.Context) {
 // InitWebInstalled is for global installed configuration.
 func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, git.InitFull)
-	log.Info("Git version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
+	log.Info("Git version: %s (home: %s)", git.DefaultFeatures().VersionInfo(), git.HomeDir())
+	if !git.DefaultFeatures().SupportHashSha256 {
+		log.Warn("sha256 hash support is disabled - requires Git >= 2.42." + util.Iif(git.DefaultFeatures().UsingGogit, " Gogit is currently unsupported.", ""))
+	}
 
 	// Setup i18n
 	translation.InitLocales(ctx)
@@ -173,9 +177,9 @@ func InitWebInstalled(ctx context.Context) {
 }
 
 // NormalRoutes represents non install routes
-func NormalRoutes() *web.Route {
+func NormalRoutes() *web.Router {
 	_ = templates.HTMLRenderer()
-	r := web.NewRoute()
+	r := web.NewRouter()
 	r.Use(common.ProtocolMiddlewares()...)
 
 	r.Mount("/", web_routers.Routes())
@@ -187,7 +191,8 @@ func NormalRoutes() *web.Route {
 	if setting.Packages.Enabled {
 		// This implements package support for most package managers
 		r.Mount("/api/packages", packages_router.CommonRoutes())
-		// This implements the OCI API (Note this is not preceded by /api but is instead /v2)
+		// This implements the OCI API, this container registry "/v2" endpoint must be in the root of the site.
+		// If site admin deploys Gitea in a sub-path, they must configure their reverse proxy to map the "https://host/v2" endpoint to Gitea.
 		r.Mount("/v2", packages_router.ContainerRoutes())
 	}
 

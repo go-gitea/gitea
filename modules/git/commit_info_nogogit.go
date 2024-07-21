@@ -29,7 +29,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 	var revs map[string]*Commit
 	if commit.repo.LastCommitCache != nil {
 		var unHitPaths []string
-		revs, unHitPaths, err = getLastCommitForPathsByCache(ctx, commit.ID.String(), treePath, entryPaths, commit.repo.LastCommitCache)
+		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, commit.repo.LastCommitCache)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -97,7 +97,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 	return commitsInfo, treeCommit, nil
 }
 
-func getLastCommitForPathsByCache(ctx context.Context, commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
+func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
 	var unHitEntryPaths []string
 	results := make(map[string]*Commit)
 	for _, p := range paths {

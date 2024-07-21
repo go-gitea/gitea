@@ -13,8 +13,7 @@
 .page-content.install .ui.form .field > .help,
 .page-content.install .ui.form .field > .ui.checkbox:first-child,
 .page-content.install .ui.form .field > .right-content {
-  margin-left: 30%;
-  padding-left: 5px;
+  margin-left: calc(30% + 5px);
   width: auto;
 }
 
@@ -24,10 +23,11 @@
 }
 
 .page-content.install form.ui.form details.optional.field[open] {
-  border-bottom: 1px dashed var(--color-secondary);
   padding-bottom: 10px;
 }
-
+.page-content.install form.ui.form details.optional.field[open]:not(:last-child) {
+  border-bottom: 1px dashed var(--color-secondary);
+}
 .page-content.install form.ui.form details.optional.field[open] summary {
   margin-bottom: 10px;
 }

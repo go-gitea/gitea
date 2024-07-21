@@ -41,7 +41,7 @@ input[type="radio"] {
 
 .ui.checkbox label,
 .ui.radio.checkbox label {
-  margin-left: 1.85714em;
+  margin-left: 20px;
 }
 
 .ui.checkbox + label {

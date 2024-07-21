@@ -96,6 +96,33 @@ func TestAPICreateIssueAttachment(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, IssueID: issue.ID})
 }
 
+func TestAPICreateIssueAttachmentWithUnallowedFile(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, repoOwner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+
+	filename := "file.bad"
+	body := &bytes.Buffer{}
+
+	// Setup multi-part.
+	writer := multipart.NewWriter(body)
+	_, err := writer.CreateFormFile("attachment", filename)
+	assert.NoError(t, err)
+	err = writer.Close()
+	assert.NoError(t, err)
+
+	req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets", repoOwner.Name, repo.Name, issue.Index), body).
+		AddTokenAuth(token)
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+}
+
 func TestAPIEditIssueAttachment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

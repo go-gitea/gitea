@@ -4,34 +4,39 @@
 	</div>
 {{end}}
 <div class="issue-title-header">
-	<div class="issue-title" id="issue-title-wrapper">
-		<h1 class="gt-word-break">
-			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title ($.Repository.ComposeMetas ctx) | RenderCodeBlock}} <span class="index">#{{.Issue.Index}}</span>
-</span>
-			<div id="edit-title-input" class="ui input tw-flex-1 tw-hidden">
-				<input value="{{.Issue.Title}}" maxlength="255" autocomplete="off">
-			</div>
+	{{$canEditIssueTitle := and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
+	<div class="issue-title" id="issue-title-display">
+		<h1 class="tw-break-anywhere">
+			{{RenderIssueTitle $.Context .Issue.Title ($.Repository.ComposeMetas ctx) | RenderCodeBlock}}
+			<span class="index">#{{.Issue.Index}}</span>
 		</h1>
 		<div class="issue-title-buttons">
-			{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
-				<button id="edit-title" class="ui small basic button edit-button not-in-edit{{if .Issue.IsPull}} tw-mr-0{{end}}">{{ctx.Locale.Tr "repo.issues.edit"}}</button>
+			{{if $canEditIssueTitle}}
+			<button id="issue-title-edit-show" class="ui small basic button">{{ctx.Locale.Tr "repo.issues.edit"}}</button>
 			{{end}}
 			{{if not .Issue.IsPull}}
-				<a role="button" class="ui small primary button new-issue-button tw-mr-0" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
+			<a role="button" class="ui small primary button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 			{{end}}
 		</div>
-		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
-			<div class="edit-buttons">
-				<button id="cancel-edit-title" class="ui small basic button in-edit tw-hidden">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
-				<button id="save-edit-title" class="ui small primary button in-edit tw-hidden tw-mr-0" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{ctx.Locale.Tr "repo.issues.save"}}</button>
-			</div>
-		{{end}}
 	</div>
+	{{if $canEditIssueTitle}}
+	<div class="ui form issue-title tw-hidden" id="issue-title-editor">
+		<div class="ui input tw-flex-1">
+			<input value="{{.Issue.Title}}" data-old-title="{{.Issue.Title}}" maxlength="255" autocomplete="off">
+		</div>
+		<div class="issue-title-buttons">
+			<button class="ui small basic cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
+			<button class="ui small primary button" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title">
+				{{ctx.Locale.Tr "repo.issues.save"}}
+			</button>
+		</div>
+	</div>
+	{{end}}
 	<div class="issue-title-meta">
 		{{if .HasMerged}}
 			<div class="ui purple label issue-state-label">{{svg "octicon-git-merge" 16 "tw-mr-1"}} {{if eq .Issue.PullRequest.Status 3}}{{ctx.Locale.Tr "repo.pulls.manually_merged"}}{{else}}{{ctx.Locale.Tr "repo.pulls.merged"}}{{end}}</div>
 		{{else if .Issue.IsClosed}}
-			<div class="ui red label issue-state-label">{{if .Issue.IsPull}}{{svg "octicon-git-pull-request"}}{{else}}{{svg "octicon-issue-closed"}}{{end}} {{ctx.Locale.Tr "repo.issues.closed_title"}}</div>
+			<div class="ui red label issue-state-label">{{svg (Iif .Issue.IsPull "octicon-git-pull-request" "octicon-issue-closed")}} {{ctx.Locale.Tr "repo.issues.closed_title"}}</div>
 		{{else if .Issue.IsPull}}
 			{{if .IsPullWorkInProgress}}
 				<div class="ui grey label issue-state-label">{{svg "octicon-git-pull-request-draft"}} {{ctx.Locale.Tr "repo.issues.draft_title"}}</div>
@@ -63,14 +68,14 @@
 					{{end}}
 				{{else}}
 					{{if .Issue.OriginalAuthor}}
-						<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}</span>
+						<span id="pull-desc-display" class="pull-desc">{{.Issue.OriginalAuthor}} {{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}</span>
 					{{else}}
-						<span id="pull-desc" class="pull-desc">
+						<span id="pull-desc-display" class="pull-desc">
 							<a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
 							{{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}
 						</span>
 					{{end}}
-					<span id="pull-desc-edit" class="tw-hidden flex-text-block">
+					<span id="pull-desc-editor" class="tw-hidden flex-text-block" data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch">
 						<div class="ui floating filter dropdown">
 							<div class="ui basic small button tw-mr-0">
 								<span class="text">{{ctx.Locale.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>

@@ -147,6 +147,23 @@ func DelDivergenceFromCache(repoID int64, branchName string) error {
 	return cache.GetCache().Delete(getDivergenceCacheKey(repoID, branchName))
 }
 
+// DelRepoDivergenceFromCache deletes all divergence caches of a repository
+func DelRepoDivergenceFromCache(ctx context.Context, repoID int64) error {
+	dbBranches, err := db.Find[git_model.Branch](ctx, git_model.FindBranchOptions{
+		RepoID:      repoID,
+		ListOptions: db.ListOptionsAll,
+	})
+	if err != nil {
+		return err
+	}
+	for i := range dbBranches {
+		if err := DelDivergenceFromCache(repoID, dbBranches[i].Name); err != nil {
+			log.Error("DelDivergenceFromCache: %v", err)
+		}
+	}
+	return nil
+}
+
 func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *git_model.Branch, protectedBranches *git_model.ProtectedBranchRules,
 	repoIDToRepo map[int64]*repo_model.Repository,
 	repoIDToGitRepo map[int64]*git.Repository,
@@ -332,7 +349,7 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 				if _, err := git_model.UpdateBranch(ctx, repoID, pusherID, branchName, commit); err != nil {
 					return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repoID, branchName, err)
 				}
-				return nil
+				continue
 			}
 
 			// if database have branches but not this branch, it means this is a new branch
@@ -527,7 +544,7 @@ func handlerBranchSync(items ...*BranchSyncOptions) []*BranchSyncOptions {
 	return nil
 }
 
-func addRepoToBranchSyncQueue(repoID, doerID int64) error {
+func addRepoToBranchSyncQueue(repoID int64) error {
 	return branchSyncQueue.Push(&BranchSyncOptions{
 		RepoID: repoID,
 	})
@@ -543,9 +560,9 @@ func initBranchSyncQueue(ctx context.Context) error {
 	return nil
 }
 
-func AddAllRepoBranchesToSyncQueue(ctx context.Context, doerID int64) error {
+func AddAllRepoBranchesToSyncQueue(ctx context.Context) error {
 	if err := db.Iterate(ctx, builder.Eq{"is_empty": false}, func(ctx context.Context, repo *repo_model.Repository) error {
-		return addRepoToBranchSyncQueue(repo.ID, doerID)
+		return addRepoToBranchSyncQueue(repo.ID)
 	}); err != nil {
 		return fmt.Errorf("run sync all branches failed: %v", err)
 	}
