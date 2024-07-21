@@ -269,7 +269,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.ProjectColumnID.Has() {
 		query.Bool.Must = append(query.Bool.Must, types.Query{
 			Term: map[string]types.TermQuery{
-				"project_board_id": {Value: options.ProjectBoardID.Value()},
+				"project_board_id": {Value: options.ProjectColumnID.Value()},
 			},
 		})
 	}
