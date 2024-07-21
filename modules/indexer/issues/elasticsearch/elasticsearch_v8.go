@@ -29,7 +29,7 @@ const (
 	issueIndexerLatestVersion = 1
 )
 
-var _ internal.Indexer = &Indexer{}
+var _ internal.Indexer = &IndexerV8{}
 
 // Indexer implements Indexer interface
 type IndexerV8 struct {

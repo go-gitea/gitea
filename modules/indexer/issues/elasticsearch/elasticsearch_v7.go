@@ -24,18 +24,18 @@ const (
 	esMultiMatchTypePhrasePrefix = "phrase_prefix"
 )
 
-var _ internal.Indexer = &Indexer{}
+var _ internal.Indexer = &IndexerV7{}
 
-// Indexer implements Indexer interface
-type Indexer struct {
-	inner                    *inner_elasticsearch.Indexer
+// IndexerV7 implements Indexer interface
+type IndexerV7 struct {
+	inner                    *inner_elasticsearch.IndexerV7
 	indexer_internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
 }
 
-// NewIndexer creates a new elasticsearch indexer
-func NewIndexer(url, indexerName string) *Indexer {
-	inner := inner_elasticsearch.NewIndexer(url, indexerName, issueIndexerLatestVersion, defaultMapping)
-	indexer := &Indexer{
+// NewIndexerV7 creates a new elasticsearch indexer
+func NewIndexerV7(url, indexerName string) *IndexerV7 {
+	inner := inner_elasticsearch.NewIndexerV7(url, indexerName, issueIndexerLatestVersion, defaultMapping)
+	indexer := &IndexerV7{
 		inner:   inner,
 		Indexer: inner,
 	}
@@ -80,7 +80,7 @@ const (
 )
 
 // Index will save the index data
-func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) error {
+func (b *IndexerV7) Index(ctx context.Context, issues ...*internal.IndexerData) error {
 	if len(issues) == 0 {
 		return nil
 	} else if len(issues) == 1 {
@@ -111,7 +111,7 @@ func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) er
 }
 
 // Delete deletes indexes by ids
-func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
+func (b *IndexerV7) Delete(ctx context.Context, ids ...int64) error {
 	if len(ids) == 0 {
 		return nil
 	} else if len(ids) == 1 {
@@ -140,7 +140,7 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
+func (b *IndexerV7) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
 	query := elastic.NewBoolQuery()
 
 	if options.Keyword != "" {

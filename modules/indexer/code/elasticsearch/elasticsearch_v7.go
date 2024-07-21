@@ -35,18 +35,18 @@ const (
 	esMultiMatchTypePhrasePrefix = "phrase_prefix"
 )
 
-var _ internal.Indexer = &Indexer{}
+var _ internal.Indexer = &IndexerV7{}
 
 // Indexer implements Indexer interface
-type Indexer struct {
-	inner                    *inner_elasticsearch.Indexer
+type IndexerV7 struct {
+	inner                    *inner_elasticsearch.IndexerV7
 	indexer_internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
 }
 
 // NewIndexer creates a new elasticsearch indexer
-func NewIndexer(url, indexerName string) *Indexer {
-	inner := inner_elasticsearch.NewIndexer(url, indexerName, esRepoIndexerLatestVersion, defaultMapping)
-	indexer := &Indexer{
+func NewIndexerV7(url, indexerName string) *IndexerV7 {
+	inner := inner_elasticsearch.NewIndexerV7(url, indexerName, esRepoIndexerLatestVersion, defaultMapping)
+	indexer := &IndexerV7{
 		inner:   inner,
 		Indexer: inner,
 	}
@@ -83,7 +83,7 @@ const (
 	}`
 )
 
-func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
+func (b *IndexerV7) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -142,7 +142,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	}, nil
 }
 
-func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
+func (b *IndexerV7) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
 	id := internal.FilenameIndexerID(repo.ID, filename)
 	return elastic.NewBulkDeleteRequest().
 		Index(b.inner.VersionedIndexName()).
@@ -150,7 +150,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elasti
 }
 
 // Index will save the index data
-func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
+func (b *IndexerV7) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
@@ -195,7 +195,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 }
 
 // Delete deletes indexes by ids
-func (b *Indexer) Delete(ctx context.Context, repoID int64) error {
+func (b *IndexerV7) Delete(ctx context.Context, repoID int64) error {
 	_, err := b.inner.Client.DeleteByQuery(b.inner.VersionedIndexName()).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
 		Do(ctx)
@@ -264,7 +264,7 @@ func extractAggs(searchResult *elastic.SearchResult) []*internal.SearchResultLan
 }
 
 // Search searches for codes and language stats by given conditions.
-func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
+func (b *IndexerV7) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
 	searchType := esMultiMatchTypePhrasePrefix
 	if opts.IsKeywordFuzzy {
 		searchType = esMultiMatchTypeBestFields

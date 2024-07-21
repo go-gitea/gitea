@@ -139,3 +139,6 @@ issues:
     - text: "exitAfterDefer:"
       linters:
         - gocritic
+    - path: modules/indexer/code/elasticsearch/elasticsearch_*.go
+      linters:
+        - dupl # TODO: figure out a good way to avoid this

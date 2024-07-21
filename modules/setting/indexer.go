@@ -21,6 +21,8 @@ var Indexer = struct {
 	IssueIndexerName string
 	StartupTimeout   time.Duration
 
+	ElasticSearchVersion int
+
 	RepoIndexerEnabled   bool
 	RepoIndexerRepoTypes []string
 	RepoType             string
@@ -88,6 +90,8 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 	Indexer.ExcludeVendored = sec.Key("REPO_INDEXER_EXCLUDE_VENDORED").MustBool(true)
 	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
 	Indexer.StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(30 * time.Second)
+
+	Indexer.ElasticSearchVersion = sec.Key("ELASTICSEARCH_VERSION").MustInt(7)
 }
 
 // IndexerGlobFromString parses a comma separated list of patterns and returns a glob.Glob slice suited for repo indexing

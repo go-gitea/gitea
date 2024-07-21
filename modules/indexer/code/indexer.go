@@ -177,7 +177,7 @@ func Init() {
 				}
 			}()
 
-			rIndexer = elasticsearch.NewIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
+			rIndexer = elasticsearch.NewIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName, setting.Indexer.ElasticSearchVersion)
 			existed, err = rIndexer.Init(ctx)
 			if err != nil {
 				cancel()

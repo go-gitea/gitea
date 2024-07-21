@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/indexer/issues/internal/tests"
 )
 
@@ -24,6 +25,11 @@ func TestElasticsearchIndexer(t *testing.T) {
 			t.Skip("TEST_ELASTICSEARCH_URL not set and not running in CI")
 			return
 		}
+	}
+
+	version := 7
+	if os.Getenv("TEST_ELASTICSEARCH_VERSION") == "8" {
+		version = 8
 	}
 
 	ok := false
@@ -41,7 +47,15 @@ func TestElasticsearchIndexer(t *testing.T) {
 		return
 	}
 
-	indexer := NewIndexer(url, fmt.Sprintf("test_elasticsearch_indexer_%d", time.Now().Unix()))
+	var indexer internal.Indexer
+	switch version {
+	case 7:
+		indexer = NewIndexerV7(url, fmt.Sprintf("test_elasticsearch_indexer_%d", time.Now().Unix()))
+	case 8:
+		indexer = NewIndexerV8(url, fmt.Sprintf("test_elasticsearch_indexer_%d", time.Now().Unix()))
+	default:
+		t.Fatalf("Unsupported version %d", version)
+	}
 	defer indexer.Close()
 
 	tests.TestIndexer(t, indexer)

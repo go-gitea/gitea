@@ -14,11 +14,11 @@ import (
 )
 
 // VersionedIndexName returns the full index name with version
-func (i *Indexer) VersionedIndexName() string {
+func (i *IndexerV7) VersionedIndexName() string {
 	return versionedIndexName(i.indexName, i.version)
 }
 
-func (i *Indexer) createIndex(ctx context.Context) error {
+func (i *IndexerV7) createIndex(ctx context.Context) error {
 	createIndex, err := i.Client.CreateIndex(i.VersionedIndexName()).BodyString(i.mapping).Do(ctx)
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ func (i *Indexer) createIndex(ctx context.Context) error {
 	return nil
 }
 
-func (i *Indexer) initClient() (*elastic.Client, error) {
+func (i *IndexerV7) initClient() (*elastic.Client, error) {
 	opts := []elastic.ClientOptionFunc{
 		elastic.SetURL(i.url),
 		elastic.SetSniff(false),
@@ -49,7 +49,7 @@ func (i *Indexer) initClient() (*elastic.Client, error) {
 	return elastic.NewClient(opts...)
 }
 
-func (i *Indexer) checkOldIndexes(ctx context.Context) {
+func (i *IndexerV7) checkOldIndexes(ctx context.Context) {
 	for v := 0; v < i.version; v++ {
 		indexName := versionedIndexName(i.indexName, v)
 		exists, err := i.Client.IndexExists(indexName).Do(ctx)
