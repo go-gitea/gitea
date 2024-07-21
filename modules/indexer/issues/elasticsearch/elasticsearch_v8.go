@@ -365,7 +365,7 @@ func (b *IndexerV8) Search(ctx context.Context, options *internal.SearchOptions)
 
 	hits := make([]internal.Match, 0, limit)
 	for _, hit := range searchResult.Hits.Hits {
-		id, _ := strconv.ParseInt(hit.Id_, 10, 64)
+		id, _ := strconv.ParseInt(*hit.Id_, 10, 64)
 		hits = append(hits, internal.Match{
 			ID: id,
 		})

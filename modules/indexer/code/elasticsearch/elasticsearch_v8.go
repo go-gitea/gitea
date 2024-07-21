@@ -224,7 +224,7 @@ func convertResultV8(searchResult *searchV8.Response, kw string, pageSize int) (
 			panic(fmt.Sprintf("2===%#v", hit.Highlight))
 		}
 
-		repoID, fileName := internal.ParseIndexerID(hit.Id_)
+		repoID, fileName := internal.ParseIndexerID(*hit.Id_)
 		res := make(map[string]any)
 		if err := json.Unmarshal(hit.Source_, &res); err != nil {
 			return 0, nil, nil, err
@@ -328,7 +328,7 @@ func (b *IndexerV8) Search(ctx context.Context, opts *internal.SearchOptions) (i
 					Fields: map[string]typesV8.HighlightField{
 						"content": {
 							NumberOfFragments: someV8.Int(0), // return all highting content on fragments
-							Type:              &highlightertypeV8.Fvh,
+							Type:              &highlightertypeV8.Fastvector,
 						},
 					},
 				},
@@ -369,7 +369,7 @@ func (b *IndexerV8) Search(ctx context.Context, opts *internal.SearchOptions) (i
 				Fields: map[string]typesV8.HighlightField{
 					"content": {
 						NumberOfFragments: someV8.Int(0), // return all highting content on fragments
-						Type:              &highlightertypeV8.Fvh,
+						Type:              &highlightertypeV8.Fastvector,
 					},
 				},
 			},
