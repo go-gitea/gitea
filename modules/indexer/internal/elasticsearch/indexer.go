@@ -9,23 +9,23 @@ import (
 
 	"code.gitea.io/gitea/modules/indexer/internal"
 
-	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
+	elasticsearch8 "github.com/elastic/go-elasticsearch/v8"
+	types8 "github.com/elastic/go-elasticsearch/v8/typedapi/types"
 )
 
 var _ internal.Indexer = &Indexer{}
 
 // Indexer represents a basic elasticsearch indexer implementation
 type Indexer struct {
-	Client *elasticsearch.TypedClient
+	Client *elasticsearch8.TypedClient
 
 	url       string
 	indexName string
 	version   int
-	mapping   *types.TypeMapping
+	mapping   *types8.TypeMapping
 }
 
-func NewIndexer(url, indexName string, version int, mapping *types.TypeMapping) *Indexer {
+func NewIndexer(url, indexName string, version int, mapping *types8.TypeMapping) *Indexer {
 	return &Indexer{
 		url:       url,
 		indexName: indexName,

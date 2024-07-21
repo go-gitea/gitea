@@ -9,8 +9,8 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/indices/create"
+	elasticsearch8 "github.com/elastic/go-elasticsearch/v8"
+	create8 "github.com/elastic/go-elasticsearch/v8/typedapi/indices/create"
 )
 
 // VersionedIndexName returns the full index name with version
@@ -27,7 +27,7 @@ func versionedIndexName(indexName string, version int) string {
 }
 
 func (i *Indexer) createIndex(ctx context.Context) error {
-	createIndex, err := i.Client.Indices.Create(i.VersionedIndexName()).Request(&create.Request{
+	createIndex, err := i.Client.Indices.Create(i.VersionedIndexName()).Request(&create8.Request{
 		Mappings: i.mapping,
 	}).Do(ctx)
 	if err != nil {
@@ -42,8 +42,8 @@ func (i *Indexer) createIndex(ctx context.Context) error {
 	return nil
 }
 
-func (i *Indexer) initClient() (*elasticsearch.TypedClient, error) {
-	cfg := elasticsearch.Config{
+func (i *Indexer) initClient() (*elasticsearch8.TypedClient, error) {
+	cfg := elasticsearch8.Config{
 		Addresses: []string{i.url},
 	}
 
@@ -53,7 +53,7 @@ func (i *Indexer) initClient() (*elasticsearch.TypedClient, error) {
 	// opts = append(opts, elastic.SetInfoLog(&log.PrintfLogger{Logf: logger.Info}))
 	// opts = append(opts, elastic.SetErrorLog(&log.PrintfLogger{Logf: logger.Error}))
 
-	return elasticsearch.NewTypedClient(cfg)
+	return elasticsearch8.NewTypedClient(cfg)
 }
 
 func (i *Indexer) checkOldIndexes(ctx context.Context) {

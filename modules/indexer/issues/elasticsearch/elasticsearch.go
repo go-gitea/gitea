@@ -16,13 +16,13 @@ import (
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/json"
 
-	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/elastic/go-elasticsearch/v8/esutil"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/core/bulk"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/some"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/sortorder"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/textquerytype"
+	elasticsearch8 "github.com/elastic/go-elasticsearch/v8"
+	esutil8 "github.com/elastic/go-elasticsearch/v8/esutil"
+	bulk8 "github.com/elastic/go-elasticsearch/v8/typedapi/core/bulk"
+	some8 "github.com/elastic/go-elasticsearch/v8/typedapi/some"
+	types8 "github.com/elastic/go-elasticsearch/v8/typedapi/types"
+	sortorder8 "github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/sortorder"
+	textquerytype8 "github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/textquerytype"
 )
 
 const (
@@ -47,33 +47,33 @@ func NewIndexer(url, indexerName string) *Indexer {
 	return indexer
 }
 
-var defaultMapping = &types.TypeMapping{
-	Properties: map[string]types.Property{
-		"id":        types.NewIntegerNumberProperty(),
-		"repo_id":   types.NewIntegerNumberProperty(),
-		"is_public": types.NewBooleanProperty(),
+var defaultMapping = &types8.TypeMapping{
+	Properties: map[string]types8.Property{
+		"id":        types8.NewIntegerNumberProperty(),
+		"repo_id":   types8.NewIntegerNumberProperty(),
+		"is_public": types8.NewBooleanProperty(),
 
-		"title":    types.NewTextProperty(),
-		"content":  types.NewTextProperty(),
-		"comments": types.NewTextProperty(),
+		"title":    types8.NewTextProperty(),
+		"content":  types8.NewTextProperty(),
+		"comments": types8.NewTextProperty(),
 
-		"is_pull":              types.NewBooleanProperty(),
-		"is_closed":            types.NewBooleanProperty(),
-		"label_ids":            types.NewIntegerNumberProperty(),
-		"no_label":             types.NewBooleanProperty(),
-		"milestone_id":         types.NewIntegerNumberProperty(),
-		"project_id":           types.NewIntegerNumberProperty(),
-		"project_board_id":     types.NewIntegerNumberProperty(),
-		"poster_id":            types.NewIntegerNumberProperty(),
-		"assignee_id":          types.NewIntegerNumberProperty(),
-		"mention_ids":          types.NewIntegerNumberProperty(),
-		"reviewed_ids":         types.NewIntegerNumberProperty(),
-		"review_requested_ids": types.NewIntegerNumberProperty(),
-		"subscriber_ids":       types.NewIntegerNumberProperty(),
-		"updated_unix":         types.NewIntegerNumberProperty(),
-		"created_unix":         types.NewIntegerNumberProperty(),
-		"deadline_unix":        types.NewIntegerNumberProperty(),
-		"comment_count":        types.NewIntegerNumberProperty(),
+		"is_pull":              types8.NewBooleanProperty(),
+		"is_closed":            types8.NewBooleanProperty(),
+		"label_ids":            types8.NewIntegerNumberProperty(),
+		"no_label":             types8.NewBooleanProperty(),
+		"milestone_id":         types8.NewIntegerNumberProperty(),
+		"project_id":           types8.NewIntegerNumberProperty(),
+		"project_board_id":     types8.NewIntegerNumberProperty(),
+		"poster_id":            types8.NewIntegerNumberProperty(),
+		"assignee_id":          types8.NewIntegerNumberProperty(),
+		"mention_ids":          types8.NewIntegerNumberProperty(),
+		"reviewed_ids":         types8.NewIntegerNumberProperty(),
+		"review_requested_ids": types8.NewIntegerNumberProperty(),
+		"subscriber_ids":       types8.NewIntegerNumberProperty(),
+		"updated_unix":         types8.NewIntegerNumberProperty(),
+		"created_unix":         types8.NewIntegerNumberProperty(),
+		"deadline_unix":        types8.NewIntegerNumberProperty(),
+		"comment_count":        types8.NewIntegerNumberProperty(),
 	},
 }
 
@@ -96,7 +96,7 @@ func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) er
 		return err
 	}
 
-	reqs := make(bulk.Request, 0)
+	reqs := make(bulk8.Request, 0)
 	for _, issue := range issues {
 		reqs = append(reqs, issue)
 	}
@@ -121,9 +121,9 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 		return err
 	}
 
-	bulkIndexer, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
-		Client: &elasticsearch.Client{
-			BaseClient: elasticsearch.BaseClient{
+	bulkIndexer, err := esutil8.NewBulkIndexer(esutil8.BulkIndexerConfig{
+		Client: &elasticsearch8.Client{
+			BaseClient: elasticsearch8.BaseClient{
 				Transport: b.inner.Client.Transport,
 			},
 		},
@@ -134,7 +134,7 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 	}
 
 	for _, id := range ids {
-		err = bulkIndexer.Add(ctx, esutil.BulkIndexerItem{
+		err = bulkIndexer.Add(ctx, esutil8.BulkIndexerItem{
 			Action:     "delete",
 			Index:      b.inner.VersionedIndexName(),
 			DocumentID: fmt.Sprintf("%d", id),
@@ -150,20 +150,20 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
 func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
-	query := &types.Query{
-		Bool: &types.BoolQuery{
-			Must: make([]types.Query, 0),
+	query := &types8.Query{
+		Bool: &types8.BoolQuery{
+			Must: make([]types8.Query, 0),
 		},
 	}
 
 	if options.Keyword != "" {
-		searchType := &textquerytype.Phraseprefix
+		searchType := &textquerytype8.Phraseprefix
 		if options.IsFuzzyKeyword {
-			searchType = &textquerytype.Bestfields
+			searchType = &textquerytype8.Bestfields
 		}
 
-		query.Bool.Must = append(query.Bool.Must, types.Query{
-			MultiMatch: &types.MultiMatchQuery{
+		query.Bool.Must = append(query.Bool.Must, types8.Query{
+			MultiMatch: &types8.MultiMatchQuery{
 				Query:  options.Keyword,
 				Fields: []string{"title", "content", "comments"},
 				Type:   searchType,
@@ -172,14 +172,14 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	if len(options.RepoIDs) > 0 {
-		q := types.Query{
-			Bool: &types.BoolQuery{
-				Should: make([]types.Query, 0),
+		q := types8.Query{
+			Bool: &types8.BoolQuery{
+				Should: make([]types8.Query, 0),
 			},
 		}
 		if options.AllPublic {
-			q.Bool.Should = append(q.Bool.Should, types.Query{
-				Term: map[string]types.TermQuery{
+			q.Bool.Should = append(q.Bool.Should, types8.Query{
+				Term: map[string]types8.TermQuery{
 					"is_public": {Value: true},
 				},
 			})
@@ -188,59 +188,59 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	if options.IsPull.Has() {
-		query.Bool.Must = append(query.Bool.Must, types.Query{
-			Term: map[string]types.TermQuery{
+		query.Bool.Must = append(query.Bool.Must, types8.Query{
+			Term: map[string]types8.TermQuery{
 				"is_pull": {Value: options.IsPull.Value()},
 			},
 		})
 	}
 	if options.IsClosed.Has() {
-		query.Bool.Must = append(query.Bool.Must, types.Query{
-			Term: map[string]types.TermQuery{
+		query.Bool.Must = append(query.Bool.Must, types8.Query{
+			Term: map[string]types8.TermQuery{
 				"is_closed": {Value: options.IsClosed.Value()},
 			},
 		})
 	}
 
 	if options.NoLabelOnly {
-		query.Bool.Must = append(query.Bool.Must, types.Query{
-			Term: map[string]types.TermQuery{
+		query.Bool.Must = append(query.Bool.Must, types8.Query{
+			Term: map[string]types8.TermQuery{
 				"no_label": {Value: true},
 			},
 		})
 	} else {
 		if len(options.IncludedLabelIDs) > 0 {
-			q := types.Query{
-				Bool: &types.BoolQuery{
-					Must: make([]types.Query, 0),
+			q := types8.Query{
+				Bool: &types8.BoolQuery{
+					Must: make([]types8.Query, 0),
 				},
 			}
 			for _, labelID := range options.IncludedLabelIDs {
-				q.Bool.Must = append(q.Bool.Must, types.Query{
-					Term: map[string]types.TermQuery{
+				q.Bool.Must = append(q.Bool.Must, types8.Query{
+					Term: map[string]types8.TermQuery{
 						"label_ids": {Value: labelID},
 					},
 				})
 			}
 			query.Bool.Must = append(query.Bool.Must, q)
 		} else if len(options.IncludedAnyLabelIDs) > 0 {
-			query.Bool.Must = append(query.Bool.Must, types.Query{
-				Terms: &types.TermsQuery{
-					TermsQuery: map[string]types.TermsQueryField{
+			query.Bool.Must = append(query.Bool.Must, types8.Query{
+				Terms: &types8.TermsQuery{
+					TermsQuery: map[string]types8.TermsQueryField{
 						"label_ids": toAnySlice(options.IncludedAnyLabelIDs),
 					},
 				},
 			})
 		}
 		if len(options.ExcludedLabelIDs) > 0 {
-			q := types.Query{
-				Bool: &types.BoolQuery{
-					MustNot: make([]types.Query, 0),
+			q := types8.Query{
+				Bool: &types8.BoolQuery{
+					MustNot: make([]types8.Query, 0),
 				},
 			}
 			for _, labelID := range options.ExcludedLabelIDs {
-				q.Bool.MustNot = append(q.Bool.MustNot, types.Query{
-					Term: map[string]types.TermQuery{
+				q.Bool.MustNot = append(q.Bool.MustNot, types8.Query{
+					Term: map[string]types8.TermQuery{
 						"label_ids": {Value: labelID},
 					},
 				})
@@ -250,9 +250,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	if len(options.MilestoneIDs) > 0 {
-		query.Bool.Must = append(query.Bool.Must, types.Query{
-			Terms: &types.TermsQuery{
-				TermsQuery: map[string]types.TermsQueryField{
+		query.Bool.Must = append(query.Bool.Must, types8.Query{
+			Terms: &types8.TermsQuery{
+				TermsQuery: map[string]types8.TermsQueryField{
 					"milestone_id": toAnySlice(options.MilestoneIDs),
 				},
 			},
@@ -260,78 +260,78 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	if options.ProjectID.Has() {
-		query.Bool.Must = append(query.Bool.Must, types.Query{
-			Term: map[string]types.TermQuery{
+		query.Bool.Must = append(query.Bool.Must, types8.Query{
+			Term: map[string]types8.TermQuery{
 				"project_id": {Value: options.ProjectID.Value()},
 			},
 		})
 	}
 	if options.ProjectColumnID.Has() {
-		query.Bool.Must = append(query.Bool.Must, types.Query{
-			Term: map[string]types.TermQuery{
+		query.Bool.Must = append(query.Bool.Must, types8.Query{
+			Term: map[string]types8.TermQuery{
 				"project_board_id": {Value: options.ProjectColumnID.Value()},
 			},
 		})
 	}
 
 	if options.PosterID.Has() {
-		query.Bool.Must = append(query.Bool.Must, types.Query{
-			Term: map[string]types.TermQuery{
+		query.Bool.Must = append(query.Bool.Must, types8.Query{
+			Term: map[string]types8.TermQuery{
 				"poster_id": {Value: options.PosterID.Value()},
 			},
 		})
 	}
 
 	if options.AssigneeID.Has() {
-		query.Bool.Must = append(query.Bool.Must, types.Query{
-			Term: map[string]types.TermQuery{
+		query.Bool.Must = append(query.Bool.Must, types8.Query{
+			Term: map[string]types8.TermQuery{
 				"assignee_id": {Value: options.AssigneeID.Value()},
 			},
 		})
 	}
 
 	if options.MentionID.Has() {
-		query.Bool.Must = append(query.Bool.Must, types.Query{
-			Term: map[string]types.TermQuery{
+		query.Bool.Must = append(query.Bool.Must, types8.Query{
+			Term: map[string]types8.TermQuery{
 				"mention_ids": {Value: options.MentionID.Value()},
 			},
 		})
 	}
 
 	if options.ReviewedID.Has() {
-		query.Bool.Must = append(query.Bool.Must, types.Query{
-			Term: map[string]types.TermQuery{
+		query.Bool.Must = append(query.Bool.Must, types8.Query{
+			Term: map[string]types8.TermQuery{
 				"reviewed_ids": {Value: options.ReviewedID.Value()},
 			},
 		})
 	}
 
 	if options.ReviewRequestedID.Has() {
-		query.Bool.Must = append(query.Bool.Must, types.Query{
-			Term: map[string]types.TermQuery{
+		query.Bool.Must = append(query.Bool.Must, types8.Query{
+			Term: map[string]types8.TermQuery{
 				"review_requested_ids": {Value: options.ReviewRequestedID.Value()},
 			},
 		})
 	}
 
 	if options.SubscriberID.Has() {
-		query.Bool.Must = append(query.Bool.Must, types.Query{
-			Term: map[string]types.TermQuery{
+		query.Bool.Must = append(query.Bool.Must, types8.Query{
+			Term: map[string]types8.TermQuery{
 				"subscriber_ids": {Value: options.SubscriberID.Value()},
 			},
 		})
 	}
 
 	if options.UpdatedAfterUnix.Has() || options.UpdatedBeforeUnix.Has() {
-		rangeQuery := types.NumberRangeQuery{}
+		rangeQuery := types8.NumberRangeQuery{}
 		if options.UpdatedAfterUnix.Has() {
-			rangeQuery.Gte = some.Float64(float64(options.UpdatedAfterUnix.Value()))
+			rangeQuery.Gte = some8.Float64(float64(options.UpdatedAfterUnix.Value()))
 		}
 		if options.UpdatedBeforeUnix.Has() {
-			rangeQuery.Lte = some.Float64(float64(options.UpdatedBeforeUnix.Value()))
+			rangeQuery.Lte = some8.Float64(float64(options.UpdatedBeforeUnix.Value()))
 		}
-		query.Bool.Must = append(query.Bool.Must, types.Query{
-			Range: map[string]types.RangeQuery{
+		query.Bool.Must = append(query.Bool.Must, types8.Query{
+			Range: map[string]types8.RangeQuery{
 				"updated_unix": rangeQuery,
 			},
 		})
@@ -341,10 +341,10 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		options.SortBy = internal.SortByCreatedAsc
 	}
 	field, fieldSort := parseSortBy(options.SortBy)
-	sort := []types.SortCombinations{
-		&types.SortOptions{SortOptions: map[string]types.FieldSort{
+	sort := []types8.SortCombinations{
+		&types8.SortOptions{SortOptions: map[string]types8.FieldSort{
 			field: fieldSort,
-			"id":  {Order: &sortorder.Desc},
+			"id":  {Order: &sortorder8.Desc},
 		}},
 	}
 
@@ -385,13 +385,13 @@ func toAnySlice[T any](s []T) []any {
 	return ret
 }
 
-func parseSortBy(sortBy internal.SortBy) (string, types.FieldSort) {
+func parseSortBy(sortBy internal.SortBy) (string, types8.FieldSort) {
 	field := strings.TrimPrefix(string(sortBy), "-")
-	sort := types.FieldSort{
-		Order: &sortorder.Asc,
+	sort := types8.FieldSort{
+		Order: &sortorder8.Asc,
 	}
 	if strings.HasPrefix(string(sortBy), "-") {
-		sort.Order = &sortorder.Desc
+		sort.Order = &sortorder8.Desc
 	}
 
 	return field, sort
