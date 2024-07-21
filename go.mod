@@ -32,7 +32,7 @@ require (
 	github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5
 	github.com/dustin/go-humanize v1.0.1
 	github.com/editorconfig/editorconfig-core-go/v2 v2.6.2
-	github.com/elastic/go-elasticsearch/v8 v8.13.1
+	github.com/elastic/go-elasticsearch/v8 v8.14.0
 	github.com/emersion/go-imap v1.2.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/ethantkoenig/rupture v1.0.1
@@ -180,7 +180,7 @@ require (
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dlclark/regexp2 v1.11.0 // indirect
-	github.com/elastic/elastic-transport-go/v8 v8.5.0 // indirect
+	github.com/elastic/elastic-transport-go/v8 v8.6.0 // indirect
 	github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43 // indirect
 	github.com/fatih/color v1.17.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
