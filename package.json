@@ -115,20 +115,21 @@
     "defaults"
   ],
   "overrides": {
-    "array-includes": "npm:@nolyfill/array-includes@latest",
-    "array.prototype.findlastindex": "npm:@nolyfill/array.prototype.findlastindex@latest",
-    "array.prototype.flat": "npm:@nolyfill/array.prototype.flat@latest",
-    "array.prototype.flatmap": "npm:@nolyfill/array.prototype.flatmap@latest",
-    "deep-equal": "npm:@nolyfill/deep-equal@latest",
-    "es-aggregate-error": "npm:@nolyfill/es-aggregate-error@latest",
-    "es-iterator-helpers": "npm:@nolyfill/es-iterator-helpers@latest",
-    "hasown": "npm:@nolyfill/hasown@latest",
-    "object.assign": "npm:@nolyfill/object.assign@latest",
-    "object.entries": "npm:@nolyfill/object.entries@latest",
-    "object.fromentries": "npm:@nolyfill/object.fromentries@latest",
-    "object.groupby": "npm:@nolyfill/object.groupby@latest",
-    "object.values": "npm:@nolyfill/object.values@latest",
-    "safe-regex-test": "npm:@nolyfill/safe-regex-test@latest",
-    "string.prototype.includes": "npm:@nolyfill/string.prototype.includes@latest"
+    "array-includes": "npm:@nolyfill/array-includes@^1",
+    "array.prototype.findlastindex": "npm:@nolyfill/array.prototype.findlastindex@^1",
+    "array.prototype.flat": "npm:@nolyfill/array.prototype.flat@^1",
+    "array.prototype.flatmap": "npm:@nolyfill/array.prototype.flatmap@^1",
+    "deep-equal": "npm:@nolyfill/deep-equal@^1",
+    "es-aggregate-error": "npm:@nolyfill/es-aggregate-error@^1",
+    "es-iterator-helpers": "npm:@nolyfill/es-iterator-helpers@^1",
+    "hasown": "npm:@nolyfill/hasown@^1",
+    "object.assign": "npm:@nolyfill/object.assign@^1",
+    "object.entries": "npm:@nolyfill/object.entries@^1",
+    "object.fromentries": "npm:@nolyfill/object.fromentries@^1",
+    "object.groupby": "npm:@nolyfill/object.groupby@^1",
+    "object.values": "npm:@nolyfill/object.values@^1",
+    "safe-regex-test": "npm:@nolyfill/safe-regex-test@^1",
+    "string.prototype.includes": "npm:@nolyfill/string.prototype.includes@^1",
+    "is-core-module": "npm:@nolyfill/is-core-module@^1"
   }
 }
