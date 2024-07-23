@@ -591,6 +591,10 @@ var migrations = []Migration{
 
 	// v299 -> v300
 	NewMigration("Add content version to issue and comment table", v1_23.AddContentVersionToIssueAndComment),
+	// v300 -> v301
+	NewMigration("Add force-push branch protection support", v1_23.AddForcePushBranchProtection),
+	// v301 -> v302
+	NewMigration("Add skip_secondary_authorization option to oauth2 application table", v1_23.AddSkipSecondaryAuthColumnToOAuth2ApplicationTable),
 }
 
 // GetCurrentDBVersion returns the current db version
