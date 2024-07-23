@@ -5,6 +5,10 @@ import {GET, POST} from '../modules/fetch.ts';
 const {appSubUrl} = window.config;
 
 export async function initUserAuthWebAuthn() {
+  if (!document.querySelector('.user.signin')) {
+    return;
+  }
+
   if (!detectWebAuthnSupport()) {
     return;
   }
