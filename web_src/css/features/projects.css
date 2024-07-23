@@ -24,7 +24,6 @@
 
 .project-column .issue-card {
   color: var(--color-text);
-  align-items: stretch;
 }
 
 .project-column-header {
@@ -42,7 +41,7 @@
   flex: 1;
 }
 
-.project-column>.cards {
+.project-column > .cards {
   flex: 1;
   display: flex;
   align-content: baseline;
@@ -54,7 +53,7 @@
   gap: .25rem;
 }
 
-.project-column>.divider {
+.project-column > .divider {
   margin: 5px 0;
   border-color: currentcolor;
   opacity: .5;
