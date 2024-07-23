@@ -1,6 +1,6 @@
-<script>
-import {SvgIcon} from '../svg.js';
-import {GET} from '../modules/fetch.js';
+<script lang="ts">
+import {SvgIcon} from '../svg.ts';
+import {GET} from '../modules/fetch.ts';
 
 const {appSubUrl, i18n} = window.config;
 
