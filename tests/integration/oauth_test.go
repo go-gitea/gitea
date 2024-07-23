@@ -419,3 +419,59 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 	assert.Equal(t, "unauthorized_client", string(parsedError.ErrorCode))
 	assert.Equal(t, "token was already used", parsedError.ErrorDescription)
 }
+
+func TestOAuthIntrospection(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
+		"redirect_uri":  "a",
+		"code":          "authcode",
+		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt",
+	})
+	resp := MakeRequest(t, req, http.StatusOK)
+	type response struct {
+		AccessToken  string `json:"access_token"`
+		TokenType    string `json:"token_type"`
+		ExpiresIn    int64  `json:"expires_in"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	parsed := new(response)
+
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
+	assert.True(t, len(parsed.AccessToken) > 10)
+	assert.True(t, len(parsed.RefreshToken) > 10)
+
+	// successful request with a valid client_id/client_secret and a valid token
+	req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{
+		"token": parsed.AccessToken,
+	})
+	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OjRNSzhOYTZSNTVzbWRDWTBXdUNDdW1aNmhqUlBuR1k1c2FXVlJISGpKaUE9")
+	resp = MakeRequest(t, req, http.StatusOK)
+	type introspectResponse struct {
+		Active bool   `json:"active"`
+		Scope  string `json:"scope,omitempty"`
+	}
+	introspectParsed := new(introspectResponse)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), introspectParsed))
+	assert.True(t, introspectParsed.Active)
+
+	// successful request with a valid client_id/client_secret, but an invalid token
+	req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{
+		"token": "xyzzy",
+	})
+	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OjRNSzhOYTZSNTVzbWRDWTBXdUNDdW1aNmhqUlBuR1k1c2FXVlJISGpKaUE9")
+	resp = MakeRequest(t, req, http.StatusOK)
+	introspectParsed = new(introspectResponse)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), introspectParsed))
+	assert.False(t, introspectParsed.Active)
+
+	// unsuccessful request with an invalid client_id/client_secret
+	req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{
+		"token": parsed.AccessToken,
+	})
+	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OjRNSzhOYTZSNTVzbWRDWTBXdUNDdW1aNmhqUlBuR1k1c2FXVlJISGpK")
+	resp = MakeRequest(t, req, http.StatusUnauthorized)
+	assert.Contains(t, resp.Body.String(), "no valid authorization")
+}
