@@ -4,6 +4,7 @@
 package lfs
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -62,6 +63,10 @@ type Link struct {
 type ObjectError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+}
+
+func (oe *ObjectError) Error() string {
+	return fmt.Sprintf("code: %d, message: %s", oe.Code, oe.Message)
 }
 
 // PointerBlob associates a Git blob with a Pointer.

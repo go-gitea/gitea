@@ -169,7 +169,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			lfsClient := lfs.NewClient(endpoint, httpTransport)
 			if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, lfsClient); err != nil {
 				log.Error("Failed to store missing LFS objects for repository: %v", err)
-				// TODO: Optionally return error to ensure data integrity of LFS objects
+				// TODO: check for lfs.ErrLFSDownload errors and display them
 			}
 		}
 	}

@@ -71,9 +71,12 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 
 	url := fmt.Sprintf("%s/objects/batch", c.endpoint)
 
-	request := &BatchRequest{operation, c.transferNames(), nil, objects}
 	payload := new(bytes.Buffer)
-	err := json.NewEncoder(payload).Encode(request)
+	err := json.NewEncoder(payload).Encode(&BatchRequest{
+		Operation: operation,
+		Transfers: c.transferNames(),
+		Objects:   objects,
+	})
 	if err != nil {
 		log.Error("Error encoding json: %v", err)
 		return nil, err
@@ -134,15 +137,19 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 		return fmt.Errorf("TransferAdapter not found: %s", result.Transfer)
 	}
 
+	var resultErrors []error
 	for _, object := range result.Objects {
 		if object.Error != nil {
-			objectError := errors.New(object.Error.Message)
-			log.Trace("Error on object %v: %v", object.Pointer, objectError)
+			log.Trace("Error on object %v: %v", object.Pointer, object.Error.Message)
 			if uc != nil {
+				objectError := &ErrLFSUpload{ErrLFS{OID: object.Oid, Err: object.Error}}
+				resultErrors = append(resultErrors, objectError)
 				if _, err := uc(object.Pointer, objectError); err != nil {
 					return err
 				}
 			} else {
+				objectError := &ErrLFSDownload{ErrLFS{OID: object.Oid, Err: object.Error}}
+				resultErrors = append(resultErrors, objectError)
 				if err := dc(object.Pointer, nil, objectError); err != nil {
 					return err
 				}
@@ -164,18 +171,33 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 
 			content, err := uc(object.Pointer, nil)
 			if err != nil {
-				return err
+				if errors.Is(err, &ErrLFSUpload{}) {
+					resultErrors = append(resultErrors, err)
+					continue
+				} else {
+					return err
+				}
 			}
 
 			err = transferAdapter.Upload(ctx, link, object.Pointer, content)
 			if err != nil {
-				return err
+				if errors.Is(err, &ErrLFSUpload{}) {
+					resultErrors = append(resultErrors, err)
+					continue
+				} else {
+					return err
+				}
 			}
 
 			link, ok = object.Actions["verify"]
 			if ok {
 				if err := transferAdapter.Verify(ctx, link, object.Pointer); err != nil {
-					return err
+					if errors.Is(err, &ErrLFSVerify{}) {
+						resultErrors = append(resultErrors, err)
+						continue
+					} else {
+						return err
+					}
 				}
 			}
 		} else {
@@ -191,16 +213,26 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 
 			content, err := transferAdapter.Download(ctx, link)
 			if err != nil {
-				return err
+				if errors.Is(err, &ErrLFSDownload{}) {
+					resultErrors = append(resultErrors, err)
+					continue
+				} else {
+					return err
+				}
 			}
 
 			if err := dc(object.Pointer, content, nil); err != nil {
-				return err
+				if errors.Is(err, &ErrLFSDownload{}) {
+					resultErrors = append(resultErrors, err)
+					continue
+				} else {
+					return err
+				}
 			}
 		}
 	}
 
-	return nil
+	return errors.Join(resultErrors...)
 }
 
 // createRequest creates a new request, and sets the headers.

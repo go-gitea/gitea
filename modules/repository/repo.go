@@ -5,6 +5,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -178,12 +179,17 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 	errChan := make(chan error, 1)
 	go lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan, errChan)
 
+	var lfsDownloadErrors []error
+
 	downloadObjects := func(pointers []lfs.Pointer) error {
 		err := lfsClient.Download(ctx, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
 			if objectError != nil {
-				log.Error("Repo[%-v]: Ignoring LFS object %-v: %v", repo, p, objectError)
-				// TODO: Optionally return error to ensure data integrity of LFS objects
-				return nil
+				if errors.Is(objectError, &lfs.ErrLFSDownload{}) {
+					log.Trace("Repo[%-v]: Ignoring LFS error: %v", repo, objectError)
+					lfsDownloadErrors = append(lfsDownloadErrors, objectError)
+					return nil
+				}
+				return objectError
 			}
 
 			defer content.Close()
@@ -210,10 +216,13 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 			default:
 			}
 		}
+		if errors.Is(err, &lfs.ErrLFSDownload{}) {
+			return nil
+		}
 		return err
 	}
 
-	var batch []lfs.Pointer
+	var downloadBatch []lfs.Pointer
 	for pointerBlob := range pointerChan {
 		meta, err := git_model.GetLFSMetaObjectByOid(ctx, repo.ID, pointerBlob.Oid)
 		if err != nil && err != git_model.ErrLFSObjectNotExist {
@@ -235,10 +244,14 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 		if exist {
 			log.Trace("Repo[%-v]: LFS object %-v already present; creating meta object", repo, pointerBlob.Pointer)
-			_, err := git_model.NewLFSMetaObject(ctx, repo.ID, pointerBlob.Pointer)
+			m, err := git_model.NewLFSMetaObject(ctx, repo.ID, pointerBlob.Pointer)
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
 				return err
+			}
+			if m.Existing {
+				log.Trace("Repo[%-v]: LFS meta object %-v already present; skip adding it to download batch", repo, m)
+				continue
 			}
 		} else {
 			if setting.LFS.MaxFileSize > 0 && pointerBlob.Size > setting.LFS.MaxFileSize {
@@ -246,17 +259,17 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 				continue
 			}
 
-			batch = append(batch, pointerBlob.Pointer)
-			if len(batch) >= lfsClient.BatchSize() {
-				if err := downloadObjects(batch); err != nil {
+			downloadBatch = append(downloadBatch, pointerBlob.Pointer)
+			if len(downloadBatch) >= lfsClient.BatchSize() {
+				if err := downloadObjects(downloadBatch); err != nil {
 					return err
 				}
-				batch = nil
+				downloadBatch = nil
 			}
 		}
 	}
-	if len(batch) > 0 {
-		if err := downloadObjects(batch); err != nil {
+	if len(downloadBatch) > 0 {
+		if err := downloadObjects(downloadBatch); err != nil {
 			return err
 		}
 	}
@@ -267,7 +280,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 		return err
 	}
 
-	return nil
+	return errors.Join(lfsDownloadErrors...)
 }
 
 // shortRelease to reduce load memory, this struct can replace repo_model.Release
