@@ -361,29 +361,19 @@ type Latest struct {
 
 func (r *artifactV4Routes) readBlockList(runID, artifactID int64) (*BlockList, error) {
 	blockListName := fmt.Sprintf("tmpv4%d/%d-%d-blocklist", runID, runID, artifactID)
-	// Workaround minio and azureite storage availability problems via retries
-	var s storage.Object
-	var err error
-	for i := 0; i < 5; i++ {
-		if i != 0 {
-			time.Sleep(1000)
-		}
-		s, err = r.fs.Open(blockListName)
-		if err == nil {
-			break
-		}
-	}
+	s, err := r.fs.Open(blockListName)
 	if err != nil {
 		return nil, err
-	}
-	err = r.fs.Delete(blockListName)
-	if err != nil {
-		log.Warn("Failed to delete blockList %s: %v", blockListName, err)
 	}
 
 	xdec := xml.NewDecoder(s)
 	blockList := &BlockList{}
 	err = xdec.Decode(blockList)
+
+	delerr := r.fs.Delete(blockListName)
+	if delerr != nil {
+		log.Warn("Failed to delete blockList %s: %v", blockListName, delerr)
+	}
 	return blockList, err
 }
 
