@@ -194,7 +194,7 @@ func TestActionsArtifactV4UploadSingleFileWithPotentialHarmfulBlockID(t *testing
 	// get upload urls
 	idx := strings.Index(uploadResp.SignedUploadUrl, "/twirp/")
 	url := uploadResp.SignedUploadUrl[idx:] + "&comp=block&blockid=%2f..%2fmyfile"
-	blockListUrl := uploadResp.SignedUploadUrl[idx:] + "&comp=blocklist"
+	blockListURL := uploadResp.SignedUploadUrl[idx:] + "&comp=blocklist"
 
 	// upload artifact chunk
 	body := strings.Repeat("A", 1024)
@@ -213,7 +213,7 @@ func TestActionsArtifactV4UploadSingleFileWithPotentialHarmfulBlockID(t *testing
 	}
 	rawBlockList, err := xml.Marshal(blockList)
 	assert.NoError(t, err)
-	req = NewRequestWithBody(t, "PUT", blockListUrl, bytes.NewReader(rawBlockList))
+	req = NewRequestWithBody(t, "PUT", blockListURL, bytes.NewReader(rawBlockList))
 	MakeRequest(t, req, http.StatusCreated)
 
 	t.Logf("Create artifact confirm")
@@ -256,17 +256,17 @@ func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
 
 	// get upload urls
 	idx := strings.Index(uploadResp.SignedUploadUrl, "/twirp/")
-	block1Url := uploadResp.SignedUploadUrl[idx:] + "&comp=block&blockid=block1"
-	block2Url := uploadResp.SignedUploadUrl[idx:] + "&comp=block&blockid=block2"
-	blockListUrl := uploadResp.SignedUploadUrl[idx:] + "&comp=blocklist"
+	block1URL := uploadResp.SignedUploadUrl[idx:] + "&comp=block&blockid=block1"
+	block2URL := uploadResp.SignedUploadUrl[idx:] + "&comp=block&blockid=block2"
+	blockListURL := uploadResp.SignedUploadUrl[idx:] + "&comp=blocklist"
 
 	// upload artifact chunks
 	bodyb := strings.Repeat("B", 1024)
-	req = NewRequestWithBody(t, "PUT", block2Url, strings.NewReader(bodyb))
+	req = NewRequestWithBody(t, "PUT", block2URL, strings.NewReader(bodyb))
 	MakeRequest(t, req, http.StatusCreated)
 
 	bodya := strings.Repeat("A", 1024)
-	req = NewRequestWithBody(t, "PUT", block1Url, strings.NewReader(bodya))
+	req = NewRequestWithBody(t, "PUT", block1URL, strings.NewReader(bodya))
 	MakeRequest(t, req, http.StatusCreated)
 
 	// upload artifact blockList
@@ -278,7 +278,7 @@ func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
 	}
 	rawBlockList, err := xml.Marshal(blockList)
 	assert.NoError(t, err)
-	req = NewRequestWithBody(t, "PUT", blockListUrl, bytes.NewReader(rawBlockList))
+	req = NewRequestWithBody(t, "PUT", blockListURL, bytes.NewReader(rawBlockList))
 	MakeRequest(t, req, http.StatusCreated)
 
 	t.Logf("Create artifact confirm")
