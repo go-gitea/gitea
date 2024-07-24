@@ -290,6 +290,10 @@ export default {
     border-top: 1px solid var(--color-secondary) !important;
   }
 
+  .ui.dropdown.diff-commit-selector .menu > .item:focus {
+    background: var(--color-active);
+  }
+
   .ui.dropdown.diff-commit-selector .menu > .item.hovered {
     background-color: var(--color-small-accent);
   }
