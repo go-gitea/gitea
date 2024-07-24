@@ -67,7 +67,6 @@ jobs:
           TEST_LDAP: 1
           USE_REPO_TEST_DIR: 1
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
-          TEST_ELASTICSEARCH_VERSION: 8
 
   test-sqlite:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
