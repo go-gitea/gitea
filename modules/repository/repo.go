@@ -250,9 +250,9 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 				return err
 			}
 			if m.Existing {
-				log.Trace("Repo[%-v]: LFS meta object %-v already present; skip adding it to download batch", repo, m)
-				continue
+				log.Trace("Repo[%-v]: LFS meta object %-v was already present", repo, m)
 			}
+			continue
 		} else {
 			if setting.LFS.MaxFileSize > 0 && pointerBlob.Size > setting.LFS.MaxFileSize {
 				log.Info("Repo[%-v]: LFS object %-v download denied because of LFS_MAX_FILE_SIZE=%d < size %d", repo, pointerBlob.Pointer, setting.LFS.MaxFileSize, pointerBlob.Size)
