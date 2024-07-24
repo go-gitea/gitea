@@ -887,6 +887,8 @@ update-js: node-check | node_modules
 	npx updates -u -f package.json
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
+	npx nolyfill install
+	npm install --package-lock
 	@touch node_modules
 
 .PHONY: update-py
