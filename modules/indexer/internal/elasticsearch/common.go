@@ -17,7 +17,7 @@ import (
 type elasticRootResponse struct {
 	Version struct {
 		Number string `json:"number"`
-	}
+	} `json:"version"`
 }
 
 // DetectVersion detects the major version of the elasticsearch server.
