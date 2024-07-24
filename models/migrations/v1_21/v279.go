@@ -12,5 +12,9 @@ func AddIndexToActionUserID(x *xorm.Engine) error {
 		UserID int64 `xorm:"INDEX"`
 	}
 
-	return x.Sync(new(Action))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
+	}, new(Action))
+	return err
 }
