@@ -10,6 +10,8 @@ export default {
     return {
       menuVisible: false,
       isLoading: false,
+      queryParams: el.getAttribute('data-queryparams'),
+      issueLink: el.getAttribute('data-issuelink'),
       locale: {
         filter_changes_by_commit: el.getAttribute('data-filter_changes_by_commit'),
       },
@@ -26,12 +28,6 @@ export default {
         return this.commits.length - this.commits.findIndex((x) => x.id === this.lastReviewCommitSha) - 1;
       }
       return 0;
-    },
-    queryParams() {
-      return this.$el.parentNode.getAttribute('data-queryparams');
-    },
-    issueLink() {
-      return this.$el.parentNode.getAttribute('data-issuelink');
     },
   },
   mounted() {
@@ -216,8 +212,8 @@ export default {
       </div>
       <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
       <div
-        v-if="lastReviewCommitSha != null" role="menuitem"
-        class="item"
+        v-if="lastReviewCommitSha != null"
+        class="item" role="menuitem"
         :class="{disabled: !commitsSinceLastReview}"
         @keydown.enter="changesSinceLastReviewClick()"
         @click="changesSinceLastReviewClick()"
@@ -233,7 +229,7 @@ export default {
       <template v-for="commit in commits" :key="commit.id">
         <div
           class="item" role="menuitem"
-          :class="{active: commit.selected}"
+          :class="{selected: commit.selected, hovered: commit.hovered}"
           @keydown.enter.exact="commitClicked(commit.id)"
           @keydown.enter.shift.exact="commitClickedShift(commit)"
           @mouseover.shift="highlight(commit)"
@@ -286,6 +282,14 @@ export default {
   .ui.dropdown.diff-commit-selector .menu > .item:not(:first-child),
   .ui.dropdown.diff-commit-selector .menu > .info:not(:first-child) {
     border-top: 1px solid var(--color-secondary) !important;
+  }
+
+  .ui.dropdown.diff-commit-selector .menu > .item.hovered {
+    background-color: var(--color-small-accent);
+  }
+
+  .ui.dropdown.diff-commit-selector .menu > .item.selected {
+    background-color: var(--color-accent);
   }
 
   .ui.dropdown.diff-commit-selector .menu > .item:focus {
