@@ -166,11 +166,10 @@ func DeleteEmail(ctx *context.Context) {
 		return
 	}
 
-	redirect := setting.AppSubURL + "/admin/emails"
 	if err := user.DeleteEmailAddresses(ctx, u, []string{email.Email}); err != nil {
 		if user_model.IsErrPrimaryEmailCannotDelete(err) {
 			ctx.Flash.Error(ctx.Tr("admin.emails.delete_primary_email_error"))
-			ctx.JSONRedirect(redirect)
+			ctx.JSONRedirect("")
 			return
 		}
 		ctx.ServerError("DeleteEmailAddresses", err)
@@ -179,5 +178,5 @@ func DeleteEmail(ctx *context.Context) {
 	log.Trace("Email address deleted: %s %s", u.Name, email.Email)
 
 	ctx.Flash.Success(ctx.Tr("admin.emails.deletion_success"))
-	ctx.JSONRedirect(redirect)
+	ctx.JSONRedirect("")
 }
