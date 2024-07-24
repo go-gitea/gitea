@@ -369,6 +369,9 @@ func (r *artifactV4Routes) readBlockList(runID, artifactID int64) (*BlockList, e
 			time.Sleep(1000)
 		}
 		s, err = r.fs.Open(blockListName)
+		if err == nil {
+			break
+		}
 	}
 	if err != nil {
 		return nil, err
