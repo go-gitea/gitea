@@ -67,6 +67,11 @@ export default {
           this.toggleMenu();
           break;
       }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        const item = document.activeElement; // try to highlight the selected commits
+        const commitIdx = item?.matches('.item') ? item.getAttribute('data-commit-idx') : null;
+        if (commitIdx) this.highlight(this.commits[commitIdx]);
+      }
     },
     onKeyUp(event) {
       if (!this.menuVisible) return;
@@ -226,10 +231,11 @@ export default {
         </div>
       </div>
       <span v-if="!isLoading" class="info text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
-      <template v-for="commit in commits" :key="commit.id">
+      <template v-for="(commit, idx) in commits" :key="commit.id">
         <div
           class="item" role="menuitem"
           :class="{selected: commit.selected, hovered: commit.hovered}"
+          :data-commit-idx="idx"
           @keydown.enter.exact="commitClicked(commit.id)"
           @keydown.enter.shift.exact="commitClickedShift(commit)"
           @mouseover.shift="highlight(commit)"
@@ -290,11 +296,6 @@ export default {
 
   .ui.dropdown.diff-commit-selector .menu > .item.selected {
     background-color: var(--color-accent);
-  }
-
-  .ui.dropdown.diff-commit-selector .menu > .item:focus {
-    color: var(--color-text);
-    background: var(--color-hover);
   }
 
   .ui.dropdown.diff-commit-selector .menu .commit-list-summary {
