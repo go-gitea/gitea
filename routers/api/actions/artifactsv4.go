@@ -361,7 +361,15 @@ type Latest struct {
 
 func (r *artifactV4Routes) readBlockList(runID, artifactID int64) (*BlockList, error) {
 	blockListName := fmt.Sprintf("tmpv4%d/%d-%d-blocklist", runID, runID, artifactID)
-	s, err := r.fs.Open(blockListName)
+	// Workaround minio and azureite storage availability problems via retries
+	var s storage.Object
+	var err error
+	for i := 0; i < 5; i++ {
+		if i != 0 {
+			time.Sleep(1000)
+		}
+		s, err = r.fs.Open(blockListName)
+	}
 	if err != nil {
 		return nil, err
 	}
