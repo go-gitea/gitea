@@ -202,7 +202,7 @@ export default {
     >
       <svg-icon name="octicon-git-commit"/>
     </button>
-    <div class="left menu" id="diff-commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
+    <div class="left menu transition" id="diff-commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
       <div class="loading-indicator is-loading" v-if="isLoading"/>
       <div v-if="!isLoading" class="vertical item" id="diff-commit-list-show-all" role="menuitem" @keydown.enter="showAllChanges()" @click="showAllChanges()">
         <div class="gt-ellipsis">
@@ -276,6 +276,7 @@ export default {
   }
 
   #diff-commit-selector-menu {
+    margin-top: 0.25em;
     overflow-x: hidden;
     max-height: 450px;
   }
@@ -291,10 +292,12 @@ export default {
     flex-direction: row;
     line-height: 1.4;
     padding: 7px 14px !important;
-    border-top: 1px solid var(--color-secondary) !important;
     gap: 0.25em;
   }
-
+  #diff-commit-selector-menu .item:not(:first-child),
+  #diff-commit-selector-menu .info:not(:first-child) {
+    border-top: 1px solid var(--color-secondary) !important;
+  }
   #diff-commit-selector-menu .item:focus {
     color: var(--color-text);
     background: var(--color-hover);
