@@ -96,7 +96,10 @@ func InitIssueIndexer(syncReindex bool) {
 				log.Fatal("Unable to initialize Bleve Issue Indexer at path: %s Error: %v", setting.Indexer.IssuePath, err)
 			}
 		case "elasticsearch":
-			issueIndexer = elasticsearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName, setting.Indexer.ElasticSearchVersion)
+			issueIndexer, err = elasticsearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
+			if err != nil {
+				log.Fatal("Unable to initialize ElasticSearch issue indexer at connection %s Error: %v", setting.Indexer.IssueConnStr, err)
+			}
 			existed, err = issueIndexer.Init(ctx)
 			if err != nil {
 				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)

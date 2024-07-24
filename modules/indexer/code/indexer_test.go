@@ -124,12 +124,10 @@ func TestESIndexAndSearch(t *testing.T) {
 		return
 	}
 
-	version := 7
-	if os.Getenv("TEST_ELASTICSEARCH_VERSION") == "8" {
-		version = 8
+	indexer, err := elasticsearch.NewIndexer(u, "gitea_codes")
+	if err != nil {
+		assert.FailNow(t, "Unable to create ES indexer Error: %v", err)
 	}
-
-	indexer := elasticsearch.NewIndexer(u, "gitea_codes", version)
 	if _, err := indexer.Init(context.Background()); err != nil {
 		if indexer != nil {
 			indexer.Close()
