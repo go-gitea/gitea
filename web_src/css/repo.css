@@ -2466,7 +2466,7 @@ tbody.commit-list {
 .sidebar-item-link {
   display: inline-flex;
   align-items: center;
-  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .diff-file-header {
