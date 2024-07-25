@@ -100,6 +100,7 @@
     "eslint-plugin-wc": "2.1.0",
     "happy-dom": "14.12.3",
     "markdownlint-cli": "0.41.0",
+    "nolyfill": "1.0.39",
     "postcss-html": "1.7.0",
     "stylelint": "16.6.1",
     "stylelint-declaration-block-no-ignored-properties": "2.8.0",
@@ -112,5 +113,23 @@
   },
   "browserslist": [
     "defaults"
-  ]
+  ],
+  "overrides": {
+    "array-includes": "npm:@nolyfill/array-includes@^1",
+    "array.prototype.findlastindex": "npm:@nolyfill/array.prototype.findlastindex@^1",
+    "array.prototype.flat": "npm:@nolyfill/array.prototype.flat@^1",
+    "array.prototype.flatmap": "npm:@nolyfill/array.prototype.flatmap@^1",
+    "deep-equal": "npm:@nolyfill/deep-equal@^1",
+    "es-aggregate-error": "npm:@nolyfill/es-aggregate-error@^1",
+    "es-iterator-helpers": "npm:@nolyfill/es-iterator-helpers@^1",
+    "hasown": "npm:@nolyfill/hasown@^1",
+    "object.assign": "npm:@nolyfill/object.assign@^1",
+    "object.entries": "npm:@nolyfill/object.entries@^1",
+    "object.fromentries": "npm:@nolyfill/object.fromentries@^1",
+    "object.groupby": "npm:@nolyfill/object.groupby@^1",
+    "object.values": "npm:@nolyfill/object.values@^1",
+    "safe-regex-test": "npm:@nolyfill/safe-regex-test@^1",
+    "string.prototype.includes": "npm:@nolyfill/string.prototype.includes@^1",
+    "is-core-module": "npm:@nolyfill/is-core-module@^1"
+  }
 }
