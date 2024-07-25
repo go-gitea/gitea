@@ -5,7 +5,6 @@ package auth
 
 import (
 	go_context "context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"html"
@@ -326,10 +325,29 @@ func getOAuthGroupsForUser(ctx go_context.Context, user *user_model.User) ([]str
 	return groups, nil
 }
 
+func parseBasicAuth(ctx *context.Context) (username, password string, err error) {
+	authHeader := ctx.Req.Header.Get("Authorization")
+	if authType, authData, ok := strings.Cut(authHeader, " "); ok && authType == "Basic" {
+		return base.BasicAuthDecode(authData)
+	}
+	return "", "", errors.New("invalid basic authentication")
+}
+
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
-	if ctx.Doer == nil {
-		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
+	clientIDValid := false
+	if clientID, clientSecret, err := parseBasicAuth(ctx); err == nil {
+		app, err := auth.GetOAuth2ApplicationByClientID(ctx, clientID)
+		if err != nil && !auth.IsErrOauthClientIDInvalid(err) {
+			// this is likely a database error; log it and respond without details
+			log.Error("Error retrieving client_id: %v", err)
+			ctx.Error(http.StatusInternalServerError)
+			return
+		}
+		clientIDValid = err == nil && app.ValidateClientSecret([]byte(clientSecret))
+	}
+	if !clientIDValid {
+		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm=""`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}
@@ -639,9 +657,8 @@ func AccessTokenOAuth(ctx *context.Context) {
 	// if there is no ClientID or ClientSecret in the request body, fill these fields by the Authorization header and ensure the provided field matches the Authorization header
 	if form.ClientID == "" || form.ClientSecret == "" {
 		authHeader := ctx.Req.Header.Get("Authorization")
-		authContent := strings.SplitN(authHeader, " ", 2)
-		if len(authContent) == 2 && authContent[0] == "Basic" {
-			payload, err := base64.StdEncoding.DecodeString(authContent[1])
+		if authType, authData, ok := strings.Cut(authHeader, " "); ok && authType == "Basic" {
+			clientID, clientSecret, err := base.BasicAuthDecode(authData)
 			if err != nil {
 				handleAccessTokenError(ctx, AccessTokenError{
 					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
@@ -649,30 +666,23 @@ func AccessTokenOAuth(ctx *context.Context) {
 				})
 				return
 			}
-			pair := strings.SplitN(string(payload), ":", 2)
-			if len(pair) != 2 {
-				handleAccessTokenError(ctx, AccessTokenError{
-					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-					ErrorDescription: "cannot parse basic auth header",
-				})
-				return
-			}
-			if form.ClientID != "" && form.ClientID != pair[0] {
+			// validate that any fields present in the form match the Basic auth header
+			if form.ClientID != "" && form.ClientID != clientID {
 				handleAccessTokenError(ctx, AccessTokenError{
 					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
 					ErrorDescription: "client_id in request body inconsistent with Authorization header",
 				})
 				return
 			}
-			form.ClientID = pair[0]
-			if form.ClientSecret != "" && form.ClientSecret != pair[1] {
+			form.ClientID = clientID
+			if form.ClientSecret != "" && form.ClientSecret != clientSecret {
 				handleAccessTokenError(ctx, AccessTokenError{
 					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
 					ErrorDescription: "client_secret in request body inconsistent with Authorization header",
 				})
 				return
 			}
-			form.ClientSecret = pair[1]
+			form.ClientSecret = clientSecret
 		}
 	}
 
