@@ -353,8 +353,9 @@ func IntrospectOAuth(ctx *context.Context) {
 	}
 
 	var response struct {
-		Active bool   `json:"active"`
-		Scope  string `json:"scope,omitempty"`
+		Active   bool   `json:"active"`
+		Scope    string `json:"scope,omitempty"`
+		Username string `json:"username,omitempty"`
 		jwt.RegisteredClaims
 	}
 
@@ -370,6 +371,9 @@ func IntrospectOAuth(ctx *context.Context) {
 				response.Issuer = setting.AppURL
 				response.Audience = []string{app.ClientID}
 				response.Subject = fmt.Sprint(grant.UserID)
+			}
+			if user, err := user_model.GetUserByID(ctx, grant.UserID); err == nil {
+				response.Username = user.Name
 			}
 		}
 	}
