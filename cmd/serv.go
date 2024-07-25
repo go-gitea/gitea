@@ -287,6 +287,9 @@ func runServ(c *cli.Context) error {
 			if !setting.LFS.StartServer {
 				return fail(ctx, "Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
 			}
+			if verb == verbLfsTransfer && !setting.LFS.AllowPureSSH {
+				return fail(ctx, "Unknown git command", "LFS SSH transfer connection denied, pure SSH protocol is disabled")
+			}
 			if len(words) > 2 {
 				lfsVerb = words[2]
 			}
