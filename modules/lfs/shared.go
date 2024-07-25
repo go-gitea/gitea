@@ -4,6 +4,8 @@
 package lfs
 
 import (
+	"errors"
+	"fmt"
 	"time"
 )
 
@@ -62,6 +64,39 @@ type Link struct {
 type ObjectError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+}
+
+var (
+	// See https://github.com/git-lfs/git-lfs/blob/main/docs/api/batch.md#successful-responses
+	// LFS object error codes should match HTTP status codes where possible:
+	//   404 - The object does not exist on the server.
+	//   409 - The specified hash algorithm disagrees with the server's acceptable options.
+	//   410 - The object was removed by the owner.
+	//   422 - Validation error.
+
+	ErrObjectNotFound     = errors.New("the object does not exist on the server")
+	ErrObjectHashMismatch = errors.New("the specified hash algorithm disagrees with the server's acceptable options")
+	ErrObjectRemoved      = errors.New("the object was removed by the owner")
+	ErrObjectValidation   = errors.New("validation error")
+)
+
+func (e *ObjectError) Error() string {
+	return fmt.Sprintf("[%d] %s", e.Code, e.Message)
+}
+
+func (e *ObjectError) Unwrap() error {
+	switch e.Code {
+	case 404:
+		return ErrObjectNotFound
+	case 409:
+		return ErrObjectHashMismatch
+	case 410:
+		return ErrObjectRemoved
+	case 422:
+		return ErrObjectValidation
+	default:
+		return errors.New(e.Message)
+	}
 }
 
 // PointerBlob associates a Git blob with a Pointer.
