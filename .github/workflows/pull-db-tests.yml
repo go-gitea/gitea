@@ -38,9 +38,10 @@ jobs:
         ports:
           - "9000:9000"
       elasticsearch:
-        image: elasticsearch:8.14.0
+        image: elasticsearch:8.14.3
         env:
           discovery.type: single-node
+          xpack.security.enabled: false
         ports:
           - "9200:9200"
     steps:
@@ -50,7 +51,7 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio elasticsearch" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
@@ -168,9 +169,11 @@ jobs:
         ports:
           - "3306:3306"
       elasticsearch:
-        image: elasticsearch:7.5.0
+        image: elasticsearch:8.14.3
         env:
           discovery.type: single-node
+          xpack.security.enabled: false
+          # ELASTIC_PASSWORD: changeme # TODO: test with tls and auth enabled
         ports:
           - "9200:9200"
       smtpimap:
