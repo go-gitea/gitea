@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -74,7 +76,7 @@ var (
 	//   410 - The object was removed by the owner.
 	//   422 - Validation error.
 
-	ErrObjectNotFound     = errors.New("the object does not exist on the server")
+	ErrObjectNotExist     = util.ErrNotExist // the object does not exist on the server
 	ErrObjectHashMismatch = errors.New("the specified hash algorithm disagrees with the server's acceptable options")
 	ErrObjectRemoved      = errors.New("the object was removed by the owner")
 	ErrObjectValidation   = errors.New("validation error")
@@ -87,7 +89,7 @@ func (e *ObjectError) Error() string {
 func (e *ObjectError) Unwrap() error {
 	switch e.Code {
 	case 404:
-		return ErrObjectNotFound
+		return ErrObjectNotExist
 	case 409:
 		return ErrObjectHashMismatch
 	case 410:
