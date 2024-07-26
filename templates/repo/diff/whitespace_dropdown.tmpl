@@ -27,4 +27,4 @@
 		</a>
 	</div>
 </div>
-<a class="ui tiny basic button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}" data-tooltip-content="{{if .IsSplitStyle}}{{ctx.Locale.Tr "repo.diff.show_unified_view"}}{{else}}{{ctx.Locale.Tr "repo.diff.show_split_view"}}{{end}}">{{if .IsSplitStyle}}{{svg "gitea-join"}}{{else}}{{svg "gitea-split"}}{{end}}</a>
+<a class="ui tiny basic button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}" data-tooltip-content="{{if .IsSplitStyle}}{{ctx.Locale.Tr "repo.diff.show_unified_view"}}{{else}}{{ctx.Locale.Tr "repo.diff.show_split_view"}}{{end}}">{{svg (Iif .IsSplitStyle "gitea-join" "gitea-split")}}</a>

@@ -21,7 +21,7 @@
 					<div class="divider"></div>
 				{{end}}
 				{{$previousExclusiveScope = $exclusiveScope}}
-				<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" {{if .IsArchived}}data-is-archived{{end}} data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}tw-invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel $.Context ctx.Locale .}}
+				<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" {{if .IsArchived}}data-is-archived{{end}} data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}tw-invisible{{end}}">{{svg (Iif $exclusiveScope "octicon-dot-fill" "octicon-check")}}</span>&nbsp;&nbsp;{{RenderLabel $.Context ctx.Locale .}}
 					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 					<p class="archived-label-hint">{{template "repo/issue/labels/label_archived" .}}</p>
 				</a>
@@ -34,7 +34,7 @@
 					<div class="divider"></div>
 				{{end}}
 				{{$previousExclusiveScope = $exclusiveScope}}
-				<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" {{if .IsArchived}}data-is-archived{{end}} data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}tw-invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel $.Context ctx.Locale .}}
+				<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" {{if .IsArchived}}data-is-archived{{end}} data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}tw-invisible{{end}}">{{svg (Iif $exclusiveScope "octicon-dot-fill" "octicon-check")}}</span>&nbsp;&nbsp;{{RenderLabel $.Context ctx.Locale .}}
 					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 					<p class="archived-label-hint">{{template "repo/issue/labels/label_archived" .}}</p>
 				</a>

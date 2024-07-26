@@ -17,6 +17,11 @@ import (
 
 // OpenIDPost response for change user's openid
 func OpenIDPost(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
 	form := web.GetForm(ctx).(*forms.AddOpenIDForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
@@ -105,6 +110,11 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 // DeleteOpenID response for delete user's openid
 func DeleteOpenID(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
 	if err := user_model.DeleteUserOpenID(ctx, &user_model.UserOpenID{ID: ctx.FormInt64("id"), UID: ctx.Doer.ID}); err != nil {
 		ctx.ServerError("DeleteUserOpenID", err)
 		return
@@ -117,6 +127,11 @@ func DeleteOpenID(ctx *context.Context) {
 
 // ToggleOpenIDVisibility response for toggle visibility of user's openid
 func ToggleOpenIDVisibility(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
 	if err := user_model.ToggleUserOpenIDVisibility(ctx, ctx.FormInt64("id")); err != nil {
 		ctx.ServerError("ToggleUserOpenIDVisibility", err)
 		return

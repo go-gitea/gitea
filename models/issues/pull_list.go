@@ -9,8 +9,10 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
@@ -26,7 +28,7 @@ type PullRequestsOptions struct {
 	MilestoneID int64
 }
 
-func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) (*xorm.Session, error) {
+func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) *xorm.Session {
 	sess := db.GetEngine(ctx).Where("pull_request.base_repo_id=?", baseRepoID)
 
 	sess.Join("INNER", "issue", "pull_request.issue_id = issue.id")
@@ -44,7 +46,7 @@ func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullR
 		sess.And("issue.milestone_id=?", opts.MilestoneID)
 	}
 
-	return sess, nil
+	return sess
 }
 
 // GetUnmergedPullRequestsByHeadInfo returns all pull requests that are open and has not been merged
@@ -123,28 +125,20 @@ func GetPullRequestIDsByCheckStatus(ctx context.Context, status PullRequestStatu
 }
 
 // PullRequests returns all pull requests for a base Repo by the given conditions
-func PullRequests(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, int64, error) {
+func PullRequests(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) (PullRequestList, int64, error) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
 
-	countSession, err := listPullRequestStatement(ctx, baseRepoID, opts)
-	if err != nil {
-		log.Error("listPullRequestStatement: %v", err)
-		return nil, 0, err
-	}
+	countSession := listPullRequestStatement(ctx, baseRepoID, opts)
 	maxResults, err := countSession.Count(new(PullRequest))
 	if err != nil {
 		log.Error("Count PRs: %v", err)
 		return nil, maxResults, err
 	}
 
-	findSession, err := listPullRequestStatement(ctx, baseRepoID, opts)
+	findSession := listPullRequestStatement(ctx, baseRepoID, opts)
 	applySorts(findSession, opts.SortType, 0)
-	if err != nil {
-		log.Error("listPullRequestStatement: %v", err)
-		return nil, maxResults, err
-	}
 	findSession = db.SetSessionPagination(findSession, opts)
 	prs := make([]*PullRequest, 0, opts.PageSize)
 	return prs, maxResults, findSession.Find(&prs)
@@ -153,50 +147,92 @@ func PullRequests(ctx context.Context, baseRepoID int64, opts *PullRequestsOptio
 // PullRequestList defines a list of pull requests
 type PullRequestList []*PullRequest
 
-func (prs PullRequestList) LoadAttributes(ctx context.Context) error {
-	if len(prs) == 0 {
-		return nil
+func (prs PullRequestList) getRepositoryIDs() []int64 {
+	repoIDs := make(container.Set[int64])
+	for _, pr := range prs {
+		if pr.BaseRepo == nil && pr.BaseRepoID > 0 {
+			repoIDs.Add(pr.BaseRepoID)
+		}
+		if pr.HeadRepo == nil && pr.HeadRepoID > 0 {
+			repoIDs.Add(pr.HeadRepoID)
+		}
 	}
+	return repoIDs.Values()
+}
 
-	// Load issues.
-	issueIDs := prs.GetIssueIDs()
-	issues := make([]*Issue, 0, len(issueIDs))
+func (prs PullRequestList) LoadRepositories(ctx context.Context) error {
+	repoIDs := prs.getRepositoryIDs()
+	reposMap := make(map[int64]*repo_model.Repository, len(repoIDs))
 	if err := db.GetEngine(ctx).
-		Where("id > 0").
-		In("id", issueIDs).
-		Find(&issues); err != nil {
-		return fmt.Errorf("find issues: %w", err)
-	}
-
-	set := make(map[int64]*Issue)
-	for i := range issues {
-		set[issues[i].ID] = issues[i]
+		In("id", repoIDs).
+		Find(&reposMap); err != nil {
+		return fmt.Errorf("find repos: %w", err)
 	}
 	for _, pr := range prs {
-		pr.Issue = set[pr.IssueID]
-		/*
-			Old code:
-			pr.Issue.PullRequest = pr // panic here means issueIDs and prs are not in sync
-
-			It's worth panic because it's almost impossible to happen under normal use.
-			But in integration testing, an asynchronous task could read a database that has been reset.
-			So returning an error would make more sense, let the caller has a choice to ignore it.
-		*/
-		if pr.Issue == nil {
-			return fmt.Errorf("issues and prs may be not in sync: cannot find issue %v for pr %v: %w", pr.IssueID, pr.ID, util.ErrNotExist)
+		if pr.BaseRepo == nil {
+			pr.BaseRepo = reposMap[pr.BaseRepoID]
 		}
-		pr.Issue.PullRequest = pr
+		if pr.HeadRepo == nil {
+			pr.HeadRepo = reposMap[pr.HeadRepoID]
+			pr.isHeadRepoLoaded = true
+		}
 	}
 	return nil
 }
 
+func (prs PullRequestList) LoadAttributes(ctx context.Context) error {
+	if _, err := prs.LoadIssues(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (prs PullRequestList) LoadIssues(ctx context.Context) (IssueList, error) {
+	if len(prs) == 0 {
+		return nil, nil
+	}
+
+	// Load issues which are not loaded
+	issueIDs := container.FilterSlice(prs, func(pr *PullRequest) (int64, bool) {
+		return pr.IssueID, pr.Issue == nil && pr.IssueID > 0
+	})
+	issues := make(map[int64]*Issue, len(issueIDs))
+	if err := db.GetEngine(ctx).
+		In("id", issueIDs).
+		Find(&issues); err != nil {
+		return nil, fmt.Errorf("find issues: %w", err)
+	}
+
+	issueList := make(IssueList, 0, len(prs))
+	for _, pr := range prs {
+		if pr.Issue == nil {
+			pr.Issue = issues[pr.IssueID]
+			/*
+				Old code:
+				pr.Issue.PullRequest = pr // panic here means issueIDs and prs are not in sync
+
+				It's worth panic because it's almost impossible to happen under normal use.
+				But in integration testing, an asynchronous task could read a database that has been reset.
+				So returning an error would make more sense, let the caller has a choice to ignore it.
+			*/
+			if pr.Issue == nil {
+				return nil, fmt.Errorf("issues and prs may be not in sync: cannot find issue %v for pr %v: %w", pr.IssueID, pr.ID, util.ErrNotExist)
+			}
+		}
+		pr.Issue.PullRequest = pr
+		if pr.Issue.Repo == nil {
+			pr.Issue.Repo = pr.BaseRepo
+		}
+		issueList = append(issueList, pr.Issue)
+	}
+	return issueList, nil
+}
+
 // GetIssueIDs returns all issue ids
 func (prs PullRequestList) GetIssueIDs() []int64 {
-	issueIDs := make([]int64, 0, len(prs))
-	for i := range prs {
-		issueIDs = append(issueIDs, prs[i].IssueID)
-	}
-	return issueIDs
+	return container.FilterSlice(prs, func(pr *PullRequest) (int64, bool) {
+		return pr.IssueID, pr.IssueID > 0
+	})
 }
 
 // HasMergedPullRequestInRepo returns whether the user(poster) has merged pull-request in the repo

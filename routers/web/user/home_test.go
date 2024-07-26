@@ -83,7 +83,7 @@ func TestMilestones(t *testing.T) {
 
 	ctx, _ := contexttest.MockContext(t, "milestones")
 	contexttest.LoadUser(t, ctx, 2)
-	ctx.SetParams("sort", "issues")
+	ctx.SetPathParam("sort", "issues")
 	ctx.Req.Form.Set("state", "closed")
 	ctx.Req.Form.Set("sort", "furthestduedate")
 	Milestones(ctx)
@@ -102,8 +102,8 @@ func TestMilestonesForSpecificRepo(t *testing.T) {
 
 	ctx, _ := contexttest.MockContext(t, "milestones")
 	contexttest.LoadUser(t, ctx, 2)
-	ctx.SetParams("sort", "issues")
-	ctx.SetParams("repo", "1")
+	ctx.SetPathParam("sort", "issues")
+	ctx.SetPathParam("repo", "1")
 	ctx.Req.Form.Set("state", "closed")
 	ctx.Req.Form.Set("sort", "furthestduedate")
 	Milestones(ctx)

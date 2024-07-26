@@ -57,8 +57,8 @@ func CorsHandler() func(next http.Handler) http.Handler {
 
 // httpBase implementation git smart HTTP protocol
 func httpBase(ctx *context.Context) *serviceHandler {
-	username := ctx.Params(":username")
-	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
+	username := ctx.PathParam(":username")
+	reponame := strings.TrimSuffix(ctx.PathParam(":reponame"), ".git")
 
 	if ctx.FormString("go-get") == "1" {
 		context.EarlyResponseForGoGetMeta(ctx)
@@ -550,7 +550,7 @@ func GetTextFile(p string) func(*context.Context) {
 		h := httpBase(ctx)
 		if h != nil {
 			setHeaderNoCache(ctx)
-			file := ctx.Params("file")
+			file := ctx.PathParam("file")
 			if file != "" {
 				h.sendFile(ctx, "text/plain", "objects/info/"+file)
 			} else {
@@ -575,7 +575,7 @@ func GetLooseObject(ctx *context.Context) {
 	if h != nil {
 		setHeaderCacheForever(ctx)
 		h.sendFile(ctx, "application/x-git-loose-object", fmt.Sprintf("objects/%s/%s",
-			ctx.Params("head"), ctx.Params("hash")))
+			ctx.PathParam("head"), ctx.PathParam("hash")))
 	}
 }
 
@@ -584,7 +584,7 @@ func GetPackFile(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
 		setHeaderCacheForever(ctx)
-		h.sendFile(ctx, "application/x-git-packed-objects", "objects/pack/pack-"+ctx.Params("file")+".pack")
+		h.sendFile(ctx, "application/x-git-packed-objects", "objects/pack/pack-"+ctx.PathParam("file")+".pack")
 	}
 }
 
@@ -593,6 +593,6 @@ func GetIdxFile(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
 		setHeaderCacheForever(ctx)
-		h.sendFile(ctx, "application/x-git-packed-objects-toc", "objects/pack/pack-"+ctx.Params("file")+".idx")
+		h.sendFile(ctx, "application/x-git-packed-objects-toc", "objects/pack/pack-"+ctx.PathParam("file")+".idx")
 	}
 }

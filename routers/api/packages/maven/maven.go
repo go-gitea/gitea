@@ -385,7 +385,7 @@ type parameters struct {
 }
 
 func extractPathParameters(ctx *context.Context) (parameters, error) {
-	parts := strings.Split(ctx.Params("*"), "/")
+	parts := strings.Split(ctx.PathParam("*"), "/")
 
 	p := parameters{
 		Filename: parts[len(parts)-1],

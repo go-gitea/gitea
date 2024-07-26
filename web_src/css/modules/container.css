@@ -12,10 +12,6 @@
   width: 100%;
 }
 
-.ui.container.fluid.padded {
-  padding: 0 var(--page-margin-x);
-}
-
 .ui[class*="center aligned"].container {
   text-align: center;
 }

@@ -14,8 +14,8 @@ Template Attributes:
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{.ContainerClasses}}" data-dropzone-parent-container="{{.DropzoneParentContainer}}">
 	{{if .MarkdownPreviewUrl}}
 	<div class="ui top tabular menu">
-		<a class="active item" data-tab-for="markdown-writer">{{ctx.Locale.Tr "write"}}</a>
-		<a class="item" data-tab-for="markdown-previewer" data-preview-url="{{.MarkdownPreviewUrl}}" data-preview-context="{{.MarkdownPreviewContext}}">{{ctx.Locale.Tr "preview"}}</a>
+		<a class="active item" data-tab-for="markdown-writer">{{template "shared/misc/tabtitle" (ctx.Locale.Tr "write")}}</a>
+		<a class="item" data-tab-for="markdown-previewer" data-preview-url="{{.MarkdownPreviewUrl}}" data-preview-context="{{.MarkdownPreviewContext}}">{{template "shared/misc/tabtitle" (ctx.Locale.Tr "preview")}}</a>
 	</div>
 	{{end}}
 	<div class="ui tab active" data-tab-panel="markdown-writer">

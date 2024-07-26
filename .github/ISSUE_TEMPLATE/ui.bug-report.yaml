@@ -46,7 +46,7 @@ body:
       label: Can you reproduce the bug on the Gitea demo site?
       description: |
         If so, please provide a URL in the Description field
-        URL of Gitea demo: https://try.gitea.io
+        URL of Gitea demo: https://demo.gitea.com
       options:
         - "Yes"
         - "No"
