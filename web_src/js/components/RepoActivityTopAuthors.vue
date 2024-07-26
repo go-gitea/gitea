@@ -1,5 +1,5 @@
 <script lang="ts">
-import VueBarGraph from 'vue-bar-graph';
+import {VueBarGraph} from 'vue-bar-graph';
 import {createApp} from 'vue';
 
 const sfc = {

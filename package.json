@@ -55,7 +55,7 @@
     "uint8-to-base64": "0.2.0",
     "vanilla-colorful": "0.7.2",
     "vue": "3.4.31",
-    "vue-bar-graph": "2.0.0",
+    "vue-bar-graph": "2.1.0",
     "vue-chartjs": "5.3.1",
     "vue-loader": "17.4.2",
     "webpack": "5.92.1",
