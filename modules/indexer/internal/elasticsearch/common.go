@@ -4,9 +4,12 @@
 package elasticsearch
 
 import (
+	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -22,13 +25,33 @@ type elasticRootResponse struct {
 
 // DetectVersion detects the major version of the elasticsearch server.
 // Currently only supports version 7 and 8.
-func DetectVersion(url string) (int, error) {
+func DetectVersion(connStr string) (int, error) {
+	u, err := url.Parse(connStr)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse url: %v", err)
+	}
+
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
-	resp, err := client.Get(url)
+	if u.Scheme == "https" {
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+
+	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to create request: %v", err)
+	}
+	pass, ok := u.User.Password()
+	if ok {
+		req.SetBasicAuth(u.User.Username(), pass)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get response: %v", err)
 	}
 	defer resp.Body.Close()
 	return parseElasticVersion(resp.Body)
