@@ -750,7 +750,7 @@ func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repo
 		Where("`owner_id`=?", ownerID).
 		And("`lower_name`=?", strings.ToLower(name)).
 		NoAutoCondition().
-		Get(repo)
+		Get(&repo)
 	if err != nil {
 		return nil, err
 	} else if !has {
