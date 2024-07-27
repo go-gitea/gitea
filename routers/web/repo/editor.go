@@ -317,7 +317,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				case git.EntryModeBlob:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path), tplEditFile, &form)
 				default:
-					ctx.Error(http.StatusInternalServerError, err.Error())
+					ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_invalid", fileErr.Path), tplEditFile, &form)
 				}
 			} else {
 				ctx.Error(http.StatusInternalServerError, err.Error())
