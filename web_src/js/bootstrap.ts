@@ -1,12 +1,13 @@
 // DO NOT IMPORT window.config HERE!
 // to make sure the error handler always works, we should never import `window.config`, because
 // some user's custom template breaks it.
+import type {Intent} from './types.ts';
 
 // This sets up the URL prefix used in webpack's chunk loading.
 // This file must be imported before any lazy-loading is being attempted.
 __webpack_public_path__ = `${window.config?.assetUrlPrefix ?? '/assets'}/`;
 
-function shouldIgnoreError(err) {
+function shouldIgnoreError(err: Error) {
   const ignorePatterns = [
     '/assets/js/monaco.', // https://github.com/go-gitea/gitea/issues/30861 , https://github.com/microsoft/monaco-editor/issues/4496
   ];
@@ -16,14 +17,14 @@ function shouldIgnoreError(err) {
   return false;
 }
 
-export function showGlobalErrorMessage(msg, msgType = 'error') {
+export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error') {
   const msgContainer = document.querySelector('.page-content') ?? document.body;
   const msgCompact = msg.replace(/\W/g, '').trim(); // compact the message to a data attribute to avoid too many duplicated messages
-  let msgDiv = msgContainer.querySelector(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
+  let msgDiv = msgContainer.querySelector<HTMLDivElement>(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
   if (!msgDiv) {
     const el = document.createElement('div');
     el.innerHTML = `<div class="ui container js-global-error tw-my-[--page-spacing]"><div class="ui ${msgType} message tw-text-center tw-whitespace-pre-line"></div></div>`;
-    msgDiv = el.childNodes[0];
+    msgDiv = el.childNodes[0] as HTMLDivElement;
   }
   // merge duplicated messages into "the message (count)" format
   const msgCount = Number(msgDiv.getAttribute(`data-global-error-msg-count`)) + 1;
@@ -33,18 +34,7 @@ export function showGlobalErrorMessage(msg, msgType = 'error') {
   msgContainer.prepend(msgDiv);
 }
 
-/**
- * @param {ErrorEvent|PromiseRejectionEvent} event - Event
- * @param {string} event.message - Only present on ErrorEvent
- * @param {string} event.error - Only present on ErrorEvent
- * @param {string} event.type - Only present on ErrorEvent
- * @param {string} event.filename - Only present on ErrorEvent
- * @param {number} event.lineno - Only present on ErrorEvent
- * @param {number} event.colno - Only present on ErrorEvent
- * @param {string} event.reason - Only present on PromiseRejectionEvent
- * @param {number} event.promise - Only present on PromiseRejectionEvent
- */
-function processWindowErrorEvent({error, reason, message, type, filename, lineno, colno}) {
+function processWindowErrorEvent({error, reason, message, type, filename, lineno, colno}: ErrorEvent & PromiseRejectionEvent) {
   const err = error ?? reason;
   const assetBaseUrl = String(new URL(__webpack_public_path__, window.location.origin));
   const {runModeIsProd} = window.config ?? {};
@@ -90,7 +80,8 @@ function initGlobalErrorHandler() {
   }
   // then, change _globalHandlerErrors to an object with push method, to process further error
   // events directly
-  window._globalHandlerErrors = {_inited: true, push: (e) => processWindowErrorEvent(e)};
+  // @ts-expect-error -- this should be refactored to not use a fake array
+  window._globalHandlerErrors = {_inited: true, push: (e: ErrorEvent & PromiseRejectionEvent) => processWindowErrorEvent(e)};
 }
 
 initGlobalErrorHandler();
