@@ -1,4 +1,5 @@
 import {isObject} from '../utils.ts';
+import type {RequestData, RequestOpts} from '../types.ts';
 
 const {csrfToken} = window.config;
 
@@ -8,8 +9,9 @@ const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 // fetch wrapper, use below method name functions and the `data` option to pass in data
 // which will automatically set an appropriate headers. For json content, only object
 // and array types are currently supported.
-export function request(url, {method = 'GET', data, headers = {}, ...other} = {}) {
-  let body, contentType;
+export function request(url: string, {method = 'GET', data, headers = {}, ...other}: RequestOpts = {}) {
+  let body: RequestData;
+  let contentType: string;
   if (data instanceof FormData || data instanceof URLSearchParams) {
     body = data;
   } else if (isObject(data) || Array.isArray(data)) {
@@ -34,8 +36,8 @@ export function request(url, {method = 'GET', data, headers = {}, ...other} = {}
   });
 }
 
-export const GET = (url, opts) => request(url, {method: 'GET', ...opts});
-export const POST = (url, opts) => request(url, {method: 'POST', ...opts});
-export const PATCH = (url, opts) => request(url, {method: 'PATCH', ...opts});
-export const PUT = (url, opts) => request(url, {method: 'PUT', ...opts});
-export const DELETE = (url, opts) => request(url, {method: 'DELETE', ...opts});
+export const GET = (url: string, opts?: RequestOpts) => request(url, {method: 'GET', ...opts});
+export const POST = (url: string, opts?: RequestOpts) => request(url, {method: 'POST', ...opts});
+export const PATCH = (url: string, opts?: RequestOpts) => request(url, {method: 'PATCH', ...opts});
+export const PUT = (url: string, opts?: RequestOpts) => request(url, {method: 'PUT', ...opts});
+export const DELETE = (url: string, opts?: RequestOpts) => request(url, {method: 'DELETE', ...opts});

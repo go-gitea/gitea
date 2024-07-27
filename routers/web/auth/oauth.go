@@ -327,7 +327,7 @@ func getOAuthGroupsForUser(ctx go_context.Context, user *user_model.User) ([]str
 
 func parseBasicAuth(ctx *context.Context) (username, password string, err error) {
 	authHeader := ctx.Req.Header.Get("Authorization")
-	if authType, authData, ok := strings.Cut(authHeader, " "); ok && authType == "Basic" {
+	if authType, authData, ok := strings.Cut(authHeader, " "); ok && strings.EqualFold(authType, "Basic") {
 		return base.BasicAuthDecode(authData)
 	}
 	return "", "", errors.New("invalid basic authentication")
@@ -353,8 +353,9 @@ func IntrospectOAuth(ctx *context.Context) {
 	}
 
 	var response struct {
-		Active bool   `json:"active"`
-		Scope  string `json:"scope,omitempty"`
+		Active   bool   `json:"active"`
+		Scope    string `json:"scope,omitempty"`
+		Username string `json:"username,omitempty"`
 		jwt.RegisteredClaims
 	}
 
@@ -370,6 +371,9 @@ func IntrospectOAuth(ctx *context.Context) {
 				response.Issuer = setting.AppURL
 				response.Audience = []string{app.ClientID}
 				response.Subject = fmt.Sprint(grant.UserID)
+			}
+			if user, err := user_model.GetUserByID(ctx, grant.UserID); err == nil {
+				response.Username = user.Name
 			}
 		}
 	}
@@ -657,7 +661,7 @@ func AccessTokenOAuth(ctx *context.Context) {
 	// if there is no ClientID or ClientSecret in the request body, fill these fields by the Authorization header and ensure the provided field matches the Authorization header
 	if form.ClientID == "" || form.ClientSecret == "" {
 		authHeader := ctx.Req.Header.Get("Authorization")
-		if authType, authData, ok := strings.Cut(authHeader, " "); ok && authType == "Basic" {
+		if authType, authData, ok := strings.Cut(authHeader, " "); ok && strings.EqualFold(authType, "Basic") {
 			clientID, clientSecret, err := base.BasicAuthDecode(authData)
 			if err != nil {
 				handleAccessTokenError(ctx, AccessTokenError{
