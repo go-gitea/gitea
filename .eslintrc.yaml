@@ -568,7 +568,7 @@ rules:
   no-jquery/no-param: [2]
   no-jquery/no-parent: [0]
   no-jquery/no-parents: [2]
-  no-jquery/no-parse-html-literal: [0]
+  no-jquery/no-parse-html-literal: [2]
   no-jquery/no-parse-html: [2]
   no-jquery/no-parse-json: [2]
   no-jquery/no-parse-xml: [2]
