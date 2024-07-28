@@ -117,7 +117,6 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
