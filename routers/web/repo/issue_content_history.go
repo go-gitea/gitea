@@ -156,7 +156,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 
 	// use chroma to render the diff html
 	diffHTMLBuf := bytes.Buffer{}
-	diffHTMLBuf.WriteString("<pre class='chroma' style='tab-size: 4'>")
+	diffHTMLBuf.WriteString("<pre class='chroma'>")
 	for _, it := range diff {
 		if it.Type == diffmatchpatch.DiffInsert {
 			diffHTMLBuf.WriteString("<span class='gi'>")

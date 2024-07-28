@@ -18,6 +18,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/optional"
@@ -321,8 +322,12 @@ func (repo *Repository) FullName() string {
 }
 
 // HTMLURL returns the repository HTML URL
-func (repo *Repository) HTMLURL() string {
-	return setting.AppURL + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
+func (repo *Repository) HTMLURL(ctxs ...context.Context) string {
+	ctx := context.TODO()
+	if len(ctxs) > 0 {
+		ctx = ctxs[0]
+	}
+	return httplib.MakeAbsoluteURL(ctx, repo.Link())
 }
 
 // CommitLink make link to by commit full ID
@@ -362,7 +367,7 @@ func (repo *Repository) LoadUnits(ctx context.Context) (err error) {
 	if log.IsTrace() {
 		unitTypeStrings := make([]string, len(repo.Units))
 		for i, unit := range repo.Units {
-			unitTypeStrings[i] = unit.Type.String()
+			unitTypeStrings[i] = unit.Type.LogString()
 		}
 		log.Trace("repo.Units, ID=%d, Types: [%s]", repo.ID, strings.Join(unitTypeStrings, ", "))
 	}
@@ -472,10 +477,9 @@ func (repo *Repository) MustOwner(ctx context.Context) *user_model.User {
 func (repo *Repository) ComposeMetas(ctx context.Context) map[string]string {
 	if len(repo.RenderingMetas) == 0 {
 		metas := map[string]string{
-			"user":     repo.OwnerName,
-			"repo":     repo.Name,
-			"repoPath": repo.RepoPath(),
-			"mode":     "comment",
+			"user": repo.OwnerName,
+			"repo": repo.Name,
+			"mode": "comment",
 		}
 
 		unit, err := repo.GetUnit(ctx, unit.TypeExternalTracker)

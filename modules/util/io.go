@@ -76,3 +76,24 @@ func IsEmptyReader(r io.Reader) (err error) {
 		}
 	}
 }
+
+type CountingReader struct {
+	io.Reader
+	n int
+}
+
+var _ io.Reader = &CountingReader{}
+
+func (w *CountingReader) Count() int {
+	return w.n
+}
+
+func (w *CountingReader) Read(p []byte) (int, error) {
+	n, err := w.Reader.Read(p)
+	w.n += n
+	return n, err
+}
+
+func NewCountingReader(rd io.Reader) *CountingReader {
+	return &CountingReader{Reader: rd}
+}

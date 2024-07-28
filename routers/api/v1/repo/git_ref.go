@@ -71,7 +71,7 @@ func GetGitRefs(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	getGitRefsInternal(ctx, ctx.Params("*"))
+	getGitRefsInternal(ctx, ctx.PathParam("*"))
 }
 
 func getGitRefsInternal(ctx *context.APIContext, filter string) {

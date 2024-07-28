@@ -1,70 +1,65 @@
-{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn)}}
-{{template "base/alert" .}}
-{{end}}
-<h4 class="ui top attached header center">
-	{{if .LinkAccountMode}}
-		{{ctx.Locale.Tr "auth.oauth_signin_title"}}
-	{{else}}
-		{{ctx.Locale.Tr "auth.login_userpass"}}
+<div class="ui container fluid">
+	{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn)}}
+	{{template "base/alert" .}}
 	{{end}}
-</h4>
-<div class="ui attached segment">
-	<form class="ui form tw-max-w-2xl tw-m-auto" action="{{.SignInLink}}" method="post">
-	{{.CsrfTokenHtml}}
-	<div class="required field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
-		<label for="user_name">{{ctx.Locale.Tr "home.uname_holder"}}</label>
-		<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
-	</div>
-	{{if or (not .DisablePassword) .LinkAccountMode}}
-	<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
-		<label for="password">{{ctx.Locale.Tr "password"}}</label>
-		<input id="password" name="password" type="password" value="{{.password}}" autocomplete="current-password" required>
-	</div>
-	{{end}}
-	{{if not .LinkAccountMode}}
-	<div class="inline field">
-		<div class="ui checkbox">
-			<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
-			<input name="remember" type="checkbox">
-		</div>
-	</div>
-	{{end}}
-
-	{{template "user/auth/captcha" .}}
-
-	<div class="field">
-		<button class="ui primary button">
-			{{if .LinkAccountMode}}
-				{{ctx.Locale.Tr "auth.oauth_signin_submit"}}
-			{{else}}
-				{{ctx.Locale.Tr "sign_in"}}
-			{{end}}
-		</button>
-		<a href="{{AppSubUrl}}/user/forgot_password">{{ctx.Locale.Tr "auth.forgot_password"}}</a>
-	</div>
-
-	{{if .ShowRegistrationButton}}
-		<div class="field">
-			<a href="{{AppSubUrl}}/user/sign_up">{{ctx.Locale.Tr "auth.sign_up_now"}}</a>
-		</div>
-	{{end}}
-
-	{{if .OAuth2Providers}}
-	<div class="divider divider-text">
-		{{ctx.Locale.Tr "sign_in_or"}}
-	</div>
-	<div id="oauth2-login-navigator" class="tw-py-1">
-		<div class="tw-flex tw-flex-col tw-justify-center">
-			<div id="oauth2-login-navigator-inner" class="tw-flex tw-flex-col tw-flex-wrap tw-items-center tw-gap-2">
-				{{range $provider := .OAuth2Providers}}
-					<a class="{{$provider.Name}} ui button tw-flex tw-items-center tw-justify-center tw-py-2 tw-w-full oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$provider.DisplayName}}">
-						{{$provider.IconHTML 28}}
-						{{ctx.Locale.Tr "sign_in_with_provider" $provider.DisplayName}}
-					</a>
-				{{end}}
+	<h4 class="ui top attached header center">
+		{{if .LinkAccountMode}}
+			{{ctx.Locale.Tr "auth.oauth_signin_title"}}
+		{{else}}
+			{{ctx.Locale.Tr "auth.login_userpass"}}
+		{{end}}
+	</h4>
+	<div class="ui attached segment">
+		<form class="ui form" action="{{.SignInLink}}" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="required field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
+				<label for="user_name">{{ctx.Locale.Tr "home.uname_holder"}}</label>
+				<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 			</div>
-		</div>
+			{{if or (not .DisablePassword) .LinkAccountMode}}
+			<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}} form-field-content-aside-label">
+				<label for="password">{{ctx.Locale.Tr "password"}}</label>
+				<a href="{{AppSubUrl}}/user/forgot_password">{{ctx.Locale.Tr "auth.forgot_password"}}</a>
+				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="current-password" required>
+			</div>
+			{{end}}
+			{{if not .LinkAccountMode}}
+			<div class="inline field">
+				<div class="ui checkbox">
+					<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
+					<input name="remember" type="checkbox">
+				</div>
+			</div>
+			{{end}}
+
+			{{template "user/auth/captcha" .}}
+
+			<div class="field">
+				<button class="ui primary button tw-w-full">
+					{{if .LinkAccountMode}}
+						{{ctx.Locale.Tr "auth.oauth_signin_submit"}}
+					{{else}}
+						{{ctx.Locale.Tr "sign_in"}}
+					{{end}}
+				</button>
+			</div>
+		</form>
+
+		{{template "user/auth/oauth_container" .}}
 	</div>
-	{{end}}
-	</form>
+</div>
+
+<div class="ui container fluid">
+	{{template "user/auth/webauthn_error" .}}
+
+	<div class="ui attached segment header top tw-max-w-2xl tw-m-auto tw-flex tw-flex-col tw-items-center">
+		<a class="signin-passkey">{{ctx.Locale.Tr "auth.signin_passkey"}}</a>
+
+		{{if .ShowRegistrationButton}}
+			<div class="field">
+				<span>{{ctx.Locale.Tr "auth.need_account"}}</span>
+				<a href="{{AppSubUrl}}/user/sign_up">{{ctx.Locale.Tr "auth.sign_up_now"}}</a>
+			</div>
+		{{end}}
+	</div>
 </div>

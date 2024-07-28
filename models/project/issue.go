@@ -18,10 +18,10 @@ type ProjectIssue struct { //revive:disable-line:exported
 	IssueID   int64 `xorm:"INDEX"`
 	ProjectID int64 `xorm:"INDEX"`
 
-	// ProjectBoardID should not be zero since 1.22. If it's zero, the issue will not be displayed on UI and it might result in errors.
-	ProjectBoardID int64 `xorm:"INDEX"`
+	// ProjectColumnID should not be zero since 1.22. If it's zero, the issue will not be displayed on UI and it might result in errors.
+	ProjectColumnID int64 `xorm:"'project_board_id' INDEX"`
 
-	// the sorting order on the board
+	// the sorting order on the column
 	Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
@@ -76,13 +76,13 @@ func (p *Project) NumOpenIssues(ctx context.Context) int {
 	return int(c)
 }
 
-// MoveIssuesOnProjectBoard moves or keeps issues in a column and sorts them inside that column
-func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs map[int64]int64) error {
+// MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
+func MoveIssuesOnProjectColumn(ctx context.Context, column *Column, sortedIssueIDs map[int64]int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 		issueIDs := util.ValuesOfMap(sortedIssueIDs)
 
-		count, err := sess.Table(new(ProjectIssue)).Where("project_id=?", board.ProjectID).In("issue_id", issueIDs).Count()
+		count, err := sess.Table(new(ProjectIssue)).Where("project_id=?", column.ProjectID).In("issue_id", issueIDs).Count()
 		if err != nil {
 			return err
 		}
@@ -91,7 +91,7 @@ func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs 
 		}
 
 		for sorting, issueID := range sortedIssueIDs {
-			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", board.ID, sorting, issueID)
+			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", column.ID, sorting, issueID)
 			if err != nil {
 				return err
 			}
@@ -100,12 +100,12 @@ func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs 
 	})
 }
 
-func (b *Board) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Board) error {
-	if b.ProjectID != newColumn.ProjectID {
+func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Column) error {
+	if c.ProjectID != newColumn.ProjectID {
 		return fmt.Errorf("columns have to be in the same project")
 	}
 
-	if b.ID == newColumn.ID {
+	if c.ID == newColumn.ID {
 		return nil
 	}
 
@@ -121,7 +121,7 @@ func (b *Board) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Board)
 		return err
 	}
 
-	issues, err := b.GetIssues(ctx)
+	issues, err := c.GetIssues(ctx)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (b *Board) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Board)
 	nextSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for i, issue := range issues {
-			issue.ProjectBoardID = newColumn.ID
+			issue.ProjectColumnID = newColumn.ID
 			issue.Sorting = nextSorting + int64(i)
 			if _, err := db.GetEngine(ctx).ID(issue.ID).Cols("project_board_id", "sorting").Update(issue); err != nil {
 				return err

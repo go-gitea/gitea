@@ -37,10 +37,11 @@ type OAuth2Application struct {
 	// https://datatracker.ietf.org/doc/html/rfc6749#section-2.1
 	// "Authorization servers MUST record the client type in the client registration details"
 	// https://datatracker.ietf.org/doc/html/rfc8252#section-8.4
-	ConfidentialClient bool               `xorm:"NOT NULL DEFAULT TRUE"`
-	RedirectURIs       []string           `xorm:"redirect_uris JSON TEXT"`
-	CreatedUnix        timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix        timeutil.TimeStamp `xorm:"INDEX updated"`
+	ConfidentialClient         bool               `xorm:"NOT NULL DEFAULT TRUE"`
+	SkipSecondaryAuthorization bool               `xorm:"NOT NULL DEFAULT FALSE"`
+	RedirectURIs               []string           `xorm:"redirect_uris JSON TEXT"`
+	CreatedUnix                timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix                timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 func init() {
@@ -251,21 +252,23 @@ func GetOAuth2ApplicationByID(ctx context.Context, id int64) (app *OAuth2Applica
 
 // CreateOAuth2ApplicationOptions holds options to create an oauth2 application
 type CreateOAuth2ApplicationOptions struct {
-	Name               string
-	UserID             int64
-	ConfidentialClient bool
-	RedirectURIs       []string
+	Name                       string
+	UserID                     int64
+	ConfidentialClient         bool
+	SkipSecondaryAuthorization bool
+	RedirectURIs               []string
 }
 
 // CreateOAuth2Application inserts a new oauth2 application
 func CreateOAuth2Application(ctx context.Context, opts CreateOAuth2ApplicationOptions) (*OAuth2Application, error) {
 	clientID := uuid.New().String()
 	app := &OAuth2Application{
-		UID:                opts.UserID,
-		Name:               opts.Name,
-		ClientID:           clientID,
-		RedirectURIs:       opts.RedirectURIs,
-		ConfidentialClient: opts.ConfidentialClient,
+		UID:                        opts.UserID,
+		Name:                       opts.Name,
+		ClientID:                   clientID,
+		RedirectURIs:               opts.RedirectURIs,
+		ConfidentialClient:         opts.ConfidentialClient,
+		SkipSecondaryAuthorization: opts.SkipSecondaryAuthorization,
 	}
 	if err := db.Insert(ctx, app); err != nil {
 		return nil, err
@@ -275,11 +278,12 @@ func CreateOAuth2Application(ctx context.Context, opts CreateOAuth2ApplicationOp
 
 // UpdateOAuth2ApplicationOptions holds options to update an oauth2 application
 type UpdateOAuth2ApplicationOptions struct {
-	ID                 int64
-	Name               string
-	UserID             int64
-	ConfidentialClient bool
-	RedirectURIs       []string
+	ID                         int64
+	Name                       string
+	UserID                     int64
+	ConfidentialClient         bool
+	SkipSecondaryAuthorization bool
+	RedirectURIs               []string
 }
 
 // UpdateOAuth2Application updates an oauth2 application
@@ -305,6 +309,7 @@ func UpdateOAuth2Application(ctx context.Context, opts UpdateOAuth2ApplicationOp
 	app.Name = opts.Name
 	app.RedirectURIs = opts.RedirectURIs
 	app.ConfidentialClient = opts.ConfidentialClient
+	app.SkipSecondaryAuthorization = opts.SkipSecondaryAuthorization
 
 	if err = updateOAuth2Application(ctx, app); err != nil {
 		return nil, err
@@ -315,7 +320,7 @@ func UpdateOAuth2Application(ctx context.Context, opts UpdateOAuth2ApplicationOp
 }
 
 func updateOAuth2Application(ctx context.Context, app *OAuth2Application) error {
-	if _, err := db.GetEngine(ctx).ID(app.ID).UseBool("confidential_client").Update(app); err != nil {
+	if _, err := db.GetEngine(ctx).ID(app.ID).UseBool("confidential_client", "skip_secondary_authorization").Update(app); err != nil {
 		return err
 	}
 	return nil

@@ -453,7 +453,7 @@ func GetTeamMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	teamID := ctx.ParamsInt64("teamid")
+	teamID := ctx.PathParamInt64("teamid")
 	isTeamMember, err := organization.IsUserInTeams(ctx, u.ID, []int64{teamID})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsUserInTeams", err)
@@ -645,7 +645,7 @@ func GetTeamRepo(ctx *context.APIContext) {
 
 // getRepositoryByParams get repository by a team's organization ID and repo name
 func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
-	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Org.Team.OrgID, ctx.Params(":reponame"))
+	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Org.Team.OrgID, ctx.PathParam(":reponame"))
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound()
