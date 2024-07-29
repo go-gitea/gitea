@@ -30,7 +30,7 @@ import (
 //  3. repo level runner, OwnerID is 0 and RepoID is repo ID
 //
 // Please note that it's not acceptable to have both OwnerID and RepoID to be non-zero,
-// or it will make it complicated to find runners belonging to a specific owner.
+// or it will be complicated to find runners belonging to a specific owner.
 // For example, conditions like `OwnerID = 1` will also return runners {OwnerID: 1, RepoID: 1},
 // but it's a repo level runner, not an org/user level runner.
 // To avoid this, make it clear with {OwnerID: 0, RepoID: 1} for repo level runners.
@@ -168,7 +168,7 @@ func init() {
 type FindRunnerOptions struct {
 	db.ListOptions
 	RepoID        int64
-	OwnerID       int64
+	OwnerID       int64 // it will be ignored if RepoID is set
 	Sort          string
 	Filter        string
 	IsOnline      optional.Option[bool]
@@ -185,8 +185,7 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
 		}
 		cond = cond.And(c)
-	}
-	if opts.OwnerID > 0 {
+	} else if opts.OwnerID > 0 { // OwnerID is ignored if RepoID is set
 		c := builder.NewCond().And(builder.Eq{"owner_id": opts.OwnerID})
 		if opts.WithAvailable {
 			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
@@ -275,7 +274,9 @@ func DeleteRunner(ctx context.Context, id int64) error {
 // CreateRunner creates new runner.
 func CreateRunner(ctx context.Context, t *ActionRunner) error {
 	if t.OwnerID != 0 && t.RepoID != 0 {
-		return fmt.Errorf("invalid runner: %w: owner_id and repo_id can't be both non-zero", util.ErrInvalidArgument)
+		// It's trying to create a runner that belongs to a repository, but OwnerID has been set accidentally.
+		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
+		t.OwnerID = 0
 	}
 	return db.Insert(ctx, t)
 }
