@@ -433,21 +433,11 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			milestone = issue.Milestone.Title
 		}
 
-		var reactions []*gitlab.AwardEmoji
-		awardPage := 1
-		for {
-			awards, _, err := g.client.AwardEmoji.ListIssueAwardEmoji(g.repoID, issue.IID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: perPage}, gitlab.WithContext(g.ctx))
-			if err != nil {
-				return nil, false, fmt.Errorf("error while listing issue awards: %w", err)
-			}
-
-			reactions = append(reactions, awards...)
-
-			if len(awards) < perPage {
-				break
-			}
-
-			awardPage++
+		reactions, err := g.loadAwards(func(awardPage int) ([]*gitlab.AwardEmoji, *gitlab.Response, error) {
+			return g.client.AwardEmoji.ListIssueAwardEmoji(g.repoID, issue.IID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: perPage}, gitlab.WithContext(g.ctx))
+		})
+		if err != nil {
+			return nil, false, err
 		}
 
 		allIssues = append(allIssues, &base.Issue{
@@ -460,7 +450,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			State:        issue.State,
 			Created:      *issue.CreatedAt,
 			Labels:       labels,
-			Reactions:    g.awardsToReactions(reactions),
+			Reactions:    reactions,
 			Closed:       issue.ClosedAt,
 			IsLocked:     issue.DiscussionLocked,
 			Updated:      *issue.UpdatedAt,
@@ -476,7 +466,6 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 }
 
 // GetComments returns comments according issueNumber
-// TODO: figure out how to transfer comment reactions
 func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
 	context, ok := commentable.GetContext().(gitlabIssueContext)
 	if !ok {
@@ -508,7 +497,17 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 		}
 		for _, comment := range comments {
 			for _, note := range comment.Notes {
-				allComments = append(allComments, g.convertNoteToComment(commentable.GetLocalIndex(), note))
+				reactions, err := g.loadAwards(func(awardPage int) ([]*gitlab.AwardEmoji, *gitlab.Response, error) {
+					if context.IsMergeRequest {
+						return g.client.AwardEmoji.ListMergeRequestAwardEmojiOnNote(g.repoID, note.NoteableIID, note.ID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: g.maxPerPage}, gitlab.WithContext(g.ctx))
+					}
+					return g.client.AwardEmoji.ListIssuesAwardEmojiOnNote(g.repoID, note.NoteableIID, note.ID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: g.maxPerPage}, gitlab.WithContext(g.ctx))
+				})
+				if err != nil {
+					return nil, false, err
+				}
+
+				allComments = append(allComments, g.convertNoteToComment(commentable.GetLocalIndex(), note, reactions))
 			}
 		}
 		if resp.NextPage == 0 {
@@ -575,7 +574,7 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 
 var targetBranchChangeRegexp = regexp.MustCompile("^changed target branch from `(.*?)` to `(.*?)`$")
 
-func (g *GitlabDownloader) convertNoteToComment(localIndex int64, note *gitlab.Note) *base.Comment {
+func (g *GitlabDownloader) convertNoteToComment(localIndex int64, note *gitlab.Note, reactions []*base.Reaction) *base.Comment {
 	comment := &base.Comment{
 		IssueIndex:  localIndex,
 		Index:       int64(note.ID),
@@ -585,6 +584,7 @@ func (g *GitlabDownloader) convertNoteToComment(localIndex int64, note *gitlab.N
 		Content:     note.Body,
 		Created:     *note.CreatedAt,
 		Meta:        map[string]any{},
+		Reactions:   reactions,
 	}
 
 	// Try to find the underlying event of system notes.
@@ -670,21 +670,11 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			milestone = pr.Milestone.Title
 		}
 
-		var reactions []*gitlab.AwardEmoji
-		awardPage := 1
-		for {
-			awards, _, err := g.client.AwardEmoji.ListMergeRequestAwardEmoji(g.repoID, pr.IID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: perPage}, gitlab.WithContext(g.ctx))
-			if err != nil {
-				return nil, false, fmt.Errorf("error while listing merge requests awards: %w", err)
-			}
-
-			reactions = append(reactions, awards...)
-
-			if len(awards) < perPage {
-				break
-			}
-
-			awardPage++
+		reactions, err := g.loadAwards(func(awardPage int) ([]*gitlab.AwardEmoji, *gitlab.Response, error) {
+			return g.client.AwardEmoji.ListMergeRequestAwardEmoji(g.repoID, pr.IID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: perPage}, gitlab.WithContext(g.ctx))
+		})
+		if err != nil {
+			return nil, false, err
 		}
 
 		// Generate new PR Numbers by the known Issue Numbers, because they share the same number space in Gitea, but they are independent in Gitlab
@@ -705,7 +695,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			MergeCommitSHA: mergeCommitSHA,
 			MergedTime:     mergeTime,
 			IsLocked:       locked,
-			Reactions:      g.awardsToReactions(reactions),
+			Reactions:      reactions,
 			Head: base.PullRequestBranch{
 				Ref:       pr.SourceBranch,
 				SHA:       pr.SHA,
@@ -764,6 +754,25 @@ func (g *GitlabDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Revie
 	}
 
 	return reviews, nil
+}
+
+func (g *GitlabDownloader) loadAwards(load func(page int) ([]*gitlab.AwardEmoji, *gitlab.Response, error)) ([]*base.Reaction, error) {
+	var allAwards []*gitlab.AwardEmoji
+	page := 1
+	for {
+		awards, resp, err := load(page)
+		if err != nil {
+			return nil, fmt.Errorf("error while listing awards: %w", err)
+		}
+
+		allAwards = append(allAwards, awards...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+		page = resp.NextPage
+	}
+	return g.awardsToReactions(allAwards), nil
 }
 
 func (g *GitlabDownloader) awardsToReactions(awards []*gitlab.AwardEmoji) []*base.Reaction {
