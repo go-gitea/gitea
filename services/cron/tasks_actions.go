@@ -5,7 +5,6 @@ package cron
 
 import (
 	"context"
-	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -67,15 +66,11 @@ func registerScheduleTasks() {
 }
 
 func registerActionsCleanup() {
-	RegisterTaskFatal("cleanup_actions", &OlderThanConfig{
-		BaseConfig: BaseConfig{
-			Enabled:    true,
-			RunAtStart: true,
-			Schedule:   "@midnight",
-		},
-		OlderThan: 24 * time.Hour,
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		realConfig := config.(*OlderThanConfig)
-		return actions_service.Cleanup(ctx, realConfig.OlderThan)
+	RegisterTaskFatal("cleanup_actions", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: true,
+		Schedule:   "@midnight",
+	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+		return actions_service.Cleanup(ctx)
 	})
 }
