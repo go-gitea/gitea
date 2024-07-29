@@ -17,13 +17,13 @@ import (
 // ActionRunnerToken represents runner tokens
 //
 // It can be:
-//  1. global runner, OwnerID is 0 and RepoID is 0
-//  2. org/user level runner, OwnerID is org/user ID and RepoID is 0
-//  3. repo level runner, OwnerID is 0 and RepoID is repo ID
+//  1. global token, OwnerID is 0 and RepoID is 0
+//  2. org/user level token, OwnerID is org/user ID and RepoID is 0
+//  3. repo level token, OwnerID is 0 and RepoID is repo ID
 //
 // Please note that it's not acceptable to have both OwnerID and RepoID to be non-zero,
 // or it will be complicated to find tokens belonging to a specific owner.
-// For example, conditions like `OwnerID = 1` will also return tokens {OwnerID: 1, RepoID: 1},
+// For example, conditions like `OwnerID = 1` will also return token {OwnerID: 1, RepoID: 1},
 // but it's a repo level token, not an org/user level token.
 // To avoid this, make it clear with {OwnerID: 0, RepoID: 1} for repo level tokens.
 type ActionRunnerToken struct {

@@ -31,7 +31,7 @@ import (
 //
 // Please note that it's not acceptable to have both OwnerID and RepoID to be non-zero,
 // or it will be complicated to find runners belonging to a specific owner.
-// For example, conditions like `OwnerID = 1` will also return runners {OwnerID: 1, RepoID: 1},
+// For example, conditions like `OwnerID = 1` will also return runner {OwnerID: 1, RepoID: 1},
 // but it's a repo level runner, not an org/user level runner.
 // To avoid this, make it clear with {OwnerID: 0, RepoID: 1} for repo level runners.
 type ActionRunner struct {
