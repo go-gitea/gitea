@@ -3,6 +3,7 @@
   flex-direction: row;
   flex-wrap: nowrap;
   overflow-x: auto;
+  align-items: stretch;
   margin: 0 0.5em;
 }
 
@@ -13,7 +14,7 @@
   margin: 0 0.5rem !important;
   padding: 0.5rem !important;
   width: 320px;
-  height: calc(100vh - 450px);
+  height: initial;
   min-height: 60vh;
   flex: 0 0 auto;
   overflow: visible;
