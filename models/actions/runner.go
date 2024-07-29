@@ -23,14 +23,25 @@ import (
 )
 
 // ActionRunner represents runner machines
+//
+// It can be:
+//  1. global runner, OwnerID is 0 and RepoID is 0
+//  2. org/user level runner, OwnerID is org/user ID and RepoID is 0
+//  3. repo level runner, OwnerID is 0 and RepoID is repo ID
+//
+// Please note that it's not acceptable to have both OwnerID and RepoID to be non-zero,
+// or it will make it complicated to find runners belonging to a specific owner.
+// For example, conditions like `OwnerID = 1` will also return runners {OwnerID: 1, RepoID: 1},
+// but it's a repo level runner, not an org/user level runner.
+// To avoid this, make it clear with {OwnerID: 0, RepoID: 1} for repo level runners.
 type ActionRunner struct {
 	ID          int64
 	UUID        string                 `xorm:"CHAR(36) UNIQUE"`
 	Name        string                 `xorm:"VARCHAR(255)"`
 	Version     string                 `xorm:"VARCHAR(64)"`
-	OwnerID     int64                  `xorm:"index"` // org level runner, 0 means system
+	OwnerID     int64                  `xorm:"index"`
 	Owner       *user_model.User       `xorm:"-"`
-	RepoID      int64                  `xorm:"index"` // repo level runner, if OwnerID also is zero, then it's a global
+	RepoID      int64                  `xorm:"index"`
 	Repo        *repo_model.Repository `xorm:"-"`
 	Description string                 `xorm:"TEXT"`
 	Base        int                    // 0 native 1 docker 2 virtual machine
@@ -263,6 +274,9 @@ func DeleteRunner(ctx context.Context, id int64) error {
 
 // CreateRunner creates new runner.
 func CreateRunner(ctx context.Context, t *ActionRunner) error {
+	if t.OwnerID != 0 && t.RepoID != 0 {
+		return fmt.Errorf("invalid runner: %w: owner_id and repo_id can't be both non-zero", util.ErrInvalidArgument)
+	}
 	return db.Insert(ctx, t)
 }
 
