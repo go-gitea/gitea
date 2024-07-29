@@ -117,12 +117,11 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
 
-	_, created, err := secret_service.CreateOrUpdateSecret(ctx, owner.ID, repo.ID, ctx.PathParam("secretname"), opt.Data)
+	_, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
@@ -174,10 +173,9 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	err := secret_service.DeleteSecretByName(ctx, owner.ID, repo.ID, ctx.PathParam("secretname"))
+	err := secret_service.DeleteSecretByName(ctx, 0, repo.ID, ctx.PathParam("secretname"))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "DeleteSecret", err)
