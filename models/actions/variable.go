@@ -68,8 +68,8 @@ func (opts FindVariablesOpts) ToConds() builder.Cond {
 	// Since we now support instance-level variables,
 	// there is no need to check for null values for `owner_id` and `repo_id`
 	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	if opts.OwnerID != 0 {
-		// ignore OwnerID and treat it as 0 if RepoID is set
+	if opts.RepoID != 0 { // if RepoID is set
+		// ignore OwnerID and treat it as 0
 		cond = cond.And(builder.Eq{"owner_id": 0})
 	} else {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
