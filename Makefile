@@ -858,18 +858,19 @@ deps-backend:
 
 .PHONY: deps-tools
 deps-tools:
-	$(GO) install $(AIR_PACKAGE)
-	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
-	$(GO) install $(GOFUMPT_PACKAGE)
-	$(GO) install $(GOLANGCI_LINT_PACKAGE)
-	$(GO) install $(GXZ_PACKAGE)
-	$(GO) install $(MISSPELL_PACKAGE)
-	$(GO) install $(SWAGGER_PACKAGE)
-	$(GO) install $(XGO_PACKAGE)
-	$(GO) install $(GO_LICENSES_PACKAGE)
-	$(GO) install $(GOVULNCHECK_PACKAGE)
-	$(GO) install $(ACTIONLINT_PACKAGE)
-	$(GO) install $(GOPLS_PACKAGE)
+	$(GO) install $(AIR_PACKAGE) & \
+	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE) & \
+	$(GO) install $(GOFUMPT_PACKAGE) & \
+	$(GO) install $(GOLANGCI_LINT_PACKAGE) & \
+	$(GO) install $(GXZ_PACKAGE) & \
+	$(GO) install $(MISSPELL_PACKAGE) & \
+	$(GO) install $(SWAGGER_PACKAGE) & \
+	$(GO) install $(XGO_PACKAGE) & \
+	$(GO) install $(GO_LICENSES_PACKAGE) & \
+	$(GO) install $(GOVULNCHECK_PACKAGE) & \
+	$(GO) install $(ACTIONLINT_PACKAGE) & \
+	$(GO) install $(GOPLS_PACKAGE) & \
+	wait
 
 node_modules: package-lock.json
 	npm install --no-save

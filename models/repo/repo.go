@@ -745,17 +745,18 @@ func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string
 
 // GetRepositoryByName returns the repository by given name under user if exists.
 func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repository, error) {
-	repo := &Repository{
-		OwnerID:   ownerID,
-		LowerName: strings.ToLower(name),
-	}
-	has, err := db.GetEngine(ctx).Get(repo)
+	var repo Repository
+	has, err := db.GetEngine(ctx).
+		Where("`owner_id`=?", ownerID).
+		And("`lower_name`=?", strings.ToLower(name)).
+		NoAutoCondition().
+		Get(&repo)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrRepoNotExist{0, ownerID, "", name}
 	}
-	return repo, err
+	return &repo, err
 }
 
 // getRepositoryURLPathSegments returns segments (owner, reponame) extracted from a url

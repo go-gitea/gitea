@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"time"
 
 	"code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/log"
@@ -13,7 +12,7 @@ import (
 )
 
 // Cleanup removes expired actions logs, data and artifacts
-func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
+func Cleanup(taskCtx context.Context) error {
 	// TODO: clean up expired actions logs
 
 	// clean up expired artifacts
