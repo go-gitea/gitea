@@ -94,11 +94,15 @@ type FindSecretsOptions struct {
 
 func (opts FindSecretsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	} else if opts.OwnerID > 0 { // ignore OwnerID and treat it as 0 if RepoID is set
+
+	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	if opts.RepoID != 0 { // if RepoID is set
+		// ignore OwnerID and treat it as 0
+		cond = cond.And(builder.Eq{"owner_id": 0})
+	} else {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
+
 	if opts.SecretID != 0 {
 		cond = cond.And(builder.Eq{"id": opts.SecretID})
 	}
