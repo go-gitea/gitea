@@ -581,13 +581,21 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{$oldProjectDisplayHtml := "Unknown Project"}}
 					{{if .OldProject}}
-						{{$trKey := printf "projects.type-%d.display_name" .OldProject.Type}}
-						{{$oldProjectDisplayHtml = HTMLFormat `<span data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr $trKey) .OldProject.Title}}
+						{{if .OldProject.IsGhost}}
+							{{$oldProjectDisplayHtml = HTMLFormat `<span data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "projects.deleted.display_name") .OldProject.Title}}
+						{{else}}
+							{{$trKey := printf "projects.type-%d.display_name" .OldProject.Type}}
+							{{$oldProjectDisplayHtml = HTMLFormat `<span data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr $trKey) .OldProject.Title}}
+						{{end}}
 					{{end}}
 					{{$newProjectDisplayHtml := "Unknown Project"}}
 					{{if .Project}}
-						{{$trKey := printf "projects.type-%d.display_name" .Project.Type}}
-						{{$newProjectDisplayHtml = HTMLFormat `<span data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr $trKey) .Project.Title}}
+						{{if .Project.IsGhost}}
+							{{$newProjectDisplayHtml = HTMLFormat `<span data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "projects.deleted.display_name") .Project.Title}}
+						{{else}}
+							{{$trKey := printf "projects.type-%d.display_name" .Project.Type}}
+							{{$newProjectDisplayHtml = HTMLFormat `<span data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr $trKey) .Project.Title}}
+						{{end}}
 					{{end}}
 					{{if and (gt .OldProjectID 0) (gt .ProjectID 0)}}
 						{{ctx.Locale.Tr "repo.issues.change_project_at" $oldProjectDisplayHtml $newProjectDisplayHtml $createdStr}}
