@@ -474,6 +474,7 @@ func FindOldTasksToExpire(ctx context.Context, oldThan timeutil.TimeStamp, limit
 	e := db.GetEngine(ctx)
 
 	tasks := make([]*ActionTask, 0, limit)
+	// Check "stopped > 0" to avoid deleting tasks that are still running
 	return tasks, e.Where("stopped > 0 AND stopped < ? AND log_expired = false", oldThan).
 		Limit(limit).
 		Find(&tasks)
