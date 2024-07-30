@@ -44,7 +44,7 @@ func cleanExpiredArtifacts(taskCtx context.Context) error {
 	if err != nil {
 		return err
 	}
-	log.Info("Found ∂%d expired artifacts", len(artifacts))
+	log.Info("Found %d expired artifacts", len(artifacts))
 	for _, artifact := range artifacts {
 		if err := actions_model.SetArtifactExpired(taskCtx, artifact.ID); err != nil {
 			log.Error("Cannot set artifact %d expired: %v", artifact.ID, err)
