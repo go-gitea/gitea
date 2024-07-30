@@ -92,11 +92,11 @@ const deleteLogBatchSize = 100
 
 // CleanupLogs removes logs which are older than the configured retention time
 func CleanupLogs(ctx context.Context) error {
-	before := timeutil.TimeStampNow().AddDuration(-time.Duration(setting.Actions.LogRetentionDays) * 24 * time.Hour)
+	olderThan := timeutil.TimeStampNow().AddDuration(-time.Duration(setting.Actions.LogRetentionDays) * 24 * time.Hour)
 
 	count := 0
 	for {
-		tasks, err := actions_model.FindOldTasksToExpire(ctx, before, deleteLogBatchSize)
+		tasks, err := actions_model.FindOldTasksToExpire(ctx, olderThan, deleteLogBatchSize)
 		if err != nil {
 			return fmt.Errorf("find old tasks: %w", err)
 		}
