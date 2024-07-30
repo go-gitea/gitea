@@ -79,10 +79,17 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	if err != nil {
 		return err
 	}
+	// default to 1 year
+	if Actions.LogRetentionDays <= 0 {
+		Actions.LogRetentionDays = 365
+	}
 
 	actionsSec, _ := rootCfg.GetSection("actions.artifacts")
 
 	Actions.ArtifactStorage, err = getStorage(rootCfg, "actions_artifacts", "", actionsSec)
+	if err != nil {
+		return err
+	}
 
 	// default to 90 days in Github Actions
 	if Actions.ArtifactRetentionDays <= 0 {
@@ -93,10 +100,5 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	Actions.EndlessTaskTimeout = sec.Key("ENDLESS_TASK_TIMEOUT").MustDuration(3 * time.Hour)
 	Actions.AbandonedJobTimeout = sec.Key("ABANDONED_JOB_TIMEOUT").MustDuration(24 * time.Hour)
 
-	// default to 1 year
-	if Actions.LogRetentionDays <= 0 {
-		Actions.LogRetentionDays = 365
-	}
-
-	return err
+	return nil
 }
