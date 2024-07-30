@@ -211,6 +211,10 @@ func (status *CommitStatus) LocaleString(lang translation.Locale) string {
 
 // HideActionsURL set `TargetURL` to an empty string if the status comes from Gitea Actions
 func (status *CommitStatus) HideActionsURL(ctx context.Context) {
+	if status.RepoID == 0 {
+		return
+	}
+
 	if status.Repo == nil {
 		if err := status.loadRepository(ctx); err != nil {
 			log.Error("loadRepository: %v", err)
