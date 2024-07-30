@@ -222,6 +222,24 @@ func ViewPost(ctx *context_module.Context) {
 
 			step := steps[cursor.Step]
 
+			// if task log is expired, return a consistent log line
+			if task.LogExpired {
+				if cursor.Cursor == 0 {
+					resp.Logs.StepsLog = append(resp.Logs.StepsLog, &ViewStepLog{
+						Step:   cursor.Step,
+						Cursor: 1,
+						Lines: []*ViewStepLogLine{
+							{
+								Index:     1,
+								Message:   "TODO: logs have been cleaned up",
+								Timestamp: float64(time.Now().UnixNano()) / float64(time.Second),
+							},
+						},
+						Started: int64(step.Started),
+					})
+				}
+			}
+
 			logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead fo 'null' in json
 
 			index := step.LogIndex + cursor.Cursor
