@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -89,36 +88,37 @@ func cleanNeedDeleteArtifacts(taskCtx context.Context) error {
 	return nil
 }
 
+const deleteLogBatchSize = 100
+
 // CleanupLogs removes logs which are older than the configured retention time
 func CleanupLogs(ctx context.Context) error {
 	before := timeutil.TimeStampNow().AddDuration(-time.Duration(setting.Actions.LogRetentionDays) * 24 * time.Hour)
 
 	count := 0
-	if err := actions_model.IterateOldTasks(ctx, before, func(ctx context.Context, task *actions_model.ActionTask) error {
-		err := actions_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename)
+	for {
+		tasks, err := actions_model.FindOldTasksToExpire(ctx, before, deleteLogBatchSize)
 		if err != nil {
-			log.Error("Failed to remove log %s (in storage %v) of task %v: %v", task.LogFilename, task.LogInStorage, task.ID, err)
-			// do not return error here, continue to next task
-			return nil
+			return fmt.Errorf("find old tasks: %w", err)
 		}
-
-		task.LogIndexes = nil // clear log indexes since it's a heavy field
-		task.LogExpired = true
-		if err := actions_model.UpdateTask(ctx, task, "log_indexes", "log_expired"); err != nil {
-			log.Warn("Failed to update task %v: %v", task.ID, err)
-			// do not return error here, continue to next task
-			return nil
+		for _, task := range tasks {
+			if err := actions_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename); err != nil {
+				log.Error("Failed to remove log %s (in storage %v) of task %v: %v", task.LogFilename, task.LogInStorage, task.ID, err)
+				// do not return error here, continue to next task
+				continue
+			}
+			task.LogIndexes = nil // clear log indexes since it's a heavy field
+			task.LogExpired = true
+			if err := actions_model.UpdateTask(ctx, task, "log_indexes", "log_expired"); err != nil {
+				log.Error("Failed to update task %v: %v", task.ID, err)
+				// do not return error here, continue to next task
+				continue
+			}
+			count++
+			log.Trace("Removed log %s of task %v", task.LogFilename, task.ID)
 		}
-
-		log.Trace("Removed log %s of task %v", task.LogFilename, task.ID)
-		count++
-
-		return nil
-	}); err != nil {
-		if errors.Is(err, ctx.Err()) {
-			return nil
+		if len(tasks) < deleteLogBatchSize {
+			break
 		}
-		return fmt.Errorf("iterate old tasks: %w", err)
 	}
 
 	log.Info("Removed %d logs", count)

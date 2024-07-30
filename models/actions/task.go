@@ -470,16 +470,13 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 	return nil
 }
 
-func IterateOldTasks(ctx context.Context, before timeutil.TimeStamp, f func(ctx context.Context, task *ActionTask) error) error {
+func FindOldTasksToExpire(ctx context.Context, oldThan timeutil.TimeStamp, limit int) ([]*ActionTask, error) {
 	e := db.GetEngine(ctx)
 
-	return e.Where("stopped > 0 AND stopped < ? AND log_expired = false", before).Iterate(&ActionTask{}, func(_ int, bean interface{}) error {
-		task := bean.(*ActionTask)
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-		return f(ctx, task)
-	})
+	tasks := make([]*ActionTask, 0, limit)
+	return tasks, e.Where("stopped > 0 AND stopped < ? AND log_expired = false", oldThan).
+		Limit(limit).
+		Find(&tasks)
 }
 
 func isSubset(set, subset []string) bool {
