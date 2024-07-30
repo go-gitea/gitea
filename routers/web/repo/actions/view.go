@@ -231,13 +231,14 @@ func ViewPost(ctx *context_module.Context) {
 						Lines: []*ViewStepLogLine{
 							{
 								Index:     1,
-								Message:   "TODO: logs have been cleaned up",
+								Message:   ctx.Locale.TrString("actions.runs.expire_log_message"),
 								Timestamp: float64(time.Now().UnixNano()) / float64(time.Second),
 							},
 						},
 						Started: int64(step.Started),
 					})
 				}
+				continue
 			}
 
 			logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead fo 'null' in json
