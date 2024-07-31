@@ -230,9 +230,11 @@ func ViewPost(ctx *context_module.Context) {
 						Cursor: 1,
 						Lines: []*ViewStepLogLine{
 							{
-								Index:     1,
-								Message:   ctx.Locale.TrString("actions.runs.expire_log_message"),
-								Timestamp: float64(time.Now().UnixNano()) / float64(time.Second),
+								Index:   1,
+								Message: ctx.Locale.TrString("actions.runs.expire_log_message"),
+								// Timestamp doesn't mean anything when the log is expired.
+								// Set it to the task's updated time since it's probably the time when the log has expired.
+								Timestamp: float64(task.Updated.AsTime().UnixNano()) / float64(time.Second),
 							},
 						},
 						Started: int64(step.Started),
