@@ -35,7 +35,7 @@ type ActionScheduleSpec struct {
 }
 
 // Parse parses the spec and returns a cron.Schedule
-// Unlike the default cron parser, Parse uses UTC time zone as the default if none is specified.
+// Unlike the default cron parser, Parse uses UTC timezone as the default if none is specified.
 func (s *ActionScheduleSpec) Parse() (cron.Schedule, error) {
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	schedule, err := parser.Parse(s.Spec)
@@ -43,18 +43,18 @@ func (s *ActionScheduleSpec) Parse() (cron.Schedule, error) {
 		return nil, err
 	}
 
-	// If the spec has specified a time zone, use it
+	// If the spec has specified a timezone, use it
 	if strings.HasPrefix(s.Spec, "TZ=") || strings.HasPrefix(s.Spec, "CRON_TZ=") {
 		return schedule, nil
 	}
 
 	specSchedule, ok := schedule.(*cron.SpecSchedule)
-	// If it's not a spec schedule, like "@every 5m", time zone is not relevant
+	// If it's not a spec schedule, like "@every 5m", timezone is not relevant
 	if !ok {
 		return schedule, nil
 	}
 
-	// Set the time zone to UTC
+	// Set the timezone to UTC
 	specSchedule.Location = time.UTC
 	return specSchedule, nil
 }
