@@ -54,6 +54,7 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  max-width: calc(100% - 52px);
 }
 
 .ui.comments .comment > .avatar ~ .content {
