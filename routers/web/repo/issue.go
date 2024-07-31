@@ -1676,7 +1676,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 
 			ghostProject := &project_model.Project{
-				ID:    -1,
+				ID:    project_model.GhostProjectID,
 				Title: ctx.Locale.TrString("repo.issues.deleted_project"),
 			}
 
