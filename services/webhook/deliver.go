@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
+	repo_model "code.gitea.io/gitea/models/repo"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/hostmatcher"
@@ -28,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/cicdfeedback"
 
 	"github.com/gobwas/glob"
 )
@@ -251,7 +254,44 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		return fmt.Errorf("unable to deliver webhook task[%d] in %s as unable to read response body: %w", t.ID, w.URL, err)
 	}
 	t.ResponseInfo.Body = string(p)
+
+	if feedbackInfo, detect := cicdfeedback.DetectHeaders(resp.Header); detect {
+		go handleFeedbackAPI(feedbackInfo, w, t)
+	}
+
 	return nil
+}
+
+func handleFeedbackAPI(info *cicdfeedback.WorkflowInfo, w *webhook_model.Webhook, t *webhook_model.HookTask) {
+	time.Sleep(2 * time.Second) // we wait some time to let the external cicd parse stuff
+
+	ctx := context.Background()
+	draft := &actions_model.ActionRun{
+		Event:        t.EventType,
+		TriggerEvent: t.EventType.Event(),
+		RepoID:       w.RepoID,
+		// TODO: extract from Payload?!?
+		// Ref: "branch name"
+		// CommitSHA: "e.g. 0b0780ed5b4175147f46475d3bd240278b1248ca"
+		// OwnerID:
+		// TriggerUserID:
+	}
+
+	draft.Repo, _ = repo_model.GetRepositoryByID(ctx, w.RepoID)
+	draft.OwnerID = draft.Repo.OwnerID
+	draft.TriggerUserID = draft.Repo.OwnerID
+
+	actionRuns, err := cicdfeedback.GetFeedbackToActionRun(ctx, draft, info)
+	if err != nil {
+		log.Error("could not get cicd feedback: %w", err)
+		return
+	}
+
+	for _, actionRun := range actionRuns {
+		if err := actions_model.InsertRun(ctx, actionRun, nil); err != nil {
+			log.Error("InsertRun: %v", err)
+		}
+	}
 }
 
 var (

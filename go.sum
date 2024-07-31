@@ -34,6 +34,8 @@ gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGq
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
 github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121 h1:r3qt8PCHnfjOv9PN3H+XXKmDA1dfFMIN1AislhlA/ps=
 github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121/go.mod h1:Ock8XgA7pvULhIaHGAk/cDnRfNrF9Jey81nPcc403iU=
+github.com/6543/cicd_feedback v0.0.0-20240625213231-0f894fa6f0f9 h1:/QqqEnwNhZk4GwAk0GE6F6lfdIUfjWTod+zCa/jBQSI=
+github.com/6543/cicd_feedback v0.0.0-20240625213231-0f894fa6f0f9/go.mod h1:xJjRB6hyl1f8XMjBajWkP98wk4Jq+Kxm+eIGy+Piozo=
 github.com/6543/go-version v1.3.1 h1:HvOp+Telns7HWJ2Xo/05YXQSB2bE0WmVgbHqwMPZT4U=
 github.com/6543/go-version v1.3.1/go.mod h1:oqFAHCwtLVUTLdhQmVZWYvaHXTdsbB4SY85at64SQEo=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.12.0 h1:1nGuui+4POelzDwI7RG56yfQJHCnKvwfMoU7VsEp+Zg=
