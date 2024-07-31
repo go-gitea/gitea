@@ -479,12 +479,11 @@ func reqOwner() func(ctx *context.APIContext) {
 // reqSelfOrAdmin doer should be the same as the contextUser or site admin
 func reqSelfOrAdmin() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.ContextUser.IsIndividual() {
-			if !ctx.IsUserSiteAdmin() && ctx.ContextUser != ctx.Doer {
-				ctx.Error(http.StatusForbidden, "reqSelfOrAdmin", "doer should be the site admin or be same as the contextUser")
-				return
-			}
+		if !ctx.IsUserSiteAdmin() && ctx.ContextUser != ctx.Doer {
+			ctx.Error(http.StatusForbidden, "reqSelfOrAdmin", "doer should be the site admin or be same as the contextUser")
+			return
 		}
+
 	}
 }
 
