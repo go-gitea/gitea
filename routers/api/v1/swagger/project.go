@@ -27,3 +27,10 @@ type swaggerResponseColumn struct {
 	// in:body
 	Body api.Column `json:"body"`
 }
+
+// ColumnList
+// swagger:response ColumnList
+type swaggerResponseColumnList struct {
+	// in:body
+	Body []api.Column `json:"body"`
+}

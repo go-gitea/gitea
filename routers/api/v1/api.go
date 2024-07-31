@@ -76,6 +76,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -89,9 +90,9 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/packages"
+	"code.gitea.io/gitea/routers/api/v1/project"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
-	project_shared "code.gitea.io/gitea/routers/api/v1/shared"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/actions"
@@ -135,6 +136,114 @@ func sudo() func(ctx *context.APIContext) {
 	}
 }
 
+func projectIDAssignmentAPI() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.PathParam(":project_id") == "" {
+			return
+		}
+
+		projectAssignment(ctx, ctx.PathParamInt64(":project_id"))
+	}
+}
+
+func projectAssignment(ctx *context.APIContext, projectID int64) {
+	var (
+		owner *user_model.User
+		err   error
+	)
+
+	project, err := project_model.GetProjectByID(ctx, projectID)
+	if err != nil {
+		ctx.Error(http.StatusNotFound, "GetProjectByID", err)
+		return
+	}
+
+	if project.Type == project_model.TypeIndividual || project.Type == project_model.TypeOrganization {
+		if err := project.LoadOwner(ctx); err != nil {
+			ctx.Error(http.StatusNotFound, "LoadOwner", err)
+			return
+		}
+
+		if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(project.Owner.Name) {
+			owner = ctx.Doer
+		} else {
+			owner = project.Owner
+		}
+
+		if project.Type == project_model.TypeOrganization {
+			ctx.Org.Organization = (*organization.Organization)(owner)
+		}
+	} else {
+		if err := project.LoadRepo(ctx); err != nil {
+			ctx.Error(http.StatusNotFound, "LoadRepo", err)
+		}
+
+		repo := project.Repo
+
+		if err := repo.LoadOwner(ctx); err != nil {
+			ctx.Error(http.StatusNotFound, "LoadOwner", err)
+			return
+		}
+
+		ctx.Repo.Repository = repo
+		owner = repo.Owner
+
+		if ctx.Doer != nil && ctx.Doer.ID == user_model.ActionsUserID {
+			taskID := ctx.Data["ActionsTaskID"].(int64)
+			task, err := actions_model.GetTaskByID(ctx, taskID)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "actions_model.GetTaskByID", err)
+				return
+			}
+			if task.RepoID != repo.ID {
+				ctx.NotFound()
+				return
+			}
+
+			if task.IsForkPullRequest {
+				ctx.Repo.Permission.AccessMode = perm.AccessModeRead
+			} else {
+				ctx.Repo.Permission.AccessMode = perm.AccessModeWrite
+			}
+
+			if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
+				ctx.Error(http.StatusInternalServerError, "LoadUnits", err)
+				return
+			}
+			ctx.Repo.Permission.SetUnitsWithDefaultAccessMode(ctx.Repo.Repository.Units, ctx.Repo.Permission.AccessMode)
+		} else {
+			ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+				return
+			}
+		}
+
+		if !ctx.Repo.Permission.HasAnyUnitAccess() {
+			ctx.NotFound()
+			return
+		}
+	}
+	ctx.ContextUser = owner
+}
+
+func columnAssignment() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.PathParam("column_id") == "" {
+			return
+		}
+
+		column, err := project_model.GetColumn(ctx, ctx.PathParamInt64(":column_id"))
+
+		if err != nil {
+			ctx.Error(http.StatusNotFound, "GetColumn", err)
+		}
+
+		projectAssignment(ctx, column.ProjectID)
+
+	}
+}
+
 func repoAssignment() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		userName := ctx.PathParam("username")
@@ -168,6 +277,10 @@ func repoAssignment() func(ctx *context.APIContext) {
 
 		ctx.Repo.Owner = owner
 		ctx.ContextUser = owner
+
+		if owner.IsOrganization() {
+			ctx.Org.Organization = (*organization.Organization)(owner)
+		}
 
 		// Get repository.
 		repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
@@ -388,22 +501,13 @@ func reqAdmin() func(ctx *context.APIContext) {
 // reqRepoWriter user should have a permission to write to a repo, or be a site admin
 func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
+		if ctx.Repo.Repository == nil {
+			return
+		}
 		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqRepoWriter", "user should have a permission to write to a repo")
 			return
 		}
-	}
-}
-
-// reqRepoWriterOr returns a middleware for requiring repository write to one of the unit permission
-func reqRepoWriterOr(unitTypes ...unit.Type) func(ctx *context.APIContext) {
-	return func(ctx *context.APIContext) {
-		for _, unitType := range unitTypes {
-			if ctx.Repo.CanWrite(unitType) {
-				return
-			}
-		}
-		ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
 	}
 }
 
@@ -419,6 +523,10 @@ func reqRepoBranchWriter(ctx *context.APIContext) {
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
+		if ctx.Repo.Repository == nil {
+			return
+		}
+
 		if !ctx.Repo.CanRead(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqRepoReader", "user should have specific read permission or be a repo admin or a site admin")
 			return
@@ -555,6 +663,15 @@ func reqWebhooksEnabled() func(ctx *context.APIContext) {
 	}
 }
 
+func reqProjectOwner() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.Repo.Repository == nil && ctx.ContextUser.IsIndividual() && ctx.ContextUser != ctx.Doer {
+			ctx.Error(http.StatusForbidden, "", "must be the project owner")
+			return
+		}
+	}
+}
+
 func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 	var (
 		assignOrg  bool
@@ -568,18 +685,6 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 	}
 	return func(ctx *context.APIContext) {
 		ctx.Org = new(context.APIOrganization)
-
-		if ctx.ContextUser == nil {
-			if ctx.Org.Organization == nil {
-				getOrganizationByParams(ctx)
-				ctx.ContextUser = ctx.Org.Organization.AsUser()
-			}
-		} else if ctx.ContextUser.IsOrganization() {
-			if ctx.Org == nil {
-				ctx.Org = &context.APIOrganization{}
-			}
-			ctx.Org.Organization = (*organization.Organization)(ctx.ContextUser)
-		}
 
 		var err error
 		if assignOrg {
@@ -636,6 +741,12 @@ func mustEnableRepoProjects(ctx *context.APIContext) {
 			ctx.NotFound("MustEnableRepoProjects", nil)
 			return
 		}
+	}
+}
+
+func getAuthenticatedUser(ctx *context.APIContext) {
+	if ctx.IsSigned {
+		ctx.ContextUser = ctx.Doer
 	}
 }
 
@@ -719,6 +830,10 @@ func mustEnableWiki(ctx *context.APIContext) {
 }
 
 func mustNotBeArchived(ctx *context.APIContext) {
+	if ctx.Repo.Repository == nil {
+		return
+	}
+
 	if ctx.Repo.Repository.IsArchived {
 		ctx.Error(http.StatusLocked, "RepoArchived", fmt.Errorf("%s is archived", ctx.Repo.Repository.LogString()))
 		return
@@ -1015,66 +1130,51 @@ func Routes() *web.Router {
 			}, context.UserAssignmentAPI(), individualPermsChecker)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
-		// Users (requires user scope)
-		m.Group("/{username}/-", func() {
-			m.Group("/projects", func() {
-				m.Group("", func() {
-					m.Get("", project_shared.ProjectHandler("org", project_shared.GetProjects))
-					m.Get("/{id}", project_shared.ProjectHandler("org", project_shared.GetProject))
-				})
+		// Projects
+		m.Group("/orgs/{org}/projects", func() {
+			m.Get("", reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), org.GetProjects)
+			m.Post("", reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), bind(api.CreateProjectOption{}), org.CreateProject)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true))
+
+		m.Group("/projects", func() {
+			m.Group("/{project_id}", func() {
+				m.Get("", project.GetProject)
+				m.Get("/columns", project.GetProjectColumns)
 
 				m.Group("", func() {
-					m.Post("", bind(api.CreateProjectOption{}), project_shared.ProjectHandler("org", project_shared.CreateProject))
-					m.Group("/{id}", func() {
-						m.Post("", bind(api.CreateProjectColumnOption{}), project_shared.ProjectHandler("org", project_shared.AddColumnToProject))
-						m.Delete("", project_shared.ProjectHandler("org", project_shared.DeleteProject))
-						m.Put("", bind(api.EditProjectOption{}), project_shared.ProjectHandler("org", project_shared.EditProject))
-						m.Post("/move", project_shared.MoveColumns)
-						m.Post("/{action:open|close}", project_shared.ChangeProjectStatus)
-
-						m.Group("/{columnID}", func() {
-							m.Put("", bind(api.EditProjectColumnOption{}), project_shared.ProjectHandler("org", project_shared.EditProjectColumn))
-							m.Delete("", project_shared.ProjectHandler("org", project_shared.DeleteProjectColumn))
-							m.Post("/default", project_shared.ProjectHandler("org", project_shared.SetDefaultProjectColumn))
-							m.Post("/move", project_shared.ProjectHandler("org", project_shared.MoveIssues))
-						})
+					m.Patch("", bind(api.EditProjectOption{}), project.EditProject)
+					m.Delete("", project.DeleteProject)
+					m.Post("/{action:open|close}", project.ChangeProjectStatus)
+					m.Group("/columns", func() {
+						m.Post("", bind(api.CreateProjectColumnOption{}), project.AddColumnToProject)
+						m.Patch("/move", project.MoveColumns)
+						m.Patch("/{column_id}/move", project.MoveIssues)
 					})
-				}, reqSelfOrAdmin(), reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true))
-			}, individualPermsChecker)
+				}, reqRepoWriter(unit.TypeProjects), mustNotBeArchived, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), reqProjectOwner())
+			})
 
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), reqToken(), context.UserAssignmentAPI(), orgAssignment(), reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
-
-		// Users (requires user scope)
-		m.Group("/{username}/{reponame}", func() {
-			m.Group("/projects", func() {
-				m.Group("", func() {
-					m.Get("", project_shared.ProjectHandler("repo", project_shared.GetProjects))
-					m.Get("/{id}", project_shared.ProjectHandler("repo", project_shared.GetProject))
-				})
+			m.Group("/columns/{column_id}", func() {
+				m.Get("", project.GetProjectColumn)
 
 				m.Group("", func() {
-					m.Post("", bind(api.CreateProjectOption{}), project_shared.ProjectHandler("repo", project_shared.CreateProject))
-					m.Group("/{id}", func() {
-						m.Post("", bind(api.CreateProjectColumnOption{}), project_shared.ProjectHandler("repo", project_shared.AddColumnToProject))
-						m.Delete("", project_shared.ProjectHandler("repo", project_shared.DeleteProject))
-						m.Put("", bind(api.EditProjectOption{}), project_shared.ProjectHandler("repo", project_shared.EditProject))
-						m.Post("/move", project_shared.MoveColumns)
-						m.Post("/{action:open|close}", project_shared.ChangeProjectStatus)
+					m.Patch("", bind(api.EditProjectColumnOption{}), project.EditProjectColumn)
+					m.Delete("", project.DeleteProjectColumn)
+					m.Post("/default", project.SetDefaultProjectColumn)
+				}, reqRepoWriter(unit.TypeProjects), mustNotBeArchived, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), reqProjectOwner())
+			})
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization, auth_model.AccessTokenScopeCategoryRepository), reqToken(), projectIDAssignmentAPI(), columnAssignment(), individualPermsChecker, reqRepoReader(unit.TypeProjects), mustEnableRepoProjects, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 
-						m.Group("/{columnID}", func() {
-							m.Put("", bind(api.EditProjectColumnOption{}), project_shared.ProjectHandler("repo", project_shared.EditProjectColumn))
-							m.Delete("", project_shared.ProjectHandler("repo", project_shared.DeleteProjectColumn))
-							m.Post("/default", project_shared.ProjectHandler("repo", project_shared.SetDefaultProjectColumn))
-							m.Post("/move", project_shared.ProjectHandler("repo", project_shared.MoveIssues))
-						})
-					})
-				}, reqRepoWriter(unit.TypeProjects), mustNotBeArchived)
-			}, individualPermsChecker)
+		m.Group("/repos/{username}/{reponame}/projects", func() {
+			m.Get("", repo.GetProjects)
+			m.Group("", func() {
+				m.Post("", bind(api.CreateProjectOption{}), repo.CreateProject)
+				m.Put("/{type:issues|pulls}", reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.UpdateIssueProject)
+			}, reqRepoWriter(unit.TypeProjects), mustNotBeArchived)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqToken(), repoAssignment(), individualPermsChecker, reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)
 
-			m.Group("/{type:issues|pulls}", func() {
-				m.Post("/projects", reqRepoWriterOr(unit.TypeIssues, unit.TypePullRequests), reqRepoWriter(unit.TypeProjects), project_shared.UpdateIssueProject)
-			}, individualPermsChecker)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization, auth_model.AccessTokenScopeCategoryRepository), reqToken(), repoAssignment(), reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)
+		m.Post("/user/projects", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), getAuthenticatedUser, reqSelfOrAdmin(), bind(api.CreateProjectOption{}), user.CreateProject)
+
+		m.Get("/users/{username}/projects", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), context.UserAssignmentAPI(), individualPermsChecker, user.GetProjects)
 
 		// Users (requires user scope)
 		m.Group("/users", func() {
