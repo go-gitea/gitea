@@ -535,6 +535,8 @@ func CreatePullRequest(ctx *context.APIContext) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Error(http.StatusForbidden, "BlockedUser", err)
+		} else if errors.Is(err, issues_model.ErrMustCollaborator) {
+			ctx.Error(http.StatusForbidden, "MustCollaborator", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "NewPullRequest", err)
 		}

@@ -3,14 +3,12 @@
 
 package v1_23 //nolint
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
-func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
-	type Issue struct {
-		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
+// AddSkipSeconderyAuthToOAuth2ApplicationTable: add SkipSecondaryAuthorization column, setting existing rows to false
+func AddSkipSecondaryAuthColumnToOAuth2ApplicationTable(x *xorm.Engine) error {
+	type oauth2Application struct {
+		SkipSecondaryAuthorization bool `xorm:"NOT NULL DEFAULT FALSE"`
 	}
-
-	return x.Sync(new(Issue))
+	return x.Sync(new(oauth2Application))
 }

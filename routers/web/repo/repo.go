@@ -656,6 +656,9 @@ func SearchRepo(ctx *context.Context) {
 		ctx.JSON(http.StatusInternalServerError, nil)
 		return
 	}
+	if !ctx.Repo.CanRead(unit.TypeActions) {
+		git_model.CommitStatusesHideActionsURL(ctx, latestCommitStatuses)
+	}
 
 	results := make([]*repo_service.WebSearchRepository, len(repos))
 	for i, repo := range repos {
@@ -668,7 +671,7 @@ func SearchRepo(ctx *context.Context) {
 				Template: repo.IsTemplate,
 				Mirror:   repo.IsMirror,
 				Stars:    repo.NumStars,
-				HTMLURL:  repo.HTMLURL(),
+				HTMLURL:  repo.HTMLURL(ctx),
 				Link:     repo.Link(),
 				Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 			},
