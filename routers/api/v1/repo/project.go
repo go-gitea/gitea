@@ -17,13 +17,14 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
 // GetProjects returns a list of projects for a given user and repository.
 func GetProjects(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{reponame}/projects project getProjects
+	// swagger:operation GET /repos/{owner}/{reponame}/projects project repoGetProjects
 	// ---
 	// summary: Get a list of projects
 	// description: Returns a list of projects for a given user and repository.
@@ -40,6 +41,14 @@ func GetProjects(ctx *context.APIContext) {
 	//   description: repository name.
 	//   required: true
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectList"
@@ -50,30 +59,34 @@ func GetProjects(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
+	listOptions := utils.GetListOptions(ctx)
 	sortType := ctx.FormTrim("sort")
 
 	isShowClosed := strings.ToLower(ctx.FormTrim("state")) == "closed"
 
 	searchOptions := project_model.SearchOptions{
-		IsClosed: optional.Some(isShowClosed),
-		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
-		RepoID:   ctx.Repo.Repository.ID,
-		Type:     project_model.TypeRepository,
+		ListOptions: listOptions,
+		IsClosed:    optional.Some(isShowClosed),
+		OrderBy:     project_model.GetSearchOrderByBySortType(sortType),
+		RepoID:      ctx.Repo.Repository.ID,
+		Type:        project_model.TypeRepository,
 	}
 
-	projects, err := db.Find[project_model.Project](ctx, &searchOptions)
+	projects, maxResults, err := db.FindAndCount[project_model.Project](ctx, &searchOptions)
 
 	if err != nil {
-		ctx.ServerError("FindProjects", err)
+		ctx.Error(http.StatusInternalServerError, "db.FindAndCount[project_model.Project]", err)
 		return
 	}
 
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, convert.ToProjects(ctx, projects))
 }
 
 // CreateProject creates a new project
 func CreateProject(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{reponame}/projects project createProject
+	// swagger:operation POST /repos/{owner}/{reponame}/projects project repoCreateProject
 	// ---
 	// summary: Create a new project
 	// description: Creates a new project for a given user and repository.
@@ -132,7 +145,7 @@ func CreateProject(ctx *context.APIContext) {
 
 // UpdateIssueProject change an issue's project to another project in a repository
 func UpdateIssueProject(ctx *context.APIContext) {
-	// swagger:operation PUT /repos/{owner}/{reponame}/projects/{type} project updateIssueProject
+	// swagger:operation PUT /repos/{owner}/{reponame}/projects/{type} project repoUpdateIssueProject
 	// ---
 	// summary: Change an issue's project
 	// consumes:

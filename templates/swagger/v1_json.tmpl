@@ -2840,7 +2840,7 @@
           "project"
         ],
         "summary": "Get a list of projects",
-        "operationId": "getProjects",
+        "operationId": "orgGetProjects",
         "parameters": [
           {
             "type": "string",
@@ -2848,6 +2848,18 @@
             "name": "org",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -2876,7 +2888,7 @@
           "project"
         ],
         "summary": "Create a new project",
-        "operationId": "createProject",
+        "operationId": "orgCreateProject",
         "parameters": [
           {
             "type": "string",
@@ -3524,7 +3536,7 @@
           "project"
         ],
         "summary": "Get a project column",
-        "operationId": "getProject",
+        "operationId": "projectGetProjectColumn",
         "parameters": [
           {
             "type": "integer",
@@ -3554,7 +3566,7 @@
           "project"
         ],
         "summary": "Delete a project column",
-        "operationId": "deleteProjectColumn",
+        "operationId": "projectDeleteProjectColumn",
         "parameters": [
           {
             "type": "integer",
@@ -3590,7 +3602,7 @@
           "project"
         ],
         "summary": "Edit a project column",
-        "operationId": "editProjectColumn",
+        "operationId": "projectEditProjectColumn",
         "parameters": [
           {
             "type": "integer",
@@ -3637,7 +3649,7 @@
           "project"
         ],
         "summary": "Set default column for issues/pulls",
-        "operationId": "setDefaultProjectColumn",
+        "operationId": "projectSetDefaultProjectColumn",
         "parameters": [
           {
             "type": "integer",
@@ -3672,7 +3684,7 @@
           "project"
         ],
         "summary": "Get a project",
-        "operationId": "getProject",
+        "operationId": "projectGetProject",
         "parameters": [
           {
             "type": "integer",
@@ -3703,7 +3715,7 @@
           "project"
         ],
         "summary": "Delete a project",
-        "operationId": "deleteProject",
+        "operationId": "projectDeleteProject",
         "parameters": [
           {
             "type": "integer",
@@ -3736,7 +3748,7 @@
           "project"
         ],
         "summary": "Edit a project",
-        "operationId": "editProject",
+        "operationId": "projectEditProject",
         "parameters": [
           {
             "type": "integer",
@@ -3774,7 +3786,7 @@
           "project"
         ],
         "summary": "Get a list of project columns",
-        "operationId": "getProject",
+        "operationId": "projectGetProjectColumns",
         "parameters": [
           {
             "type": "integer",
@@ -3810,7 +3822,7 @@
           "project"
         ],
         "summary": "Add a column to a project",
-        "operationId": "addColumnToProject",
+        "operationId": "projectAddColumnToProject",
         "parameters": [
           {
             "type": "integer",
@@ -3860,7 +3872,7 @@
           "project"
         ],
         "summary": "Move columns in a project",
-        "operationId": "moveColumns",
+        "operationId": "projectMoveColumns",
         "parameters": [
           {
             "type": "integer",
@@ -3904,7 +3916,7 @@
           "project"
         ],
         "summary": "Move issues in a column",
-        "operationId": "moveIssues",
+        "operationId": "projectMoveIssues",
         "parameters": [
           {
             "type": "integer",
@@ -3955,7 +3967,7 @@
           "project"
         ],
         "summary": "Change the status of a project",
-        "operationId": "changeProjectStatus",
+        "operationId": "projectProjectChangeProjectStatus",
         "parameters": [
           {
             "type": "integer",
@@ -4292,7 +4304,7 @@
           "project"
         ],
         "summary": "Get a list of projects",
-        "operationId": "getProjects",
+        "operationId": "repoGetProjects",
         "parameters": [
           {
             "type": "string",
@@ -4307,6 +4319,18 @@
             "name": "reponame",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -4336,7 +4360,7 @@
           "project"
         ],
         "summary": "Create a new project",
-        "operationId": "createProject",
+        "operationId": "repoCreateProject",
         "parameters": [
           {
             "type": "string",
@@ -4390,7 +4414,7 @@
           "project"
         ],
         "summary": "Change an issue's project",
-        "operationId": "updateIssueProject",
+        "operationId": "repoUpdateIssueProject",
         "parameters": [
           {
             "type": "string",
@@ -17845,7 +17869,7 @@
           "project"
         ],
         "summary": "Create a new project for user",
-        "operationId": "createProject",
+        "operationId": "userCreateProject",
         "parameters": [
           {
             "description": "Project data",
@@ -18717,7 +18741,7 @@
           "project"
         ],
         "summary": "Get a list of projects",
-        "operationId": "getProjects",
+        "operationId": "userGetProjects",
         "parameters": [
           {
             "type": "string",
@@ -18725,6 +18749,18 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -20765,18 +20801,21 @@
       "description": "CreateProjectColumnOption options for creating a project column",
       "type": "object",
       "required": [
-        "Title"
+        "title"
       ],
       "properties": {
-        "Color": {
-          "type": "string"
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
         },
-        "Sorting": {
+        "sorting": {
           "type": "integer",
-          "format": "int8"
+          "format": "int8",
+          "x-go-name": "Sorting"
         },
-        "Title": {
-          "type": "string"
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -21807,15 +21846,18 @@
       "description": "EditProjectColumnOption options for editing a project column",
       "type": "object",
       "properties": {
-        "Color": {
-          "type": "string"
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
         },
-        "Sorting": {
+        "sorting": {
           "type": "integer",
-          "format": "int8"
+          "format": "int8",
+          "x-go-name": "Sorting"
         },
-        "Title": {
-          "type": "string"
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

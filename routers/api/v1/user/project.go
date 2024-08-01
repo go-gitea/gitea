@@ -12,13 +12,14 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
 // CreateProject creates a new project for a user
 func CreateProject(ctx *context.APIContext) {
-	// swagger:operation POST /user/projects project createProject
+	// swagger:operation POST /user/projects project userCreateProject
 	// ---
 	// summary: Create a new project for user
 	// consumes:
@@ -66,7 +67,7 @@ func CreateProject(ctx *context.APIContext) {
 
 // GetProjects returns a list of projects that belong to a user
 func GetProjects(ctx *context.APIContext) {
-	// swagger:operation GET /users/{username}/projects project getProjects
+	// swagger:operation GET /users/{username}/projects project userGetProjects
 	// ---
 	// summary: Get a list of projects
 	// produces:
@@ -77,6 +78,14 @@ func GetProjects(ctx *context.APIContext) {
 	//   description: owner of the project
 	//   required: true
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectList"
@@ -87,23 +96,27 @@ func GetProjects(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
+	listOptions := utils.GetListOptions(ctx)
 	sortType := ctx.FormTrim("sort")
 
 	isShowClosed := strings.ToLower(ctx.FormTrim("state")) == "closed"
 
 	searchOptions := project_model.SearchOptions{
-		IsClosed: optional.Some(isShowClosed),
-		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
-		OwnerID:  ctx.ContextUser.ID,
-		Type:     project_model.TypeIndividual,
+		ListOptions: listOptions,
+		IsClosed:    optional.Some(isShowClosed),
+		OrderBy:     project_model.GetSearchOrderByBySortType(sortType),
+		OwnerID:     ctx.ContextUser.ID,
+		Type:        project_model.TypeIndividual,
 	}
 
-	projects, err := db.Find[project_model.Project](ctx, &searchOptions)
+	projects, maxResults, err := db.FindAndCount[project_model.Project](ctx, &searchOptions)
 
 	if err != nil {
-		ctx.ServerError("FindProjects", err)
+		ctx.Error(http.StatusInternalServerError, "db.FindAndCount[project_model.Project]", err)
 		return
 	}
 
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, convert.ToProjects(ctx, projects))
 }

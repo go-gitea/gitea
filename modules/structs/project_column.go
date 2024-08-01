@@ -12,15 +12,15 @@ type Column struct {
 
 // EditProjectColumnOption options for editing a project column
 type EditProjectColumnOption struct {
-	Title   string `binding:"MaxSize(100)"`
-	Sorting int8
-	Color   string `binding:"MaxSize(7)"`
+	Title   string `json:"title" binding:"MaxSize(100)"`
+	Sorting int8   `json:"sorting"`
+	Color   string `json:"color" binding:"MaxSize(7)"`
 }
 
 // CreateProjectColumnOption options for creating a project column
 type CreateProjectColumnOption struct {
 	// required:true
-	Title   string `binding:"Required;MaxSize(100)"`
-	Sorting int8
-	Color   string `binding:"MaxSize(7)"`
+	Title   string `json:"title" binding:"Required;MaxSize(100)"`
+	Sorting int8   `json:"sorting"`
+	Color   string `json:"color" binding:"MaxSize(7)"`
 }

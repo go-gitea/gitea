@@ -16,7 +16,7 @@ import (
 
 // GetProject returns a project
 func GetProject(ctx *context.APIContext) {
-	// swagger:operation GET /projects/{project_id} project getProject
+	// swagger:operation GET /projects/{project_id} project projectGetProject
 	// ---
 	// summary: Get a project
 	// produces:
@@ -73,7 +73,7 @@ func GetProject(ctx *context.APIContext) {
 
 // EditProject edits a project
 func EditProject(ctx *context.APIContext) {
-	// swagger:operation PATCH /projects/{project_id} project editProject
+	// swagger:operation PATCH /projects/{project_id} project projectEditProject
 	// ---
 	// summary: Edit a project
 	// produces:
@@ -119,7 +119,7 @@ func EditProject(ctx *context.APIContext) {
 
 // DeleteProject deletes a project
 func DeleteProject(ctx *context.APIContext) {
-	// swagger:operation DELETE /projects/{project_id} project deleteProject
+	// swagger:operation DELETE /projects/{project_id} project projectDeleteProject
 	// ---
 	// summary: Delete a project
 	// description: Deletes a specific project for a given user and repository.
@@ -151,7 +151,7 @@ func DeleteProject(ctx *context.APIContext) {
 
 // ChangeProjectStatus updates the status of a project between "open" and "close"
 func ChangeProjectStatus(ctx *context.APIContext) {
-	// swagger:operation PATCH /projects/{project_id}/{action} project changeProjectStatus
+	// swagger:operation PATCH /projects/{project_id}/{action} project projectProjectChangeProjectStatus
 	// ---
 	// summary: Change the status of a project
 	// produces:

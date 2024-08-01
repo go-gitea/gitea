@@ -1158,7 +1158,7 @@ func Routes() *web.Router {
 				m.Group("", func() {
 					m.Patch("", bind(api.EditProjectColumnOption{}), project.EditProjectColumn)
 					m.Delete("", project.DeleteProjectColumn)
-					m.Post("/default", project.SetDefaultProjectColumn)
+					m.Put("/default", project.SetDefaultProjectColumn)
 				}, reqRepoWriter(unit.TypeProjects), mustNotBeArchived, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), reqProjectOwner())
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization, auth_model.AccessTokenScopeCategoryRepository), reqToken(), projectIDAssignmentAPI(), columnAssignment(), individualPermsChecker, reqRepoReader(unit.TypeProjects), mustEnableRepoProjects, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))

@@ -18,7 +18,7 @@ import (
 
 // GetProjectColumn returns a project column
 func GetProjectColumn(ctx *context.APIContext) {
-	// swagger:operation GET /projects/columns/{column_id} project getProject
+	// swagger:operation GET /projects/columns/{column_id} project projectGetProjectColumn
 	// ---
 	// summary: Get a project column
 	// produces:
@@ -51,7 +51,7 @@ func GetProjectColumn(ctx *context.APIContext) {
 
 // GetProjectColumns returns a list of project columns
 func GetProjectColumns(ctx *context.APIContext) {
-	// swagger:operation GET /projects/{project_id}/columns project getProject
+	// swagger:operation GET /projects/{project_id}/columns project projectGetProjectColumns
 	// ---
 	// summary: Get a list of project columns
 	// produces:
@@ -91,7 +91,7 @@ func GetProjectColumns(ctx *context.APIContext) {
 
 // AddColumnToProject adds a new column to a project
 func AddColumnToProject(ctx *context.APIContext) {
-	// swagger:operation POST /projects/{project_id}/columns project addColumnToProject
+	// swagger:operation POST /projects/{project_id}/columns project projectAddColumnToProject
 	// ---
 	// summary: Add a column to a project
 	// consumes:
@@ -153,7 +153,7 @@ func AddColumnToProject(ctx *context.APIContext) {
 
 // EditProjectColumn edits a project column
 func EditProjectColumn(ctx *context.APIContext) {
-	// swagger:operation PATCH /projects/columns/{column_id} project editProjectColumn
+	// swagger:operation PATCH /projects/columns/{column_id} project projectEditProjectColumn
 	// ---
 	// summary: Edit a project column
 	// consumes:
@@ -212,7 +212,7 @@ func EditProjectColumn(ctx *context.APIContext) {
 
 // DeleteProjectColumn deletes a project column
 func DeleteProjectColumn(ctx *context.APIContext) {
-	// swagger:operation DELETE /projects/columns/{column_id} project deleteProjectColumn
+	// swagger:operation DELETE /projects/columns/{column_id} project projectDeleteProjectColumn
 	// ---
 	// summary: Delete a project column
 	// parameters:
@@ -241,7 +241,7 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 
 // SetDefaultProjectColumn set default column for issues/pulls
 func SetDefaultProjectColumn(ctx *context.APIContext) {
-	// swagger:operation PUT /projects/columns/{column_id}/default project setDefaultProjectColumn
+	// swagger:operation PUT /projects/columns/{column_id}/default project projectSetDefaultProjectColumn
 	// ---
 	// summary: Set default column for issues/pulls
 	// parameters:
@@ -276,7 +276,7 @@ func SetDefaultProjectColumn(ctx *context.APIContext) {
 
 // MoveColumns moves or keeps columns in a project and sorts them inside that project
 func MoveColumns(ctx *context.APIContext) {
-	// swagger:operation PATCH /projects/{project_id}/columns/move project moveColumns
+	// swagger:operation PATCH /projects/{project_id}/columns/move project projectMoveColumns
 	// ---
 	// summary: Move columns in a project
 	// consumes:
@@ -337,7 +337,7 @@ func MoveColumns(ctx *context.APIContext) {
 
 // MoveIssues moves or keeps issues in a column and sorts them inside that column
 func MoveIssues(ctx *context.APIContext) {
-	// swagger:operation PATCH /projects/{project_id}/columns/{column_id}/move project moveIssues
+	// swagger:operation PATCH /projects/{project_id}/columns/{column_id}/move project projectMoveIssues
 	// ---
 	// summary: Move issues in a column
 	// consumes:
