@@ -56,16 +56,11 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		return nil, err
 	}
 
-	repo := &Repository{
+	return &Repository{
 		Path:     repoPath,
 		tagCache: newObjectCache(),
 		Ctx:      ctx,
-	}
-
-	repo.batch = repo.NewBatch(ctx)
-	repo.check = repo.NewBatchCheck(ctx)
-
-	return repo, nil
+	}, nil
 }
 
 // CatFileBatch obtains a CatFileBatch for this repository
