@@ -103,15 +103,36 @@ func (w *SeekableWriter) Close() error {
 	return w.w.Close()
 }
 
-type SeekableReader seekable.Reader
+type SeekableReader struct {
+	r seekable.Reader
+}
 
-var _ io.ReadSeekCloser = (SeekableReader)(nil)
+var _ io.ReadSeekCloser = (*SeekableReader)(nil)
 
-func NewSeekableReader(r io.ReadSeeker, opts ...ReaderOption) (SeekableReader, error) {
+func NewSeekableReader(r io.ReadSeeker, opts ...ReaderOption) (*SeekableReader, error) {
 	zstdR, err := zstd.NewReader(nil, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	return seekable.NewReader(r, zstdR)
+	seekableR, err := seekable.NewReader(r, zstdR)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SeekableReader{
+		r: seekableR,
+	}, nil
+}
+
+func (r *SeekableReader) Read(p []byte) (int, error) {
+	return r.r.Read(p)
+}
+
+func (r *SeekableReader) Seek(offset int64, whence int) (int64, error) {
+	return r.r.Seek(offset, whence)
+}
+
+func (r *SeekableReader) Close() error {
+	return r.r.Close()
 }
