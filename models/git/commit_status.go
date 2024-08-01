@@ -211,6 +211,10 @@ func (status *CommitStatus) LocaleString(lang translation.Locale) string {
 
 // HideActionsURL set `TargetURL` to an empty string if the status comes from Gitea Actions
 func (status *CommitStatus) HideActionsURL(ctx context.Context) {
+	if status.RepoID == 0 {
+		return
+	}
+
 	if status.Repo == nil {
 		if err := status.loadRepository(ctx); err != nil {
 			log.Error("loadRepository: %v", err)
@@ -537,6 +541,10 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 func CommitStatusesHideActionsURL(ctx context.Context, statuses []*CommitStatus) {
 	idToRepos := make(map[int64]*repo_model.Repository)
 	for _, status := range statuses {
+		if status == nil {
+			continue
+		}
+
 		if status.Repo == nil {
 			status.Repo = idToRepos[status.RepoID]
 		}
