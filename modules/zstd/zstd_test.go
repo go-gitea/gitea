@@ -115,6 +115,7 @@ func TestSeekableWriterReader(t *testing.T) {
 		data := make([]byte, 1000)
 		_, err = io.ReadFull(reader, data)
 		require.NoError(t, err)
+		require.NoError(t, reader.Close())
 
 		assert.Equal(t, testData[25_000_000:25_000_000+1000], data)
 
@@ -125,6 +126,8 @@ func TestSeekableWriterReader(t *testing.T) {
 		// Should read less than 2 blocks,
 		// even if the compression ratio is not good and the data is not in the same block.
 		assert.Less(t, assertReader.ReadBytes, blockSize*2)
+		// Should close the underlying reader if it is Closer.
+		assert.True(t, assertReader.Closed)
 	})
 
 	t.Run("tidy data", func(t *testing.T) {
@@ -281,6 +284,7 @@ type assertReadSeeker struct {
 	r         io.ReadSeeker
 	SeekTimes int
 	ReadBytes int
+	Closed    bool
 }
 
 func (a *assertReadSeeker) Read(p []byte) (int, error) {
@@ -292,4 +296,9 @@ func (a *assertReadSeeker) Read(p []byte) (int, error) {
 func (a *assertReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	a.SeekTimes++
 	return a.r.Seek(offset, whence)
+}
+
+func (a *assertReadSeeker) Close() error {
+	a.Closed = true
+	return nil
 }
