@@ -184,11 +184,22 @@ func OpenLogs(ctx context.Context, inStorage bool, filename string) (io.ReadSeek
 		}
 		return f, nil
 	}
+
 	f, err := storage.Actions.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("storage open %q: %w", filename, err)
 	}
-	return f, nil
+
+	var reader io.ReadSeekCloser = f
+	if strings.HasSuffix(filename, ".zst") {
+		r, err := zstd.NewSeekableReader(f)
+		if err != nil {
+			return nil, fmt.Errorf("zstd NewSeekableReader: %w", err)
+		}
+		reader = r
+	}
+
+	return reader, nil
 }
 
 func FormatLog(timestamp time.Time, content string) string {

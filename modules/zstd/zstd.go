@@ -8,6 +8,7 @@
 package zstd
 
 import (
+	"errors"
 	"io"
 
 	seekable "github.com/SaveTheRbtz/zstd-seekable-format-go/pkg"
@@ -115,6 +116,7 @@ func (w *SeekableWriter) Close() error {
 
 type SeekableReader struct {
 	r seekable.Reader
+	c func() error
 }
 
 var _ io.ReadSeekCloser = (*SeekableReader)(nil)
@@ -131,9 +133,14 @@ func NewSeekableReader(r io.ReadSeeker, opts ...ReaderOption) (*SeekableReader, 
 		return nil, err
 	}
 
-	return &SeekableReader{
+	ret := &SeekableReader{
 		r: seekableR,
-	}, nil
+	}
+	if closer, ok := r.(io.Closer); ok {
+		ret.c = closer.Close
+	}
+
+	return ret, nil
 }
 
 func (r *SeekableReader) Read(p []byte) (int, error) {
@@ -145,5 +152,13 @@ func (r *SeekableReader) Seek(offset int64, whence int) (int64, error) {
 }
 
 func (r *SeekableReader) Close() error {
-	return r.r.Close()
+	return errors.Join(
+		func() error {
+			if r.c != nil {
+				return r.c()
+			}
+			return nil
+		}(),
+		r.r.Close(),
+	)
 }
