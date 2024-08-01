@@ -88,6 +88,7 @@ func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError
 	}
 
 	if !repo.checkInUse {
+		repo.checkInUse = true
 		return repo.check.Writer, repo.check.Reader, func() {
 			repo.checkInUse = false
 		}
