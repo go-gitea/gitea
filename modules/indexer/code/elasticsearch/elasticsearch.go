@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
@@ -160,11 +161,16 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 			return err
 		}
 
-		batchWriter, batchReader, cancel := git.CatFileBatch(ctx, repo.RepoPath())
-		defer cancel()
+		r, err := gitrepo.OpenRepository(ctx, repo)
+		if err != nil {
+			return err
+		}
+		defer r.Close()
+		batch := r.NewBatch(ctx)
+		defer batch.Close()
 
 		for _, update := range changes.Updates {
-			updateReqs, err := b.addUpdate(ctx, batchWriter, batchReader, sha, update, repo)
+			updateReqs, err := b.addUpdate(ctx, batch.Writer, batch.Reader, sha, update, repo)
 			if err != nil {
 				return err
 			}
@@ -172,7 +178,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 				reqs = append(reqs, updateReqs...)
 			}
 		}
-		cancel()
+		batch.Close()
 	}
 
 	for _, filename := range changes.RemovedFilenames {

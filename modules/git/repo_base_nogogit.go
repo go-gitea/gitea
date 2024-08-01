@@ -25,15 +25,11 @@ type Repository struct {
 
 	gpgSettings *GPGSettings
 
-	batchInUse  bool
-	batchCancel context.CancelFunc
-	batchReader *bufio.Reader
-	batchWriter WriteCloserError
+	batchInUse bool
+	batch      *Batch
 
-	checkInUse  bool
-	checkCancel context.CancelFunc
-	checkReader *bufio.Reader
-	checkWriter WriteCloserError
+	checkInUse bool
+	check      *Batch
 
 	Ctx             context.Context
 	LastCommitCache *LastCommitCache
@@ -66,52 +62,59 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		Ctx:      ctx,
 	}
 
-	repo.batchWriter, repo.batchReader, repo.batchCancel = CatFileBatch(ctx, repoPath)
-	repo.checkWriter, repo.checkReader, repo.checkCancel = CatFileBatchCheck(ctx, repoPath)
+	repo.batch = repo.NewBatch(ctx)
+	repo.check = repo.NewBatchCheck(ctx)
 
 	return repo, nil
 }
 
 // CatFileBatch obtains a CatFileBatch for this repository
 func (repo *Repository) CatFileBatch(ctx context.Context) (WriteCloserError, *bufio.Reader, func()) {
-	if repo.batchCancel == nil || repo.batchInUse {
-		log.Debug("Opening temporary cat file batch for: %s", repo.Path)
-		return CatFileBatch(ctx, repo.Path)
+	if repo.batch == nil {
+		repo.batch = repo.NewBatch(ctx)
 	}
-	repo.batchInUse = true
-	return repo.batchWriter, repo.batchReader, func() {
-		repo.batchInUse = false
+
+	if !repo.batchInUse {
+		repo.batchInUse = true
+		return repo.batch.Writer, repo.batch.Reader, func() {
+			repo.batchInUse = false
+		}
 	}
+
+	log.Debug("Opening temporary cat file batch for: %s", repo.Path)
+	tempBatch := repo.NewBatch(ctx)
+	return tempBatch.Writer, tempBatch.Reader, tempBatch.Close
 }
 
 // CatFileBatchCheck obtains a CatFileBatchCheck for this repository
 func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError, *bufio.Reader, func()) {
-	if repo.checkCancel == nil || repo.checkInUse {
-		log.Debug("Opening temporary cat file batch-check for: %s", repo.Path)
-		return CatFileBatchCheck(ctx, repo.Path)
+	if repo.check == nil {
+		repo.check = repo.NewBatchCheck(ctx)
 	}
-	repo.checkInUse = true
-	return repo.checkWriter, repo.checkReader, func() {
-		repo.checkInUse = false
+
+	if !repo.checkInUse {
+		return repo.check.Writer, repo.check.Reader, func() {
+			repo.checkInUse = false
+		}
 	}
+
+	log.Debug("Opening temporary cat file batch-check for: %s", repo.Path)
+	tempBatchCheck := repo.NewBatchCheck(ctx)
+	return tempBatchCheck.Writer, tempBatchCheck.Reader, tempBatchCheck.Close
 }
 
 func (repo *Repository) Close() error {
 	if repo == nil {
 		return nil
 	}
-	if repo.batchCancel != nil {
-		repo.batchCancel()
-		repo.batchReader = nil
-		repo.batchWriter = nil
-		repo.batchCancel = nil
+	if repo.batch != nil {
+		repo.batch.Close()
+		repo.batch = nil
 		repo.batchInUse = false
 	}
-	if repo.checkCancel != nil {
-		repo.checkCancel()
-		repo.checkCancel = nil
-		repo.checkReader = nil
-		repo.checkWriter = nil
+	if repo.check != nil {
+		repo.check.Close()
+		repo.check = nil
 		repo.checkInUse = false
 	}
 	repo.LastCommitCache = nil
