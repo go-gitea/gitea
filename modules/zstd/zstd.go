@@ -1,6 +1,10 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+// Package zstd provides a high-level API for reading and writing zstd-compressed data.
+// It supports both regular and seekable zstd streams.
+// It's not a new wheel, but a wrapper around the zstd and zstd-seekable-format-go packages.
+
 package zstd
 
 import (
@@ -14,6 +18,7 @@ type Writer zstd.Encoder
 
 var _ io.WriteCloser = (*Writer)(nil)
 
+// NewWriter returns a new zstd writer.
 func NewWriter(w io.Writer, opts ...WriterOption) (*Writer, error) {
 	zstdW, err := zstd.NewWriter(w, opts...)
 	if err != nil {
@@ -34,6 +39,7 @@ type Reader zstd.Decoder
 
 var _ io.ReadCloser = (*Reader)(nil)
 
+// NewReader returns a new zstd reader.
 func NewReader(r io.Reader, opts ...ReaderOption) (*Reader, error) {
 	zstdR, err := zstd.NewReader(r, opts...)
 	if err != nil {
@@ -59,6 +65,10 @@ type SeekableWriter struct {
 
 var _ io.WriteCloser = (*SeekableWriter)(nil)
 
+// NewSeekableWriter returns a zstd writer to compress data to seekable format.
+// blockSize is an important parameter, it should be decided according to the actual business requirements.
+// If it's too small, the compression ratio could be very bad, even no compression at all.
+// If it's too large, it could cost more traffic when reading the data partially from underlying storage.
 func NewSeekableWriter(w io.Writer, blockSize int, opts ...WriterOption) (*SeekableWriter, error) {
 	zstdW, err := zstd.NewWriter(nil, opts...)
 	if err != nil {
@@ -109,6 +119,7 @@ type SeekableReader struct {
 
 var _ io.ReadSeekCloser = (*SeekableReader)(nil)
 
+// NewSeekableReader returns a zstd reader to decompress data from seekable format.
 func NewSeekableReader(r io.ReadSeeker, opts ...ReaderOption) (*SeekableReader, error) {
 	zstdR, err := zstd.NewReader(nil, opts...)
 	if err != nil {
