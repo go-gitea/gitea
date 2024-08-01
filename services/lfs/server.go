@@ -82,7 +82,7 @@ var rangeHeaderRegexp = regexp.MustCompile(`bytes=(\d+)\-(\d*).*`)
 // DownloadHandler gets the content from the content store
 func DownloadHandler(ctx *context.Context) {
 	rc := getRequestContext(ctx)
-	p := lfs_module.Pointer{Oid: ctx.Params("oid")}
+	p := lfs_module.Pointer{Oid: ctx.PathParam("oid")}
 
 	meta := getAuthenticatedMeta(ctx, rc, p, false)
 	if meta == nil {
@@ -137,7 +137,7 @@ func DownloadHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(contentLength, 10))
 	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
 
-	filename := ctx.Params("filename")
+	filename := ctx.PathParam("filename")
 	if len(filename) > 0 {
 		decodedFilename, err := base64.RawURLEncoding.DecodeString(filename)
 		if err == nil {
@@ -272,9 +272,9 @@ func BatchHandler(ctx *context.Context) {
 func UploadHandler(ctx *context.Context) {
 	rc := getRequestContext(ctx)
 
-	p := lfs_module.Pointer{Oid: ctx.Params("oid")}
+	p := lfs_module.Pointer{Oid: ctx.PathParam("oid")}
 	var err error
-	if p.Size, err = strconv.ParseInt(ctx.Params("size"), 10, 64); err != nil {
+	if p.Size, err = strconv.ParseInt(ctx.PathParam("size"), 10, 64); err != nil {
 		writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
 	}
 
@@ -384,8 +384,8 @@ func decodeJSON(req *http.Request, v any) error {
 
 func getRequestContext(ctx *context.Context) *requestContext {
 	return &requestContext{
-		User:          ctx.Params("username"),
-		Repo:          strings.TrimSuffix(ctx.Params("reponame"), ".git"),
+		User:          ctx.PathParam("username"),
+		Repo:          strings.TrimSuffix(ctx.PathParam("reponame"), ".git"),
 		Authorization: ctx.Req.Header.Get("Authorization"),
 	}
 }

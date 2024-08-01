@@ -3843,6 +3843,39 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runners/registration-token": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a repository's actions runner registration token",
+        "operationId": "repoGetRunnerRegistrationToken",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RegistrationToken"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/secrets": {
       "get": {
         "produces": [
@@ -10609,6 +10642,9 @@
     },
     "/repos/{owner}/{repo}/media/{filepath}": {
       "get": {
+        "produces": [
+          "application/octet-stream"
+        ],
         "tags": [
           "repository"
         ],
@@ -10645,7 +10681,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Returns raw file content."
+            "description": "Returns raw file content.",
+            "schema": {
+              "type": "file"
+            }
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -12682,7 +12721,7 @@
     "/repos/{owner}/{repo}/raw/{filepath}": {
       "get": {
         "produces": [
-          "application/json"
+          "application/octet-stream"
         ],
         "tags": [
           "repository"
@@ -12720,7 +12759,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Returns raw file content."
+            "description": "Returns raw file content.",
+            "schema": {
+              "type": "file"
+            }
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -13399,39 +13441,6 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/runners/registration-token": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Get a repository's actions runner registration token",
-        "operationId": "repoGetRunnerRegistrationToken",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/RegistrationToken"
-          }
-        }
-      }
-    },
     "/repos/{owner}/{repo}/signing-key.gpg": {
       "get": {
         "produces": [
@@ -13793,6 +13802,233 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/tag_protections": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List tag protections for a repository",
+        "operationId": "repoListTagProtection",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TagProtectionList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a tag protections for a repository",
+        "operationId": "repoCreateTagProtection",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateTagProtectionOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/TagProtection"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/tag_protections/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a specific tag protection for the repository",
+        "operationId": "repoGetTagProtection",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the tag protect to get",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TagProtection"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a specific tag protection for the repository",
+        "operationId": "repoDeleteTagProtection",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of protected tag",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a tag protections for a repository. Only fields that are set will be changed",
+        "operationId": "repoEditTagProtection",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of protected tag",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditTagProtectionOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TagProtection"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -18248,6 +18484,11 @@
       "properties": {
         "permission": {
           "type": "string",
+          "enum": [
+            "read",
+            "write",
+            "admin"
+          ],
           "x-go-name": "Permission"
         }
       },
@@ -18487,6 +18728,14 @@
           "type": "boolean",
           "x-go-name": "EnableApprovalsWhitelist"
         },
+        "enable_force_push": {
+          "type": "boolean",
+          "x-go-name": "EnableForcePush"
+        },
+        "enable_force_push_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableForcePushAllowlist"
+        },
         "enable_merge_whitelist": {
           "type": "boolean",
           "x-go-name": "EnableMergeWhitelist"
@@ -18502,6 +18751,24 @@
         "enable_status_check": {
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
+        },
+        "force_push_allowlist_deploy_keys": {
+          "type": "boolean",
+          "x-go-name": "ForcePushAllowlistDeployKeys"
+        },
+        "force_push_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ForcePushAllowlistTeams"
+        },
+        "force_push_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ForcePushAllowlistUsernames"
         },
         "ignore_stale_approvals": {
           "type": "boolean",
@@ -19151,6 +19418,14 @@
           "type": "boolean",
           "x-go-name": "EnableApprovalsWhitelist"
         },
+        "enable_force_push": {
+          "type": "boolean",
+          "x-go-name": "EnableForcePush"
+        },
+        "enable_force_push_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableForcePushAllowlist"
+        },
         "enable_merge_whitelist": {
           "type": "boolean",
           "x-go-name": "EnableMergeWhitelist"
@@ -19166,6 +19441,24 @@
         "enable_status_check": {
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
+        },
+        "force_push_allowlist_deploy_keys": {
+          "type": "boolean",
+          "x-go-name": "ForcePushAllowlistDeployKeys"
+        },
+        "force_push_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ForcePushAllowlistTeams"
+        },
+        "force_push_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ForcePushAllowlistUsernames"
         },
         "ignore_stale_approvals": {
           "type": "boolean",
@@ -19596,6 +19889,10 @@
             "type": "string"
           },
           "x-go-name": "RedirectURIs"
+        },
+        "skip_secondary_authorization": {
+          "type": "boolean",
+          "x-go-name": "SkipSecondaryAuthorization"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -19950,6 +20247,31 @@
         "target": {
           "type": "string",
           "x-go-name": "Target"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateTagProtectionOption": {
+      "description": "CreateTagProtectionOption options for creating a tag protection",
+      "type": "object",
+      "properties": {
+        "name_pattern": {
+          "type": "string",
+          "x-go-name": "NamePattern"
+        },
+        "whitelist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "WhitelistTeams"
+        },
+        "whitelist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "WhitelistUsernames"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -20310,6 +20632,14 @@
           "type": "boolean",
           "x-go-name": "EnableApprovalsWhitelist"
         },
+        "enable_force_push": {
+          "type": "boolean",
+          "x-go-name": "EnableForcePush"
+        },
+        "enable_force_push_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableForcePushAllowlist"
+        },
         "enable_merge_whitelist": {
           "type": "boolean",
           "x-go-name": "EnableMergeWhitelist"
@@ -20325,6 +20655,24 @@
         "enable_status_check": {
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
+        },
+        "force_push_allowlist_deploy_keys": {
+          "type": "boolean",
+          "x-go-name": "ForcePushAllowlistDeployKeys"
+        },
+        "force_push_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ForcePushAllowlistTeams"
+        },
+        "force_push_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ForcePushAllowlistUsernames"
         },
         "ignore_stale_approvals": {
           "type": "boolean",
@@ -20866,6 +21214,31 @@
           "description": "a URL with more information about the repository.",
           "type": "string",
           "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "EditTagProtectionOption": {
+      "description": "EditTagProtectionOption options for editing a tag protection",
+      "type": "object",
+      "properties": {
+        "name_pattern": {
+          "type": "string",
+          "x-go-name": "NamePattern"
+        },
+        "whitelist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "WhitelistTeams"
+        },
+        "whitelist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "WhitelistUsernames"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -22127,7 +22500,7 @@
       "type": "object",
       "properties": {
         "Context": {
-          "description": "Context to render\n\nin: body",
+          "description": "URL path for rendering issue, media and file links\nExpected format: /subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}/{file/dir}\n\nin: body",
           "type": "string"
         },
         "Mode": {
@@ -22150,7 +22523,7 @@
       "type": "object",
       "properties": {
         "Context": {
-          "description": "Context to render\n\nin: body",
+          "description": "URL path for rendering issue, media and file links\nExpected format: /subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}/{file/dir}\n\nin: body",
           "type": "string"
         },
         "FilePath": {
@@ -22647,6 +23020,10 @@
             "type": "string"
           },
           "x-go-name": "RedirectURIs"
+        },
+        "skip_secondary_authorization": {
+          "type": "boolean",
+          "x-go-name": "SkipSecondaryAuthorization"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -24020,6 +24397,46 @@
         "zipball_url": {
           "type": "string",
           "x-go-name": "ZipballURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "TagProtection": {
+      "description": "TagProtection represents a tag protection",
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name_pattern": {
+          "type": "string",
+          "x-go-name": "NamePattern"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        },
+        "whitelist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "WhitelistTeams"
+        },
+        "whitelist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "WhitelistUsernames"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -25632,6 +26049,21 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Tag"
+        }
+      }
+    },
+    "TagProtection": {
+      "description": "TagProtection",
+      "schema": {
+        "$ref": "#/definitions/TagProtection"
+      }
+    },
+    "TagProtectionList": {
+      "description": "TagProtectionList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/TagProtection"
         }
       }
     },

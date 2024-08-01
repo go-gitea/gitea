@@ -187,7 +187,7 @@ func GetPullRequest(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
@@ -244,7 +244,7 @@ func GetPullRequestByBaseHead(ctx *context.APIContext) {
 
 	var headRepoID int64
 	var headBranch string
-	head := ctx.Params("*")
+	head := ctx.PathParam("*")
 	if strings.Contains(head, ":") {
 		split := strings.SplitN(head, ":", 2)
 		headBranch = split[1]
@@ -272,7 +272,7 @@ func GetPullRequestByBaseHead(ctx *context.APIContext) {
 		headBranch = head
 	}
 
-	pr, err := issues_model.GetPullRequestByBaseHeadInfo(ctx, ctx.Repo.Repository.ID, headRepoID, ctx.Params(":base"), headBranch)
+	pr, err := issues_model.GetPullRequestByBaseHeadInfo(ctx, ctx.Repo.Repository.ID, headRepoID, ctx.PathParam(":base"), headBranch)
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
@@ -332,7 +332,7 @@ func DownloadPullDiffOrPatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/string"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
@@ -342,7 +342,7 @@ func DownloadPullDiffOrPatch(ctx *context.APIContext) {
 		return
 	}
 	var patch bool
-	if ctx.Params(":diffType") == "diff" {
+	if ctx.PathParam(":diffType") == "diff" {
 		patch = false
 	} else {
 		patch = true
@@ -535,6 +535,8 @@ func CreatePullRequest(ctx *context.APIContext) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Error(http.StatusForbidden, "BlockedUser", err)
+		} else if errors.Is(err, issues_model.ErrMustCollaborator) {
+			ctx.Error(http.StatusForbidden, "MustCollaborator", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "NewPullRequest", err)
 		}
@@ -590,7 +592,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm(ctx).(*api.EditPullRequestOption)
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
@@ -804,7 +806,7 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 	//   "404":
 	//     description: pull request has not been merged
 
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
@@ -862,7 +864,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
 
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -1221,7 +1223,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
@@ -1320,7 +1322,7 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	pullIndex := ctx.ParamsInt64(":index")
+	pullIndex := ctx.PathParamInt64(":index")
 	pull, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, pullIndex)
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
@@ -1406,7 +1408,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
@@ -1529,7 +1531,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()

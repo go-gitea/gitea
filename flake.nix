@@ -31,6 +31,7 @@
             # backend
             go_1_22
             gofumpt
+            sqlite
           ];
         };
       }
