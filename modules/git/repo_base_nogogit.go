@@ -52,7 +52,7 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	}
 
 	// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-	if err := EnsureValidGitRepository(ctx, repoPath); err != nil {
+	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
 		return nil, err
 	}
 

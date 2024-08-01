@@ -26,10 +26,10 @@ type WriteCloserError interface {
 	CloseWithError(err error) error
 }
 
-// EnsureValidGitRepository runs git rev-parse in the repository path - thus ensuring that the repository is a valid repository.
+// ensureValidGitRepository runs git rev-parse in the repository path - thus ensuring that the repository is a valid repository.
 // Run before opening git cat-file.
 // This is needed otherwise the git cat-file will hang for invalid repositories.
-func EnsureValidGitRepository(ctx context.Context, repoPath string) error {
+func ensureValidGitRepository(ctx context.Context, repoPath string) error {
 	stderr := strings.Builder{}
 	err := NewCommand(ctx, "rev-parse").
 		SetDescription(fmt.Sprintf("%s rev-parse [repo_path: %s]", GitExecutable, repoPath)).

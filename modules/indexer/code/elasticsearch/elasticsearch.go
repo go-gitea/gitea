@@ -20,7 +20,6 @@ import (
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -155,12 +154,6 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elasti
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
-		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-		if err := git.EnsureValidGitRepository(ctx, repo.RepoPath()); err != nil {
-			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
-			return err
-		}
-
 		r, err := gitrepo.OpenRepository(ctx, repo)
 		if err != nil {
 			return err
