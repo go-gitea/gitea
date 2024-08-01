@@ -19,7 +19,7 @@ func (repo *Repository) NewBatch(ctx context.Context) *Batch {
 	batch := Batch{
 		repo: repo,
 	}
-	batch.Writer, batch.Reader, batch.cancel = CatFileBatch(ctx, repo.Path)
+	batch.Writer, batch.Reader, batch.cancel = catFileBatch(ctx, repo.Path)
 	return &batch
 }
 
@@ -27,7 +27,7 @@ func (repo *Repository) NewBatchCheck(ctx context.Context) *Batch {
 	check := Batch{
 		repo: repo,
 	}
-	check.Writer, check.Reader, check.cancel = CatFileBatchCheck(ctx, repo.Path)
+	check.Writer, check.Reader, check.cancel = catFileBatchCheck(ctx, repo.Path)
 	return &check
 }
 
