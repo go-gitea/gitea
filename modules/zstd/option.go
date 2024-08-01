@@ -22,6 +22,15 @@ var (
 	WithEncoderDictRaw           = zstd.WithEncoderDictRaw
 )
 
+type EncoderLevel = zstd.EncoderLevel
+
+const (
+	SpeedFastest           EncoderLevel = zstd.SpeedFastest
+	SpeedDefault           EncoderLevel = zstd.SpeedDefault
+	SpeedBetterCompression EncoderLevel = zstd.SpeedBetterCompression
+	SpeedBestCompression   EncoderLevel = zstd.SpeedBestCompression
+)
+
 type ReaderOption = zstd.DOption
 
 var (
