@@ -134,7 +134,7 @@ func UploadPackageFile(ctx *context.Context) {
 	defer buf.Close()
 
 	// if rpm sign enabled
-	if setting.Packages.RPMSginEnabled {
+	if setting.Packages.RPMSignEnabled {
 		pri, _, err := rpm_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
