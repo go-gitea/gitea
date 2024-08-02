@@ -20,8 +20,8 @@ function initRepoDiffReviewButton() {
   if (!counter) return;
 
   function handleFormSubmit(form, textarea) {
-    if (form.dataset.handlerAttached === 'true') return;
-    form.dataset.handlerAttached = 'true';
+    if (form.getAttribute('data-handler-attached') === 'true') return;
+    form.setAttribute('data-handler-attached', 'true');
     form.addEventListener('submit', (event) => {
       if (textarea.value.trim() === '') {
         event.preventDefault();
