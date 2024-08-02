@@ -180,7 +180,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 
 	// Remove project's issues that belong to old organization's projects
 	if oldOwner.IsOrganization() {
-		projects, err := project_model.GetAllProjectsIDsByOwnerId(ctx, oldOwner.ID)
+		projects, err := project_model.GetAllProjectsIDsByOwnerID(ctx, oldOwner.ID)
 		if err != nil {
 			return fmt.Errorf("Unable to find old org projects: %w", err)
 		}

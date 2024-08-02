@@ -296,10 +296,10 @@ func GetProjectForRepoByID(ctx context.Context, repoID, id int64) (*Project, err
 	return p, nil
 }
 
-// GetAllProjectsIDsByOwnerId returns the all projects ids it owns
-func GetAllProjectsIDsByOwnerId(ctx context.Context, ownerId int64) ([]int64, error) {
+// GetAllProjectsIDsByOwnerID returns the all projects ids it owns
+func GetAllProjectsIDsByOwnerID(ctx context.Context, ownerID int64) ([]int64, error) {
 	projects := make([]int64, 0)
-	return projects, db.GetEngine(ctx).Table(&Project{}).Where("owner_id=?", ownerId).Cols("id").Find(&projects)
+	return projects, db.GetEngine(ctx).Table(&Project{}).Where("owner_id=?", ownerID).Cols("id").Find(&projects)
 }
 
 // UpdateProject updates project properties
