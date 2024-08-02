@@ -504,7 +504,7 @@ func convertTimestamp(timestamp *timestamppb.Timestamp) timeutil.TimeStamp {
 func logFileName(repoFullName string, taskID int64) string {
 	ret := fmt.Sprintf("%s/%02x/%d.log", repoFullName, taskID%256, taskID)
 
-	if time.Now().Unix() > 0 { // TODO: read from setting
+	if setting.Actions.LogCompression.IsZstd() {
 		ret += ".zst"
 	}
 
