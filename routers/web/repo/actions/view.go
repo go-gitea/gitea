@@ -222,6 +222,27 @@ func ViewPost(ctx *context_module.Context) {
 
 			step := steps[cursor.Step]
 
+			// if task log is expired, return a consistent log line
+			if task.LogExpired {
+				if cursor.Cursor == 0 {
+					resp.Logs.StepsLog = append(resp.Logs.StepsLog, &ViewStepLog{
+						Step:   cursor.Step,
+						Cursor: 1,
+						Lines: []*ViewStepLogLine{
+							{
+								Index:   1,
+								Message: ctx.Locale.TrString("actions.runs.expire_log_message"),
+								// Timestamp doesn't mean anything when the log is expired.
+								// Set it to the task's updated time since it's probably the time when the log has expired.
+								Timestamp: float64(task.Updated.AsTime().UnixNano()) / float64(time.Second),
+							},
+						},
+						Started: int64(step.Started),
+					})
+				}
+				continue
+			}
+
 			logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead fo 'null' in json
 
 			index := step.LogIndex + cursor.Cursor
