@@ -48,13 +48,10 @@ func BasicAuthDecode(encoded string) (string, string, error) {
 		return "", "", err
 	}
 
-	auth := strings.SplitN(string(s), ":", 2)
-
-	if len(auth) != 2 {
-		return "", "", errors.New("invalid basic authentication")
+	if username, password, ok := strings.Cut(string(s), ":"); ok {
+		return username, password, nil
 	}
-
-	return auth[0], auth[1], nil
+	return "", "", errors.New("invalid basic authentication")
 }
 
 // VerifyTimeLimitCode verify time limit code

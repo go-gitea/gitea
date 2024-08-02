@@ -41,6 +41,8 @@ func newWechatworkMarkdownPayload(title string) WechatworkPayload {
 	}
 }
 
+type wechatworkConvertor struct{}
+
 // Create implements PayloadConvertor Create method
 func (wc wechatworkConvertor) Create(p *api.CreatePayload) (WechatworkPayload, error) {
 	// created tag/branch
@@ -97,9 +99,9 @@ func (wc wechatworkConvertor) Push(p *api.PushPayload) (WechatworkPayload, error
 
 // Issue implements PayloadConvertor Issue method
 func (wc wechatworkConvertor) Issue(p *api.IssuePayload) (WechatworkPayload, error) {
-	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter, true)
+	text, issueTitle, extraMarkdown, _ := getIssuesPayloadInfo(p, noneLinkFormatter, true)
 	var content string
-	content += fmt.Sprintf(" ><font color=\"info\">%s</font>\n >%s \n ><font color=\"warning\"> %s</font> \n [%s](%s)", text, attachmentText, issueTitle, p.Issue.HTMLURL, p.Issue.HTMLURL)
+	content += fmt.Sprintf(" ><font color=\"info\">%s</font>\n >%s \n ><font color=\"warning\"> %s</font> \n [%s](%s)", text, extraMarkdown, issueTitle, p.Issue.HTMLURL, p.Issue.HTMLURL)
 
 	return newWechatworkMarkdownPayload(content), nil
 }
@@ -115,9 +117,9 @@ func (wc wechatworkConvertor) IssueComment(p *api.IssueCommentPayload) (Wechatwo
 
 // PullRequest implements PayloadConvertor PullRequest method
 func (wc wechatworkConvertor) PullRequest(p *api.PullRequestPayload) (WechatworkPayload, error) {
-	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
+	text, issueTitle, extraMarkdown, _ := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
 	pr := fmt.Sprintf("> <font color=\"info\"> %s </font> \r\n > <font color=\"comment\">%s </font> \r\n > <font color=\"comment\">%s </font> \r\n",
-		text, issueTitle, attachmentText)
+		text, issueTitle, extraMarkdown)
 
 	return newWechatworkMarkdownPayload(pr), nil
 }
@@ -173,10 +175,7 @@ func (wc wechatworkConvertor) Package(p *api.PackagePayload) (WechatworkPayload,
 	return newWechatworkMarkdownPayload(text), nil
 }
 
-type wechatworkConvertor struct{}
-
-var _ payloadConvertor[WechatworkPayload] = wechatworkConvertor{}
-
 func newWechatworkRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
-	return newJSONRequest(wechatworkConvertor{}, w, t, true)
+	var pc payloadConvertor[WechatworkPayload] = wechatworkConvertor{}
+	return newJSONRequest(pc, w, t, true)
 }

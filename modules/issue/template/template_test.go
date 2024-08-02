@@ -217,6 +217,20 @@ body:
 			wantErr: "body[0](dropdown): 'multiple' should be a bool",
 		},
 		{
+			name: "dropdown invalid list",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: "dropdown"
+    id: "1"
+    attributes:
+      label: "a"
+      list: "on"
+`,
+			wantErr: "body[0](dropdown): 'list' should be a bool",
+		},
+		{
 			name: "checkboxes invalid description",
 			content: `
 name: "test"
@@ -807,7 +821,7 @@ body:
   - type: dropdown
     id: id5
     attributes:
-      label: Label of dropdown
+      label: Label of dropdown (one line)
       description: Description of dropdown
       multiple: true
       options:
@@ -816,8 +830,21 @@ body:
         - Option 3 of dropdown
     validations:
       required: true
-  - type: checkboxes
+  - type: dropdown
     id: id6
+    attributes:
+      label: Label of dropdown (list)
+      description: Description of dropdown
+      multiple: true
+      list: true
+      options:
+        - Option 1 of dropdown
+        - Option 2 of dropdown
+        - Option 3 of dropdown
+    validations:
+      required: true
+  - type: checkboxes
+    id: id7
     attributes:
       label: Label of checkboxes
       description: Description of checkboxes
@@ -836,8 +863,9 @@ body:
 					"form-field-id3":   {"Value of id3"},
 					"form-field-id4":   {"Value of id4"},
 					"form-field-id5":   {"0,1"},
-					"form-field-id6-0": {"on"},
-					"form-field-id6-2": {"on"},
+					"form-field-id6":   {"1,2"},
+					"form-field-id7-0": {"on"},
+					"form-field-id7-2": {"on"},
 				},
 			},
 
@@ -849,9 +877,14 @@ body:
 
 Value of id4
 
-### Label of dropdown
+### Label of dropdown (one line)
 
 Option 1 of dropdown, Option 2 of dropdown
+
+### Label of dropdown (list)
+
+- Option 2 of dropdown
+- Option 3 of dropdown
 
 ### Label of checkboxes
 

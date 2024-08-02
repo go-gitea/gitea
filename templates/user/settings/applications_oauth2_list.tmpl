@@ -64,7 +64,13 @@
 		<div class="field {{if .Err_ConfidentialClient}}error{{end}}">
 			<div class="ui checkbox">
 				<label>{{ctx.Locale.Tr "settings.oauth2_confidential_client"}}</label>
-				<input type="checkbox" name="confidential_client" checked>
+				<input class="disable-setting" type="checkbox" name="confidential_client" data-target="#skip-secondary-authorization" checked>
+			</div>
+		</div>
+		<div class="field {{if .Err_SkipSecondaryAuthorization}}error{{end}} disabled" id="skip-secondary-authorization">
+			<div class="ui checkbox">
+				<label>{{ctx.Locale.Tr "settings.oauth2_skip_secondary_authorization"}}</label>
+				<input type="checkbox" name="skip_secondary_authorization">
 			</div>
 		</div>
 		<button class="ui primary button">

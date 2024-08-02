@@ -86,7 +86,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []*user_model.User, re
 	}
 
 	msgs := make([]*Message, 0, len(tos))
-	publisherName := rel.Publisher.DisplayName()
+	publisherName := fromDisplayName(rel.Publisher)
 	msgID := generateMessageIDForRelease(rel)
 	for _, to := range tos {
 		msg := NewMessageFrom(to.EmailTo(), publisherName, setting.MailService.FromEmail, subject, mailBody.String())

@@ -103,6 +103,13 @@ type Project struct {
 	ClosedDateUnix timeutil.TimeStamp
 }
 
+// Ghost Project is a project which has been deleted
+const GhostProjectID = -1
+
+func (p *Project) IsGhost() bool {
+	return p.ID == GhostProjectID
+}
+
 func (p *Project) LoadOwner(ctx context.Context) (err error) {
 	if p.Owner != nil {
 		return nil

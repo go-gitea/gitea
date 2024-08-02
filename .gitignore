@@ -108,6 +108,9 @@ prime/
 *_source.tar.bz2
 .DS_Store
 
+# nix-direnv generated files
+.direnv/
+
 # Make evidence files
 /.make_evidence
 

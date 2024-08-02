@@ -403,3 +403,51 @@ func TestGenerateMessageIDForRelease(t *testing.T) {
 	})
 	assert.Equal(t, "<owner/repo/releases/1@localhost>", msgID)
 }
+
+func TestFromDisplayName(t *testing.T) {
+	template, err := texttmpl.New("mailFrom").Parse("{{ .DisplayName }}")
+	assert.NoError(t, err)
+	setting.MailService = &setting.Mailer{FromDisplayNameFormatTemplate: template}
+	defer func() { setting.MailService = nil }()
+
+	tests := []struct {
+		userDisplayName string
+		fromDisplayName string
+	}{{
+		userDisplayName: "test",
+		fromDisplayName: "test",
+	}, {
+		userDisplayName: "Hi Its <Mee>",
+		fromDisplayName: "Hi Its <Mee>",
+	}, {
+		userDisplayName: "Æsir",
+		fromDisplayName: "=?utf-8?q?=C3=86sir?=",
+	}, {
+		userDisplayName: "new😀user",
+		fromDisplayName: "=?utf-8?q?new=F0=9F=98=80user?=",
+	}}
+
+	for _, tc := range tests {
+		t.Run(tc.userDisplayName, func(t *testing.T) {
+			user := &user_model.User{FullName: tc.userDisplayName, Name: "tmp"}
+			got := fromDisplayName(user)
+			assert.EqualValues(t, tc.fromDisplayName, got)
+		})
+	}
+
+	t.Run("template with all available vars", func(t *testing.T) {
+		template, err = texttmpl.New("mailFrom").Parse("{{ .DisplayName }} (by {{ .AppName }} on [{{ .Domain }}])")
+		assert.NoError(t, err)
+		setting.MailService = &setting.Mailer{FromDisplayNameFormatTemplate: template}
+		oldAppName := setting.AppName
+		setting.AppName = "Code IT"
+		oldDomain := setting.Domain
+		setting.Domain = "code.it"
+		defer func() {
+			setting.AppName = oldAppName
+			setting.Domain = oldDomain
+		}()
+
+		assert.EqualValues(t, "Mister X (by Code IT on [code.it])", fromDisplayName(&user_model.User{FullName: "Mister X", Name: "tmp"}))
+	})
+}

@@ -47,7 +47,6 @@ overrides:
   - files: ["web_src/**/*"]
     globals:
       __webpack_public_path__: true
-      htmx: true
       process: false # https://github.com/webpack/webpack/issues/15833
   - files: ["web_src/**/*", "docs/**/*"]
     env:
@@ -58,7 +57,15 @@ overrides:
       worker: true
     rules:
       no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, status, statusbar, stop, toolbar, top]
-  - files: ["*.config.*", "**/*.d.ts"]
+  - files: ["*.config.*"]
+    rules:
+      i/no-unused-modules: [0]
+  - files: ["**/*.d.ts"]
+    rules:
+      i/no-unused-modules: [0]
+      "@typescript-eslint/consistent-type-definitions": [0]
+      "@typescript-eslint/consistent-type-imports": [0]
+  - files: ["web_src/js/types.ts"]
     rules:
       i/no-unused-modules: [0]
   - files: ["**/*.test.*", "web_src/js/test/setup.ts"]
@@ -505,7 +512,7 @@ rules:
   no-jquery/no-box-model: [2]
   no-jquery/no-browser: [2]
   no-jquery/no-camel-case: [2]
-  no-jquery/no-class-state: [0]
+  no-jquery/no-class-state: [2]
   no-jquery/no-class: [0]
   no-jquery/no-clone: [2]
   no-jquery/no-closest: [0]
@@ -561,7 +568,7 @@ rules:
   no-jquery/no-param: [2]
   no-jquery/no-parent: [0]
   no-jquery/no-parents: [2]
-  no-jquery/no-parse-html-literal: [0]
+  no-jquery/no-parse-html-literal: [2]
   no-jquery/no-parse-html: [2]
   no-jquery/no-parse-json: [2]
   no-jquery/no-parse-xml: [2]

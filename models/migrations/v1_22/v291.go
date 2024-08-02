@@ -10,5 +10,9 @@ func AddCommentIDIndexofAttachment(x *xorm.Engine) error {
 		CommentID int64 `xorm:"INDEX"`
 	}
 
-	return x.Sync(&Attachment{})
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
+	}, &Attachment{})
+	return err
 }

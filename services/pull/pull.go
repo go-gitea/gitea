@@ -17,7 +17,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
@@ -46,6 +48,28 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 
 	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) || user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) {
 		return user_model.ErrBlockedUser
+	}
+
+	// user should be a collaborator or a member of the organization for base repo
+	if !issue.Poster.IsAdmin {
+		canCreate, err := repo_model.IsOwnerMemberCollaborator(ctx, repo, issue.Poster.ID)
+		if err != nil {
+			return err
+		}
+
+		if !canCreate {
+			// or user should have write permission in the head repo
+			if err := pr.LoadHeadRepo(ctx); err != nil {
+				return err
+			}
+			perm, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, issue.Poster)
+			if err != nil {
+				return err
+			}
+			if !perm.CanWrite(unit.TypeCode) {
+				return issues_model.ErrMustCollaborator
+			}
+		}
 	}
 
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)

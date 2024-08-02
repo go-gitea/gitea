@@ -424,10 +424,10 @@ func TestGetIssuesPayloadInfo(t *testing.T) {
 
 	for i, c := range cases {
 		p.Action = c.action
-		text, issueTitle, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter, true)
+		text, issueTitle, extraMarkdown, color := getIssuesPayloadInfo(p, noneLinkFormatter, true)
 		assert.Equal(t, c.text, text, "case %d", i)
 		assert.Equal(t, c.issueTitle, issueTitle, "case %d", i)
-		assert.Equal(t, c.attachmentText, attachmentText, "case %d", i)
+		assert.Equal(t, c.attachmentText, extraMarkdown, "case %d", i)
 		assert.Equal(t, c.color, color, "case %d", i)
 	}
 }
@@ -523,10 +523,10 @@ func TestGetPullRequestPayloadInfo(t *testing.T) {
 
 	for i, c := range cases {
 		p.Action = c.action
-		text, issueTitle, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
+		text, issueTitle, extraMarkdown, color := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
 		assert.Equal(t, c.text, text, "case %d", i)
 		assert.Equal(t, c.issueTitle, issueTitle, "case %d", i)
-		assert.Equal(t, c.attachmentText, attachmentText, "case %d", i)
+		assert.Equal(t, c.attachmentText, extraMarkdown, "case %d", i)
 		assert.Equal(t, c.color, color, "case %d", i)
 	}
 }

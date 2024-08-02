@@ -71,14 +71,14 @@ func LinkAccountToUser(ctx context.Context, user *user_model.User, gothUser goth
 	return nil
 }
 
-// UpdateExternalUser updates external user's information
-func UpdateExternalUser(ctx context.Context, user *user_model.User, gothUser goth.User) error {
+// EnsureLinkExternalToUser link the gothUser to the user
+func EnsureLinkExternalToUser(ctx context.Context, user *user_model.User, gothUser goth.User) error {
 	externalLoginUser, err := toExternalLoginUser(ctx, user, gothUser)
 	if err != nil {
 		return err
 	}
 
-	return user_model.UpdateExternalUserByExternalID(ctx, externalLoginUser)
+	return user_model.EnsureLinkExternalToUser(ctx, externalLoginUser)
 }
 
 // UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID

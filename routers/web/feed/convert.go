@@ -83,7 +83,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 		link := &feeds.Link{Href: act.GetCommentHTMLURL(ctx)}
 
 		// title
-		title = act.ActUser.DisplayName() + " "
+		title = act.ActUser.GetDisplayName() + " "
 		var titleExtra template.HTML
 		switch act.OpType {
 		case activities_model.ActionCreateRepo:
@@ -252,7 +252,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			Description: desc,
 			IsPermaLink: "false",
 			Author: &feeds.Author{
-				Name:  act.ActUser.DisplayName(),
+				Name:  act.ActUser.GetDisplayName(),
 				Email: act.ActUser.GetEmail(),
 			},
 			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(act.ID, 10), link.Href),
@@ -313,7 +313,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 			Link:    link,
 			Created: rel.CreatedUnix.AsTime(),
 			Author: &feeds.Author{
-				Name:  rel.Publisher.DisplayName(),
+				Name:  rel.Publisher.GetDisplayName(),
 				Email: rel.Publisher.GetEmail(),
 			},
 			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(rel.ID, 10), link.Href),

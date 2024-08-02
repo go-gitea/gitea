@@ -136,14 +136,13 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 
 	for _, object := range result.Objects {
 		if object.Error != nil {
-			objectError := errors.New(object.Error.Message)
-			log.Trace("Error on object %v: %v", object.Pointer, objectError)
+			log.Trace("Error on object %v: %v", object.Pointer, object.Error)
 			if uc != nil {
-				if _, err := uc(object.Pointer, objectError); err != nil {
+				if _, err := uc(object.Pointer, object.Error); err != nil {
 					return err
 				}
 			} else {
-				if err := dc(object.Pointer, nil, objectError); err != nil {
+				if err := dc(object.Pointer, nil, object.Error); err != nil {
 					return err
 				}
 			}

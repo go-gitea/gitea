@@ -412,7 +412,7 @@
 						<p class="help">{{ctx.Locale.Tr "admin.auths.sspi_default_language_helper"}}</p>
 					</div>
 				{{end}}
-				{{if .Source.IsLDAP}}
+				{{if (or .Source.IsLDAP .Source.IsOAuth2)}}
 					<div class="inline field">
 						<div class="ui checkbox">
 							<label><strong>{{ctx.Locale.Tr "admin.auths.syncenabled"}}</strong></label>

@@ -27,6 +27,8 @@ import (
 	"xorm.io/builder"
 )
 
+var ErrMustCollaborator = util.NewPermissionDeniedErrorf("user must be a collaborator")
+
 // ErrPullRequestNotExist represents a "PullRequestNotExist" kind of error.
 type ErrPullRequestNotExist struct {
 	ID         int64
@@ -570,6 +572,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *Iss
 	}
 
 	return nil
+}
+
+// ErrUserMustCollaborator represents an error that the user must be a collaborator to a given repo.
+type ErrUserMustCollaborator struct {
+	UserID   int64
+	RepoName string
 }
 
 // GetUnmergedPullRequest returns a pull request that is open and has not been merged

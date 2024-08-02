@@ -17,6 +17,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -567,6 +568,11 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	if err != nil {
 		ctx.ServerError("GetIssuesLastCommitStatus", err)
 		return
+	}
+	if !ctx.Repo.CanRead(unit.TypeActions) {
+		for key := range commitStatuses {
+			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
+		}
 	}
 
 	// -------------------------------

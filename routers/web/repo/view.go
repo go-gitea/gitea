@@ -363,6 +363,9 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
+		if !ctx.Repo.CanRead(unit_model.TypeActions) {
+			git_model.CommitStatusesHideActionsURL(ctx, statuses)
+		}
 
 		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
 		ctx.Data["LatestCommitStatuses"] = statuses

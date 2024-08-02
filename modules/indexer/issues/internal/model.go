@@ -4,6 +4,8 @@
 package internal
 
 import (
+	"strconv"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -122,6 +124,12 @@ func (o *SearchOptions) Copy(edit ...func(options *SearchOptions)) *SearchOption
 		e(&v)
 	}
 	return &v
+}
+
+// used for optimized issue index based search
+func (o *SearchOptions) IsKeywordNumeric() bool {
+	_, err := strconv.Atoi(o.Keyword)
+	return err == nil
 }
 
 type SortBy string

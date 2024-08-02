@@ -19,7 +19,7 @@ func TestAPIUserVariables(t *testing.T) {
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
 
-	t.Run("CreateRepoVariable", func(t *testing.T) {
+	t.Run("CreateUserVariable", func(t *testing.T) {
 		cases := []struct {
 			Name           string
 			ExpectedStatus int
@@ -70,7 +70,7 @@ func TestAPIUserVariables(t *testing.T) {
 		}
 	})
 
-	t.Run("UpdateRepoVariable", func(t *testing.T) {
+	t.Run("UpdateUserVariable", func(t *testing.T) {
 		variableName := "test_update_var"
 		url := fmt.Sprintf("/api/v1/user/actions/variables/%s", variableName)
 		req := NewRequestWithJSON(t, "POST", url, api.CreateVariableOption{

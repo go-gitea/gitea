@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -149,4 +150,33 @@ func ActivateEmail(ctx *context.Context) {
 	}
 	redirect.RawQuery = q.Encode()
 	ctx.Redirect(redirect.String())
+}
+
+// DeleteEmail serves a POST request for delete a user's email
+func DeleteEmail(ctx *context.Context) {
+	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("Uid"))
+	if err != nil || u == nil {
+		ctx.ServerError("GetUserByID", err)
+		return
+	}
+
+	email, err := user_model.GetEmailAddressByID(ctx, u.ID, ctx.FormInt64("id"))
+	if err != nil || email == nil {
+		ctx.ServerError("GetEmailAddressByID", err)
+		return
+	}
+
+	if err := user.DeleteEmailAddresses(ctx, u, []string{email.Email}); err != nil {
+		if user_model.IsErrPrimaryEmailCannotDelete(err) {
+			ctx.Flash.Error(ctx.Tr("admin.emails.delete_primary_email_error"))
+			ctx.JSONRedirect("")
+			return
+		}
+		ctx.ServerError("DeleteEmailAddresses", err)
+		return
+	}
+	log.Trace("Email address deleted: %s %s", u.Name, email.Email)
+
+	ctx.Flash.Success(ctx.Tr("admin.emails.deletion_success"))
+	ctx.JSONRedirect("")
 }
