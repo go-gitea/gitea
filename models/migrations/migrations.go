@@ -595,6 +595,8 @@ var migrations = []Migration{
 	NewMigration("Add force-push branch protection support", v1_23.AddForcePushBranchProtection),
 	// v301 -> v302
 	NewMigration("Add skip_secondary_authorization option to oauth2 application table", v1_23.AddSkipSecondaryAuthColumnToOAuth2ApplicationTable),
+	// v302 -> v303
+	NewMigration("Add index to action_task stopped log_expired", v1_23.AddIndexToActionTaskStoppedLogExpired),
 }
 
 // GetCurrentDBVersion returns the current db version
