@@ -4,7 +4,6 @@
 // Package zstd provides a high-level API for reading and writing zstd-compressed data.
 // It supports both regular and seekable zstd streams.
 // It's not a new wheel, but a wrapper around the zstd and zstd-seekable-format-go packages.
-
 package zstd
 
 import (
