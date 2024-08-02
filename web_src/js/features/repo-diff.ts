@@ -31,6 +31,7 @@ function initRepoDiffReviewButton() {
       counter.setAttribute('data-pending-comment-number', num);
       counter.textContent = num;
       animateOnce(reviewBox, 'pulse-1p5-200');
+      form.removeAttribute('data-handler-attached');
     });
   }
 
