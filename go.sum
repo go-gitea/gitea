@@ -343,7 +343,7 @@ github.com/go-redis/redis v6.15.2+incompatible/go.mod h1:NAIEuMOZ/fxfXJIrKDQDz8w
 github.com/go-sql-driver/mysql v1.4.1/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG5ZlKdlhCg5w=
 github.com/go-sql-driver/mysql v1.8.1 h1:LedoTUt/eveggdHS9qUFC1EFSa8bU2+1pZjSRpvNJ1Y=
 github.com/go-sql-driver/mysql v1.8.1/go.mod h1:wEBSXgmK//2ZFJyE+qWnIsVGmvmEKlqwuVSjsCm7DZg=
-github.com/go-swagger/go-swagger v0.31.0 h1:s/T8gKzyNAUMFMyTWew6Vz3+rpT2MYKQD6ez1FlkRrs=
+github.com/go-swagger/go-swagger v0.31.0 h1:H8eOYQnY2u7vNKWDNykv2xJP3pBhRG/R+SOCAmKrLlc=
 github.com/go-swagger/go-swagger v0.31.0/go.mod h1:WSigRRWEig8zV6t6Sm8Y+EmUjlzA/HoaZJ5edupq7po=
 github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0/go.mod h1:fyg7847qk6SyHyPtNmDHnmrv/HOrqktSC+C9fM+CJOE=
 github.com/go-test/deep v1.1.0 h1:WOcxcdHcvdgThNXjw0t76K42FXTU7HpNQWHpA2HHNlg=
