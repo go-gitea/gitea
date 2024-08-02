@@ -19,9 +19,11 @@ function initRepoDiffReviewButton() {
   const counter = reviewBox.querySelector('.review-comments-counter');
   if (!counter) return;
 
-  function handleFormSubmit($form, $textarea) {
-    $form.one('submit', (event) => {
-      if ($textarea.val().trim() === '') {
+  function handleFormSubmit(form, textarea) {
+    if (form.dataset.handlerAttached === 'true') return;
+    form.dataset.handlerAttached = 'true';
+    form.addEventListener('submit', (event) => {
+      if (textarea.value.trim() === '') {
         event.preventDefault();
         return;
       }
@@ -33,20 +35,22 @@ function initRepoDiffReviewButton() {
   }
 
   // Handle submit on click
-  $(document).on('click', 'button[name="pending_review"]', (e) => {
-    const $form = $(e.target).closest('form');
-    const $textarea = $form.find('textarea');
-    handleFormSubmit($form, $textarea);
-    $form.trigger('submit');
+  document.addEventListener('click', (e) => {
+    if (e.target.name === 'pending_review') {
+      const form = e.target.closest('form');
+      const textarea = form.querySelector('textarea');
+      handleFormSubmit(form, textarea);
+    }
   });
 
   // Handle submit by ctrl+enter
-  $(document).on('keydown', 'textarea', (e) => {
+  document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key === 'Enter') {
-      const $textarea = $(e.target);
-      const $form = $textarea.closest('form');
-      handleFormSubmit($form, $textarea);
-      $form.trigger('submit');
+      const textarea = e.target;
+      if (textarea.tagName.toLowerCase() === 'textarea') {
+        const form = textarea.closest('form');
+        handleFormSubmit(form, textarea);
+      }
     }
   });
 }
