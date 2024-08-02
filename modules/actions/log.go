@@ -30,7 +30,7 @@ const (
 )
 
 // WriteLogs appends logs to DBFS file for temporary storage.
-// It doesn't respect the file format in the filename like ".zst", since it's impossibly appending to compressed files.
+// It doesn't respect the file format in the filename like ".zst", since it's difficult to reopen a closed compressed file and append new content.
 // Why doesn't it store logs in object storage directly? Because it's not efficient to append content to object storage.
 func WriteLogs(ctx context.Context, filename string, offset int64, rows []*runnerv1.LogRow) ([]int, error) {
 	flag := os.O_WRONLY
