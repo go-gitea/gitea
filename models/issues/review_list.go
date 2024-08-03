@@ -7,10 +7,10 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
-
 	"xorm.io/builder"
 )
 
@@ -35,6 +35,27 @@ func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
 		review.Reviewer = userMap[review.ReviewerID]
 	}
 	return nil
+}
+
+// GetReviewersTeamMembers returns team members if reviews reviewer is team
+func (reviews ReviewList) GetReviewersTeamMembers(ctx context.Context) (map[int64]*user_model.User, error) {
+	teamMembersMap := make(map[int64]*user_model.User, 0)
+	for i := 0; i < len(reviews); i++ {
+		if reviews[i].ReviewerID == 0 && reviews[i].ReviewerTeamID != 0 {
+			members, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
+				TeamID: reviews[i].ReviewerTeamID,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			for _, member := range members {
+				teamMembersMap[member.ID] = member
+			}
+		}
+	}
+
+	return teamMembersMap, nil
 }
 
 func (reviews ReviewList) LoadIssues(ctx context.Context) error {

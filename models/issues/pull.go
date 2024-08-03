@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"regexp"
 	"strconv"
 	"strings"
@@ -303,9 +304,22 @@ func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
 	if err = reviews.LoadReviewers(ctx); err != nil {
 		return err
 	}
-	pr.isRequestedReviewersLoaded = true
+
+	reviewsUserMap := make(map[int64]*user_model.User, 0)
 	for _, review := range reviews {
-		pr.RequestedReviewers = append(pr.RequestedReviewers, review.Reviewer)
+		if review.ReviewerID != 0 {
+			reviewsUserMap[review.ReviewerID] = review.Reviewer
+		}
+	}
+	teamReviewsMembersMap, err := reviews.GetReviewersTeamMembers(ctx)
+	if err != nil {
+		return err
+	}
+	maps.Copy(reviewsUserMap, teamReviewsMembersMap)
+
+	pr.isRequestedReviewersLoaded = true
+	for _, user := range reviewsUserMap {
+		pr.RequestedReviewers = append(pr.RequestedReviewers, user)
 	}
 
 	return nil
