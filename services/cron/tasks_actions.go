@@ -68,7 +68,7 @@ func registerScheduleTasks() {
 func registerActionsCleanup() {
 	RegisterTaskFatal("cleanup_actions", &BaseConfig{
 		Enabled:    true,
-		RunAtStart: true,
+		RunAtStart: false,
 		Schedule:   "@midnight",
 	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
 		return actions_service.Cleanup(ctx)
