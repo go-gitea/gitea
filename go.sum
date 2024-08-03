@@ -82,6 +82,8 @@ github.com/RoaringBitmap/roaring v1.9.4 h1:yhEIoH4YezLYT04s1nHehNO64EKFTop/wBhxv
 github.com/RoaringBitmap/roaring v1.9.4/go.mod h1:6AXUsoIEzDTFFQCe1RbGA6uFONMhvejWj5rqITANK90=
 github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.7.0 h1:xrJ8H90dBw8Y3Iir32xLAfJdMba9vOeVv7lcRTBSyRo=
 github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.7.0/go.mod h1:JitQWJ8JuV4Y87l8VsHiiwhb3cgdyn68mX40s7NT6PA=
+github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.7.2 h1:cSXom2MoKJ9KPPw29RoZtHvUETY4F4n/kXl8m9btnQ0=
+github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.7.2/go.mod h1:JitQWJ8JuV4Y87l8VsHiiwhb3cgdyn68mX40s7NT6PA=
 github.com/alecthomas/assert/v2 v2.7.0 h1:QtqSACNS3tF7oasA8CU6A6sXZSBDqnm7RfpLl9bZqbE=
 github.com/alecthomas/assert/v2 v2.7.0/go.mod h1:Bze95FyfUr7x34QZrjL+XP+0qgp/zg8yS+TtBj1WA3k=
 github.com/alecthomas/chroma/v2 v2.2.0/go.mod h1:vf4zrexSH54oEjJ7EdB65tGNHmH3pGZmVkgTP5RHvAs=
