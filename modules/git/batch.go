@@ -14,16 +14,26 @@ type Batch struct {
 	Writer WriteCloserError
 }
 
-func (repo *Repository) NewBatch(ctx context.Context) *Batch {
+func (repo *Repository) NewBatch(ctx context.Context) (*Batch, error) {
+	// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
+	if err := ensureValidGitRepository(ctx, repo.Path); err != nil {
+		return nil, err
+	}
+
 	var batch Batch
 	batch.Writer, batch.Reader, batch.cancel = catFileBatch(ctx, repo.Path)
-	return &batch
+	return &batch, nil
 }
 
-func (repo *Repository) NewBatchCheck(ctx context.Context) *Batch {
+func (repo *Repository) NewBatchCheck(ctx context.Context) (*Batch, error) {
+	// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
+	if err := ensureValidGitRepository(ctx, repo.Path); err != nil {
+		return nil, err
+	}
+
 	var check Batch
 	check.Writer, check.Reader, check.cancel = catFileBatchCheck(ctx, repo.Path)
-	return &check
+	return &check, nil
 }
 
 func (b *Batch) Close() {

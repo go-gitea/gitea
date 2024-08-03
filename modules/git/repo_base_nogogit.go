@@ -51,11 +51,6 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		return nil, util.NewNotExistErrorf("no such file or directory")
 	}
 
-	// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
-		return nil, err
-	}
-
 	return &Repository{
 		Path:     repoPath,
 		tagCache: newObjectCache(),
@@ -64,39 +59,53 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 }
 
 // CatFileBatch obtains a CatFileBatch for this repository
-func (repo *Repository) CatFileBatch(ctx context.Context) (WriteCloserError, *bufio.Reader, func()) {
+func (repo *Repository) CatFileBatch(ctx context.Context) (WriteCloserError, *bufio.Reader, func(), error) {
 	if repo.batch == nil {
-		repo.batch = repo.NewBatch(ctx)
+		var err error
+		repo.batch, err = repo.NewBatch(ctx)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
 
 	if !repo.batchInUse {
 		repo.batchInUse = true
 		return repo.batch.Writer, repo.batch.Reader, func() {
 			repo.batchInUse = false
-		}
+		}, nil
 	}
 
 	log.Debug("Opening temporary cat file batch for: %s", repo.Path)
-	tempBatch := repo.NewBatch(ctx)
-	return tempBatch.Writer, tempBatch.Reader, tempBatch.Close
+	tempBatch, err := repo.NewBatch(ctx)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return tempBatch.Writer, tempBatch.Reader, tempBatch.Close, nil
 }
 
 // CatFileBatchCheck obtains a CatFileBatchCheck for this repository
-func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError, *bufio.Reader, func()) {
+func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError, *bufio.Reader, func(), error) {
 	if repo.check == nil {
-		repo.check = repo.NewBatchCheck(ctx)
+		var err error
+		repo.check, err = repo.NewBatchCheck(ctx)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
 
 	if !repo.checkInUse {
 		repo.checkInUse = true
 		return repo.check.Writer, repo.check.Reader, func() {
 			repo.checkInUse = false
-		}
+		}, nil
 	}
 
 	log.Debug("Opening temporary cat file batch-check for: %s", repo.Path)
-	tempBatchCheck := repo.NewBatchCheck(ctx)
-	return tempBatchCheck.Writer, tempBatchCheck.Reader, tempBatchCheck.Close
+	tempBatchCheck, err := repo.NewBatchCheck(ctx)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return tempBatchCheck.Writer, tempBatchCheck.Reader, tempBatchCheck.Close, nil
 }
 
 func (repo *Repository) Close() error {
