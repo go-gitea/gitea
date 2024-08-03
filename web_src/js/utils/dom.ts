@@ -297,7 +297,7 @@ export function createElementFromAttrs(tagName, attrs) {
   const el = document.createElement(tagName);
   for (const [key, value] of Object.entries(attrs)) {
     if (value === undefined || value === null) continue;
-    if (value === true) {
+    if (typeof value === 'boolean') {
       el.toggleAttribute(key, value);
     } else {
       el.setAttribute(key, String(value));
