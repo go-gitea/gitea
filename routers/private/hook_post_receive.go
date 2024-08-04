@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -241,6 +243,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	for i := range opts.OldCommitIDs {
 		refFullName := opts.RefFullNames[i]
 		newCommitID := opts.NewCommitIDs[i]
+		oldCommitID := opts.OldCommitIDs[i]
 
 		// If we've pushed a branch (and not deleted it)
 		if !git.IsEmptyCommitID(newCommitID) && refFullName.IsBranch() {
@@ -277,6 +280,73 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			}
 
 			branch := refFullName.BranchName()
+
+			prBranches, err := issues_model.GetUnmergedPullRequestBranchHeads(ctx, repo.ID, branch)
+			if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
+				log.Error("Failed to get active PR in %-v Branch: %s: Error: %v", repo, branch, err)
+				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+					Err: fmt.Sprintf("Failed to get active PR in %-v Branch: %s: Error: %v", repo, branch, err),
+				})
+				return
+			}
+
+			log.Info("Pull requests to investigate: %d", len(prBranches))
+			cmd := git.NewCommand(ctx, "rev-list").AddDynamicArguments(newCommitID)
+			if !git.IsEmptyCommitID(oldCommitID) {
+				cmd = cmd.AddArguments("--not").AddDynamicArguments(oldCommitID)
+			}
+			commitIDsString, _, err := cmd.RunStdString(&git.RunOpts{
+				Dir: baseRepo.RepoPath(),
+			})
+			if err != nil {
+				log.Error("Failed to get rev-list of pushed changes for %-v for %s .. %s", repo, oldCommitID, newCommitID)
+			}
+
+			commitedIds := strings.Split(commitIDsString, "\n")
+			log.Info("Commit ids: %s", strings.Join(commitedIds, ", "))
+			for _, headBranch := range prBranches {
+				if slices.Contains(commitedIds, headBranch.CommitID) {
+					// merged commit, marked as merged
+					log.Info("Merging @ %s", headBranch.CommitID)
+					pr, err := issues_model.GetUnmergedPullRequest(ctx, headBranch.RepoID, repo.ID, headBranch.Name, branch, issues_model.PullRequestFlowGithub)
+
+					if err != nil {
+						log.Error("Failed to fetch PR data: %v", err)
+						return
+					}
+					if pr == nil {
+						log.Error("Failed to fetch PR data")
+						return
+					}
+
+					pusher, err := loadContextCacheUser(ctx, opts.UserID)
+					if err != nil {
+						log.Error("Failed to get user id: %d Error: %v", opts.UserID, err)
+						ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "Load pusher user failed"})
+						return
+					}
+
+					pr.MergedCommitID = headBranch.CommitID
+					pr.MergedUnix = timeutil.TimeStampNow()
+					pr.Merger = pusher
+					pr.MergerID = pusher.ID
+
+					err = db.WithTx(ctx, func(ctx context.Context) error {
+						// Removing an auto merge pull and ignore if not exist
+						if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
+							return fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", pr.ID, err)
+						}
+						if _, err := pr.SetMerged(ctx); err != nil {
+							return fmt.Errorf("SetMerged failed: %s/%s Error: %v", ownerName, repoName, err)
+						}
+						return nil
+					})
+					if err != nil {
+						log.Error("Failed to update PR to merged: %v", err)
+						ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "Failed to update PR to merged"})
+					}
+				}
+			}
 
 			// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
 			if !repo.IsFork && branch == baseRepo.DefaultBranch {
