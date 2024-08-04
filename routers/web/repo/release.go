@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -239,6 +240,24 @@ func TagsList(ctx *context.Context) {
 		ctx.ServerError("GetReleasesByRepoID", err)
 		return
 	}
+
+	// We need to sort the tags by commit date. Fetch the commits from the repo and use
+	// the commiter's timestamp to sort it.
+	for _, r := range releases {
+		sha1 := r.Sha1
+		commit, err := ctx.Repo.GitRepo.GetCommit(sha1)
+		if err != nil {
+			ctx.ServerError("GetCommit", err)
+			return
+		}
+		r.Commit = commit
+	}
+	slices.SortFunc(releases, func(a, b *repo_model.Release) int {
+		lhs := a.Commit
+		rhs := b.Commit
+		// Sort by desc order.
+		return rhs.Committer.When.Compare(lhs.Committer.When)
+	})
 
 	ctx.Data["Releases"] = releases
 
