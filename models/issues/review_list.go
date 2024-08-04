@@ -7,7 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
+	organization_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
@@ -38,25 +38,32 @@ func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
 	return nil
 }
 
-// GetReviewersTeamMembers returns team members if reviews reviewer is team
-func (reviews ReviewList) GetReviewersTeamMembers(ctx context.Context) (map[int64]*user_model.User, error) {
-	teamMembersMap := make(map[int64]*user_model.User, 0)
-	for i := 0; i < len(reviews); i++ {
-		if reviews[i].ReviewerID == 0 && reviews[i].ReviewerTeamID != 0 {
-			members, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
-				TeamID: reviews[i].ReviewerTeamID,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			for _, member := range members {
-				teamMembersMap[member.ID] = member
-			}
+// LoadReviewersTeams loads reviewers teams
+func (reviews ReviewList) LoadReviewersTeams(ctx context.Context) error {
+	reviewersTeamsIDs := make([]int64, 0)
+	for _, review := range reviews {
+		if review.ReviewerTeamID != 0 {
+			reviewersTeamsIDs = append(reviewersTeamsIDs, review.ReviewerTeamID)
 		}
 	}
 
-	return teamMembersMap, nil
+	teamsMap := make(map[int64]*organization_model.Team, 0)
+	for _, teamID := range reviewersTeamsIDs {
+		team, err := organization_model.GetTeamByID(ctx, teamID)
+		if err != nil {
+			return err
+		}
+
+		teamsMap[teamID] = team
+	}
+
+	for _, review := range reviews {
+		if review.ReviewerTeamID != 0 {
+			review.ReviewerTeam = teamsMap[review.ReviewerTeamID]
+		}
+	}
+
+	return nil
 }
 
 func (reviews ReviewList) LoadIssues(ctx context.Context) error {

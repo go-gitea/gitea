@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"maps"
 	"regexp"
 	"strconv"
 	"strings"
@@ -166,6 +165,7 @@ type PullRequest struct {
 	Issue                      *Issue `xorm:"-"`
 	Index                      int64
 	RequestedReviewers         []*user_model.User `xorm:"-"`
+	RequestedReviewersTeams    []*org_model.Team  `xorm:"-"`
 	isRequestedReviewersLoaded bool               `xorm:"-"`
 
 	HeadRepoID          int64                  `xorm:"INDEX"`
@@ -304,22 +304,30 @@ func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
 	if err = reviews.LoadReviewers(ctx); err != nil {
 		return err
 	}
-
-	reviewsUserMap := make(map[int64]*user_model.User, 0)
+	pr.isRequestedReviewersLoaded = true
 	for _, review := range reviews {
 		if review.ReviewerID != 0 {
-			reviewsUserMap[review.ReviewerID] = review.Reviewer
+			pr.RequestedReviewers = append(pr.RequestedReviewers, review.Reviewer)
 		}
 	}
-	teamReviewsMembersMap, err := reviews.GetReviewersTeamMembers(ctx)
+
+	return nil
+}
+
+// LoadRequestedReviewersTeams loads the requested reviewers teams.
+func (pr *PullRequest) LoadRequestedReviewersTeams(ctx context.Context) error {
+	reviews, err := GetReviewsByIssueID(ctx, pr.Issue.ID)
 	if err != nil {
 		return err
 	}
-	maps.Copy(reviewsUserMap, teamReviewsMembersMap)
+	if err = reviews.LoadReviewersTeams(ctx); err != nil {
+		return err
+	}
 
-	pr.isRequestedReviewersLoaded = true
-	for _, user := range reviewsUserMap {
-		pr.RequestedReviewers = append(pr.RequestedReviewers, user)
+	for _, review := range reviews {
+		if review.ReviewerTeamID != 0 {
+			pr.RequestedReviewersTeams = append(pr.RequestedReviewersTeams, review.ReviewerTeam)
+		}
 	}
 
 	return nil
