@@ -521,7 +521,7 @@ func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error
 	return nil
 }
 
-func (repo *Repository) GetCommitBranchStart(env []string, branch string, endCommitID string) (string, error) {
+func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID string) (string, error) {
 	cmd := NewCommand(repo.Ctx, "log", prettyLogFormat)
 	cmd.AddDynamicArguments(endCommitID)
 
