@@ -2688,6 +2688,7 @@ func SearchIssues(ctx *context.Context) {
 		MilestoneIDs:        includedMilestones,
 		ProjectID:           projectID,
 		SortBy:              issue_indexer.SortByCreatedDesc,
+		IsFuzzyKeyword:      true,
 	}
 
 	if since != 0 {
