@@ -346,54 +346,74 @@ func TestValidatePackageSpec(t *testing.T) {
 func TestDescString(t *testing.T) {
 	const pkgdesc = `%FILENAME%
 zstd-1.5.5-1-x86_64.pkg.tar.zst
+
 %NAME%
 zstd
+
 %BASE%
 zstd
+
 %VERSION%
 1.5.5-1
+
 %DESC%
 Zstandard - Fast real-time compression algorithm
+
 %GROUPS%
 dummy1
 dummy2
+
 %CSIZE%
 401
+
 %ISIZE%
 1500453
+
 %MD5SUM%
 5016660ef3d9aa148a7b72a08d3df1b2
+
 %SHA256SUM%
 9fa4ede47e35f5971e4f26ecadcbfb66ab79f1d638317ac80334a3362dedbabd
+
 %URL%
 https://facebook.github.io/zstd/
+
 %LICENSE%
 BSD
 GPL2
+
 %ARCH%
 x86_64
+
 %BUILDDATE%
 1681646714
+
 %PACKAGER%
 Jelle van der Waa <jelle@archlinux.org>
+
 %PROVIDES%
 libzstd.so=1-64
+
 %DEPENDS%
 glibc
 gcc-libs
 zlib
 xz
 lz4
+
 %OPTDEPENDS%
 dummy3
 dummy4
+
 %MAKEDEPENDS%
 cmake
 gtest
 ninja
+
 %CHECKDEPENDS%
 dummy5
 dummy6
+
 `
 
 	md := &Package{
