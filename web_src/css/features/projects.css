@@ -50,7 +50,7 @@
   padding: 0 !important;
   flex-wrap: nowrap !important;
   flex-direction: column;
-  overflow-x: auto;
+  overflow-x: clip;
   gap: .25rem;
 }
 
