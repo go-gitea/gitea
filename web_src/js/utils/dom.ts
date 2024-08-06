@@ -233,7 +233,7 @@ type LoadableElement = HTMLEmbedElement | HTMLIFrameElement | HTMLImageElement |
 
 // Set the `src` attribute on an element and returns a promise that resolves once the element
 // has loaded or errored.
-export function loadElem(el: LoadableElement, src) {
+export function loadElem(el: LoadableElement, src: string) {
   return new Promise((resolve) => {
     el.addEventListener('load', () => resolve(true), {once: true});
     el.addEventListener('error', () => resolve(false), {once: true});
