@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/packages"
 
 	"github.com/mholt/archiver/v3"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParsePackage(t *testing.T) {
@@ -40,23 +40,23 @@ arch = x86_64
 
 	// Test .PKGINFO file
 	pinf, err := fs.Stat("pkginfo")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	pfile, err := fs.Open("pkginfo")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	parcname, err := archiver.NameInArchive(pinf, ".PKGINFO", ".PKGINFO")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Test .MTREE file
 	minf, err := fs.Stat("mtree")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	mfile, err := fs.Open("mtree")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	marcname, err := archiver.NameInArchive(minf, ".MTREE", ".MTREE")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	t.Run("normal archive", func(t *testing.T) {
 		var buf bytes.Buffer
@@ -71,7 +71,7 @@ arch = x86_64
 			},
 			ReadCloser: pfile,
 		})
-		assert.NoError(t, errors.Join(pfile.Close(), err))
+		require.NoError(t, errors.Join(pfile.Close(), err))
 
 		err = archive.Write(archiver.File{
 			FileInfo: archiver.FileInfo{
@@ -80,7 +80,7 @@ arch = x86_64
 			},
 			ReadCloser: mfile,
 		})
-		assert.NoError(t, errors.Join(mfile.Close(), archive.Close(), err))
+		require.NoError(t, errors.Join(mfile.Close(), archive.Close(), err))
 
 		reader, err := packages.CreateHashedBufferFromReader(&buf)
 		if err != nil {
@@ -89,7 +89,7 @@ arch = x86_64
 		defer reader.Close()
 		_, err = ParsePackage(reader)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("missing .PKGINFO", func(t *testing.T) {
@@ -97,24 +97,23 @@ arch = x86_64
 
 		archive := archiver.NewTarZstd()
 		archive.Create(&buf)
+		require.NoError(t, archive.Close())
 
-		assert.NoError(t, archive.Close())
 		reader, err := packages.CreateHashedBufferFromReader(&buf)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		defer reader.Close()
 		_, err = ParsePackage(reader)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), ".PKGINFO file not found")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), ".PKGINFO file not found")
 	})
 
 	t.Run("missing .MTREE", func(t *testing.T) {
 		var buf bytes.Buffer
 
 		pfile, err := fs.Open("pkginfo")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		archive := archiver.NewTarZstd()
 		archive.Create(&buf)
@@ -126,16 +125,15 @@ arch = x86_64
 			},
 			ReadCloser: pfile,
 		})
-		assert.NoError(t, errors.Join(pfile.Close(), archive.Close(), err))
+		require.NoError(t, errors.Join(pfile.Close(), archive.Close(), err))
 		reader, err := packages.CreateHashedBufferFromReader(&buf)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		defer reader.Close()
 		_, err = ParsePackage(reader)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), ".MTREE file not found")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), ".MTREE file not found")
 	})
 }
 
@@ -161,8 +159,8 @@ makedepend = cmake
 backup = usr/bin/paket1
 `
 	p, err := ParsePackageInfo(strings.NewReader(PKGINFO))
-	assert.NoError(t, err)
-	assert.Equal(t, Package{
+	require.NoError(t, err)
+	require.Equal(t, Package{
 		Name:    "a",
 		Version: "1-2",
 		VersionMetadata: VersionMetadata{
@@ -221,7 +219,7 @@ func TestValidatePackageSpec(t *testing.T) {
 
 		err := ValidatePackageSpec(&p)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("invalid package name", func(t *testing.T) {
@@ -230,8 +228,8 @@ func TestValidatePackageSpec(t *testing.T) {
 
 		err := ValidatePackageSpec(&p)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid package name")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid package name")
 	})
 
 	t.Run("invalid package base", func(t *testing.T) {
@@ -240,8 +238,8 @@ func TestValidatePackageSpec(t *testing.T) {
 
 		err := ValidatePackageSpec(&p)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid package base")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid package base")
 	})
 
 	t.Run("invalid package version", func(t *testing.T) {
@@ -250,8 +248,8 @@ func TestValidatePackageSpec(t *testing.T) {
 
 		err := ValidatePackageSpec(&p)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid package base")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid package base")
 	})
 
 	t.Run("invalid package version", func(t *testing.T) {
@@ -260,8 +258,8 @@ func TestValidatePackageSpec(t *testing.T) {
 
 		err := ValidatePackageSpec(&p)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid package version")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid package version")
 	})
 
 	t.Run("missing architecture", func(t *testing.T) {
@@ -270,8 +268,8 @@ func TestValidatePackageSpec(t *testing.T) {
 
 		err := ValidatePackageSpec(&p)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "architecture should be specified")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "architecture should be specified")
 	})
 
 	t.Run("invalid URL", func(t *testing.T) {
@@ -280,8 +278,8 @@ func TestValidatePackageSpec(t *testing.T) {
 
 		err := ValidatePackageSpec(&p)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid project URL")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid project URL")
 	})
 
 	t.Run("invalid check dependency", func(t *testing.T) {
@@ -290,8 +288,8 @@ func TestValidatePackageSpec(t *testing.T) {
 
 		err := ValidatePackageSpec(&p)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid check dependency")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid check dependency")
 	})
 
 	t.Run("invalid dependency", func(t *testing.T) {
@@ -300,8 +298,8 @@ func TestValidatePackageSpec(t *testing.T) {
 
 		err := ValidatePackageSpec(&p)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid dependency")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid dependency")
 	})
 
 	t.Run("invalid make dependency", func(t *testing.T) {
@@ -310,8 +308,8 @@ func TestValidatePackageSpec(t *testing.T) {
 
 		err := ValidatePackageSpec(&p)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid make dependency")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid make dependency")
 	})
 
 	t.Run("invalid provides", func(t *testing.T) {
@@ -320,8 +318,8 @@ func TestValidatePackageSpec(t *testing.T) {
 
 		err := ValidatePackageSpec(&p)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid provides")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid provides")
 	})
 
 	t.Run("invalid optional dependency", func(t *testing.T) {
@@ -330,8 +328,8 @@ func TestValidatePackageSpec(t *testing.T) {
 
 		err := ValidatePackageSpec(&p)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid optional dependency")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid optional dependency")
 	})
 
 	t.Run("invalid optional dependency", func(t *testing.T) {
@@ -340,82 +338,62 @@ func TestValidatePackageSpec(t *testing.T) {
 
 		err := ValidatePackageSpec(&p)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "backup file contains leading forward slash")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "backup file contains leading forward slash")
 	})
 }
 
 func TestDescString(t *testing.T) {
 	const pkgdesc = `%FILENAME%
 zstd-1.5.5-1-x86_64.pkg.tar.zst
-
 %NAME%
 zstd
-
 %BASE%
 zstd
-
 %VERSION%
 1.5.5-1
-
 %DESC%
 Zstandard - Fast real-time compression algorithm
-
 %GROUPS%
 dummy1
 dummy2
-
 %CSIZE%
 401
-
 %ISIZE%
 1500453
-
 %MD5SUM%
 5016660ef3d9aa148a7b72a08d3df1b2
-
 %SHA256SUM%
 9fa4ede47e35f5971e4f26ecadcbfb66ab79f1d638317ac80334a3362dedbabd
-
 %URL%
 https://facebook.github.io/zstd/
-
 %LICENSE%
 BSD
 GPL2
-
 %ARCH%
 x86_64
-
 %BUILDDATE%
 1681646714
-
 %PACKAGER%
 Jelle van der Waa <jelle@archlinux.org>
-
 %PROVIDES%
 libzstd.so=1-64
-
 %DEPENDS%
 glibc
 gcc-libs
 zlib
 xz
 lz4
-
 %OPTDEPENDS%
 dummy3
 dummy4
-
 %MAKEDEPENDS%
 cmake
 gtest
 ninja
-
 %CHECKDEPENDS%
 dummy5
 dummy6
-
 `
 
 	md := &Package{
@@ -443,5 +421,5 @@ dummy6
 			Arch:           "x86_64",
 		},
 	}
-	assert.Equal(t, pkgdesc, md.Desc())
+	require.Equal(t, pkgdesc, md.Desc())
 }

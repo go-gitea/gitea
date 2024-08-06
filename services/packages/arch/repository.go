@@ -10,14 +10,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/httplib"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 
@@ -86,7 +89,10 @@ func NewFileSign(ctx context.Context, ownerID int64, input io.Reader) (*packages
 	if err != nil {
 		return nil, err
 	}
-	pkgSig, _ := packages_module.NewHashedBuffer()
+	pkgSig, err := packages_module.NewHashedBuffer()
+	if err != nil {
+		return nil, err
+	}
 	defer pkgSig.Close()
 	if err := openpgp.DetachSign(pkgSig, e, input, nil); err != nil {
 		return nil, err
@@ -286,7 +292,15 @@ func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, err
 	}
 
 	if priv == "" || pub == "" {
-		priv, pub, err = generateKeypair()
+		user, err := user_model.GetUserByID(ctx, ownerID)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			return "", "", err
+		}
+		registryAppURL, err := url.Parse(httplib.GuessCurrentAppURL(ctx))
+		if err != nil {
+			registryAppURL, _ = url.Parse(setting.AppURL)
+		}
+		priv, pub, err = generateKeypair(user.Name, registryAppURL.Host)
 		if err != nil {
 			return "", "", err
 		}
@@ -303,10 +317,13 @@ func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, err
 	return priv, pub, nil
 }
 
-func generateKeypair() (string, string, error) {
-	e, err := openpgp.NewEntity("Arch Package Signer", "Arch Registry", "arch@localhost", &packet.Config{
-		RSABits: 4096,
-	})
+func generateKeypair(owner, host string) (string, string, error) {
+	e, err := openpgp.NewEntity(
+		owner,
+		"Arch Package signature only",
+		fmt.Sprintf("%s@noreply.%s", owner, host), &packet.Config{
+			RSABits: 4096,
+		})
 	if err != nil {
 		return "", "", err
 	}

@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,8 +26,7 @@ import (
 
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageArch(t *testing.T) {
@@ -101,8 +101,8 @@ nYAR`),
 		req := NewRequest(t, "GET", rootURL+"/repository.key")
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		assert.Equal(t, "application/pgp-keys", resp.Header().Get("Content-Type"))
-		assert.Contains(t, resp.Body.String(), "-----BEGIN PGP PUBLIC KEY BLOCK-----")
+		require.Equal(t, "application/pgp-keys", resp.Header().Get("Content-Type"))
+		require.Contains(t, resp.Body.String(), "-----BEGIN PGP PUBLIC KEY BLOCK-----")
 	})
 
 	t.Run("Upload", func(t *testing.T) {
@@ -116,24 +116,24 @@ nYAR`),
 		MakeRequest(t, req, http.StatusCreated)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeArch)
-		assert.NoError(t, err)
-		assert.Len(t, pvs, 1)
+		require.NoError(t, err)
+		require.Len(t, pvs, 1)
 
 		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
-		assert.NoError(t, err)
-		assert.Nil(t, pd.SemVer)
-		assert.IsType(t, &arch_model.VersionMetadata{}, pd.Metadata)
-		assert.Equal(t, "test", pd.Package.Name)
-		assert.Equal(t, "1.0.0-1", pd.Version.Version)
+		require.NoError(t, err)
+		require.Nil(t, pd.SemVer)
+		require.IsType(t, &arch_model.VersionMetadata{}, pd.Metadata)
+		require.Equal(t, "test", pd.Package.Name)
+		require.Equal(t, "1.0.0-1", pd.Version.Version)
 
 		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
-		assert.NoError(t, err)
-		assert.Len(t, pfs, 2) // zst and zst.sig
-		assert.True(t, pfs[0].IsLead)
+		require.NoError(t, err)
+		require.Len(t, pfs, 2) // zst and zst.sig
+		require.True(t, pfs[0].IsLead)
 
 		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
-		assert.NoError(t, err)
-		assert.Equal(t, int64(len(pkgs["any"])), pb.Size)
+		require.NoError(t, err)
+		require.Equal(t, int64(len(pkgs["any"])), pb.Size)
 
 		req = NewRequestWithBody(t, "PUT", rootURL+"/default", bytes.NewReader(pkgs["any"])).
 			AddBasicAuth(user.Name)
@@ -163,11 +163,11 @@ nYAR`),
 		defer tests.PrintCurrentTest(t)()
 		req := NewRequest(t, "GET", rootURL+"/default/x86_64/test-1.0.0-1-x86_64.pkg.tar.zst")
 		resp := MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, pkgs["x86_64"], resp.Body.Bytes())
+		require.Equal(t, pkgs["x86_64"], resp.Body.Bytes())
 
 		req = NewRequest(t, "GET", rootURL+"/default/x86_64/test-1.0.0-1-any.pkg.tar.zst")
 		resp = MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, pkgs["any"], resp.Body.Bytes())
+		require.Equal(t, pkgs["any"], resp.Body.Bytes())
 
 		req = NewRequest(t, "GET", rootURL+"/default/x86_64/test-1.0.0-1-aarch64.pkg.tar.zst")
 		MakeRequest(t, req, http.StatusNotFound)
@@ -177,7 +177,7 @@ nYAR`),
 
 		req = NewRequest(t, "GET", rootURL+"/other/x86_64/test-1.0.0-1-any.pkg.tar.zst")
 		resp = MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, pkgs["any"], resp.Body.Bytes())
+		require.Equal(t, pkgs["any"], resp.Body.Bytes())
 	})
 
 	t.Run("SignVerify", func(t *testing.T) {
@@ -211,19 +211,19 @@ nYAR`),
 			t.Fatal(err)
 		}
 		files, err := listGzipFiles(respPkg.Body.Bytes())
-		assert.NoError(t, err)
-		assert.Equal(t, 2, len(files))
+		require.NoError(t, err)
+		require.Len(t, files, 2)
 		for s, d := range files {
 			name := getProperty(string(d.Data), "NAME")
 			ver := getProperty(string(d.Data), "VERSION")
-			assert.Equal(t, name+"-"+ver+"/desc", s)
+			require.Equal(t, name+"-"+ver+"/desc", s)
 			fn := getProperty(string(d.Data), "FILENAME")
 			pgp := getProperty(string(d.Data), "PGPSIG")
 			req = NewRequest(t, "GET", rootURL+"/base/x86_64/"+fn+".sig")
 			respSig := MakeRequest(t, req, http.StatusOK)
 			decodeString, err := base64.StdEncoding.DecodeString(pgp)
-			assert.NoError(t, err)
-			assert.Equal(t, respSig.Body.Bytes(), decodeString)
+			require.NoError(t, err)
+			require.Equal(t, respSig.Body.Bytes(), decodeString)
 		}
 	})
 	t.Run("Delete", func(t *testing.T) {
@@ -239,8 +239,8 @@ nYAR`),
 		req = NewRequest(t, "GET", rootURL+"/base/x86_64/base.db")
 		respPkg := MakeRequest(t, req, http.StatusOK)
 		files, err := listGzipFiles(respPkg.Body.Bytes())
-		assert.NoError(t, err)
-		assert.Equal(t, 1, len(files))
+		require.NoError(t, err)
+		require.Len(t, files, 1)
 
 		req = NewRequestWithBody(t, "DELETE", rootURL+"/base/test2/1.0.0-1", nil).
 			AddBasicAuth(user.Name)
@@ -251,8 +251,8 @@ nYAR`),
 		req = NewRequest(t, "GET", rootURL+"/default/x86_64/base.db")
 		respPkg = MakeRequest(t, req, http.StatusOK)
 		files, err = listGzipFiles(respPkg.Body.Bytes())
-		assert.NoError(t, err)
-		assert.Equal(t, 1, len(files))
+		require.NoError(t, err)
+		require.Len(t, files, 1)
 	})
 }
 

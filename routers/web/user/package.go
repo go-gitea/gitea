@@ -4,6 +4,7 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -213,6 +214,7 @@ func ViewPackageVersion(ctx *context.Context) {
 			registryAppURL, _ = url.Parse(setting.AppURL)
 		}
 		ctx.Data["RegistryHost"] = registryAppURL.Host
+		ctx.Data["SignMail"] = fmt.Sprintf("%s@noreply.%s", ctx.Package.Owner.Name, registryAppURL.Host)
 		groups := make(container.Set[string])
 		for _, f := range pd.Files {
 			for _, pp := range f.Properties {
