@@ -50,7 +50,7 @@ func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullR
 }
 
 // GetUnmergedPullRequestsByHeadInfo returns all pull requests that are open and has not been merged
-func GetUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch string) ([]*PullRequest, error) {
+func GetUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch string) (PullRequestList, error) {
 	prs := make([]*PullRequest, 0, 2)
 	sess := db.GetEngine(ctx).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
@@ -58,29 +58,30 @@ func GetUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch
 	return prs, sess.Find(&prs)
 }
 
-// CanMaintainerWriteToBranch check whether user is a maintainer and could write to the branch
-func CanMaintainerWriteToBranch(ctx context.Context, p access_model.Permission, branch string, user *user_model.User) bool {
+func CanUserWriteToBranch(ctx context.Context, p access_model.Permission, headRepoID int64, branch string, user *user_model.User) bool {
 	if p.CanWrite(unit.TypeCode) {
 		return true
 	}
 
-	// the code below depends on units to get the repository ID, not ideal but just keep it for now
-	firstUnitRepoID := p.GetFirstUnitRepoID()
-	if firstUnitRepoID == 0 {
-		return false
-	}
+	return canMaintainerWriteToHeadBranch(ctx, headRepoID, branch, user)
+}
 
-	prs, err := GetUnmergedPullRequestsByHeadInfo(ctx, firstUnitRepoID, branch)
+// canMaintainerWriteToHeadBranch check whether user is a maintainer and could write to the branch
+func canMaintainerWriteToHeadBranch(ctx context.Context, headRepoID int64, branch string, user *user_model.User) bool {
+	prs, err := GetUnmergedPullRequestsByHeadInfo(ctx, headRepoID, branch)
 	if err != nil {
+		log.Error("GetUnmergedPullRequestsByHeadInfo: %v", err)
 		return false
 	}
 
+	if err := prs.LoadRepositories(ctx); err != nil {
+		log.Error("LoadBaseRepos: %v", err)
+		return false
+	}
+
+	// user can write to the branch once one pull request allowed the user edit the branch
 	for _, pr := range prs {
 		if pr.AllowMaintainerEdit {
-			err = pr.LoadBaseRepo(ctx)
-			if err != nil {
-				continue
-			}
 			prPerm, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, user)
 			if err != nil {
 				continue
