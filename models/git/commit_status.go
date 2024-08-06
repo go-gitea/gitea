@@ -541,6 +541,10 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 func CommitStatusesHideActionsURL(ctx context.Context, statuses []*CommitStatus) {
 	idToRepos := make(map[int64]*repo_model.Repository)
 	for _, status := range statuses {
+		if status == nil {
+			continue
+		}
+
 		if status.Repo == nil {
 			status.Repo = idToRepos[status.RepoID]
 		}
