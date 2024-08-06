@@ -7,7 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -19,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -373,6 +376,52 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		notify_service.DeleteRelease(ctx, doer, rel)
 	}
 	return nil
+}
+
+// GetTags returns a list of Releases, sorted by
+func GetTags(ctx context.Context, listOpts db.ListOptions, gitRepo *git.Repository, repoID int64) ([]*repo_model.Release, error) {
+	releaseOpts := repo_model.FindReleasesOptions{
+		ListOptions: listOpts,
+		// for the tags list page, show all releases with real tags (having real commit-id),
+		// the drafts should also be included because a real tag might be used as a draft.
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		HasSha1:       optional.Some(true),
+		RepoID:        repoID,
+	}
+	releases, err := db.Find[repo_model.Release](ctx, releaseOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	tagsByTimestamp := make(map[int64]*time.Time)
+
+	for _, r := range releases {
+		tag, err := gitRepo.GetTag(r.TagName)
+		if err != nil {
+			return nil, err
+		}
+		if tag.Type == "tag" {
+			// This is an annotated tag. Since it is its own object, we should use the tagger's time.
+			tagsByTimestamp[r.ID] = &tag.Tagger.When
+		} else {
+			// This is a lightweight tag. Just use the commiter's time that the tag points to.
+			commit, err := tag.Commit(gitRepo)
+			if err != nil {
+				return nil, err
+			}
+			tagsByTimestamp[r.ID] = &commit.Committer.When
+		}
+	}
+
+	slices.SortFunc(releases, func(a, b *repo_model.Release) int {
+		lhs := tagsByTimestamp[a.ID]
+		rhs := tagsByTimestamp[b.ID]
+		// Sort by desc order.
+		return rhs.Compare(*lhs)
+	})
+
+	return releases, nil
 }
 
 // Init start release service

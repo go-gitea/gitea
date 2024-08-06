@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -22,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -30,7 +28,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/forms"
-	releaseservice "code.gitea.io/gitea/services/release"
+	release_service "code.gitea.io/gitea/services/release"
 )
 
 const (
@@ -225,44 +223,16 @@ func TagsList(ctx *context.Context) {
 		listOptions.PageSize = setting.API.MaxResponseItems
 	}
 
-	opts := repo_model.FindReleasesOptions{
-		ListOptions: listOptions,
-		// for the tags list page, show all releases with real tags (having real commit-id),
-		// the drafts should also be included because a real tag might be used as a draft.
-		IncludeDrafts: true,
-		IncludeTags:   true,
-		HasSha1:       optional.Some(true),
-		RepoID:        ctx.Repo.Repository.ID,
-	}
-
-	releases, err := db.Find[repo_model.Release](ctx, opts)
+	releases, err := release_service.GetTags(ctx, listOptions, ctx.Repo.GitRepo, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetReleasesByRepoID", err)
+		ctx.ServerError("GetTags", err)
 		return
 	}
-
-	// We need to sort the tags by commit date. Fetch the commits from the repo and use
-	// the commiter's timestamp to sort it.
-	for _, r := range releases {
-		sha1 := r.Sha1
-		commit, err := ctx.Repo.GitRepo.GetCommit(sha1)
-		if err != nil {
-			ctx.ServerError("GetCommit", err)
-			return
-		}
-		r.Commit = commit
-	}
-	slices.SortFunc(releases, func(a, b *repo_model.Release) int {
-		lhs := a.Commit
-		rhs := b.Commit
-		// Sort by desc order.
-		return rhs.Committer.When.Compare(lhs.Committer.When)
-	})
 
 	ctx.Data["Releases"] = releases
 
 	numTags := ctx.Data["NumTags"].(int64)
-	pager := context.NewPagination(int(numTags), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(int(numTags), listOptions.PageSize, listOptions.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
@@ -456,7 +426,7 @@ func NewReleasePost(ctx *context.Context) {
 		}
 
 		if len(form.TagOnly) > 0 {
-			if err = releaseservice.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, form.Target, form.TagName, msg); err != nil {
+			if err = release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, form.Target, form.TagName, msg); err != nil {
 				if models.IsErrTagAlreadyExists(err) {
 					e := err.(models.ErrTagAlreadyExists)
 					ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
@@ -499,7 +469,7 @@ func NewReleasePost(ctx *context.Context) {
 			IsTag:        false,
 		}
 
-		if err = releaseservice.CreateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs, msg); err != nil {
+		if err = release_service.CreateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs, msg); err != nil {
 			ctx.Data["Err_TagName"] = true
 			switch {
 			case repo_model.IsErrReleaseAlreadyExist(err):
@@ -528,7 +498,7 @@ func NewReleasePost(ctx *context.Context) {
 		rel.PublisherID = ctx.Doer.ID
 		rel.IsTag = false
 
-		if err = releaseservice.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo, rel, attachmentUUIDs, nil, nil); err != nil {
+		if err = release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo, rel, attachmentUUIDs, nil, nil); err != nil {
 			ctx.Data["Err_TagName"] = true
 			ctx.ServerError("UpdateRelease", err)
 			return
@@ -634,7 +604,7 @@ func EditReleasePost(ctx *context.Context) {
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = releaseservice.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo,
+	if err = release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo,
 		rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
 		ctx.ServerError("UpdateRelease", err)
 		return
@@ -673,7 +643,7 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 		return
 	}
 
-	if err := releaseservice.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, isDelTag); err != nil {
+	if err := release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, isDelTag); err != nil {
 		if models.IsErrProtectedTagName(err) {
 			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
 		} else {
