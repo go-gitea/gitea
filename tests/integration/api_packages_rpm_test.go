@@ -24,7 +24,10 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/sassoftware/go-rpmutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageRpm(t *testing.T) {
@@ -430,6 +433,30 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture)).
 					AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusNotFound)
+			})
+
+			t.Run("UploadSign", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+				url := groupURL + "/upload?sign=true"
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
+					AddBasicAuth(user.Name)
+				MakeRequest(t, req, http.StatusCreated)
+
+				gpgReq := NewRequest(t, "GET", rootURL+"/repository.key")
+				gpgResp := MakeRequest(t, gpgReq, http.StatusOK)
+				pub, err := openpgp.ReadArmoredKeyRing(gpgResp.Body)
+				require.NoError(t, err)
+
+				req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture))
+				resp := MakeRequest(t, req, http.StatusOK)
+
+				_, sigs, err := rpmutils.Verify(resp.Body, pub)
+				require.NoError(t, err)
+				require.NotEmpty(t, sigs)
+
+				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture)).
+					AddBasicAuth(user.Name)
+				MakeRequest(t, req, http.StatusNoContent)
 			})
 		})
 	}

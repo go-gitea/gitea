@@ -398,32 +398,6 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	return err
 }
 
-type releaseSorter struct {
-	rels []*Release
-}
-
-func (rs *releaseSorter) Len() int {
-	return len(rs.rels)
-}
-
-func (rs *releaseSorter) Less(i, j int) bool {
-	diffNum := rs.rels[i].NumCommits - rs.rels[j].NumCommits
-	if diffNum != 0 {
-		return diffNum > 0
-	}
-	return rs.rels[i].CreatedUnix > rs.rels[j].CreatedUnix
-}
-
-func (rs *releaseSorter) Swap(i, j int) {
-	rs.rels[i], rs.rels[j] = rs.rels[j], rs.rels[i]
-}
-
-// SortReleases sorts releases by number of commits and created time.
-func SortReleases(rels []*Release) {
-	sorter := &releaseSorter{rels: rels}
-	sort.Sort(sorter)
-}
-
 // UpdateReleasesMigrationsByType updates all migrated repositories' releases from gitServiceType to replace originalAuthorID to posterID
 func UpdateReleasesMigrationsByType(ctx context.Context, gitServiceType structs.GitServiceType, originalAuthorID string, posterID int64) error {
 	_, err := db.GetEngine(ctx).Table("release").

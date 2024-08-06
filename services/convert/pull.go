@@ -106,8 +106,23 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		log.Error("LoadRequestedReviewers[%d]: %v", pr.ID, err)
 		return nil
 	}
+	if err = pr.LoadRequestedReviewersTeams(ctx); err != nil {
+		log.Error("LoadRequestedReviewersTeams[%d]: %v", pr.ID, err)
+		return nil
+	}
+
 	for _, reviewer := range pr.RequestedReviewers {
 		apiPullRequest.RequestedReviewers = append(apiPullRequest.RequestedReviewers, ToUser(ctx, reviewer, nil))
+	}
+
+	for _, reviewerTeam := range pr.RequestedReviewersTeams {
+		convertedTeam, err := ToTeam(ctx, reviewerTeam, true)
+		if err != nil {
+			log.Error("LoadRequestedReviewersTeams[%d]: %v", pr.ID, err)
+			return nil
+		}
+
+		apiPullRequest.RequestedReviewersTeams = append(apiPullRequest.RequestedReviewersTeams, convertedTeam)
 	}
 
 	if pr.Issue.ClosedUnix != 0 {
