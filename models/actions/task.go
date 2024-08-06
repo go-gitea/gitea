@@ -35,7 +35,7 @@ type ActionTask struct {
 	RunnerID int64              `xorm:"index"`
 	Status   Status             `xorm:"index"`
 	Started  timeutil.TimeStamp `xorm:"index"`
-	Stopped  timeutil.TimeStamp
+	Stopped  timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`
 
 	RepoID            int64  `xorm:"index"`
 	OwnerID           int64  `xorm:"index"`
@@ -51,8 +51,8 @@ type ActionTask struct {
 	LogInStorage bool       // read log from database or from storage
 	LogLength    int64      // lines count
 	LogSize      int64      // blob size
-	LogIndexes   LogIndexes `xorm:"LONGBLOB"` // line number to offset
-	LogExpired   bool       // files that are too old will be deleted
+	LogIndexes   LogIndexes `xorm:"LONGBLOB"`                   // line number to offset
+	LogExpired   bool       `xorm:"index(stopped_log_expired)"` // files that are too old will be deleted
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated index"`
@@ -468,6 +468,16 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 	}
 
 	return nil
+}
+
+func FindOldTasksToExpire(ctx context.Context, olderThan timeutil.TimeStamp, limit int) ([]*ActionTask, error) {
+	e := db.GetEngine(ctx)
+
+	tasks := make([]*ActionTask, 0, limit)
+	// Check "stopped > 0" to avoid deleting tasks that are still running
+	return tasks, e.Where("stopped > 0 AND stopped < ? AND log_expired = ?", olderThan, false).
+		Limit(limit).
+		Find(&tasks)
 }
 
 func isSubset(set, subset []string) bool {
