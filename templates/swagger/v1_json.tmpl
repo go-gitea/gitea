@@ -23517,6 +23517,13 @@
           },
           "x-go-name": "RequestedReviewers"
         },
+        "requested_reviewers_teams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Team"
+          },
+          "x-go-name": "RequestedReviewersTeams"
+        },
         "review_comments": {
           "description": "number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)",
           "type": "integer",
