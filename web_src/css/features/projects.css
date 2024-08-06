@@ -16,7 +16,7 @@
   padding: 0.5rem !important;
   width: 320px;
   height: initial;
-  min-height: 60vh;
+  min-height: max(calc(100vh - 400px), 300px);
   flex: 0 0 auto;
   overflow: visible;
   display: flex;
