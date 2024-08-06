@@ -353,7 +353,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		msg.SetHeader("References", references...)
 		msg.SetHeader("List-Unsubscribe", listUnsubscribe...)
 
-		for key, value := range generateAdditionalHeaders(ctx, actType, recipient) {
+		for key, value := range generateAdditionalHeaders(ctx, actName, recipient) {
 			msg.SetHeader(key, value)
 		}
 
