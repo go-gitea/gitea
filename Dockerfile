@@ -9,6 +9,11 @@ ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS="bindata timetzdata $TAGS"
 ARG CGO_EXTRA_CFLAGS
 
+ARG GIT_UID
+ARG GIT_GID
+ENV GIT_GID_ENV=${GIT_GID}
+ENV GIT_UID_ENV=${GIT_UID}
+
 # Build deps
 RUN apk --no-cache add \
     build-base \
@@ -61,13 +66,13 @@ RUN apk --no-cache add \
     && rm -rf /var/cache/apk/*
 
 RUN addgroup \
-    -S -g 1000 \
+    -S -g ${GIT_GID_ENV:-1000} \
     git && \
   adduser \
     -S -H -D \
     -h /data/git \
     -s /bin/bash \
-    -u 1000 \
+    -u ${GIT_UID_ENV:-1000}  \
     -G git \
     git && \
   echo "git:*" | chpasswd -e
