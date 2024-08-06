@@ -410,6 +410,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParamString("action", "_revision")
 	ctx.Data["Page"] = pager
 
 	return wikiRepo, entry
