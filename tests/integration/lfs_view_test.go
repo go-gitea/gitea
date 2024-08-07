@@ -4,12 +4,22 @@
 package integration
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/lfs"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // check that files stored in LFS render properly in the web UI
@@ -80,4 +90,57 @@ func TestLFSRender(t *testing.T) {
 		content := doc.Find("div.file-view").Text()
 		assert.Contains(t, content, "Testing READMEs in LFS")
 	})
+}
+
+// TestLFSLockView tests the LFS lock view on settings page of repositories
+func TestLFSLockView(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})       // in org 3
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}) // own by org 3
+	session := loginUser(t, user2.Name)
+
+	// make sure the display names are different, or the test is meaningless
+	require.NoError(t, repo3.LoadOwner(context.Background()))
+	require.NotEqual(t, user2.DisplayName(), repo3.Owner.DisplayName())
+
+	// create a lock
+	lockPath := "test_lfs_lock_view.zip"
+	lockID := ""
+	{
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks", repo3.FullName()), map[string]string{"path": lockPath})
+		req.Header.Set("Accept", lfs.AcceptHeader)
+		req.Header.Set("Content-Type", lfs.MediaType)
+		resp := session.MakeRequest(t, req, http.StatusCreated)
+		lockResp := &api.LFSLockResponse{}
+		DecodeJSON(t, resp, lockResp)
+		lockID = lockResp.Lock.ID
+	}
+	defer func() {
+		// delete the lock
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks/%s/unlock", repo3.FullName(), lockID), map[string]string{})
+		req.Header.Set("Accept", lfs.AcceptHeader)
+		req.Header.Set("Content-Type", lfs.MediaType)
+		session.MakeRequest(t, req, http.StatusOK)
+	}()
+
+	req := NewRequest(t, "GET", fmt.Sprintf("/%s/settings/lfs/locks", repo3.FullName()))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	doc := NewHTMLParser(t, resp.Body).doc
+	trs := doc.Find("table#lfs-files-locks-table tbody tr")
+
+	var tr *goquery.Selection
+	for i := range trs.Length() {
+		v := trs.Eq(i)
+		if strings.TrimSpace(v.Find("td").Eq(0).Text()) == lockPath {
+			tr = v
+			break
+		}
+	}
+	require.NotNilf(t, tr, "lock %s not found", lockPath)
+
+	td := tr.Find("td")
+	require.Equal(t, 4, td.Length())
+	assert.Equal(t, user2.DisplayName(), strings.TrimSpace(td.Eq(1).Text()))
 }
