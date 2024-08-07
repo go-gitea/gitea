@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRepository_GetBranches(t *testing.T) {
@@ -93,4 +94,42 @@ func BenchmarkGetRefsBySha(b *testing.B) {
 	_, _ = bareRepo5.GetRefsBySha("d8e0bbb45f200e67d9a784ce55bd90821af45ebd", "")
 	_, _ = bareRepo5.GetRefsBySha("c83380d7056593c51a699d12b9c00627bd5743e9", "")
 	_, _ = bareRepo5.GetRefsBySha("58a4bcc53ac13e7ff76127e0fb518b5262bf09af", "")
+}
+
+func TestRepository_IsObjectExist(t *testing.T) {
+	repo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))
+	require.NoError(t, err)
+	defer repo.Close()
+
+	tests := []struct {
+		name string
+		arg  string
+		want bool
+	}{
+		{
+			name: "empty",
+			arg:  "",
+			want: false,
+		},
+		{
+			name: "branch",
+			arg:  "master",
+			want: false,
+		},
+		{
+			name: "commit object",
+			arg:  "ce064814f4a0d337b333e646ece456cd39fab612",
+			want: true,
+		},
+		{
+			name: "blob object",
+			arg:  "153f451b9ee7fa1da317ab17a127e9fd9d384310",
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, repo.IsObjectExist(tt.arg))
+		})
+	}
 }
