@@ -14,13 +14,13 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
-// IsObjectExist returns true if given reference exists in the repository.
+// IsObjectExist returns true if the given object exists in the repository.
 func (repo *Repository) IsObjectExist(name string) bool {
 	if name == "" {
 		return false
 	}
 
-	_, err := repo.gogitRepo.ResolveRevision(plumbing.Revision(name))
+	_, err := repo.gogitRepo.Object(plumbing.AnyObject, plumbing.NewHash(name))
 
 	return err == nil
 }
