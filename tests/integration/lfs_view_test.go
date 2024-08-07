@@ -17,7 +17,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -100,10 +99,6 @@ func TestLFSLockView(t *testing.T) {
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}) // own by org 3
 	session := loginUser(t, user2.Name)
 
-	// make sure the display names are different, or the test is meaningless
-	require.NoError(t, repo3.LoadOwner(context.Background()))
-	require.NotEqual(t, user2.DisplayName(), repo3.Owner.DisplayName())
-
 	// create a lock
 	lockPath := "test_lfs_lock_view.zip"
 	lockID := ""
@@ -117,30 +112,34 @@ func TestLFSLockView(t *testing.T) {
 		lockID = lockResp.Lock.ID
 	}
 	defer func() {
-		// delete the lock
+		// release the lock
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks/%s/unlock", repo3.FullName(), lockID), map[string]string{})
 		req.Header.Set("Accept", lfs.AcceptHeader)
 		req.Header.Set("Content-Type", lfs.MediaType)
 		session.MakeRequest(t, req, http.StatusOK)
 	}()
 
-	req := NewRequest(t, "GET", fmt.Sprintf("/%s/settings/lfs/locks", repo3.FullName()))
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	t.Run("owner name", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-	doc := NewHTMLParser(t, resp.Body).doc
-	trs := doc.Find("table#lfs-files-locks-table tbody tr")
+		// make sure the display names are different, or the test is meaningless
+		require.NoError(t, repo3.LoadOwner(context.Background()))
+		require.NotEqual(t, user2.DisplayName(), repo3.Owner.DisplayName())
 
-	var tr *goquery.Selection
-	for i := range trs.Length() {
-		v := trs.Eq(i)
-		if strings.TrimSpace(v.Find("td").Eq(0).Text()) == lockPath {
-			tr = v
-			break
-		}
-	}
-	require.NotNilf(t, tr, "lock %s not found", lockPath)
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/settings/lfs/locks", repo3.FullName()))
+		resp := session.MakeRequest(t, req, http.StatusOK)
 
-	td := tr.Find("td")
-	require.Equal(t, 4, td.Length())
-	assert.Equal(t, user2.DisplayName(), strings.TrimSpace(td.Eq(1).Text()))
+		doc := NewHTMLParser(t, resp.Body).doc
+
+		tr := doc.Find("table#lfs-files-locks-table tbody tr")
+		require.Equal(t, 1, tr.Length())
+
+		td := tr.First().Find("td")
+		require.Equal(t, 4, td.Length())
+
+		// path
+		assert.Equal(t, lockPath, strings.TrimSpace(td.Eq(0).Text()))
+		// owner name
+		assert.Equal(t, user2.DisplayName(), strings.TrimSpace(td.Eq(1).Text()))
+	})
 }
