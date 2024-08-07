@@ -57,6 +57,10 @@ func (l *LFSLock) LoadOwner(ctx context.Context) error {
 
 	owner, err := user_model.GetUserByID(ctx, l.OwnerID)
 	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			l.Owner = user_model.NewGhostUser()
+			return nil
+		}
 		return err
 	}
 	l.Owner = owner
