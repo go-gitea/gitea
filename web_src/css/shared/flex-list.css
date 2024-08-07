@@ -26,7 +26,12 @@
   display: flex;
   gap: .25rem;
   justify-content: space-between;
-  flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+  .flex-item-header {
+    flex-direction: column;
+  }
 }
 
 .flex-item a:not(.label, .button):hover {
@@ -46,8 +51,15 @@
   gap: 0.5rem;
   align-items: center;
   flex-grow: 0;
+  flex-shrink: 0;
   flex-wrap: wrap;
-  justify-content: end;
+  justify-content: flex-end;
+}
+
+@media (max-width: 600px) {
+  .flex-item .flex-item-trailing {
+    justify-content: flex-start;
+  }
 }
 
 .flex-item .flex-item-title {
@@ -66,6 +78,15 @@
 .flex-item .flex-item-title a {
   color: var(--color-text);
   overflow-wrap: anywhere;
+}
+
+/* display:inline wrapper that makes labels overflow like text */
+.flex-item-title-inline {
+  display: inline;
+}
+.flex-item-title-inline > * {
+  display: inline !important;
+  vertical-align: bottom;
 }
 
 .flex-item .flex-item-body {
