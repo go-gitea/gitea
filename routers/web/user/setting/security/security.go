@@ -26,6 +26,12 @@ const (
 
 // Security render change user's password page and 2FA
 func Security(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer,
+		setting.UserFeatureManageMFA, setting.UserFeatureManageCredentials) {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("settings.security")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
@@ -41,6 +47,11 @@ func Security(ctx *context.Context) {
 
 // DeleteAccountLink delete a single account link
 func DeleteAccountLink(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
 	user := &user_model.ExternalLoginUser{UserID: ctx.Doer.ID, LoginSourceID: ctx.FormInt64("id")}
 	if has, err := user_model.GetExternalLogin(ctx, user); err != nil || !has {
 		if !has {
@@ -153,4 +164,5 @@ func loadSecurityData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["OpenIDs"] = openid
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 }

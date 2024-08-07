@@ -58,16 +58,16 @@
 							{{end}}
 						{{end}}
 					</span>
-					<span class="author tw-flex tw-items-center tw-mr-2">
+					<span class="author tw-flex tw-items-center tw-mr-2 tw-gap-[1px]">
 						{{$userName := $commit.Commit.Author.Name}}
 						{{if $commit.User}}
 							{{if and $commit.User.FullName DefaultShowFullName}}
 								{{$userName = $commit.User.FullName}}
 							{{end}}
-							<span class="tw-mr-1">{{ctx.AvatarUtils.Avatar $commit.User}}</span>
+							{{ctx.AvatarUtils.Avatar $commit.User 18}}
 							<a href="{{$commit.User.HomeLink}}">{{$userName}}</a>
 						{{else}}
-							<span class="tw-mr-1">{{ctx.AvatarUtils.AvatarByEmail $commit.Commit.Author.Email $userName}}</span>
+							{{ctx.AvatarUtils.AvatarByEmail $commit.Commit.Author.Email $userName 18}}
 							{{$userName}}
 						{{end}}
 					</span>

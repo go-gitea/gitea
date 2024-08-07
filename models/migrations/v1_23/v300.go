@@ -3,25 +3,15 @@
 
 package v1_23 //nolint
 
-import (
-	"code.gitea.io/gitea/modules/timeutil"
+import "xorm.io/xorm"
 
-	"xorm.io/xorm"
-)
-
-func AddAuditEventTable(x *xorm.Engine) error {
-	type AuditEvent struct {
-		ID            int64  `xorm:"pk autoincr"`
-		Action        string `xorm:"INDEX NOT NULL"`
-		ActorID       int64  `xorm:"INDEX NOT NULL"`
-		ScopeType     string `xorm:"INDEX(scope) NOT NULL"`
-		ScopeID       int64  `xorm:"INDEX(scope) NOT NULL"`
-		TargetType    string `xorm:"NOT NULL"`
-		TargetID      int64  `xorm:"NOT NULL"`
-		Message       string
-		IPAddress     string
-		TimestampUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
+func AddForcePushBranchProtection(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		CanForcePush                 bool    `xorm:"NOT NULL DEFAULT false"`
+		EnableForcePushAllowlist     bool    `xorm:"NOT NULL DEFAULT false"`
+		ForcePushAllowlistUserIDs    []int64 `xorm:"JSON TEXT"`
+		ForcePushAllowlistTeamIDs    []int64 `xorm:"JSON TEXT"`
+		ForcePushAllowlistDeployKeys bool    `xorm:"NOT NULL DEFAULT false"`
 	}
-
-	return x.Sync(&AuditEvent{})
+	return x.Sync(new(ProtectedBranch))
 }

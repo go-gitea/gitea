@@ -480,7 +480,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 
 // GetRegistrationToken returns the token to register repo runners
 func (Action) GetRegistrationToken(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/runners/registration-token repository repoGetRunnerRegistrationToken
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runners/registration-token repository repoGetRunnerRegistrationToken
 	// ---
 	// summary: Get a repository's actions runner registration token
 	// produces:
@@ -500,7 +500,7 @@ func (Action) GetRegistrationToken(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RegistrationToken"
 
-	shared.GetRegistrationToken(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.ID)
+	shared.GetRegistrationToken(ctx, 0, ctx.Repo.Repository.ID)
 }
 
 var _ actions_service.API = new(Action)

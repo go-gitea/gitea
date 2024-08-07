@@ -60,10 +60,11 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 
 	// TODO validate redirect URI
 	app, err := auth.CreateOAuth2Application(ctx, auth.CreateOAuth2ApplicationOptions{
-		Name:               form.Name,
-		RedirectURIs:       util.SplitTrimSpace(form.RedirectURIs, "\n"),
-		UserID:             oa.ownerID(),
-		ConfidentialClient: form.ConfidentialClient,
+		Name:                       form.Name,
+		RedirectURIs:               util.SplitTrimSpace(form.RedirectURIs, "\n"),
+		UserID:                     oa.ownerID(),
+		ConfidentialClient:         form.ConfidentialClient,
+		SkipSecondaryAuthorization: form.SkipSecondaryAuthorization,
 	})
 	if err != nil {
 		ctx.ServerError("CreateOAuth2Application", err)
@@ -114,11 +115,12 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 
 	// TODO validate redirect URI
 	app, err := auth.UpdateOAuth2Application(ctx, auth.UpdateOAuth2ApplicationOptions{
-		ID:                 ctx.PathParamInt64("id"),
-		Name:               form.Name,
-		RedirectURIs:       util.SplitTrimSpace(form.RedirectURIs, "\n"),
-		UserID:             oa.ownerID(),
-		ConfidentialClient: form.ConfidentialClient,
+		ID:                         ctx.PathParamInt64("id"),
+		Name:                       form.Name,
+		RedirectURIs:               util.SplitTrimSpace(form.RedirectURIs, "\n"),
+		UserID:                     oa.ownerID(),
+		ConfidentialClient:         form.ConfidentialClient,
+		SkipSecondaryAuthorization: form.SkipSecondaryAuthorization,
 	})
 	if err != nil {
 		ctx.ServerError("UpdateOAuth2Application", err)
