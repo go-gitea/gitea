@@ -252,6 +252,12 @@ const sfc = {
             // initial states for job steps
             this.currentJobStepsStates[i] = {cursor: null, expanded: false};
           }
+
+          // expands the currently running job step if its state wasn't 'running' before
+          if (this.currentJob.steps[i].status === 'running' && this.currentJobStepsStates[i].cursor === null) {
+            this.currentJobStepsStates[i].cursor = 0;
+            this.currentJobStepsStates[i].expanded = true;
+          }
         }
         // append logs to the UI
         for (const logs of job.logs.stepsLog) {
