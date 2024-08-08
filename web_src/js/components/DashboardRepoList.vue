@@ -76,7 +76,7 @@ const sfc = {
       return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
     },
     searchURL() {
-      return `${this.subUrl}/repo/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
+      return `${this.subUrl}/repo/search?sort=alpha&order=asc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
       }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
       }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
       }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
