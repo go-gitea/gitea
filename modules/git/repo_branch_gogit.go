@@ -7,69 +7,40 @@
 package git
 
 import (
-	"encoding/hex"
-	"errors"
 	"sort"
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/hash"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
 // IsObjectExist returns true if the given object exists in the repository.
+// FIXME: Inconsistent behavior with nogogit edition
+// Unlike the implementation of IsObjectExist in nogogit edition, it does not support short hashes here.
+// For example, IsObjectExist("153f451") will return false, but it will return true in nogogit edition.
+// To fix this, the solution could be adding support for short hashes in gogit edition if it's really needed.
 func (repo *Repository) IsObjectExist(name string) bool {
 	if name == "" {
 		return false
 	}
 
-	h := plumbing.NewHash(name)
-	if len(name) >= hash.HexSize {
-		_, err := repo.gogitRepo.Object(plumbing.AnyObject, h)
-		return err == nil
-	}
-
-	// FIXME: Unlike IsObjectExist in nogogit edition, gogitRepo.Object does support short hashes.
-	//        To be consistent with nogogit edition, we have to iterate all objects to find the object.
-	//        This is not efficient, but it seems to be the only way to do it.
-	//        In such situation, we should avoid using short hashes with IsObjectExist.
-	//        Or consider refusing short hashes with nogogit editions too to maintain consistency, to avoid potential bugs.
-
-	// Check if the name is a valid hash, to avoid unnecessary iteration.
-	// A string with odd length is not a valid hash, but it's a valid prefix of a hash.
-	if _, err := hex.DecodeString(name); err != nil && !errors.Is(err, hex.ErrLength) {
-		return false
-	}
-
-	iter, err := repo.gogitRepo.Objects()
-	if err != nil {
-		return false
-	}
-	defer iter.Close()
-
-	found := false
-	_ = iter.ForEach(func(obj object.Object) error {
-		if strings.HasPrefix(obj.ID().String(), name) {
-			found = true
-			return storer.ErrStop
-		}
-		return nil
-	})
-	return found
+	_, err := repo.gogitRepo.Object(plumbing.AnyObject, plumbing.NewHash(name))
+	return err == nil
 }
 
 // IsReferenceExist returns true if given reference exists in the repository.
+// FIXME: Inconsistent behavior with nogogit edition
+// Unlike the implementation of IsObjectExist in nogogit edition, it does not support blob hashes here.
+// For example, IsObjectExist([existing_blob_hash]) will return false, but it will return true in nogogit edition.
+// To fix this, the solution could be refusing to support blob hashes in nogogit edition since a blob hash is not a reference.
 func (repo *Repository) IsReferenceExist(name string) bool {
 	if name == "" {
 		return false
 	}
 
-	reference, err := repo.gogitRepo.Reference(plumbing.ReferenceName(name), true)
-	if err != nil {
-		return false
-	}
-	return reference.Type() != plumbing.InvalidReference
+	_, err := repo.gogitRepo.ResolveRevision(plumbing.Revision(name))
+
+	return err == nil
 }
 
 // IsBranchExist returns true if given branch exists in current repository.
