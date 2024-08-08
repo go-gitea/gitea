@@ -23,6 +23,27 @@ func TestLabel_CalOpenIssues(t *testing.T) {
 	assert.EqualValues(t, 2, label.NumOpenIssues)
 }
 
+func TestLabel_LoadSelectedLabelsAfterClick(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	// Loading the label id:8 which have a scope and an exclusivity
+	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 8})
+
+	// First test : with negative and scope
+	label.LoadSelectedLabelsAfterClick([]int64{1, -8}, []string{"", "scope"})
+	assert.Equal(t, "1", label.QueryString)
+	assert.Equal(t, true, label.IsSelected)
+
+	// Second test : with duplicates
+	label.LoadSelectedLabelsAfterClick([]int64{1, 7, 1, 7, 7}, []string{"", "scope", "", "scope", "scope"})
+	assert.Equal(t, "1,8", label.QueryString)
+	assert.Equal(t, false, label.IsSelected)
+
+	// Third test : empty set
+	label.LoadSelectedLabelsAfterClick([]int64{}, []string{})
+	assert.False(t, label.IsSelected)
+	assert.Equal(t, "8", label.QueryString)
+}
+
 func TestLabel_ExclusiveScope(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 7})
