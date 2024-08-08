@@ -46,14 +46,14 @@ func migrateWithSetting(x *xorm.Engine) error {
 		return migrations.Migrate(x)
 	}
 
-	if current, err := migrations.GetCurrentDBVersion(x); err != nil {
+	if fresh, err := migrations.IsFreshDB(x); err != nil {
 		return err
-	} else if current < 0 {
+	} else if fresh {
 		// execute migrations when the database isn't initialized even if AutoMigration is false
 		return migrations.Migrate(x)
-	} else if expected := migrations.ExpectedVersion(); current != expected {
-		log.Fatal(`"database.AUTO_MIGRATION" is disabled, but current database version %d is not equal to the expected version %d.`+
-			`You can set "database.AUTO_MIGRATION" to true or migrate manually by running "gitea [--config /path/to/app.ini] migrate"`, current, expected)
+	} else if upToDate := migrations.EnsureUpToDate(x); upToDate != nil {
+		log.Fatal(`"database.AUTO_MIGRATION" is disabled, but current database misses migrations.` +
+			`You can set "database.AUTO_MIGRATION" to true or migrate manually by running "gitea [--config /path/to/app.ini] migrate"`)
 	}
 	return nil
 }
