@@ -165,6 +165,7 @@ type PullRequest struct {
 	Issue                      *Issue `xorm:"-"`
 	Index                      int64
 	RequestedReviewers         []*user_model.User `xorm:"-"`
+	RequestedReviewersTeams    []*org_model.Team  `xorm:"-"`
 	isRequestedReviewersLoaded bool               `xorm:"-"`
 
 	HeadRepoID          int64                  `xorm:"INDEX"`
@@ -305,7 +306,28 @@ func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
 	}
 	pr.isRequestedReviewersLoaded = true
 	for _, review := range reviews {
-		pr.RequestedReviewers = append(pr.RequestedReviewers, review.Reviewer)
+		if review.ReviewerID != 0 {
+			pr.RequestedReviewers = append(pr.RequestedReviewers, review.Reviewer)
+		}
+	}
+
+	return nil
+}
+
+// LoadRequestedReviewersTeams loads the requested reviewers teams.
+func (pr *PullRequest) LoadRequestedReviewersTeams(ctx context.Context) error {
+	reviews, err := GetReviewsByIssueID(ctx, pr.Issue.ID)
+	if err != nil {
+		return err
+	}
+	if err = reviews.LoadReviewersTeams(ctx); err != nil {
+		return err
+	}
+
+	for _, review := range reviews {
+		if review.ReviewerTeamID != 0 {
+			pr.RequestedReviewersTeams = append(pr.RequestedReviewersTeams, review.ReviewerTeam)
+		}
 	}
 
 	return nil
