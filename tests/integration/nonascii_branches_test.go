@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"path"
@@ -13,22 +14,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
-func testSrcRouteRedirect(t *testing.T, session *TestSession, user, repo, route, expectedLocation string, expectedStatus int) {
-	prefix := path.Join("/", user, repo, "src")
-
-	// Make request
-	req := NewRequest(t, "GET", path.Join(prefix, route))
-	resp := session.MakeRequest(t, req, http.StatusSeeOther)
-
-	// Check Location header
-	location := resp.Header().Get("Location")
-	assert.Equal(t, path.Join(prefix, expectedLocation), location)
-
-	// Perform redirect
-	req = NewRequest(t, "GET", location)
-	session.MakeRequest(t, req, expectedStatus)
-}
 
 func setDefaultBranch(t *testing.T, session *TestSession, user, repo, branch string) {
 	location := path.Join("/", user, repo, "settings/branches")
@@ -41,7 +26,7 @@ func setDefaultBranch(t *testing.T, session *TestSession, user, repo, branch str
 	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
-func TestNonasciiBranches(t *testing.T) {
+func TestNonAsciiBranches(t *testing.T) {
 	testRedirects := []struct {
 		from   string
 		to     string
@@ -98,6 +83,7 @@ func TestNonasciiBranches(t *testing.T) {
 			to:     "branch/%E3%83%96%E3%83%A9%E3%83%B3%E3%83%81",
 			status: http.StatusOK,
 		},
+
 		// Tags
 		{
 			from:   "Тэг",
@@ -119,6 +105,7 @@ func TestNonasciiBranches(t *testing.T) {
 			to:     "tag/%E3%82%BF%E3%82%B0/%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB.md",
 			status: http.StatusOK,
 		},
+
 		// Files
 		{
 			from:   "README.md",
@@ -135,6 +122,7 @@ func TestNonasciiBranches(t *testing.T) {
 			to:     "branch/Plus+Is+Not+Space/%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB.md",
 			status: http.StatusNotFound, // it's not on default branch
 		},
+
 		// Same but url-encoded (few tests)
 		{
 			from:   "%E3%83%96%E3%83%A9%E3%83%B3%E3%83%81",
@@ -205,10 +193,23 @@ func TestNonasciiBranches(t *testing.T) {
 	session := loginUser(t, user)
 
 	setDefaultBranch(t, session, user, repo, "Plus+Is+Not+Space")
+	defer setDefaultBranch(t, session, user, repo, "master")
 
 	for _, test := range testRedirects {
-		testSrcRouteRedirect(t, session, user, repo, test.from, test.to, test.status)
-	}
+		t.Run(test.from, func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/src/%s", user, repo, test.from))
+			resp := session.MakeRequest(t, req, http.StatusSeeOther)
+			if resp.Code != http.StatusSeeOther {
+				return
+			}
 
-	setDefaultBranch(t, session, user, repo, "master")
+			redirectLocation := resp.Header().Get("Location")
+			if !assert.Equal(t, fmt.Sprintf("/%s/%s/src/%s", user, repo, test.to), redirectLocation) {
+				return
+			}
+
+			req = NewRequest(t, "GET", redirectLocation)
+			session.MakeRequest(t, req, test.status)
+		})
+	}
 }

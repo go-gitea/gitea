@@ -24,7 +24,7 @@ func Activity(ctx *context.Context) {
 
 	ctx.Data["PageIsPulse"] = true
 
-	ctx.Data["Period"] = ctx.Params("period")
+	ctx.Data["Period"] = ctx.PathParam("period")
 
 	timeUntil := time.Now()
 	var timeFrom time.Time
@@ -75,7 +75,7 @@ func ActivityAuthors(ctx *context.Context) {
 	timeUntil := time.Now()
 	var timeFrom time.Time
 
-	switch ctx.Params("period") {
+	switch ctx.PathParam("period") {
 	case "daily":
 		timeFrom = timeUntil.Add(-time.Hour * 24)
 	case "halfweekly":

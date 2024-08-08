@@ -42,7 +42,7 @@ func GetRawFile(ctx *context.APIContext) {
 	// ---
 	// summary: Get a file from a repository
 	// produces:
-	// - application/json
+	// - application/octet-stream
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -67,6 +67,8 @@ func GetRawFile(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: Returns raw file content.
+	//     schema:
+	//       type: file
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -92,6 +94,8 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/media/{filepath} repository repoGetRawFileOrLFS
 	// ---
 	// summary: Get a file or it's LFS object from a repository
+	// produces:
+	// - application/octet-stream
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -116,6 +120,8 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: Returns raw file content.
+	//     schema:
+	//       type: file
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -294,7 +300,7 @@ func GetArchive(ctx *context.APIContext) {
 }
 
 func archiveDownload(ctx *context.APIContext) {
-	uri := ctx.Params("*")
+	uri := ctx.PathParam("*")
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
@@ -393,7 +399,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 		return
 	}
 
-	fileName := ctx.Params("filename")
+	fileName := ctx.PathParam("filename")
 	def, err := ec.GetDefinitionForFilename(fileName)
 	if def == nil {
 		ctx.NotFound(err)
@@ -577,7 +583,7 @@ func CreateFile(ctx *context.APIContext) {
 		Files: []*files_service.ChangeRepoFile{
 			{
 				Operation:     "create",
-				TreePath:      ctx.Params("*"),
+				TreePath:      ctx.PathParam("*"),
 				ContentReader: contentReader,
 			},
 		},
@@ -681,7 +687,7 @@ func UpdateFile(ctx *context.APIContext) {
 				ContentReader: contentReader,
 				SHA:           apiOpts.SHA,
 				FromTreePath:  apiOpts.FromPath,
-				TreePath:      ctx.Params("*"),
+				TreePath:      ctx.PathParam("*"),
 			},
 		},
 		Message:   apiOpts.Message,
@@ -840,7 +846,7 @@ func DeleteFile(ctx *context.APIContext) {
 			{
 				Operation: "delete",
 				SHA:       apiOpts.SHA,
-				TreePath:  ctx.Params("*"),
+				TreePath:  ctx.PathParam("*"),
 			},
 		},
 		Message:   apiOpts.Message,
@@ -935,7 +941,7 @@ func GetContents(ctx *context.APIContext) {
 		return
 	}
 
-	treePath := ctx.Params("*")
+	treePath := ctx.PathParam("*")
 	ref := ctx.FormTrim("ref")
 
 	if fileList, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, treePath, ref); err != nil {

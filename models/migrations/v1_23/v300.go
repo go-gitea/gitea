@@ -3,21 +3,15 @@
 
 package v1_23 //nolint
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
-// CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
-type CommentMetaData struct {
-	ProjectColumnID    int64  `json:"project_column_id"`
-	ProjectColumnTitle string `json:"project_column_title"`
-	ProjectTitle       string `json:"project_title"`
-}
-
-func AddCommentMetaDataColumn(x *xorm.Engine) error {
-	type Comment struct {
-		CommentMetaData *CommentMetaData `xorm:"JSON TEXT"` // put all non-index metadata in a single field
+func AddForcePushBranchProtection(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		CanForcePush                 bool    `xorm:"NOT NULL DEFAULT false"`
+		EnableForcePushAllowlist     bool    `xorm:"NOT NULL DEFAULT false"`
+		ForcePushAllowlistUserIDs    []int64 `xorm:"JSON TEXT"`
+		ForcePushAllowlistTeamIDs    []int64 `xorm:"JSON TEXT"`
+		ForcePushAllowlistDeployKeys bool    `xorm:"NOT NULL DEFAULT false"`
 	}
-
-	return x.Sync(new(Comment))
+	return x.Sync(new(ProtectedBranch))
 }

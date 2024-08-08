@@ -183,15 +183,6 @@
 	</div>
 
 	<div>
-		<h1>Toast</h1>
-		<div>
-			<button class="ui button" id="info-toast">Show Info Toast</button>
-			<button class="ui button" id="warning-toast">Show Warning Toast</button>
-			<button class="ui button" id="error-toast">Show Error Toast</button>
-		</div>
-	</div>
-
-	<div>
 		<h1>ComboMarkdownEditor</h1>
 		<div>ps: no JS code attached, so just a layout</div>
 		{{template "shared/combomarkdowneditor" .}}
@@ -201,7 +192,5 @@
 	<div>
 		<button class="{{if true}}tw-bg-red{{end}} tw-p-5 tw-border tw-rounded hover:tw-bg-blue active:tw-bg-yellow">Button</button>
 	</div>
-
-	<script src="{{AssetUrlPrefix}}/js/devtest.js?v={{AssetVersion}}"></script>
 </div>
 {{template "base/footer" .}}

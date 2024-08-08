@@ -58,7 +58,7 @@ func TestSubjectBodySeparator(t *testing.T) {
 }
 
 func TestJSEscapeSafe(t *testing.T) {
-	assert.EqualValues(t, `\u0026\u003C\u003E\'\"`, JSEscapeSafe(`&<>'"`))
+	assert.EqualValues(t, `\u0026\u003C\u003E\'\"`, jsEscapeSafe(`&<>'"`))
 }
 
 func TestHTMLFormat(t *testing.T) {
@@ -71,7 +71,7 @@ func TestSanitizeHTML(t *testing.T) {
 
 func TestTemplateTruthy(t *testing.T) {
 	tmpl := template.New("test")
-	tmpl.Funcs(template.FuncMap{"Iif": Iif})
+	tmpl.Funcs(template.FuncMap{"Iif": iif})
 	template.Must(tmpl.Parse(`{{if .Value}}true{{else}}false{{end}}:{{Iif .Value "true" "false"}}`))
 
 	cases := []any{
