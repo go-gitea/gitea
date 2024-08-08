@@ -953,9 +953,9 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 		}
 		ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
 		ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
-		ctx.Data["has_selected_assignee"] = len(selectedAssigneeIDs) > 0
-		ctx.Data["selected_assignee_ids_value"] = strings.Join(selectedAssigneeIDStrings, ",")
-		ctx.Data["selected_assignee_ids"] = selectedAssigneeIDs
+		ctx.Data["HasSelectedAssignee"] = len(selectedAssigneeIDs) > 0
+		ctx.Data["SelectedAssigneeIDsValue"] = strings.Join(selectedAssigneeIDStrings, ",")
+		ctx.Data["SelectedAssigneeIDs"] = selectedAssigneeIDs
 		ctx.Data["Reference"] = template.Ref
 		ctx.Data["RefEndName"] = git.RefName(template.Ref).ShortName()
 		return true, templateErrs
