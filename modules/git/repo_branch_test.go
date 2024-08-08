@@ -117,13 +117,23 @@ func TestRepository_IsObjectExist(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "commit object",
+			name: "commit hash",
 			arg:  "ce064814f4a0d337b333e646ece456cd39fab612",
 			want: true,
 		},
 		{
-			name: "blob object",
+			name: "short commit hash",
+			arg:  "ce06481",
+			want: true,
+		},
+		{
+			name: "blob hash",
 			arg:  "153f451b9ee7fa1da317ab17a127e9fd9d384310",
+			want: true,
+		},
+		{
+			name: "short blob hash",
+			arg:  "153f451",
 			want: true,
 		},
 	}

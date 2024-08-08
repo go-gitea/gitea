@@ -7,10 +7,14 @@
 package git
 
 import (
+	"encoding/hex"
+	"errors"
 	"sort"
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/hash"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
@@ -20,9 +24,39 @@ func (repo *Repository) IsObjectExist(name string) bool {
 		return false
 	}
 
-	_, err := repo.gogitRepo.Object(plumbing.AnyObject, plumbing.NewHash(name))
+	h := plumbing.NewHash(name)
+	if len(name) >= hash.HexSize {
+		_, err := repo.gogitRepo.Object(plumbing.AnyObject, h)
+		return err == nil
+	}
 
-	return err == nil
+	// FIXME: Unlike IsObjectExist in nogogit edition, gogitRepo.Object does support short hashes.
+	//        To be consistent with nogogit edition, we have to iterate all objects to find the object.
+	//        This is not efficient, but it seems to be the only way to do it.
+	//        In such situation, we should avoid using short hashes with IsObjectExist.
+	//        Or consider refusing short hashes with nogogit editions too to maintain consistency, to avoid potential bugs.
+
+	// Check if the name is a valid hash, to avoid unnecessary iteration.
+	// A string with odd length is not a valid hash, but it's a valid prefix of a hash.
+	if _, err := hex.DecodeString(name); err != nil && !errors.Is(err, hex.ErrLength) {
+		return false
+	}
+
+	iter, err := repo.gogitRepo.Objects()
+	if err != nil {
+		return false
+	}
+	defer iter.Close()
+
+	found := false
+	_ = iter.ForEach(func(obj object.Object) error {
+		if strings.HasPrefix(obj.ID().String(), name) {
+			found = true
+			return storer.ErrStop
+		}
+		return nil
+	})
+	return found
 }
 
 // IsReferenceExist returns true if given reference exists in the repository.
