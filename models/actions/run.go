@@ -361,6 +361,19 @@ func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error)
 	return run, nil
 }
 
+func GetLatestRun(ctx context.Context, repoID int64) (*ActionRun, error) {
+	run := &ActionRun{
+		RepoID: repoID,
+	}
+	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Desc("index").Get(run)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, fmt.Errorf("latest run with repo_id %d: %w", repoID, util.ErrNotExist)
+	}
+	return run, nil
+}
+
 func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, branch, event string) (*ActionRun, error) {
 	var run ActionRun
 	q := db.GetEngine(ctx).Where("repo_id=?", repoID).
