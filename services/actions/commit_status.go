@@ -128,18 +128,16 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	if err != nil {
 		return fmt.Errorf("HashTypeInterfaceFromHashString: %w", err)
 	}
-	if err := commitstatus_service.CreateCommitStatus(ctx, repo, creator, commitID.String(), &git_model.CommitStatus{
+	status := git_model.CommitStatus{
 		SHA:         sha,
 		TargetURL:   fmt.Sprintf("%s/jobs/%d", run.Link(), index),
 		Description: description,
 		Context:     ctxname,
 		CreatorID:   creator.ID,
 		State:       state,
-	}); err != nil {
-		return fmt.Errorf("NewCommitStatus: %w", err)
 	}
 
-	return nil
+	return commitstatus_service.CreateCommitStatus(ctx, repo, creator, commitID.String(), &status)
 }
 
 func toCommitStatus(status actions_model.Status) api.CommitStatusState {

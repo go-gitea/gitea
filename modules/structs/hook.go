@@ -261,13 +261,6 @@ func (p *ReleasePayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
 
-// __________             .__
-// \______   \__ __  _____|  |__
-//  |     ___/  |  \/  ___/  |  \
-//  |    |   |  |  /\___ \|   Y  \
-//  |____|   |____//____  >___|  /
-//                      \/     \/
-
 // PushPayload represents a payload information of push event.
 type PushPayload struct {
 	Ref          string           `json:"ref"`
@@ -492,5 +485,29 @@ type PackagePayload struct {
 
 // JSONPayload implements Payload
 func (p *PackagePayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
+// CommitStatusPayload represents a payload information of commit status event.
+type CommitStatusPayload struct {
+	// TODO: add Branches per https://docs.github.com/en/webhooks/webhook-events-and-payloads#status
+	Commit  *PayloadCommit `json:"commit"`
+	Context string         `json:"context"`
+	// swagger:strfmt date-time
+	CreatedAt   time.Time `json:"created_at"`
+	Description string    `json:"description"`
+	ID          int64     `json:"id"`
+	// Name        string         `json:"name"`
+	Repo      *Repository `json:"repository"`
+	Sender    *User       `json:"sender"`
+	SHA       string      `json:"sha"`
+	State     string      `json:"state"`
+	TargetURL string      `json:"target_url"`
+	// swagger:strfmt date-time
+	UpdatedAt *time.Time `json:"updated_at"`
+}
+
+// JSONPayload FIXME
+func (p *CommitStatusPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
