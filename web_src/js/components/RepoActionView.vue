@@ -193,10 +193,21 @@ const sfc = {
     },
 
     appendLogs(stepIndex, logLines, startTime) {
+      // position of the client view relative to the website top
+      const clientHeight = document.documentElement.clientHeight + window.scrollY;
+      // height of the logs container relative to the website top
+      const logsContainerHeight = this.$refs.stepsContainer.getBoundingClientRect().bottom + window.scrollY;
+
       for (const line of logLines) {
         // TODO: group support: ##[group]GroupTitle , ##[endgroup]
         const el = this.getLogsContainer(stepIndex);
         el.append(this.createLogLine(line, startTime, stepIndex));
+      }
+
+      // scrolls to the bottom if job is running and the bottom of the logs container is visible
+      if (!this.run.done && logLines.length && clientHeight >= logsContainerHeight) {
+        const newLogsContainerHeight = this.$refs.stepsContainer.getBoundingClientRect().bottom + window.scrollY;
+        window.scrollTo({top: clientHeight + (newLogsContainerHeight - logsContainerHeight), behavior: 'smooth'});
       }
     },
 
@@ -438,7 +449,7 @@ export function initRepositoryActionView() {
         </div>
       </div>
 
-      <div class="action-view-right">
+      <div class="action-view-right" ref="stepsContainer">
         <div class="job-info-header">
           <div class="job-info-header-left gt-ellipsis">
             <h3 class="job-info-header-title gt-ellipsis">
