@@ -1,0 +1,24 @@
+<div class="ui icon search input">
+	<i class="icon">{{svg "octicon-search" 16}}</i>
+	<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignees"}}">
+</div>
+<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
+
+<div class="scrolling menu no-select">
+	{{range .Assignees}}
+
+		{{$AssigneeID := .ID}}
+		<a class="item{{range $.Issue.Assignees}}{{if eq .ID $AssigneeID}} checked{{end}}{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
+			{{$checked := false}}
+			{{range $.Issue.Assignees}}
+				{{if eq .ID $AssigneeID}}
+					{{$checked = true}}
+				{{end}}
+			{{end}}
+			<span class="octicon-check {{if not $checked}}tw-invisible{{end}}">{{svg "octicon-check"}}</span>
+			<span class="text">
+				{{ctx.AvatarUtils.Avatar . 20 "tw-mr-2"}}{{template "repo/search_name" .}}
+			</span>
+		</a>
+	{{end}}
+</div>

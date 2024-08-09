@@ -13,34 +13,36 @@
 			</div>
 		{{end}}
 		<a class="no-select item" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
-		{{if or .Labels .OrgLabels}}
-			{{$previousExclusiveScope := "_no_scope"}}
-			{{range .Labels}}
-				{{$exclusiveScope := .ExclusiveScope}}
-				{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-					<div class="divider"></div>
+		<div class="scrolling menu no-select">
+			{{if or .Labels .OrgLabels}}
+				{{$previousExclusiveScope := "_no_scope"}}
+				{{range .Labels}}
+					{{$exclusiveScope := .ExclusiveScope}}
+					{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+						<div class="divider"></div>
+					{{end}}
+					{{$previousExclusiveScope = $exclusiveScope}}
+					<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" {{if .IsArchived}}data-is-archived{{end}} data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}tw-invisible{{end}}">{{svg (Iif $exclusiveScope "octicon-dot-fill" "octicon-check")}}</span>&nbsp;&nbsp;{{RenderLabel $.Context ctx.Locale .}}
+						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
+						<p class="archived-label-hint">{{template "repo/issue/labels/label_archived" .}}</p>
+					</a>
 				{{end}}
-				{{$previousExclusiveScope = $exclusiveScope}}
-				<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" {{if .IsArchived}}data-is-archived{{end}} data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}tw-invisible{{end}}">{{svg (Iif $exclusiveScope "octicon-dot-fill" "octicon-check")}}</span>&nbsp;&nbsp;{{RenderLabel $.Context ctx.Locale .}}
-					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
-					<p class="archived-label-hint">{{template "repo/issue/labels/label_archived" .}}</p>
-				</a>
-			{{end}}
-			<div class="divider"></div>
-			{{$previousExclusiveScope = "_no_scope"}}
-			{{range .OrgLabels}}
-				{{$exclusiveScope := .ExclusiveScope}}
-				{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-					<div class="divider"></div>
+				<div class="divider"></div>
+				{{$previousExclusiveScope = "_no_scope"}}
+				{{range .OrgLabels}}
+					{{$exclusiveScope := .ExclusiveScope}}
+					{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+						<div class="divider"></div>
+					{{end}}
+					{{$previousExclusiveScope = $exclusiveScope}}
+					<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" {{if .IsArchived}}data-is-archived{{end}} data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}tw-invisible{{end}}">{{svg (Iif $exclusiveScope "octicon-dot-fill" "octicon-check")}}</span>&nbsp;&nbsp;{{RenderLabel $.Context ctx.Locale .}}
+						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
+						<p class="archived-label-hint">{{template "repo/issue/labels/label_archived" .}}</p>
+					</a>
 				{{end}}
-				{{$previousExclusiveScope = $exclusiveScope}}
-				<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" {{if .IsArchived}}data-is-archived{{end}} data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}tw-invisible{{end}}">{{svg (Iif $exclusiveScope "octicon-dot-fill" "octicon-check")}}</span>&nbsp;&nbsp;{{RenderLabel $.Context ctx.Locale .}}
-					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
-					<p class="archived-label-hint">{{template "repo/issue/labels/label_archived" .}}</p>
-				</a>
+			{{else}}
+				<div class="disabled item">{{ctx.Locale.Tr "repo.issues.new.no_items"}}</div>
 			{{end}}
-		{{else}}
-			<div class="disabled item">{{ctx.Locale.Tr "repo.issues.new.no_items"}}</div>
-		{{end}}
+		</div>
 	</div>
 </div>

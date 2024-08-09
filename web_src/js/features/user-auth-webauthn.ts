@@ -178,6 +178,10 @@ async function webauthnRegistered(newCredential) {
 function webAuthnError(errorType, message) {
   const elErrorMsg = document.querySelector(`#webauthn-error-msg`);
 
+  if (!elErrorMsg) {
+    return;
+  }
+
   if (errorType === 'general') {
     elErrorMsg.textContent = message || 'unknown error';
   } else {

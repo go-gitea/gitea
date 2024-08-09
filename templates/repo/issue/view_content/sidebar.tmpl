@@ -16,33 +16,35 @@
 						<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_reviewers"}}">
 					</div>
 				{{end}}
-				{{if .Reviewers}}
-					{{range .Reviewers}}
-						{{if .User}}
-							<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-								<span class="octicon-check {{if not .Checked}}tw-invisible{{end}}">{{svg "octicon-check"}}</span>
-								<span class="text">
-									{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}{{template "repo/search_name" .User}}
-								</span>
-							</a>
-						{{end}}
-					{{end}}
-				{{end}}
-				{{if .TeamReviewers}}
+				<div class="scrolling menu no-select">
 					{{if .Reviewers}}
-						<div class="divider"></div>
-					{{end}}
-					{{range .TeamReviewers}}
-						{{if .Team}}
-							<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-								<span class="octicon-check {{if not .Checked}}tw-invisible{{end}}">{{svg "octicon-check" 16}}</span>
-								<span class="text">
-									{{svg "octicon-people" 16 "tw-ml-4 tw-mr-1"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
-								</span>
-							</a>
+						{{range .Reviewers}}
+							{{if .User}}
+								<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+									<span class="octicon-check {{if not .Checked}}tw-invisible{{end}}">{{svg "octicon-check"}}</span>
+									<span class="text">
+										{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}{{template "repo/search_name" .User}}
+									</span>
+								</a>
+							{{end}}
 						{{end}}
 					{{end}}
-				{{end}}
+					{{if .TeamReviewers}}
+						{{if .Reviewers}}
+							<div class="divider"></div>
+						{{end}}
+						{{range .TeamReviewers}}
+							{{if .Team}}
+								<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+									<span class="octicon-check {{if not .Checked}}tw-invisible{{end}}">{{svg "octicon-check" 16}}</span>
+									<span class="text">
+										{{svg "octicon-people" 16 "tw-ml-4 tw-mr-1"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
+									</span>
+								</a>
+							{{end}}
+						{{end}}
+					{{end}}
+				</div>
 			</div>
 		</div>
 
@@ -162,35 +164,7 @@
 				{{end}}
 			</a>
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
-				{{if or .OpenProjects .ClosedProjects}}
-				<div class="ui icon search input">
-					<i class="icon">{{svg "octicon-search" 16}}</i>
-					<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_projects"}}">
-				</div>
-				{{end}}
-				<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
-				{{if .OpenProjects}}
-					<div class="divider"></div>
-					<div class="header">
-						{{ctx.Locale.Tr "repo.issues.new.open_projects"}}
-					</div>
-					{{range .OpenProjects}}
-						<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
-							{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
-						</a>
-					{{end}}
-				{{end}}
-				{{if .ClosedProjects}}
-					<div class="divider"></div>
-					<div class="header">
-						{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}
-					</div>
-					{{range .ClosedProjects}}
-						<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
-							{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
-						</a>
-					{{end}}
-				{{end}}
+				{{template "repo/issue/projects/select_menu" .}}
 			</div>
 		</div>
 		<div class="ui select-project list">
@@ -216,27 +190,7 @@
 			{{end}}
 		</a>
 		<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
-			<div class="ui icon search input">
-				<i class="icon">{{svg "octicon-search" 16}}</i>
-				<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignees"}}">
-			</div>
-			<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
-			{{range .Assignees}}
-
-				{{$AssigneeID := .ID}}
-				<a class="item{{range $.Issue.Assignees}}{{if eq .ID $AssigneeID}} checked{{end}}{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
-					{{$checked := false}}
-					{{range $.Issue.Assignees}}
-						{{if eq .ID $AssigneeID}}
-							{{$checked = true}}
-						{{end}}
-					{{end}}
-					<span class="octicon-check {{if not $checked}}tw-invisible{{end}}">{{svg "octicon-check"}}</span>
-					<span class="text">
-						{{ctx.AvatarUtils.Avatar . 20 "tw-mr-2"}}{{template "repo/search_name" .}}
-					</span>
-				</a>
-			{{end}}
+			{{template "repo/issue/assignees/select_menu" .}}
 		</div>
 	</div>
 	<div class="ui assignees list">

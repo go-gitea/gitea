@@ -6,6 +6,8 @@
 	<div class="divider"></div>
 {{end}}
 <div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_milestone"}}</div>
+
+<div class="scrolling menu no-select">
 {{if and (not .OpenMilestones) (not .ClosedMilestones)}}
 	<div class="disabled item">
 		{{ctx.Locale.Tr "repo.issues.new.no_items"}}
@@ -36,3 +38,4 @@
 		{{end}}
 	{{end}}
 {{end}}
+</div>

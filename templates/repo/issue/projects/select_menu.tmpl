@@ -1,0 +1,31 @@
+{{if or .OpenProjects .ClosedProjects}}
+<div class="ui icon search input">
+	<i class="icon">{{svg "octicon-search" 16}}</i>
+	<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_projects"}}">
+</div>
+{{end}}
+<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
+<div class="scrolling menu no-select">
+	{{if .OpenProjects}}
+		<div class="divider"></div>
+		<div class="header">
+			{{ctx.Locale.Tr "repo.issues.new.open_projects"}}
+		</div>
+		{{range .OpenProjects}}
+			<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
+				{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
+			</a>
+		{{end}}
+	{{end}}
+	{{if .ClosedProjects}}
+		<div class="divider"></div>
+		<div class="header">
+			{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}
+		</div>
+		{{range .ClosedProjects}}
+			<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
+				{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
+			</a>
+		{{end}}
+	{{end}}
+</div>
