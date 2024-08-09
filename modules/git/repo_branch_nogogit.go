@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// IsObjectExist returns true if given reference exists in the repository.
+// IsObjectExist returns true if the given object exists in the repository.
 func (repo *Repository) IsObjectExist(name string) bool {
 	if name == "" {
 		return false
