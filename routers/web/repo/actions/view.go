@@ -528,7 +528,6 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions
 		return nil, nil
 	}
 	run.Repo = ctx.Repo.Repository
-	fmt.Println("-----getRunJobs", runIndex, jobIndex)
 	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -538,7 +537,6 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions
 		ctx.Error(http.StatusNotFound)
 		return nil, nil
 	}
-	fmt.Println("-----getRunJobs", len(jobs))
 
 	for _, v := range jobs {
 		v.Run = run
