@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -174,6 +175,22 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	if oldOwner.IsOrganization() {
 		if err := organization.RemoveOrgRepo(ctx, oldOwner.ID, repo.ID); err != nil {
 			return fmt.Errorf("removeOrgRepo: %w", err)
+		}
+	}
+
+	// Remove project's issues that belong to old organization's projects
+	if oldOwner.IsOrganization() {
+		projects, err := project_model.GetAllProjectsIDsByOwnerIDAndType(ctx, oldOwner.ID, project_model.TypeOrganization)
+		if err != nil {
+			return fmt.Errorf("Unable to find old org projects: %w", err)
+		}
+		issues, err := issues_model.GetIssueIDsByRepoID(ctx, repo.ID)
+		if err != nil {
+			return fmt.Errorf("Unable to find repo's issues: %w", err)
+		}
+		err = project_model.DeleteAllProjectIssueByIssueIDsAndProjectIDs(ctx, issues, projects)
+		if err != nil {
+			return fmt.Errorf("Unable to delete project's issues: %w", err)
 		}
 	}
 

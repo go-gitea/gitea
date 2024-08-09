@@ -296,6 +296,12 @@ func GetProjectForRepoByID(ctx context.Context, repoID, id int64) (*Project, err
 	return p, nil
 }
 
+// GetAllProjectsIDsByOwnerID returns the all projects ids it owns
+func GetAllProjectsIDsByOwnerIDAndType(ctx context.Context, ownerID int64, projectType Type) ([]int64, error) {
+	projects := make([]int64, 0)
+	return projects, db.GetEngine(ctx).Table(&Project{}).Where("owner_id=? AND type=?", ownerID, projectType).Cols("id").Find(&projects)
+}
+
 // UpdateProject updates project properties
 func UpdateProject(ctx context.Context, p *Project) error {
 	if !IsCardTypeValid(p.CardType) {
