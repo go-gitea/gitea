@@ -83,7 +83,7 @@ func getCommit(ctx *context.APIContext, identifier string, toCommitOpts convert.
 		return
 	}
 
-	json, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil, toCommitOpts)
+	json, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil, ctx.Doer, toCommitOpts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "toCommit", err)
 		return
@@ -257,7 +257,7 @@ func GetAllCommits(ctx *context.APIContext) {
 
 	for i, commit := range commits {
 		// Create json struct
-		apiCommits[i], err = convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, userCache, convert.ParseCommitOptions(ctx))
+		apiCommits[i], err = convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, userCache, ctx.Doer, convert.ParseCommitOptions(ctx))
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "toCommit", err)
 			return

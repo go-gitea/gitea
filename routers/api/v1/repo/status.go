@@ -69,7 +69,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToCommitStatus(ctx, status))
+	ctx.JSON(http.StatusCreated, convert.ToCommitStatus(ctx, status, ctx.Doer))
 }
 
 // GetCommitStatuses returns all statuses for any given commit hash
@@ -209,7 +209,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 
 	apiStatuses := make([]*api.CommitStatus, 0, len(statuses))
 	for _, status := range statuses {
-		apiStatuses = append(apiStatuses, convert.ToCommitStatus(ctx, status))
+		apiStatuses = append(apiStatuses, convert.ToCommitStatus(ctx, status, ctx.Doer))
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -275,7 +275,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 		return
 	}
 
-	combiStatus := convert.ToCombinedStatus(ctx, statuses, convert.ToRepo(ctx, repo, ctx.Repo.Permission))
+	combiStatus := convert.ToCombinedStatus(ctx, statuses, convert.ToRepo(ctx, repo, ctx.Repo.Permission, ctx.Doer), ctx.Doer)
 
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, combiStatus)

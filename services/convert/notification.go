@@ -10,11 +10,12 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToNotificationThread convert a Notification to api.NotificationThread
-func ToNotificationThread(ctx context.Context, n *activities_model.Notification) *api.NotificationThread {
+func ToNotificationThread(ctx context.Context, n *activities_model.Notification, doer *user_model.User) *api.NotificationThread {
 	result := &api.NotificationThread{
 		ID:        n.ID,
 		Unread:    !(n.Status == activities_model.NotificationStatusRead || n.Status == activities_model.NotificationStatusPinned),
@@ -25,7 +26,7 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 
 	// since user only get notifications when he has access to use minimal access mode
 	if n.Repository != nil {
-		result.Repository = ToRepo(ctx, n.Repository, access_model.Permission{AccessMode: perm.AccessModeRead})
+		result.Repository = ToRepo(ctx, n.Repository, access_model.Permission{AccessMode: perm.AccessModeRead}, doer)
 
 		// This permission is not correct and we should not be reporting it
 		for repository := result.Repository; repository != nil; repository = repository.Parent {
@@ -89,10 +90,10 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 }
 
 // ToNotifications convert list of Notification to api.NotificationThread list
-func ToNotifications(ctx context.Context, nl activities_model.NotificationList) []*api.NotificationThread {
+func ToNotifications(ctx context.Context, nl activities_model.NotificationList, doer *user_model.User) []*api.NotificationThread {
 	result := make([]*api.NotificationThread, 0, len(nl))
 	for _, n := range nl {
-		result = append(result, ToNotificationThread(ctx, n))
+		result = append(result, ToNotificationThread(ctx, n, doer))
 	}
 	return result
 }

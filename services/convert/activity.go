@@ -28,7 +28,7 @@ func ToActivity(ctx context.Context, ac *activities_model.Action, doer *user_mod
 		ActUserID: ac.ActUserID,
 		ActUser:   ToUser(ctx, ac.ActUser, doer),
 		RepoID:    ac.RepoID,
-		Repo:      ToRepo(ctx, ac.Repo, p),
+		Repo:      ToRepo(ctx, ac.Repo, p, doer),
 		RefName:   ac.RefName,
 		IsPrivate: ac.IsPrivate,
 		Content:   ac.Content,
@@ -37,7 +37,7 @@ func ToActivity(ctx context.Context, ac *activities_model.Action, doer *user_mod
 
 	if ac.Comment != nil {
 		result.CommentID = ac.CommentID
-		result.Comment = ToAPIComment(ctx, ac.Repo, ac.Comment)
+		result.Comment = ToAPIComment(ctx, ac.Repo, ac.Comment, doer)
 	}
 
 	return result

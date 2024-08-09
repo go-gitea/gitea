@@ -112,7 +112,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	apiComments := make([]*api.Comment, len(comments))
 	for i, comment := range comments {
 		comment.Issue = issue
-		apiComments[i] = convert.ToAPIComment(ctx, ctx.Repo.Repository, comments[i])
+		apiComments[i] = convert.ToAPIComment(ctx, ctx.Repo.Repository, comments[i], ctx.Doer)
 	}
 
 	ctx.SetTotalCountHeader(totalCount)
@@ -332,7 +332,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 	for i := range comments {
-		apiComments[i] = convert.ToAPIComment(ctx, ctx.Repo.Repository, comments[i])
+		apiComments[i] = convert.ToAPIComment(ctx, ctx.Repo.Repository, comments[i], ctx.Doer)
 	}
 
 	ctx.SetTotalCountHeader(totalCount)
@@ -406,7 +406,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment))
+	ctx.JSON(http.StatusCreated, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment, ctx.Doer))
 }
 
 // GetIssueComment Get a comment by ID
@@ -479,7 +479,7 @@ func GetIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment))
+	ctx.JSON(http.StatusOK, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment, ctx.Doer))
 }
 
 // EditIssueComment modify a comment of an issue
@@ -620,7 +620,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment))
+	ctx.JSON(http.StatusOK, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment, ctx.Doer))
 }
 
 // DeleteIssueComment delete a comment from an issue

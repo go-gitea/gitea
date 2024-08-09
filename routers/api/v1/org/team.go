@@ -588,7 +588,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 			return
 		}
-		repos[i] = convert.ToRepo(ctx, repo, permission)
+		repos[i] = convert.ToRepo(ctx, repo, permission, ctx.Doer)
 	}
 	ctx.SetTotalCountHeader(int64(team.NumRepos))
 	ctx.JSON(http.StatusOK, repos)
@@ -640,7 +640,7 @@ func GetTeamRepo(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, permission))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, permission, ctx.Doer))
 }
 
 // getRepositoryByParams get repository by a team's organization ID and repo name

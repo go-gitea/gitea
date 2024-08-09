@@ -15,10 +15,10 @@ import (
 )
 
 // ToAPIComment converts a issues_model.Comment to the api.Comment format for API usage
-func ToAPIComment(ctx context.Context, repo *repo_model.Repository, c *issues_model.Comment) *api.Comment {
+func ToAPIComment(ctx context.Context, repo *repo_model.Repository, c *issues_model.Comment, doer *user_model.User) *api.Comment {
 	return &api.Comment{
 		ID:          c.ID,
-		Poster:      ToUser(ctx, c.Poster, nil),
+		Poster:      ToUser(ctx, c.Poster, doer),
 		HTMLURL:     c.HTMLURL(ctx),
 		IssueURL:    c.IssueURL(ctx),
 		PRURL:       c.PRURL(ctx),
@@ -81,7 +81,7 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 	comment := &api.TimelineComment{
 		ID:       c.ID,
 		Type:     c.Type.String(),
-		Poster:   ToUser(ctx, c.Poster, nil),
+		Poster:   ToUser(ctx, c.Poster, doer),
 		HTMLURL:  c.HTMLURL(ctx),
 		IssueURL: c.IssueURL(ctx),
 		PRURL:    c.PRURL(ctx),
@@ -143,7 +143,7 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 			log.Error("LoadPoster: %v", err)
 			return nil
 		}
-		comment.RefComment = ToAPIComment(ctx, repo, com)
+		comment.RefComment = ToAPIComment(ctx, repo, com, doer)
 	}
 
 	if c.Label != nil {
@@ -169,14 +169,14 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 	}
 
 	if c.Assignee != nil {
-		comment.Assignee = ToUser(ctx, c.Assignee, nil)
+		comment.Assignee = ToUser(ctx, c.Assignee, doer)
 	}
 	if c.AssigneeTeam != nil {
 		comment.AssigneeTeam, _ = ToTeam(ctx, c.AssigneeTeam)
 	}
 
 	if c.ResolveDoer != nil {
-		comment.ResolveDoer = ToUser(ctx, c.ResolveDoer, nil)
+		comment.ResolveDoer = ToUser(ctx, c.ResolveDoer, doer)
 	}
 
 	if c.DependentIssue != nil {

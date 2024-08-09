@@ -12,7 +12,7 @@ import (
 )
 
 // ToCommitStatus converts git_model.CommitStatus to api.CommitStatus
-func ToCommitStatus(ctx context.Context, status *git_model.CommitStatus) *api.CommitStatus {
+func ToCommitStatus(ctx context.Context, status *git_model.CommitStatus, doer *user_model.User) *api.CommitStatus {
 	apiStatus := &api.CommitStatus{
 		Created:     status.CreatedUnix.AsTime(),
 		Updated:     status.CreatedUnix.AsTime(),
@@ -26,14 +26,14 @@ func ToCommitStatus(ctx context.Context, status *git_model.CommitStatus) *api.Co
 
 	if status.CreatorID != 0 {
 		creator, _ := user_model.GetUserByID(ctx, status.CreatorID)
-		apiStatus.Creator = ToUser(ctx, creator, nil)
+		apiStatus.Creator = ToUser(ctx, creator, doer)
 	}
 
 	return apiStatus
 }
 
 // ToCombinedStatus converts List of CommitStatus to a CombinedStatus
-func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, repo *api.Repository) *api.CombinedStatus {
+func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, repo *api.Repository, doer *user_model.User) *api.CombinedStatus {
 	if len(statuses) == 0 {
 		return nil
 	}
@@ -47,7 +47,7 @@ func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, r
 
 	retStatus.Statuses = make([]*api.CommitStatus, 0, len(statuses))
 	for _, status := range statuses {
-		retStatus.Statuses = append(retStatus.Statuses, ToCommitStatus(ctx, status))
+		retStatus.Statuses = append(retStatus.Statuses, ToCommitStatus(ctx, status, doer))
 		if retStatus.State == "" || status.State.NoBetterThan(retStatus.State) {
 			retStatus.State = status.State
 		}
