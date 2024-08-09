@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -73,7 +74,12 @@ func (t *Task) Run() {
 
 // RunWithUser will run the task incrementing the cron counter at the time with User
 func (t *Task) RunWithUser(doer *user_model.User, config Config) {
-	if !taskStatusTable.StartIfNotRunning(t.Name) {
+	lock := globallock.GetLock(fmt.Sprintf("cron_tasks_%s", t.Name))
+	if success, err := lock.TryLock(); err != nil {
+		log.Error("Unable to lock cron task %s Error: %v", t.Name, err)
+		return
+	} else if !success {
+		// get lock failed, so that there must be another task are running.
 		return
 	}
 	t.lock.Lock()
@@ -83,7 +89,9 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 	t.ExecTimes++
 	t.lock.Unlock()
 	defer func() {
-		taskStatusTable.Stop(t.Name)
+		if _, err := lock.Unlock(); err != nil {
+			log.Error("Unable to unlock cron task %s Error: %v", t.Name, err)
+		}
 	}()
 	graceful.GetManager().RunWithShutdownContext(func(baseCtx context.Context) {
 		defer func() {
