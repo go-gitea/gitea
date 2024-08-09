@@ -16,8 +16,10 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -341,14 +343,29 @@ func generateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		TemplateID:       templateRepo.ID,
 		TrustModel:       templateRepo.TrustModel,
 		ObjectFormatName: templateRepo.ObjectFormatName,
+		Status:           repo_model.RepositoryBeingMigrated,
 	}
 
-	if err = repo_module.CreateRepositoryByExample(ctx, doer, owner, generateRepo, false, false); err != nil {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		return repo_module.CreateRepositoryByExample(ctx, doer, owner, generateRepo, false, false)
+	}); err != nil {
 		return nil, err
 	}
 
 	repoPath := generateRepo.RepoPath()
 	isExist, err := util.IsExist(repoPath)
+	defer func() {
+		if err != nil {
+			if errDelete := DeleteRepositoryDirectly(ctx, doer, generateRepo.ID); errDelete != nil {
+				log.Error("Rollback deleteRepository: %v", errDelete)
+				// add system notice
+				if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when generate repository: %v", errDelete); err != nil {
+					log.Error("CreateRepositoryNotice: %v", err)
+				}
+			}
+		}
+	}()
+
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
 		return nil, err
