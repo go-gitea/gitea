@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/git"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -101,6 +102,17 @@ func HasUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch
 			repoID, branch, false, false, PullRequestFlowGithub).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
 		Exist(&PullRequest{})
+}
+
+func GetUnmergedPullRequestBranchHeads(ctx context.Context, repoID int64, branch string) ([]*git.Branch, error) {
+	branches := make([]*git.Branch, 0, 2)
+	return branches, db.GetEngine(ctx).
+		Table("branch").
+		Where("base_repo_id=? AND base_branch=? AND has_merged=? AND issue.is_closed=?",
+			repoID, branch, false, false).
+		Join("INNER", "issue", "issue.id=pull_request.issue_id").
+		Join("INNER", "pull_request", "branch.repo_id=pull_request.head_repo_id AND branch.name=pull_request.head_branch").
+		Find(&branches)
 }
 
 // GetUnmergedPullRequestsByBaseInfo returns all pull requests that are open and has not been merged
