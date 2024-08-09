@@ -898,6 +898,48 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			assert.False(t, prMsg.HasMerged)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 		})
+
+		t.Run("AddCommit3", func(t *testing.T) {
+			err := os.WriteFile(path.Join(dstPath, "test_file_2"), []byte("## test content \n ## test content 2"), 0o666)
+			if !assert.NoError(t, err) {
+				return
+			}
+
+			err = git.AddChanges(dstPath, true)
+			assert.NoError(t, err)
+
+			err = git.CommitChanges(dstPath, git.CommitChangesOptions{
+				Committer: &git.Signature{
+					Email: "user2@example.com",
+					Name:  "user2",
+					When:  time.Now(),
+				},
+				Author: &git.Signature{
+					Email: "user2@example.com",
+					Name:  "user2",
+					When:  time.Now(),
+				},
+				Message: "Testing commit 3",
+			})
+			assert.NoError(t, err)
+			commit, err = gitRepo.GetRefCommitID("HEAD")
+			assert.NoError(t, err)
+		})
+
+		t.Run("PushByForReview", func(t *testing.T) {
+			err := git.NewCommand(git.DefaultContext, "push", "origin").AddDynamicArguments(fmt.Sprintf("HEAD:refs/for-review/%d", pr1.Index)).Run(&git.RunOpts{Dir: dstPath})
+			if !assert.NoError(t, err) {
+				return
+			}
+
+			prMsg, err := doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
+			if !assert.NoError(t, err) {
+				return
+			}
+			assert.False(t, prMsg.HasMerged)
+			assert.Equal(t, commit, prMsg.Head.Sha)
+		})
+
 		t.Run("Merge", doAPIMergePullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index))
 		t.Run("CheckoutMasterAgain", doGitCheckoutBranch(dstPath, "master"))
 	}
