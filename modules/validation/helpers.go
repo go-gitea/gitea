@@ -6,6 +6,7 @@ package validation
 import (
 	"net"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -45,6 +46,29 @@ func IsValidSiteURL(uri string) bool {
 	for _, scheme := range setting.Service.ValidSiteURLSchemes {
 		if scheme == u.Scheme {
 			return true
+		}
+	}
+	return false
+}
+
+// IsValidImageURL checks if URL is valid and points to an image
+func IsValidImageURL(uri string) bool {
+	u, err := url.ParseRequestURI(uri)
+	if err != nil {
+		return false
+	}
+
+	if !validPort(portOnly(u.Host)) {
+		return false
+	}
+
+	for _, scheme := range setting.Service.ValidSiteURLSchemes {
+		if scheme == u.Scheme {
+			// Check if the path has an image file extension
+			ext := strings.ToLower(filepath.Ext(u.Path))
+			if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".gif" || ext == ".bmp" || ext == ".svg" || ext == ".webp" {
+				return true
+			}
 		}
 	}
 	return false
@@ -126,4 +150,8 @@ func IsValidUsername(name string) bool {
 	// It is difficult to find a single pattern that is both readable and effective,
 	// but it's easier to use positive and negative checks.
 	return validUsernamePattern.MatchString(name) && !invalidUsernamePattern.MatchString(name)
+}
+
+func IsValidSlug(slug string) bool {
+	return IsValidUsername(slug)
 }

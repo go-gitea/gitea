@@ -13,7 +13,7 @@
 				</a>
 			</div>
 		</details>
-		<details class="item toggleable-item" {{if or .PageIsAdminUsers .PageIsAdminEmails .PageIsAdminOrganizations .PageIsAdminAuthentications}}open{{end}}>
+		<details class="item toggleable-item" {{if or .PageIsAdminUsers .PageIsAdminBadges .PageIsAdminEmails .PageIsAdminOrganizations .PageIsAdminAuthentications}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "admin.identity_access"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsAdminAuthentications}}active {{end}}item" href="{{AppSubUrl}}/admin/auths">
@@ -24,6 +24,9 @@
 				</a>
 				<a class="{{if .PageIsAdminUsers}}active {{end}}item" href="{{AppSubUrl}}/admin/users">
 					{{ctx.Locale.Tr "admin.users"}}
+				</a>
+				<a class="{{if .PageIsAdminBadges}}active {{end}}item" href="{{AppSubUrl}}/admin/badges">
+					{{ctx.Locale.Tr "admin.badges"}}
 				</a>
 				<a class="{{if .PageIsAdminEmails}}active {{end}}item" href="{{AppSubUrl}}/admin/emails">
 					{{ctx.Locale.Tr "admin.emails"}}
