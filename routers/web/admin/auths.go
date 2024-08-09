@@ -121,7 +121,7 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 	}
 	return &ldap.Source{
 		Name:                  form.Name,
-		Host:                  form.Host,
+		HostList:              form.Host,
 		Port:                  form.Port,
 		SecurityProtocol:      ldap.SecurityProtocol(form.SecurityProtocol),
 		SkipVerify:            form.SkipVerify,
