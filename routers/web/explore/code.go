@@ -81,6 +81,7 @@ func Code(ctx *context.Context) {
 			RepoIDs:        repoIDs,
 			Keyword:        keyword,
 			IsKeywordFuzzy: isFuzzy,
+			IsHTMLSafe:     true,
 			Language:       language,
 			Paginator: &db.ListOptions{
 				Page:     page,

@@ -85,6 +85,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/activitypub"
 	"code.gitea.io/gitea/routers/api/v1/admin"
+	"code.gitea.io/gitea/routers/api/v1/explore"
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
@@ -890,6 +891,14 @@ func Routes() *web.Router {
 		// Misc (public accessible)
 		m.Group("", func() {
 			m.Get("/version", misc.Version)
+			m.Group("/explore", func() {
+				m.Get("/code", func(ctx *context.APIContext) {
+					if unit.TypeCode.UnitGlobalDisabled() {
+						ctx.NotFound("Repo unit code is disabled", nil)
+						return
+					}
+				}, explore.Code)
+			})
 			m.Get("/signing-key.gpg", misc.SigningKey)
 			m.Post("/markup", reqToken(), bind(api.MarkupOption{}), misc.Markup)
 			m.Post("/markdown", reqToken(), bind(api.MarkdownOption{}), misc.Markdown)
