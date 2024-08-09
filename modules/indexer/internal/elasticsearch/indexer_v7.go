@@ -12,10 +12,10 @@ import (
 	"github.com/olivere/elastic/v7"
 )
 
-var _ internal.Indexer = &Indexer{}
+var _ internal.Indexer = &IndexerV7{}
 
-// Indexer represents a basic elasticsearch indexer implementation
-type Indexer struct {
+// IndexerV7 represents a basic elasticsearch indexer implementation
+type IndexerV7 struct {
 	Client *elastic.Client
 
 	url       string
@@ -24,8 +24,8 @@ type Indexer struct {
 	mapping   string
 }
 
-func NewIndexer(url, indexName string, version int, mapping string) *Indexer {
-	return &Indexer{
+func NewIndexerV7(url, indexName string, version int, mapping string) *IndexerV7 {
+	return &IndexerV7{
 		url:       url,
 		indexName: indexName,
 		version:   version,
@@ -34,7 +34,7 @@ func NewIndexer(url, indexName string, version int, mapping string) *Indexer {
 }
 
 // Init initializes the indexer
-func (i *Indexer) Init(ctx context.Context) (bool, error) {
+func (i *IndexerV7) Init(ctx context.Context) (bool, error) {
 	if i == nil {
 		return false, fmt.Errorf("cannot init nil indexer")
 	}
@@ -64,7 +64,7 @@ func (i *Indexer) Init(ctx context.Context) (bool, error) {
 }
 
 // Ping checks if the indexer is available
-func (i *Indexer) Ping(ctx context.Context) error {
+func (i *IndexerV7) Ping(ctx context.Context) error {
 	if i == nil {
 		return fmt.Errorf("cannot ping nil indexer")
 	}
@@ -85,7 +85,7 @@ func (i *Indexer) Ping(ctx context.Context) error {
 }
 
 // Close closes the indexer
-func (i *Indexer) Close() {
+func (i *IndexerV7) Close() {
 	if i == nil {
 		return
 	}
