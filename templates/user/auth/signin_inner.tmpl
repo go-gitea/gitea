@@ -14,20 +14,22 @@
 			{{.CsrfTokenHtml}}
 			<div class="required field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 				<label for="user_name">{{ctx.Locale.Tr "home.uname_holder"}}</label>
-				<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
+				<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required tabindex="1">
 			</div>
 			{{if or (not .DisablePassword) .LinkAccountMode}}
 			<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}} form-field-content-aside-label">
 				<label for="password">{{ctx.Locale.Tr "password"}}</label>
-				<a href="{{AppSubUrl}}/user/forgot_password">{{ctx.Locale.Tr "auth.forgot_password"}}</a>
-				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="current-password" required>
+				<div>
+					<a href="{{AppSubUrl}}/user/forgot_password" tabindex="4">{{ctx.Locale.Tr "auth.forgot_password"}}</a>
+				</div>
+				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="current-password" required tabindex="2">
 			</div>
 			{{end}}
 			{{if not .LinkAccountMode}}
 			<div class="inline field">
 				<div class="ui checkbox">
 					<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
-					<input name="remember" type="checkbox">
+					<input name="remember" type="checkbox" tabindex="5">
 				</div>
 			</div>
 			{{end}}
@@ -35,7 +37,7 @@
 			{{template "user/auth/captcha" .}}
 
 			<div class="field">
-				<button class="ui primary button tw-w-full">
+				<button class="ui primary button tw-w-full" tabindex="3">
 					{{if .LinkAccountMode}}
 						{{ctx.Locale.Tr "auth.oauth_signin_submit"}}
 					{{else}}
