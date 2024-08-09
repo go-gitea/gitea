@@ -11,7 +11,9 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"xorm.io/builder"
@@ -70,6 +72,14 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 	}); err != nil {
 		return err
 	}
+
+	run, _, err := db.GetByID[actions_model.ActionRun](ctx, runID)
+	if err != nil {
+		log.Error("GetByID failed: %v", err)
+	} else if run.Status == actions_model.StatusSuccess || run.Status == actions_model.StatusFailure {
+		notify_service.ActionRunFinished(ctx, run)
+	}
+
 	CreateCommitStatus(ctx, jobs...)
 	return nil
 }
