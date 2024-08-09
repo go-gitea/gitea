@@ -1364,6 +1364,10 @@ table th[data-sortt-desc] .svg {
   min-width: 0; /* make ellipsis work */
 }
 
+.ui.multiple.selection.dropdown {
+  flex-wrap: wrap;
+}
+
 .ui.ui.dropdown.selection {
   min-width: 14em; /* match the default min width */
 }
