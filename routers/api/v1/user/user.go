@@ -68,11 +68,12 @@ func Search(ctx *context.APIContext) {
 		users = []*user_model.User{user_model.NewActionsUser()}
 	default:
 		users, maxResults, err = user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
-			Actor:       ctx.Doer,
-			Keyword:     ctx.FormTrim("q"),
-			UID:         uid,
-			Type:        user_model.UserTypeIndividual,
-			ListOptions: listOptions,
+			Actor:         ctx.Doer,
+			Keyword:       ctx.FormTrim("q"),
+			UID:           uid,
+			Type:          user_model.UserTypeIndividual,
+			SearchByEmail: true,
+			ListOptions:   listOptions,
 		})
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, map[string]any{
