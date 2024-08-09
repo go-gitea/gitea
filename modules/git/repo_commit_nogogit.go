@@ -33,9 +33,12 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	if err != nil {
+		return "", err
+	}
 	defer cancel()
-	_, err := wr.Write([]byte(name + "\n"))
+	_, err = wr.Write([]byte(name + "\n"))
 	if err != nil {
 		return "", err
 	}
@@ -61,12 +64,19 @@ func (repo *Repository) RemoveReference(name string) error {
 
 // IsCommitExist returns true if given commit exists in current repository.
 func (repo *Repository) IsCommitExist(name string) bool {
+	if err := ensureValidGitRepository(repo.Ctx, repo.Path); err != nil {
+		log.Error("IsCommitExist: %v", err)
+		return false
+	}
 	_, _, err := NewCommand(repo.Ctx, "cat-file", "-e").AddDynamicArguments(name).RunStdString(&RunOpts{Dir: repo.Path})
 	return err == nil
 }
 
 func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
-	wr, rd, cancel := repo.CatFileBatch(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatch(repo.Ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer cancel()
 
 	_, _ = wr.Write([]byte(id.String() + "\n"))
@@ -143,7 +153,10 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 		}
 	}
 
-	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer cancel()
 	_, err = wr.Write([]byte(commitID + "\n"))
 	if err != nil {
