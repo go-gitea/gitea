@@ -203,7 +203,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	// 5. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}:{:headBranch}
 	// 6. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}/{:headRepoName}:{:headBranch}
 	//
-	// Here we obtain the infoPath "{:baseBranch}...[{:headOwner}/{:headRepoName}:]{:headBranch}" as ctx.Params("*")
+	// Here we obtain the infoPath "{:baseBranch}...[{:headOwner}/{:headRepoName}:]{:headBranch}" as ctx.PathParam("*")
 	// with the :baseRepo in ctx.Repo.
 	//
 	// Note: Generally :headRepoName is not provided here - we are only passed :headOwner.
@@ -225,7 +225,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		err        error
 	)
 
-	infoPath = ctx.Params("*")
+	infoPath = ctx.PathParam("*")
 	var infos []string
 	if infoPath == "" {
 		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
@@ -643,7 +643,7 @@ func PrepareCompareDiff(
 		return false
 	}
 
-	commits := git_model.ConvertFromGitCommit(ctx, ci.CompareInfo.Commits, ci.HeadRepo)
+	commits := processGitCommits(ctx, ci.CompareInfo.Commits)
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 
@@ -850,7 +850,7 @@ func CompareDiff(ctx *context.Context) {
 
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
-	commitID := ctx.Params("sha")
+	commitID := ctx.PathParam("sha")
 	lastLeft := ctx.FormInt("last_left")
 	lastRight := ctx.FormInt("last_right")
 	idxLeft := ctx.FormInt("left")

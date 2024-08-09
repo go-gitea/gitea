@@ -1,6 +1,6 @@
 {{range .RecentlyPushedNewBranches}}
-	<div class="ui positive message tw-flex tw-items-center">
-		<div class="tw-flex-1">
+	<div class="ui positive message tw-flex tw-items-center tw-gap-2">
+		<div class="tw-flex-1 tw-break-anywhere">
 			{{$timeSince := TimeSince .CommitTime.AsTime ctx.Locale}}
 			{{$branchLink := HTMLFormat `<a href="%s">%s</a>` .BranchLink .BranchDisplayName}}
 			{{ctx.Locale.Tr "repo.pulls.recently_pushed_new_branches" $branchLink $timeSince}}

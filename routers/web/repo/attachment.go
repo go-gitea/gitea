@@ -127,7 +127,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		return
 	}
 
-	if setting.Attachment.Storage.MinioConfig.ServeDirect {
+	if setting.Attachment.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name)
 
@@ -154,5 +154,5 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 
 // GetAttachment serve attachments
 func GetAttachment(ctx *context.Context) {
-	ServeAttachment(ctx, ctx.Params(":uuid"))
+	ServeAttachment(ctx, ctx.PathParam(":uuid"))
 }

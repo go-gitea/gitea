@@ -1,9 +1,9 @@
-<script>
+<script lang="ts">
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
-import {loadMoreFiles} from '../features/repo-diff.js';
-import {toggleElem} from '../utils/dom.js';
-import {diffTreeStore} from '../modules/stores.js';
-import {setFileFolding} from '../features/file-fold.js';
+import {loadMoreFiles} from '../features/repo-diff.ts';
+import {toggleElem} from '../utils/dom.ts';
+import {diffTreeStore} from '../modules/stores.ts';
+import {setFileFolding} from '../features/file-fold.ts';
 
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 
@@ -112,7 +112,7 @@ export default {
     updateState(visible) {
       const btn = document.querySelector('.diff-toggle-file-tree-button');
       const [toShow, toHide] = btn.querySelectorAll('.icon');
-      const tree = document.getElementById('diff-file-tree');
+      const tree = document.querySelector('#diff-file-tree');
       const newTooltip = btn.getAttribute(visible ? 'data-hide-text' : 'data-show-text');
       btn.setAttribute('data-tooltip-content', newTooltip);
       toggleElem(tree, visible);

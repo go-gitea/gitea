@@ -1,5 +1,5 @@
-<script>
-import {SvgIcon} from '../svg.js';
+<script lang="ts">
+import {SvgIcon} from '../svg.ts';
 import {
   Chart,
   Title,
@@ -10,20 +10,18 @@ import {
   LineElement,
   Filler,
 } from 'chart.js';
-import {GET} from '../modules/fetch.js';
+import {GET} from '../modules/fetch.ts';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import {Line as ChartLine} from 'vue-chartjs';
 import {
   startDaysBetween,
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
-} from '../utils/time.js';
-import {chartJsColors} from '../utils/color.js';
-import {sleep} from '../utils.js';
+} from '../utils/time.ts';
+import {chartJsColors} from '../utils/color.ts';
+import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import $ from 'jquery';
-
-const {pageData} = window.config;
 
 const customEventListener = {
   id: 'customEventListener',
@@ -59,14 +57,17 @@ export default {
       type: Object,
       required: true,
     },
+    repoLink: {
+      type: String,
+      required: true,
+    },
   },
   data: () => ({
     isLoading: false,
     errorText: '',
     totalStats: {},
     sortedContributors: {},
-    repoLink: pageData.repoLink || [],
-    type: pageData.contributionType,
+    type: 'commits',
     contributorsStats: [],
     xAxisStart: null,
     xAxisEnd: null,
@@ -333,19 +334,17 @@ export default {
         <!-- Contribution type -->
         <div class="ui dropdown jump" id="repo-contributors">
           <div class="ui basic compact button">
-            <span class="text">
-              <span class="not-mobile">{{ locale.filterLabel }}&nbsp;</span><strong>{{ locale.contributionType[type] }}</strong>
-              <svg-icon name="octicon-triangle-down" :size="14"/>
-            </span>
+            <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
+            <svg-icon name="octicon-triangle-down" :size="14"/>
           </div>
           <div class="menu">
-            <div :class="['item', {'active': type === 'commits'}]">
+            <div :class="['item', {'selected': type === 'commits'}]" data-value="commits">
               {{ locale.contributionType.commits }}
             </div>
-            <div :class="['item', {'active': type === 'additions'}]">
+            <div :class="['item', {'selected': type === 'additions'}]" data-value="additions">
               {{ locale.contributionType.additions }}
             </div>
-            <div :class="['item', {'active': type === 'deletions'}]">
+            <div :class="['item', {'selected': type === 'deletions'}]" data-value="deletions">
               {{ locale.contributionType.deletions }}
             </div>
           </div>

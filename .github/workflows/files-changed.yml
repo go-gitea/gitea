@@ -63,7 +63,6 @@ jobs:
 
             docs:
               - "**/*.md"
-              - "docs/**"
               - ".markdownlint.yaml"
               - "package.json"
               - "package-lock.json"

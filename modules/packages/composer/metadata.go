@@ -6,6 +6,7 @@ package composer
 import (
 	"archive/zip"
 	"io"
+	"path"
 	"regexp"
 	"strings"
 
@@ -36,10 +37,14 @@ type Package struct {
 	Metadata *Metadata
 }
 
+// https://getcomposer.org/doc/04-schema.md
+
 // Metadata represents the metadata of a Composer package
 type Metadata struct {
 	Description string            `json:"description,omitempty"`
+	Readme      string            `json:"readme,omitempty"`
 	Keywords    []string          `json:"keywords,omitempty"`
+	Comments    Comments          `json:"_comments,omitempty"`
 	Homepage    string            `json:"homepage,omitempty"`
 	License     Licenses          `json:"license,omitempty"`
 	Authors     []Author          `json:"authors,omitempty"`
@@ -74,6 +79,28 @@ func (l *Licenses) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Comments represents the comments of a Composer package
+type Comments []string
+
+// UnmarshalJSON reads from a string or array
+func (c *Comments) UnmarshalJSON(data []byte) error {
+	switch data[0] {
+	case '"':
+		var value string
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		*c = Comments{value}
+	case '[':
+		values := make([]string, 0, 5)
+		if err := json.Unmarshal(data, &values); err != nil {
+			return err
+		}
+		*c = Comments(values)
+	}
+	return nil
+}
+
 // Author represents an author
 type Author struct {
 	Name     string `json:"name,omitempty"`
@@ -101,14 +128,14 @@ func ParsePackage(r io.ReaderAt, size int64) (*Package, error) {
 			}
 			defer f.Close()
 
-			return ParseComposerFile(f)
+			return ParseComposerFile(archive, path.Dir(file.Name), f)
 		}
 	}
 	return nil, ErrMissingComposerFile
 }
 
 // ParseComposerFile parses a composer.json file to retrieve the metadata of a Composer package
-func ParseComposerFile(r io.Reader) (*Package, error) {
+func ParseComposerFile(archive *zip.Reader, pathPrefix string, r io.Reader) (*Package, error) {
 	var cj struct {
 		Name    string `json:"name"`
 		Version string `json:"version"`
@@ -135,6 +162,19 @@ func ParseComposerFile(r io.Reader) (*Package, error) {
 
 	if cj.Type == "" {
 		cj.Type = "library"
+	}
+
+	if cj.Readme == "" {
+		cj.Readme = "README.md"
+	}
+	f, err := archive.Open(path.Join(pathPrefix, cj.Readme))
+	if err == nil {
+		// 10kb limit for readme content
+		buf, _ := io.ReadAll(io.LimitReader(f, 10*1024))
+		cj.Readme = string(buf)
+		_ = f.Close()
+	} else {
+		cj.Readme = ""
 	}
 
 	return &Package{

@@ -410,6 +410,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParamString("action", "_revision")
 	ctx.Data["Page"] = pager
 
 	return wikiRepo, entry
@@ -532,7 +533,7 @@ func Wiki(ctx *context.Context) {
 	}
 
 	wikiPath := entry.Name()
-	if markup.Type(wikiPath) != markdown.MarkupName {
+	if markup.DetectMarkupTypeByFileName(wikiPath) != markdown.MarkupName {
 		ext := strings.ToUpper(filepath.Ext(wikiPath))
 		ctx.Data["FormatWarning"] = fmt.Sprintf("%s rendering is not supported at the moment. Rendered as Markdown.", ext)
 	}
