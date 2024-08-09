@@ -60,7 +60,7 @@ async function initRepoProjectSortable() {
     handle: '.project-column-header',
     delayOnTouchOnly: true,
     delay: 500,
-    onSort: async () => {
+    onSort: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises
       boardColumns = mainBoard.querySelectorAll('.project-column');
 
       const columnSorting = {
@@ -84,8 +84,8 @@ async function initRepoProjectSortable() {
     const boardCardList = boardColumn.querySelectorAll('.cards')[0];
     createSortable(boardCardList, {
       group: 'shared',
-      onAdd: moveIssue,
-      onUpdate: moveIssue,
+      onAdd: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises
+      onUpdate: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises
       delayOnTouchOnly: true,
       delay: 500,
     });

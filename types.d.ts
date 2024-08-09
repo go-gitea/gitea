@@ -3,6 +3,11 @@ declare module '*.svg' {
   export default value;
 }
 
+declare module '*.css' {
+  const value: string;
+  export default value;
+}
+
 declare let __webpack_public_path__: string;
 
 interface Window {
@@ -19,4 +24,8 @@ interface Window {
 declare module 'htmx.org/dist/htmx.esm.js' {
   const value = await import('htmx.org');
   export default value;
+}
+
+interface Element {
+  _tippy: import('tippy.js').Instance;
 }
