@@ -24,6 +24,10 @@
   white-space: nowrap;
 }
 
+.ui.button:focus-visible {
+  box-shadow: inset 0 0 0 2px currentcolor;
+}
+
 @media (max-width: 767.98px) {
   .ui.button {
     white-space: normal;
