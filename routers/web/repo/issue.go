@@ -1869,6 +1869,8 @@ func ViewIssue(ctx *context.Context) {
 		}
 		prConfig := prUnit.PullRequestsConfig()
 
+		ctx.Data["AutodetectManualMerge"] = prConfig.AutodetectManualMerge
+
 		var mergeStyle repo_model.MergeStyle
 		// Check correct values and select default
 		if ms, ok := ctx.Data["MergeStyle"].(repo_model.MergeStyle); !ok ||
