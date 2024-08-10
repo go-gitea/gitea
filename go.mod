@@ -20,6 +20,7 @@ require (
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
 	github.com/ProtonMail/go-crypto v1.0.0
 	github.com/PuerkitoBio/goquery v1.9.2
+	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.7.2
 	github.com/alecthomas/chroma/v2 v2.14.0
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/blevesearch/bleve/v2 v2.4.2
@@ -209,6 +210,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/btree v1.1.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/go-tpm v0.9.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect

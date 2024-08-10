@@ -1687,6 +1687,11 @@ func ViewIssue(ctx *context.Context) {
 			if comment.ProjectID > 0 && comment.Project == nil {
 				comment.Project = ghostProject
 			}
+		} else if comment.Type == issues_model.CommentTypeProjectColumn {
+			if err = comment.LoadProject(ctx); err != nil {
+				ctx.ServerError("LoadProject", err)
+				return
+			}
 		} else if comment.Type == issues_model.CommentTypeAssignees || comment.Type == issues_model.CommentTypeReviewRequest {
 			if err = comment.LoadAssigneeUserAndTeam(ctx); err != nil {
 				ctx.ServerError("LoadAssigneeUserAndTeam", err)
@@ -1863,6 +1868,8 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		prConfig := prUnit.PullRequestsConfig()
+
+		ctx.Data["AutodetectManualMerge"] = prConfig.AutodetectManualMerge
 
 		var mergeStyle repo_model.MergeStyle
 		// Check correct values and select default
