@@ -51,7 +51,7 @@
   justify-content: stretch;
 }
 
-#navbar a.item:hover,
+#navbar a.item:hover:not(.disabled-with-tooltip),
 #navbar button.item:hover {
   background: var(--color-nav-hover-bg);
 }
