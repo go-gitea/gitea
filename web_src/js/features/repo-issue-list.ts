@@ -196,7 +196,7 @@ async function initIssuePinSort() {
 
   createSortable(pinDiv, {
     group: 'shared',
-    onEnd: pinMoveEnd,
+    onEnd: pinMoveEnd, // eslint-disable-line @typescript-eslint/no-misused-promises
   });
 }
 
