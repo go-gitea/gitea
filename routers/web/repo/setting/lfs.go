@@ -95,6 +95,11 @@ func LFSLocks(ctx *context.Context) {
 		ctx.ServerError("LFSLocks", err)
 		return
 	}
+	if err := lfsLocks.LoadAttributes(ctx); err != nil {
+		ctx.ServerError("LFSLocks", err)
+		return
+	}
+
 	ctx.Data["LFSLocks"] = lfsLocks
 
 	if len(lfsLocks) == 0 {
