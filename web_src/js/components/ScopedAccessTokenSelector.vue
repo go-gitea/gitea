@@ -80,6 +80,7 @@ export default sfc;
 export function initScopedAccessTokenCategories() {
   for (const el of document.querySelectorAll('.scoped-access-token-mount')) {
     const view = createApp(sfc, {
+      isAdmin: el.getAttribute('is-admin') === 'true',
       noAccessLabel: el.getAttribute('no-access-label'),
       readLabel: el.getAttribute('read-label'),
       writeLabel: el.getAttribute('write-label'),

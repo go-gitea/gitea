@@ -78,7 +78,7 @@
 						<i>{{ctx.Locale.Tr "settings.access_token_desc" (HTMLFormat `href="%s/api/swagger" target="_blank"` AppSubUrl) (`href="https://docs.gitea.com/development/oauth2-provider#scopes" target="_blank"`|SafeHTML)}}</i>
 					</p>
 					<div class="scoped-access-token-mount"
-							:is-admin="{{if .IsAdmin}}true{{else}}false{{end}}"
+							is-admin="{{if .IsAdmin}}true{{else}}false{{end}}"
 							no-access-label="{{ctx.Locale.Tr "settings.permission_no_access"}}"
 							read-label="{{ctx.Locale.Tr "settings.permission_read"}}"
 							write-label="{{ctx.Locale.Tr "settings.permission_write"}}"
