@@ -1144,7 +1144,8 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 				})
 			}
 
-			exist = ctx.GitRepo.IsObjectExist(hash)
+			// Don't use IsObjectExist since it doesn't support short hashs with gogit edition.
+			exist = ctx.GitRepo.IsReferenceExist(hash)
 			ctx.ShaExistCache[hash] = exist
 		}
 

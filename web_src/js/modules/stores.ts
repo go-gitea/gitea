@@ -1,6 +1,7 @@
 import {reactive} from 'vue';
+import type {Reactive} from 'vue';
 
-let diffTreeStoreReactive;
+let diffTreeStoreReactive: Reactive<Record<string, any>>;
 export function diffTreeStore() {
   if (!diffTreeStoreReactive) {
     diffTreeStoreReactive = reactive(window.config.pageData.diffFileInfo);

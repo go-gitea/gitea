@@ -21,7 +21,6 @@ import (
 	rpm_model "code.gitea.io/gitea/models/packages/rpm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/util"
@@ -30,7 +29,6 @@ import (
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
-	"github.com/sassoftware/go-rpmutils"
 )
 
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
@@ -642,34 +640,4 @@ func addDataAsFileToRepo(ctx context.Context, pv *packages_model.PackageVersion,
 		Size:      content.Size(),
 		OpenSize:  wc.Written(),
 	}, nil
-}
-
-func SignPackage(rpm *packages_module.HashedBuffer, privateKey string) (*packages_module.HashedBuffer, error) {
-	keyring, err := openpgp.ReadArmoredKeyRing(bytes.NewReader([]byte(privateKey)))
-	if err != nil {
-		// failed to parse key
-		return nil, err
-	}
-	entity := keyring[0]
-	h, err := rpmutils.SignRpmStream(rpm, entity.PrivateKey, nil)
-	if err != nil {
-		// error signing rpm
-		return nil, err
-	}
-	signBlob, err := h.DumpSignatureHeader(false)
-	if err != nil {
-		// error writing sig header
-		return nil, err
-	}
-	if len(signBlob)%8 != 0 {
-		log.Info("incorrect padding: got %d bytes, expected a multiple of 8", len(signBlob))
-		return nil, err
-	}
-
-	// move fp to sign end
-	if _, err := rpm.Seek(int64(h.OriginalSignatureHeaderSize()), io.SeekStart); err != nil {
-		return nil, err
-	}
-	// create signed rpm buf
-	return packages_module.CreateHashedBufferFromReader(io.MultiReader(bytes.NewReader(signBlob), rpm))
 }
