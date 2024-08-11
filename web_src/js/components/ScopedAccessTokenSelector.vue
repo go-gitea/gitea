@@ -79,9 +79,13 @@ export default sfc;
  */
 export function initScopedAccessTokenCategories() {
   for (const el of document.querySelectorAll('.scoped-access-token-mount')) {
-    createApp({})
-      .component('scoped-access-token-selector', sfc)
-      .mount(el);
+    const view = createApp(sfc, {
+      noAccessLabel: el.getAttribute('no-access-label'),
+      readLabel: el.getAttribute('read-label'),
+      writeLabel: el.getAttribute('write-label'),
+    });
+
+    view.mount(el);
   }
 }
 
