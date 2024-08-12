@@ -140,7 +140,7 @@
 		</div>
 		{{end}}
 		<div class="divider"></div>
-			<input id="assignee_ids" name="assignee_ids" type="hidden" value="{{.SelectedAssigneeIDsValue}}">
+			<input id="assignee_ids" name="assignee_ids" type="hidden" value="{{.assignee_ids}}">
 			<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-assignees dropdown">
 				<span class="text flex-text-block">
 					<strong>{{ctx.Locale.Tr "repo.issues.new.assignees"}}</strong>
