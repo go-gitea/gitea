@@ -939,12 +939,23 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 				}
 			}
 		}
+		selectedAssigneeIDs := make([]int64, 0, len(template.Assignees))
+		selectedAssigneeIDStrings := make([]string, 0, len(template.Assignees))
+		if userIDs, err := user_model.GetUserIDsByNames(ctx, template.Assignees, false); err == nil {
+			for _, userID := range userIDs {
+				selectedAssigneeIDs = append(selectedAssigneeIDs, userID)
+				selectedAssigneeIDStrings = append(selectedAssigneeIDStrings, strconv.FormatInt(userID, 10))
+			}
+		}
 
 		if template.Ref != "" && !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
 			template.Ref = git.BranchPrefix + template.Ref
 		}
 		ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
 		ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
+		ctx.Data["HasSelectedAssignee"] = len(selectedAssigneeIDs) > 0
+		ctx.Data["assignee_ids"] = strings.Join(selectedAssigneeIDStrings, ",")
+		ctx.Data["SelectedAssigneeIDs"] = selectedAssigneeIDs
 		ctx.Data["Reference"] = template.Ref
 		ctx.Data["RefEndName"] = git.RefName(template.Ref).ShortName()
 		return true, templateErrs
