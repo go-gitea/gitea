@@ -52,7 +52,7 @@ function addCopyLink(file) {
   copyLinkEl.addEventListener('click', async (e) => {
     e.preventDefault();
     const success = await clippie(generateMarkdownLinkForAttachment(file));
-    showTemporaryTooltip(e.target, success ? i18n.copy_success : i18n.copy_error);
+    showTemporaryTooltip(e.target as Element, success ? i18n.copy_success : i18n.copy_error);
   });
   file.previewTemplate.append(copyLinkEl);
 }
