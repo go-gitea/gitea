@@ -129,6 +129,38 @@ func TestEllipsisString(t *testing.T) {
 	assert.Equal(t, "测试文本一二三四", EllipsisString("测试文本一二三四", 10))
 }
 
+func TestEllipsisStringWholeWord(t *testing.T) {
+	assert.Equal(t, "…", EllipsisStringWholeWord("foobar", 0))
+	assert.Equal(t, "f…", EllipsisStringWholeWord("foobar", 1))
+	assert.Equal(t, "fo…", EllipsisStringWholeWord("foobar", 2))
+	assert.Equal(t, "foo…", EllipsisStringWholeWord("foobar", 3))
+	assert.Equal(t, "foob…", EllipsisStringWholeWord("foobar", 4))
+	assert.Equal(t, "fooba…", EllipsisStringWholeWord("foobar", 5))
+	assert.Equal(t, "foobar", EllipsisStringWholeWord("foobar", 6))
+	assert.Equal(t, "foobar", EllipsisStringWholeWord("foobar", 10))
+
+	assert.Equal(t, "…", EllipsisStringWholeWord("foo bar", 0))
+	assert.Equal(t, "f…", EllipsisStringWholeWord("foo bar", 1))
+	assert.Equal(t, "fo…", EllipsisStringWholeWord("foo bar", 2))
+	assert.Equal(t, "foo…", EllipsisStringWholeWord("foo bar", 3))
+	assert.Equal(t, "foo…", EllipsisStringWholeWord("foo bar", 4))
+	assert.Equal(t, "foo…", EllipsisStringWholeWord("foo bar", 5))
+	assert.Equal(t, "foo…", EllipsisStringWholeWord("foo bar", 6))
+	assert.Equal(t, "foo bar", EllipsisStringWholeWord("foo bar", 7))
+	assert.Equal(t, "foo bar", EllipsisStringWholeWord("foo bar", 10))
+
+	assert.Equal(t, "foo bar…", EllipsisStringWholeWord("foo bar foo", 7))
+	assert.Equal(t, "foo bar…", EllipsisStringWholeWord("foo bar foo", 8))
+	assert.Equal(t, "foo bar…", EllipsisStringWholeWord("foo bar foo", 9))
+	assert.Equal(t, "foo bar…", EllipsisStringWholeWord("foo bar foo", 10))
+	assert.Equal(t, "foo bar foo", EllipsisStringWholeWord("foo bar foo", 11))
+
+	assert.Equal(t, "测试文本…", EllipsisStringWholeWord("测试文本一二三四", 4))
+	assert.Equal(t, "测试文本…", EllipsisStringWholeWord("测试文本 一二三四", 6)) // contains special unicode space U+2008
+	assert.Equal(t, "测试文本一二…", EllipsisStringWholeWord("测试文本一二三四", 6))
+	assert.Equal(t, "测试文本一二三四", EllipsisStringWholeWord("测试文本一二三四", 10))
+}
+
 func TestTruncateString(t *testing.T) {
 	assert.Equal(t, "", TruncateString("foobar", 0))
 	assert.Equal(t, "f", TruncateString("foobar", 1))
