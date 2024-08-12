@@ -451,16 +451,28 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	}
 
 	sess := db.GetEngine(ctx).Where(cond).
-		Select("`action`.*"). // this line will avoid select other joined table's columns
+		Select("`action`.id").
 		Join("INNER", "repository", "`repository`.id = `action`.repo_id")
 
 	opts.SetDefaultValues()
 	sess = db.SetSessionPagination(sess, &opts)
 
-	actions := make([]*Action, 0, opts.PageSize)
-	count, err := sess.Desc("`action`.created_unix").FindAndCount(&actions)
+	actionIDs := make([]int64, 0, opts.PageSize)
+	if err := sess.Table("action").Desc("`action`.created_unix").Find(&actionIDs); err != nil {
+		return nil, 0, fmt.Errorf("Find: %w", err)
+	}
+
+	count, err := db.GetEngine(ctx).Where(cond).
+		Table("action").
+		Cols("`action`.id").
+		Join("INNER", "repository", "`repository`.id = `action`.repo_id").Count()
 	if err != nil {
-		return nil, 0, fmt.Errorf("FindAndCount: %w", err)
+		return nil, 0, fmt.Errorf("Count: %w", err)
+	}
+
+	actions := make([]*Action, 0, opts.PageSize)
+	if err := db.GetEngine(ctx).In("`action`.id", actionIDs).Find(&actions); err != nil {
+		return nil, 0, fmt.Errorf("Find: %w", err)
 	}
 
 	if err := ActionList(actions).LoadAttributes(ctx); err != nil {
