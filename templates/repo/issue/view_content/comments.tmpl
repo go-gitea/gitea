@@ -604,6 +604,22 @@
 					{{end}}
 				</span>
 			</div>
+		{{else if eq .Type 31}}
+			{{if not $.UnitProjectsGlobalDisabled}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-project"}}</span>
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				<span class="text grey muted-links">
+					{{template "shared/user/authorlink" .Poster}}
+					{{$newProjectDisplay := .CommentMetaData.ProjectTitle}}
+					{{if .Project}}
+						{{$trKey := printf "projects.type-%d.display_name" .Project.Type}}
+						{{$newProjectDisplay = HTMLFormat `%s <a href="%s"><span data-tooltip-content="%s">%s</span></a>` (svg .Project.IconName) (.Project.Link ctx) (ctx.Locale.Tr $trKey) .Project.Title}}
+					{{end}}
+					{{ctx.Locale.Tr "repo.issues.move_to_column_of_project" .CommentMetaData.ProjectColumnTitle $newProjectDisplay $createdStr}}
+				</span>
+			</div>
+			{{end}}
 		{{else if eq .Type 32}}
 			<div class="timeline-item-group">
 				<div class="timeline-item event" id="{{.HashTag}}">
