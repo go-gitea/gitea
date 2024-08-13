@@ -15,7 +15,7 @@
 
 			{{if .ShowMemberAndTeamTab}}
 			<div class="ui five wide column">
-				{{if .CanCreateOrgRepo}}
+				{{if and .CanCreateOrgRepo .SignedUser.CanCreateRepo}}
 					<div class="center aligned tw-mb-4">
 						<a class="ui primary button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{ctx.Locale.Tr "new_repo"}}</a>
 						{{if not .DisableNewPullMirrors}}
