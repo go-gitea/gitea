@@ -258,9 +258,6 @@ export default {
   },
   resolve: {
     symlinks: false,
-    alias: {
-      'vue$': 'vue/dist/vue.esm-bundler.js',
-    },
   },
   watchOptions: {
     ignored: [
