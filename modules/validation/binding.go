@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/binding"
 	"github.com/gobwas/glob"
@@ -31,6 +32,7 @@ const (
 // AddBindingRules adds additional binding rules
 func AddBindingRules() {
 	addGitRefNameBindingRule()
+	addValidURLListBindingRule()
 	addValidURLBindingRule()
 	addValidSiteURLBindingRule()
 	addGlobPatternRule()
@@ -54,6 +56,33 @@ func addGitRefNameBindingRule() {
 				return false, errs
 			}
 			return true, errs
+		},
+	})
+}
+
+func addValidURLListBindingRule() {
+	// URL validation rule
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return strings.HasPrefix(rule, "ValidUrlList")
+		},
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
+			str := fmt.Sprintf("%v", val)
+			if len(str) == 0 {
+				errs.Add([]string{name}, binding.ERR_URL, "Url")
+				return false, errs
+			}
+
+			ok := true
+			urls := util.SplitTrimSpace(str, "\n")
+			for _, u := range urls {
+				if !IsValidURL(u) {
+					ok = false
+					errs.Add([]string{"RedirectURIs"}, binding.ERR_URL, u)
+				}
+			}
+
+			return ok, errs
 		},
 	})
 }

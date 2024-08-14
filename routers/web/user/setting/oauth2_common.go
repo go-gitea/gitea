@@ -96,6 +96,21 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditOAuth2ApplicationForm)
 
 	if ctx.HasError() {
+		app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.ParamsInt64("id"))
+		if err != nil {
+			if auth.IsErrOAuthApplicationNotFound(err) {
+				ctx.NotFound("Application not found", err)
+				return
+			}
+			ctx.ServerError("GetOAuth2ApplicationByID", err)
+			return
+		}
+		if app.UID != oa.OwnerID {
+			ctx.NotFound("Application not found", nil)
+			return
+		}
+		ctx.Data["App"] = app
+
 		oa.renderEditPage(ctx)
 		return
 	}
