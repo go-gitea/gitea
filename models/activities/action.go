@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -474,6 +475,10 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	if err := db.GetEngine(ctx).In("`action`.id", actionIDs).Find(&actions); err != nil {
 		return nil, 0, fmt.Errorf("Find: %w", err)
 	}
+
+	sort.SliceStable(actions, func(i, j int) bool {
+		return actions[i].ID > actions[j].ID // id's sequence should be equal to created_unix's sequence
+	})
 
 	if err := ActionList(actions).LoadAttributes(ctx); err != nil {
 		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
