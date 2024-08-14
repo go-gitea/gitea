@@ -449,7 +449,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	if err != nil {
 		return nil, 0, err
 	}
-
+	// First, only query which IDs are necessary, and only then query all actions to speed up the overall query
 	sess := db.GetEngine(ctx).Where(cond).
 		Select("`action`.id").
 		Join("INNER", "repository", "`repository`.id = `action`.repo_id")
