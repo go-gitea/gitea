@@ -1,5 +1,4 @@
 <script lang="ts">
-import {createApp} from 'vue';
 import {hideElem, showElem} from '../utils/dom.ts';
 
 const sfc = {
@@ -77,13 +76,13 @@ export default sfc;
 /**
  * Initialize category toggle sections
  */
-export function initScopedAccessTokenCategories() {
-  for (const el of document.querySelectorAll('.scoped-access-token-mount')) {
-    createApp({})
-      .component('scoped-access-token-selector', sfc)
-      .mount(el);
-  }
-}
+// export function initScopedAccessTokenCategories() {
+//   for (const el of document.querySelectorAll('.scoped-access-token-mount')) {
+//     createApp({})
+//       .component('scoped-access-token-selector', sfc)
+//       .mount(el);
+//   }
+// }
 
 </script>
 <template>
