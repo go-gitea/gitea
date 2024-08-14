@@ -167,13 +167,12 @@ func wikiEntryByName(ctx *context.Context, commit *git.Commit, wikiName wiki_ser
 
 // wikiContentsByName returns the contents of a wiki page, along with a boolean
 // indicating whether the page exists. Writes to ctx if an error occurs.
-// The last return value indicates whether the file should be returned as a raw file
-func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName wiki_service.WebPath) ([]byte, *git.TreeEntry, string, bool, bool) {
-	entry, gitFilename, noEntry, isRaw := wikiEntryByName(ctx, commit, wikiName)
+func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName wiki_service.WebPath) ([]byte, *git.TreeEntry, string, bool) {
+	entry, gitFilename, noEntry, _ := wikiEntryByName(ctx, commit, wikiName)
 	if entry == nil {
-		return nil, nil, "", true, false
+		return nil, nil, "", true
 	}
-	return wikiContentsByEntry(ctx, entry), entry, gitFilename, noEntry, isRaw
+	return wikiContentsByEntry(ctx, entry), entry, gitFilename, noEntry
 }
 
 func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
@@ -265,7 +264,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 
 	var sidebarContent []byte
 	if !isSideBar {
-		sidebarContent, _, _, _, _ = wikiContentsByName(ctx, commit, "_Sidebar")
+		sidebarContent, _, _, _ = wikiContentsByName(ctx, commit, "_Sidebar")
 		if ctx.Written() {
 			if wikiRepo != nil {
 				wikiRepo.Close()
@@ -278,7 +277,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 
 	var footerContent []byte
 	if !isFooter {
-		footerContent, _, _, _, _ = wikiContentsByName(ctx, commit, "_Footer")
+		footerContent, _, _, _ = wikiContentsByName(ctx, commit, "_Footer")
 		if ctx.Written() {
 			if wikiRepo != nil {
 				wikiRepo.Close()
@@ -401,7 +400,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 
 	// lookup filename in wiki - get filecontent, gitTree entry , real filename
-	data, entry, pageFilename, noEntry, _ := wikiContentsByName(ctx, commit, pageName)
+	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
 	}
