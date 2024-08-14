@@ -7,10 +7,13 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
@@ -18,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -58,8 +62,13 @@ func MustEnableActions(ctx *context.Context) {
 func List(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
+	workflowID := ctx.FormString("workflow")
+	actorID := ctx.FormInt64("actor")
+	status := ctx.FormInt("status")
+	ctx.Data["CurWorkflow"] = workflowID
 
 	var workflows []Workflow
+	var curWorkflow *model.Workflow
 	if empty, err := ctx.Repo.GitRepo.IsEmpty(); err != nil {
 		ctx.ServerError("IsEmpty", err)
 		return
@@ -140,6 +149,10 @@ func List(ctx *context.Context) {
 				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job")
 			}
 			workflows = append(workflows, workflow)
+
+			if workflow.Entry.Name() == workflowID {
+				curWorkflow = wf
+			}
 		}
 	}
 	ctx.Data["workflows"] = workflows
@@ -150,17 +163,46 @@ func List(ctx *context.Context) {
 		page = 1
 	}
 
-	workflow := ctx.FormString("workflow")
-	actorID := ctx.FormInt64("actor")
-	status := ctx.FormInt("status")
-	ctx.Data["CurWorkflow"] = workflow
-
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
 	ctx.Data["ActionsConfig"] = actionsConfig
 
-	if len(workflow) > 0 && ctx.Repo.IsAdmin() {
+	if len(workflowID) > 0 && ctx.Repo.IsAdmin() {
 		ctx.Data["AllowDisableOrEnableWorkflow"] = true
-		ctx.Data["CurWorkflowDisabled"] = actionsConfig.IsWorkflowDisabled(workflow)
+		isWorkflowDisabled := actionsConfig.IsWorkflowDisabled(workflowID)
+		ctx.Data["CurWorkflowDisabled"] = isWorkflowDisabled
+
+		if !isWorkflowDisabled && curWorkflow != nil {
+			workflowDispatchConfig := curWorkflow.WorkflowDispatchConfig()
+			if workflowDispatchConfig != nil {
+				ctx.Data["WorkflowDispatchConfig"] = workflowDispatchConfig
+
+				branchOpts := git_model.FindBranchOptions{
+					RepoID:          ctx.Repo.Repository.ID,
+					IsDeletedBranch: optional.Some(false),
+					ListOptions: db.ListOptions{
+						ListAll: true,
+					},
+				}
+				branches, err := git_model.FindBranchNames(ctx, branchOpts)
+				if err != nil {
+					ctx.ServerError("FindBranchNames", err)
+					return
+				}
+				// always put default branch on the top if it exists
+				if slices.Contains(branches, ctx.Repo.Repository.DefaultBranch) {
+					branches = util.SliceRemoveAll(branches, ctx.Repo.Repository.DefaultBranch)
+					branches = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
+				}
+				ctx.Data["Branches"] = branches
+
+				tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+				if err != nil {
+					ctx.ServerError("GetTagNamesByRepoID", err)
+					return
+				}
+				ctx.Data["Tags"] = tags
+			}
+		}
 	}
 
 	// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
@@ -177,7 +219,7 @@ func List(ctx *context.Context) {
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
 		RepoID:        ctx.Repo.Repository.ID,
-		WorkflowID:    workflow,
+		WorkflowID:    workflowID,
 		TriggerUserID: actorID,
 	}
 
@@ -214,7 +256,7 @@ func List(ctx *context.Context) {
 
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParamString("workflow", workflow)
+	pager.AddParamString("workflow", workflowID)
 	pager.AddParamString("actor", fmt.Sprint(actorID))
 	pager.AddParamString("status", fmt.Sprint(status))
 	ctx.Data["Page"] = pager
