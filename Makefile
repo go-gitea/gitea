@@ -137,7 +137,7 @@ TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
-TEST_TAGS ?= sqlite sqlite_unlock_notify
+TEST_TAGS ?= $(TAGS_SPLIT) sqlite sqlite_unlock_notify
 
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
@@ -858,18 +858,19 @@ deps-backend:
 
 .PHONY: deps-tools
 deps-tools:
-	$(GO) install $(AIR_PACKAGE)
-	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
-	$(GO) install $(GOFUMPT_PACKAGE)
-	$(GO) install $(GOLANGCI_LINT_PACKAGE)
-	$(GO) install $(GXZ_PACKAGE)
-	$(GO) install $(MISSPELL_PACKAGE)
-	$(GO) install $(SWAGGER_PACKAGE)
-	$(GO) install $(XGO_PACKAGE)
-	$(GO) install $(GO_LICENSES_PACKAGE)
-	$(GO) install $(GOVULNCHECK_PACKAGE)
-	$(GO) install $(ACTIONLINT_PACKAGE)
-	$(GO) install $(GOPLS_PACKAGE)
+	$(GO) install $(AIR_PACKAGE) & \
+	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE) & \
+	$(GO) install $(GOFUMPT_PACKAGE) & \
+	$(GO) install $(GOLANGCI_LINT_PACKAGE) & \
+	$(GO) install $(GXZ_PACKAGE) & \
+	$(GO) install $(MISSPELL_PACKAGE) & \
+	$(GO) install $(SWAGGER_PACKAGE) & \
+	$(GO) install $(XGO_PACKAGE) & \
+	$(GO) install $(GO_LICENSES_PACKAGE) & \
+	$(GO) install $(GOVULNCHECK_PACKAGE) & \
+	$(GO) install $(ACTIONLINT_PACKAGE) & \
+	$(GO) install $(GOPLS_PACKAGE) & \
+	wait
 
 node_modules: package-lock.json
 	npm install --no-save
@@ -886,6 +887,8 @@ update: update-js update-py
 update-js: node-check | node_modules
 	npx updates -u -f package.json
 	rm -rf node_modules package-lock.json
+	npm install --package-lock
+	npx nolyfill install
 	npm install --package-lock
 	@touch node_modules
 
