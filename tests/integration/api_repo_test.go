@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -324,6 +325,39 @@ func TestAPIOrgRepos(t *testing.T) {
 			}
 		})
 	}
+}
+
+// See issue #28483. Tests to make sure we consider more than just code unit-enabled repositories.
+func TestAPIOrgReposWithCodeUnitDisabled(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	repo21 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo21"})
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo21.OwnerID})
+
+	// Disable code repository unit.
+	var units []unit_model.Type
+	units = append(units, unit_model.TypeCode)
+
+	if err := repo_service.UpdateRepositoryUnits(db.DefaultContext, repo21, nil, units); err != nil {
+		assert.Fail(t, "should have been able to delete code repository unit; failed to %v", err)
+	}
+	assert.False(t, repo21.UnitEnabled(db.DefaultContext, unit_model.TypeCode))
+
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
+
+	req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", org3.Name).
+		AddTokenAuth(token)
+
+	resp := MakeRequest(t, req, http.StatusOK)
+	var apiRepos []*api.Repository
+	DecodeJSON(t, resp, &apiRepos)
+
+	var repoNames []string
+	for _, r := range apiRepos {
+		repoNames = append(repoNames, r.Name)
+	}
+
+	assert.Contains(t, repoNames, repo21.Name)
 }
 
 func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
@@ -684,7 +718,9 @@ func TestAPIRepoGetReviewers(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	var reviewers []*api.User
 	DecodeJSON(t, resp, &reviewers)
-	assert.Len(t, reviewers, 4)
+	if assert.Len(t, reviewers, 3) {
+		assert.ElementsMatch(t, []int64{1, 4, 11}, []int64{reviewers[0].ID, reviewers[1].ID, reviewers[2].ID})
+	}
 }
 
 func TestAPIRepoGetAssignees(t *testing.T) {

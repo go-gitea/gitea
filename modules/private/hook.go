@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -54,6 +55,7 @@ type HookOptions struct {
 	GitQuarantinePath               string
 	GitPushOptions                  GitPushOptions
 	PullRequestID                   int64
+	PushTrigger                     repository.PushTrigger
 	DeployKeyID                     int64 // if the pusher is a DeployKey, then UserID is the repo's org user.
 	IsWiki                          bool
 	ActionPerm                      int

@@ -6,8 +6,6 @@ package util
 import (
 	"bytes"
 	"unicode"
-
-	"github.com/yuin/goldmark/util"
 )
 
 type sanitizedError struct {
@@ -33,7 +31,7 @@ var schemeSep = []byte("://")
 
 // SanitizeCredentialURLs remove all credentials in URLs (starting with "scheme://") for the input string: "https://user:pass@domain.com" => "https://sanitized-credential@domain.com"
 func SanitizeCredentialURLs(s string) string {
-	bs := util.StringToReadOnlyBytes(s)
+	bs := UnsafeStringToBytes(s)
 	schemeSepPos := bytes.Index(bs, schemeSep)
 	if schemeSepPos == -1 || bytes.IndexByte(bs[schemeSepPos:], '@') == -1 {
 		return s // fast return if there is no URL scheme or no userinfo
@@ -70,5 +68,5 @@ func SanitizeCredentialURLs(s string) string {
 		schemeSepPos = bytes.Index(bs, schemeSep)
 	}
 	out = append(out, bs...)
-	return util.BytesToReadOnlyString(out)
+	return UnsafeBytesToString(out)
 }

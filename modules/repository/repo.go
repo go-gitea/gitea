@@ -5,6 +5,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -181,6 +182,10 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 	downloadObjects := func(pointers []lfs.Pointer) error {
 		err := lfsClient.Download(ctx, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
 			if objectError != nil {
+				if errors.Is(objectError, lfs.ErrObjectNotExist) {
+					log.Warn("Repo[%-v]: Ignore missing LFS object %-v: %v", repo, p, objectError)
+					return nil
+				}
 				return objectError
 			}
 

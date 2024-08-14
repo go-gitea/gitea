@@ -14,8 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/mdstripper"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/yuin/goldmark/util"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -29,7 +28,7 @@ var (
 	// TODO: fix invalid linking issue
 
 	// mentionPattern matches all mentions in the form of "@user" or "@org/team"
-	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_]+|@[0-9a-zA-Z-_]+\/?[0-9a-zA-Z-_]+|@[0-9a-zA-Z-_][0-9a-zA-Z-_.]+\/?[0-9a-zA-Z-_.]+[0-9a-zA-Z-_])(?:\s|[:,;.?!]\s|[:,;.?!]?$|\)|\])`)
+	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[-\w][-.\w]*?|@[-\w][-.\w]*?/[-\w][-.\w]*?)(?:\s|$|[:,;.?!](\s|$)|'|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
 	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\'|\")([#!][0-9]+)(?:\s|$|\)|\]|\'|\"|[:;,.?!]\s|[:;,.?!]$)`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
@@ -341,7 +340,7 @@ func FindRenderizableReferenceNumeric(content string, prOnly, crossLinkOnly bool
 			return false, nil
 		}
 	}
-	r := getCrossReference(util.StringToReadOnlyBytes(content), match[2], match[3], false, prOnly)
+	r := getCrossReference(util.UnsafeStringToBytes(content), match[2], match[3], false, prOnly)
 	if r == nil {
 		return false, nil
 	}

@@ -35,6 +35,7 @@ func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
 		"b":           {"b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
 		"":            {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
 		"/":           {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
+		".":           {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
 		"a/b/../../a": {"a/1.txt"},
 	}
 	for dir, expected := range expectedList {

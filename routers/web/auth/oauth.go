@@ -5,7 +5,6 @@ package auth
 
 import (
 	go_context "context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"html"
@@ -27,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -327,17 +325,37 @@ func getOAuthGroupsForUser(ctx go_context.Context, user *user_model.User) ([]str
 	return groups, nil
 }
 
+func parseBasicAuth(ctx *context.Context) (username, password string, err error) {
+	authHeader := ctx.Req.Header.Get("Authorization")
+	if authType, authData, ok := strings.Cut(authHeader, " "); ok && strings.EqualFold(authType, "Basic") {
+		return base.BasicAuthDecode(authData)
+	}
+	return "", "", errors.New("invalid basic authentication")
+}
+
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
-	if ctx.Doer == nil {
-		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
+	clientIDValid := false
+	if clientID, clientSecret, err := parseBasicAuth(ctx); err == nil {
+		app, err := auth.GetOAuth2ApplicationByClientID(ctx, clientID)
+		if err != nil && !auth.IsErrOauthClientIDInvalid(err) {
+			// this is likely a database error; log it and respond without details
+			log.Error("Error retrieving client_id: %v", err)
+			ctx.Error(http.StatusInternalServerError)
+			return
+		}
+		clientIDValid = err == nil && app.ValidateClientSecret([]byte(clientSecret))
+	}
+	if !clientIDValid {
+		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm=""`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}
 
 	var response struct {
-		Active bool   `json:"active"`
-		Scope  string `json:"scope,omitempty"`
+		Active   bool   `json:"active"`
+		Scope    string `json:"scope,omitempty"`
+		Username string `json:"username,omitempty"`
 		jwt.RegisteredClaims
 	}
 
@@ -353,6 +371,9 @@ func IntrospectOAuth(ctx *context.Context) {
 				response.Issuer = setting.AppURL
 				response.Audience = []string{app.ClientID}
 				response.Subject = fmt.Sprint(grant.UserID)
+			}
+			if user, err := user_model.GetUserByID(ctx, grant.UserID); err == nil {
+				response.Username = user.Name
 			}
 		}
 	}
@@ -470,8 +491,9 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	// Redirect if user already granted access
-	if grant != nil {
+	// Redirect if user already granted access and the application is confidential or trusted otherwise
+	// I.e. always require authorization for untrusted public clients as recommended by RFC 6749 Section 10.2
+	if (app.ConfidentialClient || app.SkipSecondaryAuthorization) && grant != nil {
 		code, err := grant.GenerateNewAuthorizationCode(ctx, form.RedirectURI, form.CodeChallenge, form.CodeChallengeMethod)
 		if err != nil {
 			handleServerError(ctx, form.State, form.RedirectURI)
@@ -540,20 +562,45 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		ctx.Error(http.StatusBadRequest)
 		return
 	}
+
+	if !form.Granted {
+		handleAuthorizeError(ctx, AuthorizeError{
+			State:            form.State,
+			ErrorDescription: "the request is denied",
+			ErrorCode:        ErrorCodeAccessDenied,
+		}, form.RedirectURI)
+		return
+	}
+
 	app, err := auth.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
 	if err != nil {
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
 		return
 	}
-	grant, err := app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
+	grant, err := app.GetGrantByUserID(ctx, ctx.Doer.ID)
 	if err != nil {
+		handleServerError(ctx, form.State, form.RedirectURI)
+		return
+	}
+	if grant == nil {
+		grant, err = app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
+		if err != nil {
+			handleAuthorizeError(ctx, AuthorizeError{
+				State:            form.State,
+				ErrorDescription: "cannot create grant for user",
+				ErrorCode:        ErrorCodeServerError,
+			}, form.RedirectURI)
+			return
+		}
+	} else if grant.Scope != form.Scope {
 		handleAuthorizeError(ctx, AuthorizeError{
 			State:            form.State,
-			ErrorDescription: "cannot create grant for user",
+			ErrorDescription: "a grant exists with different scope",
 			ErrorCode:        ErrorCodeServerError,
 		}, form.RedirectURI)
 		return
 	}
+
 	if len(form.Nonce) > 0 {
 		err := grant.SetNonce(ctx, form.Nonce)
 		if err != nil {
@@ -614,9 +661,8 @@ func AccessTokenOAuth(ctx *context.Context) {
 	// if there is no ClientID or ClientSecret in the request body, fill these fields by the Authorization header and ensure the provided field matches the Authorization header
 	if form.ClientID == "" || form.ClientSecret == "" {
 		authHeader := ctx.Req.Header.Get("Authorization")
-		authContent := strings.SplitN(authHeader, " ", 2)
-		if len(authContent) == 2 && authContent[0] == "Basic" {
-			payload, err := base64.StdEncoding.DecodeString(authContent[1])
+		if authType, authData, ok := strings.Cut(authHeader, " "); ok && strings.EqualFold(authType, "Basic") {
+			clientID, clientSecret, err := base.BasicAuthDecode(authData)
 			if err != nil {
 				handleAccessTokenError(ctx, AccessTokenError{
 					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
@@ -624,30 +670,23 @@ func AccessTokenOAuth(ctx *context.Context) {
 				})
 				return
 			}
-			pair := strings.SplitN(string(payload), ":", 2)
-			if len(pair) != 2 {
-				handleAccessTokenError(ctx, AccessTokenError{
-					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-					ErrorDescription: "cannot parse basic auth header",
-				})
-				return
-			}
-			if form.ClientID != "" && form.ClientID != pair[0] {
+			// validate that any fields present in the form match the Basic auth header
+			if form.ClientID != "" && form.ClientID != clientID {
 				handleAccessTokenError(ctx, AccessTokenError{
 					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
 					ErrorDescription: "client_id in request body inconsistent with Authorization header",
 				})
 				return
 			}
-			form.ClientID = pair[0]
-			if form.ClientSecret != "" && form.ClientSecret != pair[1] {
+			form.ClientID = clientID
+			if form.ClientSecret != "" && form.ClientSecret != clientSecret {
 				handleAccessTokenError(ctx, AccessTokenError{
 					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
 					ErrorDescription: "client_secret in request body inconsistent with Authorization header",
 				})
 				return
 			}
-			form.ClientSecret = pair[1]
+			form.ClientSecret = clientSecret
 		}
 	}
 
@@ -839,7 +878,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 
 // SignInOAuth handles the OAuth2 login buttons
 func SignInOAuth(ctx *context.Context) {
-	provider := ctx.Params(":provider")
+	provider := ctx.PathParam(":provider")
 
 	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
 	if err != nil {
@@ -878,7 +917,7 @@ func SignInOAuth(ctx *context.Context) {
 
 // SignInOAuthCallback handles the callback from the given provider
 func SignInOAuthCallback(ctx *context.Context) {
-	provider := ctx.Params(":provider")
+	provider := ctx.PathParam(":provider")
 
 	if ctx.Req.FormValue("error") != "" {
 		var errorKeyValues []string
@@ -934,7 +973,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 	if u == nil {
 		if ctx.Doer != nil {
-			// attach user to already logged in user
+			// attach user to the current signed-in user
 			err = externalaccount.LinkAccountToUser(ctx, ctx.Doer, gothUser)
 			if err != nil {
 				ctx.ServerError("UserLinkAccount", err)
@@ -952,21 +991,30 @@ func SignInOAuthCallback(ctx *context.Context) {
 			if gothUser.Email == "" {
 				missingFields = append(missingFields, "email")
 			}
-			if setting.OAuth2Client.Username == setting.OAuth2UsernameNickname && gothUser.NickName == "" {
-				missingFields = append(missingFields, "nickname")
-			}
-			if len(missingFields) > 0 {
-				log.Error("OAuth2 Provider %s returned empty or missing fields: %s", authSource.Name, missingFields)
-				if authSource.IsOAuth2() && authSource.Cfg.(*oauth2.Source).Provider == "openidConnect" {
-					log.Error("You may need to change the 'OPENID_CONNECT_SCOPES' setting to request all required fields")
-				}
-				err = fmt.Errorf("OAuth2 Provider %s returned empty or missing fields: %s", authSource.Name, missingFields)
-				ctx.ServerError("CreateUser", err)
-				return
-			}
-			uname, err := getUserName(&gothUser)
+			uname, err := extractUserNameFromOAuth2(&gothUser)
 			if err != nil {
 				ctx.ServerError("UserSignIn", err)
+				return
+			}
+			if uname == "" {
+				if setting.OAuth2Client.Username == setting.OAuth2UsernameNickname {
+					missingFields = append(missingFields, "nickname")
+				} else if setting.OAuth2Client.Username == setting.OAuth2UsernamePreferredUsername {
+					missingFields = append(missingFields, "preferred_username")
+				} // else: "UserID" and "Email" have been handled above separately
+			}
+			if len(missingFields) > 0 {
+				log.Error(`OAuth2 auto registration (ENABLE_AUTO_REGISTRATION) is enabled but OAuth2 provider %q doesn't return required fields: %s. `+
+					`Suggest to: disable auto registration, or make OPENID_CONNECT_SCOPES (for OpenIDConnect) / Authentication Source Scopes (for Admin panel) to request all required fields, and the fields shouldn't be empty.`,
+					authSource.Name, strings.Join(missingFields, ","))
+				// The RawData is the only way to pass the missing fields to the another page at the moment, other ways all have various problems:
+				// by session or cookie: difficult to clean or reset; by URL: could be injected with uncontrollable content; by ctx.Flash: the link_account page is a mess ...
+				// Since the RawData is for the provider's data, so we need to use our own prefix here to avoid conflict.
+				if gothUser.RawData == nil {
+					gothUser.RawData = make(map[string]any)
+				}
+				gothUser.RawData["__giteaAutoRegMissingFields"] = missingFields
+				showLinkingLogin(ctx, gothUser)
 				return
 			}
 			u = &user_model.User{
@@ -1113,9 +1161,39 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 	groups := getClaimedGroups(oauth2Source, &gothUser)
 
+	opts := &user_service.UpdateOptions{}
+
+	// Reactivate user if they are deactivated
+	if !u.IsActive {
+		opts.IsActive = optional.Some(true)
+	}
+
+	// Update GroupClaims
+	opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
+
+	if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
+		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
+			ctx.ServerError("SyncGroupsToTeams", err)
+			return
+		}
+	}
+
+	if err := externalaccount.EnsureLinkExternalToUser(ctx, u, gothUser); err != nil {
+		ctx.ServerError("EnsureLinkExternalToUser", err)
+		return
+	}
+
 	// If this user is enrolled in 2FA and this source doesn't override it,
 	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
 	if !needs2FA {
+		// Register last login
+		opts.SetLastLogin = true
+
+		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+			ctx.ServerError("UpdateUser", err)
+			return
+		}
+
 		if err := updateSession(ctx, nil, map[string]any{
 			"uid":   u.ID,
 			"uname": u.Name,
@@ -1126,29 +1204,6 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 		// Clear whatever CSRF cookie has right now, force to generate a new one
 		ctx.Csrf.DeleteCookie(ctx)
-
-		opts := &user_service.UpdateOptions{
-			SetLastLogin: true,
-		}
-		opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-
-		if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
-			if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
-				ctx.ServerError("SyncGroupsToTeams", err)
-				return
-			}
-		}
-
-		// update external user information
-		if err := externalaccount.UpdateExternalUser(ctx, u, gothUser); err != nil {
-			if !errors.Is(err, util.ErrNotExist) {
-				log.Error("UpdateExternalUser failed: %v", err)
-			}
-		}
 
 		if err := resetLocale(ctx, u); err != nil {
 			ctx.ServerError("resetLocale", err)
@@ -1165,18 +1220,9 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		return
 	}
 
-	opts := &user_service.UpdateOptions{}
-	opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
-	if opts.IsAdmin.Has() || opts.IsRestricted.Has() {
+	if opts.IsActive.Has() || opts.IsAdmin.Has() || opts.IsRestricted.Has() {
 		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
-			return
-		}
-	}
-
-	if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
-		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
-			ctx.ServerError("SyncGroupsToTeams", err)
 			return
 		}
 	}
