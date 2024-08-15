@@ -89,6 +89,19 @@ func TestLFSRender(t *testing.T) {
 		content := doc.Find("div.file-view").Text()
 		assert.Contains(t, content, "Testing READMEs in LFS")
 	})
+
+	// check that an invalid lfs entry defaults to plaintext
+	t.Run("Invalid", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", "/user2/lfs/src/branch/master/invalid")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		doc := NewHTMLParser(t, resp.Body).doc
+
+		content := doc.Find("div.file-view").Text()
+		assert.Contains(t, content, "oid sha256:9d178b5f15046343fd32f451df93acc2bdd9e6373be478b968e4cad6b6647351")
+	})
 }
 
 // TestLFSLockView tests the LFS lock view on settings page of repositories
