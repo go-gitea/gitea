@@ -10,6 +10,8 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/tests"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // Validate that each navbar setting is correct. This checks that the
@@ -277,12 +279,56 @@ func TestUserSettingsSecurity(t *testing.T) {
 func TestUserSettingsApplications(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user/settings/applications")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
+	t.Run("Applications", func(t *testing.T) {
+		session := loginUser(t, "user2")
+		req := NewRequest(t, "GET", "/user/settings/applications")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
 
-	assertNavbar(t, doc)
+		assertNavbar(t, doc)
+	})
+
+	t.Run("OAuth2", func(t *testing.T) {
+		session := loginUser(t, "user2")
+
+		t.Run("OAuth2ApplicationShow", func(t *testing.T) {
+			req := NewRequest(t, "GET", "/user/settings/applications/oauth2/2")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			doc := NewHTMLParser(t, resp.Body)
+
+			assertNavbar(t, doc)
+		})
+
+		t.Run("OAuthApplicationsEdit", func(t *testing.T) {
+			req := NewRequest(t, "GET", "/user/settings/applications/oauth2/2")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			doc := NewHTMLParser(t, resp.Body)
+
+			t.Run("Invalid URL", func(t *testing.T) {
+				req := NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/2", map[string]string{
+					"_csrf":               doc.GetCSRF(),
+					"application_name":    "Test native app",
+					"redirect_uris":       "ftp://127.0.0.1",
+					"confidential_client": "false",
+				})
+				resp := session.MakeRequest(t, req, http.StatusOK)
+				doc := NewHTMLParser(t, resp.Body)
+
+				msg := doc.Find(".flash-error p").Text()
+				assert.Equal(t, `form.RedirectURIs"ftp://127.0.0.1" is not a valid URL.`, msg)
+			})
+
+			t.Run("OK", func(t *testing.T) {
+				req := NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/2", map[string]string{
+					"_csrf":               doc.GetCSRF(),
+					"application_name":    "Test native app",
+					"redirect_uris":       "http://127.0.0.1",
+					"confidential_client": "false",
+				})
+				session.MakeRequest(t, req, http.StatusSeeOther)
+			})
+		})
+	})
 }
 
 func TestUserSettingsKeys(t *testing.T) {
