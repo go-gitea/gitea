@@ -47,7 +47,6 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 		return
 	}
 
-	// TODO validate redirect URI
 	app, err := auth.CreateOAuth2Application(ctx, auth.CreateOAuth2ApplicationOptions{
 		Name:                       form.Name,
 		RedirectURIs:               util.SplitTrimSpace(form.RedirectURIs, "\n"),
@@ -115,7 +114,6 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 		return
 	}
 
-	// TODO validate redirect URI
 	var err error
 	if ctx.Data["App"], err = auth.UpdateOAuth2Application(ctx, auth.UpdateOAuth2ApplicationOptions{
 		ID:                         ctx.PathParamInt64("id"),
