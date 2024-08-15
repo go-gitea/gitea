@@ -41,7 +41,10 @@ func TestElasticsearchIndexer(t *testing.T) {
 		return
 	}
 
-	indexer := NewIndexer(url, fmt.Sprintf("test_elasticsearch_indexer_%d", time.Now().Unix()))
+	indexer, err := NewIndexer(url, fmt.Sprintf("test_elasticsearch_indexer_%d", time.Now().Unix()))
+	if err != nil {
+		t.Fatalf("Failed to create indexer: %v", err)
+	}
 	defer indexer.Close()
 
 	tests.TestIndexer(t, indexer)
