@@ -51,8 +51,10 @@ func WithDisabledFeatures(t *testing.T, features ...string) {
 }
 
 func TestUserSettingsAccount(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
 	t.Run("all features enabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		session := loginUser(t, "user2")
 		req := NewRequest(t, "GET", "/user/settings/account")
@@ -68,7 +70,7 @@ func TestUserSettingsAccount(t *testing.T) {
 	})
 
 	t.Run("credentials disabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		WithDisabledFeatures(t, setting.UserFeatureManageCredentials)
 
@@ -85,7 +87,7 @@ func TestUserSettingsAccount(t *testing.T) {
 	})
 
 	t.Run("deletion disabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		WithDisabledFeatures(t, setting.UserFeatureDeletion)
 
@@ -102,7 +104,7 @@ func TestUserSettingsAccount(t *testing.T) {
 	})
 
 	t.Run("deletion, credentials and email notifications are disabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		mail := setting.Service.EnableNotifyMail
 		setting.Service.EnableNotifyMail = false
@@ -119,8 +121,10 @@ func TestUserSettingsAccount(t *testing.T) {
 }
 
 func TestUserSettingsUpdatePassword(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
 	t.Run("enabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		session := loginUser(t, "user2")
 
@@ -138,7 +142,7 @@ func TestUserSettingsUpdatePassword(t *testing.T) {
 	})
 
 	t.Run("credentials disabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		WithDisabledFeatures(t, setting.UserFeatureManageCredentials)
 
@@ -156,8 +160,10 @@ func TestUserSettingsUpdatePassword(t *testing.T) {
 }
 
 func TestUserSettingsUpdateEmail(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
 	t.Run("credentials disabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		WithDisabledFeatures(t, setting.UserFeatureManageCredentials)
 
@@ -175,8 +181,10 @@ func TestUserSettingsUpdateEmail(t *testing.T) {
 }
 
 func TestUserSettingsDeleteEmail(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
 	t.Run("credentials disabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		WithDisabledFeatures(t, setting.UserFeatureManageCredentials)
 
@@ -194,8 +202,10 @@ func TestUserSettingsDeleteEmail(t *testing.T) {
 }
 
 func TestUserSettingsDelete(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
 	t.Run("deletion disabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		WithDisabledFeatures(t, setting.UserFeatureDeletion)
 
@@ -224,9 +234,10 @@ func TestUserSettingsAppearance(t *testing.T) {
 }
 
 func TestUserSettingsSecurity(t *testing.T) {
-	t.Run("credentials disabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
+	t.Run("credentials disabled", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 		WithDisabledFeatures(t, setting.UserFeatureManageCredentials)
 
 		session := loginUser(t, "user2")
@@ -240,8 +251,7 @@ func TestUserSettingsSecurity(t *testing.T) {
 	})
 
 	t.Run("mfa disabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-
+		defer tests.PrintCurrentTest(t)()
 		WithDisabledFeatures(t, setting.UserFeatureManageMFA)
 
 		session := loginUser(t, "user2")
@@ -255,8 +265,7 @@ func TestUserSettingsSecurity(t *testing.T) {
 	})
 
 	t.Run("credentials and mfa disabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-
+		defer tests.PrintCurrentTest(t)()
 		WithDisabledFeatures(t, setting.UserFeatureManageCredentials, setting.UserFeatureManageMFA)
 
 		session := loginUser(t, "user2")
@@ -277,8 +286,10 @@ func TestUserSettingsApplications(t *testing.T) {
 }
 
 func TestUserSettingsKeys(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
 	t.Run("all enabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		session := loginUser(t, "user2")
 		req := NewRequest(t, "GET", "/user/settings/keys")
@@ -292,7 +303,7 @@ func TestUserSettingsKeys(t *testing.T) {
 	})
 
 	t.Run("ssh keys disabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		WithDisabledFeatures(t, setting.UserFeatureManageSSHKeys)
 
@@ -308,7 +319,7 @@ func TestUserSettingsKeys(t *testing.T) {
 	})
 
 	t.Run("gpg keys disabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		WithDisabledFeatures(t, setting.UserFeatureManageGPGKeys)
 
@@ -324,7 +335,7 @@ func TestUserSettingsKeys(t *testing.T) {
 	})
 
 	t.Run("ssh & gpg keys disabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		WithDisabledFeatures(t, setting.UserFeatureManageSSHKeys, setting.UserFeatureManageGPGKeys)
 
