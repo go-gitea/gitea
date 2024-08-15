@@ -117,3 +117,9 @@ func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Colum
 		return nil
 	})
 }
+
+// DeleteAllProjectIssueByIssueIDsAndProjectIDs delete all project's issues by issue's and project's ids
+func DeleteAllProjectIssueByIssueIDsAndProjectIDs(ctx context.Context, issueIDs, projectIDs []int64) error {
+	_, err := db.GetEngine(ctx).In("project_id", projectIDs).In("issue_id", issueIDs).Delete(&ProjectIssue{})
+	return err
+}
