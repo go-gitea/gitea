@@ -3,7 +3,6 @@ import './bootstrap.ts';
 import './htmx.ts';
 
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
-import {initScopedAccessTokenCategories} from './components/ScopedAccessTokenSelector.vue';
 import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
 import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
@@ -80,6 +79,7 @@ import {initColorPickers} from './features/colorpicker.ts';
 import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
 import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
 import {initGlobalFetchAction} from './features/common-fetch-action.ts';
+import {initScopedAccessTokenCategories} from './features/scoped-access-token.ts';
 import {
   initFootLanguageMenu,
   initGlobalDropdown,
