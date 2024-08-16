@@ -342,7 +342,7 @@ func workflowDispatchConfig(w *model.Workflow) *WorkflowDispatch {
 	return nil
 }
 
-func decodeNode(node yaml.Node, out interface{}) bool {
+func decodeNode(node yaml.Node, out any) bool {
 	if err := node.Decode(out); err != nil {
 		log.Warn("Failed to decode node %v into %T: %v", node, out, err)
 		return false
