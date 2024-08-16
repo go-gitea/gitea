@@ -25,7 +25,7 @@
 						</div>
 					</div>
 				{{end}}
-				<div class="ui attached segment">
+				<div class="ui{{if not $canAddRemove}} top{{end}} attached segment">
 					<div class="flex-list">
 						{{range .Team.Repos}}
 							<div class="flex-item tw-items-center">

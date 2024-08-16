@@ -37,6 +37,7 @@ import (
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
+	"code.gitea.io/gitea/routers/web/shared/project"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
@@ -54,7 +55,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const GzipMinSize = 1400 // min size to compress for the body size of response
+var GzipMinSize = 1400 // min size to compress for the body size of response
 
 // optionsCorsHandler return a http handler which sets CORS options if enabled by config, it blocks non-CORS OPTIONS requests.
 func optionsCorsHandler() func(next http.Handler) http.Handler {
@@ -97,14 +98,14 @@ func optionsCorsHandler() func(next http.Handler) http.Handler {
 // The Session plugin is expected to be executed second, in order to skip authentication
 // for users that have already signed in.
 func buildAuthGroup() *auth_service.Group {
-	group := auth_service.NewGroup(
-		&auth_service.OAuth2{}, // FIXME: this should be removed and only applied in download and oauth related routers
-		&auth_service.Basic{},  // FIXME: this should be removed and only applied in download and git/lfs routers
-		&auth_service.Session{},
-	)
+	group := auth_service.NewGroup()
+	group.Add(&auth_service.OAuth2{}) // FIXME: this should be removed and only applied in download and oauth related routers
+	group.Add(&auth_service.Basic{})  // FIXME: this should be removed and only applied in download and git/lfs routers
+
 	if setting.Service.EnableReverseProxyAuth {
-		group.Add(&auth_service.ReverseProxy{})
+		group.Add(&auth_service.ReverseProxy{}) // reverseproxy should before Session, otherwise the header will be ignored if user has login
 	}
+	group.Add(&auth_service.Session{})
 
 	if setting.IsWindows && auth_model.IsSSPIEnabled(db.DefaultContext) {
 		group.Add(&auth_service.SSPI{}) // it MUST be the last, see the comment of SSPI
@@ -225,8 +226,8 @@ func ctxDataSet(args ...any) func(ctx *context.Context) {
 }
 
 // Routes returns all web routes
-func Routes() *web.Route {
-	routes := web.NewRoute()
+func Routes() *web.Router {
+	routes := web.NewRouter()
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", optionsCorsHandler(), public.FileHandlerFunc())
@@ -282,7 +283,7 @@ func Routes() *web.Route {
 	mid = append(mid, repo.GetActiveStopwatch)
 	mid = append(mid, goGet)
 
-	others := web.NewRoute()
+	others := web.NewRouter()
 	others.Use(mid...)
 	registerRoutes(others)
 	routes.Mount("", others)
@@ -292,7 +293,7 @@ func Routes() *web.Route {
 var ignSignInAndCsrf = verifyAuthWithOptions(&common.VerifyOptions{DisableCSRF: true})
 
 // registerRoutes register routes
-func registerRoutes(m *web.Route) {
+func registerRoutes(m *web.Router) {
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
 	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})
 	// TODO: rename them to "optSignIn", which means that the "sign-in" could be optional, depends on the VerifyOptions (RequireSignInView)
@@ -383,18 +384,18 @@ func registerRoutes(m *web.Route) {
 		return func(ctx *context.Context) {
 			// only check global disabled units when ignoreGlobal is false
 			if !ignoreGlobal && unitType.UnitGlobalDisabled() {
-				ctx.NotFound(unitType.String(), nil)
+				ctx.NotFound("Repo unit is is disabled: "+unitType.LogString(), nil)
 				return
 			}
 
 			if ctx.ContextUser == nil {
-				ctx.NotFound(unitType.String(), nil)
+				ctx.NotFound("ContextUser is nil", nil)
 				return
 			}
 
 			if ctx.ContextUser.IsOrganization() {
 				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
-					ctx.NotFound(unitType.String(), nil)
+					ctx.NotFound("ContextUser is org but doer has no access to unit", nil)
 					return
 				}
 			}
@@ -486,7 +487,7 @@ func registerRoutes(m *web.Route) {
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", func(ctx *context.Context) {
 			if unit.TypeCode.UnitGlobalDisabled() {
-				ctx.NotFound(unit.TypeCode.String(), nil)
+				ctx.NotFound("Repo unit code is disabled", nil)
 				return
 			}
 		}, explore.Code)
@@ -534,6 +535,8 @@ func registerRoutes(m *web.Route) {
 		})
 		m.Group("/webauthn", func() {
 			m.Get("", auth.WebAuthn)
+			m.Get("/passkey/assertion", auth.WebAuthnPasskeyAssertion)
+			m.Post("/passkey/login", auth.WebAuthnPasskeyLogin)
 			m.Get("/assertion", auth.WebAuthnLoginAssertion)
 			m.Post("/assertion", auth.WebAuthnLoginAssertionPost)
 		})
@@ -685,11 +688,13 @@ func registerRoutes(m *web.Route) {
 		m.Post("", web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
 
 		m.Get("/self_check", admin.SelfCheck)
+		m.Post("/self_check", admin.SelfCheckPost)
 
 		m.Group("/config", func() {
 			m.Get("", admin.Config)
 			m.Post("", admin.ChangeConfig)
 			m.Post("/test_mail", admin.SendTestMail)
+			m.Post("/test_cache", admin.TestCache)
 			m.Get("/settings", admin.ConfigSettings)
 		})
 
@@ -720,6 +725,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("/emails", func() {
 			m.Get("", admin.Emails)
 			m.Post("/activate", admin.ActivateEmail)
+			m.Post("/delete", admin.DeleteEmail)
 		})
 
 		m.Group("/orgs", func() {
@@ -998,17 +1004,18 @@ func registerRoutes(m *web.Route) {
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
-					m.Post("", web.Bind(forms.EditProjectBoardForm{}), org.AddBoardToProjectPost)
+					m.Post("", web.Bind(forms.EditProjectColumnForm{}), org.AddColumnToProjectPost)
+					m.Post("/move", project.MoveColumns)
 					m.Post("/delete", org.DeleteProject)
 
 					m.Get("/edit", org.RenderEditProject)
 					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), org.EditProjectPost)
 					m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
-					m.Group("/{boardID}", func() {
-						m.Put("", web.Bind(forms.EditProjectBoardForm{}), org.EditProjectBoard)
-						m.Delete("", org.DeleteProjectBoard)
-						m.Post("/default", org.SetDefaultProjectBoard)
+					m.Group("/{columnID}", func() {
+						m.Put("", web.Bind(forms.EditProjectColumnForm{}), org.EditProjectColumn)
+						m.Delete("", org.DeleteProjectColumn)
+						m.Post("/default", org.SetDefaultProjectColumn)
 						m.Post("/move", org.MoveIssues)
 					})
 				})
@@ -1122,6 +1129,9 @@ func registerRoutes(m *web.Route) {
 	// user/org home, including rss feeds
 	m.Get("/{username}/{reponame}", ignSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home)
 
+	// TODO: maybe it should relax the permission to allow "any access"
+	m.Post("/{username}/{reponame}/markup", ignSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki), web.Bind(structs.MarkupOption{}), misc.Markup)
+
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/find/*", repo.FindFiles)
 		m.Group("/tree-list", func() {
@@ -1232,8 +1242,6 @@ func registerRoutes(m *web.Route) {
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeCommentReaction)
 		}, context.RepoMustNotBeArchived())
-
-		m.Post("/markup", web.Bind(structs.MarkupOption{}), misc.Markup)
 
 		m.Group("/labels", func() {
 			m.Post("/new", web.Bind(forms.CreateLabelForm{}), repo.NewLabel)
@@ -1353,17 +1361,18 @@ func registerRoutes(m *web.Route) {
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 			m.Group("/{id}", func() {
-				m.Post("", web.Bind(forms.EditProjectBoardForm{}), repo.AddBoardToProjectPost)
+				m.Post("", web.Bind(forms.EditProjectColumnForm{}), repo.AddColumnToProjectPost)
+				m.Post("/move", project.MoveColumns)
 				m.Post("/delete", repo.DeleteProject)
 
 				m.Get("/edit", repo.RenderEditProject)
 				m.Post("/edit", web.Bind(forms.CreateProjectForm{}), repo.EditProjectPost)
 				m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
-				m.Group("/{boardID}", func() {
-					m.Put("", web.Bind(forms.EditProjectBoardForm{}), repo.EditProjectBoard)
-					m.Delete("", repo.DeleteProjectBoard)
-					m.Post("/default", repo.SetDefaultProjectBoard)
+				m.Group("/{columnID}", func() {
+					m.Put("", web.Bind(forms.EditProjectColumnForm{}), repo.EditProjectColumn)
+					m.Delete("", repo.DeleteProjectColumn)
+					m.Post("/default", repo.SetDefaultProjectColumn)
 					m.Post("/move", repo.MoveIssues)
 				})
 			})
@@ -1613,7 +1622,7 @@ func registerRoutes(m *web.Route) {
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetWebContext(req)
-		routing.UpdateFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "GlobalNotFound"))
+		routing.UpdateFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))
 		ctx.NotFound("", nil)
 	})
 }

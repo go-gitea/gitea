@@ -211,7 +211,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		}
 
 		for _, file := range opts.Files {
-			if err := handleCheckErrors(file, commit, opts, repo); err != nil {
+			if err := handleCheckErrors(file, commit, opts); err != nil {
 				return nil, err
 			}
 		}
@@ -277,7 +277,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 }
 
 // handles the check for various issues for ChangeRepoFiles
-func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRepoFilesOptions, repo *repo_model.Repository) error {
+func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRepoFilesOptions) error {
 	if file.Operation == "update" || file.Operation == "delete" {
 		fromEntry, err := commit.GetTreeEntryByPath(file.Options.fromTreePath)
 		if err != nil {

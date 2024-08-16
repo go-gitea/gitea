@@ -57,6 +57,7 @@ type Engine interface {
 	SumInt(bean any, columnName string) (res int64, err error)
 	Sync(...any) error
 	Select(string) *xorm.Session
+	SetExpr(string, any) *xorm.Session
 	NotIn(string, ...any) *xorm.Session
 	OrderBy(any, ...any) *xorm.Session
 	Exist(...any) (bool, error)

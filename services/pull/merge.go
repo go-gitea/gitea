@@ -18,12 +18,12 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -47,12 +47,18 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 	if err := pr.Issue.LoadPoster(ctx); err != nil {
 		return "", "", err
 	}
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
+		return "", "", err
+	}
 
 	isExternalTracker := pr.BaseRepo.UnitEnabled(ctx, unit.TypeExternalTracker)
 	issueReference := "#"
 	if isExternalTracker {
 		issueReference = "!"
 	}
+
+	reviewedOn := fmt.Sprintf("Reviewed-on: %s", httplib.MakeAbsoluteURL(ctx, pr.Issue.Link()))
+	reviewedBy := pr.GetApprovers(ctx)
 
 	if mergeStyle != "" {
 		templateFilepath := fmt.Sprintf(".gitea/default_merge_message/%s_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
@@ -78,6 +84,8 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 				"PullRequestPosterName":  pr.Issue.Poster.Name,
 				"PullRequestIndex":       strconv.FormatInt(pr.Index, 10),
 				"PullRequestReference":   fmt.Sprintf("%s%d", issueReference, pr.Index),
+				"ReviewedOn":             reviewedOn,
+				"ReviewedBy":             reviewedBy,
 			}
 			if pr.HeadRepo != nil {
 				vars["HeadRepoOwnerName"] = pr.HeadRepo.OwnerName
@@ -117,20 +125,22 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 		return "", "", nil
 	}
 
+	body = fmt.Sprintf("%s\n%s", reviewedOn, reviewedBy)
+
 	// Squash merge has a different from other styles.
 	if mergeStyle == repo_model.MergeStyleSquash {
-		return fmt.Sprintf("%s (%s%d)", pr.Issue.Title, issueReference, pr.Issue.Index), "", nil
+		return fmt.Sprintf("%s (%s%d)", pr.Issue.Title, issueReference, pr.Issue.Index), body, nil
 	}
 
 	if pr.BaseRepoID == pr.HeadRepoID {
-		return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch), "", nil
+		return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch), body, nil
 	}
 
 	if pr.HeadRepo == nil {
-		return fmt.Sprintf("Merge pull request '%s' (%s%d) from <deleted>:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch), "", nil
+		return fmt.Sprintf("Merge pull request '%s' (%s%d) from <deleted>:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch), body, nil
 	}
 
-	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), "", nil
+	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), body, nil
 }
 
 func expandDefaultMergeMessage(template string, vars map[string]string) (message, body string) {
@@ -162,12 +172,6 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
 	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
 
-	// Removing an auto merge pull and ignore if not exist
-	// FIXME: is this the correct point to do this? Shouldn't this be after IsMergeStyleAllowed?
-	if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
-		return err
-	}
-
 	prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 	if err != nil {
 		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
@@ -184,17 +188,15 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
 	}()
 
-	pr.MergedCommitID, err = doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message)
+	_, err = doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message, repo_module.PushTriggerPRMergeToBase)
 	if err != nil {
 		return err
 	}
 
-	pr.MergedUnix = timeutil.TimeStampNow()
-	pr.Merger = doer
-	pr.MergerID = doer.ID
-
-	if _, err := pr.SetMerged(ctx); err != nil {
-		log.Error("SetMerged %-v: %v", pr, err)
+	// reload pull request because it has been updated by post receive hook
+	pr, err = issues_model.GetPullRequestByID(ctx, pr.ID)
+	if err != nil {
+		return err
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
@@ -245,7 +247,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 }
 
 // doMergeAndPush performs the merge operation without changing any pull information in database and pushes it up to the base repository
-func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (string, error) {
+func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, pushTrigger repo_module.PushTrigger) (string, error) { //nolint:unparam
 	// Clone base repo.
 	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, expectedHeadCommitID)
 	if err != nil {
@@ -318,11 +320,13 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		pr.BaseRepo.Name,
 		pr.ID,
 	)
+
+	mergeCtx.env = append(mergeCtx.env, repo_module.EnvPushTrigger+"="+string(pushTrigger))
 	pushCmd := git.NewCommand(ctx, "push", "origin").AddDynamicArguments(baseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 
 	// Push back to upstream.
-	// TODO: this cause an api call to "/api/internal/hook/post-receive/...",
-	//       that prevents us from doint the whole merge in one db transaction
+	// This cause an api call to "/api/internal/hook/post-receive/...",
+	// If it's merge, all db transaction and operations should be there but not here to prevent deadlock.
 	if err := pushCmd.Run(mergeCtx.RunOpts()); err != nil {
 		if strings.Contains(mergeCtx.errbuf.String(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{

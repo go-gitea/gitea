@@ -1,20 +1,25 @@
-<script>
-import {SvgIcon} from '../svg.js';
-import {GET} from '../modules/fetch.js';
+<script lang="ts">
+import {SvgIcon} from '../svg.ts';
+import {GET} from '../modules/fetch.ts';
+import {generateAriaId} from '../modules/fomantic/base.ts';
 
 export default {
   components: {SvgIcon},
   data: () => {
-    const el = document.getElementById('diff-commit-select');
+    const el = document.querySelector('#diff-commit-select');
     return {
       menuVisible: false,
       isLoading: false,
+      queryParams: el.getAttribute('data-queryparams'),
+      issueLink: el.getAttribute('data-issuelink'),
       locale: {
         filter_changes_by_commit: el.getAttribute('data-filter_changes_by_commit'),
       },
       commits: [],
       hoverActivated: false,
       lastReviewCommitSha: null,
+      uniqueIdMenu: generateAriaId(),
+      uniqueIdShowAll: generateAriaId(),
     };
   },
   computed: {
@@ -23,12 +28,6 @@ export default {
         return this.commits.length - this.commits.findIndex((x) => x.id === this.lastReviewCommitSha) - 1;
       }
       return 0;
-    },
-    queryParams() {
-      return this.$el.parentNode.getAttribute('data-queryparams');
-    },
-    issueLink() {
-      return this.$el.parentNode.getAttribute('data-issuelink');
     },
   },
   mounted() {
@@ -67,6 +66,11 @@ export default {
           item.tabIndex = -1;
           this.toggleMenu();
           break;
+      }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        const item = document.activeElement; // try to highlight the selected commits
+        const commitIdx = item?.matches('.item') ? item.getAttribute('data-commit-idx') : null;
+        if (commitIdx) this.highlight(this.commits[commitIdx]);
       }
     },
     onKeyUp(event) {
@@ -113,12 +117,10 @@ export default {
       }
       // set correct tabindex to allow easier navigation
       this.$nextTick(() => {
-        const expandBtn = this.$el.querySelector('#diff-commit-list-expand');
-        const showAllChanges = this.$el.querySelector('#diff-commit-list-show-all');
         if (this.menuVisible) {
-          this.focusElem(showAllChanges, expandBtn);
+          this.focusElem(this.$refs.showAllChanges, this.$refs.expandBtn);
         } else {
-          this.focusElem(expandBtn, showAllChanges);
+          this.focusElem(this.$refs.expandBtn, this.$refs.showAllChanges);
         }
       });
     },
@@ -132,7 +134,7 @@ export default {
       }));
       this.commits.reverse();
       this.lastReviewCommitSha = results.last_review_commit_sha || null;
-      if (this.lastReviewCommitSha && this.commits.findIndex((x) => x.id === this.lastReviewCommitSha) === -1) {
+      if (this.lastReviewCommitSha && !this.commits.some((x) => x.id === this.lastReviewCommitSha)) {
         // the lastReviewCommit is not available (probably due to a force push)
         // reset the last review commit sha
         this.lastReviewCommitSha = null;
@@ -189,22 +191,23 @@ export default {
 };
 </script>
 <template>
-  <div class="ui scrolling dropdown custom">
+  <div class="ui scrolling dropdown custom diff-commit-selector">
     <button
+      ref="expandBtn"
       class="ui basic button"
-      id="diff-commit-list-expand"
       @click.stop="toggleMenu()"
       :data-tooltip-content="locale.filter_changes_by_commit"
       aria-haspopup="true"
-      aria-controls="diff-commit-selector-menu"
       :aria-label="locale.filter_changes_by_commit"
-      aria-activedescendant="diff-commit-list-show-all"
+      :aria-controls="uniqueIdMenu"
+      :aria-activedescendant="uniqueIdShowAll"
     >
       <svg-icon name="octicon-git-commit"/>
     </button>
-    <div class="menu left transition" id="diff-commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
+    <!-- this dropdown is not managed by Fomantic UI, so it needs some classes like "transition" explicitly -->
+    <div class="left menu transition" :id="uniqueIdMenu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
       <div class="loading-indicator is-loading" v-if="isLoading"/>
-      <div v-if="!isLoading" class="vertical item" id="diff-commit-list-show-all" role="menuitem" @keydown.enter="showAllChanges()" @click="showAllChanges()">
+      <div v-if="!isLoading" class="item" :id="uniqueIdShowAll" ref="showAllChanges" role="menuitem" @keydown.enter="showAllChanges()" @click="showAllChanges()">
         <div class="gt-ellipsis">
           {{ locale.show_all_commits }}
         </div>
@@ -214,8 +217,8 @@ export default {
       </div>
       <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
       <div
-        v-if="lastReviewCommitSha != null" role="menuitem"
-        class="vertical item"
+        v-if="lastReviewCommitSha != null"
+        class="item" role="menuitem"
         :class="{disabled: !commitsSinceLastReview}"
         @keydown.enter="changesSinceLastReviewClick()"
         @click="changesSinceLastReviewClick()"
@@ -228,10 +231,11 @@ export default {
         </div>
       </div>
       <span v-if="!isLoading" class="info text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
-      <template v-for="commit in commits" :key="commit.id">
+      <template v-for="(commit, idx) in commits" :key="commit.id">
         <div
-          class="vertical item" role="menuitem"
-          :class="{selection: commit.selected, hovered: commit.hovered}"
+          class="item" role="menuitem"
+          :class="{selected: commit.selected, hovered: commit.hovered}"
+          :data-commit-idx="idx"
           @keydown.enter.exact="commitClicked(commit.id)"
           @keydown.enter.shift.exact="commitClickedShift(commit)"
           @mouseover.shift="highlight(commit)"
@@ -261,46 +265,44 @@ export default {
   </div>
 </template>
 <style scoped>
-  .hovered:not(.selection) {
-    background-color: var(--color-small-accent) !important;
-  }
-  .selection {
-    background-color: var(--color-accent) !important;
-  }
-
-  .info {
-    display: inline-block;
-    padding: 7px 14px !important;
-    line-height: 1.4;
-    width: 100%;
-  }
-
-  #diff-commit-selector-menu {
+  .ui.dropdown.diff-commit-selector .menu {
+    margin-top: 0.25em;
     overflow-x: hidden;
     max-height: 450px;
   }
 
-  #diff-commit-selector-menu .loading-indicator {
+  .ui.dropdown.diff-commit-selector .menu .loading-indicator {
     height: 200px;
     width: 350px;
   }
 
-  #diff-commit-selector-menu .item,
-  #diff-commit-selector-menu .info {
-    display: flex !important;
+  .ui.dropdown.diff-commit-selector .menu > .item,
+  .ui.dropdown.diff-commit-selector .menu > .info {
+    display: flex;
     flex-direction: row;
     line-height: 1.4;
-    padding: 7px 14px !important;
-    border-top: 1px solid var(--color-secondary) !important;
     gap: 0.25em;
+    padding: 7px 14px !important;
   }
 
-  #diff-commit-selector-menu .item:focus {
-    color: var(--color-text);
-    background: var(--color-hover);
+  .ui.dropdown.diff-commit-selector .menu > .item:not(:first-child),
+  .ui.dropdown.diff-commit-selector .menu > .info:not(:first-child) {
+    border-top: 1px solid var(--color-secondary) !important;
   }
 
-  #diff-commit-selector-menu .commit-list-summary {
+  .ui.dropdown.diff-commit-selector .menu > .item:focus {
+    background: var(--color-active);
+  }
+
+  .ui.dropdown.diff-commit-selector .menu > .item.hovered {
+    background-color: var(--color-small-accent);
+  }
+
+  .ui.dropdown.diff-commit-selector .menu > .item.selected {
+    background-color: var(--color-accent);
+  }
+
+  .ui.dropdown.diff-commit-selector .menu .commit-list-summary {
     max-width: min(380px, 96vw);
   }
 </style>

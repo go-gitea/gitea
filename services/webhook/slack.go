@@ -118,17 +118,17 @@ func (s slackConvertor) Fork(p *api.ForkPayload) (SlackPayload, error) {
 
 // Issue implements payloadConvertor Issue method
 func (s slackConvertor) Issue(p *api.IssuePayload) (SlackPayload, error) {
-	text, issueTitle, attachmentText, color := getIssuesPayloadInfo(p, SlackLinkFormatter, true)
+	text, issueTitle, extraMarkdown, color := getIssuesPayloadInfo(p, SlackLinkFormatter, true)
 
 	var attachments []SlackAttachment
-	if attachmentText != "" {
-		attachmentText = SlackTextFormatter(attachmentText)
+	if extraMarkdown != "" {
+		extraMarkdown = SlackTextFormatter(extraMarkdown)
 		issueTitle = SlackTextFormatter(issueTitle)
 		attachments = append(attachments, SlackAttachment{
 			Color:     fmt.Sprintf("%x", color),
 			Title:     issueTitle,
 			TitleLink: p.Issue.HTMLURL,
-			Text:      attachmentText,
+			Text:      extraMarkdown,
 		})
 	}
 
@@ -210,17 +210,17 @@ func (s slackConvertor) Push(p *api.PushPayload) (SlackPayload, error) {
 
 // PullRequest implements payloadConvertor PullRequest method
 func (s slackConvertor) PullRequest(p *api.PullRequestPayload) (SlackPayload, error) {
-	text, issueTitle, attachmentText, color := getPullRequestPayloadInfo(p, SlackLinkFormatter, true)
+	text, issueTitle, extraMarkdown, color := getPullRequestPayloadInfo(p, SlackLinkFormatter, true)
 
 	var attachments []SlackAttachment
-	if attachmentText != "" {
-		attachmentText = SlackTextFormatter(p.PullRequest.Body)
+	if extraMarkdown != "" {
+		extraMarkdown = SlackTextFormatter(p.PullRequest.Body)
 		issueTitle = SlackTextFormatter(issueTitle)
 		attachments = append(attachments, SlackAttachment{
 			Color:     fmt.Sprintf("%x", color),
 			Title:     issueTitle,
 			TitleLink: p.PullRequest.HTMLURL,
-			Text:      attachmentText,
+			Text:      extraMarkdown,
 		})
 	}
 
@@ -281,20 +281,18 @@ type slackConvertor struct {
 	Color    string
 }
 
-var _ payloadConvertor[SlackPayload] = slackConvertor{}
-
-func newSlackRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+func newSlackRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &SlackMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
 		return nil, nil, fmt.Errorf("newSlackRequest meta json: %w", err)
 	}
-	sc := slackConvertor{
+	var pc payloadConvertor[SlackPayload] = slackConvertor{
 		Channel:  meta.Channel,
 		Username: meta.Username,
 		IconURL:  meta.IconURL,
 		Color:    meta.Color,
 	}
-	return newJSONRequest(sc, w, t, true)
+	return newJSONRequest(pc, w, t, true)
 }
 
 var slackChannel = regexp.MustCompile(`^#?[a-z0-9_-]{1,80}$`)

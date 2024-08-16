@@ -46,7 +46,7 @@ func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldC
 		return commitIDs, isForcePush, err
 	}
 
-	// Find commits between new and old commit exclusing base branch commits
+	// Find commits between new and old commit excluding base branch commits
 	commits, err := gitRepo.CommitsBetweenNotBase(newCommit, oldCommit, baseBranch)
 	if err != nil {
 		return nil, false, err

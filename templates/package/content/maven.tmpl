@@ -1,4 +1,8 @@
-{{if eq .PackageDescriptor.Package.Type "maven"}}
+{{if and (eq .PackageDescriptor.Package.Type "maven") (not .PackageDescriptor.Metadata)}}
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">{{ctx.Locale.Tr "packages.no_metadata"}}</div>
+{{end}}
+{{if and (eq .PackageDescriptor.Package.Type "maven") .PackageDescriptor.Metadata}}
 	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">

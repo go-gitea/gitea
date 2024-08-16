@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
@@ -24,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -134,6 +136,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 	}
 
 	pushWhitelistUsernames := getWhitelistEntities(readers, bp.WhitelistUserIDs)
+	forcePushAllowlistUsernames := getWhitelistEntities(readers, bp.ForcePushAllowlistUserIDs)
 	mergeWhitelistUsernames := getWhitelistEntities(readers, bp.MergeWhitelistUserIDs)
 	approvalsWhitelistUsernames := getWhitelistEntities(readers, bp.ApprovalsWhitelistUserIDs)
 
@@ -143,6 +146,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 	}
 
 	pushWhitelistTeams := getWhitelistEntities(teamReaders, bp.WhitelistTeamIDs)
+	forcePushAllowlistTeams := getWhitelistEntities(teamReaders, bp.ForcePushAllowlistTeamIDs)
 	mergeWhitelistTeams := getWhitelistEntities(teamReaders, bp.MergeWhitelistTeamIDs)
 	approvalsWhitelistTeams := getWhitelistEntities(teamReaders, bp.ApprovalsWhitelistTeamIDs)
 
@@ -159,6 +163,11 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		PushWhitelistUsernames:        pushWhitelistUsernames,
 		PushWhitelistTeams:            pushWhitelistTeams,
 		PushWhitelistDeployKeys:       bp.WhitelistDeployKeys,
+		EnableForcePush:               bp.CanForcePush,
+		EnableForcePushAllowlist:      bp.EnableForcePushAllowlist,
+		ForcePushAllowlistUsernames:   forcePushAllowlistUsernames,
+		ForcePushAllowlistTeams:       forcePushAllowlistTeams,
+		ForcePushAllowlistDeployKeys:  bp.ForcePushAllowlistDeployKeys,
 		EnableMergeWhitelist:          bp.EnableMergeWhitelist,
 		MergeWhitelistUsernames:       mergeWhitelistUsernames,
 		MergeWhitelistTeams:           mergeWhitelistTeams,
@@ -191,6 +200,31 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 		ZipballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip"),
 		TarballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz"),
 	}
+}
+
+// ToActionTask convert a actions_model.ActionTask to an api.ActionTask
+func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.ActionTask, error) {
+	if err := t.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+
+	url := strings.TrimSuffix(setting.AppURL, "/") + t.GetRunLink()
+
+	return &api.ActionTask{
+		ID:           t.ID,
+		Name:         t.Job.Name,
+		HeadBranch:   t.Job.Run.PrettyRef(),
+		HeadSHA:      t.Job.CommitSHA,
+		RunNumber:    t.Job.Run.Index,
+		Event:        t.Job.Run.TriggerEvent,
+		DisplayTitle: t.Job.Run.Title,
+		Status:       t.Status.String(),
+		WorkflowID:   t.Job.Run.WorkflowID,
+		URL:          url,
+		CreatedAt:    t.Created.AsLocalTime(),
+		UpdatedAt:    t.Updated.AsLocalTime(),
+		RunStartedAt: t.Started.AsLocalTime(),
+	}, nil
 }
 
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
@@ -381,6 +415,32 @@ func ToAnnotatedTagObject(repo *repo_model.Repository, commit *git.Commit) *api.
 	}
 }
 
+// ToTagProtection convert a git.ProtectedTag to an api.TagProtection
+func ToTagProtection(ctx context.Context, pt *git_model.ProtectedTag, repo *repo_model.Repository) *api.TagProtection {
+	readers, err := access_model.GetRepoReaders(ctx, repo)
+	if err != nil {
+		log.Error("GetRepoReaders: %v", err)
+	}
+
+	whitelistUsernames := getWhitelistEntities(readers, pt.AllowlistUserIDs)
+
+	teamReaders, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepo(ctx, repo.ID, perm.AccessModeRead)
+	if err != nil {
+		log.Error("Repo.Owner.TeamsWithAccessToRepo: %v", err)
+	}
+
+	whitelistTeams := getWhitelistEntities(teamReaders, pt.AllowlistTeamIDs)
+
+	return &api.TagProtection{
+		ID:                 pt.ID,
+		NamePattern:        pt.NamePattern,
+		WhitelistUsernames: whitelistUsernames,
+		WhitelistTeams:     whitelistTeams,
+		Created:            pt.CreatedUnix.AsTime(),
+		Updated:            pt.UpdatedUnix.AsTime(),
+	}
+}
+
 // ToTopicResponse convert from models.Topic to api.TopicResponse
 func ToTopicResponse(topic *repo_model.Topic) *api.TopicResponse {
 	return &api.TopicResponse{
@@ -395,13 +455,14 @@ func ToTopicResponse(topic *repo_model.Topic) *api.TopicResponse {
 // ToOAuth2Application convert from auth.OAuth2Application to api.OAuth2Application
 func ToOAuth2Application(app *auth.OAuth2Application) *api.OAuth2Application {
 	return &api.OAuth2Application{
-		ID:                 app.ID,
-		Name:               app.Name,
-		ClientID:           app.ClientID,
-		ClientSecret:       app.ClientSecret,
-		ConfidentialClient: app.ConfidentialClient,
-		RedirectURIs:       app.RedirectURIs,
-		Created:            app.CreatedUnix.AsTime(),
+		ID:                         app.ID,
+		Name:                       app.Name,
+		ClientID:                   app.ClientID,
+		ClientSecret:               app.ClientSecret,
+		ConfidentialClient:         app.ConfidentialClient,
+		SkipSecondaryAuthorization: app.SkipSecondaryAuthorization,
+		RedirectURIs:               app.RedirectURIs,
+		Created:                    app.CreatedUnix.AsTime(),
 	}
 }
 

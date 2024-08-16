@@ -5,8 +5,8 @@ package user_test
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"strings"
 	"testing"
 	"time"
@@ -506,15 +506,16 @@ func Test_NormalizeUserFromEmail(t *testing.T) {
 		Expected          string
 		IsNormalizedValid bool
 	}{
-		{"test", "test", true},
+		{"name@example.com", "name", true},
+		{"test'`´name", "testname", true},
 		{"Sinéad.O'Connor", "Sinead.OConnor", true},
 		{"Æsir", "AEsir", true},
-		// \u00e9\u0065\u0301
-		{"éé", "ee", true},
+		{"éé", "ee", true}, // \u00e9\u0065\u0301
 		{"Awareness Hub", "Awareness-Hub", true},
 		{"double__underscore", "double__underscore", false}, // We should consider squashing double non-alpha characters
 		{".bad.", ".bad.", false},
 		{"new😀user", "new😀user", false}, // No plans to support
+		{`"quoted"`, `"quoted"`, false}, // No plans to support
 	}
 	for _, testCase := range testCases {
 		normalizedName, err := user_model.NormalizeUserName(testCase.Input)
@@ -525,6 +526,29 @@ func Test_NormalizeUserFromEmail(t *testing.T) {
 		} else {
 			assert.Error(t, user_model.IsUsableUsername(normalizedName))
 		}
+	}
+}
+
+func TestEmailTo(t *testing.T) {
+	testCases := []struct {
+		fullName string
+		mail     string
+		result   string
+	}{
+		{"Awareness Hub", "awareness@hub.net", "Awareness Hub <awareness@hub.net>"},
+		{"name@example.com", "name@example.com", "name@example.com"},
+		{"Hi Its <Mee>", "ee@mail.box", "Hi Its Mee <ee@mail.box>"},
+		{"Sinéad.O'Connor", "sinead.oconnor@gmail.com", "=?utf-8?q?Sin=C3=A9ad.O'Connor?= <sinead.oconnor@gmail.com>"},
+		{"Æsir", "aesir@gmx.de", "=?utf-8?q?=C3=86sir?= <aesir@gmx.de>"},
+		{"new😀user", "new.user@alo.com", "=?utf-8?q?new=F0=9F=98=80user?= <new.user@alo.com>"},
+		{`"quoted"`, "quoted@test.com", "quoted <quoted@test.com>"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.result, func(t *testing.T) {
+			testUser := &user_model.User{FullName: testCase.fullName, Email: testCase.mail}
+			assert.EqualValues(t, testCase.result, testUser.EmailTo())
+		})
 	}
 }
 

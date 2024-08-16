@@ -220,10 +220,7 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
-	supportProcReceive := false
-	if git.CheckGitVersionAtLeast("2.29") == nil {
-		supportProcReceive = true
-	}
+	supportProcReceive := git.DefaultFeatures().SupportProcReceive
 
 	for scanner.Scan() {
 		// TODO: support news feeds for wiki
@@ -341,6 +338,7 @@ Gitea or set your environment appropriately.`, "")
 	isWiki, _ := strconv.ParseBool(os.Getenv(repo_module.EnvRepoIsWiki))
 	repoName := os.Getenv(repo_module.EnvRepoName)
 	pusherID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
+	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
 	pusherName := os.Getenv(repo_module.EnvPusherName)
 
 	hookOptions := private.HookOptions{
@@ -350,6 +348,8 @@ Gitea or set your environment appropriately.`, "")
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
 		GitPushOptions:                  pushOptions(),
+		PullRequestID:                   prID,
+		PushTrigger:                     repo_module.PushTrigger(os.Getenv(repo_module.EnvPushTrigger)),
 	}
 	oldCommitIDs := make([]string, hookBatchSize)
 	newCommitIDs := make([]string, hookBatchSize)
@@ -497,7 +497,7 @@ Gitea or set your environment appropriately.`, "")
 		return nil
 	}
 
-	if git.CheckGitVersionAtLeast("2.29") != nil {
+	if !git.DefaultFeatures().SupportProcReceive {
 		return fail(ctx, "No proc-receive support", "current git version doesn't support proc-receive.")
 	}
 

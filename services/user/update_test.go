@@ -35,7 +35,7 @@ func TestUpdateUser(t *testing.T) {
 		Description:                  optional.Some("description"),
 		AllowGitHook:                 optional.Some(true),
 		AllowImportLocal:             optional.Some(true),
-		MaxRepoCreation:              optional.Some[int](10),
+		MaxRepoCreation:              optional.Some(10),
 		IsRestricted:                 optional.Some(true),
 		IsActive:                     optional.Some(false),
 		IsAdmin:                      optional.Some(true),

@@ -12,6 +12,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -126,6 +127,65 @@ func TestAPICreatePullSuccess(t *testing.T) {
 	MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
 }
 
+func TestAPICreatePullBasePermission(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+	// repo10 have code, pulls units.
+	repo11 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
+	// repo11 only have code unit but should still create pulls
+	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	session := loginUser(t, user4.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	opts := &api.CreatePullRequestOption{
+		Head:  fmt.Sprintf("%s:master", repo11.OwnerName),
+		Base:  "master",
+		Title: "create a failure pr",
+	}
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	// add user4 to be a collaborator to base repo
+	ctx := NewAPITestContext(t, repo10.OwnerName, repo10.Name, auth_model.AccessTokenScopeWriteRepository)
+	t.Run("AddUser4AsCollaborator", doAPIAddCollaborator(ctx, user4.Name, perm.AccessModeRead))
+
+	// create again
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+}
+
+func TestAPICreatePullHeadPermission(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+	// repo10 have code, pulls units.
+	repo11 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
+	// repo11 only have code unit but should still create pulls
+	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	session := loginUser(t, user4.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	opts := &api.CreatePullRequestOption{
+		Head:  fmt.Sprintf("%s:master", repo11.OwnerName),
+		Base:  "master",
+		Title: "create a failure pr",
+	}
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	// add user4 to be a collaborator to head repo with read permission
+	ctx := NewAPITestContext(t, repo11.OwnerName, repo11.Name, auth_model.AccessTokenScopeWriteRepository)
+	t.Run("AddUser4AsCollaboratorWithRead", doAPIAddCollaborator(ctx, user4.Name, perm.AccessModeRead))
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	// add user4 to be a collaborator to head repo with write permission
+	t.Run("AddUser4AsCollaboratorWithWrite", doAPIAddCollaborator(ctx, user4.Name, perm.AccessModeWrite))
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+}
+
 func TestAPICreatePullSameRepoSuccess(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -223,23 +283,33 @@ func TestAPIEditPull(t *testing.T) {
 
 	session := loginUser(t, owner10.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	title := "create a success pr"
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &api.CreatePullRequestOption{
 		Head:  "develop",
 		Base:  "master",
-		Title: "create a success pr",
+		Title: title,
 	}).AddTokenAuth(token)
-	pull := new(api.PullRequest)
+	apiPull := new(api.PullRequest)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, pull)
-	assert.EqualValues(t, "master", pull.Base.Name)
+	DecodeJSON(t, resp, apiPull)
+	assert.EqualValues(t, "master", apiPull.Base.Name)
 
-	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), &api.EditPullRequestOption{
+	newTitle := "edit a this pr"
+	newBody := "edited body"
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, apiPull.Index), &api.EditPullRequestOption{
 		Base:  "feature/1",
-		Title: "edit a this pr",
+		Title: newTitle,
+		Body:  &newBody,
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, pull)
-	assert.EqualValues(t, "feature/1", pull.Base.Name)
+	DecodeJSON(t, resp, apiPull)
+	assert.EqualValues(t, "feature/1", apiPull.Base.Name)
+	// check comment history
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: apiPull.ID})
+	err := pull.LoadIssue(db.DefaultContext)
+	assert.NoError(t, err)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pull.Issue.ID, OldTitle: title, NewTitle: newTitle})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.ContentHistory{IssueID: pull.Issue.ID, ContentText: newBody, IsFirstCreated: false})
 
 	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), &api.EditPullRequestOption{
 		Base: "not-exist",

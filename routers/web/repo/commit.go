@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
@@ -81,7 +82,7 @@ func Commits(ctx *context.Context) {
 		ctx.ServerError("CommitsByRange", err)
 		return
 	}
-	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(ctx, commits, ctx.Repo.Repository)
+	ctx.Data["Commits"] = processGitCommits(ctx, commits)
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
@@ -199,7 +200,7 @@ func SearchCommits(ctx *context.Context) {
 		return
 	}
 	ctx.Data["CommitCount"] = len(commits)
-	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(ctx, commits, ctx.Repo.Repository)
+	ctx.Data["Commits"] = processGitCommits(ctx, commits)
 
 	ctx.Data["Keyword"] = query
 	if all {
@@ -212,8 +213,6 @@ func SearchCommits(ctx *context.Context) {
 
 // FileHistory show a file's reversions
 func FileHistory(ctx *context.Context) {
-	ctx.Data["IsRepoToolbarCommits"] = true
-
 	fileName := ctx.Repo.TreePath
 	if len(fileName) == 0 {
 		Commits(ctx)
@@ -244,7 +243,7 @@ func FileHistory(ctx *context.Context) {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
 	}
-	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(ctx, commits, ctx.Repo.Repository)
+	ctx.Data["Commits"] = processGitCommits(ctx, commits)
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
@@ -259,12 +258,12 @@ func FileHistory(ctx *context.Context) {
 }
 
 func LoadBranchesAndTags(ctx *context.Context) {
-	response, err := git_service.LoadBranchesAndTags(ctx, ctx.Repo, ctx.Params("sha"))
+	response, err := git_service.LoadBranchesAndTags(ctx, ctx.Repo, ctx.PathParam("sha"))
 	if err == nil {
 		ctx.JSON(http.StatusOK, response)
 		return
 	}
-	ctx.NotFoundOrServerError(fmt.Sprintf("could not load branches and tags the commit %s belongs to", ctx.Params("sha")), git.IsErrNotExist, err)
+	ctx.NotFoundOrServerError(fmt.Sprintf("could not load branches and tags the commit %s belongs to", ctx.PathParam("sha")), git.IsErrNotExist, err)
 }
 
 // Diff show different from current commit to previous commit
@@ -273,7 +272,7 @@ func Diff(ctx *context.Context) {
 
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
-	commitID := ctx.Params(":sha")
+	commitID := ctx.PathParam(":sha")
 	var (
 		gitRepo *git.Repository
 		err     error
@@ -355,6 +354,9 @@ func Diff(ctx *context.Context) {
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
+	if !ctx.Repo.CanRead(unit_model.TypeActions) {
+		git_model.CommitStatusesHideActionsURL(ctx, statuses)
+	}
 
 	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
@@ -384,6 +386,7 @@ func Diff(ctx *context.Context) {
 			},
 			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo: ctx.Repo.GitRepo,
+			Repo:    ctx.Repo.Repository,
 			Ctx:     ctx,
 		}, template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
 		if err != nil {
@@ -421,16 +424,27 @@ func RawDiff(ctx *context.Context) {
 	}
 	if err := git.GetRawDiff(
 		gitRepo,
-		ctx.Params(":sha"),
-		git.RawDiffType(ctx.Params(":ext")),
+		ctx.PathParam(":sha"),
+		git.RawDiffType(ctx.PathParam(":ext")),
 		ctx.Resp,
 	); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetRawDiff",
-				errors.New("commit "+ctx.Params(":sha")+" does not exist."))
+				errors.New("commit "+ctx.PathParam(":sha")+" does not exist."))
 			return
 		}
 		ctx.ServerError("GetRawDiff", err)
 		return
 	}
+}
+
+func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) []*git_model.SignCommitWithStatuses {
+	commits := git_model.ConvertFromGitCommit(ctx, gitCommits, ctx.Repo.Repository)
+	if !ctx.Repo.CanRead(unit_model.TypeActions) {
+		for _, commit := range commits {
+			commit.Status.HideActionsURL(ctx)
+			git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
+		}
+	}
+	return commits
 }

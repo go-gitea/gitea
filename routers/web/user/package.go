@@ -5,6 +5,7 @@ package user
 
 import (
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -15,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
@@ -134,7 +136,7 @@ func ListPackages(ctx *context.Context) {
 
 // RedirectToLastVersion redirects to the latest package version
 func RedirectToLastVersion(ctx *context.Context) {
-	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.Params("type")), ctx.Params("name"))
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
 			ctx.NotFound("GetPackageByName", err)
@@ -178,7 +180,11 @@ func ViewPackageVersion(ctx *context.Context) {
 
 	switch pd.Package.Type {
 	case packages_model.TypeContainer:
-		ctx.Data["RegistryHost"] = setting.Packages.RegistryHost
+		registryAppURL, err := url.Parse(httplib.GuessCurrentAppURL(ctx))
+		if err != nil {
+			registryAppURL, _ = url.Parse(setting.AppURL)
+		}
+		ctx.Data["RegistryHost"] = registryAppURL.Host
 	case packages_model.TypeAlpine:
 		branches := make(container.Set[string])
 		repositories := make(container.Set[string])
@@ -292,7 +298,7 @@ func ViewPackageVersion(ctx *context.Context) {
 // ListPackageVersions lists all versions of a package
 func ListPackageVersions(ctx *context.Context) {
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
-	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.Params("type")), ctx.Params("name"))
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
 			ctx.NotFound("GetPackageByName", err)
@@ -479,7 +485,7 @@ func PackageSettingsPost(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package file
 func DownloadPackageFile(ctx *context.Context) {
-	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.ParamsInt64(":fileid"))
+	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.PathParamInt64(":fileid"))
 	if err != nil {
 		if err == packages_model.ErrPackageFileNotExist {
 			ctx.NotFound("", err)
