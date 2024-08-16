@@ -1350,7 +1350,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			ctx.JSONError(flashError)
 		default:
 			// It's an unexpected error.
-			// Tf it happens, we should add another case to handle it.
+			// If it happens, we should add another case to handle it.
 			log.Error("Unexpected error of NewPullRequest: %T %s", err, err)
 			ctx.ServerError("CompareAndPullRequest", err)
 		}
