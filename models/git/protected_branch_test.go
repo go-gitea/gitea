@@ -1,12 +1,21 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package git
+package git_test
 
 import (
 	"fmt"
 	"testing"
 
+	access_model "code.gitea.io/gitea/models/perm/access"
+
+	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
+	perm_model "code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,7 +73,7 @@ func TestBranchRuleMatch(t *testing.T) {
 	}
 
 	for _, kase := range kases {
-		pb := ProtectedBranch{RuleName: kase.Rule}
+		pb := git_model.ProtectedBranch{RuleName: kase.Rule}
 		var should, infact string
 		if !kase.ExpectedMatch {
 			should = " not"
@@ -75,4 +84,36 @@ func TestBranchRuleMatch(t *testing.T) {
 			fmt.Sprintf("%s should%s match %s but it is%s", kase.BranchName, should, kase.Rule, infact),
 		)
 	}
+}
+
+func TestIsUserOfficialReviewer(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	log.Info(fmt.Sprintf("repo.IsPrivate %v", repo.IsPrivate))
+	protectedBranch := &git_model.ProtectedBranch{
+		RepoID:                   repo.ID,
+		EnableApprovalsWhitelist: false,
+	}
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+
+	access := &access_model.Access{
+		UserID: user.ID,
+		RepoID: repo.ID,
+		Mode:   perm_model.AccessModeNone,
+	}
+	assert.NoError(t, db.Insert(db.DefaultContext, access))
+
+	official, err := git_model.IsUserOfficialReviewer(db.DefaultContext, protectedBranch, user)
+	assert.NoError(t, err)
+	assert.False(t, official)
+
+	access.Mode = perm_model.AccessModeRead
+	_, err = db.GetEngine(db.DefaultContext).ID(access.ID).Update(access)
+	assert.NoError(t, err)
+
+	official, err = git_model.IsUserOfficialReviewer(db.DefaultContext, protectedBranch, user)
+	assert.NoError(t, err)
+	assert.True(t, official)
 }
