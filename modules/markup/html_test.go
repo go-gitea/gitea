@@ -437,7 +437,7 @@ func TestRender_ShortLinks(t *testing.T) {
 	renderableFileURL := util.URLJoin(tree, "markdown_file.md")
 	renderableFileURLWiki := util.URLJoin(markup.TestRepoURL, "wiki", "markdown_file.md")
 	unrenderableFileURL := util.URLJoin(tree, "file.zip")
-	unrenderableFileURLWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "file.zip")
+	unrenderableFileURLWiki := util.URLJoin(markup.TestRepoURL, "wiki", "file.zip")
 	favicon := "http://google.com/favicon.ico"
 
 	test(
