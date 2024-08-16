@@ -277,7 +277,6 @@ func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewer *user_model.
 		}
 		return writeAccess, nil
 	}
-
 	official, err := git_model.IsUserOfficialReviewer(ctx, rule, reviewer)
 	if official || err != nil {
 		return official, err
@@ -300,7 +299,8 @@ func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 	}
 
 	if !pb.EnableApprovalsWhitelist {
-		return team.UnitAccessMode(ctx, unit.TypeCode) >= perm.AccessModeWrite, nil
+		// Any team with code access is considered official reviewer
+		return team.UnitAccessMode(ctx, unit.TypeCode) >= perm.AccessModeRead, nil
 	}
 
 	return slices.Contains(pb.ApprovalsWhitelistTeamIDs, team.ID), nil

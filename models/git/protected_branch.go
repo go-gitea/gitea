@@ -206,12 +206,12 @@ func IsUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch,
 	}
 
 	if !protectBranch.EnableApprovalsWhitelist {
-		// Anyone with write access is considered official reviewer
-		writeAccess, err := access_model.HasAccessUnit(ctx, user, repo, unit.TypeCode, perm.AccessModeWrite)
+		// Anyone with code access is considered official reviewer
+		access, err := access_model.HasAccessUnit(ctx, user, repo, unit.TypeCode, perm.AccessModeRead)
 		if err != nil {
 			return false, err
 		}
-		return writeAccess, nil
+		return access, nil
 	}
 
 	if slices.Contains(protectBranch.ApprovalsWhitelistUserIDs, user.ID) {
