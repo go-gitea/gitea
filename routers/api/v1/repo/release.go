@@ -253,7 +253,7 @@ func CreateRelease(ctx *context.APIContext) {
 			} else if models.IsErrProtectedTagName(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "ProtectedTagName", err)
 			} else if git.IsErrNotExist(err) {
-				ctx.Error(http.StatusConflict, "ErrNotExist", err)
+				ctx.Error(http.StatusNotFound, "ErrNotExist", fmt.Errorf("target \"%v\" not found: %w", rel.Target, err))
 			} else {
 				ctx.Error(http.StatusInternalServerError, "CreateRelease", err)
 			}

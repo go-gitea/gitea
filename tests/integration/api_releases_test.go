@@ -223,7 +223,7 @@ func TestAPICreateReleaseGivenInvalidTarget(t *testing.T) {
 		Target:  "invalid-target",
 	}).AddTokenAuth(token)
 
-	MakeRequest(t, req, http.StatusConflict)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPIGetLatestRelease(t *testing.T) {
