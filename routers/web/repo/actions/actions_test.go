@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	act_model "github.com/nektos/act/pkg/model"
-
 	"github.com/stretchr/testify/assert"
 )
 
