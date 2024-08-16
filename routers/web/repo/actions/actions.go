@@ -277,7 +277,7 @@ type WorkflowDispatchInput struct {
 }
 
 type WorkflowDispatch struct {
-	Inputs []WorkflowDispatchInput //slice, not map,  for keep ordered
+	Inputs []WorkflowDispatchInput
 }
 
 func workflowDispatchConfig(w *model.Workflow) *WorkflowDispatch {
