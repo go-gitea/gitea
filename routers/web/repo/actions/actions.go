@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -27,7 +28,6 @@ import (
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/model"
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
 
@@ -344,7 +344,7 @@ func workflowDispatchConfig(w *model.Workflow) *WorkflowDispatch {
 
 func decodeNode(node yaml.Node, out interface{}) bool {
 	if err := node.Decode(out); err != nil {
-		log.Fatalf("Failed to decode node %v into %T: %v", node, out, err)
+		log.Warn("Failed to decode node %v into %T: %v", node, out, err)
 		return false
 	}
 	return true
