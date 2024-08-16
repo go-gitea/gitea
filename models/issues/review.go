@@ -277,6 +277,7 @@ func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewer *user_model.
 		}
 		return writeAccess, nil
 	}
+
 	official, err := git_model.IsUserOfficialReviewer(ctx, rule, reviewer)
 	if official || err != nil {
 		return official, err

@@ -15,7 +15,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -90,12 +89,10 @@ func TestIsUserOfficialReviewer(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	log.Info(fmt.Sprintf("repo.IsPrivate %v", repo.IsPrivate))
 	protectedBranch := &git_model.ProtectedBranch{
 		RepoID:                   repo.ID,
 		EnableApprovalsWhitelist: false,
 	}
-
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 
 	access := &access_model.Access{
