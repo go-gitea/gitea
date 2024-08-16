@@ -49,11 +49,11 @@
 
 			<div class="divider"></div>
 
-			{{range $key, $item := .WorkflowDispatchConfig.Inputs}}
+			{{range $item := .WorkflowDispatchConfig.Inputs}}
 			<div class="ui field {{if .Required}}required{{end}}">
 				{{if eq .Type "choice"}}
 					<label>{{.Description}}:</label>
-					<select class="ui selection type dropdown" name="{{$key}}">
+					<select class="ui selection type dropdown" name="{{.Name}}">
 						{{range .Options}}
 						<option value="{{.}}" {{if eq $item.Default .}}selected{{end}} >{{.}}</option>
 						{{end}}
@@ -61,14 +61,14 @@
 				{{else if eq .Type "boolean"}}
 					<div class="ui inline checkbox">
 						<label>{{.Description}}</label>
-						<input type="checkbox" name="{{$key}}" {{if eq .Default "true"}}checked{{end}}>
+						<input type="checkbox" name="{{.Name}}" {{if eq .Default "true"}}checked{{end}}>
 					</div>
 				{{else if eq .Type "number"}}
 					<label>{{.Description}}:</label>
-					<input name="{{$key}}" value="{{.Default}}" {{if .Required}}required{{end}}>
+					<input name="{{.Name}}" value="{{.Default}}" {{if .Required}}required{{end}}>
 				{{else}}
 					<label>{{.Description}}:</label>
-					<input name="{{$key}}" value="{{.Default}}" {{if .Required}}required{{end}}>
+					<input name="{{.Name}}" value="{{.Default}}" {{if .Required}}required{{end}}>
 				{{end}}
 			</div>
 			{{end}}

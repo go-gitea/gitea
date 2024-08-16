@@ -27,6 +27,8 @@ import (
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/model"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -172,7 +174,7 @@ func List(ctx *context.Context) {
 		ctx.Data["CurWorkflowDisabled"] = isWorkflowDisabled
 
 		if !isWorkflowDisabled && curWorkflow != nil {
-			workflowDispatchConfig := curWorkflow.WorkflowDispatchConfig()
+			workflowDispatchConfig := workflowDispatchConfig(curWorkflow)
 			if workflowDispatchConfig != nil {
 				ctx.Data["WorkflowDispatchConfig"] = workflowDispatchConfig
 
@@ -263,4 +265,87 @@ func List(ctx *context.Context) {
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 
 	ctx.HTML(http.StatusOK, tplListActions)
+}
+
+type WorkflowDispatchInput struct {
+	Name        string   `yaml:"name"`
+	Description string   `yaml:"description"`
+	Required    bool     `yaml:"required"`
+	Default     string   `yaml:"default"`
+	Type        string   `yaml:"type"`
+	Options     []string `yaml:"options"`
+}
+
+type WorkflowDispatch struct {
+	Inputs []WorkflowDispatchInput //slice, not map,  for keep ordered
+}
+
+func workflowDispatchConfig(w *model.Workflow) *WorkflowDispatch {
+	switch w.RawOn.Kind {
+	case yaml.ScalarNode:
+		var val string
+		if !decodeNode(w.RawOn, &val) {
+			return nil
+		}
+		if val == "workflow_dispatch" {
+			return &WorkflowDispatch{}
+		}
+	case yaml.SequenceNode:
+		var val []string
+		if !decodeNode(w.RawOn, &val) {
+			return nil
+		}
+		for _, v := range val {
+			if v == "workflow_dispatch" {
+				return &WorkflowDispatch{}
+			}
+		}
+	case yaml.MappingNode:
+		var val map[string]yaml.Node
+		if !decodeNode(w.RawOn, &val) {
+			return nil
+		}
+
+		workflowDispatchNode, found := val["workflow_dispatch"]
+		if !found {
+			return nil
+		}
+
+		var workflowDispatch WorkflowDispatch
+		var workflowDispatchVal map[string]yaml.Node
+		if !decodeNode(workflowDispatchNode, &workflowDispatchVal) {
+			return &workflowDispatch
+		}
+
+		inputsNode, found := workflowDispatchVal["inputs"]
+		if !found || inputsNode.Kind != yaml.MappingNode {
+			return &workflowDispatch
+		}
+
+		i := 0
+		for {
+			if i+1 >= len(inputsNode.Content) {
+				break
+			}
+			var input WorkflowDispatchInput
+			if decodeNode(*inputsNode.Content[i+1], &input) {
+				input.Name = inputsNode.Content[i].Value
+				workflowDispatch.Inputs = append(workflowDispatch.Inputs, input)
+			}
+			i += 2
+		}
+		return &workflowDispatch
+
+	default:
+		return nil
+	}
+	return nil
+}
+
+func decodeNode(node yaml.Node, out interface{}) bool {
+	if err := node.Decode(out); err != nil {
+		log.Fatalf("Failed to decode node %v into %T: %v", node, out, err)
+		return false
+	}
+	return true
 }
