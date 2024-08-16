@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
+	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -223,6 +224,9 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 	helper.ServePackageFile(ctx, s, u, pf, opts)
 }
 
+// Prevent duplicate upload for the same file.
+var uploadLock = sync.NewStatusTable()
+
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
 func UploadPackageFile(ctx *context.Context) {
 	params, err := extractPathParameters(ctx)
@@ -240,6 +244,10 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	packageName := params.GroupID + "-" + params.ArtifactID
+
+	// for the same package, only one upload at a time
+	uploadLock.Start(packageName)
+	defer uploadLock.Stop(packageName)
 
 	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
 	if err != nil {
