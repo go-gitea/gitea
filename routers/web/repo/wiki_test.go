@@ -87,6 +87,13 @@ func TestWiki(t *testing.T) {
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	assert.EqualValues(t, "Home", ctx.Data["Title"])
 	assertPagesMetas(t, []string{"Home", "Page With Image", "Page With Spaced Name", "Unescaped File"}, ctx.Data["Pages"])
+
+	ctx, _ = contexttest.MockContext(t, "user2/repo1/jpeg.jpg")
+	ctx.SetPathParam("*", "jpeg.jpg")
+	contexttest.LoadRepo(t, ctx, 1)
+	Wiki(ctx)
+	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
+	assert.Equal(t, "/user2/repo1/wiki/raw/jpeg.jpg", ctx.Resp.Header().Get("Location"))
 }
 
 func TestWikiPages(t *testing.T) {
@@ -160,6 +167,13 @@ func TestEditWiki(t *testing.T) {
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	assert.EqualValues(t, "Home", ctx.Data["Title"])
 	assert.Equal(t, wikiContent(t, ctx.Repo.Repository, "Home"), ctx.Data["content"])
+
+	ctx, _ = contexttest.MockContext(t, "user2/repo1/wiki/jpeg.jpg?action=_edit")
+	ctx.SetPathParam("*", "jpeg.jpg")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+	EditWiki(ctx)
+	assert.EqualValues(t, http.StatusForbidden, ctx.Resp.Status())
 }
 
 func TestEditWikiPost(t *testing.T) {
