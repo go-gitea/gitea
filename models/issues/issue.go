@@ -141,6 +141,16 @@ type Issue struct {
 	TotalTrackedTime    int64                    `xorm:"-"`
 	Assignees           []*user_model.User       `xorm:"-"`
 
+	// Store IP and UserAgent that will be temporarily stored for
+	// life of the struct so that it could potentially be used
+	// for sending to akismet or other spam detection services.
+	UserIP    string `xorm:"-"`
+	UserAgent string `xorm:"-"`
+
+	// Spam services will return a risk level. Could be used in
+	// the future to have a threshold for preventing sending emails.
+	RiskLevel int `xorm:"-"`
+
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
 	IsLocked bool `xorm:"NOT NULL DEFAULT false"`

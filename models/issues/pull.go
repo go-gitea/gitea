@@ -178,6 +178,16 @@ type PullRequest struct {
 	MergeBase           string `xorm:"VARCHAR(64)"`
 	AllowMaintainerEdit bool   `xorm:"NOT NULL DEFAULT false"`
 
+	// Store IP and UserAgent that will be temporarily stored for
+	// life of the struct so that it could potentially be used
+	// for sending to akismet or other spam detection services.
+	UserIP    string `xorm:"-"`
+	UserAgent string `xorm:"-"`
+
+	// Spam services will return a risk level. Could be used in
+	// the future to have a threshold for preventing sending emails.
+	RiskLevel int `xorm:"-"`
+
 	HasMerged      bool               `xorm:"INDEX"`
 	MergedCommitID string             `xorm:"VARCHAR(64)"`
 	MergerID       int64              `xorm:"INDEX"`
