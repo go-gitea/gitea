@@ -114,7 +114,7 @@ func readArmoredSign(r io.Reader) (body io.Reader, err error) {
 		return nil, err
 	}
 	if block.Type != openpgp.SignatureType {
-		return nil, fmt.Errorf("expected '" + openpgp.SignatureType + "', got: " + block.Type)
+		return nil, fmt.Errorf("expected '%s', got: %s", openpgp.SignatureType, block.Type)
 	}
 	return block.Body, nil
 }
