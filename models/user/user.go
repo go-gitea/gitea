@@ -756,11 +756,11 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 	}
 
 	// trim user agent string to a reasonable length, if necessary
-	user_agent := strings.TrimSpace(u.InitialUserAgent)
-	if len(user_agent) > 255 {
-		user_agent = user_agent[:255]
+	userAgent := strings.TrimSpace(u.InitialUserAgent)
+	if len(userAgent) > 255 {
+		userAgent = userAgent[:255]
 	}
-	if err = SetUserSetting(ctx, u.ID, "initial_user_agent", user_agent); err != nil {
+	if err = SetUserSetting(ctx, u.ID, "initial_user_agent", userAgent); err != nil {
 		return err
 	}
 
