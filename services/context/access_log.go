@@ -86,6 +86,7 @@ func AccessLogger() func(http.Handler) http.Handler {
 				ResponseWriter: rw,
 				Ctx: map[string]any{
 					"RemoteAddr": req.RemoteAddr,
+					"UserAgent":  req.UserAgent,
 					"RemoteHost": reqHost,
 					"Req":        req,
 				},

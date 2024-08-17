@@ -120,6 +120,11 @@ type User struct {
 	// (ex: in private Gitea instances user won't be allowed to see even organizations/repositories that are set as public)
 	IsRestricted bool `xorm:"NOT NULL DEFAULT false"`
 
+	// Store the initial registration of the user, to aid in spam prevention
+	// Ensure that one IP isn't creating many accounts (following mediawiki approach)
+	InitialIP        string `xorm:"-"`
+	InitialUserAgent string `xorm:"-"`
+
 	AllowGitHook            bool
 	AllowImportLocal        bool // Allow migrate repository by local path
 	AllowCreateOrganization bool `xorm:"DEFAULT true"`
@@ -742,6 +747,20 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 		_, err = db.GetEngine(ctx).NoAutoTime().Insert(u)
 	}
 	if err != nil {
+		return err
+	}
+
+	// insert initial IP and UserAgent
+	if err = SetUserSetting(ctx, u.ID, "initial_ip", u.InitialIP); err != nil {
+		return err
+	}
+
+	// trim user agent string to a reasonable length, if necessary
+	user_agent := strings.TrimSpace(u.InitialUserAgent)
+	if len(user_agent) > 255 {
+		user_agent = user_agent[:255]
+	}
+	if err = SetUserSetting(ctx, u.ID, "initial_user_agent", user_agent); err != nil {
 		return err
 	}
 

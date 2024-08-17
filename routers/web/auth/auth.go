@@ -541,6 +541,8 @@ func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form any
 // createUserInContext creates a user and handles errors within a given context.
 // Optionally a template can be specified.
 func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) (ok bool) {
+	u.InitialIP = ctx.RemoteAddr()
+	u.InitialUserAgent = ctx.Req.UserAgent()
 	if err := user_model.CreateUser(ctx, u, overwrites); err != nil {
 		if allowLink && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
