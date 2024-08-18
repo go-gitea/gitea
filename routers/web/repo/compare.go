@@ -643,7 +643,7 @@ func PrepareCompareDiff(
 		return false
 	}
 
-	commits := git_model.ConvertFromGitCommit(ctx, ci.CompareInfo.Commits, ci.HeadRepo)
+	commits := processGitCommits(ctx, ci.CompareInfo.Commits)
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 

@@ -155,8 +155,8 @@
 					</div>
 					<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
 					{{range .Assignees}}
-						<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
-							<span class="octicon-check tw-invisible">{{svg "octicon-check"}}</span>
+						<a class="{{if SliceUtils.Contains $.SelectedAssigneeIDs .ID}}checked{{end}} item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
+							<span class="octicon-check {{if not (SliceUtils.Contains $.SelectedAssigneeIDs .ID)}}tw-invisible{{end}}">{{svg "octicon-check"}}</span>
 							<span class="text">
 								{{ctx.AvatarUtils.Avatar . 28 "tw-mr-2"}}{{template "repo/search_name" .}}
 							</span>
@@ -165,12 +165,12 @@
 				</div>
 			</div>
 			<div class="ui assignees list">
-				<span class="no-select item {{if .HasSelectedLabel}}tw-hidden{{end}}">
+				<span class="no-select item {{if .HasSelectedAssignee}}tw-hidden{{end}}">
 					{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}
 				</span>
 				<div class="selected">
 				{{range .Assignees}}
-					<a class="item tw-p-1 muted tw-hidden" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
+					<a class="item tw-p-1 muted {{if not (SliceUtils.Contains $.SelectedAssigneeIDs .ID)}}tw-hidden{{end}}" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
 						{{ctx.AvatarUtils.Avatar . 28 "tw-mr-2 tw-align-middle"}}{{.GetDisplayName}}
 					</a>
 				{{end}}

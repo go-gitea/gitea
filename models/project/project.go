@@ -103,6 +103,13 @@ type Project struct {
 	ClosedDateUnix timeutil.TimeStamp
 }
 
+// Ghost Project is a project which has been deleted
+const GhostProjectID = -1
+
+func (p *Project) IsGhost() bool {
+	return p.ID == GhostProjectID
+}
+
 func (p *Project) LoadOwner(ctx context.Context) (err error) {
 	if p.Owner != nil {
 		return nil
@@ -287,6 +294,12 @@ func GetProjectForRepoByID(ctx context.Context, repoID, id int64) (*Project, err
 		return nil, ErrProjectNotExist{ID: id}
 	}
 	return p, nil
+}
+
+// GetAllProjectsIDsByOwnerID returns the all projects ids it owns
+func GetAllProjectsIDsByOwnerIDAndType(ctx context.Context, ownerID int64, projectType Type) ([]int64, error) {
+	projects := make([]int64, 0)
+	return projects, db.GetEngine(ctx).Table(&Project{}).Where("owner_id=? AND type=?", ownerID, projectType).Cols("id").Find(&projects)
 }
 
 // UpdateProject updates project properties

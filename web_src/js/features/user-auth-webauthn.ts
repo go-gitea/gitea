@@ -5,16 +5,20 @@ import {GET, POST} from '../modules/fetch.ts';
 const {appSubUrl} = window.config;
 
 export async function initUserAuthWebAuthn() {
+  const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
+  const elSignInPasskeyBtn = document.querySelector('.signin-passkey');
+  if (!elPrompt && !elSignInPasskeyBtn) {
+    return;
+  }
+
   if (!detectWebAuthnSupport()) {
     return;
   }
 
-  const elSignInPasskeyBtn = document.querySelector('.signin-passkey');
   if (elSignInPasskeyBtn) {
     elSignInPasskeyBtn.addEventListener('click', loginPasskey);
   }
 
-  const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
   if (elPrompt) {
     login2FA();
   }

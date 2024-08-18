@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
+	actions_module "code.gitea.io/gitea/modules/actions"
 	git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -54,7 +55,11 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 		}
 		sha = payload.HeadCommit.ID
 	case webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestSync:
-		event = "pull_request"
+		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
+			event = "pull_request_target"
+		} else {
+			event = "pull_request"
+		}
 		payload, err := run.GetPullRequestEventPayload()
 		if err != nil {
 			return fmt.Errorf("GetPullRequestEventPayload: %w", err)
