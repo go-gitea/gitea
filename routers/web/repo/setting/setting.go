@@ -401,7 +401,8 @@ func SettingsPost(ctx *context.Context) {
 
 		remoteAddress, err := util.SanitizeURL(form.PushMirrorAddress)
 		if err != nil {
-			ctx.ServerError("SanitizeURL", err)
+			ctx.Data["Err_PushMirrorAddress"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
 			return
 		}
 
