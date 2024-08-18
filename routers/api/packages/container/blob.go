@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -18,11 +17,12 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
+	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-var uploadVersionMutex sync.Mutex
+var uploadVersionMutex = sync.NewStatusTable()
 
 // saveAsPackageBlob creates a package blob from an upload
 // The uploaded blob gets stored in a special upload version to link them to the package/image
@@ -95,7 +95,8 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 
 	// FIXME: Replace usage of mutex with database transaction
 	// https://github.com/go-gitea/gitea/pull/21862
-	uploadVersionMutex.Lock()
+	uploadVersionMutex.Start(strings.ToLower(pi.Name))
+	defer uploadVersionMutex.Stop(strings.ToLower(pi.Name))
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		created := true
 		p := &packages_model.Package{
@@ -140,7 +141,6 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 
 		return nil
 	})
-	uploadVersionMutex.Unlock()
 
 	return uploadVersion, err
 }
