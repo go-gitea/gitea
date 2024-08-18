@@ -1126,7 +1126,6 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	if headRepo == nil && !isSameRepo {
 		// Check if the base repository is a fork of the head repository.
 		headRepo, err = repo_model.GetRepositoryByID(ctx, baseRepo.ForkID)
-
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
 			return nil, nil, nil, "", ""
