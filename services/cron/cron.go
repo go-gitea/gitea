@@ -11,12 +11,15 @@ import (
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/go-co-op/gocron"
 )
 
 var scheduler = gocron.NewScheduler(time.Local)
+
+var taskStatusTable = sync.NewStatusTable()
 
 // NewContext begins cron tasks
 // Each cron task is run within the shutdown context as a running server
