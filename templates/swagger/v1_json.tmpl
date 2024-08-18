@@ -22345,6 +22345,9 @@
           "type": "string",
           "x-go-name": "About"
         },
+        "assignees": {
+          "$ref": "#/definitions/IssueTemplateStringSlice"
+        },
         "body": {
           "type": "array",
           "items": {
@@ -22361,7 +22364,7 @@
           "x-go-name": "FileName"
         },
         "labels": {
-          "$ref": "#/definitions/IssueTemplateLabels"
+          "$ref": "#/definitions/IssueTemplateStringSlice"
         },
         "name": {
           "type": "string",
@@ -22378,7 +22381,7 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "IssueTemplateLabels": {
+    "IssueTemplateStringSlice": {
       "type": "array",
       "items": {
         "type": "string"
