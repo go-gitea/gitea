@@ -19,6 +19,7 @@ import (
 
 var scheduler = gocron.NewScheduler(time.Local)
 
+// Prevent duplicate running tasks.
 var taskStatusTable = sync.NewStatusTable()
 
 // NewContext begins cron tasks
