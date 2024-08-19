@@ -4,6 +4,7 @@
 package org
 
 import (
+	"fmt"
 	"net/http"
 	"path"
 	"strings"
@@ -28,14 +29,14 @@ const (
 
 // Home show organization home page
 func Home(ctx *context.Context) {
-	uname := ctx.Params(":username")
+	uname := ctx.PathParam(":username")
 
 	if strings.HasSuffix(uname, ".keys") || strings.HasSuffix(uname, ".gpg") {
 		ctx.NotFound("", nil)
 		return
 	}
 
-	ctx.SetParams(":org", uname)
+	ctx.SetPathParam(":org", uname)
 	context.HandleOrgAssignment(ctx)
 	if ctx.Written() {
 		return
@@ -155,6 +156,21 @@ func Home(ctx *context.Context) {
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParamString("language", language)
+	if archived.Has() {
+		pager.AddParamString("archived", fmt.Sprint(archived.Value()))
+	}
+	if fork.Has() {
+		pager.AddParamString("fork", fmt.Sprint(fork.Value()))
+	}
+	if mirror.Has() {
+		pager.AddParamString("mirror", fmt.Sprint(mirror.Value()))
+	}
+	if template.Has() {
+		pager.AddParamString("template", fmt.Sprint(template.Value()))
+	}
+	if private.Has() {
+		pager.AddParamString("private", fmt.Sprint(private.Value()))
+	}
 	ctx.Data["Page"] = pager
 
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0

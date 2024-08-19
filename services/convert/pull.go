@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -44,7 +45,16 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		return nil
 	}
 
-	p, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
+	var doerID int64
+	if doer != nil {
+		doerID = doer.ID
+	}
+
+	const repoDoerPermCacheKey = "repo_doer_perm_cache"
+	p, err := cache.GetWithContextCache(ctx, repoDoerPermCacheKey, fmt.Sprintf("%d_%d", pr.BaseRepoID, doerID),
+		func() (access_model.Permission, error) {
+			return access_model.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
+		})
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
 		p.AccessMode = perm.AccessModeNone
@@ -96,8 +106,23 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		log.Error("LoadRequestedReviewers[%d]: %v", pr.ID, err)
 		return nil
 	}
+	if err = pr.LoadRequestedReviewersTeams(ctx); err != nil {
+		log.Error("LoadRequestedReviewersTeams[%d]: %v", pr.ID, err)
+		return nil
+	}
+
 	for _, reviewer := range pr.RequestedReviewers {
 		apiPullRequest.RequestedReviewers = append(apiPullRequest.RequestedReviewers, ToUser(ctx, reviewer, nil))
+	}
+
+	for _, reviewerTeam := range pr.RequestedReviewersTeams {
+		convertedTeam, err := ToTeam(ctx, reviewerTeam, true)
+		if err != nil {
+			log.Error("LoadRequestedReviewersTeams[%d]: %v", pr.ID, err)
+			return nil
+		}
+
+		apiPullRequest.RequestedReviewersTeams = append(apiPullRequest.RequestedReviewersTeams, convertedTeam)
 	}
 
 	if pr.Issue.ClosedUnix != 0 {

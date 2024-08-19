@@ -129,8 +129,8 @@ func ArtifactV4Contexter() func(next http.Handler) http.Handler {
 	}
 }
 
-func ArtifactsV4Routes(prefix string) *web.Route {
-	m := web.NewRoute()
+func ArtifactsV4Routes(prefix string) *web.Router {
+	m := web.NewRouter()
 
 	r := artifactV4Routes{
 		prefix: prefix,
@@ -448,7 +448,7 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 
 	respData := GetSignedArtifactURLResponse{}
 
-	if setting.Actions.ArtifactStorage.MinioConfig.ServeDirect {
+	if setting.Actions.ArtifactStorage.ServeDirect() {
 		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath)
 		if u != nil && err == nil {
 			respData.SignedUrl = u.String()

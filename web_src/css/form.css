@@ -448,6 +448,20 @@ textarea:focus,
   }
 }
 
+/* form fields with additional content besides their label, used on login form
+ * use like <div class="field"><label/><a/><input/></div> */
+.form-field-content-aside-label {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.form-field-content-aside-label > *:nth-child(2) {
+  text-align: right;
+  margin-bottom: 4px;
+}
+.form-field-content-aside-label input {
+  grid-column: span 2;
+}
+
 .ui.form .field > .selection.dropdown {
   min-width: 14em; /* matches the default min width */
 }

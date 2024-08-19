@@ -25,17 +25,18 @@ COMMA := ,
 
 XGO_VERSION := go-1.22.x
 
-AIR_PACKAGE ?= github.com/cosmtrek/air@v1
+AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.6.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.0
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.5.1
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@db51e79a0e37c572d8b59ae0c58bf2bbbbe53285
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.31.0
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
+GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.15.3
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -136,16 +137,16 @@ TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
-TEST_TAGS ?= sqlite sqlite_unlock_notify
+TEST_TAGS ?= $(TAGS_SPLIT) sqlite sqlite_unlock_notify
 
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
 GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
-ESLINT_FILES := web_src/js tools *.js tests/e2e
+ESLINT_FILES := web_src/js tools *.js *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
-SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) docs/content templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.js *.md *.yml *.yaml *.toml))
+SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.js *.md *.yml *.yaml *.toml))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
 
 GO_SOURCES := $(wildcard *.go)
@@ -213,6 +214,7 @@ help:
 	@echo " - lint-go                          lint go files"
 	@echo " - lint-go-fix                      lint go files and fix issues"
 	@echo " - lint-go-vet                      lint go files with vet"
+	@echo " - lint-go-gopls                    lint go files with gopls"
 	@echo " - lint-js                          lint js files"
 	@echo " - lint-js-fix                      lint js files and fix issues"
 	@echo " - lint-css                         lint css files"
@@ -366,18 +368,20 @@ lint-frontend: lint-js lint-css
 lint-frontend-fix: lint-js-fix lint-css-fix
 
 .PHONY: lint-backend
-lint-backend: lint-go lint-go-vet lint-editorconfig
+lint-backend: lint-go lint-go-vet lint-go-gopls lint-editorconfig
 
 .PHONY: lint-backend-fix
 lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
 
 .PHONY: lint-js
 lint-js: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue $(ESLINT_FILES)
+	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
+#	npx tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue $(ESLINT_FILES) --fix
+	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
+#	npx tsc
 
 .PHONY: lint-css
 lint-css: node_modules
@@ -393,7 +397,7 @@ lint-swagger: node_modules
 
 .PHONY: lint-md
 lint-md: node_modules
-	npx markdownlint docs *.md
+	npx markdownlint *.md
 
 .PHONY: lint-spell
 lint-spell:
@@ -423,6 +427,11 @@ lint-go-vet:
 	@echo "Running go vet..."
 	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
 	@$(GO) vet -vettool=gitea-vet ./...
+
+.PHONY: lint-go-gopls
+lint-go-gopls:
+	@echo "Running gopls check..."
+	@GO=$(GO) GOPLS_PACKAGE=$(GOPLS_PACKAGE) tools/lint-go-gopls.sh $(GO_SOURCES_NO_BINDATA)
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
@@ -788,7 +797,7 @@ $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-docs release-check
+release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-check
 
 $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
@@ -834,10 +843,6 @@ release-sources: | $(DIST_DIRS)
 	tar $(addprefix $(EXCL),$(TAR_EXCLUDES)) $(TRANSFORM) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
-.PHONY: release-docs
-release-docs: | $(DIST_DIRS) docs
-	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs .
-
 .PHONY: deps
 deps: deps-frontend deps-backend deps-tools deps-py
 
@@ -853,24 +858,26 @@ deps-backend:
 
 .PHONY: deps-tools
 deps-tools:
-	$(GO) install $(AIR_PACKAGE)
-	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
-	$(GO) install $(GOFUMPT_PACKAGE)
-	$(GO) install $(GOLANGCI_LINT_PACKAGE)
-	$(GO) install $(GXZ_PACKAGE)
-	$(GO) install $(MISSPELL_PACKAGE)
-	$(GO) install $(SWAGGER_PACKAGE)
-	$(GO) install $(XGO_PACKAGE)
-	$(GO) install $(GO_LICENSES_PACKAGE)
-	$(GO) install $(GOVULNCHECK_PACKAGE)
-	$(GO) install $(ACTIONLINT_PACKAGE)
+	$(GO) install $(AIR_PACKAGE) & \
+	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE) & \
+	$(GO) install $(GOFUMPT_PACKAGE) & \
+	$(GO) install $(GOLANGCI_LINT_PACKAGE) & \
+	$(GO) install $(GXZ_PACKAGE) & \
+	$(GO) install $(MISSPELL_PACKAGE) & \
+	$(GO) install $(SWAGGER_PACKAGE) & \
+	$(GO) install $(XGO_PACKAGE) & \
+	$(GO) install $(GO_LICENSES_PACKAGE) & \
+	$(GO) install $(GOVULNCHECK_PACKAGE) & \
+	$(GO) install $(ACTIONLINT_PACKAGE) & \
+	$(GO) install $(GOPLS_PACKAGE) & \
+	wait
 
 node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
 
 .venv: poetry.lock
-	poetry install --no-root
+	poetry install
 	@touch .venv
 
 .PHONY: update
@@ -881,13 +888,15 @@ update-js: node-check | node_modules
 	npx updates -u -f package.json
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
+	npx nolyfill install
+	npm install --package-lock
 	@touch node_modules
 
 .PHONY: update-py
 update-py: node-check | node_modules
 	npx updates -u -f pyproject.toml
 	rm -rf .venv poetry.lock
-	poetry install --no-root
+	poetry install
 	@touch .venv
 
 .PHONY: fomantic
@@ -959,7 +968,7 @@ generate-gitignore:
 
 .PHONY: generate-images
 generate-images: | node_modules
-	npm install --no-save fabric@6.0.0-beta20 imagemin-zopfli@7
+	npm install --no-save fabric@6 imagemin-zopfli@7
 	node tools/generate-images.js $(TAGS)
 
 .PHONY: generate-manpage
