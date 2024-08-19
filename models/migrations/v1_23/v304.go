@@ -301,9 +301,5 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 	}
 
 	// Remove old version table
-	if err := x.DropTables(new(Version)); err != nil {
-		return err
-	}
-
-	return nil
+	return x.DropTables(new(Version))
 }
