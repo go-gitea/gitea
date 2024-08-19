@@ -1,12 +1,12 @@
 import {AnsiUp} from 'ansi_up';
 
-const replacements = [
+const replacements: Array<[RegExp, string]> = [
   [/\x1b\[\d+[A-H]/g, ''], // Move cursor, treat them as no-op
   [/\x1b\[\d?[JK]/g, '\r'], // Erase display/line, treat them as a Carriage Return
 ];
 
 // render ANSI to HTML
-export function renderAnsi(line) {
+export function renderAnsi(line: string): string {
   // create a fresh ansi_up instance because otherwise previous renders can influence
   // the output of future renders, because ansi_up is stateful and remembers things like
   // unclosed opening tags for colors.
