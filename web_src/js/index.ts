@@ -60,7 +60,7 @@ import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
 import {initCommonOrganization} from './features/common-organization.ts';
 import {initRepoWikiForm} from './features/repo-wiki.ts';
-import {initRepoCommentForm, initRepository} from './features/repo-legacy.ts';
+import {initRepoCommentForm, initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCopyContent} from './features/copycontent.ts';
 import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
@@ -182,6 +182,7 @@ onDomReady(() => {
     initRepoBranchButton,
     initRepoCodeView,
     initRepoCommentForm,
+    initBranchSelectorTabs,
     initRepoEllipsisButton,
     initRepoDiffCommitBranchesAndTags,
     initRepoEditor,
