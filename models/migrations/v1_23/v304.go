@@ -293,16 +293,16 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		return nil
 	}
 
-	// Remove old version table
-	if err := x.DropTables(new(Version)); err != nil {
-		return err
-	}
-
 	// add migrations that already have been run
 	for _, i := range oldMigrationNames[:v-minDBVersion] {
 		if _, err := x.Insert(&xormigrate.Migration{ID: i}); err != nil {
 			return err
 		}
+	}
+
+	// Remove old version table
+	if err := x.DropTables(new(Version)); err != nil {
+		return err
 	}
 
 	return nil
