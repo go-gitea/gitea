@@ -750,9 +750,9 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 		return err
 	}
 
-	if setting.RecordInitialIP {
+	if setting.RecordUserSignupMetadata {
 		// insert initial IP and UserAgent
-		if err = SetUserSetting(ctx, u.ID, "initial_ip", u.InitialIP); err != nil {
+		if err = SetUserSetting(ctx, u.ID, SignupIP, u.InitialIP); err != nil {
 			return err
 		}
 
@@ -761,7 +761,7 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 		if len(userAgent) > 255 {
 			userAgent = userAgent[:255]
 		}
-		if err = SetUserSetting(ctx, u.ID, "initial_user_agent", userAgent); err != nil {
+		if err = SetUserSetting(ctx, u.ID, SignupUserAgent, userAgent); err != nil {
 			return err
 		}
 	}
