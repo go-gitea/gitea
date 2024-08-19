@@ -1124,18 +1124,20 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	// Check if current user has fork of repository or in the same repository.
 	headRepo := repo_model.GetForkedRepo(ctx, headUser.ID, baseRepo.ID)
 	if headRepo == nil && !isSameRepo {
-		// Check if the base repository is a fork of the head repository.
-		headRepo, err = repo_model.GetRepositoryByID(ctx, baseRepo.ForkID)
+		err := baseRepo.GetBaseRepo(ctx)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
+			ctx.Error(http.StatusInternalServerError, "GetBaseRepo", err)
 			return nil, nil, nil, "", ""
 		}
 
-		if headRepo == nil {
+		// Check if baseRepo's base repository is the same as headUser's repository.
+		if baseRepo.BaseRepo == nil || baseRepo.BaseRepo.OwnerID != headUser.ID {
 			log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-			ctx.NotFound("GetForkedRepo")
+			ctx.NotFound("GetBaseRepo")
 			return nil, nil, nil, "", ""
 		}
+		// Assign headRepo so it can be used below.
+		headRepo = baseRepo.BaseRepo
 	}
 
 	var headGitRepo *git.Repository
