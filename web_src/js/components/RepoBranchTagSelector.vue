@@ -1,10 +1,10 @@
-<script>
+<script lang="ts">
 import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
-import {SvgIcon} from '../svg.js';
-import {pathEscapeSegments} from '../utils/url.js';
-import {showErrorToast} from '../modules/toast.js';
-import {GET} from '../modules/fetch.js';
+import {SvgIcon} from '../svg.ts';
+import {pathEscapeSegments} from '../utils/url.ts';
+import {showErrorToast} from '../modules/toast.ts';
+import {GET} from '../modules/fetch.ts';
 
 const sfc = {
   components: {SvgIcon},
@@ -85,7 +85,7 @@ const sfc = {
         this.isViewBranch = false;
         this.$refs.dropdownRefName.textContent = item.name;
         if (this.setAction) {
-          document.getElementById(this.branchForm)?.setAttribute('action', url);
+          document.querySelector(`#${this.branchForm}`)?.setAttribute('action', url);
         } else {
           $(`#${this.branchForm} input[name="refURL"]`).val(url);
         }

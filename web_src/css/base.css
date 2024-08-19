@@ -477,6 +477,20 @@ img.ui.avatar,
   padding-bottom: 80px;
 }
 
+.status-page-error {
+  margin-top: max(45vh - 90px, 80px);
+  margin-bottom: 80px;
+}
+
+.status-page-error-title {
+  font-size: 48px;
+  margin-bottom: 14px; /* some elements below may use tw-my-4 or tw-my-8, so use 14px as a minimal margin */
+  line-height: initial;
+  text-align: center;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-light-2);
+}
+
 /* add margin below .secondary nav when it is the first child */
 .page-content > :first-child.secondary-nav {
   margin-bottom: 14px;
@@ -1001,8 +1015,13 @@ overflow-menu .ui.label {
   padding: 0 8px;
   text-align: right !important;
   color: var(--color-text-light-2);
-  width: 1%;
-  font-family: var(--fonts-monospace);
+  width: 1%; /* this apparently needs to be a percentage so that code column stretches in diffs */
+  min-width: 72px;
+  white-space: nowrap;
+}
+
+.code-diff .lines-num {
+  min-width: 50px;
 }
 
 .lines-num span.bottom-line::after {
@@ -1022,6 +1041,7 @@ overflow-menu .ui.label {
 
 .lines-type-marker {
   vertical-align: top;
+  white-space: nowrap;
 }
 
 .lines-num,
@@ -1054,6 +1074,7 @@ overflow-menu .ui.label {
 
 .lines-escape {
   width: 0;
+  white-space: nowrap;
 }
 
 .lines-code {

@@ -1,16 +1,16 @@
-<script>
-import {loadMoreFiles} from '../features/repo-diff.js';
-import {diffTreeStore} from '../modules/stores.js';
+<script lang="ts">
+import {loadMoreFiles} from '../features/repo-diff.ts';
+import {diffTreeStore} from '../modules/stores.ts';
 
 export default {
   data: () => {
     return {store: diffTreeStore()};
   },
   mounted() {
-    document.getElementById('show-file-list-btn').addEventListener('click', this.toggleFileList);
+    document.querySelector('#show-file-list-btn').addEventListener('click', this.toggleFileList);
   },
   unmounted() {
-    document.getElementById('show-file-list-btn').removeEventListener('click', this.toggleFileList);
+    document.querySelector('#show-file-list-btn').removeEventListener('click', this.toggleFileList);
   },
   methods: {
     toggleFileList() {

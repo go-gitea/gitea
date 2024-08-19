@@ -45,7 +45,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 // PackageMetadata returns the metadata for a single package
 func PackageMetadata(ctx *context.Context) {
-	packageName := normalizer.Replace(ctx.Params("id"))
+	packageName := normalizer.Replace(ctx.PathParam("id"))
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypePyPI, packageName)
 	if err != nil {
@@ -76,9 +76,9 @@ func PackageMetadata(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
-	packageName := normalizer.Replace(ctx.Params("id"))
-	packageVersion := ctx.Params("version")
-	filename := ctx.Params("filename")
+	packageName := normalizer.Replace(ctx.PathParam("id"))
+	packageVersion := ctx.PathParam("version")
+	filename := ctx.PathParam("filename")
 
 	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,

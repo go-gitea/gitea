@@ -87,7 +87,9 @@ func (issues IssueList) LoadPosters(ctx context.Context) error {
 	}
 
 	for _, issue := range issues {
-		issue.Poster = getPoster(issue.PosterID, posterMaps)
+		if issue.Poster == nil {
+			issue.Poster = getPoster(issue.PosterID, posterMaps)
+		}
 	}
 	return nil
 }
@@ -439,6 +441,7 @@ func (issues IssueList) loadComments(ctx context.Context, cond builder.Cond) (er
 			Join("INNER", "issue", "issue.id = comment.issue_id").
 			In("issue.id", issuesIDs[:limit]).
 			Where(cond).
+			NoAutoCondition().
 			Rows(new(Comment))
 		if err != nil {
 			return err

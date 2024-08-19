@@ -1,11 +1,11 @@
-<script>
-import {SvgIcon} from '../svg.js';
+<script lang="ts">
+import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
-import {toggleElem} from '../utils/dom.js';
-import {formatDatetime} from '../utils/time.js';
-import {renderAnsi} from '../render/ansi.js';
-import {GET, POST, DELETE} from '../modules/fetch.js';
+import {toggleElem} from '../utils/dom.ts';
+import {formatDatetime} from '../utils/time.ts';
+import {renderAnsi} from '../render/ansi.ts';
+import {GET, POST, DELETE} from '../modules/fetch.ts';
 
 const sfc = {
   name: 'RepoActionView',
@@ -89,7 +89,9 @@ const sfc = {
     // load job data and then auto-reload periodically
     // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
     await this.loadJob();
-    this.intervalID = setInterval(this.loadJob, 1000);
+    this.intervalID = setInterval(() => {
+      this.loadJob();
+    }, 1000);
     document.body.addEventListener('click', this.closeDropdown);
     this.hashChangeListener();
     window.addEventListener('hashchange', this.hashChangeListener);
@@ -325,7 +327,7 @@ const sfc = {
 export default sfc;
 
 export function initRepositoryActionView() {
-  const el = document.getElementById('repo-action-view');
+  const el = document.querySelector('#repo-action-view');
   if (!el) return;
 
   // TODO: the parent element's full height doesn't work well now,
@@ -797,7 +799,7 @@ export function initRepositoryActionView() {
 }
 </style>
 
-<style>
+<style> /* eslint-disable-line vue-scoped-css/enforce-style-type */
 /* some elements are not managed by vue, so we need to use global style */
 .job-status-rotate {
   animation: job-status-rotate-keyframes 1s linear infinite;
@@ -861,6 +863,7 @@ export function initRepositoryActionView() {
   word-break: break-all;
   white-space: break-spaces;
   margin-left: 10px;
+  overflow-wrap: anywhere;
 }
 
 /* selectors here are intentionally exact to only match fullscreen */

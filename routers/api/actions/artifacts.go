@@ -101,8 +101,8 @@ func init() {
 	})
 }
 
-func ArtifactsRoutes(prefix string) *web.Route {
-	m := web.NewRoute()
+func ArtifactsRoutes(prefix string) *web.Router {
+	m := web.NewRouter()
 	m.Use(ArtifactContexter())
 
 	r := artifactRoutes{
@@ -242,16 +242,12 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 	}
 
 	// get upload file size
-	fileRealTotalSize, contentLength, err := getUploadFileSize(ctx)
-	if err != nil {
-		log.Error("Error get upload file size: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error get upload file size")
-		return
-	}
+	fileRealTotalSize, contentLength := getUploadFileSize(ctx)
 
 	// get artifact retention days
 	expiredDays := setting.Actions.ArtifactRetentionDays
 	if queryRetentionDays := ctx.Req.URL.Query().Get("retentionDays"); queryRetentionDays != "" {
+		var err error
 		expiredDays, err = strconv.ParseInt(queryRetentionDays, 10, 64)
 		if err != nil {
 			log.Error("Error parse retention days: %v", err)
@@ -461,7 +457,7 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	artifactID := ctx.ParamsInt64("artifact_id")
+	artifactID := ctx.PathParamInt64("artifact_id")
 	artifact, exist, err := db.GetByID[actions.ActionArtifact](ctx, artifactID)
 	if err != nil {
 		log.Error("Error getting artifact: %v", err)

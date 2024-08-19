@@ -32,7 +32,9 @@ func (comments CommentList) LoadPosters(ctx context.Context) error {
 	}
 
 	for _, comment := range comments {
-		comment.Poster = getPoster(comment.PosterID, posterMaps)
+		if comment.Poster == nil {
+			comment.Poster = getPoster(comment.PosterID, posterMaps)
+		}
 	}
 	return nil
 }

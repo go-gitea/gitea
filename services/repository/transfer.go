@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -177,6 +178,22 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		}
 	}
 
+	// Remove project's issues that belong to old organization's projects
+	if oldOwner.IsOrganization() {
+		projects, err := project_model.GetAllProjectsIDsByOwnerIDAndType(ctx, oldOwner.ID, project_model.TypeOrganization)
+		if err != nil {
+			return fmt.Errorf("Unable to find old org projects: %w", err)
+		}
+		issues, err := issues_model.GetIssueIDsByRepoID(ctx, repo.ID)
+		if err != nil {
+			return fmt.Errorf("Unable to find repo's issues: %w", err)
+		}
+		err = project_model.DeleteAllProjectIssueByIssueIDsAndProjectIDs(ctx, issues, projects)
+		if err != nil {
+			return fmt.Errorf("Unable to delete project's issues: %w", err)
+		}
+	}
+
 	if newOwner.IsOrganization() {
 		teams, err := organization.FindOrgTeams(ctx, newOwner.ID)
 		if err != nil {
@@ -285,7 +302,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 }
 
 // changeRepositoryName changes all corresponding setting from old repository name to new one.
-func changeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, newRepoName string) (err error) {
+func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newRepoName string) (err error) {
 	oldRepoName := repo.Name
 	newRepoName = strings.ToLower(newRepoName)
 	if err = repo_model.IsUsableRepoName(newRepoName); err != nil {
@@ -347,7 +364,7 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	// local copy's origin accordingly.
 
 	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
-	if err := changeRepositoryName(ctx, doer, repo, newRepoName); err != nil {
+	if err := changeRepositoryName(ctx, repo, newRepoName); err != nil {
 		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 		return err
 	}

@@ -5,7 +5,9 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -194,8 +196,20 @@ func migrateActionsLog(ctx context.Context, dstStorage storage.ObjectStorage) er
 
 func migrateActionsArtifacts(ctx context.Context, dstStorage storage.ObjectStorage) error {
 	return db.Iterate(ctx, nil, func(ctx context.Context, artifact *actions_model.ActionArtifact) error {
-		_, err := storage.Copy(dstStorage, artifact.ArtifactPath, storage.ActionsArtifacts, artifact.ArtifactPath)
-		return err
+		if artifact.Status == int64(actions_model.ArtifactStatusExpired) {
+			return nil
+		}
+
+		_, err := storage.Copy(dstStorage, artifact.StoragePath, storage.ActionsArtifacts, artifact.StoragePath)
+		if err != nil {
+			// ignore files that do not exist
+			if errors.Is(err, fs.ErrNotExist) {
+				return nil
+			}
+			return err
+		}
+
+		return nil
 	})
 }
 
