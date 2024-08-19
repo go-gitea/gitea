@@ -83,7 +83,17 @@ func Commits(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Commits"] = processGitCommits(ctx, commits)
-
+	commitIDs := make([]string, 0, len(commits))
+	for _, c := range commits {
+		commitIDs = append(commitIDs, c.ID.String())
+	}
+	commitsTagsMap, err := repo_model.FindTagsByCommitIDs(ctx, ctx.Repo.Repository.ID, commitIDs...)
+	if err != nil {
+		log.Error("FindTagsByCommitIDs: %v", err)
+		ctx.Flash.Error(ctx.Tr("repo.commit.load_tags_failed"))
+	} else {
+		ctx.Data["CommitsTagsMap"] = commitsTagsMap
+	}
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
