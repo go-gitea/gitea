@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"testing"
 
-	access_model "code.gitea.io/gitea/models/perm/access"
-
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	perm_model "code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+
 	"github.com/stretchr/testify/assert"
 )
 
