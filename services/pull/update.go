@@ -26,13 +26,13 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		return fmt.Errorf("update of agit flow pull request's head branch is unsupported")
 	}
 
-	lock := globallock.GetLock(getPullWorkingLockKey(pr.ID))
-	if err := lock.Lock(); err != nil {
+	locker := globallock.GetLocker(getPullWorkingLockKey(pr.ID))
+	if err := locker.Lock(); err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
 	}
 	defer func() {
-		if _, err := lock.Unlock(); err != nil {
+		if _, err := locker.Unlock(); err != nil {
 			log.Error("lock.Unlock: %v", err)
 		}
 	}()

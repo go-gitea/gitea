@@ -170,13 +170,13 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		return fmt.Errorf("unable to load head repo: %w", err)
 	}
 
-	lock := globallock.GetLock(getPullWorkingLockKey(pr.ID))
-	if err := lock.Lock(); err != nil {
+	locker := globallock.GetLocker(getPullWorkingLockKey(pr.ID))
+	if err := locker.Lock(); err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
 	}
 	defer func() {
-		if _, err := lock.Unlock(); err != nil {
+		if _, err := locker.Unlock(); err != nil {
 			log.Error("lock.Unlock: %v", err)
 		}
 	}()
@@ -492,13 +492,13 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 
 // MergedManually mark pr as merged manually
 func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) error {
-	lock := globallock.GetLock(getPullWorkingLockKey(pr.ID))
-	if err := lock.Lock(); err != nil {
+	locker := globallock.GetLocker(getPullWorkingLockKey(pr.ID))
+	if err := locker.Lock(); err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
 	}
 	defer func() {
-		if _, err := lock.Unlock(); err != nil {
+		if _, err := locker.Unlock(); err != nil {
 			log.Error("lock.Unlock: %v", err)
 		}
 	}()

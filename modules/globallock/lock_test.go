@@ -10,17 +10,56 @@ import (
 )
 
 func Test_Lock(t *testing.T) {
-	locker := GetLock("test")
-	assert.NoError(t, locker.Lock())
-	locker.Unlock()
+	locker1 := GetLocker("test2")
+	assert.NoError(t, locker1.Lock())
+	unlocked, err := locker1.Unlock()
+	assert.NoError(t, err)
+	assert.True(t, unlocked)
 
-	locked1, err1 := locker.TryLock()
+	locker2 := GetLocker("test2")
+	assert.NoError(t, locker2.Lock())
+
+	locked1, err1 := locker2.TryLock()
 	assert.NoError(t, err1)
-	assert.True(t, locked1)
+	assert.False(t, locked1)
 
-	locked2, err2 := locker.TryLock()
+	locker2.Unlock()
+
+	locked2, err2 := locker2.TryLock()
 	assert.NoError(t, err2)
-	assert.False(t, locked2)
+	assert.True(t, locked2)
 
-	locker.Unlock()
+	locker2.Unlock()
+}
+
+func Test_Lock_Redis(t *testing.T) {
+	if os.Getenv("CI") == "" {
+		t.Skip("Skip test for local development")
+	}
+
+	lockService = newRedisLockService("redis://redis")
+
+	redisPool :=
+	locker1 := GetLocker("test1")
+	assert.NoError(t, locker1.Lock())
+	unlocked, err := locker1.Unlock()
+	assert.NoError(t, err)
+	assert.True(t, unlocked)
+
+	locker2 := GetLocker("test1")
+	assert.NoError(t, locker2.Lock())
+
+	locked1, err1 := locker2.TryLock()
+	assert.NoError(t, err1)
+	assert.False(t, locked1)
+
+	locker2.Unlock()
+
+	locked2, err2 := locker2.TryLock()
+	assert.NoError(t, err2)
+	assert.True(t, locked2)
+
+	locker2.Unlock()
+
+	redisPool.Close()
 }

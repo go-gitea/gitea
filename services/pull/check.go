@@ -335,13 +335,13 @@ func handler(items ...string) []string {
 }
 
 func testPR(id int64) {
-	lock := globallock.GetLock(getPullWorkingLockKey(id))
-	if err := lock.Lock(); err != nil {
+	locker := globallock.GetLocker(getPullWorkingLockKey(id))
+	if err := locker.Lock(); err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return
 	}
 	defer func() {
-		if _, err := lock.Unlock(); err != nil {
+		if _, err := locker.Unlock(); err != nil {
 			log.Error("lock.Unlock: %v", err)
 		}
 	}()

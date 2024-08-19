@@ -16,13 +16,14 @@ import (
 )
 
 type Locker interface {
-	Lock() error
-	TryLock() (bool, error)
-	Unlock() (bool, error)
+	Lock() error            // lock the resource and block until it is unlocked by the holder
+	TryLock() (bool, error) // try to lock the resource and return immediately, first return value indicates if the lock was successful
+	Unlock() (bool, error)  // only lock with no error and TryLock returned true with no error can be unlocked
 }
 
 type LockService interface {
-	GetLock(name string) Locker
+	GetLocker(name string) Locker // create or get a locker by name, RemoveLocker should be called after the locker is no longer needed
+	RemoveLocker(name string)     // remove a locker by name from the pool. This should be invoked affect locker is no longer needed, i.e. a pull request merged or closed
 }
 
 type memoryLock struct {
@@ -57,9 +58,13 @@ func newMemoryLockService() *memoryLockService {
 	}
 }
 
-func (l *memoryLockService) GetLock(name string) Locker {
+func (l *memoryLockService) GetLocker(name string) Locker {
 	v, _ := l.syncMap.LoadOrStore(name, &memoryLock{})
 	return v.(*memoryLock)
+}
+
+func (l *memoryLockService) RemoveLocker(name string) {
+	l.syncMap.Delete(name)
 }
 
 type redisLockService struct {
@@ -86,8 +91,12 @@ type redisLock struct {
 	mutex *redsync.Mutex
 }
 
-func (r *redisLockService) GetLock(name string) Locker {
+func (r *redisLockService) GetLocker(name string) Locker {
 	return &redisLock{mutex: r.rs.NewMutex(name)}
+}
+
+func (r *redisLockService) RemoveLocker(name string) {
+	// Do nothing
 }
 
 func (r *redisLock) Lock() error {
@@ -123,6 +132,6 @@ func getLockService() LockService {
 	return lockService
 }
 
-func GetLock(name string) Locker {
-	return getLockService().GetLock(name)
+func GetLocker(name string) Locker {
+	return getLockService().GetLocker(name)
 }

@@ -42,13 +42,13 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 
 	oldOwner := repo.Owner
 
-	lock := globallock.GetLock(getRepoWorkingLockKey(repo.ID))
-	if err := lock.Lock(); err != nil {
+	locker := globallock.GetLocker(getRepoWorkingLockKey(repo.ID))
+	if err := locker.Lock(); err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
 	}
 	defer func() {
-		if _, err := lock.Unlock(); err != nil {
+		if _, err := locker.Unlock(); err != nil {
 			log.Error("lock.Unlock: %v", err)
 		}
 	}()
@@ -371,14 +371,14 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	// repo so that we can atomically rename the repo path and updates the
 	// local copy's origin accordingly.
 
-	lock := globallock.GetLock(getRepoWorkingLockKey(repo.ID))
-	if err := lock.Lock(); err != nil {
+	locker := globallock.GetLocker(getRepoWorkingLockKey(repo.ID))
+	if err := locker.Lock(); err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
 	}
 
 	defer func() {
-		if _, err := lock.Unlock(); err != nil {
+		if _, err := locker.Unlock(); err != nil {
 			log.Error("lock.Unlock: %v", err)
 		}
 	}()
