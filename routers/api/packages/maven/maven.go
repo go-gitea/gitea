@@ -225,7 +225,7 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 }
 
 // Prevent duplicate upload for the same file.
-var uploadLock = sync.NewStatusTable()
+var uploadLock = sync.NewExclusivePool()
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
 func UploadPackageFile(ctx *context.Context) {
@@ -246,8 +246,8 @@ func UploadPackageFile(ctx *context.Context) {
 	packageName := params.GroupID + "-" + params.ArtifactID
 
 	// for the same package, only one upload at a time
-	uploadLock.Start(packageName)
-	defer uploadLock.Stop(packageName)
+	uploadLock.CheckIn(packageName)
+	defer uploadLock.CheckOut(packageName)
 
 	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
 	if err != nil {
