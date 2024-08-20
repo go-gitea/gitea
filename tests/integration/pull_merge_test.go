@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
@@ -890,7 +891,8 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 			AddDynamicArguments(`description="This PR is a test pull request which created with agit"`).
 			Run(&git.RunOpts{Dir: dstPath, Stderr: stderrBuf})
 		assert.NoError(t, err)
-		assert.Contains(t, stderrBuf.String(), "http://localhost:3003/user2/repo1/pulls/6")
+
+		assert.Contains(t, stderrBuf.String(), setting.AppURL+"user2/repo1/pulls/6")
 
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
