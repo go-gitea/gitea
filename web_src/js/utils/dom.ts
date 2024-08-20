@@ -1,14 +1,21 @@
 import {debounce} from 'throttle-debounce';
+import type {Promisable} from 'type-fest';
+import type $ from 'jquery';
 
-function elementsCall(el, func, ...args) {
+type ElementArg = Element | string | NodeListOf<Element> | Array<Element> | ReturnType<typeof $>;
+type ElementsCallback = (el: Element) => Promisable<any>;
+type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
+type IterableElements = NodeListOf<Element> | Array<Element>;
+
+function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]) {
   if (typeof el === 'string' || el instanceof String) {
-    el = document.querySelectorAll(el);
+    el = document.querySelectorAll(el as string);
   }
   if (el instanceof Node) {
     func(el, ...args);
   } else if (el.length !== undefined) {
     // this works for: NodeList, HTMLCollection, Array, jQuery
-    for (const e of el) {
+    for (const e of (el as IterableElements)) {
       func(e, ...args);
     }
   } else {
@@ -17,10 +24,10 @@ function elementsCall(el, func, ...args) {
 }
 
 /**
- * @param el string (selector), Node, NodeList, HTMLCollection, Array or jQuery
+ * @param el Element
  * @param force force=true to show or force=false to hide, undefined to toggle
  */
-function toggleShown(el, force) {
+function toggleShown(el: Element, force: boolean) {
   if (force === true) {
     el.classList.remove('tw-hidden');
   } else if (force === false) {
@@ -32,26 +39,26 @@ function toggleShown(el, force) {
   }
 }
 
-export function showElem(el) {
+export function showElem(el: ElementArg) {
   elementsCall(el, toggleShown, true);
 }
 
-export function hideElem(el) {
+export function hideElem(el: ElementArg) {
   elementsCall(el, toggleShown, false);
 }
 
-export function toggleElem(el, force) {
+export function toggleElem(el: ElementArg, force?: boolean) {
   elementsCall(el, toggleShown, force);
 }
 
-export function isElemHidden(el) {
-  const res = [];
+export function isElemHidden(el: ElementArg) {
+  const res: boolean[] = [];
   elementsCall(el, (e) => res.push(e.classList.contains('tw-hidden')));
   if (res.length > 1) throw new Error(`isElemHidden doesn't work for multiple elements`);
   return res[0];
 }
 
-function applyElemsCallback(elems, fn) {
+function applyElemsCallback(elems: IterableElements, fn?: ElementsCallback) {
   if (fn) {
     for (const el of elems) {
       fn(el);
@@ -60,20 +67,22 @@ function applyElemsCallback(elems, fn) {
   return elems;
 }
 
-export function queryElemSiblings(el, selector = '*', fn) {
-  return applyElemsCallback(Array.from(el.parentNode.children).filter((child) => child !== el && child.matches(selector)), fn);
+export function queryElemSiblings(el: Element, selector = '*', fn?: ElementsCallback) {
+  return applyElemsCallback(Array.from(el.parentNode.children).filter((child: Element) => {
+    return child !== el && child.matches(selector);
+  }), fn);
 }
 
 // it works like jQuery.children: only the direct children are selected
-export function queryElemChildren(parent, selector = '*', fn) {
+export function queryElemChildren(parent: Element | ParentNode, selector = '*', fn?: ElementsCallback) {
   return applyElemsCallback(parent.querySelectorAll(`:scope > ${selector}`), fn);
 }
 
-export function queryElems(selector, fn) {
+export function queryElems(selector: string, fn?: ElementsCallback) {
   return applyElemsCallback(document.querySelectorAll(selector), fn);
 }
 
-export function onDomReady(cb) {
+export function onDomReady(cb: () => Promisable<void>) {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', cb);
   } else {
@@ -83,7 +92,7 @@ export function onDomReady(cb) {
 
 // checks whether an element is owned by the current document, and whether it is a document fragment or element node
 // if it is, it means it is a "normal" element managed by us, which can be modified safely.
-export function isDocumentFragmentOrElementNode(el) {
+export function isDocumentFragmentOrElementNode(el: Element) {
   try {
     return el.ownerDocument === document && el.nodeType === Node.ELEMENT_NODE || el.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
   } catch {
@@ -108,12 +117,15 @@ export function isDocumentFragmentOrElementNode(el) {
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
 // ---------------------------------------------------------------------
-export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
+export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 0}: {viewportMarginBottom?: number} = {}) {
   let isUserResized = false;
   // lastStyleHeight and initialStyleHeight are CSS values like '100px'
-  let lastMouseX, lastMouseY, lastStyleHeight, initialStyleHeight;
+  let lastMouseX: number;
+  let lastMouseY: number;
+  let lastStyleHeight: string;
+  let initialStyleHeight: string;
 
-  function onUserResize(event) {
+  function onUserResize(event: MouseEvent) {
     if (isUserResized) return;
     if (lastMouseX !== event.clientX || lastMouseY !== event.clientY) {
       const newStyleHeight = textarea.style.height;
@@ -133,7 +145,7 @@ export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
 
     while (el !== document.body && el !== null) {
       offsetTop += el.offsetTop || 0;
-      el = el.offsetParent;
+      el = el.offsetParent as HTMLTextAreaElement;
     }
 
     const top = offsetTop - document.defaultView.scrollY;
@@ -213,14 +225,15 @@ export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
   };
 }
 
-export function onInputDebounce(fn) {
+export function onInputDebounce(fn: () => Promisable<any>) {
   return debounce(300, fn);
 }
 
+type LoadableElement = HTMLEmbedElement | HTMLIFrameElement | HTMLImageElement | HTMLScriptElement | HTMLTrackElement;
+
 // Set the `src` attribute on an element and returns a promise that resolves once the element
-// has loaded or errored. Suitable for all elements mention in:
-// https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/load_event
-export function loadElem(el, src) {
+// has loaded or errored.
+export function loadElem(el: LoadableElement, src: string) {
   return new Promise((resolve) => {
     el.addEventListener('load', () => resolve(true), {once: true});
     el.addEventListener('error', () => resolve(false), {once: true});
@@ -256,14 +269,14 @@ export function initSubmitEventPolyfill() {
  * @param {HTMLElement} element The element to check.
  * @returns {boolean} True if the element is visible.
  */
-export function isElemVisible(element) {
+export function isElemVisible(element: HTMLElement) {
   if (!element) return false;
 
   return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
 }
 
 // replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this
-export function replaceTextareaSelection(textarea, text) {
+export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: string) {
   const before = textarea.value.slice(0, textarea.selectionStart ?? undefined);
   const after = textarea.value.slice(textarea.selectionEnd ?? undefined);
   let success = true;
@@ -287,13 +300,13 @@ export function replaceTextareaSelection(textarea, text) {
 }
 
 // Warning: Do not enter any unsanitized variables here
-export function createElementFromHTML(htmlString) {
+export function createElementFromHTML(htmlString: string) {
   const div = document.createElement('div');
   div.innerHTML = htmlString.trim();
-  return div.firstChild;
+  return div.firstChild as Element;
 }
 
-export function createElementFromAttrs(tagName, attrs) {
+export function createElementFromAttrs(tagName: string, attrs: Record<string, any>) {
   const el = document.createElement(tagName);
   for (const [key, value] of Object.entries(attrs)) {
     if (value === undefined || value === null) continue;
@@ -307,7 +320,7 @@ export function createElementFromAttrs(tagName, attrs) {
   return el;
 }
 
-export function animateOnce(el, animationClassName) {
+export function animateOnce(el: Element, animationClassName: string): Promise<void> {
   return new Promise((resolve) => {
     el.addEventListener('animationend', function onAnimationEnd() {
       el.classList.remove(animationClassName);
