@@ -65,7 +65,7 @@ type notifyInput struct {
 	Event webhook_module.HookEventType
 
 	// optional
-	Ref         string
+	Ref         git.RefName
 	Payload     api.Payloader
 	PullRequest *issues_model.PullRequest
 }
@@ -89,7 +89,7 @@ func (input *notifyInput) WithDoer(doer *user_model.User) *notifyInput {
 }
 
 func (input *notifyInput) WithRef(ref string) *notifyInput {
-	input.Ref = ref
+	input.Ref = git.RefName(ref)
 	return input
 }
 
@@ -101,7 +101,7 @@ func (input *notifyInput) WithPayload(payload api.Payloader) *notifyInput {
 func (input *notifyInput) WithPullRequest(pr *issues_model.PullRequest) *notifyInput {
 	input.PullRequest = pr
 	if input.Ref == "" {
-		input.Ref = pr.GetGitRefName()
+		input.Ref = git.RefName(pr.GetGitRefName())
 	}
 	return input
 }
@@ -144,20 +144,25 @@ func notify(ctx context.Context, input *notifyInput) error {
 	defer gitRepo.Close()
 
 	ref := input.Ref
-	if ref != input.Repo.DefaultBranch && actions_module.IsDefaultBranchWorkflow(input.Event) {
+	if ref.BranchName() != input.Repo.DefaultBranch && actions_module.IsDefaultBranchWorkflow(input.Event) {
 		if ref != "" {
 			log.Warn("Event %q should only trigger workflows on the default branch, but its ref is %q. Will fall back to the default branch",
 				input.Event, ref)
 		}
-		ref = input.Repo.DefaultBranch
+		ref = git.RefNameFromBranch(input.Repo.DefaultBranch)
 	}
 	if ref == "" {
 		log.Warn("Ref of event %q is empty, will fall back to the default branch", input.Event)
-		ref = input.Repo.DefaultBranch
+		ref = git.RefNameFromBranch(input.Repo.DefaultBranch)
+	}
+
+	commitID, err := gitRepo.GetRefCommitID(ref.String())
+	if err != nil {
+		return fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
 	}
 
 	// Get the commit object for the ref
-	commit, err := gitRepo.GetCommit(ref)
+	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
@@ -168,7 +173,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 
 	var detectedWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
-	shouldDetectSchedules := input.Event == webhook_module.HookEventPush && git.RefName(input.Ref).BranchName() == input.Repo.DefaultBranch
+	shouldDetectSchedules := input.Event == webhook_module.HookEventPush && input.Ref.BranchName() == input.Repo.DefaultBranch
 	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit,
 		input.Event,
 		input.Payload,
@@ -220,12 +225,12 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	if shouldDetectSchedules {
-		if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
+		if err := handleSchedules(ctx, schedules, commit, input, ref.String()); err != nil {
 			return err
 		}
 	}
 
-	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
+	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref.String())
 }
 
 func skipWorkflows(input *notifyInput, commit *git.Commit) bool {
