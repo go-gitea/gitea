@@ -8,8 +8,8 @@ dayjs.extend(utc);
 /**
  * Returns an array of millisecond-timestamps of start-of-week days (Sundays)
  *
- * @param startConfig The start date. Can take any type that dayjs accepts.
- * @param endConfig The end date. Can take any type that dayjs accepts.
+ * @param startDate The start date. Can take any type that dayjs accepts.
+ * @param endDate The end date. Can take any type that dayjs accepts.
  */
 export function startDaysBetween(startDate: ConfigType, endDate: ConfigType): number[] {
   const start = dayjs.utc(startDate);
