@@ -255,6 +255,10 @@
 
 	<div class="divider"></div>
 
+	{{template "repo/issue/view_content/sidebar_development" .}}
+
+	<div class="divider"></div>
+
 	{{if .Participants}}
 		<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.num_participants" .NumParticipants}}</strong></span>
 		<div class="ui list tw-flex tw-flex-wrap">

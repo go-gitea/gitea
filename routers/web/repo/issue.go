@@ -2075,6 +2075,21 @@ func ViewIssue(ctx *context.Context) {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
 
+	forkedRepos, err := repo_model.FindUserOrgForks(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("FindUserOrgForks", err)
+		return
+	}
+
+	ctx.Data["AllowedRepos"] = append(forkedRepos, ctx.Repo.Repository)
+
+	devLinks, err := issue_service.FindIssueDevLinksByIssue(ctx, issue)
+	if err != nil {
+		ctx.ServerError("FindIssueDevLinksByIssueID", err)
+		return
+	}
+	ctx.Data["DevLinks"] = devLinks
+
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
 

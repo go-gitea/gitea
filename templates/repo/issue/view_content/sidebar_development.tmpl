@@ -1,0 +1,93 @@
+<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.development"}}</strong></span>
+<div class="ui devlinks list">
+{{if not .DevLinks}}
+<a class="tw-mt-1 fluid ui show-modal" data-modal="#create_branch">{{ctx.Locale.Tr "repo.branch.new_branch"}}</a>
+{{end}}
+{{range .DevLinks}}
+	{{if .PullRequest}}
+		<a href="{{.PullRequest.Issue.Link}}" class="item">
+			{{.PullRequest.Issue.Title}}
+		</a>
+		Created {{.PullRequest.Issue.CreatedAt}}
+		{{if .PullRequest.HasMerged}}
+			Completed
+			{{.PullRequest.MergedCommitID}}
+			Created {{.PullRequest.MergedUnix}}
+		{{else if .PullRequest.ChangedProtectedFiles}}
+			Merge conflicts
+		{{end}}
+	{{else if .Branch}}
+		<span>
+			{{svg "octicon-git-branch" 14}}
+			<a href="{{.Branch}}" class="item">
+				<span class="gt-ellipsis">{{.Branch.Name}}</span>
+			</a>
+		</span>
+		<div>Latest commit {{DateTime "short" .Branch.CommitTime}}</div>
+		<a href="{{$.Issue.Repo.Link}}/compare/main...{{.Branch.Name}}">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
+	{{end}}
+{{end}}
+</div>
+
+<div class="ui tiny modal" id="create_branch">
+	<div class="header">
+		{{ctx.Locale.Tr "repo.branch.new_branch"}}
+	</div>
+	<div class="content">
+		<form class="ui form form-fetch-action" action="{{.Issue.Link}}/create_branch"
+			method="post">
+			{{.CsrfTokenHtml}}
+			<div class="field">
+				<label for="new_branch_name">{{ctx.Locale.Tr "repo.branch.name"}}</label>
+				<input name="new_branch_name" type="text">
+			</div>
+
+			<div class="field">
+				<label for="source_repository">{{ctx.Locale.Tr "repository"}}</label>
+				<div class="ui fluid dropdown selection">
+					<select name="source_repository">
+						<option value=""> </option>
+						{{range .AllowedRepos}}
+							<option value="{{.ID}}">{{.FullName}}</option>
+						{{end}}
+					</select>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+
+					<div class="default text"> </div>
+
+					<div class="menu">
+						{{range .AllowedRepos}}
+							<div class="item" data-value="{{.ID}}">{{.FullName}}</div>
+						{{end}}
+					</div>
+				</div>
+			</div>
+
+			<div class="field">
+				<label for="source_branch_name">{{ctx.Locale.Tr "repo.branches"}}</label>
+				<div class="ui fluid dropdown selection">
+					<select name="source_branch_name">
+						<option value=""> </option>
+						{{range .Branches}}
+							<option value="{{.}}"{{if eq . $.Issue.Ref}} checked{{end}}>{{.}}</option>
+						{{end}}
+					</select>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+
+					<div class="default text"> </div>
+
+					<div class="menu">
+						{{range .Branches}}
+							<div class="item" data-value="{{.}}">{{.}}</div>
+						{{end}}
+					</div>
+				</div>
+			</div>
+
+			<div class="text right actions">
+				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+				<button class="ui red button">{{ctx.Locale.Tr "repo.branch.new_branch"}}</button>
+			</div>
+		</form>
+	</div>
+</div>

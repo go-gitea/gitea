@@ -14,9 +14,10 @@ import (
 
 // NewBranchForm form for creating a new branch
 type NewBranchForm struct {
-	NewBranchName string `binding:"Required;MaxSize(100);GitRefName"`
-	CurrentPath   string
-	CreateTag     bool
+	NewBranchName    string `binding:"Required;MaxSize(100);GitRefName"`
+	SourceBranchName string
+	CurrentPath      string
+	CreateTag        bool
 }
 
 // Validate validates the fields

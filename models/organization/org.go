@@ -508,16 +508,20 @@ func HasOrgsVisible(ctx context.Context, orgs []*Organization, user *user_model.
 	return false
 }
 
+func orgAllowedCreatedRepoSubQuery(userID int64) *builder.Builder {
+	return builder.Select("`user`.id").From("`user`").
+		Join("INNER", "`team_user`", "`team_user`.org_id = `user`.id").
+		Join("INNER", "`team`", "`team`.id = `team_user`.team_id").
+		Where(builder.Eq{"`team_user`.uid": userID}).
+		And(builder.Eq{"`team`.authorize": perm.AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true}))
+}
+
 // GetOrgsCanCreateRepoByUserID returns a list of organizations where given user ID
 // are allowed to create repos.
 func GetOrgsCanCreateRepoByUserID(ctx context.Context, userID int64) ([]*Organization, error) {
 	orgs := make([]*Organization, 0, 10)
 
-	return orgs, db.GetEngine(ctx).Where(builder.In("id", builder.Select("`user`.id").From("`user`").
-		Join("INNER", "`team_user`", "`team_user`.org_id = `user`.id").
-		Join("INNER", "`team`", "`team`.id = `team_user`.team_id").
-		Where(builder.Eq{"`team_user`.uid": userID}).
-		And(builder.Eq{"`team`.authorize": perm.AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})))).
+	return orgs, db.GetEngine(ctx).Where(builder.In("id", orgAllowedCreatedRepoSubQuery(userID))).
 		Asc("`user`.name").
 		Find(&orgs)
 }
