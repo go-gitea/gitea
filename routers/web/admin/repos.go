@@ -95,6 +95,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	repoNames, count, err := repo_service.ListUnadoptedRepositories(ctx, q, &opts)
 	if err != nil {
 		ctx.ServerError("ListUnadoptedRepositories", err)
+		return
 	}
 	ctx.Data["Dirs"] = repoNames
 	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)

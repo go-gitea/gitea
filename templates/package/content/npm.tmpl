@@ -45,6 +45,15 @@
 		</div>
 	{{end}}
 
+	{{if .PackageDescriptor.Metadata.BundleDependencies}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.npm.dependencies.bundle"}}</h4>
+		<div class="ui attached segment">
+			{{range .PackageDescriptor.Metadata.BundleDependencies}}
+				{{.}}
+			{{end}}
+		</div>
+	{{end}}
+
 	{{if .PackageDescriptor.Metadata.Keywords}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.keywords"}}</h4>
 		<div class="ui attached segment">

@@ -105,7 +105,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	baseBranch := "base"
 
 	fetchArgs := git.TrustedCmdArgs{"--no-tags"}
-	if git.CheckGitVersionAtLeast("2.25.0") == nil {
+	if git.DefaultFeatures().CheckVersionAtLeast("2.25.0") {
 		// Writing the commit graph can be slow and is not needed here
 		fetchArgs = append(fetchArgs, "--no-write-commit-graph")
 	}

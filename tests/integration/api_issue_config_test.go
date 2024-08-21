@@ -119,9 +119,9 @@ func TestAPIRepoIssueConfigPaths(t *testing.T) {
 		".github/issue_template/config",
 	}
 
-	for _, canidate := range templateConfigCandidates {
+	for _, candidate := range templateConfigCandidates {
 		for _, extension := range []string{".yaml", ".yml"} {
-			fullPath := canidate + extension
+			fullPath := candidate + extension
 			t.Run(fullPath, func(t *testing.T) {
 				configMap := make(map[string]any)
 				configMap["blank_issues_enabled"] = false

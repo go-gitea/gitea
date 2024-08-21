@@ -47,7 +47,7 @@ func RenderFile(ctx *context.Context) {
 	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 	ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox allow-scripts")
 
-	if markupType := markup.Type(blob.Name()); markupType == "" {
+	if markupType := markup.DetectMarkupTypeByFileName(blob.Name()); markupType == "" {
 		if isTextFile {
 			_, _ = io.Copy(ctx.Resp, rd)
 		} else {

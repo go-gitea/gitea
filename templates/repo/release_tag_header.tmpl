@@ -1,5 +1,5 @@
-{{$canReadReleases := $.Permission.CanRead $.UnitTypeReleases}}
-{{$canReadCode := $.Permission.CanRead $.UnitTypeCode}}
+{{$canReadReleases := $.Permission.CanRead ctx.Consts.RepoUnitTypeReleases}}
+{{$canReadCode := $.Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 
 {{if $canReadReleases}}
 	<div class="tw-flex">

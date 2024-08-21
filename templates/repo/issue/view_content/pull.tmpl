@@ -20,6 +20,7 @@
 	{{- else if .Issue.PullRequest.CanAutoMerge}}green
 	{{- else}}red{{end}}">{{svg "octicon-git-merge" 40}}</div>
 	<div class="content">
+		{{if .LatestCommitStatus}}
 		<div class="ui attached segment fitted">
 		{{template "repo/pulls/status" (dict
 			"CommitStatus" .LatestCommitStatus
@@ -29,8 +30,9 @@
 			"is_context_required" .is_context_required
 		)}}
 		</div>
+		{{end}}
 		{{$showGeneralMergeForm := false}}
-		<div class="ui attached merge-section segment {{if not $.LatestCommitStatus}}no-header{{end}} flex-items-block">
+		<div class="ui attached segment merge-section {{if not $.LatestCommitStatus}}no-header{{end}} flex-items-block">
 			{{if .Issue.PullRequest.HasMerged}}
 				{{if .IsPullBranchDeletable}}
 					<div class="item item-section text tw-flex-1">
@@ -196,8 +198,7 @@
 				{{end}}
 
 				{{if .AllowMerge}} {{/* user is allowed to merge */}}
-					{{$prUnit := .Repository.MustGetUnit $.Context $.UnitTypePullRequests}}
-					{{$approvers := (.Issue.PullRequest.GetApprovers ctx)}}
+					{{$prUnit := .Repository.MustGetUnit $.Context ctx.Consts.RepoUnitTypePullRequests}}
 					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash $prUnit.PullRequestsConfig.AllowFastForwardOnly}}
 						{{$hasPendingPullRequestMergeTip := ""}}
 						{{if .HasPendingPullRequestMerge}}
@@ -206,11 +207,10 @@
 						{{end}}
 						<div class="divider"></div>
 						<script type="module">
-							const issueUrl = window.location.origin + {{$.Issue.Link}};
 							const defaultMergeTitle = {{.DefaultMergeMessage}};
 							const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
-							const defaultMergeMessage = {{if .DefaultMergeBody}}{{.DefaultMergeBody}}{{else}}`Reviewed-on: ${issueUrl}\n` + {{$approvers}}{{end}};
-							const defaultSquashMergeMessage = {{if .DefaultSquashMergeBody}}{{.DefaultSquashMergeBody}}{{else}}`Reviewed-on: ${issueUrl}\n` + {{$approvers}}{{end}};
+							const defaultMergeMessage = {{.DefaultMergeBody}};
+							const defaultSquashMergeMessage = {{.DefaultSquashMergeBody}};
 							const mergeForm = {
 								'baseLink': {{.Link}},
 								'textCancel': {{ctx.Locale.Tr "cancel"}},

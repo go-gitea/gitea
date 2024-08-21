@@ -368,7 +368,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		return setting.AppSubURL + "/"
 	}
 
-	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" && httplib.IsCurrentGiteaSiteURL(redirectTo) {
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" && httplib.IsCurrentGiteaSiteURL(ctx, redirectTo) {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
 		if obeyRedirect {
 			ctx.RedirectToCurrentSite(redirectTo)
@@ -382,10 +382,17 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	return setting.AppSubURL + "/"
 }
 
-func getUserName(gothUser *goth.User) (string, error) {
+// extractUserNameFromOAuth2 tries to extract a normalized username from the given OAuth2 user.
+// It returns ("", nil) if the required field doesn't exist.
+func extractUserNameFromOAuth2(gothUser *goth.User) (string, error) {
 	switch setting.OAuth2Client.Username {
 	case setting.OAuth2UsernameEmail:
-		return user_model.NormalizeUserName(strings.Split(gothUser.Email, "@")[0])
+		return user_model.NormalizeUserName(gothUser.Email)
+	case setting.OAuth2UsernamePreferredUsername:
+		if preferredUsername, ok := gothUser.RawData["preferred_username"].(string); ok {
+			return user_model.NormalizeUserName(preferredUsername)
+		}
+		return "", nil
 	case setting.OAuth2UsernameNickname:
 		return user_model.NormalizeUserName(gothUser.NickName)
 	default: // OAuth2UsernameUserid
@@ -615,10 +622,8 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 
 	// update external user information
 	if gothUser != nil {
-		if err := externalaccount.UpdateExternalUser(ctx, u, *gothUser); err != nil {
-			if !errors.Is(err, util.ErrNotExist) {
-				log.Error("UpdateExternalUser failed: %v", err)
-			}
+		if err := externalaccount.EnsureLinkExternalToUser(ctx, u, *gothUser); err != nil {
+			log.Error("EnsureLinkExternalToUser failed: %v", err)
 		}
 	}
 
@@ -824,6 +829,7 @@ func ActivateEmail(ctx *context.Context) {
 	if email := user_model.VerifyActiveEmailCode(ctx, code, emailStr); email != nil {
 		if err := user_model.ActivateEmail(ctx, email); err != nil {
 			ctx.ServerError("ActivateEmail", err)
+			return
 		}
 
 		log.Trace("Email activated: %s", email.Email)

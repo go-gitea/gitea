@@ -68,6 +68,6 @@
 		{{end}}
 	</tbody>
 </table>
-{{if .ReadmeExist}}
+{{if and .ReadmeExist (or .IsMarkup .IsPlainText)}}
 	{{template "repo/view_file" .}}
 {{end}}

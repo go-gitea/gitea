@@ -140,9 +140,7 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 	ctx.Resp.Header().Set("Content-Length", strconv.Itoa(len(xmlMetadataWithHeader)))
 	ctx.Resp.Header().Set("Content-Type", contentTypeXML)
 
-	if _, err := ctx.Resp.Write(xmlMetadataWithHeader); err != nil {
-		log.Error("write bytes failed: %v", err)
-	}
+	_, _ = ctx.Resp.Write(xmlMetadataWithHeader)
 }
 
 func servePackageFile(ctx *context.Context, params parameters, serveContent bool) {
@@ -387,7 +385,7 @@ type parameters struct {
 }
 
 func extractPathParameters(ctx *context.Context) (parameters, error) {
-	parts := strings.Split(ctx.Params("*"), "/")
+	parts := strings.Split(ctx.PathParam("*"), "/")
 
 	p := parameters{
 		Filename: parts[len(parts)-1],

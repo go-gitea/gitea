@@ -110,7 +110,6 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *CommitVerific
 					Reason:         "gpg.error.no_committer_account",
 				}
 			}
-
 		}
 	}
 

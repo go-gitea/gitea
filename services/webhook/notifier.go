@@ -23,7 +23,7 @@ import (
 )
 
 func init() {
-	notify_service.RegisterNotifier(&webhookNotifier{})
+	notify_service.RegisterNotifier(NewNotifier())
 }
 
 type webhookNotifier struct {

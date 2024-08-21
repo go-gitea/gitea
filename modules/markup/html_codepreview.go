@@ -42,7 +42,7 @@ func renderCodeBlock(ctx *RenderContext, node *html.Node) (urlPosStart, urlPosSt
 		CommitID:  node.Data[m[6]:m[7]],
 		FilePath:  node.Data[m[8]:m[9]],
 	}
-	if !httplib.IsCurrentGiteaSiteURL(opts.FullURL) {
+	if !httplib.IsCurrentGiteaSiteURL(ctx.Ctx, opts.FullURL) {
 		return 0, 0, "", nil
 	}
 	u, err := url.Parse(opts.FilePath)
@@ -60,7 +60,8 @@ func renderCodeBlock(ctx *RenderContext, node *html.Node) (urlPosStart, urlPosSt
 }
 
 func codePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
-	for node != nil {
+	nodeStop := node.NextSibling
+	for node != nodeStop {
 		if node.Type != html.TextNode {
 			node = node.NextSibling
 			continue

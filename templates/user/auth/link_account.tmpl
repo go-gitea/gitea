@@ -17,15 +17,12 @@
 	</overflow-menu>
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
-			<div class="ui tab {{if not .user_exists}}active{{end}}"
-				data-tab="auth-link-signup-tab">
+			<div class="ui tab {{if not .user_exists}}active{{end}}" data-tab="auth-link-signup-tab">
+				{{if .AutoRegistrationFailedPrompt}}<div class="ui message">{{.AutoRegistrationFailedPrompt}}</div>{{end}}
 				{{template "user/auth/signup_inner" .}}
 			</div>
-			<div class="ui tab {{if .user_exists}}active{{end}}"
-				data-tab="auth-link-signin-tab">
-				<div class="ui user signin container icon">
-					{{template "user/auth/signin_inner" .}}
-				</div>
+			<div class="ui tab {{if .user_exists}}active{{end}}" data-tab="auth-link-signin-tab">
+				{{template "user/auth/signin_inner" .}}
 			</div>
 		</div>
 	</div>

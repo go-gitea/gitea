@@ -87,6 +87,10 @@ var CmdDump = &cli.Command{
 			Name:  "skip-index",
 			Usage: "Skip bleve index data",
 		},
+		&cli.BoolFlag{
+			Name:  "skip-db",
+			Usage: "Skip database",
+		},
 		&cli.StringFlag{
 			Name:  "type",
 			Usage: fmt.Sprintf(`Dump output format, default to "zip", supported types: %s`, strings.Join(dump.SupportedOutputTypes, ", ")),
@@ -185,35 +189,41 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	tmpDir := ctx.String("tempdir")
-	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
-		fatal("Path does not exist: %s", tmpDir)
-	}
-
-	dbDump, err := os.CreateTemp(tmpDir, "gitea-db.sql")
-	if err != nil {
-		fatal("Failed to create tmp file: %v", err)
-	}
-	defer func() {
-		_ = dbDump.Close()
-		if err := util.Remove(dbDump.Name()); err != nil {
-			log.Warn("Unable to remove temporary file: %s: Error: %v", dbDump.Name(), err)
-		}
-	}()
-
-	targetDBType := ctx.String("database")
-	if len(targetDBType) > 0 && targetDBType != setting.Database.Type.String() {
-		log.Info("Dumping database %s => %s...", setting.Database.Type, targetDBType)
+	if ctx.Bool("skip-db") {
+		// Ensure that we don't dump the database file that may reside in setting.AppDataPath or elsewhere.
+		dumper.GlobalExcludeAbsPath(setting.Database.Path)
+		log.Info("Skipping database")
 	} else {
-		log.Info("Dumping database...")
-	}
+		tmpDir := ctx.String("tempdir")
+		if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
+			fatal("Path does not exist: %s", tmpDir)
+		}
 
-	if err := db.DumpDatabase(dbDump.Name(), targetDBType); err != nil {
-		fatal("Failed to dump database: %v", err)
-	}
+		dbDump, err := os.CreateTemp(tmpDir, "gitea-db.sql")
+		if err != nil {
+			fatal("Failed to create tmp file: %v", err)
+		}
+		defer func() {
+			_ = dbDump.Close()
+			if err := util.Remove(dbDump.Name()); err != nil {
+				log.Warn("Unable to remove temporary file: %s: Error: %v", dbDump.Name(), err)
+			}
+		}()
 
-	if err = dumper.AddFile("gitea-db.sql", dbDump.Name()); err != nil {
-		fatal("Failed to include gitea-db.sql: %v", err)
+		targetDBType := ctx.String("database")
+		if len(targetDBType) > 0 && targetDBType != setting.Database.Type.String() {
+			log.Info("Dumping database %s => %s...", setting.Database.Type, targetDBType)
+		} else {
+			log.Info("Dumping database...")
+		}
+
+		if err := db.DumpDatabase(dbDump.Name(), targetDBType); err != nil {
+			fatal("Failed to dump database: %v", err)
+		}
+
+		if err = dumper.AddFile("gitea-db.sql", dbDump.Name()); err != nil {
+			fatal("Failed to include gitea-db.sql: %v", err)
+		}
 	}
 
 	log.Info("Adding custom configuration file from %s", setting.CustomConf)

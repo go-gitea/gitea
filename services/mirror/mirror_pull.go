@@ -13,6 +13,7 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -30,10 +31,15 @@ const gitShortEmptySha = "0000000"
 
 // UpdateAddress writes new address to Git repository and database
 func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error {
+	u, err := giturl.Parse(addr)
+	if err != nil {
+		return fmt.Errorf("invalid addr: %v", err)
+	}
+
 	remoteName := m.GetRemoteName()
 	repoPath := m.GetRepository(ctx).RepoPath()
 	// Remove old remote
-	_, _, err := git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: repoPath})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
@@ -70,7 +76,9 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		}
 	}
 
-	m.Repo.OriginalURL = addr
+	// erase authentication before storing in database
+	u.User = nil
+	m.Repo.OriginalURL = u.String()
 	return repo_model.UpdateRepositoryCols(ctx, m.Repo, "original_url")
 }
 
@@ -458,7 +466,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 	log.Trace("SyncMirrors [repo: %-v]: %d branches updated", m.Repo, len(results))
 	if len(results) > 0 {
-		if ok := checkAndUpdateEmptyRepository(ctx, m, gitRepo, results); !ok {
+		if ok := checkAndUpdateEmptyRepository(ctx, m, results); !ok {
 			log.Error("SyncMirrors [repo: %-v]: checkAndUpdateEmptyRepository: %v", m.Repo, err)
 			return false
 		}
@@ -515,13 +523,13 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 			theCommits.Commits = theCommits.Commits[:setting.UI.FeedMaxCommitNum]
 		}
 
-		if newCommit, err := gitRepo.GetCommit(newCommitID); err != nil {
+		newCommit, err := gitRepo.GetCommit(newCommitID)
+		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to get commit %s: %v", m.Repo, newCommitID, err)
 			continue
-		} else {
-			theCommits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
 		}
 
+		theCommits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
 		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID, newCommitID)
 
 		notify_service.SyncPushCommits(ctx, m.Repo.MustOwner(ctx), m.Repo, &repo_module.PushUpdateOptions{
@@ -549,7 +557,6 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 			log.Error("SyncMirrors [repo: %-v]: unable to update repository 'updated_unix': %v", m.Repo, err)
 			return false
 		}
-
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: Successfully updated", m.Repo)
@@ -557,7 +564,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	return true
 }
 
-func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {
+func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, results []*mirrorSyncResult) bool {
 	if !m.Repo.IsEmpty {
 		return true
 	}

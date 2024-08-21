@@ -30,7 +30,7 @@
 		</form>
 	</div>
 </div>
-<div class="ui attached bottom segment">
+<div class="ui bottom attached segment">
 	<form class="ui form ignore-dirty" action="{{.FormActionPath}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="field {{if .Err_AppName}}error{{end}}">
@@ -41,9 +41,17 @@
 			<label for="redirect-uris">{{ctx.Locale.Tr "settings.oauth2_redirect_uris"}}</label>
 			<textarea name="redirect_uris" id="redirect-uris" required>{{StringUtils.Join .App.RedirectURIs "\n"}}</textarea>
 		</div>
-		<div class="field ui checkbox {{if .Err_ConfidentialClient}}error{{end}}">
-			<label>{{ctx.Locale.Tr "settings.oauth2_confidential_client"}}</label>
-			<input type="checkbox" name="confidential_client" {{if .App.ConfidentialClient}}checked{{end}}>
+		<div class="field {{if .Err_ConfidentialClient}}error{{end}}">
+			<div class="ui checkbox">
+				<label>{{ctx.Locale.Tr "settings.oauth2_confidential_client"}}</label>
+				<input class="disable-setting" type="checkbox" name="confidential_client" data-target="#skip-secondary-authorization" {{if .App.ConfidentialClient}}checked{{end}}>
+			</div>
+		</div>
+		<div class="field {{if .Err_SkipSecondaryAuthorization}}error{{end}} {{if .App.ConfidentialClient}}disabled{{end}}" id="skip-secondary-authorization">
+			<div class="ui checkbox">
+				<label>{{ctx.Locale.Tr "settings.oauth2_skip_secondary_authorization"}}</label>
+				<input type="checkbox" name="skip_secondary_authorization" {{if .App.SkipSecondaryAuthorization}}checked{{end}}>
+			</div>
 		</div>
 		<button class="ui primary button">
 			{{ctx.Locale.Tr "settings.save_application"}}

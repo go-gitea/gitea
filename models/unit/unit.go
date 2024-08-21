@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync/atomic"
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/container"
@@ -27,44 +28,23 @@ const (
 	TypeWiki                        // 5 Wiki
 	TypeExternalWiki                // 6 ExternalWiki
 	TypeExternalTracker             // 7 ExternalTracker
-	TypeProjects                    // 8 Kanban board
+	TypeProjects                    // 8 Projects
 	TypePackages                    // 9 Packages
 	TypeActions                     // 10 Actions
 )
 
-// Value returns integer value for unit type
+// Value returns integer value for unit type (used by template)
 func (u Type) Value() int {
 	return int(u)
 }
 
-func (u Type) String() string {
-	switch u {
-	case TypeCode:
-		return "TypeCode"
-	case TypeIssues:
-		return "TypeIssues"
-	case TypePullRequests:
-		return "TypePullRequests"
-	case TypeReleases:
-		return "TypeReleases"
-	case TypeWiki:
-		return "TypeWiki"
-	case TypeExternalWiki:
-		return "TypeExternalWiki"
-	case TypeExternalTracker:
-		return "TypeExternalTracker"
-	case TypeProjects:
-		return "TypeProjects"
-	case TypePackages:
-		return "TypePackages"
-	case TypeActions:
-		return "TypeActions"
-	}
-	return fmt.Sprintf("Unknown Type %d", u)
-}
-
 func (u Type) LogString() string {
-	return fmt.Sprintf("<UnitType:%d:%s>", u, u.String())
+	unit, ok := Units[u]
+	unitName := "unknown"
+	if ok {
+		unitName = unit.NameKey
+	}
+	return fmt.Sprintf("<UnitType:%d:%s>", u, unitName)
 }
 
 var (
@@ -106,9 +86,22 @@ var (
 		TypeExternalTracker,
 	}
 
-	// DisabledRepoUnits contains the units that have been globally disabled
-	DisabledRepoUnits = []Type{}
+	disabledRepoUnitsAtomic atomic.Pointer[[]Type] // the units that have been globally disabled
 )
+
+// DisabledRepoUnitsGet returns the globally disabled units, it is a quick patch to fix data-race during testing.
+// Because the queue worker might read when a test is mocking the value. FIXME: refactor to a clear solution later.
+func DisabledRepoUnitsGet() []Type {
+	v := disabledRepoUnitsAtomic.Load()
+	if v == nil {
+		return nil
+	}
+	return *v
+}
+
+func DisabledRepoUnitsSet(v []Type) {
+	disabledRepoUnitsAtomic.Store(&v)
+}
 
 // Get valid set of default repository units from settings
 func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
@@ -119,7 +112,7 @@ func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
 		units = make([]Type, 0, len(settingDefaultUnits))
 		for _, settingUnit := range settingDefaultUnits {
 			if !settingUnit.CanBeDefault() {
-				log.Warn("Not allowed as default unit: %s", settingUnit.String())
+				log.Warn("Not allowed as default unit: %s", settingUnit.LogString())
 				continue
 			}
 			units = append(units, settingUnit)
@@ -127,7 +120,7 @@ func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
 	}
 
 	// Remove disabled units
-	for _, disabledUnit := range DisabledRepoUnits {
+	for _, disabledUnit := range DisabledRepoUnitsGet() {
 		for i, unit := range units {
 			if unit == disabledUnit {
 				units = append(units[:i], units[i+1:]...)
@@ -140,11 +133,11 @@ func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
 
 // LoadUnitConfig load units from settings
 func LoadUnitConfig() error {
-	var invalidKeys []string
-	DisabledRepoUnits, invalidKeys = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
+	disabledRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DisabledRepoUnits...)
 	if len(invalidKeys) > 0 {
 		log.Warn("Invalid keys in disabled repo units: %s", strings.Join(invalidKeys, ", "))
 	}
+	DisabledRepoUnitsSet(disabledRepoUnits)
 
 	setDefaultRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
 	if len(invalidKeys) > 0 {
@@ -167,7 +160,7 @@ func LoadUnitConfig() error {
 
 // UnitGlobalDisabled checks if unit type is global disabled
 func (u Type) UnitGlobalDisabled() bool {
-	for _, ud := range DisabledRepoUnits {
+	for _, ud := range DisabledRepoUnitsGet() {
 		if u == ud {
 			return true
 		}
@@ -191,16 +184,13 @@ type Unit struct {
 	NameKey       string
 	URI           string
 	DescKey       string
-	Idx           int
+	Priority      int
 	MaxAccessMode perm.AccessMode // The max access mode of the unit. i.e. Read means this unit can only be read.
 }
 
 // IsLessThan compares order of two units
 func (u Unit) IsLessThan(unit Unit) bool {
-	if (u.Type == TypeExternalTracker || u.Type == TypeExternalWiki) && unit.Type != TypeExternalTracker && unit.Type != TypeExternalWiki {
-		return false
-	}
-	return u.Idx < unit.Idx
+	return u.Priority < unit.Priority
 }
 
 // MaxPerm returns the max perms of this unit
@@ -236,7 +226,7 @@ var (
 		"repo.ext_issues",
 		"/issues",
 		"repo.ext_issues.desc",
-		1,
+		101,
 		perm.AccessModeRead,
 	}
 
@@ -272,7 +262,7 @@ var (
 		"repo.ext_wiki",
 		"/wiki",
 		"repo.ext_wiki.desc",
-		4,
+		102,
 		perm.AccessModeRead,
 	}
 

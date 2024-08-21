@@ -319,8 +319,8 @@ func ComposeGoGetImport(owner, repo string) string {
 // This is particular a workaround for "go get" command which does not respect
 // .netrc file.
 func EarlyResponseForGoGetMeta(ctx *Context) {
-	username := ctx.Params(":username")
-	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
+	username := ctx.PathParam(":username")
+	reponame := strings.TrimSuffix(ctx.PathParam(":reponame"), ".git")
 	if username == "" || reponame == "" {
 		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
@@ -339,8 +339,8 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 
 // RedirectToRepo redirect to a differently-named repository
 func RedirectToRepo(ctx *Base, redirectRepoID int64) {
-	ownerName := ctx.Params(":username")
-	previousRepoName := ctx.Params(":reponame")
+	ownerName := ctx.PathParam(":username")
+	previousRepoName := ctx.PathParam(":reponame")
 
 	repo, err := repo_model.GetRepositoryByID(ctx, redirectRepoID)
 	if err != nil {
@@ -374,8 +374,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	// Check access.
-	if !ctx.Repo.Permission.HasAccess() {
+	if !ctx.Repo.Permission.HasAnyUnitAccessOrEveryoneAccess() {
 		if ctx.FormString("go-get") == "1" {
 			EarlyResponseForGoGetMeta(ctx)
 			return
@@ -383,7 +382,6 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		ctx.NotFound("no access right", nil)
 		return
 	}
-	ctx.Data["HasAccess"] = true
 	ctx.Data["Permission"] = &ctx.Repo.Permission
 
 	if repo.IsMirror {
@@ -421,8 +419,8 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		err   error
 	)
 
-	userName := ctx.Params(":username")
-	repoName := ctx.Params(":reponame")
+	userName := ctx.PathParam(":username")
+	repoName := ctx.PathParam(":reponame")
 	repoName = strings.TrimSuffix(repoName, ".git")
 	if setting.Other.EnableFeed {
 		repoName = strings.TrimSuffix(repoName, ".rss")
@@ -465,7 +463,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	if strings.HasSuffix(repoName, ".wiki") {
 		// ctx.Req.URL.Path does not have the preceding appSubURL - any redirect must have this added
 		// Now we happen to know that all of our paths are: /:username/:reponame/whatever_else
-		originalRepoName := ctx.Params(":reponame")
+		originalRepoName := ctx.PathParam(":reponame")
 		redirectRepoName := strings.TrimSuffix(repoName, ".wiki")
 		redirectRepoName += originalRepoName[len(redirectRepoName)+5:]
 		redirectPath := strings.Replace(
@@ -789,7 +787,7 @@ func (rt RepoRefType) RefTypeIncludesTags() bool {
 	return false
 }
 
-func getRefNameFromPath(ctx *Base, repo *Repository, path string, isExist func(string) bool) string {
+func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool) string {
 	refName := ""
 	parts := strings.Split(path, "/")
 	for i, part := range parts {
@@ -803,7 +801,7 @@ func getRefNameFromPath(ctx *Base, repo *Repository, path string, isExist func(s
 }
 
 func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
-	path := ctx.Params("*")
+	path := ctx.PathParam("*")
 	switch pathType {
 	case RepoRefLegacy, RepoRefAny:
 		if refName := getRefName(ctx, repo, RepoRefBranch); len(refName) > 0 {
@@ -825,9 +823,8 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 		repo.TreePath = path
 		return repo.Repository.DefaultBranch
 	case RepoRefBranch:
-		ref := getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsBranchExist)
+		ref := getRefNameFromPath(repo, path, repo.GitRepo.IsBranchExist)
 		if len(ref) == 0 {
-
 			// check if ref is HEAD
 			parts := strings.Split(path, "/")
 			if parts[0] == headRefName {
@@ -836,7 +833,7 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 			}
 
 			// maybe it's a renamed branch
-			return getRefNameFromPath(ctx, repo, path, func(s string) bool {
+			return getRefNameFromPath(repo, path, func(s string) bool {
 				b, exist, err := git_model.FindRenamedBranch(ctx, repo.Repository.ID, s)
 				if err != nil {
 					log.Error("FindRenamedBranch: %v", err)
@@ -856,7 +853,7 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 
 		return ref
 	case RepoRefTag:
-		return getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsTagExist)
+		return getRefNameFromPath(repo, path, repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
 		parts := strings.Split(path, "/")
 
@@ -920,7 +917,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		}
 
 		// Get default branch.
-		if len(ctx.Params("*")) == 0 {
+		if len(ctx.PathParam("*")) == 0 {
 			refName = ctx.Repo.Repository.DefaultBranch
 			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
 				brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 1)
@@ -970,7 +967,6 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 					return cancel
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-
 			} else if refType.RefTypeIncludesTags() && ctx.Repo.GitRepo.IsTagExist(refName) {
 				ctx.Repo.IsViewTag = true
 				ctx.Repo.TagName = refName
@@ -1009,13 +1005,13 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 
 			if refType == RepoRefLegacy {
 				// redirect from old URL scheme to new URL scheme
-				prefix := strings.TrimPrefix(setting.AppSubURL+strings.ToLower(strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*"))), strings.ToLower(ctx.Repo.RepoLink))
-
-				ctx.Redirect(path.Join(
+				prefix := strings.TrimPrefix(setting.AppSubURL+strings.ToLower(strings.TrimSuffix(ctx.Req.URL.Path, ctx.PathParam("*"))), strings.ToLower(ctx.Repo.RepoLink))
+				redirect := path.Join(
 					ctx.Repo.RepoLink,
 					util.PathEscapeSegments(prefix),
 					ctx.Repo.BranchNameSubURL(),
-					util.PathEscapeSegments(ctx.Repo.TreePath)))
+					util.PathEscapeSegments(ctx.Repo.TreePath))
+				ctx.Redirect(redirect)
 				return cancel
 			}
 		}
@@ -1050,21 +1046,5 @@ func GitHookService() func(ctx *Context) {
 			ctx.NotFound("GitHookService", nil)
 			return
 		}
-	}
-}
-
-// UnitTypes returns a middleware to set unit types to context variables.
-func UnitTypes() func(ctx *Context) {
-	return func(ctx *Context) {
-		ctx.Data["UnitTypeCode"] = unit_model.TypeCode
-		ctx.Data["UnitTypeIssues"] = unit_model.TypeIssues
-		ctx.Data["UnitTypePullRequests"] = unit_model.TypePullRequests
-		ctx.Data["UnitTypeReleases"] = unit_model.TypeReleases
-		ctx.Data["UnitTypeWiki"] = unit_model.TypeWiki
-		ctx.Data["UnitTypeExternalWiki"] = unit_model.TypeExternalWiki
-		ctx.Data["UnitTypeExternalTracker"] = unit_model.TypeExternalTracker
-		ctx.Data["UnitTypeProjects"] = unit_model.TypeProjects
-		ctx.Data["UnitTypePackages"] = unit_model.TypePackages
-		ctx.Data["UnitTypeActions"] = unit_model.TypeActions
 	}
 }

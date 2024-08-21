@@ -386,7 +386,7 @@ func (n *actionsNotifier) ForkRepository(ctx context.Context, doer *user_model.U
 	// Add to hook queue for created repo after session commit.
 	if u.IsOrganization() {
 		newNotifyInput(repo, doer, webhook_module.HookEventRepository).
-			WithRef(oldRepo.DefaultBranch).
+			WithRef(git.RefNameFromBranch(oldRepo.DefaultBranch).String()).
 			WithPayload(&api.RepositoryPayload{
 				Action:       api.HookRepoCreated,
 				Repository:   convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeOwner}),

@@ -63,13 +63,11 @@ func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 }
 
 func maxAccessMode(modes ...perm.AccessMode) perm.AccessMode {
-	max := perm.AccessModeNone
+	maxMode := perm.AccessModeNone
 	for _, mode := range modes {
-		if mode > max {
-			max = mode
-		}
+		maxMode = max(maxMode, mode)
 	}
-	return max
+	return maxMode
 }
 
 type userAccess struct {

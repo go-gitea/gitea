@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/packages/maven"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -240,5 +241,14 @@ func TestPackageMaven(t *testing.T) {
 		putFile(t, "/maven-metadata.xml", "test", http.StatusOK)
 		putFile(t, fmt.Sprintf("/%s/maven-metadata.xml", snapshotVersion), "test", http.StatusCreated)
 		putFile(t, fmt.Sprintf("/%s/maven-metadata.xml", snapshotVersion), "test-overwrite", http.StatusCreated)
+	})
+
+	t.Run("InvalidFile", func(t *testing.T) {
+		ver := packageVersion + "-invalid"
+		putFile(t, fmt.Sprintf("/%s/%s", ver, filename), "any invalid content", http.StatusCreated)
+		req := NewRequestf(t, "GET", "/%s/-/packages/maven/%s-%s/%s", user.Name, groupID, artifactID, ver)
+		resp := MakeRequest(t, req, http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "No metadata.")
+		assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 	})
 }
