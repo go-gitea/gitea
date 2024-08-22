@@ -95,10 +95,10 @@ func CreateBranchFromIssue(ctx *context.Context) {
 	}
 
 	if err := issues_model.CreateIssueDevLink(ctx, &issues_model.IssueDevLink{
-		IssueID:   issue.ID,
-		LinkType:  issues_model.IssueDevLinkTypeBranch,
+		IssueID:      issue.ID,
+		LinkType:     issues_model.IssueDevLinkTypeBranch,
 		LinkedRepoID: repo.ID,
-		LinkIndex: form.NewBranchName,
+		LinkIndex:    form.NewBranchName,
 	}); err != nil {
 		ctx.ServerError("CreateIssueDevLink", err)
 		return

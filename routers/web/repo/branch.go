@@ -221,7 +221,6 @@ func handleCreateBranchError(ctx *context.Context, err error, form *forms.NewBra
 	}
 
 	ctx.ServerError("CreateNewBranch", err)
-	return
 }
 
 // CreateBranch creates new branch in repository
