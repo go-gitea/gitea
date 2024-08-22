@@ -113,7 +113,8 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 	var changes internal.RepoChanges
 	var err error
 	updatedFilenames := make([]string, 0, 10)
-	for _, line := range strings.Split(stdout, "\n") {
+	lines := strings.Split(stdout, "\n")
+	for i, line := range lines {
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
 			continue
@@ -161,15 +162,23 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 		default:
 			log.Warn("Unrecognized status: %c (line=%s)", status, line)
 		}
+
+		if (i%50 == 0 || i == len(lines)-1) && len(updatedFilenames) > 0 {
+			cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l").AddDynamicArguments(revision).
+				AddDashesAndList(updatedFilenames...)
+			lsTreeStdout, _, err := cmd.RunStdBytes(&git.RunOpts{Dir: repo.RepoPath()})
+			if err != nil {
+				return nil, err
+			}
+
+			updates, err1 := parseGitLsTreeOutput(lsTreeStdout)
+			if err1 != nil {
+				return nil, err1
+			}
+			changes.Updates = append(changes.Updates, updates...)
+			updatedFilenames = updatedFilenames[0:0]
+		}
 	}
 
-	cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l").AddDynamicArguments(revision).
-		AddDashesAndList(updatedFilenames...)
-	lsTreeStdout, _, err := cmd.RunStdBytes(&git.RunOpts{Dir: repo.RepoPath()})
-	if err != nil {
-		return nil, err
-	}
-
-	changes.Updates, err = parseGitLsTreeOutput(lsTreeStdout)
 	return &changes, err
 }
