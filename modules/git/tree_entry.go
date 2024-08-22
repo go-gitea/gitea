@@ -193,6 +193,7 @@ func (te *TreeEntry) GetPathInRepo() string {
 		for _, entry := range current.ptree.entries {
 			if entry.ID == current.ID {
 				path = entry.name + "/" + path
+				break
 			}
 		}
 		current = current.ptree
