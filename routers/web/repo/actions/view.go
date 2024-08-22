@@ -316,20 +316,25 @@ func getWorkflowFileLink(ctx *context_module.Context, run *actions_model.ActionR
 	if err != nil {
 		return ""
 	}
+
 	entries, err := actions.ListWorkflows(commit)
 	if err != nil {
 		return ""
 	}
+
 	var workflowEntry *git.TreeEntry
 	for _, entry := range entries {
 		if entry.Name() == run.WorkflowID {
 			workflowEntry = entry
+			break
 		}
 	}
-	var workflowFilePath string
-	if workflowEntry != nil {
-		workflowFilePath = workflowEntry.GetPathInRepo()
+
+	if workflowEntry == nil {
+		return ""
 	}
+
+	workflowFilePath := workflowEntry.GetPathInRepo()
 	if workflowFilePath == "" {
 		return ""
 	}
