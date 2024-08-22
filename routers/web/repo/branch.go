@@ -176,53 +176,6 @@ func redirect(ctx *context.Context) {
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/branches?page=" + url.QueryEscape(ctx.FormString("page")))
 }
 
-func handleCreateBranchError(ctx *context.Context, err error, form *forms.NewBranchForm) {
-	if models.IsErrProtectedTagName(err) {
-		ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
-		return
-	}
-
-	if models.IsErrTagAlreadyExists(err) {
-		e := err.(models.ErrTagAlreadyExists)
-		ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
-		ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
-		return
-	}
-	if git_model.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err) {
-		ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", form.NewBranchName))
-		ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
-		return
-	}
-	if git_model.IsErrBranchNameConflict(err) {
-		e := err.(git_model.ErrBranchNameConflict)
-		ctx.Flash.Error(ctx.Tr("repo.branch.branch_name_conflict", form.NewBranchName, e.BranchName))
-		ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
-		return
-	}
-	if git.IsErrPushRejected(err) {
-		e := err.(*git.ErrPushRejected)
-		if len(e.Message) == 0 {
-			ctx.Flash.Error(ctx.Tr("repo.editor.push_rejected_no_message"))
-		} else {
-			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
-				"Message": ctx.Tr("repo.editor.push_rejected"),
-				"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
-				"Details": utils.SanitizeFlashErrorString(e.Message),
-			})
-			if err != nil {
-				ctx.ServerError("UpdatePullRequest.HTMLString", err)
-				return
-			}
-			ctx.Flash.Error(flashError)
-		}
-		ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
-		return
-	}
-
-	ctx.ServerError("CreateNewBranch", err)
-}
-
 // CreateBranch creates new branch in repository
 func CreateBranch(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewBranchForm)
@@ -251,7 +204,50 @@ func CreateBranch(ctx *context.Context) {
 		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
-		handleCreateBranchError(ctx, err, form)
+		if models.IsErrProtectedTagName(err) {
+			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+			return
+		}
+
+		if models.IsErrTagAlreadyExists(err) {
+			e := err.(models.ErrTagAlreadyExists)
+			ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+			return
+		}
+		if git_model.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err) {
+			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", form.NewBranchName))
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+			return
+		}
+		if git_model.IsErrBranchNameConflict(err) {
+			e := err.(git_model.ErrBranchNameConflict)
+			ctx.Flash.Error(ctx.Tr("repo.branch.branch_name_conflict", form.NewBranchName, e.BranchName))
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+			return
+		}
+		if git.IsErrPushRejected(err) {
+			e := err.(*git.ErrPushRejected)
+			if len(e.Message) == 0 {
+				ctx.Flash.Error(ctx.Tr("repo.editor.push_rejected_no_message"))
+			} else {
+				flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
+					"Message": ctx.Tr("repo.editor.push_rejected"),
+					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
+					"Details": utils.SanitizeFlashErrorString(e.Message),
+				})
+				if err != nil {
+					ctx.ServerError("UpdatePullRequest.HTMLString", err)
+					return
+				}
+				ctx.Flash.Error(flashError)
+			}
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+			return
+		}
+
+		ctx.ServerError("CreateNewBranch", err)
 		return
 	}
 
