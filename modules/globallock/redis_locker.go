@@ -16,10 +16,11 @@ import (
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 )
 
-const (
-	redisLockKeyPrefix = "gitea:globallock:"
-	redisLockExpiry    = 30 * time.Second
-)
+const redisLockKeyPrefix = "gitea:globallock:"
+
+// redisLockExpiry is the default expiry time for a lock.
+// Define it as a variable to make it possible to change it in tests.
+var redisLockExpiry = 30 * time.Second
 
 type redisLocker struct {
 	rs *redsync.Redsync
@@ -48,7 +49,12 @@ func (l *redisLocker) Lock(ctx context.Context, key string) (context.Context, fu
 
 func (l *redisLocker) TryLock(ctx context.Context, key string) (bool, context.Context, func(), error) {
 	ctx, f, err := l.lock(ctx, key, 1)
-	if errors.Is(err, redsync.ErrFailed) {
+
+	var (
+		errTaken     *redsync.ErrTaken
+		errNodeTaken *redsync.ErrNodeTaken
+	)
+	if errors.As(err, &errTaken) || errors.As(err, &errNodeTaken) {
 		return false, ctx, f, nil
 	}
 	return err == nil, ctx, f, err

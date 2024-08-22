@@ -10,20 +10,36 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-redsync/redsync/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestLocker(t *testing.T) {
 	t.Run("redis", func(t *testing.T) {
+		url := "redis://127.0.0.1:6379/0"
 		if os.Getenv("CI") == "" {
-			t.Skip("Skip test for local development")
-			return
+			// Make it possible to run tests against a local redis instance
+			url = os.Getenv("TEST_REDIS_URL")
+			if url == "" {
+				t.Skip("TEST_REDIS_URL not set and not running in CI")
+				return
+			}
 		}
-		testLocker(t, NewRedisLocker("redis://127.0.0.1:6379/0"))
+		oldExpiry := redisLockExpiry
+		redisLockExpiry = 5 * time.Second // make it shorter for testing
+		defer func() {
+			redisLockExpiry = oldExpiry
+		}()
+
+		locker := NewRedisLocker(url)
+		testLocker(t, locker)
+		testRedisLocker(t, locker.(*redisLocker))
 	})
 	t.Run("memory", func(t *testing.T) {
-		testLocker(t, NewMemoryLocker())
+		locker := NewMemoryLocker()
+		testLocker(t, locker)
+		testMemoryLocker(t, locker.(*memoryLocker))
 	})
 }
 
@@ -110,5 +126,33 @@ func testLocker(t *testing.T, locker Locker) {
 		unlock()
 
 		wg.Wait()
+	})
+}
+
+// testMemoryLocker does specific tests for memoryLocker
+func testMemoryLocker(t *testing.T, locker *memoryLocker) {
+	// nothing to do
+}
+
+// testRedisLocker does specific tests for redisLocker
+func testRedisLocker(t *testing.T, locker *redisLocker) {
+	t.Run("missing extension", func(t *testing.T) {
+		ctx, unlock, err := locker.Lock(context.Background(), "test")
+		defer unlock()
+		require.NoError(t, err)
+
+		// It simulates that there are some problems with extending like network issues or redis server down.
+		v, ok := locker.mutexM.Load("test")
+		require.True(t, ok)
+		m := v.(*redisMutex)
+		_, _ = m.mutex.Unlock() // unlock it to make it impossible to extend
+
+		select {
+		case <-time.After(redisLockExpiry + time.Second):
+			t.Errorf("lock should be expired")
+		case <-ctx.Done():
+			var errTaken *redsync.ErrTaken
+			assert.ErrorAs(t, context.Cause(ctx), &errTaken)
+		}
 	})
 }
