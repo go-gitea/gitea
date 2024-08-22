@@ -2085,10 +2085,18 @@ func ViewIssue(ctx *context.Context) {
 
 	devLinks, err := issue_service.FindIssueDevLinksByIssue(ctx, issue)
 	if err != nil {
-		ctx.ServerError("FindIssueDevLinksByIssueID", err)
+		ctx.ServerError("FindIssueDevLinksByIssue", err)
 		return
 	}
 	ctx.Data["DevLinks"] = devLinks
+	for _, link := range devLinks {
+		if link.LinkType == issues_model.IssueDevLinkTypePullRequest {
+			if !(link.PullRequest.Issue.IsClosed && !link.PullRequest.HasMerged) {
+				ctx.Data["MaybeFixed"] = link.PullRequest
+				break
+			}
+		}
+	}
 
 	ctx.HTML(http.StatusOK, tplIssueView)
 }

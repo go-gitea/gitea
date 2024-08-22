@@ -128,6 +128,31 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 			return err
 		}
 
+		if !pr.IsWorkInProgress(ctx) {
+			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, issue, pr)
+			if err != nil {
+				return err
+			}
+		}
+
+		if pr.Flow == issues_model.PullRequestFlowGithub {
+			devLinks, err := issues_model.FindDevLinksByBranch(ctx, issue.RepoID, pr.HeadRepoID, pr.HeadBranch)
+			if err != nil {
+				return err
+			}
+			for _, link := range devLinks {
+				if err := issues_model.CreateIssueDevLink(ctx, &issues_model.IssueDevLink{
+					IssueID:      link.IssueID,
+					LinkType:     issues_model.IssueDevLinkTypePullRequest,
+					LinkedRepoID: pr.HeadRepoID,
+					LinkIndex:    strconv.FormatInt(pr.ID, 10),
+				}); err != nil {
+					return err
+				}
+			}
+		}
+
+		// leave creating comment last
 		compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
 			git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName(), false, false)
 		if err != nil {
@@ -159,30 +184,6 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 
 		if _, err = issues_model.CreateComment(ctx, ops); err != nil {
 			return err
-		}
-
-		if !pr.IsWorkInProgress(ctx) {
-			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, issue, pr)
-			if err != nil {
-				return err
-			}
-		}
-
-		if pr.Flow == issues_model.PullRequestFlowGithub {
-			devLinks, err := issues_model.FindDevLinksByBranch(ctx, issue.RepoID, pr.HeadRepoID, pr.HeadBranch)
-			if err != nil {
-				return err
-			}
-			for _, link := range devLinks {
-				if err := issues_model.CreateIssueDevLink(ctx, &issues_model.IssueDevLink{
-					IssueID:      link.IssueID,
-					LinkType:     issues_model.IssueDevLinkTypePullRequest,
-					LinkedRepoID: pr.HeadRepoID,
-					LinkIndex:    strconv.FormatInt(pr.ID, 10),
-				}); err != nil {
-					return err
-				}
-			}
 		}
 
 		return nil

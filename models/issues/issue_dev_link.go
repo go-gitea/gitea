@@ -28,9 +28,10 @@ type IssueDevLink struct {
 	LinkIndex    string             // branch name, pull request number or commit sha
 	CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
 
-	LinkedRepo  *repo_model.Repository `xorm:"-"`
-	PullRequest *PullRequest           `xorm:"-"`
-	Branch      *git_model.Branch      `xorm:"-"`
+	LinkedRepo    *repo_model.Repository `xorm:"-"`
+	PullRequest   *PullRequest           `xorm:"-"`
+	Branch        *git_model.Branch      `xorm:"-"`
+	DisplayBranch bool                   `xorm:"-"`
 }
 
 func init() {

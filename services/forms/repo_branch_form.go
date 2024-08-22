@@ -15,6 +15,7 @@ import (
 // NewBranchForm form for creating a new branch
 type NewBranchForm struct {
 	NewBranchName    string `binding:"Required;MaxSize(100);GitRefName"`
+	RepoID           int64
 	SourceBranchName string
 	CurrentPath      string
 	CreateTag        bool

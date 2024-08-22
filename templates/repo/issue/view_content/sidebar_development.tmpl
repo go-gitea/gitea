@@ -5,10 +5,13 @@
 {{end}}
 {{range .DevLinks}}
 	{{if .PullRequest}}
+		<span>{{template "shared/issueicon" .PullRequest.Issue}}
 		<a href="{{.PullRequest.Issue.Link}}" class="item">
 			{{.PullRequest.Issue.Title}}
 		</a>
-		Created {{.PullRequest.Issue.CreatedAt}}
+		</span>
+		<div>
+		Created {{DateTime "short" .PullRequest.Issue.CreatedUnix}}
 		{{if .PullRequest.HasMerged}}
 			Completed
 			{{.PullRequest.MergedCommitID}}
@@ -16,15 +19,16 @@
 		{{else if .PullRequest.ChangedProtectedFiles}}
 			Merge conflicts
 		{{end}}
-	{{else if .Branch}}
+		</div>
+	{{else if and .Branch .DisplayBranch}}
 		<span>
 			{{svg "octicon-git-branch" 14}}
-			<a href="{{.Branch}}" class="item">
+			<a href="{{.Branch.Repo.Link}}/src/branch/{{.Branch.Name}}" class="item">
 				<span class="gt-ellipsis">{{.Branch.Name}}</span>
 			</a>
 		</span>
 		<div>Latest commit {{DateTime "short" .Branch.CommitTime}}</div>
-		<a href="{{$.Issue.Repo.Link}}/compare/main...{{.Branch.Name}}">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
+		<a href="{{$.Issue.Repo.Link}}/compare/{{$.Issue.Repo.DefaultBranch}}...{{.Branch.Repo.FullName}}:{{.Branch.Name}}">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
 	{{end}}
 {{end}}
 </div>
@@ -45,7 +49,7 @@
 			<div class="field">
 				<label for="source_repository">{{ctx.Locale.Tr "repository"}}</label>
 				<div class="ui fluid dropdown selection">
-					<select name="source_repository">
+					<select name="repo_id">
 						<option value=""> </option>
 						{{range .AllowedRepos}}
 							<option value="{{.ID}}">{{.FullName}}</option>
@@ -86,7 +90,7 @@
 
 			<div class="text right actions">
 				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-				<button class="ui red button">{{ctx.Locale.Tr "repo.branch.new_branch"}}</button>
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.branch.new_branch"}}</button>
 			</div>
 		</form>
 	</div>
