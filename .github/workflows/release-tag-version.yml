@@ -6,8 +6,6 @@ on:
       - "v1.*"
       - "!v1*-rc*"
       - "!v1*-dev"
-    branches:
-      - "release/v1.22*"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
