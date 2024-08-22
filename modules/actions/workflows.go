@@ -66,6 +66,7 @@ func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 			ret = append(ret, entry)
 		}
 	}
+
 	return ret, nil
 }
 

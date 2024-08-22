@@ -85,6 +85,7 @@ type ViewResponse struct {
 			CanRerun          bool       `json:"canRerun"`
 			CanDeleteArtifact bool       `json:"canDeleteArtifact"`
 			Done              bool       `json:"done"`
+			WorkflowFileLink  string     `json:"workflowFileLink"`
 			WorkflowID        string     `json:"workflowID"`
 			WorkflowLink      string     `json:"workflowLink"`
 			IsSchedule        bool       `json:"isSchedule"`
@@ -170,6 +171,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.CanRerun = run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.CanDeleteArtifact = run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.Done = run.Status.IsDone()
+	resp.State.Run.WorkflowFileLink = getWorkflowFileLink(ctx, run)
 	resp.State.Run.WorkflowID = run.WorkflowID
 	resp.State.Run.WorkflowLink = run.WorkflowLink()
 	resp.State.Run.IsSchedule = run.IsSchedule()
@@ -302,6 +304,37 @@ func ViewPost(ctx *context_module.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, resp)
+}
+
+// getWorkflowFileLink return url for the source of the workflow file that was run
+func getWorkflowFileLink(ctx *context_module.Context, run *actions_model.ActionRun) string {
+	if run.Repo == nil || run.CommitSHA == "" {
+		return ""
+	}
+
+	commit, err := ctx.Repo.GitRepo.GetCommit(run.CommitSHA)
+	if err != nil {
+		return ""
+	}
+	entries, err := actions.ListWorkflows(commit)
+	if err != nil {
+		return ""
+	}
+	var workflowEntry *git.TreeEntry
+	for _, entry := range entries {
+		if entry.Name() == run.WorkflowID {
+			workflowEntry = entry
+		}
+	}
+	var workflowFilePath string
+	if workflowEntry != nil {
+		workflowFilePath = workflowEntry.GetPathInRepo()
+	}
+	if workflowFilePath == "" {
+		return ""
+	}
+
+	return fmt.Sprintf("%s/src/commit/%s/%s", run.Repo.Link(), run.CommitSHA, workflowFilePath)
 }
 
 // Rerun will rerun jobs in the given run

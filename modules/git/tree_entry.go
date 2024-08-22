@@ -179,3 +179,24 @@ func (tes Entries) Sort() {
 func (tes Entries) CustomSort(cmp func(s1, s2 string) bool) {
 	sort.Sort(customSortableEntries{cmp, tes})
 }
+
+// GetPathInRepo returns the relative path in the tree to this entry
+func (te *TreeEntry) GetPathInRepo() string {
+	if te == nil {
+		return ""
+	}
+
+	path := te.name
+	current := te.ptree
+
+	for current != nil && current.ptree != nil {
+		for _, entry := range current.ptree.entries {
+			if entry.ID == current.ID {
+				path = entry.name + "/" + path
+			}
+		}
+		current = current.ptree
+	}
+
+	return path
+}
