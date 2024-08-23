@@ -38,7 +38,7 @@ func TryLock(ctx context.Context, key string) (bool, context.Context, ReleaseFun
 }
 
 // LockAndDo tries to acquire a lock for the given key and then calls the given function.
-// It uses the default locker.
+// It uses the default locker, and it will return an error if failed to acquire the lock.
 func LockAndDo(ctx context.Context, key string, f func(context.Context) error) error {
 	ctx, release, err := Lock(ctx, key)
 	if err != nil {
