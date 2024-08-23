@@ -8,7 +8,6 @@ import (
 	"os"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,10 +43,7 @@ func TestLockAndDo(t *testing.T) {
 }
 
 func testLockAndDo(t *testing.T) {
-	const (
-		duration    = 2 * time.Second
-		concurrency = 100
-	)
+	const concurrency = 1000
 
 	ctx := context.Background()
 	count := 0
@@ -57,31 +53,23 @@ func testLockAndDo(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			err := LockAndDo(ctx, "test", func(ctx context.Context) error {
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				case <-time.After(duration / concurrency):
-					count++
-				}
+				count++
+
+				// It's impossible to acquire the lock inner the function
+				ok, err := TryLockAndDo(ctx, "test", func(ctx context.Context) error {
+					assert.Fail(t, "should not acquire the lock")
+					return nil
+				})
+				assert.False(t, ok)
+				assert.NoError(t, err)
+
 				return nil
 			})
 			require.NoError(t, err)
 		}()
 	}
 
-	ok, err := TryLockAndDo(ctx, "test", func(ctx context.Context) error {
-		return nil
-	})
-	assert.False(t, ok)
-	assert.NoError(t, err)
-
 	wg.Wait()
-
-	ok, err = TryLockAndDo(ctx, "test", func(ctx context.Context) error {
-		return nil
-	})
-	assert.True(t, ok)
-	assert.NoError(t, err)
 
 	assert.Equal(t, concurrency, count)
 }
