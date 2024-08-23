@@ -81,6 +81,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		PatchURL:       pr.Issue.PatchURL(),
 		HasMerged:      pr.HasMerged,
 		MergeBase:      pr.MergeBase,
+		HeadCommitID:   pr.MergeBase,
 		Mergeable:      pr.Mergeable(ctx),
 		Deadline:       apiIssue.Deadline,
 		Created:        pr.Issue.CreatedUnix.AsTimePtr(),

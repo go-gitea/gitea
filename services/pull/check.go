@@ -344,6 +344,16 @@ func testPR(id int64) {
 		log.Error("Unable to GetPullRequestByID[%d] for testPR: %v", id, err)
 		return
 	}
+	err = pr.LoadBaseRepo(ctx)
+	if err == nil {
+		commitID, commitErr := git.GetFullCommitID(ctx, pr.BaseRepo.RepoPath(), pr.HeadBranch)
+		if commitErr == nil {
+			pr.HeadCommitID = commitID
+			if err := pr.UpdateCols(ctx, "head_commit_id"); err != nil {
+				log.Error("update pr [%-v] head_commit_id failed: %v", pr, err)
+			}
+		}
+	}
 
 	log.Trace("Testing %-v", pr)
 	defer func() {

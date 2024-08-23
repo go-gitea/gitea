@@ -173,7 +173,7 @@ type PullRequest struct {
 	BaseRepoID          int64                  `xorm:"INDEX"`
 	BaseRepo            *repo_model.Repository `xorm:"-"`
 	HeadBranch          string
-	HeadCommitID        string `xorm:"-"`
+	HeadCommitID        string `xorm:"VARCHAR(64)"`
 	BaseBranch          string
 	MergeBase           string `xorm:"VARCHAR(64)"`
 	AllowMaintainerEdit bool   `xorm:"NOT NULL DEFAULT false"`

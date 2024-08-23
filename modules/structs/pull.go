@@ -43,9 +43,10 @@ type PullRequest struct {
 	MergedBy            *User      `json:"merged_by"`
 	AllowMaintainerEdit bool       `json:"allow_maintainer_edit"`
 
-	Base      *PRBranchInfo `json:"base"`
-	Head      *PRBranchInfo `json:"head"`
-	MergeBase string        `json:"merge_base"`
+	Base         *PRBranchInfo `json:"base"`
+	Head         *PRBranchInfo `json:"head"`
+	MergeBase    string        `json:"merge_base"`
+	HeadCommitID string        `xorm:"VARCHAR(64)" json:"head_commit_id"`
 
 	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`

@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -167,6 +169,21 @@ func setMergeTarget(ctx *context.Context, pull *issues_model.PullRequest) {
 	ctx.Data["BaseBranchLink"] = pull.GetBaseBranchLink(ctx)
 }
 
+func writeFile(path, content string) error {
+	var folder string
+	path = strings.ReplaceAll(path, "\\", "/")
+	segments := strings.Split(path, "/")
+	if len(segments) > 1 {
+		folder = strings.Join(segments[:len(segments)-1], "/")
+	}
+	err2 := os.MkdirAll(folder, 0o755)
+	if err2 != nil {
+		return err2
+	}
+	err := os.WriteFile(path, []byte(content), 0o644)
+	return err
+}
+
 // GetPullDiffStats get Pull Requests diff stats
 func GetPullDiffStats(ctx *context.Context) {
 	issue, ok := getPullInfo(ctx)
@@ -184,8 +201,17 @@ func GetPullDiffStats(ctx *context.Context) {
 
 	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitRefName())
 	if err != nil {
-		ctx.ServerError("GetRefCommitID", err)
-		return
+		if pull.HeadCommitID != "" {
+			headCommitID = pull.HeadCommitID
+			newFileErr := writeFile(filepath.Join(ctx.Repo.GitRepo.Path, pull.GetGitRefName()), headCommitID)
+			if newFileErr != nil {
+				ctx.ServerError("GetRefCommitID:", newFileErr)
+				return
+			}
+		} else {
+			ctx.ServerError("GetRefCommitID", err)
+			return
+		}
 	}
 
 	diffOptions := &gitdiff.DiffOptions{
