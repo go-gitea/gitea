@@ -572,6 +572,8 @@ var migrations = []*xormigrate.Migration{
 	NewMigration("Add index to action_task stopped log_expired", v1_23.AddIndexToActionTaskStoppedLogExpired),
 	// v303 -> v304
 	NewMigration("Add metadata column for comment table", v1_23.AddCommentMetaDataColumn),
+	// v304 -> v305
+	NewMigration("Add index for release sha1", v1_23.AddIndexForReleaseSha1),
 }
 
 // EnsureUpToDate will check if the db is at the correct version
