@@ -29,6 +29,11 @@ func TestLocker(t *testing.T) {
 		oldExpiry := redisLockExpiry
 		redisLockExpiry = 5 * time.Second // make it shorter for testing
 		defer func() {
+			// Avoid data race.
+			// The startExtend goroutine may still be running and reading redisLockExpiry.
+			// Wait for a while since it will be stopped soon after Close is called.
+			time.Sleep(time.Second)
+
 			redisLockExpiry = oldExpiry
 		}()
 
