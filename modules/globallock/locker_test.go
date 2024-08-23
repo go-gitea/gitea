@@ -106,7 +106,7 @@ func testLocker(t *testing.T, locker Locker) {
 
 	t.Run("wait and acquired", func(t *testing.T) {
 		ctx := context.Background()
-		ctx, release, err := locker.Lock(ctx, "test")
+		_, release, err := locker.Lock(ctx, "test")
 		require.NoError(t, err)
 
 		wg := &sync.WaitGroup{}
