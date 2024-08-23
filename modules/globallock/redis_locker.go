@@ -26,8 +26,9 @@ var redisLockExpiry = 30 * time.Second
 type redisLocker struct {
 	rs *redsync.Redsync
 
-	mutexM sync.Map
-	closed atomic.Bool
+	mutexM   sync.Map
+	closed   atomic.Bool
+	extendWg sync.WaitGroup
 }
 
 var _ Locker = &redisLocker{}
@@ -40,6 +41,8 @@ func NewRedisLocker(connection string) Locker {
 			),
 		),
 	}
+
+	l.extendWg.Add(1)
 	l.startExtend()
 
 	return l
@@ -66,8 +69,10 @@ func (l *redisLocker) TryLock(ctx context.Context, key string) (bool, context.Co
 // It will stop extending the locks and refuse to acquire new locks.
 // In actual use, it is not necessary to call this function.
 // But it's useful in tests to release resources.
+// It could take some time since it waits for the extending goroutine to finish.
 func (l *redisLocker) Close() error {
 	l.closed.Store(true)
+	l.extendWg.Wait()
 	return nil
 }
 
@@ -119,6 +124,7 @@ func (l *redisLocker) lock(ctx context.Context, key string, tries int) (context.
 
 func (l *redisLocker) startExtend() {
 	if l.closed.Load() {
+		l.extendWg.Done()
 		return
 	}
 
