@@ -8,6 +8,8 @@ import (
 	"io"
 	"sort"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // Type returns the type of the entry (commit, tree, blob)
@@ -190,7 +192,12 @@ func (te *TreeEntry) GetPathInRepo() string {
 	current := te.ptree
 
 	for current != nil && current.ptree != nil {
-		for _, entry := range current.ptree.entries {
+		entries, err := current.ptree.ListEntries()
+		if err != nil {
+			log.Error("Failed to climb git tree %v", err)
+			return ""
+		}
+		for _, entry := range entries {
 			if entry.ID == current.ID {
 				path = entry.Name() + "/" + path
 				break
