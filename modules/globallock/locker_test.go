@@ -35,6 +35,7 @@ func TestLocker(t *testing.T) {
 		locker := NewRedisLocker(url)
 		testLocker(t, locker)
 		testRedisLocker(t, locker.(*redisLocker))
+		require.NoError(t, locker.(*redisLocker).Close())
 	})
 	t.Run("memory", func(t *testing.T) {
 		locker := NewMemoryLocker()
@@ -178,7 +179,17 @@ func testMemoryLocker(t *testing.T, locker *memoryLocker) {
 
 // testRedisLocker does specific tests for redisLocker
 func testRedisLocker(t *testing.T, locker *redisLocker) {
-	t.Run("missing extension", func(t *testing.T) {
+	defer func() {
+		// This case should be tested at the end.
+		// Otherwise, it will affect other tests.
+		t.Run("close", func(t *testing.T) {
+			assert.NoError(t, locker.Close())
+			_, _, err := locker.Lock(context.Background(), "test")
+			assert.Error(t, err)
+		})
+	}()
+
+	t.Run("failed extend", func(t *testing.T) {
 		ctx, release, err := locker.Lock(context.Background(), "test")
 		defer release()
 		require.NoError(t, err)

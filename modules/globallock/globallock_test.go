@@ -25,14 +25,25 @@ func TestLockAndDo(t *testing.T) {
 			}
 		}
 
+		oldDefaultLocker := defaultLocker
+		defer func() {
+			defaultLocker = oldDefaultLocker
+		}()
+
 		initOnce = sync.Once{}
 		initFunc = func() {
 			defaultLocker = NewRedisLocker(url)
 		}
 
 		testLockAndDo(t)
+		require.NoError(t, defaultLocker.(*redisLocker).Close())
 	})
 	t.Run("memory", func(t *testing.T) {
+		oldDefaultLocker := defaultLocker
+		defer func() {
+			defaultLocker = oldDefaultLocker
+		}()
+
 		initOnce = sync.Once{}
 		initFunc = func() {
 			defaultLocker = NewMemoryLocker()

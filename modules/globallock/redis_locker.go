@@ -6,7 +6,9 @@ package globallock
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/nosql"
@@ -25,6 +27,7 @@ type redisLocker struct {
 	rs *redsync.Redsync
 
 	mutexM sync.Map
+	closed atomic.Bool
 }
 
 var _ Locker = &redisLocker{}
@@ -59,12 +62,25 @@ func (l *redisLocker) TryLock(ctx context.Context, key string) (bool, context.Co
 	return err == nil, ctx, f, err
 }
 
+// Close closes the locker.
+// It will stop extending the locks and refuse to acquire new locks.
+// In actual use, it is not necessary to call this function.
+// But it's useful in tests to release resources.
+func (l *redisLocker) Close() error {
+	l.closed.Store(true)
+	return nil
+}
+
 type redisMutex struct {
 	mutex  *redsync.Mutex
 	cancel context.CancelCauseFunc
 }
 
 func (l *redisLocker) lock(ctx context.Context, key string, tries int) (context.Context, ReleaseFunc, error) {
+	if l.closed.Load() {
+		return ctx, func() context.Context { return ctx }, fmt.Errorf("locker is closed")
+	}
+
 	originalCtx := ctx
 
 	options := []redsync.Option{
@@ -102,6 +118,10 @@ func (l *redisLocker) lock(ctx context.Context, key string, tries int) (context.
 }
 
 func (l *redisLocker) startExtend() {
+	if l.closed.Load() {
+		return
+	}
+
 	toExtend := make([]*redisMutex, 0)
 	l.mutexM.Range(func(_, value any) bool {
 		m := value.(*redisMutex)
