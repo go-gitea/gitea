@@ -424,18 +424,6 @@ export function initRepositoryActionView() {
             </a>
           </div>
         </div>
-        <div class="left-side-section" v-if="run.workflowFileLink">
-          <div class="left-side-section-title">
-            {{ locale.runDetails }}
-          </div>
-          <ul class="left-side-section-list">
-            <li class="left-side-section-item">
-              <a class="left-side-section-link" target="_blank" :href="run.workflowFileLink">
-                <SvgIcon name="octicon-file" class="ui text black left-side-section-icon"/>{{ locale.workflowFile }}
-              </a>
-            </li>
-          </ul>
-        </div>
         <div class="left-side-section" v-if="artifacts.length > 0">
           <div class="left-side-section-title">
             {{ locale.artifactsTitle }}
@@ -447,6 +435,18 @@ export function initRepositoryActionView() {
               </a>
               <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)" class="left-side-section-delete">
                 <SvgIcon name="octicon-trash" class="ui text black left-side-section-icon"/>
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div class="left-side-section" v-if="run.workflowFileLink">
+          <div class="left-side-section-title">
+            {{ locale.runDetails }}
+          </div>
+          <ul class="left-side-section-list">
+            <li class="left-side-section-item">
+              <a class="left-side-section-link" target="_blank" :href="run.workflowFileLink">
+                <SvgIcon name="octicon-file" class="ui text black left-side-section-icon"/>{{ locale.workflowFile }}
               </a>
             </li>
           </ul>
