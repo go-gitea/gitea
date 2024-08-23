@@ -64,7 +64,6 @@ func testLocker(t *testing.T, locker Locker) {
 
 		release()
 		assert.Error(t, ctx.Err())
-		release() // should be safe to call multiple times
 
 		func() {
 			_, release, err := locker.Lock(context.Background(), "test")
@@ -96,7 +95,6 @@ func testLocker(t *testing.T, locker Locker) {
 
 		release()
 		assert.Error(t, ctx.Err())
-		release() // should be safe to call multiple times
 
 		func() {
 			ok, _, release, _ := locker.TryLock(context.Background(), "test")
@@ -145,6 +143,31 @@ func testLocker(t *testing.T, locker Locker) {
 		assert.Error(t, ctxBeforeRelease.Err())
 
 		// so it can continue with ctx to do more work
+	})
+
+	t.Run("multiple release", func(t *testing.T) {
+		ctx := context.Background()
+
+		_, release1, err := locker.Lock(ctx, "test")
+		require.NoError(t, err)
+
+		release1()
+
+		_, release2, err := locker.Lock(ctx, "test")
+		defer release2()
+		require.NoError(t, err)
+
+		// Call release1 again,
+		// it should not panic or block,
+		// and it shouldn't affect the other lock
+		release1()
+
+		ok, _, release3, err := locker.TryLock(ctx, "test")
+		defer release3()
+		require.NoError(t, err)
+		// It should be able to acquire the lock;
+		// otherwise, it means the lock has been released by release1
+		assert.False(t, ok)
 	})
 }
 

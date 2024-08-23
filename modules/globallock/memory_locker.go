@@ -25,9 +25,12 @@ func (l *memoryLocker) Lock(ctx context.Context, key string) (context.Context, R
 
 	if l.tryLock(key) {
 		ctx, cancel := context.WithCancelCause(ctx)
+		releaseOnce := sync.Once{}
 		return ctx, func() context.Context {
-			l.locks.Delete(key)
-			cancel(fmt.Errorf("release"))
+			releaseOnce.Do(func() {
+				l.locks.Delete(key)
+				cancel(fmt.Errorf("release"))
+			})
 			return originalCtx
 		}, nil
 	}
@@ -41,9 +44,12 @@ func (l *memoryLocker) Lock(ctx context.Context, key string) (context.Context, R
 		case <-ticker.C:
 			if l.tryLock(key) {
 				ctx, cancel := context.WithCancelCause(ctx)
+				releaseOnce := sync.Once{}
 				return ctx, func() context.Context {
-					l.locks.Delete(key)
-					cancel(fmt.Errorf("release"))
+					releaseOnce.Do(func() {
+						l.locks.Delete(key)
+						cancel(fmt.Errorf("release"))
+					})
 					return originalCtx
 				}, nil
 			}
@@ -56,9 +62,12 @@ func (l *memoryLocker) TryLock(ctx context.Context, key string) (bool, context.C
 
 	if l.tryLock(key) {
 		ctx, cancel := context.WithCancelCause(ctx)
+		releaseOnce := sync.Once{}
 		return true, ctx, func() context.Context {
-			cancel(fmt.Errorf("release"))
-			l.locks.Delete(key)
+			releaseOnce.Do(func() {
+				cancel(fmt.Errorf("release"))
+				l.locks.Delete(key)
+			})
 			return originalCtx
 		}, nil
 	}

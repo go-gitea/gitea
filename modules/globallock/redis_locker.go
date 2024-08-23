@@ -86,15 +86,18 @@ func (l *redisLocker) lock(ctx context.Context, key string, tries int) (context.
 		cancel: cancel,
 	})
 
+	releaseOnce := sync.Once{}
 	return ctx, func() context.Context {
-		l.mutexM.Delete(key)
+		releaseOnce.Do(func() {
+			l.mutexM.Delete(key)
 
-		// It's safe to ignore the error here,
-		// if it failed to unlock, it will be released automatically after the lock expires.
-		// Do not call mutex.UnlockContext(ctx) here, or it will fail to release when ctx has timed out.
-		_, _ = mutex.Unlock()
+			// It's safe to ignore the error here,
+			// if it failed to unlock, it will be released automatically after the lock expires.
+			// Do not call mutex.UnlockContext(ctx) here, or it will fail to release when ctx has timed out.
+			_, _ = mutex.Unlock()
 
-		cancel(fmt.Errorf("release"))
+			cancel(fmt.Errorf("release"))
+		})
 		return originalCtx
 	}, nil
 }
@@ -105,7 +108,7 @@ func (l *redisLocker) startExtend() {
 		m := value.(*redisMutex)
 
 		// Extend the lock if it is not expired.
-		// Although the mutex will be removed from the map before it is releaseed,
+		// Although the mutex will be removed from the map before it is released,
 		// it still can be expired because of a failed extension.
 		// If it happens, the cancel function should have been called,
 		// so it does not need to be extended anymore.
