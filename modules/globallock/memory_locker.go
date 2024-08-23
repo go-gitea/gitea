@@ -5,7 +5,6 @@ package globallock
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 )
@@ -29,7 +28,7 @@ func (l *memoryLocker) Lock(ctx context.Context, key string) (context.Context, R
 		return ctx, func() context.Context {
 			releaseOnce.Do(func() {
 				l.locks.Delete(key)
-				cancel(fmt.Errorf("release"))
+				cancel(ErrLockReleased)
 			})
 			return originalCtx
 		}, nil
@@ -48,7 +47,7 @@ func (l *memoryLocker) Lock(ctx context.Context, key string) (context.Context, R
 				return ctx, func() context.Context {
 					releaseOnce.Do(func() {
 						l.locks.Delete(key)
-						cancel(fmt.Errorf("release"))
+						cancel(ErrLockReleased)
 					})
 					return originalCtx
 				}, nil
@@ -65,7 +64,7 @@ func (l *memoryLocker) TryLock(ctx context.Context, key string) (bool, context.C
 		releaseOnce := sync.Once{}
 		return true, ctx, func() context.Context {
 			releaseOnce.Do(func() {
-				cancel(fmt.Errorf("release"))
+				cancel(ErrLockReleased)
 				l.locks.Delete(key)
 			})
 			return originalCtx

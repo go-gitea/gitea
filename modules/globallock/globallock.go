@@ -5,6 +5,7 @@ package globallock
 
 import (
 	"context"
+	"fmt"
 )
 
 type Locker interface {
@@ -13,3 +14,6 @@ type Locker interface {
 }
 
 type ReleaseFunc func() context.Context
+
+// ErrLockReleased is used as context cause when a lock is released
+var ErrLockReleased = fmt.Errorf("lock released")

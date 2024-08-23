@@ -6,7 +6,6 @@ package globallock
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -96,7 +95,7 @@ func (l *redisLocker) lock(ctx context.Context, key string, tries int) (context.
 			// Do not call mutex.UnlockContext(ctx) here, or it will fail to release when ctx has timed out.
 			_, _ = mutex.Unlock()
 
-			cancel(fmt.Errorf("release"))
+			cancel(ErrLockReleased)
 		})
 		return originalCtx
 	}, nil
