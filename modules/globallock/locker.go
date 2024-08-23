@@ -34,6 +34,7 @@ type Locker interface {
 	//   if err != nil {
 	//     return err
 	//   }
+	//   defer release()
 	//   doSomething(ctx)
 	//   ctx = release()
 	//   doSomethingElse(ctx)
