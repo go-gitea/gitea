@@ -351,10 +351,12 @@ export function initRepositoryActionView() {
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       areYouSure: el.getAttribute('data-locale-are-you-sure'),
       confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),
+      runDetails: el.getAttribute('data-locale-runs-details'),
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
       showFullScreen: el.getAttribute('data-locale-show-full-screen'),
       downloadLogs: el.getAttribute('data-locale-download-logs'),
+      workflowFile: el.getAttribute('data-locale-workflow-file'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
         waiting: el.getAttribute('data-locale-status-waiting'),
@@ -422,14 +424,14 @@ export function initRepositoryActionView() {
             </a>
           </div>
         </div>
-        <div class="left-side-section">
+        <div class="left-side-section" v-if="run.workflowFileLink">
           <div class="left-side-section-title">
-            Run details
+            {{ locale.runDetails }}
           </div>
           <ul class="left-side-section-list">
-            <li class="left-side-section-item" v-for="artifact in artifacts" :key="artifact.name">
+            <li class="left-side-section-item">
               <a class="left-side-section-link" target="_blank" :href="run.workflowFileLink">
-                <SvgIcon name="octicon-file" class="ui text black left-side-section-icon"/>{{ run.workflowID }}
+                <SvgIcon name="octicon-file" class="ui text black left-side-section-icon"/>{{ locale.workflowFile }}
               </a>
             </li>
           </ul>
