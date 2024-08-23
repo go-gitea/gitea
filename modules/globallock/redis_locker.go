@@ -103,7 +103,7 @@ func (l *redisLocker) lock(ctx context.Context, key string, tries int) (context.
 
 func (l *redisLocker) startExtend() {
 	toExtend := make([]*redisMutex, 0)
-	l.mutexM.Range(func(_, value interface{}) bool {
+	l.mutexM.Range(func(_, value any) bool {
 		m := value.(*redisMutex)
 
 		// Extend the lock if it is not expired.
