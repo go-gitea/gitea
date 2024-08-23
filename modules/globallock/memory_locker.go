@@ -20,12 +20,15 @@ func NewMemoryLocker() Locker {
 	return &memoryLocker{}
 }
 
-func (l *memoryLocker) Lock(ctx context.Context, key string) (context.Context, func(), error) {
+func (l *memoryLocker) Lock(ctx context.Context, key string) (context.Context, ReleaseFunc, error) {
+	originalCtx := ctx
+
 	if l.tryLock(key) {
 		ctx, cancel := context.WithCancelCause(ctx)
-		return ctx, func() {
+		return ctx, func() context.Context {
 			l.locks.Delete(key)
-			cancel(fmt.Errorf("unlock"))
+			cancel(fmt.Errorf("release"))
+			return originalCtx
 		}, nil
 	}
 
@@ -34,29 +37,33 @@ func (l *memoryLocker) Lock(ctx context.Context, key string) (context.Context, f
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx, func() {}, ctx.Err()
+			return ctx, func() context.Context { return originalCtx }, ctx.Err()
 		case <-ticker.C:
 			if l.tryLock(key) {
 				ctx, cancel := context.WithCancelCause(ctx)
-				return ctx, func() {
+				return ctx, func() context.Context {
 					l.locks.Delete(key)
-					cancel(fmt.Errorf("unlock"))
+					cancel(fmt.Errorf("release"))
+					return originalCtx
 				}, nil
 			}
 		}
 	}
 }
 
-func (l *memoryLocker) TryLock(ctx context.Context, key string) (bool, context.Context, func(), error) {
+func (l *memoryLocker) TryLock(ctx context.Context, key string) (bool, context.Context, ReleaseFunc, error) {
+	originalCtx := ctx
+
 	if l.tryLock(key) {
 		ctx, cancel := context.WithCancelCause(ctx)
-		return true, ctx, func() {
-			cancel(fmt.Errorf("unlock"))
+		return true, ctx, func() context.Context {
+			cancel(fmt.Errorf("release"))
 			l.locks.Delete(key)
+			return originalCtx
 		}, nil
 	}
 
-	return false, ctx, func() {}, nil
+	return false, ctx, func() context.Context { return originalCtx }, nil
 }
 
 func (l *memoryLocker) tryLock(key string) bool {

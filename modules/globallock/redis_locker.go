@@ -43,11 +43,11 @@ func NewRedisLocker(connection string) Locker {
 	return l
 }
 
-func (l *redisLocker) Lock(ctx context.Context, key string) (context.Context, func(), error) {
+func (l *redisLocker) Lock(ctx context.Context, key string) (context.Context, ReleaseFunc, error) {
 	return l.lock(ctx, key, 0)
 }
 
-func (l *redisLocker) TryLock(ctx context.Context, key string) (bool, context.Context, func(), error) {
+func (l *redisLocker) TryLock(ctx context.Context, key string) (bool, context.Context, ReleaseFunc, error) {
 	ctx, f, err := l.lock(ctx, key, 1)
 
 	var (
@@ -65,7 +65,9 @@ type redisMutex struct {
 	cancel context.CancelCauseFunc
 }
 
-func (l *redisLocker) lock(ctx context.Context, key string, tries int) (context.Context, func(), error) {
+func (l *redisLocker) lock(ctx context.Context, key string, tries int) (context.Context, ReleaseFunc, error) {
+	originalCtx := ctx
+
 	options := []redsync.Option{
 		redsync.WithExpiry(redisLockExpiry),
 	}
@@ -74,7 +76,7 @@ func (l *redisLocker) lock(ctx context.Context, key string, tries int) (context.
 	}
 	mutex := l.rs.NewMutex(redisLockKeyPrefix+key, options...)
 	if err := mutex.LockContext(ctx); err != nil {
-		return ctx, func() {}, err
+		return ctx, func() context.Context { return originalCtx }, err
 	}
 
 	ctx, cancel := context.WithCancelCause(ctx)
@@ -84,14 +86,16 @@ func (l *redisLocker) lock(ctx context.Context, key string, tries int) (context.
 		cancel: cancel,
 	})
 
-	return ctx, func() {
+	return ctx, func() context.Context {
 		l.mutexM.Delete(key)
 
 		// It's safe to ignore the error here,
-		// if the lock is not released, it will be released automatically after the lock expires.
-		// Do not call mutex.UnlockContext(ctx) here, or it will fail to unlock when ctx has timed out.
+		// if it failed to unlock, it will be released automatically after the lock expires.
+		// Do not call mutex.UnlockContext(ctx) here, or it will fail to release when ctx has timed out.
 		_, _ = mutex.Unlock()
-		cancel(fmt.Errorf("unlock"))
+
+		cancel(fmt.Errorf("release"))
+		return originalCtx
 	}, nil
 }
 
@@ -101,7 +105,7 @@ func (l *redisLocker) startExtend() {
 		m := value.(*redisMutex)
 
 		// Extend the lock if it is not expired.
-		// Although the mutex will be removed from the map before it is unlocked,
+		// Although the mutex will be removed from the map before it is releaseed,
 		// it still can be expired because of a failed extension.
 		// If it happens, the cancel function should have been called,
 		// so it does not need to be extended anymore.

@@ -8,6 +8,8 @@ import (
 )
 
 type Locker interface {
-	Lock(ctx context.Context, key string) (context.Context, func(), error)
-	TryLock(ctx context.Context, key string) (bool, context.Context, func(), error)
+	Lock(ctx context.Context, key string) (context.Context, ReleaseFunc, error)
+	TryLock(ctx context.Context, key string) (bool, context.Context, ReleaseFunc, error)
 }
+
+type ReleaseFunc func() context.Context
