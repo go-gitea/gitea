@@ -22,6 +22,7 @@ export default {
       mergeTitleFieldText: '',
       mergeMessageFieldText: '',
       hideAutoMerge: false,
+      name: '',
     },
     mergeStyleAllowedCount: 0,
 
@@ -68,6 +69,10 @@ export default {
       this.deleteBranchAfterMerge = this.mergeForm.defaultDeleteBranchAfterMerge;
       this.mergeTitleFieldValue = this.mergeStyleDetail.mergeTitleFieldText;
       this.mergeMessageFieldValue = this.mergeStyleDetail.mergeMessageFieldText;
+    },
+    switchToActionform(mergeStyle, autoMerge) {
+      this.switchMergeStyle(mergeStyle, autoMerge);
+      this.toggleActionForm(true);
     },
     switchMergeStyle(name, autoMerge = false) {
       this.mergeStyle = name;
@@ -138,26 +143,30 @@ export default {
 
     <div v-if="!showActionForm" class="tw-flex">
       <!-- the merge button -->
-      <div class="ui buttons merge-button" :class="[mergeForm.emptyCommit ? '' : mergeForm.allOverridableChecksOk ? 'primary' : 'red']" @click="toggleActionForm(true)">
+      <div class="ui buttons merge-button" v-if="!mergeForm.hasPendingPullRequestMerge" :class="[mergeForm.emptyCommit ? '' : mergeForm.allOverridableChecksOk ? 'primary' : 'red']" @click="switchToActionform(mergeStyleDetail.name,false)">
         <button class="ui button">
           <svg-icon name="octicon-git-merge"/>
           <span class="button-text">
             {{ mergeStyleDetail.textDoMerge }}
-            <template v-if="autoMergeWhenSucceed">
-              {{ mergeForm.textAutoMergeButtonWhenSucceed }}
-            </template>
           </span>
+          <div v-if="mergeStyleAllowedCount==1 && !mergeStyleDetail.hideAutoMerge" class="auto-merge-small" @click.stop="switchToActionform(mergeStyleDetail.name, true)">
+            <svg-icon name="octicon-clock" :size="14"/>
+            <div class="auto-merge-tip">
+              {{ mergeForm.textAutoMergeWhenSucceed }}
+            </div>
+          </div>
         </button>
+
         <div class="ui dropdown icon button" @click.stop="showMergeStyleMenu = !showMergeStyleMenu" v-if="mergeStyleAllowedCount>1">
           <svg-icon name="octicon-triangle-down" :size="14"/>
           <div class="menu" :class="{'show':showMergeStyleMenu}">
             <template v-for="msd in mergeForm.mergeStyles">
               <!-- if can merge now, show one action "merge now", and an action "auto merge when succeed" -->
-              <div class="item" v-if="msd.allowed && mergeForm.canMergeNow" :key="msd.name" @click.stop="switchMergeStyle(msd.name)">
+              <div class="item" v-if="msd.allowed && mergeForm.canMergeNow" :key="msd.name" @click.stop="switchToActionform(msd.name, false)">
                 <div class="action-text">
                   {{ msd.textDoMerge }}
                 </div>
-                <div v-if="!msd.hideAutoMerge" class="auto-merge-small" @click.stop="switchMergeStyle(msd.name, true)">
+                <div v-if="!msd.hideAutoMerge" class="auto-merge-small" @click.stop="switchToActionform(msd.name, true)">
                   <svg-icon name="octicon-clock" :size="14"/>
                   <div class="auto-merge-tip">
                     {{ mergeForm.textAutoMergeWhenSucceed }}
@@ -166,7 +175,7 @@ export default {
               </div>
 
               <!-- if can NOT merge now, only show one action "auto merge when succeed" -->
-              <div class="item" v-if="msd.allowed && !mergeForm.canMergeNow && !msd.hideAutoMerge" :key="msd.name" @click.stop="switchMergeStyle(msd.name, true)">
+              <div class="item" v-if="msd.allowed && !mergeForm.canMergeNow && !msd.hideAutoMerge" :key="msd.name" @click.stop="switchToActionform(msd.name, true)">
                 <div class="action-text">
                   {{ msd.textDoMerge }} {{ mergeForm.textAutoMergeButtonWhenSucceed }}
                 </div>
@@ -177,7 +186,7 @@ export default {
       </div>
 
       <!-- the cancel auto merge button -->
-      <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" class="tw-ml-4">
+      <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" class="tw-ml-0">
         <input type="hidden" name="_csrf" :value="csrfToken">
         <button class="ui button">
           {{ mergeForm.textAutoMergeCancelSchedule }}
@@ -243,10 +252,12 @@ export default {
   color: var(--color-info-text);
   background-color: var(--color-info-bg);
   border: 1px solid var(--color-info-border);
+  border-radius: 0.5em 0 0 0.5em;
 }
 
 .auto-merge-small:hover .auto-merge-tip {
   display: flex;
+  border-radius: 0 0.5em 0.5em 0;
 }
 
 </style>
