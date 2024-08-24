@@ -26,8 +26,12 @@ func TestLockAndDo(t *testing.T) {
 		}
 
 		oldDefaultLocker := defaultLocker
+		oldInitOnce := initOnce
+		oldInitFunc := initFunc
 		defer func() {
 			defaultLocker = oldDefaultLocker
+			initOnce = oldInitOnce
+			initFunc = oldInitFunc
 		}()
 
 		initOnce = sync.Once{}
@@ -40,8 +44,12 @@ func TestLockAndDo(t *testing.T) {
 	})
 	t.Run("memory", func(t *testing.T) {
 		oldDefaultLocker := defaultLocker
+		oldInitOnce := initOnce
+		oldInitFunc := initFunc
 		defer func() {
 			defaultLocker = oldDefaultLocker
+			initOnce = oldInitOnce
+			initFunc = oldInitFunc
 		}()
 
 		initOnce = sync.Once{}
