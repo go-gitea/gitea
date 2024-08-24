@@ -9,7 +9,7 @@
     "@citation-js/plugin-csl": "0.7.14",
     "@citation-js/plugin-software-formats": "0.6.1",
     "@github/markdown-toolbar-element": "2.2.3",
-    "@github/relative-time-element": "4.4.2",
+    "@github/relative-time-element": "4.4.3",
     "@github/text-expander-element": "2.7.1",
     "@mcaptcha/vanilla-glue": "0.1.0-alpha-3",
     "@primer/octicons": "19.11.0",
