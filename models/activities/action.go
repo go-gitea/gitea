@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/url"
 	"path"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
