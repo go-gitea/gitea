@@ -33,7 +33,7 @@
     "jquery": "3.7.1",
     "katex": "0.16.11",
     "license-checker-webpack-plugin": "0.2.1",
-    "mermaid": "10.9.1",
+    "mermaid": "11.0.2",
     "mini-css-extract-plugin": "2.9.0",
     "minimatch": "10.0.1",
     "monaco-editor": "0.50.0",
