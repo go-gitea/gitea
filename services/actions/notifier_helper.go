@@ -183,14 +183,55 @@ func notify(ctx context.Context, input *notifyInput) error {
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %w", err)
 	}
+	var globalEntries []*git.TreeEntry
+	globalWorkflow, err := db.Find[actions_model.RequireAction](ctx, actions_model.FindRequireActionOptions{
+		OrgID: input.Repo.OwnerID,
+	})
+	if err != nil {
+		return fmt.Errorf("Global Entries DB find failed: %w", err)
+	}
+	for _, gEntry := range globalWorkflow {
+		if gEntry.RepoName == input.Repo.Name {
+			log.Trace("Same Repo conflict: %s\n", gEntry.RepoName)
+			continue
+		}
+		gRepo, _ := repo_model.GetRepositoryByName(ctx, gEntry.OrgID, gEntry.RepoName)
+		gGitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, gRepo)
+		gCommit, _ := gGitRepo.GetBranchCommit(gRepo.DefaultBranch)
+		gEntries, _ := actions_module.ListWorkflows(gCommit)
+		for _, entry := range gEntries {
+			if gEntry.WorkflowName == entry.Name() {
+				globalEntries = append(globalEntries, entry)
+			}
+		}
+	}
+	gWorkflows, gSchedules, err := actions_module.DetectGlobalWorkflows(gitRepo, commit,
+		input.Event,
+		input.Payload,
+		shouldDetectSchedules,
+		globalEntries,
+	)
+	if err != nil {
+		return fmt.Errorf("Detect Global workflow failed: %w", err)
+	}
 
-	log.Trace("repo %s with commit %s event %s find %d workflows and %d schedules",
+	log.Trace("repo %s with commit %s event %s find %d workflows and %d schedules, %d global workflows and %d global schedules",
 		input.Repo.RepoPath(),
 		commit.ID,
 		input.Event,
 		len(workflows),
 		len(schedules),
+		len(gWorkflows),
+		len(gSchedules),
 	)
+	for _, workflow := range gWorkflows {
+		workflows = append(workflows, workflow)
+		log.Trace("gWorkflows: %v\n", workflow)
+	}
+	for _, schedule := range gSchedules {
+		schedules = append(schedules, schedule)
+		log.Trace("gSchedules: %v\n", schedule)
+	}
 
 	for _, wf := range workflows {
 		if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
