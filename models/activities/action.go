@@ -476,7 +476,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 
 		actionIDs := make([]int64, 0, opts.PageSize)
 		if err := sess.Table("action").Desc("`action`.created_unix").Find(&actionIDs); err != nil {
-			return nil, 0, fmt.Errorf("Find: %w", err)
+			return nil, 0, fmt.Errorf("Find(actionsIDs): %w", err)
 		}
 
 		count, err = db.GetEngine(ctx).Where(cond).
