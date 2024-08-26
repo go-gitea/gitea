@@ -109,7 +109,9 @@
 							</a>
 						</div>
 						<div class="tw-flex tw-items-center tw-gap-2">
-							{{svg (printf "octicon-%s" .Type.Icon) 16 (printf "text %s" (.HTMLTypeColorName))}}
+							<span {{if .Review.TooltipContent}}data-tooltip-content="{{ctx.Locale.Tr .Review.TooltipContent}}"{{end}}>
+								{{svg (printf "octicon-%s" .Type.Icon) 16 (printf "text %s" (.HTMLTypeColorName))}}
+							</span>
 						</div>
 					</div>
 				{{end}}
