@@ -247,7 +247,7 @@ func UploadPackageFile(ctx *context.Context) {
 	packageName := params.GroupID + "-" + params.ArtifactID
 
 	// for the same package, only one upload at a time
-	ctx, releaser, err := globallock.Lock(ctx, mavenPkgNameKey(packageName))
+	stdCtx, releaser, err := globallock.Lock(ctx, mavenPkgNameKey(packageName))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -276,7 +276,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	// Do not upload checksum files but compare the hashes.
 	if isChecksumExtension(ext) {
-		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
+		pv, err := packages_model.GetVersionByNameAndVersion(stdCtx, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
 		if err != nil {
 			if err == packages_model.ErrPackageNotExist {
 				apiError(ctx, http.StatusNotFound, err)
@@ -285,7 +285,7 @@ func UploadPackageFile(ctx *context.Context) {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, params.Filename[:len(params.Filename)-len(ext)], packages_model.EmptyFileKey)
+		pf, err := packages_model.GetFileForVersionByName(stdCtx, pv.ID, params.Filename[:len(params.Filename)-len(ext)], packages_model.EmptyFileKey)
 		if err != nil {
 			if err == packages_model.ErrPackageFileNotExist {
 				apiError(ctx, http.StatusNotFound, err)
@@ -294,7 +294,7 @@ func UploadPackageFile(ctx *context.Context) {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
+		pb, err := packages_model.GetBlobByID(stdCtx, pf.BlobID)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
@@ -340,7 +340,7 @@ func UploadPackageFile(ctx *context.Context) {
 		}
 
 		if pvci.Metadata != nil {
-			pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
+			pv, err := packages_model.GetVersionByNameAndVersion(stdCtx, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
 			if err != nil && err != packages_model.ErrPackageNotExist {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
@@ -352,7 +352,7 @@ func UploadPackageFile(ctx *context.Context) {
 					return
 				}
 				pv.MetadataJSON = string(raw)
-				if err := packages_model.UpdateVersion(ctx, pv); err != nil {
+				if err := packages_model.UpdateVersion(stdCtx, pv); err != nil {
 					apiError(ctx, http.StatusInternalServerError, err)
 					return
 				}
@@ -366,7 +366,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
-		ctx,
+		stdCtx,
 		pvci,
 		pfci,
 	)
