@@ -335,18 +335,14 @@ func handler(items ...string) []string {
 }
 
 func testPR(id int64) {
-	locker := globallock.GetLocker(getPullWorkingLockKey(id))
-	if err := locker.Lock(); err != nil {
+	ctx, releaser, err := globallock.Lock(graceful.GetManager().HammerContext(), getPullWorkingLockKey(id))
+	if err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return
 	}
-	defer func() {
-		if _, err := locker.Unlock(); err != nil {
-			log.Error("lock.Unlock: %v", err)
-		}
-	}()
+	defer releaser()
 
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("Test PR[%d] from patch checking queue", id))
+	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Test PR[%d] from patch checking queue", id))
 	defer finished()
 
 	pr, err := issues_model.GetPullRequestByID(ctx, id)

@@ -203,16 +203,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 
 // ChangeTargetBranch changes the target branch of this pull request, as the given user.
 func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, targetBranch string) (err error) {
-	locker := globallock.GetLocker(getPullWorkingLockKey(pr.ID))
-	if err := locker.Lock(); err != nil {
+	ctx, releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
+	if err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
 	}
-	defer func() {
-		if _, err := locker.Unlock(); err != nil {
-			log.Error("lock.Unlock(): %v", err)
-		}
-	}()
+	defer releaser()
 
 	// Current target branch is already the same
 	if pr.BaseBranch == targetBranch {

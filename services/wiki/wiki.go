@@ -90,15 +90,11 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err = validateWebPath(newWikiName); err != nil {
 		return err
 	}
-	locker := globallock.GetLocker(getWikiWorkingLockKey(repo.ID))
-	if err := locker.Lock(); err != nil {
+	ctx, releaser, err := globallock.Lock(ctx, getWikiWorkingLockKey(repo.ID))
+	if err != nil {
 		return err
 	}
-	defer func() {
-		if _, err := locker.Unlock(); err != nil {
-			log.Error("lock.Unlock: %v", err)
-		}
-	}()
+	defer releaser()
 
 	if err = InitWiki(ctx, repo); err != nil {
 		return fmt.Errorf("InitWiki: %w", err)
@@ -258,15 +254,11 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 
-	locker := globallock.GetLocker(getWikiWorkingLockKey(repo.ID))
-	if err := locker.Lock(); err != nil {
+	ctx, releaser, err := globallock.Lock(ctx, getWikiWorkingLockKey(repo.ID))
+	if err != nil {
 		return err
 	}
-	defer func() {
-		if _, err := locker.Unlock(); err != nil {
-			log.Error("lock.Unlock: %v", err)
-		}
-	}()
+	defer releaser()
 
 	if err = InitWiki(ctx, repo); err != nil {
 		return fmt.Errorf("InitWiki: %w", err)
