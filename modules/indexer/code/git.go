@@ -113,8 +113,24 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 	var changes internal.RepoChanges
 	var err error
 	updatedFilenames := make([]string, 0, 10)
+
+	updateChanges := func() error {
+		cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l").AddDynamicArguments(revision).
+			AddDashesAndList(updatedFilenames...)
+		lsTreeStdout, _, err := cmd.RunStdBytes(&git.RunOpts{Dir: repo.RepoPath()})
+		if err != nil {
+			return err
+		}
+
+		updates, err1 := parseGitLsTreeOutput(lsTreeStdout)
+		if err1 != nil {
+			return err1
+		}
+		changes.Updates = append(changes.Updates, updates...)
+		return nil
+	}
 	lines := strings.Split(stdout, "\n")
-	for i, line := range lines {
+	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
 			continue
@@ -165,20 +181,17 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 
 		// According to https://learn.microsoft.com/en-us/troubleshoot/windows-client/shell-experience/command-line-string-limitation#more-information
 		// the command line length should less than 8191 characters, assume filepath is 256, then 8191/256 = 31, so we use 30
-		if (i%30 == 0 || i == len(lines)-1) && len(updatedFilenames) > 0 {
-			cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l").AddDynamicArguments(revision).
-				AddDashesAndList(updatedFilenames...)
-			lsTreeStdout, _, err := cmd.RunStdBytes(&git.RunOpts{Dir: repo.RepoPath()})
-			if err != nil {
+		if len(updatedFilenames) >= 30 {
+			if err := updateChanges(); err != nil {
 				return nil, err
 			}
-
-			updates, err1 := parseGitLsTreeOutput(lsTreeStdout)
-			if err1 != nil {
-				return nil, err1
-			}
-			changes.Updates = append(changes.Updates, updates...)
 			updatedFilenames = updatedFilenames[0:0]
+		}
+	}
+
+	if len(updatedFilenames) > 0 {
+		if err := updateChanges(); err != nil {
+			return nil, err
 		}
 	}
 
