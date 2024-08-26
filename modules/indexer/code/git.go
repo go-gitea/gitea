@@ -163,7 +163,9 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 			log.Warn("Unrecognized status: %c (line=%s)", status, line)
 		}
 
-		if (i%50 == 0 || i == len(lines)-1) && len(updatedFilenames) > 0 {
+		// Accroding to https://learn.microsoft.com/en-us/troubleshoot/windows-client/shell-experience/command-line-string-limitation#more-information
+		// the command line length should less than 8191 characters, assume filepath is 256, then 8191/256 = 31, so we use 30
+		if (i%30 == 0 || i == len(lines)-1) && len(updatedFilenames) > 0 {
 			cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l").AddDynamicArguments(revision).
 				AddDashesAndList(updatedFilenames...)
 			lsTreeStdout, _, err := cmd.RunStdBytes(&git.RunOpts{Dir: repo.RepoPath()})
