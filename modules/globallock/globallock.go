@@ -6,14 +6,22 @@ package globallock
 import (
 	"context"
 	"sync"
+
+	"code.gitea.io/gitea/modules/setting"
 )
 
 var (
 	defaultLocker Locker
 	initOnce      sync.Once
 	initFunc      = func() {
-		// TODO: read the setting and initialize the default locker.
-		//       Before implementing this, don't use it.
+		switch setting.GlobalLock.ServiceType {
+		case "redis":
+			defaultLocker = NewRedisLocker(setting.GlobalLock.ServiceConnStr)
+		case "memory":
+			fallthrough
+		default:
+			defaultLocker = NewMemoryLocker()
+		}
 	} // define initFunc as a variable to make it possible to change it in tests
 )
 
