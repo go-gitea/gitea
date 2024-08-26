@@ -112,7 +112,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 
 	sortOrder := strings.ToLower(ctx.FormString("sort"))
 	if sortOrder == "" {
-		// TODO: add new default sort for user profile?
+		// TODO: add new default sort order for user profile?
 		sortOrder = setting.UI.ExploreDefaultSort
 	}
 

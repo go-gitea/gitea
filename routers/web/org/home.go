@@ -51,7 +51,7 @@ func Home(ctx *context.Context) {
 
 	sortOrder := strings.ToLower(ctx.FormString("sort"))
 	if sortOrder == "" {
-		// TODO: add new default sort for org home?
+		// TODO: add new default sort order for org home?
 		sortOrder = setting.UI.ExploreDefaultSort
 	}
 
