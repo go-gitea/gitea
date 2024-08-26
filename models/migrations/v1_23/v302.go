@@ -4,13 +4,15 @@
 package v1_23 //nolint
 
 import (
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/xorm"
 )
 
-func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
-	type Issue struct {
-		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
+func AddIndexToActionTaskStoppedLogExpired(x *xorm.Engine) error {
+	type ActionTask struct {
+		Stopped    timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`
+		LogExpired bool               `xorm:"index(stopped_log_expired)"`
 	}
-
-	return x.Sync(new(Issue))
+	return x.Sync(new(ActionTask))
 }
