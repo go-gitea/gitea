@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issue_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -51,6 +52,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
 	files_service "code.gitea.io/gitea/services/repository/files"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/nektos/act/pkg/model"
 
@@ -792,6 +794,14 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	if ctx.IsSigned {
+		err := loadPinData(ctx)
+		if err != nil {
+			ctx.ServerError("loadPinData", err)
+			return
+		}
+	}
+
 	renderHomeCode(ctx)
 }
 
@@ -1178,4 +1188,38 @@ func Forks(ctx *context.Context) {
 	ctx.Data["Forks"] = forks
 
 	ctx.HTML(http.StatusOK, tplForks)
+}
+
+func loadPinData(ctx *context.Context) error {
+	// First, cleanup any pins that are no longer valid
+	err := user_service.CleanupPins(ctx, ctx.Doer)
+	if err != nil {
+		return err
+	}
+
+	ctx.Data["IsPinningRepo"] = repo_model.IsPinned(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
+	ctx.Data["CanPinRepo"], err = user_service.CanPin(ctx, ctx.Doer, ctx.Repo.Repository)
+	if err != nil {
+		return err
+	}
+
+	if ctx.Repo.Repository.Owner.IsOrganization() {
+		org := organization.OrgFromUser(ctx.Repo.Repository.Owner)
+
+		isAdmin, err := org.IsOrgAdmin(ctx, ctx.Doer.ID)
+		if err != nil {
+			return err
+		}
+
+		if isAdmin {
+			ctx.Data["CanUserPinToOrg"] = true
+			ctx.Data["IsOrgPinningRepo"] = repo_model.IsPinned(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.ID)
+			ctx.Data["CanOrgPinRepo"], err = user_service.CanPin(ctx, ctx.Repo.Repository.Owner, ctx.Repo.Repository)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
