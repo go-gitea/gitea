@@ -48,21 +48,21 @@ func NewRedisLocker(connection string) Locker {
 	return l
 }
 
-func (l *redisLocker) Lock(ctx context.Context, key string) (context.Context, ReleaseFunc, error) {
+func (l *redisLocker) Lock(ctx context.Context, key string) (ReleaseFunc, error) {
 	return l.lock(ctx, key, 0)
 }
 
-func (l *redisLocker) TryLock(ctx context.Context, key string) (bool, context.Context, ReleaseFunc, error) {
-	ctx, f, err := l.lock(ctx, key, 1)
+func (l *redisLocker) TryLock(ctx context.Context, key string) (bool, ReleaseFunc, error) {
+	f, err := l.lock(ctx, key, 1)
 
 	var (
 		errTaken     *redsync.ErrTaken
 		errNodeTaken *redsync.ErrNodeTaken
 	)
 	if errors.As(err, &errTaken) || errors.As(err, &errNodeTaken) {
-		return false, ctx, f, nil
+		return false, f, nil
 	}
-	return err == nil, ctx, f, err
+	return err == nil, f, err
 }
 
 // Close closes the locker.
@@ -76,17 +76,10 @@ func (l *redisLocker) Close() error {
 	return nil
 }
 
-type redisMutex struct {
-	mutex  *redsync.Mutex
-	cancel context.CancelCauseFunc
-}
-
-func (l *redisLocker) lock(ctx context.Context, key string, tries int) (context.Context, ReleaseFunc, error) {
+func (l *redisLocker) lock(ctx context.Context, key string, tries int) (ReleaseFunc, error) {
 	if l.closed.Load() {
-		return ctx, func() context.Context { return ctx }, fmt.Errorf("locker is closed")
+		return func() {}, fmt.Errorf("locker is closed")
 	}
-
-	originalCtx := ctx
 
 	options := []redsync.Option{
 		redsync.WithExpiry(redisLockExpiry),
@@ -96,18 +89,13 @@ func (l *redisLocker) lock(ctx context.Context, key string, tries int) (context.
 	}
 	mutex := l.rs.NewMutex(redisLockKeyPrefix+key, options...)
 	if err := mutex.LockContext(ctx); err != nil {
-		return ctx, func() context.Context { return originalCtx }, err
+		return func() {}, err
 	}
 
-	ctx, cancel := context.WithCancelCause(ctx)
-
-	l.mutexM.Store(key, &redisMutex{
-		mutex:  mutex,
-		cancel: cancel,
-	})
+	l.mutexM.Store(key, mutex)
 
 	releaseOnce := sync.Once{}
-	return ctx, func() context.Context {
+	return func() {
 		releaseOnce.Do(func() {
 			l.mutexM.Delete(key)
 
@@ -115,10 +103,7 @@ func (l *redisLocker) lock(ctx context.Context, key string, tries int) (context.
 			// if it failed to unlock, it will be released automatically after the lock expires.
 			// Do not call mutex.UnlockContext(ctx) here, or it will fail to release when ctx has timed out.
 			_, _ = mutex.Unlock()
-
-			cancel(ErrLockReleased)
 		})
-		return originalCtx
 	}, nil
 }
 
@@ -128,16 +113,15 @@ func (l *redisLocker) startExtend() {
 		return
 	}
 
-	toExtend := make([]*redisMutex, 0)
+	toExtend := make([]*redsync.Mutex, 0)
 	l.mutexM.Range(func(_, value any) bool {
-		m := value.(*redisMutex)
+		m := value.(*redsync.Mutex)
 
 		// Extend the lock if it is not expired.
 		// Although the mutex will be removed from the map before it is released,
 		// it still can be expired because of a failed extension.
-		// If it happens, the cancel function should have been called,
-		// so it does not need to be extended anymore.
-		if time.Now().After(m.mutex.Until()) {
+		// If it happens, it does not need to be extended anymore.
+		if time.Now().After(m.Until()) {
 			return true
 		}
 
@@ -145,9 +129,8 @@ func (l *redisLocker) startExtend() {
 		return true
 	})
 	for _, v := range toExtend {
-		if ok, err := v.mutex.Extend(); !ok {
-			v.cancel(err)
-		}
+		// If it failed to extend, it will be released automatically after the lock expires.
+		_, _ = v.Extend()
 	}
 
 	time.AfterFunc(redisLockExpiry/2, l.startExtend)
