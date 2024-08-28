@@ -42,13 +42,13 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 
 	oldOwner := repo.Owner
 
-	ctx, releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
+	lockCtx, releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
 	if err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
 	}
 
-	if err := transferOwnership(ctx, doer, newOwner.Name, repo); err != nil {
+	if err := transferOwnership(lockCtx, doer, newOwner.Name, repo); err != nil {
 		releaser()
 		return err
 	}
@@ -368,13 +368,13 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	// repo so that we can automatically rename the repo path and updates the
 	// local copy's origin accordingly.
 
-	ctx, releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
+	lockCtx, releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
 	if err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
 	}
 
-	if err := changeRepositoryName(ctx, repo, newRepoName); err != nil {
+	if err := changeRepositoryName(lockCtx, repo, newRepoName); err != nil {
 		releaser()
 		return err
 	}
