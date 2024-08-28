@@ -42,17 +42,17 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 
 	oldOwner := repo.Owner
 
-	lockCtx, releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
+	ctx, releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
 	if err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
 	}
 
-	if err := transferOwnership(lockCtx, doer, newOwner.Name, repo); err != nil {
+	if err := transferOwnership(ctx, doer, newOwner.Name, repo); err != nil {
 		releaser()
 		return err
 	}
-	releaser()
+	ctx = releaser()
 
 	newRepo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
 	if err != nil {
@@ -368,17 +368,17 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	// repo so that we can automatically rename the repo path and updates the
 	// local copy's origin accordingly.
 
-	lockCtx, releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
+	ctx, releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
 	if err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
 	}
 
-	if err := changeRepositoryName(lockCtx, repo, newRepoName); err != nil {
+	if err := changeRepositoryName(ctx, repo, newRepoName); err != nil {
 		releaser()
 		return err
 	}
-	releaser()
+	ctx = releaser()
 
 	repo.Name = newRepoName
 	notify_service.RenameRepository(ctx, doer, repo, oldRepoName)
