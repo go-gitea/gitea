@@ -124,12 +124,6 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			preReceiveTag(ourCtx, refFullName)
 		case git.DefaultFeatures().SupportProcReceive && refFullName.IsFor():
 			preReceiveFor(ourCtx, refFullName)
-		case refFullName.IsPull():
-			// update/delete refs/pull/123/head are disallowed from push, the refs
-			// are managed by Gitea from internal operations
-			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: "Can't update pull request manually.",
-			})
 		default:
 			ourCtx.AssertCanWriteCode()
 		}

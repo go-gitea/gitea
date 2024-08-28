@@ -291,7 +291,19 @@ Gitea or set your environment appropriately.`, "")
 }
 
 func runHookUpdate(c *cli.Context) error {
+	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
+		return nil
+	}
+
 	// Update is empty and is kept only for backwards compatibility
+	if len(os.Args) < 3 {
+		return nil
+	}
+	refName := git.RefName(os.Args[len(os.Args)-3])
+	if refName.IsPull() {
+		// ignore update to refs/pull/xxx/head, so we don't need to output any information
+		os.Exit(1)
+	}
 	return nil
 }
 
