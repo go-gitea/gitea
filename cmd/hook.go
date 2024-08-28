@@ -290,6 +290,8 @@ Gitea or set your environment appropriately.`, "")
 	return nil
 }
 
+// runHookUpdate avoid to do heavy operations on update hook because it will be
+// invoked for every ref update which does not like pre-receive and post-receive
 func runHookUpdate(c *cli.Context) error {
 	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
 		return nil
