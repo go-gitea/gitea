@@ -219,6 +219,10 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	// Reset cached commit count
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
 
+	return handleCloseCrossReferences(ctx, pr, doer)
+}
+
+func handleCloseCrossReferences(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) error {
 	// Resolve cross references
 	refs, err := pr.ResolveCrossReferences(ctx)
 	if err != nil {
@@ -542,5 +546,6 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 
 	notify_service.MergePullRequest(baseGitRepo.Ctx, doer, pr)
 	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commitID)
-	return nil
+
+	return handleCloseCrossReferences(ctx, pr, doer)
 }
