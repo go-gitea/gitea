@@ -124,6 +124,10 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			preReceiveTag(ourCtx, refFullName)
 		case git.DefaultFeatures().SupportProcReceive && refFullName.IsFor():
 			preReceiveFor(ourCtx, refFullName)
+		case refFullName.IsPull():
+			ctx.JSON(http.StatusForbidden, private.Response{
+				UserMsg: "Can't update pull request manually.",
+			})
 		default:
 			ourCtx.AssertCanWriteCode()
 		}
