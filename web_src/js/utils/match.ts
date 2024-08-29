@@ -2,17 +2,17 @@ import emojis from '../../../assets/emoji.json';
 
 const maxMatches = 6;
 
-function sortAndReduce(map) {
+function sortAndReduce(map: Map<string, number>) {
   const sortedMap = new Map(Array.from(map.entries()).sort((a, b) => a[1] - b[1]));
   return Array.from(sortedMap.keys()).slice(0, maxMatches);
 }
 
-export function matchEmoji(queryText) {
+export function matchEmoji(queryText: string): string[] {
   const query = queryText.toLowerCase().replaceAll('_', ' ');
   if (!query) return emojis.slice(0, maxMatches).map((e) => e.aliases[0]);
 
   // results is a map of weights, lower is better
-  const results = new Map();
+  const results = new Map<string, number>();
   for (const {aliases} of emojis) {
     const mainAlias = aliases[0];
     for (const [aliasIndex, alias] of aliases.entries()) {
@@ -27,7 +27,7 @@ export function matchEmoji(queryText) {
   return sortAndReduce(results);
 }
 
-export function matchMention(queryText) {
+export function matchMention(queryText: string): string[] {
   const query = queryText.toLowerCase();
 
   // results is a map of weights, lower is better
