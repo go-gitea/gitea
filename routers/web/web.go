@@ -1000,6 +1000,8 @@ func registerRoutes(m *web.Router) {
 			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 
+		m.Get("/repositories", org.Repositories)
+
 		m.Group("/projects", func() {
 			m.Group("", func() {
 				m.Get("", org.Projects)
