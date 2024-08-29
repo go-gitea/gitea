@@ -1,8 +1,8 @@
 <span class="text"><strong>{{ctx.Locale.Tr "repo.issues.development"}}</strong></span>
 <div class="ui devlinks list">
-{{if not .DevLinks}}
+<div>
 <a class="tw-mt-1 fluid ui show-modal" data-modal="#create_branch">{{ctx.Locale.Tr "repo.branch.new_branch"}}</a>
-{{end}}
+</div>
 {{range .DevLinks}}
 	{{if .PullRequest}}
 		<span>{{template "shared/issueicon" .PullRequest.Issue}}
@@ -25,14 +25,20 @@
 		{{end}}
 		</div>
 	{{else if and .Branch .DisplayBranch}}
-		<span>
-			{{svg "octicon-git-branch" 14}}
-			<a href="{{.Branch.Repo.Link}}/src/branch/{{.Branch.Name}}" class="item">
-				<span class="gt-ellipsis">{{.Branch.Name}}</span>
-			</a>
-		</span>
-		<div>Latest commit {{DateTime "short" .Branch.CommitTime}}</div>
-		<a href="{{$.Issue.Repo.Link}}/compare/{{$.Issue.Repo.DefaultBranch}}...{{.Branch.Repo.FullName}}:{{.Branch.Name}}">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
+		<div class="tw-flex tw-justify-between">
+			<div class="tw-flex tw-left tw-items-center tw-h-full">
+				{{svg "octicon-git-branch" 14}}
+				<a href="{{.Branch.Repo.Link}}/src/branch/{{.Branch.Name}}">
+					<span class="gt-ellipsis">{{.Branch.Name}}</span>
+				</a>
+			</div>
+			<div class="tw-right">
+				<a class="ui button mini compact basic icon" href="{{$.Issue.Repo.Link}}/compare/{{$.Issue.Repo.DefaultBranch}}...{{.Branch.Repo.FullName}}:{{.Branch.Name}}">
+				{{svg "octicon-git-pull-request"}}
+				</a>
+			</div>
+		</div>
+		<div>{{ctx.Locale.Tr "repo.issues.branch.latest" (DateTime "short" .Branch.CommitTime)}}</div>
 	{{end}}
 {{end}}
 </div>
