@@ -64,8 +64,8 @@ func CreateIssueDevLink(ctx context.Context, link *IssueDevLink) error {
 
 func DeleteIssueDevLinkByBranchName(ctx context.Context, repoID int64, branchName string) error {
 	_, err := db.GetEngine(ctx).
-		Where("link_type = ? AND link_index = ? AND linked_repo_id = ?",
-			IssueDevLinkTypeBranch, branchName, repoID).
+		Where("linked_repo_id = ? AND link_type = ? AND link_index = ?",
+			repoID, IssueDevLinkTypeBranch, branchName).
 		Delete(new(IssueDevLink))
 	return err
 }

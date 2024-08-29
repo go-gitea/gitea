@@ -501,6 +501,10 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 			return err
 		}
 
+		if err := issues_model.DeleteIssueDevLinkByBranchName(ctx, repo.ID, branchName); err != nil {
+			return err
+		}
+
 		return gitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
 			Force: true,
 		})
