@@ -57,7 +57,7 @@
     "vue-bar-graph": "2.1.0",
     "vue-chartjs": "5.3.1",
     "vue-loader": "17.4.2",
-    "webpack": "5.91.0",
+    "webpack": "5.94.0",
     "webpack-cli": "5.1.4",
     "wrap-ansi": "9.0.0"
   },
