@@ -1,6 +1,11 @@
-export async function pngChunks(blob) {
+type PngChunk = {
+  name: string,
+  data: Uint8Array,
+}
+
+export async function pngChunks(blob: Blob): Promise<PngChunk[]> {
   const uint8arr = new Uint8Array(await blob.arrayBuffer());
-  const chunks = [];
+  const chunks: PngChunk[] = [];
   if (uint8arr.length < 12) return chunks;
   const view = new DataView(uint8arr.buffer);
   if (view.getBigUint64(0) !== 9894494448401390090n) return chunks;
@@ -19,9 +24,14 @@ export async function pngChunks(blob) {
   return chunks;
 }
 
+type ImageInfo = {
+  width?: number,
+  dppx?: number,
+}
+
 // decode a image and try to obtain width and dppx. It will never throw but instead
 // return default values.
-export async function imageInfo(blob) {
+export async function imageInfo(blob: Blob): Promise<ImageInfo> {
   let width = 0, dppx = 1; // dppx: 1 dot per pixel for non-HiDPI screens
 
   if (blob.type === 'image/png') { // only png is supported currently
