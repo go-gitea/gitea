@@ -100,3 +100,30 @@ func TestFollowLink(t *testing.T) {
 	_, err = target.FollowLink()
 	assert.EqualError(t, err, "link_short: broken link")
 }
+
+func TestGetPathInRepo(t *testing.T) {
+	r, err := openRepositoryWithDefaultContext("tests/repos/repo1_bare")
+	assert.NoError(t, err)
+	defer r.Close()
+
+	commit, err := r.GetCommit("37991dec2c8e592043f47155ce4808d4580f9123")
+	assert.NoError(t, err)
+
+	// nested entry
+	entry, err := commit.Tree.GetTreeEntryByPath("foo/bar/link_to_hello")
+	assert.NoError(t, err)
+	path := entry.GetPathInRepo()
+	assert.Equal(t, "foo/bar/link_to_hello", path)
+
+	// folder
+	entry, err = commit.Tree.GetTreeEntryByPath("foo/bar")
+	assert.NoError(t, err)
+	path = entry.GetPathInRepo()
+	assert.Equal(t, "foo/bar", path)
+
+	// top level file
+	entry, err = commit.Tree.GetTreeEntryByPath("file2.txt")
+	assert.NoError(t, err)
+	path = entry.GetPathInRepo()
+	assert.Equal(t, "file2.txt", path)
+}
