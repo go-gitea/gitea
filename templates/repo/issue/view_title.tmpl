@@ -119,7 +119,7 @@
 					{{ctx.Locale.TrN .Issue.NumComments "repo.issues.num_comments_1" "repo.issues.num_comments" .Issue.NumComments}}
 				</span>
 				{{if .MaybeFixed}}
-					{{$fixedStr := printf "<a href=\"%s\">#%d</a>" .MaybeFixed.Issue.Link .MaybeFixed.Index}}
+					{{$fixedStr := printf `<a href="%s">#%d</a>` .MaybeFixed.Issue.Link .MaybeFixed.Index}}
 					· <span>{{ctx.Locale.Tr "repo.issues.maybefixed" ($fixedStr|SafeHTML)}}</span>
 				{{end}}
 			{{end}}
