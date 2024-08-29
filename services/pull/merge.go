@@ -182,7 +182,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}
 
-	ctx, releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
+	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
 	if err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
@@ -193,7 +193,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	}()
 
 	_, err = doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message, repo_module.PushTriggerPRMergeToBase)
-	ctx = releaser()
+	releaser()
 	if err != nil {
 		return err
 	}
@@ -492,7 +492,7 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 
 // MergedManually mark pr as merged manually
 func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) error {
-	ctx, releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
+	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
 	if err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
@@ -549,7 +549,7 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		}
 		return nil
 	})
-	ctx = releaser()
+	releaser()
 	if err != nil {
 		return err
 	}

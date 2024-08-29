@@ -26,7 +26,7 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		return fmt.Errorf("update of agit flow pull request's head branch is unsupported")
 	}
 
-	ctx, releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
+	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
 	if err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)

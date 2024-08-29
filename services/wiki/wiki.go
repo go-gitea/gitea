@@ -90,7 +90,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err = validateWebPath(newWikiName); err != nil {
 		return err
 	}
-	ctx, releaser, err := globallock.Lock(ctx, getWikiWorkingLockKey(repo.ID))
+	releaser, err := globallock.Lock(ctx, getWikiWorkingLockKey(repo.ID))
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 
-	ctx, releaser, err := globallock.Lock(ctx, getWikiWorkingLockKey(repo.ID))
+	releaser, err := globallock.Lock(ctx, getWikiWorkingLockKey(repo.ID))
 	if err != nil {
 		return err
 	}

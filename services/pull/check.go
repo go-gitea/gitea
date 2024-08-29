@@ -335,7 +335,8 @@ func handler(items ...string) []string {
 }
 
 func testPR(id int64) {
-	ctx, releaser, err := globallock.Lock(graceful.GetManager().HammerContext(), getPullWorkingLockKey(id))
+	ctx := graceful.GetManager().HammerContext()
+	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(id))
 	if err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return
