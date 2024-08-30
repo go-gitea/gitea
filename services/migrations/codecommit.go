@@ -88,7 +88,43 @@ func (c *CodeCommitDownloader) GetRepoInfo() (*base.Repository, error) {
 
 // GetComments returns comments of an issue or PR
 func (c *CodeCommitDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
-	return nil, false, base.ErrNotSupported{Entity: "Comments"}
+	var (
+		nextToken  *string
+		ccComments []types.Comment
+	)
+
+	for {
+		resp, err := c.codeCommitClient.GetCommentsForPullRequest(c.ctx, &codecommit.GetCommentsForPullRequestInput{
+			NextToken:     nextToken,
+			PullRequestId: aws.String(strconv.FormatInt(commentable.GetForeignIndex(), 10)),
+		})
+		if err != nil {
+			return nil, false, err
+		}
+
+		for _, prComment := range resp.CommentsForPullRequestData {
+			ccComments = append(ccComments, prComment.Comments...)
+		}
+
+		nextToken = resp.NextToken
+		if nextToken == nil {
+			break
+		}
+	}
+
+	comments := make([]*base.Comment, 0, len(ccComments))
+	for _, ccComment := range ccComments {
+		comment := &base.Comment{
+			IssueIndex: commentable.GetForeignIndex(),
+			PosterName: c.getUsernameFromARN(*ccComment.AuthorArn),
+			Content:    *ccComment.Content,
+			Created:    *ccComment.CreationDate,
+			Updated:    *ccComment.LastModifiedDate,
+		}
+		comments = append(comments, comment)
+	}
+
+	return comments, true, nil
 }
 
 // GetPullRequests returns pull requests according page and perPage
@@ -147,6 +183,7 @@ func (c *CodeCommitDownloader) GetPullRequests(page, perPage int) ([]*base.PullR
 				SHA:      *target.DestinationCommit,
 				RepoName: c.repoName,
 			},
+			ForeignIndex: number,
 		}
 		prs = append(prs, pr)
 	}
