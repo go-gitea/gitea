@@ -198,7 +198,7 @@ func (te *TreeEntry) GetPathInRepo() string {
 			return ""
 		}
 		for _, entry := range entries {
-			if entry.ID == current.ID {
+			if entry.ID.String() == current.ID.String() {
 				path = entry.Name() + "/" + path
 				break
 			}
