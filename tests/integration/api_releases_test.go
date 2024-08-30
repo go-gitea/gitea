@@ -218,7 +218,7 @@ func TestAPICreateReleaseGivenInvalidTarget(t *testing.T) {
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases", owner.Name, repo.Name)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
-		TagName: "I point to an invalid target",
+		TagName: "i-point-to-an-invalid-target",
 		Title:   "Invalid Target",
 		Target:  "invalid-target",
 	}).AddTokenAuth(token)
