@@ -47,9 +47,9 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
 	}
+	defer releaser()
 
 	if err := transferOwnership(ctx, doer, newOwner.Name, repo); err != nil {
-		releaser()
 		return err
 	}
 	releaser()
@@ -373,9 +373,9 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
 	}
+	defer releaser()
 
 	if err := changeRepositoryName(ctx, repo, newRepoName); err != nil {
-		releaser()
 		return err
 	}
 	releaser()
