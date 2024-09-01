@@ -112,7 +112,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 
 	sortOrder := ctx.FormString("sort")
 	if _, ok := repo_model.OrderByFlatMap[sortOrder]; !ok {
-		sortOrder = setting.UI.ExploreDefaultSort // TODO: add new default sort order for org home?
+		sortOrder = setting.UI.ExploreDefaultSort // TODO: add new default sort order for user home?
 	}
 	ctx.Data["SortType"] = sortOrder
 	orderBy = repo_model.OrderByFlatMap[sortOrder]
