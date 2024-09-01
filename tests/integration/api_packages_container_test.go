@@ -123,7 +123,7 @@ func TestPackageContainer(t *testing.T) {
 			assert.Equal(t, `Bearer realm="https://domain:8443/v2/token",service="container_registry",scope="*"`, resp.Header().Get("WWW-Authenticate"))
 		})
 
-		t.Run("User", func(t *testing.T) {
+		t.Run("UserName/Password", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
@@ -145,6 +145,35 @@ func TestPackageContainer(t *testing.T) {
 			req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL)).
 				AddTokenAuth(userToken)
 			MakeRequest(t, req, http.StatusOK)
+		})
+
+		// Token that should enforce the read scope.
+		t.Run("AccessToken", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			session := loginUser(t, user.Name)
+
+			testCase := func(scope auth_model.AccessTokenScope, expectedStatus int) {
+				token := getTokenForLoggedInUser(t, session, scope)
+
+				req := NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL))
+				req.SetBasicAuth(user.Name, token)
+
+				resp := MakeRequest(t, req, http.StatusOK)
+
+				tokenResponse := &TokenResponse{}
+				DecodeJSON(t, resp, &tokenResponse)
+
+				assert.NotEmpty(t, tokenResponse.Token)
+
+				req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL)).
+					AddTokenAuth(fmt.Sprintf("Bearer %s", tokenResponse.Token))
+				MakeRequest(t, req, expectedStatus)
+			}
+			testCase(auth_model.AccessTokenScopeReadPackage, http.StatusOK)
+			testCase(auth_model.AccessTokenScopeAll, http.StatusOK)
+			testCase(auth_model.AccessTokenScopeReadNotification, http.StatusUnauthorized)
+			testCase(auth_model.AccessTokenScopeWritePackage, http.StatusOK)
 		})
 	})
 

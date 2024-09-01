@@ -21,6 +21,7 @@ import (
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -117,7 +118,9 @@ func Authenticate(ctx *context.Context) {
 		return
 	}
 
-	token, err := packages_service.CreateAuthorizationToken(ctx.Doer)
+	packageScope := auth_service.GetAccessScope(ctx.Data)
+
+	token, err := packages_service.CreateAuthorizationToken(ctx.Doer, packageScope)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

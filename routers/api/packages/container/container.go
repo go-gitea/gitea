@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
@@ -157,7 +158,9 @@ func Authenticate(ctx *context.Context) {
 		u = user_model.NewGhostUser()
 	}
 
-	token, err := packages_service.CreateAuthorizationToken(u)
+	packageScope := auth_service.GetAccessScope(ctx.Data)
+
+	token, err := packages_service.CreateAuthorizationToken(u, packageScope)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
