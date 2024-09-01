@@ -48,20 +48,12 @@ func Home(ctx *context.Context) {
 	ctx.Data["Title"] = org.DisplayName()
 
 	var orderBy db.SearchOrderBy
-
-	sortOrder := strings.ToLower(ctx.FormString("sort"))
-	if sortOrder == "" {
-		// TODO: add new default sort order for org home?
-		sortOrder = setting.UI.ExploreDefaultSort
-	}
-
-	if order, ok := repo_model.OrderByFlatMap[sortOrder]; ok {
-		orderBy = order
-	} else {
-		sortOrder = "recentupdate"
-		orderBy = db.SearchOrderByRecentUpdated
+	sortOrder := ctx.FormString("sort")
+	if _, ok := repo_model.OrderByFlatMap[sortOrder]; !ok {
+		sortOrder = setting.UI.ExploreDefaultSort // TODO: add new default sort order for org home?
 	}
 	ctx.Data["SortType"] = sortOrder
+	orderBy = repo_model.OrderByFlatMap[sortOrder]
 
 	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
