@@ -178,7 +178,8 @@ func Search(ctx *context.APIContext) {
 		opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
 	}
 
-	sortMode := ctx.FormString("sort")
+	// as sort is an url param, we should be case insensitive
+	sortMode := strings.ToLower(ctx.FormString("sort"))
 	if len(sortMode) > 0 {
 		sortOrder := ctx.FormString("order")
 		if len(sortOrder) == 0 {
