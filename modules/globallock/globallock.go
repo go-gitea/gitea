@@ -27,20 +27,20 @@ func DefaultLocker() Locker {
 
 // Lock tries to acquire a lock for the given key, it uses the default locker.
 // Read the documentation of Locker.Lock for more information about the behavior.
-func Lock(ctx context.Context, key string) (context.Context, ReleaseFunc, error) {
+func Lock(ctx context.Context, key string) (ReleaseFunc, error) {
 	return DefaultLocker().Lock(ctx, key)
 }
 
 // TryLock tries to acquire a lock for the given key, it uses the default locker.
 // Read the documentation of Locker.TryLock for more information about the behavior.
-func TryLock(ctx context.Context, key string) (bool, context.Context, ReleaseFunc, error) {
+func TryLock(ctx context.Context, key string) (bool, ReleaseFunc, error) {
 	return DefaultLocker().TryLock(ctx, key)
 }
 
 // LockAndDo tries to acquire a lock for the given key and then calls the given function.
 // It uses the default locker, and it will return an error if failed to acquire the lock.
 func LockAndDo(ctx context.Context, key string, f func(context.Context) error) error {
-	ctx, release, err := Lock(ctx, key)
+	release, err := Lock(ctx, key)
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func LockAndDo(ctx context.Context, key string, f func(context.Context) error) e
 // TryLockAndDo tries to acquire a lock for the given key and then calls the given function.
 // It uses the default locker, and it will return false if failed to acquire the lock.
 func TryLockAndDo(ctx context.Context, key string, f func(context.Context) error) (bool, error) {
-	ok, ctx, release, err := TryLock(ctx, key)
+	ok, release, err := TryLock(ctx, key)
 	if err != nil {
 		return false, err
 	}
