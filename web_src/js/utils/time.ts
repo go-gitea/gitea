@@ -1,16 +1,17 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 import {getCurrentLocale} from '../utils.ts';
+import type {ConfigType} from 'dayjs';
 
 dayjs.extend(utc);
 
 /**
  * Returns an array of millisecond-timestamps of start-of-week days (Sundays)
  *
- * @param startConfig The start date. Can take any type that `Date` accepts.
- * @param endConfig The end date. Can take any type that `Date` accepts.
+ * @param startDate The start date. Can take any type that dayjs accepts.
+ * @param endDate The end date. Can take any type that dayjs accepts.
  */
-export function startDaysBetween(startDate, endDate) {
+export function startDaysBetween(startDate: ConfigType, endDate: ConfigType): number[] {
   const start = dayjs.utc(startDate);
   const end = dayjs.utc(endDate);
 
@@ -21,7 +22,7 @@ export function startDaysBetween(startDate, endDate) {
     current = current.add(1, 'day');
   }
 
-  const startDays = [];
+  const startDays: number[] = [];
   while (current.isBefore(end)) {
     startDays.push(current.valueOf());
     current = current.add(1, 'week');
@@ -30,7 +31,7 @@ export function startDaysBetween(startDate, endDate) {
   return startDays;
 }
 
-export function firstStartDateAfterDate(inputDate) {
+export function firstStartDateAfterDate(inputDate: Date): number {
   if (!(inputDate instanceof Date)) {
     throw new Error('Invalid date');
   }
@@ -41,7 +42,14 @@ export function firstStartDateAfterDate(inputDate) {
   return resultDate.valueOf();
 }
 
-export function fillEmptyStartDaysWithZeroes(startDays, data) {
+type DayData = {
+  week: number,
+  additions: number,
+  deletions: number,
+  commits: number,
+}
+
+export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayData): DayData[] {
   const result = {};
 
   for (const startDay of startDays) {
@@ -51,11 +59,11 @@ export function fillEmptyStartDaysWithZeroes(startDays, data) {
   return Object.values(result);
 }
 
-let dateFormat;
+let dateFormat: Intl.DateTimeFormat;
 
 // format a Date object to document's locale, but with 24h format from user's current locale because this
 // option is a personal preference of the user, not something that the document's locale should dictate.
-export function formatDatetime(date) {
+export function formatDatetime(date: Date | number): string {
   if (!dateFormat) {
     // TODO: replace `hour12` with `Intl.Locale.prototype.getHourCycles` once there is broad browser support
     dateFormat = new Intl.DateTimeFormat(getCurrentLocale(), {
