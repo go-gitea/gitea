@@ -3,7 +3,7 @@ import '@github/text-expander-element';
 import $ from 'jquery';
 import {attachTribute} from '../tribute.ts';
 import {hideElem, showElem, autosize, isElemVisible} from '../../utils/dom.ts';
-import {initEasyMDEPaste, initTextareaUpload} from './EditorUpload.ts';
+import {initEasyMDEPaste, initTextareaEvents} from './EditorUpload.ts';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.ts';
 import {renderPreviewPanelContent} from '../repo-editor.ts';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.ts';
@@ -110,9 +110,7 @@ class ComboMarkdownEditor {
     });
 
     initTextareaMarkdown(this.textarea);
-    if (this.dropzone) {
-      initTextareaUpload(this.textarea, this.dropzone);
-    }
+    initTextareaEvents(this.textarea, this.dropzone);
   }
 
   async setupDropzone() {
