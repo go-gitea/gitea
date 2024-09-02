@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	conan_model "code.gitea.io/gitea/models/packages/conan"
@@ -119,6 +120,13 @@ func Authenticate(ctx *context.Context) {
 	}
 
 	packageScope := auth_service.GetAccessScope(ctx.Data)
+	has1, _ := packageScope.HasScope(auth_model.AccessTokenScopeReadPackage)
+	has2, _ := packageScope.HasScope(auth_model.AccessTokenScopeWritePackage)
+	has3, _ := packageScope.HasScope(auth_model.AccessTokenScopeAll)
+	if !has1 && !has2 && !has3 {
+		apiError(ctx, http.StatusForbidden, nil)
+		return
+	}
 
 	token, err := packages_service.CreateAuthorizationToken(ctx.Doer, packageScope)
 	if err != nil {
@@ -133,9 +141,19 @@ func Authenticate(ctx *context.Context) {
 func CheckCredentials(ctx *context.Context) {
 	if ctx.Doer == nil {
 		ctx.Status(http.StatusUnauthorized)
-	} else {
-		ctx.Status(http.StatusOK)
+		return
 	}
+
+	packageScope := auth_service.GetAccessScope(ctx.Data)
+	has1, _ := packageScope.HasScope(auth_model.AccessTokenScopeReadPackage)
+	has2, _ := packageScope.HasScope(auth_model.AccessTokenScopeWritePackage)
+	has3, _ := packageScope.HasScope(auth_model.AccessTokenScopeAll)
+	if !has1 && !has2 && !has3 {
+		ctx.Status(http.StatusForbidden)
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
 
 // RecipeSnapshot displays the recipe files with their md5 hash

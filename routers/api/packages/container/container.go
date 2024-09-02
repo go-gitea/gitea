@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
 	user_model "code.gitea.io/gitea/models/user"
@@ -149,6 +150,7 @@ func DetermineSupport(ctx *context.Context) {
 // If the current user is anonymous, the ghost user is used unless RequireSignInView is enabled.
 func Authenticate(ctx *context.Context) {
 	u := ctx.Doer
+	packageScope := auth_service.GetAccessScope(ctx.Data)
 	if u == nil {
 		if setting.Service.RequireSignInView {
 			apiUnauthorizedError(ctx)
@@ -156,9 +158,15 @@ func Authenticate(ctx *context.Context) {
 		}
 
 		u = user_model.NewGhostUser()
+	} else {
+		has1, _ := packageScope.HasScope(auth_model.AccessTokenScopeReadPackage)
+		has2, _ := packageScope.HasScope(auth_model.AccessTokenScopeWritePackage)
+		has3, _ := packageScope.HasScope(auth_model.AccessTokenScopeAll)
+		if !has1 && !has2 && !has3 {
+			apiUnauthorizedError(ctx)
+			return
+		}
 	}
-
-	packageScope := auth_service.GetAccessScope(ctx.Data)
 
 	token, err := packages_service.CreateAuthorizationToken(u, packageScope)
 	if err != nil {

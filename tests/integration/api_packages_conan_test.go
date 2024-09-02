@@ -249,24 +249,19 @@ func TestPackageConan(t *testing.T) {
 
 			session := loginUser(t, user.Name)
 
-			badToken = func() string {
-				token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadNotification)
+			badToken = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadNotification)
 
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/v1/users/authenticate", url)).
-					AddTokenAuth(token)
-				resp := MakeRequest(t, req, http.StatusOK)
-
-				return resp.Body.String()
-			}()
-
-			testCase := func(t *testing.T, scope auth_model.AccessTokenScope, expectedStatusCode int) {
+			testCase := func(t *testing.T, scope auth_model.AccessTokenScope, expectedAuthStatusCode, expectedStatusCode int) {
 				t.Helper()
 
 				token := getTokenForLoggedInUser(t, session, scope)
 
 				req := NewRequest(t, "GET", fmt.Sprintf("%s/v1/users/authenticate", url)).
 					AddTokenAuth(token)
-				resp := MakeRequest(t, req, http.StatusOK)
+				resp := MakeRequest(t, req, expectedAuthStatusCode)
+				if expectedAuthStatusCode != http.StatusOK {
+					return
+				}
 
 				body := resp.Body.String()
 				assert.NotEmpty(t, body)
@@ -288,25 +283,25 @@ func TestPackageConan(t *testing.T) {
 			t.Run("No Package permission", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				testCase(t, auth_model.AccessTokenScopeReadNotification, http.StatusUnauthorized)
+				testCase(t, auth_model.AccessTokenScopeReadNotification, http.StatusUnauthorized, http.StatusForbidden)
 			})
 
 			t.Run("Package Read permission", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				testCase(t, auth_model.AccessTokenScopeReadPackage, http.StatusUnauthorized)
+				testCase(t, auth_model.AccessTokenScopeReadPackage, http.StatusOK, http.StatusUnauthorized)
 			})
 
 			t.Run("Package Write permission", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				testCase(t, auth_model.AccessTokenScopeWritePackage, http.StatusOK)
+				testCase(t, auth_model.AccessTokenScopeWritePackage, http.StatusOK, http.StatusOK)
 			})
 
 			t.Run("All permission", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				testCase(t, auth_model.AccessTokenScopeAll, http.StatusOK)
+				testCase(t, auth_model.AccessTokenScopeAll, http.StatusOK, http.StatusOK)
 			})
 		})
 
@@ -537,7 +532,7 @@ func TestPackageConan(t *testing.T) {
 
 					req := NewRequest(t, "DELETE", fmt.Sprintf("%s/v1/conans/%s/%s/%s/%s", url, name, version1, user1, c.Channel)).
 						AddTokenAuth(badToken)
-					MakeRequest(t, req, http.StatusOK)
+					MakeRequest(t, req, http.StatusUnauthorized)
 
 					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v1/conans/%s/%s/%s/%s", url, name, version1, user1, c.Channel)).
 						AddTokenAuth(token)
@@ -588,24 +583,19 @@ func TestPackageConan(t *testing.T) {
 
 			session := loginUser(t, user.Name)
 
-			badToken = func() string {
-				token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadNotification)
+			badToken = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadNotification)
 
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/v2/users/authenticate", url)).
-					AddTokenAuth(token)
-				resp := MakeRequest(t, req, http.StatusOK)
-
-				return resp.Body.String()
-			}()
-
-			testCase := func(t *testing.T, scope auth_model.AccessTokenScope, expectedStatusCode int) {
+			testCase := func(t *testing.T, scope auth_model.AccessTokenScope, expectedAuthStatusCode, expectedStatusCode int) {
 				t.Helper()
 
 				token := getTokenForLoggedInUser(t, session, scope)
 
 				req := NewRequest(t, "GET", fmt.Sprintf("%s/v2/users/authenticate", url)).
 					AddTokenAuth(token)
-				resp := MakeRequest(t, req, http.StatusOK)
+				resp := MakeRequest(t, req, expectedAuthStatusCode)
+				if expectedAuthStatusCode != http.StatusOK {
+					return
+				}
 
 				body := resp.Body.String()
 				assert.NotEmpty(t, body)
@@ -625,25 +615,25 @@ func TestPackageConan(t *testing.T) {
 			t.Run("No Package permission", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				testCase(t, auth_model.AccessTokenScopeReadNotification, http.StatusUnauthorized)
+				testCase(t, auth_model.AccessTokenScopeReadNotification, http.StatusUnauthorized, http.StatusUnauthorized)
 			})
 
 			t.Run("Package Read permission", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				testCase(t, auth_model.AccessTokenScopeReadPackage, http.StatusUnauthorized)
+				testCase(t, auth_model.AccessTokenScopeReadPackage, http.StatusOK, http.StatusUnauthorized)
 			})
 
 			t.Run("Package Write permission", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				testCase(t, auth_model.AccessTokenScopeWritePackage, http.StatusOK)
+				testCase(t, auth_model.AccessTokenScopeWritePackage, http.StatusOK, http.StatusCreated)
 			})
 
 			t.Run("All permission", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				testCase(t, auth_model.AccessTokenScopeAll, http.StatusOK)
+				testCase(t, auth_model.AccessTokenScopeAll, http.StatusOK, http.StatusCreated)
 			})
 		})
 
@@ -665,7 +655,7 @@ func TestPackageConan(t *testing.T) {
 
 				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeConan)
 				assert.NoError(t, err)
-				assert.Len(t, pvs, 2)
+				assert.Len(t, pvs, 3)
 			})
 		})
 

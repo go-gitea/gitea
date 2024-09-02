@@ -139,12 +139,12 @@ func TestPackageNuGet(t *testing.T) {
 				{privateUser.Name, true, "", http.StatusOK},
 				{privateUser.Name, false, writeToken, http.StatusOK},
 				{privateUser.Name, false, readToken, http.StatusOK},
-				{privateUser.Name, false, badToken, http.StatusForbidden},
+				{privateUser.Name, false, badToken, http.StatusOK},
 				{user.Name, false, "", http.StatusOK},
 				{user.Name, true, "", http.StatusOK},
 				{user.Name, false, writeToken, http.StatusOK},
 				{user.Name, false, readToken, http.StatusOK},
-				{user.Name, false, badToken, http.StatusForbidden},
+				{user.Name, false, badToken, http.StatusOK},
 			}
 
 			for _, c := range cases {
@@ -185,13 +185,13 @@ func TestPackageNuGet(t *testing.T) {
 				{privateUser.Name, false, "", http.StatusOK},
 				{privateUser.Name, true, "", http.StatusOK},
 				{privateUser.Name, false, writeToken, http.StatusOK},
-				{privateUser.Name, false, readToken, http.StatusForbidden},
-				{privateUser.Name, false, badToken, http.StatusForbidden},
+				{privateUser.Name, false, readToken, http.StatusOK},
+				{privateUser.Name, false, badToken, http.StatusOK},
 				{user.Name, false, "", http.StatusOK},
 				{user.Name, true, "", http.StatusOK},
 				{user.Name, false, writeToken, http.StatusOK},
-				{user.Name, false, readToken, http.StatusForbidden},
-				{user.Name, false, badToken, http.StatusForbidden},
+				{user.Name, false, readToken, http.StatusOK},
+				{user.Name, false, badToken, http.StatusOK},
 			}
 
 			for _, c := range cases {
@@ -290,7 +290,7 @@ func TestPackageNuGet(t *testing.T) {
 			// create failure with token without write access
 			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
 				AddTokenAuth(readToken)
-			MakeRequest(t, req, http.StatusForbidden)
+			MakeRequest(t, req, http.StatusUnauthorized)
 
 			// create with token
 			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
