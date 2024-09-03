@@ -24,6 +24,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -540,7 +541,7 @@ func DeleteBlob(ctx *context.Context) {
 		return
 	}
 
-	if err := deleteBlob(ctx, ctx.Package.Owner.ID, ctx.Params("image"), d); err != nil {
+	if err := deleteBlob(ctx, ctx.Package.Owner, ctx.Params("image"), d); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -549,6 +550,8 @@ func DeleteBlob(ctx *context.Context) {
 		Status: http.StatusAccepted,
 	})
 }
+
+var lockManifest = sync.NewExclusivePool()
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-manifests
 func UploadManifest(ctx *context.Context) {
@@ -580,6 +583,10 @@ func UploadManifest(ctx *context.Context) {
 		apiErrorDefined(ctx, errManifestInvalid.WithMessage("Manifest exceeds maximum size").WithStatusCode(http.StatusRequestEntityTooLarge))
 		return
 	}
+
+	imagePath := ctx.Package.Owner.Name + "/" + ctx.Params("image")
+	lockManifest.CheckIn(imagePath)
+	defer lockManifest.CheckOut(imagePath)
 
 	digest, err := processManifest(ctx, mci, buf)
 	if err != nil {
@@ -678,6 +685,10 @@ func DeleteManifest(ctx *context.Context) {
 		apiErrorDefined(ctx, errManifestUnknown)
 		return
 	}
+
+	imagePath := ctx.Package.Owner.Name + "/" + ctx.Params("image")
+	lockManifest.CheckIn(imagePath)
+	defer lockManifest.CheckOut(imagePath)
 
 	pvs, err := container_model.GetManifestVersions(ctx, opts)
 	if err != nil {
