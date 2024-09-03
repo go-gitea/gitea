@@ -132,6 +132,10 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		orderBy = db.SearchOrderByForksReverse
 	case "fewestforks":
 		orderBy = db.SearchOrderByForks
+	case "size":
+		orderBy = db.SearchOrderByGitSize
+	case "reversesize":
+		orderBy = db.SearchOrderByGitSizeReverse
 	default:
 		ctx.Data["SortType"] = "recentupdate"
 		orderBy = db.SearchOrderByRecentUpdated
