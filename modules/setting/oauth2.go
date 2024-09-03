@@ -57,6 +57,7 @@ var OAuth2Client struct {
 	EnableAutoRegistration bool
 	Username               OAuth2UsernameType
 	UpdateAvatar           bool
+	LockFullName           bool
 	AccountLinking         OAuth2AccountLinkingType
 }
 
@@ -71,6 +72,7 @@ func loadOAuth2ClientFrom(rootCfg ConfigProvider) {
 		log.Warn("[oauth2_client].USERNAME setting is invalid, falls back to %q", OAuth2Client.Username)
 	}
 	OAuth2Client.UpdateAvatar = sec.Key("UPDATE_AVATAR").MustBool()
+	OAuth2Client.LockFullName = sec.Key("LOCK_FULLNAME").MustBool()
 	OAuth2Client.AccountLinking = OAuth2AccountLinkingType(sec.Key("ACCOUNT_LINKING").MustString(string(OAuth2AccountLinkingLogin)))
 	if !OAuth2Client.AccountLinking.isValid() {
 		log.Warn("Account linking setting is not valid: '%s', will fallback to '%s'", OAuth2Client.AccountLinking, OAuth2AccountLinkingLogin)

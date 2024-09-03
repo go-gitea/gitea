@@ -47,6 +47,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
+	ctx.Data["LockFullName"] = setting.OAuth2Client.LockFullName
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
@@ -88,7 +89,7 @@ func ProfilePost(ctx *context.Context) {
 	}
 
 	opts := &user_service.UpdateOptions{
-		// FullName:            optional.Some(form.FullName),
+		FullName:            optional.Some(form.FullName),
 		KeepEmailPrivate:    optional.Some(form.KeepEmailPrivate),
 		Description:         optional.Some(form.Description),
 		Website:             optional.Some(form.Website),
@@ -96,6 +97,11 @@ func ProfilePost(ctx *context.Context) {
 		Visibility:          optional.Some(form.Visibility),
 		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
 	}
+
+	if !ctx.Doer.IsLocal() && setting.OAuth2Client.LockFullName {
+		opts.FullName = optional.None[string]()
+	}
+
 	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return

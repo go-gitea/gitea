@@ -19,7 +19,10 @@
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{ctx.Locale.Tr "settings.full_name"}}</label>
-					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}" maxlength="100">
+					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}" {{if and (not .SignedUser.IsLocal) .LockFullName}}disabled{{end}} maxlength="100">
+					{{if and (not .SignedUser.IsLocal) .LockFullName}}
+					<p class="help text blue">{{ctx.Locale.Tr "settings.password_full_name_disabled"}}</p>
+					{{end}}
 				</div>
 				<div class="field {{if .Err_Email}}error{{end}}">
 					<label>{{ctx.Locale.Tr "email"}}</label>
