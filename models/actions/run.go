@@ -74,6 +74,7 @@ func (run *ActionRun) Link() string {
 	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.Index)
 }
 
+// WorkflowLink return the url to the actions list filtered for this runs workflow
 func (run *ActionRun) WorkflowLink() string {
 	if run.Repo == nil {
 		return ""
