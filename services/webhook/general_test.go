@@ -64,9 +64,17 @@ func forkTestPayload() *api.ForkPayload {
 }
 
 func pushTestPayload() *api.PushPayload {
+	return pushTestPayloadWithCommitMessage("commit message")
+}
+
+func pushTestPayloadMultilineCommitMessage() *api.PushPayload {
+	return pushTestPayloadWithCommitMessage("This is a commit summary that is longer than 50 characters\n\nThis is the message body.")
+}
+
+func pushTestPayloadWithCommitMessage(message string) *api.PushPayload {
 	commit := &api.PayloadCommit{
 		ID:      "2020558fe2e34debb818a514715839cabd25e778",
-		Message: "commit message",
+		Message: message,
 		URL:     "http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778",
 		Author: &api.PayloadUser{
 			Name:     "user1",

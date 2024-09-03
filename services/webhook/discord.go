@@ -154,8 +154,14 @@ func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 	var text string
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
-		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL,
-			strings.TrimRight(commit.Message, "\r\n"), commit.Author.Name)
+		// limit the commit message display to just the summary, otherwise it would be hard to read
+		message := strings.Split(commit.Message, "\n")[0]
+
+		// a limit of 50 is set because GitHub does the same
+		if len(message) > 50 {
+			message = fmt.Sprintf("%.47s...", message)
+		}
+		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL, message, commit.Author.Name)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
 			text += "\n"

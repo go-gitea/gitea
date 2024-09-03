@@ -80,6 +80,21 @@ func TestDiscordPayload(t *testing.T) {
 		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
 	})
 
+	t.Run("PushWithLongCommitMessage", func(t *testing.T) {
+		p := pushTestPayloadMultilineCommitMessage()
+
+		pl, err := dc.Push(p)
+		require.NoError(t, err)
+
+		assert.Len(t, pl.Embeds, 1)
+		assert.Equal(t, "[test/repo:test] 2 new commits", pl.Embeds[0].Title)
+		assert.Equal(t, "[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) This is a commit summary that is longer than 50... - user1\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) This is a commit summary that is longer than 50... - user1", pl.Embeds[0].Description)
+		assert.Equal(t, "http://localhost:3000/test/repo/src/test", pl.Embeds[0].URL)
+		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
+		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
+		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+	})
+
 	t.Run("Issue", func(t *testing.T) {
 		p := issueTestPayload()
 
