@@ -10,23 +10,30 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
+	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-var uploadVersionMutex sync.Mutex
+var uploadVersionMutex = sync.NewExclusivePool()
 
 // saveAsPackageBlob creates a package blob from an upload
 // The uploaded blob gets stored in a special upload version to link them to the package/image
 func saveAsPackageBlob(ctx context.Context, hsr packages_module.HashedSizeReader, pci *packages_service.PackageCreationInfo) (*packages_model.PackageBlob, error) { //nolint:unparam
+	// FIXME: Replace usage of mutex with database transaction
+	// https://github.com/go-gitea/gitea/pull/21862
+	pkgPath := pci.PackageInfo.Owner.LowerName + "/" + pci.PackageInfo.Name
+	uploadVersionMutex.CheckIn(pkgPath)
+	defer uploadVersionMutex.CheckOut(pkgPath)
+
 	pb := packages_service.NewPackageBlob(hsr)
 
 	exists := false
@@ -80,6 +87,12 @@ func saveAsPackageBlob(ctx context.Context, hsr packages_module.HashedSizeReader
 
 // mountBlob mounts the specific blob to a different package
 func mountBlob(ctx context.Context, pi *packages_service.PackageInfo, pb *packages_model.PackageBlob) error {
+	// FIXME: Replace usage of mutex with database transaction
+	// https://github.com/go-gitea/gitea/pull/21862
+	pkgPath := pi.Owner.LowerName + "/" + pi.Name
+	uploadVersionMutex.CheckIn(pkgPath)
+	defer uploadVersionMutex.CheckOut(pkgPath)
+
 	uploadVersion, err := getOrCreateUploadVersion(ctx, pi)
 	if err != nil {
 		return err
@@ -93,9 +106,6 @@ func mountBlob(ctx context.Context, pi *packages_service.PackageInfo, pb *packag
 func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageInfo) (*packages_model.PackageVersion, error) {
 	var uploadVersion *packages_model.PackageVersion
 
-	// FIXME: Replace usage of mutex with database transaction
-	// https://github.com/go-gitea/gitea/pull/21862
-	uploadVersionMutex.Lock()
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		created := true
 		p := &packages_model.Package{
@@ -140,7 +150,6 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 
 		return nil
 	})
-	uploadVersionMutex.Unlock()
 
 	return uploadVersion, err
 }
@@ -172,10 +181,16 @@ func createFileForBlob(ctx context.Context, pv *packages_model.PackageVersion, p
 	return nil
 }
 
-func deleteBlob(ctx context.Context, ownerID int64, image, digest string) error {
+func deleteBlob(ctx context.Context, owner *user_model.User, image, digest string) error {
+	// FIXME: Replace usage of mutex with database transaction
+	// https://github.com/go-gitea/gitea/pull/21862
+	pkgPath := owner.LowerName + "/" + image
+	uploadVersionMutex.CheckIn(pkgPath)
+	defer uploadVersionMutex.CheckOut(pkgPath)
+
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		pfds, err := container_model.GetContainerBlobs(ctx, &container_model.BlobSearchOptions{
-			OwnerID: ownerID,
+			OwnerID: owner.ID,
 			Image:   image,
 			Digest:  digest,
 		})
