@@ -22,7 +22,7 @@ func loadAdminFrom(rootCfg ConfigProvider) {
 	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
 	Admin.UserDisabledFeatures = container.SetOf(sec.Key("USER_DISABLED_FEATURES").Strings(",")...)
 	Admin.ExternalUserDisableFeatures = container.SetOf(sec.Key("EXTERNAL_USER_DISABLE_FEATURES").Strings(",")...).Union(Admin.UserDisabledFeatures)
-	Admin.ExternalUserLockFullName = sec.Key("EXTERNAL_USER_LOCK_FULLNAME").MustBool(false)
+	Admin.ExternalUserLockFullName = sec.Key("EXTERNAL_USER_LOCK_FULL_NAME").MustBool(false)
 }
 
 const (
