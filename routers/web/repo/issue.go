@@ -2075,25 +2075,27 @@ func ViewIssue(ctx *context.Context) {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
 
-	forkedRepos, err := repo_model.FindUserOrgForks(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID)
-	if err != nil {
-		ctx.ServerError("FindUserOrgForks", err)
-		return
-	}
+	if ctx.IsSigned {
+		forkedRepos, err := repo_model.FindUserOrgForks(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID)
+		if err != nil {
+			ctx.ServerError("FindUserOrgForks", err)
+			return
+		}
 
-	ctx.Data["AllowedRepos"] = append(forkedRepos, ctx.Repo.Repository)
+		ctx.Data["AllowedRepos"] = append(forkedRepos, ctx.Repo.Repository)
 
-	devLinks, err := issue_service.FindIssueDevLinksByIssue(ctx, issue)
-	if err != nil {
-		ctx.ServerError("FindIssueDevLinksByIssue", err)
-		return
-	}
-	ctx.Data["DevLinks"] = devLinks
-	for _, link := range devLinks {
-		if link.LinkType == issues_model.IssueDevLinkTypePullRequest {
-			if !(link.PullRequest.Issue.IsClosed && !link.PullRequest.HasMerged) {
-				ctx.Data["MaybeFixed"] = link.PullRequest
-				break
+		devLinks, err := issue_service.FindIssueDevLinksByIssue(ctx, issue)
+		if err != nil {
+			ctx.ServerError("FindIssueDevLinksByIssue", err)
+			return
+		}
+		ctx.Data["DevLinks"] = devLinks
+		for _, link := range devLinks {
+			if link.LinkType == issues_model.IssueDevLinkTypePullRequest {
+				if !(link.PullRequest.Issue.IsClosed && !link.PullRequest.HasMerged) {
+					ctx.Data["MaybeFixed"] = link.PullRequest
+					break
+				}
 			}
 		}
 	}
