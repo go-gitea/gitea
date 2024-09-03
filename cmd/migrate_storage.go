@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/fs"
 	"strings"
+	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -124,6 +125,66 @@ var CmdMigrateStorage = &cli.Command{
 			Name:  "azureblob-base-path",
 			Value: "",
 			Usage: "Azure Blob storage base path",
+		},
+		&cli.StringFlag{
+			Name:     "goauth-secret",
+			Usage:    "Google oauth client secret (installed.client_secret)",
+			Category: "Google drive",
+			Value:    "",
+		},
+		&cli.StringFlag{
+			Name:     "goauth-client",
+			Usage:    "Google oauth client id (installed.client_id)",
+			Category: "Google drive",
+			Value:    "",
+		},
+		&cli.StringFlag{
+			Name:     "goauth-project",
+			Usage:    "Google oauth project id (installed.project_id)",
+			Category: "Google drive",
+			Value:    "",
+		},
+		&cli.StringFlag{
+			Name:     "goauth-access-token",
+			Usage:    "Google oauth access token",
+			Category: "Google drive",
+			Value:    "",
+		},
+		&cli.StringFlag{
+			Name:     "goauth-refresh-token",
+			Usage:    "Google oauth token to refresh auth token",
+			Category: "Google drive",
+			Value:    "",
+		},
+		&cli.StringFlag{
+			Name:     "goauth-token-type",
+			Usage:    "Google oauth token type",
+			Category: "Google drive",
+			Value:    "Bearer",
+		},
+		&cli.StringFlag{
+			Name:     "goauth-auth-endpoint",
+			Usage:    "Google url to auth",
+			Category: "Google drive",
+			Value:    "https://accounts.google.com/o/oauth2/auth",
+		},
+		&cli.StringFlag{
+			Name:     "goauth-token-endpoint",
+			Usage:    "Google token endpoint",
+			Category: "Google drive",
+			Value:    "https://oauth2.googleapis.com/token",
+		},
+		&cli.StringFlag{
+			Name:     "goauth-expiry",
+			Usage:    "Google oauth token expiry date (in this layout 2006-01-02T15:04:05Z07:00)",
+			Category: "Google drive",
+			Value:    "",
+		},
+		&cli.StringFlag{
+			Name:     "gdrive-folder",
+			Usage:    "Google drive folder id (gdrive:<Folder ID>) or path",
+			Category: "Google drive",
+			Value:    "",
 		},
 	},
 }
@@ -281,6 +342,28 @@ func runMigrateStorage(ctx *cli.Context) error {
 					BasePath:    ctx.String("azureblob-base-path"),
 				},
 			})
+	case string(setting.GoogleDriveType):
+		timestamp := time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
+		if ctx.String("goauth-expiry") != "" {
+			if err = timestamp.UnmarshalText([]byte(ctx.String("goauth-expiry"))); err != nil {
+				return err
+			}
+		}
+		dstStorage, err = storage.NewGoogleDrive(stdCtx, &setting.Storage{
+			GoogleDriveConfig: setting.GoogleOauthConfig{
+				Redirect:     "http://localhost:3081/callback",
+				Expire:       timestamp,
+				Secret:       ctx.String("goauth-secret"),
+				Client:       ctx.String("goauth-client"),
+				Project:      ctx.String("goauth-project"),
+				AccessToken:  ctx.String("goauth-access-token"),
+				RefreshToken: ctx.String("goauth-refresh-token"),
+				TokenType:    ctx.String("goauth-token-type"),
+				RootFolder:   ctx.String("gdrive-folder"),
+				TokenURI:     ctx.String("goauth-token-endpoint"),
+				AuthURI:      ctx.String("goauth-auth-endpoint"),
+			},
+		})
 	default:
 		return fmt.Errorf("unsupported storage type: %s", ctx.String("storage"))
 	}
