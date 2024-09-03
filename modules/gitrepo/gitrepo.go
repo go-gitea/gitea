@@ -6,11 +6,9 @@ package gitrepo
 import (
 	"context"
 	"io"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 type Repository interface {
@@ -18,21 +16,20 @@ type Repository interface {
 	GetOwnerName() string
 }
 
-func repoPath(repo Repository) string {
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName())+".git")
+type wikiRepository struct {
+	Repository
 }
 
-func wikiPath(repo Repository) string {
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName())+".wiki.git")
+func (w wikiRepository) GetName() string {
+	return w.Repository.GetName() + ".wiki"
 }
 
-// OpenRepository opens the repository at the given relative path with the provided context.
-func OpenRepository(ctx context.Context, repo Repository) (*git.Repository, error) {
-	return git.OpenRepository(ctx, repoPath(repo))
+func wikiRepo(repo Repository) Repository {
+	return wikiRepository{repo}
 }
 
-func OpenWikiRepository(ctx context.Context, repo Repository) (*git.Repository, error) {
-	return git.OpenRepository(ctx, wikiPath(repo))
+func repoRelativePath(repo Repository) string {
+	return strings.ToLower(repo.GetOwnerName()) + "/" + strings.ToLower(repo.GetName()) + ".git"
 }
 
 // contextKey is a value for use with context.WithValue.
@@ -51,7 +48,7 @@ func repositoryFromContext(ctx context.Context, repo Repository) *git.Repository
 	}
 
 	if gitRepo, ok := value.(*git.Repository); ok && gitRepo != nil {
-		if gitRepo.Path == repoPath(repo) {
+		if strings.HasSuffix(gitRepo.Path, repoRelativePath(repo)) {
 			return gitRepo
 		}
 	}
