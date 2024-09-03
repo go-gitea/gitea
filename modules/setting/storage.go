@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // StorageType is a type of Storage
@@ -20,6 +23,8 @@ const (
 	MinioStorageType StorageType = "minio"
 	// AzureBlobStorageType is the type descriptor for azure blob storage
 	AzureBlobStorageType StorageType = "azureblob"
+	// GoogleDriveType is the type descriptor for google drive
+	GoogleDriveType StorageType = "gdrive"
 )
 
 var storageTypes = []StorageType{
@@ -81,19 +86,48 @@ func (cfg *AzureBlobStorageConfig) ToShadow() {
 	}
 }
 
+// GoogleOauthConfig represents google oauth token for drive storage
+type GoogleOauthConfig struct {
+	Client       string    `ini:"GOOGLE_OAUTH_CLIENT" json:",omitempty"`
+	Secret       string    `ini:"GOOGLE_OAUTH_SECRET" json:",omitempty"`
+	Project      string    `ini:"GOOGLE_OAUTH_PROJECT" json:",omitempty"`
+	AuthURI      string    `ini:"GOOGLE_OAUTH_AUTHURI" json:",omitempty"`
+	TokenURI     string    `ini:"GOOGLE_OAUTH_TOKENURI" json:",omitempty"`
+	Redirect     string    `ini:"GOOGLE_OAUTH_REDIRECT" json:",omitempty"`
+	AccessToken  string    `ini:"GOOGLE_OAUTH_ACCESS_TOKEN" json:",omitempty"`
+	RefreshToken string    `ini:"GOOGLE_OAUTH_REFRESH_TOKEN" json:",omitempty"`
+	Expire       time.Time `ini:"GOOGLE_OAUTH_TOKEN_EXPIRE" json:",omitempty"`
+	TokenType    string    `ini:"GOOGLE_OAUTH_TOKEN_TYPE" json:",omitempty"`
+	RootFolder   string    `ini:"GDRIVE_FOLDER" json:",omitempty"` // Google drive folder id (gdrive:<ID>) or path to storage
+}
+
+func (cfg *GoogleOauthConfig) ToShadow() {
+	if cfg.AccessToken != "" {
+		cfg.AccessToken = "******"
+	}
+	if cfg.RefreshToken != "" {
+		cfg.RefreshToken = "******"
+	}
+	if cfg.Secret != "" {
+		cfg.Secret = "******"
+	}
+}
+
 // Storage represents configuration of storages
 type Storage struct {
-	Type            StorageType            // local or minio or azureblob
-	Path            string                 `json:",omitempty"` // for local type
-	TemporaryPath   string                 `json:",omitempty"`
-	MinioConfig     MinioStorageConfig     // for minio type
-	AzureBlobConfig AzureBlobStorageConfig // for azureblob type
+	Type              StorageType            // local or minio or azureblob
+	Path              string                 `json:",omitempty"` // for local type
+	TemporaryPath     string                 `json:",omitempty"`
+	MinioConfig       MinioStorageConfig     // for minio type
+	AzureBlobConfig   AzureBlobStorageConfig // for azureblob type
+	GoogleDriveConfig GoogleOauthConfig      // for google drive
 }
 
 func (storage *Storage) ToShadowCopy() Storage {
 	shadowStorage := *storage
 	shadowStorage.MinioConfig.ToShadow()
 	shadowStorage.AzureBlobConfig.ToShadow()
+	shadowStorage.GoogleDriveConfig.ToShadow()
 	return shadowStorage
 }
 
@@ -146,6 +180,8 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		return getStorageForMinio(targetSec, overrideSec, tp, name)
 	case string(AzureBlobStorageType):
 		return getStorageForAzureBlob(targetSec, overrideSec, tp, name)
+	case string(GoogleDriveType):
+		return getStorageForGoogleDrive(targetSec, overrideSec, tp, name)
 	default:
 		return nil, fmt.Errorf("unsupported storage type %q", targetType)
 	}
@@ -341,5 +377,65 @@ func getStorageForAzureBlob(targetSec, overrideSec ConfigSection, tp targetSecTy
 	} else {
 		storage.AzureBlobConfig.BasePath = defaultPath
 	}
+	return &storage, nil
+}
+
+func getStorageForGoogleDrive(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) {
+	var storage Storage
+	storage.Type = StorageType(targetSec.Key("STORAGE_TYPE").String())
+	if err := targetSec.MapTo(&storage.GoogleDriveConfig); err != nil {
+		return nil, fmt.Errorf("map google drive config failed: %v", err)
+	} else if storage.GoogleDriveConfig.Client == "" {
+		return nil, fmt.Errorf("required ClientID to google oauth")
+	} else if storage.GoogleDriveConfig.Secret == "" {
+		return nil, fmt.Errorf("required SecretID to google oauth")
+	} else if storage.GoogleDriveConfig.AccessToken == "" {
+		return nil, fmt.Errorf("required access token to auth google drive")
+	} else if storage.GoogleDriveConfig.RefreshToken == "" {
+		return nil, fmt.Errorf("required Refresh Token to re-auth google drive")
+	} else if storage.GoogleDriveConfig.Expire.Unix() < 1000 {
+		return nil, fmt.Errorf("Set valid Token expire")
+	}
+
+	if storage.GoogleDriveConfig.Redirect == "" {
+		storage.GoogleDriveConfig.Redirect = "http://localhost:8081/callback"
+	}
+	if storage.GoogleDriveConfig.TokenType == "" {
+		storage.GoogleDriveConfig.TokenType = "Bearer"
+	}
+	if storage.GoogleDriveConfig.AuthURI == "" {
+		storage.GoogleDriveConfig.AuthURI = "https://accounts.google.com/o/oauth2/auth"
+		log.Warn("Updating GOOGLE_OAUTH_AUTHURI to %q", storage.GoogleDriveConfig.AuthURI)
+	}
+	if storage.GoogleDriveConfig.TokenURI == "" {
+		storage.GoogleDriveConfig.TokenURI = "https://oauth2.googleapis.com/token"
+		log.Warn("Updating GOOGLE_OAUTH_TOKENURI to %q", storage.GoogleDriveConfig.AuthURI)
+	}
+
+	DriveRootFolder := storage.GoogleDriveConfig.RootFolder
+	if DriveRootFolder != "" {
+		if tp == targetSecIsStorage || tp == targetSecIsDefault {
+			DriveRootFolder = strings.TrimSuffix(DriveRootFolder, "/") + "/" + name
+		}
+	}
+	if overrideSec != nil {
+		if overrideSec.HasKey("GOAUTH_BASEFOLDER") {
+			DriveRootFolder = ConfigSectionKeyString(overrideSec, "GOAUTH_BASEFOLDER")
+			if tp == targetSecIsStorage || tp == targetSecIsDefault {
+				DriveRootFolder = strings.TrimSuffix(DriveRootFolder, "/") + "/" + name
+			}
+		}
+	}
+	if DriveRootFolder == "" {
+		DriveRootFolder = name + "/"
+	}
+
+	for _, pathTest := range strings.Split(DriveRootFolder, "/")[1:] {
+		if strings.HasPrefix(pathTest, "gdrive:") {
+			return nil, fmt.Errorf("just one gdrive: it must be in the root folder")
+		}
+	}
+
+	storage.GoogleDriveConfig.RootFolder = DriveRootFolder
 	return &storage, nil
 }

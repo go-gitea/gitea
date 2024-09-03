@@ -117,6 +117,7 @@ require (
 	golang.org/x/sys v0.23.0
 	golang.org/x/text v0.17.0
 	golang.org/x/tools v0.22.0
+	google.golang.org/api v0.153.0
 	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
@@ -215,6 +216,9 @@ require (
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/go-tpm v0.9.0 // indirect
+	github.com/google/s2a-go v0.1.7 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
+	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gorilla/handlers v1.5.2 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
@@ -294,6 +298,7 @@ require (
 	github.com/zeebo/blake3 v0.2.3 // indirect
 	go.etcd.io/bbolt v1.3.10 // indirect
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
+	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.27.0 // indirect
 	go.opentelemetry.io/otel/trace v1.27.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
