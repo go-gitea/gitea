@@ -43,11 +43,19 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix dates displaying in a wrong manner when we're close to the end of… (#31750)
   * Fix "Filter by commit" Dropdown (#31695) (#31696)
   * Properly filter issue list given no assignees filter (#31522) (#31685)
+  * Prevent update pull refs manually and will not affect other refs update (#31931)(#31955)
+  * Fix sort order for organization home and user profile page (#31921) (#31922)
+  * Fix search team (#31923) (#31942)
+  * Fix 500 error when state params is set when editing issue/PR by API (#31880) (#31952)
+  * Fix index too many file names bug (#31903) (#31953)
+  * Add lock for parallel maven upload (#31851) (#31954)
 * MISC
   * Remove "dsa-1024" testcases from Test_SSHParsePublicKey and Test_calcFingerprint (#31905) (#31914)
   * Upgrade bleve to 2.4.2 (#31894)
   * Remove unneccessary uses of `word-break: break-all` (#31637) (#31652)
   * Return an empty string when a repo has no avatar in the repo API (#31187) (#31567)
+  * Upgrade micromatch to 4.0.8 (#31944)
+  * Update webpack to 5.94.0 (#31941)
 
 ## [1.22.1](https://github.com/go-gitea/gitea/releases/tag/1.22.1) - 2024-07-04
 
