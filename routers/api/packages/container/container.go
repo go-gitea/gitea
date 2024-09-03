@@ -536,6 +536,7 @@ func DeleteBlob(ctx *context.Context) {
 	})
 }
 
+// TODO: use clustered lock
 var lockManifest = sync.NewExclusivePool()
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-manifests
