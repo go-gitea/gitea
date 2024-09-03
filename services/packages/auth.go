@@ -19,9 +19,9 @@ import (
 
 type packageClaims struct {
 	jwt.RegisteredClaims
-	packageMeta
+	PackageMeta
 }
-type packageMeta struct {
+type PackageMeta struct {
 	UserID int64
 	Scope  auth_model.AccessTokenScope
 }
@@ -34,7 +34,7 @@ func CreateAuthorizationToken(u *user_model.User, packageScope auth_model.Access
 			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
 			NotBefore: jwt.NewNumericDate(now),
 		},
-		packageMeta: packageMeta{
+		PackageMeta: PackageMeta{
 			UserID: u.ID,
 			Scope:  packageScope,
 		},
@@ -49,7 +49,7 @@ func CreateAuthorizationToken(u *user_model.User, packageScope auth_model.Access
 	return tokenString, nil
 }
 
-func ParseAuthorizationRequest(req *http.Request) (*packageMeta, error) {
+func ParseAuthorizationRequest(req *http.Request) (*PackageMeta, error) {
 	h := req.Header.Get("Authorization")
 	if h == "" {
 		return nil, nil
@@ -64,7 +64,7 @@ func ParseAuthorizationRequest(req *http.Request) (*packageMeta, error) {
 	return ParseAuthorizationToken(parts[1])
 }
 
-func ParseAuthorizationToken(tokenStr string) (*packageMeta, error) {
+func ParseAuthorizationToken(tokenStr string) (*PackageMeta, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &packageClaims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
@@ -80,5 +80,5 @@ func ParseAuthorizationToken(tokenStr string) (*packageMeta, error) {
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
-	return &c.packageMeta, nil
+	return &c.PackageMeta, nil
 }
