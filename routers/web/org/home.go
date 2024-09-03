@@ -55,32 +55,12 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["Title"] = org.DisplayName()
 
 	var orderBy db.SearchOrderBy
-	ctx.Data["SortType"] = ctx.FormString("sort")
-	switch ctx.FormString("sort") {
-	case "newest":
-		orderBy = db.SearchOrderByNewest
-	case "oldest":
-		orderBy = db.SearchOrderByOldest
-	case "recentupdate":
-		orderBy = db.SearchOrderByRecentUpdated
-	case "leastupdate":
-		orderBy = db.SearchOrderByLeastUpdated
-	case "reversealphabetically":
-		orderBy = db.SearchOrderByAlphabeticallyReverse
-	case "alphabetically":
-		orderBy = db.SearchOrderByAlphabetically
-	case "moststars":
-		orderBy = db.SearchOrderByStarsReverse
-	case "feweststars":
-		orderBy = db.SearchOrderByStars
-	case "mostforks":
-		orderBy = db.SearchOrderByForksReverse
-	case "fewestforks":
-		orderBy = db.SearchOrderByForks
-	default:
-		ctx.Data["SortType"] = "recentupdate"
-		orderBy = db.SearchOrderByRecentUpdated
+	sortOrder := ctx.FormString("sort")
+	if _, ok := repo_model.OrderByFlatMap[sortOrder]; !ok {
+		sortOrder = setting.UI.ExploreDefaultSort // TODO: add new default sort order for org home?
 	}
+	ctx.Data["SortType"] = sortOrder
+	orderBy = repo_model.OrderByFlatMap[sortOrder]
 
 	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
