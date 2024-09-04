@@ -120,11 +120,14 @@ func Authenticate(ctx *context.Context) {
 	}
 
 	packageScope := auth_service.GetAccessScope(ctx.Data)
-	if has, _ := packageScope.HasAnyScope(
+	if has, err := packageScope.HasAnyScope(
 		auth_model.AccessTokenScopeReadPackage,
 		auth_model.AccessTokenScopeWritePackage,
 		auth_model.AccessTokenScopeAll,
 	); !has {
+		if err != nil {
+			log.Error("Error checking access scope: %v", err)
+		}
 		apiError(ctx, http.StatusForbidden, nil)
 		return
 	}
@@ -146,11 +149,14 @@ func CheckCredentials(ctx *context.Context) {
 	}
 
 	packageScope := auth_service.GetAccessScope(ctx.Data)
-	if has, _ := packageScope.HasAnyScope(
+	if has, err := packageScope.HasAnyScope(
 		auth_model.AccessTokenScopeReadPackage,
 		auth_model.AccessTokenScopeWritePackage,
 		auth_model.AccessTokenScopeAll,
 	); !has {
+		if err != nil {
+			log.Error("Error checking access scope: %v", err)
+		}
 		ctx.Status(http.StatusForbidden)
 		return
 	}

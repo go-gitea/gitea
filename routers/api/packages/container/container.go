@@ -159,11 +159,14 @@ func Authenticate(ctx *context.Context) {
 
 		u = user_model.NewGhostUser()
 	} else {
-		if has, _ := packageScope.HasAnyScope(
+		if has, err := packageScope.HasAnyScope(
 			auth_model.AccessTokenScopeReadPackage,
 			auth_model.AccessTokenScopeWritePackage,
 			auth_model.AccessTokenScopeAll,
 		); !has {
+			if err != nil {
+				log.Error("Error checking access scope: %v", err)
+			}
 			apiUnauthorizedError(ctx)
 			return
 		}
