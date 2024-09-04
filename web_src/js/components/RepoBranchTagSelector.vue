@@ -289,13 +289,11 @@ export default sfc; // activate IDE's Vue plugin
           <a href="#" @click="createNewBranch()">
             <div v-show="shouldCreateTag">
               <i class="reference tags icon"/>
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <span v-html="textCreateTag.replace('%s', searchTerm)"/>
+              <span v-text="textCreateTag.replace('%s', searchTerm)"/>
             </div>
             <div v-show="!shouldCreateTag">
               <svg-icon name="octicon-git-branch"/>
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <span v-html="textCreateBranch.replace('%s', searchTerm)"/>
+              <span v-text="textCreateBranch.replace('%s', searchTerm)"/>
             </div>
             <div class="text small">
               <span v-if="isViewBranch || release">{{ textCreateBranchFrom.replace('%s', branchName) }}</span>
