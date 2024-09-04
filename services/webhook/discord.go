@@ -155,7 +155,7 @@ func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
 		// limit the commit message display to just the summary, otherwise it would be hard to read
-		message := strings.Split(commit.Message, "\n")[0]
+		message := strings.TrimRight(strings.Split(commit.Message, "\n")[0], "\r")
 
 		// a limit of 50 is set because GitHub does the same
 		if len(message) > 50 {
