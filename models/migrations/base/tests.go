@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/testlogger"
@@ -152,6 +153,10 @@ func MainTest(m *testing.M) {
 
 	unittest.InitSettings()
 	if err = git.InitFull(context.Background()); err != nil {
+		fmt.Printf("Unable to InitFull: %v\n", err)
+		os.Exit(1)
+	}
+	if err = gitrepo.Init(context.Background()); err != nil {
 		fmt.Printf("Unable to InitFull: %v\n", err)
 		os.Exit(1)
 	}

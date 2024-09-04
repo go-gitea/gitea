@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -82,6 +83,9 @@ func InitTest(requireGitea bool) {
 
 	if err := git.InitFull(context.Background()); err != nil {
 		log.Fatal("git.InitOnceWithSync: %v", err)
+	}
+	if err := gitrepo.Init(context.Background()); err != nil {
+		log.Fatal("gitrepo.Init: %v", err)
 	}
 
 	setting.LoadDBSetting()

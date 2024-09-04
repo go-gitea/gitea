@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/setting/config"
@@ -173,6 +174,9 @@ func MainTest(m *testing.M, testOpts ...*TestOptions) {
 
 	if err = git.InitFull(context.Background()); err != nil {
 		fatalTestError("git.Init: %v\n", err)
+	}
+	if err = gitrepo.Init(context.Background()); err != nil {
+		fatalTestError("gitrepo.Init: %v\n", err)
 	}
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
