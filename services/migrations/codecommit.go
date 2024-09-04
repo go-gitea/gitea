@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	git_module "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/structs"
@@ -33,7 +34,7 @@ type CodeCommitDownloaderFactory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (c *CodeCommitDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
-	return NewCodeCommitDownloader(ctx, opts.CodeCommitRepoName, opts.AWSAccessKeyID, opts.AWSSecretAccessKey, opts.AWSRegion), nil
+	return NewCodeCommitDownloader(ctx, opts.CodeCommitRepoName, opts.OriginalURL, opts.AWSAccessKeyID, opts.AWSSecretAccessKey, opts.AWSRegion), nil
 }
 
 // GitServiceType returns the type of git service
@@ -41,10 +42,11 @@ func (c *CodeCommitDownloaderFactory) GitServiceType() structs.GitServiceType {
 	return structs.CodeCommitService
 }
 
-func NewCodeCommitDownloader(ctx context.Context, repoName, accessKeyID, secretAccessKey, region string) *CodeCommitDownloader {
+func NewCodeCommitDownloader(ctx context.Context, repoName, baseURL, accessKeyID, secretAccessKey, region string) *CodeCommitDownloader {
 	downloader := CodeCommitDownloader{
 		ctx:      ctx,
 		repoName: repoName,
+		baseURL:  baseURL,
 		codeCommitClient: codecommit.New(codecommit.Options{
 			Credentials: credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, ""),
 			Region:      region,
@@ -60,6 +62,7 @@ type CodeCommitDownloader struct {
 	ctx               context.Context
 	codeCommitClient  *codecommit.Client
 	repoName          string
+	baseURL           string
 	allPullRequestIDs []string
 }
 
@@ -77,13 +80,20 @@ func (c *CodeCommitDownloader) GetRepoInfo() (*base.Repository, error) {
 		return nil, err
 	}
 	repoMeta := output.RepositoryMetadata
-	return &base.Repository{
-		Name:          *repoMeta.RepositoryName,
-		Owner:         *repoMeta.AccountId,
-		IsPrivate:     true, // CodeCommit repos are always private
-		DefaultBranch: *repoMeta.DefaultBranch,
-		Description:   *repoMeta.RepositoryDescription,
-	}, nil
+
+	repo := &base.Repository{
+		Name:      *repoMeta.RepositoryName,
+		Owner:     *repoMeta.AccountId,
+		IsPrivate: true, // CodeCommit repos are always private
+		CloneURL:  *repoMeta.CloneUrlHttp,
+	}
+	if repoMeta.DefaultBranch != nil {
+		repo.DefaultBranch = *repoMeta.DefaultBranch
+	}
+	if repoMeta.RepositoryDescription != nil {
+		repo.DefaultBranch = *repoMeta.RepositoryDescription
+	}
+	return repo, nil
 }
 
 // GetComments returns comments of an issue or PR
@@ -149,42 +159,47 @@ func (c *CodeCommitDownloader) GetPullRequests(page, perPage int) ([]*base.PullR
 		if err != nil {
 			return nil, false, err
 		}
-		ccpr := output.PullRequest
-		number, err := strconv.ParseInt(*ccpr.PullRequestId, 10, 64)
+		orig := output.PullRequest
+		number, err := strconv.ParseInt(*orig.PullRequestId, 10, 64)
 		if err != nil {
-			log.Error("CodeCommit pull request id is not a number: %s", *ccpr.PullRequestId)
+			log.Error("CodeCommit pull request id is not a number: %s", *orig.PullRequestId)
 			continue
 		}
-		if len(ccpr.PullRequestTargets) == 0 {
-			log.Error("CodeCommit pull request does not contain targets", *ccpr.PullRequestId)
+		if len(orig.PullRequestTargets) == 0 {
+			log.Error("CodeCommit pull request does not contain targets", *orig.PullRequestId)
 			continue
 		}
-		target := ccpr.PullRequestTargets[0]
-		prState := "closed"
-		if ccpr.PullRequestStatus == types.PullRequestStatusEnumOpen {
-			prState = "open"
-		}
+		target := orig.PullRequestTargets[0]
 		pr := &base.PullRequest{
 			Number:     number,
-			Title:      *ccpr.Title,
-			PosterName: c.getUsernameFromARN(*ccpr.AuthorArn),
-			Content:    *ccpr.Description,
-			State:      prState,
-			Created:    *ccpr.CreationDate,
-			Updated:    *ccpr.LastActivityDate,
+			Title:      *orig.Title,
+			PosterName: c.getUsernameFromARN(*orig.AuthorArn),
+			Content:    *orig.Description,
+			State:      "open",
+			Created:    *orig.CreationDate,
+			Updated:    *orig.LastActivityDate,
 			Merged:     target.MergeMetadata.IsMerged,
 			Head: base.PullRequestBranch{
-				Ref:      *target.SourceReference,
+				CloneURL: c.baseURL,
+				Ref:      strings.TrimPrefix(*target.SourceReference, git_module.BranchPrefix),
 				SHA:      *target.SourceCommit,
 				RepoName: c.repoName,
 			},
 			Base: base.PullRequestBranch{
-				Ref:      *target.DestinationReference,
+				CloneURL: c.baseURL,
+				Ref:      strings.TrimPrefix(*target.DestinationReference, git_module.BranchPrefix),
 				SHA:      *target.DestinationCommit,
 				RepoName: c.repoName,
 			},
 			ForeignIndex: number,
 		}
+
+		if orig.PullRequestStatus == types.PullRequestStatusEnumClosed {
+			pr.State = "closed"
+			pr.Closed = orig.LastActivityDate
+		}
+
+		_ = CheckAndEnsureSafePR(pr, c.baseURL, c)
 		prs = append(prs, pr)
 	}
 
@@ -197,7 +212,7 @@ func (c *CodeCommitDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr st
 	if err != nil {
 		return "", err
 	}
-	u.User = url.UserPassword(opts.CodeCommitGitCredUsername, opts.CodeCommitGitCredPassword)
+	u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
 	return u.String(), nil
 }
 
