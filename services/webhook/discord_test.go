@@ -81,7 +81,7 @@ func TestDiscordPayload(t *testing.T) {
 	})
 
 	t.Run("PushWithLongCommitMessage", func(t *testing.T) {
-		p := pushTestPayloadMultilineCommitMessage()
+		p := pushTestMultilineCommitMessagePayload()
 
 		pl, err := dc.Push(p)
 		require.NoError(t, err)

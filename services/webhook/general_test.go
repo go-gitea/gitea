@@ -67,7 +67,7 @@ func pushTestPayload() *api.PushPayload {
 	return pushTestPayloadWithCommitMessage("commit message")
 }
 
-func pushTestPayloadMultilineCommitMessage() *api.PushPayload {
+func pushTestMultilineCommitMessagePayload() *api.PushPayload {
 	return pushTestPayloadWithCommitMessage("This is a commit summary that is longer than 50 characters\n\nThis is the message body.")
 }
 
