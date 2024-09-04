@@ -159,10 +159,11 @@ func Authenticate(ctx *context.Context) {
 
 		u = user_model.NewGhostUser()
 	} else {
-		has1, _ := packageScope.HasScope(auth_model.AccessTokenScopeReadPackage)
-		has2, _ := packageScope.HasScope(auth_model.AccessTokenScopeWritePackage)
-		has3, _ := packageScope.HasScope(auth_model.AccessTokenScopeAll)
-		if !has1 && !has2 && !has3 {
+		if has, _ := packageScope.HasAnyScope(
+			auth_model.AccessTokenScopeReadPackage,
+			auth_model.AccessTokenScopeWritePackage,
+			auth_model.AccessTokenScopeAll,
+		); !has {
 			apiUnauthorizedError(ctx)
 			return
 		}

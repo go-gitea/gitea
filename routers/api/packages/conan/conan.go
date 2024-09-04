@@ -120,10 +120,11 @@ func Authenticate(ctx *context.Context) {
 	}
 
 	packageScope := auth_service.GetAccessScope(ctx.Data)
-	has1, _ := packageScope.HasScope(auth_model.AccessTokenScopeReadPackage)
-	has2, _ := packageScope.HasScope(auth_model.AccessTokenScopeWritePackage)
-	has3, _ := packageScope.HasScope(auth_model.AccessTokenScopeAll)
-	if !has1 && !has2 && !has3 {
+	if has, _ := packageScope.HasAnyScope(
+		auth_model.AccessTokenScopeReadPackage,
+		auth_model.AccessTokenScopeWritePackage,
+		auth_model.AccessTokenScopeAll,
+	); !has {
 		apiError(ctx, http.StatusForbidden, nil)
 		return
 	}
@@ -145,10 +146,11 @@ func CheckCredentials(ctx *context.Context) {
 	}
 
 	packageScope := auth_service.GetAccessScope(ctx.Data)
-	has1, _ := packageScope.HasScope(auth_model.AccessTokenScopeReadPackage)
-	has2, _ := packageScope.HasScope(auth_model.AccessTokenScopeWritePackage)
-	has3, _ := packageScope.HasScope(auth_model.AccessTokenScopeAll)
-	if !has1 && !has2 && !has3 {
+	if has, _ := packageScope.HasAnyScope(
+		auth_model.AccessTokenScopeReadPackage,
+		auth_model.AccessTokenScopeWritePackage,
+		auth_model.AccessTokenScopeAll,
+	); !has {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
