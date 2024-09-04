@@ -29,14 +29,15 @@ func GetBranchCommitID(ctx context.Context, repo Repository, branch string) (str
 		return "", err
 	}
 	defer gitRepo.Close()
-	return gitRepo.GetRefCommitID(branch)
+	return gitRepo.GetRefCommitID(git.BranchPrefix + branch)
 }
 
 // SetDefaultBranch sets default branch of repository.
 func SetDefaultBranch(ctx context.Context, repo Repository, name string) error {
 	cmd := git.NewCommand(ctx, "symbolic-ref", "HEAD").
 		AddDynamicArguments(git.BranchPrefix + name)
-	return RunGitCmd(ctx, repo, cmd, &git.RunOpts{})
+	_, _, err := RunGitCmdStdString(ctx, repo, cmd, &git.RunOpts{})
+	return err
 }
 
 // GetDefaultBranch gets default branch of repository.

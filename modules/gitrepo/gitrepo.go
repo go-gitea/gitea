@@ -6,6 +6,7 @@ package gitrepo
 import (
 	"context"
 	"io"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -48,7 +49,8 @@ func repositoryFromContext(ctx context.Context, repo Repository) *git.Repository
 	}
 
 	if gitRepo, ok := value.(*git.Repository); ok && gitRepo != nil {
-		if strings.HasSuffix(gitRepo.Path, repoRelativePath(repo)) {
+		relativePath := filepath.Join(strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName()))
+		if strings.HasSuffix(gitRepo.Path, relativePath) {
 			return gitRepo
 		}
 	}
