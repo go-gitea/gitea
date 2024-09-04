@@ -14,11 +14,10 @@ import (
 // GetBranches returns branch names by repository
 // if limit = 0 it will not limit
 func GetBranches(ctx context.Context, repo Repository, skip, limit int) ([]string, int, error) {
-	branchNames := []string{}
-	countAll, err := curService.WalkShowRef(ctx, repo, git.TrustedCmdArgs{git.BranchPrefix, "--sort=-committerdate"}, skip, limit, func(_, branchName string) error {
+	branchNames := make([]string, 0, limit)
+	countAll, err := curService.WalkReferences(ctx, repo, git.ObjectBranch, skip, limit, func(_, branchName string) error {
 		branchName = strings.TrimPrefix(branchName, git.BranchPrefix)
 		branchNames = append(branchNames, branchName)
-
 		return nil
 	})
 	return branchNames, countAll, err

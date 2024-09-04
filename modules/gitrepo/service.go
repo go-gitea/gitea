@@ -14,7 +14,7 @@ type Service interface {
 	OpenRepository(ctx context.Context, repo Repository) (*git.Repository, error)
 	Run(ctx context.Context, c *git.Command, opts *git.RunOpts) error
 	RepoGitURL(repo Repository) string
-	WalkShowRef(ctx context.Context, repo Repository, extraArgs git.TrustedCmdArgs, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error)
+	WalkReferences(ctx context.Context, repo Repository, refType git.ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error)
 }
 
 var _ Service = &localServiceImpl{}
@@ -47,6 +47,11 @@ func (s *localServiceImpl) RepoGitURL(repo Repository) string {
 	return s.absPath(repoRelativePath(repo))
 }
 
-func (s *localServiceImpl) WalkShowRef(ctx context.Context, repo Repository, extraArgs git.TrustedCmdArgs, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
-	return git.WalkShowRef(ctx, s.absPath(repoRelativePath(repo)), extraArgs, skip, limit, walkfn)
+func (s *localServiceImpl) WalkReferences(ctx context.Context, repo Repository, refType git.ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
+	gitRepo, err := s.OpenRepository(ctx, repo)
+	if err != nil {
+		return 0, err
+	}
+	defer gitRepo.Close()
+	return gitRepo.WalkReferences(refType, skip, limit, walkfn)
 }
