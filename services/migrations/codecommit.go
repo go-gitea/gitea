@@ -34,7 +34,14 @@ type CodeCommitDownloaderFactory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (c *CodeCommitDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
-	return NewCodeCommitDownloader(ctx, opts.CodeCommitRepoName, opts.OriginalURL, opts.AWSAccessKeyID, opts.AWSSecretAccessKey, opts.AWSRegion), nil
+	u, err := url.Parse(opts.CloneAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	baseURL := u.Scheme + "://" + u.Host
+
+	return NewCodeCommitDownloader(ctx, opts.CodeCommitRepoName, baseURL, opts.AWSAccessKeyID, opts.AWSSecretAccessKey, opts.AWSRegion), nil
 }
 
 // GitServiceType returns the type of git service
@@ -180,13 +187,11 @@ func (c *CodeCommitDownloader) GetPullRequests(page, perPage int) ([]*base.PullR
 			Updated:    *orig.LastActivityDate,
 			Merged:     target.MergeMetadata.IsMerged,
 			Head: base.PullRequestBranch{
-				CloneURL: c.baseURL,
 				Ref:      strings.TrimPrefix(*target.SourceReference, git_module.BranchPrefix),
 				SHA:      *target.SourceCommit,
 				RepoName: c.repoName,
 			},
 			Base: base.PullRequestBranch{
-				CloneURL: c.baseURL,
 				Ref:      strings.TrimPrefix(*target.DestinationReference, git_module.BranchPrefix),
 				SHA:      *target.DestinationCommit,
 				RepoName: c.repoName,

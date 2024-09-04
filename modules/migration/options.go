@@ -39,7 +39,6 @@ type MigrateOptions struct {
 	MigrateToRepoID int64
 	MirrorInterval  string `json:"mirror_interval"`
 
-	// For AWS CodeCommit
 	AWSAccessKeyID     string
 	AWSSecretAccessKey string
 	AWSRegion          string
