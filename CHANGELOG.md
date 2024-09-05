@@ -6,6 +6,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 ## [1.22.2](https://github.com/go-gitea/gitea/releases/tag/1.22.2) - 2024-08-28
 
+* Security
+  * Replace v-html with v-text in search inputbox (#31966) (#31973)
 * PERFORMANCE
   * Refactor the usage of batch catfile (#31754) (#31889)
 * BUGFIXES
