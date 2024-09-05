@@ -8,6 +8,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 * Security
   * Replace v-html with v-text in search inputbox (#31966) (#31973)
+  * Fix nuget/conan/container packages upload bugs (#31967) (#31982)
 * PERFORMANCE
   * Refactor the usage of batch catfile (#31754) (#31889)
 * BUGFIXES
