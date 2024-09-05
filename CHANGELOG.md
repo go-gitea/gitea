@@ -4,6 +4,62 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.22.2](https://github.com/go-gitea/gitea/releases/tag/1.22.2) - 2024-08-28
+
+* Security
+  * Replace v-html with v-text in search inputbox (#31966) (#31973)
+  * Fix nuget/conan/container packages upload bugs (#31967) (#31982)
+* PERFORMANCE
+  * Refactor the usage of batch catfile (#31754) (#31889)
+* BUGFIXES
+  * Fix overflowing content in action run log (#31842) (#31853)
+  * Scroll images in project issues separately from the remaining issue (#31683) (#31823)
+  * Add `:focus-visible` style to buttons (#31799) (#31819)
+  * Fix the display of project type for deleted projects (#31732) (#31734)
+  * Fix API owner ID should be zero when created repo secret (#31715) (#31811)
+  * Set owner id to zero when GetRegistrationToken for repo (#31725) (#31729)
+  * Fix API endpoint for registration-token (#31722) (#31728)
+  * Add permission check when creating PR (#31033) (#31720)
+  * Don't return 500 if mirror url contains special chars (#31859) (#31895)
+  * Fix agit automerge (#31207) (#31881)
+  * Add CfTurnstileSitekey context data to all captcha templates (#31874) (#31876)
+  * Avoid returning without written ctx when posting PR (#31843) (#31848)
+  * Fix raw wiki links (#31825) (#31845)
+  * Fix panic of ssh public key page after deletion of auth source (#31829) (#31836)
+  * Fixes for unreachable project issues when transfer repository from organization (#31770) (#31828)
+  * Show lock owner instead of repo owner on LFS setting page (#31788) (#31817)
+  * Fix `IsObjectExist` with gogit (#31790) (#31806)
+  * Fix protected branch files detection on pre_receive hook (#31778) (#31796)
+  * Add `TAGS` to `TEST_TAGS` and fix bugs found with gogit (#31791) (#31795)
+  * Rename head branch of pull requests when renaming a branch (#31759) (#31774)
+  * Fix wiki revision pagination (#31760) (#31772)
+  * Bump vue-bar-graph (#31705) (#31753)
+  * Distinguish LFS object errors to ignore missing objects during migration (#31702) (#31745)
+  * Make GetRepositoryByName more safer (#31712) (#31718)
+  * Fix a branch divergence cache bug (#31659) (#31661)
+  * Allow org team names of length 255 in create team form (#31564) (#31603)
+  * Use old behavior for telegram webhook (#31588)
+  * Bug fix for translation in ru (#31892)
+  * Fix actions notify bug (#31866) (#31875)
+  * Fix the component of access token list not mounted (#31824) (#31868)
+  * Add missing repository type filter parameters to pager  (#31832) (#31837)
+  * Fix dates displaying in a wrong manner when we're close to the end of… (#31750)
+  * Fix "Filter by commit" Dropdown (#31695) (#31696)
+  * Properly filter issue list given no assignees filter (#31522) (#31685)
+  * Prevent update pull refs manually and will not affect other refs update (#31931)(#31955)
+  * Fix sort order for organization home and user profile page (#31921) (#31922)
+  * Fix search team (#31923) (#31942)
+  * Fix 500 error when state params is set when editing issue/PR by API (#31880) (#31952)
+  * Fix index too many file names bug (#31903) (#31953)
+  * Add lock for parallel maven upload (#31851) (#31954)
+* MISC
+  * Remove "dsa-1024" testcases from Test_SSHParsePublicKey and Test_calcFingerprint (#31905) (#31914)
+  * Upgrade bleve to 2.4.2 (#31894)
+  * Remove unneccessary uses of `word-break: break-all` (#31637) (#31652)
+  * Return an empty string when a repo has no avatar in the repo API (#31187) (#31567)
+  * Upgrade micromatch to 4.0.8 (#31944)
+  * Update webpack to 5.94.0 (#31941)
+
 ## [1.22.1](https://github.com/go-gitea/gitea/releases/tag/1.22.1) - 2024-07-04
 
 * SECURITY
