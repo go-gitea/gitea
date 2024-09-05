@@ -49,7 +49,7 @@ func repositoryFromContext(ctx context.Context, repo Repository) *git.Repository
 	}
 
 	if gitRepo, ok := value.(*git.Repository); ok && gitRepo != nil {
-		relativePath := filepath.Join(strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName()))
+		relativePath := filepath.Join(strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName())+".git")
 		if strings.HasSuffix(gitRepo.Path, relativePath) {
 			return gitRepo
 		}
