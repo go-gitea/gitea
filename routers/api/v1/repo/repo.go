@@ -179,7 +179,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	// as sort is an url param, we should be case insensitive
-	sortMode := strings.ToLower(ctx.FormString("sort"))
+	sortMode := ctx.FormString("sort")
 	if len(sortMode) > 0 {
 		sortOrder := ctx.FormString("order")
 		if len(sortOrder) == 0 {
