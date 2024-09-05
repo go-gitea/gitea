@@ -41,6 +41,4 @@ type MigrateOptions struct {
 
 	AWSAccessKeyID     string
 	AWSSecretAccessKey string
-	AWSRegion          string
-	CodeCommitRepoName string
 }

@@ -365,11 +365,8 @@ type MigrateRepoOptions struct {
 	Releases       bool   `json:"releases"`
 	MirrorInterval string `json:"mirror_interval"`
 
-	// For AWS CodeCommit
 	AWSAccessKeyID     string `json:"aws_access_key_id"`
 	AWSSecretAccessKey string `json:"aws_secret_access_key"`
-	AWSRegion          string `json:"aws_region"`
-	CodeCommitRepoName string `json:"codecommit_repo_name"`
 }
 
 // TokenAuth represents whether a service type supports token-based auth
@@ -391,6 +388,7 @@ var SupportedFullGitService = []GitServiceType{
 	OneDevService,
 	GitBucketService,
 	CodebaseService,
+	CodeCommitService,
 }
 
 // RepoTransfer represents a pending repo transfer

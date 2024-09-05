@@ -5,6 +5,7 @@ package migrations
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -39,9 +40,21 @@ func (c *CodeCommitDownloaderFactory) New(ctx context.Context, opts base.Migrate
 		return nil, err
 	}
 
+	hostElems := strings.Split(u.Host, ".")
+	if len(hostElems) != 4 {
+		return nil, fmt.Errorf("cannot get the region from clone URL")
+	}
+	region := hostElems[1]
+
+	pathElems := strings.Split(u.Path, "/")
+	if len(pathElems) == 0 {
+		return nil, fmt.Errorf("cannot get the repo name from clone URL")
+	}
+	repoName := pathElems[len(pathElems)-1]
+
 	baseURL := u.Scheme + "://" + u.Host
 
-	return NewCodeCommitDownloader(ctx, opts.CodeCommitRepoName, baseURL, opts.AWSAccessKeyID, opts.AWSSecretAccessKey, opts.AWSRegion), nil
+	return NewCodeCommitDownloader(ctx, repoName, baseURL, opts.AWSAccessKeyID, opts.AWSSecretAccessKey, region), nil
 }
 
 // GitServiceType returns the type of git service

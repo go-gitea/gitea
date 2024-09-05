@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="50">
+    <text x="100" y="20" font-family="Arial" font-size="20" fill="black" text-anchor="middle">AWS</text>
+    <text x="100" y="40" font-family="Arial" font-size="20" fill="black" text-anchor="middle">CodeCommit</text>
+</svg>
