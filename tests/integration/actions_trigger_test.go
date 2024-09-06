@@ -11,9 +11,11 @@ import (
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
@@ -34,7 +36,7 @@ import (
 func TestPullRequestTargetEvent(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of the base repo
-		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})  // owner of the forked repo
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}) // owner of the forked repo
 
 		// create the base repo
 		baseRepo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
@@ -57,8 +59,12 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		}}, nil)
 		assert.NoError(t, err)
 
+		// add user4 as the collaborator
+		ctx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+		t.Run("AddUser4AsCollaboratorWithReadAccess", doAPIAddCollaborator(ctx, "user4", perm.AccessModeRead))
+
 		// create the forked repo
-		forkedRepo, err := repo_service.ForkRepository(git.DefaultContext, user2, org3, repo_service.ForkRepoOptions{
+		forkedRepo, err := repo_service.ForkRepository(git.DefaultContext, user2, user4, repo_service.ForkRepoOptions{
 			BaseRepo:    baseRepo,
 			Name:        "forked-repo-pull-request-target",
 			Description: "test pull-request-target event",
@@ -95,7 +101,7 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// add a new file to the forked repo
-		addFileToForkedResp, err := files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, org3, &files_service.ChangeRepoFilesOptions{
+		addFileToForkedResp, err := files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, user4, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -107,12 +113,12 @@ func TestPullRequestTargetEvent(t *testing.T) {
 			OldBranch: "main",
 			NewBranch: "fork-branch-1",
 			Author: &files_service.IdentityOptions{
-				Name:  org3.Name,
-				Email: org3.Email,
+				Name:  user4.Name,
+				Email: user4.Email,
 			},
 			Committer: &files_service.IdentityOptions{
-				Name:  org3.Name,
-				Email: org3.Email,
+				Name:  user4.Name,
+				Email: user4.Email,
 			},
 			Dates: &files_service.CommitDateOptions{
 				Author:    time.Now(),
@@ -126,8 +132,8 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		pullIssue := &issues_model.Issue{
 			RepoID:   baseRepo.ID,
 			Title:    "Test pull-request-target-event",
-			PosterID: org3.ID,
-			Poster:   org3,
+			PosterID: user4.ID,
+			Poster:   user4,
 			IsPull:   true,
 		}
 		pullRequest := &issues_model.PullRequest{
@@ -149,7 +155,7 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		assert.Equal(t, actions_module.GithubEventPullRequestTarget, actionRun.TriggerEvent)
 
 		// add another file whose name cannot match the specified path
-		addFileToForkedResp, err = files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, org3, &files_service.ChangeRepoFilesOptions{
+		addFileToForkedResp, err = files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, user4, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -161,12 +167,12 @@ func TestPullRequestTargetEvent(t *testing.T) {
 			OldBranch: "main",
 			NewBranch: "fork-branch-2",
 			Author: &files_service.IdentityOptions{
-				Name:  org3.Name,
-				Email: org3.Email,
+				Name:  user4.Name,
+				Email: user4.Email,
 			},
 			Committer: &files_service.IdentityOptions{
-				Name:  org3.Name,
-				Email: org3.Email,
+				Name:  user4.Name,
+				Email: user4.Email,
 			},
 			Dates: &files_service.CommitDateOptions{
 				Author:    time.Now(),
@@ -180,8 +186,8 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		pullIssue = &issues_model.Issue{
 			RepoID:   baseRepo.ID,
 			Title:    "A mismatched path cannot trigger pull-request-target-event",
-			PosterID: org3.ID,
-			Poster:   org3,
+			PosterID: user4.ID,
+			Poster:   user4,
 			IsPull:   true,
 		}
 		pullRequest = &issues_model.PullRequest{
@@ -421,7 +427,7 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 			Title:      "add workflow",
 			RepoID:     repo.ID,
 			Event:      "delete",
-			Ref:        "main",
+			Ref:        "refs/heads/main",
 			WorkflowID: "createdelete.yml",
 			CommitSHA:  branch.CommitID,
 		})
@@ -436,7 +442,7 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 			Title:      "add workflow",
 			RepoID:     repo.ID,
 			Event:      "delete",
-			Ref:        "main",
+			Ref:        "refs/heads/main",
 			WorkflowID: "createdelete.yml",
 			CommitSHA:  branch.CommitID,
 		})

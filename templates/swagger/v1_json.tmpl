@@ -4588,6 +4588,39 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runners/registration-token": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a repository's actions runner registration token",
+        "operationId": "repoGetRunnerRegistrationToken",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RegistrationToken"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/secrets": {
       "get": {
         "produces": [
@@ -11354,6 +11387,9 @@
     },
     "/repos/{owner}/{repo}/media/{filepath}": {
       "get": {
+        "produces": [
+          "application/octet-stream"
+        ],
         "tags": [
           "repository"
         ],
@@ -11390,7 +11426,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Returns raw file content."
+            "description": "Returns raw file content.",
+            "schema": {
+              "type": "file"
+            }
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -13427,7 +13466,7 @@
     "/repos/{owner}/{repo}/raw/{filepath}": {
       "get": {
         "produces": [
-          "application/json"
+          "application/octet-stream"
         ],
         "tags": [
           "repository"
@@ -13465,7 +13504,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Returns raw file content."
+            "description": "Returns raw file content.",
+            "schema": {
+              "type": "file"
+            }
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -14140,39 +14182,6 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/runners/registration-token": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Get a repository's actions runner registration token",
-        "operationId": "repoGetRunnerRegistrationToken",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/RegistrationToken"
           }
         }
       }
@@ -19310,6 +19319,11 @@
       "properties": {
         "permission": {
           "type": "string",
+          "enum": [
+            "read",
+            "write",
+            "admin"
+          ],
           "x-go-name": "Permission"
         }
       },
@@ -20730,6 +20744,10 @@
             "type": "string"
           },
           "x-go-name": "RedirectURIs"
+        },
+        "skip_secondary_authorization": {
+          "type": "boolean",
+          "x-go-name": "SkipSecondaryAuthorization"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -23253,6 +23271,9 @@
           "type": "string",
           "x-go-name": "About"
         },
+        "assignees": {
+          "$ref": "#/definitions/IssueTemplateStringSlice"
+        },
         "body": {
           "type": "array",
           "items": {
@@ -23269,7 +23290,7 @@
           "x-go-name": "FileName"
         },
         "labels": {
-          "$ref": "#/definitions/IssueTemplateLabels"
+          "$ref": "#/definitions/IssueTemplateStringSlice"
         },
         "name": {
           "type": "string",
@@ -23286,7 +23307,7 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "IssueTemplateLabels": {
+    "IssueTemplateStringSlice": {
       "type": "array",
       "items": {
         "type": "string"
@@ -23980,6 +24001,10 @@
             "type": "string"
           },
           "x-go-name": "RedirectURIs"
+        },
+        "skip_secondary_authorization": {
+          "type": "boolean",
+          "x-go-name": "SkipSecondaryAuthorization"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -24541,6 +24566,13 @@
             "$ref": "#/definitions/User"
           },
           "x-go-name": "RequestedReviewers"
+        },
+        "requested_reviewers_teams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Team"
+          },
+          "x-go-name": "RequestedReviewersTeams"
         },
         "review_comments": {
           "description": "number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)",

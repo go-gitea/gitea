@@ -1,4 +1,6 @@
-export async function createSortable(el, opts = {}) {
+import type {SortableOptions} from 'sortablejs';
+
+export async function createSortable(el, opts: {handle?: string} & SortableOptions = {}) {
   const {Sortable} = await import(/* webpackChunkName: "sortablejs" */'sortablejs');
 
   return new Sortable(el, {
@@ -15,5 +17,5 @@ export async function createSortable(el, opts = {}) {
       opts.onUnchoose?.(e);
     },
     ...opts,
-  });
+  } satisfies SortableOptions);
 }

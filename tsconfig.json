@@ -29,7 +29,7 @@
     "sourceMap": true,
     "types": [
       "vitest/globals",
-      "./types.d.ts",
+      "./web_src/js/globals.d.ts",
     ],
   }
 }

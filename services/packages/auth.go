@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -18,10 +19,14 @@ import (
 
 type packageClaims struct {
 	jwt.RegisteredClaims
+	PackageMeta
+}
+type PackageMeta struct {
 	UserID int64
+	Scope  auth_model.AccessTokenScope
 }
 
-func CreateAuthorizationToken(u *user_model.User) (string, error) {
+func CreateAuthorizationToken(u *user_model.User, packageScope auth_model.AccessTokenScope) (string, error) {
 	now := time.Now()
 
 	claims := packageClaims{
@@ -29,7 +34,10 @@ func CreateAuthorizationToken(u *user_model.User) (string, error) {
 			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
 			NotBefore: jwt.NewNumericDate(now),
 		},
-		UserID: u.ID,
+		PackageMeta: PackageMeta{
+			UserID: u.ID,
+			Scope:  packageScope,
+		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
@@ -41,32 +49,36 @@ func CreateAuthorizationToken(u *user_model.User) (string, error) {
 	return tokenString, nil
 }
 
-func ParseAuthorizationToken(req *http.Request) (int64, error) {
+func ParseAuthorizationRequest(req *http.Request) (*PackageMeta, error) {
 	h := req.Header.Get("Authorization")
 	if h == "" {
-		return 0, nil
+		return nil, nil
 	}
 
 	parts := strings.SplitN(h, " ", 2)
 	if len(parts) != 2 {
 		log.Error("split token failed: %s", h)
-		return 0, fmt.Errorf("split token failed")
+		return nil, fmt.Errorf("split token failed")
 	}
 
-	token, err := jwt.ParseWithClaims(parts[1], &packageClaims{}, func(t *jwt.Token) (any, error) {
+	return ParseAuthorizationToken(parts[1])
+}
+
+func ParseAuthorizationToken(tokenStr string) (*PackageMeta, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &packageClaims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 		return setting.GetGeneralTokenSigningSecret(), nil
 	})
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	c, ok := token.Claims.(*packageClaims)
 	if !token.Valid || !ok {
-		return 0, fmt.Errorf("invalid token claim")
+		return nil, fmt.Errorf("invalid token claim")
 	}
 
-	return c.UserID, nil
+	return &c.PackageMeta, nil
 }
