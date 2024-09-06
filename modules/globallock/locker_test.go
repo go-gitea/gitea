@@ -47,27 +47,24 @@ func TestLocker(t *testing.T) {
 func testLocker(t *testing.T, locker Locker) {
 	t.Run("lock", func(t *testing.T) {
 		parentCtx := context.Background()
-		ctx, release, err := locker.Lock(parentCtx, "test")
+		release, err := locker.Lock(parentCtx, "test")
 		defer release()
 
-		assert.NotEqual(t, parentCtx, ctx) // new context should be returned
 		assert.NoError(t, err)
 
 		func() {
-			parentCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			ctx, release, err := locker.Lock(parentCtx, "test")
+			release, err := locker.Lock(ctx, "test")
 			defer release()
 
 			assert.Error(t, err)
-			assert.Equal(t, parentCtx, ctx) // should return the same context
 		}()
 
 		release()
-		assert.Error(t, ctx.Err())
 
 		func() {
-			_, release, err := locker.Lock(context.Background(), "test")
+			release, err := locker.Lock(context.Background(), "test")
 			defer release()
 
 			assert.NoError(t, err)
@@ -76,29 +73,26 @@ func testLocker(t *testing.T, locker Locker) {
 
 	t.Run("try lock", func(t *testing.T) {
 		parentCtx := context.Background()
-		ok, ctx, release, err := locker.TryLock(parentCtx, "test")
+		ok, release, err := locker.TryLock(parentCtx, "test")
 		defer release()
 
 		assert.True(t, ok)
-		assert.NotEqual(t, parentCtx, ctx) // new context should be returned
 		assert.NoError(t, err)
 
 		func() {
-			parentCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			ok, ctx, release, err := locker.TryLock(parentCtx, "test")
+			ok, release, err := locker.TryLock(ctx, "test")
 			defer release()
 
 			assert.False(t, ok)
 			assert.NoError(t, err)
-			assert.Equal(t, parentCtx, ctx) // should return the same context
 		}()
 
 		release()
-		assert.Error(t, ctx.Err())
 
 		func() {
-			ok, _, release, _ := locker.TryLock(context.Background(), "test")
+			ok, release, _ := locker.TryLock(context.Background(), "test")
 			defer release()
 
 			assert.True(t, ok)
@@ -107,7 +101,7 @@ func testLocker(t *testing.T, locker Locker) {
 
 	t.Run("wait and acquired", func(t *testing.T) {
 		ctx := context.Background()
-		_, release, err := locker.Lock(ctx, "test")
+		release, err := locker.Lock(ctx, "test")
 		require.NoError(t, err)
 
 		wg := &sync.WaitGroup{}
@@ -115,7 +109,7 @@ func testLocker(t *testing.T, locker Locker) {
 		go func() {
 			defer wg.Done()
 			started := time.Now()
-			_, release, err := locker.Lock(context.Background(), "test") // should be blocked for seconds
+			release, err := locker.Lock(context.Background(), "test") // should be blocked for seconds
 			defer release()
 			assert.Greater(t, time.Since(started), time.Second)
 			assert.NoError(t, err)
@@ -127,34 +121,15 @@ func testLocker(t *testing.T, locker Locker) {
 		wg.Wait()
 	})
 
-	t.Run("continue after release", func(t *testing.T) {
-		ctx := context.Background()
-
-		ctxBeforeLock := ctx
-		ctx, release, err := locker.Lock(ctx, "test")
-
-		require.NoError(t, err)
-		assert.NoError(t, ctx.Err())
-		assert.NotEqual(t, ctxBeforeLock, ctx)
-
-		ctxBeforeRelease := ctx
-		ctx = release()
-
-		assert.NoError(t, ctx.Err())
-		assert.Error(t, ctxBeforeRelease.Err())
-
-		// so it can continue with ctx to do more work
-	})
-
 	t.Run("multiple release", func(t *testing.T) {
 		ctx := context.Background()
 
-		_, release1, err := locker.Lock(ctx, "test")
+		release1, err := locker.Lock(ctx, "test")
 		require.NoError(t, err)
 
 		release1()
 
-		_, release2, err := locker.Lock(ctx, "test")
+		release2, err := locker.Lock(ctx, "test")
 		defer release2()
 		require.NoError(t, err)
 
@@ -163,7 +138,7 @@ func testLocker(t *testing.T, locker Locker) {
 		// and it shouldn't affect the other lock
 		release1()
 
-		ok, _, release3, err := locker.TryLock(ctx, "test")
+		ok, release3, err := locker.TryLock(ctx, "test")
 		defer release3()
 		require.NoError(t, err)
 		// It should be able to acquire the lock;
@@ -184,28 +159,23 @@ func testRedisLocker(t *testing.T, locker *redisLocker) {
 		// Otherwise, it will affect other tests.
 		t.Run("close", func(t *testing.T) {
 			assert.NoError(t, locker.Close())
-			_, _, err := locker.Lock(context.Background(), "test")
+			_, err := locker.Lock(context.Background(), "test")
 			assert.Error(t, err)
 		})
 	}()
 
 	t.Run("failed extend", func(t *testing.T) {
-		ctx, release, err := locker.Lock(context.Background(), "test")
+		release, err := locker.Lock(context.Background(), "test")
 		defer release()
 		require.NoError(t, err)
 
 		// It simulates that there are some problems with extending like network issues or redis server down.
 		v, ok := locker.mutexM.Load("test")
 		require.True(t, ok)
-		m := v.(*redisMutex)
-		_, _ = m.mutex.Unlock() // release it to make it impossible to extend
+		m := v.(*redsync.Mutex)
+		_, _ = m.Unlock() // release it to make it impossible to extend
 
-		select {
-		case <-time.After(redisLockExpiry + time.Second):
-			t.Errorf("lock should be expired")
-		case <-ctx.Done():
-			var errTaken *redsync.ErrTaken
-			assert.ErrorAs(t, context.Cause(ctx), &errTaken)
-		}
+		// In current design, callers can't know the lock can't be extended.
+		// Just keep this case to improve the test coverage.
 	})
 }
