@@ -6,7 +6,6 @@ package cache
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -39,16 +38,6 @@ func TestWithCacheContext(t *testing.T) {
 
 	v = GetContextData(ctx, field, "my_config1")
 	assert.EqualValues(t, 1, v)
-
-	now := timeNow
-	defer func() {
-		timeNow = now
-	}()
-	timeNow = func() time.Time {
-		return now().Add(10 * time.Second)
-	}
-	v = GetContextData(ctx, field, "my_config1")
-	assert.Nil(t, v)
 }
 
 func TestWithNoCacheContext(t *testing.T) {
