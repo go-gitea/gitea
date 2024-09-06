@@ -6,6 +6,18 @@
   margin: 0 0.5em;
 }
 
+.project-toolbar-right .filter.menu {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 767.98px) {
+  .project-toolbar-right .dropdown .menu {
+    left: auto !important;
+    right: auto !important;
+  }
+}
+
 .project-column {
   background-color: var(--color-project-column-bg) !important;
   border: 1px solid var(--color-secondary) !important;
