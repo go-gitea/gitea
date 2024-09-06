@@ -49,13 +49,11 @@ func (issue *Issue) ProjectColumnID(ctx context.Context) int64 {
 
 // LoadIssuesFromColumn load issues assigned to this column
 func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *IssuesOptions) (IssueList, error) {
-	issueList, err := Issues(ctx, &IssuesOptions{
-		ProjectColumnID: b.ID,
-		ProjectID:       b.ProjectID,
-		LabelIDs:        opts.LabelIDs,
-		AssigneeID:      opts.AssigneeID,
-		SortType:        "project-column-sorting",
-	})
+	issueList, err := Issues(ctx, opts.Copy(func(o *IssuesOptions) {
+		o.ProjectColumnID = b.ID
+		o.ProjectID = b.ProjectID
+		o.SortType = "project-column-sorting"
+	}))
 	if err != nil {
 		return nil, err
 	}
