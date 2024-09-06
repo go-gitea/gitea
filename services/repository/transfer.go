@@ -18,16 +18,16 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
-// repoWorkingPool represents a working pool to order the parallel changes to the same repository
-// TODO: use clustered lock (unique queue? or *abuse* cache)
-var repoWorkingPool = sync.NewExclusivePool()
+func getRepoWorkingLockKey(repoID int64) string {
+	return fmt.Sprintf("repo_working_%d", repoID)
+}
 
 // TransferOwnership transfers all corresponding setting from old user to new one.
 func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
@@ -42,12 +42,17 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 
 	oldOwner := repo.Owner
 
-	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
+	releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer releaser()
+
 	if err := transferOwnership(ctx, doer, newOwner.Name, repo); err != nil {
-		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 		return err
 	}
-	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	releaser()
 
 	newRepo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
 	if err != nil {
@@ -360,15 +365,20 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	oldRepoName := repo.Name
 
 	// Change repository directory name. We must lock the local copy of the
-	// repo so that we can atomically rename the repo path and updates the
+	// repo so that we can automatically rename the repo path and updates the
 	// local copy's origin accordingly.
 
-	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
+	releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer releaser()
+
 	if err := changeRepositoryName(ctx, repo, newRepoName); err != nil {
-		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 		return err
 	}
-	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	releaser()
 
 	repo.Name = newRepoName
 	notify_service.RenameRepository(ctx, doer, repo, oldRepoName)
