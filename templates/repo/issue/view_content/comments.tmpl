@@ -380,7 +380,7 @@
 						{{ctx.AvatarUtils.Avatar .Poster 40}}
 					</a>
 					{{end}}
-					<span class="badge{{if eq $reviewType 1}} tw-bg-green tw-text-white{{else if eq $reviewType 3}} tw-bg-red tw-text-white{{end}}">
+					<span class="badge tw-text-white{{if eq $reviewType 1}}{{if .Review.Official}} tw-bg-green {{else}} tw-bg-grey{{end}}{{else if eq $reviewType 3}} tw-bg-red{{end}}">
 						{{if .Review}}{{svg (printf "octicon-%s" .Review.Type.Icon)}}{{end}}
 					</span>
 					<span class="text grey muted-links">
