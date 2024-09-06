@@ -95,7 +95,7 @@ func containerPkgName(piName string) string {
 func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageInfo) (*packages_model.PackageVersion, error) {
 	var uploadVersion *packages_model.PackageVersion
 
-	ctx, releaser, err := globallock.Lock(ctx, containerPkgName(pi.Name))
+	releaser, err := globallock.Lock(ctx, containerPkgName(pi.Name))
 	if err != nil {
 		return nil, err
 	}
