@@ -166,15 +166,23 @@
   border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
 } */
 
+.repository #clone-panel {
+  position: relative;
+}
+
+.repository .clone-panel .ui.segment {
+  border: none;
+}
+
 .repository .clone-panel > button {
   border-radius: var(--border-radius) !important;
 }
 
-#clone-heading {
+.repository #clone-heading {
   font-size: 1rem;
 }
 
-.clone-panel-content {
+.repository .clone-panel-content {
   min-width: 200px;
 }
 
@@ -206,11 +214,6 @@
 
 .clone.tabs.primary {
   border-color: var(--color-primary);
-}
-
-.repository .clone-panel .dropdown .menu {
-  right: 0 !important;
-  left: auto !important;
 }
 
 .repository .repo-description {
