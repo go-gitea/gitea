@@ -136,6 +136,7 @@
 .repository .clone-panel {
   display: flex;
   flex: 1;
+  min-width: 200px;
 }
 
 .repository.wiki .clone-panel {
@@ -160,16 +161,12 @@
   position: relative;
 }
 
-.repository .clone-panel .ui.segment {
+.clone-panel .ui.segment {
   border: none;
 }
 
 .repository .clone-panel > button {
   border-radius: var(--border-radius) !important;
-}
-
-.repository .clone-panel {
-  min-width: 200px;
 }
 
 .clone.tabs {

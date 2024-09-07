@@ -19,7 +19,7 @@ export function initRepoClonePanel() {
     const tippy = createTippy($clonePanelBtn[0], {
       content: $panel[0],
       theme: 'default',
-      placement: 'bottom',
+      placement: 'bottom-start',
       trigger: 'click',
       maxWidth: '300px',
       interactive: true,
