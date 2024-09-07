@@ -68,7 +68,7 @@ func ListIssueComments(ctx *context.APIContext) {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
 		return
@@ -172,7 +172,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
 		return
@@ -323,10 +323,6 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadIssues", err)
 		return
 	}
-	if err := comments.LoadPosters(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
-		return
-	}
 	if err := comments.LoadAttachments(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
 		return
@@ -384,7 +380,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm(ctx).(*api.CreateIssueCommentOption)
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		return
@@ -449,7 +445,7 @@ func GetIssueComment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	comment, err := issues_model.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
+	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)
@@ -583,7 +579,7 @@ func EditIssueCommentDeprecated(ctx *context.APIContext) {
 }
 
 func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
+	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)
@@ -615,7 +611,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 
 	oldContent := comment.Content
 	comment.Content = form.Body
-	if err := issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
+	if err := issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, oldContent); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Error(http.StatusForbidden, "UpdateComment", err)
 		} else {
@@ -700,7 +696,7 @@ func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
 }
 
 func deleteIssueComment(ctx *context.APIContext) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
+	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)

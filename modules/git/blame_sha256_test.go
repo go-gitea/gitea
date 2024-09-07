@@ -14,6 +14,11 @@ func TestReadingBlameOutputSha256(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	if isGogit {
+		t.Skip("Skipping test since gogit does not support sha256")
+		return
+	}
+
 	t.Run("Without .git-blame-ignore-revs", func(t *testing.T) {
 		repo, err := OpenRepository(ctx, "./tests/repos/repo5_pulls_sha256")
 		assert.NoError(t, err)
@@ -118,11 +123,12 @@ func TestReadingBlameOutputSha256(t *testing.T) {
 			},
 		}
 
+		objectFormat, err := repo.GetObjectFormat()
+		assert.NoError(t, err)
 		for _, c := range cases {
 			commit, err := repo.GetCommit(c.CommitID)
 			assert.NoError(t, err)
-
-			blameReader, err := CreateBlameReader(ctx, repo.objectFormat, "./tests/repos/repo6_blame_sha256", commit, "blame.txt", c.Bypass)
+			blameReader, err := CreateBlameReader(ctx, objectFormat, "./tests/repos/repo6_blame_sha256", commit, "blame.txt", c.Bypass)
 			assert.NoError(t, err)
 			assert.NotNil(t, blameReader)
 			defer blameReader.Close()

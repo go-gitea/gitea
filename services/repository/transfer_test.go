@@ -67,13 +67,13 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	repo.Owner = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	hasAccess, err := access_model.HasAccess(db.DefaultContext, recipient.ID, repo)
+	hasAccess, err := access_model.HasAnyUnitAccess(db.DefaultContext, recipient.ID, repo)
 	assert.NoError(t, err)
 	assert.False(t, hasAccess)
 
 	assert.NoError(t, StartRepositoryTransfer(db.DefaultContext, doer, recipient, repo, nil))
 
-	hasAccess, err = access_model.HasAccess(db.DefaultContext, recipient.ID, repo)
+	hasAccess, err = access_model.HasAnyUnitAccess(db.DefaultContext, recipient.ID, repo)
 	assert.NoError(t, err)
 	assert.True(t, hasAccess)
 

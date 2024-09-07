@@ -46,7 +46,6 @@ func InitTest(requireGitea bool) {
 	// TODO: Speedup tests that rely on the event source ticker, confirm whether there is any bug or failure.
 	// setting.UI.Notification.EventSourceUpdateTime = time.Second
 
-	setting.IsInTesting = true
 	setting.AppWorkPath = giteaRoot
 	setting.CustomPath = filepath.Join(setting.AppWorkPath, "custom")
 	if requireGitea {
@@ -224,6 +223,7 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
 			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
 			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "pull"), 0o755)
 		}
 	}
 

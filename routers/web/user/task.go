@@ -14,11 +14,11 @@ import (
 
 // TaskStatus returns task's status
 func TaskStatus(ctx *context.Context) {
-	task, opts, err := admin_model.GetMigratingTaskByID(ctx, ctx.ParamsInt64("task"), ctx.Doer.ID)
+	task, opts, err := admin_model.GetMigratingTaskByID(ctx, ctx.PathParamInt64("task"), ctx.Doer.ID)
 	if err != nil {
 		if admin_model.IsErrTaskDoesNotExist(err) {
 			ctx.JSON(http.StatusNotFound, map[string]any{
-				"error": "task `" + strconv.FormatInt(ctx.ParamsInt64("task"), 10) + "` does not exist",
+				"error": "task `" + strconv.FormatInt(ctx.PathParamInt64("task"), 10) + "` does not exist",
 			})
 			return
 		}

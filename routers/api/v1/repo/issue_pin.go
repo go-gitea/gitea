@@ -41,7 +41,7 @@ func PinIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -98,7 +98,7 @@ func UnpinIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -159,7 +159,7 @@ func MoveIssuePin(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -169,7 +169,7 @@ func MoveIssuePin(ctx *context.APIContext) {
 		return
 	}
 
-	err = issue.MovePin(ctx, int(ctx.ParamsInt64(":position")))
+	err = issue.MovePin(ctx, int(ctx.PathParamInt64(":position")))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "MovePin", err)
 		return
@@ -207,7 +207,7 @@ func ListPinnedIssues(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }
 
 // ListPinnedPullRequests returns a list of all pinned PRs
@@ -240,18 +240,12 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 	}
 
 	apiPrs := make([]*api.PullRequest, len(issues))
+	if err := issues.LoadPullRequests(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadPullRequests", err)
+		return
+	}
 	for i, currentIssue := range issues {
-		pr, err := currentIssue.GetPullRequest(ctx)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetPullRequest", err)
-			return
-		}
-
-		if err = pr.LoadIssue(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
-			return
-		}
-
+		pr := currentIssue.PullRequest
 		if err = pr.LoadAttributes(ctx); err != nil {
 			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 			return

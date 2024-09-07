@@ -65,7 +65,7 @@ var hiddenCommentTypeGroups = hiddenCommentTypeGroupsType{
 	},
 	"project": {
 		/*30*/ issues_model.CommentTypeProject,
-		/*31*/ issues_model.CommentTypeProjectBoard,
+		/*31*/ issues_model.CommentTypeProjectColumn,
 	},
 	"issue_ref": {
 		/*33*/ issues_model.CommentTypeChangeIssueRef,

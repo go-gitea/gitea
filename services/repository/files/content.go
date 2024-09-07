@@ -220,7 +220,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		}
 	}
 	// Handle links
-	if entry.IsRegular() || entry.IsLink() {
+	if entry.IsRegular() || entry.IsLink() || entry.IsExecutable() {
 		downloadURL, err := url.Parse(repo.HTMLURL() + "/raw/" + url.PathEscape(string(refType)) + "/" + util.PathEscapeSegments(ref) + "/" + util.PathEscapeSegments(treePath))
 		if err != nil {
 			return nil, err

@@ -35,9 +35,9 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 			}
 		}
 
-		for _, commitStatus := range commitStatuses {
+		for _, gp := range requiredContextsGlob {
 			var targetStatus structs.CommitStatusState
-			for _, gp := range requiredContextsGlob {
+			for _, commitStatus := range commitStatuses {
 				if gp.Match(commitStatus.Context) {
 					targetStatus = commitStatus.State
 					matchedCount++
@@ -45,17 +45,21 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 				}
 			}
 
-			if targetStatus != "" && targetStatus.NoBetterThan(returnedStatus) {
+			// If required rule not match any action, then it is pending
+			if targetStatus == "" {
+				if structs.CommitStatusPending.NoBetterThan(returnedStatus) {
+					returnedStatus = structs.CommitStatusPending
+				}
+				break
+			}
+
+			if targetStatus.NoBetterThan(returnedStatus) {
 				returnedStatus = targetStatus
 			}
 		}
 	}
 
-	if matchedCount != len(requiredContexts) {
-		return structs.CommitStatusPending
-	}
-
-	if matchedCount == 0 {
+	if matchedCount == 0 && returnedStatus == structs.CommitStatusSuccess {
 		status := git_model.CalcCommitStatus(commitStatuses)
 		if status != nil {
 			return status.State
@@ -148,7 +152,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 		return "", errors.Wrap(err, "LoadBaseRepo")
 	}
 
-	commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptions{ListAll: true})
+	commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
 	if err != nil {
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}

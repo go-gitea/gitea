@@ -35,6 +35,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
+	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 )
 
 const (
@@ -179,7 +180,7 @@ func Create(ctx *context.Context) {
 
 	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
 	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
-	ctx.Data["SupportedObjectFormats"] = git.SupportedObjectFormats
+	ctx.Data["SupportedObjectFormats"] = git.DefaultFeatures().SupportedObjectFormats
 	ctx.Data["DefaultObjectFormat"] = git.Sha1ObjectFormat
 
 	ctx.HTML(http.StatusOK, tplCreate)
@@ -247,7 +248,7 @@ func CreatePost(ctx *context.Context) {
 		opts := repo_service.GenerateRepoOptions{
 			Name:            form.RepoName,
 			Description:     form.Description,
-			Private:         form.Private,
+			Private:         form.Private || setting.Repository.ForcePrivate,
 			GitContent:      form.GitContent,
 			Topics:          form.Topics,
 			GitHooks:        form.GitHooks,
@@ -312,7 +313,7 @@ const (
 // Action response for actions to a repository
 func Action(ctx *context.Context) {
 	var err error
-	switch ctx.Params(":action") {
+	switch ctx.PathParam(":action") {
 	case "watch":
 		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	case "unwatch":
@@ -340,29 +341,29 @@ func Action(ctx *context.Context) {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
 		} else {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam(":action")), err)
 			return
 		}
 	}
 
-	switch ctx.Params(":action") {
+	switch ctx.PathParam(":action") {
 	case "watch", "unwatch":
 		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	case "star", "unstar":
 		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	}
 
-	switch ctx.Params(":action") {
+	switch ctx.PathParam(":action") {
 	case "watch", "unwatch", "star", "unstar":
 		// we have to reload the repository because NumStars or NumWatching (used in the templates) has just changed
 		ctx.Data["Repository"], err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.Name)
 		if err != nil {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam(":action")), err)
 			return
 		}
 	}
 
-	switch ctx.Params(":action") {
+	switch ctx.PathParam(":action") {
 	case "watch", "unwatch":
 		ctx.HTML(http.StatusOK, tplWatchUnwatch)
 		return
@@ -371,7 +372,7 @@ func Action(ctx *context.Context) {
 		return
 	}
 
-	ctx.RedirectToFirst(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
+	ctx.RedirectToCurrentSite(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
@@ -412,14 +413,15 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 // RedirectDownload return a file based on the following infos:
 func RedirectDownload(ctx *context.Context) {
 	var (
-		vTag     = ctx.Params("vTag")
-		fileName = ctx.Params("fileName")
+		vTag     = ctx.PathParam("vTag")
+		fileName = ctx.PathParam("fileName")
 	)
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
 	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
-		RepoID:   curRepo.ID,
-		TagNames: tagNames,
+		IncludeDrafts: ctx.Repo.CanWrite(unit.TypeReleases),
+		RepoID:        curRepo.ID,
+		TagNames:      tagNames,
 	})
 	if err != nil {
 		ctx.ServerError("RedirectDownload", err)
@@ -459,7 +461,7 @@ func RedirectDownload(ctx *context.Context) {
 
 // Download an archive of a repository
 func Download(ctx *context.Context) {
-	uri := ctx.Params("*")
+	uri := ctx.PathParam("*")
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
@@ -484,8 +486,14 @@ func Download(ctx *context.Context) {
 func download(ctx *context.Context, archiveName string, archiver *repo_model.RepoArchiver) {
 	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
 
+	// Add nix format link header so tarballs lock correctly:
+	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
+	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.tar.gz?rev=%s>; rel="immutable"`,
+		ctx.Repo.Repository.APIURL(),
+		archiver.CommitID, archiver.CommitID))
+
 	rPath := archiver.RelativePath()
-	if setting.RepoArchive.Storage.MinioConfig.ServeDirect {
+	if setting.RepoArchive.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
@@ -512,7 +520,7 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 // a request that's already in-progress, but the archiver service will just
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
-	uri := ctx.Params("*")
+	uri := ctx.PathParam("*")
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
 		ctx.ServerError("archiver_service.NewRequest", err)
@@ -547,9 +555,13 @@ func InitiateDownload(ctx *context.Context) {
 
 // SearchRepo repositories via options
 func SearchRepo(ctx *context.Context) {
+	page := ctx.FormInt("page")
+	if page <= 0 {
+		page = 1
+	}
 	opts := &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
-			Page:     ctx.FormInt("page"),
+			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
 		Actor:              ctx.Doer,
@@ -605,7 +617,7 @@ func SearchRepo(ctx *context.Context) {
 		if len(sortOrder) == 0 {
 			sortOrder = "asc"
 		}
-		if searchModeMap, ok := repo_model.SearchOrderByMap[sortOrder]; ok {
+		if searchModeMap, ok := repo_model.OrderByMap[sortOrder]; ok {
 			if orderBy, ok := searchModeMap[sortMode]; ok {
 				opts.OrderBy = orderBy
 			} else {
@@ -618,47 +630,39 @@ func SearchRepo(ctx *context.Context) {
 		}
 	}
 
-	var err error
+	// To improve performance when only the count is requested
+	if ctx.FormBool("count_only") {
+		if count, err := repo_model.CountRepository(ctx, opts); err != nil {
+			log.Error("CountRepository: %v", err)
+			ctx.JSON(http.StatusInternalServerError, nil) // frontend JS doesn't handle error response (same as below)
+		} else {
+			ctx.SetTotalCountHeader(count)
+			ctx.JSONOK()
+		}
+		return
+	}
+
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, api.SearchError{
-			OK:    false,
-			Error: err.Error(),
-		})
+		log.Error("SearchRepository: %v", err)
+		ctx.JSON(http.StatusInternalServerError, nil)
 		return
 	}
 
 	ctx.SetTotalCountHeader(count)
 
-	// To improve performance when only the count is requested
-	if ctx.FormBool("count_only") {
-		return
-	}
-
-	// collect the latest commit of each repo
-	// at most there are dozens of repos (limited by MaxResponseItems), so it's not a big problem at the moment
-	repoBranchNames := make(map[int64]string, len(repos))
-	for _, repo := range repos {
-		repoBranchNames[repo.ID] = repo.DefaultBranch
-	}
-
-	repoIDsToLatestCommitSHAs, err := git_model.FindBranchesByRepoAndBranchName(ctx, repoBranchNames)
+	latestCommitStatuses, err := commitstatus_service.FindReposLastestCommitStatuses(ctx, repos)
 	if err != nil {
-		log.Error("FindBranchesByRepoAndBranchName: %v", err)
+		log.Error("FindReposLastestCommitStatuses: %v", err)
+		ctx.JSON(http.StatusInternalServerError, nil)
 		return
 	}
-
-	// call the database O(1) times to get the commit statuses for all repos
-	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptionsAll)
-	if err != nil {
-		log.Error("GetLatestCommitStatusForPairs: %v", err)
-		return
+	if !ctx.Repo.CanRead(unit.TypeActions) {
+		git_model.CommitStatusesHideActionsURL(ctx, latestCommitStatuses)
 	}
 
 	results := make([]*repo_service.WebSearchRepository, len(repos))
 	for i, repo := range repos {
-		latestCommitStatus := git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID])
-
 		results[i] = &repo_service.WebSearchRepository{
 			Repository: &api.Repository{
 				ID:       repo.ID,
@@ -668,12 +672,15 @@ func SearchRepo(ctx *context.Context) {
 				Template: repo.IsTemplate,
 				Mirror:   repo.IsMirror,
 				Stars:    repo.NumStars,
-				HTMLURL:  repo.HTMLURL(),
+				HTMLURL:  repo.HTMLURL(ctx),
 				Link:     repo.Link(),
 				Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 			},
-			LatestCommitStatus:       latestCommitStatus,
-			LocaleLatestCommitStatus: latestCommitStatus.LocaleString(ctx.Locale),
+		}
+
+		if latestCommitStatuses[i] != nil {
+			results[i].LatestCommitStatus = latestCommitStatuses[i]
+			results[i].LocaleLatestCommitStatus = latestCommitStatuses[i].LocaleString(ctx.Locale)
 		}
 	}
 
@@ -692,9 +699,7 @@ func GetBranchesList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
 		IsDeletedBranch: optional.Some(false),
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions:     db.ListOptionsAll,
 	}
 	branches, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {
@@ -727,9 +732,7 @@ func PrepareBranchList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
 		IsDeletedBranch: optional.Some(false),
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions:     db.ListOptionsAll,
 	}
 	brs, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {

@@ -178,7 +178,7 @@ type FindTopicOptions struct {
 	Keyword string
 }
 
-func (opts *FindTopicOptions) toConds() builder.Cond {
+func (opts *FindTopicOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_topic.repo_id": opts.RepoID})
@@ -191,29 +191,24 @@ func (opts *FindTopicOptions) toConds() builder.Cond {
 	return cond
 }
 
-// FindTopics retrieves the topics via FindTopicOptions
-func FindTopics(ctx context.Context, opts *FindTopicOptions) ([]*Topic, int64, error) {
-	sess := db.GetEngine(ctx).Select("topic.*").Where(opts.toConds())
+func (opts *FindTopicOptions) ToOrders() string {
 	orderBy := "topic.repo_count DESC"
 	if opts.RepoID > 0 {
-		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
 		orderBy = "topic.name" // when render topics for a repo, it's better to sort them by name, to get consistent result
 	}
-	if opts.PageSize != 0 && opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, opts)
-	}
-	topics := make([]*Topic, 0, 10)
-	total, err := sess.OrderBy(orderBy).FindAndCount(&topics)
-	return topics, total, err
+	return orderBy
 }
 
-// CountTopics counts the number of topics matching the FindTopicOptions
-func CountTopics(ctx context.Context, opts *FindTopicOptions) (int64, error) {
-	sess := db.GetEngine(ctx).Where(opts.toConds())
-	if opts.RepoID > 0 {
-		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
+func (opts *FindTopicOptions) ToJoins() []db.JoinFunc {
+	if opts.RepoID <= 0 {
+		return nil
 	}
-	return sess.Count(new(Topic))
+	return []db.JoinFunc{
+		func(e db.Engine) error {
+			e.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
+			return nil
+		},
+	}
 }
 
 // GetRepoTopicByName retrieves topic from name for a repo if it exist
@@ -283,7 +278,7 @@ func DeleteTopic(ctx context.Context, repoID int64, topicName string) (*Topic, e
 
 // SaveTopics save topics to a repository
 func SaveTopics(ctx context.Context, repoID int64, topicNames ...string) error {
-	topics, _, err := FindTopics(ctx, &FindTopicOptions{
+	topics, err := db.Find[Topic](ctx, &FindTopicOptions{
 		RepoID: repoID,
 	})
 	if err != nil {

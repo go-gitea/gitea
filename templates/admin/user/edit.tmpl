@@ -53,7 +53,7 @@
 					</div>
 				</div>
 
-				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}gt-hidden{{end}}">
+				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}tw-hidden{{end}}">
 					<label for="login_name">{{ctx.Locale.Tr "admin.users.auth_login_name"}}</label>
 					<input id="login_name" name="login_name" value="{{.User.LoginName}}" autofocus>
 				</div>
@@ -65,7 +65,7 @@
 					<label for="email">{{ctx.Locale.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.User.Email}}" autofocus required>
 				</div>
-				<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}gt-hidden{{end}}">
+				<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}tw-hidden{{end}}">
 					<label for="password">{{ctx.Locale.Tr "password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password">
 					<p class="help">{{ctx.Locale.Tr "admin.users.password_helper"}}</p>
@@ -128,13 +128,13 @@
 						<input name="restricted" type="checkbox" {{if .User.IsRestricted}}checked{{end}}>
 					</div>
 				</div>
-				<div class="inline field {{if DisableGitHooks}}gt-hidden{{end}}">
+				<div class="inline field {{if DisableGitHooks}}tw-hidden{{end}}">
 					<div class="ui checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.users.allow_git_hook_tooltip"}}">
 						<label><strong>{{ctx.Locale.Tr "admin.users.allow_git_hook"}}</strong></label>
 						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
 					</div>
 				</div>
-				<div class="inline field {{if or (DisableImportLocal) (.DisableMigrations)}}gt-hidden{{end}}">
+				<div class="inline field {{if or (DisableImportLocal) (.DisableMigrations)}}tw-hidden{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.users.allow_import_local"}}</strong></label>
 						<input name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}} {{if DisableImportLocal}}disabled{{end}}>
@@ -181,7 +181,7 @@
 						<label>{{ctx.Locale.Tr "settings.lookup_avatar_by_mail"}}</label>
 					</div>
 				</div>
-				<div class="field gt-pl-4 {{if .Err_Gravatar}}error{{end}}">
+				<div class="field tw-pl-4 {{if .Err_Gravatar}}error{{end}}">
 					<label for="gravatar">Avatar {{ctx.Locale.Tr "email"}}</label>
 					<input id="gravatar" name="gravatar" value="{{.User.AvatarEmail}}">
 				</div>
@@ -194,7 +194,7 @@
 					</div>
 				</div>
 
-				<div class="inline field gt-pl-4">
+				<div class="inline field tw-pl-4">
 					<label for="avatar">{{ctx.Locale.Tr "settings.choose_new_avatar"}}</label>
 					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>

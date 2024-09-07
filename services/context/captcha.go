@@ -30,7 +30,7 @@ func GetImageCaptcha() *captcha.Captcha {
 		cpt = captcha.NewCaptcha(captcha.Options{
 			SubURL: setting.AppSubURL,
 		})
-		cpt.Store = cache.GetCache()
+		cpt.Store = cache.GetCache().ChiCache()
 	})
 	return cpt
 }
@@ -79,11 +79,11 @@ func VerifyCaptcha(ctx *Context, tpl base.TplName, form any) {
 	case setting.CfTurnstile:
 		valid, err = turnstile.Verify(ctx, ctx.Req.Form.Get(cfTurnstileResponseField))
 	default:
-		ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
+		ctx.ServerError("Unknown Captcha Type", fmt.Errorf("unknown Captcha Type: %s", setting.Service.CaptchaType))
 		return
 	}
 	if err != nil {
-		log.Debug("%v", err)
+		log.Debug("Captcha Verify failed: %v", err)
 	}
 
 	if !valid {

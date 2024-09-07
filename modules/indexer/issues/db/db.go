@@ -71,11 +71,28 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 				)),
 			),
 		)
+
+		if options.IsKeywordNumeric() {
+			cond = cond.Or(
+				builder.Eq{"`index`": options.Keyword},
+			)
+		}
 	}
 
 	opt, err := ToDBOptions(ctx, options)
 	if err != nil {
 		return nil, err
+	}
+
+	// If pagesize == 0, return total count only. It's a special case for search count.
+	if options.Paginator != nil && options.Paginator.PageSize == 0 {
+		total, err := issue_model.CountIssues(ctx, opt, cond)
+		if err != nil {
+			return nil, err
+		}
+		return &internal.SearchResult{
+			Total: total,
+		}, nil
 	}
 
 	ids, total, err := issue_model.IssueIDs(ctx, opt, cond)

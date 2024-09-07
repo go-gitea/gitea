@@ -15,11 +15,11 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -154,17 +154,19 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elasti
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
-		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-		if err := git.EnsureValidGitRepository(ctx, repo.RepoPath()); err != nil {
-			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
+		r, err := gitrepo.OpenRepository(ctx, repo)
+		if err != nil {
 			return err
 		}
-
-		batchWriter, batchReader, cancel := git.CatFileBatch(ctx, repo.RepoPath())
-		defer cancel()
+		defer r.Close()
+		batch, err := r.NewBatch(ctx)
+		if err != nil {
+			return err
+		}
+		defer batch.Close()
 
 		for _, update := range changes.Updates {
-			updateReqs, err := b.addUpdate(ctx, batchWriter, batchReader, sha, update, repo)
+			updateReqs, err := b.addUpdate(ctx, batch.Writer, batch.Reader, sha, update, repo)
 			if err != nil {
 				return err
 			}
@@ -172,7 +174,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 				reqs = append(reqs, updateReqs...)
 			}
 		}
-		cancel()
+		batch.Close()
 	}
 
 	for _, filename := range changes.RemovedFilenames {
@@ -281,18 +283,18 @@ func extractAggs(searchResult *elastic.SearchResult) []*internal.SearchResultLan
 }
 
 // Search searches for codes and language stats by given conditions.
-func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
-	searchType := esMultiMatchTypeBestFields
-	if isMatch {
-		searchType = esMultiMatchTypePhrasePrefix
+func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
+	searchType := esMultiMatchTypePhrasePrefix
+	if opts.IsKeywordFuzzy {
+		searchType = esMultiMatchTypeBestFields
 	}
 
-	kwQuery := elastic.NewMultiMatchQuery(keyword, "content").Type(searchType)
+	kwQuery := elastic.NewMultiMatchQuery(opts.Keyword, "content").Type(searchType)
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
-	if len(repoIDs) > 0 {
-		repoStrs := make([]any, 0, len(repoIDs))
-		for _, repoID := range repoIDs {
+	if len(opts.RepoIDs) > 0 {
+		repoStrs := make([]any, 0, len(opts.RepoIDs))
+		for _, repoID := range opts.RepoIDs {
 			repoStrs = append(repoStrs, repoID)
 		}
 		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
@@ -300,16 +302,12 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 	}
 
 	var (
-		start       int
-		kw          = "<em>" + keyword + "</em>"
-		aggregation = elastic.NewTermsAggregation().Field("language").Size(10).OrderByCountDesc()
+		start, pageSize = opts.GetSkipTake()
+		kw              = "<em>" + opts.Keyword + "</em>"
+		aggregation     = elastic.NewTermsAggregation().Field("language").Size(10).OrderByCountDesc()
 	)
 
-	if page > 0 {
-		start = (page - 1) * pageSize
-	}
-
-	if len(language) == 0 {
+	if len(opts.Language) == 0 {
 		searchResult, err := b.inner.Client.Search().
 			Index(b.inner.VersionedIndexName()).
 			Aggregation("language", aggregation).
@@ -330,7 +328,7 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 		return convertResult(searchResult, kw, pageSize)
 	}
 
-	langQuery := elastic.NewMatchQuery("language", language)
+	langQuery := elastic.NewMatchQuery("language", opts.Language)
 	countResult, err := b.inner.Client.Search().
 		Index(b.inner.VersionedIndexName()).
 		Aggregation("language", aggregation).

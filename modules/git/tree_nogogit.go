@@ -33,7 +33,10 @@ func (t *Tree) ListEntries() (Entries, error) {
 	}
 
 	if t.repo != nil {
-		wr, rd, cancel := t.repo.CatFileBatch(t.repo.Ctx)
+		wr, rd, cancel, err := t.repo.CatFileBatch(t.repo.Ctx)
+		if err != nil {
+			return nil, err
+		}
 		defer cancel()
 
 		_, _ = wr.Write([]byte(t.ID.String() + "\n"))
@@ -78,7 +81,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 	}
 
 	var err error
-	t.entries, err = parseTreeEntries(t.repo.objectFormat, stdout, t)
+	t.entries, err = parseTreeEntries(stdout, t)
 	if err == nil {
 		t.entriesParsed = true
 	}
@@ -102,7 +105,7 @@ func (t *Tree) listEntriesRecursive(extraArgs TrustedCmdArgs) (Entries, error) {
 	}
 
 	var err error
-	t.entriesRecursive, err = parseTreeEntries(t.repo.objectFormat, stdout, t)
+	t.entriesRecursive, err = parseTreeEntries(stdout, t)
 	if err == nil {
 		t.entriesRecursiveParsed = true
 	}

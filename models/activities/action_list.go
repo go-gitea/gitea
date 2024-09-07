@@ -6,25 +6,28 @@ package activities
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ActionList defines a list of actions
 type ActionList []*Action
 
 func (actions ActionList) getUserIDs() []int64 {
-	userIDs := make(container.Set[int64], len(actions))
-	for _, action := range actions {
-		userIDs.Add(action.ActUserID)
-	}
-	return userIDs.Values()
+	return container.FilterSlice(actions, func(action *Action) (int64, bool) {
+		return action.ActUserID, true
+	})
 }
 
-func (actions ActionList) loadUsers(ctx context.Context) (map[int64]*user_model.User, error) {
+func (actions ActionList) LoadActUsers(ctx context.Context) (map[int64]*user_model.User, error) {
 	if len(actions) == 0 {
 		return nil, nil
 	}
@@ -45,14 +48,12 @@ func (actions ActionList) loadUsers(ctx context.Context) (map[int64]*user_model.
 }
 
 func (actions ActionList) getRepoIDs() []int64 {
-	repoIDs := make(container.Set[int64], len(actions))
-	for _, action := range actions {
-		repoIDs.Add(action.RepoID)
-	}
-	return repoIDs.Values()
+	return container.FilterSlice(actions, func(action *Action) (int64, bool) {
+		return action.RepoID, true
+	})
 }
 
-func (actions ActionList) loadRepositories(ctx context.Context) error {
+func (actions ActionList) LoadRepositories(ctx context.Context) error {
 	if len(actions) == 0 {
 		return nil
 	}
@@ -63,11 +64,11 @@ func (actions ActionList) loadRepositories(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("find repository: %w", err)
 	}
-
 	for _, action := range actions {
 		action.Repo = repoMaps[action.RepoID]
 	}
-	return nil
+	repos := repo_model.RepositoryList(util.ValuesOfMap(repoMaps))
+	return repos.LoadUnits(ctx)
 }
 
 func (actions ActionList) loadRepoOwner(ctx context.Context, userMap map[int64]*user_model.User) (err error) {
@@ -75,37 +76,128 @@ func (actions ActionList) loadRepoOwner(ctx context.Context, userMap map[int64]*
 		userMap = make(map[int64]*user_model.User)
 	}
 
-	for _, action := range actions {
+	missingUserIDs := container.FilterSlice(actions, func(action *Action) (int64, bool) {
 		if action.Repo == nil {
-			continue
+			return 0, false
 		}
-		repoOwner, ok := userMap[action.Repo.OwnerID]
-		if !ok {
-			repoOwner, err = user_model.GetUserByID(ctx, action.Repo.OwnerID)
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					continue
-				}
-				return err
-			}
-			userMap[repoOwner.ID] = repoOwner
+		_, alreadyLoaded := userMap[action.Repo.OwnerID]
+		return action.Repo.OwnerID, !alreadyLoaded
+	})
+	if len(missingUserIDs) == 0 {
+		return nil
+	}
+
+	if err := db.GetEngine(ctx).
+		In("id", missingUserIDs).
+		Find(&userMap); err != nil {
+		return fmt.Errorf("find user: %w", err)
+	}
+
+	for _, action := range actions {
+		if action.Repo != nil {
+			action.Repo.Owner = userMap[action.Repo.OwnerID]
 		}
-		action.Repo.Owner = repoOwner
 	}
 
 	return nil
 }
 
-// loadAttributes loads all attributes
-func (actions ActionList) loadAttributes(ctx context.Context) error {
-	userMap, err := actions.loadUsers(ctx)
+// LoadAttributes loads all attributes
+func (actions ActionList) LoadAttributes(ctx context.Context) error {
+	// the load sequence cannot be changed because of the dependencies
+	userMap, err := actions.LoadActUsers(ctx)
 	if err != nil {
 		return err
 	}
-
-	if err := actions.loadRepositories(ctx); err != nil {
+	if err := actions.LoadRepositories(ctx); err != nil {
 		return err
 	}
+	if err := actions.loadRepoOwner(ctx, userMap); err != nil {
+		return err
+	}
+	if err := actions.LoadIssues(ctx); err != nil {
+		return err
+	}
+	return actions.LoadComments(ctx)
+}
 
-	return actions.loadRepoOwner(ctx, userMap)
+func (actions ActionList) LoadComments(ctx context.Context) error {
+	if len(actions) == 0 {
+		return nil
+	}
+
+	commentIDs := make([]int64, 0, len(actions))
+	for _, action := range actions {
+		if action.CommentID > 0 {
+			commentIDs = append(commentIDs, action.CommentID)
+		}
+	}
+	if len(commentIDs) == 0 {
+		return nil
+	}
+
+	commentsMap := make(map[int64]*issues_model.Comment, len(commentIDs))
+	if err := db.GetEngine(ctx).In("id", commentIDs).Find(&commentsMap); err != nil {
+		return fmt.Errorf("find comment: %w", err)
+	}
+
+	for _, action := range actions {
+		if action.CommentID > 0 {
+			action.Comment = commentsMap[action.CommentID]
+			if action.Comment != nil {
+				action.Comment.Issue = action.Issue
+			}
+		}
+	}
+	return nil
+}
+
+func (actions ActionList) LoadIssues(ctx context.Context) error {
+	if len(actions) == 0 {
+		return nil
+	}
+
+	conditions := builder.NewCond()
+	issueNum := 0
+	for _, action := range actions {
+		if action.IsIssueEvent() {
+			infos := action.GetIssueInfos()
+			if len(infos) == 0 {
+				continue
+			}
+			index, _ := strconv.ParseInt(infos[0], 10, 64)
+			if index > 0 {
+				conditions = conditions.Or(builder.Eq{
+					"repo_id": action.RepoID,
+					"`index`": index,
+				})
+				issueNum++
+			}
+		}
+	}
+	if !conditions.IsValid() {
+		return nil
+	}
+
+	issuesMap := make(map[string]*issues_model.Issue, issueNum)
+	issues := make([]*issues_model.Issue, 0, issueNum)
+	if err := db.GetEngine(ctx).Where(conditions).Find(&issues); err != nil {
+		return fmt.Errorf("find issue: %w", err)
+	}
+	for _, issue := range issues {
+		issuesMap[fmt.Sprintf("%d-%d", issue.RepoID, issue.Index)] = issue
+	}
+
+	for _, action := range actions {
+		if !action.IsIssueEvent() {
+			continue
+		}
+		if index := action.getIssueIndex(); index > 0 {
+			if issue, ok := issuesMap[fmt.Sprintf("%d-%d", action.RepoID, index)]; ok {
+				action.Issue = issue
+				action.Issue.Repo = action.Repo
+			}
+		}
+	}
+	return nil
 }

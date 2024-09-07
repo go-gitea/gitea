@@ -134,3 +134,13 @@ func extractSignature(s string) (*packet.Signature, error) {
 	}
 	return sig, nil
 }
+
+func tryGetKeyIDFromSignature(sig *packet.Signature) string {
+	if sig.IssuerKeyId != nil && (*sig.IssuerKeyId) != 0 {
+		return fmt.Sprintf("%016X", *sig.IssuerKeyId)
+	}
+	if sig.IssuerFingerprint != nil && len(sig.IssuerFingerprint) > 0 {
+		return fmt.Sprintf("%016X", sig.IssuerFingerprint[12:20])
+	}
+	return ""
+}

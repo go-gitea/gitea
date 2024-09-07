@@ -6,7 +6,7 @@
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.generic.download"}}</label>
 				<div class="markup"><pre class="code-block"><code>
 {{- range .PackageDescriptor.Files -}}
-curl -OJ <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/generic/{{$.PackageDescriptor.Package.Name}}/{{$.PackageDescriptor.Version.Version}}/{{.File.Name}}"></gitea-origin-url>
+curl -OJ <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/generic/{{$.PackageDescriptor.Package.Name}}/{{$.PackageDescriptor.Version.Version}}/{{.File.Name}}"></origin-url>
 {{end -}}
 				</code></pre></div>
 			</div>

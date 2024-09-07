@@ -81,7 +81,7 @@ func Users(ctx *context.Context) {
 		IsRestricted:       util.OptionalBoolParse(statusFilterMap["is_restricted"]),
 		IsTwoFactorEnabled: util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    util.OptionalBoolParse(statusFilterMap["is_prohibit_login"]),
-		IncludeReserved:    true, // administrator needs to list all acounts include reserved, bot, remote ones
+		IncludeReserved:    true, // administrator needs to list all accounts include reserved, bot, remote ones
 		ExtraParamStrings:  extraParamStrings,
 	}, tplUsers)
 }
@@ -166,7 +166,7 @@ func NewUserPost(ctx *context.Context) {
 		}
 		if err := password.IsPwned(ctx, form.Password); err != nil {
 			ctx.Data["Err_Password"] = true
-			errMsg := ctx.Tr("auth.password_pwned")
+			errMsg := ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords")
 			if password.IsErrIsPwnedRequest(err) {
 				log.Error(err.Error())
 				errMsg = ctx.Tr("auth.password_pwned_err")
@@ -202,6 +202,11 @@ func NewUserPost(ctx *context.Context) {
 		}
 		return
 	}
+
+	if !user_model.IsEmailDomainAllowed(u.Email) {
+		ctx.Flash.Warning(ctx.Tr("form.email_domain_is_not_allowed", u.Email))
+	}
+
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	// Send email notification.
@@ -214,7 +219,7 @@ func NewUserPost(ctx *context.Context) {
 }
 
 func prepareUserInfo(ctx *context.Context) *user_model.User {
-	u, err := user_model.GetUserByID(ctx, ctx.ParamsInt64(":userid"))
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64(":userid"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Redirect(setting.AppSubURL + "/admin/users")
@@ -270,9 +275,7 @@ func ViewUser(ctx *context.Context) {
 	}
 
 	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions: db.ListOptionsAll,
 		OwnerID:     u.ID,
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Private:     true,
@@ -295,9 +298,7 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["EmailsTotal"] = len(emails)
 
 	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions:    db.ListOptionsAll,
 		UserID:         u.ID,
 		IncludePrivate: true,
 	})
@@ -400,9 +401,8 @@ func EditUserPost(ctx *context.Context) {
 			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplUserEdit, &form)
 		case errors.Is(err, password.ErrIsPwned):
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_pwned"), tplUserEdit, &form)
+			ctx.RenderWithErr(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplUserEdit, &form)
 		case password.IsErrIsPwnedRequest(err):
-			log.Error("%s", err.Error())
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplUserEdit, &form)
 		default:
@@ -412,7 +412,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if form.Email != "" {
-		if err := user_service.AddOrSetPrimaryEmailAddress(ctx, u, form.Email); err != nil {
+		if err := user_service.AdminAddOrSetPrimaryEmailAddress(ctx, u, form.Email); err != nil {
 			switch {
 			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
 				ctx.Data["Err_Email"] = true
@@ -424,6 +424,9 @@ func EditUserPost(ctx *context.Context) {
 				ctx.ServerError("AddOrSetPrimaryEmailAddress", err)
 			}
 			return
+		}
+		if !user_model.IsEmailDomainAllowed(form.Email) {
+			ctx.Flash.Warning(ctx.Tr("form.email_domain_is_not_allowed", form.Email))
 		}
 	}
 
@@ -478,12 +481,12 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 }
 
 // DeleteUser response for deleting a user
 func DeleteUser(ctx *context.Context) {
-	u, err := user_model.GetUserByID(ctx, ctx.ParamsInt64(":userid"))
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64(":userid"))
 	if err != nil {
 		ctx.ServerError("GetUserByID", err)
 		return
@@ -492,7 +495,7 @@ func DeleteUser(ctx *context.Context) {
 	// admin should not delete themself
 	if u.ID == ctx.Doer.ID {
 		ctx.Flash.Error(ctx.Tr("admin.users.cannot_delete_self"))
-		ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+		ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		return
 	}
 
@@ -500,16 +503,16 @@ func DeleteUser(ctx *context.Context) {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		case models.IsErrUserHasOrgs(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_has_org"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		case models.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_packages"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		case models.IsErrDeleteLastAdminUser(err):
 			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		default:
 			ctx.ServerError("DeleteUser", err)
 		}

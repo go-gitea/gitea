@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.conan.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>conan remote add gitea <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/conan"></gitea-origin-url></code></pre></div>
+				<div class="markup"><pre class="code-block"><code>conan remote add gitea <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/conan"></origin-url></code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.conan.install"}}</label>

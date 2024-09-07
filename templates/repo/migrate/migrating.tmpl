@@ -12,7 +12,7 @@
 								<img src="{{AssetUrlPrefix}}/img/loading.png">
 							</div>
 						</div>
-						<div id="repo_migrating_failed_image" class="sixteen wide center aligned centered column gt-hidden">
+						<div id="repo_migrating_failed_image" class="sixteen wide center aligned centered column tw-hidden">
 							<div>
 								<img src="{{AssetUrlPrefix}}/img/failed.png">
 							</div>
@@ -24,7 +24,7 @@
 								<p>{{ctx.Locale.Tr "repo.migrate.migrating" .CloneAddr}}</p>
 								<p id="repo_migrating_progress_message"></p>
 							</div>
-							<div id="repo_migrating_failed" class="gt-hidden">
+							<div id="repo_migrating_failed" class="tw-hidden">
 								{{if .CloneAddr}}
 									<p>{{ctx.Locale.Tr "repo.migrate.migrating_failed" .CloneAddr}}</p>
 								{{else}}
@@ -40,7 +40,7 @@
 									{{else}}
 										<button class="ui basic show-modal button" data-modal="#cancel-repo-modal">{{ctx.Locale.Tr "cancel"}}</button>
 									{{end}}
-									<button id="repo_migrating_retry" data-migrating-task-retry-url="{{.Link}}/settings/migrate/retry" class="ui basic button gt-hidden">{{ctx.Locale.Tr "retry"}}</button>
+									<button id="repo_migrating_retry" data-migrating-task-retry-url="{{.Link}}/settings/migrate/retry" class="ui basic button tw-hidden">{{ctx.Locale.Tr "retry"}}</button>
 								</div>
 							{{end}}
 						</div>

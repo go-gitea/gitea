@@ -47,8 +47,9 @@ type EditLabelOption struct {
 
 // IssueLabelsOption a collection of labels
 type IssueLabelsOption struct {
-	// list of label IDs
-	Labels []int64 `json:"labels"`
+	// Labels can be a list of integers representing label IDs
+	// or a list of strings representing label names
+	Labels []any `json:"labels"`
 }
 
 // LabelTemplate info of a Label template

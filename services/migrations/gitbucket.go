@@ -72,6 +72,11 @@ func (g *GitBucketDownloader) LogString() string {
 // NewGitBucketDownloader creates a GitBucket downloader
 func NewGitBucketDownloader(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GitBucketDownloader {
 	githubDownloader := NewGithubDownloaderV3(ctx, baseURL, userName, password, token, repoOwner, repoName)
+	// Gitbucket 4.40 uses different internal hard-coded perPage values.
+	// Issues, PRs, and other major parts use 25.  Release page uses 10.
+	// Some API doesn't support paging yet.  Sounds difficult, but using
+	// minimum number among them worked out very well.
+	githubDownloader.maxPerPage = 10
 	githubDownloader.SkipReactions = true
 	githubDownloader.SkipReviews = true
 	return &GitBucketDownloader{
