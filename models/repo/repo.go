@@ -18,6 +18,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/optional"
@@ -321,8 +322,12 @@ func (repo *Repository) FullName() string {
 }
 
 // HTMLURL returns the repository HTML URL
-func (repo *Repository) HTMLURL() string {
-	return setting.AppURL + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
+func (repo *Repository) HTMLURL(ctxs ...context.Context) string {
+	ctx := context.TODO()
+	if len(ctxs) > 0 {
+		ctx = ctxs[0]
+	}
+	return httplib.MakeAbsoluteURL(ctx, repo.Link())
 }
 
 // CommitLink make link to by commit full ID
@@ -362,7 +367,7 @@ func (repo *Repository) LoadUnits(ctx context.Context) (err error) {
 	if log.IsTrace() {
 		unitTypeStrings := make([]string, len(repo.Units))
 		for i, unit := range repo.Units {
-			unitTypeStrings[i] = unit.Type.String()
+			unitTypeStrings[i] = unit.Type.LogString()
 		}
 		log.Trace("repo.Units, ID=%d, Types: [%s]", repo.ID, strings.Join(unitTypeStrings, ", "))
 	}
@@ -740,17 +745,18 @@ func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string
 
 // GetRepositoryByName returns the repository by given name under user if exists.
 func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repository, error) {
-	repo := &Repository{
-		OwnerID:   ownerID,
-		LowerName: strings.ToLower(name),
-	}
-	has, err := db.GetEngine(ctx).Get(repo)
+	var repo Repository
+	has, err := db.GetEngine(ctx).
+		Where("`owner_id`=?", ownerID).
+		And("`lower_name`=?", strings.ToLower(name)).
+		NoAutoCondition().
+		Get(&repo)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrRepoNotExist{0, ownerID, "", name}
 	}
-	return repo, err
+	return &repo, err
 }
 
 // getRepositoryURLPathSegments returns segments (owner, reponame) extracted from a url

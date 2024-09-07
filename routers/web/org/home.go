@@ -4,6 +4,7 @@
 package org
 
 import (
+	"fmt"
 	"net/http"
 	"path"
 	"strings"
@@ -12,7 +13,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -28,51 +28,39 @@ const (
 
 // Home show organization home page
 func Home(ctx *context.Context) {
-	uname := ctx.Params(":username")
+	uname := ctx.PathParam(":username")
 
 	if strings.HasSuffix(uname, ".keys") || strings.HasSuffix(uname, ".gpg") {
 		ctx.NotFound("", nil)
 		return
 	}
 
-	ctx.SetParams(":org", uname)
+	ctx.SetPathParam(":org", uname)
 	context.HandleOrgAssignment(ctx)
 	if ctx.Written() {
 		return
 	}
 
+	home(ctx, false)
+}
+
+func Repositories(ctx *context.Context) {
+	home(ctx, true)
+}
+
+func home(ctx *context.Context, viewRepositories bool) {
 	org := ctx.Org.Organization
 
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
 
 	var orderBy db.SearchOrderBy
-	ctx.Data["SortType"] = ctx.FormString("sort")
-	switch ctx.FormString("sort") {
-	case "newest":
-		orderBy = db.SearchOrderByNewest
-	case "oldest":
-		orderBy = db.SearchOrderByOldest
-	case "recentupdate":
-		orderBy = db.SearchOrderByRecentUpdated
-	case "leastupdate":
-		orderBy = db.SearchOrderByLeastUpdated
-	case "reversealphabetically":
-		orderBy = db.SearchOrderByAlphabeticallyReverse
-	case "alphabetically":
-		orderBy = db.SearchOrderByAlphabetically
-	case "moststars":
-		orderBy = db.SearchOrderByStarsReverse
-	case "feweststars":
-		orderBy = db.SearchOrderByStars
-	case "mostforks":
-		orderBy = db.SearchOrderByForksReverse
-	case "fewestforks":
-		orderBy = db.SearchOrderByForks
-	default:
-		ctx.Data["SortType"] = "recentupdate"
-		orderBy = db.SearchOrderByRecentUpdated
+	sortOrder := ctx.FormString("sort")
+	if _, ok := repo_model.OrderByFlatMap[sortOrder]; !ok {
+		sortOrder = setting.UI.ExploreDefaultSort // TODO: add new default sort order for org home?
 	}
+	ctx.Data["SortType"] = sortOrder
+	orderBy = repo_model.OrderByFlatMap[sortOrder]
 
 	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
@@ -100,10 +88,34 @@ func Home(ctx *context.Context) {
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
+	opts := &organization.FindOrgMembersOpts{
+		OrgID:       org.ID,
+		PublicOnly:  ctx.Org.PublicMemberOnly,
+		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
+	}
+	members, _, err := organization.FindOrgMembers(ctx, opts)
+	if err != nil {
+		ctx.ServerError("FindOrgMembers", err)
+		return
+	}
+	ctx.Data["Members"] = members
+	ctx.Data["Teams"] = ctx.Org.Teams
+	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
+	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
+
+	if !prepareOrgProfileReadme(ctx, viewRepositories) {
+		ctx.Data["PageIsViewRepositories"] = true
+	}
+
 	var (
 		repos []*repo_model.Repository
 		count int64
-		err   error
 	)
 	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
@@ -128,47 +140,39 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	opts := &organization.FindOrgMembersOpts{
-		OrgID:       org.ID,
-		PublicOnly:  ctx.Org.PublicMemberOnly,
-		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
-	}
-	members, _, err := organization.FindOrgMembers(ctx, opts)
-	if err != nil {
-		ctx.ServerError("FindOrgMembers", err)
-		return
-	}
-
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
-	ctx.Data["Members"] = members
-	ctx.Data["Teams"] = ctx.Org.Teams
-	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
-	ctx.Data["PageIsViewRepositories"] = true
-
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParamString("language", language)
+	if archived.Has() {
+		pager.AddParamString("archived", fmt.Sprint(archived.Value()))
+	}
+	if fork.Has() {
+		pager.AddParamString("fork", fmt.Sprint(fork.Value()))
+	}
+	if mirror.Has() {
+		pager.AddParamString("mirror", fmt.Sprint(mirror.Value()))
+	}
+	if template.Has() {
+		pager.AddParamString("template", fmt.Sprint(template.Value()))
+	}
+	if private.Has() {
+		pager.AddParamString("private", fmt.Sprint(private.Value()))
+	}
 	ctx.Data["Page"] = pager
-
-	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
-
-	profileDbRepo, profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
-	defer profileClose()
-	prepareOrgProfileReadme(ctx, profileGitRepo, profileDbRepo, profileReadmeBlob)
 
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }
 
-func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repository, profileDbRepo *repo_model.Repository, profileReadme *git.Blob) {
-	if profileGitRepo == nil || profileReadme == nil {
-		return
+func prepareOrgProfileReadme(ctx *context.Context, viewRepositories bool) bool {
+	profileDbRepo, profileGitRepo, profileReadme, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
+	defer profileClose()
+	ctx.Data["HasProfileReadme"] = profileReadme != nil
+
+	if profileGitRepo == nil || profileReadme == nil || viewRepositories {
+		return false
 	}
 
 	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
@@ -190,4 +194,7 @@ func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repositor
 			ctx.Data["ProfileReadme"] = profileContent
 		}
 	}
+
+	ctx.Data["PageIsViewOverview"] = true
+	return true
 }

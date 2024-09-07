@@ -129,8 +129,8 @@ func ArtifactV4Contexter() func(next http.Handler) http.Handler {
 	}
 }
 
-func ArtifactsV4Routes(prefix string) *web.Route {
-	m := web.NewRoute()
+func ArtifactsV4Routes(prefix string) *web.Router {
+	m := web.NewRouter()
 
 	r := artifactV4Routes{
 		prefix: prefix,

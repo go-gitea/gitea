@@ -380,6 +380,7 @@ func TestRegExp_sha1CurrentPattern(t *testing.T) {
 		"(abcdefabcdefabcdefabcdefabcdefabcdefabcd)",
 		"[abcdefabcdefabcdefabcdefabcdefabcdefabcd]",
 		"abcdefabcdefabcdefabcdefabcdefabcdefabcd.",
+		"abcdefabcdefabcdefabcdefabcdefabcdefabcd:",
 	}
 	falseTestCases := []string{
 		"test",

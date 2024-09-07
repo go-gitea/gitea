@@ -1,8 +1,8 @@
-<script>
+<script lang="ts">
 import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
-import {SvgIcon} from '../svg.js';
-import {GET} from '../modules/fetch.js';
+import {SvgIcon} from '../svg.ts';
+import {GET} from '../modules/fetch.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
@@ -101,7 +101,7 @@ const sfc = {
   },
 
   mounted() {
-    const el = document.getElementById('dashboard-repo-list');
+    const el = document.querySelector('#dashboard-repo-list');
     this.changeReposFilter(this.reposFilter);
     $(el).find('.dropdown').dropdown();
     nextTick(() => {
@@ -330,7 +330,7 @@ const sfc = {
 };
 
 export function initDashboardRepoList() {
-  const el = document.getElementById('dashboard-repo-list');
+  const el = document.querySelector('#dashboard-repo-list');
   if (el) {
     createApp(sfc).mount(el);
   }
