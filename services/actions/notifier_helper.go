@@ -43,7 +43,8 @@ func withMethod(ctx context.Context, method string) context.Context {
 			return ctx
 		}
 	}
-	return context.WithValue(ctx, methodCtxKey, method)
+	// FIXME: review the use of this nolint directive
+	return context.WithValue(ctx, methodCtxKey, method) //nolint:staticcheck
 }
 
 // getMethod gets the notification method that this context currently executes.
