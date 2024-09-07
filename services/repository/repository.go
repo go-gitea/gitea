@@ -122,6 +122,31 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	return committer.Commit()
 }
 
+func UpdateRepositoryVisibility(ctx context.Context, repo *repo_model.Repository, isPrivate bool) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer committer.Close()
+
+	repo.IsPrivate = isPrivate
+
+	if err = repo_module.UpdateRepository(ctx, repo, true); err != nil {
+		return fmt.Errorf("UpdateRepositoryVisibility: %w", err)
+	}
+
+	return committer.Commit()
+}
+
+func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error) {
+	return UpdateRepositoryVisibility(ctx, repo, false)
+}
+
+func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err error) {
+	return UpdateRepositoryVisibility(ctx, repo, true)
+}
+
 // LinkedRepository returns the linked repo if any
 func LinkedRepository(ctx context.Context, a *repo_model.Attachment) (*repo_model.Repository, unit.Type, error) {
 	if a.IssueID != 0 {
