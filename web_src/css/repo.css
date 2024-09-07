@@ -175,7 +175,7 @@
   right: 9px;
   top: -10px;
 
-  border: 8px solid #000000;
+  border: 8px solid war(--color-black);
   border-bottom: 8px solid var(--color-shadow);
 
   display: inline-block;
