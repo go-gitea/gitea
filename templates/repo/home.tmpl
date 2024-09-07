@@ -149,7 +149,7 @@
 							<div class="divider"></div>
 							<div id="repo-clone-method-description" class="ui input text tiny grey tw-mt-3"></div>
 							<ul class="ui list tw-w-full">
-							{{range .OpenWithEditorApps}
+							{{range .OpenWithEditorApps}}
 								<li>
 									<a class="item js-clone-url-editor" data-href-template="{{.OpenURL}}">{{.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" .DisplayName}}</a>
 								</li>
