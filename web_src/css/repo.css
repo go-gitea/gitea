@@ -156,6 +156,16 @@
   margin-left: -1px; /* make the borders overlap to avoid double borders */
 }
 
+/* .repository .clone-panel > button:first-of-type, */
+/* .repository .clone-panel > div:first-of-type {
+  border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
+} */
+
+/* .repository .clone-panel > button:last-of-type, */
+/* .repository .clone-panel > div:last-of-type {
+  border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
+} */
+
 .repository .clone-panel > button {
   border-radius: var(--border-radius) !important;
 }
@@ -175,7 +185,7 @@
   right: 9px;
   top: -10px;
 
-  border: 8px solid war(--color-black);
+  border: 8px solid var(--color-black);
   border-bottom: 8px solid var(--color-shadow);
 
   display: inline-block;
