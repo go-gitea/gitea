@@ -119,14 +119,14 @@
 				<div id="clone-panel">
 					<button class="ui tiny primary button tw-pr-1 tw-flex js-btn-clone-panel">
 						<span>{{svg "octicon-code" 16}} Code</span>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				    </button>
-					<div class="clone-panel tippy-target">
+						{sv "octicon-triangle-down" 14 "dropdown icon"}}
+					</button>
+					<div class"clone-panel tippy-target">
 						<div class="ui segment">
-                            <div class="field tw-flex tw-items-center">
-                                <div class="tw-flex-1">{{svg "octicon-terminal" 16}} Clone</div>
-     							<a class="muted close">{{svg "octicon-x" 16}}</a>
-      						</div>
+							<div class="field tw-flex tw-items-center">
+								<div class="tw-flex-1">{{svg "octicon-terminal" 16}} Clone</div>
+								<a class="muted close">{{svg "octicon-x" 16}}</a>
+							</div>
 							<div class="ui input tw-mb-0">
 								<!-- there is always at least one button (by context/repo.go) -->
 								{{if $.CloneButtonShowHTTPS}}
@@ -149,9 +149,9 @@
 							<div class="divider"></div>
 							<div id="repo-clone-method-description" class="ui input text tiny grey tw-mt-3"></div>
 							<ul class="ui list tw-w-full">
-							 {{range .OpenWithEditorApps}}
+							{{range .OpenWithEditorApps}
 								<li>
-								    <a class="item js-clone-url-editor" data-href-template="{{.OpenURL}}">{{.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" .DisplayName}}</a>
+									<a class="item js-clone-url-editor" data-href-template="{{.OpenURL}}">{{.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" .DisplayName}}</a>
 								</li>
 							{{end}}
 							</ul>
@@ -159,13 +159,13 @@
 							<div class="divider"></div>
 							<ul class="ui list tw-w-full">
 							<li>
-							    <a class="item archive-lnk" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_zip"}}</a>
+								<a class="item archive-lnk" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_zip"}}</a>
 							</li>
 							<li>
-							    <a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_tar"}}</a>
+								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_tar"}}</a>
 							</li>
 							<li>
-							    <a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_bundle"}}</a>
+								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_bundle"}}</a>
 							</li>
 							</ul>
 							{{end}}
