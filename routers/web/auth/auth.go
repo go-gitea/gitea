@@ -541,7 +541,7 @@ func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form any
 // createUserInContext creates a user and handles errors within a given context.
 // Optionally a template can be specified.
 func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) (ok bool) {
-	meta := &user_model.UserMeta{
+	meta := &user_model.Meta{
 		InitialIP:        ctx.RemoteAddr(),
 		InitialUserAgent: ctx.Req.UserAgent(),
 	}

@@ -150,8 +150,8 @@ type User struct {
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
 }
 
-// UserMeta defines the meta information of a user, to be stored in the K/V table
-type UserMeta struct {
+// Meta defines the meta information of a user, to be stored in the K/V table
+type Meta struct {
 	// Store the initial registration of the user, to aid in spam prevention
 	// Ensure that one IP isn't creating many accounts (following mediawiki approach)
 	InitialIP        string
@@ -623,17 +623,17 @@ type CreateUserOverwriteOptions struct {
 }
 
 // CreateUser creates record of a new user.
-func CreateUser(ctx context.Context, u *User, meta *UserMeta, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+func CreateUser(ctx context.Context, u *User, meta *Meta, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	return createUser(ctx, u, meta, false, overwriteDefault...)
 }
 
 // AdminCreateUser is used by admins to manually create users
-func AdminCreateUser(ctx context.Context, u *User, meta *UserMeta, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+func AdminCreateUser(ctx context.Context, u *User, meta *Meta, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	return createUser(ctx, u, meta, true, overwriteDefault...)
 }
 
 // createUser creates record of a new user.
-func createUser(ctx context.Context, u *User, meta *UserMeta, createdByAdmin bool, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
 	}
