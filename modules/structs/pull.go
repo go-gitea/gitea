@@ -9,21 +9,22 @@ import (
 
 // PullRequest represents a pull request
 type PullRequest struct {
-	ID                 int64      `json:"id"`
-	URL                string     `json:"url"`
-	Index              int64      `json:"number"`
-	Poster             *User      `json:"user"`
-	Title              string     `json:"title"`
-	Body               string     `json:"body"`
-	Labels             []*Label   `json:"labels"`
-	Milestone          *Milestone `json:"milestone"`
-	Assignee           *User      `json:"assignee"`
-	Assignees          []*User    `json:"assignees"`
-	RequestedReviewers []*User    `json:"requested_reviewers"`
-	State              StateType  `json:"state"`
-	Draft              bool       `json:"draft"`
-	IsLocked           bool       `json:"is_locked"`
-	Comments           int        `json:"comments"`
+	ID                      int64      `json:"id"`
+	URL                     string     `json:"url"`
+	Index                   int64      `json:"number"`
+	Poster                  *User      `json:"user"`
+	Title                   string     `json:"title"`
+	Body                    string     `json:"body"`
+	Labels                  []*Label   `json:"labels"`
+	Milestone               *Milestone `json:"milestone"`
+	Assignee                *User      `json:"assignee"`
+	Assignees               []*User    `json:"assignees"`
+	RequestedReviewers      []*User    `json:"requested_reviewers"`
+	RequestedReviewersTeams []*Team    `json:"requested_reviewers_teams"`
+	State                   StateType  `json:"state"`
+	Draft                   bool       `json:"draft"`
+	IsLocked                bool       `json:"is_locked"`
+	Comments                int        `json:"comments"`
 	// number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
 	ReviewComments int `json:"review_comments"`
 	Additions      int `json:"additions"`

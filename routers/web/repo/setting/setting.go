@@ -170,15 +170,7 @@ func SettingsPost(ctx *context.Context) {
 			form.Private = repo.BaseRepo.IsPrivate || repo.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
 		}
 
-		visibilityChanged := repo.IsPrivate != form.Private
-		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
-		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private && !ctx.Doer.IsAdmin {
-			ctx.RenderWithErr(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
-			return
-		}
-
-		repo.IsPrivate = form.Private
-		if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
+		if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -248,7 +240,8 @@ func SettingsPost(ctx *context.Context) {
 
 		remoteAddress, err := util.SanitizeURL(form.MirrorAddress)
 		if err != nil {
-			ctx.ServerError("SanitizeURL", err)
+			ctx.Data["Err_MirrorAddress"] = true
+			handleSettingRemoteAddrError(ctx, err, form)
 			return
 		}
 		pullMirror.RemoteAddress = remoteAddress
@@ -409,7 +402,8 @@ func SettingsPost(ctx *context.Context) {
 
 		remoteAddress, err := util.SanitizeURL(form.PushMirrorAddress)
 		if err != nil {
-			ctx.ServerError("SanitizeURL", err)
+			ctx.Data["Err_PushMirrorAddress"] = true
+			handleSettingRemoteAddrError(ctx, err, form)
 			return
 		}
 
@@ -938,6 +932,39 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
 
 		log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
+	case "visibility":
+		if repo.IsFork {
+			ctx.Flash.Error(ctx.Tr("repo.settings.visibility.fork_error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		var err error
+
+		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
+		if setting.Repository.ForcePrivate && repo.IsPrivate && !ctx.Doer.IsAdmin {
+			ctx.RenderWithErr(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
+			return
+		}
+
+		if repo.IsPrivate {
+			err = repo_service.MakeRepoPublic(ctx, repo)
+		} else {
+			err = repo_service.MakeRepoPrivate(ctx, repo)
+		}
+
+		if err != nil {
+			log.Error("Tried to change the visibility of the repo: %s", err)
+			ctx.Flash.Error(ctx.Tr("repo.settings.visibility.error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.visibility.success"))
+
+		log.Trace("Repository visibility changed: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
 	default:

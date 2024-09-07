@@ -1,10 +1,10 @@
-<script>
+<script lang="ts">
 import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
-import {SvgIcon} from '../svg.js';
-import {pathEscapeSegments} from '../utils/url.js';
-import {showErrorToast} from '../modules/toast.js';
-import {GET} from '../modules/fetch.js';
+import {SvgIcon} from '../svg.ts';
+import {pathEscapeSegments} from '../utils/url.ts';
+import {showErrorToast} from '../modules/toast.ts';
+import {GET} from '../modules/fetch.ts';
 
 const sfc = {
   components: {SvgIcon},
@@ -289,13 +289,11 @@ export default sfc; // activate IDE's Vue plugin
           <a href="#" @click="createNewBranch()">
             <div v-show="shouldCreateTag">
               <i class="reference tags icon"/>
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <span v-html="textCreateTag.replace('%s', searchTerm)"/>
+              <span v-text="textCreateTag.replace('%s', searchTerm)"/>
             </div>
             <div v-show="!shouldCreateTag">
               <svg-icon name="octicon-git-branch"/>
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <span v-html="textCreateBranch.replace('%s', searchTerm)"/>
+              <span v-text="textCreateBranch.replace('%s', searchTerm)"/>
             </div>
             <div class="text small">
               <span v-if="isViewBranch || release">{{ textCreateBranchFrom.replace('%s', branchName) }}</span>

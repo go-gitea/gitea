@@ -1,6 +1,5 @@
-<script>
-import {createApp} from 'vue';
-import {hideElem, showElem} from '../utils/dom.js';
+<script lang="ts">
+import {hideElem, showElem} from '../utils/dom.ts';
 
 const sfc = {
   props: {
@@ -73,18 +72,6 @@ const sfc = {
 };
 
 export default sfc;
-
-/**
- * Initialize category toggle sections
- */
-export function initScopedAccessTokenCategories() {
-  for (const el of document.querySelectorAll('.scoped-access-token-mount')) {
-    createApp({})
-      .component('scoped-access-token-selector', sfc)
-      .mount(el);
-  }
-}
-
 </script>
 <template>
   <div v-for="category in categories" :key="category" class="field tw-pl-1 tw-pb-1 access-token-category">
