@@ -86,13 +86,16 @@ func addObjectFormatNameToRepository(x *xorm.Engine) error {
 		ObjectFormatName string `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
 	}
 
-	if err := x.Sync(new(Repository)); err != nil {
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreIndices:    true,
+		IgnoreConstrains: true,
+	}, new(Repository)); err != nil {
 		return err
 	}
 
 	// Here to catch weird edge-cases where column constraints above are
 	// not applied by the DB backend
-	_, err := x.Exec("UPDATE repository set object_format_name = 'sha1' WHERE object_format_name = '' or object_format_name IS NULL")
+	_, err := x.Exec("UPDATE `repository` set `object_format_name` = 'sha1' WHERE `object_format_name` = '' or `object_format_name` IS NULL")
 	return err
 }
 

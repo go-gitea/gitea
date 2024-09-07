@@ -21,7 +21,11 @@ func NewInlineRenderer() renderer.NodeRenderer {
 
 func (r *InlineRenderer) renderInline(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		_, _ = w.WriteString(`<code class="language-math is-loading">`)
+		extraClass := ""
+		if _, ok := n.(*InlineBlock); ok {
+			extraClass = "display "
+		}
+		_, _ = w.WriteString(`<code class="language-math ` + extraClass + `is-loading">`)
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
 			segment := c.(*ast.Text).Segment
 			value := util.EscapeHTML(segment.Value(source))
@@ -43,4 +47,5 @@ func (r *InlineRenderer) renderInline(w util.BufWriter, source []byte, n ast.Nod
 // RegisterFuncs registers the renderer for inline math nodes
 func (r *InlineRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindInline, r.renderInline)
+	reg.Register(KindInlineBlock, r.renderInline)
 }

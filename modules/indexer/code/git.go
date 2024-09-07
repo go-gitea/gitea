@@ -113,7 +113,24 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 	var changes internal.RepoChanges
 	var err error
 	updatedFilenames := make([]string, 0, 10)
-	for _, line := range strings.Split(stdout, "\n") {
+
+	updateChanges := func() error {
+		cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l").AddDynamicArguments(revision).
+			AddDashesAndList(updatedFilenames...)
+		lsTreeStdout, _, err := cmd.RunStdBytes(&git.RunOpts{Dir: repo.RepoPath()})
+		if err != nil {
+			return err
+		}
+
+		updates, err1 := parseGitLsTreeOutput(lsTreeStdout)
+		if err1 != nil {
+			return err1
+		}
+		changes.Updates = append(changes.Updates, updates...)
+		return nil
+	}
+	lines := strings.Split(stdout, "\n")
+	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
 			continue
@@ -161,15 +178,22 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 		default:
 			log.Warn("Unrecognized status: %c (line=%s)", status, line)
 		}
+
+		// According to https://learn.microsoft.com/en-us/troubleshoot/windows-client/shell-experience/command-line-string-limitation#more-information
+		// the command line length should less than 8191 characters, assume filepath is 256, then 8191/256 = 31, so we use 30
+		if len(updatedFilenames) >= 30 {
+			if err := updateChanges(); err != nil {
+				return nil, err
+			}
+			updatedFilenames = updatedFilenames[0:0]
+		}
 	}
 
-	cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l").AddDynamicArguments(revision).
-		AddDashesAndList(updatedFilenames...)
-	lsTreeStdout, _, err := cmd.RunStdBytes(&git.RunOpts{Dir: repo.RepoPath()})
-	if err != nil {
-		return nil, err
+	if len(updatedFilenames) > 0 {
+		if err := updateChanges(); err != nil {
+			return nil, err
+		}
 	}
 
-	changes.Updates, err = parseGitLsTreeOutput(lsTreeStdout)
 	return &changes, err
 }

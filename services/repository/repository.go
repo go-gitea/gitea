@@ -85,7 +85,7 @@ func PushCreateRepo(ctx context.Context, authUser, owner *user_model.User, repoN
 
 	repo, err := CreateRepository(ctx, authUser, owner, CreateRepoOptions{
 		Name:      repoName,
-		IsPrivate: setting.Repository.DefaultPushCreatePrivate,
+		IsPrivate: setting.Repository.DefaultPushCreatePrivate || setting.Repository.ForcePrivate,
 	})
 	if err != nil {
 		return nil, err
@@ -120,6 +120,31 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	}
 
 	return committer.Commit()
+}
+
+func UpdateRepositoryVisibility(ctx context.Context, repo *repo_model.Repository, isPrivate bool) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer committer.Close()
+
+	repo.IsPrivate = isPrivate
+
+	if err = repo_module.UpdateRepository(ctx, repo, true); err != nil {
+		return fmt.Errorf("UpdateRepositoryVisibility: %w", err)
+	}
+
+	return committer.Commit()
+}
+
+func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error) {
+	return UpdateRepositoryVisibility(ctx, repo, false)
+}
+
+func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err error) {
+	return UpdateRepositoryVisibility(ctx, repo, true)
 }
 
 // LinkedRepository returns the linked repo if any

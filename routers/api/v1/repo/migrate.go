@@ -175,7 +175,7 @@ func Migrate(ctx *context.APIContext) {
 		Description:    opts.Description,
 		OriginalURL:    form.CloneAddr,
 		GitServiceType: gitServiceType,
-		IsPrivate:      opts.Private,
+		IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 		IsMirror:       opts.Mirror,
 		Status:         repo_model.RepositoryBeingMigrated,
 	})

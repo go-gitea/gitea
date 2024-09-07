@@ -14,5 +14,9 @@ func AddPreviousDurationToActionRun(x *xorm.Engine) error {
 		PreviousDuration time.Duration
 	}
 
-	return x.Sync(&ActionRun{})
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreIndices:    true,
+		IgnoreConstrains: true,
+	}, &ActionRun{})
+	return err
 }
