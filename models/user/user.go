@@ -120,11 +120,6 @@ type User struct {
 	// (ex: in private Gitea instances user won't be allowed to see even organizations/repositories that are set as public)
 	IsRestricted bool `xorm:"NOT NULL DEFAULT false"`
 
-	// Store the initial registration of the user, to aid in spam prevention
-	// Ensure that one IP isn't creating many accounts (following mediawiki approach)
-	InitialIP        string `xorm:"-"`
-	InitialUserAgent string `xorm:"-"`
-
 	AllowGitHook            bool
 	AllowImportLocal        bool // Allow migrate repository by local path
 	AllowCreateOrganization bool `xorm:"DEFAULT true"`
@@ -153,6 +148,14 @@ type User struct {
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
+}
+
+// UserMeta defines the meta information of a user, to be stored in the K/V table
+type UserMeta struct {
+	// Store the initial registration of the user, to aid in spam prevention
+	// Ensure that one IP isn't creating many accounts (following mediawiki approach)
+	InitialIP        string
+	InitialUserAgent string
 }
 
 func init() {
@@ -620,17 +623,17 @@ type CreateUserOverwriteOptions struct {
 }
 
 // CreateUser creates record of a new user.
-func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
-	return createUser(ctx, u, false, overwriteDefault...)
+func CreateUser(ctx context.Context, u *User, meta *UserMeta, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, meta, false, overwriteDefault...)
 }
 
 // AdminCreateUser is used by admins to manually create users
-func AdminCreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
-	return createUser(ctx, u, true, overwriteDefault...)
+func AdminCreateUser(ctx context.Context, u *User, meta *UserMeta, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, meta, true, overwriteDefault...)
 }
 
 // createUser creates record of a new user.
-func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+func createUser(ctx context.Context, u *User, meta *UserMeta, createdByAdmin bool, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
 	}
@@ -752,12 +755,12 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 
 	if setting.RecordUserSignupMetadata {
 		// insert initial IP and UserAgent
-		if err = SetUserSetting(ctx, u.ID, SignupIP, u.InitialIP); err != nil {
+		if err = SetUserSetting(ctx, u.ID, SignupIP, meta.InitialIP); err != nil {
 			return err
 		}
 
 		// trim user agent string to a reasonable length, if necessary
-		userAgent := strings.TrimSpace(u.InitialUserAgent)
+		userAgent := strings.TrimSpace(meta.InitialUserAgent)
 		if len(userAgent) > 255 {
 			userAgent = userAgent[:255]
 		}
