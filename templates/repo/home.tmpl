@@ -128,7 +128,7 @@
                                 <div class="tw-flex-1">{{svg "octicon-terminal" 16}} Clone</div>
      							<a class="muted close">{{svg "octicon-x" 16}}</a>
       						</div>
-							<div class="menu gt-mt-3 clone-panel-content">
+							<div class="ui input tw-mb-0">
 								<!-- there is always at least one button (by context/repo.go) -->
 								{{if $.CloneButtonShowHTTPS}}
 								<div class="ui clone tabs" id="repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}" data-description="{{ctx.Locale.Tr "repo.clone_https_description"}}">
@@ -141,14 +141,14 @@
 								</div>
 								{{end}}
 							</div>
-							<div class="ui input tiny action gt-mt-4 gt-mb-0 field">
+							<div class="ui input tiny action tw-mt-4 tw-mb-0 field">
 								<input id="repo-clone-url" size="30" class="js-clone-url" value="{{$.CloneButtonOriginLink.HTTPS}}" readonly>
 								<div class="ui basic small compact icon button tooltip" id="clipboard-btn" data-tooltip-content="{{ctx.Locale.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url" aria-label="{{ctx.Locale.Tr "copy_url"}}">
 									{{svg "octicon-copy" 14}}
 								</div>
 							</div>
 							<div class="divider"></div>
-							<div id="repo-clone-method-description" class="ui input text tiny grey gt-mt-3"></div>
+							<div id="repo-clone-method-description" class="ui input text tiny grey tw-mt-3"></div>
 							<ul class="ui list tw-w-full">
 							 {{range .OpenWithEditorApps}}
 								<li>
