@@ -255,7 +255,7 @@
 <div class="field">
 	<label for="branch_filter">{{ctx.Locale.Tr "repo.settings.branch_filter"}}</label>
 	<input id="branch_filter" name="branch_filter" type="text" value="{{or .Webhook.BranchFilter "*"}}">
-	<span class="help">{{ctx.Locale.Tr "repo.settings.branch_filter_desc"}}</span>
+	<span class="help">{{ctx.Locale.Tr "repo.settings.branch_filter_desc" "https://pkg.go.dev/github.com/gobwas/glob#Compile" "github.com/gobwas/glob"}}</span>
 </div>
 
 <!-- Authorization Header -->
