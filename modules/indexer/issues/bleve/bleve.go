@@ -35,11 +35,7 @@ func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 	})
 }
 
-const (
-	maxBatchSize = 16
-	// fuzzyDenominator determines the levenshtein distance per each character of a keyword
-	fuzzyDenominator = 4
-)
+const maxBatchSize = 16
 
 // IndexerData an update to the issue indexer
 type IndexerData internal.IndexerData
@@ -162,7 +158,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.Keyword != "" {
 		fuzziness := 0
 		if options.IsFuzzyKeyword {
-			fuzziness = len(options.Keyword) / fuzzyDenominator
+			fuzziness = inner_bleve.GuessFuzzinessByKeyword(options.Keyword)
 		}
 
 		queries = append(queries, bleve.NewDisjunctionQuery([]query.Query{
@@ -228,8 +224,8 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.ProjectID.Has() {
 		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectID.Value(), "project_id"))
 	}
-	if options.ProjectBoardID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectBoardID.Value(), "project_board_id"))
+	if options.ProjectColumnID.Has() {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectColumnID.Value(), "project_board_id"))
 	}
 
 	if options.PosterID.Has() {

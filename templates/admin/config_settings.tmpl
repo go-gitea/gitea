@@ -7,14 +7,14 @@
 		<dt>{{ctx.Locale.Tr "admin.config.disable_gravatar"}}</dt>
 		<dd>
 			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
-				<input type="checkbox" data-config-dyn-key="picture.disable_gravatar" {{if .SystemConfig.Picture.DisableGravatar.Value ctx}}checked{{end}}>
+				<input type="checkbox" data-config-dyn-key="picture.disable_gravatar" {{if .SystemConfig.Picture.DisableGravatar.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.enable_federated_avatar"}}</dt>
 		<dd>
 			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.enable_federated_avatar"}}">
-				<input type="checkbox" data-config-dyn-key="picture.enable_federated_avatar" {{if .SystemConfig.Picture.EnableFederatedAvatar.Value ctx}}checked{{end}}>
+				<input type="checkbox" data-config-dyn-key="picture.enable_federated_avatar" {{if .SystemConfig.Picture.EnableFederatedAvatar.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
 	</dl>

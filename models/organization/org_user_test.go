@@ -81,7 +81,7 @@ func TestUserListIsPublicMember(t *testing.T) {
 		{3, map[int64]bool{2: true, 4: false, 28: true}},
 		{6, map[int64]bool{5: true, 28: true}},
 		{7, map[int64]bool{5: false}},
-		{25, map[int64]bool{24: true}},
+		{25, map[int64]bool{12: true, 24: true}},
 		{22, map[int64]bool{}},
 	}
 	for _, v := range tt {
@@ -108,8 +108,8 @@ func TestUserListIsUserOrgOwner(t *testing.T) {
 		{3, map[int64]bool{2: true, 4: false, 28: false}},
 		{6, map[int64]bool{5: true, 28: false}},
 		{7, map[int64]bool{5: true}},
-		{25, map[int64]bool{24: false}}, // ErrTeamNotExist
-		{22, map[int64]bool{}},          // No member
+		{25, map[int64]bool{12: true, 24: false}}, // ErrTeamNotExist
+		{22, map[int64]bool{}},                    // No member
 	}
 	for _, v := range tt {
 		t.Run(fmt.Sprintf("IsUserOrgOwnerOfOrgId%d", v.orgid), func(t *testing.T) {

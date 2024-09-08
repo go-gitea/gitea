@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository labels">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<div class="navbar tw-mb-4">
+		<div class="issue-navbar tw-mb-4">
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
 				<button class="ui small primary new-label button">{{ctx.Locale.Tr "repo.issues.new_label"}}</button>

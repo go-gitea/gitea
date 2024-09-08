@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	organization_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
@@ -37,13 +38,40 @@ func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
 	return nil
 }
 
-func (reviews ReviewList) LoadIssues(ctx context.Context) error {
-	issueIDs := container.Set[int64]{}
-	for i := 0; i < len(reviews); i++ {
-		issueIDs.Add(reviews[i].IssueID)
+// LoadReviewersTeams loads reviewers teams
+func (reviews ReviewList) LoadReviewersTeams(ctx context.Context) error {
+	reviewersTeamsIDs := make([]int64, 0)
+	for _, review := range reviews {
+		if review.ReviewerTeamID != 0 {
+			reviewersTeamsIDs = append(reviewersTeamsIDs, review.ReviewerTeamID)
+		}
 	}
 
-	issues, err := GetIssuesByIDs(ctx, issueIDs.Values())
+	teamsMap := make(map[int64]*organization_model.Team, 0)
+	for _, teamID := range reviewersTeamsIDs {
+		team, err := organization_model.GetTeamByID(ctx, teamID)
+		if err != nil {
+			return err
+		}
+
+		teamsMap[teamID] = team
+	}
+
+	for _, review := range reviews {
+		if review.ReviewerTeamID != 0 {
+			review.ReviewerTeam = teamsMap[review.ReviewerTeamID]
+		}
+	}
+
+	return nil
+}
+
+func (reviews ReviewList) LoadIssues(ctx context.Context) error {
+	issueIDs := container.FilterSlice(reviews, func(review *Review) (int64, bool) {
+		return review.IssueID, true
+	})
+
+	issues, err := GetIssuesByIDs(ctx, issueIDs)
 	if err != nil {
 		return err
 	}

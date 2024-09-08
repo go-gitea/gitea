@@ -1,8 +1,8 @@
-<script>
+<script lang="ts">
 import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
-import {SvgIcon} from '../svg.js';
-import {GET} from '../modules/fetch.js';
+import {SvgIcon} from '../svg.ts';
+import {GET} from '../modules/fetch.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
@@ -101,7 +101,7 @@ const sfc = {
   },
 
   mounted() {
-    const el = document.getElementById('dashboard-repo-list');
+    const el = document.querySelector('#dashboard-repo-list');
     this.changeReposFilter(this.reposFilter);
     $(el).find('.dropdown').dropdown();
     nextTick(() => {
@@ -251,9 +251,9 @@ const sfc = {
         this.repos = json.data.map((webSearchRepo) => {
           return {
             ...webSearchRepo.repository,
-            latest_commit_status_state: webSearchRepo.latest_commit_status.State,
+            latest_commit_status_state: webSearchRepo.latest_commit_status?.State, // if latest_commit_status is null, it means there is no commit status
+            latest_commit_status_state_link: webSearchRepo.latest_commit_status?.TargetURL,
             locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
-            latest_commit_status_state_link: webSearchRepo.latest_commit_status.TargetURL,
           };
         });
         const count = response.headers.get('X-Total-Count');
@@ -330,7 +330,7 @@ const sfc = {
 };
 
 export function initDashboardRepoList() {
-  const el = document.getElementById('dashboard-repo-list');
+  const el = document.querySelector('#dashboard-repo-list');
   if (el) {
     createApp(sfc).mount(el);
   }
@@ -355,9 +355,9 @@ export default sfc; // activate the IDE's Vue plugin
         </a>
       </h4>
       <div class="ui attached segment repos-search">
-        <div class="ui small fluid action left icon input" :class="{loading: isLoading}">
+        <div class="ui small fluid action left icon input">
           <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
-          <i class="icon"><svg-icon name="octicon-search" :size="16"/></i>
+          <i class="icon loading-icon-3px" :class="{'is-loading': isLoading}"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="ui dropdown icon button" :title="textFilter">
             <svg-icon name="octicon-filter" :size="16"/>
             <div class="menu">
@@ -509,10 +509,8 @@ ul li:not(:last-child) {
 }
 
 .repos-filter {
-  padding-top: 0 !important;
   margin-top: 0 !important;
   border-bottom-width: 0 !important;
-  margin-bottom: 2px !important;
 }
 
 .repos-filter .item {

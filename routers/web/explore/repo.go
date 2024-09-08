@@ -36,8 +36,8 @@ type RepoSearchOptions struct {
 // This function is also used to render the Admin Repository Management page.
 func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	// Sitemap index for sitemap paths
-	page := int(ctx.ParamsInt64("idx"))
-	isSitemap := ctx.Params("idx") != ""
+	page := int(ctx.PathParamInt64("idx"))
+	isSitemap := ctx.PathParam("idx") != ""
 	if page <= 1 {
 		page = ctx.FormInt("page")
 	}
@@ -61,43 +61,14 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	if sortOrder == "" {
 		sortOrder = setting.UI.ExploreDefaultSort
 	}
-	ctx.Data["SortType"] = sortOrder
 
-	switch sortOrder {
-	case "newest":
-		orderBy = db.SearchOrderByNewest
-	case "oldest":
-		orderBy = db.SearchOrderByOldest
-	case "leastupdate":
-		orderBy = db.SearchOrderByLeastUpdated
-	case "reversealphabetically":
-		orderBy = db.SearchOrderByAlphabeticallyReverse
-	case "alphabetically":
-		orderBy = db.SearchOrderByAlphabetically
-	case "reversesize":
-		orderBy = db.SearchOrderBySizeReverse
-	case "size":
-		orderBy = db.SearchOrderBySize
-	case "reversegitsize":
-		orderBy = db.SearchOrderByGitSizeReverse
-	case "gitsize":
-		orderBy = db.SearchOrderByGitSize
-	case "reverselfssize":
-		orderBy = db.SearchOrderByLFSSizeReverse
-	case "lfssize":
-		orderBy = db.SearchOrderByLFSSize
-	case "moststars":
-		orderBy = db.SearchOrderByStarsReverse
-	case "feweststars":
-		orderBy = db.SearchOrderByStars
-	case "mostforks":
-		orderBy = db.SearchOrderByForksReverse
-	case "fewestforks":
-		orderBy = db.SearchOrderByForks
-	default:
-		ctx.Data["SortType"] = "recentupdate"
+	if order, ok := repo_model.OrderByFlatMap[sortOrder]; ok {
+		orderBy = order
+	} else {
+		sortOrder = "recentupdate"
 		orderBy = db.SearchOrderByRecentUpdated
 	}
+	ctx.Data["SortType"] = sortOrder
 
 	keyword := ctx.FormTrim("q")
 
@@ -172,6 +143,21 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	pager.AddParamString("topic", fmt.Sprint(topicOnly))
 	pager.AddParamString("language", language)
 	pager.AddParamString(relevantReposOnlyParam, fmt.Sprint(opts.OnlyShowRelevant))
+	if archived.Has() {
+		pager.AddParamString("archived", fmt.Sprint(archived.Value()))
+	}
+	if fork.Has() {
+		pager.AddParamString("fork", fmt.Sprint(fork.Value()))
+	}
+	if mirror.Has() {
+		pager.AddParamString("mirror", fmt.Sprint(mirror.Value()))
+	}
+	if template.Has() {
+		pager.AddParamString("template", fmt.Sprint(template.Value()))
+	}
+	if private.Has() {
+		pager.AddParamString("private", fmt.Sprint(private.Value()))
+	}
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, opts.TplName)

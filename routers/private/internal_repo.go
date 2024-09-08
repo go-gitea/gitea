@@ -19,8 +19,8 @@ import (
 
 // RepoAssignment assigns the repository and gitrepository to the private context
 func RepoAssignment(ctx *gitea_context.PrivateContext) context.CancelFunc {
-	ownerName := ctx.Params(":owner")
-	repoName := ctx.Params(":repo")
+	ownerName := ctx.PathParam(":owner")
+	repoName := ctx.PathParam(":repo")
 
 	repo := loadRepository(ctx, ownerName, repoName)
 	if ctx.Written() {

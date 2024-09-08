@@ -31,6 +31,46 @@ func TestGrepSearch(t *testing.T) {
 		},
 	}, res)
 
+	res, err = GrepSearch(context.Background(), repo, "void", GrepOptions{PathspecList: []string{":(glob)java-hello/*"}})
+	assert.NoError(t, err)
+	assert.Equal(t, []*GrepResult{
+		{
+			Filename:    "java-hello/main.java",
+			LineNumbers: []int{3},
+			LineCodes:   []string{" public static void main(String[] args)"},
+		},
+	}, res)
+
+	res, err = GrepSearch(context.Background(), repo, "void", GrepOptions{PathspecList: []string{":(glob,exclude)java-hello/*"}})
+	assert.NoError(t, err)
+	assert.Equal(t, []*GrepResult{
+		{
+			Filename:    "main.vendor.java",
+			LineNumbers: []int{3},
+			LineCodes:   []string{" public static void main(String[] args)"},
+		},
+	}, res)
+
+	res, err = GrepSearch(context.Background(), repo, "void", GrepOptions{MaxResultLimit: 1})
+	assert.NoError(t, err)
+	assert.Equal(t, []*GrepResult{
+		{
+			Filename:    "java-hello/main.java",
+			LineNumbers: []int{3},
+			LineCodes:   []string{" public static void main(String[] args)"},
+		},
+	}, res)
+
+	res, err = GrepSearch(context.Background(), repo, "void", GrepOptions{MaxResultLimit: 1, MaxLineLength: 39})
+	assert.NoError(t, err)
+	assert.Equal(t, []*GrepResult{
+		{
+			Filename:    "java-hello/main.java",
+			LineNumbers: []int{3},
+			LineCodes:   []string{" public static void main(String[] arg"},
+		},
+	}, res)
+
 	res, err = GrepSearch(context.Background(), repo, "no-such-content", GrepOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, res, 0)

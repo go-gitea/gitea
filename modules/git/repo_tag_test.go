@@ -315,7 +315,7 @@ qbHDASXl
 				Type:    "tag",
 				Tagger:  parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
 				Message: "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md",
-				Signature: &CommitGPGSignature{
+				Signature: &CommitSignature{
 					Signature: `-----BEGIN PGP SIGNATURE-----
 
 aBCGzBAABCgAdFiEEyWRwv/q1Q6IjSv+D4IPOwzt33PoFAmI8jbIACgkQ4IPOwzt3

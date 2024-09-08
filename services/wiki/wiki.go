@@ -18,18 +18,19 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-// TODO: use clustered lock (unique queue? or *abuse* cache)
-var wikiWorkingPool = sync.NewExclusivePool()
-
 const DefaultRemote = "origin"
+
+func getWikiWorkingLockKey(repoID int64) string {
+	return fmt.Sprintf("wiki_working_%d", repoID)
+}
 
 // InitWiki initializes a wiki for repository,
 // it does nothing when repository already has wiki.
@@ -89,8 +90,11 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err = validateWebPath(newWikiName); err != nil {
 		return err
 	}
-	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
-	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	releaser, err := globallock.Lock(ctx, getWikiWorkingLockKey(repo.ID))
+	if err != nil {
+		return err
+	}
+	defer releaser()
 
 	if err = InitWiki(ctx, repo); err != nil {
 		return fmt.Errorf("InitWiki: %w", err)
@@ -161,7 +165,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		if isOldWikiExist {
 			err := gitRepo.RemoveFilesFromIndex(oldWikiPath)
 			if err != nil {
-				log.Error("%v", err)
+				log.Error("RemoveFilesFromIndex failed: %v", err)
 				return err
 			}
 		}
@@ -171,18 +175,18 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	objectHash, err := gitRepo.HashObject(strings.NewReader(content))
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("HashObject failed: %v", err)
 		return err
 	}
 
 	if err := gitRepo.AddObjectToIndex("100644", objectHash, newWikiPath); err != nil {
-		log.Error("%v", err)
+		log.Error("AddObjectToIndex failed: %v", err)
 		return err
 	}
 
 	tree, err := gitRepo.WriteTree()
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("WriteTree failed: %v", err)
 		return err
 	}
 
@@ -207,7 +211,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), committer, tree, commitTreeOpts)
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("CommitTree failed: %v", err)
 		return err
 	}
 
@@ -222,11 +226,11 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 			0,
 		),
 	}); err != nil {
-		log.Error("%v", err)
+		log.Error("Push failed: %v", err)
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
 		}
-		return fmt.Errorf("Push: %w", err)
+		return fmt.Errorf("failed to push: %w", err)
 	}
 
 	return nil
@@ -250,8 +254,11 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 
-	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
-	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	releaser, err := globallock.Lock(ctx, getWikiWorkingLockKey(repo.ID))
+	if err != nil {
+		return err
+	}
+	defer releaser()
 
 	if err = InitWiki(ctx, repo); err != nil {
 		return fmt.Errorf("InitWiki: %w", err)
@@ -368,6 +375,10 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 		repo.DefaultWikiBranch = newBranch
 		if err := repo_model.UpdateRepositoryCols(ctx, repo, "default_wiki_branch"); err != nil {
 			return fmt.Errorf("unable to update database: %w", err)
+		}
+
+		if !repo.HasWiki() {
+			return nil
 		}
 
 		oldDefBranch, err := gitrepo.GetWikiDefaultBranch(ctx, repo)

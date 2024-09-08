@@ -66,6 +66,11 @@ func startTasks(ctx context.Context) error {
 				}
 			}
 
+			if row.Repo.IsArchived {
+				// Skip if the repo is archived
+				continue
+			}
+
 			cfg, err := row.Repo.GetUnit(ctx, unit.TypeActions)
 			if err != nil {
 				if repo_model.IsErrUnitTypeNotExist(err) {
@@ -127,8 +132,14 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		Status:        actions_model.StatusWaiting,
 	}
 
+	vars, err := actions_model.GetVariablesOfRun(ctx, run)
+	if err != nil {
+		log.Error("GetVariablesOfRun: %v", err)
+		return err
+	}
+
 	// Parse the workflow specification from the cron schedule
-	workflows, err := jobparser.Parse(cron.Content)
+	workflows, err := jobparser.Parse(cron.Content, jobparser.WithVars(vars))
 	if err != nil {
 		return err
 	}

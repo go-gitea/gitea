@@ -1,16 +1,16 @@
-<script>
-import {loadMoreFiles} from '../features/repo-diff.js';
-import {diffTreeStore} from '../modules/stores.js';
+<script lang="ts">
+import {loadMoreFiles} from '../features/repo-diff.ts';
+import {diffTreeStore} from '../modules/stores.ts';
 
 export default {
   data: () => {
     return {store: diffTreeStore()};
   },
   mounted() {
-    document.getElementById('show-file-list-btn').addEventListener('click', this.toggleFileList);
+    document.querySelector('#show-file-list-btn').addEventListener('click', this.toggleFileList);
   },
   unmounted() {
-    document.getElementById('show-file-list-btn').removeEventListener('click', this.toggleFileList);
+    document.querySelector('#show-file-list-btn').removeEventListener('click', this.toggleFileList);
   },
   methods: {
     toggleFileList() {
@@ -47,7 +47,7 @@ export default {
       </div>
       <!-- todo finish all file status, now modify, add, delete and rename -->
       <span :class="['status', diffTypeToString(file.Type)]" :data-tooltip-content="diffTypeToString(file.Type)">&nbsp;</span>
-      <a class="file gt-mono" :href="'#diff-' + file.NameHash">{{ file.Name }}</a>
+      <a class="file tw-font-mono" :href="'#diff-' + file.NameHash">{{ file.Name }}</a>
     </li>
     <li v-if="store.isIncomplete" class="tw-pt-1">
       <span class="file tw-flex tw-items-center tw-justify-between">{{ store.tooManyFilesMessage }}

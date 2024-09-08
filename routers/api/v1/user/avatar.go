@@ -39,6 +39,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 	err = user_service.UploadAvatar(ctx, ctx.Doer, content)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UploadAvatar", err)
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)
@@ -57,6 +58,7 @@ func DeleteAvatar(ctx *context.APIContext) {
 	err := user_service.DeleteAvatar(ctx, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAvatar", err)
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)

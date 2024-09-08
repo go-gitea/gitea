@@ -77,7 +77,6 @@ cpu.out
 /public/assets/css
 /public/assets/fonts
 /public/assets/licenses.txt
-/public/assets/img/webpack
 /vendor
 /web_src/fomantic/node_modules
 /web_src/fomantic/build/*
@@ -95,6 +94,9 @@ cpu.out
 /.air
 /.go-licenses
 
+# Files and folders that were previously generated
+/public/assets/img/webpack
+
 # Snapcraft
 /gitea_a*.txt
 snap/.snapcraft/
@@ -105,6 +107,9 @@ prime/
 *.snap-build
 *_source.tar.bz2
 .DS_Store
+
+# nix-direnv generated files
+.direnv/
 
 # Make evidence files
 /.make_evidence

@@ -78,6 +78,7 @@ type PackageMetadataVersion struct {
 	Repository           Repository          `json:"repository,omitempty"`
 	Keywords             []string            `json:"keywords,omitempty"`
 	Dependencies         map[string]string   `json:"dependencies,omitempty"`
+	BundleDependencies   []string            `json:"bundleDependencies,omitempty"`
 	DevDependencies      map[string]string   `json:"devDependencies,omitempty"`
 	PeerDependencies     map[string]string   `json:"peerDependencies,omitempty"`
 	Bin                  map[string]string   `json:"bin,omitempty"`
@@ -218,6 +219,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				ProjectURL:              meta.Homepage,
 				Keywords:                meta.Keywords,
 				Dependencies:            meta.Dependencies,
+				BundleDependencies:      meta.BundleDependencies,
 				DevelopmentDependencies: meta.DevDependencies,
 				PeerDependencies:        meta.PeerDependencies,
 				OptionalDependencies:    meta.OptionalDependencies,

@@ -17,6 +17,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -50,7 +51,7 @@ const (
 // getDashboardContextUser finds out which context user dashboard is being viewed as .
 func getDashboardContextUser(ctx *context.Context) *user_model.User {
 	ctxUser := ctx.Doer
-	orgName := ctx.Params(":org")
+	orgName := ctx.PathParam(":org")
 	if len(orgName) > 0 {
 		ctxUser = ctx.Org.Organization.AsUser()
 		ctx.Data["Teams"] = ctx.Org.Teams
@@ -262,6 +263,7 @@ func Milestones(ctx *context.Context) {
 			},
 			Metas: milestones[i].Repo.ComposeMetas(ctx),
 			Ctx:   ctx,
+			Repo:  milestones[i].Repo,
 		}, milestones[i].Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -447,6 +449,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		User:       ctx.Doer,
 	}
 
+	isFuzzy := ctx.FormBool("fuzzy")
+
 	// Search all repositories which
 	//
 	// As user:
@@ -546,7 +550,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// USING FINAL STATE OF opts FOR A QUERY.
 	var issues issues_model.IssueList
 	{
-		issueIDs, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, opts))
+		issueIDs, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, opts).Copy(
+			func(o *issue_indexer.SearchOptions) { o.IsFuzzyKeyword = isFuzzy },
+		))
 		if err != nil {
 			ctx.ServerError("issueIDsFromSearch", err)
 			return
@@ -563,11 +569,18 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		ctx.ServerError("GetIssuesLastCommitStatus", err)
 		return
 	}
+	if !ctx.Repo.CanRead(unit.TypeActions) {
+		for key := range commitStatuses {
+			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
+		}
+	}
 
 	// -------------------------------
 	// Fill stats to post to ctx.Data.
 	// -------------------------------
-	issueStats, err := getUserIssueStats(ctx, ctxUser, filterMode, issue_indexer.ToSearchOptions(keyword, opts))
+	issueStats, err := getUserIssueStats(ctx, ctxUser, filterMode, issue_indexer.ToSearchOptions(keyword, opts).Copy(
+		func(o *issue_indexer.SearchOptions) { o.IsFuzzyKeyword = isFuzzy },
+	))
 	if err != nil {
 		ctx.ServerError("getUserIssueStats", err)
 		return
@@ -621,6 +634,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["SortType"] = sortType
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["SelectLabels"] = selectedLabels
+	ctx.Data["IsFuzzy"] = isFuzzy
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -634,6 +648,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	pager.AddParamString("sort", sortType)
 	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
 	pager.AddParamString("labels", selectedLabels)
+	pager.AddParamString("fuzzy", fmt.Sprintf("%v", isFuzzy))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplIssues)
@@ -705,9 +720,9 @@ func ShowGPGKeys(ctx *context.Context) {
 func UsernameSubRoute(ctx *context.Context) {
 	// WORKAROUND to support usernames with "." in it
 	// https://github.com/go-chi/chi/issues/781
-	username := ctx.Params("username")
+	username := ctx.PathParam("username")
 	reloadParam := func(suffix string) (success bool) {
-		ctx.SetParams("username", strings.TrimSuffix(username, suffix))
+		ctx.SetPathParam("username", strings.TrimSuffix(username, suffix))
 		context.UserAssignmentWeb()(ctx)
 		if ctx.Written() {
 			return false

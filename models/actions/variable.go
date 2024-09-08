@@ -5,18 +5,27 @@ package actions
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
 
+// ActionVariable represents a variable that can be used in actions
+//
+// It can be:
+//  1. global variable, OwnerID is 0 and RepoID is 0
+//  2. org/user level variable, OwnerID is org/user ID and RepoID is 0
+//  3. repo level variable, OwnerID is 0 and RepoID is repo ID
+//
+// Please note that it's not acceptable to have both OwnerID and RepoID to be non-zero,
+// or it will be complicated to find variables belonging to a specific owner.
+// For example, conditions like `OwnerID = 1` will also return variable {OwnerID: 1, RepoID: 1},
+// but it's a repo level variable, not an org/user level variable.
+// To avoid this, make it clear with {OwnerID: 0, RepoID: 1} for repo level variables.
 type ActionVariable struct {
 	ID          int64              `xorm:"pk autoincr"`
 	OwnerID     int64              `xorm:"UNIQUE(owner_repo_name)"`
@@ -31,48 +40,49 @@ func init() {
 	db.RegisterModel(new(ActionVariable))
 }
 
-func (v *ActionVariable) Validate() error {
-	if v.OwnerID != 0 && v.RepoID != 0 {
-		return errors.New("a variable should not be bound to an owner and a repository at the same time")
-	}
-	return nil
-}
-
 func InsertVariable(ctx context.Context, ownerID, repoID int64, name, data string) (*ActionVariable, error) {
+	if ownerID != 0 && repoID != 0 {
+		// It's trying to create a variable that belongs to a repository, but OwnerID has been set accidentally.
+		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
+		ownerID = 0
+	}
+
 	variable := &ActionVariable{
 		OwnerID: ownerID,
 		RepoID:  repoID,
 		Name:    strings.ToUpper(name),
 		Data:    data,
 	}
-	if err := variable.Validate(); err != nil {
-		return variable, err
-	}
 	return variable, db.Insert(ctx, variable)
 }
 
 type FindVariablesOpts struct {
 	db.ListOptions
-	OwnerID int64
 	RepoID  int64
+	OwnerID int64 // it will be ignored if RepoID is set
+	Name    string
 }
 
 func (opts FindVariablesOpts) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	// Since we now support instance-level variables,
+	// there is no need to check for null values for `owner_id` and `repo_id`
 	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	if opts.RepoID != 0 { // if RepoID is set
+		// ignore OwnerID and treat it as 0
+		cond = cond.And(builder.Eq{"owner_id": 0})
+	} else {
+		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	}
+
+	if opts.Name != "" {
+		cond = cond.And(builder.Eq{"name": strings.ToUpper(opts.Name)})
+	}
 	return cond
 }
 
-func GetVariableByID(ctx context.Context, variableID int64) (*ActionVariable, error) {
-	var variable ActionVariable
-	has, err := db.GetEngine(ctx).Where("id=?", variableID).Get(&variable)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, fmt.Errorf("variable with id %d: %w", variableID, util.ErrNotExist)
-	}
-	return &variable, nil
+func FindVariables(ctx context.Context, opts FindVariablesOpts) ([]*ActionVariable, error) {
+	return db.Find[ActionVariable](ctx, opts)
 }
 
 func UpdateVariable(ctx context.Context, variable *ActionVariable) (bool, error) {
@@ -84,8 +94,20 @@ func UpdateVariable(ctx context.Context, variable *ActionVariable) (bool, error)
 	return count != 0, err
 }
 
+func DeleteVariable(ctx context.Context, id int64) error {
+	if _, err := db.DeleteByID[ActionVariable](ctx, id); err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, error) {
 	variables := map[string]string{}
+
+	if err := run.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return nil, err
+	}
 
 	// Global
 	globalVariables, err := db.Find[ActionVariable](ctx, FindVariablesOpts{})

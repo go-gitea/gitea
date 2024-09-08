@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-// RegistrationToken is response related to registeration token
+// RegistrationToken is response related to registration token
 // swagger:response RegistrationToken
 type RegistrationToken struct {
 	Token string `json:"token"`

@@ -89,10 +89,6 @@
   text-align: center;
 }
 
-.organization.options input {
-  min-width: 300px;
-}
-
 .page-content.organization .org-avatar {
   margin-right: 15px;
 }
@@ -100,7 +96,6 @@
 .page-content.organization #org-info {
   overflow-wrap: anywhere;
   flex: 1;
-  word-break: break-all;
 }
 
 .page-content.organization #org-info .ui.header {
@@ -131,8 +126,6 @@
 }
 
 .page-content.organization .members .ui.avatar {
-  width: 48px;
-  height: 48px;
   margin-right: 5px;
   margin-bottom: 5px;
 }

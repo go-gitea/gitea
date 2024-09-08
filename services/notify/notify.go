@@ -91,7 +91,7 @@ func AutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues
 // NewPullRequest notifies new pull request to notifiers
 func NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("%v", err)
+		log.Error("LoadIssue failed: %v", err)
 		return
 	}
 	if err := pr.Issue.LoadPoster(ctx); err != nil {
@@ -112,7 +112,7 @@ func PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *iss
 // PullRequestReview notifies new pull request review
 func PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 	if err := review.LoadReviewer(ctx); err != nil {
-		log.Error("%v", err)
+		log.Error("LoadReviewer failed: %v", err)
 		return
 	}
 	for _, notifier := range notifiers {

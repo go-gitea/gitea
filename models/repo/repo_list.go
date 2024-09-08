@@ -104,18 +104,19 @@ func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 		return nil
 	}
 
-	set := make(container.Set[int64])
+	userIDs := container.FilterSlice(repos, func(repo *Repository) (int64, bool) {
+		return repo.OwnerID, true
+	})
 	repoIDs := make([]int64, len(repos))
 	for i := range repos {
-		set.Add(repos[i].OwnerID)
 		repoIDs[i] = repos[i].ID
 	}
 
 	// Load owners.
-	users := make(map[int64]*user_model.User, len(set))
+	users := make(map[int64]*user_model.User, len(userIDs))
 	if err := db.GetEngine(ctx).
 		Where("id > 0").
-		In("id", set.Values()).
+		In("id", userIDs).
 		Find(&users); err != nil {
 		return fmt.Errorf("find users: %w", err)
 	}
@@ -174,6 +175,8 @@ type SearchRepoOptions struct {
 	// True -> include just forks
 	// False -> include just non-forks
 	Fork optional.Option[bool]
+	// If Fork option is True, you can use this option to limit the forks of a special repo by repo id.
+	ForkFrom int64
 	// None -> include templates AND non-templates
 	// True -> include just templates
 	// False -> include just non-templates
@@ -203,31 +206,6 @@ type SearchRepoOptions struct {
 	// - Do not display repositories that don't have a description, an icon and topics.
 	OnlyShowRelevant bool
 }
-
-// SearchOrderBy is used to sort the result
-type SearchOrderBy string
-
-func (s SearchOrderBy) String() string {
-	return string(s)
-}
-
-// Strings for sorting result
-const (
-	SearchOrderByAlphabetically        SearchOrderBy = "name ASC"
-	SearchOrderByAlphabeticallyReverse SearchOrderBy = "name DESC"
-	SearchOrderByLeastUpdated          SearchOrderBy = "updated_unix ASC"
-	SearchOrderByRecentUpdated         SearchOrderBy = "updated_unix DESC"
-	SearchOrderByOldest                SearchOrderBy = "created_unix ASC"
-	SearchOrderByNewest                SearchOrderBy = "created_unix DESC"
-	SearchOrderBySize                  SearchOrderBy = "size ASC"
-	SearchOrderBySizeReverse           SearchOrderBy = "size DESC"
-	SearchOrderByID                    SearchOrderBy = "id ASC"
-	SearchOrderByIDReverse             SearchOrderBy = "id DESC"
-	SearchOrderByStars                 SearchOrderBy = "num_stars ASC"
-	SearchOrderByStarsReverse          SearchOrderBy = "num_stars DESC"
-	SearchOrderByForks                 SearchOrderBy = "num_forks ASC"
-	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
-)
 
 // UserOwnedRepoCond returns user ownered repositories
 func UserOwnedRepoCond(userID int64) builder.Cond {
@@ -513,6 +491,10 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			cond = cond.And(builder.Eq{"is_fork": false})
 		} else {
 			cond = cond.And(builder.Eq{"is_fork": opts.Fork.Value()})
+
+			if opts.ForkFrom > 0 && opts.Fork.Value() {
+				cond = cond.And(builder.Eq{"fork_id": opts.ForkFrom})
+			}
 		}
 	}
 

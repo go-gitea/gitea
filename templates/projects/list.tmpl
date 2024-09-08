@@ -41,9 +41,9 @@
 <div class="milestone-list">
 	{{range .Projects}}
 		<li class="milestone-card">
-			<h3 class="flex-text-block tw-m-0">
+			<h3 class="flex-text-block tw-m-0 tw-gap-3">
 				{{svg .IconName 16}}
-				<a class="muted" href="{{.Link ctx}}">{{.Title}}</a>
+				<a class="muted tw-break-anywhere" href="{{.Link ctx}}">{{.Title}}</a>
 			</h3>
 			<div class="milestone-toolbar">
 				<div class="group">

@@ -40,6 +40,10 @@ func GetPackagistHook(w *webhook_model.Webhook) *PackagistMeta {
 	return s
 }
 
+type packagistConvertor struct {
+	PackageURL string
+}
+
 // Create implements PayloadConvertor Create method
 func (pc packagistConvertor) Create(_ *api.CreatePayload) (PackagistPayload, error) {
 	return PackagistPayload{}, nil
@@ -106,18 +110,12 @@ func (pc packagistConvertor) Package(_ *api.PackagePayload) (PackagistPayload, e
 	return PackagistPayload{}, nil
 }
 
-type packagistConvertor struct {
-	PackageURL string
-}
-
-var _ payloadConvertor[PackagistPayload] = packagistConvertor{}
-
-func newPackagistRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+func newPackagistRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &PackagistMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
 		return nil, nil, fmt.Errorf("newpackagistRequest meta json: %w", err)
 	}
-	pc := packagistConvertor{
+	var pc payloadConvertor[PackagistPayload] = packagistConvertor{
 		PackageURL: meta.PackageURL,
 	}
 	return newJSONRequest(pc, w, t, true)
