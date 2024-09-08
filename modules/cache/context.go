@@ -63,9 +63,9 @@ func (cc *cacheContext) isDiscard() bool {
 }
 
 // cacheContextLifetime is the max lifetime of cacheContext.
-// Since cacheContext is used to cache data in a request level context, 10s is enough.
-// If a cacheContext is used more than 10s, it's probably misuse.
-const cacheContextLifetime = 10 * time.Second
+// Since cacheContext is used to cache data in a request level context, 5 minutes is enough.
+// If a cacheContext is used more than 5 minutes, it's probably misuse.
+const cacheContextLifetime = 5 * time.Minute
 
 var timeNow = time.Now
 
