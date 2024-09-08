@@ -40,11 +40,6 @@
 						</th>
 						<th>{{ctx.Locale.Tr "admin.badges.description"}}</th>
 						<th></th>
-						<th></th>
-						<th></th>
-						<th></th>
-						<th></th>
-						<th></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -52,18 +47,13 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a href="{{$.Link}}/{{.ID}}">{{.Slug}}</a>
+								<a href="{{$.Link}}/{{.Slug}}">{{.Slug}}</a>
 							</td>
 							<td class="gt-ellipsis tw-max-w-48">{{.Description}}</td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
-							<td></td>
 							<td>
 								<div class="tw-flex tw-gap-2">
-									<a href="{{$.Link}}/{{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.badges.details"}}">{{svg "octicon-star"}}</a>
-									<a href="{{$.Link}}/{{.ID}}/edit" data-tooltip-content="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a>
+									<a href="{{$.Link}}/{{.Slug}}" data-tooltip-content="{{ctx.Locale.Tr "admin.badges.details"}}">{{svg "octicon-star"}}</a>
+									<a href="{{$.Link}}/{{.Slug}}/edit" data-tooltip-content="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a>
 								</div>
 							</td>
 						</tr>

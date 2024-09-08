@@ -9,25 +9,18 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/sitemap"
 	"code.gitea.io/gitea/services/context"
 )
 
 func RenderBadgeSearch(ctx *context.Context, opts *user_model.SearchBadgeOptions, tplName base.TplName) {
 	// Sitemap index for sitemap paths
-	opts.Page = int(ctx.ParamsInt64("idx"))
-	isSitemap := ctx.Params("idx") != ""
+	opts.Page = int(ctx.PathParamInt64("idx"))
 	if opts.Page <= 1 {
 		opts.Page = ctx.FormInt("page")
 	}
 	if opts.Page <= 1 {
 		opts.Page = 1
-	}
-
-	if isSitemap {
-		opts.PageSize = setting.UI.SitemapPagingNum
 	}
 
 	var (
@@ -68,17 +61,6 @@ func RenderBadgeSearch(ctx *context.Context, opts *user_model.SearchBadgeOptions
 			ctx.ServerError("SearchBadges", err)
 			return
 		}
-	}
-	if isSitemap {
-		m := sitemap.NewSitemap()
-		for _, item := range badges {
-			m.Add(sitemap.URL{URL: item.HTMLURL()})
-		}
-		ctx.Resp.Header().Set("Content-Type", "text/xml")
-		if _, err := m.WriteTo(ctx.Resp); err != nil {
-			log.Error("Failed writing sitemap: %v", err)
-		}
-		return
 	}
 
 	ctx.Data["Keyword"] = opts.Keyword

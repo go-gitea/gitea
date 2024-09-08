@@ -26,8 +26,8 @@ const (
 	ErrUsername = "UsernameError"
 	// ErrInvalidGroupTeamMap is returned when a group team mapping is invalid
 	ErrInvalidGroupTeamMap = "InvalidGroupTeamMap"
-	ErrInvalidImageURL     = "InvalidImageURL"
-	ErrInvalidSlug         = "InvalidSlug"
+	// ErrInvalidSlug is returned when a slug is invalid
+	ErrInvalidSlug = "InvalidSlug"
 )
 
 // AddBindingRules adds additional binding rules
@@ -40,7 +40,6 @@ func AddBindingRules() {
 	addGlobOrRegexPatternRule()
 	addUsernamePatternRule()
 	addValidGroupTeamMapRule()
-	addValidImageURLBindingRule()
 	addSlugPatternRule()
 }
 
@@ -90,24 +89,6 @@ func addValidSiteURLBindingRule() {
 			str := fmt.Sprintf("%v", val)
 			if len(str) != 0 && !IsValidSiteURL(str) {
 				errs.Add([]string{name}, binding.ERR_URL, "Url")
-				return false, errs
-			}
-
-			return true, errs
-		},
-	})
-}
-
-func addValidImageURLBindingRule() {
-	// URL validation rule
-	binding.AddRule(&binding.Rule{
-		IsMatch: func(rule string) bool {
-			return strings.HasPrefix(rule, "ValidImageUrl")
-		},
-		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
-			str := fmt.Sprintf("%v", val)
-			if len(str) != 0 && !IsValidImageURL(str) {
-				errs.Add([]string{name}, ErrInvalidImageURL, "ImageURL")
 				return false, errs
 			}
 

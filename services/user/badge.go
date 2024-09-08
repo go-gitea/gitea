@@ -11,51 +11,22 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 )
 
-// RenameBadge changes the slug of a badge.
-func RenameBadge(ctx context.Context, b *user_model.Badge, newSlug string) error {
-	if newSlug == b.Slug {
-		return nil
-	}
-
-	olderSlug := b.Slug
-
+// UpdateBadgeDescription changes the description and/or image of a badge
+func UpdateBadge(ctx context.Context, b *user_model.Badge) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	isExist, err := user_model.IsBadgeExist(ctx, b.ID, newSlug)
-	if err != nil {
-		return err
-	}
-	if isExist {
-		return user_model.ErrBadgeAlreadyExist{
-			Slug: newSlug,
-		}
-	}
-
-	b.Slug = newSlug
 	if err := user_model.UpdateBadge(ctx, b); err != nil {
-		b.Slug = olderSlug
 		return err
 	}
-	if err = committer.Commit(); err != nil {
-		b.Slug = olderSlug
-		return err
-	}
-	return nil
+	return committer.Commit()
 }
 
-// DeleteBadge completely and permanently deletes everything of a badge
-func DeleteBadge(ctx context.Context, b *user_model.Badge, purge bool) error {
-	if purge {
-		err := user_model.DeleteUserBadgeRecord(ctx, b)
-		if err != nil {
-			return err
-		}
-	}
-
+// DeleteBadge remove record of badge in the database
+func DeleteBadge(ctx context.Context, b *user_model.Badge) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err

@@ -725,11 +725,11 @@ func registerRoutes(m *web.Router) {
 		m.Group("/badges", func() {
 			m.Get("", admin.Badges)
 			m.Combo("/new").Get(admin.NewBadge).Post(web.Bind(forms.AdminCreateBadgeForm{}), admin.NewBadgePost)
-			m.Get("/{badgeid}", admin.ViewBadge)
-			m.Combo("/{badgeid}/edit").Get(admin.EditBadge).Post(web.Bind(forms.AdminCreateBadgeForm{}), admin.EditBadgePost)
-			m.Post("/{badgeid}/delete", admin.DeleteBadge)
-			m.Combo("/{badgeid}/users").Get(admin.BadgeUsers).Post(admin.BadgeUsersPost)
-			m.Post("/{badgeid}/users/delete", admin.DeleteBadgeUser)
+			m.Get("/{badge_slug}", admin.ViewBadge)
+			m.Combo("/{badge_slug}/edit").Get(admin.EditBadge).Post(web.Bind(forms.AdminCreateBadgeForm{}), admin.EditBadgePost)
+			m.Post("/{badge_slug}/delete", admin.DeleteBadge)
+			m.Combo("/{badge_slug}/users").Get(admin.BadgeUsers).Post(admin.BadgeUsersPost)
+			m.Post("/{badge_slug}/users/delete", admin.DeleteBadgeUser)
 		})
 
 		m.Group("/emails", func() {

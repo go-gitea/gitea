@@ -8,9 +8,9 @@
 				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 
-				<div class="required non-local field {{if .Err_Slug}}error{{end}}">
+				<div class="non-local field {{if .Err_Slug}}error{{end}}" disabled=disabled>
 					<label for="slug">{{ctx.Locale.Tr "admin.badges.slug"}}</label>
-					<input autofocus required id="slug" name="slug" value="{{.Badge.Slug}}">
+					<input disabled=disabled id="slug" name="slug" value="{{.Badge.Slug}}">
 				</div>
 				<div class="field {{if .Err_Description}}error{{end}}">
 					<label for="description">{{ctx.Locale.Tr "admin.badges.description"}}</label>

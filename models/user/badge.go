@@ -6,11 +6,9 @@ package user
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -36,10 +34,6 @@ func init() {
 	db.RegisterModel(new(UserBadge))
 }
 
-func AdminCreateBadge(ctx context.Context, badge *Badge) error {
-	return CreateBadge(ctx, badge)
-}
-
 // GetUserBadges returns the user's badges.
 func GetUserBadges(ctx context.Context, u *User) ([]*Badge, int64, error) {
 	sess := db.GetEngine(ctx).
@@ -52,13 +46,13 @@ func GetUserBadges(ctx context.Context, u *User) ([]*Badge, int64, error) {
 	return badges, count, err
 }
 
-// GetBadgeUsers returns the badges users.
+// GetBadgeUsers returns the users that have a specific badge.
 func GetBadgeUsers(ctx context.Context, b *Badge) ([]*User, int64, error) {
 	sess := db.GetEngine(ctx).
 		Select("`user`.*").
 		Join("INNER", "user_badge", "`user_badge`.user_id=user.id").
-		Where("user_badge.badge_id=?", b.ID)
-
+		Join("INNER", "badge", "`user_badge`.badge_id=badge.id").
+		Where("badge.slug=?", b.Slug)
 	users := make([]*User, 0, 8)
 	count, err := sess.FindAndCount(&users)
 	return users, count, err
@@ -66,20 +60,13 @@ func GetBadgeUsers(ctx context.Context, b *Badge) ([]*User, int64, error) {
 
 // CreateBadge creates a new badge.
 func CreateBadge(ctx context.Context, badge *Badge) error {
-	isExist, err := IsBadgeExist(ctx, 0, badge.Slug)
-
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrBadgeAlreadyExist{badge.Slug}
-	}
-
-	_, err = db.GetEngine(ctx).Insert(badge)
+	// this will fail if the badge already exists due to the UNIQUE constraint
+	_, err := db.GetEngine(ctx).Insert(badge)
 
 	return err
 }
 
-// GetBadge returns a badge
+// GetBadge returns a specific badge
 func GetBadge(ctx context.Context, slug string) (*Badge, error) {
 	badge := new(Badge)
 	has, err := db.GetEngine(ctx).Where("slug=?", slug).Get(badge)
@@ -89,22 +76,9 @@ func GetBadge(ctx context.Context, slug string) (*Badge, error) {
 	return badge, err
 }
 
-// GetBadgeByID returns a badge
-func GetBadgeByID(ctx context.Context, id int64) (*Badge, error) {
-	badge := new(Badge)
-	has, err := db.GetEngine(ctx).Where("id=?", id).Get(badge)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrBadgeNotExist{ID: id}
-	}
-
-	return badge, err
-}
-
 // UpdateBadge updates a badge based on its slug.
 func UpdateBadge(ctx context.Context, badge *Badge) error {
-	_, err := db.GetEngine(ctx).Where("id=?", badge.ID).Cols("slug", "description", "image_url").Update(badge)
+	_, err := db.GetEngine(ctx).Where("slug=?", badge.Slug).Cols("description", "image_url").Update(badge)
 	return err
 }
 
@@ -114,24 +88,8 @@ func DeleteBadge(ctx context.Context, badge *Badge) error {
 	return err
 }
 
-// DeleteUserBadgeRecord deletes a user badge record.
-func DeleteUserBadgeRecord(ctx context.Context, badge *Badge) error {
-	userBadge := &UserBadge{
-		BadgeID: badge.ID,
-	}
-	_, err := db.GetEngine(ctx).Where("badge_id=?", userBadge.BadgeID).Delete(userBadge)
-	return err
-}
-
 // AddUserBadge adds a badge to a user.
 func AddUserBadge(ctx context.Context, u *User, badge *Badge) error {
-	isExist, err := IsBadgeUserExist(ctx, u.ID, badge.ID)
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrBadgeAlreadyExist{}
-	}
-
 	return AddUserBadges(ctx, u, []*Badge{badge})
 }
 
@@ -140,11 +98,11 @@ func AddUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for _, badge := range badges {
 			// hydrate badge and check if it exists
-			has, err := db.GetEngine(ctx).Where("id=?", badge.ID).Get(badge)
+			has, err := db.GetEngine(ctx).Where("slug=?", badge.Slug).Get(badge)
 			if err != nil {
 				return err
 			} else if !has {
-				return ErrBadgeNotExist{ID: badge.ID}
+				return ErrBadgeNotExist{Slug: badge.Slug}
 			}
 			if err := db.Insert(ctx, &UserBadge{
 				BadgeID: badge.ID,
@@ -162,11 +120,19 @@ func RemoveUserBadge(ctx context.Context, u *User, badge *Badge) error {
 	return RemoveUserBadges(ctx, u, []*Badge{badge})
 }
 
-// RemoveUserBadges removes badges from a user.
+// RemoveUserBadges removes specific badges from a user.
 func RemoveUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for _, badge := range badges {
-			if _, err := db.GetEngine(ctx).Delete(&UserBadge{BadgeID: badge.ID, UserID: u.ID}); err != nil {
+			subQuery := builder.
+				Select("id").
+				From("badge").
+				Where(builder.Eq{"slug": badge.Slug})
+
+			if _, err := db.GetEngine(ctx).
+				Where("`user_badge`.user_id=?", u.ID).
+				And(builder.In("badge_id", subQuery)).
+				Delete(&UserBadge{}); err != nil {
 				return err
 			}
 		}
@@ -178,28 +144,6 @@ func RemoveUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 func RemoveAllUserBadges(ctx context.Context, u *User) error {
 	_, err := db.GetEngine(ctx).Where("user_id=?", u.ID).Delete(&UserBadge{})
 	return err
-}
-
-// HTMLURL returns the badges full link.
-func (u *Badge) HTMLURL() string {
-	return setting.AppURL + url.PathEscape(u.Slug)
-}
-
-// IsBadgeExist checks if given badge slug exist,
-// it is used when creating/updating a badge slug
-func IsBadgeExist(ctx context.Context, uid int64, slug string) (bool, error) {
-	if len(slug) == 0 {
-		return false, nil
-	}
-	return db.GetEngine(ctx).
-		Where("slug!=?", uid).
-		Get(&Badge{Slug: strings.ToLower(slug)})
-}
-
-// IsBadgeUserExist checks if given badge id, uid exist,
-func IsBadgeUserExist(ctx context.Context, uid, bid int64) (bool, error) {
-	return db.GetEngine(ctx).
-		Get(&UserBadge{UserID: uid, BadgeID: bid})
 }
 
 // SearchBadgeOptions represents the options when fdin badges
