@@ -131,7 +131,7 @@ func GetContextData(ctx context.Context, tp, key any) any {
 		if c.Expired() {
 			// The warning means that the cache context is misused for long-life task,
 			// it can be resolved with WithNoCacheContext(ctx).
-			log.Warn("cache context is expired, may be misused for long-life tasks: %v", c)
+			log.Warn("cache context is expired, is highly likely to be misused for long-life tasks: %v", c)
 			return nil
 		}
 		return c.Get(tp, key)
@@ -144,7 +144,7 @@ func SetContextData(ctx context.Context, tp, key, value any) {
 		if c.Expired() {
 			// The warning means that the cache context is misused for long-life task,
 			// it can be resolved with WithNoCacheContext(ctx).
-			log.Warn("cache context is expired, may be misused for long-life tasks: %v", c)
+			log.Warn("cache context is expired, is highly likely to be misused for long-life tasks: %v", c)
 			return
 		}
 		c.Put(tp, key, value)
@@ -157,7 +157,7 @@ func RemoveContextData(ctx context.Context, tp, key any) {
 		if c.Expired() {
 			// The warning means that the cache context is misused for long-life task,
 			// it can be resolved with WithNoCacheContext(ctx).
-			log.Warn("cache context is expired, may be misused for long-life tasks: %v", c)
+			log.Warn("cache context is expired, is highly likely to be misused for long-life tasks: %v", c)
 			return
 		}
 		c.Delete(tp, key)
