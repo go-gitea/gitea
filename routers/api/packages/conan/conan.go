@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	conan_model "code.gitea.io/gitea/models/packages/conan"
@@ -21,6 +22,7 @@ import (
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -117,7 +119,20 @@ func Authenticate(ctx *context.Context) {
 		return
 	}
 
-	token, err := packages_service.CreateAuthorizationToken(ctx.Doer)
+	packageScope := auth_service.GetAccessScope(ctx.Data)
+	if has, err := packageScope.HasAnyScope(
+		auth_model.AccessTokenScopeReadPackage,
+		auth_model.AccessTokenScopeWritePackage,
+		auth_model.AccessTokenScopeAll,
+	); !has {
+		if err != nil {
+			log.Error("Error checking access scope: %v", err)
+		}
+		apiError(ctx, http.StatusForbidden, nil)
+		return
+	}
+
+	token, err := packages_service.CreateAuthorizationToken(ctx.Doer, packageScope)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -130,9 +145,23 @@ func Authenticate(ctx *context.Context) {
 func CheckCredentials(ctx *context.Context) {
 	if ctx.Doer == nil {
 		ctx.Status(http.StatusUnauthorized)
-	} else {
-		ctx.Status(http.StatusOK)
+		return
 	}
+
+	packageScope := auth_service.GetAccessScope(ctx.Data)
+	if has, err := packageScope.HasAnyScope(
+		auth_model.AccessTokenScopeReadPackage,
+		auth_model.AccessTokenScopeWritePackage,
+		auth_model.AccessTokenScopeAll,
+	); !has {
+		if err != nil {
+			log.Error("Error checking access scope: %v", err)
+		}
+		ctx.Status(http.StatusForbidden)
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
 
 // RecipeSnapshot displays the recipe files with their md5 hash

@@ -1940,6 +1940,7 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["ChangedProtectedFiles"] = pull.ChangedProtectedFiles
 			ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
 			ctx.Data["ChangedProtectedFilesNum"] = len(pull.ChangedProtectedFiles)
+			ctx.Data["RequireApprovalsWhitelist"] = pb.EnableApprovalsWhitelist
 		}
 		ctx.Data["WillSign"] = false
 		if ctx.Doer != nil {
