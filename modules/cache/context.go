@@ -109,7 +109,8 @@ func WithCacheContext(ctx context.Context) context.Context {
 			return ctx
 		}
 	}
-	return context.WithValue(ctx, cacheContextKey, &cacheContext{
+	// FIXME: review the use of this nolint directive
+	return context.WithValue(ctx, cacheContextKey, &cacheContext{ //nolint:staticcheck
 		data:    make(map[any]map[any]any),
 		created: timeNow(),
 	})

@@ -542,14 +542,14 @@ Gitea or set your environment appropriately.`, "")
 
 	index := bytes.IndexByte(rs.Data, byte(0))
 	if index >= len(rs.Data) {
-		return fail(ctx, "Protocol: format error", "pkt-line: format error "+fmt.Sprint(rs.Data))
+		return fail(ctx, "Protocol: format error", "pkt-line: format error %s", rs.Data)
 	}
 
 	if index < 0 {
 		if len(rs.Data) == 10 && rs.Data[9] == '\n' {
 			index = 9
 		} else {
-			return fail(ctx, "Protocol: format error", "pkt-line: format error "+fmt.Sprint(rs.Data))
+			return fail(ctx, "Protocol: format error", "pkt-line: format error %s", rs.Data)
 		}
 	}
 
