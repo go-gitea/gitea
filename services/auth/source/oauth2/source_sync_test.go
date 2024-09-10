@@ -36,7 +36,7 @@ func TestSource(t *testing.T) {
 		Email:       "external@example.com",
 	}
 
-	err := user_model.CreateUser(context.Background(), user, &user_model.CreateUserOverwriteOptions{})
+	err := user_model.CreateUser(context.Background(), user, &user_model.Meta{}, &user_model.CreateUserOverwriteOptions{})
 	assert.NoError(t, err)
 
 	e := &user_model.ExternalLoginUser{
