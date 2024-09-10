@@ -129,7 +129,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				IsActive:     optional.Some(true),
 			}
 
-			err = user_model.CreateUser(ctx, usr, overwriteDefault)
+			err = user_model.CreateUser(ctx, usr, &user_model.Meta{}, overwriteDefault)
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.authSource.Name, su.Username, err)
 			}
