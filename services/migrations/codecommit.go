@@ -119,8 +119,8 @@ func (c *CodeCommitDownloader) GetRepoInfo() (*base.Repository, error) {
 // GetComments returns comments of an issue or PR
 func (c *CodeCommitDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
 	var (
-		nextToken  *string
-		ccComments []types.Comment
+		nextToken *string
+		comments  []*base.Comment
 	)
 
 	for {
@@ -133,25 +133,22 @@ func (c *CodeCommitDownloader) GetComments(commentable base.Commentable) ([]*bas
 		}
 
 		for _, prComment := range resp.CommentsForPullRequestData {
-			ccComments = append(ccComments, prComment.Comments...)
+			for _, ccComment := range prComment.Comments {
+				comment := &base.Comment{
+					IssueIndex: commentable.GetForeignIndex(),
+					PosterName: c.getUsernameFromARN(*ccComment.AuthorArn),
+					Content:    *ccComment.Content,
+					Created:    *ccComment.CreationDate,
+					Updated:    *ccComment.LastModifiedDate,
+				}
+				comments = append(comments, comment)
+			}
 		}
 
 		nextToken = resp.NextToken
 		if nextToken == nil {
 			break
 		}
-	}
-
-	comments := make([]*base.Comment, 0, len(ccComments))
-	for _, ccComment := range ccComments {
-		comment := &base.Comment{
-			IssueIndex: commentable.GetForeignIndex(),
-			PosterName: c.getUsernameFromARN(*ccComment.AuthorArn),
-			Content:    *ccComment.Content,
-			Created:    *ccComment.CreationDate,
-			Updated:    *ccComment.LastModifiedDate,
-		}
-		comments = append(comments, comment)
 	}
 
 	return comments, true, nil
