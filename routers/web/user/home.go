@@ -17,6 +17,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -568,6 +569,11 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		ctx.ServerError("GetIssuesLastCommitStatus", err)
 		return
 	}
+	if !ctx.Repo.CanRead(unit.TypeActions) {
+		for key := range commitStatuses {
+			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
+		}
+	}
 
 	// -------------------------------
 	// Fill stats to post to ctx.Data.
@@ -724,7 +730,7 @@ func UsernameSubRoute(ctx *context.Context) {
 
 		// check view permissions
 		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
-			ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
+			ctx.NotFound("user", fmt.Errorf("%s", ctx.ContextUser.Name))
 			return false
 		}
 		return true

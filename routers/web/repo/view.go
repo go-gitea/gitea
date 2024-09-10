@@ -8,6 +8,7 @@ import (
 	"bytes"
 	gocontext "context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"html/template"
 	"image"
@@ -234,14 +235,12 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) ([]byte,
 	}
 
 	meta, err := git_model.GetLFSMetaObjectByOid(ctx, repoID, pointer.Oid)
-	if err != nil && err != git_model.ErrLFSObjectNotExist { // fallback to plain file
+	if err != nil { // fallback to plain file
+		log.Warn("Unable to access LFS pointer %s in repo %d: %v", pointer.Oid, repoID, err)
 		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
 	}
 
 	dataRc.Close()
-	if err != nil {
-		return nil, nil, nil, err
-	}
 
 	dataRc, err = lfs.ReadMetaObject(pointer)
 	if err != nil {
@@ -362,6 +361,9 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptionsAll)
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
+		}
+		if !ctx.Repo.CanRead(unit_model.TypeActions) {
+			git_model.CommitStatusesHideActionsURL(ctx, statuses)
 		}
 
 		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
@@ -738,7 +740,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		}
 	}
 
-	ctx.NotFound("Home", fmt.Errorf(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
+	ctx.NotFound("Home", errors.New(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
 }
 
 func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {

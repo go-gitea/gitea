@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {createCodeEditor} from './codeeditor.ts';
-import {hideElem, queryElems, showElem} from '../utils/dom.ts';
+import {hideElem, queryElems, showElem, createElementFromHTML} from '../utils/dom.ts';
 import {initMarkupContent} from '../markup/content.ts';
 import {attachRefIssueContextPopup} from './contextpopup.ts';
 import {POST} from '../modules/fetch.ts';
@@ -61,7 +61,7 @@ export function initRepoEditor() {
     });
   }
 
-  const filenameInput = document.querySelector('#file-name');
+  const filenameInput = document.querySelector<HTMLInputElement>('#file-name');
   function joinTreePath() {
     const parts = [];
     for (const el of document.querySelectorAll('.breadcrumb span.section')) {
@@ -94,12 +94,16 @@ export function initRepoEditor() {
         }
         if (i < parts.length - 1) {
           if (trimValue.length) {
-            const $link = $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`);
-            const $divider = $('<div class="breadcrumb-divider">/</div>');
-            links.push($link.get(0));
-            dividers.push($divider.get(0));
-            $link.insertBefore($(filenameInput));
-            $divider.insertBefore($(filenameInput));
+            const linkElement = createElementFromHTML(
+              `<span class="section"><a href="#">${htmlEscape(value)}</a></span>`,
+            );
+            const dividerElement = createElementFromHTML(
+              `<div class="breadcrumb-divider">/</div>`,
+            );
+            links.push(linkElement);
+            dividers.push(dividerElement);
+            filenameInput.before(linkElement);
+            filenameInput.before(dividerElement);
           }
         } else {
           filenameInput.value = value;

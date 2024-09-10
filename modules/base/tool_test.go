@@ -41,6 +41,9 @@ func TestBasicAuthDecode(t *testing.T) {
 
 	_, _, err = BasicAuthDecode("invalid")
 	assert.Error(t, err)
+
+	_, _, err = BasicAuthDecode("YWxpY2U=") // "alice", no colon
+	assert.Error(t, err)
 }
 
 func TestVerifyTimeLimitCode(t *testing.T) {

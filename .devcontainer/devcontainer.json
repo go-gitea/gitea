@@ -1,12 +1,12 @@
 {
   "name": "Gitea DevContainer",
-  "image": "mcr.microsoft.com/devcontainers/go:1.22-bullseye",
+  "image": "mcr.microsoft.com/devcontainers/go:1.23-bookworm",
   "features": {
     // installs nodejs into container
     "ghcr.io/devcontainers/features/node:1": {
       "version": "20"
     },
-    "ghcr.io/devcontainers/features/git-lfs:1.1.0": {},
+    "ghcr.io/devcontainers/features/git-lfs:1.2.2": {},
     "ghcr.io/devcontainers-contrib/features/poetry:2": {},
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.12"

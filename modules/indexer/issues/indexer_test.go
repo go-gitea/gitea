@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/optional"
@@ -187,6 +188,11 @@ func searchIssueByID(t *testing.T) {
 				AssigneeID: optional.Some(int64(1)),
 			},
 			expectedIDs: []int64{6, 1},
+		},
+		{
+			// NOTE: This tests no assignees filtering and also ToSearchOptions() to ensure it will set AssigneeID to 0 when it is passed as -1.
+			opts:        *ToSearchOptions("", &issues.IssuesOptions{AssigneeID: -1}),
+			expectedIDs: []int64{22, 21, 16, 15, 14, 13, 12, 11, 20, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2},
 		},
 		{
 			opts: SearchOptions{

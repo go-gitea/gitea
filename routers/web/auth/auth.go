@@ -504,7 +504,7 @@ func SignUpPost(ctx *context.Context) {
 		return
 	}
 	if err := password.IsPwned(ctx, form.Password); err != nil {
-		errMsg := ctx.Tr("auth.password_pwned")
+		errMsg := ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords")
 		if password.IsErrIsPwnedRequest(err) {
 			log.Error(err.Error())
 			errMsg = ctx.Tr("auth.password_pwned_err")
@@ -541,7 +541,11 @@ func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form any
 // createUserInContext creates a user and handles errors within a given context.
 // Optionally a template can be specified.
 func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) (ok bool) {
-	if err := user_model.CreateUser(ctx, u, overwrites); err != nil {
+	meta := &user_model.Meta{
+		InitialIP:        ctx.RemoteAddr(),
+		InitialUserAgent: ctx.Req.UserAgent(),
+	}
+	if err := user_model.CreateUser(ctx, u, meta, overwrites); err != nil {
 		if allowLink && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
 				var user *user_model.User
