@@ -1625,7 +1625,7 @@ func SetAllowEdits(ctx *context.Context) {
 	}
 
 	if err := pull_service.SetAllowEdits(ctx, ctx.Doer, pr, form.AllowMaintainerEdit); err != nil {
-		if errors.Is(pull_service.ErrUserHasNoPermissionForAction, err) {
+		if errors.Is(err, pull_service.ErrUserHasNoPermissionForAction) {
 			ctx.Error(http.StatusForbidden)
 			return
 		}
