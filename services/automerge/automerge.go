@@ -245,9 +245,21 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 		defer headGitRepo.Close()
 	}
 
-	headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
-	if pr.HeadRepo == nil || !headBranchExist {
-		log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch: %s]", pr, pr.HeadRepoID, pr.HeadBranch)
+	switch pr.Flow {
+	case issues_model.PullRequestFlowGithub:
+		headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
+		if pr.HeadRepo == nil || !headBranchExist {
+			log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch: %s]", pr, pr.HeadRepoID, pr.HeadBranch)
+			return
+		}
+	case issues_model.PullRequestFlowAGit:
+		headBranchExist := git.IsReferenceExist(ctx, baseGitRepo.Path, pr.GetGitRefName())
+		if !headBranchExist {
+			log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch(Agit): %s]", pr, pr.HeadRepoID, pr.HeadBranch)
+			return
+		}
+	default:
+		log.Error("wrong flow type %d", pr.Flow)
 		return
 	}
 
@@ -276,7 +288,7 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 	}
 
 	if err := pull_service.CheckPullMergeable(ctx, doer, &perm, pr, pull_service.MergeCheckTypeGeneral, false); err != nil {
-		if errors.Is(pull_service.ErrUserNotAllowedToMerge, err) {
+		if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
 			log.Info("%-v was scheduled to automerge by an unauthorized user", pr)
 			return
 		}

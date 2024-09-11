@@ -195,7 +195,7 @@ func GetAllCommits(ctx *context.APIContext) {
 			// get commit specified by sha
 			baseCommit, err = ctx.Repo.GitRepo.GetCommit(sha)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+				ctx.NotFoundOrServerError("GetCommit", git.IsErrNotExist, err)
 				return
 			}
 		}
