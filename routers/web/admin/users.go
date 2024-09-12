@@ -177,7 +177,7 @@ func NewUserPost(ctx *context.Context) {
 		u.MustChangePassword = form.MustChangePassword
 	}
 
-	if err := user_model.AdminCreateUser(ctx, u, overwriteDefault); err != nil {
+	if err := user_model.AdminCreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
