@@ -401,7 +401,7 @@ func (f *valuedField) Render() string {
 }
 
 func (f *valuedField) Value() string {
-	return strings.TrimSpace(f.Get(fmt.Sprintf("form-field-" + f.ID)))
+	return strings.TrimSpace(f.Get(fmt.Sprintf("form-field-%s", f.ID)))
 }
 
 func (f *valuedField) Options() []*valuedOption {
