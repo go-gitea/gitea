@@ -2,10 +2,10 @@
 
 This document is used as aria/accessibility(a11y) reference for future developers.
 
-There are a lot of a11y problems in the Fomantic UI library. This `aria.js` is used
-as a workaround to make the UI more accessible.
+There are a lot of a11y problems in the Fomantic UI library. Files in 
+`web_src/js/modules/fomantic/` are used as a workaround to make the UI more accessible.
 
-The `aria.js` is designed to avoid touching the official Fomantic UI library,
+The aria-related code is designed to avoid touching the official Fomantic UI library,
 and to be as independent as possible, so it can be easily modified/removed in the future.
 
 To test the aria/accessibility with screen readers, developers can use the following steps:
@@ -14,7 +14,7 @@ To test the aria/accessibility with screen readers, developers can use the follo
   * Press `Command + F5` to turn on VoiceOver.
   * Try to operate the UI with keyboard-only.
   * Use Tab/Shift+Tab to switch focus between elements.
-  * Arrow keys to navigate between menu/combobox items (only aria-active, not really focused).
+  * Arrow keys (Option+Up/Down) to navigate between menu/combobox items (only aria-active, not really focused).
   * Press Enter to trigger the aria-active element.
 * On Android, you can use TalkBack.
   * Go to Settings -> Accessibility -> TalkBack, turn it on.
@@ -41,24 +41,19 @@ The ideal checkboxes should be:
 <label><input type="checkbox"> ... </label>
 ```
 
-However, related CSS styles aren't supported (not implemented) yet, so at the moment,
-almost all the checkboxes are still using Fomantic UI checkbox.
-
-## Fomantic UI Checkbox
+However, the templates still have the Fomantic-style HTML layout:
 
 ```html
 <div class="ui checkbox">
-  <input type="checkbox"> <!-- class "hidden" will be added by $.checkbox() -->
+  <input type="checkbox">
   <label>...</label>
 </div>
 ```
 
-Then the JS `$.checkbox()` should be called to make it work with keyboard and label-clicking,
-then it works like the ideal checkboxes.
-
-There is still a problem: Fomantic UI checkbox is not friendly to screen readers,
-so we add IDs to all the Fomantic UI checkboxes automatically by JS.
-If the `label` part is empty, then the checkbox needs to get the `aria-label` attribute manually.
+We call `initAriaCheckboxPatch` to link the `input` and `label` which makes clicking the
+label etc. work. There is still a problem: These checkboxes are not friendly to screen readers,
+so we add IDs to all the Fomantic UI checkboxes automatically by JS. If the `label` part is empty,
+then the checkbox needs to get the `aria-label` attribute manually.
 
 # Fomantic Dropdown
 
@@ -75,7 +70,7 @@ Fomantic Dropdown is designed to be used for many purposes:
 Fomantic Dropdown requires that the focus must be on its primary element.
 If the focus changes, it hides or panics.
 
-At the moment, `aria.js` only tries to partially resolve the a11y problems for dropdowns with items.
+At the moment, the aria-related code only tries to partially resolve the a11y problems for dropdowns with items.
 
 There are different solutions:
 

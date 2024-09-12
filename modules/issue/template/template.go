@@ -88,7 +88,13 @@ func validateYaml(template *api.IssueTemplate) error {
 			if err := validateBoolItem(position, field.Attributes, "multiple"); err != nil {
 				return err
 			}
+			if err := validateBoolItem(position, field.Attributes, "list"); err != nil {
+				return err
+			}
 			if err := validateOptions(field, idx); err != nil {
+				return err
+			}
+			if err := validateDropdownDefault(position, field.Attributes); err != nil {
 				return err
 			}
 		case api.IssueFormFieldTypeCheckboxes:
@@ -249,6 +255,28 @@ func validateBoolItem(position errorPosition, m map[string]any, names ...string)
 	return nil
 }
 
+func validateDropdownDefault(position errorPosition, attributes map[string]any) error {
+	v, ok := attributes["default"]
+	if !ok {
+		return nil
+	}
+	defaultValue, ok := v.(int)
+	if !ok {
+		return position.Errorf("'default' should be an int")
+	}
+
+	options, ok := attributes["options"].([]any)
+	if !ok {
+		// should not happen
+		return position.Errorf("'options' is required and should be a array")
+	}
+	if defaultValue < 0 || defaultValue >= len(options) {
+		return position.Errorf("the value of 'default' is out of range")
+	}
+
+	return nil
+}
+
 type errorPosition string
 
 func (p errorPosition) Errorf(format string, a ...any) error {
@@ -315,7 +343,13 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 			}
 		}
 		if len(checkeds) > 0 {
-			_, _ = fmt.Fprintf(builder, "%s\n", strings.Join(checkeds, ", "))
+			if list, ok := f.Attributes["list"].(bool); ok && list {
+				for _, check := range checkeds {
+					_, _ = fmt.Fprintf(builder, "- %s\n", check)
+				}
+			} else {
+				_, _ = fmt.Fprintf(builder, "%s\n", strings.Join(checkeds, ", "))
+			}
 		} else {
 			_, _ = fmt.Fprint(builder, blankPlaceholder)
 		}
@@ -367,7 +401,7 @@ func (f *valuedField) Render() string {
 }
 
 func (f *valuedField) Value() string {
-	return strings.TrimSpace(f.Get(fmt.Sprintf("form-field-" + f.ID)))
+	return strings.TrimSpace(f.Get(fmt.Sprintf("form-field-%s", f.ID)))
 }
 
 func (f *valuedField) Options() []*valuedOption {

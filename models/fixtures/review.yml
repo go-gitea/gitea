@@ -170,3 +170,12 @@
   content: "review request for user15"
   updated_unix: 946684835
   created_unix: 946684835
+
+-
+  id: 20
+  type: 22
+  reviewer_id: 1
+  issue_id: 2
+  content: "Review Comment"
+  updated_unix: 946684810
+  created_unix: 946684810

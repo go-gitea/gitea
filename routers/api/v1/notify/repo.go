@@ -10,7 +10,6 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -201,7 +200,6 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	if !ctx.FormBool("all") {
 		statuses := ctx.FormStrings("status-types")
 		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread"})
-		log.Error("%v", opts.Status)
 	}
 	nl, err := db.Find[activities_model.Notification](ctx, opts)
 	if err != nil {

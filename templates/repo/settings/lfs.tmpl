@@ -12,7 +12,7 @@
 				{{range .LFSFiles}}
 					<tr>
 						<td>
-							<a href="{{$.Link}}/show/{{.Oid}}" title="{{.Oid}}" class="ui brown button gt-mono">
+							<a href="{{$.Link}}/show/{{.Oid}}" title="{{.Oid}}" class="ui brown button tw-font-mono">
 								{{ShortSha .Oid}}
 							</a>
 						</td>
@@ -44,7 +44,7 @@
 					</p>
 					<form class="ui form" action="{{$.Link}}/delete/{{.Oid}}" method="post">
 						{{$.CsrfTokenHtml}}
-						{{template "base/modal_actions_confirm" (dict "ModalButtonColors" "yellow")}}
+						{{template "base/modal_actions_confirm"}}
 					</form>
 				</div>
 			</div>

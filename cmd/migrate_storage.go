@@ -5,7 +5,9 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -34,13 +36,13 @@ var CmdMigrateStorage = &cli.Command{
 			Name:    "type",
 			Aliases: []string{"t"},
 			Value:   "",
-			Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log'",
+			Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log', 'actions-artifacts",
 		},
 		&cli.StringFlag{
 			Name:    "storage",
 			Aliases: []string{"s"},
 			Value:   "",
-			Usage:   "New storage type: local (default) or minio",
+			Usage:   "New storage type: local (default), minio or azureblob",
 		},
 		&cli.StringFlag{
 			Name:    "path",
@@ -48,6 +50,7 @@ var CmdMigrateStorage = &cli.Command{
 			Value:   "",
 			Usage:   "New storage placement if store is local (leave blank for default)",
 		},
+		// Minio Storage special configurations
 		&cli.StringFlag{
 			Name:  "minio-endpoint",
 			Value: "",
@@ -90,6 +93,37 @@ var CmdMigrateStorage = &cli.Command{
 			Name:  "minio-checksum-algorithm",
 			Value: "",
 			Usage: "Minio checksum algorithm (default/md5)",
+		},
+		&cli.StringFlag{
+			Name:  "minio-bucket-lookup-type",
+			Value: "",
+			Usage: "Minio bucket lookup type",
+		},
+		// Azure Blob Storage special configurations
+		&cli.StringFlag{
+			Name:  "azureblob-endpoint",
+			Value: "",
+			Usage: "Azure Blob storage endpoint",
+		},
+		&cli.StringFlag{
+			Name:  "azureblob-account-name",
+			Value: "",
+			Usage: "Azure Blob storage account name",
+		},
+		&cli.StringFlag{
+			Name:  "azureblob-account-key",
+			Value: "",
+			Usage: "Azure Blob storage account key",
+		},
+		&cli.StringFlag{
+			Name:  "azureblob-container",
+			Value: "",
+			Usage: "Azure Blob storage container",
+		},
+		&cli.StringFlag{
+			Name:  "azureblob-base-path",
+			Value: "",
+			Usage: "Azure Blob storage base path",
 		},
 	},
 }
@@ -160,6 +194,25 @@ func migrateActionsLog(ctx context.Context, dstStorage storage.ObjectStorage) er
 	})
 }
 
+func migrateActionsArtifacts(ctx context.Context, dstStorage storage.ObjectStorage) error {
+	return db.Iterate(ctx, nil, func(ctx context.Context, artifact *actions_model.ActionArtifact) error {
+		if artifact.Status == int64(actions_model.ArtifactStatusExpired) {
+			return nil
+		}
+
+		_, err := storage.Copy(dstStorage, artifact.StoragePath, storage.ActionsArtifacts, artifact.StoragePath)
+		if err != nil {
+			// ignore files that do not exist
+			if errors.Is(err, fs.ErrNotExist) {
+				return nil
+			}
+			return err
+		}
+
+		return nil
+	})
+}
+
 func runMigrateStorage(ctx *cli.Context) error {
 	stdCtx, cancel := installSignals()
 	defer cancel()
@@ -213,6 +266,19 @@ func runMigrateStorage(ctx *cli.Context) error {
 					UseSSL:             ctx.Bool("minio-use-ssl"),
 					InsecureSkipVerify: ctx.Bool("minio-insecure-skip-verify"),
 					ChecksumAlgorithm:  ctx.String("minio-checksum-algorithm"),
+					BucketLookUpType:   ctx.String("minio-bucket-lookup-type"),
+				},
+			})
+	case string(setting.AzureBlobStorageType):
+		dstStorage, err = storage.NewAzureBlobStorage(
+			stdCtx,
+			&setting.Storage{
+				AzureBlobConfig: setting.AzureBlobStorageConfig{
+					Endpoint:    ctx.String("azureblob-endpoint"),
+					AccountName: ctx.String("azureblob-account-name"),
+					AccountKey:  ctx.String("azureblob-account-key"),
+					Container:   ctx.String("azureblob-container"),
+					BasePath:    ctx.String("azureblob-base-path"),
 				},
 			})
 	default:
@@ -223,13 +289,14 @@ func runMigrateStorage(ctx *cli.Context) error {
 	}
 
 	migratedMethods := map[string]func(context.Context, storage.ObjectStorage) error{
-		"attachments":    migrateAttachments,
-		"lfs":            migrateLFS,
-		"avatars":        migrateAvatars,
-		"repo-avatars":   migrateRepoAvatars,
-		"repo-archivers": migrateRepoArchivers,
-		"packages":       migratePackages,
-		"actions-log":    migrateActionsLog,
+		"attachments":       migrateAttachments,
+		"lfs":               migrateLFS,
+		"avatars":           migrateAvatars,
+		"repo-avatars":      migrateRepoAvatars,
+		"repo-archivers":    migrateRepoArchivers,
+		"packages":          migratePackages,
+		"actions-log":       migrateActionsLog,
+		"actions-artifacts": migrateActionsArtifacts,
 	}
 
 	tp := strings.ToLower(ctx.String("type"))

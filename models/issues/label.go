@@ -7,10 +7,12 @@ package issues
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -116,10 +118,15 @@ func (l *Label) CalOpenIssues() {
 func (l *Label) SetArchived(isArchived bool) {
 	if !isArchived {
 		l.ArchivedUnix = timeutil.TimeStamp(0)
-	} else if isArchived && l.ArchivedUnix.IsZero() {
+	} else if isArchived && !l.IsArchived() {
 		// Only change the date when it is newly archived.
 		l.ArchivedUnix = timeutil.TimeStampNow()
 	}
+}
+
+// IsArchived returns true if label is an archived
+func (l *Label) IsArchived() bool {
+	return !l.ArchivedUnix.IsZero()
 }
 
 // CalOpenOrgIssues calculates the open issues of a label for a specific repo
@@ -137,28 +144,33 @@ func (l *Label) CalOpenOrgIssues(ctx context.Context, repoID, labelID int64) {
 
 // LoadSelectedLabelsAfterClick calculates the set of selected labels when a label is clicked
 func (l *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64, currentSelectedExclusiveScopes []string) {
-	var labelQuerySlice []string
+	labelQueryParams := container.Set[string]{}
 	labelSelected := false
-	labelID := strconv.FormatInt(l.ID, 10)
-	labelScope := l.ExclusiveScope()
-	for i, s := range currentSelectedLabels {
-		if s == l.ID {
+	exclusiveScope := l.ExclusiveScope()
+	for i, curSel := range currentSelectedLabels {
+		if curSel == l.ID {
 			labelSelected = true
-		} else if -s == l.ID {
+		} else if -curSel == l.ID {
 			labelSelected = true
 			l.IsExcluded = true
-		} else if s != 0 {
+		} else if curSel != 0 {
 			// Exclude other labels in the same scope from selection
-			if s < 0 || labelScope == "" || labelScope != currentSelectedExclusiveScopes[i] {
-				labelQuerySlice = append(labelQuerySlice, strconv.FormatInt(s, 10))
+			if curSel < 0 || exclusiveScope == "" || exclusiveScope != currentSelectedExclusiveScopes[i] {
+				labelQueryParams.Add(strconv.FormatInt(curSel, 10))
 			}
 		}
 	}
+
 	if !labelSelected {
-		labelQuerySlice = append(labelQuerySlice, labelID)
+		labelQueryParams.Add(strconv.FormatInt(l.ID, 10))
 	}
 	l.IsSelected = labelSelected
-	l.QueryString = strings.Join(labelQuerySlice, ",")
+
+	// Sort and deduplicate the ids to avoid the crawlers asking for the
+	// same thing with simply a different order of parameters
+	labelQuerySliceStrings := labelQueryParams.Values()
+	slices.Sort(labelQuerySliceStrings) // the sort is still needed because the underlying map of Set doesn't guarantee order
+	l.QueryString = strings.Join(labelQuerySliceStrings, ",")
 }
 
 // BelongsToOrg returns true if label is an organization label
@@ -166,17 +178,12 @@ func (l *Label) BelongsToOrg() bool {
 	return l.OrgID > 0
 }
 
-// IsArchived returns true if label is an archived
-func (l *Label) IsArchived() bool {
-	return l.ArchivedUnix > 0
-}
-
 // BelongsToRepo returns true if label is a repository label
 func (l *Label) BelongsToRepo() bool {
 	return l.RepoID > 0
 }
 
-// Return scope substring of label name, or empty string if none exists
+// ExclusiveScope returns scope substring of label name, or empty string if none exists
 func (l *Label) ExclusiveScope() string {
 	if !l.Exclusive {
 		return ""

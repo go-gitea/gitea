@@ -70,6 +70,11 @@ func Branches(ctx *context.Context) {
 		ctx.ServerError("LoadBranches", err)
 		return
 	}
+	if !ctx.Repo.CanRead(unit.TypeActions) {
+		for key := range commitStatuses {
+			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
+		}
+	}
 
 	commitStatus := make(map[string]*git_model.CommitStatus)
 	for commitID, cs := range commitStatuses {
@@ -153,12 +158,7 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
-	objectFormat, err := git.GetObjectFormatOfRepo(ctx, ctx.Repo.Repository.RepoPath())
-	if err != nil {
-		log.Error("RestoreBranch: CreateBranch: %w", err)
-		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", deletedBranch.Name))
-		return
-	}
+	objectFormat := git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName)
 
 	// Don't return error below this
 	if err := repo_service.PushUpdate(

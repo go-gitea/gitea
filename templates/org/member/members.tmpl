@@ -7,7 +7,7 @@
 		<div class="flex-list">
 			{{range .Members}}
 				{{$isPublic := index $.MembersIsPublicMember .ID}}
-				<div class="flex-item {{if $.PublicOnly}}gt-ac{{end}}">
+				<div class="flex-item {{if $.PublicOnly}}tw-items-center{{end}}">
 					<div class="flex-item-leading">
 						<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 48}}</a>
 					</div>

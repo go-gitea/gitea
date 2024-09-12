@@ -47,7 +47,7 @@
 					</div>
 				</div>
 
-				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .login_type "0-0"}}gt-hidden{{end}}">
+				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .login_type "0-0"}}tw-hidden{{end}}">
 					<label for="login_name">{{ctx.Locale.Tr "admin.users.auth_login_name"}}</label>
 					<input id="login_name" name="login_name" value="{{.login_name}}">
 				</div>
@@ -59,12 +59,12 @@
 					<label for="email">{{ctx.Locale.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.email}}" required>
 				</div>
-				<div class="required local field {{if .Err_Password}}error{{end}} {{if not (eq .login_type "0-0")}}gt-hidden{{end}}">
+				<div class="required local field {{if .Err_Password}}error{{end}} {{if not (eq .login_type "0-0")}}tw-hidden{{end}}">
 					<label for="password">{{ctx.Locale.Tr "password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password" value="{{.password}}" {{if eq .login_type "0-0"}}required{{end}}>
 				</div>
 
-				<div class="inline field local {{if ne .login_type "0-0"}}gt-hidden{{end}}">
+				<div class="inline field local {{if ne .login_type "0-0"}}tw-hidden{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "auth.allow_password_change"}}</strong></label>
 						<input name="must_change_password" type="checkbox" checked>

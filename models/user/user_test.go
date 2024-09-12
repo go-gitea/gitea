@@ -5,8 +5,8 @@ package user_test
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password/hash"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -226,7 +227,7 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 		MustChangePassword: false,
 	}
 
-	err := user_model.CreateUser(db.DefaultContext, user)
+	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrEmailCharIsNotSupported(err))
 }
@@ -240,7 +241,7 @@ func TestCreateUserEmailAlreadyUsed(t *testing.T) {
 	user.Name = "testuser"
 	user.LowerName = strings.ToLower(user.Name)
 	user.ID = 0
-	err := user_model.CreateUser(db.DefaultContext, user)
+	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 }
@@ -257,7 +258,7 @@ func TestCreateUserCustomTimestamps(t *testing.T) {
 	user.ID = 0
 	user.Email = "unique@example.com"
 	user.CreatedUnix = creationTimestamp
-	err := user_model.CreateUser(db.DefaultContext, user)
+	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
 	assert.NoError(t, err)
 
 	fetched, err := user_model.GetUserByID(context.Background(), user.ID)
@@ -282,7 +283,7 @@ func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
 	user.Email = "unique@example.com"
 	user.CreatedUnix = 0
 	user.UpdatedUnix = 0
-	err := user_model.CreateUser(db.DefaultContext, user)
+	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
 	assert.NoError(t, err)
 
 	timestampEnd := time.Now().Unix()
@@ -505,15 +506,16 @@ func Test_NormalizeUserFromEmail(t *testing.T) {
 		Expected          string
 		IsNormalizedValid bool
 	}{
-		{"test", "test", true},
+		{"name@example.com", "name", true},
+		{"test'`´name", "testname", true},
 		{"Sinéad.O'Connor", "Sinead.OConnor", true},
 		{"Æsir", "AEsir", true},
-		// \u00e9\u0065\u0301
-		{"éé", "ee", true},
+		{"éé", "ee", true}, // \u00e9\u0065\u0301
 		{"Awareness Hub", "Awareness-Hub", true},
 		{"double__underscore", "double__underscore", false}, // We should consider squashing double non-alpha characters
 		{".bad.", ".bad.", false},
 		{"new😀user", "new😀user", false}, // No plans to support
+		{`"quoted"`, `"quoted"`, false}, // No plans to support
 	}
 	for _, testCase := range testCases {
 		normalizedName, err := user_model.NormalizeUserName(testCase.Input)
@@ -524,5 +526,62 @@ func Test_NormalizeUserFromEmail(t *testing.T) {
 		} else {
 			assert.Error(t, user_model.IsUsableUsername(normalizedName))
 		}
+	}
+}
+
+func TestEmailTo(t *testing.T) {
+	testCases := []struct {
+		fullName string
+		mail     string
+		result   string
+	}{
+		{"Awareness Hub", "awareness@hub.net", "Awareness Hub <awareness@hub.net>"},
+		{"name@example.com", "name@example.com", "name@example.com"},
+		{"Hi Its <Mee>", "ee@mail.box", "Hi Its Mee <ee@mail.box>"},
+		{"Sinéad.O'Connor", "sinead.oconnor@gmail.com", "=?utf-8?q?Sin=C3=A9ad.O'Connor?= <sinead.oconnor@gmail.com>"},
+		{"Æsir", "aesir@gmx.de", "=?utf-8?q?=C3=86sir?= <aesir@gmx.de>"},
+		{"new😀user", "new.user@alo.com", "=?utf-8?q?new=F0=9F=98=80user?= <new.user@alo.com>"},
+		{`"quoted"`, "quoted@test.com", "quoted <quoted@test.com>"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.result, func(t *testing.T) {
+			testUser := &user_model.User{FullName: testCase.fullName, Email: testCase.mail}
+			assert.EqualValues(t, testCase.result, testUser.EmailTo())
+		})
+	}
+}
+
+func TestDisabledUserFeatures(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	testValues := container.SetOf(setting.UserFeatureDeletion,
+		setting.UserFeatureManageSSHKeys,
+		setting.UserFeatureManageGPGKeys)
+
+	oldSetting := setting.Admin.ExternalUserDisableFeatures
+	defer func() {
+		setting.Admin.ExternalUserDisableFeatures = oldSetting
+	}()
+	setting.Admin.ExternalUserDisableFeatures = testValues
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	assert.Len(t, setting.Admin.UserDisabledFeatures.Values(), 0)
+
+	// no features should be disabled with a plain login type
+	assert.LessOrEqual(t, user.LoginType, auth.Plain)
+	assert.Len(t, user_model.DisabledFeaturesWithLoginType(user).Values(), 0)
+	for _, f := range testValues.Values() {
+		assert.False(t, user_model.IsFeatureDisabledWithLoginType(user, f))
+	}
+
+	// check disabled features with external login type
+	user.LoginType = auth.OAuth2
+
+	// all features should be disabled
+	assert.NotEmpty(t, user_model.DisabledFeaturesWithLoginType(user).Values())
+	for _, f := range testValues.Values() {
+		assert.True(t, user_model.IsFeatureDisabledWithLoginType(user, f))
 	}
 }

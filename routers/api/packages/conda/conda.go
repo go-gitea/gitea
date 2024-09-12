@@ -66,7 +66,7 @@ func EnumeratePackages(ctx *context.Context) {
 
 	repoData := &RepoData{
 		Info: Info{
-			Subdir: ctx.Params("architecture"),
+			Subdir: ctx.PathParam("architecture"),
 		},
 		Packages:      make(map[string]*PackageInfo),
 		PackagesConda: make(map[string]*PackageInfo),
@@ -75,7 +75,7 @@ func EnumeratePackages(ctx *context.Context) {
 
 	pfs, err := conda_model.SearchFiles(ctx, &conda_model.FileSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
-		Channel: ctx.Params("channel"),
+		Channel: ctx.PathParam("channel"),
 		Subdir:  repoData.Info.Subdir,
 	})
 	if err != nil {
@@ -151,7 +151,7 @@ func EnumeratePackages(ctx *context.Context) {
 
 	var w io.Writer = resp
 
-	if strings.HasSuffix(ctx.Params("filename"), ".json") {
+	if strings.HasSuffix(ctx.PathParam("filename"), ".json") {
 		resp.Header().Set("Content-Type", "application/json")
 	} else {
 		resp.Header().Set("Content-Type", "application/x-bzip2")
@@ -174,12 +174,12 @@ func EnumeratePackages(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
@@ -191,7 +191,7 @@ func UploadPackageFile(ctx *context.Context) {
 	defer buf.Close()
 
 	var pck *conda_module.Package
-	if strings.HasSuffix(strings.ToLower(ctx.Params("filename")), ".tar.bz2") {
+	if strings.HasSuffix(strings.ToLower(ctx.PathParam("filename")), ".tar.bz2") {
 		pck, err = conda_module.ParsePackageBZ2(buf)
 	} else {
 		pck, err = conda_module.ParsePackageConda(buf, buf.Size())
@@ -212,7 +212,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	fullName := pck.Name
 
-	channel := ctx.Params("channel")
+	channel := ctx.PathParam("channel")
 	if channel != "" {
 		fullName = channel + "/" + pck.Name
 	}
@@ -277,9 +277,9 @@ func UploadPackageFile(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	pfs, err := conda_model.SearchFiles(ctx, &conda_model.FileSearchOptions{
 		OwnerID:  ctx.Package.Owner.ID,
-		Channel:  ctx.Params("channel"),
-		Subdir:   ctx.Params("architecture"),
-		Filename: ctx.Params("filename"),
+		Channel:  ctx.PathParam("channel"),
+		Subdir:   ctx.PathParam("architecture"),
+		Filename: ctx.PathParam("filename"),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)

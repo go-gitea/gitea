@@ -35,7 +35,7 @@ func SendEmail(ctx *context.PrivateContext) {
 	defer rd.Close()
 
 	if err := json.NewDecoder(rd).Decode(&mail); err != nil {
-		log.Error("%v", err)
+		log.Error("JSON Decode failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
 		})

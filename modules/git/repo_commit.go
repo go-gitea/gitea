@@ -7,6 +7,7 @@ package git
 import (
 	"bytes"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 
@@ -246,18 +247,23 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 		}
 	}()
 
-	len := repo.objectFormat.FullLength()
+	objectFormat, err := repo.GetObjectFormat()
+	if err != nil {
+		return nil, err
+	}
+
+	length := objectFormat.FullLength()
 	commits := []*Commit{}
-	shaline := make([]byte, len+1)
+	shaline := make([]byte, length+1)
 	for {
 		n, err := io.ReadFull(stdoutReader, shaline)
-		if err != nil || n < len {
+		if err != nil || n < length {
 			if err == io.EOF {
 				err = nil
 			}
 			return commits, err
 		}
-		objectID, err := NewIDFromString(string(shaline[0:len]))
+		objectID, err := NewIDFromString(string(shaline[0:length]))
 		if err != nil {
 			return nil, err
 		}
@@ -409,7 +415,7 @@ func (repo *Repository) commitsBefore(id ObjectID, limit int) ([]*Commit, error)
 
 	commits := make([]*Commit, 0, len(formattedLog))
 	for _, commit := range formattedLog {
-		branches, err := repo.getBranches(commit, 2)
+		branches, err := repo.getBranches(os.Environ(), commit.ID.String(), 2)
 		if err != nil {
 			return nil, err
 		}
@@ -432,12 +438,15 @@ func (repo *Repository) getCommitsBeforeLimit(id ObjectID, num int) ([]*Commit, 
 	return repo.commitsBefore(id, num)
 }
 
-func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error) {
-	if CheckGitVersionAtLeast("2.7.0") == nil {
+func (repo *Repository) getBranches(env []string, commitID string, limit int) ([]string, error) {
+	if DefaultFeatures().CheckVersionAtLeast("2.7.0") {
 		stdout, _, err := NewCommand(repo.Ctx, "for-each-ref", "--format=%(refname:strip=2)").
 			AddOptionFormat("--count=%d", limit).
-			AddOptionValues("--contains", commit.ID.String(), BranchPrefix).
-			RunStdString(&RunOpts{Dir: repo.Path})
+			AddOptionValues("--contains", commitID, BranchPrefix).
+			RunStdString(&RunOpts{
+				Dir: repo.Path,
+				Env: env,
+			})
 		if err != nil {
 			return nil, err
 		}
@@ -446,7 +455,10 @@ func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error)
 		return branches, nil
 	}
 
-	stdout, _, err := NewCommand(repo.Ctx, "branch").AddOptionValues("--contains", commit.ID.String()).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, err := NewCommand(repo.Ctx, "branch").AddOptionValues("--contains", commitID).RunStdString(&RunOpts{
+		Dir: repo.Path,
+		Env: env,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -507,4 +519,36 @@ func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error
 		repo.LastCommitCache = NewLastCommitCache(commitsCount, fullName, repo, cache.GetCache())
 	}
 	return nil
+}
+
+func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID string) (string, error) {
+	cmd := NewCommand(repo.Ctx, "log", prettyLogFormat)
+	cmd.AddDynamicArguments(endCommitID)
+
+	stdout, _, runErr := cmd.RunStdBytes(&RunOpts{
+		Dir: repo.Path,
+		Env: env,
+	})
+	if runErr != nil {
+		return "", runErr
+	}
+
+	parts := bytes.Split(bytes.TrimSpace(stdout), []byte{'\n'})
+
+	var startCommitID string
+	for _, commitID := range parts {
+		branches, err := repo.getBranches(env, string(commitID), 2)
+		if err != nil {
+			return "", err
+		}
+		for _, b := range branches {
+			if b != branch {
+				return startCommitID, nil
+			}
+		}
+
+		startCommitID = string(commitID)
+	}
+
+	return "", nil
 }

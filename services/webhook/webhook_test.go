@@ -77,7 +77,3 @@ func TestPrepareWebhooksBranchFilterNoMatch(t *testing.T) {
 		unittest.AssertNotExistsBean(t, hookTask)
 	}
 }
-
-// TODO TestHookTask_deliver
-
-// TODO TestDeliverHooks

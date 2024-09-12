@@ -18,7 +18,7 @@ import (
 // HookProcReceive proc-receive hook - only handles agit Proc-Receive requests at present
 func HookProcReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm(ctx).(*private.HookOptions)
-	if !git.DefaultFeatures.SupportProcReceive {
+	if !git.DefaultFeatures().SupportProcReceive {
 		ctx.Status(http.StatusNotFound)
 		return
 	}

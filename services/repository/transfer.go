@@ -15,18 +15,19 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
-// repoWorkingPool represents a working pool to order the parallel changes to the same repository
-// TODO: use clustered lock (unique queue? or *abuse* cache)
-var repoWorkingPool = sync.NewExclusivePool()
+func getRepoWorkingLockKey(repoID int64) string {
+	return fmt.Sprintf("repo_working_%d", repoID)
+}
 
 // TransferOwnership transfers all corresponding setting from old user to new one.
 func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
@@ -41,12 +42,17 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 
 	oldOwner := repo.Owner
 
-	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
+	releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer releaser()
+
 	if err := transferOwnership(ctx, doer, newOwner.Name, repo); err != nil {
-		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 		return err
 	}
-	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	releaser()
 
 	newRepo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
 	if err != nil {
@@ -177,6 +183,22 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		}
 	}
 
+	// Remove project's issues that belong to old organization's projects
+	if oldOwner.IsOrganization() {
+		projects, err := project_model.GetAllProjectsIDsByOwnerIDAndType(ctx, oldOwner.ID, project_model.TypeOrganization)
+		if err != nil {
+			return fmt.Errorf("Unable to find old org projects: %w", err)
+		}
+		issues, err := issues_model.GetIssueIDsByRepoID(ctx, repo.ID)
+		if err != nil {
+			return fmt.Errorf("Unable to find repo's issues: %w", err)
+		}
+		err = project_model.DeleteAllProjectIssueByIssueIDsAndProjectIDs(ctx, issues, projects)
+		if err != nil {
+			return fmt.Errorf("Unable to delete project's issues: %w", err)
+		}
+	}
+
 	if newOwner.IsOrganization() {
 		teams, err := organization.FindOrgTeams(ctx, newOwner.ID)
 		if err != nil {
@@ -285,7 +307,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 }
 
 // changeRepositoryName changes all corresponding setting from old repository name to new one.
-func changeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, newRepoName string) (err error) {
+func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newRepoName string) (err error) {
 	oldRepoName := repo.Name
 	newRepoName = strings.ToLower(newRepoName)
 	if err = repo_model.IsUsableRepoName(newRepoName); err != nil {
@@ -343,15 +365,20 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	oldRepoName := repo.Name
 
 	// Change repository directory name. We must lock the local copy of the
-	// repo so that we can atomically rename the repo path and updates the
+	// repo so that we can automatically rename the repo path and updates the
 	// local copy's origin accordingly.
 
-	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
-	if err := changeRepositoryName(ctx, doer, repo, newRepoName); err != nil {
-		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer releaser()
+
+	if err := changeRepositoryName(ctx, repo, newRepoName); err != nil {
 		return err
 	}
-	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	releaser()
 
 	repo.Name = newRepoName
 	notify_service.RenameRepository(ctx, doer, repo, oldRepoName)
@@ -387,7 +414,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	}
 
 	// In case the new owner would not have sufficient access to the repo, give access rights for read
-	hasAccess, err := access_model.HasAccess(ctx, newOwner.ID, repo)
+	hasAccess, err := access_model.HasAnyUnitAccess(ctx, newOwner.ID, repo)
 	if err != nil {
 		return err
 	}
