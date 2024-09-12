@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -44,36 +45,47 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		return nil
 	}
 
-	p, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
+	var doerID int64
+	if doer != nil {
+		doerID = doer.ID
+	}
+
+	const repoDoerPermCacheKey = "repo_doer_perm_cache"
+	p, err := cache.GetWithContextCache(ctx, repoDoerPermCacheKey, fmt.Sprintf("%d_%d", pr.BaseRepoID, doerID),
+		func() (access_model.Permission, error) {
+			return access_model.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
+		})
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
 		p.AccessMode = perm.AccessModeNone
 	}
 
 	apiPullRequest := &api.PullRequest{
-		ID:        pr.ID,
-		URL:       pr.Issue.HTMLURL(),
-		Index:     pr.Index,
-		Poster:    apiIssue.Poster,
-		Title:     apiIssue.Title,
-		Body:      apiIssue.Body,
-		Labels:    apiIssue.Labels,
-		Milestone: apiIssue.Milestone,
-		Assignee:  apiIssue.Assignee,
-		Assignees: apiIssue.Assignees,
-		State:     apiIssue.State,
-		IsLocked:  apiIssue.IsLocked,
-		Comments:  apiIssue.Comments,
-		HTMLURL:   pr.Issue.HTMLURL(),
-		DiffURL:   pr.Issue.DiffURL(),
-		PatchURL:  pr.Issue.PatchURL(),
-		HasMerged: pr.HasMerged,
-		MergeBase: pr.MergeBase,
-		Mergeable: pr.Mergeable(ctx),
-		Deadline:  apiIssue.Deadline,
-		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
-		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
-		PinOrder:  apiIssue.PinOrder,
+		ID:             pr.ID,
+		URL:            pr.Issue.HTMLURL(),
+		Index:          pr.Index,
+		Poster:         apiIssue.Poster,
+		Title:          apiIssue.Title,
+		Body:           apiIssue.Body,
+		Labels:         apiIssue.Labels,
+		Milestone:      apiIssue.Milestone,
+		Assignee:       apiIssue.Assignee,
+		Assignees:      apiIssue.Assignees,
+		State:          apiIssue.State,
+		Draft:          pr.IsWorkInProgress(ctx),
+		IsLocked:       apiIssue.IsLocked,
+		Comments:       apiIssue.Comments,
+		ReviewComments: pr.GetReviewCommentsCount(ctx),
+		HTMLURL:        pr.Issue.HTMLURL(),
+		DiffURL:        pr.Issue.DiffURL(),
+		PatchURL:       pr.Issue.PatchURL(),
+		HasMerged:      pr.HasMerged,
+		MergeBase:      pr.MergeBase,
+		Mergeable:      pr.Mergeable(ctx),
+		Deadline:       apiIssue.Deadline,
+		Created:        pr.Issue.CreatedUnix.AsTimePtr(),
+		Updated:        pr.Issue.UpdatedUnix.AsTimePtr(),
+		PinOrder:       apiIssue.PinOrder,
 
 		AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
@@ -94,8 +106,23 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		log.Error("LoadRequestedReviewers[%d]: %v", pr.ID, err)
 		return nil
 	}
+	if err = pr.LoadRequestedReviewersTeams(ctx); err != nil {
+		log.Error("LoadRequestedReviewersTeams[%d]: %v", pr.ID, err)
+		return nil
+	}
+
 	for _, reviewer := range pr.RequestedReviewers {
 		apiPullRequest.RequestedReviewers = append(apiPullRequest.RequestedReviewers, ToUser(ctx, reviewer, nil))
+	}
+
+	for _, reviewerTeam := range pr.RequestedReviewersTeams {
+		convertedTeam, err := ToTeam(ctx, reviewerTeam, true)
+		if err != nil {
+			log.Error("LoadRequestedReviewersTeams[%d]: %v", pr.ID, err)
+			return nil
+		}
+
+		apiPullRequest.RequestedReviewersTeams = append(apiPullRequest.RequestedReviewersTeams, convertedTeam)
 	}
 
 	if pr.Issue.ClosedUnix != 0 {
@@ -168,6 +195,12 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			return nil
 		}
 
+		// Outer scope variables to be used in diff calculation
+		var (
+			startCommitID string
+			endCommitID   string
+		)
+
 		if git.IsErrBranchNotExist(err) {
 			headCommitID, err := headGitRepo.GetRefCommitID(apiPullRequest.Head.Ref)
 			if err != nil && !git.IsErrNotExist(err) {
@@ -176,6 +209,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			}
 			if err == nil {
 				apiPullRequest.Head.Sha = headCommitID
+				endCommitID = headCommitID
 			}
 		} else {
 			commit, err := headBranch.GetCommit()
@@ -186,7 +220,16 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			if err == nil {
 				apiPullRequest.Head.Ref = pr.HeadBranch
 				apiPullRequest.Head.Sha = commit.ID.String()
+				endCommitID = commit.ID.String()
 			}
+		}
+
+		// Calculate diff
+		startCommitID = pr.MergeBase
+
+		apiPullRequest.ChangedFiles, apiPullRequest.Additions, apiPullRequest.Deletions, err = gitRepo.GetDiffShortStat(startCommitID, endCommitID)
+		if err != nil {
+			log.Error("GetDiffShortStat: %v", err)
 		}
 	}
 

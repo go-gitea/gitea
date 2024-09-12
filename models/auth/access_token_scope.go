@@ -309,6 +309,22 @@ func (s AccessTokenScope) HasScope(scopes ...AccessTokenScope) (bool, error) {
 	return true, nil
 }
 
+// HasAnyScope returns true if any of the scopes is contained in the string
+func (s AccessTokenScope) HasAnyScope(scopes ...AccessTokenScope) (bool, error) {
+	bitmap, err := s.parse()
+	if err != nil {
+		return false, err
+	}
+
+	for _, s := range scopes {
+		if has, err := bitmap.hasScope(s); has || err != nil {
+			return has, err
+		}
+	}
+
+	return false, nil
+}
+
 // hasScope returns true if the string has the given scope
 func (bitmap accessTokenScopeBitmap) hasScope(scope AccessTokenScope) (bool, error) {
 	expectedBits, ok := allAccessTokenScopeBits[scope]

@@ -71,6 +71,12 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 				)),
 			),
 		)
+
+		if options.IsKeywordNumeric() {
+			cond = cond.Or(
+				builder.Eq{"`index`": options.Keyword},
+			)
+		}
 	}
 
 	opt, err := ToDBOptions(ctx, options)

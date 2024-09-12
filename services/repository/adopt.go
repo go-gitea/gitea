@@ -36,10 +36,6 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		}
 	}
 
-	if len(opts.DefaultBranch) == 0 {
-		opts.DefaultBranch = setting.Repository.DefaultBranch
-	}
-
 	repo := &repo_model.Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,
@@ -81,7 +77,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		}
 
 		if err := adoptRepository(ctx, repoPath, repo, opts.DefaultBranch); err != nil {
-			return fmt.Errorf("createDelegateHooks: %w", err)
+			return fmt.Errorf("adoptRepository: %w", err)
 		}
 
 		if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
@@ -143,6 +139,21 @@ func adoptRepository(ctx context.Context, repoPath string, repo *repo_model.Repo
 		}
 	}
 
+	// Don't bother looking this repo in the context it won't be there
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	if err != nil {
+		return fmt.Errorf("openRepository: %w", err)
+	}
+	defer gitRepo.Close()
+
+	if _, err = repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, 0); err != nil {
+		return fmt.Errorf("SyncRepoBranchesWithRepo: %w", err)
+	}
+
+	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+		return fmt.Errorf("SyncReleasesWithTags: %w", err)
+	}
+
 	branches, _ := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
 		RepoID:          repo.ID,
 		ListOptions:     db.ListOptionsAll,
@@ -183,20 +194,8 @@ func adoptRepository(ctx context.Context, repoPath string, repo *repo_model.Repo
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	}
-
 	if err = repo_module.UpdateRepository(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %w", err)
-	}
-
-	// Don't bother looking this repo in the context it won't be there
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
-	if err != nil {
-		return fmt.Errorf("openRepository: %w", err)
-	}
-	defer gitRepo.Close()
-
-	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
-		return fmt.Errorf("SyncReleasesWithTags: %w", err)
 	}
 
 	return nil

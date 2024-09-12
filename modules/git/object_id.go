@@ -54,7 +54,7 @@ func (*Sha256Hash) Type() ObjectFormat { return Sha256ObjectFormat }
 
 func NewIDFromString(hexHash string) (ObjectID, error) {
 	var theObjectFormat ObjectFormat
-	for _, objectFormat := range SupportedObjectFormats {
+	for _, objectFormat := range DefaultFeatures().SupportedObjectFormats {
 		if len(hexHash) == objectFormat.FullLength() {
 			theObjectFormat = objectFormat
 			break

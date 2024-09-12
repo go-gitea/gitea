@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/convert"
 	secret_service "code.gitea.io/gitea/services/secrets"
 )
 
@@ -116,12 +117,11 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
 
-	_, created, err := secret_service.CreateOrUpdateSecret(ctx, owner.ID, repo.ID, ctx.Params("secretname"), opt.Data)
+	_, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
@@ -173,10 +173,9 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	err := secret_service.DeleteSecretByName(ctx, owner.ID, repo.ID, ctx.Params("secretname"))
+	err := secret_service.DeleteSecretByName(ctx, 0, repo.ID, ctx.PathParam("secretname"))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "DeleteSecret", err)
@@ -223,7 +222,7 @@ func (Action) GetVariable(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		RepoID: ctx.Repo.Repository.ID,
-		Name:   ctx.Params("variablename"),
+		Name:   ctx.PathParam("variablename"),
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -279,7 +278,7 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := actions_service.DeleteVariableByName(ctx, 0, ctx.Repo.Repository.ID, ctx.Params("variablename")); err != nil {
+	if err := actions_service.DeleteVariableByName(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParam("variablename")); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "DeleteVariableByName", err)
 		} else if errors.Is(err, util.ErrNotExist) {
@@ -333,7 +332,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 
 	repoID := ctx.Repo.Repository.ID
-	variableName := ctx.Params("variablename")
+	variableName := ctx.PathParam("variablename")
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		RepoID: repoID,
@@ -401,7 +400,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		RepoID: ctx.Repo.Repository.ID,
-		Name:   ctx.Params("variablename"),
+		Name:   ctx.PathParam("variablename"),
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -413,7 +412,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	}
 
 	if opt.Name == "" {
-		opt.Name = ctx.Params("variablename")
+		opt.Name = ctx.PathParam("variablename")
 	}
 	if _, err := actions_service.UpdateVariable(ctx, v.ID, opt.Name, opt.Value); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -485,7 +484,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 
 // GetRegistrationToken returns the token to register repo runners
 func (Action) GetRegistrationToken(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/runners/registration-token repository repoGetRunnerRegistrationToken
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runners/registration-token repository repoGetRunnerRegistrationToken
 	// ---
 	// summary: Get a repository's actions runner registration token
 	// produces:
@@ -505,7 +504,7 @@ func (Action) GetRegistrationToken(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RegistrationToken"
 
-	shared.GetRegistrationToken(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.ID)
+	shared.GetRegistrationToken(ctx, 0, ctx.Repo.Repository.ID)
 }
 
 var _ actions_service.API = new(Action)
@@ -516,4 +515,69 @@ type Action struct{}
 // NewAction creates a new Action service
 func NewAction() actions_service.API {
 	return Action{}
+}
+
+// ListActionTasks list all the actions of a repository
+func ListActionTasks(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/tasks repository ListActionTasks
+	// ---
+	// summary: List a repository's action tasks
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, default maximum page size is 50
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/TasksList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	tasks, total, err := db.FindAndCount[actions_model.ActionTask](ctx, &actions_model.FindTaskOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ListActionTasks", err)
+		return
+	}
+
+	res := new(api.ActionTaskResponse)
+	res.TotalCount = total
+
+	res.Entries = make([]*api.ActionTask, len(tasks))
+	for i := range tasks {
+		convertedTask, err := convert.ToActionTask(ctx, tasks[i])
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "ToActionTask", err)
+			return
+		}
+		res.Entries[i] = convertedTask
+	}
+
+	ctx.JSON(http.StatusOK, &res)
 }

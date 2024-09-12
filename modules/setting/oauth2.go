@@ -126,16 +126,15 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 		OAuth2.Enabled = sec.Key("ENABLE").MustBool(OAuth2.Enabled)
 	}
 
-	if !OAuth2.Enabled {
-		return
-	}
-
-	jwtSecretBase64 := loadSecret(sec, "JWT_SECRET_URI", "JWT_SECRET")
-
 	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
 		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
 	}
 
+	// FIXME: at the moment, no matter oauth2 is enabled or not, it must generate a "oauth2 JWT_SECRET"
+	// Because this secret is also used as GeneralTokenSigningSecret (as a quick not-that-breaking fix for some legacy problems).
+	// Including: CSRF token, account validation token, etc ...
+	// In main branch, the signing token should be refactored (eg: one unique for LFS/OAuth2/etc ...)
+	jwtSecretBase64 := loadSecret(sec, "JWT_SECRET_URI", "JWT_SECRET")
 	if InstallLock {
 		jwtSecretBytes, err := generate.DecodeJwtSecretBase64(jwtSecretBase64)
 		if err != nil {
@@ -157,8 +156,6 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 	}
 }
 
-// generalSigningSecret is used as container for a []byte value
-// instead of an additional mutex, we use CompareAndSwap func to change the value thread save
 var generalSigningSecret atomic.Pointer[[]byte]
 
 func GetGeneralTokenSigningSecret() []byte {
@@ -166,11 +163,9 @@ func GetGeneralTokenSigningSecret() []byte {
 	if old == nil || len(*old) == 0 {
 		jwtSecret, _, err := generate.NewJwtSecretWithBase64()
 		if err != nil {
-			log.Fatal("Unable to generate general JWT secret: %s", err.Error())
+			log.Fatal("Unable to generate general JWT secret: %v", err)
 		}
 		if generalSigningSecret.CompareAndSwap(old, &jwtSecret) {
-			// FIXME: in main branch, the signing token should be refactored (eg: one unique for LFS/OAuth2/etc ...)
-			LogStartupProblem(1, log.WARN, "OAuth2 is not enabled, unable to use a persistent signing secret, a new one is generated, which is not persistent between restarts and cluster nodes")
 			return jwtSecret
 		}
 		return *generalSigningSecret.Load()

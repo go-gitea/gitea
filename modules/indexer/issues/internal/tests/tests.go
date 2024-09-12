@@ -338,38 +338,38 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
-		Name: "ProjectBoardID",
+		Name: "ProjectColumnID",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectBoardID: optional.Some(int64(1)),
+			ProjectColumnID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(1), data[v.ID].ProjectBoardID)
+				assert.Equal(t, int64(1), data[v.ID].ProjectColumnID)
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectBoardID == 1
+				return v.ProjectColumnID == 1
 			}), result.Total)
 		},
 	},
 	{
-		Name: "no ProjectBoardID",
+		Name: "no ProjectColumnID",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectBoardID: optional.Some(int64(0)),
+			ProjectColumnID: optional.Some(int64(0)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(0), data[v.ID].ProjectBoardID)
+				assert.Equal(t, int64(0), data[v.ID].ProjectColumnID)
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectBoardID == 0
+				return v.ProjectColumnID == 0
 			}), result.Total)
 		},
 	},
@@ -706,7 +706,7 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				NoLabel:            len(labelIDs) == 0,
 				MilestoneID:        issueIndex % 4,
 				ProjectID:          issueIndex % 5,
-				ProjectBoardID:     issueIndex % 6,
+				ProjectColumnID:    issueIndex % 6,
 				PosterID:           id%10 + 1, // PosterID should not be 0
 				AssigneeID:         issueIndex % 10,
 				MentionIDs:         mentionIDs,

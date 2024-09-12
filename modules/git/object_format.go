@@ -120,12 +120,8 @@ var (
 	Sha256ObjectFormat ObjectFormat = Sha256ObjectFormatImpl{}
 )
 
-var SupportedObjectFormats = []ObjectFormat{
-	Sha1ObjectFormat,
-}
-
 func ObjectFormatFromName(name string) ObjectFormat {
-	for _, objectFormat := range SupportedObjectFormats {
+	for _, objectFormat := range DefaultFeatures().SupportedObjectFormats {
 		if name == objectFormat.Name() {
 			return objectFormat
 		}
