@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -251,6 +252,8 @@ func CreateRelease(ctx *context.APIContext) {
 				ctx.Error(http.StatusConflict, "ReleaseAlreadyExist", err)
 			} else if models.IsErrProtectedTagName(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "ProtectedTagName", err)
+			} else if git.IsErrNotExist(err) {
+				ctx.Error(http.StatusNotFound, "ErrNotExist", fmt.Errorf("target \"%v\" not found: %w", rel.Target, err))
 			} else {
 				ctx.Error(http.StatusInternalServerError, "CreateRelease", err)
 			}
