@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
@@ -158,7 +159,7 @@ func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 		message := strings.TrimRight(strings.Split(commit.Message, "\n")[0], "\r")
 
 		// a limit of 50 is set because GitHub does the same
-		if len(message) > 50 {
+		if utf8.RuneCountInString(message) > 50 {
 			message = fmt.Sprintf("%.47s...", message)
 		}
 		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL, message, commit.Author.Name)
