@@ -43,6 +43,19 @@ function reloadConfirmDraftComment() {
   window.location.reload();
 }
 
+export function initBranchSelectorTabs() {
+  const elSelectBranch = document.querySelector('.ui.dropdown.select-branch');
+  if (!elSelectBranch) return;
+
+  $(elSelectBranch).find('.reference.column').on('click', function () {
+    hideElem($(elSelectBranch).find('.scrolling.reference-list-menu'));
+    showElem(this.getAttribute('data-target'));
+    queryElemChildren(this.parentNode, '.branch-tag-item', (el) => el.classList.remove('active'));
+    this.classList.add('active');
+    return false;
+  });
+}
+
 export function initRepoCommentForm() {
   const $commentForm = $('.comment.form');
   if (!$commentForm.length) return;
@@ -80,13 +93,6 @@ export function initRepoCommentForm() {
         document.querySelector(selectedHiddenSelector).value = selectedValue;
         elSelectBranch.querySelector('.text-branch-name').textContent = selectedText;
       }
-    });
-    $selectBranch.find('.reference.column').on('click', function () {
-      hideElem($selectBranch.find('.scrolling.reference-list-menu'));
-      showElem(this.getAttribute('data-target'));
-      queryElemChildren(this.parentNode, '.branch-tag-item', (el) => el.classList.remove('active'));
-      this.classList.add('active');
-      return false;
     });
   }
 
