@@ -13,7 +13,6 @@ var Admin struct {
 	DefaultEmailNotification    string
 	UserDisabledFeatures        container.Set[string]
 	ExternalUserDisableFeatures container.Set[string]
-	ExternalUserLockFullName    bool
 }
 
 func loadAdminFrom(rootCfg ConfigProvider) {
@@ -22,7 +21,6 @@ func loadAdminFrom(rootCfg ConfigProvider) {
 	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
 	Admin.UserDisabledFeatures = container.SetOf(sec.Key("USER_DISABLED_FEATURES").Strings(",")...)
 	Admin.ExternalUserDisableFeatures = container.SetOf(sec.Key("EXTERNAL_USER_DISABLE_FEATURES").Strings(",")...).Union(Admin.UserDisabledFeatures)
-	Admin.ExternalUserLockFullName = sec.Key("EXTERNAL_USER_LOCK_FULL_NAME").MustBool(false)
 }
 
 const (
@@ -31,4 +29,6 @@ const (
 	UserFeatureManageGPGKeys     = "manage_gpg_keys"
 	UserFeatureManageMFA         = "manage_mfa"
 	UserFeatureManageCredentials = "manage_credentials"
+	UserFeatureChangeUsername    = "change_username"
+	UserFeatureChangeFullName    = "change_full_name"
 )
