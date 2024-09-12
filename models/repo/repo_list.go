@@ -749,7 +749,7 @@ func GetUserRepositories(ctx context.Context, opts *SearchRepoOptions) (Reposito
 		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
-	if opts.LowerNames != nil && len(opts.LowerNames) > 0 {
+	if len(opts.LowerNames) > 0 {
 		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 

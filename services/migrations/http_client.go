@@ -24,6 +24,6 @@ func NewMigrationHTTPTransport() *http.Transport {
 	return &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
 		Proxy:           proxy.Proxy(),
-		DialContext:     hostmatcher.NewDialContext("migration", allowList, blockList),
+		DialContext:     hostmatcher.NewDialContext("migration", allowList, blockList, setting.Proxy.ProxyURLFixed),
 	}
 }
