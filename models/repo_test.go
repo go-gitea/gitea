@@ -20,5 +20,5 @@ func TestCheckRepoStats(t *testing.T) {
 func TestDoctorUserStarNum(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	assert.NoError(t, DoctorUserStarNum())
+	assert.NoError(t, DoctorUserStarNum(db.DefaultContext))
 }

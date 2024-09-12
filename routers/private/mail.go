@@ -11,11 +11,11 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/mailer"
 )
 
@@ -35,7 +35,7 @@ func SendEmail(ctx *context.PrivateContext) {
 	defer rd.Close()
 
 	if err := json.NewDecoder(rd).Decode(&mail); err != nil {
-		log.Error("%v", err)
+		log.Error("JSON Decode failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
 		})
@@ -81,7 +81,7 @@ func SendEmail(ctx *context.PrivateContext) {
 
 func sendEmail(ctx *context.PrivateContext, subject, message string, to []string) {
 	for _, email := range to {
-		msg := mailer.NewMessage([]string{email}, subject, message)
+		msg := mailer.NewMessage(email, subject, message)
 		mailer.SendAsync(msg)
 	}
 

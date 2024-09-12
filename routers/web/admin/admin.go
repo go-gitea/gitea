@@ -8,33 +8,41 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
-	"strconv"
+	"sort"
+	"strings"
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/updatechecker"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/forms"
+	release_service "code.gitea.io/gitea/services/release"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
-	tplDashboard  base.TplName = "admin/dashboard"
-	tplMonitor    base.TplName = "admin/monitor"
-	tplStacktrace base.TplName = "admin/stacktrace"
-	tplQueue      base.TplName = "admin/queue"
+	tplDashboard    base.TplName = "admin/dashboard"
+	tplSystemStatus base.TplName = "admin/system_status"
+	tplSelfCheck    base.TplName = "admin/self_check"
+	tplCron         base.TplName = "admin/cron"
+	tplQueue        base.TplName = "admin/queue"
+	tplStacktrace   base.TplName = "admin/stacktrace"
+	tplQueueManage  base.TplName = "admin/queue_manage"
+	tplStats        base.TplName = "admin/stats"
 )
 
 var sysStatus struct {
-	Uptime       string
+	StartTime    string
 	NumGoroutine int
 
 	// General statistics.
@@ -68,14 +76,14 @@ var sysStatus struct {
 
 	// Garbage collector statistics.
 	NextGC       string // next run in HeapAlloc time (bytes)
-	LastGC       string // last run in absolute time (ns)
+	LastGCTime   string // last run time
 	PauseTotalNs string
 	PauseNs      string // circular buffer of recent GC pause times, most recent at [(NumGC+255)%256]
 	NumGC        uint32
 }
 
 func updateSystemStatus() {
-	sysStatus.Uptime = timeutil.TimeSincePro(setting.AppStartTime, translation.NewLocale("en-US"))
+	sysStatus.StartTime = setting.AppStartTime.Format(time.RFC3339)
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
@@ -106,260 +114,166 @@ func updateSystemStatus() {
 	sysStatus.OtherSys = base.FileSize(int64(m.OtherSys))
 
 	sysStatus.NextGC = base.FileSize(int64(m.NextGC))
-	sysStatus.LastGC = fmt.Sprintf("%.1fs", float64(time.Now().UnixNano()-int64(m.LastGC))/1000/1000/1000)
+	sysStatus.LastGCTime = time.Unix(0, int64(m.LastGC)).Format(time.RFC3339)
 	sysStatus.PauseTotalNs = fmt.Sprintf("%.1fs", float64(m.PauseTotalNs)/1000/1000/1000)
 	sysStatus.PauseNs = fmt.Sprintf("%.3fs", float64(m.PauseNs[(m.NumGC+255)%256])/1000/1000/1000)
 	sysStatus.NumGC = m.NumGC
 }
 
+func prepareStartupProblemsAlert(ctx *context.Context) {
+	if len(setting.StartupProblems) > 0 {
+		content := setting.StartupProblems[0]
+		if len(setting.StartupProblems) > 1 {
+			content += fmt.Sprintf(" (and %d more)", len(setting.StartupProblems)-1)
+		}
+		ctx.Flash.Error(content, true)
+	}
+}
+
 // Dashboard show admin panel dashboard
 func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
-	ctx.Data["Stats"] = activities_model.GetStatistic()
-	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate()
-	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion()
-	// FIXME: update periodically
+	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate(ctx)
+	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion(ctx)
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
 	ctx.Data["SSH"] = setting.SSH
+	prepareStartupProblemsAlert(ctx)
 	ctx.HTML(http.StatusOK, tplDashboard)
+}
+
+func SystemStatus(ctx *context.Context) {
+	updateSystemStatus()
+	ctx.Data["SysStatus"] = sysStatus
+	ctx.HTML(http.StatusOK, tplSystemStatus)
 }
 
 // DashboardPost run an admin operation
 func DashboardPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AdminDashboardForm)
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
-	ctx.Data["Stats"] = activities_model.GetStatistic()
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
 
 	// Run operation.
 	if form.Op != "" {
-		task := cron.GetTask(form.Op)
-		if task != nil {
-			go task.RunWithUser(ctx.Doer, nil)
-			ctx.Flash.Success(ctx.Tr("admin.dashboard.task.started", ctx.Tr("admin.dashboard."+form.Op)))
-		} else {
-			ctx.Flash.Error(ctx.Tr("admin.dashboard.task.unknown", form.Op))
+		switch form.Op {
+		case "sync_repo_branches":
+			go func() {
+				if err := repo_service.AddAllRepoBranchesToSyncQueue(graceful.GetManager().ShutdownContext()); err != nil {
+					log.Error("AddAllRepoBranchesToSyncQueue: %v: %v", ctx.Doer.ID, err)
+				}
+			}()
+			ctx.Flash.Success(ctx.Tr("admin.dashboard.sync_branch.started"))
+		case "sync_repo_tags":
+			go func() {
+				if err := release_service.AddAllRepoTagsToSyncQueue(graceful.GetManager().ShutdownContext()); err != nil {
+					log.Error("AddAllRepoTagsToSyncQueue: %v: %v", ctx.Doer.ID, err)
+				}
+			}()
+			ctx.Flash.Success(ctx.Tr("admin.dashboard.sync_tag.started"))
+		default:
+			task := cron.GetTask(form.Op)
+			if task != nil {
+				go task.RunWithUser(ctx.Doer, nil)
+				ctx.Flash.Success(ctx.Tr("admin.dashboard.task.started", ctx.Tr("admin.dashboard."+form.Op)))
+			} else {
+				ctx.Flash.Error(ctx.Tr("admin.dashboard.task.unknown", form.Op))
+			}
 		}
 	}
 	if form.From == "monitor" {
-		ctx.Redirect(setting.AppSubURL + "/admin/monitor")
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/cron")
 	} else {
 		ctx.Redirect(setting.AppSubURL + "/admin")
 	}
 }
 
-// Monitor show admin monitor page
-func Monitor(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.monitor")
-	ctx.Data["PageIsAdmin"] = true
-	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Processes"], ctx.Data["ProcessCount"] = process.GetManager().Processes(false, true)
+func SelfCheck(ctx *context.Context) {
+	ctx.Data["PageIsAdminSelfCheck"] = true
+
+	ctx.Data["StartupProblems"] = setting.StartupProblems
+	if len(setting.StartupProblems) == 0 && !setting.IsProd {
+		if time.Now().Unix()%2 == 0 {
+			ctx.Data["StartupProblems"] = []string{"This is a test warning message in dev mode"}
+		}
+	}
+
+	r, err := db.CheckCollationsDefaultEngine()
+	if err != nil {
+		ctx.Flash.Error(fmt.Sprintf("CheckCollationsDefaultEngine: %v", err), true)
+	}
+
+	if r != nil {
+		ctx.Data["DatabaseType"] = setting.Database.Type
+		ctx.Data["DatabaseCheckResult"] = r
+		hasProblem := false
+		if !r.CollationEquals(r.DatabaseCollation, r.ExpectedCollation) {
+			ctx.Data["DatabaseCheckCollationMismatch"] = true
+			hasProblem = true
+		}
+		if !r.IsCollationCaseSensitive(r.DatabaseCollation) {
+			ctx.Data["DatabaseCheckCollationCaseInsensitive"] = true
+			hasProblem = true
+		}
+		ctx.Data["DatabaseCheckInconsistentCollationColumns"] = r.InconsistentCollationColumns
+		hasProblem = hasProblem || len(r.InconsistentCollationColumns) > 0
+
+		ctx.Data["DatabaseCheckHasProblems"] = hasProblem
+	}
+
+	elapsed, err := cache.Test()
+	if err != nil {
+		ctx.Data["CacheError"] = err
+	} else if elapsed > cache.SlowCacheThreshold {
+		ctx.Data["CacheSlow"] = fmt.Sprint(elapsed)
+	}
+
+	ctx.HTML(http.StatusOK, tplSelfCheck)
+}
+
+func SelfCheckPost(ctx *context.Context) {
+	var problems []string
+	frontendAppURL := ctx.FormString("location_origin") + setting.AppSubURL + "/"
+	ctxAppURL := httplib.GuessCurrentAppURL(ctx)
+	if !strings.HasPrefix(ctxAppURL, frontendAppURL) {
+		problems = append(problems, ctx.Locale.TrString("admin.self_check.location_origin_mismatch", frontendAppURL, ctxAppURL))
+	}
+	ctx.JSON(http.StatusOK, map[string]any{"problems": problems})
+}
+
+func CronTasks(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.monitor.cron")
+	ctx.Data["PageIsAdminMonitorCron"] = true
 	ctx.Data["Entries"] = cron.ListTasks()
-	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
-
-	ctx.HTML(http.StatusOK, tplMonitor)
+	ctx.HTML(http.StatusOK, tplCron)
 }
 
-// GoroutineStacktrace show admin monitor goroutines page
-func GoroutineStacktrace(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.monitor")
-	ctx.Data["PageIsAdmin"] = true
-	ctx.Data["PageIsAdminMonitor"] = true
-
-	processStacks, processCount, goroutineCount, err := process.GetManager().ProcessStacktraces(false, false)
+func MonitorStats(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.monitor.stats")
+	ctx.Data["PageIsAdminMonitorStats"] = true
+	bs, err := json.Marshal(activities_model.GetStatistic(ctx).Counter)
 	if err != nil {
-		ctx.ServerError("GoroutineStacktrace", err)
+		ctx.ServerError("MonitorStats", err)
 		return
 	}
-
-	ctx.Data["ProcessStacks"] = processStacks
-
-	ctx.Data["GoroutineCount"] = goroutineCount
-	ctx.Data["ProcessCount"] = processCount
-
-	ctx.HTML(http.StatusOK, tplStacktrace)
-}
-
-// MonitorCancel cancels a process
-func MonitorCancel(ctx *context.Context) {
-	pid := ctx.Params("pid")
-	process.GetManager().Cancel(process.IDType(pid))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/monitor",
-	})
-}
-
-// Queue shows details for a specific queue
-func Queue(ctx *context.Context) {
-	qid := ctx.ParamsInt64("qid")
-	mq := queue.GetManager().GetManagedQueue(qid)
-	if mq == nil {
-		ctx.Status(http.StatusNotFound)
-		return
-	}
-	ctx.Data["Title"] = ctx.Tr("admin.monitor.queue", mq.Name)
-	ctx.Data["PageIsAdmin"] = true
-	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Queue"] = mq
-	ctx.HTML(http.StatusOK, tplQueue)
-}
-
-// WorkerCancel cancels a worker group
-func WorkerCancel(ctx *context.Context) {
-	qid := ctx.ParamsInt64("qid")
-	mq := queue.GetManager().GetManagedQueue(qid)
-	if mq == nil {
-		ctx.Status(http.StatusNotFound)
-		return
-	}
-	pid := ctx.ParamsInt64("pid")
-	mq.CancelWorkers(pid)
-	ctx.Flash.Info(ctx.Tr("admin.monitor.queue.pool.cancelling"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10),
-	})
-}
-
-// Flush flushes a queue
-func Flush(ctx *context.Context) {
-	qid := ctx.ParamsInt64("qid")
-	mq := queue.GetManager().GetManagedQueue(qid)
-	if mq == nil {
-		ctx.Status(http.StatusNotFound)
-		return
-	}
-	timeout, err := time.ParseDuration(ctx.FormString("timeout"))
+	statsCounter := map[string]any{}
+	err = json.Unmarshal(bs, &statsCounter)
 	if err != nil {
-		timeout = -1
+		ctx.ServerError("MonitorStats", err)
+		return
 	}
-	ctx.Flash.Info(ctx.Tr("admin.monitor.queue.pool.flush.added", mq.Name))
-	go func() {
-		err := mq.Flush(timeout)
-		if err != nil {
-			log.Error("Flushing failure for %s: Error %v", mq.Name, err)
+	statsKeys := make([]string, 0, len(statsCounter))
+	for k := range statsCounter {
+		if statsCounter[k] == nil {
+			continue
 		}
-	}()
-	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
-}
-
-// Pause pauses a queue
-func Pause(ctx *context.Context) {
-	qid := ctx.ParamsInt64("qid")
-	mq := queue.GetManager().GetManagedQueue(qid)
-	if mq == nil {
-		ctx.Status(404)
-		return
+		statsKeys = append(statsKeys, k)
 	}
-	mq.Pause()
-	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
-}
-
-// Resume resumes a queue
-func Resume(ctx *context.Context) {
-	qid := ctx.ParamsInt64("qid")
-	mq := queue.GetManager().GetManagedQueue(qid)
-	if mq == nil {
-		ctx.Status(404)
-		return
-	}
-	mq.Resume()
-	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
-}
-
-// AddWorkers adds workers to a worker group
-func AddWorkers(ctx *context.Context) {
-	qid := ctx.ParamsInt64("qid")
-	mq := queue.GetManager().GetManagedQueue(qid)
-	if mq == nil {
-		ctx.Status(http.StatusNotFound)
-		return
-	}
-	number := ctx.FormInt("number")
-	if number < 1 {
-		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.addworkers.mustnumbergreaterzero"))
-		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
-		return
-	}
-	timeout, err := time.ParseDuration(ctx.FormString("timeout"))
-	if err != nil {
-		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.addworkers.musttimeoutduration"))
-		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
-		return
-	}
-	if _, ok := mq.Managed.(queue.ManagedPool); !ok {
-		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
-		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
-		return
-	}
-	mq.AddWorkers(number, timeout)
-	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.pool.added"))
-	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
-}
-
-// SetQueueSettings sets the maximum number of workers and other settings for this queue
-func SetQueueSettings(ctx *context.Context) {
-	qid := ctx.ParamsInt64("qid")
-	mq := queue.GetManager().GetManagedQueue(qid)
-	if mq == nil {
-		ctx.Status(http.StatusNotFound)
-		return
-	}
-	if _, ok := mq.Managed.(queue.ManagedPool); !ok {
-		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
-		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
-		return
-	}
-
-	maxNumberStr := ctx.FormString("max-number")
-	numberStr := ctx.FormString("number")
-	timeoutStr := ctx.FormString("timeout")
-
-	var err error
-	var maxNumber, number int
-	var timeout time.Duration
-	if len(maxNumberStr) > 0 {
-		maxNumber, err = strconv.Atoi(maxNumberStr)
-		if err != nil {
-			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.maxnumberworkers.error"))
-			ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
-			return
-		}
-		if maxNumber < -1 {
-			maxNumber = -1
-		}
-	} else {
-		maxNumber = mq.MaxNumberOfWorkers()
-	}
-
-	if len(numberStr) > 0 {
-		number, err = strconv.Atoi(numberStr)
-		if err != nil || number < 0 {
-			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.numberworkers.error"))
-			ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
-			return
-		}
-	} else {
-		number = mq.BoostWorkers()
-	}
-
-	if len(timeoutStr) > 0 {
-		timeout, err = time.ParseDuration(timeoutStr)
-		if err != nil {
-			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.timeout.error"))
-			ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
-			return
-		}
-	} else {
-		timeout = mq.BoostTimeout()
-	}
-
-	mq.SetPoolSettings(maxNumber, number, timeout)
-	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.settings.changed"))
-	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
+	sort.Strings(statsKeys)
+	ctx.Data["StatsKeys"] = statsKeys
+	ctx.Data["StatsCounter"] = statsCounter
+	ctx.HTML(http.StatusOK, tplStats)
 }

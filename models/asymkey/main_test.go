@@ -4,21 +4,13 @@
 package asymkey
 
 import (
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/setting"
 )
-
-func init() {
-	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadForTest()
-}
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
 		FixtureFiles: []string{
 			"gpg_key.yml",
 			"public_key.yml",

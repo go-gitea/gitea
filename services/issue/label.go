@@ -4,57 +4,59 @@
 package issue
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/notification"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // ClearLabels clears all of an issue's labels
-func ClearLabels(issue *issues_model.Issue, doer *user_model.User) (err error) {
-	if err = issues_model.ClearIssueLabels(issue, doer); err != nil {
-		return
+func ClearLabels(ctx context.Context, issue *issues_model.Issue, doer *user_model.User) error {
+	if err := issues_model.ClearIssueLabels(ctx, issue, doer); err != nil {
+		return err
 	}
 
-	notification.NotifyIssueClearLabels(db.DefaultContext, doer, issue)
+	notify_service.IssueClearLabels(ctx, doer, issue)
 
 	return nil
 }
 
 // AddLabel adds a new label to the issue.
-func AddLabel(issue *issues_model.Issue, doer *user_model.User, label *issues_model.Label) error {
-	if err := issues_model.NewIssueLabel(issue, label, doer); err != nil {
+func AddLabel(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, label *issues_model.Label) error {
+	if err := issues_model.NewIssueLabel(ctx, issue, label, doer); err != nil {
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, []*issues_model.Label{label}, nil)
+	notify_service.IssueChangeLabels(ctx, doer, issue, []*issues_model.Label{label}, nil)
 	return nil
 }
 
 // AddLabels adds a list of new labels to the issue.
-func AddLabels(issue *issues_model.Issue, doer *user_model.User, labels []*issues_model.Label) error {
-	if err := issues_model.NewIssueLabels(issue, labels, doer); err != nil {
+func AddLabels(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, labels []*issues_model.Label) error {
+	if err := issues_model.NewIssueLabels(ctx, issue, labels, doer); err != nil {
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, labels, nil)
+	notify_service.IssueChangeLabels(ctx, doer, issue, labels, nil)
 	return nil
 }
 
 // RemoveLabel removes a label from issue by given ID.
-func RemoveLabel(issue *issues_model.Issue, doer *user_model.User, label *issues_model.Label) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func RemoveLabel(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, label *issues_model.Label) error {
+	dbCtx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err := issue.LoadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(dbCtx); err != nil {
 		return err
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+	perm, err := access_model.GetUserRepoPermission(dbCtx, issue.Repo, doer)
 	if err != nil {
 		return err
 	}
@@ -65,7 +67,7 @@ func RemoveLabel(issue *issues_model.Issue, doer *user_model.User, label *issues
 		return issues_model.ErrRepoLabelNotExist{}
 	}
 
-	if err := issues_model.DeleteIssueLabel(ctx, issue, label, doer); err != nil {
+	if err := issues_model.DeleteIssueLabel(dbCtx, issue, label, doer); err != nil {
 		return err
 	}
 
@@ -73,21 +75,21 @@ func RemoveLabel(issue *issues_model.Issue, doer *user_model.User, label *issues
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, nil, []*issues_model.Label{label})
+	notify_service.IssueChangeLabels(ctx, doer, issue, nil, []*issues_model.Label{label})
 	return nil
 }
 
 // ReplaceLabels removes all current labels and add new labels to the issue.
-func ReplaceLabels(issue *issues_model.Issue, doer *user_model.User, labels []*issues_model.Label) error {
-	old, err := issues_model.GetLabelsByIssueID(db.DefaultContext, issue.ID)
+func ReplaceLabels(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, labels []*issues_model.Label) error {
+	old, err := issues_model.GetLabelsByIssueID(ctx, issue.ID)
 	if err != nil {
 		return err
 	}
 
-	if err := issues_model.ReplaceIssueLabels(issue, labels, doer); err != nil {
+	if err := issues_model.ReplaceIssueLabels(ctx, issue, labels, doer); err != nil {
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, labels, old)
+	notify_service.IssueChangeLabels(ctx, doer, issue, labels, old)
 	return nil
 }

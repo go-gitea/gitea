@@ -1,32 +1,9 @@
 {{template "base/head" .}}
-<div class="page-content explore users">
+<div role="main" aria-label="{{.Title}}" class="page-content explore users">
 	{{template "explore/navbar" .}}
 	<div class="ui container">
 		{{template "explore/search" .}}
-
-		<div class="ui user list">
-			{{range .Users}}
-				<div class="item">
-					{{avatar .}}
-					<div class="content">
-						<span class="header"><a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}</span>
-						<div class="description">
-							{{if .Location}}
-								{{svg "octicon-location"}} {{.Location}}
-							{{end}}
-							{{if and $.ShowUserEmail .Email $.IsSigned (not .KeepEmailPrivate)}}
-								{{svg "octicon-mail"}}
-								<a href="mailto:{{.Email}}" rel="nofollow">{{.Email}}</a>
-							{{end}}
-							{{svg "octicon-clock"}} {{$.locale.Tr "user.join_on"}} <time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time>
-						</div>
-					</div>
-				</div>
-			{{else}}
-				<div>{{$.locale.Tr "explore.user_no_results"}}</div>
-			{{end}}
-		</div>
-
+		{{template "explore/user_list" .}}
 		{{template "base/paginate" .}}
 	</div>
 </div>

@@ -1,0 +1,62 @@
+.milestone-list {
+  list-style: none;
+}
+
+.milestone-card {
+  width: 100%;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.milestone-card + .milestone-card {
+  border-top: 1px solid var(--color-secondary);
+}
+
+.milestone-card .content {
+  padding-top: 10px;
+}
+
+.milestone-header progress {
+  width: 200px;
+  height: 16px;
+}
+
+.milestone-header {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.milestone-toolbar {
+  padding-top: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.milestone-toolbar .group {
+  color: var(--color-text-light-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.milestone-toolbar .group > a {
+  font-size: 15px;
+  color: var(--color-text-light-2);
+}
+
+.milestone-toolbar .group > a:hover {
+  color: var(--color-text);
+}
+
+@media (max-width: 767.98px) {
+  .milestone-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}

@@ -2,58 +2,54 @@
 <div class="timeline-item commits-list">
 {{range .comment.Commits}}
 	{{$tag := printf "%s-%d" $.comment.HashTag $index}}
-	{{$index = Add $index 1}}
+	{{$index = Eval $index "+" 1}}
 	<div class="singular-commit" id="{{$tag}}">
 		<span class="badge badge-commit">{{svg "octicon-git-commit"}}</span>
 		{{if .User}}
-			<a href="{{.User.HomeLink}}">
-				{{avatar .User}}
-			</a>
+			<a class="avatar" href="{{.User.HomeLink}}">{{ctx.AvatarUtils.Avatar .User 20}}</a>
 		{{else}}
-			{{avatarByEmail .Author.Email .Author.Name}}
+			{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 20}}
 		{{end}}
-
-		<span class="ui float right shabox">
-			{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $.root}}
-			{{$class := "ui sha label"}}
-			{{if .Signature}}
-				{{$class = (printf "%s%s" $class " isSigned")}}
-				{{if .Verification.Verified}}
-					{{if eq .Verification.TrustStatus "trusted"}}
-						{{$class = (printf "%s%s" $class " isVerified")}}
-					{{else if eq .Verification.TrustStatus "untrusted"}}
-						{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
-					{{else}}
-						{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
-					{{end}}
-				{{else if .Verification.Warning}}
-					{{$class = (printf "%s%s" $class " isWarning")}}
-				{{end}}
-			{{end}}
-			{{if $.comment.Issue.PullRequest.BaseRepo.Name}}
-				<a href="{{$.comment.Issue.PullRequest.BaseRepo.Link}}/commit/{{PathEscape .ID.String}}" rel="nofollow" class="{{$class}}">
-			{{else}}
-				<span class="{{$class}}">
-			{{end}}
-			<span class="shortsha">{{ShortSha .ID.String}}</span>
-			{{if .Signature}}
-				{{template "repo/shabox_badge" dict "root" $.root "verification" .Verification}}
-			{{end}}
-			{{if $.comment.Issue.PullRequest.BaseRepo.Name}}
-				</a>
-			{{else}}
-				</span>
-			{{end}}
-		</span>
 
 		{{$commitLink:= printf "%s/commit/%s" $.comment.Issue.PullRequest.BaseRepo.Link (PathEscape .ID.String)}}
-		<span class="mono commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $commitLink $.comment.Issue.PullRequest.BaseRepo.ComposeMetas}}</span>
+
+		<span class="tw-flex-1 tw-font-mono gt-ellipsis" title="{{.Summary}}">
+			{{- RenderCommitMessageLinkSubject $.root.Context .Message $commitLink ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx) -}}
+		</span>
+
 		{{if IsMultilineCommitMessage .Message}}
-			<button class="ui button ellipsis-button" aria-expanded="false">...</button>
+			<button class="ui button ellipsis-button show-panel toggle" data-panel="[data-singular-commit-body-for='{{$tag}}']">...</button>
 		{{end}}
-		{{if IsMultilineCommitMessage .Message}}
-			<pre class="commit-body" style="display: none;">{{RenderCommitBody $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $.comment.Issue.PullRequest.BaseRepo.ComposeMetas}}</pre>
-		{{end}}
+
+		<span class="shabox tw-flex tw-items-center">
+			{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
+			{{$class := "ui sha label"}}
+			{{if .Signature}}
+				{{$class = (print $class " isSigned")}}
+				{{if .Verification.Verified}}
+					{{if eq .Verification.TrustStatus "trusted"}}
+						{{$class = (print $class " isVerified")}}
+					{{else if eq .Verification.TrustStatus "untrusted"}}
+						{{$class = (print $class " isVerifiedUntrusted")}}
+					{{else}}
+						{{$class = (print $class " isVerifiedUnmatched")}}
+					{{end}}
+				{{else if .Verification.Warning}}
+					{{$class = (print $class " isWarning")}}
+				{{end}}
+			{{end}}
+			<a href="{{$commitLink}}" rel="nofollow" class="tw-ml-2 {{$class}}">
+				<span class="shortsha">{{ShortSha .ID.String}}</span>
+				{{if .Signature}}
+					{{template "repo/shabox_badge" dict "root" $.root "verification" .Verification}}
+				{{end}}
+			</a>
+		</span>
 	</div>
+	{{if IsMultilineCommitMessage .Message}}
+	<pre class="commit-body tw-ml-[33px] tw-hidden" data-singular-commit-body-for="{{$tag}}">
+		{{- RenderCommitBody $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx) -}}
+	</pre>
+	{{end}}
 {{end}}
 </div>

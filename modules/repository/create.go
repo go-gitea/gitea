@@ -22,7 +22,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/git"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -30,12 +30,12 @@ import (
 )
 
 // CreateRepositoryByExample creates a repository for the user/organization.
-func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt bool) (err error) {
+func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt, isFork bool) (err error) {
 	if err = repo_model.IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
 
-	has, err := repo_model.IsRepositoryExist(ctx, u, repo.Name)
+	has, err := repo_model.IsRepositoryModelExist(ctx, u, repo.Name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
@@ -67,8 +67,12 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	}
 
 	// insert units for repo
-	units := make([]repo_model.RepoUnit, 0, len(unit.DefaultRepoUnits))
-	for _, tp := range unit.DefaultRepoUnits {
+	defaultUnits := unit.DefaultRepoUnits
+	if isFork {
+		defaultUnits = unit.DefaultForkRepoUnits
+	}
+	units := make([]repo_model.RepoUnit, 0, len(defaultUnits))
+	for _, tp := range defaultUnits {
 		if tp == unit.TypeIssues {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
@@ -83,7 +87,17 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: repo_model.MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle), AllowRebaseUpdate: true},
+				Config: &repo_model.PullRequestsConfig{
+					AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, AllowFastForwardOnly: true,
+					DefaultMergeStyle: repo_model.MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle),
+					AllowRebaseUpdate: true,
+				},
+			})
+		} else if tp == unit.TypeProjects {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Config: &repo_model.ProjectsConfig{ProjectsMode: repo_model.ProjectsModeAll},
 			})
 		} else {
 			units = append(units, repo_model.RepoUnit{
@@ -139,7 +153,7 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	}
 
 	if setting.Service.AutoWatchNewRepos {
-		if err = repo_model.WatchRepo(ctx, doer.ID, repo.ID, true); err != nil {
+		if err = repo_model.WatchRepo(ctx, doer, repo, true); err != nil {
 			return fmt.Errorf("WatchRepo: %w", err)
 		}
 	}
@@ -151,164 +165,30 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	return nil
 }
 
-// CreateRepoOptions contains the create repository options
-type CreateRepoOptions struct {
-	Name           string
-	Description    string
-	OriginalURL    string
-	GitServiceType api.GitServiceType
-	Gitignores     string
-	IssueLabels    string
-	License        string
-	Readme         string
-	DefaultBranch  string
-	IsPrivate      bool
-	IsMirror       bool
-	IsTemplate     bool
-	AutoInit       bool
-	Status         repo_model.RepositoryStatus
-	TrustModel     repo_model.TrustModelType
-	MirrorInterval string
-}
-
-// CreateRepository creates a repository for the user/organization.
-func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
-	if !doer.IsAdmin && !u.CanCreateRepo() {
-		return nil, repo_model.ErrReachLimitOfRepo{
-			Limit: u.MaxRepoCreation,
-		}
-	}
-
-	if len(opts.DefaultBranch) == 0 {
-		opts.DefaultBranch = setting.Repository.DefaultBranch
-	}
-
-	// Check if label template exist
-	if len(opts.IssueLabels) > 0 {
-		if _, err := GetLabelTemplateFile(opts.IssueLabels); err != nil {
-			return nil, err
-		}
-	}
-
-	repo := &repo_model.Repository{
-		OwnerID:                         u.ID,
-		Owner:                           u,
-		OwnerName:                       u.Name,
-		Name:                            opts.Name,
-		LowerName:                       strings.ToLower(opts.Name),
-		Description:                     opts.Description,
-		OriginalURL:                     opts.OriginalURL,
-		OriginalServiceType:             opts.GitServiceType,
-		IsPrivate:                       opts.IsPrivate,
-		IsFsckEnabled:                   !opts.IsMirror,
-		IsTemplate:                      opts.IsTemplate,
-		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
-		Status:                          opts.Status,
-		IsEmpty:                         !opts.AutoInit,
-		TrustModel:                      opts.TrustModel,
-		IsMirror:                        opts.IsMirror,
-	}
-
-	var rollbackRepo *repo_model.Repository
-
-	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		if err := CreateRepositoryByExample(ctx, doer, u, repo, false); err != nil {
-			return err
-		}
-
-		// No need for init mirror.
-		if opts.IsMirror {
-			return nil
-		}
-
-		repoPath := repo_model.RepoPath(u.Name, repo.Name)
-		isExist, err := util.IsExist(repoPath)
-		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
-			return err
-		}
-		if isExist {
-			// repo already exists - We have two or three options.
-			// 1. We fail stating that the directory exists
-			// 2. We create the db repository to go with this data and adopt the git repo
-			// 3. We delete it and start afresh
-			//
-			// Previously Gitea would just delete and start afresh - this was naughty.
-			// So we will now fail and delegate to other functionality to adopt or delete
-			log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
-			return repo_model.ErrRepoFilesAlreadyExist{
-				Uname: u.Name,
-				Name:  repo.Name,
-			}
-		}
-
-		if err = initRepository(ctx, repoPath, doer, repo, opts); err != nil {
-			if err2 := util.RemoveAll(repoPath); err2 != nil {
-				log.Error("initRepository: %v", err)
-				return fmt.Errorf(
-					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
-			}
-			return fmt.Errorf("initRepository: %w", err)
-		}
-
-		// Initialize Issue Labels if selected
-		if len(opts.IssueLabels) > 0 {
-			if err = InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
-				rollbackRepo = repo
-				rollbackRepo.OwnerID = u.ID
-				return fmt.Errorf("InitializeLabels: %w", err)
-			}
-		}
-
-		if err := CheckDaemonExportOK(ctx, repo); err != nil {
-			return fmt.Errorf("checkDaemonExportOK: %w", err)
-		}
-
-		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
-			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
-			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-			rollbackRepo = repo
-			rollbackRepo.OwnerID = u.ID
-			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
-		}
-		return nil
-	}); err != nil {
-		if rollbackRepo != nil {
-			if errDelete := models.DeleteRepository(doer, rollbackRepo.OwnerID, rollbackRepo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-			}
-		}
-
-		return nil, err
-	}
-
-	return repo, nil
-}
-
 const notRegularFileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
 
 // getDirectorySize returns the disk consumption for a given path
 func getDirectorySize(path string) (int64, error) {
 	var size int64
-	err := filepath.WalkDir(path, func(_ string, info os.DirEntry, err error) error {
-		if err != nil {
-			if os.IsNotExist(err) { // ignore the error because the file maybe deleted during traversing.
-				return nil
-			}
+	err := filepath.WalkDir(path, func(_ string, entry os.DirEntry, err error) error {
+		if os.IsNotExist(err) { // ignore the error because some files (like temp/lock file) may be deleted during traversing.
+			return nil
+		} else if err != nil {
 			return err
 		}
-		if info.IsDir() {
+		if entry.IsDir() {
 			return nil
 		}
-		f, err := info.Info()
-		if err != nil {
+		info, err := entry.Info()
+		if os.IsNotExist(err) { // ignore the error as above
+			return nil
+		} else if err != nil {
 			return err
 		}
-		if (f.Mode() & notRegularFileMode) == 0 {
-			size += f.Size()
+		if (info.Mode() & notRegularFileMode) == 0 {
+			size += info.Size()
 		}
-		return err
+		return nil
 	})
 	return size, err
 }
@@ -325,12 +205,12 @@ func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
 		return fmt.Errorf("updateSize: GetLFSMetaObjects: %w", err)
 	}
 
-	return repo_model.UpdateRepoSize(ctx, repo.ID, size+lfsSize)
+	return repo_model.UpdateRepoSize(ctx, repo.ID, size, lfsSize)
 }
 
 // CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
 func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error {
-	if err := repo.GetOwner(ctx); err != nil {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return err
 	}
 
@@ -374,8 +254,8 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	}
 
 	if visibilityChanged {
-		if err = repo.GetOwner(ctx); err != nil {
-			return fmt.Errorf("getOwner: %w", err)
+		if err = repo.LoadOwner(ctx); err != nil {
+			return fmt.Errorf("LoadOwner: %w", err)
 		}
 		if repo.Owner.IsOrganization() {
 			// Organization repository need to recalculate access table when visibility is changed.
@@ -390,6 +270,10 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 				IsPrivate: true,
 			})
 			if err != nil {
+				return err
+			}
+
+			if err = repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
 				return err
 			}
 		}
@@ -409,6 +293,10 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 				return fmt.Errorf("updateRepository[%d]: %w", forkRepos[i].ID, err)
 			}
 		}
+
+		// If visibility is changed, we need to update the issue indexer.
+		// Since the data in the issue indexer have field to indicate if the repo is public or not.
+		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
 	}
 
 	return nil

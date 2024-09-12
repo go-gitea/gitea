@@ -37,19 +37,21 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	}
 	apiURL := repo.APIURL()
 	apiURLLen := len(apiURL)
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+	hashLen := objectFormat.FullLength()
 
-	// 51 is len(sha1) + len("/git/blobs/"). 40 + 11.
-	blobURL := make([]byte, apiURLLen+51)
+	const gitBlobsPath = "/git/blobs/"
+	blobURL := make([]byte, apiURLLen+hashLen+len(gitBlobsPath))
 	copy(blobURL, apiURL)
-	copy(blobURL[apiURLLen:], "/git/blobs/")
+	copy(blobURL[apiURLLen:], []byte(gitBlobsPath))
 
-	// 51 is len(sha1) + len("/git/trees/"). 40 + 11.
-	treeURL := make([]byte, apiURLLen+51)
+	const gitTreePath = "/git/trees/"
+	treeURL := make([]byte, apiURLLen+hashLen+len(gitTreePath))
 	copy(treeURL, apiURL)
-	copy(treeURL[apiURLLen:], "/git/trees/")
+	copy(treeURL[apiURLLen:], []byte(gitTreePath))
 
-	// 40 is the size of the sha1 hash in hexadecimal format.
-	copyPos := len(treeURL) - git.SHAFullLength
+	// copyPos is at the start of the hash
+	copyPos := len(treeURL) - hashLen
 
 	if perPage <= 0 || perPage > setting.API.DefaultGitTreesPerPage {
 		perPage = setting.API.DefaultGitTreesPerPage
@@ -85,6 +87,11 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		if entries[e].IsDir() {
 			copy(treeURL[copyPos:], entries[e].ID.String())
 			tree.Entries[i].URL = string(treeURL)
+		} else if entries[e].IsSubModule() {
+			// In Github Rest API Version=2022-11-28, if a tree entry is a submodule,
+			// its url will be returned as an empty string.
+			// So the URL will be set to "" here.
+			tree.Entries[i].URL = ""
 		} else {
 			copy(blobURL[copyPos:], entries[e].ID.String())
 			tree.Entries[i].URL = string(blobURL)

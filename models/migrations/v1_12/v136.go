@@ -42,8 +42,8 @@ func AddCommitDivergenceToPulls(x *xorm.Engine) error {
 		MergedCommitID string `xorm:"VARCHAR(40)"`
 	}
 
-	if err := x.Sync2(new(PullRequest)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(PullRequest)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 
 	last := 0

@@ -5,21 +5,100 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strings"
 )
 
-// EnsureAbsolutePath ensure that a path is absolute, making it
-// relative to absoluteBase if necessary
-func EnsureAbsolutePath(path, absoluteBase string) string {
-	if filepath.IsAbs(path) {
-		return path
+// PathJoinRel joins the path elements into a single path, each element is cleaned by path.Clean separately.
+// It only returns the following values (like path.Join), any redundant part (empty, relative dots, slashes) is removed.
+// It's caller's duty to make every element not bypass its own directly level, to avoid security issues.
+//
+//	empty => ``
+//	`` => ``
+//	`..` => `.`
+//	`dir` => `dir`
+//	`/dir/` => `dir`
+//	`foo\..\bar` => `foo\..\bar`
+//	{`foo`, ``, `bar`} => `foo/bar`
+//	{`foo`, `..`, `bar`} => `foo/bar`
+func PathJoinRel(elem ...string) string {
+	elems := make([]string, len(elem))
+	for i, e := range elem {
+		if e == "" {
+			continue
+		}
+		elems[i] = path.Clean("/" + e)
 	}
-	return filepath.Join(absoluteBase, path)
+	p := path.Join(elems...)
+	if p == "" {
+		return ""
+	} else if p == "/" {
+		return "."
+	}
+	return p[1:]
+}
+
+// PathJoinRelX joins the path elements into a single path like PathJoinRel,
+// and covert all backslashes to slashes. (X means "extended", also means the combination of `\` and `/`).
+// It's caller's duty to make every element not bypass its own directly level, to avoid security issues.
+// It returns similar results as PathJoinRel except:
+//
+//	`foo\..\bar` => `bar`  (because it's processed as `foo/../bar`)
+//
+// All backslashes are handled as slashes, the result only contains slashes.
+func PathJoinRelX(elem ...string) string {
+	elems := make([]string, len(elem))
+	for i, e := range elem {
+		if e == "" {
+			continue
+		}
+		elems[i] = path.Clean("/" + strings.ReplaceAll(e, "\\", "/"))
+	}
+	return PathJoinRel(elems...)
+}
+
+const pathSeparator = string(os.PathSeparator)
+
+// FilePathJoinAbs joins the path elements into a single file path, each element is cleaned by filepath.Clean separately.
+// All slashes/backslashes are converted to path separators before cleaning, the result only contains path separators.
+// The first element must be an absolute path, caller should prepare the base path.
+// It's caller's duty to make every element not bypass its own directly level, to avoid security issues.
+// Like PathJoinRel, any redundant part (empty, relative dots, slashes) is removed.
+//
+//	{`/foo`, ``, `bar`} => `/foo/bar`
+//	{`/foo`, `..`, `bar`} => `/foo/bar`
+func FilePathJoinAbs(base string, sub ...string) string {
+	elems := make([]string, 1, len(sub)+1)
+
+	// POSIX filesystem can have `\` in file names. Windows: `\` and `/` are both used for path separators
+	// to keep the behavior consistent, we do not allow `\` in file names, replace all `\` with `/`
+	if isOSWindows() {
+		elems[0] = filepath.Clean(base)
+	} else {
+		elems[0] = filepath.Clean(strings.ReplaceAll(base, "\\", pathSeparator))
+	}
+	if !filepath.IsAbs(elems[0]) {
+		// This shouldn't happen. If there is really necessary to pass in relative path, return the full path with filepath.Abs() instead
+		panic(fmt.Sprintf("FilePathJoinAbs: %q (for path %v) is not absolute, do not guess a relative path based on current working directory", elems[0], elems))
+	}
+	for _, s := range sub {
+		if s == "" {
+			continue
+		}
+		if isOSWindows() {
+			elems = append(elems, filepath.Clean(pathSeparator+s))
+		} else {
+			elems = append(elems, filepath.Clean(pathSeparator+strings.ReplaceAll(s, "\\", pathSeparator)))
+		}
+	}
+	// the elems[0] must be an absolute path, just join them together
+	return filepath.Join(elems...)
 }
 
 // IsDir returns true if given path is a directory,
@@ -142,7 +221,10 @@ func isOSWindows() bool {
 	return runtime.GOOS == "windows"
 }
 
+var driveLetterRegexp = regexp.MustCompile("/[A-Za-z]:/")
+
 // FileURLToPath extracts the path information from a file://... url.
+// It returns an error only if the URL is not a file URL.
 func FileURLToPath(u *url.URL) (string, error) {
 	if u.Scheme != "file" {
 		return "", errors.New("URL scheme is not 'file': " + u.String())
@@ -155,8 +237,7 @@ func FileURLToPath(u *url.URL) (string, error) {
 	}
 
 	// If it looks like there's a Windows drive letter at the beginning, strip off the leading slash.
-	re := regexp.MustCompile("/[A-Za-z]:/")
-	if re.MatchString(path) {
+	if driveLetterRegexp.MatchString(path) {
 		return path[1:], nil
 	}
 	return path, nil
@@ -200,4 +281,42 @@ func CommonSkip(name string) bool {
 	}
 
 	return false
+}
+
+// IsReadmeFileName reports whether name looks like a README file
+// based on its name.
+func IsReadmeFileName(name string) bool {
+	name = strings.ToLower(name)
+	if len(name) < 6 {
+		return false
+	} else if len(name) == 6 {
+		return name == "readme"
+	}
+	return name[:7] == "readme."
+}
+
+// IsReadmeFileExtension reports whether name looks like a README file
+// based on its name. It will look through the provided extensions and check if the file matches
+// one of the extensions and provide the index in the extension list.
+// If the filename is `readme.` with an unmatched extension it will match with the index equaling
+// the length of the provided extension list.
+// Note that the '.' should be provided in ext, e.g ".md"
+func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
+	name = strings.ToLower(name)
+	if len(name) < 6 || name[:6] != "readme" {
+		return 0, false
+	}
+
+	for i, extension := range ext {
+		extension = strings.ToLower(extension)
+		if name[6:] == extension {
+			return i, true
+		}
+	}
+
+	if name[6] == '.' {
+		return len(ext), true
+	}
+
+	return 0, false
 }

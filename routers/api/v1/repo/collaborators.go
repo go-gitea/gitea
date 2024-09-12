@@ -8,17 +8,17 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // ListCollaborators list a repository's collaborators
@@ -50,14 +50,13 @@ func ListCollaborators(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	count, err := repo_model.CountCollaborators(ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-
-	collaborators, err := repo_model.GetCollaborators(ctx, ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
+	collaborators, total, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
@@ -65,10 +64,10 @@ func ListCollaborators(ctx *context.APIContext) {
 
 	users := make([]*api.User, len(collaborators))
 	for i, collaborator := range collaborators {
-		users[i] = convert.ToUser(collaborator.User, ctx.Doer)
+		users[i] = convert.ToUser(ctx, collaborator.User, ctx.Doer)
 	}
 
-	ctx.SetTotalCountHeader(count)
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, users)
 }
 
@@ -103,7 +102,7 @@ func IsCollaborator(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	user, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
+	user, err := user_model.GetUserByName(ctx, ctx.PathParam(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -154,12 +153,16 @@ func AddCollaborator(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm(ctx).(*api.AddCollaboratorOption)
 
-	collaborator, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -175,7 +178,11 @@ func AddCollaborator(ctx *context.APIContext) {
 	}
 
 	if err := repo_module.AddCollaborator(ctx, ctx.Repo.Repository, collaborator); err != nil {
-		ctx.Error(http.StatusInternalServerError, "AddCollaborator", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "AddCollaborator", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "AddCollaborator", err)
+		}
 		return
 	}
 
@@ -215,10 +222,12 @@ func DeleteCollaborator(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	collaborator, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -228,7 +237,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.DeleteCollaboration(ctx.Repo.Repository, collaborator.ID); err != nil {
+	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, collaborator); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteCollaboration", err)
 		return
 	}
@@ -266,12 +275,12 @@ func GetRepoPermissions(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if !ctx.Doer.IsAdmin && ctx.Doer.LoginName != ctx.Params(":collaborator") && !ctx.IsUserRepoAdmin() {
+	if !ctx.Doer.IsAdmin && ctx.Doer.LoginName != ctx.PathParam(":collaborator") && !ctx.IsUserRepoAdmin() {
 		ctx.Error(http.StatusForbidden, "User", "Only admins can query all permissions, repo admins can query all repo permissions, collaborators can query only their own")
 		return
 	}
 
-	collaborator, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "GetUserByName", err)
@@ -287,7 +296,7 @@ func GetRepoPermissions(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToUserAndPermission(collaborator, ctx.ContextUser, permission.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToUserAndPermission(ctx, collaborator, ctx.ContextUser, permission.AccessMode))
 }
 
 // GetReviewers return all users that can be requested to review in this repo
@@ -311,13 +320,15 @@ func GetReviewers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	reviewers, err := repo_model.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer.ID, 0)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUsers(ctx.Doer, reviewers))
+	ctx.JSON(http.StatusOK, convert.ToUsers(ctx, ctx.Doer, reviewers))
 }
 
 // GetAssignees return all users that have write access and can be assigned to issues
@@ -341,11 +352,13 @@ func GetAssignees(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	assignees, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUsers(ctx.Doer, assignees))
+	ctx.JSON(http.StatusOK, convert.ToUsers(ctx, ctx.Doer, assignees))
 }

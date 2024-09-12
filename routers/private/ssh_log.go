@@ -6,16 +6,16 @@ package private
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 )
 
 // SSHLog hook to response ssh log
 func SSHLog(ctx *context.PrivateContext) {
-	if !setting.EnableSSHLog {
+	if !setting.Log.EnableSSHLog {
 		ctx.Status(http.StatusOK)
 		return
 	}

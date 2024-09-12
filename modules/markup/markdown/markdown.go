@@ -6,6 +6,7 @@ package markdown
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"strings"
 	"sync"
@@ -29,14 +30,11 @@ import (
 )
 
 var (
-	converter goldmark.Markdown
-	once      = sync.Once{}
+	specMarkdown     goldmark.Markdown
+	specMarkdownOnce sync.Once
 )
 
 var (
-	urlPrefixKey     = parser.NewContextKey()
-	isWikiKey        = parser.NewContextKey()
-	renderMetasKey   = parser.NewContextKey()
 	renderContextKey = parser.NewContextKey()
 	renderConfigKey  = parser.NewContextKey()
 )
@@ -56,7 +54,7 @@ func (l *limitWriter) Write(data []byte) (int, error) {
 		if err != nil {
 			return n, err
 		}
-		return n, fmt.Errorf("Rendered content too large - truncating render")
+		return n, fmt.Errorf("rendered content too large - truncating render")
 	}
 	n, err := l.w.Write(data)
 	l.sum += int64(n)
@@ -66,17 +64,14 @@ func (l *limitWriter) Write(data []byte) (int, error) {
 // newParserContext creates a parser.Context with the render context set
 func newParserContext(ctx *markup.RenderContext) parser.Context {
 	pc := parser.NewContext(parser.WithIDs(newPrefixedIDs()))
-	pc.Set(urlPrefixKey, ctx.URLPrefix)
-	pc.Set(isWikiKey, ctx.IsWiki)
-	pc.Set(renderMetasKey, ctx.Metas)
 	pc.Set(renderContextKey, ctx)
 	return pc
 }
 
-// actualRender renders Markdown to HTML without handling special links.
-func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
-	once.Do(func() {
-		converter = goldmark.New(
+// SpecializedMarkdown sets up the Gitea specific markdown extensions
+func SpecializedMarkdown() goldmark.Markdown {
+	specMarkdownOnce.Do(func() {
+		specMarkdown = goldmark.New(
 			goldmark.WithExtensions(
 				extension.NewTable(
 					extension.WithTableCellAlignMethod(extension.TableCellAlignAttribute)),
@@ -109,7 +104,8 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 							}
 
 							// include language-x class as part of commonmark spec
-							_, err = w.WriteString(`<code class="chroma language-` + string(language) + `">`)
+							// the "display" class is used by "js/markup/math.js" to render the code element as a block
+							_, err = w.WriteString(`<code class="chroma language-` + string(language) + ` display">`)
 							if err != nil {
 								return
 							}
@@ -130,7 +126,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 				parser.WithAttribute(),
 				parser.WithAutoHeadingID(),
 				parser.WithASTTransformers(
-					util.Prioritized(&ASTTransformer{}, 10000),
+					util.Prioritized(NewASTTransformer(), 10000),
 				),
 			),
 			goldmark.WithRendererOptions(
@@ -139,13 +135,18 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 		)
 
 		// Override the original Tasklist renderer!
-		converter.Renderer().AddOptions(
+		specMarkdown.Renderer().AddOptions(
 			renderer.WithNodeRenderers(
 				util.Prioritized(NewHTMLRenderer(), 10),
 			),
 		)
 	})
+	return specMarkdown
+}
 
+// actualRender renders Markdown to HTML without handling special links.
+func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	converter := SpecializedMarkdown()
 	lw := &limitWriter{
 		w:     output,
 		limit: setting.UI.MaxDisplayFileSize * 3,
@@ -173,12 +174,21 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 	}
 	buf = giteautil.NormalizeEOL(buf)
 
+	// Preserve original length.
+	bufWithMetadataLength := len(buf)
+
 	rc := &RenderConfig{
-		Meta: "table",
+		Meta: renderMetaModeFromString(string(ctx.RenderMetaAs)),
 		Icon: "table",
 		Lang: "",
 	}
 	buf, _ = ExtractMetadataBytes(buf, rc)
+
+	metaLength := bufWithMetadataLength - len(buf)
+	if metaLength < 0 {
+		metaLength = 0
+	}
+	rc.metaLength = metaLength
 
 	pc.Set(renderConfigKey, rc)
 
@@ -254,12 +264,12 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 }
 
 // RenderString renders Markdown string to HTML with all specific handling stuff and return string
-func RenderString(ctx *markup.RenderContext, content string) (string, error) {
+func RenderString(ctx *markup.RenderContext, content string) (template.HTML, error) {
 	var buf strings.Builder
 	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
 		return "", err
 	}
-	return buf.String(), nil
+	return template.HTML(buf.String()), nil
 }
 
 // RenderRaw renders Markdown to HTML without handling special links.

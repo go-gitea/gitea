@@ -51,8 +51,13 @@ func (t *TemporaryUploadRepository) Close() {
 }
 
 // Clone the base repository to our path and set branch as the HEAD
-func (t *TemporaryUploadRepository) Clone(branch string) error {
-	if _, _, err := git.NewCommand(t.ctx, "clone", "-s", "--bare", "-b").AddDynamicArguments(branch, t.repo.RepoPath(), t.basePath).RunStdString(nil); err != nil {
+func (t *TemporaryUploadRepository) Clone(branch string, bare bool) error {
+	cmd := git.NewCommand(t.ctx, "clone", "-s", "-b").AddDynamicArguments(branch, t.repo.RepoPath(), t.basePath)
+	if bare {
+		cmd.AddArguments("--bare")
+	}
+
+	if _, _, err := cmd.RunStdString(nil); err != nil {
 		stderr := err.Error()
 		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
 			return git.ErrBranchNotExist{
@@ -65,9 +70,8 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 				OwnerName: t.repo.OwnerName,
 				Name:      t.repo.Name,
 			}
-		} else {
-			return fmt.Errorf("Clone: %w %s", err, stderr)
 		}
+		return fmt.Errorf("Clone: %w %s", err, stderr)
 	}
 	gitRepo, err := git.OpenRepository(t.ctx, t.basePath)
 	if err != nil {
@@ -78,8 +82,8 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 }
 
 // Init the repository
-func (t *TemporaryUploadRepository) Init() error {
-	if err := git.InitRepository(t.ctx, t.basePath, false); err != nil {
+func (t *TemporaryUploadRepository) Init(objectFormatName string) error {
+	if err := git.InitRepository(t.ctx, t.basePath, false, objectFormatName); err != nil {
 		return err
 	}
 	gitRepo, err := git.OpenRepository(t.ctx, t.basePath)
@@ -94,6 +98,14 @@ func (t *TemporaryUploadRepository) Init() error {
 func (t *TemporaryUploadRepository) SetDefaultIndex() error {
 	if _, _, err := git.NewCommand(t.ctx, "read-tree", "HEAD").RunStdString(&git.RunOpts{Dir: t.basePath}); err != nil {
 		return fmt.Errorf("SetDefaultIndex: %w", err)
+	}
+	return nil
+}
+
+// RefreshIndex looks at the current index and checks to see if merges or updates are needed by checking stat() information.
+func (t *TemporaryUploadRepository) RefreshIndex() error {
+	if _, _, err := git.NewCommand(t.ctx, "update-index", "--refresh").RunStdString(&git.RunOpts{Dir: t.basePath}); err != nil {
+		return fmt.Errorf("RefreshIndex: %w", err)
 	}
 	return nil
 }
@@ -114,24 +126,28 @@ func (t *TemporaryUploadRepository) LsFiles(filenames ...string) ([]string, erro
 		return nil, err
 	}
 
-	filelist := make([]string, len(filenames))
+	fileList := make([]string, 0, len(filenames))
 	for _, line := range bytes.Split(stdOut.Bytes(), []byte{'\000'}) {
-		filelist = append(filelist, string(line))
+		fileList = append(fileList, string(line))
 	}
 
-	return filelist, nil
+	return fileList, nil
 }
 
 // RemoveFilesFromIndex removes the given files from the index
 func (t *TemporaryUploadRepository) RemoveFilesFromIndex(filenames ...string) error {
+	objFmt, err := t.gitRepo.GetObjectFormat()
+	if err != nil {
+		return fmt.Errorf("unable to get object format for temporary repo: %q, error: %w", t.repo.FullName(), err)
+	}
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 	stdIn := new(bytes.Buffer)
 	for _, file := range filenames {
 		if file != "" {
-			stdIn.WriteString("0 0000000000000000000000000000000000000000\t")
-			stdIn.WriteString(file)
-			stdIn.WriteByte('\000')
+			// man git-update-index: input syntax (1): mode SP sha1 TAB path
+			// mode=0 means "remove from index", then hash part "does not matter as long as it is well formatted."
+			_, _ = fmt.Fprintf(stdIn, "0 %s\t%s\x00", objFmt.EmptyObjectID(), file)
 		}
 	}
 
@@ -142,8 +158,7 @@ func (t *TemporaryUploadRepository) RemoveFilesFromIndex(filenames ...string) er
 			Stdout: stdOut,
 			Stderr: stdErr,
 		}); err != nil {
-		log.Error("Unable to update-index for temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
-		return fmt.Errorf("Unable to update-index for temporary repo: %s Error: %w\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
+		return fmt.Errorf("unable to update-index for temporary repo: %q, error: %w\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
 	}
 	return nil
 }
@@ -233,11 +248,9 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 	_, _ = messageBytes.WriteString(message)
 	_, _ = messageBytes.WriteString("\n")
 
-	var args []git.CmdArg
+	cmdCommitTree := git.NewCommand(t.ctx, "commit-tree").AddDynamicArguments(treeHash)
 	if parent != "" {
-		args = []git.CmdArg{"commit-tree", git.CmdArgCheck(treeHash), "-p", git.CmdArgCheck(parent)}
-	} else {
-		args = []git.CmdArg{"commit-tree", git.CmdArgCheck(treeHash)}
+		cmdCommitTree.AddOptionValues("-p", parent)
 	}
 
 	var sign bool
@@ -249,7 +262,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 		sign, keyID, signer, _ = asymkey_service.SignInitialCommit(t.ctx, t.repo.RepoPath(), author)
 	}
 	if sign {
-		args = append(args, git.CmdArg("-S"+keyID))
+		cmdCommitTree.AddOptionFormat("-S%s", keyID)
 		if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
 				// Add trailers
@@ -264,7 +277,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 			committerSig = signer
 		}
 	} else {
-		args = append(args, "--no-gpg-sign")
+		cmdCommitTree.AddArguments("--no-gpg-sign")
 	}
 
 	if signoff {
@@ -281,7 +294,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	if err := git.NewCommand(t.ctx, args...).
+	if err := cmdCommitTree.
 		Run(&git.RunOpts{
 			Env:    env,
 			Dir:    t.basePath,
@@ -345,7 +358,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 			Stderr:  stderr,
 			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				_ = stdoutWriter.Close()
-				diff, finalErr = gitdiff.ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader, "")
+				diff, finalErr = gitdiff.ParsePatch(t.ctx, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader, "")
 				if finalErr != nil {
 					log.Error("ParsePatch: %v", finalErr)
 					cancel()
@@ -364,7 +377,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 			t.repo.FullName(), err, stderr)
 	}
 
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(t.ctx, t.basePath, "--cached", "HEAD")
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(t.ctx, t.basePath, git.TrustedCmdArgs{"--cached"}, "HEAD")
 	if err != nil {
 		return nil, err
 	}

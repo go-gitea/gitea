@@ -5,11 +5,15 @@ package setting
 
 import (
 	"net/http"
+	"strings"
 
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	chef_module "code.gitea.io/gitea/modules/packages/chef"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	shared "code.gitea.io/gitea/routers/web/shared/packages"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
@@ -21,6 +25,7 @@ const (
 func Packages(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsSettingsPackages"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	shared.SetPackagesContext(ctx, ctx.Doer)
 
@@ -30,6 +35,7 @@ func Packages(ctx *context.Context) {
 func PackagesRuleAdd(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsSettingsPackages"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	shared.SetRuleAddContext(ctx)
 
@@ -39,6 +45,7 @@ func PackagesRuleAdd(ctx *context.Context) {
 func PackagesRuleEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsSettingsPackages"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	shared.SetRuleEditContext(ctx, ctx.Doer)
 
@@ -48,6 +55,7 @@ func PackagesRuleEdit(ctx *context.Context) {
 func PackagesRuleAddPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsPackages"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	shared.PerformRuleAddPost(
 		ctx,
@@ -60,6 +68,7 @@ func PackagesRuleAddPost(ctx *context.Context) {
 func PackagesRuleEditPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsSettingsPackages"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	shared.PerformRuleEditPost(
 		ctx,
@@ -72,8 +81,45 @@ func PackagesRuleEditPost(ctx *context.Context) {
 func PackagesRulePreview(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsSettingsPackages"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	shared.SetRulePreviewContext(ctx, ctx.Doer)
 
 	ctx.HTML(http.StatusOK, tplSettingsPackagesRulePreview)
+}
+
+func InitializeCargoIndex(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("packages.title")
+	ctx.Data["PageIsSettingsPackages"] = true
+
+	shared.InitializeCargoIndex(ctx, ctx.Doer)
+
+	ctx.Redirect(setting.AppSubURL + "/user/settings/packages")
+}
+
+func RebuildCargoIndex(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("packages.title")
+	ctx.Data["PageIsSettingsPackages"] = true
+
+	shared.RebuildCargoIndex(ctx, ctx.Doer)
+
+	ctx.Redirect(setting.AppSubURL + "/user/settings/packages")
+}
+
+func RegenerateChefKeyPair(ctx *context.Context) {
+	priv, pub, err := util.GenerateKeyPair(chef_module.KeyBits)
+	if err != nil {
+		ctx.ServerError("GenerateKeyPair", err)
+		return
+	}
+
+	if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, chef_module.SettingPublicPem, pub); err != nil {
+		ctx.ServerError("SetUserSetting", err)
+		return
+	}
+
+	ctx.ServeContent(strings.NewReader(priv), &context.ServeHeaderOptions{
+		ContentType: "application/x-pem-file",
+		Filename:    ctx.Doer.Name + ".priv",
+	})
 }

@@ -1,0 +1,42 @@
+.monaco-editor-container,
+.editor-loading.is-loading {
+  width: 100%;
+  min-height: 200px;
+  height: 90vh;
+}
+
+.edit.githook .monaco-editor-container {
+  border: 1px solid var(--color-secondary);
+  height: 70vh;
+}
+
+/* overwrite conflicting styles from fomantic */
+.monaco-editor-container .inputarea {
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  resize: none !important;
+  border: none !important;
+  color: transparent !important;
+  background-color: transparent !important;
+}
+
+.monaco-editor,
+.monaco-editor .overflow-guard {
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+/* fomantic styles destroy this element only visible on IOS, restore it */
+.monaco-editor .iPadShowKeyboard {
+  border: none !important;
+  width: 58px !important;
+  min-width: 0 !important;
+  height: 36px !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: absolute !important;
+  resize: none !important;
+  overflow: hidden !important;
+  border-radius: var(--border-radius-medium) !important;
+}

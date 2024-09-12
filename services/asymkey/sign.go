@@ -13,8 +13,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -143,7 +145,10 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
+			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+				OwnerID:        u.ID,
+				IncludeSubKeys: true,
+			})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -151,7 +156,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := auth.GetTwoFactorByUID(u.ID)
+			twofaModel, err := auth.GetTwoFactorByUID(ctx, u.ID)
 			if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}
@@ -164,7 +169,8 @@ Loop:
 }
 
 // SignWikiCommit determines if we should sign the commits to this repository wiki
-func SignWikiCommit(ctx context.Context, repoWikiPath string, u *user_model.User) (bool, string, *git.Signature, error) {
+func SignWikiCommit(ctx context.Context, repo *repo_model.Repository, u *user_model.User) (bool, string, *git.Signature, error) {
+	repoWikiPath := repo.WikiPath()
 	rules := signingModeFromStrings(setting.Repository.Signing.Wiki)
 	signingKey, sig := SigningKey(ctx, repoWikiPath)
 	if signingKey == "" {
@@ -179,7 +185,10 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
+			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+				OwnerID:        u.ID,
+				IncludeSubKeys: true,
+			})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -187,7 +196,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := auth.GetTwoFactorByUID(u.ID)
+			twofaModel, err := auth.GetTwoFactorByUID(ctx, u.ID)
 			if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}
@@ -195,7 +204,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			gitRepo, err := git.OpenRepository(ctx, repoWikiPath)
+			gitRepo, err := gitrepo.OpenWikiRepository(ctx, repo)
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -207,7 +216,7 @@ Loop:
 			if commit.Signature == nil {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
-			verification := asymkey_model.ParseCommitWithSignature(commit)
+			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
@@ -232,7 +241,10 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
+			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+				OwnerID:        u.ID,
+				IncludeSubKeys: true,
+			})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -240,7 +252,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := auth.GetTwoFactorByUID(u.ID)
+			twofaModel, err := auth.GetTwoFactorByUID(ctx, u.ID)
 			if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}
@@ -260,7 +272,7 @@ Loop:
 			if commit.Signature == nil {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
-			verification := asymkey_model.ParseCommitWithSignature(commit)
+			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
@@ -294,7 +306,10 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
+			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+				OwnerID:        u.ID,
+				IncludeSubKeys: true,
+			})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -302,7 +317,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := auth.GetTwoFactorByUID(u.ID)
+			twofaModel, err := auth.GetTwoFactorByUID(ctx, u.ID)
 			if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}
@@ -332,7 +347,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := asymkey_model.ParseCommitWithSignature(commit)
+			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{baseSigned}
 			}
@@ -348,7 +363,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := asymkey_model.ParseCommitWithSignature(commit)
+			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{headSigned}
 			}
@@ -364,7 +379,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := asymkey_model.ParseCommitWithSignature(commit)
+			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{commitsSigned}
 			}
@@ -378,7 +393,7 @@ Loop:
 				return false, "", nil, err
 			}
 			for _, commit := range commitList {
-				verification := asymkey_model.ParseCommitWithSignature(commit)
+				verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 				if !verification.Verified {
 					return false, "", nil, &ErrWontSign{commitsSigned}
 				}

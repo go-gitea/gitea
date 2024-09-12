@@ -6,8 +6,8 @@ package forms
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 
 	"gitea.com/go-chi/binding"
 )
@@ -72,18 +72,20 @@ type AuthenticationForm struct {
 	Oauth2GroupClaimName          string
 	Oauth2AdminGroup              string
 	Oauth2RestrictedGroup         string
+	Oauth2GroupTeamMap            string `binding:"ValidGroupTeamMap"`
+	Oauth2GroupTeamMapRemoval     bool
 	SkipLocalTwoFA                bool
 	SSPIAutoCreateUsers           bool
 	SSPIAutoActivateUsers         bool
 	SSPIStripDomainNames          bool
 	SSPISeparatorReplacement      string `binding:"AlphaDashDot;MaxSize(5)"`
 	SSPIDefaultLanguage           string
-	GroupTeamMap                  string
+	GroupTeamMap                  string `binding:"ValidGroupTeamMap"`
 	GroupTeamMapRemoval           bool
 }
 
 // Validate validates fields
 func (f *AuthenticationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

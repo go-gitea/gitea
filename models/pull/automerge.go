@@ -17,7 +17,7 @@ import (
 type AutoMerge struct {
 	ID          int64                 `xorm:"pk autoincr"`
 	PullID      int64                 `xorm:"UNIQUE"`
-	DoerID      int64                 `xorm:"NOT NULL"`
+	DoerID      int64                 `xorm:"INDEX NOT NULL"`
 	Doer        *user_model.User      `xorm:"-"`
 	MergeStyle  repo_model.MergeStyle `xorm:"varchar(30)"`
 	Message     string                `xorm:"LONGTEXT"`

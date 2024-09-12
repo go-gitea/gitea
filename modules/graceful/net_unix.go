@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -21,9 +22,12 @@ import (
 )
 
 const (
-	listenFDs = "LISTEN_FDS"
-	startFD   = 3
-	unlinkFDs = "GITEA_UNLINK_FDS"
+	listenFDsEnv = "LISTEN_FDS"
+	startFD      = 3
+	unlinkFDsEnv = "GITEA_UNLINK_FDS"
+
+	notifySocketEnv    = "NOTIFY_SOCKET"
+	watchdogTimeoutEnv = "WATCHDOG_USEC"
 )
 
 // In order to keep the working directory the same as when we started we record
@@ -38,6 +42,9 @@ var (
 	activeListenersToUnlink   = []bool{}
 	providedListeners         = []net.Listener{}
 	activeListeners           = []net.Listener{}
+
+	notifySocketAddr string
+	watchdogTimeout  time.Duration
 )
 
 func getProvidedFDs() (savedErr error) {
@@ -45,18 +52,52 @@ func getProvidedFDs() (savedErr error) {
 	once.Do(func() {
 		mutex.Lock()
 		defer mutex.Unlock()
+		// now handle some additional systemd provided things
+		notifySocketAddr = os.Getenv(notifySocketEnv)
+		if notifySocketAddr != "" {
+			log.Debug("Systemd Notify Socket provided: %s", notifySocketAddr)
+			savedErr = os.Unsetenv(notifySocketEnv)
+			if savedErr != nil {
+				log.Warn("Unable to Unset the NOTIFY_SOCKET environment variable: %v", savedErr)
+				return
+			}
+			// FIXME: We don't handle WATCHDOG_PID
+			timeoutStr := os.Getenv(watchdogTimeoutEnv)
+			if timeoutStr != "" {
+				savedErr = os.Unsetenv(watchdogTimeoutEnv)
+				if savedErr != nil {
+					log.Warn("Unable to Unset the WATCHDOG_USEC environment variable: %v", savedErr)
+					return
+				}
 
-		numFDs := os.Getenv(listenFDs)
+				s, err := strconv.ParseInt(timeoutStr, 10, 64)
+				if err != nil {
+					log.Error("Unable to parse the provided WATCHDOG_USEC: %v", err)
+					savedErr = fmt.Errorf("unable to parse the provided WATCHDOG_USEC: %w", err)
+					return
+				}
+				if s <= 0 {
+					log.Error("Unable to parse the provided WATCHDOG_USEC: %s should be a positive number", timeoutStr)
+					savedErr = fmt.Errorf("unable to parse the provided WATCHDOG_USEC: %s should be a positive number", timeoutStr)
+					return
+				}
+				watchdogTimeout = time.Duration(s) * time.Microsecond
+			}
+		} else {
+			log.Trace("No Systemd Notify Socket provided")
+		}
+
+		numFDs := os.Getenv(listenFDsEnv)
 		if numFDs == "" {
 			return
 		}
 		n, err := strconv.Atoi(numFDs)
 		if err != nil {
-			savedErr = fmt.Errorf("%s is not a number: %s. Err: %w", listenFDs, numFDs, err)
+			savedErr = fmt.Errorf("%s is not a number: %s. Err: %w", listenFDsEnv, numFDs, err)
 			return
 		}
 
-		fdsToUnlinkStr := strings.Split(os.Getenv(unlinkFDs), ",")
+		fdsToUnlinkStr := strings.Split(os.Getenv(unlinkFDsEnv), ",")
 		providedListenersToUnlink = make([]bool, n)
 		for _, fdStr := range fdsToUnlinkStr {
 			i, err := strconv.Atoi(fdStr)
@@ -73,7 +114,7 @@ func getProvidedFDs() (savedErr error) {
 			if err == nil {
 				// Close the inherited file if it's a listener
 				if err = file.Close(); err != nil {
-					savedErr = fmt.Errorf("error closing provided socket fd %d: %s", i, err)
+					savedErr = fmt.Errorf("error closing provided socket fd %d: %w", i, err)
 					return
 				}
 				providedListeners = append(providedListeners, l)
@@ -88,32 +129,22 @@ func getProvidedFDs() (savedErr error) {
 	return savedErr
 }
 
-// CloseProvidedListeners closes all unused provided listeners.
-func CloseProvidedListeners() error {
+// closeProvidedListeners closes all unused provided listeners.
+func closeProvidedListeners() {
 	mutex.Lock()
 	defer mutex.Unlock()
-	var returnableError error
 	for _, l := range providedListeners {
 		err := l.Close()
 		if err != nil {
 			log.Error("Error in closing unused provided listener: %v", err)
-			if returnableError != nil {
-				returnableError = fmt.Errorf("%v & %w", returnableError, err)
-			} else {
-				returnableError = err
-			}
 		}
 	}
 	providedListeners = []net.Listener{}
-
-	return returnableError
 }
 
-// GetListener obtains a listener for the local network address. The network must be
-// a stream-oriented network: "tcp", "tcp4", "tcp6", "unix" or "unixpacket". It
-// returns an provided net.Listener for the matching network and address, or
-// creates a new one using net.Listen.
-func GetListener(network, address string) (net.Listener, error) {
+// DefaultGetListener obtains a listener for the stream-oriented local network address:
+// "tcp", "tcp4", "tcp6", "unix" or "unixpacket".
+func DefaultGetListener(network, address string) (net.Listener, error) {
 	// Add a deferral to say that we've tried to grab a listener
 	defer GetManager().InformCleanup()
 	switch network {
@@ -254,4 +285,37 @@ func getActiveListenersToUnlink() []bool {
 	listenersToUnlink := make([]bool, len(activeListenersToUnlink))
 	copy(listenersToUnlink, activeListenersToUnlink)
 	return listenersToUnlink
+}
+
+func getNotifySocket() (*net.UnixConn, error) {
+	if err := getProvidedFDs(); err != nil {
+		// This error will be logged elsewhere
+		return nil, nil
+	}
+
+	if notifySocketAddr == "" {
+		return nil, nil
+	}
+
+	socketAddr := &net.UnixAddr{
+		Name: notifySocketAddr,
+		Net:  "unixgram",
+	}
+
+	notifySocket, err := net.DialUnix(socketAddr.Net, nil, socketAddr)
+	if err != nil {
+		log.Warn("failed to dial NOTIFY_SOCKET %s: %v", socketAddr, err)
+		return nil, err
+	}
+
+	return notifySocket, nil
+}
+
+func getWatchdogTimeout() time.Duration {
+	if err := getProvidedFDs(); err != nil {
+		// This error will be logged elsewhere
+		return 0
+	}
+
+	return watchdogTimeout
 }

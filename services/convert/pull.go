@@ -11,7 +11,9 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -32,7 +34,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		return nil
 	}
 
-	apiIssue := ToAPIIssue(ctx, pr.Issue)
+	apiIssue := ToAPIIssue(ctx, doer, pr.Issue)
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
 		return nil
@@ -43,35 +45,47 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		return nil
 	}
 
-	p, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
+	var doerID int64
+	if doer != nil {
+		doerID = doer.ID
+	}
+
+	const repoDoerPermCacheKey = "repo_doer_perm_cache"
+	p, err := cache.GetWithContextCache(ctx, repoDoerPermCacheKey, fmt.Sprintf("%d_%d", pr.BaseRepoID, doerID),
+		func() (access_model.Permission, error) {
+			return access_model.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
+		})
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
 		p.AccessMode = perm.AccessModeNone
 	}
 
 	apiPullRequest := &api.PullRequest{
-		ID:        pr.ID,
-		URL:       pr.Issue.HTMLURL(),
-		Index:     pr.Index,
-		Poster:    apiIssue.Poster,
-		Title:     apiIssue.Title,
-		Body:      apiIssue.Body,
-		Labels:    apiIssue.Labels,
-		Milestone: apiIssue.Milestone,
-		Assignee:  apiIssue.Assignee,
-		Assignees: apiIssue.Assignees,
-		State:     apiIssue.State,
-		IsLocked:  apiIssue.IsLocked,
-		Comments:  apiIssue.Comments,
-		HTMLURL:   pr.Issue.HTMLURL(),
-		DiffURL:   pr.Issue.DiffURL(),
-		PatchURL:  pr.Issue.PatchURL(),
-		HasMerged: pr.HasMerged,
-		MergeBase: pr.MergeBase,
-		Mergeable: pr.Mergeable(),
-		Deadline:  apiIssue.Deadline,
-		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
-		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
+		ID:             pr.ID,
+		URL:            pr.Issue.HTMLURL(),
+		Index:          pr.Index,
+		Poster:         apiIssue.Poster,
+		Title:          apiIssue.Title,
+		Body:           apiIssue.Body,
+		Labels:         apiIssue.Labels,
+		Milestone:      apiIssue.Milestone,
+		Assignee:       apiIssue.Assignee,
+		Assignees:      apiIssue.Assignees,
+		State:          apiIssue.State,
+		Draft:          pr.IsWorkInProgress(ctx),
+		IsLocked:       apiIssue.IsLocked,
+		Comments:       apiIssue.Comments,
+		ReviewComments: pr.GetReviewCommentsCount(ctx),
+		HTMLURL:        pr.Issue.HTMLURL(),
+		DiffURL:        pr.Issue.DiffURL(),
+		PatchURL:       pr.Issue.PatchURL(),
+		HasMerged:      pr.HasMerged,
+		MergeBase:      pr.MergeBase,
+		Mergeable:      pr.Mergeable(ctx),
+		Deadline:       apiIssue.Deadline,
+		Created:        pr.Issue.CreatedUnix.AsTimePtr(),
+		Updated:        pr.Issue.UpdatedUnix.AsTimePtr(),
+		PinOrder:       apiIssue.PinOrder,
 
 		AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
@@ -79,7 +93,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			Name:       pr.BaseBranch,
 			Ref:        pr.BaseBranch,
 			RepoID:     pr.BaseRepoID,
-			Repository: ToRepo(ctx, pr.BaseRepo, p.AccessMode),
+			Repository: ToRepo(ctx, pr.BaseRepo, p),
 		},
 		Head: &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
@@ -88,11 +102,34 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		},
 	}
 
+	if err = pr.LoadRequestedReviewers(ctx); err != nil {
+		log.Error("LoadRequestedReviewers[%d]: %v", pr.ID, err)
+		return nil
+	}
+	if err = pr.LoadRequestedReviewersTeams(ctx); err != nil {
+		log.Error("LoadRequestedReviewersTeams[%d]: %v", pr.ID, err)
+		return nil
+	}
+
+	for _, reviewer := range pr.RequestedReviewers {
+		apiPullRequest.RequestedReviewers = append(apiPullRequest.RequestedReviewers, ToUser(ctx, reviewer, nil))
+	}
+
+	for _, reviewerTeam := range pr.RequestedReviewersTeams {
+		convertedTeam, err := ToTeam(ctx, reviewerTeam, true)
+		if err != nil {
+			log.Error("LoadRequestedReviewersTeams[%d]: %v", pr.ID, err)
+			return nil
+		}
+
+		apiPullRequest.RequestedReviewersTeams = append(apiPullRequest.RequestedReviewersTeams, convertedTeam)
+	}
+
 	if pr.Issue.ClosedUnix != 0 {
 		apiPullRequest.Closed = pr.Issue.ClosedUnix.AsTimePtr()
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
 		return nil
@@ -118,7 +155,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	if pr.Flow == issues_model.PullRequestFlowAGit {
-		gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+		gitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.GetGitRefName(), err)
 			return nil
@@ -143,9 +180,9 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		}
 
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-		apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p.AccessMode)
+		apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
 
-		headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
+		headGitRepo, err := gitrepo.OpenRepository(ctx, pr.HeadRepo)
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.HeadRepo.RepoPath(), err)
 			return nil
@@ -158,6 +195,12 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			return nil
 		}
 
+		// Outer scope variables to be used in diff calculation
+		var (
+			startCommitID string
+			endCommitID   string
+		)
+
 		if git.IsErrBranchNotExist(err) {
 			headCommitID, err := headGitRepo.GetRefCommitID(apiPullRequest.Head.Ref)
 			if err != nil && !git.IsErrNotExist(err) {
@@ -166,6 +209,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			}
 			if err == nil {
 				apiPullRequest.Head.Sha = headCommitID
+				endCommitID = headCommitID
 			}
 		} else {
 			commit, err := headBranch.GetCommit()
@@ -176,12 +220,21 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			if err == nil {
 				apiPullRequest.Head.Ref = pr.HeadBranch
 				apiPullRequest.Head.Sha = commit.ID.String()
+				endCommitID = commit.ID.String()
 			}
+		}
+
+		// Calculate diff
+		startCommitID = pr.MergeBase
+
+		apiPullRequest.ChangedFiles, apiPullRequest.Additions, apiPullRequest.Deletions, err = gitRepo.GetDiffShortStat(startCommitID, endCommitID)
+		if err != nil {
+			log.Error("GetDiffShortStat: %v", err)
 		}
 	}
 
 	if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {
-		baseGitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+		baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
 			return nil
@@ -201,7 +254,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	if pr.HasMerged {
 		apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 		apiPullRequest.MergedCommitID = &pr.MergedCommitID
-		apiPullRequest.MergedBy = ToUser(pr.Merger, nil)
+		apiPullRequest.MergedBy = ToUser(ctx, pr.Merger, nil)
 	}
 
 	return apiPullRequest

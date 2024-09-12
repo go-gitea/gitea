@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -41,7 +42,7 @@ func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 
 	assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
-	gitRepo, err := git.OpenRepository(git.DefaultContext, pr.BaseRepo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, pr.BaseRepo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -71,7 +72,7 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2, BaseRepo: baseRepo})
 
 	assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
-	gitRepo, err := git.OpenRepository(git.DefaultContext, pr.BaseRepo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, pr.BaseRepo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

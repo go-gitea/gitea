@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/stretchr/testify/assert"
@@ -468,4 +469,149 @@ func TestGitlabGetReviews(t *testing.T) {
 		assert.NoError(t, err)
 		assertReviewsEqual(t, []*base.Review{&review}, rvs)
 	}
+}
+
+func TestAwardsToReactions(t *testing.T) {
+	downloader := &GitlabDownloader{}
+	// yes gitlab can have duplicated reactions (https://gitlab.com/jaywink/socialhome/-/issues/24)
+	testResponse := `
+[
+  {
+    "name": "thumbsup",
+    "user": {
+      "id": 1241334,
+      "username": "lafriks"
+    }
+  },
+  {
+    "name": "thumbsup",
+    "user": {
+      "id": 1241334,
+      "username": "lafriks"
+    }
+  },
+  {
+    "name": "thumbsup",
+    "user": {
+      "id": 4575606,
+      "username": "real6543"
+    }
+  }
+]
+`
+	var awards []*gitlab.AwardEmoji
+	assert.NoError(t, json.Unmarshal([]byte(testResponse), &awards))
+
+	reactions := downloader.awardsToReactions(awards)
+	assert.EqualValues(t, []*base.Reaction{
+		{
+			UserName: "lafriks",
+			UserID:   1241334,
+			Content:  "thumbsup",
+		},
+		{
+			UserName: "real6543",
+			UserID:   4575606,
+			Content:  "thumbsup",
+		},
+	}, reactions)
+}
+
+func TestNoteToComment(t *testing.T) {
+	downloader := &GitlabDownloader{}
+
+	now := time.Now()
+	makeTestNote := func(id int, body string, system bool) gitlab.Note {
+		return gitlab.Note{
+			ID: id,
+			Author: struct {
+				ID        int    `json:"id"`
+				Username  string `json:"username"`
+				Email     string `json:"email"`
+				Name      string `json:"name"`
+				State     string `json:"state"`
+				AvatarURL string `json:"avatar_url"`
+				WebURL    string `json:"web_url"`
+			}{
+				ID:       72,
+				Email:    "test@example.com",
+				Username: "test",
+			},
+			Body:      body,
+			CreatedAt: &now,
+			System:    system,
+		}
+	}
+	notes := []gitlab.Note{
+		makeTestNote(1, "This is a regular comment", false),
+		makeTestNote(2, "enabled an automatic merge for abcd1234", true),
+		makeTestNote(3, "changed target branch from `master` to `main`", true),
+		makeTestNote(4, "canceled the automatic merge", true),
+	}
+	comments := []base.Comment{{
+		IssueIndex:  17,
+		Index:       1,
+		PosterID:    72,
+		PosterName:  "test",
+		PosterEmail: "test@example.com",
+		CommentType: "",
+		Content:     "This is a regular comment",
+		Created:     now,
+		Meta:        map[string]any{},
+	}, {
+		IssueIndex:  17,
+		Index:       2,
+		PosterID:    72,
+		PosterName:  "test",
+		PosterEmail: "test@example.com",
+		CommentType: "pull_scheduled_merge",
+		Content:     "enabled an automatic merge for abcd1234",
+		Created:     now,
+		Meta:        map[string]any{},
+	}, {
+		IssueIndex:  17,
+		Index:       3,
+		PosterID:    72,
+		PosterName:  "test",
+		PosterEmail: "test@example.com",
+		CommentType: "change_target_branch",
+		Content:     "changed target branch from `master` to `main`",
+		Created:     now,
+		Meta: map[string]any{
+			"OldRef": "master",
+			"NewRef": "main",
+		},
+	}, {
+		IssueIndex:  17,
+		Index:       4,
+		PosterID:    72,
+		PosterName:  "test",
+		PosterEmail: "test@example.com",
+		CommentType: "pull_cancel_scheduled_merge",
+		Content:     "canceled the automatic merge",
+		Created:     now,
+		Meta:        map[string]any{},
+	}}
+
+	for i, note := range notes {
+		actualComment := *downloader.convertNoteToComment(17, &note)
+		assert.EqualValues(t, actualComment, comments[i])
+	}
+}
+
+func TestGitlabIIDResolver(t *testing.T) {
+	r := gitlabIIDResolver{}
+	r.recordIssueIID(1)
+	r.recordIssueIID(2)
+	r.recordIssueIID(3)
+	r.recordIssueIID(2)
+	assert.EqualValues(t, 4, r.generatePullRequestNumber(1))
+	assert.EqualValues(t, 13, r.generatePullRequestNumber(10))
+
+	assert.Panics(t, func() {
+		r := gitlabIIDResolver{}
+		r.recordIssueIID(1)
+		assert.EqualValues(t, 2, r.generatePullRequestNumber(1))
+		r.recordIssueIID(3) // the generation procedure has been started, it shouldn't accept any new issue IID, so it panics
+	})
 }

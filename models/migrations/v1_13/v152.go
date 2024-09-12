@@ -9,5 +9,5 @@ func AddTrustModelToRepository(x *xorm.Engine) error {
 	type Repository struct {
 		TrustModel int
 	}
-	return x.Sync2(new(Repository))
+	return x.Sync(new(Repository))
 }

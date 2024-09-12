@@ -19,5 +19,5 @@ func AddUserRepoMissingColumns(x *xorm.Engine) error {
 		Topics     []string `xorm:"TEXT JSON"`
 	}
 
-	return x.Sync2(new(User), new(Repository))
+	return x.Sync(new(User), new(Repository))
 }

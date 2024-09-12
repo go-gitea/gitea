@@ -7,22 +7,29 @@ package repo
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
+	"path"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitgraph"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
+	git_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -70,17 +77,26 @@ func Commits(ctx *context.Context) {
 	}
 
 	// Both `git log branchName` and `git log commitId` work.
-	commits, err := ctx.Repo.Commit.CommitsByRange(page, pageSize)
+	commits, err := ctx.Repo.Commit.CommitsByRange(page, pageSize, "")
 	if err != nil {
 		ctx.ServerError("CommitsByRange", err)
 		return
 	}
-	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(ctx, commits, ctx.Repo.Repository)
-
+	ctx.Data["Commits"] = processGitCommits(ctx, commits)
+	commitIDs := make([]string, 0, len(commits))
+	for _, c := range commits {
+		commitIDs = append(commitIDs, c.ID.String())
+	}
+	commitsTagsMap, err := repo_model.FindTagsByCommitIDs(ctx, ctx.Repo.Repository.ID, commitIDs...)
+	if err != nil {
+		log.Error("FindTagsByCommitIDs: %v", err)
+		ctx.Flash.Error(ctx.Tr("repo.commit.load_tags_failed"))
+	} else {
+		ctx.Data["CommitsTagsMap"] = commitsTagsMap
+	}
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["RefName"] = ctx.Repo.RefName
 
 	pager := context.NewPagination(int(commitsCount), pageSize, page, 5)
 	pager.SetDefaultParams(ctx)
@@ -138,7 +154,7 @@ func Graph(ctx *context.Context) {
 		return
 	}
 
-	if err := graph.LoadAndProcessCommits(ctx.Repo.Repository, ctx.Repo.GitRepo); err != nil {
+	if err := graph.LoadAndProcessCommits(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo); err != nil {
 		ctx.ServerError("LoadAndProcessCommits", err)
 		return
 	}
@@ -156,10 +172,10 @@ func Graph(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["RefName"] = ctx.Repo.RefName
+
 	paginator := context.NewPagination(int(graphCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
-	paginator.AddParam(ctx, "mode", "Mode")
-	paginator.AddParam(ctx, "hide-pr-refs", "HidePRRefs")
+	paginator.AddParamString("mode", mode)
+	paginator.AddParamString("hide-pr-refs", fmt.Sprint(hidePRRefs))
 	for _, branch := range branches {
 		paginator.AddParamString("branch", branch)
 	}
@@ -194,22 +210,19 @@ func SearchCommits(ctx *context.Context) {
 		return
 	}
 	ctx.Data["CommitCount"] = len(commits)
-	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(ctx, commits, ctx.Repo.Repository)
+	ctx.Data["Commits"] = processGitCommits(ctx, commits)
 
 	ctx.Data["Keyword"] = query
 	if all {
-		ctx.Data["All"] = "checked"
+		ctx.Data["All"] = true
 	}
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-	ctx.Data["RefName"] = ctx.Repo.RefName
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
 // FileHistory show a file's reversions
 func FileHistory(ctx *context.Context) {
-	ctx.Data["IsRepoToolbarCommits"] = true
-
 	fileName := ctx.Repo.TreePath
 	if len(fileName) == 0 {
 		Commits(ctx)
@@ -230,18 +243,22 @@ func FileHistory(ctx *context.Context) {
 		page = 1
 	}
 
-	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(ctx.Repo.RefName, fileName, page)
+	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
+		git.CommitsByFileAndRangeOptions{
+			Revision: ctx.Repo.RefName,
+			File:     fileName,
+			Page:     page,
+		})
 	if err != nil {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
 	}
-	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(ctx, commits, ctx.Repo.Repository)
+	ctx.Data["Commits"] = processGitCommits(ctx, commits)
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["FileName"] = fileName
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["RefName"] = ctx.Repo.RefName
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
@@ -250,21 +267,29 @@ func FileHistory(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
+func LoadBranchesAndTags(ctx *context.Context) {
+	response, err := git_service.LoadBranchesAndTags(ctx, ctx.Repo, ctx.PathParam("sha"))
+	if err == nil {
+		ctx.JSON(http.StatusOK, response)
+		return
+	}
+	ctx.NotFoundOrServerError(fmt.Sprintf("could not load branches and tags the commit %s belongs to", ctx.PathParam("sha")), git.IsErrNotExist, err)
+}
+
 // Diff show different from current commit to previous commit
 func Diff(ctx *context.Context) {
 	ctx.Data["PageIsDiff"] = true
-	ctx.Data["RequireTribute"] = true
 
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
-	commitID := ctx.Params(":sha")
+	commitID := ctx.PathParam(":sha")
 	var (
 		gitRepo *git.Repository
 		err     error
 	)
 
 	if ctx.Data["PageIsWiki"] != nil {
-		gitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
+		gitRepo, err = gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
@@ -283,7 +308,7 @@ func Diff(ctx *context.Context) {
 		}
 		return
 	}
-	if len(commitID) != git.SHAFullLength {
+	if len(commitID) != commit.ID.Type().FullLength() {
 		commitID = commit.ID.String()
 	}
 
@@ -294,7 +319,7 @@ func Diff(ctx *context.Context) {
 		maxLines, maxFiles = -1, -1
 	}
 
-	diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
+	diff, err := gitdiff.GetDiff(ctx, gitRepo, &gitdiff.DiffOptions{
 		AfterCommitID:      commitID,
 		SkipTo:             ctx.FormString("skip-to"),
 		MaxLines:           maxLines,
@@ -335,22 +360,25 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
 
-	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptions{})
+	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptionsAll)
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
+	}
+	if !ctx.Repo.CanRead(unit_model.TypeActions) {
+		git_model.CommitStatusesHideActionsURL(ctx, statuses)
 	}
 
 	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
 
-	verification := asymkey_model.ParseCommitWithSignature(commit)
+	verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 	ctx.Data["Verification"] = verification
-	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(commit)
+	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(ctx, commit)
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
 	if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-		return repo_model.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
+		return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
 	}, nil); err != nil {
 		ctx.ServerError("CalculateTrustStatus", err)
 		return
@@ -359,9 +387,22 @@ func Diff(ctx *context.Context) {
 	note := &git.Note{}
 	err = git.GetNote(ctx, ctx.Repo.GitRepo, commitID, note)
 	if err == nil {
-		ctx.Data["Note"] = string(charset.ToUTF8WithFallback(note.Message))
 		ctx.Data["NoteCommit"] = note.Commit
-		ctx.Data["NoteAuthor"] = user_model.ValidateCommitWithEmail(note.Commit)
+		ctx.Data["NoteAuthor"] = user_model.ValidateCommitWithEmail(ctx, note.Commit)
+		ctx.Data["NoteRendered"], err = markup.RenderCommitMessage(&markup.RenderContext{
+			Links: markup.Links{
+				Base:       ctx.Repo.RepoLink,
+				BranchPath: path.Join("commit", util.PathEscapeSegments(commitID)),
+			},
+			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+			GitRepo: ctx.Repo.GitRepo,
+			Repo:    ctx.Repo.Repository,
+			Ctx:     ctx,
+		}, template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
+		if err != nil {
+			ctx.ServerError("RenderCommitMessage", err)
+			return
+		}
 	}
 
 	ctx.Data["BranchName"], err = commit.GetBranchName()
@@ -370,11 +411,6 @@ func Diff(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["TagName"], err = commit.GetTagName()
-	if err != nil {
-		ctx.ServerError("commit.GetTagName", err)
-		return
-	}
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }
 
@@ -382,7 +418,7 @@ func Diff(ctx *context.Context) {
 func RawDiff(ctx *context.Context) {
 	var gitRepo *git.Repository
 	if ctx.Data["PageIsWiki"] != nil {
-		wikiRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
+		wikiRepo, err := gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return
@@ -398,16 +434,27 @@ func RawDiff(ctx *context.Context) {
 	}
 	if err := git.GetRawDiff(
 		gitRepo,
-		ctx.Params(":sha"),
-		git.RawDiffType(ctx.Params(":ext")),
+		ctx.PathParam(":sha"),
+		git.RawDiffType(ctx.PathParam(":ext")),
 		ctx.Resp,
 	); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetRawDiff",
-				errors.New("commit "+ctx.Params(":sha")+" does not exist."))
+				errors.New("commit "+ctx.PathParam(":sha")+" does not exist."))
 			return
 		}
 		ctx.ServerError("GetRawDiff", err)
 		return
 	}
+}
+
+func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) []*git_model.SignCommitWithStatuses {
+	commits := git_model.ConvertFromGitCommit(ctx, gitCommits, ctx.Repo.Repository)
+	if !ctx.Repo.CanRead(unit_model.TypeActions) {
+		for _, commit := range commits {
+			commit.Status.HideActionsURL(ctx)
+			git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
+		}
+	}
+	return commits
 }

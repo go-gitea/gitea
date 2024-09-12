@@ -1,25 +1,24 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
 package private
 
 import (
 	"net/http"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/agit"
+	gitea_context "code.gitea.io/gitea/services/context"
 )
 
 // HookProcReceive proc-receive hook - only handles agit Proc-Receive requests at present
 func HookProcReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm(ctx).(*private.HookOptions)
-	if !git.SupportProcReceive {
+	if !git.DefaultFeatures().SupportProcReceive {
 		ctx.Status(http.StatusNotFound)
 		return
 	}
@@ -30,8 +29,8 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 		} else {
 			log.Error(err.Error())
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"Err": err.Error(),
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: err.Error(),
 			})
 		}
 

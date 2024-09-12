@@ -13,11 +13,15 @@ import (
 	"github.com/yuin/goldmark/ast"
 )
 
-func createTOCNode(toc []markup.Header, lang string) ast.Node {
+func createTOCNode(toc []markup.Header, lang string, detailsAttrs map[string]string) ast.Node {
 	details := NewDetails()
 	summary := NewSummary()
 
-	summary.AppendChild(summary, ast.NewString([]byte(translation.NewLocale(lang).Tr("toc"))))
+	for k, v := range detailsAttrs {
+		details.SetAttributeString(k, []byte(v))
+	}
+
+	summary.AppendChild(summary, ast.NewString([]byte(translation.NewLocale(lang).TrString("toc"))))
 	details.AppendChild(details, summary)
 	ul := ast.NewList('-')
 	details.AppendChild(details, ul)
@@ -40,7 +44,7 @@ func createTOCNode(toc []markup.Header, lang string) ast.Node {
 		}
 		li := ast.NewListItem(currentLevel * 2)
 		a := ast.NewLink()
-		a.Destination = []byte(fmt.Sprintf("#%s", url.PathEscape(header.ID)))
+		a.Destination = []byte(fmt.Sprintf("#%s", url.QueryEscape(header.ID)))
 		a.AppendChild(a, ast.NewString([]byte(header.Text)))
 		li.AppendChild(li, a)
 		ul.AppendChild(ul, li)

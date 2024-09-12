@@ -4,7 +4,11 @@
 package metrics
 
 import (
+	"runtime"
+
 	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -15,8 +19,8 @@ const namespace = "gitea_"
 // exposes gitea metrics for prometheus
 type Collector struct {
 	Accesses           *prometheus.Desc
-	Actions            *prometheus.Desc
 	Attachments        *prometheus.Desc
+	BuildInfo          *prometheus.Desc
 	Comments           *prometheus.Desc
 	Follows            *prometheus.Desc
 	HookTasks          *prometheus.Desc
@@ -32,7 +36,7 @@ type Collector struct {
 	Oauths             *prometheus.Desc
 	Organizations      *prometheus.Desc
 	Projects           *prometheus.Desc
-	ProjectBoards      *prometheus.Desc
+	ProjectColumns     *prometheus.Desc
 	PublicKeys         *prometheus.Desc
 	Releases           *prometheus.Desc
 	Repositories       *prometheus.Desc
@@ -52,15 +56,20 @@ func NewCollector() Collector {
 			"Number of Accesses",
 			nil, nil,
 		),
-		Actions: prometheus.NewDesc(
-			namespace+"actions",
-			"Number of Actions",
-			nil, nil,
-		),
 		Attachments: prometheus.NewDesc(
 			namespace+"attachments",
 			"Number of Attachments",
 			nil, nil,
+		),
+		BuildInfo: prometheus.NewDesc(
+			namespace+"build_info",
+			"Build information",
+			[]string{
+				"goarch",
+				"goos",
+				"goversion",
+				"version",
+			}, nil,
 		),
 		Comments: prometheus.NewDesc(
 			namespace+"comments",
@@ -137,9 +146,9 @@ func NewCollector() Collector {
 			"Number of projects",
 			nil, nil,
 		),
-		ProjectBoards: prometheus.NewDesc(
-			namespace+"projects_boards",
-			"Number of project boards",
+		ProjectColumns: prometheus.NewDesc(
+			namespace+"projects_boards", // TODO: change the key name will affect the consume's result history
+			"Number of project columns",
 			nil, nil,
 		),
 		PublicKeys: prometheus.NewDesc(
@@ -193,8 +202,8 @@ func NewCollector() Collector {
 // Describe returns all possible prometheus.Desc
 func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.Accesses
-	ch <- c.Actions
 	ch <- c.Attachments
+	ch <- c.BuildInfo
 	ch <- c.Comments
 	ch <- c.Follows
 	ch <- c.HookTasks
@@ -210,7 +219,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.Oauths
 	ch <- c.Organizations
 	ch <- c.Projects
-	ch <- c.ProjectBoards
+	ch <- c.ProjectColumns
 	ch <- c.PublicKeys
 	ch <- c.Releases
 	ch <- c.Repositories
@@ -224,7 +233,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect returns the metrics with values
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
-	stats := activities_model.GetStatistic()
+	stats := activities_model.GetStatistic(db.DefaultContext)
 
 	ch <- prometheus.MustNewConstMetric(
 		c.Accesses,
@@ -232,14 +241,18 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 		float64(stats.Counter.Access),
 	)
 	ch <- prometheus.MustNewConstMetric(
-		c.Actions,
-		prometheus.GaugeValue,
-		float64(stats.Counter.Action),
-	)
-	ch <- prometheus.MustNewConstMetric(
 		c.Attachments,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Attachment),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.BuildInfo,
+		prometheus.GaugeValue,
+		1,
+		runtime.GOARCH,
+		runtime.GOOS,
+		runtime.Version(),
+		setting.AppVer,
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.Comments,
@@ -323,9 +336,9 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 		float64(stats.Counter.Project),
 	)
 	ch <- prometheus.MustNewConstMetric(
-		c.ProjectBoards,
+		c.ProjectColumns,
 		prometheus.GaugeValue,
-		float64(stats.Counter.ProjectBoard),
+		float64(stats.Counter.ProjectColumn),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.PublicKeys,

@@ -1,29 +1,15 @@
-{{template "base/head" .}}
-<div class="page-content organization settings labels">
-	{{template "org/header" .}}
-	<div class="ui container">
-		<div class="ui grid">
-			{{template "org/settings/navbar" .}}
-				<div class="ui twelve wide column content">
-					<div class="ui grid">
-						<div class="left floated twelve wide column">
-							{{$.locale.Tr "org.settings.labels_desc" | Str2html}}
+{{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings labels")}}
+				<div class="org-setting-content">
+					<div class="tw-flex tw-items-center">
+						<div class="tw-flex-1">
+							{{ctx.Locale.Tr "org.settings.labels_desc"}}
 						</div>
-						<div class="right floated three wide column">
-							<div class="ui right">
-								<div class="ui green new-label button">{{.locale.Tr "repo.issues.new_label"}}</div>
-							</div>
-						</div>
+						<button class="ui small primary new-label button">{{ctx.Locale.Tr "repo.issues.new_label"}}</button>
 					</div>
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 					{{template "repo/issue/labels/label_new" .}}
-					{{template "base/alert" .}}
 					{{template "repo/issue/labels/label_list" .}}
 				</div>
-			</div>
-		</div>
-	</div>
-</div>
-
 {{template "repo/issue/labels/edit_delete_label" .}}
-{{template "base/footer" .}}
+{{template "org/settings/layout_footer" .}}
+

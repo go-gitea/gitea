@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/repository/files"
 )
 
@@ -44,6 +45,10 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileResponse"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	apiOpts := web.GetForm(ctx).(*api.ApplyDiffPatchFileOptions)
 
 	opts := &files.ApplyDiffPatchOptions{
@@ -91,12 +96,12 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 			ctx.Error(http.StatusForbidden, "Access", err)
 			return
 		}
-		if models.IsErrBranchAlreadyExists(err) || models.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
+		if git_model.IsErrBranchAlreadyExists(err) || models.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
 			models.IsErrFilePathInvalid(err) || models.IsErrRepoFileAlreadyExists(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "Invalid", err)
 			return
 		}
-		if models.IsErrBranchDoesNotExist(err) || git.IsErrBranchNotExist(err) {
+		if git_model.IsErrBranchNotExist(err) || git.IsErrBranchNotExist(err) {
 			ctx.Error(http.StatusNotFound, "BranchDoesNotExist", err)
 			return
 		}

@@ -1,0 +1,78 @@
+{{with .Issue}}
+	{{if eq $.Page.Project.CardType 1}}{{/* Images and Text*/}}
+		{{$attachments := index $.Page.issuesAttachmentMap .ID}}
+		{{if $attachments}}
+		<div class="card-attachment-images">
+			{{range $attachments}}
+				<img src="{{.DownloadURL}}" alt="{{.Name}}" />
+			{{end}}
+		</div>
+		{{end}}
+	{{end}}
+	<div class="content tw-w-full">
+		<div class="tw-flex tw-items-start tw-gap-[5px]">
+			<div class="issue-card-icon">
+				{{template "shared/issueicon" .}}
+			</div>
+			<a class="issue-card-title muted issue-title tw-break-anywhere" href="{{.Link}}">{{.Title | RenderEmoji ctx | RenderCodeBlock}}</a>
+			{{if and $.isPinnedIssueCard $.Page.IsRepoAdmin}}
+				<a role="button" class="issue-card-unpin muted tw-flex tw-items-center" data-tooltip-content={{ctx.Locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Page.Link}}/unpin/{{.Index}}">
+					{{svg "octicon-x" 16}}
+				</a>
+			{{end}}
+		</div>
+		<div class="meta">
+			<span class="text light grey muted-links">
+				{{if not $.Page.Repository}}{{.Repo.FullName}}{{end}}#{{.Index}}
+				{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
+				{{if .OriginalAuthor}}
+					{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor}}
+				{{else if gt .Poster.ID 0}}
+					{{ctx.Locale.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.GetDisplayName}}
+				{{else}}
+					{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .Poster.GetDisplayName}}
+				{{end}}
+			</span>
+		</div>
+		{{if .MilestoneID}}
+		<div class="meta tw-my-1">
+			<a class="milestone" href="{{.Repo.Link}}/milestone/{{.MilestoneID}}">
+				{{svg "octicon-milestone" 16 "tw-mr-1 tw-align-middle"}}
+				<span class="tw-align-middle">{{.Milestone.Name}}</span>
+			</a>
+		</div>
+		{{end}}
+		{{if $.Page.LinkedPRs}}
+		{{range index $.Page.LinkedPRs .ID}}
+		<div class="meta tw-my-1">
+			<a href="{{$.Issue.Repo.Link}}/pulls/{{.Index}}">
+				<span class="tw-m-0 text {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "tw-mr-1 tw-align-middle"}}</span>
+				<span class="tw-align-middle">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
+			</a>
+		</div>
+		{{end}}
+		{{end}}
+		{{$tasks := .GetTasks}}
+		{{if gt $tasks 0}}
+			<div class="meta tw-my-1">
+				{{svg "octicon-checklist" 16 "tw-mr-1 tw-align-middle"}}
+				<span class="tw-align-middle">{{.GetTasksDone}} / {{$tasks}}</span>
+			</div>
+		{{end}}
+	</div>
+
+	{{if or .Labels .Assignees}}
+	<div class="issue-card-bottom">
+		<div class="labels-list">
+			{{range .Labels}}
+				<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{RenderLabel ctx ctx.Locale .}}</a>
+			{{end}}
+		</div>
+		<div class="issue-card-assignees">
+			{{range .Assignees}}
+				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28}}</a>
+			{{end}}
+		</div>
+	</div>
+	{{end}}
+{{end}}

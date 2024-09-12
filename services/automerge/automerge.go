@@ -17,45 +17,47 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
+	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // prAutoMergeQueue represents a queue to handle update pull request tests
-var prAutoMergeQueue queue.UniqueQueue
+var prAutoMergeQueue *queue.WorkerPoolQueue[string]
 
 // Init runs the task queue to that handles auto merges
 func Init() error {
-	prAutoMergeQueue = queue.CreateUniqueQueue("pr_auto_merge", handle, "")
+	notify_service.RegisterNotifier(NewNotifier())
+
+	prAutoMergeQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_auto_merge", handler)
 	if prAutoMergeQueue == nil {
-		return fmt.Errorf("Unable to create pr_auto_merge Queue")
+		return fmt.Errorf("unable to create pr_auto_merge queue")
 	}
-	go graceful.GetManager().RunWithShutdownFns(prAutoMergeQueue.Run)
+	go graceful.GetManager().RunWithCancel(prAutoMergeQueue)
 	return nil
 }
 
 // handle passed PR IDs and test the PRs
-func handle(data ...queue.Data) []queue.Data {
-	for _, d := range data {
+func handler(items ...string) []string {
+	for _, s := range items {
 		var id int64
 		var sha string
-		if _, err := fmt.Sscanf(d.(string), "%d_%s", &id, &sha); err != nil {
-			log.Error("could not parse data from pr_auto_merge queue (%v): %v", d, err)
+		if _, err := fmt.Sscanf(s, "%d_%s", &id, &sha); err != nil {
+			log.Error("could not parse data from pr_auto_merge queue (%v): %v", s, err)
 			continue
 		}
-		handlePull(id, sha)
+		handlePullRequestAutoMerge(id, sha)
 	}
 	return nil
 }
 
 func addToQueue(pr *issues_model.PullRequest, sha string) {
-	if err := prAutoMergeQueue.PushFunc(fmt.Sprintf("%d_%s", pr.ID, sha), func() error {
-		log.Trace("Adding pullID: %d to the pull requests patch checking queue with sha %s", pr.ID, sha)
-		return nil
-	}); err != nil {
+	log.Trace("Adding pullID: %d to the pull requests patch checking queue with sha %s", pr.ID, sha)
+	if err := prAutoMergeQueue.Push(fmt.Sprintf("%d_%s", pr.ID, sha)); err != nil {
 		log.Error("Error adding pullID: %d to the pull requests patch checking queue %v", pr.ID, err)
 	}
 }
@@ -63,16 +65,6 @@ func addToQueue(pr *issues_model.PullRequest, sha string) {
 // ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
 func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, style repo_model.MergeStyle, message string) (scheduled bool, err error) {
 	err = db.WithTx(ctx, func(ctx context.Context) error {
-		lastCommitStatus, err := pull_service.GetPullRequestCommitStatusState(ctx, pull)
-		if err != nil {
-			return err
-		}
-
-		// we don't need to schedule
-		if lastCommitStatus.IsSuccess() {
-			return nil
-		}
-
 		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message); err != nil {
 			return err
 		}
@@ -96,8 +88,8 @@ func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 	})
 }
 
-// MergeScheduledPullRequest merges a previously scheduled pull request when all checks succeeded
-func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model.Repository) error {
+// StartPRCheckAndAutoMergeBySHA start an automerge check and auto merge task for all pull requests of repository and SHA
+func StartPRCheckAndAutoMergeBySHA(ctx context.Context, sha string, repo *repo_model.Repository) error {
 	pulls, err := getPullRequestsByHeadSHA(ctx, sha, repo, func(pr *issues_model.PullRequest) bool {
 		return !pr.HasMerged && pr.CanAutoMerge()
 	})
@@ -112,8 +104,34 @@ func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model
 	return nil
 }
 
+// StartPRCheckAndAutoMerge start an automerge check and auto merge task for a pull request
+func StartPRCheckAndAutoMerge(ctx context.Context, pull *issues_model.PullRequest) {
+	if pull == nil || pull.HasMerged || !pull.CanAutoMerge() {
+		return
+	}
+
+	if err := pull.LoadBaseRepo(ctx); err != nil {
+		log.Error("LoadBaseRepo: %v", err)
+		return
+	}
+
+	gitRepo, err := gitrepo.OpenRepository(ctx, pull.BaseRepo)
+	if err != nil {
+		log.Error("OpenRepository: %v", err)
+		return
+	}
+	defer gitRepo.Close()
+	commitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
+	if err != nil {
+		log.Error("GetRefCommitID: %v", err)
+		return
+	}
+
+	addToQueue(pull, commitID)
+}
+
 func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.Repository, filter func(*issues_model.PullRequest) bool) (map[int64]*issues_model.PullRequest, error) {
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -162,9 +180,10 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 	return pulls, nil
 }
 
-func handlePull(pullID int64, sha string) {
+// handlePullRequestAutoMerge merge the pull request if all checks are successful
+func handlePullRequestAutoMerge(pullID int64, sha string) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(),
-		fmt.Sprintf("Handle AutoMerge of pull[%d] with sha[%s]", pullID, sha))
+		fmt.Sprintf("Handle AutoMerge of PR[%d] with sha[%s]", pullID, sha))
 	defer finished()
 
 	pr, err := issues_model.GetPullRequestByID(ctx, pullID)
@@ -176,88 +195,112 @@ func handlePull(pullID int64, sha string) {
 	// Check if there is a scheduled pr in the db
 	exists, scheduledPRM, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID)
 	if err != nil {
-		log.Error("pull[%d] GetScheduledMergeByPullID: %v", pr.ID, err)
+		log.Error("%-v GetScheduledMergeByPullID: %v", pr, err)
 		return
 	}
 	if !exists {
 		return
 	}
 
-	// Get all checks for this pr
-	// We get the latest sha commit hash again to handle the case where the check of a previous push
-	// did not succeed or was not finished yet.
-
-	if err = pr.LoadHeadRepo(ctx); err != nil {
-		log.Error("pull[%d] LoadHeadRepo: %v", pr.ID, err)
+	if err = pr.LoadBaseRepo(ctx); err != nil {
+		log.Error("%-v LoadBaseRepo: %v", pr, err)
 		return
 	}
 
-	headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
+	// check the sha is the same as pull request head commit id
+	baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		log.Error("OpenRepository: %v", err)
 		return
 	}
-	defer headGitRepo.Close()
+	defer baseGitRepo.Close()
 
-	headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
+	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+	if err != nil {
+		log.Error("GetRefCommitID: %v", err)
+		return
+	}
+	if headCommitID != sha {
+		log.Warn("Head commit id of auto merge %-v does not match sha [%s], it may means the head branch has been updated. Just ignore this request because a new request expected in the queue", pr, sha)
+		return
+	}
 
-	if pr.HeadRepo == nil || !headBranchExist {
-		log.Warn("Head branch of auto merge pr does not exist [HeadRepoID: %d, Branch: %s, PR ID: %d]", pr.HeadRepoID, pr.HeadBranch, pr.ID)
+	// Get all checks for this pr
+	// We get the latest sha commit hash again to handle the case where the check of a previous push
+	// did not succeed or was not finished yet.
+	if err = pr.LoadHeadRepo(ctx); err != nil {
+		log.Error("%-v LoadHeadRepo: %v", pr, err)
+		return
+	}
+
+	var headGitRepo *git.Repository
+	if pr.BaseRepoID == pr.HeadRepoID {
+		headGitRepo = baseGitRepo
+	} else {
+		headGitRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
+		if err != nil {
+			log.Error("OpenRepository %-v: %v", pr.HeadRepo, err)
+			return
+		}
+		defer headGitRepo.Close()
+	}
+
+	switch pr.Flow {
+	case issues_model.PullRequestFlowGithub:
+		headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
+		if pr.HeadRepo == nil || !headBranchExist {
+			log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch: %s]", pr, pr.HeadRepoID, pr.HeadBranch)
+			return
+		}
+	case issues_model.PullRequestFlowAGit:
+		headBranchExist := git.IsReferenceExist(ctx, baseGitRepo.Path, pr.GetGitRefName())
+		if !headBranchExist {
+			log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch(Agit): %s]", pr, pr.HeadRepoID, pr.HeadBranch)
+			return
+		}
+	default:
+		log.Error("wrong flow type %d", pr.Flow)
 		return
 	}
 
 	// Check if all checks succeeded
 	pass, err := pull_service.IsPullCommitStatusPass(ctx, pr)
 	if err != nil {
-		log.Error("IsPullCommitStatusPass: %v", err)
+		log.Error("%-v IsPullCommitStatusPass: %v", pr, err)
 		return
 	}
 	if !pass {
-		log.Info("Scheduled auto merge pr has unsuccessful status checks [PullID: %d]", pr.ID)
+		log.Info("Scheduled auto merge %-v has unsuccessful status checks", pr)
 		return
 	}
 
 	// Merge if all checks succeeded
 	doer, err := user_model.GetUserByID(ctx, scheduledPRM.DoerID)
 	if err != nil {
-		log.Error("GetUserByIDCtx: %v", err)
+		log.Error("Unable to get scheduled User[%d]: %v", scheduledPRM.DoerID, err)
 		return
 	}
 
 	perm, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
 	if err != nil {
-		log.Error("GetUserRepoPermission: %v", err)
+		log.Error("GetUserRepoPermission %-v: %v", pr.HeadRepo, err)
 		return
 	}
 
-	if err := pull_service.CheckPullMergable(ctx, doer, &perm, pr, false, false); err != nil {
-		if errors.Is(pull_service.ErrUserNotAllowedToMerge, err) {
-			log.Info("PR %d was scheduled to automerge by an unauthorized user", pr.ID)
+	if err := pull_service.CheckPullMergeable(ctx, doer, &perm, pr, pull_service.MergeCheckTypeGeneral, false); err != nil {
+		if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
+			log.Info("%-v was scheduled to automerge by an unauthorized user", pr)
 			return
 		}
-		log.Error("pull[%d] CheckPullMergable: %v", pr.ID, err)
+		log.Error("%-v CheckPullMergeable: %v", pr, err)
 		return
-	}
-
-	var baseGitRepo *git.Repository
-	if pr.BaseRepoID == pr.HeadRepoID {
-		baseGitRepo = headGitRepo
-	} else {
-		if err = pr.LoadBaseRepo(ctx); err != nil {
-			log.Error("LoadBaseRepo: %v", err)
-			return
-		}
-
-		baseGitRepo, err = git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
-		if err != nil {
-			log.Error("OpenRepository: %v", err)
-			return
-		}
-		defer baseGitRepo.Close()
 	}
 
 	if err := pull_service.Merge(ctx, pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message, true); err != nil {
 		log.Error("pull_service.Merge: %v", err)
+		// FIXME: if merge failed, we should display some error message to the pull request page.
+		// The resolution is add a new column on automerge table named `error_message` to store the error message and displayed
+		// on the pull request page. But this should not be finished in a bug fix PR which will be backport to release branch.
 		return
 	}
 }

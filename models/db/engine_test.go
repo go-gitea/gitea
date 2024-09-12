@@ -26,7 +26,7 @@ func TestDumpDatabase(t *testing.T) {
 		ID      int64 `xorm:"pk autoincr"`
 		Version int64
 	}
-	assert.NoError(t, db.GetEngine(db.DefaultContext).Sync2(new(Version)))
+	assert.NoError(t, db.GetEngine(db.DefaultContext).Sync(new(Version)))
 
 	for _, dbType := range setting.SupportedDatabaseTypes {
 		assert.NoError(t, db.DumpDatabase(filepath.Join(dir, dbType+".sql"), dbType))

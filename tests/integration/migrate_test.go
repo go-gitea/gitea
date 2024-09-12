@@ -11,6 +11,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -66,10 +69,10 @@ func TestMigrateGiteaForm(t *testing.T) {
 		repoName := "repo1"
 		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: ownerName})
 		session := loginUser(t, ownerName)
-		token := getTokenForLoggedInUser(t, session)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeReadMisc)
 
 		// Step 0: verify the repo is available
-		req := NewRequestf(t, "GET", fmt.Sprintf("/%s/%s", ownerName, repoName))
+		req := NewRequestf(t, "GET", "/%s/%s", ownerName, repoName)
 		_ = session.MakeRequest(t, req, http.StatusOK)
 		// Step 1: get the Gitea migration form
 		req = NewRequestf(t, "GET", "/repo/migrate/?service_type=%d", structs.GiteaService)
@@ -97,4 +100,11 @@ func TestMigrateGiteaForm(t *testing.T) {
 		// Step 6: check the repo was created
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: migratedRepoName})
 	})
+}
+
+func Test_UpdateCommentsMigrationsByType(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	err := issues_model.UpdateCommentsMigrationsByType(db.DefaultContext, structs.GithubService, "1", 1)
+	assert.NoError(t, err)
 }

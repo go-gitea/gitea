@@ -1,18 +1,18 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
+// Package private contains all internal routes. The package name "internal" isn't usable because Golang reserves it for disabling cross-package usage.
 package private
 
 import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 
 	"gitea.com/go-chi/binding"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
@@ -38,18 +38,18 @@ func CheckInternalToken(next http.Handler) http.Handler {
 }
 
 // bind binding an obj to a handler
-func bind[T any](obj T) http.HandlerFunc {
-	return web.Wrap(func(ctx *context.PrivateContext) {
+func bind[T any](_ T) any {
+	return func(ctx *context.PrivateContext) {
 		theObj := new(T) // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
 		web.SetForm(ctx, theObj)
-	})
+	}
 }
 
 // Routes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
-func Routes() *web.Route {
-	r := web.NewRoute()
+func Routes() *web.Router {
+	r := web.NewRouter()
 	r.Use(context.PrivateContexter())
 	r.Use(CheckInternalToken)
 	// Log the real ip address of the request from SSH is really helpful for diagnosing sometimes.
@@ -67,16 +67,18 @@ func Routes() *web.Route {
 	r.Get("/serv/command/{keyid}/{owner}/{repo}", ServCommand)
 	r.Post("/manager/shutdown", Shutdown)
 	r.Post("/manager/restart", Restart)
+	r.Post("/manager/reload-templates", ReloadTemplates)
 	r.Post("/manager/flush-queues", bind(private.FlushOptions{}), FlushQueues)
 	r.Post("/manager/pause-logging", PauseLogging)
 	r.Post("/manager/resume-logging", ResumeLogging)
 	r.Post("/manager/release-and-reopen-logging", ReleaseReopenLogging)
 	r.Post("/manager/set-log-sql", SetLogSQL)
 	r.Post("/manager/add-logger", bind(private.LoggerOptions{}), AddLogger)
-	r.Post("/manager/remove-logger/{group}/{name}", RemoveLogger)
+	r.Post("/manager/remove-logger/{logger}/{writer}", RemoveLogger)
 	r.Get("/manager/processes", Processes)
 	r.Post("/mail/send", SendEmail)
 	r.Post("/restore_repo", RestoreRepo)
+	r.Post("/actions/generate_actions_runner_token", GenerateActionsRunnerToken)
 
 	return r
 }

@@ -14,8 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/mdstripper"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/yuin/goldmark/util"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -29,15 +28,18 @@ var (
 	// TODO: fix invalid linking issue
 
 	// mentionPattern matches all mentions in the form of "@user" or "@org/team"
-	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_]+|@[0-9a-zA-Z-_]+\/?[0-9a-zA-Z-_]+|@[0-9a-zA-Z-_][0-9a-zA-Z-_.]+\/?[0-9a-zA-Z-_.]+[0-9a-zA-Z-_])(?:\s|[:,;.?!]\s|[:,;.?!]?$|\)|\])`)
+	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[-\w][-.\w]*?|@[-\w][-.\w]*?/[-\w][-.\w]*?)(?:\s|$|[:,;.?!](\s|$)|'|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\')([#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\'|\")([#!][0-9]+)(?:\s|$|\)|\]|\'|\"|[:;,.?!]\s|[:;,.?!]$)`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
-	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$))`)
+	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\"|\')([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$)|\"|\')`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
-	// e.g. gogits/gogs#12345
+	// e.g. org/repo#12345
 	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
-	// spaceTrimmedPattern let's us find the trailing space
+	// crossReferenceCommitPattern matches a string that references a commit in a different repository
+	// e.g. go-gitea/gitea@d8a994ef, go-gitea/gitea@d8a994ef243349f321568f9e36d5c3f444b99cae (7-40 characters)
+	crossReferenceCommitPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+)@([0-9a-f]{7,64})(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	// spaceTrimmedPattern let's find the trailing space
 	spaceTrimmedPattern = regexp.MustCompile(`(?:.*[0-9a-zA-Z-_])\s`)
 	// timeLogPattern matches string for time tracking
 	timeLogPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@([0-9]+([\.,][0-9]+)?(w|d|m|h))+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
@@ -92,6 +94,7 @@ type RenderizableReference struct {
 	Issue          string
 	Owner          string
 	Name           string
+	CommitSha      string
 	IsPull         bool
 	RefLocation    *RefSpan
 	Action         XRefAction
@@ -327,14 +330,17 @@ func FindAllIssueReferences(content string) []IssueReference {
 }
 
 // FindRenderizableReferenceNumeric returns the first unvalidated reference found in a string.
-func FindRenderizableReferenceNumeric(content string, prOnly bool) (bool, *RenderizableReference) {
-	match := issueNumericPattern.FindStringSubmatchIndex(content)
+func FindRenderizableReferenceNumeric(content string, prOnly, crossLinkOnly bool) (bool, *RenderizableReference) {
+	var match []int
+	if !crossLinkOnly {
+		match = issueNumericPattern.FindStringSubmatchIndex(content)
+	}
 	if match == nil {
 		if match = crossReferenceIssueNumericPattern.FindStringSubmatchIndex(content); match == nil {
 			return false, nil
 		}
 	}
-	r := getCrossReference(util.StringToReadOnlyBytes(content), match[2], match[3], false, prOnly)
+	r := getCrossReference(util.UnsafeStringToBytes(content), match[2], match[3], false, prOnly)
 	if r == nil {
 		return false, nil
 	}
@@ -347,6 +353,21 @@ func FindRenderizableReferenceNumeric(content string, prOnly bool) (bool, *Rende
 		RefLocation:    r.refLocation,
 		Action:         r.action,
 		ActionLocation: r.actionLocation,
+	}
+}
+
+// FindRenderizableCommitCrossReference returns the first unvalidated commit cross reference found in a string.
+func FindRenderizableCommitCrossReference(content string) (bool, *RenderizableReference) {
+	m := crossReferenceCommitPattern.FindStringSubmatchIndex(content)
+	if len(m) < 8 {
+		return false, nil
+	}
+
+	return true, &RenderizableReference{
+		Owner:       content[m[2]:m[3]],
+		Name:        content[m[4]:m[5]],
+		CommitSha:   content[m[6]:m[7]],
+		RefLocation: &RefSpan{Start: m[2], End: m[7]},
 	}
 }
 

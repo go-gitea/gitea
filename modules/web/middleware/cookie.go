@@ -7,188 +7,79 @@ package middleware
 import (
 	"net/http"
 	"net/url"
-	"time"
+	"strings"
 
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// MaxAge sets the maximum age for a provided cookie
-func MaxAge(maxAge int) func(*http.Cookie) {
-	return func(c *http.Cookie) {
-		c.MaxAge = maxAge
-	}
-}
-
-// Path sets the path for a provided cookie
-func Path(path string) func(*http.Cookie) {
-	return func(c *http.Cookie) {
-		c.Path = path
-	}
-}
-
-// Domain sets the domain for a provided cookie
-func Domain(domain string) func(*http.Cookie) {
-	return func(c *http.Cookie) {
-		c.Domain = domain
-	}
-}
-
-// Secure sets the secure setting for a provided cookie
-func Secure(secure bool) func(*http.Cookie) {
-	return func(c *http.Cookie) {
-		c.Secure = secure
-	}
-}
-
-// HTTPOnly sets the HttpOnly setting for a provided cookie
-func HTTPOnly(httpOnly bool) func(*http.Cookie) {
-	return func(c *http.Cookie) {
-		c.HttpOnly = httpOnly
-	}
-}
-
-// Expires sets the expires and rawexpires for a provided cookie
-func Expires(expires time.Time) func(*http.Cookie) {
-	return func(c *http.Cookie) {
-		c.Expires = expires
-		c.RawExpires = expires.Format(time.UnixDate)
-	}
-}
-
-// SameSite sets the SameSite for a provided cookie
-func SameSite(sameSite http.SameSite) func(*http.Cookie) {
-	return func(c *http.Cookie) {
-		c.SameSite = sameSite
-	}
-}
-
-// NewCookie creates a cookie
-func NewCookie(name, value string, maxAge int) *http.Cookie {
-	return &http.Cookie{
-		Name:     name,
-		Value:    value,
-		HttpOnly: true,
-		Path:     setting.SessionConfig.CookiePath,
-		Domain:   setting.SessionConfig.Domain,
-		MaxAge:   maxAge,
-		Secure:   setting.SessionConfig.Secure,
-	}
-}
-
 // SetRedirectToCookie convenience function to set the RedirectTo cookie consistently
 func SetRedirectToCookie(resp http.ResponseWriter, value string) {
-	SetCookie(resp, "redirect_to", value,
-		0,
-		setting.AppSubURL,
-		"",
-		setting.SessionConfig.Secure,
-		true,
-		SameSite(setting.SessionConfig.SameSite))
+	SetSiteCookie(resp, "redirect_to", value, 0)
 }
 
 // DeleteRedirectToCookie convenience function to delete most cookies consistently
 func DeleteRedirectToCookie(resp http.ResponseWriter) {
-	SetCookie(resp, "redirect_to", "",
-		-1,
-		setting.AppSubURL,
-		"",
-		setting.SessionConfig.Secure,
-		true,
-		SameSite(setting.SessionConfig.SameSite))
+	SetSiteCookie(resp, "redirect_to", "", -1)
 }
 
-// DeleteCSRFCookie convenience function to delete SessionConfigPath cookies consistently
-func DeleteCSRFCookie(resp http.ResponseWriter) {
-	SetCookie(resp, setting.CSRFCookieName, "",
-		-1,
-		setting.SessionConfig.CookiePath,
-		setting.SessionConfig.Domain) // FIXME: Do we need to set the Secure, httpOnly and SameSite values too?
-}
-
-// SetCookie set the cookies. (name, value, lifetime, path, domain, secure, httponly, expires, {sameSite, ...})
-// TODO: Copied from gitea.com/macaron/macaron and should be improved after macaron removed.
-func SetCookie(resp http.ResponseWriter, name, value string, others ...interface{}) {
-	cookie := http.Cookie{}
-	cookie.Name = name
-	cookie.Value = url.QueryEscape(value)
-
-	if len(others) > 0 {
-		switch v := others[0].(type) {
-		case int:
-			cookie.MaxAge = v
-		case int64:
-			cookie.MaxAge = int(v)
-		case int32:
-			cookie.MaxAge = int(v)
-		case func(*http.Cookie):
-			v(&cookie)
-		}
-	}
-
-	cookie.Path = "/"
-	if len(others) > 1 {
-		if v, ok := others[1].(string); ok && len(v) > 0 {
-			cookie.Path = v
-		} else if v, ok := others[1].(func(*http.Cookie)); ok {
-			v(&cookie)
-		}
-	}
-
-	if len(others) > 2 {
-		if v, ok := others[2].(string); ok && len(v) > 0 {
-			cookie.Domain = v
-		} else if v, ok := others[2].(func(*http.Cookie)); ok {
-			v(&cookie)
-		}
-	}
-
-	if len(others) > 3 {
-		switch v := others[3].(type) {
-		case bool:
-			cookie.Secure = v
-		case func(*http.Cookie):
-			v(&cookie)
-		default:
-			if others[3] != nil {
-				cookie.Secure = true
-			}
-		}
-	}
-
-	if len(others) > 4 {
-		if v, ok := others[4].(bool); ok && v {
-			cookie.HttpOnly = true
-		} else if v, ok := others[4].(func(*http.Cookie)); ok {
-			v(&cookie)
-		}
-	}
-
-	if len(others) > 5 {
-		if v, ok := others[5].(time.Time); ok {
-			cookie.Expires = v
-			cookie.RawExpires = v.Format(time.UnixDate)
-		} else if v, ok := others[5].(func(*http.Cookie)); ok {
-			v(&cookie)
-		}
-	}
-
-	if len(others) > 6 {
-		for _, other := range others[6:] {
-			if v, ok := other.(func(*http.Cookie)); ok {
-				v(&cookie)
-			}
-		}
-	}
-
-	resp.Header().Add("Set-Cookie", cookie.String())
-}
-
-// GetCookie returns given cookie value from request header.
-func GetCookie(req *http.Request, name string) string {
+// GetSiteCookie returns given cookie value from request header.
+func GetSiteCookie(req *http.Request, name string) string {
 	cookie, err := req.Cookie(name)
 	if err != nil {
 		return ""
 	}
 	val, _ := url.QueryUnescape(cookie.Value)
 	return val
+}
+
+// SetSiteCookie returns given cookie value from request header.
+func SetSiteCookie(resp http.ResponseWriter, name, value string, maxAge int) {
+	// Previous versions would use a cookie path with a trailing /.
+	// These are more specific than cookies without a trailing /, so
+	// we need to delete these if they exist.
+	deleteLegacySiteCookie(resp, name)
+	cookie := &http.Cookie{
+		Name:     name,
+		Value:    url.QueryEscape(value),
+		MaxAge:   maxAge,
+		Path:     setting.SessionConfig.CookiePath,
+		Domain:   setting.SessionConfig.Domain,
+		Secure:   setting.SessionConfig.Secure,
+		HttpOnly: true,
+		SameSite: setting.SessionConfig.SameSite,
+	}
+	resp.Header().Add("Set-Cookie", cookie.String())
+}
+
+// deleteLegacySiteCookie deletes the cookie with the given name at the cookie
+// path with a trailing /, which would unintentionally override the cookie.
+func deleteLegacySiteCookie(resp http.ResponseWriter, name string) {
+	if setting.SessionConfig.CookiePath == "" || strings.HasSuffix(setting.SessionConfig.CookiePath, "/") {
+		// If the cookie path ends with /, no legacy cookies will take
+		// precedence, so do nothing.  The exception is that cookies with no
+		// path could override other cookies, but it's complicated and we don't
+		// currently handle that.
+		return
+	}
+
+	cookie := &http.Cookie{
+		Name:     name,
+		Value:    "",
+		MaxAge:   -1,
+		Path:     setting.SessionConfig.CookiePath + "/",
+		Domain:   setting.SessionConfig.Domain,
+		Secure:   setting.SessionConfig.Secure,
+		HttpOnly: true,
+		SameSite: setting.SessionConfig.SameSite,
+	}
+	resp.Header().Add("Set-Cookie", cookie.String())
+}
+
+func init() {
+	session.BeforeRegenerateSession = append(session.BeforeRegenerateSession, func(resp http.ResponseWriter, _ *http.Request) {
+		// Ensure that a cookie with a trailing slash does not take precedence over
+		// the cookie written by the middleware.
+		deleteLegacySiteCookie(resp, setting.SessionConfig.CookieName)
+	})
 }

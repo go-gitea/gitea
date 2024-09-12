@@ -39,7 +39,7 @@ func ConvertWebhookTaskTypeToString(x *xorm.Engine) error {
 	type Webhook struct {
 		Type string `xorm:"char(16) index"`
 	}
-	if err := x.Sync2(new(Webhook)); err != nil {
+	if err := x.Sync(new(Webhook)); err != nil {
 		return err
 	}
 

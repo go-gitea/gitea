@@ -21,20 +21,21 @@ func ToPackage(ctx context.Context, pd *packages.PackageDescriptor, doer *user_m
 			return nil, err
 		}
 
-		if permission.HasAccess() {
-			repo = ToRepo(ctx, pd.Repository, permission.AccessMode)
+		if permission.HasAnyUnitAccess() {
+			repo = ToRepo(ctx, pd.Repository, permission)
 		}
 	}
 
 	return &api.Package{
 		ID:         pd.Version.ID,
-		Owner:      ToUser(pd.Owner, doer),
+		Owner:      ToUser(ctx, pd.Owner, doer),
 		Repository: repo,
-		Creator:    ToUser(pd.Creator, doer),
+		Creator:    ToUser(ctx, pd.Creator, doer),
 		Type:       string(pd.Package.Type),
 		Name:       pd.Package.Name,
 		Version:    pd.Version.Version,
 		CreatedAt:  pd.Version.CreatedUnix.AsTime(),
+		HTMLURL:    pd.VersionHTMLURL(),
 	}, nil
 }
 

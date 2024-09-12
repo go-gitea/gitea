@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"net/url"
 	"path/filepath"
@@ -15,22 +16,37 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+
+	"github.com/yuin/goldmark/ast"
+)
+
+type RenderMetaMode string
+
+const (
+	RenderMetaAsDetails RenderMetaMode = "details" // default
+	RenderMetaAsNone    RenderMetaMode = "none"
+	RenderMetaAsTable   RenderMetaMode = "table"
 )
 
 type ProcessorHelper struct {
 	IsUsernameMentionable func(ctx context.Context, username string) bool
+
+	ElementDir string // the direction of the elements, eg: "ltr", "rtl", "auto", default to no direction attribute
+
+	RenderRepoFileCodePreview func(ctx context.Context, options RenderCodePreviewOptions) (template.HTML, error)
 }
 
-var processorHelper ProcessorHelper
+var DefaultProcessorHelper ProcessorHelper
 
 // Init initialize regexps for markdown parsing
 func Init(ph *ProcessorHelper) {
 	if ph != nil {
-		processorHelper = *ph
+		DefaultProcessorHelper = *ph
 	}
 
-	NewSanitizer()
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 	}
@@ -57,14 +73,63 @@ type RenderContext struct {
 	RelativePath     string // relative path from tree root of the branch
 	Type             string
 	IsWiki           bool
-	URLPrefix        string
-	Metas            map[string]string
+	Links            Links
+	Metas            map[string]string // user, repo, mode(comment/document)
 	DefaultLink      string
 	GitRepo          *git.Repository
+	Repo             gitrepo.Repository
 	ShaExistCache    map[string]bool
 	cancelFn         func()
-	TableOfContents  []Header
+	SidebarTocNode   ast.Node
+	RenderMetaAs     RenderMetaMode
 	InStandalonePage bool // used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
+}
+
+type Links struct {
+	AbsolutePrefix bool   // add absolute URL prefix to auto-resolved links like "#issue", but not for pre-provided links and medias
+	Base           string // base prefix for pre-provided links and medias (images, videos)
+	BranchPath     string // actually it is the ref path, eg: "branch/features/feat-12", "tag/v1.0"
+	TreePath       string // the dir of the file, eg: "doc" if the file "doc/CHANGE.md" is being rendered
+}
+
+func (l *Links) Prefix() string {
+	if l.AbsolutePrefix {
+		return setting.AppURL
+	}
+	return setting.AppSubURL
+}
+
+func (l *Links) HasBranchInfo() bool {
+	return l.BranchPath != ""
+}
+
+func (l *Links) SrcLink() string {
+	return util.URLJoin(l.Base, "src", l.BranchPath, l.TreePath)
+}
+
+func (l *Links) MediaLink() string {
+	return util.URLJoin(l.Base, "media", l.BranchPath, l.TreePath)
+}
+
+func (l *Links) RawLink() string {
+	return util.URLJoin(l.Base, "raw", l.BranchPath, l.TreePath)
+}
+
+func (l *Links) WikiLink() string {
+	return util.URLJoin(l.Base, "wiki")
+}
+
+func (l *Links) WikiRawLink() string {
+	return util.URLJoin(l.Base, "wiki/raw")
+}
+
+func (l *Links) ResolveMediaLink(isWiki bool) string {
+	if isWiki {
+		return l.WikiRawLink()
+	} else if l.HasBranchInfo() {
+		return l.MediaLink()
+	}
+	return l.Base
 }
 
 // Cancel runs any cleanup functions that have been registered for this Ctx
@@ -283,6 +348,11 @@ type ErrUnsupportedRenderExtension struct {
 	Extension string
 }
 
+func IsErrUnsupportedRenderExtension(err error) bool {
+	_, ok := err.(ErrUnsupportedRenderExtension)
+	return ok
+}
+
 func (err ErrUnsupportedRenderExtension) Error() string {
 	return fmt.Sprintf("Unsupported render extension: %s", err.Extension)
 }
@@ -302,56 +372,18 @@ func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	return ErrUnsupportedRenderExtension{extension}
 }
 
-// Type returns if markup format via the filename
-func Type(filename string) string {
+// DetectMarkupTypeByFileName returns the possible markup format type via the filename
+func DetectMarkupTypeByFileName(filename string) string {
 	if parser := GetRendererByFileName(filename); parser != nil {
 		return parser.Name()
 	}
 	return ""
 }
 
-// IsMarkupFile reports whether file is a markup type file
-func IsMarkupFile(name, markup string) bool {
-	if parser := GetRendererByFileName(name); parser != nil {
-		return parser.Name() == markup
+func PreviewableExtensions() []string {
+	extensions := make([]string, 0, len(extRenderers))
+	for extension := range extRenderers {
+		extensions = append(extensions, extension)
 	}
-	return false
-}
-
-// IsReadmeFile reports whether name looks like a README file
-// based on its name.
-func IsReadmeFile(name string) bool {
-	name = strings.ToLower(name)
-	if len(name) < 6 {
-		return false
-	} else if len(name) == 6 {
-		return name == "readme"
-	}
-	return name[:7] == "readme."
-}
-
-// IsReadmeFileExtension reports whether name looks like a README file
-// based on its name. It will look through the provided extensions and check if the file matches
-// one of the extensions and provide the index in the extension list.
-// If the filename is `readme.` with an unmatched extension it will match with the index equaling
-// the length of the provided extension list.
-// Note that the '.' should be provided in ext, e.g ".md"
-func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
-	name = strings.ToLower(name)
-	if len(name) < 6 || name[:6] != "readme" {
-		return 0, false
-	}
-
-	for i, extension := range ext {
-		extension = strings.ToLower(extension)
-		if name[6:] == extension {
-			return i, true
-		}
-	}
-
-	if name[6] == '.' {
-		return len(ext), true
-	}
-
-	return 0, false
+	return extensions
 }

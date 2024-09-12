@@ -1,3 +1,4 @@
+# See models/unit/unit.go for the meaning of the type
 -
   id: 1
   repo_id: 1
@@ -555,4 +556,159 @@
   id: 81
   repo_id: 54
   type: 1
+  created_unix: 946684810
+
+-
+  id: 82
+  repo_id: 31
+  type: 1
+  created_unix: 946684810
+
+-
+  id: 83
+  repo_id: 31
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
+  created_unix: 946684810
+
+-
+  id: 84
+  repo_id: 56
+  type: 1
+  created_unix: 946684810
+-
+  id: 85
+  repo_id: 57
+  type: 1
+  created_unix: 946684810
+-
+  id: 86
+  repo_id: 57
+  type: 2
+  created_unix: 946684810
+-
+  id: 87
+  repo_id: 57
+  type: 3
+  created_unix: 946684810
+-
+  id: 88
+  repo_id: 57
+  type: 4
+  created_unix: 946684810
+-
+  id: 89
+  repo_id: 57
+  type: 5
+  created_unix: 946684810
+
+-
+  id: 90
+  repo_id: 52
+  type: 1
+  created_unix: 946684810
+
+-
+  id: 91
+  repo_id: 58
+  type: 1
+  created_unix: 946684810
+
+-
+  id: 92
+  repo_id: 58
+  type: 2
+  created_unix: 946684810
+
+-
+  id: 93
+  repo_id: 58
+  type: 3
+  created_unix: 946684810
+
+-
+  id: 94
+  repo_id: 58
+  type: 4
+  created_unix: 946684810
+
+-
+  id: 95
+  repo_id: 58
+  type: 5
+  created_unix: 946684810
+
+-
+  id: 96
+  repo_id: 49
+  type: 1
+  created_unix: 946684810
+
+-
+  id: 97
+  repo_id: 49
+  type: 2
+  created_unix: 946684810
+
+-
+  id: 99
+  repo_id: 1
+  type: 9
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 100
+  repo_id: 1
+  type: 10
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 101
+  repo_id: 59
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 102
+  repo_id: 60
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 103
+  repo_id: 60
+  type: 2
+  config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
+  created_unix: 946684810
+
+-
+  id: 104
+  repo_id: 60
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
+  created_unix: 946684810
+
+-
+  id: 105
+  repo_id: 61
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 106
+  repo_id: 61
+  type: 2
+  config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
+  created_unix: 946684810
+
+-
+  id: 107
+  repo_id: 61
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
   created_unix: 946684810

@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/json"
@@ -31,9 +32,9 @@ type APITestContext struct {
 	ExpectedCode int
 }
 
-func NewAPITestContext(t *testing.T, username, reponame string) APITestContext {
+func NewAPITestContext(t *testing.T, username, reponame string, scope ...auth.AccessTokenScope) APITestContext {
 	session := loginUser(t, username)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, scope...)
 	return APITestContext{
 		Session:  session,
 		Token:    token,
@@ -58,7 +59,8 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 			License:     "WTFPL",
 			Readme:      "Default",
 		}
-		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos?token="+ctx.Token, createRepoOption)
+		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", createRepoOption).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
@@ -75,7 +77,8 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 
 func doAPIEditRepository(ctx APITestContext, editRepoOption *api.EditRepoOption, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
 	return func(t *testing.T) {
-		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), ctx.Token), editRepoOption)
+		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), editRepoOption).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
@@ -102,7 +105,8 @@ func doAPIAddCollaborator(ctx APITestContext, username string, mode perm.AccessM
 		addCollaboratorOption := &api.AddCollaboratorOption{
 			Permission: &permission,
 		}
-		req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/collaborators/%s?token=%s", ctx.Username, ctx.Reponame, username, ctx.Token), addCollaboratorOption)
+		req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/collaborators/%s", ctx.Username, ctx.Reponame, username), addCollaboratorOption).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
@@ -114,7 +118,8 @@ func doAPIAddCollaborator(ctx APITestContext, username string, mode perm.AccessM
 func doAPIForkRepository(ctx APITestContext, username string, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
 	return func(t *testing.T) {
 		createForkOption := &api.CreateForkOption{}
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks?token=%s", username, ctx.Reponame, ctx.Token), createForkOption)
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", username, ctx.Reponame), createForkOption).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
@@ -130,9 +135,8 @@ func doAPIForkRepository(ctx APITestContext, username string, callback ...func(*
 
 func doAPIGetRepository(ctx APITestContext, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
 	return func(t *testing.T) {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", ctx.Username, ctx.Reponame, ctx.Token)
-
-		req := NewRequest(t, "GET", urlStr)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s", ctx.Username, ctx.Reponame)).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
@@ -149,9 +153,8 @@ func doAPIGetRepository(ctx APITestContext, callback ...func(*testing.T, api.Rep
 
 func doAPIDeleteRepository(ctx APITestContext) func(*testing.T) {
 	return func(t *testing.T) {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", ctx.Username, ctx.Reponame, ctx.Token)
-
-		req := NewRequest(t, "DELETE", urlStr)
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s", ctx.Username, ctx.Reponame)).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
@@ -162,14 +165,12 @@ func doAPIDeleteRepository(ctx APITestContext) func(*testing.T) {
 
 func doAPICreateUserKey(ctx APITestContext, keyname, keyFile string, callback ...func(*testing.T, api.PublicKey)) func(*testing.T) {
 	return func(t *testing.T) {
-		urlStr := fmt.Sprintf("/api/v1/user/keys?token=%s", ctx.Token)
-
 		dataPubKey, err := os.ReadFile(keyFile + ".pub")
 		assert.NoError(t, err)
-		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateKeyOption{
+		req := NewRequestWithJSON(t, "POST", "/api/v1/user/keys", &api.CreateKeyOption{
 			Title: keyname,
 			Key:   string(dataPubKey),
-		})
+		}).AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
@@ -185,9 +186,8 @@ func doAPICreateUserKey(ctx APITestContext, keyname, keyFile string, callback ..
 
 func doAPIDeleteUserKey(ctx APITestContext, keyID int64) func(*testing.T) {
 	return func(t *testing.T) {
-		urlStr := fmt.Sprintf("/api/v1/user/keys/%d?token=%s", keyID, ctx.Token)
-
-		req := NewRequest(t, "DELETE", urlStr)
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/keys/%d", keyID)).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
@@ -198,15 +198,13 @@ func doAPIDeleteUserKey(ctx APITestContext, keyID int64) func(*testing.T) {
 
 func doAPICreateDeployKey(ctx APITestContext, keyname, keyFile string, readOnly bool) func(*testing.T) {
 	return func(t *testing.T) {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/keys?token=%s", ctx.Username, ctx.Reponame, ctx.Token)
-
 		dataPubKey, err := os.ReadFile(keyFile + ".pub")
 		assert.NoError(t, err)
-		req := NewRequestWithJSON(t, "POST", urlStr, api.CreateKeyOption{
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/keys", ctx.Username, ctx.Reponame), api.CreateKeyOption{
 			Title:    keyname,
 			Key:      string(dataPubKey),
 			ReadOnly: readOnly,
-		})
+		}).AddTokenAuth(ctx.Token)
 
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
@@ -218,13 +216,11 @@ func doAPICreateDeployKey(ctx APITestContext, keyname, keyFile string, readOnly 
 
 func doAPICreatePullRequest(ctx APITestContext, owner, repo, baseBranch, headBranch string) func(*testing.T) (api.PullRequest, error) {
 	return func(t *testing.T) (api.PullRequest, error) {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s",
-			owner, repo, ctx.Token)
-		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &api.CreatePullRequestOption{
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner, repo), &api.CreatePullRequestOption{
 			Head:  headBranch,
 			Base:  baseBranch,
 			Title: fmt.Sprintf("create a pr from %s to %s", headBranch, baseBranch),
-		})
+		}).AddTokenAuth(ctx.Token)
 
 		expected := http.StatusCreated
 		if ctx.ExpectedCode != 0 {
@@ -241,9 +237,8 @@ func doAPICreatePullRequest(ctx APITestContext, owner, repo, baseBranch, headBra
 
 func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) (api.PullRequest, error) {
 	return func(t *testing.T) (api.PullRequest, error) {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s",
-			owner, repo, index, ctx.Token)
-		req := NewRequest(t, http.MethodGet, urlStr)
+		req := NewRequest(t, http.MethodGet, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner, repo, index)).
+			AddTokenAuth(ctx.Token)
 
 		expected := http.StatusOK
 		if ctx.ExpectedCode != 0 {
@@ -260,17 +255,16 @@ func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) fu
 
 func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) {
 	return func(t *testing.T) {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
-			owner, repo, index, ctx.Token)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner, repo, index)
 
-		var req *http.Request
+		var req *RequestWrapper
 		var resp *httptest.ResponseRecorder
 
 		for i := 0; i < 6; i++ {
 			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 				MergeMessageField: "doAPIMergePullRequest Merge",
 				Do:                string(repo_model.MergeStyleMerge),
-			})
+			}).AddTokenAuth(ctx.Token)
 
 			resp = ctx.Session.MakeRequest(t, req, NoExpectedStatus)
 
@@ -298,12 +292,11 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 
 func doAPIManuallyMergePullRequest(ctx APITestContext, owner, repo, commitID string, index int64) func(*testing.T) {
 	return func(t *testing.T) {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
-			owner, repo, index, ctx.Token)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner, repo, index)
 		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 			Do:            string(repo_model.MergeStyleManuallyMerged),
 			MergeCommitID: commitID,
-		})
+		}).AddTokenAuth(ctx.Token)
 
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
@@ -315,38 +308,37 @@ func doAPIManuallyMergePullRequest(ctx APITestContext, owner, repo, commitID str
 
 func doAPIAutoMergePullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) {
 	return func(t *testing.T) {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
-			owner, repo, index, ctx.Token)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner, repo, index)
 		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 			MergeMessageField:      "doAPIMergePullRequest Merge",
 			Do:                     string(repo_model.MergeStyleMerge),
 			MergeWhenChecksSucceed: true,
-		})
+		}).AddTokenAuth(ctx.Token)
 
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		ctx.Session.MakeRequest(t, req, 200)
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
 	}
 }
 
 func doAPICancelAutoMergePullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) {
 	return func(t *testing.T) {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
-			owner, repo, index, ctx.Token)
-		req := NewRequest(t, http.MethodDelete, urlStr)
+		req := NewRequest(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner, repo, index)).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		ctx.Session.MakeRequest(t, req, 204)
+		ctx.Session.MakeRequest(t, req, http.StatusNoContent)
 	}
 }
 
 func doAPIGetBranch(ctx APITestContext, branch string, callback ...func(*testing.T, api.Branch)) func(*testing.T) {
 	return func(t *testing.T) {
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/branches/%s?token=%s", ctx.Username, ctx.Reponame, branch, ctx.Token)
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, branch).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
@@ -363,8 +355,8 @@ func doAPIGetBranch(ctx APITestContext, branch string, callback ...func(*testing
 
 func doAPICreateFile(ctx APITestContext, treepath string, options *api.CreateFileOptions, callback ...func(*testing.T, api.FileResponse)) func(*testing.T) {
 	return func(t *testing.T) {
-		url := fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", ctx.Username, ctx.Reponame, treepath, ctx.Token)
-		req := NewRequestWithJSON(t, "POST", url, &options)
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", ctx.Username, ctx.Reponame, treepath), &options).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
@@ -381,9 +373,8 @@ func doAPICreateFile(ctx APITestContext, treepath string, options *api.CreateFil
 
 func doAPICreateOrganization(ctx APITestContext, options *api.CreateOrgOption, callback ...func(*testing.T, api.Organization)) func(t *testing.T) {
 	return func(t *testing.T) {
-		url := fmt.Sprintf("/api/v1/orgs?token=%s", ctx.Token)
-
-		req := NewRequestWithJSON(t, "POST", url, &options)
+		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &options).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
@@ -400,9 +391,8 @@ func doAPICreateOrganization(ctx APITestContext, options *api.CreateOrgOption, c
 
 func doAPICreateOrganizationRepository(ctx APITestContext, orgName string, options *api.CreateRepoOption, callback ...func(*testing.T, api.Repository)) func(t *testing.T) {
 	return func(t *testing.T) {
-		url := fmt.Sprintf("/api/v1/orgs/%s/repos?token=%s", orgName, ctx.Token)
-
-		req := NewRequestWithJSON(t, "POST", url, &options)
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/repos", orgName), &options).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
@@ -419,9 +409,8 @@ func doAPICreateOrganizationRepository(ctx APITestContext, orgName string, optio
 
 func doAPICreateOrganizationTeam(ctx APITestContext, orgName string, options *api.CreateTeamOption, callback ...func(*testing.T, api.Team)) func(t *testing.T) {
 	return func(t *testing.T) {
-		url := fmt.Sprintf("/api/v1/orgs/%s/teams?token=%s", orgName, ctx.Token)
-
-		req := NewRequestWithJSON(t, "POST", url, &options)
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", orgName), &options).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
@@ -438,9 +427,8 @@ func doAPICreateOrganizationTeam(ctx APITestContext, orgName string, options *ap
 
 func doAPIAddUserToOrganizationTeam(ctx APITestContext, teamID int64, username string) func(t *testing.T) {
 	return func(t *testing.T) {
-		url := fmt.Sprintf("/api/v1/teams/%d/members/%s?token=%s", teamID, username, ctx.Token)
-
-		req := NewRequest(t, "PUT", url)
+		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/teams/%d/members/%s", teamID, username)).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
@@ -451,9 +439,8 @@ func doAPIAddUserToOrganizationTeam(ctx APITestContext, teamID int64, username s
 
 func doAPIAddRepoToOrganizationTeam(ctx APITestContext, teamID int64, orgName, repoName string) func(t *testing.T) {
 	return func(t *testing.T) {
-		url := fmt.Sprintf("/api/v1/teams/%d/repos/%s/%s?token=%s", teamID, orgName, repoName, ctx.Token)
-
-		req := NewRequest(t, "PUT", url)
+		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/teams/%d/repos/%s/%s", teamID, orgName, repoName)).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return

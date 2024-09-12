@@ -114,16 +114,14 @@ func (d *OneDevDownloader) String() string {
 	return fmt.Sprintf("migration from oneDev server %s [%d]/%s", d.baseURL, d.repoID, d.repoName)
 }
 
-// ColorFormat provides a basic color format for a OneDevDownloader
-func (d *OneDevDownloader) ColorFormat(s fmt.State) {
+func (d *OneDevDownloader) LogString() string {
 	if d == nil {
-		log.ColorFprintf(s, "<nil: OneDevDownloader>")
-		return
+		return "<OneDevDownloader nil>"
 	}
-	log.ColorFprintf(s, "migration from oneDev server %s [%d]/%s", d.baseURL, d.repoID, d.repoName)
+	return fmt.Sprintf("<OneDevDownloader %s [%d]/%s>", d.baseURL, d.repoID, d.repoName)
 }
 
-func (d *OneDevDownloader) callAPI(endpoint string, parameter map[string]string, result interface{}) error {
+func (d *OneDevDownloader) callAPI(endpoint string, parameter map[string]string, result any) error {
 	u, err := d.baseURL.Parse(endpoint)
 	if err != nil {
 		return err
@@ -402,9 +400,9 @@ func (d *OneDevDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 	}
 
 	rawChanges := make([]struct {
-		Date   time.Time              `json:"date"`
-		UserID int64                  `json:"userId"`
-		Data   map[string]interface{} `json:"data"`
+		Date   time.Time      `json:"date"`
+		UserID int64          `json:"userId"`
+		Data   map[string]any `json:"data"`
 	}, 0, 100)
 
 	if context.IsPullRequest {

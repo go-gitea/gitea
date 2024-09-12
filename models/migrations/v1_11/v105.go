@@ -13,7 +13,7 @@ func AddTeamIncludesAllRepositories(x *xorm.Engine) error {
 		IncludesAllRepositories bool  `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	if err := x.Sync2(new(Team)); err != nil {
+	if err := x.Sync(new(Team)); err != nil {
 		return err
 	}
 

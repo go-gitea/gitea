@@ -1,0 +1,102 @@
+.board {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 0 0.5em;
+}
+
+.project-column {
+  background-color: var(--color-project-column-bg) !important;
+  border: 1px solid var(--color-secondary) !important;
+  border-radius: var(--border-radius);
+  margin: 0 0.5rem !important;
+  padding: 0.5rem !important;
+  width: 320px;
+  height: calc(100vh - 450px);
+  min-height: 60vh;
+  flex: 0 0 auto;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  cursor: default;
+}
+
+.project-column .issue-card {
+  color: var(--color-text);
+}
+
+.project-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+}
+
+.ui.label.project-column-issue-count {
+  color: inherit;
+}
+
+.project-column-title-label {
+  flex: 1;
+}
+
+.project-column > .cards {
+  flex: 1;
+  display: flex;
+  align-content: baseline;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex-wrap: nowrap !important;
+  flex-direction: column;
+  overflow-x: auto;
+  gap: .25rem;
+}
+
+.project-column > .divider {
+  margin: 5px 0;
+  border-color: currentcolor;
+  opacity: .5;
+}
+
+.project-column:first-child {
+  margin-left: auto !important;
+}
+
+.project-column:last-child {
+  margin-right: auto !important;
+}
+
+.card-attachment-images {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: scroll;
+  cursor: default;
+  scroll-snap-type: x mandatory;
+  text-align: center;
+}
+
+.card-attachment-images img {
+  display: inline-block;
+  max-height: 50px;
+  border-radius: var(--border-radius);
+  text-align: left;
+  scroll-snap-align: center;
+  margin-right: 2px;
+  aspect-ratio: 1;
+}
+
+.card-attachment-images img:only-child {
+  max-height: 90px;
+  margin: auto;
+}
+
+.card-ghost {
+  border-color: var(--color-secondary-dark-4) !important;
+  border-style: dashed !important;
+  background: none !important;
+}
+
+.card-ghost * {
+  opacity: 0;
+}

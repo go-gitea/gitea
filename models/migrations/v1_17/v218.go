@@ -38,7 +38,7 @@ func (*improveActionTableIndicesAction) TableIndices() []*schemas.Index {
 	actUserIndex := schemas.NewIndex("au_r_c_u_d", schemas.IndexType)
 	actUserIndex.AddColumn("act_user_id", "repo_id", "created_unix", "user_id", "is_deleted")
 	indices := []*schemas.Index{actUserIndex, repoIndex}
-	if setting.Database.UsePostgreSQL {
+	if setting.Database.Type.IsPostgreSQL() {
 		cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
 		cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
 		indices = append(indices, cudIndex)
@@ -48,5 +48,5 @@ func (*improveActionTableIndicesAction) TableIndices() []*schemas.Index {
 }
 
 func ImproveActionTableIndices(x *xorm.Engine) error {
-	return x.Sync2(&improveActionTableIndicesAction{})
+	return x.Sync(&improveActionTableIndicesAction{})
 }

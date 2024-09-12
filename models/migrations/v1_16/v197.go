@@ -15,5 +15,5 @@ func AddRenamedBranchTable(x *xorm.Engine) error {
 		To          string
 		CreatedUnix int64 `xorm:"created"`
 	}
-	return x.Sync2(new(RenamedBranch))
+	return x.Sync(new(RenamedBranch))
 }

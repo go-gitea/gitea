@@ -6,15 +6,16 @@ package integration
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -38,8 +39,9 @@ func TestAPIPullUpdate(t *testing.T) {
 		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 
 		session := loginUser(t, "user2")
-		token := getTokenForLoggedInUser(t, session)
-		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?token="+token, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
@@ -66,8 +68,9 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 
 		session := loginUser(t, "user2")
-		token := getTokenForLoggedInUser(t, session)
-		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase&token="+token, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
@@ -79,7 +82,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 }
 
 func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_model.PullRequest {
-	baseRepo, err := repo_service.CreateRepository(actor, actor, repo_module.CreateRepoOptions{
+	baseRepo, err := repo_service.CreateRepository(db.DefaultContext, actor, actor, repo_service.CreateRepoOptions{
 		Name:        "repo-pr-update",
 		Description: "repo-tmp-pr-update description",
 		AutoInit:    true,
@@ -100,11 +103,15 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 	assert.NotEmpty(t, headRepo)
 
 	// create a commit on base Repo
-	_, err = files_service.CreateOrUpdateRepoFile(git.DefaultContext, baseRepo, actor, &files_service.UpdateRepoFileOptions{
-		TreePath:  "File_A",
+	_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, actor, &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation:     "create",
+				TreePath:      "File_A",
+				ContentReader: strings.NewReader("File A"),
+			},
+		},
 		Message:   "Add File A",
-		Content:   "File A",
-		IsNewFile: true,
 		OldBranch: "master",
 		NewBranch: "master",
 		Author: &files_service.IdentityOptions{
@@ -123,11 +130,15 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 	assert.NoError(t, err)
 
 	// create a commit on head Repo
-	_, err = files_service.CreateOrUpdateRepoFile(git.DefaultContext, headRepo, actor, &files_service.UpdateRepoFileOptions{
-		TreePath:  "File_B",
+	_, err = files_service.ChangeRepoFiles(git.DefaultContext, headRepo, actor, &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation:     "create",
+				TreePath:      "File_B",
+				ContentReader: strings.NewReader("File B"),
+			},
+		},
 		Message:   "Add File on PR branch",
-		Content:   "File B",
-		IsNewFile: true,
 		OldBranch: "master",
 		NewBranch: "newBranch",
 		Author: &files_service.IdentityOptions{
@@ -166,8 +177,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 	assert.NoError(t, err)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "Test Pull -to-update-"})
-	pr, err := issues_model.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
-	assert.NoError(t, err)
+	assert.NoError(t, issue.LoadPullRequest(db.DefaultContext))
 
-	return pr
+	return issue.PullRequest
 }

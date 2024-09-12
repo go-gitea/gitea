@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -59,7 +60,7 @@ func TestAPILFSMediaType(t *testing.T) {
 }
 
 func createLFSTestRepository(t *testing.T, name string) *repo_model.Repository {
-	ctx := NewAPITestContext(t, "user2", "lfs-"+name+"-repo")
+	ctx := NewAPITestContext(t, "user2", "lfs-"+name+"-repo", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
 
 	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "lfs-"+name+"-repo")
@@ -81,11 +82,10 @@ func TestAPILFSBatch(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	newRequest := func(t testing.TB, br *lfs.BatchRequest) *http.Request {
-		req := NewRequestWithJSON(t, "POST", "/user2/lfs-batch-repo.git/info/lfs/objects/batch", br)
-		req.Header.Set("Accept", lfs.MediaType)
-		req.Header.Set("Content-Type", lfs.MediaType)
-		return req
+	newRequest := func(t testing.TB, br *lfs.BatchRequest) *RequestWrapper {
+		return NewRequestWithJSON(t, "POST", "/user2/lfs-batch-repo.git/info/lfs/objects/batch", br).
+			SetHeader("Accept", lfs.AcceptHeader).
+			SetHeader("Content-Type", lfs.MediaType)
 	}
 	decodeResponse := func(t *testing.T, b *bytes.Buffer) *lfs.BatchResponse {
 		var br lfs.BatchResponse
@@ -341,9 +341,8 @@ func TestAPILFSUpload(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	newRequest := func(t testing.TB, p lfs.Pointer, content string) *http.Request {
-		req := NewRequestWithBody(t, "PUT", path.Join("/user2/lfs-upload-repo.git/info/lfs/objects/", p.Oid, strconv.FormatInt(p.Size, 10)), strings.NewReader(content))
-		return req
+	newRequest := func(t testing.TB, p lfs.Pointer, content string) *RequestWrapper {
+		return NewRequestWithBody(t, "PUT", path.Join("/user2/lfs-upload-repo.git/info/lfs/objects/", p.Oid, strconv.FormatInt(p.Size, 10)), strings.NewReader(content))
 	}
 
 	t.Run("InvalidPointer", func(t *testing.T) {
@@ -446,11 +445,10 @@ func TestAPILFSVerify(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	newRequest := func(t testing.TB, p *lfs.Pointer) *http.Request {
-		req := NewRequestWithJSON(t, "POST", "/user2/lfs-verify-repo.git/info/lfs/verify", p)
-		req.Header.Set("Accept", lfs.MediaType)
-		req.Header.Set("Content-Type", lfs.MediaType)
-		return req
+	newRequest := func(t testing.TB, p *lfs.Pointer) *RequestWrapper {
+		return NewRequestWithJSON(t, "POST", "/user2/lfs-verify-repo.git/info/lfs/verify", p).
+			SetHeader("Accept", lfs.AcceptHeader).
+			SetHeader("Content-Type", lfs.MediaType)
 	}
 
 	t.Run("InvalidJsonRequest", func(t *testing.T) {

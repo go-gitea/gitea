@@ -96,82 +96,15 @@ func init() {
 	db.RegisterModel(new(TeamInvite))
 }
 
-// SearchTeamOptions holds the search options
-type SearchTeamOptions struct {
-	db.ListOptions
-	UserID      int64
-	Keyword     string
-	OrgID       int64
-	IncludeDesc bool
-}
-
-func (opts *SearchTeamOptions) toCond() builder.Cond {
-	cond := builder.NewCond()
-
-	if len(opts.Keyword) > 0 {
-		lowerKeyword := strings.ToLower(opts.Keyword)
-		var keywordCond builder.Cond = builder.Like{"lower_name", lowerKeyword}
-		if opts.IncludeDesc {
-			keywordCond = keywordCond.Or(builder.Like{"LOWER(description)", lowerKeyword})
-		}
-		cond = cond.And(keywordCond)
-	}
-
-	if opts.OrgID > 0 {
-		cond = cond.And(builder.Eq{"`team`.org_id": opts.OrgID})
-	}
-
-	if opts.UserID > 0 {
-		cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
-	}
-
-	return cond
-}
-
-// SearchTeam search for teams. Caller is responsible to check permissions.
-func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
-	sess := db.GetEngine(db.DefaultContext)
-
-	opts.SetDefaultValues()
-	cond := opts.toCond()
-
-	if opts.UserID > 0 {
-		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
-	}
-	sess = db.SetSessionPagination(sess, opts)
-
-	teams := make([]*Team, 0, opts.PageSize)
-	count, err := sess.Where(cond).OrderBy("lower_name").FindAndCount(&teams)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return teams, count, nil
-}
-
-// ColorFormat provides a basic color format for a Team
-func (t *Team) ColorFormat(s fmt.State) {
+func (t *Team) LogString() string {
 	if t == nil {
-		log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
-			log.NewColoredIDValue(0),
-			"<nil>",
-			log.NewColoredIDValue(0),
-			0)
-		return
+		return "<Team nil>"
 	}
-	log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
-		log.NewColoredIDValue(t.ID),
-		t.Name,
-		log.NewColoredIDValue(t.OrgID),
-		t.AccessMode)
+	return fmt.Sprintf("<Team %d:%s OrgID=%d AccessMode=%s>", t.ID, t.Name, t.OrgID, t.AccessMode.LogString())
 }
 
-// GetUnits return a list of available units for a team
-func (t *Team) GetUnits() error {
-	return t.getUnits(db.DefaultContext)
-}
-
-func (t *Team) getUnits(ctx context.Context) (err error) {
+// LoadUnits load a list of available units for a team
+func (t *Team) LoadUnits(ctx context.Context) (err error) {
 	if t.Units != nil {
 		return nil
 	}
@@ -197,11 +130,11 @@ func (t *Team) GetUnitsMap() map[string]string {
 	m := make(map[string]string)
 	if t.AccessMode >= perm.AccessModeAdmin {
 		for _, u := range unit.Units {
-			m[u.NameKey] = t.AccessMode.String()
+			m[u.NameKey] = t.AccessMode.ToString()
 		}
 	} else {
 		for _, u := range t.Units {
-			m[u.Unit().NameKey] = u.AccessMode.String()
+			m[u.Unit().NameKey] = u.AccessMode.ToString()
 		}
 	}
 	return m
@@ -213,8 +146,8 @@ func (t *Team) IsOwnerTeam() bool {
 }
 
 // IsMember returns true if given user is a member of team.
-func (t *Team) IsMember(userID int64) bool {
-	isMember, err := IsTeamMember(db.DefaultContext, t.OrgID, t.ID, userID)
+func (t *Team) IsMember(ctx context.Context, userID int64) bool {
+	isMember, err := IsTeamMember(ctx, t.OrgID, t.ID, userID)
 	if err != nil {
 		log.Error("IsMember: %v", err)
 		return false
@@ -241,23 +174,27 @@ func (t *Team) LoadMembers(ctx context.Context) (err error) {
 	return err
 }
 
-// UnitEnabled returns if the team has the given unit type enabled
+// UnitEnabled returns true if the team has the given unit type enabled
 func (t *Team) UnitEnabled(ctx context.Context, tp unit.Type) bool {
 	return t.UnitAccessMode(ctx, tp) > perm.AccessModeNone
 }
 
-// UnitAccessMode returns if the team has the given unit type enabled
+// UnitAccessMode returns the access mode for the given unit type, "none" for non-existent units
 func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode {
-	if err := t.getUnits(ctx); err != nil {
+	accessMode, _ := t.UnitAccessModeEx(ctx, tp)
+	return accessMode
+}
+
+func (t *Team) UnitAccessModeEx(ctx context.Context, tp unit.Type) (accessMode perm.AccessMode, exist bool) {
+	if err := t.LoadUnits(ctx); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
-
-	for _, unit := range t.Units {
-		if unit.Type == tp {
-			return unit.AccessMode
+	for _, u := range t.Units {
+		if u.Type == tp {
+			return u.AccessMode, true
 		}
 	}
-	return perm.AccessModeNone
+	return perm.AccessModeNone, false
 }
 
 // IsUsableTeamName tests if a name could be as team name
@@ -272,30 +209,25 @@ func IsUsableTeamName(name string) error {
 
 // GetTeam returns team by given team name and organization.
 func GetTeam(ctx context.Context, orgID int64, name string) (*Team, error) {
-	t := &Team{
-		OrgID:     orgID,
-		LowerName: strings.ToLower(name),
-	}
-	has, err := db.GetByBean(ctx, t)
+	t, exist, err := db.Get[Team](ctx, builder.Eq{"org_id": orgID, "lower_name": strings.ToLower(name)})
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		return nil, ErrTeamNotExist{orgID, 0, name}
 	}
 	return t, nil
 }
 
 // GetTeamIDsByNames returns a slice of team ids corresponds to names.
-func GetTeamIDsByNames(orgID int64, names []string, ignoreNonExistent bool) ([]int64, error) {
+func GetTeamIDsByNames(ctx context.Context, orgID int64, names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))
 	for _, name := range names {
-		u, err := GetTeam(db.DefaultContext, orgID, name)
+		u, err := GetTeam(ctx, orgID, name)
 		if err != nil {
 			if ignoreNonExistent {
 				continue
-			} else {
-				return nil, err
 			}
+			return nil, err
 		}
 		ids = append(ids, u.ID)
 	}
@@ -320,29 +252,19 @@ func GetTeamByID(ctx context.Context, teamID int64) (*Team, error) {
 }
 
 // GetTeamNamesByID returns team's lower name from a list of team ids.
-func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
+func GetTeamNamesByID(ctx context.Context, teamIDs []int64) ([]string, error) {
 	if len(teamIDs) == 0 {
 		return []string{}, nil
 	}
 
 	var teamNames []string
-	err := db.GetEngine(db.DefaultContext).Table("team").
+	err := db.GetEngine(ctx).Table("team").
 		Select("lower_name").
 		In("id", teamIDs).
 		Asc("name").
 		Find(&teamNames)
 
 	return teamNames, err
-}
-
-// GetRepoTeams gets the list of teams that has access to the repository
-func GetRepoTeams(ctx context.Context, repo *repo_model.Repository) (teams []*Team, err error) {
-	return teams, db.GetEngine(ctx).
-		Join("INNER", "team_repo", "team_repo.team_id = team.id").
-		Where("team.org_id = ?", repo.OwnerID).
-		And("team_repo.repo_id=?", repo.ID).
-		OrderBy("CASE WHEN name LIKE '" + OwnerTeamName + "' THEN '' ELSE name END").
-		Find(&teams)
 }
 
 // IncrTeamRepoNum increases the number of repos for the given team by 1

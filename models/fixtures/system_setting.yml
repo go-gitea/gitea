@@ -1,6 +1,6 @@
 -
   id: 1
-  setting_key: 'disable_gravatar'
+  setting_key: 'picture.disable_gravatar'
   setting_value: 'false'
   version: 1
   created: 1653533198
@@ -8,7 +8,7 @@
 
 -
   id: 2
-  setting_key: 'enable_federated_avatar'
+  setting_key: 'picture.enable_federated_avatar'
   setting_value: 'false'
   version: 1
   created: 1653533198

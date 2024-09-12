@@ -6,26 +6,117 @@ package user
 import (
 	"context"
 	"fmt"
-	"image/png"
-	"io"
+	"os"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/agit"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	org_service "code.gitea.io/gitea/services/org"
 	"code.gitea.io/gitea/services/packages"
+	container_service "code.gitea.io/gitea/services/packages/container"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
+
+// RenameUser renames a user
+func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
+	// Non-local users are not allowed to change their username.
+	if !u.IsOrganization() && !u.IsLocal() {
+		return user_model.ErrUserIsNotLocal{
+			UID:  u.ID,
+			Name: u.Name,
+		}
+	}
+
+	if newUserName == u.Name {
+		return nil
+	}
+
+	if err := user_model.IsUsableUsername(newUserName); err != nil {
+		return err
+	}
+
+	onlyCapitalization := strings.EqualFold(newUserName, u.Name)
+	oldUserName := u.Name
+
+	if onlyCapitalization {
+		u.Name = newUserName
+		if err := user_model.UpdateUserCols(ctx, u, "name"); err != nil {
+			u.Name = oldUserName
+			return err
+		}
+		return repo_model.UpdateRepositoryOwnerNames(ctx, u.ID, newUserName)
+	}
+
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	isExist, err := user_model.IsUserExist(ctx, u.ID, newUserName)
+	if err != nil {
+		return err
+	}
+	if isExist {
+		return user_model.ErrUserAlreadyExist{
+			Name: newUserName,
+		}
+	}
+
+	if err = repo_model.UpdateRepositoryOwnerName(ctx, oldUserName, newUserName); err != nil {
+		return err
+	}
+
+	if err = user_model.NewUserRedirect(ctx, u.ID, oldUserName, newUserName); err != nil {
+		return err
+	}
+
+	if err := agit.UserNameChanged(ctx, u, newUserName); err != nil {
+		return err
+	}
+	if err := container_service.UpdateRepositoryNames(ctx, u, newUserName); err != nil {
+		return err
+	}
+
+	u.Name = newUserName
+	u.LowerName = strings.ToLower(newUserName)
+	if err := user_model.UpdateUserCols(ctx, u, "name", "lower_name"); err != nil {
+		u.Name = oldUserName
+		u.LowerName = strings.ToLower(oldUserName)
+		return err
+	}
+
+	// Do not fail if directory does not exist
+	if err = util.Rename(user_model.UserPath(oldUserName), user_model.UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
+		u.Name = oldUserName
+		u.LowerName = strings.ToLower(oldUserName)
+		return fmt.Errorf("rename user directory: %w", err)
+	}
+
+	if err = committer.Commit(); err != nil {
+		u.Name = oldUserName
+		u.LowerName = strings.ToLower(oldUserName)
+		if err2 := util.Rename(user_model.UserPath(newUserName), user_model.UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
+			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldUserName, newUserName, err, err2)
+			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldUserName, newUserName, err, err2)
+		}
+		return err
+	}
+	return nil
+}
 
 // DeleteUser completely and permanently deletes everything of a user,
 // but issues/comments/pulls will be kept and shown as someone has been deleted,
@@ -33,6 +124,10 @@ import (
 func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	if u.IsOrganization() {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
+	}
+
+	if u.IsActive && user_model.IsLastAdminUser(ctx, u) {
+		return models.ErrDeleteLastAdminUser{UID: u.ID}
 	}
 
 	if purge {
@@ -65,27 +160,9 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		//
 		// An alternative option here would be write a DeleteAllRepositoriesForUserID function which would delete all of the repos
 		// but such a function would likely get out of date
-		for {
-			repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
-				ListOptions: db.ListOptions{
-					PageSize: repo_model.RepositoryListDefaultPageSize,
-					Page:     1,
-				},
-				Private: true,
-				OwnerID: u.ID,
-				Actor:   u,
-			})
-			if err != nil {
-				return fmt.Errorf("GetUserRepositories: %w", err)
-			}
-			if len(repos) == 0 {
-				break
-			}
-			for _, repo := range repos {
-				if err := models.DeleteRepository(u, u.ID, repo.ID); err != nil {
-					return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, u.Name, u.ID, err)
-				}
-			}
+		err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, u)
+		if err != nil {
+			return err
 		}
 
 		// Remove from Organizations and delete last owner organizations
@@ -96,7 +173,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		// An alternative option here would be write a function which would delete all organizations but it seems
 		// but such a function would likely get out of date
 		for {
-			orgs, err := organization.FindOrgs(organization.FindOrgOptions{
+			orgs, err := db.Find[organization.Organization](ctx, organization.FindOrgOptions{
 				ListOptions: db.ListOptions{
 					PageSize: repo_model.RepositoryListDefaultPageSize,
 					Page:     1,
@@ -111,9 +188,12 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 				break
 			}
 			for _, org := range orgs {
-				if err := models.RemoveOrgUser(org.ID, u.ID); err != nil {
+				if err := models.RemoveOrgUser(ctx, org, u); err != nil {
 					if organization.IsErrLastOrgOwner(err) {
-						err = organization.DeleteOrganization(ctx, org)
+						err = org_service.DeleteOrganization(ctx, org, true)
+						if err != nil {
+							return fmt.Errorf("unable to delete organization %d: %w", org.ID, err)
+						}
 					}
 					if err != nil {
 						return fmt.Errorf("unable to remove user %s[%d] from org %s[%d]. Error: %w", u.Name, u.ID, org.Name, org.ID, err)
@@ -130,7 +210,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -163,114 +243,61 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		return models.ErrUserOwnPackages{UID: u.ID}
 	}
 
-	if err := models.DeleteUser(ctx, u, purge); err != nil {
+	if err := deleteUser(ctx, u, purge); err != nil {
 		return fmt.Errorf("DeleteUser: %w", err)
 	}
 
 	if err := committer.Commit(); err != nil {
 		return err
 	}
-	committer.Close()
+	_ = committer.Close()
 
-	if err = asymkey_model.RewriteAllPublicKeys(); err != nil {
+	if err = asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 		return err
 	}
-	if err = asymkey_model.RewriteAllPrincipalKeys(db.DefaultContext); err != nil {
+	if err = asymkey_service.RewriteAllPrincipalKeys(ctx); err != nil {
 		return err
 	}
 
-	// Note: There are something just cannot be roll back,
-	//	so just keep error logs of those operations.
+	// Note: There are something just cannot be roll back, so just keep error logs of those operations.
 	path := user_model.UserPath(u.Name)
-	if err := util.RemoveAll(path); err != nil {
-		err = fmt.Errorf("Failed to RemoveAll %s: %w", path, err)
+	if err = util.RemoveAll(path); err != nil {
+		err = fmt.Errorf("failed to RemoveAll %s: %w", path, err)
 		_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
-		return err
 	}
 
 	if u.Avatar != "" {
 		avatarPath := u.CustomAvatarRelativePath()
-		if err := storage.Avatars.Delete(avatarPath); err != nil {
-			err = fmt.Errorf("Failed to remove %s: %w", avatarPath, err)
+		if err = storage.Avatars.Delete(avatarPath); err != nil {
+			err = fmt.Errorf("failed to remove %s: %w", avatarPath, err)
 			_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
-			return err
 		}
 	}
 
 	return nil
 }
 
-// DeleteInactiveUsers deletes all inactive users and email addresses.
+// DeleteInactiveUsers deletes all inactive users and their email addresses.
 func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
-	users, err := user_model.GetInactiveUsers(ctx, olderThan)
+	inactiveUsers, err := user_model.GetInactiveUsers(ctx, olderThan)
 	if err != nil {
 		return err
 	}
 
 	// FIXME: should only update authorized_keys file once after all deletions.
-	for _, u := range users {
-		select {
-		case <-ctx.Done():
-			return db.ErrCancelledf("Before delete inactive user %s", u.Name)
-		default:
-		}
-		if err := DeleteUser(ctx, u, false); err != nil {
-			// Ignore users that were set inactive by admin.
+	for _, u := range inactiveUsers {
+		if err = DeleteUser(ctx, u, false); err != nil {
+			// Ignore inactive users that were ever active but then were set inactive by admin
 			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) || models.IsErrUserOwnPackages(err) {
 				continue
 			}
-			return err
+			select {
+			case <-ctx.Done():
+				return db.ErrCancelledf("when deleting inactive user %q", u.Name)
+			default:
+				return err
+			}
 		}
 	}
-
-	return user_model.DeleteInactiveEmailAddresses(ctx)
-}
-
-// UploadAvatar saves custom avatar for user.
-func UploadAvatar(u *user_model.User, data []byte) error {
-	m, err := avatar.Prepare(data)
-	if err != nil {
-		return err
-	}
-
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	u.UseCustomAvatar = true
-	u.Avatar = avatar.HashAvatar(u.ID, data)
-	if err = user_model.UpdateUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
-		return fmt.Errorf("updateUser: %w", err)
-	}
-
-	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, *m); err != nil {
-			log.Error("Encode: %v", err)
-		}
-		return err
-	}); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)
-	}
-
-	return committer.Commit()
-}
-
-// DeleteAvatar deletes the user's custom avatar.
-func DeleteAvatar(u *user_model.User) error {
-	aPath := u.CustomAvatarRelativePath()
-	log.Trace("DeleteAvatar[%d]: %s", u.ID, aPath)
-	if len(u.Avatar) > 0 {
-		if err := storage.Avatars.Delete(aPath); err != nil {
-			return fmt.Errorf("Failed to remove %s: %w", aPath, err)
-		}
-	}
-
-	u.UseCustomAvatar = false
-	u.Avatar = ""
-	if _, err := db.GetEngine(db.DefaultContext).ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
-		return fmt.Errorf("UpdateUser: %w", err)
-	}
-	return nil
+	return nil // TODO: there could be still inactive users left, and the number would increase gradually
 }

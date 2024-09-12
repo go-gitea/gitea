@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -50,7 +51,7 @@ func TestDumpRestore(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame})
 		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 		session := loginUser(t, repoOwner.Name)
-		token := getTokenForLoggedInUser(t, session)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeReadMisc)
 
 		//
 		// Phase 1: dump repo1 from the Gitea instance to the filesystem
@@ -120,8 +121,8 @@ type compareDump struct {
 }
 
 type compareField struct {
-	before    interface{}
-	after     interface{}
+	before    any
+	after     any
 	ignore    bool
 	transform func(string) string
 	nested    *compareFields
@@ -214,7 +215,7 @@ func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository)
 	}
 }
 
-func (c *compareDump) assertLoadYAMLFiles(beforeFilename, afterFilename string, before, after interface{}) {
+func (c *compareDump) assertLoadYAMLFiles(beforeFilename, afterFilename string, before, after any) {
 	_, beforeErr := os.Stat(beforeFilename)
 	_, afterErr := os.Stat(afterFilename)
 	assert.EqualValues(c.t, errors.Is(beforeErr, os.ErrNotExist), errors.Is(afterErr, os.ErrNotExist))
@@ -236,7 +237,7 @@ func (c *compareDump) assertLoadFiles(beforeFilename, afterFilename string, t re
 		//
 		// Given []Something{} create afterPtr, beforePtr []*Something{}
 		//
-		sliceType := reflect.SliceOf(reflect.PtrTo(t.Elem()))
+		sliceType := reflect.SliceOf(reflect.PointerTo(t.Elem()))
 		beforeSlice := reflect.MakeSlice(sliceType, 0, 10)
 		beforePtr = reflect.New(beforeSlice.Type())
 		beforePtr.Elem().Set(beforeSlice)
@@ -254,7 +255,7 @@ func (c *compareDump) assertLoadFiles(beforeFilename, afterFilename string, t re
 	return beforePtr.Elem(), afterPtr.Elem()
 }
 
-func (c *compareDump) assertEqual(filename string, kind interface{}, fields compareFields) (i interface{}) {
+func (c *compareDump) assertEqual(filename string, kind any, fields compareFields) (i any) {
 	beforeFilename := filepath.Join(c.dirBefore, filename)
 	afterFilename := filepath.Join(c.dirAfter, filename)
 
@@ -268,7 +269,7 @@ func (c *compareDump) assertEqual(filename string, kind interface{}, fields comp
 	return i
 }
 
-func (c *compareDump) assertEqualSlices(before, after reflect.Value, fields compareFields) interface{} {
+func (c *compareDump) assertEqualSlices(before, after reflect.Value, fields compareFields) any {
 	assert.EqualValues(c.t, before.Len(), after.Len())
 	if before.Len() == after.Len() {
 		for i := 0; i < before.Len(); i++ {
@@ -281,7 +282,7 @@ func (c *compareDump) assertEqualSlices(before, after reflect.Value, fields comp
 	return after.Interface()
 }
 
-func (c *compareDump) assertEqualValues(before, after reflect.Value, fields compareFields) interface{} {
+func (c *compareDump) assertEqualValues(before, after reflect.Value, fields compareFields) any {
 	for _, field := range reflect.VisibleFields(before.Type()) {
 		bf := before.FieldByName(field.Name)
 		bi := bf.Interface()

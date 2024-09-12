@@ -57,6 +57,21 @@ func (err ErrUserOwnPackages) Error() string {
 	return fmt.Sprintf("user still has ownership of packages [uid: %d]", err.UID)
 }
 
+// ErrDeleteLastAdminUser represents a "DeleteLastAdminUser" kind of error.
+type ErrDeleteLastAdminUser struct {
+	UID int64
+}
+
+// IsErrDeleteLastAdminUser checks if an error is a ErrDeleteLastAdminUser.
+func IsErrDeleteLastAdminUser(err error) bool {
+	_, ok := err.(ErrDeleteLastAdminUser)
+	return ok
+}
+
+func (err ErrDeleteLastAdminUser) Error() string {
+	return fmt.Sprintf("can not delete the last admin user [uid: %d]", err.UID)
+}
+
 // ErrNoPendingRepoTransfer is an error type for repositories without a pending
 // transfer request
 type ErrNoPendingRepoTransfer struct {
@@ -318,90 +333,6 @@ func (err ErrFilePathProtected) Unwrap() error {
 	return util.ErrPermissionDenied
 }
 
-// __________                             .__
-// \______   \____________    ____   ____ |  |__
-//  |    |  _/\_  __ \__  \  /    \_/ ___\|  |  \
-//  |    |   \ |  | \// __ \|   |  \  \___|   Y  \
-//  |______  / |__|  (____  /___|  /\___  >___|  /
-//         \/             \/     \/     \/     \/
-
-// ErrBranchDoesNotExist represents an error that branch with such name does not exist.
-type ErrBranchDoesNotExist struct {
-	BranchName string
-}
-
-// IsErrBranchDoesNotExist checks if an error is an ErrBranchDoesNotExist.
-func IsErrBranchDoesNotExist(err error) bool {
-	_, ok := err.(ErrBranchDoesNotExist)
-	return ok
-}
-
-func (err ErrBranchDoesNotExist) Error() string {
-	return fmt.Sprintf("branch does not exist [name: %s]", err.BranchName)
-}
-
-func (err ErrBranchDoesNotExist) Unwrap() error {
-	return util.ErrNotExist
-}
-
-// ErrBranchAlreadyExists represents an error that branch with such name already exists.
-type ErrBranchAlreadyExists struct {
-	BranchName string
-}
-
-// IsErrBranchAlreadyExists checks if an error is an ErrBranchAlreadyExists.
-func IsErrBranchAlreadyExists(err error) bool {
-	_, ok := err.(ErrBranchAlreadyExists)
-	return ok
-}
-
-func (err ErrBranchAlreadyExists) Error() string {
-	return fmt.Sprintf("branch already exists [name: %s]", err.BranchName)
-}
-
-func (err ErrBranchAlreadyExists) Unwrap() error {
-	return util.ErrAlreadyExist
-}
-
-// ErrBranchNameConflict represents an error that branch name conflicts with other branch.
-type ErrBranchNameConflict struct {
-	BranchName string
-}
-
-// IsErrBranchNameConflict checks if an error is an ErrBranchNameConflict.
-func IsErrBranchNameConflict(err error) bool {
-	_, ok := err.(ErrBranchNameConflict)
-	return ok
-}
-
-func (err ErrBranchNameConflict) Error() string {
-	return fmt.Sprintf("branch conflicts with existing branch [name: %s]", err.BranchName)
-}
-
-func (err ErrBranchNameConflict) Unwrap() error {
-	return util.ErrAlreadyExist
-}
-
-// ErrBranchesEqual represents an error that branch name conflicts with other branch.
-type ErrBranchesEqual struct {
-	BaseBranchName string
-	HeadBranchName string
-}
-
-// IsErrBranchesEqual checks if an error is an ErrBranchesEqual.
-func IsErrBranchesEqual(err error) bool {
-	_, ok := err.(ErrBranchesEqual)
-	return ok
-}
-
-func (err ErrBranchesEqual) Error() string {
-	return fmt.Sprintf("branches are equal [head: %sm base: %s]", err.HeadBranchName, err.BaseBranchName)
-}
-
-func (err ErrBranchesEqual) Unwrap() error {
-	return util.ErrInvalidArgument
-}
-
 // ErrDisallowedToMerge represents an error that a branch is protected and the current user is not allowed to modify it.
 type ErrDisallowedToMerge struct {
 	Reason string
@@ -560,6 +491,23 @@ func IsErrMergeUnrelatedHistories(err error) bool {
 
 func (err ErrMergeUnrelatedHistories) Error() string {
 	return fmt.Sprintf("Merge UnrelatedHistories Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
+// ErrMergeDivergingFastForwardOnly represents an error if a fast-forward-only merge fails because the branches diverge
+type ErrMergeDivergingFastForwardOnly struct {
+	StdOut string
+	StdErr string
+	Err    error
+}
+
+// IsErrMergeDivergingFastForwardOnly checks if an error is a ErrMergeDivergingFastForwardOnly.
+func IsErrMergeDivergingFastForwardOnly(err error) bool {
+	_, ok := err.(ErrMergeDivergingFastForwardOnly)
+	return ok
+}
+
+func (err ErrMergeDivergingFastForwardOnly) Error() string {
+	return fmt.Sprintf("Merge DivergingFastForwardOnly Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
 }
 
 // ErrRebaseConflicts represents an error if rebase fails with a conflict

@@ -4,43 +4,29 @@
 package base
 
 import (
-	"crypto/md5"
+	"crypto/hmac"
 	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/dustin/go-humanize"
 )
-
-// EncodeMD5 encodes string to md5 hex value.
-func EncodeMD5(str string) string {
-	m := md5.New()
-	_, _ = m.Write([]byte(str))
-	return hex.EncodeToString(m.Sum(nil))
-}
-
-// EncodeSha1 string to sha1 hex value.
-func EncodeSha1(str string) string {
-	h := sha1.New()
-	_, _ = h.Write([]byte(str))
-	return hex.EncodeToString(h.Sum(nil))
-}
 
 // EncodeSha256 string to sha256 hex value.
 func EncodeSha256(str string) string {
@@ -62,139 +48,75 @@ func BasicAuthDecode(encoded string) (string, string, error) {
 		return "", "", err
 	}
 
-	auth := strings.SplitN(string(s), ":", 2)
-
-	if len(auth) != 2 {
-		return "", "", errors.New("invalid basic authentication")
+	if username, password, ok := strings.Cut(string(s), ":"); ok {
+		return username, password, nil
 	}
-
-	return auth[0], auth[1], nil
-}
-
-// BasicAuthEncode encode basic auth string
-func BasicAuthEncode(username, password string) string {
-	return base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
+	return "", "", errors.New("invalid basic authentication")
 }
 
 // VerifyTimeLimitCode verify time limit code
-func VerifyTimeLimitCode(data string, minutes int, code string) bool {
+func VerifyTimeLimitCode(now time.Time, data string, minutes int, code string) bool {
 	if len(code) <= 18 {
 		return false
 	}
 
-	// split code
-	start := code[:12]
-	lives := code[12:18]
-	if d, err := strconv.ParseInt(lives, 10, 0); err == nil {
-		minutes = int(d)
-	}
+	startTimeStr := code[:12]
+	aliveTimeStr := code[12:18]
+	aliveTime, _ := strconv.Atoi(aliveTimeStr) // no need to check err, if anything wrong, the following code check will fail soon
 
-	// right active code
-	retCode := CreateTimeLimitCode(data, minutes, start)
-	if retCode == code && minutes > 0 {
-		// check time is expired or not
-		before, _ := time.ParseInLocation("200601021504", start, time.Local)
-		now := time.Now()
-		if before.Add(time.Minute*time.Duration(minutes)).Unix() > now.Unix() {
-			return true
+	// check code
+	retCode := CreateTimeLimitCode(data, aliveTime, startTimeStr, nil)
+	if subtle.ConstantTimeCompare([]byte(retCode), []byte(code)) != 1 {
+		retCode = CreateTimeLimitCode(data, aliveTime, startTimeStr, sha1.New()) // TODO: this is only for the support of legacy codes, remove this in/after 1.23
+		if subtle.ConstantTimeCompare([]byte(retCode), []byte(code)) != 1 {
+			return false
 		}
 	}
 
-	return false
+	// check time is expired or not: startTime <= now && now < startTime + minutes
+	startTime, _ := time.ParseInLocation("200601021504", startTimeStr, time.Local)
+	return (startTime.Before(now) || startTime.Equal(now)) && now.Before(startTime.Add(time.Minute*time.Duration(minutes)))
 }
 
 // TimeLimitCodeLength default value for time limit code
 const TimeLimitCodeLength = 12 + 6 + 40
 
-// CreateTimeLimitCode create a time limit code
-// code format: 12 length date time string + 6 minutes string + 40 sha1 encoded string
-func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string {
-	format := "200601021504"
+// CreateTimeLimitCode create a time-limited code.
+// Format: 12 length date time string + 6 minutes string (not used) + 40 hash string, some other code depends on this fixed length
+// If h is nil, then use the default hmac hash.
+func CreateTimeLimitCode[T time.Time | string](data string, minutes int, startTimeGeneric T, h hash.Hash) string {
+	const format = "200601021504"
 
-	var start, end time.Time
-	var startStr, endStr string
-
-	if startInf == nil {
-		// Use now time create code
-		start = time.Now()
-		startStr = start.Format(format)
+	var start time.Time
+	var startTimeAny any = startTimeGeneric
+	if t, ok := startTimeAny.(time.Time); ok {
+		start = t
 	} else {
-		// use start string create code
-		startStr = startInf.(string)
-		start, _ = time.ParseInLocation(format, startStr, time.Local)
-		startStr = start.Format(format)
+		var err error
+		start, err = time.ParseInLocation(format, startTimeAny.(string), time.Local)
+		if err != nil {
+			return "" // return an invalid code because the "parse" failed
+		}
 	}
+	startStr := start.Format(format)
+	end := start.Add(time.Minute * time.Duration(minutes))
 
-	end = start.Add(time.Minute * time.Duration(minutes))
-	endStr = end.Format(format)
-
-	// create sha1 encode string
-	sh := sha1.New()
-	_, _ = sh.Write([]byte(fmt.Sprintf("%s%s%s%s%d", data, setting.SecretKey, startStr, endStr, minutes)))
-	encoded := hex.EncodeToString(sh.Sum(nil))
+	if h == nil {
+		h = hmac.New(sha1.New, setting.GetGeneralTokenSigningSecret())
+	}
+	_, _ = fmt.Fprintf(h, "%s%s%s%s%d", data, hex.EncodeToString(setting.GetGeneralTokenSigningSecret()), startStr, end.Format(format), minutes)
+	encoded := hex.EncodeToString(h.Sum(nil))
 
 	code := fmt.Sprintf("%s%06d%s", startStr, minutes, encoded)
+	if len(code) != TimeLimitCodeLength {
+		panic("there is a hard requirement for the length of time-limited code") // it shouldn't happen
+	}
 	return code
 }
 
 // FileSize calculates the file size and generate user-friendly string.
 func FileSize(s int64) string {
 	return humanize.IBytes(uint64(s))
-}
-
-// PrettyNumber produces a string form of the given number in base 10 with
-// commas after every three orders of magnitude
-func PrettyNumber(i interface{}) string {
-	return humanize.Comma(util.NumberIntoInt64(i))
-}
-
-// Subtract deals with subtraction of all types of number.
-func Subtract(left, right interface{}) interface{} {
-	var rleft, rright int64
-	var fleft, fright float64
-	isInt := true
-	switch v := left.(type) {
-	case int:
-		rleft = int64(v)
-	case int8:
-		rleft = int64(v)
-	case int16:
-		rleft = int64(v)
-	case int32:
-		rleft = int64(v)
-	case int64:
-		rleft = v
-	case float32:
-		fleft = float64(v)
-		isInt = false
-	case float64:
-		fleft = v
-		isInt = false
-	}
-
-	switch v := right.(type) {
-	case int:
-		rright = int64(v)
-	case int8:
-		rright = int64(v)
-	case int16:
-		rright = int64(v)
-	case int32:
-		rright = int64(v)
-	case int64:
-		rright = v
-	case float32:
-		fright = float64(v)
-		isInt = false
-	case float64:
-		fright = v
-		isInt = false
-	}
-
-	if isInt {
-		return rleft - rright
-	}
-	return fleft + float64(rleft) - (fright + float64(rright))
 }
 
 // EllipsisString returns a truncated short string,
@@ -220,13 +142,16 @@ func TruncateString(str string, limit int) string {
 
 // StringsToInt64s converts a slice of string to a slice of int64.
 func StringsToInt64s(strs []string) ([]int64, error) {
-	ints := make([]int64, len(strs))
-	for i := range strs {
-		n, err := strconv.ParseInt(strs[i], 10, 64)
+	if strs == nil {
+		return nil, nil
+	}
+	ints := make([]int64, 0, len(strs))
+	for _, s := range strs {
+		n, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
-			return ints, err
+			return nil, err
 		}
-		ints[i] = n
+		ints = append(ints, n)
 	}
 	return ints, nil
 }
@@ -240,22 +165,6 @@ func Int64sToStrings(ints []int64) []string {
 	return strs
 }
 
-// Int64sContains returns if a int64 in a slice of int64
-func Int64sContains(intsSlice []int64, a int64) bool {
-	for _, c := range intsSlice {
-		if c == a {
-			return true
-		}
-	}
-	return false
-}
-
-// IsLetter reports whether the rune is a letter (category L).
-// https://github.com/golang/go/blob/c3b4918/src/go/scanner/scanner.go#L342
-func IsLetter(ch rune) bool {
-	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch >= 0x80 && unicode.IsLetter(ch)
-}
-
 // EntryIcon returns the octicon class for displaying files/directories
 func EntryIcon(entry *git.TreeEntry) string {
 	switch {
@@ -266,7 +175,7 @@ func EntryIcon(entry *git.TreeEntry) string {
 			return "file-symlink-file"
 		}
 		if te.IsDir() {
-			return "file-submodule"
+			return "file-directory-symlink"
 		}
 		return "file-symlink-file"
 	case entry.IsDir():
@@ -301,7 +210,7 @@ func SetupGiteaRoot() string {
 }
 
 // FormatNumberSI format a number
-func FormatNumberSI(data interface{}) string {
+func FormatNumberSI(data any) string {
 	var num int64
 	if num1, ok := data.(int64); ok {
 		num = num1

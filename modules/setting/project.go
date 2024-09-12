@@ -3,8 +3,6 @@
 
 package setting
 
-import "code.gitea.io/gitea/modules/log"
-
 // Project settings
 var (
 	Project = struct {
@@ -16,8 +14,6 @@ var (
 	}
 )
 
-func newProject() {
-	if err := Cfg.Section("project").MapTo(&Project); err != nil {
-		log.Fatal("Failed to map Project settings: %v", err)
-	}
+func loadProjectFrom(rootCfg ConfigProvider) {
+	mustMapSetting(rootCfg, "project", &Project)
 }

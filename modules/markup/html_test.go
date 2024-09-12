@@ -4,16 +4,14 @@
 package markup_test
 
 import (
-	"context"
 	"io"
-	"os"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	. "code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -21,35 +19,54 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var localMetas = map[string]string{
-	"user":     "gogits",
-	"repo":     "gogs",
-	"repoPath": "../../tests/gitea-repositories-meta/user13/repo11.git/",
+var (
+	testRepoOwnerName = "user13"
+	testRepoName      = "repo11"
+	localMetas        = map[string]string{
+		"user": testRepoOwnerName,
+		"repo": testRepoName,
+	}
+)
+
+type mockRepo struct {
+	OwnerName string
+	RepoName  string
 }
 
-func TestMain(m *testing.M) {
-	setting.LoadAllowEmpty()
-	if err := git.InitSimple(context.Background()); err != nil {
-		log.Fatal("git init failed, err: %v", err)
+func (m *mockRepo) GetOwnerName() string {
+	return m.OwnerName
+}
+
+func (m *mockRepo) GetName() string {
+	return m.RepoName
+}
+
+func newMockRepo(ownerName, repoName string) gitrepo.Repository {
+	return &mockRepo{
+		OwnerName: ownerName,
+		RepoName:  repoName,
 	}
-	os.Exit(m.Run())
 }
 
 func TestRender_Commits(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 	test := func(input, expected string) {
-		buffer, err := RenderString(&RenderContext{
+		buffer, err := markup.RenderString(&markup.RenderContext{
 			Ctx:          git.DefaultContext,
 			RelativePath: ".md",
-			URLPrefix:    TestRepoURL,
-			Metas:        localMetas,
+			Links: markup.Links{
+				AbsolutePrefix: true,
+				Base:           markup.TestRepoURL,
+			},
+			Repo:  newMockRepo(testRepoOwnerName, testRepoName),
+			Metas: localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
-	repo := TestRepoURL
+	repo := markup.TestAppURL + testRepoOwnerName + "/" + testRepoName + "/"
 	commit := util.URLJoin(repo, "commit", sha)
 	tree := util.URLJoin(repo, "tree", sha, "src")
 
@@ -86,67 +103,73 @@ func TestRender_Commits(t *testing.T) {
 }
 
 func TestRender_CrossReferences(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 
 	test := func(input, expected string) {
-		buffer, err := RenderString(&RenderContext{
+		buffer, err := markup.RenderString(&markup.RenderContext{
+			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
-			URLPrefix:    setting.AppSubURL,
-			Metas:        localMetas,
+			Links: markup.Links{
+				AbsolutePrefix: true,
+				Base:           setting.AppSubURL,
+			},
+			Metas: localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	test(
-		"gogits/gogs#12345",
-		`<p><a href="`+util.URLJoin(TestAppURL, "gogits", "gogs", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogits/gogs#12345</a></p>`)
+		"test-owner/test-repo#12345",
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "test-owner", "test-repo", "issues", "12345")+`" class="ref-issue" rel="nofollow">test-owner/test-repo#12345</a></p>`)
 	test(
 		"go-gitea/gitea#12345",
-		`<p><a href="`+util.URLJoin(TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
 	test(
 		"/home/gitea/go-gitea/gitea#12345",
 		`<p>/home/gitea/go-gitea/gitea#12345</p>`)
 	test(
-		util.URLJoin(TestAppURL, "gogitea", "gitea", "issues", "12345"),
-		`<p><a href="`+util.URLJoin(TestAppURL, "gogitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/gitea#12345</a></p>`)
+		util.URLJoin(markup.TestAppURL, "gogitea", "gitea", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/gitea#12345</a></p>`)
 	test(
-		util.URLJoin(TestAppURL, "go-gitea", "gitea", "issues", "12345"),
-		`<p><a href="`+util.URLJoin(TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+		util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
 	test(
-		util.URLJoin(TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
-		`<p><a href="`+util.URLJoin(TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
-}
+		util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
 
-func TestMisc_IsSameDomain(t *testing.T) {
-	setting.AppURL = TestAppURL
-
-	sha := "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
-	commit := util.URLJoin(TestRepoURL, "commit", sha)
-
-	assert.True(t, IsSameDomain(commit))
-	assert.False(t, IsSameDomain("http://google.com/ncr"))
-	assert.False(t, IsSameDomain("favicon.ico"))
+	inputURL := "https://host/a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
+	test(
+		inputURL,
+		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789/foo.txt (L2-L3)</code></a></p>`)
 }
 
 func TestRender_links(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 
 	test := func(input, expected string) {
-		buffer, err := RenderString(&RenderContext{
+		buffer, err := markup.RenderString(&markup.RenderContext{
+			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
-			URLPrefix:    TestRepoURL,
+			Links: markup.Links{
+				Base: markup.TestRepoURL,
+			},
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
-	// Text that should be turned into URL
 
-	defaultCustom := setting.Markdown.CustomURLSchemes
+	oldCustomURLSchemes := setting.Markdown.CustomURLSchemes
+	markup.ResetDefaultSanitizerForTesting()
+	defer func() {
+		setting.Markdown.CustomURLSchemes = oldCustomURLSchemes
+		markup.ResetDefaultSanitizerForTesting()
+		markup.CustomLinkURLSchemes(oldCustomURLSchemes)
+	}()
 	setting.Markdown.CustomURLSchemes = []string{"ftp", "magnet"}
-	InitializeSanitizer()
-	CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
+	markup.CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 
+	// Text that should be turned into URL
 	test(
 		"https://www.example.com",
 		`<p><a href="https://www.example.com" rel="nofollow">https://www.example.com</a></p>`)
@@ -195,6 +218,15 @@ func TestRender_links(t *testing.T) {
 	test(
 		"magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&dn=download",
 		`<p><a href="magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download" rel="nofollow">magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download</a></p>`)
+	test(
+		`[link](https://example.com)`,
+		`<p><a href="https://example.com" rel="nofollow">link</a></p>`)
+	test(
+		`[link](mailto:test@example.com)`,
+		`<p><a href="mailto:test@example.com" rel="nofollow">link</a></p>`)
+	test(
+		`[link](javascript:xss)`,
+		`<p>link</p>`)
 
 	// Test that should *not* be turned into URL
 	test(
@@ -221,20 +253,18 @@ func TestRender_links(t *testing.T) {
 	test(
 		"ftps://gitea.com",
 		`<p>ftps://gitea.com</p>`)
-
-	// Restore previous settings
-	setting.Markdown.CustomURLSchemes = defaultCustom
-	InitializeSanitizer()
-	CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 }
 
 func TestRender_email(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 
 	test := func(input, expected string) {
-		res, err := RenderString(&RenderContext{
+		res, err := markup.RenderString(&markup.RenderContext{
+			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
-			URLPrefix:    TestRepoURL,
+			Links: markup.Links{
+				Base: markup.TestRepoURL,
+			},
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res))
@@ -259,6 +289,18 @@ func TestRender_email(t *testing.T) {
 	test(
 		"send email to info@gitea.co.uk.",
 		`<p>send email to <a href="mailto:info@gitea.co.uk" rel="nofollow">info@gitea.co.uk</a>.</p>`)
+
+	test(
+		`j.doe@example.com,
+	j.doe@example.com.
+	j.doe@example.com;
+	j.doe@example.com?
+	j.doe@example.com!`,
+		`<p><a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>,<br/>
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>.<br/>
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>;<br/>
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>?<br/>
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>!</p>`)
 
 	// Test that should *not* be turned into email links
 	test(
@@ -285,14 +327,17 @@ func TestRender_email(t *testing.T) {
 }
 
 func TestRender_emoji(t *testing.T) {
-	setting.AppURL = TestAppURL
-	setting.StaticURLPrefix = TestAppURL
+	setting.AppURL = markup.TestAppURL
+	setting.StaticURLPrefix = markup.TestAppURL
 
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
-		buffer, err := RenderString(&RenderContext{
+		buffer, err := markup.RenderString(&markup.RenderContext{
+			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
-			URLPrefix:    TestRepoURL,
+			Links: markup.Links{
+				Base: markup.TestRepoURL,
+			},
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -349,45 +394,60 @@ func TestRender_emoji(t *testing.T) {
 }
 
 func TestRender_ShortLinks(t *testing.T) {
-	setting.AppURL = TestAppURL
-	tree := util.URLJoin(TestRepoURL, "src", "master")
+	setting.AppURL = markup.TestAppURL
+	tree := util.URLJoin(markup.TestRepoURL, "src", "master")
 
 	test := func(input, expected, expectedWiki string) {
-		buffer, err := markdown.RenderString(&RenderContext{
-			URLPrefix: tree,
+		buffer, err := markdown.RenderString(&markup.RenderContext{
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base:       markup.TestRepoURL,
+				BranchPath: "master",
+			},
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
-		buffer, err = markdown.RenderString(&RenderContext{
-			URLPrefix: TestRepoURL,
-			Metas:     localMetas,
-			IsWiki:    true,
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		buffer, err = markdown.RenderString(&markup.RenderContext{
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base: markup.TestRepoURL,
+			},
+			Metas:  localMetas,
+			IsWiki: true,
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
+		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
 	}
 
-	rawtree := util.URLJoin(TestRepoURL, "raw", "master")
+	mediatree := util.URLJoin(markup.TestRepoURL, "media", "master")
 	url := util.URLJoin(tree, "Link")
 	otherURL := util.URLJoin(tree, "Other-Link")
 	encodedURL := util.URLJoin(tree, "Link%3F")
-	imgurl := util.URLJoin(rawtree, "Link.jpg")
-	otherImgurl := util.URLJoin(rawtree, "Link+Other.jpg")
-	encodedImgurl := util.URLJoin(rawtree, "Link+%23.jpg")
-	notencodedImgurl := util.URLJoin(rawtree, "some", "path", "Link+#.jpg")
-	urlWiki := util.URLJoin(TestRepoURL, "wiki", "Link")
-	otherURLWiki := util.URLJoin(TestRepoURL, "wiki", "Other-Link")
-	encodedURLWiki := util.URLJoin(TestRepoURL, "wiki", "Link%3F")
-	imgurlWiki := util.URLJoin(TestRepoURL, "wiki", "raw", "Link.jpg")
-	otherImgurlWiki := util.URLJoin(TestRepoURL, "wiki", "raw", "Link+Other.jpg")
-	encodedImgurlWiki := util.URLJoin(TestRepoURL, "wiki", "raw", "Link+%23.jpg")
-	notencodedImgurlWiki := util.URLJoin(TestRepoURL, "wiki", "raw", "some", "path", "Link+#.jpg")
+	imgurl := util.URLJoin(mediatree, "Link.jpg")
+	otherImgurl := util.URLJoin(mediatree, "Link+Other.jpg")
+	encodedImgurl := util.URLJoin(mediatree, "Link+%23.jpg")
+	notencodedImgurl := util.URLJoin(mediatree, "some", "path", "Link+#.jpg")
+	urlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "Link")
+	otherURLWiki := util.URLJoin(markup.TestRepoURL, "wiki", "Other-Link")
+	encodedURLWiki := util.URLJoin(markup.TestRepoURL, "wiki", "Link%3F")
+	imgurlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "Link.jpg")
+	otherImgurlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "Link+Other.jpg")
+	encodedImgurlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "Link+%23.jpg")
+	notencodedImgurlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "some", "path", "Link+#.jpg")
+	renderableFileURL := util.URLJoin(tree, "markdown_file.md")
+	renderableFileURLWiki := util.URLJoin(markup.TestRepoURL, "wiki", "markdown_file.md")
+	unrenderableFileURL := util.URLJoin(tree, "file.zip")
+	unrenderableFileURLWiki := util.URLJoin(markup.TestRepoURL, "wiki", "file.zip")
 	favicon := "http://google.com/favicon.ico"
 
 	test(
 		"[[Link]]",
 		`<p><a href="`+url+`" rel="nofollow">Link</a></p>`,
 		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a></p>`)
+	test(
+		"[[Link.-]]",
+		`<p><a href="http://localhost:3000/test-owner/test-repo/src/master/Link.-" rel="nofollow">Link.-</a></p>`,
+		`<p><a href="http://localhost:3000/test-owner/test-repo/wiki/Link.-" rel="nofollow">Link.-</a></p>`)
 	test(
 		"[[Link.jpg]]",
 		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" title="Link.jpg" alt="Link.jpg"/></a></p>`,
@@ -437,6 +497,14 @@ func TestRender_ShortLinks(t *testing.T) {
 		`<p><a href="`+url+`" rel="nofollow">Link</a> <a href="`+otherURL+`" rel="nofollow">Other Link</a> <a href="`+encodedURL+`" rel="nofollow">Link?</a></p>`,
 		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a> <a href="`+otherURLWiki+`" rel="nofollow">Other Link</a> <a href="`+encodedURLWiki+`" rel="nofollow">Link?</a></p>`)
 	test(
+		"[[markdown_file.md]]",
+		`<p><a href="`+renderableFileURL+`" rel="nofollow">markdown_file.md</a></p>`,
+		`<p><a href="`+renderableFileURLWiki+`" rel="nofollow">markdown_file.md</a></p>`)
+	test(
+		"[[file.zip]]",
+		`<p><a href="`+unrenderableFileURL+`" rel="nofollow">file.zip</a></p>`,
+		`<p><a href="`+unrenderableFileURLWiki+`" rel="nofollow">file.zip</a></p>`)
+	test(
 		"[[Link #.jpg]]",
 		`<p><a href="`+encodedImgurl+`" rel="nofollow"><img src="`+encodedImgurl+`" title="Link #.jpg" alt="Link #.jpg"/></a></p>`,
 		`<p><a href="`+encodedImgurlWiki+`" rel="nofollow"><img src="`+encodedImgurlWiki+`" title="Link #.jpg" alt="Link #.jpg"/></a></p>`)
@@ -454,42 +522,45 @@ func TestRender_ShortLinks(t *testing.T) {
 		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`)
 }
 
-func TestRender_RelativeImages(t *testing.T) {
-	setting.AppURL = TestAppURL
-	tree := util.URLJoin(TestRepoURL, "src", "master")
-
-	test := func(input, expected, expectedWiki string) {
-		buffer, err := markdown.RenderString(&RenderContext{
-			URLPrefix: tree,
-			Metas:     localMetas,
+func TestRender_RelativeMedias(t *testing.T) {
+	render := func(input string, isWiki bool, links markup.Links) string {
+		buffer, err := markdown.RenderString(&markup.RenderContext{
+			Ctx:    git.DefaultContext,
+			Links:  links,
+			Metas:  localMetas,
+			IsWiki: isWiki,
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
-		buffer, err = markdown.RenderString(&RenderContext{
-			URLPrefix: TestRepoURL,
-			Metas:     localMetas,
-			IsWiki:    true,
-		}, input)
-		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
+		return strings.TrimSpace(string(buffer))
 	}
 
-	rawwiki := util.URLJoin(TestRepoURL, "wiki", "raw")
-	mediatree := util.URLJoin(TestRepoURL, "media", "master")
+	out := render(`<img src="LINK">`, false, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<a href="/test-owner/test-repo/LINK" target="_blank" rel="nofollow noopener"><img src="/test-owner/test-repo/LINK"/></a>`, out)
 
-	test(
-		`<img src="Link">`,
-		`<img src="`+util.URLJoin(mediatree, "Link")+`"/>`,
-		`<img src="`+util.URLJoin(rawwiki, "Link")+`"/>`)
+	out = render(`<img src="LINK">`, true, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<a href="/test-owner/test-repo/wiki/raw/LINK" target="_blank" rel="nofollow noopener"><img src="/test-owner/test-repo/wiki/raw/LINK"/></a>`, out)
 
-	test(
-		`<img src="./icon.png">`,
-		`<img src="`+util.URLJoin(mediatree, "icon.png")+`"/>`,
-		`<img src="`+util.URLJoin(rawwiki, "icon.png")+`"/>`)
+	out = render(`<img src="LINK">`, false, markup.Links{Base: "/test-owner/test-repo", BranchPath: "test-branch"})
+	assert.Equal(t, `<a href="/test-owner/test-repo/media/test-branch/LINK" target="_blank" rel="nofollow noopener"><img src="/test-owner/test-repo/media/test-branch/LINK"/></a>`, out)
+
+	out = render(`<img src="LINK">`, true, markup.Links{Base: "/test-owner/test-repo", BranchPath: "test-branch"})
+	assert.Equal(t, `<a href="/test-owner/test-repo/wiki/raw/LINK" target="_blank" rel="nofollow noopener"><img src="/test-owner/test-repo/wiki/raw/LINK"/></a>`, out)
+
+	out = render(`<img src="/LINK">`, true, markup.Links{Base: "/test-owner/test-repo", BranchPath: "test-branch"})
+	assert.Equal(t, `<img src="/LINK"/>`, out)
+
+	out = render(`<video src="LINK">`, false, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<video src="/test-owner/test-repo/LINK"></video>`, out)
+
+	out = render(`<video src="LINK">`, true, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<video src="/test-owner/test-repo/wiki/raw/LINK"></video>`, out)
+
+	out = render(`<video src="/LINK">`, false, markup.Links{Base: "/test-owner/test-repo"})
+	assert.Equal(t, `<video src="/LINK"></video>`, out)
 }
 
 func Test_ParseClusterFuzz(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 
 	localMetas := map[string]string{
 		"user": "go-gitea",
@@ -499,9 +570,12 @@ func Test_ParseClusterFuzz(t *testing.T) {
 	data := "<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
 
 	var res strings.Builder
-	err := PostProcess(&RenderContext{
-		URLPrefix: "https://example.com",
-		Metas:     localMetas,
+	err := markup.PostProcess(&markup.RenderContext{
+		Ctx: git.DefaultContext,
+		Links: markup.Links{
+			Base: "https://example.com",
+		},
+		Metas: localMetas,
 	}, strings.NewReader(data), &res)
 	assert.NoError(t, err)
 	assert.NotContains(t, res.String(), "<html")
@@ -509,17 +583,65 @@ func Test_ParseClusterFuzz(t *testing.T) {
 	data = "<!DOCTYPE html>\n<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
 
 	res.Reset()
-	err = PostProcess(&RenderContext{
-		URLPrefix: "https://example.com",
-		Metas:     localMetas,
+	err = markup.PostProcess(&markup.RenderContext{
+		Ctx: git.DefaultContext,
+		Links: markup.Links{
+			Base: "https://example.com",
+		},
+		Metas: localMetas,
 	}, strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
 	assert.NotContains(t, res.String(), "<html")
 }
 
+func TestPostProcess_RenderDocument(t *testing.T) {
+	setting.AppURL = markup.TestAppURL
+	setting.StaticURLPrefix = markup.TestAppURL // can't run standalone
+
+	localMetas := map[string]string{
+		"user": "go-gitea",
+		"repo": "gitea",
+		"mode": "document",
+	}
+
+	test := func(input, expected string) {
+		var res strings.Builder
+		err := markup.PostProcess(&markup.RenderContext{
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				AbsolutePrefix: true,
+				Base:           "https://example.com",
+			},
+			Metas: localMetas,
+		}, strings.NewReader(input), &res)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res.String()))
+	}
+
+	// Issue index shouldn't be post processing in a document.
+	test(
+		"#1",
+		"#1")
+
+	// But cross-referenced issue index should work.
+	test(
+		"go-gitea/gitea#12345",
+		`<a href="`+util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue">go-gitea/gitea#12345</a>`)
+
+	// Test that other post processing still works.
+	test(
+		":gitea:",
+		`<span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span>`)
+	test(
+		"Some text with 😄 in the middle",
+		`Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle`)
+	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
+		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4 (comment)</a>`)
+}
+
 func TestIssue16020(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 
 	localMetas := map[string]string{
 		"user": "go-gitea",
@@ -529,9 +651,9 @@ func TestIssue16020(t *testing.T) {
 	data := `<img src="data:image/png;base64,i//V"/>`
 
 	var res strings.Builder
-	err := PostProcess(&RenderContext{
-		URLPrefix: "https://example.com",
-		Metas:     localMetas,
+	err := markup.PostProcess(&markup.RenderContext{
+		Ctx:   git.DefaultContext,
+		Metas: localMetas,
 	}, strings.NewReader(data), &res)
 	assert.NoError(t, err)
 	assert.Equal(t, data, res.String())
@@ -545,9 +667,9 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var res strings.Builder
-		err := PostProcess(&RenderContext{
-			URLPrefix: "https://example.com",
-			Metas:     localMetas,
+		err := markup.PostProcess(&markup.RenderContext{
+			Ctx:   git.DefaultContext,
+			Metas: localMetas,
 		}, strings.NewReader(data), &res)
 		assert.NoError(b, err)
 	}
@@ -555,15 +677,18 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 
 func TestFuzz(t *testing.T) {
 	s := "t/l/issues/8#/../../a"
-	renderContext := RenderContext{
-		URLPrefix: "https://example.com/go-gitea/gitea",
+	renderContext := markup.RenderContext{
+		Ctx: git.DefaultContext,
+		Links: markup.Links{
+			Base: "https://example.com/go-gitea/gitea",
+		},
 		Metas: map[string]string{
 			"user": "go-gitea",
 			"repo": "gitea",
 		},
 	}
 
-	err := PostProcess(&renderContext, strings.NewReader(s), io.Discard)
+	err := markup.PostProcess(&renderContext, strings.NewReader(s), io.Discard)
 
 	assert.NoError(t, err)
 }
@@ -572,11 +697,18 @@ func TestIssue18471(t *testing.T) {
 	data := `http://domain/org/repo/compare/783b039...da951ce`
 
 	var res strings.Builder
-	err := PostProcess(&RenderContext{
-		URLPrefix: "https://example.com",
-		Metas:     localMetas,
+	err := markup.PostProcess(&markup.RenderContext{
+		Ctx:   git.DefaultContext,
+		Metas: localMetas,
 	}, strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
-	assert.Equal(t, res.String(), "<a href=\"http://domain/org/repo/compare/783b039...da951ce\" class=\"compare\"><code class=\"nohighlight\">783b039...da951ce</code></a>")
+	assert.Equal(t, `<a href="http://domain/org/repo/compare/783b039...da951ce" class="compare"><code class="nohighlight">783b039...da951ce</code></a>`, res.String())
+}
+
+func TestIsFullURL(t *testing.T) {
+	assert.True(t, markup.IsFullURLString("https://example.com"))
+	assert.True(t, markup.IsFullURLString("mailto:test@example.com"))
+	assert.True(t, markup.IsFullURLString("data:image/11111"))
+	assert.False(t, markup.IsFullURLString("/foo:bar"))
 }

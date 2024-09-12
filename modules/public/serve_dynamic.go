@@ -6,17 +6,10 @@
 package public
 
 import (
-	"io"
-	"net/http"
-	"os"
-	"time"
+	"code.gitea.io/gitea/modules/assetfs"
+	"code.gitea.io/gitea/modules/setting"
 )
 
-func fileSystem(dir string) http.FileSystem {
-	return http.Dir(dir)
-}
-
-// serveContent serve http content
-func serveContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modtime time.Time, content io.ReadSeeker) {
-	http.ServeContent(w, req, fi.Name(), modtime, content)
+func BuiltinAssets() *assetfs.Layer {
+	return assetfs.Local("builtin(static)", setting.StaticRootPath, "public")
 }

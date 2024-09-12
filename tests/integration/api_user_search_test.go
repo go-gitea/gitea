@@ -4,13 +4,12 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -26,9 +25,10 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 	query := "user2"
-	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
+	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var results SearchResults
@@ -53,11 +53,29 @@ func TestAPIUserSearchNotLoggedIn(t *testing.T) {
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
 		modelUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID})
-		if modelUser.KeepEmailPrivate {
-			assert.EqualValues(t, fmt.Sprintf("%s@%s", modelUser.LowerName, setting.Service.NoReplyAddress), user.Email)
-		} else {
-			assert.EqualValues(t, modelUser.Email, user.Email)
-		}
+		assert.EqualValues(t, modelUser.GetPlaceholderEmail(), user.Email)
+	}
+}
+
+func TestAPIUserSearchSystemUsers(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	for _, systemUser := range []*user_model.User{
+		user_model.NewGhostUser(),
+		user_model.NewActionsUser(),
+	} {
+		t.Run(systemUser.Name, func(t *testing.T) {
+			req := NewRequestf(t, "GET", "/api/v1/users/search?uid=%d", systemUser.ID)
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			var results SearchResults
+			DecodeJSON(t, resp, &results)
+			assert.NotEmpty(t, results.Data)
+			if assert.EqualValues(t, 1, len(results.Data)) {
+				user := results.Data[0]
+				assert.EqualValues(t, user.UserName, systemUser.Name)
+				assert.EqualValues(t, user.ID, systemUser.ID)
+			}
+		})
 	}
 }
 
@@ -65,10 +83,10 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 	query := "user31"
-	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
-	req.SetBasicAuth(token, "x-oauth-basic")
+	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var results SearchResults

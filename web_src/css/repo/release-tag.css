@@ -1,0 +1,137 @@
+#release-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--page-spacing);
+  padding-left: 0;
+}
+
+#release-list .release-list-title {
+  font-size: 2rem;
+  font-weight: var(--font-weight-normal);
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  margin: 0;
+}
+
+#release-list .release-entry {
+  display: flex;
+  gap: var(--page-spacing);
+}
+
+#release-list .release-entry .meta {
+  flex: 0 0 150px;
+  position: relative;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#release-list .release-entry .detail {
+  flex: 1;
+  margin: 0;
+}
+
+@media (max-width: 767.98px) {
+  #release-list .release-entry {
+    flex-direction: column;
+    gap: var(--page-spacing);
+  }
+  #release-list .release-entry .meta {
+    margin-left: 6px;
+    flex-direction: row;
+    flex-basis: auto;
+    display: flex;
+    align-items: center;
+  }
+  #release-list .js-branch-tag-selector {
+    margin-left: auto;
+  }
+  #release-list .branch-selector-dropdown .menu { /* open menu to left */
+    right: 0;
+    left: auto;
+  }
+}
+
+#release-list .release-entry .detail .author img {
+  margin-bottom: 2px; /* the legacy trick to align the avatar vertically, no better solution at the moment */
+}
+
+#release-list .release-entry .detail .download .list {
+  padding-left: 0;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+}
+
+#release-list .release-entry .detail .download .list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+#release-list .release-entry .detail .download[open] summary {
+  margin-bottom: 10px;
+}
+
+#release-list .download-icon {
+  margin-right: .25rem;
+  color: var(--color-text-light-1);
+}
+
+#release-list .release-entry .detail .download .list li:last-child {
+  border-bottom: none;
+}
+
+#tags-table .tag-list-row {
+  padding: 8px 12px;
+}
+
+#tags-table .tag-list-row-title {
+  font-size: 18px;
+  font-weight: var(--font-weight-normal);
+}
+
+.repository.new.release .target {
+  min-width: 500px;
+}
+
+.repository.new.release .target #tag-name {
+  margin-top: -4px;
+}
+
+.repository.new.release .target .at {
+  margin-left: -5px;
+  margin-right: 5px;
+}
+
+.repository.new.release .target .selection.dropdown {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.repository.new.release .prerelease.field {
+  margin-bottom: 0;
+}
+
+@media (max-width: 438px) {
+  .repository.new.release .field button,
+  .repository.new.release .field input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .repository.new.release .field button {
+    margin-bottom: 1em;
+  }
+}
+
+.repository.new.release .field .attachment_edit {
+  max-width: 48em;
+}
+
+.repository.new.release .markup {
+  min-height: 240px;
+}

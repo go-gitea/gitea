@@ -63,13 +63,21 @@ func IsRepoURLAccessible(ctx context.Context, url string) bool {
 }
 
 // InitRepository initializes a new Git repository.
-func InitRepository(ctx context.Context, repoPath string, bare bool) error {
+func InitRepository(ctx context.Context, repoPath string, bare bool, objectFormatName string) error {
 	err := os.MkdirAll(repoPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
 	cmd := NewCommand(ctx, "init")
+
+	if !IsValidObjectFormat(objectFormatName) {
+		return fmt.Errorf("invalid object format: %s", objectFormatName)
+	}
+	if DefaultFeatures().SupportHashSha256 {
+		cmd.AddOptionValues("--object-format", objectFormatName)
+	}
+
 	if bare {
 		cmd.AddArguments("--bare")
 	}
@@ -80,13 +88,14 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf, output strings.Builder
-	if err := NewCommand(repo.Ctx, "show-ref", "--head", "^HEAD$").
+	if err := NewCommand(repo.Ctx).AddOptionFormat("--git-dir=%s", repo.Path).AddArguments("rev-list", "-n", "1", "--all").
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: &output,
 			Stderr: &errbuf,
 		}); err != nil {
-		if err.Error() == "exit status 1" && errbuf.String() == "" {
+		if (err.Error() == "exit status 1" && strings.TrimSpace(errbuf.String()) == "") || err.Error() == "exit status 129" {
+			// git 2.11 exits with 129 if the repo is empty
 			return true, nil
 		}
 		return true, fmt.Errorf("check empty: %w - %s", err, errbuf.String())
@@ -115,7 +124,7 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 }
 
 // CloneWithArgs original repository to target path.
-func CloneWithArgs(ctx context.Context, args []CmdArg, from, to string, opts CloneRepoOptions) (err error) {
+func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
 	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err
@@ -163,10 +172,8 @@ func CloneWithArgs(ctx context.Context, args []CmdArg, from, to string, opts Clo
 
 	envs := os.Environ()
 	u, err := url.Parse(from)
-	if err == nil && (strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https")) {
-		if proxy.Match(u.Host) {
-			envs = append(envs, fmt.Sprintf("https_proxy=%s", proxy.GetProxyURL()))
-		}
+	if err == nil {
+		envs = proxy.EnvWithProxy(u)
 	}
 
 	stderr := new(bytes.Buffer)
@@ -211,49 +218,22 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	} else {
 		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, opts.Remote, opts.Force, opts.Mirror))
 	}
-	var outbuf, errbuf strings.Builder
 
-	if opts.Timeout == 0 {
-		opts.Timeout = -1
-	}
-
-	err := cmd.Run(&RunOpts{
-		Env:     opts.Env,
-		Timeout: opts.Timeout,
-		Dir:     repoPath,
-		Stdout:  &outbuf,
-		Stderr:  &errbuf,
-	})
+	stdout, stderr, err := cmd.RunStdString(&RunOpts{Env: opts.Env, Timeout: opts.Timeout, Dir: repoPath})
 	if err != nil {
-		if strings.Contains(errbuf.String(), "non-fast-forward") {
-			return &ErrPushOutOfDate{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
-		} else if strings.Contains(errbuf.String(), "! [remote rejected]") {
-			err := &ErrPushRejected{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
+		if strings.Contains(stderr, "non-fast-forward") {
+			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}
+		} else if strings.Contains(stderr, "! [remote rejected]") {
+			err := &ErrPushRejected{StdOut: stdout, StdErr: stderr, Err: err}
 			err.GenerateMessage()
 			return err
-		} else if strings.Contains(errbuf.String(), "matches more than one") {
-			err := &ErrMoreThanOne{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
-			return err
+		} else if strings.Contains(stderr, "matches more than one") {
+			return &ErrMoreThanOne{StdOut: stdout, StdErr: stderr, Err: err}
 		}
+		return fmt.Errorf("push failed: %w - %s\n%s", err, stderr, stdout)
 	}
 
-	if errbuf.Len() > 0 && err != nil {
-		return fmt.Errorf("%w - %s", err, errbuf.String())
-	}
-
-	return err
+	return nil
 }
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
@@ -264,7 +244,7 @@ func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error
 		return time.Time{}, err
 	}
 	commitTime := strings.TrimSpace(stdout)
-	return time.Parse(GitTimeLayout, commitTime)
+	return time.Parse("Mon Jan _2 15:04:05 2006 -0700", commitTime)
 }
 
 // DivergeObject represents commit count diverging commits
@@ -273,35 +253,28 @@ type DivergeObject struct {
 	Behind int
 }
 
-func checkDivergence(ctx context.Context, repoPath, baseBranch, targetBranch string) (int, error) {
-	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
-	cmd := NewCommand(ctx, "rev-list", "--count").AddDynamicArguments(branches)
+// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
+func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch string) (do DivergeObject, err error) {
+	cmd := NewCommand(ctx, "rev-list", "--count", "--left-right").
+		AddDynamicArguments(baseBranch + "..." + targetBranch).AddArguments("--")
 	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
-		return -1, err
+		return do, err
 	}
-	outInteger, errInteger := strconv.Atoi(strings.Trim(stdout, "\n"))
-	if errInteger != nil {
-		return -1, errInteger
-	}
-	return outInteger, nil
-}
-
-// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
-func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch string) (DivergeObject, error) {
-	// $(git rev-list --count master..feature) commits ahead of master
-	ahead, errorAhead := checkDivergence(ctx, repoPath, baseBranch, targetBranch)
-	if errorAhead != nil {
-		return DivergeObject{}, errorAhead
+	left, right, found := strings.Cut(strings.Trim(stdout, "\n"), "\t")
+	if !found {
+		return do, fmt.Errorf("git rev-list output is missing a tab: %q", stdout)
 	}
 
-	// $(git rev-list --count feature..master) commits behind master
-	behind, errorBehind := checkDivergence(ctx, repoPath, targetBranch, baseBranch)
-	if errorBehind != nil {
-		return DivergeObject{}, errorBehind
+	do.Behind, err = strconv.Atoi(left)
+	if err != nil {
+		return do, err
 	}
-
-	return DivergeObject{ahead, behind}, nil
+	do.Ahead, err = strconv.Atoi(right)
+	if err != nil {
+		return do, err
+	}
+	return do, nil
 }
 
 // CreateBundle create bundle content to the target path

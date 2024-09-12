@@ -22,10 +22,10 @@ func FixLanguageStatsToSaveSize(x *xorm.Engine) error {
 	type RepoIndexerType int
 
 	const (
-		// RepoIndexerTypeCode code indexer
-		RepoIndexerTypeCode RepoIndexerType = iota // 0
-		// RepoIndexerTypeStats repository stats indexer
-		RepoIndexerTypeStats // 1
+		// RepoIndexerTypeCode code indexer - 0
+		RepoIndexerTypeCode RepoIndexerType = iota //nolint:unused
+		// RepoIndexerTypeStats repository stats indexer - 1
+		RepoIndexerTypeStats
 	)
 
 	// RepoIndexerStatus see models/repo_indexer.go
@@ -33,15 +33,15 @@ func FixLanguageStatsToSaveSize(x *xorm.Engine) error {
 		IndexerType RepoIndexerType `xorm:"INDEX(s) NOT NULL DEFAULT 0"`
 	}
 
-	if err := x.Sync2(new(LanguageStat)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(LanguageStat)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 
 	x.Delete(&RepoIndexerStatus{IndexerType: RepoIndexerTypeStats})
 
 	// Delete language stat statuses
 	truncExpr := "TRUNCATE TABLE"
-	if setting.Database.UseSQLite3 {
+	if setting.Database.Type.IsSQLite3() {
 		truncExpr = "DELETE FROM"
 	}
 

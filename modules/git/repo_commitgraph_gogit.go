@@ -12,7 +12,7 @@ import (
 
 	gitealog "code.gitea.io/gitea/modules/log"
 
-	"github.com/go-git/go-git/v5/plumbing/format/commitgraph"
+	commitgraph "github.com/go-git/go-git/v5/plumbing/format/commitgraph/v2"
 	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
 )
 

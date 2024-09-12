@@ -4,24 +4,26 @@
 package user
 
 import (
-	"path/filepath"
+	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestDeleteUser(t *testing.T) {
@@ -41,7 +43,8 @@ func TestDeleteUser(t *testing.T) {
 		orgUsers := make([]*organization.OrgUser, 0, 10)
 		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&orgUsers, &organization.OrgUser{UID: userID}))
 		for _, orgUser := range orgUsers {
-			if err := models.RemoveOrgUser(orgUser.OrgID, orgUser.UID); err != nil {
+			org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: orgUser.OrgID})
+			if err := models.RemoveOrgUser(db.DefaultContext, org, user); err != nil {
 				assert.True(t, organization.IsErrLastOrgOwner(err))
 				return
 			}
@@ -89,9 +92,70 @@ func TestCreateUser(t *testing.T) {
 		MustChangePassword: false,
 	}
 
-	assert.NoError(t, user_model.CreateUser(user))
+	assert.NoError(t, user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{}))
 
 	assert.NoError(t, DeleteUser(db.DefaultContext, user, false))
+}
+
+func TestRenameUser(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 21})
+
+	t.Run("Non-Local", func(t *testing.T) {
+		u := &user_model.User{
+			Type:      user_model.UserTypeIndividual,
+			LoginType: auth.OAuth2,
+		}
+		assert.ErrorIs(t, RenameUser(db.DefaultContext, u, "user_rename"), user_model.ErrUserIsNotLocal{})
+	})
+
+	t.Run("Same username", func(t *testing.T) {
+		assert.NoError(t, RenameUser(db.DefaultContext, user, user.Name))
+	})
+
+	t.Run("Non usable username", func(t *testing.T) {
+		usernames := []string{"--diff", "aa.png", ".well-known", "search", "aaa.atom"}
+		for _, username := range usernames {
+			t.Run(username, func(t *testing.T) {
+				assert.Error(t, user_model.IsUsableUsername(username))
+				assert.Error(t, RenameUser(db.DefaultContext, user, username))
+			})
+		}
+	})
+
+	t.Run("Only capitalization", func(t *testing.T) {
+		caps := strings.ToUpper(user.Name)
+		unittest.AssertNotExistsBean(t, &user_model.User{ID: user.ID, Name: caps})
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: user.Name})
+
+		assert.NoError(t, RenameUser(db.DefaultContext, user, caps))
+
+		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: caps})
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: caps})
+	})
+
+	t.Run("Already exists", func(t *testing.T) {
+		existUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, existUser.Name), user_model.ErrUserAlreadyExist{Name: existUser.Name})
+		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, existUser.LowerName), user_model.ErrUserAlreadyExist{Name: existUser.LowerName})
+		newUsername := fmt.Sprintf("uSEr%d", existUser.ID)
+		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, newUsername), user_model.ErrUserAlreadyExist{Name: newUsername})
+	})
+
+	t.Run("Normal", func(t *testing.T) {
+		oldUsername := user.Name
+		newUsername := "User_Rename"
+
+		assert.NoError(t, RenameUser(db.DefaultContext, user, newUsername))
+		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: newUsername, LowerName: strings.ToLower(newUsername)})
+
+		redirectUID, err := user_model.LookupUserRedirect(db.DefaultContext, oldUsername)
+		assert.NoError(t, err)
+		assert.EqualValues(t, user.ID, redirectUID)
+
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: user.Name})
+	})
 }
 
 func TestCreateUser_Issue5882(t *testing.T) {
@@ -113,13 +177,36 @@ func TestCreateUser_Issue5882(t *testing.T) {
 	for _, v := range tt {
 		setting.Admin.DisableRegularOrgCreation = v.disableOrgCreation
 
-		assert.NoError(t, user_model.CreateUser(v.user))
+		assert.NoError(t, user_model.CreateUser(db.DefaultContext, v.user, &user_model.Meta{}))
 
-		u, err := user_model.GetUserByEmail(v.user.Email)
+		u, err := user_model.GetUserByEmail(db.DefaultContext, v.user.Email)
 		assert.NoError(t, err)
 
 		assert.Equal(t, !u.AllowCreateOrganization, v.disableOrgCreation)
 
 		assert.NoError(t, DeleteUser(db.DefaultContext, v.user, false))
 	}
+}
+
+func TestDeleteInactiveUsers(t *testing.T) {
+	addUser := func(name, email string, createdUnix timeutil.TimeStamp, active bool) {
+		inactiveUser := &user_model.User{Name: name, LowerName: strings.ToLower(name), Email: email, CreatedUnix: createdUnix, IsActive: active}
+		_, err := db.GetEngine(db.DefaultContext).NoAutoTime().Insert(inactiveUser)
+		assert.NoError(t, err)
+		inactiveUserEmail := &user_model.EmailAddress{UID: inactiveUser.ID, IsPrimary: true, Email: email, LowerEmail: strings.ToLower(email), IsActivated: active}
+		err = db.Insert(db.DefaultContext, inactiveUserEmail)
+		assert.NoError(t, err)
+	}
+	addUser("user-inactive-10", "user-inactive-10@test.com", timeutil.TimeStampNow().Add(-600), false)
+	addUser("user-inactive-5", "user-inactive-5@test.com", timeutil.TimeStampNow().Add(-300), false)
+	addUser("user-active-10", "user-active-10@test.com", timeutil.TimeStampNow().Add(-600), true)
+	addUser("user-active-5", "user-active-5@test.com", timeutil.TimeStampNow().Add(-300), true)
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-inactive-10"})
+	unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{Email: "user-inactive-10@test.com"})
+	assert.NoError(t, DeleteInactiveUsers(db.DefaultContext, 8*time.Minute))
+	unittest.AssertNotExistsBean(t, &user_model.User{Name: "user-inactive-10"})
+	unittest.AssertNotExistsBean(t, &user_model.EmailAddress{Email: "user-inactive-10@test.com"})
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-inactive-5"})
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-active-10"})
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-active-5"})
 }

@@ -31,21 +31,19 @@ var IncomingEmail = struct {
 	MaximumMessageSize:   10485760,
 }
 
-func newIncomingEmail() {
-	if err := Cfg.Section("email.incoming").MapTo(&IncomingEmail); err != nil {
-		log.Fatal("Unable to map [email.incoming] section on to IncomingEmail. Error: %v", err)
-	}
+func loadIncomingEmailFrom(rootCfg ConfigProvider) {
+	mustMapSetting(rootCfg, "email.incoming", &IncomingEmail)
 
 	if !IncomingEmail.Enabled {
 		return
 	}
 
-	if err := checkReplyToAddress(IncomingEmail.ReplyToAddress); err != nil {
+	if err := checkReplyToAddress(); err != nil {
 		log.Fatal("Invalid incoming_mail.REPLY_TO_ADDRESS (%s): %v", IncomingEmail.ReplyToAddress, err)
 	}
 }
 
-func checkReplyToAddress(address string) error {
+func checkReplyToAddress() error {
 	parsed, err := mail.ParseAddress(IncomingEmail.ReplyToAddress)
 	if err != nil {
 		return err

@@ -8,6 +8,7 @@ import (
 	"encoding/gob"
 
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -28,9 +29,9 @@ func Init() {
 		Config: &webauthn.Config{
 			RPDisplayName: setting.AppName,
 			RPID:          setting.Domain,
-			RPOrigin:      appURL,
+			RPOrigins:     []string{appURL},
 			AuthenticatorSelection: protocol.AuthenticatorSelection{
-				UserVerification: "discouraged",
+				UserVerification: protocol.VerificationDiscouraged,
 			},
 			AttestationPreference: protocol.PreferDirectAttestation,
 		},
@@ -62,12 +63,12 @@ func (u *User) WebAuthnDisplayName() string {
 
 // WebAuthnIcon implements the webauthn.User interface
 func (u *User) WebAuthnIcon() string {
-	return (*user_model.User)(u).AvatarLink()
+	return (*user_model.User)(u).AvatarLink(db.DefaultContext)
 }
 
-// WebAuthnCredentials implementns the webauthn.User interface
+// WebAuthnCredentials implements the webauthn.User interface
 func (u *User) WebAuthnCredentials() []webauthn.Credential {
-	dbCreds, err := auth.GetWebAuthnCredentialsByUID(u.ID)
+	dbCreds, err := auth.GetWebAuthnCredentialsByUID(db.DefaultContext, u.ID)
 	if err != nil {
 		return nil
 	}

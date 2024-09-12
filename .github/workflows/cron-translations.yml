@@ -1,0 +1,38 @@
+name: cron-translations
+
+on:
+  schedule:
+    - cron: "7 0 * * *" # every day at 00:07 UTC
+  workflow_dispatch:
+
+jobs:
+  crowdin-pull:
+    runs-on: ubuntu-latest
+    if: github.repository == 'go-gitea/gitea'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: crowdin/github-action@v1
+        with:
+          upload_sources: true
+          upload_translations: false
+          download_sources: false
+          download_translations: true
+          push_translations: false
+          push_sources: false
+          create_pull_request: false
+          config: crowdin.yml
+        env:
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_KEY: ${{ secrets.CROWDIN_KEY }}
+      - name: update locales
+        run: ./build/update-locales.sh
+      - name: push translations to repo
+        uses: appleboy/git-push-action@v0.0.3
+        with:
+          author_email: "teabot@gitea.io"
+          author_name: GiteaBot
+          branch: main
+          commit: true
+          commit_message: "[skip ci] Updated translations via Crowdin"
+          remote: "git@github.com:go-gitea/gitea.git"
+          ssh_key: ${{ secrets.DEPLOY_KEY }}

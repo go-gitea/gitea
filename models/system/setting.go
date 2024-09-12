@@ -5,26 +5,23 @@ package system
 
 import (
 	"context"
-	"fmt"
-	"net/url"
-	"strconv"
-	"strings"
+	"math"
+	"sync"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/cache"
-	setting_module "code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"strk.kbt.io/projects/go/libravatar"
 	"xorm.io/builder"
 )
 
-// Setting is a key value store of user settings
 type Setting struct {
 	ID           int64              `xorm:"pk autoincr"`
-	SettingKey   string             `xorm:"varchar(255) unique"` // ensure key is always lowercase
+	SettingKey   string             `xorm:"varchar(255) unique"` // key should be lowercase
 	SettingValue string             `xorm:"text"`
-	Version      int                `xorm:"version"` // prevent to override
+	Version      int                `xorm:"version"`
 	Created      timeutil.TimeStamp `xorm:"created"`
 	Updated      timeutil.TimeStamp `xorm:"updated"`
 }
@@ -34,269 +31,122 @@ func (s *Setting) TableName() string {
 	return "system_setting"
 }
 
-func (s *Setting) GetValueBool() bool {
-	if s == nil {
-		return false
-	}
-
-	b, _ := strconv.ParseBool(s.SettingValue)
-	return b
-}
-
 func init() {
 	db.RegisterModel(new(Setting))
 }
 
-// ErrSettingIsNotExist represents an error that a setting is not exist with special key
-type ErrSettingIsNotExist struct {
-	Key string
-}
+const keyRevision = "revision"
 
-// Error implements error
-func (err ErrSettingIsNotExist) Error() string {
-	return fmt.Sprintf("System setting[%s] is not exist", err.Key)
-}
-
-// IsErrSettingIsNotExist return true if err is ErrSettingIsNotExist
-func IsErrSettingIsNotExist(err error) bool {
-	_, ok := err.(ErrSettingIsNotExist)
-	return ok
-}
-
-// ErrDataExpired represents an error that update a record which has been updated by another thread
-type ErrDataExpired struct {
-	Key string
-}
-
-// Error implements error
-func (err ErrDataExpired) Error() string {
-	return fmt.Sprintf("System setting[%s] has been updated by another thread", err.Key)
-}
-
-// IsErrDataExpired return true if err is ErrDataExpired
-func IsErrDataExpired(err error) bool {
-	_, ok := err.(ErrDataExpired)
-	return ok
-}
-
-// GetSettingNoCache returns specific setting without using the cache
-func GetSettingNoCache(key string) (*Setting, error) {
-	v, err := GetSettings([]string{key})
+func GetRevision(ctx context.Context) int {
+	revision, exist, err := db.Get[Setting](ctx, builder.Eq{"setting_key": keyRevision})
 	if err != nil {
-		return nil, err
-	}
-	if len(v) == 0 {
-		return nil, ErrSettingIsNotExist{key}
-	}
-	return v[strings.ToLower(key)], nil
-}
-
-// GetSetting returns the setting value via the key
-func GetSetting(key string) (string, error) {
-	return cache.GetString(genSettingCacheKey(key), func() (string, error) {
-		res, err := GetSettingNoCache(key)
+		return 0
+	} else if !exist {
+		err = db.Insert(ctx, &Setting{SettingKey: keyRevision, Version: 1})
 		if err != nil {
-			return "", err
+			return 0
 		}
-		return res.SettingValue, nil
-	})
-}
-
-// GetSettingBool return bool value of setting,
-// none existing keys and errors are ignored and result in false
-func GetSettingBool(key string) bool {
-	s, _ := GetSetting(key)
-	v, _ := strconv.ParseBool(s)
-	return v
-}
-
-// GetSettings returns specific settings
-func GetSettings(keys []string) (map[string]*Setting, error) {
-	for i := 0; i < len(keys); i++ {
-		keys[i] = strings.ToLower(keys[i])
+		return 1
 	}
-	settings := make([]*Setting, 0, len(keys))
-	if err := db.GetEngine(db.DefaultContext).
-		Where(builder.In("setting_key", keys)).
+	if revision.Version <= 0 || revision.Version >= math.MaxInt-1 {
+		_, err = db.Exec(ctx, "UPDATE system_setting SET version=1 WHERE setting_key=?", keyRevision)
+		if err != nil {
+			return 0
+		}
+		return 1
+	}
+	return revision.Version
+}
+
+func GetAllSettings(ctx context.Context) (revision int, res map[string]string, err error) {
+	_ = GetRevision(ctx) // prepare the "revision" key ahead
+	var settings []*Setting
+	if err := db.GetEngine(ctx).
 		Find(&settings); err != nil {
-		return nil, err
+		return 0, nil, err
 	}
-	settingsMap := make(map[string]*Setting)
+	res = make(map[string]string)
 	for _, s := range settings {
-		settingsMap[s.SettingKey] = s
+		if s.SettingKey == keyRevision {
+			revision = s.Version
+		}
+		res[s.SettingKey] = s.SettingValue
 	}
-	return settingsMap, nil
+	return revision, res, nil
 }
 
-type AllSettings map[string]*Setting
-
-func (settings AllSettings) Get(key string) Setting {
-	if v, ok := settings[strings.ToLower(key)]; ok {
-		return *v
-	}
-	return Setting{}
-}
-
-func (settings AllSettings) GetBool(key string) bool {
-	b, _ := strconv.ParseBool(settings.Get(key).SettingValue)
-	return b
-}
-
-func (settings AllSettings) GetVersion(key string) int {
-	return settings.Get(key).Version
-}
-
-// GetAllSettings returns all settings from user
-func GetAllSettings() (AllSettings, error) {
-	settings := make([]*Setting, 0, 5)
-	if err := db.GetEngine(db.DefaultContext).
-		Find(&settings); err != nil {
-		return nil, err
-	}
-	settingsMap := make(map[string]*Setting)
-	for _, s := range settings {
-		settingsMap[s.SettingKey] = s
-	}
-	return settingsMap, nil
-}
-
-// DeleteSetting deletes a specific setting for a user
-func DeleteSetting(setting *Setting) error {
-	cache.Remove(genSettingCacheKey(setting.SettingKey))
-	_, err := db.GetEngine(db.DefaultContext).Delete(setting)
-	return err
-}
-
-func SetSettingNoVersion(key, value string) error {
-	s, err := GetSettingNoCache(key)
-	if IsErrSettingIsNotExist(err) {
-		return SetSetting(&Setting{
-			SettingKey:   key,
-			SettingValue: value,
-		})
-	}
-	if err != nil {
-		return err
-	}
-	s.SettingValue = value
-	return SetSetting(s)
-}
-
-// SetSetting updates a users' setting for a specific key
-func SetSetting(setting *Setting) error {
-	if err := upsertSettingValue(strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version); err != nil {
-		return err
-	}
-
-	setting.Version++
-
-	cc := cache.GetCache()
-	if cc != nil {
-		return cc.Put(genSettingCacheKey(setting.SettingKey), setting.SettingValue, setting_module.CacheService.TTLSeconds())
-	}
-
-	return nil
-}
-
-func upsertSettingValue(key, value string, version int) error {
-	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+func SetSettings(ctx context.Context, settings map[string]string) error {
+	_ = GetRevision(ctx) // prepare the "revision" key ahead
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
-
-		// here we use a general method to do a safe upsert for different databases (and most transaction levels)
-		// 1. try to UPDATE the record and acquire the transaction write lock
-		//    if UPDATE returns non-zero rows are changed, OK, the setting is saved correctly
-		//    if UPDATE returns "0 rows changed", two possibilities: (a) record doesn't exist  (b) value is not changed
-		// 2. do a SELECT to check if the row exists or not (we already have the transaction lock)
-		// 3. if the row doesn't exist, do an INSERT (we are still protected by the transaction lock, so it's safe)
-		//
-		// to optimize the SELECT in step 2, we can use an extra column like `revision=revision+1`
-		//    to make sure the UPDATE always returns a non-zero value for existing (unchanged) records.
-
-		res, err := e.Exec("UPDATE system_setting SET setting_value=?, version = version+1 WHERE setting_key=? AND version=?", value, key, version)
+		_, err := db.Exec(ctx, "UPDATE system_setting SET version=version+1 WHERE setting_key=?", keyRevision)
 		if err != nil {
 			return err
 		}
-		rows, _ := res.RowsAffected()
-		if rows > 0 {
-			// the existing row is updated, so we can return
-			return nil
+		for k, v := range settings {
+			res, err := e.Exec("UPDATE system_setting SET version=version+1, setting_value=? WHERE setting_key=?", v, k)
+			if err != nil {
+				return err
+			}
+			rows, _ := res.RowsAffected()
+			if rows == 0 { // if no existing row, insert a new row
+				if _, err = e.Insert(&Setting{SettingKey: k, SettingValue: v}); err != nil {
+					return err
+				}
+			}
 		}
-
-		// in case the value isn't changed, update would return 0 rows changed, so we need this check
-		has, err := e.Exist(&Setting{SettingKey: key})
-		if err != nil {
-			return err
-		}
-		if has {
-			return ErrDataExpired{Key: key}
-		}
-
-		// if no existing row, insert a new row
-		_, err = e.Insert(&Setting{SettingKey: key, SettingValue: value})
-		return err
+		return nil
 	})
 }
 
-var (
-	GravatarSourceURL *url.URL
-	LibravatarService *libravatar.Libravatar
-)
+type dbConfigCachedGetter struct {
+	mu sync.RWMutex
 
-func Init() error {
-	var disableGravatar bool
-	disableGravatarSetting, err := GetSettingNoCache(KeyPictureDisableGravatar)
-	if IsErrSettingIsNotExist(err) {
-		disableGravatar = setting_module.GetDefaultDisableGravatar()
-		disableGravatarSetting = &Setting{SettingValue: strconv.FormatBool(disableGravatar)}
-	} else if err != nil {
-		return err
-	} else {
-		disableGravatar = disableGravatarSetting.GetValueBool()
+	cacheTime time.Time
+	revision  int
+	settings  map[string]string
+}
+
+var _ config.DynKeyGetter = (*dbConfigCachedGetter)(nil)
+
+func (d *dbConfigCachedGetter) GetValue(ctx context.Context, key string) (v string, has bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	v, has = d.settings[key]
+	return v, has
+}
+
+func (d *dbConfigCachedGetter) GetRevision(ctx context.Context) int {
+	d.mu.RLock()
+	cachedDuration := time.Since(d.cacheTime)
+	cachedRevision := d.revision
+	d.mu.RUnlock()
+
+	if cachedDuration < time.Second {
+		return cachedRevision
 	}
 
-	var enableFederatedAvatar bool
-	enableFederatedAvatarSetting, err := GetSettingNoCache(KeyPictureEnableFederatedAvatar)
-	if IsErrSettingIsNotExist(err) {
-		enableFederatedAvatar = setting_module.GetDefaultEnableFederatedAvatar(disableGravatar)
-		enableFederatedAvatarSetting = &Setting{SettingValue: strconv.FormatBool(enableFederatedAvatar)}
-	} else if err != nil {
-		return err
-	} else {
-		enableFederatedAvatar = disableGravatarSetting.GetValueBool()
-	}
-
-	if setting_module.OfflineMode {
-		disableGravatar = true
-		enableFederatedAvatar = false
-		if !GetSettingBool(KeyPictureDisableGravatar) {
-			if err := SetSettingNoVersion(KeyPictureDisableGravatar, "true"); err != nil {
-				return fmt.Errorf("Failed to set setting %q: %w", KeyPictureDisableGravatar, err)
-			}
-		}
-		if GetSettingBool(KeyPictureEnableFederatedAvatar) {
-			if err := SetSettingNoVersion(KeyPictureEnableFederatedAvatar, "false"); err != nil {
-				return fmt.Errorf("Failed to set setting %q: %w", KeyPictureEnableFederatedAvatar, err)
-			}
-		}
-	}
-
-	if enableFederatedAvatar || !disableGravatar {
-		var err error
-		GravatarSourceURL, err = url.Parse(setting_module.GravatarSource)
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if GetRevision(ctx) != d.revision {
+		rev, set, err := GetAllSettings(ctx)
 		if err != nil {
-			return fmt.Errorf("Failed to parse Gravatar URL(%s): %w", setting_module.GravatarSource, err)
-		}
-	}
-
-	if GravatarSourceURL != nil && enableFederatedAvatarSetting.GetValueBool() {
-		LibravatarService = libravatar.New()
-		if GravatarSourceURL.Scheme == "https" {
-			LibravatarService.SetUseHTTPS(true)
-			LibravatarService.SetSecureFallbackHost(GravatarSourceURL.Host)
+			log.Error("Unable to get all settings: %v", err)
 		} else {
-			LibravatarService.SetUseHTTPS(false)
-			LibravatarService.SetFallbackHost(GravatarSourceURL.Host)
+			d.revision = rev
+			d.settings = set
 		}
 	}
-	return nil
+	d.cacheTime = time.Now()
+	return d.revision
+}
+
+func (d *dbConfigCachedGetter) InvalidateCache() {
+	d.mu.Lock()
+	d.cacheTime = time.Time{}
+	d.mu.Unlock()
+}
+
+func NewDatabaseDynKeyGetter() config.DynKeyGetter {
+	return &dbConfigCachedGetter{}
 }

@@ -19,20 +19,23 @@ func TestIterate(t *testing.T) {
 	xe := unittest.GetXORMEngine()
 	assert.NoError(t, xe.Sync(&repo_model.RepoUnit{}))
 
-	var repoCnt int
-	err := db.Iterate(db.DefaultContext, nil, func(ctx context.Context, repo *repo_model.RepoUnit) error {
-		repoCnt++
+	cnt, err := db.GetEngine(db.DefaultContext).Count(&repo_model.RepoUnit{})
+	assert.NoError(t, err)
+
+	var repoUnitCnt int
+	err = db.Iterate(db.DefaultContext, nil, func(ctx context.Context, repo *repo_model.RepoUnit) error {
+		repoUnitCnt++
 		return nil
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 81, repoCnt)
+	assert.EqualValues(t, cnt, repoUnitCnt)
 
 	err = db.Iterate(db.DefaultContext, nil, func(ctx context.Context, repoUnit *repo_model.RepoUnit) error {
-		reopUnit2 := repo_model.RepoUnit{ID: repoUnit.ID}
-		has, err := db.GetByBean(ctx, &reopUnit2)
+		has, err := db.ExistByID[repo_model.RepoUnit](ctx, repoUnit.ID)
 		if err != nil {
 			return err
-		} else if !has {
+		}
+		if !has {
 			return db.ErrNotExist{Resource: "repo_unit", ID: repoUnit.ID}
 		}
 		assert.EqualValues(t, repoUnit.RepoID, repoUnit.RepoID)

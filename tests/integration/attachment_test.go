@@ -83,12 +83,15 @@ func TestCreateIssueAttachment(t *testing.T) {
 	}
 
 	req = NewRequestWithValues(t, "POST", link, postData)
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	test.RedirectURL(resp) // check that redirect URL exists
 
 	// Validate that attachment is available
 	req = NewRequest(t, "GET", "/attachments/"+uuid)
 	session.MakeRequest(t, req, http.StatusOK)
+
+	// anonymous visit should be allowed because user2/repo1 is a public repository
+	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestGetAttachment(t *testing.T) {

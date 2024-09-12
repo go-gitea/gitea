@@ -4,6 +4,7 @@
 package convert
 
 import (
+	"context"
 	"net/url"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	ctx "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -37,16 +39,16 @@ func ToCommitMeta(repo *repo_model.Repository, tag *git.Tag) *api.CommitMeta {
 }
 
 // ToPayloadCommit convert a git.Commit to api.PayloadCommit
-func ToPayloadCommit(repo *repo_model.Repository, c *git.Commit) *api.PayloadCommit {
+func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Commit) *api.PayloadCommit {
 	authorUsername := ""
-	if author, err := user_model.GetUserByEmail(c.Author.Email); err == nil {
+	if author, err := user_model.GetUserByEmail(ctx, c.Author.Email); err == nil {
 		authorUsername = author.Name
 	} else if !user_model.IsErrUserNotExist(err) {
 		log.Error("GetUserByEmail: %v", err)
 	}
 
 	committerUsername := ""
-	if committer, err := user_model.GetUserByEmail(c.Committer.Email); err == nil {
+	if committer, err := user_model.GetUserByEmail(ctx, c.Committer.Email); err == nil {
 		committerUsername = committer.Name
 	} else if !user_model.IsErrUserNotExist(err) {
 		log.Error("GetUserByEmail: %v", err)
@@ -67,12 +69,26 @@ func ToPayloadCommit(repo *repo_model.Repository, c *git.Commit) *api.PayloadCom
 			UserName: committerUsername,
 		},
 		Timestamp:    c.Author.When,
-		Verification: ToVerification(c),
+		Verification: ToVerification(ctx, c),
+	}
+}
+
+type ToCommitOptions struct {
+	Stat         bool
+	Verification bool
+	Files        bool
+}
+
+func ParseCommitOptions(ctx *ctx.APIContext) ToCommitOptions {
+	return ToCommitOptions{
+		Stat:         ctx.FormString("stat") == "" || ctx.FormBool("stat"),
+		Files:        ctx.FormString("files") == "" || ctx.FormBool("files"),
+		Verification: ctx.FormString("verification") == "" || ctx.FormBool("verification"),
 	}
 }
 
 // ToCommit convert a git.Commit to api.Commit
-func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, stat bool) (*api.Commit, error) {
+func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, opts ToCommitOptions) (*api.Commit, error) {
 	var apiAuthor, apiCommitter *api.User
 
 	// Retrieve author and committer information
@@ -87,13 +103,13 @@ func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.
 	}
 
 	if ok {
-		apiAuthor = ToUser(cacheAuthor, nil)
+		apiAuthor = ToUser(ctx, cacheAuthor, nil)
 	} else {
-		author, err := user_model.GetUserByEmail(commit.Author.Email)
+		author, err := user_model.GetUserByEmail(ctx, commit.Author.Email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
-			apiAuthor = ToUser(author, nil)
+			apiAuthor = ToUser(ctx, author, nil)
 			if userCache != nil {
 				userCache[commit.Author.Email] = author
 			}
@@ -109,13 +125,13 @@ func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.
 	}
 
 	if ok {
-		apiCommitter = ToUser(cacheCommitter, nil)
+		apiCommitter = ToUser(ctx, cacheCommitter, nil)
 	} else {
-		committer, err := user_model.GetUserByEmail(commit.Committer.Email)
+		committer, err := user_model.GetUserByEmail(ctx, commit.Committer.Email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
-			apiCommitter = ToUser(committer, nil)
+			apiCommitter = ToUser(ctx, committer, nil)
 			if userCache != nil {
 				userCache[commit.Committer.Email] = committer
 			}
@@ -161,36 +177,46 @@ func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.
 				SHA:     commit.ID.String(),
 				Created: commit.Committer.When,
 			},
-			Verification: ToVerification(commit),
 		},
 		Author:    apiAuthor,
 		Committer: apiCommitter,
 		Parents:   apiParents,
 	}
 
+	// Retrieve verification for commit
+	if opts.Verification {
+		res.RepoCommit.Verification = ToVerification(ctx, commit)
+	}
+
 	// Retrieve files affected by the commit
-	if stat {
+	if opts.Files {
 		fileStatus, err := git.GetCommitFileStatus(gitRepo.Ctx, repo.RepoPath(), commit.ID.String())
 		if err != nil {
 			return nil, err
 		}
+
 		affectedFileList := make([]*api.CommitAffectedFiles, 0, len(fileStatus.Added)+len(fileStatus.Removed)+len(fileStatus.Modified))
-		for _, files := range [][]string{fileStatus.Added, fileStatus.Removed, fileStatus.Modified} {
+		for filestatus, files := range map[string][]string{"added": fileStatus.Added, "removed": fileStatus.Removed, "modified": fileStatus.Modified} {
 			for _, filename := range files {
 				affectedFileList = append(affectedFileList, &api.CommitAffectedFiles{
 					Filename: filename,
+					Status:   filestatus,
 				})
 			}
 		}
 
-		diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
+		res.Files = affectedFileList
+	}
+
+	// Get diff stats for commit
+	if opts.Stat {
+		diff, err := gitdiff.GetDiff(ctx, gitRepo, &gitdiff.DiffOptions{
 			AfterCommitID: commit.ID.String(),
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		res.Files = affectedFileList
 		res.Stats = &api.CommitStats{
 			Total:     diff.TotalAddition + diff.TotalDeletion,
 			Additions: diff.TotalAddition,

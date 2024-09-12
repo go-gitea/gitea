@@ -7,8 +7,8 @@ import (
 	"math/big"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/context"
 )
 
 type hiddenCommentTypeGroupsType map[string][]issues_model.CommentType
@@ -65,7 +65,7 @@ var hiddenCommentTypeGroups = hiddenCommentTypeGroupsType{
 	},
 	"project": {
 		/*30*/ issues_model.CommentTypeProject,
-		/*31*/ issues_model.CommentTypeProjectBoard,
+		/*31*/ issues_model.CommentTypeProjectColumn,
 	},
 	"issue_ref": {
 		/*33*/ issues_model.CommentTypeChangeIssueRef,
@@ -90,7 +90,7 @@ func IsUserHiddenCommentTypeGroupChecked(group string, hiddenCommentTypes *big.I
 	commentTypes, ok := hiddenCommentTypeGroups[group]
 	if !ok {
 		log.Critical("the group map for hidden comment types is out of sync, unknown group: %v", group)
-		return
+		return false
 	}
 	if hiddenCommentTypes == nil {
 		return false

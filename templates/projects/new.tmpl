@@ -1,0 +1,66 @@
+<h2 class="ui dividing header">
+	{{if .PageIsEditProjects}}
+		{{ctx.Locale.Tr "repo.projects.edit"}}
+		<div class="sub header">{{ctx.Locale.Tr "repo.projects.edit_subheader"}}</div>
+	{{else}}
+		{{ctx.Locale.Tr "repo.projects.new"}}
+		<div class="sub header">{{ctx.Locale.Tr "repo.projects.new_subheader"}}</div>
+	{{end}}
+</h2>
+{{template "base/alert" .}}
+<form class="ui form" action="{{.Link}}" method="post">
+	{{.CsrfTokenHtml}}
+	<div>
+		<input type="hidden" id="redirect" name="redirect" value="{{.redirect}}">
+		<div class="field {{if .Err_Title}}error{{end}}">
+			<label>{{ctx.Locale.Tr "repo.projects.title"}}</label>
+			<input name="title" placeholder="{{ctx.Locale.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
+		</div>
+		<div class="field">
+			<label>{{ctx.Locale.Tr "repo.projects.description"}}</label>
+			<textarea name="content" placeholder="{{ctx.Locale.Tr "repo.projects.description_placeholder"}}">{{.content}}</textarea>
+		</div>
+
+		{{if not .PageIsEditProjects}}
+			<div class="field">
+				<label>{{ctx.Locale.Tr "repo.projects.template.desc"}}</label>
+				<div class="ui selection dropdown">
+					<input type="hidden" name="template_type" value="{{.type}}">
+					<div class="default text">{{ctx.Locale.Tr "repo.projects.template.desc_helper"}}</div>
+					<div class="menu">
+						{{range $element := .TemplateConfigs}}
+							<div class="item" data-id="{{$element.TemplateType}}" data-value="{{$element.TemplateType}}">{{ctx.Locale.Tr $element.Translation}}</div>
+						{{end}}
+					</div>
+				</div>
+			</div>
+		{{end}}
+
+		<div class="field">
+			<label>{{ctx.Locale.Tr "repo.projects.card_type.desc"}}</label>
+			<div class="ui selection dropdown">
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				{{range $element := .CardTypes}}
+					{{if or (eq $.card_type $element.CardType) (and (not $.PageIsEditProjects) (eq $element.CardType 1))}}
+						<input type="hidden" name="card_type" value="{{$element.CardType}}">
+						<div class="default text">{{ctx.Locale.Tr $element.Translation}}</div>
+					{{end}}
+				{{end}}
+				<div class="menu">
+					{{range $element := .CardTypes}}
+						<div class="item" data-id="{{$element.CardType}}" data-value="{{$element.CardType}}">{{ctx.Locale.Tr $element.Translation}}</div>
+					{{end}}
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="divider"></div>
+	<div class="tw-text-right">
+		<a class="ui cancel button" href="{{$.CancelLink}}">
+			{{ctx.Locale.Tr "repo.milestones.cancel"}}
+		</a>
+		<button class="ui primary button">
+			{{if .PageIsEditProjects}}{{ctx.Locale.Tr "repo.projects.modify"}}{{else}}{{ctx.Locale.Tr "repo.projects.create"}}{{end}}
+		</button>
+	</div>
+</form>

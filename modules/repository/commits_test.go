@@ -6,11 +6,12 @@ package repository
 import (
 	"crypto/md5"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -101,14 +102,6 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	assert.EqualValues(t, []string{"readme.md"}, headCommit.Modified)
 }
 
-func enableGravatar(t *testing.T) {
-	err := system_model.SetSettingNoVersion(system_model.KeyPictureDisableGravatar, "false")
-	assert.NoError(t, err)
-	setting.GravatarSource = "https://secure.gravatar.com/avatar"
-	err = system_model.Init()
-	assert.NoError(t, err)
-}
-
 func TestPushCommits_AvatarLink(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -132,17 +125,16 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 		},
 	}
 
-	enableGravatar(t)
+	setting.GravatarSource = "https://secure.gravatar.com/avatar"
+	setting.OfflineMode = true
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s=84",
-		pushCommits.AvatarLink("user2@example.com"))
+		"/avatars/avatar2?size="+strconv.Itoa(28*setting.Avatar.RenderedSizeFactor),
+		pushCommits.AvatarLink(db.DefaultContext, "user2@example.com"))
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/"+
-			fmt.Sprintf("%x", md5.Sum([]byte("nonexistent@example.com")))+
-			"?d=identicon&s=84",
-		pushCommits.AvatarLink("nonexistent@example.com"))
+		fmt.Sprintf("https://secure.gravatar.com/avatar/%x?d=identicon&s=%d", md5.Sum([]byte("nonexistent@example.com")), 28*setting.Avatar.RenderedSizeFactor),
+		pushCommits.AvatarLink(db.DefaultContext, "nonexistent@example.com"))
 }
 
 func TestCommitToPushCommit(t *testing.T) {

@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -41,10 +40,10 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 		return
 	}
 
-	langMap := make(map[string][]string)
+	langMap := make(map[string][]*user_model.User)
 	for _, user := range recipients {
 		if user.ID != rel.PublisherID {
-			langMap[user.Language] = append(langMap[user.Language], user.Email)
+			langMap[user.Language] = append(langMap[user.Language], user)
 		}
 	}
 
@@ -53,29 +52,30 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 	}
 }
 
-func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_model.Release) {
+func mailNewRelease(ctx context.Context, lang string, tos []*user_model.User, rel *repo_model.Release) {
 	locale := translation.NewLocale(lang)
 
 	var err error
 	rel.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: rel.Repo.Link(),
-		Metas:     rel.Repo.ComposeMetas(),
+		Ctx:  ctx,
+		Repo: rel.Repo,
+		Links: markup.Links{
+			Base: rel.Repo.HTMLURL(),
+		},
+		Metas: rel.Repo.ComposeMetas(ctx),
 	}, rel.Note)
 	if err != nil {
 		log.Error("markdown.RenderString(%d): %v", rel.RepoID, err)
 		return
 	}
 
-	subject := locale.Tr("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
-	mailMeta := map[string]interface{}{
+	subject := locale.TrString("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
+	mailMeta := map[string]any{
+		"locale":   locale,
 		"Release":  rel,
 		"Subject":  subject,
 		"Language": locale.Language(),
-		// helper
-		"locale":    locale,
-		"Str2html":  templates.Str2html,
-		"DotEscape": templates.DotEscape,
+		"Link":     rel.HTMLURL(),
 	}
 
 	var mailBody bytes.Buffer
@@ -86,14 +86,14 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_mo
 	}
 
 	msgs := make([]*Message, 0, len(tos))
-	publisherName := rel.Publisher.DisplayName()
-	relURL := "<" + rel.HTMLURL() + ">"
+	publisherName := fromDisplayName(rel.Publisher)
+	msgID := generateMessageIDForRelease(rel)
 	for _, to := range tos {
-		msg := NewMessageFrom([]string{to}, publisherName, setting.MailService.FromEmail, subject, mailBody.String())
+		msg := NewMessageFrom(to.EmailTo(), publisherName, setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = subject
-		msg.SetHeader("Message-ID", relURL)
+		msg.SetHeader("Message-ID", msgID)
 		msgs = append(msgs, msg)
 	}
 
-	SendAsyncs(msgs)
+	SendAsync(msgs...)
 }

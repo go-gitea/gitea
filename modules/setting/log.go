@@ -10,357 +10,260 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"sync"
 
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
-
-	ini "gopkg.in/ini.v1"
 )
 
-var (
-	filenameSuffix  = ""
-	descriptionLock = sync.RWMutex{}
-	logDescriptions = make(map[string]*LogDescription)
-)
+type LogGlobalConfig struct {
+	RootPath string
 
-// GetLogDescriptions returns a race safe set of descriptions
-func GetLogDescriptions() map[string]*LogDescription {
-	descriptionLock.RLock()
-	defer descriptionLock.RUnlock()
-	descs := make(map[string]*LogDescription, len(logDescriptions))
-	for k, v := range logDescriptions {
-		subLogDescriptions := make([]SubLogDescription, len(v.SubLogDescriptions))
-		copy(subLogDescriptions, v.SubLogDescriptions)
+	Mode               string
+	Level              log.Level
+	StacktraceLogLevel log.Level
+	BufferLen          int
 
-		descs[k] = &LogDescription{
-			Name:               v.Name,
-			SubLogDescriptions: subLogDescriptions,
-		}
-	}
-	return descs
+	EnableSSHLog bool
+
+	AccessLogTemplate string
+	RequestIDHeaders  []string
 }
 
-// AddLogDescription adds a set of descriptions to the complete description
-func AddLogDescription(key string, description *LogDescription) {
-	descriptionLock.Lock()
-	defer descriptionLock.Unlock()
-	logDescriptions[key] = description
+var Log LogGlobalConfig
+
+const accessLogTemplateDefault = `{{.Ctx.RemoteHost}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}" "{{.Ctx.Req.UserAgent}}"`
+
+func loadLogGlobalFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("log")
+
+	Log.Level = log.LevelFromString(sec.Key("LEVEL").MustString(log.INFO.String()))
+	Log.StacktraceLogLevel = log.LevelFromString(sec.Key("STACKTRACE_LEVEL").MustString(log.NONE.String()))
+	Log.BufferLen = sec.Key("BUFFER_LEN").MustInt(10000)
+	Log.Mode = sec.Key("MODE").MustString("console")
+
+	Log.RootPath = sec.Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
+	if !filepath.IsAbs(Log.RootPath) {
+		Log.RootPath = filepath.Join(AppWorkPath, Log.RootPath)
+	}
+	Log.RootPath = util.FilePathJoinAbs(Log.RootPath)
+
+	Log.EnableSSHLog = sec.Key("ENABLE_SSH_LOG").MustBool(false)
+
+	Log.AccessLogTemplate = sec.Key("ACCESS_LOG_TEMPLATE").MustString(accessLogTemplateDefault)
+	Log.RequestIDHeaders = sec.Key("REQUEST_ID_HEADERS").Strings(",")
 }
 
-// AddSubLogDescription adds a sub log description
-func AddSubLogDescription(key string, subLogDescription SubLogDescription) bool {
-	descriptionLock.Lock()
-	defer descriptionLock.Unlock()
-	desc, ok := logDescriptions[key]
-	if !ok {
-		return false
-	}
-	for i, sub := range desc.SubLogDescriptions {
-		if sub.Name == subLogDescription.Name {
-			desc.SubLogDescriptions[i] = subLogDescription
-			return true
-		}
-	}
-	desc.SubLogDescriptions = append(desc.SubLogDescriptions, subLogDescription)
-	return true
-}
+func prepareLoggerConfig(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("log")
 
-// RemoveSubLogDescription removes a sub log description
-func RemoveSubLogDescription(key, name string) bool {
-	descriptionLock.Lock()
-	defer descriptionLock.Unlock()
-	desc, ok := logDescriptions[key]
-	if !ok {
-		return false
+	if !sec.HasKey("logger.default.MODE") {
+		sec.Key("logger.default.MODE").MustString(",")
 	}
-	for i, sub := range desc.SubLogDescriptions {
-		if sub.Name == name {
-			desc.SubLogDescriptions = append(desc.SubLogDescriptions[:i], desc.SubLogDescriptions[i+1:]...)
-			return true
-		}
+
+	deprecatedSetting(rootCfg, "log", "ACCESS", "log", "logger.access.MODE", "1.21")
+	deprecatedSetting(rootCfg, "log", "ENABLE_ACCESS_LOG", "log", "logger.access.MODE", "1.21")
+	if val := sec.Key("ACCESS").String(); val != "" {
+		sec.Key("logger.access.MODE").MustString(val)
 	}
-	return false
-}
+	if sec.HasKey("ENABLE_ACCESS_LOG") && !sec.Key("ENABLE_ACCESS_LOG").MustBool() {
+		sec.Key("logger.access.MODE").SetValue("")
+	}
 
-type defaultLogOptions struct {
-	levelName      string // LogLevel
-	flags          string
-	filename       string // path.Join(LogRootPath, "gitea.log")
-	bufferLength   int64
-	disableConsole bool
-}
+	deprecatedSetting(rootCfg, "log", "ROUTER", "log", "logger.router.MODE", "1.21")
+	deprecatedSetting(rootCfg, "log", "DISABLE_ROUTER_LOG", "log", "logger.router.MODE", "1.21")
+	if val := sec.Key("ROUTER").String(); val != "" {
+		sec.Key("logger.router.MODE").MustString(val)
+	}
+	if !sec.HasKey("logger.router.MODE") {
+		sec.Key("logger.router.MODE").MustString(",") // use default logger
+	}
+	if sec.HasKey("DISABLE_ROUTER_LOG") && sec.Key("DISABLE_ROUTER_LOG").MustBool() {
+		sec.Key("logger.router.MODE").SetValue("")
+	}
 
-func newDefaultLogOptions() defaultLogOptions {
-	return defaultLogOptions{
-		levelName:      LogLevel.String(),
-		flags:          "stdflags",
-		filename:       filepath.Join(LogRootPath, "gitea.log"),
-		bufferLength:   10000,
-		disableConsole: false,
+	deprecatedSetting(rootCfg, "log", "XORM", "log", "logger.xorm.MODE", "1.21")
+	deprecatedSetting(rootCfg, "log", "ENABLE_XORM_LOG", "log", "logger.xorm.MODE", "1.21")
+	if val := sec.Key("XORM").String(); val != "" {
+		sec.Key("logger.xorm.MODE").MustString(val)
+	}
+	if !sec.HasKey("logger.xorm.MODE") {
+		sec.Key("logger.xorm.MODE").MustString(",") // use default logger
+	}
+	if sec.HasKey("ENABLE_XORM_LOG") && !sec.Key("ENABLE_XORM_LOG").MustBool() {
+		sec.Key("logger.xorm.MODE").SetValue("")
 	}
 }
 
-// SubLogDescription describes a sublogger
-type SubLogDescription struct {
-	Name     string
-	Provider string
-	Config   string
+func LogPrepareFilenameForWriter(fileName, defaultFileName string) string {
+	if fileName == "" {
+		fileName = defaultFileName
+	}
+	if !filepath.IsAbs(fileName) {
+		fileName = filepath.Join(Log.RootPath, fileName)
+	} else {
+		fileName = filepath.Clean(fileName)
+	}
+	if err := os.MkdirAll(filepath.Dir(fileName), os.ModePerm); err != nil {
+		panic(fmt.Sprintf("unable to create directory for log %q: %v", fileName, err.Error()))
+	}
+	return fileName
 }
 
-// LogDescription describes a named logger
-type LogDescription struct {
-	Name               string
-	SubLogDescriptions []SubLogDescription
-}
+func loadLogModeByName(rootCfg ConfigProvider, loggerName, modeName string) (writerName, writerType string, writerMode log.WriterMode, err error) {
+	sec := rootCfg.Section("log." + modeName)
 
-func getLogLevel(section *ini.Section, key string, defaultValue log.Level) log.Level {
-	value := section.Key(key).MustString(defaultValue.String())
-	return log.FromString(value)
-}
-
-func getStacktraceLogLevel(section *ini.Section, key, defaultValue string) string {
-	value := section.Key(key).MustString(defaultValue)
-	return log.FromString(value).String()
-}
-
-func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
-	level := getLogLevel(sec, "LEVEL", LogLevel)
-	levelName = level.String()
-	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", StacktraceLogLevel)
-	stacktraceLevel := log.FromString(stacktraceLevelName)
-	mode = name
-	keys := sec.Keys()
-	logPath := defaults.filename
-	flags := log.FlagsFromString(defaults.flags)
-	expression := ""
-	prefix := ""
-	for _, key := range keys {
-		switch key.Name() {
-		case "MODE":
-			mode = key.MustString(name)
-		case "FILE_NAME":
-			logPath = key.MustString(defaults.filename)
-			forcePathSeparator(logPath)
-			if !filepath.IsAbs(logPath) {
-				logPath = path.Join(LogRootPath, logPath)
-			}
-		case "FLAGS":
-			flags = log.FlagsFromString(key.MustString(defaults.flags))
-		case "EXPRESSION":
-			expression = key.MustString("")
-		case "PREFIX":
-			prefix = key.MustString("")
-		}
+	writerMode = log.WriterMode{}
+	writerType = ConfigSectionKeyString(sec, "MODE")
+	if writerType == "" {
+		writerType = modeName
 	}
 
-	logConfig := map[string]interface{}{
-		"level":           level.String(),
-		"expression":      expression,
-		"prefix":          prefix,
-		"flags":           flags,
-		"stacktraceLevel": stacktraceLevel.String(),
+	writerName = modeName
+	defaultFlags := "stdflags"
+	defaultFilaName := "gitea.log"
+	if loggerName == "access" {
+		// "access" logger is special, by default it doesn't have output flags, so it also needs a new writer name to avoid conflicting with other writers.
+		// so "access" logger's writer name is usually "file.access" or "console.access"
+		writerName += ".access"
+		defaultFlags = "none"
+		defaultFilaName = "access.log"
 	}
 
-	// Generate log configuration.
-	switch mode {
+	writerMode.Level = log.LevelFromString(ConfigInheritedKeyString(sec, "LEVEL", Log.Level.String()))
+	writerMode.StacktraceLevel = log.LevelFromString(ConfigInheritedKeyString(sec, "STACKTRACE_LEVEL", Log.StacktraceLogLevel.String()))
+	writerMode.Prefix = ConfigInheritedKeyString(sec, "PREFIX")
+	writerMode.Expression = ConfigInheritedKeyString(sec, "EXPRESSION")
+	writerMode.Flags = log.FlagsFromString(ConfigInheritedKeyString(sec, "FLAGS", defaultFlags))
+
+	switch writerType {
 	case "console":
-		useStderr := sec.Key("STDERR").MustBool(false)
-		logConfig["stderr"] = useStderr
+		useStderr := ConfigInheritedKey(sec, "STDERR").MustBool(false)
+		defaultCanColor := log.CanColorStdout
 		if useStderr {
-			logConfig["colorize"] = sec.Key("COLORIZE").MustBool(log.CanColorStderr)
-		} else {
-			logConfig["colorize"] = sec.Key("COLORIZE").MustBool(log.CanColorStdout)
+			defaultCanColor = log.CanColorStderr
 		}
-
+		writerOption := log.WriterConsoleOption{Stderr: useStderr}
+		writerMode.Colorize = ConfigInheritedKey(sec, "COLORIZE").MustBool(defaultCanColor)
+		writerMode.WriterOption = writerOption
 	case "file":
-		if err := os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
-			panic(err.Error())
-		}
-
-		logConfig["filename"] = logPath + filenameSuffix
-		logConfig["rotate"] = sec.Key("LOG_ROTATE").MustBool(true)
-		logConfig["maxsize"] = 1 << uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28))
-		logConfig["daily"] = sec.Key("DAILY_ROTATE").MustBool(true)
-		logConfig["maxdays"] = sec.Key("MAX_DAYS").MustInt(7)
-		logConfig["compress"] = sec.Key("COMPRESS").MustBool(true)
-		logConfig["compressionLevel"] = sec.Key("COMPRESSION_LEVEL").MustInt(-1)
+		fileName := LogPrepareFilenameForWriter(ConfigInheritedKey(sec, "FILE_NAME").String(), defaultFilaName)
+		writerOption := log.WriterFileOption{}
+		writerOption.FileName = fileName + filenameSuffix // FIXME: the suffix doesn't seem right, see its related comments
+		writerOption.LogRotate = ConfigInheritedKey(sec, "LOG_ROTATE").MustBool(true)
+		writerOption.MaxSize = 1 << uint(ConfigInheritedKey(sec, "MAX_SIZE_SHIFT").MustInt(28))
+		writerOption.DailyRotate = ConfigInheritedKey(sec, "DAILY_ROTATE").MustBool(true)
+		writerOption.MaxDays = ConfigInheritedKey(sec, "MAX_DAYS").MustInt(7)
+		writerOption.Compress = ConfigInheritedKey(sec, "COMPRESS").MustBool(true)
+		writerOption.CompressionLevel = ConfigInheritedKey(sec, "COMPRESSION_LEVEL").MustInt(-1)
+		writerMode.WriterOption = writerOption
 	case "conn":
-		logConfig["reconnectOnMsg"] = sec.Key("RECONNECT_ON_MSG").MustBool()
-		logConfig["reconnect"] = sec.Key("RECONNECT").MustBool()
-		logConfig["net"] = sec.Key("PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"})
-		logConfig["addr"] = sec.Key("ADDR").MustString(":7020")
-	case "smtp":
-		logConfig["username"] = sec.Key("USER").MustString("example@example.com")
-		logConfig["password"] = sec.Key("PASSWD").MustString("******")
-		logConfig["host"] = sec.Key("HOST").MustString("127.0.0.1:25")
-		sendTos := strings.Split(sec.Key("RECEIVERS").MustString(""), ",")
-		for i, address := range sendTos {
-			sendTos[i] = strings.TrimSpace(address)
+		writerOption := log.WriterConnOption{}
+		writerOption.ReconnectOnMsg = ConfigInheritedKey(sec, "RECONNECT_ON_MSG").MustBool()
+		writerOption.Reconnect = ConfigInheritedKey(sec, "RECONNECT").MustBool()
+		writerOption.Protocol = ConfigInheritedKey(sec, "PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"})
+		writerOption.Addr = ConfigInheritedKey(sec, "ADDR").MustString(":7020")
+		writerMode.WriterOption = writerOption
+	default:
+		if !log.HasEventWriter(writerType) {
+			return "", "", writerMode, fmt.Errorf("invalid log writer type (mode): %s, maybe it needs something like 'MODE=file' in [log.%s] section", writerType, modeName)
 		}
-		logConfig["sendTos"] = sendTos
-		logConfig["subject"] = sec.Key("SUBJECT").MustString("Diagnostic message from Gitea")
 	}
 
-	logConfig["colorize"] = sec.Key("COLORIZE").MustBool(false)
-	byteConfig, err := json.Marshal(logConfig)
-	if err != nil {
-		log.Error("Failed to marshal log configuration: %v %v", logConfig, err)
-		return
-	}
-	jsonConfig = string(byteConfig)
-	return mode, jsonConfig, levelName
+	return writerName, writerType, writerMode, nil
 }
 
-func generateNamedLogger(key string, options defaultLogOptions) *LogDescription {
-	description := LogDescription{
-		Name: key,
-	}
-
-	sections := strings.Split(Cfg.Section("log").Key(strings.ToUpper(key)).MustString(""), ",")
-
-	for i := 0; i < len(sections); i++ {
-		sections[i] = strings.TrimSpace(sections[i])
-	}
-
-	for _, name := range sections {
-		if len(name) == 0 || (name == "console" && options.disableConsole) {
-			continue
-		}
-		sec, err := Cfg.GetSection("log." + name + "." + key)
-		if err != nil {
-			sec, _ = Cfg.NewSection("log." + name + "." + key)
-		}
-
-		provider, config, levelName := generateLogConfig(sec, name, options)
-
-		if err := log.NewNamedLogger(key, options.bufferLength, name, provider, config); err != nil {
-			// Maybe panic here?
-			log.Error("Could not create new named logger: %v", err.Error())
-		}
-
-		description.SubLogDescriptions = append(description.SubLogDescriptions, SubLogDescription{
-			Name:     name,
-			Provider: provider,
-			Config:   config,
-		})
-		log.Info("%s Log: %s(%s:%s)", util.ToTitleCase(key), util.ToTitleCase(name), provider, levelName)
-	}
-
-	AddLogDescription(key, &description)
-
-	return &description
-}
-
-func newAccessLogService() {
-	EnableAccessLog = Cfg.Section("log").Key("ENABLE_ACCESS_LOG").MustBool(false)
-	AccessLogTemplate = Cfg.Section("log").Key("ACCESS_LOG_TEMPLATE").MustString(
-		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`,
-	)
-	// the `MustString` updates the default value, and `log.ACCESS` is used by `generateNamedLogger("access")` later
-	_ = Cfg.Section("log").Key("ACCESS").MustString("file")
-	if EnableAccessLog {
-		options := newDefaultLogOptions()
-		options.filename = filepath.Join(LogRootPath, "access.log")
-		options.flags = "" // For the router we don't want any prefixed flags
-		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-		generateNamedLogger("access", options)
-	}
-}
-
-func newRouterLogService() {
-	Cfg.Section("log").Key("ROUTER").MustString("console")
-	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
-	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
-
-	if !DisableRouterLog {
-		options := newDefaultLogOptions()
-		options.filename = filepath.Join(LogRootPath, "router.log")
-		options.flags = "date,time" // For the router we don't want any prefixed flags
-		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-		generateNamedLogger("router", options)
-	}
-}
-
-func newLogService() {
-	options := newDefaultLogOptions()
-	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-	EnableSSHLog = Cfg.Section("log").Key("ENABLE_SSH_LOG").MustBool(false)
-
-	description := LogDescription{
-		Name: log.DEFAULT,
-	}
-
-	sections := strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
-
-	useConsole := false
-	for _, name := range sections {
-		name = strings.TrimSpace(name)
-		if name == "" {
-			continue
-		}
-		if name == "console" {
-			useConsole = true
-		}
-
-		sec, err := Cfg.GetSection("log." + name + ".default")
-		if err != nil {
-			sec, err = Cfg.GetSection("log." + name)
-			if err != nil {
-				sec, _ = Cfg.NewSection("log." + name)
-			}
-		}
-
-		provider, config, levelName := generateLogConfig(sec, name, options)
-		log.NewLogger(options.bufferLength, name, provider, config)
-		description.SubLogDescriptions = append(description.SubLogDescriptions, SubLogDescription{
-			Name:     name,
-			Provider: provider,
-			Config:   config,
-		})
-		log.Info("Gitea Log Mode: %s(%s:%s)", util.ToTitleCase(name), util.ToTitleCase(provider), levelName)
-	}
-
-	AddLogDescription(log.DEFAULT, &description)
-
-	if !useConsole {
-		log.Info("According to the configuration, subsequent logs will not be printed to the console")
-		if err := log.DelLogger("console"); err != nil {
-			log.Fatal("Cannot delete console logger: %v", err)
-		}
-	}
-
-	// Finally redirect the default golog to here
-	golog.SetFlags(0)
-	golog.SetPrefix("")
-	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
-}
+var filenameSuffix = ""
 
 // RestartLogsWithPIDSuffix restarts the logs with a PID suffix on files
+// FIXME: it seems not right, it breaks log rotating or log collectors
 func RestartLogsWithPIDSuffix() {
 	filenameSuffix = fmt.Sprintf(".%d", os.Getpid())
-	NewLogServices(false)
+	initAllLoggers() // when forking, before restarting, rename logger file and re-init all loggers
 }
 
-// NewLogServices creates all the log services
-func NewLogServices(disableConsole bool) {
-	newLogService()
-	newRouterLogService()
-	newAccessLogService()
-	NewXORMLogService(disableConsole)
+func InitLoggersForTest() {
+	initAllLoggers()
 }
 
-// NewXORMLogService initializes xorm logger service
-func NewXORMLogService(disableConsole bool) {
-	EnableXORMLog = Cfg.Section("log").Key("ENABLE_XORM_LOG").MustBool(true)
-	if EnableXORMLog {
-		options := newDefaultLogOptions()
-		options.filename = filepath.Join(LogRootPath, "xorm.log")
-		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-		options.disableConsole = disableConsole
+var initLoggerDisabled bool
 
-		Cfg.Section("log").Key("XORM").MustString(",")
-		generateNamedLogger("xorm", options)
+// initAllLoggers creates all the log services
+func initAllLoggers() {
+	if initLoggerDisabled {
+		return
 	}
+	initManagedLoggers(log.GetManager(), CfgProvider)
+
+	golog.SetFlags(0)
+	golog.SetPrefix("")
+	golog.SetOutput(log.LoggerToWriter(log.GetLogger(log.DEFAULT).Info))
+}
+
+func DisableLoggerInit() {
+	initLoggerDisabled = true
+}
+
+func initManagedLoggers(manager *log.LoggerManager, cfg ConfigProvider) {
+	loadLogGlobalFrom(cfg)
+	prepareLoggerConfig(cfg)
+
+	initLoggerByName(manager, cfg, log.DEFAULT) // default
+	initLoggerByName(manager, cfg, "access")
+	initLoggerByName(manager, cfg, "router")
+	initLoggerByName(manager, cfg, "xorm")
+}
+
+func initLoggerByName(manager *log.LoggerManager, rootCfg ConfigProvider, loggerName string) {
+	sec := rootCfg.Section("log")
+	keyPrefix := "logger." + loggerName
+
+	disabled := sec.HasKey(keyPrefix+".MODE") && sec.Key(keyPrefix+".MODE").String() == ""
+	if disabled {
+		return
+	}
+
+	modeVal := sec.Key(keyPrefix + ".MODE").String()
+	if modeVal == "," {
+		modeVal = Log.Mode
+	}
+
+	var eventWriters []log.EventWriter
+	modes := strings.Split(modeVal, ",")
+	for _, modeName := range modes {
+		modeName = strings.TrimSpace(modeName)
+		if modeName == "" {
+			continue
+		}
+		writerName, writerType, writerMode, err := loadLogModeByName(rootCfg, loggerName, modeName)
+		if err != nil {
+			log.FallbackErrorf("Failed to load writer mode %q for logger %s: %v", modeName, loggerName, err)
+			continue
+		}
+		if writerMode.BufferLen == 0 {
+			writerMode.BufferLen = Log.BufferLen
+		}
+		eventWriter := manager.GetSharedWriter(writerName)
+		if eventWriter == nil {
+			eventWriter, err = manager.NewSharedWriter(writerName, writerType, writerMode)
+			if err != nil {
+				log.FallbackErrorf("Failed to create event writer for logger %s: %v", loggerName, err)
+				continue
+			}
+		}
+		eventWriters = append(eventWriters, eventWriter)
+	}
+
+	manager.GetLogger(loggerName).ReplaceAllWriters(eventWriters...)
+}
+
+func InitSQLLoggersForCli(level log.Level) {
+	log.SetConsoleLogger("xorm", "console", level)
+}
+
+func IsAccessLogEnabled() bool {
+	return log.IsLoggerEnabled("access")
+}
+
+func IsRouteLogEnabled() bool {
+	return log.IsLoggerEnabled("router")
 }

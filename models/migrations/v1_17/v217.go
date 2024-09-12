@@ -16,7 +16,7 @@ func AlterHookTaskTextFieldsToLongText(x *xorm.Engine) error {
 		return err
 	}
 
-	if setting.Database.UseMySQL {
+	if setting.Database.Type.IsMySQL() {
 		if _, err := sess.Exec("ALTER TABLE `hook_task` CHANGE `payload_content` `payload_content` LONGTEXT, CHANGE `request_content` `request_content` LONGTEXT, change `response_content` `response_content` LONGTEXT"); err != nil {
 			return err
 		}

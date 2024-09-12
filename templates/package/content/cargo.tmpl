@@ -1,0 +1,63 @@
+{{if eq .PackageDescriptor.Package.Type "cargo"}}
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.cargo.registry"}}</label>
+				<div class="markup"><pre class="code-block"><code>[registry]
+default = "gitea"
+
+[registries.gitea]
+index = "sparse+<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/cargo/"></origin-url>" # Sparse index
+# index = "<origin-url data-url="{{AppSubUrl}}/{{.PackageDescriptor.Owner.Name}}/_cargo-index.git"></origin-url>" # Git
+
+[net]
+git-fetch-with-cli = true</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.cargo.install"}}</label>
+				<div class="markup"><pre class="code-block"><code>cargo add {{.PackageDescriptor.Package.Name}}@{{.PackageDescriptor.Version.Version}}</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Cargo" "https://docs.gitea.com/usage/packages/cargo/"}}</label>
+			</div>
+		</div>
+	</div>
+
+	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.Readme}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
+		{{if .PackageDescriptor.Metadata.Description}}<div class="ui attached segment">{{.PackageDescriptor.Metadata.Description}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.Readme}}<div class="ui attached segment">{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.Readme}}</div>{{end}}
+	{{end}}
+
+	{{if .PackageDescriptor.Metadata.Dependencies}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.dependencies"}}</h4>
+		<div class="ui attached segment">
+			<table class="ui single line very basic table">
+				<thead>
+					<tr>
+						<th class="ten wide">{{ctx.Locale.Tr "packages.dependency.id"}}</th>
+						<th class="six wide">{{ctx.Locale.Tr "packages.dependency.version"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .PackageDescriptor.Metadata.Dependencies}}
+					<tr>
+						<td>{{.Name}}</td>
+						<td>{{.Req}}</td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	{{end}}
+
+	{{if .PackageDescriptor.Metadata.Keywords}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.keywords"}}</h4>
+		<div class="ui attached segment">
+			{{range .PackageDescriptor.Metadata.Keywords}}
+				{{.}}
+			{{end}}
+		</div>
+	{{end}}
+{{end}}

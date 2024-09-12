@@ -10,26 +10,26 @@ import (
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 )
 
 // https://datatracker.ietf.org/doc/html/draft-ietf-appsawg-webfinger-14#section-4.4
 
 type webfingerJRD struct {
-	Subject    string                 `json:"subject,omitempty"`
-	Aliases    []string               `json:"aliases,omitempty"`
-	Properties map[string]interface{} `json:"properties,omitempty"`
-	Links      []*webfingerLink       `json:"links,omitempty"`
+	Subject    string           `json:"subject,omitempty"`
+	Aliases    []string         `json:"aliases,omitempty"`
+	Properties map[string]any   `json:"properties,omitempty"`
+	Links      []*webfingerLink `json:"links,omitempty"`
 }
 
 type webfingerLink struct {
-	Rel        string                 `json:"rel,omitempty"`
-	Type       string                 `json:"type,omitempty"`
-	Href       string                 `json:"href,omitempty"`
-	Titles     map[string]string      `json:"titles,omitempty"`
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Rel        string            `json:"rel,omitempty"`
+	Type       string            `json:"type,omitempty"`
+	Href       string            `json:"href,omitempty"`
+	Titles     map[string]string `json:"titles,omitempty"`
+	Properties map[string]any    `json:"properties,omitempty"`
 }
 
 // WebfingerQuery returns information about a resource
@@ -60,7 +60,7 @@ func WebfingerQuery(ctx *context.Context) {
 
 		u, err = user_model.GetUserByName(ctx, parts[0])
 	case "mailto":
-		u, err = user_model.GetUserByEmailContext(ctx, resource.Opaque)
+		u, err = user_model.GetUserByEmail(ctx, resource.Opaque)
 		if u != nil && u.KeepEmailPrivate {
 			err = user_model.ErrUserNotExist{}
 		}
@@ -85,7 +85,7 @@ func WebfingerQuery(ctx *context.Context) {
 
 	aliases := []string{
 		u.HTMLURL(),
-		appURL.String() + "api/v1/activitypub/user/" + url.PathEscape(u.Name),
+		appURL.String() + "api/v1/activitypub/user-id/" + fmt.Sprint(u.ID),
 	}
 	if !u.KeepEmailPrivate {
 		aliases = append(aliases, fmt.Sprintf("mailto:%s", u.Email))
@@ -99,12 +99,16 @@ func WebfingerQuery(ctx *context.Context) {
 		},
 		{
 			Rel:  "http://webfinger.net/rel/avatar",
-			Href: u.AvatarLink(),
+			Href: u.AvatarLink(ctx),
 		},
 		{
 			Rel:  "self",
 			Type: "application/activity+json",
-			Href: appURL.String() + "api/v1/activitypub/user/" + url.PathEscape(u.Name),
+			Href: appURL.String() + "api/v1/activitypub/user-id/" + fmt.Sprint(u.ID),
+		},
+		{
+			Rel:  "http://openid.net/specs/connect/1.0/issuer",
+			Href: appURL.String(),
 		},
 	}
 

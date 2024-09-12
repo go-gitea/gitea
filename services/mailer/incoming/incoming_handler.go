@@ -14,9 +14,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	attachment_service "code.gitea.io/gitea/services/attachment"
+	"code.gitea.io/gitea/services/context/upload"
 	issue_service "code.gitea.io/gitea/services/issue"
 	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
 	"code.gitea.io/gitea/services/mailer/token"
@@ -71,8 +71,14 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 		return err
 	}
 
-	if !perm.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsLocked && !doer.IsAdmin {
+	// Locked issues require write permissions
+	if issue.IsLocked && !perm.CanWriteIssuesOrPulls(issue.IsPull) && !doer.IsAdmin {
 		log.Debug("can't write issue or pull")
+		return nil
+	}
+
+	if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+		log.Debug("can't read issue or pull")
 		return nil
 	}
 
@@ -81,7 +87,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 		attachmentIDs := make([]string, 0, len(content.Attachments))
 		if setting.Attachment.Enabled {
 			for _, attachment := range content.Attachments {
-				a, err := attachment_service.UploadAttachment(bytes.NewReader(attachment.Content), setting.Attachment.AllowedTypes, &repo_model.Attachment{
+				a, err := attachment_service.UploadAttachment(ctx, bytes.NewReader(attachment.Content), setting.Attachment.AllowedTypes, int64(len(attachment.Content)), &repo_model.Attachment{
 					Name:       attachment.Name,
 					UploaderID: doer.ID,
 					RepoID:     issue.Repo.ID,
@@ -121,9 +127,10 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 				comment.Line,
 				content.Content,
 				comment.TreePath,
-				false,
+				false, // not pending review but a single review
 				comment.ReviewID,
 				"",
+				nil,
 			)
 			if err != nil {
 				return fmt.Errorf("CreateCodeComment failed: %w", err)
@@ -164,7 +171,7 @@ func (h *UnsubscribeHandler) Handle(ctx context.Context, _ *MailContent, doer *u
 			return nil
 		}
 
-		return issues_model.CreateOrUpdateIssueWatch(doer.ID, issue.ID, false)
+		return issues_model.CreateOrUpdateIssueWatch(ctx, doer.ID, issue.ID, false)
 	}
 
 	return fmt.Errorf("unsupported unsubscribe reference: %v", ref)

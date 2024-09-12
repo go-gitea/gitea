@@ -1,0 +1,58 @@
+#user-heatmap {
+  width: 100%;
+  font-size: 9px;
+  position: relative;
+}
+
+/* before the Vue component is mounted, show a loading indicator with dummy size */
+/* the ratio is guesswork, see https://github.com/razorness/vue3-calendar-heatmap/issues/26 */
+#user-heatmap.is-loading {
+  aspect-ratio: 5.415; /* the size is about 790 x 145 */
+}
+.user.profile #user-heatmap.is-loading {
+  aspect-ratio: 5.645; /* the size is about 953 x 169 */
+}
+
+#user-heatmap text {
+  fill: currentcolor !important;
+}
+
+/* for the "Less" and "More" legend */
+#user-heatmap .vch__legend .vch__legend {
+  display: flex;
+  font-size: 11px;
+  align-items: center;
+  justify-content: right;
+}
+
+#user-heatmap .vch__legend .vch__legend div:first-child,
+#user-heatmap .vch__legend .vch__legend div:last-child {
+  display: inline-block;
+  padding: 0 5px;
+}
+
+#user-heatmap .vch__day__square:hover {
+  outline: 1.5px solid var(--color-text);
+}
+
+/* move the "? contributions in the last ? months" text from top to bottom */
+#user-heatmap .total-contributions {
+  font-size: 11px;
+  position: absolute;
+  bottom: 0;
+  left: 25px;
+}
+
+@media (max-width: 1200px) {
+  #user-heatmap .total-contributions {
+    left: 21px;
+  }
+}
+
+@media (max-width: 1000px) {
+  #user-heatmap .total-contributions {
+    font-size: 10px;
+    left: 17px;
+    bottom: -4px;
+  }
+}

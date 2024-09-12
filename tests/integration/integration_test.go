@@ -1,6 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+//nolint:forbidigo
 package integration
 
 import (
@@ -21,14 +22,17 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
+	gitea_context "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -36,7 +40,7 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-var c *web.Route
+var testWebRoutes *web.Router
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
@@ -76,33 +80,33 @@ func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
 }
 
 func TestMain(m *testing.M) {
-	defer log.Close()
+	defer log.GetManager().Close()
 
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
 	tests.InitTest(true)
-	c = routers.NormalRoutes(context.TODO())
+	testWebRoutes = routers.NormalRoutes()
 
 	// integration test settings...
-	if setting.Cfg != nil {
-		testingCfg := setting.Cfg.Section("integration-tests")
-		tests.SlowTest = testingCfg.Key("SLOW_TEST").MustDuration(tests.SlowTest)
-		tests.SlowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(tests.SlowFlush)
+	if setting.CfgProvider != nil {
+		testingCfg := setting.CfgProvider.Section("integration-tests")
+		testlogger.SlowTest = testingCfg.Key("SLOW_TEST").MustDuration(testlogger.SlowTest)
+		testlogger.SlowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(testlogger.SlowFlush)
 	}
 
 	if os.Getenv("GITEA_SLOW_TEST_TIME") != "" {
 		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_TEST_TIME"))
 		if err == nil {
-			tests.SlowTest = duration
+			testlogger.SlowTest = duration
 		}
 	}
 
 	if os.Getenv("GITEA_SLOW_FLUSH_TIME") != "" {
 		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_FLUSH_TIME"))
 		if err == nil {
-			tests.SlowFlush = duration
+			testlogger.SlowFlush = duration
 		}
 	}
 
@@ -122,9 +126,12 @@ func TestMain(m *testing.M) {
 		fmt.Printf("Error initializing test database: %v\n", err)
 		os.Exit(1)
 	}
+
+	// FIXME: the console logger is deleted by mistake, so if there is any `log.Fatal`, developers won't see any error message.
+	// Instead, "No tests were found",  last nonsense log is "According to the configuration, subsequent logs will not be printed to the console"
 	exitCode := m.Run()
 
-	tests.WriterCloser.Reset()
+	testlogger.WriterCloser.Reset()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("util.RemoveAll: %v\n", err)
@@ -156,14 +163,15 @@ func (s *TestSession) GetCookie(name string) *http.Cookie {
 	return nil
 }
 
-func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
+func (s *TestSession) MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
+	req := rw.Request
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
 		req.AddCookie(c)
 	}
-	resp := MakeRequest(t, req, expectedStatus)
+	resp := MakeRequest(t, rw, expectedStatus)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
@@ -173,14 +181,15 @@ func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatu
 	return resp
 }
 
-func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
+func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseRecorder {
 	t.Helper()
+	req := rw.Request
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
 		req.AddCookie(c)
 	}
-	resp := MakeRequestNilResponseRecorder(t, req, expectedStatus)
+	resp := MakeRequestNilResponseRecorder(t, rw, expectedStatus)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
@@ -190,14 +199,15 @@ func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Req
 	return resp
 }
 
-func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
+func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseHashSumRecorder {
 	t.Helper()
+	req := rw.Request
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
 		req.AddCookie(c)
 	}
-	resp := MakeRequestNilResponseHashSumRecorder(t, req, expectedStatus)
+	resp := MakeRequestNilResponseHashSumRecorder(t, rw, expectedStatus)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
@@ -217,8 +227,8 @@ func emptyTestSession(t testing.TB) *TestSession {
 	return &TestSession{jar: jar}
 }
 
-func getUserToken(t testing.TB, userName string) string {
-	return getTokenForLoggedInUser(t, loginUser(t, userName))
+func getUserToken(t testing.TB, userName string, scope ...auth.AccessTokenScope) string {
+	return getTokenForLoggedInUser(t, loginUser(t, userName), scope...)
 }
 
 func loginUser(t testing.TB, userName string) *TestSession {
@@ -256,7 +266,10 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 // token has to be unique this counter take care of
 var tokenCounter int64
 
-func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
+// getTokenForLoggedInUser returns a token for a logged in user.
+// The scope is an optional list of snake_case strings like the frontend form fields,
+// but without the "scope_" prefix.
+func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.AccessTokenScope) string {
 	t.Helper()
 	var token string
 	req := NewRequest(t, "GET", "/user/settings/applications")
@@ -274,16 +287,19 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 		csrf = doc.GetCSRF()
 	}
 	assert.NotEmpty(t, csrf)
-	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
-		"_csrf": csrf,
-		"name":  fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)),
-	})
+	urlValues := url.Values{}
+	urlValues.Add("_csrf", csrf)
+	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)))
+	for _, scope := range scopes {
+		urlValues.Add("scope", string(scope))
+	}
+	req = NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Log the flash values on failure
 	if !assert.Equal(t, resp.Result().Header["Location"], []string{"/user/settings/applications"}) {
 		for _, cookie := range resp.Result().Cookies() {
-			if cookie.Name != "macaron_flash" {
+			if cookie.Name != gitea_context.CookieNameFlash {
 				continue
 			}
 			flash, _ := url.ParseQuery(cookie.Value)
@@ -301,72 +317,100 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	return token
 }
 
-func NewRequest(t testing.TB, method, urlStr string) *http.Request {
+type RequestWrapper struct {
+	*http.Request
+}
+
+func (req *RequestWrapper) AddBasicAuth(username string) *RequestWrapper {
+	req.Request.SetBasicAuth(username, userPassword)
+	return req
+}
+
+func (req *RequestWrapper) AddTokenAuth(token string) *RequestWrapper {
+	if token == "" {
+		return req
+	}
+	if !strings.HasPrefix(token, "Bearer ") {
+		token = "Bearer " + token
+	}
+	req.Request.Header.Set("Authorization", token)
+	return req
+}
+
+func (req *RequestWrapper) SetHeader(name, value string) *RequestWrapper {
+	req.Request.Header.Set(name, value)
+	return req
+}
+
+func NewRequest(t testing.TB, method, urlStr string) *RequestWrapper {
 	t.Helper()
 	return NewRequestWithBody(t, method, urlStr, nil)
 }
 
-func NewRequestf(t testing.TB, method, urlFormat string, args ...interface{}) *http.Request {
+func NewRequestf(t testing.TB, method, urlFormat string, args ...any) *RequestWrapper {
 	t.Helper()
 	return NewRequest(t, method, fmt.Sprintf(urlFormat, args...))
 }
 
-func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string]string) *http.Request {
+func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string]string) *RequestWrapper {
 	t.Helper()
 	urlValues := url.Values{}
 	for key, value := range values {
 		urlValues[key] = []string{value}
 	}
-	req := NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()))
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	return req
+	return NewRequestWithURLValues(t, method, urlStr, urlValues)
 }
 
-func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
+func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.Values) *RequestWrapper {
+	t.Helper()
+	return NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode())).
+		SetHeader("Content-Type", "application/x-www-form-urlencoded")
+}
+
+func NewRequestWithJSON(t testing.TB, method, urlStr string, v any) *RequestWrapper {
 	t.Helper()
 
 	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
-	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
-	req.Header.Add("Content-Type", "application/json")
-	return req
+	return NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes)).
+		SetHeader("Content-Type", "application/json")
 }
 
-func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
+func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *RequestWrapper {
 	t.Helper()
 	if !strings.HasPrefix(urlStr, "http") && !strings.HasPrefix(urlStr, "/") {
 		urlStr = "/" + urlStr
 	}
-	request, err := http.NewRequest(method, urlStr, body)
+	req, err := http.NewRequest(method, urlStr, body)
 	assert.NoError(t, err)
-	request.RequestURI = urlStr
-	return request
-}
+	req.RequestURI = urlStr
 
-func AddBasicAuthHeader(request *http.Request, username string) *http.Request {
-	request.SetBasicAuth(username, userPassword)
-	return request
+	return &RequestWrapper{req}
 }
 
 const NoExpectedStatus = -1
 
-func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
+func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
+	req := rw.Request
 	recorder := httptest.NewRecorder()
-	c.ServeHTTP(recorder, req)
+	if req.RemoteAddr == "" {
+		req.RemoteAddr = "test-mock:12345"
+	}
+	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		if !assert.EqualValues(t, expectedStatus, recorder.Code,
-			"Request: %s %s", req.Method, req.URL.String()) {
+		if !assert.EqualValues(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, recorder)
 		}
 	}
 	return recorder
 }
 
-func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
+func MakeRequestNilResponseRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseRecorder {
 	t.Helper()
+	req := rw.Request
 	recorder := NewNilResponseRecorder()
-	c.ServeHTTP(recorder, req)
+	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -376,10 +420,11 @@ func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedSta
 	return recorder
 }
 
-func MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
+func MakeRequestNilResponseHashSumRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseHashSumRecorder {
 	t.Helper()
+	req := rw.Request
 	recorder := NewNilResponseHashSumRecorder()
-	c.ServeHTTP(recorder, req)
+	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -397,9 +442,10 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 		return
 	} else if len(respBytes) < 500 {
 		// if body is short, just log the whole thing
-		t.Log("Response:", string(respBytes))
+		t.Log("Response: ", string(respBytes))
 		return
 	}
+	t.Log("Response length: ", len(respBytes))
 
 	// log the "flash" error message, if one exists
 	// we must create a new buffer, so that we don't "use up" resp.Body
@@ -413,7 +459,7 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 	}
 }
 
-func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
+func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v any) {
 	t.Helper()
 
 	decoder := json.NewDecoder(resp.Body)
@@ -439,10 +485,19 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 	assert.True(t, result.Valid())
 }
 
+// GetCSRF returns CSRF token from body
 func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 	t.Helper()
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	return doc.GetCSRF()
+}
+
+// GetCSRFFrom returns CSRF token from body
+func GetCSRFFromCookie(t testing.TB, session *TestSession, urlStr string) string {
+	t.Helper()
+	req := NewRequest(t, "GET", urlStr)
+	session.MakeRequest(t, req, http.StatusOK)
+	return session.GetCookie("_csrf").Value
 }

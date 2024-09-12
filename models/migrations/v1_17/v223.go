@@ -53,8 +53,8 @@ func RenameCredentialIDBytes(x *xorm.Engine) error {
 			return err
 		}
 
-		if err := sess.Sync2(new(webauthnCredential)); err != nil {
-			return fmt.Errorf("error on Sync2: %w", err)
+		if err := sess.Sync(new(webauthnCredential)); err != nil {
+			return fmt.Errorf("error on Sync: %w", err)
 		}
 
 		if credentialIDExist {
@@ -65,11 +65,11 @@ func RenameCredentialIDBytes(x *xorm.Engine) error {
 		}
 
 		switch {
-		case setting.Database.UseMySQL:
+		case setting.Database.Type.IsMySQL():
 			if _, err := sess.Exec("ALTER TABLE `webauthn_credential` CHANGE credential_id_bytes credential_id VARBINARY(1024)"); err != nil {
 				return err
 			}
-		case setting.Database.UseMSSQL:
+		case setting.Database.Type.IsMSSQL():
 			if _, err := sess.Exec("sp_rename 'webauthn_credential.credential_id_bytes', 'credential_id', 'COLUMN'"); err != nil {
 				return err
 			}
@@ -99,5 +99,5 @@ func RenameCredentialIDBytes(x *xorm.Engine) error {
 		CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
-	return x.Sync2(&webauthnCredential{})
+	return x.Sync(&webauthnCredential{})
 }

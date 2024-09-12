@@ -16,10 +16,12 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
+	gitea_context "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -38,7 +40,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	mirrorRepo, err := repository.CreateRepository(user, user, repository.CreateRepoOptions{
+	mirrorRepo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
 		Name: "test-push-mirror",
 	})
 	assert.NoError(t, err)
@@ -54,14 +56,14 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	ok := mirror_service.SyncPushMirror(context.Background(), mirrors[0].ID)
 	assert.True(t, ok)
 
-	srcGitRepo, err := git.OpenRepository(git.DefaultContext, srcRepo.RepoPath())
+	srcGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, srcRepo)
 	assert.NoError(t, err)
 	defer srcGitRepo.Close()
 
 	srcCommit, err := srcGitRepo.GetBranchCommit("master")
 	assert.NoError(t, err)
 
-	mirrorGitRepo, err := git.OpenRepository(git.DefaultContext, mirrorRepo.RepoPath())
+	mirrorGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, mirrorRepo)
 	assert.NoError(t, err)
 	defer mirrorGitRepo.Close()
 
@@ -91,7 +93,7 @@ func doCreatePushMirror(ctx APITestContext, address, username, password string) 
 		})
 		ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
 
-		flashCookie := ctx.Session.GetCookie("macaron_flash")
+		flashCookie := ctx.Session.GetCookie(gitea_context.CookieNameFlash)
 		assert.NotNil(t, flashCookie)
 		assert.Contains(t, flashCookie.Value, "success")
 	}
@@ -112,7 +114,7 @@ func doRemovePushMirror(ctx APITestContext, address, username, password string, 
 		})
 		ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
 
-		flashCookie := ctx.Session.GetCookie("macaron_flash")
+		flashCookie := ctx.Session.GetCookie(gitea_context.CookieNameFlash)
 		assert.NotNil(t, flashCookie)
 		assert.Contains(t, flashCookie.Value, "success")
 	}

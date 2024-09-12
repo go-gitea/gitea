@@ -59,6 +59,17 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 				},
 			},
 		}
+	} else if strings.Contains(url, "legacy-batch-request-download") {
+		batchResponse = &BatchResponse{
+			Transfer: "dummy",
+			Objects: []*ObjectResponse{
+				{
+					Links: map[string]*Link{
+						"download": {},
+					},
+				},
+			},
+		}
 	} else if strings.Contains(url, "valid-batch-request-upload") {
 		batchResponse = &BatchResponse{
 			Transfer: "dummy",
@@ -155,14 +166,14 @@ func TestHTTPClientDownload(t *testing.T) {
 	hc := &http.Client{Transport: RoundTripFunc(func(req *http.Request) *http.Response {
 		assert.Equal(t, "POST", req.Method)
 		assert.Equal(t, MediaType, req.Header.Get("Content-type"))
-		assert.Equal(t, MediaType, req.Header.Get("Accept"))
+		assert.Equal(t, AcceptHeader, req.Header.Get("Accept"))
 
 		var batchRequest BatchRequest
 		err := json.NewDecoder(req.Body).Decode(&batchRequest)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "download", batchRequest.Operation)
-		assert.Equal(t, 1, len(batchRequest.Objects))
+		assert.Len(t, batchRequest.Objects, 1)
 		assert.Equal(t, p.Oid, batchRequest.Objects[0].Oid)
 		assert.Equal(t, p.Size, batchRequest.Objects[0].Size)
 
@@ -177,7 +188,7 @@ func TestHTTPClientDownload(t *testing.T) {
 		// case 0
 		{
 			endpoint:      "https://status-not-ok.io",
-			expectederror: "Unexpected server response: ",
+			expectederror: io.ErrUnexpectedEOF.Error(),
 		},
 		// case 1
 		{
@@ -207,7 +218,7 @@ func TestHTTPClientDownload(t *testing.T) {
 		// case 6
 		{
 			endpoint:      "https://empty-actions-map.io",
-			expectederror: "Missing action 'download'",
+			expectederror: "missing action 'download'",
 		},
 		// case 7
 		{
@@ -217,27 +228,33 @@ func TestHTTPClientDownload(t *testing.T) {
 		// case 8
 		{
 			endpoint:      "https://upload-actions-map.io",
-			expectederror: "Missing action 'download'",
+			expectederror: "missing action 'download'",
 		},
 		// case 9
 		{
 			endpoint:      "https://verify-actions-map.io",
-			expectederror: "Missing action 'download'",
+			expectederror: "missing action 'download'",
 		},
 		// case 10
 		{
 			endpoint:      "https://unknown-actions-map.io",
-			expectederror: "Missing action 'download'",
+			expectederror: "missing action 'download'",
+		},
+		// case 11
+		{
+			endpoint:      "https://legacy-batch-request-download.io",
+			expectederror: "",
 		},
 	}
 
 	for n, c := range cases {
 		client := &HTTPClient{
-			client:    hc,
-			endpoint:  c.endpoint,
-			transfers: make(map[string]TransferAdapter),
+			client:   hc,
+			endpoint: c.endpoint,
+			transfers: map[string]TransferAdapter{
+				"dummy": dummy,
+			},
 		}
-		client.transfers["dummy"] = dummy
 
 		err := client.Download(context.Background(), []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
 			if objectError != nil {
@@ -262,14 +279,14 @@ func TestHTTPClientUpload(t *testing.T) {
 	hc := &http.Client{Transport: RoundTripFunc(func(req *http.Request) *http.Response {
 		assert.Equal(t, "POST", req.Method)
 		assert.Equal(t, MediaType, req.Header.Get("Content-type"))
-		assert.Equal(t, MediaType, req.Header.Get("Accept"))
+		assert.Equal(t, AcceptHeader, req.Header.Get("Accept"))
 
 		var batchRequest BatchRequest
 		err := json.NewDecoder(req.Body).Decode(&batchRequest)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "upload", batchRequest.Operation)
-		assert.Equal(t, 1, len(batchRequest.Objects))
+		assert.Len(t, batchRequest.Objects, 1)
 		assert.Equal(t, p.Oid, batchRequest.Objects[0].Oid)
 		assert.Equal(t, p.Size, batchRequest.Objects[0].Size)
 
@@ -284,7 +301,7 @@ func TestHTTPClientUpload(t *testing.T) {
 		// case 0
 		{
 			endpoint:      "https://status-not-ok.io",
-			expectederror: "Unexpected server response: ",
+			expectederror: io.ErrUnexpectedEOF.Error(),
 		},
 		// case 1
 		{
@@ -319,7 +336,7 @@ func TestHTTPClientUpload(t *testing.T) {
 		// case 7
 		{
 			endpoint:      "https://download-actions-map.io",
-			expectederror: "Missing action 'upload'",
+			expectederror: "missing action 'upload'",
 		},
 		// case 8
 		{
@@ -329,22 +346,23 @@ func TestHTTPClientUpload(t *testing.T) {
 		// case 9
 		{
 			endpoint:      "https://verify-actions-map.io",
-			expectederror: "Missing action 'upload'",
+			expectederror: "missing action 'upload'",
 		},
 		// case 10
 		{
 			endpoint:      "https://unknown-actions-map.io",
-			expectederror: "Missing action 'upload'",
+			expectederror: "missing action 'upload'",
 		},
 	}
 
 	for n, c := range cases {
 		client := &HTTPClient{
-			client:    hc,
-			endpoint:  c.endpoint,
-			transfers: make(map[string]TransferAdapter),
+			client:   hc,
+			endpoint: c.endpoint,
+			transfers: map[string]TransferAdapter{
+				"dummy": dummy,
+			},
 		}
-		client.transfers["dummy"] = dummy
 
 		err := client.Upload(context.Background(), []Pointer{p}, func(p Pointer, objectError error) (io.ReadCloser, error) {
 			return io.NopCloser(new(bytes.Buffer)), objectError

@@ -8,9 +8,11 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // DBIndexer implements Indexer interface to use database's like search
@@ -34,7 +36,7 @@ func (db *DBIndexer) Index(id int64) error {
 		return err
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		if err.Error() == "no such file or directory" {
 			return nil
@@ -46,7 +48,7 @@ func (db *DBIndexer) Index(id int64) error {
 	// Get latest commit for default branch
 	commitID, err := gitRepo.GetBranchCommitID(repo.DefaultBranch)
 	if err != nil {
-		if git.IsErrBranchNotExist(err) || git.IsErrNotExist(err) {
+		if git.IsErrBranchNotExist(err) || git.IsErrNotExist(err) || setting.IsInTesting {
 			log.Debug("Unable to get commit ID for default branch %s in %s ... skipping this repository", repo.DefaultBranch, repo.RepoPath())
 			return nil
 		}
@@ -62,10 +64,12 @@ func (db *DBIndexer) Index(id int64) error {
 	// Calculate and save language statistics to database
 	stats, err := gitRepo.GetLanguageStats(commitID)
 	if err != nil {
-		log.Error("Unable to get language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
+		if !setting.IsInTesting {
+			log.Error("Unable to get language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
+		}
 		return err
 	}
-	err = repo_model.UpdateLanguageStats(repo, commitID, stats)
+	err = repo_model.UpdateLanguageStats(ctx, repo, commitID, stats)
 	if err != nil {
 		log.Error("Unable to update language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
 		return err

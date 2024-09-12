@@ -1,0 +1,95 @@
+<div class="runner-container">
+
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "actions.runners.runner_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
+		<div class="ui right">
+			<div class="ui top right pointing dropdown">
+				<button class="ui primary tiny button">
+					{{ctx.Locale.Tr "actions.runners.new"}}
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				</button>
+				<div class="menu">
+					<div class="item">
+						<a href="https://docs.gitea.com/usage/actions/act-runner">{{ctx.Locale.Tr "actions.runners.new_notice"}}</a>
+					</div>
+					<div class="divider"></div>
+					<div class="header">
+						Registration Token
+					</div>
+					<div class="ui input">
+						<input type="text" value="{{.RegistrationToken}}">
+						<button class="ui basic label button" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{.RegistrationToken}}">
+							{{svg "octicon-copy" 14}}
+						</button>
+					</div>
+					<div class="divider"></div>
+					<div class="item">
+						<a href="{{$.Link}}/reset_registration_token">{{ctx.Locale.Tr "actions.runners.reset_registration_token"}}</a>
+					</div>
+				</div>
+			</div>
+
+		</div>
+	</h4>
+	<div class="ui attached segment">
+		<form class="ui form ignore-dirty" id="user-list-search-form" action="{{$.Link}}">
+			{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.runner_kind")}}
+		</form>
+	</div>
+	<div class="ui attached table segment">
+		<table class="ui very basic striped table unstackable">
+			<thead>
+				<tr>
+					<th data-sortt-asc="online" data-sortt-desc="offline">
+						{{ctx.Locale.Tr "actions.runners.status"}}
+						{{SortArrow "online" "offline" .SortType false}}
+					</th>
+					<th data-sortt-asc="newest" data-sortt-desc="oldest">
+						{{ctx.Locale.Tr "actions.runners.id"}}
+						{{SortArrow "oldest" "newest" .SortType false}}
+					</th>
+					<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
+						{{ctx.Locale.Tr "actions.runners.name"}}
+						{{SortArrow "alphabetically" "reversealphabetically" .SortType false}}
+					</th>
+					<th>{{ctx.Locale.Tr "actions.runners.version"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runners.owner_type"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runners.labels"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runners.last_online"}}</th>
+					<th>{{ctx.Locale.Tr "edit"}}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{if .Runners}}
+					{{range .Runners}}
+					<tr>
+						<td>
+							<span class="ui {{if .IsOnline}}green{{end}} label">{{.StatusLocaleName ctx.Locale}}</span>
+						</td>
+						<td>{{.ID}}</td>
+						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
+						<td>{{if .Version}}{{.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</td>
+						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString ctx.Locale}}</span></td>
+						<td class="tw-flex tw-flex-wrap tw-gap-2 runner-tags">
+							{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}
+						</td>
+						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline ctx.Locale}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
+						<td class="runner-ops">
+							{{if .Editable $.RunnerOwnerID $.RunnerRepoID}}
+							<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
+							{{end}}
+						</td>
+					</tr>
+					{{end}}
+				{{else}}
+					<tr>
+						<td class="center aligned" colspan="8">{{ctx.Locale.Tr "actions.runners.none"}}</td>
+					</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+
+	{{template "base/paginate" .}}
+
+</div>

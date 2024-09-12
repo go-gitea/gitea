@@ -6,10 +6,10 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -34,6 +34,8 @@ func ListGitHooks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GitHookList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	hooks, err := ctx.Repo.GitRepo.Hooks()
 	if err != nil {
@@ -77,7 +79,7 @@ func GetGitHook(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	hookID := ctx.Params(":id")
+	hookID := ctx.PathParam(":id")
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {
 		if err == git.ErrNotValidHook {
@@ -124,7 +126,7 @@ func EditGitHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.EditGitHookOption)
-	hookID := ctx.Params(":id")
+	hookID := ctx.PathParam(":id")
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {
 		if err == git.ErrNotValidHook {
@@ -173,7 +175,7 @@ func DeleteGitHook(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	hookID := ctx.Params(":id")
+	hookID := ctx.PathParam(":id")
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {
 		if err == git.ErrNotValidHook {

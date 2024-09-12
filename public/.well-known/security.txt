@@ -1,0 +1,6 @@
+# This site is running a Gitea instance.
+# Gitea related security problems could be reported to Gitea community.
+# Site related security problems should be reported to this site's admin.
+Contact: https://github.com/go-gitea/gitea/blob/main/SECURITY.md
+Policy: https://github.com/go-gitea/gitea/blob/main/SECURITY.md
+Preferred-Languages: en

@@ -1,0 +1,1407 @@
+:root {
+  /* fonts */
+  --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
+  --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
+  --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
+  /* font weights - use between 400 and 600 for general purposes. Avoid 700 as it is perceived too bold */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  /* line-height: use the default value as "modules/normalize.css" */
+  --line-height-default: normal;
+  /* images */
+  --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
+  --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
+  --octicon-chevron-right: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg>');
+  /* other variables */
+  --border-radius: 4px;
+  --border-radius-medium: 6px;
+  --border-radius-full: 99999px; /* TODO: use calc(infinity * 1px) */
+  --opacity-disabled: 0.55;
+  --height-loading: 16rem;
+  --min-height-textarea: 132px; /* padding + 6 lines + border = calc(1.57142em + 6lh + 2px), but lh is not fully supported */
+  --tab-size: 4;
+  --checkbox-size: 15px; /* height and width of checkbox and radio inputs */
+  --page-spacing: 16px; /* space between page elements */
+  --page-margin-x: 32px; /* minimum space on left and right side of page */
+}
+
+@media (min-width: 768px) and (max-width: 1200px) {
+  :root {
+    --page-margin-x: 16px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  :root {
+    --page-margin-x: 8px;
+  }
+}
+
+:root * {
+  --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", sans-serif, var(--fonts-emoji);
+}
+
+*, ::before, ::after {
+  /* these are needed for tailwind borders to work because we do not load tailwind's base
+     https://github.com/tailwindlabs/tailwindcss/blob/master/src/css/preflight.css */
+  border-width: 0;
+  border-style: solid;
+  border-color: currentcolor;
+}
+
+html, body {
+  height: 100%;
+  font-size: 14px;
+}
+
+body {
+  line-height: 20px;
+  font-family: var(--fonts-regular);
+  color: var(--color-text);
+  background-color: var(--color-body);
+  tab-size: var(--tab-size);
+  display: flex;
+  flex-direction: column;
+  overflow-x: visible;
+  overflow-wrap: break-word;
+}
+
+textarea {
+  font-family: var(--fonts-regular);
+}
+
+pre,
+code,
+kbd,
+samp {
+  font-family: var(--fonts-monospace);
+}
+
+pre,
+code,
+kbd,
+samp,
+.tw-font-mono {
+  font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
+}
+
+b,
+strong,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: var(--font-weight-semibold);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  line-height: 1.28571429;
+  margin: calc(2rem - 0.1428571428571429em) 0 1rem;
+  font-weight: var(--font-weight-medium);
+  padding: 0;
+}
+
+h1 {
+  min-height: 1rem;
+  font-size: 2rem;
+}
+
+h2 {
+  font-size: 1.71428571rem;
+}
+
+h3 {
+  font-size: 1.28571429rem;
+}
+
+h4 {
+  font-size: 1.07142857rem;
+}
+
+h5 {
+  font-size: 1rem;
+}
+
+h1:first-child,
+h2:first-child,
+h3:first-child,
+h4:first-child,
+h5:first-child {
+  margin-top: 0;
+}
+
+h1:last-child,
+h2:last-child,
+h3:last-child,
+h4:last-child,
+h5:last-child {
+  margin-bottom: 0;
+}
+
+p {
+  margin: 0 0 1em;
+  line-height: 1.4285;
+}
+
+p:first-child {
+  margin-top: 0;
+}
+
+p:last-child {
+  margin-bottom: 0;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+button {
+  cursor: pointer;
+}
+
+details summary {
+  cursor: pointer;
+}
+
+details summary > * {
+  display: inline;
+}
+
+progress {
+  background: var(--color-secondary-dark-1);
+  border-radius: var(--border-radius);
+  border: none;
+  overflow: hidden;
+}
+
+progress::-webkit-progress-bar {
+  background: var(--color-secondary-dark-1);
+}
+
+progress::-webkit-progress-value {
+  background-color: var(--color-accent);
+}
+
+progress::-moz-progress-bar {
+  background-color: var(--color-accent);
+}
+
+* {
+  caret-color: var(--color-caret);
+}
+
+::file-selector-button {
+  border: 1px solid var(--color-light-border);
+  color: var(--color-text-light);
+  background: var(--color-light);
+  border-radius: var(--border-radius);
+}
+
+::file-selector-button:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+::selection {
+  background: var(--color-primary-light-1);
+  color: var(--color-white);
+}
+
+::placeholder,
+.ui.dropdown:not(.button) > .default.text,
+.ui.default.dropdown:not(.button) > .text {
+  color: var(--color-placeholder-text) !important;
+  opacity: 1 !important;
+}
+
+.unselectable,
+.button,
+.lines-num,
+.lines-commit,
+.lines-commit .blame-info,
+.ellipsis-button {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+a {
+  color: var(--color-primary);
+  cursor: pointer;
+  text-decoration-line: none;
+  text-decoration-skip-ink: all;
+}
+
+a:hover {
+  text-decoration-line: underline;
+}
+
+/* a = always colored, underlined on hover */
+/* a.muted = colored on hover, underlined on hover */
+/* a.suppressed = never colored, underlined on hover */
+/* a.silenced = never colored, never underlined */
+
+a.muted,
+a.suppressed,
+a.silenced,
+.muted-links a {
+  color: inherit;
+}
+
+a:hover,
+a.suppressed:hover,
+a.muted:hover,
+a.muted:hover [class*="color-text"],
+.muted-links a:hover {
+  color: var(--color-primary);
+}
+
+a.silenced:hover,
+a.suppressed:hover {
+  color: inherit;
+}
+
+a.silenced:hover {
+  text-decoration-line: none;
+}
+
+a.label,
+.ui.search .results a,
+.ui .menu a,
+.ui.cards a.card,
+.issue-keyword a {
+  text-decoration-line: none !important;
+}
+
+.ui.search > .results {
+  background: var(--color-body);
+  border-color: var(--color-secondary);
+  overflow-wrap: anywhere; /* allow text to wrap as fomantic limits this to 18em width */
+}
+
+.ui.search > .results .result {
+  background: var(--color-body);
+  border-color: var(--color-secondary);
+  display: flex;
+  align-items: center;
+}
+
+.ui.search > .results .result .title {
+  color: var(--color-text-dark);
+}
+
+.ui.search > .results .result .description {
+  color: var(--color-text-light-2);
+}
+
+.ui.search > .results .result .image {
+  width: auto;
+  height: auto;
+}
+
+.ui.search > .results .result:hover,
+.ui.category.search > .results .category .result:hover {
+  background: var(--color-hover);
+}
+
+.inline-code-block {
+  padding: 2px 4px;
+  border-radius: .24em;
+  background-color: var(--color-label-bg);
+}
+
+.ui.menu .dropdown.item:hover,
+.ui.menu a.item:hover,
+.ui.menu details.item summary:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+/* slightly more contrast for filters on issue list */
+.ui.ui.menu .dropdown.item.disabled {
+  color: var(--color-text-light-2);
+}
+
+.ui.dropdown .menu {
+  background: var(--color-menu);
+  border-color: var(--color-secondary);
+}
+
+.ui.dropdown .menu > .header:not(.ui) {
+  color: var(--color-text);
+}
+
+.ui.dropdown .menu > .item {
+  color: var(--color-text);
+}
+
+.ui.dropdown .menu > .item:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+.ui.dropdown .menu > .item:active {
+  color: var(--color-text);
+  background: var(--color-active);
+}
+
+.ui.dropdown .menu .active.item {
+  color: var(--color-text);
+  background: var(--color-active);
+  border-radius: 0;
+  font-weight: var(--font-weight-normal);
+}
+
+/* fix misaligned images in webhook dropdown */
+.ui.dropdown .menu > .item > img {
+  margin-top: -0.25rem;
+  margin-bottom: -0.25rem;
+}
+.ui.dropdown .menu > .item > svg {
+  margin-right: .78rem; /* use the same margin as for <img> */
+}
+
+.ui.selection.dropdown .menu > .item {
+  border-color: var(--color-secondary);
+}
+
+.ui.selection.visible.dropdown > .text:not(.default) {
+  color: var(--color-text);
+}
+
+.ui.dropdown.selected,
+.ui.dropdown .menu .selected.item {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+.ui.dropdown .menu > .message:not(.ui) {
+  color: var(--color-text-light-2);
+}
+
+/* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
+.ui.dropdown > .text > .img {
+  margin-left: 0;
+  float: none;
+  margin-right: 0.78571429rem;
+}
+
+.ui.dropdown > .text > .description,
+.ui.dropdown .menu > .item > .description {
+  color: var(--color-text-light-2);
+}
+
+.ui.form textarea:not([rows]) {
+  height: var(--min-height-textarea); /* override fomantic default 12em */
+  min-height: var(--min-height-textarea); /* override fomantic default 8em */
+}
+
+/* styles from removed fomantic transition module */
+.hidden.transition {
+  visibility: hidden;
+  display: none;
+}
+.visible.transition {
+  display: block !important;
+  visibility: visible !important;
+}
+
+.ui.selection.active.dropdown,
+.ui.selection.active.dropdown:hover,
+.ui.selection.active.dropdown .menu,
+.ui.selection.active.dropdown:hover .menu {
+  border-color: var(--color-primary);
+}
+
+.ui.pointing.dropdown > .menu:not(.hidden)::after {
+  background: var(--color-menu);
+  box-shadow: -1px -1px 0 0 var(--color-secondary);
+}
+
+.ui.pointing.upward.dropdown .menu::after,
+.ui.top.pointing.upward.dropdown .menu::after {
+  box-shadow: 1px 1px 0 0 var(--color-secondary);
+}
+
+.ui.comments .comment .text {
+  margin: 0;
+}
+
+.ui.comments .comment .text,
+.ui.comments .comment .author {
+  color: var(--color-text);
+}
+
+.ui.comments .comment a.author:hover {
+  color: var(--color-primary);
+}
+
+.ui.comments .comment .metadata {
+  color: var(--color-text-light-2);
+}
+
+.ui.comments .comment .actions a {
+  color: var(--color-text-light);
+}
+
+.ui.comments .comment .actions a.active,
+.ui.comments .comment .actions a:hover {
+  color: var(--color-primary);
+}
+
+img.ui.avatar,
+.ui.avatar img,
+.ui.avatar svg {
+  border-radius: var(--border-radius);
+  object-fit: contain;
+  aspect-ratio: 1;
+}
+
+.ui.error.message .header,
+.ui.warning.message .header {
+  color: inherit;
+  filter: saturate(2);
+}
+
+.full.height {
+  flex-grow: 1;
+  padding-bottom: 80px;
+}
+
+.status-page-error {
+  margin-top: max(45vh - 90px, 80px);
+  margin-bottom: 80px;
+}
+
+.status-page-error-title {
+  font-size: 48px;
+  margin-bottom: 14px; /* some elements below may use tw-my-4 or tw-my-8, so use 14px as a minimal margin */
+  line-height: initial;
+  text-align: center;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-light-2);
+}
+
+/* add margin below .secondary nav when it is the first child */
+.page-content > :first-child.secondary-nav {
+  margin-bottom: 14px;
+}
+
+/* add margin to all pages when there is no .secondary.nav */
+.page-content > :first-child:not(.secondary-nav) {
+  margin-top: var(--page-spacing);
+}
+/* if .ui.grid is the first child the first grid-column has 'padding-top: 1rem' which we need
+   to compensate here */
+.page-content > :first-child.ui.grid {
+  margin-top: calc(var(--page-spacing) - 1rem);
+}
+
+.ui.form .fields.error .field textarea,
+.ui.form .fields.error .field select,
+.ui.form .fields.error .field input:not([type]),
+.ui.form .fields.error .field input[type="date"],
+.ui.form .fields.error .field input[type="datetime-local"],
+.ui.form .fields.error .field input[type="email"],
+.ui.form .fields.error .field input[type="number"],
+.ui.form .fields.error .field input[type="password"],
+.ui.form .fields.error .field input[type="search"],
+.ui.form .fields.error .field input[type="tel"],
+.ui.form .fields.error .field input[type="time"],
+.ui.form .fields.error .field input[type="text"],
+.ui.form .fields.error .field input[type="file"],
+.ui.form .fields.error .field input[type="url"],
+.ui.form .fields.error .field .ui.dropdown,
+.ui.form .fields.error .field .ui.dropdown .item,
+.ui.form .field.error .ui.dropdown,
+.ui.form .field.error .ui.dropdown .text,
+.ui.form .field.error .ui.dropdown .item,
+.ui.form .field.error textarea,
+.ui.form .field.error select,
+.ui.form .field.error input:not([type]),
+.ui.form .field.error input[type="date"],
+.ui.form .field.error input[type="datetime-local"],
+.ui.form .field.error input[type="email"],
+.ui.form .field.error input[type="number"],
+.ui.form .field.error input[type="password"],
+.ui.form .field.error input[type="search"],
+.ui.form .field.error input[type="tel"],
+.ui.form .field.error input[type="time"],
+.ui.form .field.error input[type="text"],
+.ui.form .field.error input[type="file"],
+.ui.form .field.error input[type="url"],
+.ui.form .field.error select:focus,
+.ui.form .field.error input:not([type]):focus,
+.ui.form .field.error input[type="date"]:focus,
+.ui.form .field.error input[type="datetime-local"]:focus,
+.ui.form .field.error input[type="email"]:focus,
+.ui.form .field.error input[type="number"]:focus,
+.ui.form .field.error input[type="password"]:focus,
+.ui.form .field.error input[type="search"]:focus,
+.ui.form .field.error input[type="tel"]:focus,
+.ui.form .field.error input[type="time"]:focus,
+.ui.form .field.error input[type="text"]:focus,
+.ui.form .field.error input[type="file"]:focus,
+.ui.form .field.error input[type="url"]:focus {
+  background-color: var(--color-error-bg);
+  border-color: var(--color-error-border);
+  color: var(--color-error-text);
+}
+
+.ui.form .fields.error .field .ui.dropdown,
+.ui.form .field.error .ui.dropdown,
+.ui.form .fields.error .field .ui.dropdown:hover,
+.ui.form .field.error .ui.dropdown:hover {
+  border-color: var(--color-error-border) !important;
+}
+
+.ui.form .fields.error .field .ui.dropdown .menu .item:hover,
+.ui.form .field.error .ui.dropdown .menu .item:hover {
+  background-color: var(--color-error-bg-hover);
+}
+
+.ui.form .fields.error .field .ui.dropdown .menu .active.item,
+.ui.form .field.error .ui.dropdown .menu .active.item {
+  background-color: var(--color-error-bg-active) !important;
+}
+
+.ui.form .fields.error .dropdown .menu,
+.ui.form .field.error .dropdown .menu {
+  border-color: var(--color-error-border) !important;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:active,
+.ui.form .field.field input:-webkit-autofill,
+.ui.form .field.field input:-webkit-autofill:focus,
+.ui.form .field.field input:-webkit-autofill:hover,
+.ui.form .field.field input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--color-text);
+  box-shadow: 0 0 0 100px var(--color-primary-light-6) inset !important;
+  border-color: var(--color-primary-light-4) !important;
+}
+
+.ui.form .field.muted {
+  opacity: var(--opacity-disabled);
+}
+
+.text.primary {
+  color: var(--color-primary) !important;
+}
+
+.text.red {
+  color: var(--color-red) !important;
+}
+
+.text.orange {
+  color: var(--color-orange) !important;
+}
+
+.text.yellow {
+  color: var(--color-yellow) !important;
+}
+
+.text.olive {
+  color: var(--color-olive) !important;
+}
+
+.text.green {
+  color: var(--color-green) !important;
+}
+
+.text.teal {
+  color: var(--color-teal) !important;
+}
+
+.text.blue {
+  color: var(--color-blue) !important;
+}
+
+.text.violet {
+  color: var(--color-violet) !important;
+}
+
+.text.purple {
+  color: var(--color-purple) !important;
+}
+
+.text.pink {
+  color: var(--color-pink) !important;
+}
+
+.text.brown {
+  color: var(--color-brown) !important;
+}
+
+.text.black {
+  color: var(--color-text) !important;
+}
+
+.text.grey {
+  color: var(--color-text-light) !important;
+}
+
+.text.light {
+  color: var(--color-text-light) !important;
+}
+
+.text.light-2 {
+  color: var(--color-text-light-2) !important;
+}
+
+.text.light-3 {
+  color: var(--color-text-light-3) !important;
+}
+
+.text.light.grey {
+  color: var(--color-grey-light) !important;
+}
+
+.text.gold {
+  color: var(--color-gold) !important;
+}
+
+.text.small {
+  font-size: 0.75em;
+}
+
+/* popover box shadows */
+.ui.dropdown .menu,
+.ui.upward.dropdown > .menu,
+.ui.menu .dropdown.item .menu,
+.ui.selection.active.dropdown .menu,
+.ui.upward.selection.dropdown .menu,
+.ui.selection.active.dropdown:hover .menu,
+.ui.upward.active.selection.dropdown:hover .menu {
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+.ui.floating.dropdown .menu {
+  box-shadow: 0 6px 18px var(--color-shadow) !important;
+}
+
+.ui.dropdown .menu > .header {
+  font-size: 0.8em;
+}
+
+.ui .text.left {
+  text-align: left !important;
+}
+
+.ui .text.right {
+  text-align: right !important;
+}
+
+.ui .text.truncate {
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.ui .message.flash-message {
+  text-align: center;
+}
+
+.ui .message > ul {
+  margin-left: auto;
+  margin-right: auto;
+  display: table;
+  text-align: left;
+}
+
+.ui .header > i + .content {
+  padding-left: 0.75rem;
+  vertical-align: middle;
+}
+
+.ui .form .autofill-dummy {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: -10000;
+}
+
+.ui .form .sub.field {
+  margin-left: 25px;
+}
+
+.ui .sha.label {
+  font-family: var(--fonts-monospace);
+  font-size: 13px;
+  font-weight: var(--font-weight-normal);
+  margin: 0 6px;
+  padding: 5px 10px;
+  flex-shrink: 0;
+}
+
+.ui .sha.label .shortsha {
+  display: inline-block; /* not sure whether it is still needed */
+}
+
+.ui .button.truncate {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+  white-space: nowrap;
+  margin-right: 6px;
+}
+
+.ui.status.buttons .svg {
+  margin-right: 4px;
+}
+
+.ui.inline.delete-button {
+  padding: 8px 15px;
+  font-weight: var(--font-weight-normal);
+}
+
+.ui .background.red {
+  background-color: var(--color-red) !important;
+}
+
+.ui .background.blue {
+  background-color: var(--color-blue) !important;
+}
+
+.ui .background.black {
+  background-color: var(--color-black) !important;
+}
+
+.ui .background.grey {
+  background-color: var(--color-grey) !important;
+}
+
+.ui .background.light.grey {
+  background-color: var(--color-grey) !important;
+}
+
+.ui .background.green {
+  background-color: var(--color-green) !important;
+}
+
+.ui .background.purple {
+  background-color: var(--color-purple) !important;
+}
+
+.ui .background.yellow {
+  background-color: var(--color-yellow) !important;
+}
+
+.ui .background.orange {
+  background-color: var(--color-orange) !important;
+}
+
+.ui .background.gold {
+  background-color: var(--color-gold) !important;
+}
+
+.ui .migrate {
+  color: var(--color-text-light-2) !important;
+}
+
+.ui .migrate a {
+  color: var(--color-text-light) !important;
+}
+
+.ui .migrate a:hover {
+  color: var(--color-text) !important;
+}
+
+.ui .border {
+  border: 1px solid;
+}
+
+.ui .border.red {
+  border-color: var(--color-red) !important;
+}
+
+.ui .border.blue {
+  border-color: var(--color-blue) !important;
+}
+
+.ui .border.black {
+  border-color: var(--color-black) !important;
+}
+
+.ui .border.grey {
+  border-color: var(--color-grey) !important;
+}
+
+.ui .border.light.grey {
+  border-color: var(--color-grey) !important;
+}
+
+.ui .border.green {
+  border-color: var(--color-green) !important;
+}
+
+.ui .border.purple {
+  border-color: var(--color-purple) !important;
+}
+
+.ui .border.yellow {
+  border-color: var(--color-yellow) !important;
+}
+
+.ui .border.orange {
+  border-color: var(--color-orange) !important;
+}
+
+.ui .border.gold {
+  border-color: var(--color-gold) !important;
+}
+
+.ui.floating.dropdown .overflow.menu .scrolling.menu.items {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.user-menu > .item {
+  width: 100%;
+  border-radius: 0 !important;
+}
+
+.scrolling.menu .item.selected {
+  font-weight: var(--font-weight-semibold) !important;
+}
+
+.ui.dropdown .scrolling.menu {
+  border-color: var(--color-secondary);
+  border-radius: 0 0 var(--border-radius) var(--border-radius) !important;
+}
+
+.color-preview {
+  display: inline-block;
+  margin-left: 0.4em;
+  height: 0.67em;
+  width: 0.67em;
+  border-radius: var(--border-radius);
+}
+
+.attention-icon {
+  margin: 2px 6px 0 0;
+}
+
+blockquote.attention-note {
+  border-left-color: var(--color-blue-dark-1);
+}
+strong.attention-note, svg.attention-note {
+  color: var(--color-blue-dark-1);
+}
+
+blockquote.attention-tip {
+  border-left-color: var(--color-success-text);
+}
+strong.attention-tip, svg.attention-tip {
+  color: var(--color-success-text);
+}
+
+blockquote.attention-important {
+  border-left-color: var(--color-violet-dark-1);
+}
+strong.attention-important, svg.attention-important {
+  color: var(--color-violet-dark-1);
+}
+
+blockquote.attention-warning {
+  border-left-color: var(--color-warning-text);
+}
+strong.attention-warning, svg.attention-warning {
+  color: var(--color-warning-text);
+}
+
+blockquote.attention-caution {
+  border-left-color: var(--color-red-dark-1);
+}
+strong.attention-caution, svg.attention-caution {
+  color: var(--color-red-dark-1);
+}
+
+.center:not(.popup) {
+  text-align: center;
+}
+
+overflow-menu {
+  border-bottom: 1px solid var(--color-secondary) !important;
+  display: flex;
+}
+
+overflow-menu .overflow-menu-items {
+  display: flex;
+  flex: 1;
+}
+
+overflow-menu .overflow-menu-items .item {
+  margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
+}
+
+overflow-menu .overflow-menu-items .item-flex-space {
+  flex: 1;
+}
+
+overflow-menu .overflow-menu-button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  text-align: center;
+  width: 32px;
+  padding: 0;
+}
+
+overflow-menu .overflow-menu-button:hover {
+  color: var(--color-text-dark);
+}
+
+overflow-menu .ui.label {
+  margin-left: 7px !important; /* save some space */
+}
+
+.activity-bar-graph {
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.activity-bar-graph-alt {
+  color: var(--color-primary-contrast);
+}
+
+.archived-icon {
+  color: var(--color-secondary-dark-2) !important;
+}
+
+.oauth2-authorize-application-box {
+  margin-top: 3em !important;
+}
+
+/* multiple radio or checkboxes as inline element */
+.inline-grouped-list {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.inline-grouped-list > .ui {
+  display: block;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+.inline-grouped-list > .ui:first-child {
+  margin-top: 1px;
+}
+
+.lines-blame-btn {
+  padding: 0 0 0 5px;
+  display: flex;
+  justify-content: center;
+}
+
+.lines-num {
+  padding: 0 8px;
+  text-align: right !important;
+  color: var(--color-text-light-2);
+  width: 1%; /* this apparently needs to be a percentage so that code column stretches in diffs */
+  min-width: 72px;
+  white-space: nowrap;
+}
+
+.code-diff .lines-num {
+  min-width: 50px;
+}
+
+.lines-num span.bottom-line::after {
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.lines-num span::after {
+  content: attr(data-line-number);
+  line-height: 20px !important;
+  padding: 0 10px;
+  display: block;
+}
+
+.code-view .lines-num span::after {
+  cursor: pointer;
+}
+
+.lines-type-marker {
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.lines-num,
+.lines-code {
+  font-size: 12px;
+  font-family: var(--fonts-monospace);
+  line-height: 20px;
+  padding-top: 0;
+  padding-bottom: 0;
+  vertical-align: top;
+}
+
+.lines-num pre,
+.lines-code pre,
+.lines-num ol,
+.lines-code ol {
+  background-color: inherit;
+  margin: 0;
+  padding: 0 !important;
+}
+
+.lines-num pre li,
+.lines-code pre li,
+.lines-num ol li,
+.lines-code ol li {
+  display: block;
+  width: calc(100% - 1ch);
+  padding-left: 1ch;
+}
+
+.lines-escape {
+  width: 0;
+  white-space: nowrap;
+}
+
+.lines-code {
+  padding-left: 5px;
+}
+
+.file-view tr.active {
+  color: inherit !important;
+  background: inherit !important;
+}
+
+.file-view tr.active .lines-num,
+.file-view tr.active .lines-code {
+  background: var(--color-highlight-bg) !important;
+}
+
+.file-view tr.active:last-of-type .lines-code {
+  border-bottom-right-radius: var(--border-radius);
+}
+
+.file-view tr.active .lines-num {
+  position: relative;
+}
+
+.file-view tr.active .lines-num::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--color-highlight-fg);
+}
+
+.code-inner {
+  font: 12px var(--fonts-monospace);
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  line-height: inherit; /* needed for inline code preview in markup */
+}
+
+.blame .code-inner {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lines-commit {
+  vertical-align: top;
+  color: var(--color-text-light-1);
+  padding: 0 !important;
+  width: 1%;
+}
+
+.lines-commit .blame-info {
+  width: min(26vw, 300px);
+  display: block;
+  padding: 0 0 0 6px;
+  line-height: 20px;
+  box-sizing: content-box;
+}
+
+.lines-commit .blame-info .blame-data {
+  display: flex;
+  font-family: var(--fonts-regular);
+}
+
+.lines-commit .blame-info .blame-data .blame-message {
+  flex-grow: 2;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lines-commit .blame-info .blame-data .blame-time,
+.lines-commit .blame-info .blame-data .blame-avatar {
+  flex-shrink: 0;
+}
+
+.blame-avatar {
+  display: flex;
+  align-items: center;
+  margin-right: 4px;
+}
+
+.top-line-blame {
+  border-top: 1px solid var(--color-secondary);
+}
+
+.code-view tr.top-line-blame:first-of-type {
+  border-top: none;
+}
+
+.lines-code .bottom-line,
+.lines-commit .bottom-line {
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.code-view {
+  background: var(--color-code-bg);
+  border-radius: var(--border-radius);
+}
+
+.code-view table {
+  width: 100%;
+}
+
+.migrate .svg.gitea-git {
+  color: var(--color-git);
+}
+
+.color-icon {
+  display: inline-block;
+  border-radius: var(--border-radius-full);
+  height: 14px;
+  width: 14px;
+}
+
+.rss-icon {
+  display: inline-flex;
+  color: var(--color-text-light-1);
+}
+
+table th[data-sortt-asc]:hover,
+table th[data-sortt-desc]:hover {
+  background: var(--color-hover) !important;
+  cursor: pointer !important;
+}
+
+table th[data-sortt-asc] .svg,
+table th[data-sortt-desc] .svg {
+  margin-left: 0.25rem;
+}
+
+.ui.dropdown .menu .item {
+  border-radius: 0;
+}
+
+.ui.dropdown .menu .item:first-of-type {
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.ui.dropdown .menu .item:last-of-type {
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.ui.multiple.dropdown > .label {
+  box-shadow: 0 0 0 1px var(--color-secondary) inset;
+}
+
+.emoji {
+  font-size: 1.25em;
+  line-height: var(--line-height-default);
+  font-style: normal !important;
+  font-weight: var(--font-weight-normal) !important;
+  vertical-align: -0.075em;
+}
+
+.emoji img {
+  border-width: 0 !important;
+  margin: 0 !important;
+  width: 1em !important;
+  height: 1em !important;
+  vertical-align: -0.15em;
+}
+
+.ui.tabular.menu .item,
+.ui.secondary.pointing.menu .item {
+  padding: 11.55px 12px !important; /* match .dashboard-navbar in height */
+  color: var(--color-text-light-2);
+}
+
+.ui.tabular.menu .item:hover,
+.ui.secondary.pointing.menu a.item:hover {
+  color: var(--color-text);
+}
+
+.ui.tabular.menu .active.item,
+.ui.secondary.pointing.menu .active.item,
+.resize-for-semibold::before {
+  font-weight: var(--font-weight-semibold);
+}
+
+.resize-for-semibold::before {
+  content: attr(data-text);
+  visibility: hidden;
+  display: block;
+  height: 0;
+}
+
+.flash-error details code,
+.flash-warning details code {
+  display: block;
+  text-align: left;
+}
+
+.truncated-item-container {
+  display: flex !important;
+  align-items: center;
+}
+
+.ellipsis-button {
+  padding: 0 5px 8px !important;
+  display: inline-block !important;
+  font-weight: var(--font-weight-semibold) !important;
+  line-height: 6px !important;
+  vertical-align: middle !important;
+}
+
+.truncated-item-name {
+  line-height: 2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: -0.5em;
+  margin-bottom: -0.5em;
+}
+
+.precolors {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 1em;
+}
+
+.precolors .color {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+}
+
+.ui.dropdown:not(.button) {
+  line-height: var(--line-height-default); /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
+}
+
+/* dropdown has some kinds of icons:
+- "> .dropdown.icon": the arrow for opening the dropdown
+- "> .remove.icon": the "x" icon for clearing the dropdown, only used in selection dropdown
+- "> .ui.label > .delete.icon": the "x" icon for removing a label item in multiple selection dropdown
+*/
+
+.ui.dropdown.mini.button,
+.ui.dropdown.tiny.button {
+  padding-right: 20px;
+}
+.ui.dropdown.button {
+  padding-right: 22px;
+}
+.ui.dropdown.large.button {
+  padding-right: 24px;
+}
+
+/* Gitea uses SVG images instead of Fomantic builtin "<i>" font icons, so we need to reset the icon styles */
+.ui.ui.dropdown > .icon.icon {
+  position: initial; /* plain dropdown and button dropdown use flex layout for icons */
+  padding: 0;
+  margin: 0;
+  height: auto;
+}
+
+.ui.ui.dropdown > .icon.icon:hover {
+  opacity: 1;
+}
+
+.ui.ui.button.dropdown > .icon.icon,
+.ui.ui.selection.dropdown > .icon.icon {
+  position: absolute; /* selection dropdown uses absolute layout for icons */
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ui.ui.dropdown > .dropdown.icon {
+  right: 0.5em;
+}
+
+.ui.ui.dropdown > .remove.icon {
+  right: 2em;
+}
+
+.btn,
+.ui.ui.button,
+.ui.ui.dropdown,
+.flex-text-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  vertical-align: middle;
+  min-width: 0; /* make ellipsis work */
+}
+
+.ui.ui.dropdown.selection {
+  min-width: 14em; /* match the default min width */
+}
+
+.ui.dropdown .ui.label .svg {
+  vertical-align: middle;
+}
+
+.ui.ui.labeled.button {
+  gap: 0;
+  align-items: stretch;
+}
+
+.flex-items-block > .item,
+.flex-text-block {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  min-width: 0;
+}
+
+/* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content */
+.ui.dropdown .menu.flex-items-menu > .item {
+  display: flex !important;
+  align-items: center;
+  gap: .5rem;
+  min-width: 0;
+}
+
+.ui.dropdown.ellipsis-items-nowrap > .text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ellipsis-items-nowrap > .item,
+.ui.dropdown.ellipsis-items-nowrap .menu > .item {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}

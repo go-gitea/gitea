@@ -5,23 +5,33 @@ package packages
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/packages/alpine"
+	"code.gitea.io/gitea/modules/packages/cargo"
+	"code.gitea.io/gitea/modules/packages/chef"
 	"code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/packages/conan"
+	"code.gitea.io/gitea/modules/packages/conda"
 	"code.gitea.io/gitea/modules/packages/container"
+	"code.gitea.io/gitea/modules/packages/cran"
+	"code.gitea.io/gitea/modules/packages/debian"
 	"code.gitea.io/gitea/modules/packages/helm"
 	"code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/modules/packages/npm"
 	"code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/packages/pub"
 	"code.gitea.io/gitea/modules/packages/pypi"
+	"code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/packages/rubygems"
+	"code.gitea.io/gitea/modules/packages/swift"
 	"code.gitea.io/gitea/modules/packages/vagrant"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/hashicorp/go-version"
 )
@@ -49,7 +59,7 @@ type PackageDescriptor struct {
 	Creator           *user_model.User
 	PackageProperties PackagePropertyList
 	VersionProperties PackagePropertyList
-	Metadata          interface{}
+	Metadata          any
 	Files             []*PackageFileDescriptor
 }
 
@@ -60,14 +70,24 @@ type PackageFileDescriptor struct {
 	Properties PackagePropertyList
 }
 
-// PackageWebLink returns the package web link
+// PackageWebLink returns the relative package web link
 func (pd *PackageDescriptor) PackageWebLink() string {
+	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+}
+
+// VersionWebLink returns the relative package version web link
+func (pd *PackageDescriptor) VersionWebLink() string {
+	return fmt.Sprintf("%s/%s", pd.PackageWebLink(), url.PathEscape(pd.Version.LowerVersion))
+}
+
+// PackageHTMLURL returns the absolute package HTML URL
+func (pd *PackageDescriptor) PackageHTMLURL() string {
 	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HTMLURL(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
-// FullWebLink returns the package version web link
-func (pd *PackageDescriptor) FullWebLink() string {
-	return fmt.Sprintf("%s/%s", pd.PackageWebLink(), url.PathEscape(pd.Version.LowerVersion))
+// VersionHTMLURL returns the absolute package version HTML URL
+func (pd *PackageDescriptor) VersionHTMLURL() string {
+	return fmt.Sprintf("%s/%s", pd.PackageHTMLURL(), url.PathEscape(pd.Version.LowerVersion))
 }
 
 // CalculateBlobSize returns the total blobs size in bytes
@@ -99,7 +119,11 @@ func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache) (*P
 	}
 	creator, err := c.QueryUser(ctx, pv.CreatorID)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, util.ErrNotExist) {
+			creator = user_model.NewGhostUser()
+		} else {
+			return nil, err
+		}
 	}
 	var semVer *version.Version
 	if p.SemverCompatible {
@@ -130,16 +154,30 @@ func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache) (*P
 		pfds = append(pfds, pfd)
 	}
 
-	var metadata interface{}
+	var metadata any
 	switch p.Type {
+	case TypeAlpine:
+		metadata = &alpine.VersionMetadata{}
+	case TypeCargo:
+		metadata = &cargo.Metadata{}
+	case TypeChef:
+		metadata = &chef.Metadata{}
 	case TypeComposer:
 		metadata = &composer.Metadata{}
 	case TypeConan:
 		metadata = &conan.Metadata{}
+	case TypeConda:
+		metadata = &conda.VersionMetadata{}
 	case TypeContainer:
 		metadata = &container.Metadata{}
+	case TypeCran:
+		metadata = &cran.Metadata{}
+	case TypeDebian:
+		metadata = &debian.Metadata{}
 	case TypeGeneric:
 		// generic packages have no metadata
+	case TypeGo:
+		// go packages have no metadata
 	case TypeHelm:
 		metadata = &helm.Metadata{}
 	case TypeNuGet:
@@ -152,8 +190,12 @@ func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache) (*P
 		metadata = &pub.Metadata{}
 	case TypePyPI:
 		metadata = &pypi.Metadata{}
+	case TypeRpm:
+		metadata = &rpm.VersionMetadata{}
 	case TypeRubyGems:
 		metadata = &rubygems.Metadata{}
+	case TypeSwift:
+		metadata = &swift.Metadata{}
 	case TypeVagrant:
 		metadata = &vagrant.Metadata{}
 	default:
@@ -198,6 +240,19 @@ func getPackageFileDescriptor(ctx context.Context, pf *PackageFile, c *cache) (*
 		pb,
 		PackagePropertyList(pfps),
 	}, nil
+}
+
+// GetPackageFileDescriptors gets the package file descriptors for the package files
+func GetPackageFileDescriptors(ctx context.Context, pfs []*PackageFile) ([]*PackageFileDescriptor, error) {
+	pfds := make([]*PackageFileDescriptor, 0, len(pfs))
+	for _, pf := range pfs {
+		pfd, err := GetPackageFileDescriptor(ctx, pf)
+		if err != nil {
+			return nil, err
+		}
+		pfds = append(pfds, pfd)
+	}
+	return pfds, nil
 }
 
 // GetPackageDescriptors gets the package descriptions for the versions

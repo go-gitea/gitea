@@ -6,7 +6,7 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/services/context"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -53,8 +53,10 @@ func GetTree(ctx *context.APIContext) {
 	//     "$ref": "#/responses/GitTreeResponse"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	sha := ctx.Params(":sha")
+	sha := ctx.PathParam(":sha")
 	if len(sha) == 0 {
 		ctx.Error(http.StatusBadRequest, "", "sha not provided")
 		return

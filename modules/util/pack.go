@@ -9,7 +9,7 @@ import (
 )
 
 // PackData uses gob to encode the given data in sequence
-func PackData(data ...interface{}) ([]byte, error) {
+func PackData(data ...any) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	for _, datum := range data {
@@ -21,7 +21,7 @@ func PackData(data ...interface{}) ([]byte, error) {
 }
 
 // UnpackData uses gob to decode the given data in sequence
-func UnpackData(buf []byte, data ...interface{}) error {
+func UnpackData(buf []byte, data ...any) error {
 	r := bytes.NewReader(buf)
 	enc := gob.NewDecoder(r)
 	for _, datum := range data {

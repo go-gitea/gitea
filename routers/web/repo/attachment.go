@@ -9,14 +9,15 @@ import (
 
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/upload"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/attachment"
+	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context/upload"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -44,7 +45,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	}
 	defer file.Close()
 
-	attach, err := attachment.UploadAttachment(file, allowedTypes, &repo_model.Attachment{
+	attach, err := attachment.UploadAttachment(ctx, file, allowedTypes, header.Size, &repo_model.Attachment{
 		Name:       header.Filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     repoID,
@@ -76,7 +77,7 @@ func DeleteAttachment(ctx *context.Context) {
 		ctx.Error(http.StatusForbidden)
 		return
 	}
-	err = repo_model.DeleteAttachment(attach, true)
+	err = repo_model.DeleteAttachment(ctx, attach, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteAttachment: %v", err))
 		return
@@ -86,9 +87,9 @@ func DeleteAttachment(ctx *context.Context) {
 	})
 }
 
-// GetAttachment serve attachments
-func GetAttachment(ctx *context.Context) {
-	attach, err := repo_model.GetAttachmentByUUID(ctx, ctx.Params(":uuid"))
+// GetAttachment serve attachments with the given UUID
+func ServeAttachment(ctx *context.Context, uuid string) {
+	attach, err := repo_model.GetAttachmentByUUID(ctx, uuid)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
@@ -121,12 +122,12 @@ func GetAttachment(ctx *context.Context) {
 		}
 	}
 
-	if err := attach.IncreaseDownloadCount(); err != nil {
+	if err := attach.IncreaseDownloadCount(ctx); err != nil {
 		ctx.ServerError("IncreaseDownloadCount", err)
 		return
 	}
 
-	if setting.Attachment.ServeDirect {
+	if setting.Attachment.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name)
 
@@ -148,8 +149,10 @@ func GetAttachment(ctx *context.Context) {
 	}
 	defer fr.Close()
 
-	if err = common.ServeData(ctx, attach.Name, attach.Size, fr); err != nil {
-		ctx.ServerError("ServeData", err)
-		return
-	}
+	common.ServeContentByReadSeeker(ctx.Base, attach.Name, util.ToPointer(attach.CreatedUnix.AsTime()), fr)
+}
+
+// GetAttachment serve attachments
+func GetAttachment(ctx *context.Context) {
+	ServeAttachment(ctx, ctx.PathParam(":uuid"))
 }

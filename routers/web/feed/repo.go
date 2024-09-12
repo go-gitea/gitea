@@ -8,14 +8,14 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/services/context"
 
 	"github.com/gorilla/feeds"
 )
 
 // ShowRepoFeed shows user activity on the repo as RSS / Atom feed
 func ShowRepoFeed(ctx *context.Context, repo *repo_model.Repository, formatType string) {
-	actions, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
+	actions, _, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedRepo:  repo,
 		Actor:          ctx.Doer,
 		IncludePrivate: true,
@@ -27,7 +27,7 @@ func ShowRepoFeed(ctx *context.Context, repo *repo_model.Repository, formatType 
 	}
 
 	feed := &feeds.Feed{
-		Title:       ctx.Tr("home.feed_of", repo.FullName()),
+		Title:       ctx.Locale.TrString("home.feed_of", repo.FullName()),
 		Link:        &feeds.Link{Href: repo.HTMLURL()},
 		Description: repo.Description,
 		Created:     time.Now(),

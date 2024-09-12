@@ -1,0 +1,29 @@
+<!-- This template should be kept the same as web_src/js/components/ActionRunStatus.vue
+	Please also update the vue file above if this template is modified.
+	action status accepted: success, skipped, waiting, blocked, running, failure, cancelled, unknown
+-->
+{{- $size := 16 -}}
+{{- if .size -}}
+{{- $size = .size -}}
+{{- end -}}
+
+{{- $className := "" -}}
+{{- if .className -}}
+{{- $className = .className -}}
+{{- end -}}
+
+<span class="tw-flex tw-items-center" data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" .status)}}">
+{{if eq .status "success"}}
+	{{svg "octicon-check-circle-fill" $size (printf "text green %s" $className)}}
+{{else if eq .status "skipped"}}
+	{{svg "octicon-skip" $size (printf "text grey %s" $className)}}
+{{else if eq .status "waiting"}}
+	{{svg "octicon-clock" $size (printf "text yellow %s" $className)}}
+{{else if eq .status "blocked"}}
+	{{svg "octicon-blocked" $size (printf "text yellow %s" $className)}}
+{{else if eq .status "running"}}
+	{{svg "octicon-meter" $size (printf "text yellow job-status-rotate %s" $className)}}
+{{else if or (eq .status "failure") or (eq .status "cancelled") or (eq .status "unknown")}}
+	{{svg "octicon-x-circle-fill" $size (printf "text red %s" $className)}}
+{{end}}
+</span>

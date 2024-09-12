@@ -4,6 +4,7 @@
 package typesniffer
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,8 +25,9 @@ const (
 )
 
 var (
-	svgTagRegex      = regexp.MustCompile(`(?si)\A\s*(?:(<!--.*?-->|<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg[\s>\/]`)
-	svgTagInXMLRegex = regexp.MustCompile(`(?si)\A<\?xml\b.*?\?>\s*(?:(<!--.*?-->|<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg[\s>\/]`)
+	svgComment       = regexp.MustCompile(`(?s)<!--.*?-->`)
+	svgTagRegex      = regexp.MustCompile(`(?si)\A\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg\b`)
+	svgTagInXMLRegex = regexp.MustCompile(`(?si)\A<\?xml\b.*?\?>\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg\b`)
 )
 
 // SniffedType contains information about a blobs type.
@@ -69,7 +71,7 @@ func (ct SniffedType) IsRepresentableAsText() bool {
 	return ct.IsText() || ct.IsSvgImage()
 }
 
-// IsBrowsableType returns whether a non-text type can be displayed in a browser
+// IsBrowsableBinaryType returns whether a non-text type can be displayed in a browser
 func (ct SniffedType) IsBrowsableBinaryType() bool {
 	return ct.IsImage() || ct.IsSvgImage() || ct.IsPDF() || ct.IsVideo() || ct.IsAudio()
 }
@@ -91,12 +93,40 @@ func DetectContentType(data []byte) SniffedType {
 		data = data[:sniffLen]
 	}
 
-	if (strings.Contains(ct, "text/plain") || strings.Contains(ct, "text/html")) && svgTagRegex.Match(data) ||
-		strings.Contains(ct, "text/xml") && svgTagInXMLRegex.Match(data) {
-		// SVG is unsupported. https://github.com/golang/go/issues/15888
-		ct = SvgMimeType
+	// SVG is unsupported by http.DetectContentType, https://github.com/golang/go/issues/15888
+
+	detectByHTML := strings.Contains(ct, "text/plain") || strings.Contains(ct, "text/html")
+	detectByXML := strings.Contains(ct, "text/xml")
+	if detectByHTML || detectByXML {
+		dataProcessed := svgComment.ReplaceAll(data, nil)
+		dataProcessed = bytes.TrimSpace(dataProcessed)
+		if detectByHTML && svgTagRegex.Match(dataProcessed) ||
+			detectByXML && svgTagInXMLRegex.Match(dataProcessed) {
+			ct = SvgMimeType
+		}
 	}
 
+	if strings.HasPrefix(ct, "audio/") && bytes.HasPrefix(data, []byte("ID3")) {
+		// The MP3 detection is quite inaccurate, any content with "ID3" prefix will result in "audio/mpeg".
+		// So remove the "ID3" prefix and detect again, if result is text, then it must be text content.
+		// This works especially because audio files contain many unprintable/invalid characters like `0x00`
+		ct2 := http.DetectContentType(data[3:])
+		if strings.HasPrefix(ct2, "text/") {
+			ct = ct2
+		}
+	}
+
+	if ct == "application/ogg" {
+		dataHead := data
+		if len(dataHead) > 256 {
+			dataHead = dataHead[:256] // only need to do a quick check for the file header
+		}
+		if bytes.Contains(dataHead, []byte("theora")) || bytes.Contains(dataHead, []byte("dirac")) {
+			ct = "video/ogg" // ogg is only used for some video formats, and it's not popular
+		} else {
+			ct = "audio/ogg" // for most cases, it is used as an audio container
+		}
+	}
 	return SniffedType{ct}
 }
 

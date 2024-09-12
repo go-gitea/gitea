@@ -76,7 +76,8 @@ func IsSummary(node ast.Node) bool {
 // TaskCheckBoxListItem is a block that represents a list item of a markdown block with a checkbox
 type TaskCheckBoxListItem struct {
 	*ast.ListItem
-	IsChecked bool
+	IsChecked      bool
+	SourcePosition int
 }
 
 // KindTaskCheckBoxListItem is the NodeKind for TaskCheckBoxListItem
@@ -86,6 +87,7 @@ var KindTaskCheckBoxListItem = ast.NewNodeKind("TaskCheckBoxListItem")
 func (n *TaskCheckBoxListItem) Dump(source []byte, level int) {
 	m := map[string]string{}
 	m["IsChecked"] = strconv.FormatBool(n.IsChecked)
+	m["SourcePosition"] = strconv.FormatInt(int64(n.SourcePosition), 10)
 	ast.DumpHelper(n, source, level, m, nil)
 }
 
@@ -173,19 +175,7 @@ func NewColorPreview(color []byte) *ColorPreview {
 	}
 }
 
-// IsColorPreview returns true if the given node implements the ColorPreview interface,
-// otherwise false.
-func IsColorPreview(node ast.Node) bool {
-	_, ok := node.(*ColorPreview)
-	return ok
-}
-
-const (
-	AttentionNote    string = "Note"
-	AttentionWarning string = "Warning"
-)
-
-// Attention is an inline for a color preview
+// Attention is an inline for an attention
 type Attention struct {
 	ast.BaseInline
 	AttentionType string

@@ -4,6 +4,8 @@
 
 package structs
 
+import "time"
+
 // CreateUserOption create user options
 type CreateUserOption struct {
 	SourceID  int64  `json:"source_id"`
@@ -13,13 +15,17 @@ type CreateUserOption struct {
 	FullName string `json:"full_name" binding:"MaxSize(100)"`
 	// required: true
 	// swagger:strfmt email
-	Email string `json:"email" binding:"Required;Email;MaxSize(254)"`
-	// required: true
-	Password           string `json:"password" binding:"Required;MaxSize(255)"`
+	Email              string `json:"email" binding:"Required;Email;MaxSize(254)"`
+	Password           string `json:"password" binding:"MaxSize(255)"`
 	MustChangePassword *bool  `json:"must_change_password"`
 	SendNotify         bool   `json:"send_notify"`
 	Restricted         *bool  `json:"restricted"`
 	Visibility         string `json:"visibility" binding:"In(,public,limited,private)"`
+
+	// For explicitly setting the user creation timestamp. Useful when users are
+	// migrated from other systems. When omitted, the user's creation timestamp
+	// will be set to "now".
+	Created *time.Time `json:"created_at"`
 }
 
 // EditUserOption edit user options

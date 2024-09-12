@@ -9,8 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
+	"code.gitea.io/gitea/services/context"
 )
 
 // IssueStopwatch creates or stops a stopwatch for the given issue.
@@ -22,16 +22,16 @@ func IssueStopwatch(c *context.Context) {
 
 	var showSuccessMessage bool
 
-	if !issues_model.StopwatchExists(c.Doer.ID, issue.ID) {
+	if !issues_model.StopwatchExists(c, c.Doer.ID, issue.ID) {
 		showSuccessMessage = true
 	}
 
-	if !c.Repo.CanUseTimetracker(issue, c.Doer) {
+	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
 
-	if err := issues_model.CreateOrStopIssueStopwatch(c.Doer, issue); err != nil {
+	if err := issues_model.CreateOrStopIssueStopwatch(c, c.Doer, issue); err != nil {
 		c.ServerError("CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -40,7 +40,7 @@ func IssueStopwatch(c *context.Context) {
 		c.Flash.Success(c.Tr("repo.issues.tracker_auto_close"))
 	}
 
-	url := issue.HTMLURL()
+	url := issue.Link()
 	c.Redirect(url, http.StatusSeeOther)
 }
 
@@ -50,17 +50,17 @@ func CancelStopwatch(c *context.Context) {
 	if c.Written() {
 		return
 	}
-	if !c.Repo.CanUseTimetracker(issue, c.Doer) {
+	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
 
-	if err := issues_model.CancelStopwatch(c.Doer, issue); err != nil {
+	if err := issues_model.CancelStopwatch(c, c.Doer, issue); err != nil {
 		c.ServerError("CancelStopwatch", err)
 		return
 	}
 
-	stopwatches, err := issues_model.GetUserStopwatches(c.Doer.ID, db.ListOptions{})
+	stopwatches, err := issues_model.GetUserStopwatches(c, c.Doer.ID, db.ListOptions{})
 	if err != nil {
 		c.ServerError("GetUserStopwatches", err)
 		return
@@ -72,7 +72,7 @@ func CancelStopwatch(c *context.Context) {
 		})
 	}
 
-	url := issue.HTMLURL()
+	url := issue.Link()
 	c.Redirect(url, http.StatusSeeOther)
 }
 
@@ -86,25 +86,13 @@ func GetActiveStopwatch(ctx *context.Context) {
 		return
 	}
 
-	_, sw, err := issues_model.HasUserStopwatch(ctx, ctx.Doer.ID)
+	_, sw, issue, err := issues_model.HasUserStopwatch(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("HasUserStopwatch", err)
 		return
 	}
 
 	if sw == nil || sw.ID == 0 {
-		return
-	}
-
-	issue, err := issues_model.GetIssueByID(ctx, sw.IssueID)
-	if err != nil || issue == nil {
-		if !issues_model.IsErrIssueNotExist(err) {
-			ctx.ServerError("GetIssueByID", err)
-		}
-		return
-	}
-	if err = issue.LoadRepo(ctx); err != nil {
-		ctx.ServerError("LoadRepo", err)
 		return
 	}
 

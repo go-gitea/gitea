@@ -30,18 +30,18 @@ func TestWebfinger(t *testing.T) {
 	appURL, _ := url.Parse(setting.AppURL)
 
 	type webfingerLink struct {
-		Rel        string                 `json:"rel,omitempty"`
-		Type       string                 `json:"type,omitempty"`
-		Href       string                 `json:"href,omitempty"`
-		Titles     map[string]string      `json:"titles,omitempty"`
-		Properties map[string]interface{} `json:"properties,omitempty"`
+		Rel        string            `json:"rel,omitempty"`
+		Type       string            `json:"type,omitempty"`
+		Href       string            `json:"href,omitempty"`
+		Titles     map[string]string `json:"titles,omitempty"`
+		Properties map[string]any    `json:"properties,omitempty"`
 	}
 
 	type webfingerJRD struct {
-		Subject    string                 `json:"subject,omitempty"`
-		Aliases    []string               `json:"aliases,omitempty"`
-		Properties map[string]interface{} `json:"properties,omitempty"`
-		Links      []*webfingerLink       `json:"links,omitempty"`
+		Subject    string           `json:"subject,omitempty"`
+		Aliases    []string         `json:"aliases,omitempty"`
+		Properties map[string]any   `json:"properties,omitempty"`
+		Links      []*webfingerLink `json:"links,omitempty"`
 	}
 
 	session := loginUser(t, "user1")
@@ -52,7 +52,7 @@ func TestWebfinger(t *testing.T) {
 	var jrd webfingerJRD
 	DecodeJSON(t, resp, &jrd)
 	assert.Equal(t, "acct:user2@"+appURL.Host, jrd.Subject)
-	assert.ElementsMatch(t, []string{user.HTMLURL(), appURL.String() + "api/v1/activitypub/user/" + url.PathEscape(user.Name)}, jrd.Aliases)
+	assert.ElementsMatch(t, []string{user.HTMLURL(), appURL.String() + "api/v1/activitypub/user-id/" + fmt.Sprint(user.ID)}, jrd.Aliases)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/.well-known/webfinger?resource=acct:%s@%s", user.LowerName, "unknown.host"))
 	MakeRequest(t, req, http.StatusBadRequest)

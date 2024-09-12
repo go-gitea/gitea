@@ -9,6 +9,7 @@ import (
 	"runtime/pprof"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -42,6 +43,35 @@ type IDType string
 // FinishedFunc is a function that marks that the process is finished and can be removed from the process table
 // - it is simply an alias for context.CancelFunc and is only for documentary purposes
 type FinishedFunc = context.CancelFunc
+
+var (
+	traceDisabled atomic.Int64
+	TraceCallback = defaultTraceCallback // this global can be overridden by particular logging packages - thus avoiding import cycles
+)
+
+// defaultTraceCallback is a no-op. Without a proper TraceCallback (provided by the logger system), this "Trace" level messages shouldn't be outputted.
+func defaultTraceCallback(skip int, start bool, pid IDType, description string, parentPID IDType, typ string) {
+}
+
+// TraceLogDisable disables (or revert the disabling) the trace log for the process lifecycle.
+// eg: the logger system shouldn't print the trace log for themselves, that's cycle dependency (Logger -> ProcessManager -> TraceCallback -> Logger ...)
+// Theoretically, such trace log should only be enabled when the logger system is ready with a proper level, so the default TraceCallback is a no-op.
+func TraceLogDisable(v bool) {
+	if v {
+		traceDisabled.Add(1)
+	} else {
+		traceDisabled.Add(-1)
+	}
+}
+
+func Trace(start bool, pid IDType, description string, parentPID IDType, typ string) {
+	if traceDisabled.Load() != 0 {
+		// the traceDisabled counter is mainly for recursive calls, so no concurrency problem.
+		// because the counter can't be 0 since the caller function hasn't returned (decreased the counter) yet.
+		return
+	}
+	TraceCallback(1, start, pid, description, parentPID, typ)
+}
 
 // Manager manages all processes and counts PIDs.
 type Manager struct {
@@ -104,7 +134,7 @@ func (pm *Manager) AddTypedContext(parent context.Context, description, processT
 //
 // Most processes will not need to use the cancel function but there will be cases whereby you want to cancel the process but not immediately remove it from the
 // process table.
-func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel context.CancelFunc, finshed FinishedFunc) {
+func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel context.CancelFunc, finished FinishedFunc) {
 	if timeout <= 0 {
 		// it's meaningless to use timeout <= 0, and it must be a bug! so we must panic here to tell developers to make the timeout correct
 		panic("the timeout must be greater than zero, otherwise the context will be cancelled immediately")
@@ -112,9 +142,9 @@ func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Durati
 
 	ctx, cancel = context.WithTimeout(parent, timeout)
 
-	ctx, _, finshed = pm.Add(ctx, description, cancel, NormalProcessType, true)
+	ctx, _, finished = pm.Add(ctx, description, cancel, NormalProcessType, true)
 
-	return ctx, cancel, finshed
+	return ctx, cancel, finished
 }
 
 // Add create a new process
@@ -155,6 +185,8 @@ func (pm *Manager) Add(ctx context.Context, description string, cancel context.C
 	pm.processMap[pid] = process
 	pm.mutex.Unlock()
 
+	Trace(true, pid, description, parentPID, processType)
+
 	pprofCtx := pprof.WithLabels(ctx, pprof.Labels(DescriptionPProfLabel, description, PPIDPProfLabel, string(parentPID), PIDPProfLabel, string(pid), ProcessTypePProfLabel, processType))
 	if currentlyRunning {
 		pprof.SetGoroutineLabels(pprofCtx)
@@ -179,24 +211,24 @@ func (pm *Manager) nextPID() (start time.Time, pid IDType) {
 	pid = IDType(strconv.FormatInt(start.Unix(), 16))
 
 	if pm.next == 1 {
-		return
+		return start, pid
 	}
 	pid = IDType(string(pid) + "-" + strconv.FormatInt(pm.next, 10))
 	return start, pid
 }
 
-// Remove a process from the ProcessManager.
-func (pm *Manager) Remove(pid IDType) {
-	pm.mutex.Lock()
-	delete(pm.processMap, pid)
-	pm.mutex.Unlock()
-}
-
 func (pm *Manager) remove(process *process) {
+	deleted := false
+
 	pm.mutex.Lock()
-	defer pm.mutex.Unlock()
-	if p := pm.processMap[process.PID]; p == process {
+	if pm.processMap[process.PID] == process {
 		delete(pm.processMap, process.PID)
+		deleted = true
+	}
+	pm.mutex.Unlock()
+
+	if deleted {
+		Trace(false, process.PID, process.Description, process.ParentPID, process.Type)
 	}
 }
 

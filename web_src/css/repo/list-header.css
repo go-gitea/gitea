@@ -1,0 +1,39 @@
+.list-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.list-header-sort {
+  display: flex;
+  align-items: center;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.list-header-search {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-width: 200px; /* to enable flexbox wrapping on mobile */
+}
+
+.list-header-search .input {
+  flex: 1;
+}
+
+@media (max-width: 767.98px) {
+  .list-header-search {
+    order: 0;
+  }
+  .list-header-toggle {
+    order: 1;
+  }
+  .list-header-sort {
+    order: 2;
+    margin-left: auto;
+  }
+}

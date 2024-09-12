@@ -1,36 +1,21 @@
-<template>
-  <div
-    v-if="fileTreeIsVisible"
-    class="mr-3 mt-3 diff-detail-box"
-  >
-    <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
-    <div class="ui list">
-      <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item" />
-    </div>
-    <div v-if="isIncomplete" id="diff-too-many-files-stats" class="pt-2">
-      <span class="mr-2">{{ tooManyFilesMessage }}</span><a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
-    </div>
-  </div>
-</template>
-
-<script>
+<script lang="ts">
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
-import {doLoadMoreFiles} from '../features/repo-diff.js';
+import {loadMoreFiles} from '../features/repo-diff.ts';
+import {toggleElem} from '../utils/dom.ts';
+import {diffTreeStore} from '../modules/stores.ts';
+import {setFileFolding} from '../features/file-fold.ts';
 
-const {pageData} = window.config;
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 
 export default {
   components: {DiffFileTreeItem},
   data: () => {
-    const fileTreeIsVisible = localStorage.getItem(LOCAL_STORAGE_KEY) === 'true';
-    pageData.diffFileInfo.fileTreeIsVisible = fileTreeIsVisible;
-    return pageData.diffFileInfo;
+    return {store: diffTreeStore()};
   },
   computed: {
     fileTree() {
       const result = [];
-      for (const file of this.files) {
+      for (const file of this.store.files) {
         // Split file into directories
         const splits = file.Name.split('/');
         let index = 0;
@@ -45,7 +30,7 @@ export default {
           let newParent = {
             name: split,
             children: [],
-            isFile
+            isFile,
           };
 
           if (isFile === true) {
@@ -55,7 +40,7 @@ export default {
           if (parent) {
             // check if the folder already exists
             const existingFolder = parent.children.find(
-              (x) => x.name === split
+              (x) => x.name === split,
             );
             if (existingFolder) {
               newParent = existingFolder;
@@ -89,42 +74,71 @@ export default {
       // reduce the depth of our tree.
       mergeChildIfOnlyOneDir(result);
       return result;
-    }
+    },
   },
   mounted() {
-    // ensure correct buttons when we are mounted to the dom
-    this.adjustToggleButton(this.fileTreeIsVisible);
-    // replace the pageData.diffFileInfo.files with our watched data so we get updates
-    pageData.diffFileInfo.files = this.files;
-
+    // Default to true if unset
+    this.store.fileTreeIsVisible = localStorage.getItem(LOCAL_STORAGE_KEY) !== 'false';
     document.querySelector('.diff-toggle-file-tree-button').addEventListener('click', this.toggleVisibility);
+
+    this.hashChangeListener = () => {
+      this.store.selectedItem = window.location.hash;
+      this.expandSelectedFile();
+    };
+    this.hashChangeListener();
+    window.addEventListener('hashchange', this.hashChangeListener);
   },
   unmounted() {
     document.querySelector('.diff-toggle-file-tree-button').removeEventListener('click', this.toggleVisibility);
+    window.removeEventListener('hashchange', this.hashChangeListener);
   },
   methods: {
+    expandSelectedFile() {
+      // expand file if the selected file is folded
+      if (this.store.selectedItem) {
+        const box = document.querySelector(this.store.selectedItem);
+        const folded = box?.getAttribute('data-folded') === 'true';
+        if (folded) setFileFolding(box, box.querySelector('.fold-file'), false);
+      }
+    },
     toggleVisibility() {
-      this.updateVisibility(!this.fileTreeIsVisible);
+      this.updateVisibility(!this.store.fileTreeIsVisible);
     },
     updateVisibility(visible) {
-      this.fileTreeIsVisible = visible;
-      localStorage.setItem(LOCAL_STORAGE_KEY, this.fileTreeIsVisible);
-      this.adjustToggleButton(this.fileTreeIsVisible);
+      this.store.fileTreeIsVisible = visible;
+      localStorage.setItem(LOCAL_STORAGE_KEY, this.store.fileTreeIsVisible);
+      this.updateState(this.store.fileTreeIsVisible);
     },
-    adjustToggleButton(visible) {
-      const [toShow, toHide] = document.querySelectorAll('.diff-toggle-file-tree-button .icon');
-      toShow.classList.toggle('hide', visible);  // hide the toShow icon if the tree is visible
-      toHide.classList.toggle('hide', !visible); // similarly
-
-      const diffTree = document.getElementById('diff-file-tree');
-      diffTree.classList.toggle('hide', !visible);
+    updateState(visible) {
+      const btn = document.querySelector('.diff-toggle-file-tree-button');
+      const [toShow, toHide] = btn.querySelectorAll('.icon');
+      const tree = document.querySelector('#diff-file-tree');
+      const newTooltip = btn.getAttribute(visible ? 'data-hide-text' : 'data-show-text');
+      btn.setAttribute('data-tooltip-content', newTooltip);
+      toggleElem(tree, visible);
+      toggleElem(toShow, !visible);
+      toggleElem(toHide, visible);
     },
     loadMoreData() {
-      this.isLoadingNewData = true;
-      doLoadMoreFiles(this.link, this.diffEnd, () => {
-        this.isLoadingNewData = false;
-      });
+      loadMoreFiles(this.store.linkLoadMore);
     },
   },
 };
 </script>
+<template>
+  <div v-if="store.fileTreeIsVisible" class="diff-file-tree-items">
+    <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
+    <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item"/>
+    <div v-if="store.isIncomplete" class="tw-pt-1">
+      <a :class="['ui', 'basic', 'tiny', 'button', store.isLoadingNewData ? 'disabled' : '']" @click.stop="loadMoreData">{{ store.showMoreMessage }}</a>
+    </div>
+  </div>
+</template>
+<style scoped>
+.diff-file-tree-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-right: .5rem;
+}
+</style>

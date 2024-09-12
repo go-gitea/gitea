@@ -5,7 +5,6 @@ package setting
 
 import (
 	"net/http"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -15,7 +14,8 @@ import (
 
 // SessionConfig defines Session settings
 var SessionConfig = struct {
-	Provider string
+	OriginalProvider string
+	Provider         string
 	// Provider configuration, it's corresponding to provider.
 	ProviderConfig string
 	// Cookie name to save session ID. Default is "MacaronSession".
@@ -39,17 +39,21 @@ var SessionConfig = struct {
 	SameSite:    http.SameSiteLaxMode,
 }
 
-func newSessionService() {
-	sec := Cfg.Section("session")
+func loadSessionFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("session")
 	SessionConfig.Provider = sec.Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "db"})
-	SessionConfig.ProviderConfig = strings.Trim(sec.Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")
+	SessionConfig.ProviderConfig = strings.Trim(sec.Key("PROVIDER_CONFIG").MustString(filepath.Join(AppDataPath, "sessions")), "\" ")
 	if SessionConfig.Provider == "file" && !filepath.IsAbs(SessionConfig.ProviderConfig) {
-		SessionConfig.ProviderConfig = path.Join(AppWorkPath, SessionConfig.ProviderConfig)
+		SessionConfig.ProviderConfig = filepath.Join(AppWorkPath, SessionConfig.ProviderConfig)
+		checkOverlappedPath("[session].PROVIDER_CONFIG", SessionConfig.ProviderConfig)
 	}
 	SessionConfig.CookieName = sec.Key("COOKIE_NAME").MustString("i_like_gitea")
 	SessionConfig.CookiePath = AppSubURL
-	SessionConfig.Secure = sec.Key("COOKIE_SECURE").MustBool(false)
+	if SessionConfig.CookiePath == "" {
+		SessionConfig.CookiePath = "/"
+	}
+	SessionConfig.Secure = sec.Key("COOKIE_SECURE").MustBool(strings.HasPrefix(strings.ToLower(AppURL), "https://"))
 	SessionConfig.Gclifetime = sec.Key("GC_INTERVAL_TIME").MustInt64(86400)
 	SessionConfig.Maxlifetime = sec.Key("SESSION_LIFE_TIME").MustInt64(86400)
 	SessionConfig.Domain = sec.Key("DOMAIN").String()
@@ -67,6 +71,7 @@ func newSessionService() {
 		log.Fatal("Can't shadow session config: %v", err)
 	}
 	SessionConfig.ProviderConfig = string(shadowConfig)
+	SessionConfig.OriginalProvider = SessionConfig.Provider
 	SessionConfig.Provider = "VirtualSession"
 
 	log.Info("Session Service Enabled")

@@ -13,20 +13,21 @@ import (
 	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	helm_module "code.gitea.io/gitea/modules/packages/helm"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 
 	"gopkg.in/yaml.v3"
 )
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		type Error struct {
 			Error string `json:"error"`
@@ -42,7 +43,7 @@ func Index(ctx *context.Context) {
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
 		Type:       packages_model.TypeHelm,
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -100,17 +101,17 @@ func Index(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
-	filename := ctx.Params("filename")
+	filename := ctx.PathParam("filename")
 
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Type:    packages_model.TypeHelm,
 		Name: packages_model.SearchValue{
 			ExactMatch: true,
-			Value:      ctx.Params("package"),
+			Value:      ctx.PathParam("package"),
 		},
 		HasFileWithName: filename,
-		IsInternal:      util.OptionalBoolFalse,
+		IsInternal:      optional.Some(false),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -121,7 +122,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	s, pf, err := packages_service.GetFileStreamByPackageVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageVersion(
 		ctx,
 		pvs[0],
 		&packages_service.PackageFileInfo{
@@ -136,12 +137,8 @@ func DownloadPackageFile(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 // UploadPackage creates a new package
@@ -155,7 +152,7 @@ func UploadPackage(ctx *context.Context) {
 		defer upload.Close()
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -178,6 +175,7 @@ func UploadPackage(ctx *context.Context) {
 	}
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,

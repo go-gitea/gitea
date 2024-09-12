@@ -1,9 +1,17 @@
+<div class="bottom-reactions" data-action-url="{{$.ActionURL}}">
 {{range $key, $value := .Reactions}}
-	<a class="ui label basic{{if $value.HasUser $.ctx.SignedUserID}} primary{{end}}{{if not $.ctx.IsSigned}} disabled{{end}}" data-title="{{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{$.ctx.locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}" data-content="{{$key}}" data-action-url="{{$.ActionURL}}">
+	{{$hasReacted := $value.HasUser ctx.RootData.SignedUserID}}
+	<a role="button" class="ui label basic{{if $hasReacted}} primary{{end}}{{if not ctx.RootData.IsSigned}} disabled{{end}} comment-reaction-button"
+		data-tooltip-content
+		title="{{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{ctx.Locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}"
+		aria-label="{{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{ctx.Locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}"
+		data-tooltip-placement="bottom-start"
+		data-reaction-content="{{$key}}" data-has-reacted="{{$hasReacted}}">
 		<span class="reaction">{{ReactionToEmoji $key}}</span>
 		<span class="reaction-count">{{len $value}}</span>
 	</a>
 {{end}}
 {{if AllowedReactions}}
-	{{template "repo/issue/view_content/add_reaction" Dict "ctx" $.ctx "ActionURL" .ActionURL}}
+	{{template "repo/issue/view_content/add_reaction" dict "ActionURL" .ActionURL}}
 {{end}}
+</div>

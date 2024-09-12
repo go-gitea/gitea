@@ -4,6 +4,7 @@
 package asymkey
 
 import (
+	"context"
 	"fmt"
 	"hash"
 	"strings"
@@ -70,14 +71,14 @@ const (
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error)) []*SignCommit {
+func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error)) []*SignCommit {
 	newCommits := make([]*SignCommit, 0, len(oldCommits))
 	keyMap := map[string]bool{}
 
 	for _, c := range oldCommits {
 		signCommit := &SignCommit{
 			UserCommit:   c,
-			Verification: ParseCommitWithSignature(c.Commit),
+			Verification: ParseCommitWithSignature(ctx, c.Commit),
 		}
 
 		_ = CalculateTrustStatus(signCommit.Verification, repoTrustModel, isOwnerMemberCollaborator, &keyMap)
@@ -88,13 +89,13 @@ func ParseCommitsWithSignature(oldCommits []*user_model.UserCommit, repoTrustMod
 }
 
 // ParseCommitWithSignature check if signature is good against keystore.
-func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
+func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *CommitVerification {
 	var committer *user_model.User
 	if c.Committer != nil {
 		var err error
 		// Find Committer account
-		committer, err = user_model.GetUserByEmail(c.Committer.Email) // This finds the user by primary email or activated email so commit will not be valid if email is not
-		if err != nil {                                               // Skipping not user for committer
+		committer, err = user_model.GetUserByEmail(ctx, c.Committer.Email) // This finds the user by primary email or activated email so commit will not be valid if email is not
+		if err != nil {                                                    // Skipping not user for committer
 			committer = &user_model.User{
 				Name:  c.Committer.Name,
 				Email: c.Committer.Email,
@@ -109,7 +110,6 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 					Reason:         "gpg.error.no_committer_account",
 				}
 			}
-
 		}
 	}
 
@@ -124,7 +124,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 
 	// If this a SSH signature handle it differently
 	if strings.HasPrefix(c.Signature.Signature, "-----BEGIN SSH SIGNATURE-----") {
-		return ParseCommitWithSSHSignature(c, committer)
+		return ParseCommitWithSSHSignature(ctx, c, committer)
 	}
 
 	// Parsing signature
@@ -138,17 +138,12 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 	}
 
-	keyID := ""
-	if sig.IssuerKeyId != nil && (*sig.IssuerKeyId) != 0 {
-		keyID = fmt.Sprintf("%X", *sig.IssuerKeyId)
-	}
-	if keyID == "" && sig.IssuerFingerprint != nil && len(sig.IssuerFingerprint) > 0 {
-		keyID = fmt.Sprintf("%X", sig.IssuerFingerprint[12:20])
-	}
+	keyID := tryGetKeyIDFromSignature(sig)
 	defaultReason := NoKeyFound
 
 	// First check if the sig has a keyID and if so just look at that
 	if commitVerification := hashAndVerifyForKeyID(
+		ctx,
 		sig,
 		c.Signature.Payload,
 		committer,
@@ -164,7 +159,9 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 
 	// Now try to associate the signature with the committer, if present
 	if committer.ID != 0 {
-		keys, err := ListGPGKeys(db.DefaultContext, committer.ID, db.ListOptions{})
+		keys, err := db.Find[GPGKey](ctx, FindGPGKeyOptions{
+			OwnerID: committer.ID,
+		})
 		if err != nil { // Skipping failed to get gpg keys of user
 			log.Error("ListGPGKeys: %v", err)
 			return &CommitVerification{
@@ -174,7 +171,16 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			}
 		}
 
-		committerEmailAddresses, _ := user_model.GetEmailAddresses(committer.ID)
+		if err := GPGKeyList(keys).LoadSubKeys(ctx); err != nil {
+			log.Error("LoadSubKeys: %v", err)
+			return &CommitVerification{
+				CommittingUser: committer,
+				Verified:       false,
+				Reason:         "gpg.error.failed_retrieval_gpg_keys",
+			}
+		}
+
+		committerEmailAddresses, _ := user_model.GetEmailAddresses(ctx, committer.ID)
 		activated := false
 		for _, e := range committerEmailAddresses {
 			if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {
@@ -221,7 +227,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 		if err := gpgSettings.LoadPublicKeyContent(); err != nil {
 			log.Error("Error getting default signing key: %s %v", gpgSettings.KeyID, err)
-		} else if commitVerification := verifyWithGPGSettings(&gpgSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
+		} else if commitVerification := verifyWithGPGSettings(ctx, &gpgSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
 			if commitVerification.Reason == BadSignature {
 				defaultReason = BadSignature
 			} else {
@@ -236,7 +242,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	} else if defaultGPGSettings == nil {
 		log.Warn("Unable to get defaultGPGSettings for unattached commit: %s", c.ID.String())
 	} else if defaultGPGSettings.Sign {
-		if commitVerification := verifyWithGPGSettings(defaultGPGSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
+		if commitVerification := verifyWithGPGSettings(ctx, defaultGPGSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
 			if commitVerification.Reason == BadSignature {
 				defaultReason = BadSignature
 			} else {
@@ -256,9 +262,9 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	}
 }
 
-func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, payload string, committer *user_model.User, keyID string) *CommitVerification {
+func verifyWithGPGSettings(ctx context.Context, gpgSettings *git.GPGSettings, sig *packet.Signature, payload string, committer *user_model.User, keyID string) *CommitVerification {
 	// First try to find the key in the db
-	if commitVerification := hashAndVerifyForKeyID(sig, payload, committer, gpgSettings.KeyID, gpgSettings.Name, gpgSettings.Email); commitVerification != nil {
+	if commitVerification := hashAndVerifyForKeyID(ctx, sig, payload, committer, gpgSettings.KeyID, gpgSettings.Name, gpgSettings.Email); commitVerification != nil {
 		return commitVerification
 	}
 
@@ -386,11 +392,14 @@ func hashAndVerifyWithSubKeysCommitVerification(sig *packet.Signature, payload s
 	return nil
 }
 
-func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *user_model.User, keyID, name, email string) *CommitVerification {
+func hashAndVerifyForKeyID(ctx context.Context, sig *packet.Signature, payload string, committer *user_model.User, keyID, name, email string) *CommitVerification {
 	if keyID == "" {
 		return nil
 	}
-	keys, err := GetGPGKeysByKeyID(keyID)
+	keys, err := db.Find[GPGKey](ctx, FindGPGKeyOptions{
+		KeyID:          keyID,
+		IncludeSubKeys: true,
+	})
 	if err != nil {
 		log.Error("GetGPGKeysByKeyID: %v", err)
 		return &CommitVerification{
@@ -405,7 +414,10 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *use
 	for _, key := range keys {
 		var primaryKeys []*GPGKey
 		if key.PrimaryKeyID != "" {
-			primaryKeys, err = GetGPGKeysByKeyID(key.PrimaryKeyID)
+			primaryKeys, err = db.Find[GPGKey](ctx, FindGPGKeyOptions{
+				KeyID:          key.PrimaryKeyID,
+				IncludeSubKeys: true,
+			})
 			if err != nil {
 				log.Error("GetGPGKeysByKeyID: %v", err)
 				return &CommitVerification{
@@ -416,7 +428,7 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *use
 			}
 		}
 
-		activated, email := checkKeyEmails(email, append([]*GPGKey{key}, primaryKeys...)...)
+		activated, email := checkKeyEmails(ctx, email, append([]*GPGKey{key}, primaryKeys...)...)
 		if !activated {
 			continue
 		}
@@ -426,7 +438,7 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *use
 			Email: email,
 		}
 		if key.OwnerID != 0 {
-			owner, err := user_model.GetUserByID(db.DefaultContext, key.OwnerID)
+			owner, err := user_model.GetUserByID(ctx, key.OwnerID)
 			if err == nil {
 				signer = owner
 			} else if !user_model.IsErrUserNotExist(err) {
@@ -454,9 +466,9 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *use
 
 // CalculateTrustStatus will calculate the TrustStatus for a commit verification within a repository
 // There are several trust models in Gitea
-func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error), keyMap *map[string]bool) (err error) {
+func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error), keyMap *map[string]bool) error {
 	if !verification.Verified {
-		return
+		return nil
 	}
 
 	// In the Committer trust model a signature is trusted if it matches the committer
@@ -474,7 +486,7 @@ func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_
 				verification.SigningUser.Email == verification.CommittingUser.Email) {
 			verification.TrustStatus = "trusted"
 		}
-		return
+		return nil
 	}
 
 	// Now we drop to the more nuanced trust models...
@@ -489,10 +501,11 @@ func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_
 			verification.SigningUser.Email != verification.CommittingUser.Email) {
 			verification.TrustStatus = "untrusted"
 		}
-		return
+		return nil
 	}
 
 	// Check we actually have a GPG SigningKey
+	var err error
 	if verification.SigningKey != nil {
 		var isMember bool
 		if keyMap != nil {

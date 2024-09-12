@@ -6,11 +6,11 @@ package migrations
 import (
 	"context"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/externalaccount"
 )
 
 // UpdateMigrationPosterID updates all migrated repositories' issues and comments posterID
@@ -36,8 +36,7 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 	}
 
 	const batchSize = 100
-	var start int
-	for {
+	for page := 0; ; page++ {
 		select {
 		case <-ctx.Done():
 			log.Warn("UpdateMigrationPosterIDByGitService(%s) cancelled", tp.Name())
@@ -45,10 +44,13 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 		default:
 		}
 
-		users, err := user_model.FindExternalUsersByProvider(user_model.FindExternalUserOptions{
+		users, err := db.Find[user_model.ExternalLoginUser](ctx, user_model.FindExternalUserOptions{
+			ListOptions: db.ListOptions{
+				PageSize: batchSize,
+				Page:     page,
+			},
 			Provider: provider,
-			Start:    start,
-			Limit:    batchSize,
+			OrderBy:  "login_source_id ASC, external_id ASC",
 		})
 		if err != nil {
 			return err
@@ -62,7 +64,7 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 			default:
 			}
 			externalUserID := user.ExternalID
-			if err := models.UpdateMigrationsByType(tp, externalUserID, user.UserID); err != nil {
+			if err := externalaccount.UpdateMigrationsByType(ctx, tp, externalUserID, user.UserID); err != nil {
 				log.Error("UpdateMigrationsByType type %s external user id %v to local user id %v failed: %v", tp.Name(), user.ExternalID, user.UserID, err)
 			}
 		}
@@ -70,7 +72,6 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 		if len(users) < batchSize {
 			break
 		}
-		start += len(users)
 	}
 	return nil
 }

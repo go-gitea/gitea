@@ -9,9 +9,11 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
+	"code.gitea.io/gitea/modules/optional"
 	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/packages/container/oci"
-	"code.gitea.io/gitea/modules/util"
+	packages_service "code.gitea.io/gitea/services/packages"
+
+	digest "github.com/opencontainers/go-digest"
 )
 
 // Cleanup removes expired container data
@@ -46,10 +48,7 @@ func cleanupExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) e
 	}
 
 	for _, pf := range pfs {
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-			return err
-		}
-		if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+		if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
 			return err
 		}
 	}
@@ -60,8 +59,8 @@ func cleanupExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) e
 			ExactMatch: true,
 			Value:      container_model.UploadVersion,
 		},
-		IsInternal: util.OptionalBoolTrue,
-		HasFiles:   util.OptionalBoolFalse,
+		IsInternal: optional.Some(true),
+		HasFiles:   optional.Some(false),
 	})
 	if err != nil {
 		return err
@@ -87,7 +86,7 @@ func ShouldBeSkipped(ctx context.Context, pcr *packages_model.PackageCleanupRule
 	}
 
 	// Check if the version is a digest (or untagged)
-	if oci.Digest(pv.LowerVersion).Validate() {
+	if digest.Digest(pv.LowerVersion).Validate() == nil {
 		// Check if there is another manifest referencing this version
 		has, err := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{
 			PackageID: p.ID,

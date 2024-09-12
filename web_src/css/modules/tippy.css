@@ -1,0 +1,169 @@
+/* styles are based on node_modules/tippy.js/dist/tippy.css */
+
+/* class to hide tippy target elements on page load */
+.tippy-target {
+  display: none !important;
+}
+
+/* show target element once it's been moved by tippy.js */
+.tippy-content .tippy-target {
+  display: unset !important;
+}
+
+[data-tippy-root] {
+  max-width: calc(100vw - 32px);
+}
+
+.tippy-box {
+  position: relative;
+  background-color: var(--color-menu);
+  color: var(--color-text);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+}
+
+.tippy-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* bare theme, no styling at all, except box-shadow */
+.tippy-box[data-theme="bare"] {
+  border: none;
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+
+.tippy-box[data-theme="bare"] .tippy-content {
+  padding: 0;
+  background: transparent;
+}
+
+/* tooltip theme for text tooltips */
+
+.tippy-box[data-theme="tooltip"] {
+  background-color: var(--color-tooltip-bg);
+  color: var(--color-tooltip-text);
+  border: none;
+}
+
+.tippy-box[data-theme="tooltip"] .tippy-content {
+  padding: 0.5rem 1rem;
+}
+
+.tippy-box[data-theme="tooltip"] .tippy-svg-arrow-inner,
+.tippy-box[data-theme="tooltip"] .tippy-svg-arrow-outer {
+  fill: var(--color-tooltip-bg);
+}
+
+/* menu theme for .ui.menu */
+
+.tippy-box[data-theme="menu"] {
+  background-color: var(--color-menu);
+  color: var(--color-text);
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+
+.tippy-box[data-theme="menu"] .tippy-content {
+  padding: 4px 0;
+}
+
+.tippy-box[data-theme="menu"] .tippy-svg-arrow-inner {
+  fill: var(--color-menu);
+}
+
+.tippy-box[data-theme="menu"] .item {
+  display: flex;
+  align-items: center;
+  padding: 9px 18px;
+  color: inherit;
+  text-decoration: none;
+  gap: 10px;
+}
+
+.tippy-box[data-theme="menu"] .item:hover {
+  background: var(--color-hover);
+}
+
+.tippy-box[data-theme="menu"] .item:focus {
+  background: var(--color-active);
+}
+
+/* box-with-header theme to look like .ui.attached.segment. can contain .ui.attached.header */
+
+.tippy-box[data-theme="box-with-header"] {
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+
+.tippy-box[data-theme="box-with-header"] .tippy-content {
+  background: var(--color-box-body);
+  border-radius: var(--border-radius);
+  padding: 0;
+}
+
+.tippy-box[data-theme="box-with-header"][data-placement^="top"] .tippy-svg-arrow-inner {
+  fill: var(--color-box-body);
+}
+
+.tippy-box[data-theme="box-with-header"][data-placement^="bottom"] .tippy-svg-arrow-inner {
+  fill: var(--color-box-header);
+}
+
+.tippy-box[data-placement^="top"] > .tippy-svg-arrow {
+  bottom: 0;
+}
+
+.tippy-box[data-placement^="top"] > .tippy-svg-arrow::after,
+.tippy-box[data-placement^="top"] > .tippy-svg-arrow > svg {
+  top: 16px;
+  transform: rotate(180deg);
+}
+
+.tippy-box[data-placement^="bottom"] > .tippy-svg-arrow {
+  top: 0;
+}
+
+.tippy-box[data-placement^="bottom"] > .tippy-svg-arrow > svg {
+  bottom: 16px;
+}
+
+.tippy-box[data-placement^="left"] > .tippy-svg-arrow {
+  right: 0;
+}
+
+.tippy-box[data-placement^="left"] > .tippy-svg-arrow::after,
+.tippy-box[data-placement^="left"] > .tippy-svg-arrow > svg {
+  transform: rotate(90deg);
+  top: calc(50% - 3px);
+  left: 11px;
+}
+
+.tippy-box[data-placement^="right"] > .tippy-svg-arrow {
+  left: 0;
+}
+
+.tippy-box[data-placement^="right"] > .tippy-svg-arrow::after,
+.tippy-box[data-placement^="right"] > .tippy-svg-arrow > svg {
+  transform: rotate(-90deg);
+  top: calc(50% - 3px);
+  right: 11px;
+}
+
+.tippy-svg-arrow {
+  width: 16px;
+  height: 16px;
+  text-align: initial;
+}
+
+.tippy-svg-arrow,
+.tippy-svg-arrow > svg {
+  position: absolute;
+}
+
+.tippy-svg-arrow-outer {
+  fill: var(--color-secondary);
+}
+
+.tippy-svg-arrow-inner {
+  fill: var(--color-menu);
+}

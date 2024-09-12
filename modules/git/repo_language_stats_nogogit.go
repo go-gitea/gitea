@@ -6,14 +6,12 @@
 package git
 
 import (
-	"bufio"
 	"bytes"
 	"io"
-	"math"
-	"strings"
 
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 
 	"github.com/go-enry/go-enry/v2"
 )
@@ -22,7 +20,10 @@ import (
 func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel := repo.CatFileBatch(repo.Ctx)
+	batchStdinWriter, batchReader, cancel, err := repo.CatFileBatch(repo.Ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer cancel()
 
 	writeID := func(id string) error {
@@ -90,25 +91,38 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			continue
 		}
 
-		notVendored := false
-		notGenerated := false
+		isVendored := optional.None[bool]()
+		isGenerated := optional.None[bool]()
+		isDocumentation := optional.None[bool]()
+		isDetectable := optional.None[bool]()
 
 		if checker != nil {
 			attrs, err := checker.CheckPath(f.Name())
 			if err == nil {
-				if vendored, has := attrs["linguist-vendored"]; has {
-					if vendored == "set" || vendored == "true" {
-						continue
-					}
-					notVendored = vendored == "false"
+				isVendored = AttributeToBool(attrs, AttributeLinguistVendored)
+				if isVendored.ValueOrDefault(false) {
+					continue
 				}
-				if generated, has := attrs["linguist-generated"]; has {
-					if generated == "set" || generated == "true" {
-						continue
-					}
-					notGenerated = generated == "false"
+
+				isGenerated = AttributeToBool(attrs, AttributeLinguistGenerated)
+				if isGenerated.ValueOrDefault(false) {
+					continue
 				}
-				if language, has := attrs["linguist-language"]; has && language != "unspecified" && language != "" {
+
+				isDocumentation = AttributeToBool(attrs, AttributeLinguistDocumentation)
+				if isDocumentation.ValueOrDefault(false) {
+					continue
+				}
+
+				isDetectable = AttributeToBool(attrs, AttributeLinguistDetectable)
+				if !isDetectable.ValueOrDefault(true) {
+					continue
+				}
+
+				hasLanguage := TryReadLanguageAttribute(attrs)
+				if hasLanguage.Value() != "" {
+					language := hasLanguage.Value()
+
 					// group languages, such as Pug -> HTML; SCSS -> CSS
 					group := enry.GetLanguageGroup(language)
 					if len(group) != 0 {
@@ -118,29 +132,14 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 					// this language will always be added to the size
 					sizes[language] += f.Size()
 					continue
-				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
-					// strip off a ? if present
-					if idx := strings.IndexByte(language, '?'); idx >= 0 {
-						language = language[:idx]
-					}
-					if len(language) != 0 {
-						// group languages, such as Pug -> HTML; SCSS -> CSS
-						group := enry.GetLanguageGroup(language)
-						if len(group) != 0 {
-							language = group
-						}
-
-						// this language will always be added to the size
-						sizes[language] += f.Size()
-						continue
-					}
 				}
-
 			}
 		}
 
-		if (!notVendored && analyze.IsVendor(f.Name())) || enry.IsDotFile(f.Name()) ||
-			enry.IsDocumentation(f.Name()) || enry.IsConfiguration(f.Name()) {
+		if (!isVendored.Has() && analyze.IsVendor(f.Name())) ||
+			enry.IsDotFile(f.Name()) ||
+			(!isDocumentation.Has() && enry.IsDocumentation(f.Name())) ||
+			enry.IsConfiguration(f.Name()) {
 			continue
 		}
 
@@ -168,19 +167,18 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 				return nil, err
 			}
 			content = contentBuf.Bytes()
-			err = discardFull(batchReader, discard)
-			if err != nil {
+			if err := DiscardFull(batchReader, discard); err != nil {
 				return nil, err
 			}
 		}
-		if !notGenerated && enry.IsGenerated(f.Name(), content) {
+		if !isGenerated.Has() && enry.IsGenerated(f.Name(), content) {
 			continue
 		}
 
 		// FIXME: Why can't we split this and the IsGenerated tests to avoid reading the blob unless absolutely necessary?
 		// - eg. do the all the detection tests using filename first before reading content.
 		language := analyze.GetCodeLanguage(f.Name(), content)
-		if language == enry.OtherLanguage || language == "" {
+		if language == "" {
 			continue
 		}
 
@@ -192,17 +190,16 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 		included, checked := includedLanguage[language]
 		if !checked {
-			langtype := enry.GetLanguageType(language)
-			included = langtype == enry.Programming || langtype == enry.Markup
+			langType := enry.GetLanguageType(language)
+			included = langType == enry.Programming || langType == enry.Markup
 			includedLanguage[language] = included
 		}
-		if included {
+		if included || isDetectable.ValueOrDefault(false) {
 			sizes[language] += f.Size()
 		} else if len(sizes) == 0 && (firstExcludedLanguage == "" || firstExcludedLanguage == language) {
 			firstExcludedLanguage = language
 			firstExcludedLanguageSize += f.Size()
 		}
-		continue
 	}
 
 	// If there are no included languages add the first excluded language
@@ -210,23 +207,5 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		sizes[firstExcludedLanguage] = firstExcludedLanguageSize
 	}
 
-	return sizes, nil
-}
-
-func discardFull(rd *bufio.Reader, discard int64) error {
-	if discard > math.MaxInt32 {
-		n, err := rd.Discard(math.MaxInt32)
-		discard -= int64(n)
-		if err != nil {
-			return err
-		}
-	}
-	for discard > 0 {
-		n, err := rd.Discard(int(discard))
-		discard -= int64(n)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return mergeLanguageStats(sizes), nil
 }

@@ -14,7 +14,7 @@ import (
 )
 
 // WarnAndNotice will log the provided message and send a repository notice
-func WarnAndNotice(fmtStr string, args ...interface{}) {
+func WarnAndNotice(fmtStr string, args ...any) {
 	log.Warn(fmtStr, args...)
 	if err := system_model.CreateRepositoryNotice(fmt.Sprintf(fmtStr, args...)); err != nil {
 		log.Error("create repository notice failed: ", err)
@@ -48,16 +48,18 @@ func CheckAndEnsureSafePR(pr *base.PullRequest, commonCloneBaseURL string, g bas
 	}
 
 	// SECURITY: SHAs Must be a SHA
-	if pr.MergeCommitSHA != "" && !git.IsValidSHAPattern(pr.MergeCommitSHA) {
+	// FIXME: hash only a SHA1
+	CommitType := git.Sha1ObjectFormat
+	if pr.MergeCommitSHA != "" && !CommitType.IsValid(pr.MergeCommitSHA) {
 		WarnAndNotice("PR #%d in %s has invalid MergeCommitSHA: %s", pr.Number, g, pr.MergeCommitSHA)
 		pr.MergeCommitSHA = ""
 	}
-	if pr.Head.SHA != "" && !git.IsValidSHAPattern(pr.Head.SHA) {
+	if pr.Head.SHA != "" && !CommitType.IsValid(pr.Head.SHA) {
 		WarnAndNotice("PR #%d in %s has invalid HeadSHA: %s", pr.Number, g, pr.Head.SHA)
 		pr.Head.SHA = ""
 		valid = false
 	}
-	if pr.Base.SHA != "" && !git.IsValidSHAPattern(pr.Base.SHA) {
+	if pr.Base.SHA != "" && !CommitType.IsValid(pr.Base.SHA) {
 		WarnAndNotice("PR #%d in %s has invalid BaseSHA: %s", pr.Number, g, pr.Base.SHA)
 		pr.Base.SHA = ""
 		valid = false

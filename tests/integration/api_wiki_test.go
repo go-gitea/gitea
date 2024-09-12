@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -179,15 +180,15 @@ func TestAPINewWikiPage(t *testing.T) {
 		defer tests.PrepareTestEnv(t)()
 		username := "user2"
 		session := loginUser(t, username)
-		token := getTokenForLoggedInUser(t, session)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/new?token=%s", username, "repo1", token)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/new", username, "repo1")
 
 		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateWikiPageOptions{
 			Title:         title,
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("Wiki page content for API unit tests")),
 			Message:       "",
-		})
+		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 	}
 }
@@ -196,15 +197,15 @@ func TestAPIEditWikiPage(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	username := "user2"
 	session := loginUser(t, username)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/Page-With-Spaced-Name?token=%s", username, "repo1", token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/Page-With-Spaced-Name", username, "repo1")
 
 	req := NewRequestWithJSON(t, "PATCH", urlStr, &api.CreateWikiPageOptions{
 		Title:         "edited title",
 		ContentBase64: base64.StdEncoding.EncodeToString([]byte("Edited wiki page content for API unit tests")),
 		Message:       "",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 }
 

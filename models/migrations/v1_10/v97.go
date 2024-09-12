@@ -10,5 +10,5 @@ func AddRepoAdminChangeTeamAccessColumnForUser(x *xorm.Engine) error {
 		RepoAdminChangeTeamAccess bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync2(new(User))
+	return x.Sync(new(User))
 }

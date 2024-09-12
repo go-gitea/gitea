@@ -1,55 +1,47 @@
-{{template "base/head" .}}
-<div class="page-content repository settings lfs">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container repository file list">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings lfs")}}
+	<div class="user-main-content twelve wide column content repository file list">
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
-				<a href="{{.LFSFilesLink}}">{{.locale.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.LFSFile.Oid}}</span>
+				<a href="{{.LFSFilesLink}}">{{ctx.Locale.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.LFSFile.Oid}}</span>
 				<div class="ui right">
 					{{if .EscapeStatus.Escaped}}
-						<a class="ui mini basic button unescape-button" style="display: none;">{{.locale.Tr "repo.unescape_control_characters"}}</a>
-						<a class="ui mini basic button escape-button">{{.locale.Tr "repo.escape_control_characters"}}</a>
+						<a class="ui tiny basic button unescape-button tw-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</a>
+						<a class="ui tiny basic button escape-button">{{ctx.Locale.Tr "repo.escape_control_characters"}}</a>
 					{{end}}
-					<a class="ui primary show-panel button" href="{{.LFSFilesLink}}/find?oid={{.LFSFile.Oid}}&size={{.LFSFile.Size}}">{{$.locale.Tr "repo.settings.lfs_findcommits"}}</a>
+					<a class="ui primary tiny button" href="{{.LFSFilesLink}}/find?oid={{.LFSFile.Oid}}&size={{.LFSFile.Size}}">{{ctx.Locale.Tr "repo.settings.lfs_findcommits"}}</a>
 				</div>
 			</h4>
-			<div class="ui attached table unstackable segment">
+			<div class="ui bottom attached table unstackable segment">
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 				<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsPlainText}} plain-text{{else if .IsTextFile}} code-view{{end}}">
-					{{if .IsMarkup}}
-						{{if .FileContent}}{{.FileContent | Safe}}{{end}}
-					{{else if .IsPlainText}}
-						<pre>{{if .FileContent}}{{.FileContent | Safe}}{{end}}</pre>
+					{{if .IsFileTooLarge}}
+						{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
+					{{else if not .FileSize}}
+						{{template "shared/fileisempty"}}
 					{{else if not .IsTextFile}}
-						<div class="view-raw ui center">
+						<div class="view-raw">
 							{{if .IsImageFile}}
 								<img src="{{$.RawFileLink}}">
 							{{else if .IsVideoFile}}
 								<video controls src="{{$.RawFileLink}}">
-									<strong>{{.locale.Tr "repo.video_not_supported_in_browser"}}</strong>
+									<strong>{{ctx.Locale.Tr "repo.video_not_supported_in_browser"}}</strong>
 								</video>
 							{{else if .IsAudioFile}}
 								<audio controls src="{{$.RawFileLink}}">
-									<strong>{{.locale.Tr "repo.audio_not_supported_in_browser"}}</strong>
+									<strong>{{ctx.Locale.Tr "repo.audio_not_supported_in_browser"}}</strong>
 								</audio>
 							{{else if .IsPDFFile}}
-								<iframe width="100%" height="600px" src="{{AppSubUrl}}/vendor/plugins/pdfjs/web/viewer.html?file={{$.RawFileLink}}"></iframe>
+								<div class="pdf-content is-loading" data-src="{{$.RawFileLink}}" data-fallback-button-text="{{ctx.Locale.Tr "diff.view_file"}}"></div>
 							{{else}}
-								<a href="{{$.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.locale.Tr "repo.file_view_raw"}}</a>
+								<a href="{{$.RawFileLink}}" rel="nofollow" class="tw-p-4">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
 							{{end}}
 						</div>
 					{{else if .FileSize}}
 						<table>
 							<tbody>
 								<tr>
-								{{if .IsFileTooLarge}}
-									<td><strong>{{.locale.Tr "repo.file_too_large"}}</strong></td>
-								{{else}}
 									<td class="lines-num">{{.LineNums}}</td>
-									<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol class="linenums">{{.FileContent}}</ol></code></pre></td>
-								{{end}}
+									<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol>{{.FileContent}}</ol></code></pre></td>
 								</tr>
 							</tbody>
 						</table>
@@ -58,5 +50,4 @@
 			</div>
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}

@@ -1,0 +1,81 @@
+@import "./modules/normalize.css";
+@import "./modules/animations.css";
+
+/* fomantic replacements */
+@import "./modules/button.css";
+@import "./modules/container.css";
+@import "./modules/divider.css";
+@import "./modules/header.css";
+@import "./modules/input.css";
+@import "./modules/label.css";
+@import "./modules/list.css";
+@import "./modules/segment.css";
+@import "./modules/grid.css";
+@import "./modules/menu.css";
+@import "./modules/message.css";
+@import "./modules/table.css";
+@import "./modules/card.css";
+@import "./modules/checkbox.css";
+@import "./modules/dimmer.css";
+@import "./modules/modal.css";
+
+@import "./modules/select.css";
+@import "./modules/tippy.css";
+@import "./modules/breadcrumb.css";
+@import "./modules/comment.css";
+@import "./modules/navbar.css";
+@import "./modules/toast.css";
+@import "./modules/svg.css";
+@import "./modules/flexcontainer.css";
+
+@import "./shared/flex-list.css";
+@import "./shared/milestone.css";
+@import "./shared/repoorg.css";
+@import "./shared/settings.css";
+
+@import "./features/dropzone.css";
+@import "./features/gitgraph.css";
+@import "./features/heatmap.css";
+@import "./features/imagediff.css";
+@import "./features/codeeditor.css";
+@import "./features/projects.css";
+@import "./features/tribute.css";
+@import "./features/console.css";
+
+@import "./markup/content.css";
+@import "./markup/codecopy.css";
+@import "./markup/codepreview.css";
+@import "./markup/asciicast.css";
+
+@import "./chroma/base.css";
+@import "./codemirror/base.css";
+@import "./font_i18n.css";
+@import "./base.css";
+@import "./home.css";
+@import "./install.css";
+@import "./form.css";
+
+@import "./repo.css";
+@import "./repo/release-tag.css";
+@import "./repo/issue-card.css";
+@import "./repo/issue-label.css";
+@import "./repo/issue-list.css";
+@import "./repo/list-header.css";
+@import "./repo/linebutton.css";
+@import "./repo/wiki.css";
+@import "./repo/header.css";
+@import "./repo/reactions.css";
+
+@import "./editor/fileeditor.css";
+@import "./editor/combomarkdowneditor.css";
+
+@import "./org.css";
+@import "./user.css";
+@import "./dashboard.css";
+@import "./admin.css";
+@import "./explore.css";
+@import "./review.css";
+@import "./actions.css";
+
+@tailwind utilities;
+@import "./helpers.css";

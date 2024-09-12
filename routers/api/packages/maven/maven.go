@@ -20,12 +20,12 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -46,8 +46,13 @@ var (
 	illegalCharacters    = regexp.MustCompile(`[\\/:"<>|?\*]`)
 )
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
+		// The maven client does not present the error message to the user. Log it for users with access to server logs.
+		if status == http.StatusBadRequest || status == http.StatusInternalServerError {
+			log.Error(message)
+		}
+
 		ctx.PlainText(status, message)
 	})
 }
@@ -135,9 +140,7 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 	ctx.Resp.Header().Set("Content-Length", strconv.Itoa(len(xmlMetadataWithHeader)))
 	ctx.Resp.Header().Set("Content-Type", contentTypeXML)
 
-	if _, err := ctx.Resp.Write(xmlMetadataWithHeader); err != nil {
-		log.Error("write bytes failed: %v", err)
-	}
+	_, _ = ctx.Resp.Write(xmlMetadataWithHeader)
 }
 
 func servePackageFile(ctx *context.Context, params parameters, serveContent bool) {
@@ -209,21 +212,15 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 		return
 	}
 
-	s, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(pb.HashSHA256))
+	s, u, _, err := packages_service.GetPackageBlobStream(ctx, pf, pb)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
-	}
-	defer s.Close()
-
-	if pf.IsLead {
-		if err := packages_model.IncrementDownloadCounter(ctx, pv.ID); err != nil {
-			log.Error("Error incrementing download counter: %v", err)
-		}
+		return
 	}
 
 	opts.Filename = pf.Name
 
-	ctx.ServeContent(s, opts)
+	helper.ServePackageFile(ctx, s, u, pf, opts)
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
@@ -244,7 +241,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	packageName := params.GroupID + "-" + params.ArtifactID
 
-	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -325,7 +322,8 @@ func UploadPackageFile(ctx *context.Context) {
 		var err error
 		pvci.Metadata, err = maven_module.ParsePackageMetaData(buf)
 		if err != nil {
-			log.Error("Error parsing package metadata: %v", err)
+			apiError(ctx, http.StatusBadRequest, err)
+			return
 		}
 
 		if pvci.Metadata != nil {
@@ -355,13 +353,14 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		pvci,
 		pfci,
 	)
 	if err != nil {
 		switch err {
 		case packages_model.ErrDuplicatePackageFile:
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, http.StatusConflict, err)
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
 		default:
@@ -386,7 +385,7 @@ type parameters struct {
 }
 
 func extractPathParameters(ctx *context.Context) (parameters, error) {
-	parts := strings.Split(ctx.Params("*"), "/")
+	parts := strings.Split(ctx.PathParam("*"), "/")
 
 	p := parameters{
 		Filename: parts[len(parts)-1],

@@ -9,6 +9,9 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
+
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 )
 
 // https://docs.microsoft.com/en-us/nuget/api/service-index#resources
@@ -166,10 +169,10 @@ type PackageVersionsResponse struct {
 	Versions []string `json:"versions"`
 }
 
-func createPackageVersionsResponse(pds []*packages_model.PackageDescriptor) *PackageVersionsResponse {
-	versions := make([]string, 0, len(pds))
-	for _, pd := range pds {
-		versions = append(versions, pd.Version.Version)
+func createPackageVersionsResponse(pvs []*packages_model.PackageVersion) *PackageVersionsResponse {
+	versions := make([]string, 0, len(pvs))
+	for _, pv := range pvs {
+		versions = append(versions, pv.Version)
 	}
 
 	return &PackageVersionsResponse{
@@ -207,9 +210,15 @@ func createSearchResultResponse(l *linkBuilder, totalHits int64, pds []*packages
 		grouped[pd.Package.Name] = append(grouped[pd.Package.Name], pd)
 	}
 
+	keys := make([]string, 0, len(grouped))
+	for key := range grouped {
+		keys = append(keys, key)
+	}
+	collate.New(language.English, collate.IgnoreCase).SortStrings(keys)
+
 	data := make([]*SearchResult, 0, len(pds))
-	for _, group := range grouped {
-		data = append(data, createSearchResult(l, group))
+	for _, key := range keys {
+		data = append(data, createSearchResult(l, grouped[key]))
 	}
 
 	return &SearchResultResponse{

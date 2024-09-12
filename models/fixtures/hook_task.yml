@@ -3,3 +3,35 @@
   hook_id: 1
   uuid: uuid1
   is_delivered: true
+  is_succeed: false
+  request_content: >
+    {
+      "url": "/matrix-delivered",
+      "http_method":"PUT",
+      "headers": {
+        "X-Head": "42"
+      },
+      "body": "{}"
+    }
+
+-
+  id: 2
+  hook_id: 1
+  uuid: uuid2
+  is_delivered: false
+
+-
+  id: 3
+  hook_id: 1
+  uuid: uuid3
+  is_delivered: true
+  is_succeed: true
+  payload_content: '{"key":"value"}' # legacy task, payload saved in payload_content (and not in request_content)
+  request_content: >
+    {
+      "url": "/matrix-success",
+      "http_method":"PUT",
+      "headers": {
+        "X-Head": "42"
+      }
+    }

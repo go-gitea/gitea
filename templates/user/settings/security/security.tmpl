@@ -1,15 +1,17 @@
-{{template "base/head" .}}
-<div class="page-content user settings security">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings security")}}
+	{{if not ($.UserDisabledFeatures.Contains "manage_mfa" "manage_credentials")}}
+	<div class="user-setting-content">
+		{{if not ($.UserDisabledFeatures.Contains "manage_mfa")}}
 		{{template "user/settings/security/twofa" .}}
 		{{template "user/settings/security/webauthn" .}}
+		{{end}}
+		{{if not ($.UserDisabledFeatures.Contains "manage_credentials")}}
 		{{template "user/settings/security/accountlinks" .}}
 		{{if .EnableOpenIDSignIn}}
 		{{template "user/settings/security/openid" .}}
 		{{end}}
+		{{end}}
 	</div>
-</div>
+	{{end}}
 
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

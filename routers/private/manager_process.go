@@ -11,10 +11,10 @@ import (
 	"runtime"
 	"time"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	process_module "code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/services/context"
 )
 
 // Processes prints out the processes
@@ -49,7 +49,7 @@ func Processes(ctx *context.PrivateContext) {
 	}
 
 	if json {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"TotalNumberOfGoroutines": goroutineCount,
 			"TotalNumberOfProcesses":  processCount,
 			"Processes":               processes,

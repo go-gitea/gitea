@@ -21,5 +21,5 @@ func AddTeamInviteTable(x *xorm.Engine) error {
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	return x.Sync2(new(TeamInvite))
+	return x.Sync(new(TeamInvite))
 }

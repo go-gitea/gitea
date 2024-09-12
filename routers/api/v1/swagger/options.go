@@ -41,6 +41,8 @@ type swaggerParameterBodies struct {
 	CreateIssueCommentOption api.CreateIssueCommentOption
 	// in:body
 	EditIssueCommentOption api.EditIssueCommentOption
+	// in:body
+	IssueMeta api.IssueMeta
 
 	// in:body
 	IssueLabelsOption api.IssueLabelsOption
@@ -49,10 +51,15 @@ type swaggerParameterBodies struct {
 	CreateKeyOption api.CreateKeyOption
 
 	// in:body
+	RenameUserOption api.RenameUserOption
+
+	// in:body
 	CreateLabelOption api.CreateLabelOption
 	// in:body
 	EditLabelOption api.EditLabelOption
 
+	// in:body
+	MarkupOption api.MarkupOption
 	// in:body
 	MarkdownOption api.MarkdownOption
 
@@ -110,6 +117,9 @@ type swaggerParameterBodies struct {
 	EditAttachmentOptions api.EditAttachmentOptions
 
 	// in:body
+	ChangeFilesOptions api.ChangeFilesOptions
+
+	// in:body
 	CreateFileOptions api.CreateFileOptions
 
 	// in:body
@@ -161,6 +171,12 @@ type swaggerParameterBodies struct {
 	CreateTagOption api.CreateTagOption
 
 	// in:body
+	CreateTagProtectionOption api.CreateTagProtectionOption
+
+	// in:body
+	EditTagProtectionOption api.EditTagProtectionOption
+
+	// in:body
 	CreateAccessTokenOption api.CreateAccessTokenOption
 
 	// in:body
@@ -171,4 +187,22 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreatePushMirrorOption api.CreatePushMirrorOption
+
+	// in:body
+	UpdateUserAvatarOptions api.UpdateUserAvatarOption
+
+	// in:body
+	UpdateRepoAvatarOptions api.UpdateRepoAvatarOption
+
+	// in:body
+	CreateOrUpdateSecretOption api.CreateOrUpdateSecretOption
+
+	// in:body
+	UserBadgeOption api.UserBadgeOption
+
+	// in:body
+	CreateVariableOption api.CreateVariableOption
+
+	// in:body
+	UpdateVariableOption api.UpdateVariableOption
 }

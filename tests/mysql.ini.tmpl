@@ -12,10 +12,11 @@ SSL_MODE = disable
 [indexer]
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/indexers/repos.bleve
+ISSUE_INDEXER_TYPE = elasticsearch
+ISSUE_INDEXER_CONN_STR = http://elastic:changeme@elasticsearch:9200
 
 [queue.issue_indexer]
-TYPE = elasticsearch
-CONN_STR = http://elastic:changeme@elasticsearch:9200
+TYPE = level
 DATADIR = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/indexers/issues.queue
 
 [queue]
@@ -55,37 +56,14 @@ LFS_START_SERVER = true
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 SSH_TRUSTED_USER_CA_KEYS = ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCb4DC1dMFnJ6pXWo7GMxTchtzmJHYzfN6sZ9FAPFR4ijMLfGki+olvOMO5Fql1/yGnGfbELQa1S6y4shSvj/5K+zUFScmEXYf3Gcr87RqilLkyk16RS+cHNB1u87xTHbETaa3nyCJeGQRpd4IQ4NKob745mwDZ7jQBH8AZEng50Oh8y8fi8skBBBzaYp1ilgvzG740L7uex6fHV62myq0SXeCa+oJUjq326FU8y+Vsa32H8A3e7tOgXZPdt2TVNltx2S9H2WO8RMi7LfaSwARNfy1zu+bfR50r6ef8Yx5YKCMz4wWb1SHU1GS800mjOjlInLQORYRNMlSwR1+vLlVDciOqFapDSbj+YOVOawR0R1aqlSKpZkt33DuOBPx9qe6CVnIi7Z+Px/KqM+OLCzlLY/RS+LbxQpDWcfTVRiP+S5qRTcE3M3UioN/e0BE/1+MpX90IGpvVkA63ILYbKEa4bM3ASL7ChTCr6xN5XT+GpVJveFKK1cfNx9ExHI4rzYE=
 
-[lfs]
-MINIO_BASE_PATH = lfs/
-
-[attachment]
-MINIO_BASE_PATH = attachments/
-
-[avatars]
-MINIO_BASE_PATH = avatars/
-
-[repo-avatars]
-MINIO_BASE_PATH = repo-avatars/
-
-[storage]
-STORAGE_TYPE = minio
-SERVE_DIRECT = false
-MINIO_ENDPOINT = minio:9000
-MINIO_ACCESS_KEY_ID = 123456
-MINIO_SECRET_ACCESS_KEY = 12345678
-MINIO_BUCKET = gitea
-MINIO_LOCATION = us-east-1
-MINIO_USE_SSL = false
-
 [mailer]
 ENABLED = true
-MAILER_TYPE = dummy
+PROTOCOL = dummy
 FROM = mysql-{{TEST_TYPE}}-test@gitea.io
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false
 REGISTER_MANUAL_CONFIRM           = false
-ENABLE_NOTIFY_MAIL                = false
 DISABLE_REGISTRATION              = false
 ENABLE_CAPTCHA                    = false
 REQUIRE_SIGNIN_VIEW               = false
@@ -105,9 +83,8 @@ PROVIDER_CONFIG = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/data/sessions
 [log]
 MODE                 = {{TEST_LOGGER}}
 ROOT_PATH            = {{REPO_TEST_DIR}}mysql-log
-ROUTER               = ,
-XORM                 = file
 ENABLE_SSH_LOG       = true
+logger.xorm.MODE     = file
 
 [log.test]
 LEVEL                = Info
@@ -121,12 +98,17 @@ DISABLE_GIT_HOOKS = false
 INSTALL_LOCK   = true
 SECRET_KEY     = 9pCviYTWSb
 INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ
+DISABLE_QUERY_AUTH_TOKEN = true
+
+[lfs]
+PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/data/lfs
 
 [packages]
 ENABLED = true
 
 [email.incoming]
-ENABLED = true
+; temporarily disabled because the incoming mail tests are flaky due to the IMAP server (during integration tests) couldn't be not ready in time sometimes.
+ENABLED = false
 HOST = smtpimap
 PORT = 993
 USERNAME = debug@localdomain.test
@@ -134,3 +116,6 @@ PASSWORD = debug
 USE_TLS = true
 SKIP_TLS_VERIFY = true
 REPLY_TO_ADDRESS = incoming+%{token}@localhost
+
+[actions]
+ENABLED = true

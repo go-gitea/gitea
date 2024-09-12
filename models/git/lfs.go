@@ -6,7 +6,6 @@ package git
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -136,7 +135,7 @@ var ErrLFSObjectNotExist = db.ErrNotExist{Resource: "LFS Meta object"}
 
 // NewLFSMetaObject stores a given populated LFSMetaObject structure in the database
 // if it is not already present.
-func NewLFSMetaObject(ctx context.Context, m *LFSMetaObject) (*LFSMetaObject, error) {
+func NewLFSMetaObject(ctx context.Context, repoID int64, p lfs.Pointer) (*LFSMetaObject, error) {
 	var err error
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -145,16 +144,15 @@ func NewLFSMetaObject(ctx context.Context, m *LFSMetaObject) (*LFSMetaObject, er
 	}
 	defer committer.Close()
 
-	has, err := db.GetByBean(ctx, m)
+	m, exist, err := db.Get[LFSMetaObject](ctx, builder.Eq{"repository_id": repoID, "oid": p.Oid})
 	if err != nil {
 		return nil, err
-	}
-
-	if has {
+	} else if exist {
 		m.Existing = true
 		return m, committer.Commit()
 	}
 
+	m = &LFSMetaObject{Pointer: p, RepositoryID: repoID}
 	if err = db.Insert(ctx, m); err != nil {
 		return nil, err
 	}
@@ -264,7 +262,7 @@ func LFSAutoAssociate(ctx context.Context, metas []*LFSMetaObject, user *user_mo
 
 	sess := db.GetEngine(ctx)
 
-	oids := make([]interface{}, len(metas))
+	oids := make([]any, len(metas))
 	oidMap := make(map[string]*LFSMetaObject, len(metas))
 	for i, meta := range metas {
 		oids[i] = meta.Oid
@@ -370,8 +368,8 @@ func IterateRepositoryIDsWithLFSMetaObjects(ctx context.Context, f func(ctx cont
 
 // IterateLFSMetaObjectsForRepoOptions provides options for IterateLFSMetaObjectsForRepo
 type IterateLFSMetaObjectsForRepoOptions struct {
-	OlderThan                 time.Time
-	UpdatedLessRecentlyThan   time.Time
+	OlderThan                 timeutil.TimeStamp
+	UpdatedLessRecentlyThan   timeutil.TimeStamp
 	OrderByUpdated            bool
 	LoopFunctionAlwaysUpdates bool
 }
@@ -382,15 +380,15 @@ func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(cont
 	batchSize := setting.Database.IterateBufferSize
 	engine := db.GetEngine(ctx)
 	type CountLFSMetaObject struct {
-		Count int64
-		LFSMetaObject
+		Count         int64
+		LFSMetaObject `xorm:"extends"`
 	}
 
 	id := int64(0)
 
 	for {
 		beans := make([]*CountLFSMetaObject, 0, batchSize)
-		sess := engine.Select("`lfs_meta_object`.*, COUNT(`l1`.oid) AS `count`").
+		sess := engine.Table("lfs_meta_object").Select("`lfs_meta_object`.*, COUNT(`l1`.oid) AS `count`").
 			Join("INNER", "`lfs_meta_object` AS l1", "`lfs_meta_object`.oid = `l1`.oid").
 			Where("`lfs_meta_object`.repository_id = ?", repoID)
 		if !opts.OlderThan.IsZero() {

@@ -31,10 +31,16 @@ func (b *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Contex
 		return nil, parser.NoChildren
 	}
 
-	dollars := false
+	var dollars bool
 	if b.parseDollars && line[pos] == '$' && line[pos+1] == '$' {
 		dollars = true
-	} else if line[pos] != '\\' || line[pos+1] != '[' {
+	} else if line[pos] == '\\' && line[pos+1] == '[' {
+		if len(line[pos:]) >= 3 && line[pos+2] == '!' && bytes.Contains(line[pos:], []byte(`\]`)) {
+			// do not process escaped attention block: "> \[!NOTE\]"
+			return nil, parser.NoChildren
+		}
+		dollars = false
+	} else {
 		return nil, parser.NoChildren
 	}
 
@@ -47,6 +53,12 @@ func (b *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Contex
 	}
 	idx := bytes.Index(line[pos+2:], endBytes)
 	if idx >= 0 {
+		// for case $$ ... $$ any other text
+		for i := pos + idx + 4; i < len(line); i++ {
+			if line[i] != ' ' && line[i] != '\n' {
+				return nil, parser.NoChildren
+			}
+		}
 		segment.Stop = segment.Start + idx + 2
 		reader.Advance(segment.Len() - 1)
 		segment.Start += 2

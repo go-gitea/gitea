@@ -1,0 +1,87 @@
+.home .logo {
+  max-width: 220px;
+}
+
+@media (max-width: 767.98px) {
+  .home .hero h1 {
+    font-size: 3.5em;
+  }
+  .home .hero h2 {
+    font-size: 2em;
+  }
+}
+
+@media (min-width: 768px) {
+  .home .hero h1 {
+    font-size: 5.5em;
+  }
+  .home .hero h2 {
+    font-size: 3em;
+  }
+}
+
+.home .hero .svg {
+  color: var(--color-green);
+  height: 40px;
+  width: 50px;
+  vertical-align: bottom;
+}
+
+.home .hero.header {
+  font-size: 20px;
+}
+
+.home p.large {
+  font-size: 16px;
+}
+
+.home .stackable {
+  padding-top: 30px;
+}
+
+.home a {
+  color: var(--color-green);
+}
+
+.page-footer {
+  display: flex;
+  justify-content: space-between;
+  background-color: var(--color-footer);
+  border-top: 1px solid var(--color-secondary);
+  padding: 8px 20px;
+}
+
+.page-footer .left-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25em;
+}
+
+.page-footer .right-links {
+  min-width: 180px; /* make sure the menu dropdown doesn't overflow horizontally when language name is short */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-footer .right-links > a {
+  border-left: 1px solid var(--color-secondary-dark-1);
+  padding-left: 8px;
+  margin-left: 5px;
+}
+
+.page-footer .ui.dropdown.language .menu {
+  max-height: min(500px, calc(100vh - 60px));
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+@media (max-width: 880px) {
+  .page-footer {
+    flex-direction: column;
+    gap: 0.5em;
+  }
+}

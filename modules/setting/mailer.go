@@ -4,28 +4,30 @@
 package setting
 
 import (
+	"context"
 	"net"
 	"net/mail"
 	"strings"
+	"text/template"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
 
 	shellquote "github.com/kballard/go-shellquote"
-	ini "gopkg.in/ini.v1"
 )
 
 // Mailer represents mail service.
 type Mailer struct {
 	// Mailer
-	Name                 string `ini:"NAME"`
-	From                 string `ini:"FROM"`
-	EnvelopeFrom         string `ini:"ENVELOPE_FROM"`
-	OverrideEnvelopeFrom bool   `ini:"-"`
-	FromName             string `ini:"-"`
-	FromEmail            string `ini:"-"`
-	SendAsPlainText      bool   `ini:"SEND_AS_PLAIN_TEXT"`
-	SubjectPrefix        string `ini:"SUBJECT_PREFIX"`
+	Name                 string              `ini:"NAME"`
+	From                 string              `ini:"FROM"`
+	EnvelopeFrom         string              `ini:"ENVELOPE_FROM"`
+	OverrideEnvelopeFrom bool                `ini:"-"`
+	FromName             string              `ini:"-"`
+	FromEmail            string              `ini:"-"`
+	SendAsPlainText      bool                `ini:"SEND_AS_PLAIN_TEXT"`
+	SubjectPrefix        string              `ini:"SUBJECT_PREFIX"`
+	OverrideHeader       map[string][]string `ini:"-"`
 
 	// SMTP sender
 	Protocol             string `ini:"PROTOCOL"`
@@ -45,12 +47,23 @@ type Mailer struct {
 	SendmailArgs        []string      `ini:"-"`
 	SendmailTimeout     time.Duration `ini:"SENDMAIL_TIMEOUT"`
 	SendmailConvertCRLF bool          `ini:"SENDMAIL_CONVERT_CRLF"`
+
+	// Customization
+	FromDisplayNameFormat         string             `ini:"FROM_DISPLAY_NAME_FORMAT"`
+	FromDisplayNameFormatTemplate *template.Template `ini:"-"`
 }
 
 // MailService the global mailer
 var MailService *Mailer
 
-func parseMailerConfig(rootCfg *ini.File) {
+func loadMailsFrom(rootCfg ConfigProvider) {
+	loadMailerFrom(rootCfg)
+	loadRegisterMailFrom(rootCfg)
+	loadNotifyMailFrom(rootCfg)
+	loadIncomingEmailFrom(rootCfg)
+}
+
+func loadMailerFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("mailer")
 	// Check mailer setting.
 	if !sec.Key("ENABLED").MustBool() {
@@ -58,16 +71,16 @@ func parseMailerConfig(rootCfg *ini.File) {
 	}
 
 	// Handle Deprecations and map on to new configuration
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "MAILER_TYPE", "mailer", "PROTOCOL")
+	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
+	// if these are removed, the warning will not be shown
+	deprecatedSetting(rootCfg, "mailer", "MAILER_TYPE", "mailer", "PROTOCOL", "v1.19.0")
 	if sec.HasKey("MAILER_TYPE") && !sec.HasKey("PROTOCOL") {
 		if sec.Key("MAILER_TYPE").String() == "sendmail" {
 			sec.Key("PROTOCOL").MustString("sendmail")
 		}
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "HOST", "mailer", "SMTP_ADDR")
+	deprecatedSetting(rootCfg, "mailer", "HOST", "mailer", "SMTP_ADDR", "v1.19.0")
 	if sec.HasKey("HOST") && !sec.HasKey("SMTP_ADDR") {
 		givenHost := sec.Key("HOST").String()
 		addr, port, err := net.SplitHostPort(givenHost)
@@ -83,8 +96,7 @@ func parseMailerConfig(rootCfg *ini.File) {
 		sec.Key("SMTP_PORT").MustString(port)
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "IS_TLS_ENABLED", "mailer", "PROTOCOL")
+	deprecatedSetting(rootCfg, "mailer", "IS_TLS_ENABLED", "mailer", "PROTOCOL", "v1.19.0")
 	if sec.HasKey("IS_TLS_ENABLED") && !sec.HasKey("PROTOCOL") {
 		if sec.Key("IS_TLS_ENABLED").MustBool() {
 			sec.Key("PROTOCOL").MustString("smtps")
@@ -93,38 +105,32 @@ func parseMailerConfig(rootCfg *ini.File) {
 		}
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "DISABLE_HELO", "mailer", "ENABLE_HELO")
+	deprecatedSetting(rootCfg, "mailer", "DISABLE_HELO", "mailer", "ENABLE_HELO", "v1.19.0")
 	if sec.HasKey("DISABLE_HELO") && !sec.HasKey("ENABLE_HELO") {
 		sec.Key("ENABLE_HELO").MustBool(!sec.Key("DISABLE_HELO").MustBool())
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "SKIP_VERIFY", "mailer", "FORCE_TRUST_SERVER_CERT")
+	deprecatedSetting(rootCfg, "mailer", "SKIP_VERIFY", "mailer", "FORCE_TRUST_SERVER_CERT", "v1.19.0")
 	if sec.HasKey("SKIP_VERIFY") && !sec.HasKey("FORCE_TRUST_SERVER_CERT") {
 		sec.Key("FORCE_TRUST_SERVER_CERT").MustBool(sec.Key("SKIP_VERIFY").MustBool())
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "USE_CERTIFICATE", "mailer", "USE_CLIENT_CERT")
+	deprecatedSetting(rootCfg, "mailer", "USE_CERTIFICATE", "mailer", "USE_CLIENT_CERT", "v1.19.0")
 	if sec.HasKey("USE_CERTIFICATE") && !sec.HasKey("USE_CLIENT_CERT") {
 		sec.Key("USE_CLIENT_CERT").MustBool(sec.Key("USE_CERTIFICATE").MustBool())
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "CERT_FILE", "mailer", "CLIENT_CERT_FILE")
+	deprecatedSetting(rootCfg, "mailer", "CERT_FILE", "mailer", "CLIENT_CERT_FILE", "v1.19.0")
 	if sec.HasKey("CERT_FILE") && !sec.HasKey("CLIENT_CERT_FILE") {
 		sec.Key("CERT_FILE").MustString(sec.Key("CERT_FILE").String())
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "KEY_FILE", "mailer", "CLIENT_KEY_FILE")
+	deprecatedSetting(rootCfg, "mailer", "KEY_FILE", "mailer", "CLIENT_KEY_FILE", "v1.19.0")
 	if sec.HasKey("KEY_FILE") && !sec.HasKey("CLIENT_KEY_FILE") {
 		sec.Key("KEY_FILE").MustString(sec.Key("KEY_FILE").String())
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT")
+	deprecatedSetting(rootCfg, "mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT", "v1.19.0")
 	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") && !sec.HasKey("SEND_AS_PLAIN_TEXT") {
 		sec.Key("SEND_AS_PLAIN_TEXT").MustBool(!sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false))
 	}
@@ -149,6 +155,12 @@ func parseMailerConfig(rootCfg *ini.File) {
 	MailService = &Mailer{}
 	if err := sec.MapTo(MailService); err != nil {
 		log.Fatal("Unable to map [mailer] section on to MailService. Error: %v", err)
+	}
+
+	overrideHeader := rootCfg.Section("mailer.override_header").Keys()
+	MailService.OverrideHeader = make(map[string][]string)
+	for _, key := range overrideHeader {
+		MailService.OverrideHeader[key.Name()] = key.Strings(",")
 	}
 
 	// Infer SMTPPort if not set
@@ -199,7 +211,7 @@ func parseMailerConfig(rootCfg *ini.File) {
 		ips := tryResolveAddr(MailService.SMTPAddr)
 		if MailService.Protocol == "smtp" {
 			for _, ip := range ips {
-				if !ip.IsLoopback() {
+				if !ip.IP.IsLoopback() {
 					log.Warn("connecting over insecure SMTP protocol to non-local address is not recommended")
 					break
 				}
@@ -217,6 +229,16 @@ func parseMailerConfig(rootCfg *ini.File) {
 		MailService.FromEmail = parsed.Address
 	} else {
 		log.Error("no mailer.FROM provided, email system may not work.")
+	}
+
+	MailService.FromDisplayNameFormatTemplate, _ = template.New("mailFrom").Parse("{{ .DisplayName }}")
+	if MailService.FromDisplayNameFormat != "" {
+		template, err := template.New("mailFrom").Parse(MailService.FromDisplayNameFormat)
+		if err != nil {
+			log.Error("mailer.FROM_DISPLAY_NAME_FORMAT is no valid template: %v", err)
+		} else {
+			MailService.FromDisplayNameFormatTemplate = template
+		}
 	}
 
 	switch MailService.EnvelopeFrom {
@@ -237,8 +259,8 @@ func parseMailerConfig(rootCfg *ini.File) {
 	log.Info("Mail Service Enabled")
 }
 
-func newRegisterMailService() {
-	if !Cfg.Section("service").Key("REGISTER_EMAIL_CONFIRM").MustBool() {
+func loadRegisterMailFrom(rootCfg ConfigProvider) {
+	if !rootCfg.Section("service").Key("REGISTER_EMAIL_CONFIRM").MustBool() {
 		return
 	} else if MailService == nil {
 		log.Warn("Register Mail Service: Mail Service is not enabled")
@@ -248,8 +270,8 @@ func newRegisterMailService() {
 	log.Info("Register Mail Service Enabled")
 }
 
-func newNotifyMailService() {
-	if !Cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").MustBool() {
+func loadNotifyMailFrom(rootCfg ConfigProvider) {
+	if !rootCfg.Section("service").Key("ENABLE_NOTIFY_MAIL").MustBool() {
 		return
 	} else if MailService == nil {
 		log.Warn("Notify Mail Service: Mail Service is not enabled")
@@ -259,20 +281,21 @@ func newNotifyMailService() {
 	log.Info("Notify Mail Service Enabled")
 }
 
-func tryResolveAddr(addr string) []net.IP {
+func tryResolveAddr(addr string) []net.IPAddr {
 	if strings.HasPrefix(addr, "[") && strings.HasSuffix(addr, "]") {
 		addr = addr[1 : len(addr)-1]
 	}
 	ip := net.ParseIP(addr)
 	if ip != nil {
-		ips := make([]net.IP, 1)
-		ips[0] = ip
-		return ips
+		return []net.IPAddr{{IP: ip}}
 	}
-	ips, err := net.LookupIP(addr)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	ips, err := net.DefaultResolver.LookupIPAddr(ctx, addr)
 	if err != nil {
 		log.Warn("could not look up mailer.SMTP_ADDR: %v", err)
-		return make([]net.IP, 0)
+		return nil
 	}
 	return ips
 }

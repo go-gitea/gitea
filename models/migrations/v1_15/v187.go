@@ -15,7 +15,7 @@ func DropWebhookColumns(x *xorm.Engine) error {
 		Signature string `xorm:"TEXT"`
 		IsSSL     bool   `xorm:"is_ssl"`
 	}
-	if err := x.Sync2(new(Webhook)); err != nil {
+	if err := x.Sync(new(Webhook)); err != nil {
 		return err
 	}
 
@@ -27,7 +27,7 @@ func DropWebhookColumns(x *xorm.Engine) error {
 		ContentType int
 		IsSSL       bool
 	}
-	if err := x.Sync2(new(HookTask)); err != nil {
+	if err := x.Sync(new(HookTask)); err != nil {
 		return err
 	}
 

@@ -9,12 +9,11 @@ import (
 	"fmt"
 	"image/png"
 	"io"
-	"strings"
 
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
-	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -58,16 +57,15 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 }
 
 // AvatarLinkWithSize returns a link to the user's avatar with size. size <= 0 means default size
-func (u *User) AvatarLinkWithSize(size int) string {
-	if u.ID == -1 {
-		// ghost user
+func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
+	if u.IsGhost() {
 		return avatars.DefaultAvatarLink()
 	}
 
 	useLocalAvatar := false
 	autoGenerateAvatar := false
 
-	disableGravatar := system_model.GetSettingBool(system_model.KeyPictureDisableGravatar)
+	disableGravatar := setting.Config().Picture.DisableGravatar.Value(ctx)
 
 	switch {
 	case u.UseCustomAvatar:
@@ -79,7 +77,7 @@ func (u *User) AvatarLinkWithSize(size int) string {
 
 	if useLocalAvatar {
 		if u.Avatar == "" && autoGenerateAvatar {
-			if err := GenerateRandomAvatar(db.DefaultContext, u); err != nil {
+			if err := GenerateRandomAvatar(ctx, u); err != nil {
 				log.Error("GenerateRandomAvatar: %v", err)
 			}
 		}
@@ -88,16 +86,14 @@ func (u *User) AvatarLinkWithSize(size int) string {
 		}
 		return avatars.GenerateUserAvatarImageLink(u.Avatar, size)
 	}
-	return avatars.GenerateEmailAvatarFastLink(u.AvatarEmail, size)
+	return avatars.GenerateEmailAvatarFastLink(ctx, u.AvatarEmail, size)
 }
 
-// AvatarLink returns the full avatar link with http host
-func (u *User) AvatarLink() string {
-	link := u.AvatarLinkWithSize(0)
-	if !strings.HasPrefix(link, "//") && !strings.Contains(link, "://") {
-		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL+"/")
-	}
-	return link
+// AvatarLink returns the full avatar url with http host.
+// TODO: refactor it to a relative URL, but it is still used in API response at the moment
+func (u *User) AvatarLink(ctx context.Context) string {
+	relLink := u.AvatarLinkWithSize(ctx, 0) // it can't be empty
+	return httplib.MakeAbsoluteURL(ctx, relLink)
 }
 
 // IsUploadAvatarChanged returns true if the current user's avatar would be changed with the provided data

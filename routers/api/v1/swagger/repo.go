@@ -70,6 +70,20 @@ type swaggerResponseAnnotatedTag struct {
 	Body api.AnnotatedTag `json:"body"`
 }
 
+// TagProtectionList
+// swagger:response TagProtectionList
+type swaggerResponseTagProtectionList struct {
+	// in:body
+	Body []api.TagProtection `json:"body"`
+}
+
+// TagProtection
+// swagger:response TagProtection
+type swaggerResponseTagProtection struct {
+	// in:body
+	Body api.TagProtection `json:"body"`
+}
+
 // Reference
 // swagger:response Reference
 type swaggerResponseReference struct {
@@ -296,6 +310,13 @@ type swaggerFileResponse struct {
 	Body api.FileResponse `json:"body"`
 }
 
+// FilesResponse
+// swagger:response FilesResponse
+type swaggerFilesResponse struct {
+	// in: body
+	Body api.FilesResponse `json:"body"`
+}
+
 // ContentsResponse
 // swagger:response ContentsResponse
 type swaggerContentsResponse struct {
@@ -385,4 +406,38 @@ type swaggerPushMirrorList struct {
 type swaggerRepoCollaboratorPermission struct {
 	// in:body
 	Body api.RepoCollaboratorPermission `json:"body"`
+}
+
+// RepoIssueConfig
+// swagger:response RepoIssueConfig
+type swaggerRepoIssueConfig struct {
+	// in:body
+	Body api.IssueConfig `json:"body"`
+}
+
+// RepoIssueConfigValidation
+// swagger:response RepoIssueConfigValidation
+type swaggerRepoIssueConfigValidation struct {
+	// in:body
+	Body api.IssueConfigValidation `json:"body"`
+}
+
+// RepoNewIssuePinsAllowed
+// swagger:response RepoNewIssuePinsAllowed
+type swaggerRepoNewIssuePinsAllowed struct {
+	// in:body
+	Body api.NewIssuePinsAllowed `json:"body"`
+}
+
+// TasksList
+// swagger:response TasksList
+type swaggerRepoTasksList struct {
+	// in:body
+	Body api.ActionTaskResponse `json:"body"`
+}
+
+// swagger:response Compare
+type swaggerCompare struct {
+	// in:body
+	Body api.Compare `json:"body"`
 }

@@ -17,8 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/builder"
 )
 
 // Task represents a task
@@ -35,7 +33,7 @@ type Task struct {
 	StartTime      timeutil.TimeStamp
 	EndTime        timeutil.TimeStamp
 	PayloadContent string             `xorm:"TEXT"`
-	Message        string             `xorm:"TEXT"` // if task failed, saved the error reason
+	Message        string             `xorm:"TEXT"` // if task failed, saved the error reason, it could be a JSON string of TranslatableMessage or a plain message
 	Created        timeutil.TimeStamp `xorm:"created"`
 }
 
@@ -46,15 +44,11 @@ func init() {
 // TranslatableMessage represents JSON struct that can be translated with a Locale
 type TranslatableMessage struct {
 	Format string
-	Args   []interface{} `json:"omitempty"`
+	Args   []any `json:"omitempty"`
 }
 
 // LoadRepo loads repository of the task
-func (task *Task) LoadRepo() error {
-	return task.loadRepo(db.DefaultContext)
-}
-
-func (task *Task) loadRepo(ctx context.Context) error {
+func (task *Task) LoadRepo(ctx context.Context) error {
 	if task.Repo != nil {
 		return nil
 	}
@@ -72,13 +66,13 @@ func (task *Task) loadRepo(ctx context.Context) error {
 }
 
 // LoadDoer loads do user
-func (task *Task) LoadDoer() error {
+func (task *Task) LoadDoer(ctx context.Context) error {
 	if task.Doer != nil {
 		return nil
 	}
 
 	var doer user_model.User
-	has, err := db.GetEngine(db.DefaultContext).ID(task.DoerID).Get(&doer)
+	has, err := db.GetEngine(ctx).ID(task.DoerID).Get(&doer)
 	if err != nil {
 		return err
 	} else if !has {
@@ -92,13 +86,13 @@ func (task *Task) LoadDoer() error {
 }
 
 // LoadOwner loads owner user
-func (task *Task) LoadOwner() error {
+func (task *Task) LoadOwner(ctx context.Context) error {
 	if task.Owner != nil {
 		return nil
 	}
 
 	var owner user_model.User
-	has, err := db.GetEngine(db.DefaultContext).ID(task.OwnerID).Get(&owner)
+	has, err := db.GetEngine(ctx).ID(task.OwnerID).Get(&owner)
 	if err != nil {
 		return err
 	} else if !has {
@@ -112,8 +106,8 @@ func (task *Task) LoadOwner() error {
 }
 
 // UpdateCols updates some columns
-func (task *Task) UpdateCols(cols ...string) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(task.ID).Cols(cols...).Update(task)
+func (task *Task) UpdateCols(ctx context.Context, cols ...string) error {
+	_, err := db.GetEngine(ctx).ID(task.ID).Cols(cols...).Update(task)
 	return err
 }
 
@@ -171,12 +165,12 @@ func (err ErrTaskDoesNotExist) Unwrap() error {
 }
 
 // GetMigratingTask returns the migrating task by repo's id
-func GetMigratingTask(repoID int64) (*Task, error) {
+func GetMigratingTask(ctx context.Context, repoID int64) (*Task, error) {
 	task := Task{
 		RepoID: repoID,
 		Type:   structs.TaskTypeMigrateRepo,
 	}
-	has, err := db.GetEngine(db.DefaultContext).Get(&task)
+	has, err := db.GetEngine(ctx).Get(&task)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -185,22 +179,14 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 	return &task, nil
 }
 
-// HasFinishedMigratingTask returns if a finished migration task exists for the repo.
-func HasFinishedMigratingTask(repoID int64) (bool, error) {
-	return db.GetEngine(db.DefaultContext).
-		Where("repo_id=? AND type=? AND status=?", repoID, structs.TaskTypeMigrateRepo, structs.TaskStatusFinished).
-		Table("task").
-		Exist()
-}
-
 // GetMigratingTaskByID returns the migrating task by repo's id
-func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, error) {
+func GetMigratingTaskByID(ctx context.Context, id, doerID int64) (*Task, *migration.MigrateOptions, error) {
 	task := Task{
 		ID:     id,
 		DoerID: doerID,
 		Type:   structs.TaskTypeMigrateRepo,
 	}
-	has, err := db.GetEngine(db.DefaultContext).Get(&task)
+	has, err := db.GetEngine(ctx).Get(&task)
 	if err != nil {
 		return nil, nil, err
 	} else if !has {
@@ -214,34 +200,13 @@ func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, e
 	return &task, &opts, nil
 }
 
-// FindTaskOptions find all tasks
-type FindTaskOptions struct {
-	Status int
-}
-
-// ToConds generates conditions for database operation.
-func (opts FindTaskOptions) ToConds() builder.Cond {
-	cond := builder.NewCond()
-	if opts.Status >= 0 {
-		cond = cond.And(builder.Eq{"status": opts.Status})
-	}
-	return cond
-}
-
-// FindTasks find all tasks
-func FindTasks(opts FindTaskOptions) ([]*Task, error) {
-	tasks := make([]*Task, 0, 10)
-	err := db.GetEngine(db.DefaultContext).Where(opts.ToConds()).Find(&tasks)
-	return tasks, err
-}
-
 // CreateTask creates a task on database
-func CreateTask(task *Task) error {
-	return db.Insert(db.DefaultContext, task)
+func CreateTask(ctx context.Context, task *Task) error {
+	return db.Insert(ctx, task)
 }
 
 // FinishMigrateTask updates database when migrate task finished
-func FinishMigrateTask(task *Task) error {
+func FinishMigrateTask(ctx context.Context, task *Task) error {
 	task.Status = structs.TaskStatusFinished
 	task.EndTime = timeutil.TimeStampNow()
 
@@ -262,6 +227,6 @@ func FinishMigrateTask(task *Task) error {
 	}
 	task.PayloadContent = string(confBytes)
 
-	_, err = db.GetEngine(db.DefaultContext).ID(task.ID).Cols("status", "end_time", "payload_content").Update(task)
+	_, err = db.GetEngine(ctx).ID(task.ID).Cols("status", "end_time", "payload_content").Update(task)
 	return err
 }

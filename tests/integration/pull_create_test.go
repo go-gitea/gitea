@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -11,21 +12,35 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, title string) *httptest.ResponseRecorder {
+func testPullCreate(t *testing.T, session *TestSession, user, repo string, toSelf bool, targetBranch, sourceBranch, title string) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Click the PR button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("#new-pull-request").Parent().Attr("href")
+	link, exists := htmlDoc.doc.Find("#new-pull-request").Attr("href")
 	assert.True(t, exists, "The template has changed")
-	if branch != "master" {
-		link = strings.Replace(link, ":master", ":"+branch, 1)
+
+	targetUser := strings.Split(link, "/")[1]
+	if toSelf && targetUser != user {
+		link = strings.Replace(link, targetUser, user, 1)
+	}
+
+	if targetBranch != "master" {
+		link = strings.Replace(link, "master...", targetBranch+"...", 1)
+	}
+	if sourceBranch != "master" {
+		if targetUser == user {
+			link = strings.Replace(link, "...master", "..."+sourceBranch, 1)
+		} else {
+			link = strings.Replace(link, ":master", ":"+sourceBranch, 1)
+		}
 	}
 
 	req = NewRequest(t, "GET", link)
@@ -39,20 +54,43 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, titl
 		"_csrf": htmlDoc.GetCSRF(),
 		"title": title,
 	})
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	return resp
+}
 
+func testPullCreateDirectly(t *testing.T, session *TestSession, baseRepoOwner, baseRepoName, baseBranch, headRepoOwner, headRepoName, headBranch, title string) *httptest.ResponseRecorder {
+	headCompare := headBranch
+	if headRepoOwner != "" {
+		if headRepoName != "" {
+			headCompare = fmt.Sprintf("%s/%s:%s", headRepoOwner, headRepoName, headBranch)
+		} else {
+			headCompare = fmt.Sprintf("%s:%s", headRepoOwner, headBranch)
+		}
+	}
+	req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/compare/%s...%s", baseRepoOwner, baseRepoName, baseBranch, headCompare))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	// Submit the form for creating the pull
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+	assert.True(t, exists, "The template has changed")
+	req = NewRequestWithValues(t, "POST", link, map[string]string{
+		"_csrf": htmlDoc.GetCSRF(),
+		"title": title,
+	})
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	return resp
 }
 
 func TestPullCreate(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 
 		// check the redirected URL
-		url := resp.Header().Get("Location")
+		url := test.RedirectURL(resp)
 		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 
 		// check .diff can be accessed and matches performed change
@@ -67,7 +105,7 @@ func TestPullCreate(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
 		assert.Regexp(t, "diff", resp.Body)
-		assert.Regexp(t, `Subject: \[PATCH\] Update 'README.md'`, resp.Body)
+		assert.Regexp(t, `Subject: \[PATCH\] Update README.md`, resp.Body)
 		assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
 	})
 }
@@ -75,19 +113,19 @@ func TestPullCreate(t *testing.T) {
 func TestPullCreate_TitleEscape(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "<i>XSS PR</i>")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "<i>XSS PR</i>")
 
 		// check the redirected URL
-		url := resp.Header().Get("Location")
+		url := test.RedirectURL(resp)
 		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 
 		// Edit title
 		req := NewRequest(t, "GET", url)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		editTestTitleURL, exists := htmlDoc.doc.Find("#save-edit-title").First().Attr("data-update-url")
+		editTestTitleURL, exists := htmlDoc.doc.Find(".issue-title-buttons button[data-update-url]").First().Attr("data-update-url")
 		assert.True(t, exists, "The template has changed")
 
 		req = NewRequestWithValues(t, "POST", editTestTitleURL, map[string]string{
@@ -139,13 +177,13 @@ func TestPullBranchDelete(t *testing.T) {
 		defer tests.PrepareTestEnv(t)()
 
 		session := loginUser(t, "user1")
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testCreateBranch(t, session, "user1", "repo1", "branch/master", "master1", http.StatusSeeOther)
 		testEditFile(t, session, "user1", "repo1", "master1", "README.md", "Hello, World (Edited)\n")
-		resp := testPullCreate(t, session, "user1", "repo1", "master1", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master1", "This is a pull title")
 
 		// check the redirected URL
-		url := resp.Header().Get("Location")
+		url := test.RedirectURL(resp)
 		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 		req := NewRequest(t, "GET", url)
 		session.MakeRequest(t, req, http.StatusOK)

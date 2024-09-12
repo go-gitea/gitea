@@ -6,13 +6,16 @@ package security
 import (
 	"errors"
 	"net/http"
+	"strconv"
+	"time"
 
 	"code.gitea.io/gitea/models/auth"
+	user_model "code.gitea.io/gitea/models/user"
 	wa "code.gitea.io/gitea/modules/auth/webauthn"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 
 	"github.com/go-webauthn/webauthn/protocol"
@@ -21,13 +24,18 @@ import (
 
 // WebAuthnRegister initializes the webauthn registration procedure
 func WebAuthnRegister(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.WebauthnRegistrationForm)
-	if form.Name == "" {
-		ctx.Error(http.StatusConflict)
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
+		ctx.Error(http.StatusNotFound)
 		return
 	}
 
-	cred, err := auth.GetWebAuthnCredentialByName(ctx.Doer.ID, form.Name)
+	form := web.GetForm(ctx).(*forms.WebauthnRegistrationForm)
+	if form.Name == "" {
+		// Set name to the hexadecimal of the current time
+		form.Name = strconv.FormatInt(time.Now().UnixNano(), 16)
+	}
+
+	cred, err := auth.GetWebAuthnCredentialByName(ctx, ctx.Doer.ID, form.Name)
 	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
 		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
 		return
@@ -43,7 +51,9 @@ func WebAuthnRegister(ctx *context.Context) {
 		return
 	}
 
-	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration((*wa.User)(ctx.Doer))
+	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration((*wa.User)(ctx.Doer), webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
+		ResidentKey: protocol.ResidentKeyRequirementRequired,
+	}))
 	if err != nil {
 		ctx.ServerError("Unable to BeginRegistration", err)
 		return
@@ -60,6 +70,11 @@ func WebAuthnRegister(ctx *context.Context) {
 
 // WebauthnRegisterPost receives the response of the security key
 func WebauthnRegisterPost(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
 	name, ok := ctx.Session.Get("webauthnName").(string)
 	if !ok || name == "" {
 		ctx.ServerError("Get webauthnName", errors.New("no webauthnName"))
@@ -86,7 +101,7 @@ func WebauthnRegisterPost(ctx *context.Context) {
 		return
 	}
 
-	dbCred, err := auth.GetWebAuthnCredentialByName(ctx.Doer.ID, name)
+	dbCred, err := auth.GetWebAuthnCredentialByName(ctx, ctx.Doer.ID, name)
 	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
 		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
 		return
@@ -97,7 +112,7 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	}
 
 	// Create the credential
-	_, err = auth.CreateCredential(ctx.Doer.ID, name, cred)
+	_, err = auth.CreateCredential(ctx, ctx.Doer.ID, name, cred)
 	if err != nil {
 		ctx.ServerError("CreateCredential", err)
 		return
@@ -109,12 +124,15 @@ func WebauthnRegisterPost(ctx *context.Context) {
 
 // WebauthnDelete deletes an security key by id
 func WebauthnDelete(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
 	form := web.GetForm(ctx).(*forms.WebauthnDeleteForm)
-	if _, err := auth.DeleteCredential(form.ID, ctx.Doer.ID); err != nil {
+	if _, err := auth.DeleteCredential(ctx, form.ID, ctx.Doer.ID); err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/security",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }

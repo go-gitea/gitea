@@ -14,5 +14,9 @@ var Supported = false
 
 // Auth not supported lack of pam tag
 func Auth(serviceName, userName, passwd string) (string, error) {
-	return "", errors.New("PAM not supported")
+	// bypass the lint on callers: SA4023: this comparison is always true (staticcheck)
+	if !Supported {
+		return "", errors.New("PAM not supported")
+	}
+	return "", nil
 }

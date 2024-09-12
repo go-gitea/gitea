@@ -1,0 +1,48 @@
+{{if eq .PackageDescriptor.Package.Type "chef"}}
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.chef.registry"}}</label>
+				<div class="markup"><pre class="code-block"><code>knife[:supermarket_site] = '<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/chef"></origin-url>'</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.chef.install"}}</label>
+				<div class="markup"><pre class="code-block"><code>knife supermarket install {{.PackageDescriptor.Package.Name}} {{.PackageDescriptor.Version.Version}}</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Chef" "https://docs.gitea.com/usage/packages/chef/"}}</label>
+			</div>
+		</div>
+	</div>
+
+	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.LongDescription}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
+		<div class="ui attached segment">
+			{{if .PackageDescriptor.Metadata.Description}}<p>{{.PackageDescriptor.Metadata.Description}}</p>{{end}}
+			{{if .PackageDescriptor.Metadata.LongDescription}}{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.LongDescription}}{{end}}
+		</div>
+	{{end}}
+
+	{{if .PackageDescriptor.Metadata.Dependencies}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.dependencies"}}</h4>
+		<div class="ui attached segment">
+			<table class="ui single line very basic table">
+				<thead>
+					<tr>
+						<th class="eleven wide">{{ctx.Locale.Tr "packages.dependency.id"}}</th>
+						<th class="five wide">{{ctx.Locale.Tr "packages.dependency.version"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range $dependency, $version := .PackageDescriptor.Metadata.Dependencies}}
+					<tr>
+						<td>{{$dependency}}</td>
+						<td>{{$version}}</td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	{{end}}
+{{end}}

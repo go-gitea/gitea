@@ -12,7 +12,7 @@ func AddOriginalMigrationInfo(x *xorm.Engine) error {
 		OriginalAuthorID int64
 	}
 
-	if err := x.Sync2(new(Issue)); err != nil {
+	if err := x.Sync(new(Issue)); err != nil {
 		return err
 	}
 
@@ -22,7 +22,7 @@ func AddOriginalMigrationInfo(x *xorm.Engine) error {
 		OriginalAuthorID int64
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
+	if err := x.Sync(new(Comment)); err != nil {
 		return err
 	}
 
@@ -31,5 +31,5 @@ func AddOriginalMigrationInfo(x *xorm.Engine) error {
 		OriginalURL string
 	}
 
-	return x.Sync2(new(Repository))
+	return x.Sync(new(Repository))
 }

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -32,7 +33,7 @@ func TestOrgRepos(t *testing.T) {
 		t.Run(user, func(t *testing.T) {
 			session := loginUser(t, user)
 			for sortBy, repos := range cases {
-				req := NewRequest(t, "GET", "/user3?sort="+sortBy)
+				req := NewRequest(t, "GET", "/org3?sort="+sortBy)
 				resp := session.MakeRequest(t, req, http.StatusOK)
 
 				htmlDoc := NewHTMLParser(t, resp.Body)
@@ -158,7 +159,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 
 	// Therefore create a read-only team
 	adminSession := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, adminSession)
+	token := getTokenForLoggedInUser(t, adminSession, auth_model.AccessTokenScopeWriteOrganization)
 
 	teamToCreate := &api.CreateTeamOption{
 		Name:                    "codereader",
@@ -168,8 +169,8 @@ func TestOrgRestrictedUser(t *testing.T) {
 		Units:                   []string{"repo.code"},
 	}
 
-	req = NewRequestWithJSON(t, "POST",
-		fmt.Sprintf("/api/v1/orgs/%s/teams?token=%s", orgName, token), teamToCreate)
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", orgName), teamToCreate).
+		AddTokenAuth(token)
 
 	var apiTeam api.Team
 
@@ -182,8 +183,8 @@ func TestOrgRestrictedUser(t *testing.T) {
 	// teamID := apiTeam.ID
 
 	// Now we need to add the restricted user to the team
-	req = NewRequest(t, "PUT",
-		fmt.Sprintf("/api/v1/teams/%d/members/%s?token=%s", apiTeam.ID, restrictedUser, token))
+	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/teams/%d/members/%s", apiTeam.ID, restrictedUser)).
+		AddTokenAuth(token)
 	_ = adminSession.MakeRequest(t, req, http.StatusNoContent)
 
 	// Now we need to check if the restrictedUser can access the repo

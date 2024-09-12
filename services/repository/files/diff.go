@@ -21,7 +21,7 @@ func GetDiffPreview(ctx context.Context, repo *repo_model.Repository, branch, tr
 		return nil, err
 	}
 	defer t.Close()
-	if err := t.Clone(branch); err != nil {
+	if err := t.Clone(branch, true); err != nil {
 		return nil, err
 	}
 	if err := t.SetDefaultIndex(); err != nil {

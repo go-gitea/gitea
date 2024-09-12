@@ -11,7 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/process"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -71,7 +71,7 @@ func valToTimeDuration(vs []string) (result time.Duration) {
 			result = time.Duration(val)
 		}
 		if err == nil {
-			return
+			return result
 		}
 	}
 	return result

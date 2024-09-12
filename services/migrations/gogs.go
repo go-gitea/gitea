@@ -77,13 +77,11 @@ func (g *GogsDownloader) String() string {
 	return fmt.Sprintf("migration from gogs server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
 }
 
-// ColorFormat provides a basic color format for a GogsDownloader
-func (g *GogsDownloader) ColorFormat(s fmt.State) {
+func (g *GogsDownloader) LogString() string {
 	if g == nil {
-		log.ColorFprintf(s, "<nil: GogsDownloader>")
-		return
+		return "<GogsDownloader nil>"
 	}
-	log.ColorFprintf(s, "migration from gogs server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
+	return fmt.Sprintf("<GogsDownloader %s %s/%s>", g.baseURL, g.repoOwner, g.repoName)
 }
 
 // SetContext set context

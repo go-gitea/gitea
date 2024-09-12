@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -12,6 +11,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -31,11 +31,10 @@ func TestAPIGetIssueAttachment(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d?token=%s",
-		repoOwner.Name, repo.Name, issue.Index, attachment.ID, token)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
 
-	req := NewRequest(t, "GET", urlStr)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d", repoOwner.Name, repo.Name, issue.Index, attachment.ID)).
+		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	apiAttachment := new(api.Attachment)
 	DecodeJSON(t, resp, &apiAttachment)
@@ -52,11 +51,10 @@ func TestAPIListIssueAttachments(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets?token=%s",
-		repoOwner.Name, repo.Name, issue.Index, token)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
 
-	req := NewRequest(t, "GET", urlStr)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets", repoOwner.Name, repo.Name, issue.Index)).
+		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	apiAttachment := new([]api.Attachment)
 	DecodeJSON(t, resp, &apiAttachment)
@@ -72,9 +70,7 @@ func TestAPICreateIssueAttachment(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets?token=%s",
-		repoOwner.Name, repo.Name, issue.Index, token)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	filename := "image.png"
 	buff := generateImg()
@@ -89,7 +85,8 @@ func TestAPICreateIssueAttachment(t *testing.T) {
 	err = writer.Close()
 	assert.NoError(t, err)
 
-	req := NewRequestWithBody(t, "POST", urlStr, body)
+	req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets", repoOwner.Name, repo.Name, issue.Index), body).
+		AddTokenAuth(token)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 
@@ -97,6 +94,33 @@ func TestAPICreateIssueAttachment(t *testing.T) {
 	DecodeJSON(t, resp, &apiAttachment)
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, IssueID: issue.ID})
+}
+
+func TestAPICreateIssueAttachmentWithUnallowedFile(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, repoOwner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+
+	filename := "file.bad"
+	body := &bytes.Buffer{}
+
+	// Setup multi-part.
+	writer := multipart.NewWriter(body)
+	_, err := writer.CreateFormFile("attachment", filename)
+	assert.NoError(t, err)
+	err = writer.Close()
+	assert.NoError(t, err)
+
+	req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets", repoOwner.Name, repo.Name, issue.Index), body).
+		AddTokenAuth(token)
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 }
 
 func TestAPIEditIssueAttachment(t *testing.T) {
@@ -110,12 +134,12 @@ func TestAPIEditIssueAttachment(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d?token=%s",
-		repoOwner.Name, repo.Name, issue.Index, attachment.ID, token)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d",
+		repoOwner.Name, repo.Name, issue.Index, attachment.ID)
 	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
 		"name": newAttachmentName,
-	})
+	}).AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 	apiAttachment := new(api.Attachment)
 	DecodeJSON(t, resp, &apiAttachment)
@@ -132,11 +156,10 @@ func TestAPIDeleteIssueAttachment(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d?token=%s",
-		repoOwner.Name, repo.Name, issue.Index, attachment.ID, token)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
-	req := NewRequest(t, "DELETE", urlStr)
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d", repoOwner.Name, repo.Name, issue.Index, attachment.ID)).
+		AddTokenAuth(token)
 	session.MakeRequest(t, req, http.StatusNoContent)
 
 	unittest.AssertNotExistsBean(t, &repo_model.Attachment{ID: attachment.ID, IssueID: issue.ID})

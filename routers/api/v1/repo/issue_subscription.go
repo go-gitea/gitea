@@ -9,9 +9,9 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -104,7 +104,7 @@ func DelIssueSubscription(ctx *context.APIContext) {
 }
 
 func setIssueSubscription(ctx *context.APIContext, watch bool) {
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -115,7 +115,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	user, err := user_model.GetUserByName(ctx, ctx.Params(":user"))
+	user, err := user_model.GetUserByName(ctx, ctx.PathParam(":user"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
@@ -132,7 +132,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	current, err := issues_model.CheckIssueWatch(user, issue)
+	current, err := issues_model.CheckIssueWatch(ctx, user, issue)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CheckIssueWatch", err)
 		return
@@ -145,7 +145,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 	}
 
 	// Update watch state
-	if err := issues_model.CreateOrUpdateIssueWatch(user.ID, issue.ID, watch); err != nil {
+	if err := issues_model.CreateOrUpdateIssueWatch(ctx, user.ID, issue.ID, watch); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateOrUpdateIssueWatch", err)
 		return
 	}
@@ -185,7 +185,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -196,7 +196,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 		return
 	}
 
-	watching, err := issues_model.CheckIssueWatch(ctx.Doer, issue)
+	watching, err := issues_model.CheckIssueWatch(ctx, ctx.Doer, issue)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -206,7 +206,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 		Ignored:       !watching,
 		Reason:        nil,
 		CreatedAt:     issue.CreatedUnix.AsTime(),
-		URL:           issue.APIURL() + "/subscriptions",
+		URL:           issue.APIURL(ctx) + "/subscriptions",
 		RepositoryURL: ctx.Repo.Repository.APIURL(),
 	})
 }
@@ -251,7 +251,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -273,14 +273,14 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		userIDs = append(userIDs, iw.UserID)
 	}
 
-	users, err := user_model.GetUsersByIDs(userIDs)
+	users, err := user_model.GetUsersByIDs(ctx, userIDs)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
 		return
 	}
 	apiUsers := make([]*api.User, 0, len(users))
 	for _, v := range users {
-		apiUsers = append(apiUsers, convert.ToUser(v, ctx.Doer))
+		apiUsers = append(apiUsers, convert.ToUser(ctx, v, ctx.Doer))
 	}
 
 	count, err := issues_model.CountIssueWatchers(ctx, issue.ID)

@@ -11,14 +11,11 @@ _test
 .idea
 # Goland's output filename can not be set manually
 /go_build_*
+/gitea_*
 
 # MS VSCode
 .vscode
-__debug_bin
-
-# Architecture specific extensions/prefixes
-*.[568vq]
-[568vq].out
+__debug_bin*
 
 *.cgo1.go
 *.cgo2.c
@@ -47,6 +44,7 @@ cpu.out
 
 *.db
 *.log
+*.log.*.gz
 
 /gitea
 /gitea-vet
@@ -56,13 +54,11 @@ cpu.out
 /bin
 /dist
 /custom/*
-!/custom/conf
-/custom/conf/*
 !/custom/conf/app.example.ini
 /data
 /indexers
 /log
-/public/img/avatar
+/public/assets/img/avatar
 /tests/integration/gitea-integration-*
 /tests/integration/indexers-*
 /tests/e2e/gitea-e2e-*
@@ -71,15 +67,16 @@ cpu.out
 /tests/e2e/test-artifacts
 /tests/e2e/test-snapshots
 /tests/*.ini
+/tests/**/*.git/**/*.sample
 /node_modules
+/.venv
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*
-/public/js
-/public/serviceworker.js
-/public/css
-/public/fonts
-/public/img/webpack
+/public/assets/js
+/public/assets/css
+/public/assets/fonts
+/public/assets/licenses.txt
 /vendor
 /web_src/fomantic/node_modules
 /web_src/fomantic/build/*
@@ -97,7 +94,11 @@ cpu.out
 /.air
 /.go-licenses
 
+# Files and folders that were previously generated
+/public/assets/img/webpack
+
 # Snapcraft
+/gitea_a*.txt
 snap/.snapcraft/
 parts/
 stage/
@@ -106,6 +107,9 @@ prime/
 *.snap-build
 *_source.tar.bz2
 .DS_Store
+
+# nix-direnv generated files
+.direnv/
 
 # Make evidence files
 /.make_evidence

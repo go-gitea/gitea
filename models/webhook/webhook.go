@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -122,7 +123,7 @@ func IsValidHookContentType(name string) bool {
 type Webhook struct {
 	ID                        int64 `xorm:"pk autoincr"`
 	RepoID                    int64 `xorm:"INDEX"` // An ID of 0 indicates either a default or system webhook
-	OrgID                     int64 `xorm:"INDEX"`
+	OwnerID                   int64 `xorm:"INDEX"`
 	IsSystemWebhook           bool
 	URL                       string `xorm:"url TEXT"`
 	HTTPMethod                string `xorm:"http_method"`
@@ -155,8 +156,8 @@ func (w *Webhook) AfterLoad() {
 }
 
 // History returns history of webhook by given conditions.
-func (w *Webhook) History(page int) ([]*HookTask, error) {
-	return HookTasks(w.ID, page)
+func (w *Webhook) History(ctx context.Context, page int) ([]*HookTask, error) {
+	return HookTasks(ctx, w.ID, page)
 }
 
 // UpdateEvent handles conversion from HookEvent to Events.
@@ -298,6 +299,12 @@ func (w *Webhook) HasPackageEvent() bool {
 		(w.ChooseEvents && w.HookEvents.Package)
 }
 
+// HasPullRequestReviewRequestEvent returns true if hook enabled pull request review request event.
+func (w *Webhook) HasPullRequestReviewRequestEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.PullRequestReviewRequest)
+}
+
 // EventCheckers returns event checkers
 func (w *Webhook) EventCheckers() []struct {
 	Has  func() bool
@@ -329,6 +336,7 @@ func (w *Webhook) EventCheckers() []struct {
 		{w.HasRepositoryEvent, webhook_module.HookEventRepository},
 		{w.HasReleaseEvent, webhook_module.HookEventRelease},
 		{w.HasPackageEvent, webhook_module.HookEventPackage},
+		{w.HasPullRequestReviewRequestEvent, webhook_module.HookEventPullRequestReviewRequest},
 	}
 }
 
@@ -385,98 +393,22 @@ func CreateWebhooks(ctx context.Context, ws []*Webhook) error {
 	return db.Insert(ctx, ws)
 }
 
-// getWebhook uses argument bean as query condition,
-// ID must be specified and do not assign unnecessary fields.
-func getWebhook(bean *Webhook) (*Webhook, error) {
-	has, err := db.GetEngine(db.DefaultContext).Get(bean)
+// GetWebhookByID returns webhook of repository by given ID.
+func GetWebhookByID(ctx context.Context, id int64) (*Webhook, error) {
+	bean := new(Webhook)
+	has, err := db.GetEngine(ctx).ID(id).Get(bean)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrWebhookNotExist{ID: bean.ID}
+		return nil, ErrWebhookNotExist{ID: id}
 	}
 	return bean, nil
 }
 
-// GetWebhookByID returns webhook of repository by given ID.
-func GetWebhookByID(id int64) (*Webhook, error) {
-	return getWebhook(&Webhook{
-		ID: id,
-	})
-}
-
 // GetWebhookByRepoID returns webhook of repository by given ID.
-func GetWebhookByRepoID(repoID, id int64) (*Webhook, error) {
-	return getWebhook(&Webhook{
-		ID:     id,
-		RepoID: repoID,
-	})
-}
-
-// GetWebhookByOrgID returns webhook of organization by given ID.
-func GetWebhookByOrgID(orgID, id int64) (*Webhook, error) {
-	return getWebhook(&Webhook{
-		ID:    id,
-		OrgID: orgID,
-	})
-}
-
-// ListWebhookOptions are options to filter webhooks on ListWebhooksByOpts
-type ListWebhookOptions struct {
-	db.ListOptions
-	RepoID   int64
-	OrgID    int64
-	IsActive util.OptionalBool
-}
-
-func (opts *ListWebhookOptions) toCond() builder.Cond {
-	cond := builder.NewCond()
-	if opts.RepoID != 0 {
-		cond = cond.And(builder.Eq{"webhook.repo_id": opts.RepoID})
-	}
-	if opts.OrgID != 0 {
-		cond = cond.And(builder.Eq{"webhook.org_id": opts.OrgID})
-	}
-	if !opts.IsActive.IsNone() {
-		cond = cond.And(builder.Eq{"webhook.is_active": opts.IsActive.IsTrue()})
-	}
-	return cond
-}
-
-// ListWebhooksByOpts return webhooks based on options
-func ListWebhooksByOpts(ctx context.Context, opts *ListWebhookOptions) ([]*Webhook, error) {
-	sess := db.GetEngine(ctx).Where(opts.toCond())
-
-	if opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, opts)
-		webhooks := make([]*Webhook, 0, opts.PageSize)
-		err := sess.Find(&webhooks)
-		return webhooks, err
-	}
-
-	webhooks := make([]*Webhook, 0, 10)
-	err := sess.Find(&webhooks)
-	return webhooks, err
-}
-
-// CountWebhooksByOpts count webhooks based on options and ignore pagination
-func CountWebhooksByOpts(opts *ListWebhookOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(opts.toCond()).Count(&Webhook{})
-}
-
-// GetDefaultWebhooks returns all admin-default webhooks.
-func GetDefaultWebhooks(ctx context.Context) ([]*Webhook, error) {
-	webhooks := make([]*Webhook, 0, 5)
-	return webhooks, db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
-		Find(&webhooks)
-}
-
-// GetSystemOrDefaultWebhook returns admin system or default webhook by given ID.
-func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
-	webhook := &Webhook{ID: id}
-	has, err := db.GetEngine(db.DefaultContext).
-		Where("repo_id=? AND org_id=?", 0, 0).
-		Get(webhook)
+func GetWebhookByRepoID(ctx context.Context, repoID, id int64) (*Webhook, error) {
+	webhook := new(Webhook)
+	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", id, repoID).Get(webhook)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -485,45 +417,66 @@ func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
 	return webhook, nil
 }
 
-// GetSystemWebhooks returns all admin system webhooks.
-func GetSystemWebhooks(ctx context.Context, isActive util.OptionalBool) ([]*Webhook, error) {
-	webhooks := make([]*Webhook, 0, 5)
-	if isActive.IsNone() {
-		return webhooks, db.GetEngine(ctx).
-			Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
-			Find(&webhooks)
+// GetWebhookByOwnerID returns webhook of a user or organization by given ID.
+func GetWebhookByOwnerID(ctx context.Context, ownerID, id int64) (*Webhook, error) {
+	webhook := new(Webhook)
+	has, err := db.GetEngine(ctx).Where("id=? AND owner_id=?", id, ownerID).Get(webhook)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrWebhookNotExist{ID: id}
 	}
-	return webhooks, db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, true, isActive.IsTrue()).
-		Find(&webhooks)
+	return webhook, nil
+}
+
+// ListWebhookOptions are options to filter webhooks on ListWebhooksByOpts
+type ListWebhookOptions struct {
+	db.ListOptions
+	RepoID   int64
+	OwnerID  int64
+	IsActive optional.Option[bool]
+}
+
+func (opts ListWebhookOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID != 0 {
+		cond = cond.And(builder.Eq{"webhook.repo_id": opts.RepoID})
+	}
+	if opts.OwnerID != 0 {
+		cond = cond.And(builder.Eq{"webhook.owner_id": opts.OwnerID})
+	}
+	if opts.IsActive.Has() {
+		cond = cond.And(builder.Eq{"webhook.is_active": opts.IsActive.Value()})
+	}
+	return cond
 }
 
 // UpdateWebhook updates information of webhook.
-func UpdateWebhook(w *Webhook) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(w.ID).AllCols().Update(w)
+func UpdateWebhook(ctx context.Context, w *Webhook) error {
+	_, err := db.GetEngine(ctx).ID(w.ID).AllCols().Update(w)
 	return err
 }
 
 // UpdateWebhookLastStatus updates last status of webhook.
-func UpdateWebhookLastStatus(w *Webhook) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(w.ID).Cols("last_status").Update(w)
+func UpdateWebhookLastStatus(ctx context.Context, w *Webhook) error {
+	_, err := db.GetEngine(ctx).ID(w.ID).Cols("last_status").Update(w)
 	return err
 }
 
-// deleteWebhook uses argument bean as query condition,
+// DeleteWebhookByID uses argument bean as query condition,
 // ID must be specified and do not assign unnecessary fields.
-func deleteWebhook(bean *Webhook) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteWebhookByID(ctx context.Context, id int64) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if count, err := db.DeleteByBean(ctx, bean); err != nil {
+	if count, err := db.DeleteByID[Webhook](ctx, id); err != nil {
 		return err
 	} else if count == 0 {
-		return ErrWebhookNotExist{ID: bean.ID}
-	} else if _, err = db.DeleteByBean(ctx, &HookTask{HookID: bean.ID}); err != nil {
+		return ErrWebhookNotExist{ID: id}
+	} else if _, err = db.DeleteByBean(ctx, &HookTask{HookID: id}); err != nil {
 		return err
 	}
 
@@ -531,58 +484,17 @@ func deleteWebhook(bean *Webhook) (err error) {
 }
 
 // DeleteWebhookByRepoID deletes webhook of repository by given ID.
-func DeleteWebhookByRepoID(repoID, id int64) error {
-	return deleteWebhook(&Webhook{
-		ID:     id,
-		RepoID: repoID,
-	})
-}
-
-// DeleteWebhookByOrgID deletes webhook of organization by given ID.
-func DeleteWebhookByOrgID(orgID, id int64) error {
-	return deleteWebhook(&Webhook{
-		ID:    id,
-		OrgID: orgID,
-	})
-}
-
-// DeleteDefaultSystemWebhook deletes an admin-configured default or system webhook (where Org and Repo ID both 0)
-func DeleteDefaultSystemWebhook(id int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
+func DeleteWebhookByRepoID(ctx context.Context, repoID, id int64) error {
+	if _, err := GetWebhookByRepoID(ctx, repoID, id); err != nil {
 		return err
 	}
-	defer committer.Close()
-
-	count, err := db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=?", 0, 0).
-		Delete(&Webhook{ID: id})
-	if err != nil {
-		return err
-	} else if count == 0 {
-		return ErrWebhookNotExist{ID: id}
-	}
-
-	if _, err := db.DeleteByBean(ctx, &HookTask{HookID: id}); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	return DeleteWebhookByID(ctx, id)
 }
 
-// CopyDefaultWebhooksToRepo creates copies of the default webhooks in a new repo
-func CopyDefaultWebhooksToRepo(ctx context.Context, repoID int64) error {
-	ws, err := GetDefaultWebhooks(ctx)
-	if err != nil {
-		return fmt.Errorf("GetDefaultWebhooks: %w", err)
+// DeleteWebhookByOwnerID deletes webhook of a user or organization by given ID.
+func DeleteWebhookByOwnerID(ctx context.Context, ownerID, id int64) error {
+	if _, err := GetWebhookByOwnerID(ctx, ownerID, id); err != nil {
+		return err
 	}
-
-	for _, w := range ws {
-		w.ID = 0
-		w.RepoID = repoID
-		if err := CreateWebhook(ctx, w); err != nil {
-			return fmt.Errorf("CreateWebhook: %w", err)
-		}
-	}
-	return nil
+	return DeleteWebhookByID(ctx, id)
 }

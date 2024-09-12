@@ -1,8 +1,8 @@
 {{template "base/head" .}}
-<div class="page-content explore repositories">
+<div role="main" aria-label="{{.Title}}" class="page-content explore repositories">
 	{{template "explore/navbar" .}}
 	<div class="ui container">
-		{{template "explore/repo_search" .}}
+		{{template "shared/repo_search" .}}
 		{{template "explore/repo_list" .}}
 		{{template "base/paginate" .}}
 	</div>

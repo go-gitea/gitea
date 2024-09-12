@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -19,7 +18,7 @@ import (
 
 func TestExternalMarkupRenderer(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	if !setting.Database.UseSQLite3 {
+	if !setting.Database.Type.IsSQLite3() {
 		t.Skip()
 		return
 	}
@@ -27,7 +26,7 @@ func TestExternalMarkupRenderer(t *testing.T) {
 	const repoURL = "user30/renderer"
 	req := NewRequest(t, "GET", repoURL+"/src/branch/master/README.html")
 	resp := MakeRequest(t, req, http.StatusOK)
-	assert.EqualValues(t, "text/html; charset=UTF-8", resp.Header()["Content-Type"][0])
+	assert.EqualValues(t, "text/html; charset=utf-8", resp.Header()["Content-Type"][0])
 
 	bs, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)

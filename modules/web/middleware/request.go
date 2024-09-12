@@ -12,8 +12,3 @@ import (
 func IsAPIPath(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, "/api/")
 }
-
-// IsInternalPath returns true if the specified URL is an internal API path
-func IsInternalPath(req *http.Request) bool {
-	return strings.HasPrefix(req.URL.Path, "/api/internal/")
-}

@@ -1,0 +1,43 @@
+<div class="flex-list run-list">
+	{{if not .Runs}}
+	<div class="empty-placeholder">
+		{{svg "octicon-no-entry" 48}}
+		<h2>{{if $.IsFiltered}}{{ctx.Locale.Tr "actions.runs.no_results"}}{{else}}{{ctx.Locale.Tr "actions.runs.no_runs"}}{{end}}</h2>
+	</div>
+	{{end}}
+	{{range .Runs}}
+		<div class="flex-item tw-items-center">
+			<div class="flex-item-leading">
+				{{template "repo/actions/status" (dict "status" .Status.String)}}
+			</div>
+			<div class="flex-item-main">
+				<a class="flex-item-title" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+					{{if .Title}}{{.Title}}{{else}}{{ctx.Locale.Tr "actions.runs.empty_commit_message"}}{{end}}
+				</a>
+				<div class="flex-item-body">
+					<span><b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>:</span>
+					{{- if .ScheduleID -}}
+						{{ctx.Locale.Tr "actions.runs.scheduled"}}
+					{{- else -}}
+						{{ctx.Locale.Tr "actions.runs.commit"}}
+						<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>
+						{{ctx.Locale.Tr "actions.runs.pushed_by"}}
+						<a href="{{.TriggerUser.HomeLink}}">{{.TriggerUser.GetDisplayName}}</a>
+					{{- end -}}
+				</div>
+			</div>
+			<div class="flex-item-trailing">
+				{{if .RefLink}}
+					<a class="ui label run-list-ref gt-ellipsis" href="{{.RefLink}}">{{.PrettyRef}}</a>
+				{{else}}
+					<span class="ui label run-list-ref gt-ellipsis">{{.PrettyRef}}</span>
+				{{end}}
+				<div class="run-list-item-right">
+					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{TimeSinceUnix .Updated ctx.Locale}}</div>
+					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
+				</div>
+			</div>
+		</div>
+	{{end}}
+</div>
+{{template "base/paginate" .}}

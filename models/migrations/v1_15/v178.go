@@ -13,5 +13,5 @@ func AddLFSMirrorColumns(x *xorm.Engine) error {
 		LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 	}
 
-	return x.Sync2(new(Mirror))
+	return x.Sync(new(Mirror))
 }

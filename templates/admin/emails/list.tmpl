@@ -1,69 +1,69 @@
-{{template "base/head" .}}
-<div class="page-content admin user">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.emails.email_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
+			{{ctx.Locale.Tr "admin.emails.email_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui right floated secondary filter menu">
-			<!-- Sort -->
-				<div class="ui dropdown type jump item">
+			<div class="ui secondary filter menu tw-items-center tw-mx-0">
+				<form class="ui form ignore-dirty tw-flex-1">
+					{{template "shared/search/combo" dict "Value" .Keyword}}
+				</form>
+				<!-- Sort -->
+				<div class="ui dropdown type jump item tw-mr-0">
 					<span class="text">
-						{{.locale.Tr "repo.issues.filter_sort"}}
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 					</span>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					<div class="menu">
-						<a class="{{if or (eq .SortType "email") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=email&q={{$.Keyword}}">{{.locale.Tr "admin.emails.filter_sort.email"}}</a>
-						<a class="{{if eq .SortType "reverseemail"}}active {{end}}item" href="{{$.Link}}?sort=reverseemail&q={{$.Keyword}}">{{.locale.Tr "admin.emails.filter_sort.email_reverse"}}</a>
-						<a class="{{if eq .SortType "username"}}active {{end}}item" href="{{$.Link}}?sort=username&q={{$.Keyword}}">{{.locale.Tr "admin.emails.filter_sort.name"}}</a>
-						<a class="{{if eq .SortType "reverseusername"}}active {{end}}item" href="{{$.Link}}?sort=reverseusername&q={{$.Keyword}}">{{.locale.Tr "admin.emails.filter_sort.name_reverse"}}</a>
+						<a class="{{if or (eq .SortType "email") (not .SortType)}}active {{end}}item" href="?sort=email&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.email"}}</a>
+						<a class="{{if eq .SortType "reverseemail"}}active {{end}}item" href="?sort=reverseemail&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.email_reverse"}}</a>
+						<a class="{{if eq .SortType "username"}}active {{end}}item" href="?sort=username&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.name"}}</a>
+						<a class="{{if eq .SortType "reverseusername"}}active {{end}}item" href="?sort=reverseusername&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.name_reverse"}}</a>
 					</div>
 				</div>
 			</div>
-			<form class="ui form ignore-dirty"  style="max-width: 90%">
-				<div class="ui fluid action input">
-					<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
-					<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
-				</div>
-			</form>
 		</div>
 		<div class="ui attached table segment">
 			<table class="ui very basic striped table unstackable">
 				<thead>
 					<tr>
 						<th data-sortt-asc="username" data-sortt-desc="reverseusername">
-							{{.locale.Tr "admin.users.name"}}
+							{{ctx.Locale.Tr "admin.users.name"}}
 							{{SortArrow "username" "reverseusername" $.SortType false}}
 						</th>
-						<th>{{.locale.Tr "admin.users.full_name"}}</th>
+						<th>{{ctx.Locale.Tr "admin.users.full_name"}}</th>
 						<th data-sortt-asc="email" data-sortt-desc="reverseemail" data-sortt-default="true">
-							{{.locale.Tr "email"}}
+							{{ctx.Locale.Tr "email"}}
 							{{SortArrow "email" "reverseemail" $.SortType true}}
 						</th>
-						<th>{{.locale.Tr "admin.emails.primary"}}</th>
-						<th>{{.locale.Tr "admin.emails.activated"}}</th>
+						<th>{{ctx.Locale.Tr "admin.emails.primary"}}</th>
+						<th>{{ctx.Locale.Tr "admin.emails.activated"}}</th>
+						<th></th>
 					</tr>
 				</thead>
 				<tbody>
 					{{range .Emails}}
 						<tr>
 							<td><a href="{{AppSubUrl}}/{{.Name | PathEscape}}">{{.Name}}</a></td>
-							<td><span class="text truncate">{{.FullName}}</span></td>
-							<td><span class="text email">{{.Email}}</span></td>
-							<td>{{if .IsPrimary}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
+							<td class="gt-ellipsis tw-max-w-48">{{.FullName}}</td>
+							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
+							<td>{{svg (Iif .IsPrimary "octicon-check" "octicon-x")}}</td>
 							<td>
 								{{if .CanChange}}
 									<a class="link-email-action" href data-uid="{{.UID}}"
 										data-email="{{.Email}}"
 										data-primary="{{if .IsPrimary}}1{{else}}0{{end}}"
 										data-activate="{{if .IsActivated}}0{{else}}1{{end}}">
-										{{if .IsActivated}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}
+										{{svg (Iif .IsActivated "octicon-check" "octicon-x")}}
 									</a>
 								{{else}}
-									{{if .IsActivated}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}
+									{{svg (Iif .IsActivated "octicon-check" "octicon-x")}}
 								{{end}}
+							</td>
+							<td>
+								<div class="tw-flex tw-gap-2">
+									<a class="delete-button" href="" data-url="{{$.Link}}/delete" data-id="{{.ID}}" data-data-uid="{{.UID}}">{{svg "octicon-trash"}}</a>
+								</div>
 							</td>
 						</tr>
 					{{end}}
@@ -73,12 +73,12 @@
 
 		{{template "base/paginate" .}}
 
-		<div class="ui basic modal" id="change-email-modal">
-			<div class="ui icon header">
-				{{.locale.Tr "admin.emails.change_email_header"}}
+		<div class="ui g-modal-confirm modal" id="change-email-modal">
+			<div class="header">
+				{{ctx.Locale.Tr "admin.emails.change_email_header"}}
 			</div>
-			<div class="content center">
-				<p>{{.locale.Tr "admin.emails.change_email_text"}}</p>
+			<div class="content">
+				<p class="center">{{ctx.Locale.Tr "admin.emails.change_email_text"}}</p>
 
 				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/admin/emails/activate" method="post">
 					{{$.CsrfTokenHtml}}
@@ -93,15 +93,24 @@
 					<input type="hidden" id="form-primary" name="primary" value="" required>
 					<input type="hidden" id="form-activate" name="activate" value="" required>
 
-					<div class="center actions">
-						<div class="ui basic cancel inverted button">{{$.locale.Tr "settings.cancel"}}</div>
-						<button class="ui basic inverted yellow button">{{$.locale.Tr "modal.yes"}}</button>
+					<div class="center">
+						{{template "base/modal_actions_confirm" .}}
 					</div>
-
 				</form>
 			</div>
 		</div>
 
 	</div>
+
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
+		{{svg "octicon-trash"}}
+		{{ctx.Locale.Tr "admin.emails.delete"}}
+	</div>
+	<div class="content">
+		{{ctx.Locale.Tr "admin.emails.delete_desc"}}
+	</div>
+	{{template "base/modal_actions_confirm" .}}
 </div>
-{{template "base/footer" .}}
+
+{{template "admin/layout_footer" .}}

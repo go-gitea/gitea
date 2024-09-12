@@ -50,7 +50,7 @@ func TestManager_Cancel(t *testing.T) {
 	select {
 	case <-ctx.Done():
 	default:
-		assert.Fail(t, "Cancel should cancel the provided context")
+		assert.FailNow(t, "Cancel should cancel the provided context")
 	}
 	finished()
 
@@ -62,7 +62,7 @@ func TestManager_Cancel(t *testing.T) {
 	select {
 	case <-ctx.Done():
 	default:
-		assert.Fail(t, "Cancel should cancel the provided context")
+		assert.FailNow(t, "Cancel should cancel the provided context")
 	}
 	finished()
 }
@@ -82,7 +82,7 @@ func TestManager_Remove(t *testing.T) {
 
 	assert.NotEqual(t, GetContext(p1Ctx).GetPID(), GetContext(p2Ctx).GetPID(), "expected to get different pids got %s == %s", GetContext(p2Ctx).GetPID(), GetContext(p1Ctx).GetPID())
 
-	pm.Remove(GetPID(p2Ctx))
+	finished()
 
 	_, exists := pm.processMap[GetPID(p2Ctx)]
 	assert.False(t, exists, "PID %d is in the list but shouldn't", GetPID(p2Ctx))

@@ -5,7 +5,6 @@
 package migrations
 
 import (
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -16,9 +15,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func timePtr(t time.Time) *time.Time {
@@ -59,6 +56,7 @@ func assertCommentsEqual(t *testing.T, expected, actual []*base.Comment) {
 
 func assertLabelEqual(t *testing.T, expected, actual *base.Label) {
 	assert.Equal(t, expected.Name, actual.Name)
+	assert.Equal(t, expected.Exclusive, actual.Exclusive)
 	assert.Equal(t, expected.Color, actual.Color)
 	assert.Equal(t, expected.Description, actual.Description)
 }

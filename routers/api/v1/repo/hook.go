@@ -7,15 +7,17 @@ package repo
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
@@ -49,19 +51,15 @@ func ListHooks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	opts := &webhook.ListWebhookOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 	}
 
-	count, err := webhook.CountWebhooksByOpts(opts)
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-
-	hooks, err := webhook.ListWebhooksByOpts(ctx, opts)
+	hooks, count, err := db.FindAndCount[webhook.Webhook](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -111,7 +109,7 @@ func GetHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64(":id")
 	hook, err := utils.GetRepoHook(ctx, repo.Repository.ID, hookID)
 	if err != nil {
 		return
@@ -156,6 +154,8 @@ func TestHook(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if ctx.Repo.Commit == nil {
 		// if repo does not have any commits, then don't send a webhook
@@ -168,13 +168,13 @@ func TestHook(ctx *context.APIContext) {
 		ref = r
 	}
 
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64(":id")
 	hook, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID)
 	if err != nil {
 		return
 	}
 
-	commit := convert.ToPayloadCommit(ctx.Repo.Repository, ctx.Repo.Commit)
+	commit := convert.ToPayloadCommit(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
 
 	commitID := ctx.Repo.Commit.ID.String()
 	if err := webhook_service.PrepareWebhook(ctx, hook, webhook_module.HookEventPush, &api.PushPayload{
@@ -185,9 +185,9 @@ func TestHook(ctx *context.APIContext) {
 		Commits:      []*api.PayloadCommit{commit},
 		TotalCommits: 1,
 		HeadCommit:   commit,
-		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, perm.AccessModeNone),
-		Pusher:       convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone),
-		Sender:       convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone),
+		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Pusher:       convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
+		Sender:       convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "PrepareWebhook: ", err)
 		return
@@ -223,12 +223,10 @@ func CreateHook(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Hook"
-	form := web.GetForm(ctx).(*api.CreateHookOption)
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	if !utils.CheckCreateHookOption(ctx, form) {
-		return
-	}
-	utils.AddRepoHook(ctx, form)
+	utils.AddRepoHook(ctx, web.GetForm(ctx).(*api.CreateHookOption))
 }
 
 // EditHook modify a hook of a repository
@@ -262,8 +260,10 @@ func EditHook(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.EditHookOption)
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64(":id")
 	utils.EditRepoHook(ctx, form, hookID)
 }
 
@@ -296,7 +296,7 @@ func DeleteHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	if err := webhook.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
+	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":id")); err != nil {
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {

@@ -21,20 +21,19 @@ type IssueList []*Issue
 
 // get the repo IDs to be loaded later, these IDs are for issue.Repo and issue.PullRequest.HeadRepo
 func (issues IssueList) getRepoIDs() []int64 {
-	repoIDs := make(container.Set[int64], len(issues))
-	for _, issue := range issues {
+	return container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
 		if issue.Repo == nil {
-			repoIDs.Add(issue.RepoID)
+			return issue.RepoID, true
 		}
 		if issue.PullRequest != nil && issue.PullRequest.HeadRepo == nil {
-			repoIDs.Add(issue.PullRequest.HeadRepoID)
+			return issue.PullRequest.HeadRepoID, true
 		}
-	}
-	return repoIDs.Values()
+		return 0, false
+	})
 }
 
 // LoadRepositories loads issues' all repositories
-func (issues IssueList) LoadRepositories(ctx context.Context) ([]*repo_model.Repository, error) {
+func (issues IssueList) LoadRepositories(ctx context.Context) (repo_model.RepositoryList, error) {
 	if len(issues) == 0 {
 		return nil, nil
 	}
@@ -73,20 +72,29 @@ func (issues IssueList) LoadRepositories(ctx context.Context) ([]*repo_model.Rep
 	return repo_model.ValuesRepository(repoMaps), nil
 }
 
-func (issues IssueList) getPosterIDs() []int64 {
-	posterIDs := make(container.Set[int64], len(issues))
-	for _, issue := range issues {
-		posterIDs.Add(issue.PosterID)
-	}
-	return posterIDs.Values()
-}
-
-func (issues IssueList) loadPosters(ctx context.Context) error {
+func (issues IssueList) LoadPosters(ctx context.Context) error {
 	if len(issues) == 0 {
 		return nil
 	}
 
-	posterIDs := issues.getPosterIDs()
+	posterIDs := container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
+		return issue.PosterID, issue.Poster == nil && issue.PosterID > 0
+	})
+
+	posterMaps, err := getPostersByIDs(ctx, posterIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, issue := range issues {
+		if issue.Poster == nil {
+			issue.Poster = getPoster(issue.PosterID, posterMaps)
+		}
+	}
+	return nil
+}
+
+func getPostersByIDs(ctx context.Context, posterIDs []int64) (map[int64]*user_model.User, error) {
 	posterMaps := make(map[int64]*user_model.User, len(posterIDs))
 	left := len(posterIDs)
 	for left > 0 {
@@ -98,22 +106,26 @@ func (issues IssueList) loadPosters(ctx context.Context) error {
 			In("id", posterIDs[:limit]).
 			Find(&posterMaps)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		left -= limit
 		posterIDs = posterIDs[limit:]
 	}
+	return posterMaps, nil
+}
 
-	for _, issue := range issues {
-		if issue.PosterID <= 0 {
-			continue
-		}
-		var ok bool
-		if issue.Poster, ok = posterMaps[issue.PosterID]; !ok {
-			issue.Poster = user_model.NewGhostUser()
-		}
+func getPoster(posterID int64, posterMaps map[int64]*user_model.User) *user_model.User {
+	if posterID == user_model.ActionsUserID {
+		return user_model.NewActionsUser()
 	}
-	return nil
+	if posterID <= 0 {
+		return nil
+	}
+	poster, ok := posterMaps[posterID]
+	if !ok {
+		return user_model.NewGhostUser()
+	}
+	return poster
 }
 
 func (issues IssueList) getIssueIDs() []int64 {
@@ -124,7 +136,7 @@ func (issues IssueList) getIssueIDs() []int64 {
 	return ids
 }
 
-func (issues IssueList) loadLabels(ctx context.Context) error {
+func (issues IssueList) LoadLabels(ctx context.Context) error {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -156,7 +168,7 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 			err = rows.Scan(&labelIssue)
 			if err != nil {
 				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadLabels: Close: %w", err1)
+					return fmt.Errorf("IssueList.LoadLabels: Close: %w", err1)
 				}
 				return err
 			}
@@ -165,7 +177,7 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 		// When there are no rows left and we try to close it.
 		// Since that is not relevant for us, we can safely ignore it.
 		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadLabels: Close: %w", err1)
+			return fmt.Errorf("IssueList.LoadLabels: Close: %w", err1)
 		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
@@ -173,19 +185,18 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 
 	for _, issue := range issues {
 		issue.Labels = issueLabels[issue.ID]
+		issue.isLabelsLoaded = true
 	}
 	return nil
 }
 
 func (issues IssueList) getMilestoneIDs() []int64 {
-	ids := make(container.Set[int64], len(issues))
-	for _, issue := range issues {
-		ids.Add(issue.MilestoneID)
-	}
-	return ids.Values()
+	return container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
+		return issue.MilestoneID, true
+	})
 }
 
-func (issues IssueList) loadMilestones(ctx context.Context) error {
+func (issues IssueList) LoadMilestones(ctx context.Context) error {
 	milestoneIDs := issues.getMilestoneIDs()
 	if len(milestoneIDs) == 0 {
 		return nil
@@ -210,48 +221,51 @@ func (issues IssueList) loadMilestones(ctx context.Context) error {
 
 	for _, issue := range issues {
 		issue.Milestone = milestoneMaps[issue.MilestoneID]
+		issue.isMilestoneLoaded = true
 	}
 	return nil
 }
 
-func (issues IssueList) getProjectIDs() []int64 {
-	ids := make(container.Set[int64], len(issues))
-	for _, issue := range issues {
-		ids.Add(issue.ProjectID())
-	}
-	return ids.Values()
-}
+func (issues IssueList) LoadProjects(ctx context.Context) error {
+	issueIDs := issues.getIssueIDs()
+	projectMaps := make(map[int64]*project_model.Project, len(issues))
+	left := len(issueIDs)
 
-func (issues IssueList) loadProjects(ctx context.Context) error {
-	projectIDs := issues.getProjectIDs()
-	if len(projectIDs) == 0 {
-		return nil
+	type projectWithIssueID struct {
+		*project_model.Project `xorm:"extends"`
+		IssueID                int64
 	}
 
-	projectMaps := make(map[int64]*project_model.Project, len(projectIDs))
-	left := len(projectIDs)
 	for left > 0 {
 		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
+
+		projects := make([]*projectWithIssueID, 0, limit)
 		err := db.GetEngine(ctx).
-			In("id", projectIDs[:limit]).
-			Find(&projectMaps)
+			Table("project").
+			Select("project.*, project_issue.issue_id").
+			Join("INNER", "project_issue", "project.id = project_issue.project_id").
+			In("project_issue.issue_id", issueIDs[:limit]).
+			Find(&projects)
 		if err != nil {
 			return err
 		}
+		for _, project := range projects {
+			projectMaps[project.IssueID] = project.Project
+		}
 		left -= limit
-		projectIDs = projectIDs[limit:]
+		issueIDs = issueIDs[limit:]
 	}
 
 	for _, issue := range issues {
-		issue.Project = projectMaps[issue.ProjectID()]
+		issue.Project = projectMaps[issue.ID]
 	}
 	return nil
 }
 
-func (issues IssueList) loadAssignees(ctx context.Context) error {
+func (issues IssueList) LoadAssignees(ctx context.Context) error {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -298,6 +312,10 @@ func (issues IssueList) loadAssignees(ctx context.Context) error {
 
 	for _, issue := range issues {
 		issue.Assignees = assignees[issue.ID]
+		if len(issue.Assignees) > 0 {
+			issue.Assignee = issue.Assignees[0]
+		}
+		issue.isAssigneeLoaded = true
 	}
 	return nil
 }
@@ -353,6 +371,9 @@ func (issues IssueList) LoadPullRequests(ctx context.Context) error {
 
 	for _, issue := range issues {
 		issue.PullRequest = pullRequestMaps[issue.ID]
+		if issue.PullRequest != nil {
+			issue.PullRequest.Issue = issue
+		}
 	}
 	return nil
 }
@@ -371,9 +392,8 @@ func (issues IssueList) LoadAttachments(ctx context.Context) (err error) {
 		if left < limit {
 			limit = left
 		}
-		rows, err := db.GetEngine(ctx).Table("attachment").
-			Join("INNER", "issue", "issue.id = attachment.issue_id").
-			In("issue.id", issuesIDs[:limit]).
+		rows, err := db.GetEngine(ctx).
+			In("issue_id", issuesIDs[:limit]).
 			Rows(new(repo_model.Attachment))
 		if err != nil {
 			return err
@@ -399,6 +419,7 @@ func (issues IssueList) LoadAttachments(ctx context.Context) (err error) {
 
 	for _, issue := range issues {
 		issue.Attachments = attachments[issue.ID]
+		issue.isAttachmentsLoaded = true
 	}
 	return nil
 }
@@ -420,6 +441,7 @@ func (issues IssueList) loadComments(ctx context.Context, cond builder.Cond) (er
 			Join("INNER", "issue", "issue.id = comment.issue_id").
 			In("issue.id", issuesIDs[:limit]).
 			Where(cond).
+			NoAutoCondition().
 			Rows(new(Comment))
 		if err != nil {
 			return err
@@ -458,6 +480,16 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 		return nil
 	}
 	trackedTimes := make(map[int64]int64, len(issues))
+
+	reposMap := make(map[int64]*repo_model.Repository, len(issues))
+	for _, issue := range issues {
+		reposMap[issue.RepoID] = issue.Repo
+	}
+	repos := repo_model.RepositoryListOfMap(reposMap)
+
+	if err := repos.LoadUnits(ctx); err != nil {
+		return err
+	}
 
 	ids := make([]int64, 0, len(issues))
 	for _, issue := range issues {
@@ -509,28 +541,28 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 }
 
 // loadAttributes loads all attributes, expect for attachments and comments
-func (issues IssueList) loadAttributes(ctx context.Context) error {
+func (issues IssueList) LoadAttributes(ctx context.Context) error {
 	if _, err := issues.LoadRepositories(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: LoadRepositories: %w", err)
 	}
 
-	if err := issues.loadPosters(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadPosters: %w", err)
+	if err := issues.LoadPosters(ctx); err != nil {
+		return fmt.Errorf("issue.loadAttributes: LoadPosters: %w", err)
 	}
 
-	if err := issues.loadLabels(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadLabels: %w", err)
+	if err := issues.LoadLabels(ctx); err != nil {
+		return fmt.Errorf("issue.loadAttributes: LoadLabels: %w", err)
 	}
 
-	if err := issues.loadMilestones(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadMilestones: %w", err)
+	if err := issues.LoadMilestones(ctx); err != nil {
+		return fmt.Errorf("issue.loadAttributes: LoadMilestones: %w", err)
 	}
 
-	if err := issues.loadProjects(ctx); err != nil {
+	if err := issues.LoadProjects(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadProjects: %w", err)
 	}
 
-	if err := issues.loadAssignees(ctx); err != nil {
+	if err := issues.LoadAssignees(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadAssignees: %w", err)
 	}
 
@@ -543,12 +575,6 @@ func (issues IssueList) loadAttributes(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// LoadAttributes loads attributes of the issues, except for attachments and
-// comments
-func (issues IssueList) LoadAttributes() error {
-	return issues.loadAttributes(db.DefaultContext)
 }
 
 // LoadComments loads comments
@@ -587,4 +613,24 @@ func (issues IssueList) GetApprovalCounts(ctx context.Context) (map[int64][]*Rev
 	}
 
 	return approvalCountMap, nil
+}
+
+func (issues IssueList) LoadIsRead(ctx context.Context, userID int64) error {
+	issueIDs := issues.getIssueIDs()
+	issueUsers := make([]*IssueUser, 0, len(issueIDs))
+	if err := db.GetEngine(ctx).Where("uid =?", userID).
+		In("issue_id").
+		Find(&issueUsers); err != nil {
+		return err
+	}
+
+	for _, issueUser := range issueUsers {
+		for _, issue := range issues {
+			if issue.ID == issueUser.IssueID {
+				issue.IsRead = issueUser.IsRead
+			}
+		}
+	}
+
+	return nil
 }

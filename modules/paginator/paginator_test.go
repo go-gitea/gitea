@@ -70,19 +70,19 @@ func TestPaginator(t *testing.T) {
 	t.Run("Generate pages", func(t *testing.T) {
 		p := New(0, 10, 1, 0)
 		pages := p.Pages()
-		assert.Equal(t, 0, len(pages))
+		assert.Empty(t, pages)
 	})
 
 	t.Run("Only current page", func(t *testing.T) {
 		p := New(0, 10, 1, 1)
 		pages := p.Pages()
-		assert.Equal(t, 1, len(pages))
+		assert.Len(t, pages, 1)
 		assert.Equal(t, 1, pages[0].Num())
 		assert.True(t, pages[0].IsCurrent())
 
 		p = New(1, 10, 1, 1)
 		pages = p.Pages()
-		assert.Equal(t, 1, len(pages))
+		assert.Len(t, pages, 1)
 		assert.Equal(t, 1, pages[0].Num())
 		assert.True(t, pages[0].IsCurrent())
 	})
@@ -90,13 +90,13 @@ func TestPaginator(t *testing.T) {
 	t.Run("Total page number is less or equal", func(t *testing.T) {
 		p := New(1, 10, 1, 2)
 		pages := p.Pages()
-		assert.Equal(t, 1, len(pages))
+		assert.Len(t, pages, 1)
 		assert.Equal(t, 1, pages[0].Num())
 		assert.True(t, pages[0].IsCurrent())
 
 		p = New(11, 10, 1, 2)
 		pages = p.Pages()
-		assert.Equal(t, 2, len(pages))
+		assert.Len(t, pages, 2)
 		assert.Equal(t, 1, pages[0].Num())
 		assert.True(t, pages[0].IsCurrent())
 		assert.Equal(t, 2, pages[1].Num())
@@ -104,7 +104,7 @@ func TestPaginator(t *testing.T) {
 
 		p = New(11, 10, 2, 2)
 		pages = p.Pages()
-		assert.Equal(t, 2, len(pages))
+		assert.Len(t, pages, 2)
 		assert.Equal(t, 1, pages[0].Num())
 		assert.False(t, pages[0].IsCurrent())
 		assert.Equal(t, 2, pages[1].Num())
@@ -112,7 +112,7 @@ func TestPaginator(t *testing.T) {
 
 		p = New(25, 10, 2, 3)
 		pages = p.Pages()
-		assert.Equal(t, 3, len(pages))
+		assert.Len(t, pages, 3)
 		assert.Equal(t, 1, pages[0].Num())
 		assert.False(t, pages[0].IsCurrent())
 		assert.Equal(t, 2, pages[1].Num())
@@ -125,7 +125,7 @@ func TestPaginator(t *testing.T) {
 		// ... 2
 		p := New(11, 10, 2, 1)
 		pages := p.Pages()
-		assert.Equal(t, 2, len(pages))
+		assert.Len(t, pages, 2)
 		assert.Equal(t, -1, pages[0].Num())
 		assert.False(t, pages[0].IsCurrent())
 		assert.Equal(t, 2, pages[1].Num())
@@ -134,7 +134,7 @@ func TestPaginator(t *testing.T) {
 		// ... 2 3
 		p = New(21, 10, 2, 2)
 		pages = p.Pages()
-		assert.Equal(t, 3, len(pages))
+		assert.Len(t, pages, 3)
 		assert.Equal(t, -1, pages[0].Num())
 		assert.False(t, pages[0].IsCurrent())
 		assert.Equal(t, 2, pages[1].Num())
@@ -145,7 +145,7 @@ func TestPaginator(t *testing.T) {
 		// ... 2 3 4
 		p = New(31, 10, 3, 3)
 		pages = p.Pages()
-		assert.Equal(t, 4, len(pages))
+		assert.Len(t, pages, 4)
 		assert.Equal(t, -1, pages[0].Num())
 		assert.False(t, pages[0].IsCurrent())
 		assert.Equal(t, 2, pages[1].Num())
@@ -158,7 +158,7 @@ func TestPaginator(t *testing.T) {
 		// ... 3 4 5
 		p = New(41, 10, 4, 3)
 		pages = p.Pages()
-		assert.Equal(t, 4, len(pages))
+		assert.Len(t, pages, 4)
 		assert.Equal(t, -1, pages[0].Num())
 		assert.False(t, pages[0].IsCurrent())
 		assert.Equal(t, 3, pages[1].Num())
@@ -171,7 +171,7 @@ func TestPaginator(t *testing.T) {
 		// ... 4 5 6 7 8 9 10
 		p = New(100, 10, 9, 7)
 		pages = p.Pages()
-		assert.Equal(t, 8, len(pages))
+		assert.Len(t, pages, 8)
 		assert.Equal(t, -1, pages[0].Num())
 		assert.False(t, pages[0].IsCurrent())
 		assert.Equal(t, 4, pages[1].Num())
@@ -194,7 +194,7 @@ func TestPaginator(t *testing.T) {
 		// 1 ...
 		p := New(21, 10, 1, 1)
 		pages := p.Pages()
-		assert.Equal(t, 2, len(pages))
+		assert.Len(t, pages, 2)
 		assert.Equal(t, 1, pages[0].Num())
 		assert.True(t, pages[0].IsCurrent())
 		assert.Equal(t, -1, pages[1].Num())
@@ -203,7 +203,7 @@ func TestPaginator(t *testing.T) {
 		// 1 2 ...
 		p = New(21, 10, 1, 2)
 		pages = p.Pages()
-		assert.Equal(t, 3, len(pages))
+		assert.Len(t, pages, 3)
 		assert.Equal(t, 1, pages[0].Num())
 		assert.True(t, pages[0].IsCurrent())
 		assert.Equal(t, 2, pages[1].Num())
@@ -214,7 +214,7 @@ func TestPaginator(t *testing.T) {
 		// 1 2 3 ...
 		p = New(31, 10, 2, 3)
 		pages = p.Pages()
-		assert.Equal(t, 4, len(pages))
+		assert.Len(t, pages, 4)
 		assert.Equal(t, 1, pages[0].Num())
 		assert.False(t, pages[0].IsCurrent())
 		assert.Equal(t, 2, pages[1].Num())
@@ -227,7 +227,7 @@ func TestPaginator(t *testing.T) {
 		// 1 2 3 ...
 		p = New(41, 10, 2, 3)
 		pages = p.Pages()
-		assert.Equal(t, 4, len(pages))
+		assert.Len(t, pages, 4)
 		assert.Equal(t, 1, pages[0].Num())
 		assert.False(t, pages[0].IsCurrent())
 		assert.Equal(t, 2, pages[1].Num())
@@ -240,7 +240,7 @@ func TestPaginator(t *testing.T) {
 		// 1 2 3 4 5 6 7 ...
 		p = New(100, 10, 1, 7)
 		pages = p.Pages()
-		assert.Equal(t, 8, len(pages))
+		assert.Len(t, pages, 8)
 		assert.Equal(t, 1, pages[0].Num())
 		assert.True(t, pages[0].IsCurrent())
 		assert.Equal(t, 2, pages[1].Num())
@@ -261,7 +261,7 @@ func TestPaginator(t *testing.T) {
 		// 1 2 3 4 5 6 7 ...
 		p = New(100, 10, 2, 7)
 		pages = p.Pages()
-		assert.Equal(t, 8, len(pages))
+		assert.Len(t, pages, 8)
 		assert.Equal(t, 1, pages[0].Num())
 		assert.False(t, pages[0].IsCurrent())
 		assert.Equal(t, 2, pages[1].Num())
@@ -284,7 +284,7 @@ func TestPaginator(t *testing.T) {
 		// ... 2 3 ...
 		p := New(35, 10, 2, 2)
 		pages := p.Pages()
-		assert.Equal(t, 4, len(pages))
+		assert.Len(t, pages, 4)
 		assert.Equal(t, -1, pages[0].Num())
 		assert.False(t, pages[0].IsCurrent())
 		assert.Equal(t, 2, pages[1].Num())
@@ -297,7 +297,7 @@ func TestPaginator(t *testing.T) {
 		// ... 2 3 4 ...
 		p = New(49, 10, 3, 3)
 		pages = p.Pages()
-		assert.Equal(t, 5, len(pages))
+		assert.Len(t, pages, 5)
 		assert.Equal(t, -1, pages[0].Num())
 		assert.False(t, pages[0].IsCurrent())
 		assert.Equal(t, 2, pages[1].Num())

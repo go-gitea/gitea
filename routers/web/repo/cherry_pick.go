@@ -9,13 +9,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/repository/files"
 )
@@ -24,8 +25,8 @@ var tplCherryPick base.TplName = "repo/editor/cherry_pick"
 
 // CherryPick handles cherrypick GETs
 func CherryPick(ctx *context.Context) {
-	ctx.Data["SHA"] = ctx.Params(":sha")
-	cherryPickCommit, err := ctx.Repo.GitRepo.GetCommit(ctx.Params(":sha"))
+	ctx.Data["SHA"] = ctx.PathParam(":sha")
+	cherryPickCommit, err := ctx.Repo.GitRepo.GetCommit(ctx.PathParam(":sha"))
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("Missing Commit", err)
@@ -37,7 +38,7 @@ func CherryPick(ctx *context.Context) {
 
 	if ctx.FormString("cherry-pick-type") == "revert" {
 		ctx.Data["CherryPickType"] = "revert"
-		ctx.Data["commit_summary"] = "revert " + ctx.Params(":sha")
+		ctx.Data["commit_summary"] = "revert " + ctx.PathParam(":sha")
 		ctx.Data["commit_message"] = "revert " + cherryPickCommit.Message()
 	} else {
 		ctx.Data["CherryPickType"] = "cherry-pick"
@@ -66,7 +67,7 @@ func CherryPick(ctx *context.Context) {
 func CherryPickPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CherryPickForm)
 
-	sha := ctx.Params(":sha")
+	sha := ctx.PathParam(":sha")
 	ctx.Data["SHA"] = sha
 	if form.Revert {
 		ctx.Data["CherryPickType"] = "revert"
@@ -103,9 +104,9 @@ func CherryPickPost(ctx *context.Context) {
 	message := strings.TrimSpace(form.CommitSummary)
 	if message == "" {
 		if form.Revert {
-			message = ctx.Tr("repo.commit.revert-header", sha)
+			message = ctx.Locale.TrString("repo.commit.revert-header", sha)
 		} else {
-			message = ctx.Tr("repo.commit.cherry-pick-header", sha)
+			message = ctx.Locale.TrString("repo.commit.cherry-pick-header", sha)
 		}
 	}
 
@@ -124,9 +125,9 @@ func CherryPickPost(ctx *context.Context) {
 	// First lets try the simple plain read-tree -m approach
 	opts.Content = sha
 	if _, err := files.CherryPick(ctx, ctx.Repo.Repository, ctx.Doer, form.Revert, opts); err != nil {
-		if models.IsErrBranchAlreadyExists(err) {
+		if git_model.IsErrBranchAlreadyExists(err) {
 			// User has specified a branch that already exists
-			branchErr := err.(models.ErrBranchAlreadyExists)
+			branchErr := err.(git_model.ErrBranchAlreadyExists)
 			ctx.Data["Err_NewBranchName"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplCherryPick, &form)
 			return
@@ -140,7 +141,7 @@ func CherryPickPost(ctx *context.Context) {
 		if form.Revert {
 			if err := git.GetReverseRawDiff(ctx, ctx.Repo.Repository.RepoPath(), sha, buf); err != nil {
 				if git.IsErrNotExist(err) {
-					ctx.NotFound("GetRawDiff", errors.New("commit "+ctx.Params(":sha")+" does not exist."))
+					ctx.NotFound("GetRawDiff", errors.New("commit "+ctx.PathParam(":sha")+" does not exist."))
 					return
 				}
 				ctx.ServerError("GetRawDiff", err)
@@ -149,7 +150,7 @@ func CherryPickPost(ctx *context.Context) {
 		} else {
 			if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, git.RawDiffType("patch"), buf); err != nil {
 				if git.IsErrNotExist(err) {
-					ctx.NotFound("GetRawDiff", errors.New("commit "+ctx.Params(":sha")+" does not exist."))
+					ctx.NotFound("GetRawDiff", errors.New("commit "+ctx.PathParam(":sha")+" does not exist."))
 					return
 				}
 				ctx.ServerError("GetRawDiff", err)
@@ -161,19 +162,18 @@ func CherryPickPost(ctx *context.Context) {
 		ctx.Data["FileContent"] = opts.Content
 
 		if _, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, opts); err != nil {
-			if models.IsErrBranchAlreadyExists(err) {
+			if git_model.IsErrBranchAlreadyExists(err) {
 				// User has specified a branch that already exists
-				branchErr := err.(models.ErrBranchAlreadyExists)
+				branchErr := err.(git_model.ErrBranchAlreadyExists)
 				ctx.Data["Err_NewBranchName"] = true
 				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplCherryPick, &form)
 				return
 			} else if models.IsErrCommitIDDoesNotMatch(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplPatchFile, &form)
 				return
-			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_apply_patch", err), tplPatchFile, &form)
-				return
 			}
+			ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_apply_patch", err), tplPatchFile, &form)
+			return
 		}
 	}
 

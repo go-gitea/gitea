@@ -14,8 +14,8 @@ func AddColorColToProjectBoard(x *xorm.Engine) error {
 		Color string `xorm:"VARCHAR(7)"`
 	}
 
-	if err := x.Sync2(new(ProjectBoard)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(ProjectBoard)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return nil
 }

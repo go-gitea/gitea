@@ -1,3 +1,64 @@
+<script lang="ts">
+import {VueBarGraph} from 'vue-bar-graph';
+import {createApp} from 'vue';
+
+const sfc = {
+  components: {VueBarGraph},
+  data: () => ({
+    colors: {
+      barColor: 'green',
+      textColor: 'black',
+      textAltColor: 'white',
+    },
+
+    // possible keys:
+    // * avatar_link: (...)
+    // * commits: (...)
+    // * home_link: (...)
+    // * login: (...)
+    // * name: (...)
+    activityTopAuthors: window.config.pageData.repoActivityTopAuthors || [],
+  }),
+  computed: {
+    graphPoints() {
+      return this.activityTopAuthors.map((item) => {
+        return {
+          value: item.commits,
+          label: item.name,
+        };
+      });
+    },
+    graphAuthors() {
+      return this.activityTopAuthors.map((item, idx) => {
+        return {
+          position: idx + 1,
+          ...item,
+        };
+      });
+    },
+    graphWidth() {
+      return this.activityTopAuthors.length * 40;
+    },
+  },
+  mounted() {
+    const refStyle = window.getComputedStyle(this.$refs.style);
+    const refAltStyle = window.getComputedStyle(this.$refs.altStyle);
+
+    this.colors.barColor = refStyle.backgroundColor;
+    this.colors.textColor = refStyle.color;
+    this.colors.textAltColor = refAltStyle.color;
+  },
+};
+
+export function initRepoActivityTopAuthorsChart() {
+  const el = document.querySelector('#repo-activity-top-authors-chart');
+  if (el) {
+    createApp(sfc).mount(el);
+  }
+}
+
+export default sfc; // activate the IDE's Vue plugin
+</script>
 <template>
   <div>
     <div class="activity-bar-graph" ref="style" style="width: 0; height: 0;"/>
@@ -48,62 +109,3 @@
     </vue-bar-graph>
   </div>
 </template>
-
-<script>
-import VueBarGraph from 'vue-bar-graph';
-import {initVueApp} from './VueComponentLoader.js';
-
-const sfc = {
-  components: {VueBarGraph},
-  data: () => ({
-    colors: {
-      barColor: 'green',
-      textColor: 'black',
-      textAltColor: 'white',
-    },
-
-    // possible keys:
-    // * avatar_link: (...)
-    // * commits: (...)
-    // * home_link: (...)
-    // * login: (...)
-    // * name: (...)
-    activityTopAuthors: window.config.pageData.repoActivityTopAuthors || [],
-  }),
-  computed: {
-    graphPoints() {
-      return this.activityTopAuthors.map((item) => {
-        return {
-          value: item.commits,
-          label: item.name,
-        };
-      });
-    },
-    graphAuthors() {
-      return this.activityTopAuthors.map((item, idx) => {
-        return {
-          position: idx + 1,
-          ...item,
-        };
-      });
-    },
-    graphWidth() {
-      return this.activityTopAuthors.length * 40;
-    },
-  },
-  mounted() {
-    const refStyle = window.getComputedStyle(this.$refs.style);
-    const refAltStyle = window.getComputedStyle(this.$refs.altStyle);
-
-    this.colors.barColor = refStyle.backgroundColor;
-    this.colors.textColor = refStyle.color;
-    this.colors.textAltColor = refAltStyle.color;
-  }
-};
-
-export function initRepoActivityTopAuthorsChart() {
-  initVueApp('#repo-activity-top-authors-chart', sfc);
-}
-
-export default sfc; // this line is necessary to activate the IDE's Vue plugin
-</script>
