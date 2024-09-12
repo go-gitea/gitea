@@ -150,6 +150,14 @@ type User struct {
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
 }
 
+// Meta defines the meta information of a user, to be stored in the K/V table
+type Meta struct {
+	// Store the initial registration of the user, to aid in spam prevention
+	// Ensure that one IP isn't creating many accounts (following mediawiki approach)
+	InitialIP        string
+	InitialUserAgent string
+}
+
 func init() {
 	db.RegisterModel(new(User))
 }
@@ -615,17 +623,17 @@ type CreateUserOverwriteOptions struct {
 }
 
 // CreateUser creates record of a new user.
-func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
-	return createUser(ctx, u, false, overwriteDefault...)
+func CreateUser(ctx context.Context, u *User, meta *Meta, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, meta, false, overwriteDefault...)
 }
 
 // AdminCreateUser is used by admins to manually create users
-func AdminCreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
-	return createUser(ctx, u, true, overwriteDefault...)
+func AdminCreateUser(ctx context.Context, u *User, meta *Meta, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, meta, true, overwriteDefault...)
 }
 
 // createUser creates record of a new user.
-func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
 	}
@@ -743,6 +751,22 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 	}
 	if err != nil {
 		return err
+	}
+
+	if setting.RecordUserSignupMetadata {
+		// insert initial IP and UserAgent
+		if err = SetUserSetting(ctx, u.ID, SignupIP, meta.InitialIP); err != nil {
+			return err
+		}
+
+		// trim user agent string to a reasonable length, if necessary
+		userAgent := strings.TrimSpace(meta.InitialUserAgent)
+		if len(userAgent) > 255 {
+			userAgent = userAgent[:255]
+		}
+		if err = SetUserSetting(ctx, u.ID, SignupUserAgent, userAgent); err != nil {
+			return err
+		}
 	}
 
 	// insert email address

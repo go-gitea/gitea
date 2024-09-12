@@ -227,7 +227,7 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 		MustChangePassword: false,
 	}
 
-	err := user_model.CreateUser(db.DefaultContext, user)
+	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrEmailCharIsNotSupported(err))
 }
@@ -241,7 +241,7 @@ func TestCreateUserEmailAlreadyUsed(t *testing.T) {
 	user.Name = "testuser"
 	user.LowerName = strings.ToLower(user.Name)
 	user.ID = 0
-	err := user_model.CreateUser(db.DefaultContext, user)
+	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 }
@@ -258,7 +258,7 @@ func TestCreateUserCustomTimestamps(t *testing.T) {
 	user.ID = 0
 	user.Email = "unique@example.com"
 	user.CreatedUnix = creationTimestamp
-	err := user_model.CreateUser(db.DefaultContext, user)
+	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
 	assert.NoError(t, err)
 
 	fetched, err := user_model.GetUserByID(context.Background(), user.ID)
@@ -283,7 +283,7 @@ func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
 	user.Email = "unique@example.com"
 	user.CreatedUnix = 0
 	user.UpdatedUnix = 0
-	err := user_model.CreateUser(db.DefaultContext, user)
+	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
 	assert.NoError(t, err)
 
 	timestampEnd := time.Now().Unix()

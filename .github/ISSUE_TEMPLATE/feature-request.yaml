@@ -7,7 +7,7 @@ body:
       value: |
         1. Please speak English, this is the language all maintainers can speak and write.
         2. Please ask questions or configuration/deploy problems on our Discord
-           server (https://discord.gg/gitea) or forum (https://discourse.gitea.io).
+           server (https://discord.gg/gitea) or forum (https://forum.gitea.com).
         3. Please take a moment to check that your feature hasn't already been suggested.
   - type: textarea
     id: description

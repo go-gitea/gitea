@@ -25,20 +25,21 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	gitea_context "code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
-// TODO: use clustered lock (unique queue? or *abuse* cache)
-var pullWorkingPool = sync.NewExclusivePool()
+func getPullWorkingLockKey(prID int64) string {
+	return fmt.Sprintf("pull_working_%d", prID)
+}
 
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, pr *issues_model.PullRequest, assigneeIDs []int64) error {
@@ -202,8 +203,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 
 // ChangeTargetBranch changes the target branch of this pull request, as the given user.
 func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, targetBranch string) (err error) {
-	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
-	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
+	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer releaser()
 
 	// Current target branch is already the same
 	if pr.BaseBranch == targetBranch {
