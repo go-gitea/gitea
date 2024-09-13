@@ -199,3 +199,15 @@ func TestPullBranchDelete(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 	})
 }
+
+/*
+Setup:
+Create a base repository on: user1/base-repo
+Fork repository to: user2/fork-repo
+Push extra commit to: user1/base-repo, which changes README.md
+Create a PR on user2/fork-repo
+
+Test checks:
+Check if pull request is created and has a changed README.md
+*/
+// func TestPullCreatePrFromBaseToFork(t *testing.T) {}
