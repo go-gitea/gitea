@@ -90,11 +90,7 @@ func Commits(ctx *context.Context) {
 	commitsTagsMap, err := repo_model.FindTagsByCommitIDs(ctx, ctx.Repo.Repository.ID, commitIDs...)
 	if err != nil {
 		log.Error("FindTagsByCommitIDs: %v", err)
-		if ctx.IsSigned && ctx.Doer.IsAdmin {
-			ctx.Flash.Error(ctx.Tr("internal_error_skipped", "FindTagsByCommitIDs"))
-		} else {
-			ctx.Flash.Error(ctx.Tr("internal_error_skipped", "Load Tags"))
-		}
+		ctx.Flash.Error(ctx.Tr("internal_error_skipped", "FindTagsByCommitIDs"))
 	} else {
 		ctx.Data["CommitsTagsMap"] = commitsTagsMap
 	}
