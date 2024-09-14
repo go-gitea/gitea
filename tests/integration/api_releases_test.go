@@ -208,6 +208,24 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	createNewReleaseUsingAPI(t, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
 }
 
+func TestAPICreateReleaseGivenInvalidTarget(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, owner.LowerName)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases", owner.Name, repo.Name)
+	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
+		TagName: "i-point-to-an-invalid-target",
+		Title:   "Invalid Target",
+		Target:  "invalid-target",
+	}).AddTokenAuth(token)
+
+	MakeRequest(t, req, http.StatusNotFound)
+}
+
 func TestAPIGetLatestRelease(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
