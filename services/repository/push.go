@@ -414,7 +414,6 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			rel.Sha1 = commit.ID.String()
 			rel.CreatedUnix = timeutil.TimeStamp(createdAt.Unix())
 			rel.NumCommits = commitsCount
-			rel.IsDraft = false
 			if rel.IsTag && author != nil {
 				rel.PublisherID = author.ID
 			}
