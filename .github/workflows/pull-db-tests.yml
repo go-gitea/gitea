@@ -201,7 +201,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2017-latest
+        image: mcr.microsoft.com/mssql/server:2017-CU31-GDR2-ubuntu-18.04
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard
