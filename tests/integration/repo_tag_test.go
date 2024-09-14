@@ -91,7 +91,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 			req := NewRequestf(t, "GET", "/%s/releases/tag/v-1.1", repo.FullName())
 			resp := MakeRequest(t, req, http.StatusOK)
 			htmlDoc := NewHTMLParser(t, resp.Body)
-			tagsTab := htmlDoc.Find(".release-list-title > a:nth-child(1)")
+			tagsTab := htmlDoc.Find(".release-list-title")
 			assert.Contains(t, tagsTab.Text(), "force update v2")
 		})
 	})
