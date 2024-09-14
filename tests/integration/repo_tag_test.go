@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/url"
 	"testing"
@@ -20,6 +19,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateNewTagProtected(t *testing.T) {
