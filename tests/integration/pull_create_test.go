@@ -210,4 +210,25 @@ Create a PR on user2/fork-repo
 Test checks:
 Check if pull request is created and has a changed README.md
 */
-// func TestPullCreatePrFromBaseToFork(t *testing.T) {}
+func TestPullCreatePrFromBaseToFork(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "fork-repo", "user1", "base-repo", "")
+
+		// Push extra commit to base-repo
+		testEditFile(t, session, "user1", "base-repo", "master", "README.md", "Hello, World (Edited)\n")
+
+		// Create PR
+		resp := testPullCreate(t, session, "user1", "base-repo", false, "master", "master", "This is a pull title")
+
+		// check the redirected URL
+		url := test.RedirectURL(resp)
+		assert.Regexp(t, "^/user2/fork-repo/pulls/[0-9]*$", url)
+
+		// check .diff can be accessed and has a changed README.md
+		req := NewRequest(t, "GET", url+".diff")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
+		assert.Regexp(t, "^diff", resp.Body)
+	})
+}
