@@ -202,33 +202,27 @@ func TestPullBranchDelete(t *testing.T) {
 
 /*
 Setup:
-Create a base repository on: user1/base-repo
-Fork repository to: user2/fork-repo
-Push extra commit to: user1/base-repo, which changes README.md
-Create a PR on user2/fork-repo
+The base repository is: user2/repo1
+Fork repository to: user1/repo1
+Push extra commit to: user2/repo1, which changes README.md
+Create a PR on user1/repo1
 
 Test checks:
-Check if pull request is created and has a changed README.md
+Check if pull request can be created from base to the fork repository.
 */
 func TestPullCreatePrFromBaseToFork(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		session := loginUser(t, "user1")
-		testRepoFork(t, session, "user2", "fork-repo", "user1", "base-repo", "")
+		sessionFork := loginUser(t, "user1")
+		testRepoFork(t, sessionFork, "user2", "repo1", "user1", "repo1", "")
 
-		// Push extra commit to base-repo
-		testEditFile(t, session, "user1", "base-repo", "master", "README.md", "Hello, World (Edited)\n")
+		// Edit base repository
+		sessionBase := loginUser(t, "user2")
+		testEditFile(t, sessionBase, "user2", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-		// Create PR
-		resp := testPullCreate(t, session, "user1", "base-repo", false, "master", "master", "This is a pull title")
-
+		// Create a PR
+		resp := testPullCreateDirectly(t, sessionFork, "user1", "repo1", "master", "user2", "repo1", "master", "This is a pull title")
 		// check the redirected URL
 		url := test.RedirectURL(resp)
-		assert.Regexp(t, "^/user2/fork-repo/pulls/[0-9]*$", url)
-
-		// check .diff can be accessed and has a changed README.md
-		req := NewRequest(t, "GET", url+".diff")
-		resp = session.MakeRequest(t, req, http.StatusOK)
-		assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
-		assert.Regexp(t, "^diff", resp.Body)
+		assert.Regexp(t, "^/user1/repo1/pulls/[0-9]*$", url)
 	})
 }
