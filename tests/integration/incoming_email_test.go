@@ -147,7 +147,10 @@ func TestIncomingEmail(t *testing.T) {
 					assert.Equal(t, user.ID, comment.PosterID)
 					assert.Equal(t, content.Content, comment.Content)
 					assert.NoError(t, comment.LoadAttachments(db.DefaultContext))
-					assert.Empty(t, comment.Attachments)
+					assert.Len(t, comment.Attachments, 1)
+					attachment := comment.Attachments[0]
+					assert.Equal(t, content.Attachments[0].Name, attachment.Name)
+					assert.EqualValues(t, 4, attachment.Size)
 				})
 			})
 
