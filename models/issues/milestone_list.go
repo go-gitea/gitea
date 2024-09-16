@@ -130,6 +130,45 @@ func (milestones MilestoneList) LoadTotalTrackedTimes(ctx context.Context) error
 	return nil
 }
 
+// LoadTotalWeight loads for every milestone in the list the TotalWeight by a batch request
+func (milestones MilestoneList) LoadTotalWeight(ctx context.Context) error {
+	type totalWeightByMilestone struct {
+		MilestoneID int64
+		Weight      int
+	}
+	if len(milestones) == 0 {
+		return nil
+	}
+	trackedTimes := make(map[int64]int, len(milestones))
+
+	// Get total tracked time by milestone_id
+	rows, err := db.GetEngine(ctx).Table("issue").
+		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
+		Select("milestone_id, sum(weight) as weight").
+		In("milestone_id", milestones.getMilestoneIDs()).
+		GroupBy("milestone_id").
+		Rows(new(totalWeightByMilestone))
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var totalTime totalWeightByMilestone
+		err = rows.Scan(&totalTime)
+		if err != nil {
+			return err
+		}
+		trackedTimes[totalTime.MilestoneID] = totalTime.Weight
+	}
+
+	for _, milestone := range milestones {
+		milestone.TotalWeight = trackedTimes[milestone.ID]
+	}
+	return nil
+}
+
 // CountMilestonesByRepoCondAndKw map from repo conditions and the keyword of milestones' name to number of milestones matching the options`
 func CountMilestonesMap(ctx context.Context, opts FindMilestoneOptions) (map[int64]int64, error) {
 	sess := db.GetEngine(ctx).Where(opts.ToConds())

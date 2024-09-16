@@ -459,6 +459,31 @@ func UpdateIssueDeadline(ctx context.Context, issue *Issue, deadlineUnix timeuti
 	return committer.Commit()
 }
 
+// UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
+func UpdateIssueWeight(ctx context.Context, issue *Issue, weight int, doer *user_model.User) (err error) {
+	// if the weight hasn't changed do nothing
+	if issue.Weight == weight {
+		return nil
+	}
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	// Update the weight
+	if err = UpdateIssueCols(ctx, &Issue{ID: issue.ID, Weight: weight}, "weight"); err != nil {
+		return err
+	}
+
+	// Make the comment
+	if _, err = CreateWeightComment(ctx, doer, issue, weight); err != nil {
+		return fmt.Errorf("createWeightComment: %w", err)
+	}
+
+	return committer.Commit()
+}
+
 // FindAndUpdateIssueMentions finds users mentioned in the given content string, and saves them in the database.
 func FindAndUpdateIssueMentions(ctx context.Context, issue *Issue, doer *user_model.User, content string) (mentions []*user_model.User, err error) {
 	rawMentions := references.FindAllMentionsMarkdown(content)

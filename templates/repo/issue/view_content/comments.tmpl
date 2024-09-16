@@ -700,6 +700,40 @@
 					{{else}}{{ctx.Locale.Tr "repo.issues.unpin_comment" $createdStr}}{{end}}
 				</span>
 			</div>
+        {{else if eq .Type 38}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-clock"}}</span>
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				<span class="text grey muted-links">
+					{{template "shared/user/authorlink" .Poster}}
+					{{ctx.Locale.Tr "repo.issues.weight_added" .Content $createdStr}}
+				</span>
+			</div>
+        {{else if eq .Type 39}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-clock"}}</span>
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				<span class="text grey muted-links">
+					{{template "shared/user/authorlink" .Poster}}
+                    {{$splitWeight := StringUtils.Split .Content "|"}}
+					{{if eq (len $splitWeight) 2}}
+						{{$to := (index $splitWeight 0)}}
+						{{$from := (index $splitWeight 1)}}
+
+						{{ctx.Locale.Tr "repo.issues.weight_modified" $to $from $createdStr}}
+					{{end}}
+				</span>
+			</div>
+		{{else if eq .Type 40}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-clock"}}</span>
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				<span class="text grey muted-links">
+					{{template "shared/user/authorlink" .Poster}}
+					{{ctx.Locale.Tr "repo.issues.weight_removed" .Content $createdStr}}
+				</span>
+			</div>
 		{{end}}
+
 	{{end}}
 {{end}}

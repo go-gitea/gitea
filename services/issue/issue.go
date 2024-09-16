@@ -9,6 +9,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
+	issue_model "code.gitea.io/gitea/models/issues"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
@@ -23,7 +24,7 @@ import (
 )
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64, projectID int64) error {
+func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64, projectID int64, weight int) error {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return err
 	}
@@ -43,6 +44,12 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 		}
 		if projectID > 0 {
 			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectID, 0); err != nil {
+				return err
+			}
+		}
+
+		if weight != 0 {
+			if _, err := issue_model.CreateWeightComment(ctx, issue.Poster, issue, weight); err != nil {
 				return err
 			}
 		}

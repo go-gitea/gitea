@@ -122,11 +122,21 @@ type EditDeadlineOption struct {
 	Deadline *time.Time `json:"due_date"`
 }
 
+type EditWeightOption struct {
+	// required:true
+	Weight int `json:"weight"`
+}
+
 // IssueDeadline represents an issue deadline
 // swagger:model
 type IssueDeadline struct {
 	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
+}
+
+// IssueWeight represents an issue weight
+type IssueWeight struct {
+	Weight int `json:"weight"`
 }
 
 // IssueFormFieldType defines issue form field type, can be "markdown", "textarea", "input", "dropdown" or "checkboxes"

@@ -53,6 +53,12 @@
 						{{.TotalTrackedTime | Sec2Time}}
 					</div>
 				{{end}}
+                {{if .TotalWeight}}
+                    <div class="flex-text-block"  data-tooltip-content='{{ctx.Locale.Tr "weight_summary"}}'>
+                        {{svg "octicon-briefcase"}}
+                        {{.TotalWeight}}
+                    </div>
+                {{end}}
 			</div>
 		</div>
 		<div class="divider"></div>

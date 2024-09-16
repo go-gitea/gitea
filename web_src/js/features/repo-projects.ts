@@ -3,6 +3,25 @@ import {contrastColor} from '../utils/color.ts';
 import {createSortable} from '../modules/sortable.ts';
 import {POST, DELETE, PUT} from '../modules/fetch.ts';
 
+function updateWeight(cards) {
+  const parent = cards.parentElement;
+  const columnWeight = parent.querySelector('.project-column-weight');
+
+  let totalWeight = 0;
+
+  for (const node of Array.from(cards.querySelectorAll('span[data-weight]'))) {
+    totalWeight += parseInt(node.getAttribute('data-weight'));
+  }
+
+  if (totalWeight === 0) {
+    columnWeight.parentElement.classList.add('tw-hidden');
+  } else {
+    columnWeight.parentElement.classList.remove('tw-hidden');
+  }
+
+  columnWeight.textContent = totalWeight;
+}
+
 function updateIssueCount(cards) {
   const parent = cards.parentElement;
   const cnt = parent.querySelectorAll('.issue-card').length;
@@ -29,6 +48,14 @@ async function moveIssue({item, from, to, oldIndex}) {
   const columnCards = to.querySelectorAll('.issue-card');
   updateIssueCount(from);
   updateIssueCount(to);
+
+  let weight = item.querySelector('span[data-weight]').getAttribute('data-weight');
+
+  if (weight) {
+    weight = parseInt(weight);
+    updateWeight(from, -weight);
+    updateWeight(to, weight);
+  }
 
   const columnSorting = {
     issues: Array.from(columnCards, (card, i) => ({
@@ -186,3 +213,10 @@ export function initRepoProject() {
     createNewColumn(url, $columnTitle, $projectColorInput);
   });
 }
+
+window.document.addEventListener('DOMContentLoaded', () => {
+  for (const card of document.querySelectorAll('.cards')) {
+    updateIssueCount(card);
+    updateWeight(card);
+  }
+});

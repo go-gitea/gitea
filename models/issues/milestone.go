@@ -65,6 +65,7 @@ type Milestone struct {
 	DeadlineString string `xorm:"-"`
 
 	TotalTrackedTime int64 `xorm:"-"`
+	TotalWeight      int   `xorm:"-"`
 }
 
 func init() {
@@ -352,6 +353,28 @@ func (m *Milestone) LoadTotalTrackedTime(ctx context.Context) error {
 		return nil
 	}
 	m.TotalTrackedTime = totalTime.Time
+	return nil
+}
+
+// LoadTotalWeight loads the total weight for the milestone
+func (m *Milestone) LoadTotalWeight(ctx context.Context) error {
+	type totalTimesByMilestone struct {
+		MilestoneID int64
+		Weight      int
+	}
+	totalTime := &totalTimesByMilestone{MilestoneID: m.ID}
+	has, err := db.GetEngine(ctx).Table("issue").
+		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
+		Select("milestone_id, sum(weight) as weight").
+		Where("milestone_id = ?", m.ID).
+		GroupBy("milestone_id").
+		Get(totalTime)
+	if err != nil {
+		return err
+	} else if !has {
+		return nil
+	}
+	m.TotalWeight = totalTime.Weight
 	return nil
 }
 

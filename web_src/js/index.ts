@@ -27,6 +27,7 @@ import {initPdfViewer} from './render/pdf.ts';
 import {initUserAuthOauth2} from './features/user-auth.ts';
 import {
   initRepoIssueDue,
+  initRepoIssueWeight,
   initRepoIssueReferenceRepositorySearch,
   initRepoIssueTimeTracking,
   initRepoIssueWipTitle,
@@ -189,6 +190,7 @@ onDomReady(() => {
     initRepoGraphGit,
     initRepoIssueContentHistory,
     initRepoIssueDue,
+    initRepoIssueWeight,
     initRepoIssueList,
     initRepoIssueSidebarList,
     initArchivedLabelHandler,
