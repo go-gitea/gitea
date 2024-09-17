@@ -161,7 +161,7 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit
 		return nil
 	}
 
-	_, licenseFile, err := findLicenseFile(commit)
+	licenseFile, err := findLicenseFile(commit)
 	if err != nil {
 		return fmt.Errorf("findLicenseFile: %w", err)
 	}
@@ -187,7 +187,7 @@ func GetDetectedLicenseFileName(ctx context.Context, repo *repo_model.Repository
 	if commit == nil {
 		return "", nil
 	}
-	_, licenseFile, err := findLicenseFile(commit)
+	licenseFile, err := findLicenseFile(commit)
 	if err != nil {
 		return "", fmt.Errorf("findLicenseFile: %w", err)
 	}
@@ -198,15 +198,16 @@ func GetDetectedLicenseFileName(ctx context.Context, repo *repo_model.Repository
 }
 
 // findLicenseFile returns the entry of license file in the repository if it exists
-func findLicenseFile(commit *git.Commit) (string, *git.TreeEntry, error) {
+func findLicenseFile(commit *git.Commit) (*git.TreeEntry, error) {
 	if commit == nil {
-		return "", nil, nil
+		return nil, nil
 	}
 	entries, err := commit.ListEntries()
 	if err != nil {
-		return "", nil, fmt.Errorf("ListEntries: %w", err)
+		return nil, fmt.Errorf("ListEntries: %w", err)
 	}
-	return FindFileInEntries(util.FileTypeLicense, entries, "", "", false)
+	_, f, err := FindFileInEntries(util.FileTypeLicense, entries, "", "", false)
+	return f, err
 }
 
 // detectLicense returns the licenses detected by the given content buff
