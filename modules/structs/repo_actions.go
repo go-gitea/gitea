@@ -32,3 +32,36 @@ type ActionTaskResponse struct {
 	Entries    []*ActionTask `json:"workflow_runs"`
 	TotalCount int64         `json:"total_count"`
 }
+
+// CreateActionWorkflowDispatch represents the data structure for dispatching a workflow action.
+//
+// swagger:model CreateActionWorkflowDispatch
+type CreateActionWorkflowDispatch struct {
+	// required: true
+	Ref    string                 `json:"ref"`
+	Inputs map[string]interface{} `json:"inputs"`
+}
+
+// ActionWorkflow represents a ActionWorkflow
+type ActionWorkflow struct {
+	ID     int64  `json:"id"`
+	NodeID string `json:"node_id"`
+	Name   string `json:"name"`
+	Path   string `json:"path"`
+	State  string `json:"state"`
+	// swagger:strfmt date-time
+	CreatedAt time.Time `json:"created_at"`
+	// swagger:strfmt date-time
+	UpdatedAt time.Time `json:"updated_at"`
+	URL       string    `json:"url"`
+	HTMLURL   string    `json:"html_url"`
+	BadgeURL  string    `json:"badge_url"`
+	// swagger:strfmt date-time
+	DeletedAt time.Time `json:"deleted_at"`
+}
+
+// ActionWorkflowResponse returns a ActionWorkflow
+type ActionWorkflowResponse struct {
+	Workflows  []*ActionWorkflow `json:"workflows"`
+	TotalCount int64             `json:"total_count"`
+}
