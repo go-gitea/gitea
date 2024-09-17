@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -302,6 +303,8 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	toRepoName := "migrated"
 	uploader := NewGiteaLocalUploader(context.Background(), fromRepoOwner, fromRepoOwner.Name, toRepoName)
 	uploader.gitServiceType = structs.GiteaService
+
+	assert.NoError(t, repo_service.Init(context.Background()))
 	assert.NoError(t, uploader.CreateRepo(&base.Repository{
 		Description: "description",
 		OriginalURL: fromRepo.RepoPath(),
