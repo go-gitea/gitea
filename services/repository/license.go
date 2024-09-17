@@ -5,7 +5,6 @@ package repository
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/queue"
