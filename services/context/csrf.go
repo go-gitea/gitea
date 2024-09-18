@@ -136,7 +136,7 @@ func (c *csrfProtector) PrepareForSessionUser(ctx *Context) {
 	}
 
 	ctx.Data["CsrfToken"] = c.token
-	ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + c.token + `">`)
+	ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + template.HTMLEscapeString(c.token) + `">`)
 }
 
 func (c *csrfProtector) validateToken(ctx *Context, token string) {
