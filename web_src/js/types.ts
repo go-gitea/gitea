@@ -21,3 +21,18 @@ export type Config = {
   mermaidMaxSourceCharacters: number,
   i18n: Record<string, string>,
 }
+
+export type Intent = 'error' | 'warning' | 'info';
+
+export type RequestData = string | FormData | URLSearchParams;
+
+export type RequestOpts = {
+  data?: RequestData,
+} & RequestInit;
+
+export type IssueData = {
+  owner: string,
+  repo: string,
+  type: string,
+  index: string,
+}

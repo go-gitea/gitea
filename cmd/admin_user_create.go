@@ -158,7 +158,7 @@ func runCreateUser(c *cli.Context) error {
 		IsRestricted: restricted,
 	}
 
-	if err := user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %w", err)
 	}
 

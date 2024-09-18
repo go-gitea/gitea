@@ -231,6 +231,10 @@ func MigratePost(ctx *context.Context) {
 		opts.PullRequests = false
 		opts.Releases = false
 	}
+	if form.Service == structs.CodeCommitService {
+		opts.AWSAccessKeyID = form.AWSAccessKeyID
+		opts.AWSSecretAccessKey = form.AWSSecretAccessKey
+	}
 
 	err = repo_model.CheckCreateRepository(ctx, ctx.Doer, ctxUser, opts.RepoName, false)
 	if err != nil {

@@ -166,7 +166,7 @@ func NewUserPost(ctx *context.Context) {
 		}
 		if err := password.IsPwned(ctx, form.Password); err != nil {
 			ctx.Data["Err_Password"] = true
-			errMsg := ctx.Tr("auth.password_pwned")
+			errMsg := ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords")
 			if password.IsErrIsPwnedRequest(err) {
 				log.Error(err.Error())
 				errMsg = ctx.Tr("auth.password_pwned_err")
@@ -177,7 +177,7 @@ func NewUserPost(ctx *context.Context) {
 		u.MustChangePassword = form.MustChangePassword
 	}
 
-	if err := user_model.AdminCreateUser(ctx, u, overwriteDefault); err != nil {
+	if err := user_model.AdminCreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -401,7 +401,7 @@ func EditUserPost(ctx *context.Context) {
 			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplUserEdit, &form)
 		case errors.Is(err, password.ErrIsPwned):
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_pwned"), tplUserEdit, &form)
+			ctx.RenderWithErr(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplUserEdit, &form)
 		case password.IsErrIsPwnedRequest(err):
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplUserEdit, &form)

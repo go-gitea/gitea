@@ -75,3 +75,8 @@ modifies/js:
       - any-glob-to-any-file:
           - "**/*.js"
           - "**/*.vue"
+
+docs-update-needed:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "custom/conf/app.example.ini"

@@ -466,6 +466,7 @@ name: Name
 title: Title
 about: About
 labels: ["label1", "label2"]
+assignees: ["user1", "user2"]
 ref: Ref
 body:
   - type: markdown
@@ -523,11 +524,12 @@ body:
           visible: [form]
 `,
 			want: &api.IssueTemplate{
-				Name:   "Name",
-				Title:  "Title",
-				About:  "About",
-				Labels: []string{"label1", "label2"},
-				Ref:    "Ref",
+				Name:      "Name",
+				Title:     "Title",
+				About:     "About",
+				Labels:    []string{"label1", "label2"},
+				Assignees: []string{"user1", "user2"},
+				Ref:       "Ref",
 				Fields: []*api.IssueFormField{
 					{
 						Type: "markdown",

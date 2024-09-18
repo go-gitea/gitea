@@ -49,6 +49,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
@@ -339,6 +340,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		ctx.ServerError("GetIssuesAllCommitStatus", err)
 		return
 	}
+	if !ctx.Repo.CanRead(unit.TypeActions) {
+		for key := range commitStatuses {
+			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
+		}
+	}
 
 	if err := issues.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("issues.LoadAttributes", err)
@@ -355,7 +361,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
+	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	handleTeamMentions(ctx)
 	if ctx.Written() {
@@ -575,7 +581,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
+	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	handleTeamMentions(ctx)
 }
@@ -934,12 +940,23 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 				}
 			}
 		}
+		selectedAssigneeIDs := make([]int64, 0, len(template.Assignees))
+		selectedAssigneeIDStrings := make([]string, 0, len(template.Assignees))
+		if userIDs, err := user_model.GetUserIDsByNames(ctx, template.Assignees, false); err == nil {
+			for _, userID := range userIDs {
+				selectedAssigneeIDs = append(selectedAssigneeIDs, userID)
+				selectedAssigneeIDStrings = append(selectedAssigneeIDStrings, strconv.FormatInt(userID, 10))
+			}
+		}
 
 		if template.Ref != "" && !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
 			template.Ref = git.BranchPrefix + template.Ref
 		}
 		ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
 		ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
+		ctx.Data["HasSelectedAssignee"] = len(selectedAssigneeIDs) > 0
+		ctx.Data["assignee_ids"] = strings.Join(selectedAssigneeIDStrings, ",")
+		ctx.Data["SelectedAssigneeIDs"] = selectedAssigneeIDs
 		ctx.Data["Reference"] = template.Ref
 		ctx.Data["RefEndName"] = git.RefName(template.Ref).ShortName()
 		return true, templateErrs
@@ -1671,7 +1688,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 
 			ghostProject := &project_model.Project{
-				ID:    -1,
+				ID:    project_model.GhostProjectID,
 				Title: ctx.Locale.TrString("repo.issues.deleted_project"),
 			}
 
@@ -1681,6 +1698,11 @@ func ViewIssue(ctx *context.Context) {
 
 			if comment.ProjectID > 0 && comment.Project == nil {
 				comment.Project = ghostProject
+			}
+		} else if comment.Type == issues_model.CommentTypeProjectColumn {
+			if err = comment.LoadProject(ctx); err != nil {
+				ctx.ServerError("LoadProject", err)
+				return
 			}
 		} else if comment.Type == issues_model.CommentTypeAssignees || comment.Type == issues_model.CommentTypeReviewRequest {
 			if err = comment.LoadAssigneeUserAndTeam(ctx); err != nil {
@@ -1756,6 +1778,12 @@ func ViewIssue(ctx *context.Context) {
 			if err = comment.LoadPushCommits(ctx); err != nil {
 				ctx.ServerError("LoadPushCommits", err)
 				return
+			}
+			if !ctx.Repo.CanRead(unit.TypeActions) {
+				for _, commit := range comment.Commits {
+					commit.Status.HideActionsURL(ctx)
+					git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
+				}
 			}
 		} else if comment.Type == issues_model.CommentTypeAddTimeManual ||
 			comment.Type == issues_model.CommentTypeStopTracking ||
@@ -1853,6 +1881,8 @@ func ViewIssue(ctx *context.Context) {
 		}
 		prConfig := prUnit.PullRequestsConfig()
 
+		ctx.Data["AutodetectManualMerge"] = prConfig.AutodetectManualMerge
+
 		var mergeStyle repo_model.MergeStyle
 		// Check correct values and select default
 		if ms, ok := ctx.Data["MergeStyle"].(repo_model.MergeStyle); !ok ||
@@ -1911,6 +1941,7 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["ChangedProtectedFiles"] = pull.ChangedProtectedFiles
 			ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
 			ctx.Data["ChangedProtectedFilesNum"] = len(pull.ChangedProtectedFiles)
+			ctx.Data["RequireApprovalsWhitelist"] = pb.EnableApprovalsWhitelist
 		}
 		ctx.Data["WillSign"] = false
 		if ctx.Doer != nil {
@@ -3741,7 +3772,7 @@ func issuePosters(ctx *context.Context, isPullList bool) {
 		}
 	}
 
-	posters = MakeSelfOnTop(ctx.Doer, posters)
+	posters = shared_user.MakeSelfOnTop(ctx.Doer, posters)
 
 	resp := &userSearchResponse{}
 	resp.Results = make([]*userSearchInfo, len(posters))

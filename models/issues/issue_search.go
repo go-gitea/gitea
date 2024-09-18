@@ -54,6 +54,19 @@ type IssuesOptions struct { //nolint
 	User           *user_model.User           // issues permission scope
 }
 
+// Copy returns a copy of the options.
+// Be careful, it's not a deep copy, so `IssuesOptions.RepoIDs = {...}` is OK while `IssuesOptions.RepoIDs[0] = ...` is not.
+func (o *IssuesOptions) Copy(edit ...func(options *IssuesOptions)) *IssuesOptions {
+	if o == nil {
+		return nil
+	}
+	v := *o
+	for _, e := range edit {
+		e(&v)
+	}
+	return &v
+}
+
 // applySorts sort an issues-related session based on the provided
 // sortType string
 func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
