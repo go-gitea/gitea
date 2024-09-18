@@ -77,8 +77,9 @@ export function initRepoEditor() {
     const parts = filenameInput.value.split('/');
     const links = Array.from(document.querySelectorAll('.breadcrumb span.section'));
     const dividers = Array.from(document.querySelectorAll('.breadcrumb .breadcrumb-divider'));
+    let warningDiv = document.querySelector('.ui.warning.message.flash-message.flash-warning.space-related');
+    let containSpace = false;
     if (parts.length > 1) {
-      let containSpace = false;
       for (let i = 0; i < parts.length; ++i) {
         const value = parts[i];
         const trimValue = value.trim();
@@ -111,25 +112,25 @@ export function initRepoEditor() {
         this.setSelectionRange(0, 0);
         containSpace |= (trimValue !== value && trimValue !== '');
       }
-      let warningDiv = document.querySelector('.ui.warning.message.flash-message.flash-warning.space-related');
-      containSpace |= Array.from(links).some((link) => {
-        const value = link.querySelector('a').textContent;
-        return value.trim() !== value;
-      });
-      if (containSpace) {
-        if (!warningDiv) {
-          warningDiv = document.createElement('div');
-          warningDiv.classList.add('ui', 'warning', 'message', 'flash-message', 'flash-warning', 'space-related');
-          warningDiv.innerHTML = '<p>Parent directory contains leading or trailing whitespace.</p>';
-          // Add display 'block' because display is set to 'none' in formantic\build\semantic.css
-          warningDiv.style.display = 'block';
-          const inputContainer = document.querySelector('.repo-editor-header');
-          inputContainer.insertAdjacentElement('beforebegin', warningDiv);
-        }
-        showElem(warningDiv);
-      } else if (warningDiv) {
-        hideElem(warningDiv);
+    }
+    containSpace |= Array.from(links).some((link) => {
+      const value = link.querySelector('a').textContent;
+      return value.trim() !== value;
+    });
+    containSpace |= parts[parts.length - 1].trim() !== parts[parts.length - 1];
+    if (containSpace) {
+      if (!warningDiv) {
+        warningDiv = document.createElement('div');
+        warningDiv.classList.add('ui', 'warning', 'message', 'flash-message', 'flash-warning', 'space-related');
+        warningDiv.innerHTML = '<p>File path contains leading or trailing whitespace.</p>';
+        // Add display 'block' because display is set to 'none' in formantic\build\semantic.css
+        warningDiv.style.display = 'block';
+        const inputContainer = document.querySelector('.repo-editor-header');
+        inputContainer.insertAdjacentElement('beforebegin', warningDiv);
       }
+      showElem(warningDiv);
+    } else if (warningDiv) {
+      hideElem(warningDiv);
     }
     joinTreePath();
   });
