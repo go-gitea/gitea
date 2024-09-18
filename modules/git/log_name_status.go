@@ -114,7 +114,7 @@ type LogNameStatusCommitData struct {
 // Next returns the next LogStatusCommitData
 func (g *LogNameStatusRepoParser) Next(treepath string, paths2ids map[string]int, changed []bool, maxpathlen int) (*LogNameStatusCommitData, error) {
 	var err error
-	if g.next == nil || len(g.next) == 0 {
+	if len(g.next) == 0 {
 		g.buffull = false
 		g.next, err = g.rd.ReadSlice('\x00')
 		if err != nil {

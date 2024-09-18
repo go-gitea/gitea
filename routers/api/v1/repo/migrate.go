@@ -169,6 +169,10 @@ func Migrate(ctx *context.APIContext) {
 		opts.PullRequests = false
 		opts.Releases = false
 	}
+	if gitServiceType == api.CodeCommitService {
+		opts.AWSAccessKeyID = form.AWSAccessKeyID
+		opts.AWSSecretAccessKey = form.AWSSecretAccessKey
+	}
 
 	repo, err := repo_service.CreateRepositoryDirectly(ctx, ctx.Doer, repoOwner, repo_service.CreateRepoOptions{
 		Name:           opts.RepoName,

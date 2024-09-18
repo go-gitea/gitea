@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/feed"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/forms"
@@ -213,6 +214,8 @@ func TagsList(ctx *context.Context) {
 	ctx.Data["HideBranchesInDropdown"] = true
 	ctx.Data["CanCreateRelease"] = ctx.Repo.CanWrite(unit.TypeReleases) && !ctx.Repo.Repository.IsArchived
 
+	namePattern := ctx.FormTrim("q")
+
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
 		PageSize: ctx.FormInt("limit"),
@@ -232,6 +235,7 @@ func TagsList(ctx *context.Context) {
 		IncludeTags:   true,
 		HasSha1:       optional.Some(true),
 		RepoID:        ctx.Repo.Repository.ID,
+		NamePattern:   optional.Some(namePattern),
 	}
 
 	releases, err := db.Find[repo_model.Release](ctx, opts)
@@ -240,14 +244,21 @@ func TagsList(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Releases"] = releases
+	count, err := db.Count[repo_model.Release](ctx, opts)
+	if err != nil {
+		ctx.ServerError("GetReleasesByRepoID", err)
+		return
+	}
 
-	numTags := ctx.Data["NumTags"].(int64)
-	pager := context.NewPagination(int(numTags), opts.PageSize, opts.Page, 5)
+	ctx.Data["Keyword"] = namePattern
+	ctx.Data["Releases"] = releases
+	ctx.Data["TagCount"] = count
+
+	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
-
 	ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
+
 	ctx.HTML(http.StatusOK, tplTagsList)
 }
 
@@ -370,7 +381,7 @@ func NewRelease(ctx *context.Context) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
+	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	upload.AddUploadContext(ctx, "release")
 
@@ -559,7 +570,7 @@ func EditRelease(ctx *context.Context) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
+	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }

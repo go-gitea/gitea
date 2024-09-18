@@ -176,7 +176,7 @@ func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (
 		KeepEmailPrivate:             optional.Some(true),
 		EmailNotificationsPreference: &emailNotificationPreference,
 	}
-	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, user, &user_model.Meta{}, overwriteDefault); err != nil {
 		return nil, err
 	}
 
