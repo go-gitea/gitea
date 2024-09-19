@@ -64,8 +64,9 @@ type Milestone struct {
 	ClosedDateUnix timeutil.TimeStamp
 	DeadlineString string `xorm:"-"`
 
-	TotalTrackedTime int64 `xorm:"-"`
-	TotalWeight      int   `xorm:"-"`
+	TotalTrackedTime     int64 `xorm:"-"`
+	TotalWeight          int   `xorm:"-"`
+	WeightedCompleteness int   `xorm:"-"`
 }
 
 func init() {
@@ -358,23 +359,28 @@ func (m *Milestone) LoadTotalTrackedTime(ctx context.Context) error {
 
 // LoadTotalWeight loads the total weight for the milestone
 func (m *Milestone) LoadTotalWeight(ctx context.Context) error {
-	type totalTimesByMilestone struct {
-		MilestoneID int64
-		Weight      int
+	type totalWeightByMilestone struct {
+		MilestoneID  int64
+		Weight       int
+		WeightClosed int
 	}
-	totalTime := &totalTimesByMilestone{MilestoneID: m.ID}
+
+	totalWeight := &totalWeightByMilestone{MilestoneID: m.ID}
 	has, err := db.GetEngine(ctx).Table("issue").
 		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
-		Select("milestone_id, sum(weight) as weight").
+		Select("milestone_id, sum(weight) as weight, sum(CASE WHEN is_closed THEN 0 ELSE weight END) as weight_closed").
 		Where("milestone_id = ?", m.ID).
 		GroupBy("milestone_id").
-		Get(totalTime)
+		Get(totalWeight)
 	if err != nil {
 		return err
 	} else if !has {
 		return nil
 	}
-	m.TotalWeight = totalTime.Weight
+
+	m.TotalWeight = totalWeight.Weight
+	m.WeightedCompleteness = totalWeight.WeightClosed * 100 / totalWeight.Weight
+
 	return nil
 }
 

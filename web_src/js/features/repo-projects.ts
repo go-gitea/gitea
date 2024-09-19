@@ -7,6 +7,10 @@ function updateWeight(cards) {
   const parent = cards.parentElement;
   const columnWeight = parent.querySelector('.project-column-weight');
 
+  if (!columnWeight) {
+    return;
+  }
+
   let totalWeight = 0;
 
   for (const node of Array.from(cards.querySelectorAll('span[data-weight]'))) {
@@ -216,7 +220,6 @@ export function initRepoProject() {
 
 window.document.addEventListener('DOMContentLoaded', () => {
   for (const card of document.querySelectorAll('.cards')) {
-    updateIssueCount(card);
     updateWeight(card);
   }
 });

@@ -5,7 +5,7 @@ package v1_23 //nolint
 
 import "xorm.io/xorm"
 
-func AssIssueWeight(x *xorm.Engine) error {
+func AddIssueWeight(x *xorm.Engine) error {
 	type Issue struct {
 		Weight int
 	}

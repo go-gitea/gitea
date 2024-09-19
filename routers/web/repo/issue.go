@@ -265,6 +265,18 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		ctx.Data["TotalTrackedTime"] = totalTrackedTime
 	}
 
+	if repo.IsWeightEnabled(ctx) {
+		totalWeight, totalWeightClosed, err := issues_model.GetIssueTotalWeight(ctx, statsOpts, isShowClosed)
+		if err != nil {
+			ctx.ServerError("GetIssueTotalWeight", err)
+			return
+		}
+
+		fmt.Println(totalWeight, totalWeightClosed)
+		ctx.Data["TotalWeight"] = totalWeight
+		ctx.Data["WeightedCompleteness"] = totalWeightClosed * 100 / totalWeight
+	}
+
 	archived := ctx.FormBool("archived")
 
 	page := ctx.FormInt("page")

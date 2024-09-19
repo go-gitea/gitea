@@ -29,14 +29,16 @@
 					<div class="flex-item-trailing">
                         {{if .TotalTrackedTime}}
 						<div class="text grey flex-text-block">
-								{{svg "octicon-clock" 16}}
-								{{.TotalTrackedTime | Sec2Time}}
+                            {{svg "octicon-clock" 16}}
+                            {{.TotalTrackedTime | Sec2Time}}
 						</div>
 						{{end}}
-						<div class="text grey flex-text-block">
-								{{svg "octicon-briefcase" 16}}
-								{{.Weight}}
-						</div>
+                        {{if .Repo.IsWeightEnabled ctx}}
+                            <div class="text grey flex-text-block">
+                                {{svg "octicon-briefcase" 16}}
+                                {{.Weight}}
+                            </div>
+                        {{end}}
 						{{if .Assignees}}
 						<div class="text grey">
 							{{range .Assignees}}

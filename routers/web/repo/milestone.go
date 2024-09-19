@@ -80,9 +80,11 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	if err := issues_model.MilestoneList(miles).LoadTotalWeight(ctx); err != nil {
-		ctx.ServerError("LoadTotalWeight", err)
-		return
+	if ctx.Repo.Repository.IsWeightEnabled(ctx) {
+		if err := issues_model.MilestoneList(miles).LoadTotalWeight(ctx); err != nil {
+			ctx.ServerError("LoadTotalWeight", err)
+			return
+		}
 	}
 
 	for _, m := range miles {
@@ -307,13 +309,6 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWriteIssuesOrPulls(false)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWriteIssuesOrPulls(true)
-
-	if err := milestone.LoadTotalWeight(ctx); err != nil {
-		ctx.ServerError("LoadTotalWeight", err)
-		return
-	}
-
-	ctx.Data["TotalWeight"] = milestone.TotalWeight
 
 	ctx.HTML(http.StatusOK, tplMilestoneIssues)
 }

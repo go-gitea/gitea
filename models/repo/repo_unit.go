@@ -105,6 +105,7 @@ type IssuesConfig struct {
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableDependencies               bool
+	EnableWeight                     bool
 }
 
 // FromDB fills up a IssuesConfig from serialized format.

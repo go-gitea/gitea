@@ -167,6 +167,7 @@ type RepoSettingForm struct {
 	EnableTimetracker                     bool
 	AllowOnlyContributorsToTrackTime      bool
 	EnableIssueDependencies               bool
+	EnableIssueWeight                     bool
 	IsArchived                            bool
 
 	// Signing Settings

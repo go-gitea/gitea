@@ -133,39 +133,43 @@ func (milestones MilestoneList) LoadTotalTrackedTimes(ctx context.Context) error
 // LoadTotalWeight loads for every milestone in the list the TotalWeight by a batch request
 func (milestones MilestoneList) LoadTotalWeight(ctx context.Context) error {
 	type totalWeightByMilestone struct {
-		MilestoneID int64
-		Weight      int
+		MilestoneID  int64
+		Weight       int
+		WeightClosed int
 	}
 	if len(milestones) == 0 {
 		return nil
 	}
-	trackedTimes := make(map[int64]int, len(milestones))
 
-	// Get total tracked time by milestone_id
+	weight := make(map[int64]int, len(milestones))
+	closedWeight := make(map[int64]int, len(milestones))
+
 	rows, err := db.GetEngine(ctx).Table("issue").
 		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
-		Select("milestone_id, sum(weight) as weight").
+		Select("milestone_id, sum(weight) as weight, sum(CASE WHEN is_closed THEN 0 ELSE weight END) as weight_closed").
 		In("milestone_id", milestones.getMilestoneIDs()).
 		GroupBy("milestone_id").
 		Rows(new(totalWeightByMilestone))
 	if err != nil {
 		return err
 	}
-
 	defer rows.Close()
 
 	for rows.Next() {
-		var totalTime totalWeightByMilestone
-		err = rows.Scan(&totalTime)
+		var totalWeight totalWeightByMilestone
+		err = rows.Scan(&totalWeight)
 		if err != nil {
 			return err
 		}
-		trackedTimes[totalTime.MilestoneID] = totalTime.Weight
+		weight[totalWeight.MilestoneID] = totalWeight.Weight
+		closedWeight[totalWeight.MilestoneID] = totalWeight.WeightClosed
 	}
 
 	for _, milestone := range milestones {
-		milestone.TotalWeight = trackedTimes[milestone.ID]
+		milestone.TotalWeight = weight[milestone.ID]
+		milestone.WeightedCompleteness = closedWeight[milestone.ID] * 100 / milestone.TotalWeight
 	}
+
 	return nil
 }
 

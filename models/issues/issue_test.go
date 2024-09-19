@@ -375,6 +375,26 @@ func TestLoadTotalTrackedTime(t *testing.T) {
 	assert.Equal(t, int64(3682), milestone.TotalTrackedTime)
 }
 
+func TestMilestoneList_LoadTotalWeight(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	miles := issues_model.MilestoneList{
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1}),
+	}
+
+	assert.NoError(t, miles.LoadTotalWeight(db.DefaultContext))
+
+	assert.Equal(t, 12, miles[0].TotalWeight)
+}
+
+func TestLoadTotalWeight(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1})
+
+	assert.NoError(t, milestone.LoadTotalWeight(db.DefaultContext))
+
+	assert.Equal(t, 12, milestone.TotalWeight)
+}
+
 func TestCountIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	count, err := issues_model.CountIssues(db.DefaultContext, &issues_model.IssuesOptions{})
