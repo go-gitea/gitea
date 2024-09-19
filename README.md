@@ -31,6 +31,14 @@ For accessing free Gitea service (with a limited number of repositories), you ca
 
 To quickly deploy your own dedicated Gitea instance on Gitea Cloud, you can start a free trial at [cloud.gitea.com](https://cloud.gitea.com).
 
+## Self-Hosting Gitea
+
+### Elestio
+
+You can deploy Gitea on Elestio using one-click deployment. Elestio supports Gitea by providing revenue share so go ahead and click below to deploy and use Gitea.
+
+[![Deploy on Elestio](https://elest.io/images/logos/deploy-to-elestio-btn.png)](https://elest.io/open-source/gitea)
+
 ## Building
 
 From the root of the source tree, run:
