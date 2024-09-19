@@ -3,7 +3,10 @@ import 'idiomorph/dist/idiomorph-ext.js'; // https://github.com/bigskysoftware/i
 import 'htmx-ext-ws';
 import type {HtmxResponseInfo} from 'htmx.org';
 
-type HtmxEvent = Event & {detail: HtmxResponseInfo};
+type SocketWrapper = {
+  send: (msg: string) => void;
+};
+type HtmxEvent = Event & {detail: HtmxResponseInfo & {socketWrapper: SocketWrapper}};
 
 // https://htmx.org/reference/#config
 window.htmx.config.requestClass = 'is-loading';
@@ -26,6 +29,6 @@ document.body.addEventListener('htmx:responseError', (event: HtmxEvent) => {
 document.body.addEventListener('htmx:wsOpen', (event: HtmxEvent) => {
   const socket = event.detail.socketWrapper;
   socket.send(
-    JSON.stringify({action: 'subscribe', data: {url: window.location.href}})
+    JSON.stringify({action: 'subscribe', data: {url: window.location.href}}),
   );
 });
