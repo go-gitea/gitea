@@ -7,7 +7,7 @@ contact_links:
     url: https://discord.gg/Gitea
     about: Please ask questions and discuss configuration or deployment problems here.
   - name: Discourse Forum
-    url: https://discourse.gitea.io
+    url: https://forum.gitea.com
     about: Questions and configuration or deployment problems can also be discussed on our forum.
   - name: Frequently Asked Questions
     url: https://docs.gitea.com/help/faq

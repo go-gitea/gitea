@@ -833,10 +833,16 @@ func EditIssue(ctx *context.APIContext) {
 	if (form.Deadline != nil || form.RemoveDeadline != nil) && canWrite {
 		var deadlineUnix timeutil.TimeStamp
 
-		if (form.RemoveDeadline == nil || !*form.RemoveDeadline) && !form.Deadline.IsZero() {
-			deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-				23, 59, 59, 0, form.Deadline.Location())
-			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
+		if form.RemoveDeadline == nil || !*form.RemoveDeadline {
+			if form.Deadline == nil {
+				ctx.Error(http.StatusBadRequest, "", "The due_date cannot be empty")
+				return
+			}
+			if !form.Deadline.IsZero() {
+				deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
+					23, 59, 59, 0, form.Deadline.Location())
+				deadlineUnix = timeutil.TimeStamp(deadline.Unix())
+			}
 		}
 
 		if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
@@ -891,13 +897,27 @@ func EditIssue(ctx *context.APIContext) {
 				return
 			}
 		}
-		if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, "", api.StateClosed == api.StateType(*form.State)); err != nil {
-			if issues_model.IsErrDependenciesLeft(err) {
-				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
+
+		var isClosed bool
+		switch state := api.StateType(*form.State); state {
+		case api.StateOpen:
+			isClosed = false
+		case api.StateClosed:
+			isClosed = true
+		default:
+			ctx.Error(http.StatusPreconditionFailed, "UnknownIssueStateError", fmt.Sprintf("unknown state: %s", state))
+			return
+		}
+
+		if issue.IsClosed != isClosed {
+			if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, "", isClosed); err != nil {
+				if issues_model.IsErrDependenciesLeft(err) {
+					ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
+					return
+				}
+				ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
 				return
 			}
-			ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
-			return
 		}
 	}
 

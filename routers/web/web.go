@@ -130,6 +130,8 @@ func webAuth(authMethod auth_service.Method) func(*context.Context) {
 			// ensure the session uid is deleted
 			_ = ctx.Session.Delete("uid")
 		}
+
+		ctx.Csrf.PrepareForSessionUser(ctx)
 	}
 }
 
@@ -728,6 +730,7 @@ func registerRoutes(m *web.Router) {
 		m.Group("/emails", func() {
 			m.Get("", admin.Emails)
 			m.Post("/activate", admin.ActivateEmail)
+			m.Post("/delete", admin.DeleteEmail)
 		})
 
 		m.Group("/orgs", func() {
@@ -885,10 +888,15 @@ func registerRoutes(m *web.Router) {
 			m.Post("/teams/{team}/action/repo/{action}", org.TeamsRepoAction)
 		}, context.OrgAssignment(true, false, true))
 
+		// require admin permission
+		m.Group("/{org}", func() {
+			m.Get("/teams/-/search", org.SearchTeam)
+		}, context.OrgAssignment(true, false, false, true))
+
+		// require owner permission
 		m.Group("/{org}", func() {
 			m.Get("/teams/new", org.NewTeam)
 			m.Post("/teams/new", web.Bind(forms.CreateTeamForm{}), org.NewTeamPost)
-			m.Get("/teams/-/search", org.SearchTeam)
 			m.Get("/teams/{team}/edit", org.EditTeam)
 			m.Post("/teams/{team}/edit", web.Bind(forms.CreateTeamForm{}), org.EditTeamPost)
 			m.Post("/teams/{team}/delete", org.DeleteTeam)
@@ -996,6 +1004,8 @@ func registerRoutes(m *web.Router) {
 				})
 			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
+
+		m.Get("/repositories", org.Repositories)
 
 		m.Group("/projects", func() {
 			m.Group("", func() {
@@ -1386,6 +1396,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("", actions.List)
 		m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
 		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
+		m.Post("/run", reqRepoAdmin, actions.Run)
 
 		m.Group("/runs/{run}", func() {
 			m.Combo("").
