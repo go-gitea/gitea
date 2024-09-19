@@ -143,6 +143,12 @@ func runServ(c *cli.Context) error {
 		return nil
 	}
 
+	defer func() {
+		if err := recover(); err != nil {
+			fail(ctx, "Internal Server Error", "Panic: %v", err)
+		}
+	}()
+
 	keys := strings.Split(c.Args().First(), "-")
 	if len(keys) != 2 || keys[0] != "key" {
 		return fail(ctx, "Key ID format error", "Invalid key argument: %s", c.Args().First())
