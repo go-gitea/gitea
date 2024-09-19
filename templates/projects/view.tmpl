@@ -3,6 +3,82 @@
 <div class="ui container tw-max-w-full">
 	<div class="tw-flex tw-justify-between tw-items-center tw-mb-4 tw-gap-3">
 		<h2 class="tw-mb-0 tw-flex-1 tw-break-anywhere">{{.Project.Title}}</h2>
+			<div class="project-toolbar-right">
+				<div class="ui secondary filter menu labels">
+					<!-- Label -->
+					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter">
+						<span class="text">
+							{{ctx.Locale.Tr "repo.issues.filter_label"}}
+						</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<div class="ui icon search input">
+								<i class="icon">{{svg "octicon-search" 16}}</i>
+								<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_label"}}">
+							</div>
+							<div class="ui checkbox compact archived-label-filter">
+								<input name="archived" type="checkbox"
+									id="archived-filter-checkbox"
+									{{if .ShowArchivedLabels}}checked{{end}}
+								>
+								<label for="archived-filter-checkbox">
+									{{ctx.Locale.Tr "repo.issues.label_archived_filter"}}
+									<i class="tw-ml-1" data-tooltip-content={{ctx.Locale.Tr "repo.issues.label_archive_tooltip"}}>
+										{{svg "octicon-info"}}
+									</i>
+								</label>
+							</div>
+							<span class="info">{{ctx.Locale.Tr "repo.issues.filter_label_exclude"}}</span>
+							<div class="divider"></div>
+							<a class="{{if .AllLabels}}active selected {{end}}item" href="?assignee={{$.AssigneeID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_label_no_select"}}</a>
+							<a class="{{if .NoLabel}}active selected {{end}}item" href="?assignee={{$.AssigneeID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
+							{{$previousExclusiveScope := "_no_scope"}}
+							{{range .Labels}}
+								{{$exclusiveScope := .ExclusiveScope}}
+								{{if and (ne $previousExclusiveScope $exclusiveScope)}}
+									<div class="divider"></div>
+								{{end}}
+								{{$previousExclusiveScope = $exclusiveScope}}
+								<a class="item label-filter-item tw-flex tw-items-center" {{if .IsArchived}}data-is-archived{{end}} href="?labels={{.QueryString}}&assignee={{$.AssigneeID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}" data-label-id="{{.ID}}">
+									{{if .IsExcluded}}
+										{{svg "octicon-circle-slash"}}
+									{{else if .IsSelected}}
+										{{if $exclusiveScope}}
+											{{svg "octicon-dot-fill"}}
+										{{else}}
+											{{svg "octicon-check"}}
+										{{end}}
+									{{end}}
+									{{RenderLabel $.Context ctx.Locale .}}
+									<p class="tw-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
+								</a>
+							{{end}}
+						</div>
+					</div>
+
+					<!-- Assignee -->
+					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
+						<span class="text">
+							{{ctx.Locale.Tr "repo.issues.filter_assignee"}}
+						</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<div class="ui icon search input">
+								<i class="icon">{{svg "octicon-search" 16}}</i>
+								<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignee"}}">
+							</div>
+							<a class="{{if not .AssigneeID}}active selected {{end}}item" href="?labels={{.SelectLabels}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
+							<a class="{{if eq .AssigneeID -1}}active selected {{end}}item" href="?labels={{.SelectLabels}}&assignee=-1{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_assginee_no_assignee"}}</a>
+							<div class="divider"></div>
+							{{range .Assignees}}
+								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item tw-flex" href="?labels={{$.SelectLabels}}&assignee={{.ID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">
+									{{ctx.AvatarUtils.Avatar . 20}}{{template "repo/search_name" .}}
+								</a>
+							{{end}}
+						</div>
+					</div>
+				</div>
+			</div>
 		{{if $canWriteProject}}
 			<div class="ui compact mini menu">
 				<a class="item" href="{{.Link}}/edit?redirect=project">
