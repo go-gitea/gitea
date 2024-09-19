@@ -25,12 +25,13 @@ type giteaLockBackend struct {
 	g      *GiteaBackend
 	server *url.URL
 	token  string
+	itoken string
 	logger transfer.Logger
 }
 
 func newGiteaLockBackend(g *GiteaBackend) transfer.LockBackend {
 	server := g.server.JoinPath("locks")
-	return &giteaLockBackend{ctx: g.ctx, g: g, server: server, token: g.token, logger: g.logger}
+	return &giteaLockBackend{ctx: g.ctx, g: g, server: server, token: g.token, itoken: g.itoken, logger: g.logger}
 }
 
 // Create implements transfer.LockBackend
@@ -44,7 +45,8 @@ func (g *giteaLockBackend) Create(path, refname string) (transfer.Lock, error) {
 	}
 	url := g.server.String()
 	headers := map[string]string{
-		headerAuthorisation: g.token,
+		headerAuthorisation: g.itoken,
+		headerAuthX:         g.token,
 		headerAccept:        mimeGitLFS,
 		headerContentType:   mimeGitLFS,
 	}
@@ -95,7 +97,8 @@ func (g *giteaLockBackend) Unlock(lock transfer.Lock) error {
 	}
 	url := g.server.JoinPath(lock.ID(), "unlock").String()
 	headers := map[string]string{
-		headerAuthorisation: g.token,
+		headerAuthorisation: g.itoken,
+		headerAuthX:         g.token,
 		headerAccept:        mimeGitLFS,
 		headerContentType:   mimeGitLFS,
 	}
@@ -177,7 +180,8 @@ func (g *giteaLockBackend) queryLocks(v url.Values) ([]transfer.Lock, string, er
 	urlq.RawQuery = v.Encode()
 	url := urlq.String()
 	headers := map[string]string{
-		headerAuthorisation: g.token,
+		headerAuthorisation: g.itoken,
+		headerAuthX:         g.token,
 		headerAccept:        mimeGitLFS,
 		headerContentType:   mimeGitLFS,
 	}

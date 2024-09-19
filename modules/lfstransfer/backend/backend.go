@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -36,6 +37,7 @@ type GiteaBackend struct {
 	server *url.URL
 	op     string
 	token  string
+	itoken string
 	logger transfer.Logger
 }
 
@@ -45,8 +47,8 @@ func New(ctx context.Context, repo, op, token string, logger transfer.Logger) (t
 	if err != nil {
 		return nil, err
 	}
-	server = server.JoinPath(repo, "info/lfs")
-	return &GiteaBackend{ctx: ctx, server: server, op: op, token: token, logger: logger}, nil
+	server = server.JoinPath("api/internal/repo", repo, "info/lfs")
+	return &GiteaBackend{ctx: ctx, server: server, op: op, token: token, itoken: fmt.Sprintf("Bearer %s", setting.InternalToken), logger: logger}, nil
 }
 
 // Batch implements transfer.Backend
@@ -71,7 +73,8 @@ func (g *GiteaBackend) Batch(_ string, pointers []transfer.BatchItem, args trans
 	}
 	url := g.server.JoinPath("objects/batch").String()
 	headers := map[string]string{
-		headerAuthorisation: g.token,
+		headerAuthorisation: g.itoken,
+		headerAuthX:         g.token,
 		headerAccept:        mimeGitLFS,
 		headerContentType:   mimeGitLFS,
 	}
@@ -180,7 +183,8 @@ func (g *GiteaBackend) Download(oid string, args transfer.Args) (io.ReadCloser, 
 	}
 	url := action.Href
 	headers := map[string]string{
-		headerAuthorisation: g.token,
+		headerAuthorisation: g.itoken,
+		headerAuthX:         g.token,
 		headerAccept:        mimeOctetStream,
 	}
 	req := newInternalRequest(g.ctx, url, http.MethodGet, headers, nil)
@@ -225,7 +229,8 @@ func (g *GiteaBackend) Upload(oid string, size int64, r io.Reader, args transfer
 	}
 	url := action.Href
 	headers := map[string]string{
-		headerAuthorisation: g.token,
+		headerAuthorisation: g.itoken,
+		headerAuthX:         g.token,
 		headerContentType:   mimeOctetStream,
 		headerContentLength: strconv.FormatInt(size, 10),
 	}
@@ -274,7 +279,8 @@ func (g *GiteaBackend) Verify(oid string, size int64, args transfer.Args) (trans
 	}
 	url := action.Href
 	headers := map[string]string{
-		headerAuthorisation: g.token,
+		headerAuthorisation: g.itoken,
+		headerAuthX:         g.token,
 		headerAccept:        mimeGitLFS,
 		headerContentType:   mimeGitLFS,
 	}

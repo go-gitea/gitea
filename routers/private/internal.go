@@ -48,6 +48,14 @@ func bind[T any](_ T) any {
 	}
 }
 
+// SwapAuthToken swaps Authorization header with X-Auth header
+func swapAuthToken(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		req.Header.Set("Authorization", req.Header.Get("X-Auth"))
+		next.ServeHTTP(w, req)
+	})
+}
+
 // Routes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func Routes() *web.Router {
@@ -98,7 +106,7 @@ func Routes() *web.Router {
 			r.Any("/*", func(ctx *context.Context) {
 				ctx.NotFound("", nil)
 			})
-		})
+		}, swapAuthToken)
 	}, common.Sessioner(), context.Contexter())
 	// end "/repo/{username}/{reponame}": git (LFS) API mirror
 

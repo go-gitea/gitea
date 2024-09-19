@@ -22,6 +22,7 @@ import (
 const (
 	headerAccept        = "Accept"
 	headerAuthorisation = "Authorization"
+	headerAuthX         = "X-Auth"
 	headerContentType   = "Content-Type"
 	headerContentLength = "Content-Length"
 )
