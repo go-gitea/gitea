@@ -327,7 +327,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 
 // GetCommitPullRequest returns the merged pull request of the commit
 func GetCommitPullRequest(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/commits/{sha}/pull repository repoGetCommitPullRequest
+	// swagger:operation GET /repos/{owner}/{repo}/commits/{ref}/pull repository repoGetCommitPullRequest
 	// ---
 	// summary: Get the merged pull request of the commit
 	// produces:
@@ -343,7 +343,7 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: sha
+	// - name: ref
 	//   in: path
 	//   description: SHA of the commit to get
 	//   type: string
