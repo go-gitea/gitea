@@ -80,7 +80,7 @@ I2dkIEMjxsSOiAlJjH4HIwbTjayZJidXVxKQYH2gICOCBhK7KqMlLZ4gMCU1BapYlsTAXnywepyy
 jMBmtEhxyCnCZdUAwYKxAxeRFVk4TCL0aYgWjt3kHTg9SjVStppI2YCSWshUEFGdmJmyCVGpnqIU
 KNlA0hEjIOACGSLqYpXAD5SSNVT2MJRJwREAF4FRHPBlCJMSNwFguGAWDJBg+KIArkIJGNtCydUL
 TuN1oBh/+zKkEblAsgjGqVgUwKLP+UOMOGCpAhICtg6ncFJH`),
-		"other": unPack(`
+		"otherXZ": unPack(`
 /Td6WFoAAATm1rRGBMCyBIAYIQEWAAAAAAAAABaHRszgC/8CKl0AFxNGhTWwfXmuDQEJlHgNLrkq
 VxpJY6d9iRTt6gB4uCj0481rnYfXaUADHzOFuF3490RPrM6juPXrknqtVyuWJ5efW19BgwctN6xk
 UiXiZaXVAWVWJWy2XHJiyYCMWBfIjUfo1ccOgwolwgFHJ64ZJjbayA3k6lYPcImuAqYL5NEVHpwl
@@ -92,7 +92,33 @@ MZDP1PBie6GqDV2GuPz+0XXmul/ds+XysG19HIkKbJ+cQKp5o7Y0tI7EHM8GhwMl7MjgpQGj5nuv
 0u2hqt4NXPNYqaMm9bFnnIUxEN82HgNWBcXf2baWKOdGzPzCuWg2fAM4zxHnBWcimxLXiJgaI8mU
 J/QqTPWE0nJf1PW/J9yFQVR1Xo0TJyiX8/ObwmbqUPpxRGjKlYRBvn0jbTdUAENBSn+QVcASRGFE
 SB9OM2B8Bg4jR/oojs8Beoq7zbIblgAAAACfRtXvhmznOgABzgSAGAAAKklb4rHEZ/sCAAAAAARZ
-Wg==`), // this is tar.xz file
+Wg==`),
+		"otherZST": unPack(`
+KLUv/QRYbRMABuOHS9BSNQdQ56F+xNFoV3CijY54JYt3VqV1iUU3xmj00y2pyBOCuokbhDYpvNsj
+ZJeCxqH+nQFpMf4Wa92okaZoF4eH6HsXXCBo+qy3Fn4AigBgAEaYrLCQEuAom6YbHyuKZAFYksqi
+sSOFiRs0WDmlACk0CnpnaAeKiCS3BlwVkViJEbDS43lFNbLkZEmGhc305Nn4AMLGiUkBDiMTG5Vz
+q4ZISjCofEfR1NpXijvP2X95Hu1e+zLalc0+mjeT3Z/FPGvt62WymbX2dXMDIYKDLjjP8n03RrPf
+A1vOApwGOh2MgE2LpgZrgXLDF2CUJ15idG2J8GCSgcc2ZVRgA8+RHD0k2VJjg6mRUgGGhBWEyEcz
+5EePLhUeWlYhoFCKONxUiBiIUiQeDIqiQwkjLiyqnF5eGs6a2gGRapbU9JRyuXAlPemYajlJojJd
+GBBJjo5GxFRkITOAvLhSCr2TDz4uzdU8Yh3i/SHP4qh3vTG2s9198NP8M+pdR73BvIP6qPeDjzsW
+gTi+jXrXWOe5P/jZxOeod/287v6JljzNP99RNM0a+/x4ljz3LNV2t5v9qHfW2Pyg24u54zSfObWX
+Y9bYrCTHtwdfPPPOYiU5fvB5FssfNN2V5EIPfg9LnM+JhtVEO8+FZw5LXA068YNPhimu9sHPQiWv
+qc6fE9BTnxIe/LTKatab+WYu7T74uWNRxJW5W5Ux0bDLuG1ioCwjg4DvGgBcgB8cUDHJ1RQ89neE
+wvjbNUMiIZdo5hbHgEpANwMkDnL0Jr7kVFg+0pZKjBkmklNgBH1YI8dQOAAKbr6EF5wYM80KWnAd
+nYARrByncQ==`),
+		"otherGZ": unPack(`
+H4sIAAAAAAAAA9PzDQlydWWgKTAwMDAzMVEA0UCAThsYGBuZKRiamBmbm5qZGJqbKBgYGpobGzMo
+GNDWWRBQWlySWAR0SlF+fgk+dYTk0T03RIB8NweEwVx71tDviIFA60O75Rtc5s+9YbxteUHzhUWi
+HBkWDcbGcUqCukrLGi4Lv8jIqNsbXhueXW8uzTe79Lr9/TVbnl69c3wR652f21+7rnU5kmjTc/38
+8t+zLx/+ePFr6lajpZ2dzCkyB3NPTxdVOfFk2/RXmq+Ktq2dbnY6RcPCMW8Kg9aGszs1f6+YsTlf
+x5j5eIpXnXzStAbJvQvPP3su//3lu2/2pj++XO9hbJS+puPmqJKREff4X+RUqdYTbpGTBGYuefH9
+mNbGzKNdiUmS+xgt7J+5iTMObIgOLaAX4O3u6efmT0s7COV/UwNztPxvZGhqOpr/6QGUFdxT81KL
+EktSUxSSKhVyE7NTC7LTFcz0DPUMuJQVSosz89IV0oCiIP8rlKUWFWfm5ykY6hmbcgHV5SXmpirY
+KpSkFpcYgfhJicUIfkVKYkkikAcUL6ksSLUF0iA1QDOAgkDj9Qx0DUECKanFyVBNCgWJydmJ6alc
+pUU5QKGMkpKCYit9/dSKxNyCnFS95Pxcfa6k0sycFKDRIIsMzQ0tTS2NDSxMuKA6QWaH5mXn5Zfn
+KQRAhbiKM6tAqg24EouSM4CMxLxKrpzM5NQ8sGuTgUkgP5crOT8vDShYAhSpKs7gKijKL8sEOg2k
+HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
+`),
 	}
 
 	t.Run("RepositoryKey", func(t *testing.T) {
@@ -228,7 +254,7 @@ Wg==`), // this is tar.xz file
 		t.Run(fmt.Sprintf("Delete[%s]", group), func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			// test data
-			req := NewRequestWithBody(t, "PUT", groupURL, bytes.NewReader(pkgs["other"])).
+			req := NewRequestWithBody(t, "PUT", groupURL, bytes.NewReader(pkgs["otherXZ"])).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
@@ -252,6 +278,27 @@ Wg==`), // this is tar.xz file
 			req = NewRequest(t, "GET", groupURL+"/x86_64/base.db")
 			MakeRequest(t, req, http.StatusNotFound)
 		})
+
+		for tp, key := range map[string]string{
+			"GZ":  "otherGZ",
+			"XZ":  "otherXZ",
+			"ZST": "otherZST",
+		} {
+			t.Run(fmt.Sprintf("Upload%s[%s]", tp, group), func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+				req := NewRequestWithBody(t, "PUT", groupURL, bytes.NewReader(pkgs[key])).
+					AddBasicAuth(user.Name)
+				MakeRequest(t, req, http.StatusCreated)
+
+				req = NewRequest(t, "GET", groupURL+"/x86_64/test2-1.0.0-1-any.pkg.tar."+strings.ToLower(tp))
+				resp := MakeRequest(t, req, http.StatusOK)
+				require.Equal(t, pkgs[key], resp.Body.Bytes())
+
+				req = NewRequestWithBody(t, "DELETE", groupURL+"/test2/1.0.0-1", nil).
+					AddBasicAuth(user.Name)
+				MakeRequest(t, req, http.StatusNoContent)
+			})
+		}
 	}
 }
 

@@ -199,7 +199,7 @@ func TestValidatePackageSpec(t *testing.T) {
 				Provides:     []string{"abc", "def"},
 				License:      []string{"GPL"},
 				Depends:      []string{"go", "gpg=1", "curl>=3", "git<=7"},
-				OptDepends:   []string{"git: something", "make"},
+				OptDepends:   []string{"git", "libgcc=1.0", "gzip>1.0", "gz>=1.0", "lz<1.0", "gzip<=1.0", "zstd>1.0:foo bar<test>"},
 				MakeDepends:  []string{"chrom"},
 				CheckDepends: []string{"bariy"},
 				Backup:       []string{"etc/pacman.d/filo"},

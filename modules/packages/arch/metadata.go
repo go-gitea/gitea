@@ -39,11 +39,12 @@ const (
 var (
 	reName   = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$`)
 	reVer    = regexp.MustCompile(`^[a-zA-Z0-9:_.+]+-+[0-9]+$`)
-	reOptDep = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$|^[a-zA-Z0-9@._+-]+(:.*)`)
-	rePkgVer = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$|^[a-zA-Z0-9@._+-]+(>.*)|^[a-zA-Z0-9@._+-]+(<.*)|^[a-zA-Z0-9@._+-]+(=.*)`)
+	reOptDep = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+([<>]?=?[a-zA-Z0-9@._+-]+)?(:.*)?$`)
+	rePkgVer = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+([<>]?=?[a-zA-Z0-9@._+-]+)?$`)
 
 	magicZSTD = []byte{0x28, 0xB5, 0x2F, 0xFD}
 	magicXZ   = []byte{0xFD, 0x37, 0x7A, 0x58, 0x5A}
+	magicGZ   = []byte{0x1F, 0x8B}
 )
 
 type Package struct {
@@ -111,6 +112,9 @@ func ParsePackage(r *packages.HashedBuffer) (*Package, error) {
 	} else if bytes.Equal(header[:len(magicXZ)], magicXZ) {
 		tarballType = "xz"
 		tarball = archiver.NewTarXz()
+	} else if bytes.Equal(header[:len(magicGZ)], magicGZ) {
+		tarballType = "gz"
+		tarball = archiver.NewTarGz()
 	} else {
 		return nil, errors.New("not supported compression")
 	}
