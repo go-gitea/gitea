@@ -4465,6 +4465,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4505,6 +4508,64 @@
         "responses": {
           "200": {
             "$ref": "#/responses/ActionWorkflow"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/workflows/{workflow_id}/disable": {
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Disable a workflow",
+        "operationId": "DisableWorkflow",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the workflow",
+            "name": "workflow_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -4562,6 +4623,61 @@
             "schema": {
               "$ref": "#/definitions/CreateActionWorkflowDispatch"
             }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/workflows/{workflow_id}/enable": {
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Enable a workflow",
+        "operationId": "EnableWorkflow",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the workflow",
+            "name": "workflow_id",
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
@@ -18868,8 +18984,7 @@
           "x-go-name": "HTMLURL"
         },
         "id": {
-          "type": "integer",
-          "format": "int64",
+          "type": "string",
           "x-go-name": "ID"
         },
         "name": {
@@ -19904,6 +20019,26 @@
             "type": "string"
           },
           "x-go-name": "Scopes"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateActionWorkflowDispatch": {
+      "description": "CreateActionWorkflowDispatch represents the payload for triggering a workflow dispatch event",
+      "type": "object",
+      "required": [
+        "ref"
+      ],
+      "properties": {
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {},
+          "x-go-name": "Inputs"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref",
+          "example": "refs/heads/main"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

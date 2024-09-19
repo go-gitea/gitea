@@ -33,18 +33,19 @@ type ActionTaskResponse struct {
 	TotalCount int64         `json:"total_count"`
 }
 
-// CreateActionWorkflowDispatch represents the data structure for dispatching a workflow action.
-//
-// swagger:model CreateActionWorkflowDispatch
+// CreateActionWorkflowDispatch represents the payload for triggering a workflow dispatch event
+// swagger:model
 type CreateActionWorkflowDispatch struct {
 	// required: true
-	Ref    string                 `json:"ref"`
-	Inputs map[string]interface{} `json:"inputs"`
+	// example: refs/heads/main
+	Ref string `json:"ref" binding:"Required"`
+	// required: false
+	Inputs map[string]any `json:"inputs,omitempty"`
 }
 
 // ActionWorkflow represents a ActionWorkflow
 type ActionWorkflow struct {
-	ID     int64  `json:"id"`
+	ID     string `json:"id"`
 	NodeID string `json:"node_id"`
 	Name   string `json:"name"`
 	Path   string `json:"path"`

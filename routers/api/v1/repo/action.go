@@ -4,17 +4,8 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/git"
 	"errors"
-	"github.com/nektos/act/pkg/jobparser"
-	"github.com/nektos/act/pkg/model"
 	"net/http"
-	"strconv"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -629,7 +620,20 @@ func (a ActionWorkflow) ListRepositoryWorkflows(ctx *context.APIContext) {
 	//     "$ref": "#/responses/conflict"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	panic("implement me")
+	//   "500":
+	//     "$ref": "#/responses/error"
+
+	workflows, err := actions_service.ListActionWorkflows(ctx)
+	if err != nil {
+		return
+	}
+
+	if len(workflows) == 0 {
+		ctx.JSON(http.StatusNotFound, nil)
+	}
+
+	ctx.SetTotalCountHeader(int64(len(workflows)))
+	ctx.JSON(http.StatusOK, workflows)
 }
 
 func (a ActionWorkflow) GetWorkflow(ctx *context.APIContext) {
@@ -667,7 +671,75 @@ func (a ActionWorkflow) GetWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/conflict"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	panic("implement me")
+	//   "500":
+	//     "$ref": "#/responses/error"
+
+	workflowID := ctx.PathParam("workflow_id")
+	if len(workflowID) == 0 {
+		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("workflow_id is required parameter"))
+		return
+	}
+
+	workflow, err := actions_service.GetActionWorkflow(ctx, workflowID)
+	if err != nil {
+		return
+	}
+
+	if workflow == nil {
+		ctx.JSON(http.StatusNotFound, nil)
+	}
+
+	ctx.JSON(http.StatusOK, workflow)
+}
+
+func (a ActionWorkflow) DisableWorkflow(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/disable repository DisableWorkflow
+	// ---
+	// summary: Disable a workflow
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: workflow_id
+	//   in: path
+	//   description: id of the workflow
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: No Content
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	workflowID := ctx.PathParam("workflow_id")
+	if len(workflowID) == 0 {
+		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("workflow_id is required parameter"))
+		return
+	}
+
+	err := actions_service.DisableActionWorkflow(ctx, workflowID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "DisableActionWorkflow", err)
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
 
 func (a ActionWorkflow) DispatchWorkflow(ctx *context.APIContext) {
@@ -724,137 +796,57 @@ func (a ActionWorkflow) DispatchWorkflow(ctx *context.APIContext) {
 		return
 	}
 
-	// can not rerun job when workflow is disabled
-	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
-	cfg := cfgUnit.ActionsConfig()
-	if cfg.IsWorkflowDisabled(workflowID) {
-		ctx.Error(http.StatusInternalServerError, "WorkflowDisabled", ctx.Tr("actions.workflow.disabled"))
+	actions_service.DispatchActionWorkflow(ctx, workflowID, opt)
+
+	ctx.Status(http.StatusNoContent)
+}
+
+func (a ActionWorkflow) EnableWorkflow(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/enable repository EnableWorkflow
+	// ---
+	// summary: Enable a workflow
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: workflow_id
+	//   in: path
+	//   description: id of the workflow
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: No Content
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	workflowID := ctx.PathParam("workflow_id")
+	if len(workflowID) == 0 {
+		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("workflow_id is required parameter"))
 		return
 	}
 
-	// get target commit of run from specified ref
-	refName := git.RefName(ref)
-	var runTargetCommit *git.Commit
-	var err error
-	if refName.IsTag() {
-		runTargetCommit, err = ctx.Repo.GitRepo.GetTagCommit(refName.TagName())
-	} else if refName.IsBranch() {
-		// [E] PANIC: runtime error: invalid memory address or nil pointer dereference
-		runTargetCommit, err = ctx.Repo.GitRepo.GetBranchCommit(refName.BranchName())
-	} else {
-		ctx.Error(http.StatusInternalServerError, "WorkflowRefNameError", ctx.Tr("form.git_ref_name_error", ref))
-		return
-	}
+	err := actions_service.EnableActionWorkflow(ctx, workflowID)
 	if err != nil {
-		ctx.Error(http.StatusNotFound, "WorkflowRefNotFound", ctx.Tr("form.target_ref_not_exist", ref))
-		return
+		ctx.Error(http.StatusInternalServerError, "EnableActionWorkflow", err)
 	}
-
-	// get workflow entry from default branch commit
-	defaultBranchCommit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "WorkflowDefaultBranchError", err.Error())
-		return
-	}
-	entries, err := actions.ListWorkflows(defaultBranchCommit)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "WorkflowListError", err.Error())
-	}
-
-	// find workflow from commit
-	var workflows []*jobparser.SingleWorkflow
-	for _, entry := range entries {
-		if entry.Name() == workflowID {
-			content, err := actions.GetContentFromEntry(entry)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "WorkflowGetContentError", err.Error())
-				return
-			}
-			workflows, err = jobparser.Parse(content)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "WorkflowParseError", err.Error())
-				return
-			}
-			break
-		}
-	}
-
-	if len(workflows) == 0 {
-		ctx.Error(http.StatusNotFound, "WorkflowNotFound", ctx.Tr("actions.workflow.not_found", workflowID))
-		return
-	}
-
-	workflow := &model.Workflow{
-		RawOn: workflows[0].RawOn,
-	}
-	inputs := make(map[string]any)
-	if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
-		for name, config := range workflowDispatch.Inputs {
-			value, exists := opt.Inputs[name]
-			if !exists {
-				continue
-			}
-			if config.Type == "boolean" {
-				inputs[name] = strconv.FormatBool(value == "on")
-			} else if value != "" {
-				inputs[name] = value.(string)
-			} else {
-				inputs[name] = config.Default
-			}
-		}
-	}
-
-	workflowDispatchPayload := &api.WorkflowDispatchPayload{
-		Workflow:   workflowID,
-		Ref:        ref,
-		Repository: convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeNone}),
-		Inputs:     inputs,
-		Sender:     convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
-	}
-	var eventPayload []byte
-	if eventPayload, err = workflowDispatchPayload.JSONPayload(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "WorkflowDispatchJSONParseError", err.Error())
-		return
-	}
-
-	run := &actions_model.ActionRun{
-		Title:             strings.SplitN(runTargetCommit.CommitMessage, "\n", 2)[0],
-		RepoID:            ctx.Repo.Repository.ID,
-		OwnerID:           ctx.Repo.Repository.Owner.ID,
-		WorkflowID:        workflowID,
-		TriggerUserID:     ctx.Doer.ID,
-		Ref:               ref,
-		CommitSHA:         runTargetCommit.ID.String(),
-		IsForkPullRequest: false,
-		Event:             "workflow_dispatch",
-		TriggerEvent:      "workflow_dispatch",
-		EventPayload:      string(eventPayload),
-		Status:            actions_model.StatusWaiting,
-	}
-
-	// cancel running jobs of the same workflow
-	if err := actions_model.CancelPreviousJobs(
-		ctx,
-		run.RepoID,
-		run.Ref,
-		run.WorkflowID,
-		run.Event,
-	); err != nil {
-		ctx.Error(http.StatusInternalServerError, "WorkflowCancelPreviousJobsError", err.Error())
-		return
-	}
-
-	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
-		ctx.Error(http.StatusInternalServerError, "WorkflowInsertRunError", err.Error())
-		return
-	}
-
-	alljobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "WorkflowFindRunJobError", err.Error())
-		return
-	}
-	actions_service.CreateCommitStatus(ctx, alljobs...)
 
 	ctx.Status(http.StatusNoContent)
 }

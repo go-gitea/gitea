@@ -11,6 +11,10 @@ type WorkflowAPI interface {
 	ListRepositoryWorkflows(*context.APIContext)
 	// GetWorkflow get a workflow
 	GetWorkflow(*context.APIContext)
+	// DisableWorkflow disable a workflow
+	DisableWorkflow(*context.APIContext)
 	// DispatchWorkflow create a workflow dispatch event
 	DispatchWorkflow(*context.APIContext)
+	// EnableWorkflow enable a workflow
+	EnableWorkflow(*context.APIContext)
 }
