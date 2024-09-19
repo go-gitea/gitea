@@ -41,8 +41,8 @@
 
 						{{if .Milestone.DeadlineString}}
 							<span{{if .IsOverdue}} class="text red"{{end}}>
-				{{svg "octicon-calendar"}}
-				{{DateTime "short" .Milestone.DeadlineString}}
+								{{svg "octicon-calendar"}}
+								{{DateTime "short" .Milestone.DeadlineString}}
 							</span>
 						{{else}}
 							{{svg "octicon-calendar"}}
@@ -50,9 +50,7 @@
 						{{end}}
 					{{end}}
 				</div>
-				<div class="tw-mr-2">
-					{{ctx.Locale.Tr "repo.milestones.completeness" $completeness}}
-				</div>
+				<div class="tw-mr-2">{{ctx.Locale.Tr "repo.milestones.completeness" $completeness}}</div>
 				{{if .TotalTrackedTime}}
 					<div data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
 						{{svg "octicon-clock"}}

@@ -276,7 +276,6 @@
 
 			{{if gt .Issue.Weight 0}}
 				<div class="tw-flex issue-weight-view">
-
 					<strong class="item">{{.Issue.Weight}} -</strong>
 					<form action="{{.Issue.Link}}/weight" method="post" id="update-issue-weight-form">
 						{{$.CsrfTokenHtml}}
