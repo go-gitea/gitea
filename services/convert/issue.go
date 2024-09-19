@@ -55,6 +55,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		Created:     issue.CreatedUnix.AsTime(),
 		Updated:     issue.UpdatedUnix.AsTime(),
 		PinOrder:    issue.PinOrder,
+		Weight:      issue.Weight,
 	}
 
 	if issue.Repo != nil {

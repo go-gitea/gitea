@@ -126,6 +126,19 @@ func ChangeIssueRef(ctx context.Context, issue *issues_model.Issue, doer *user_m
 	return nil
 }
 
+// ChangeIssueWeight changes the weight of this issue, as the given user.
+func ChangeIssueWeight(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, weight int) error {
+	if issue.Weight == weight {
+		return nil
+	}
+
+	if err := issues_model.UpdateIssueWeight(ctx, issue, weight, doer); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // UpdateAssignees is a helper function to add or delete one or multiple issue assignee(s)
 // Deleting is done the GitHub way (quote from their api documentation):
 // https://developer.github.com/v3/issues/#edit-an-issue

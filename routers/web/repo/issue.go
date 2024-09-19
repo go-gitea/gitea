@@ -266,7 +266,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	}
 
 	if repo.IsWeightEnabled(ctx) {
-		totalWeight, totalWeightClosed, err := issues_model.GetIssueTotalWeight(ctx, statsOpts, isShowClosed)
+		totalWeight, totalWeightClosed, err := issues_model.GetIssueTotalWeight(ctx, statsOpts)
 		if err != nil {
 			ctx.ServerError("GetIssueTotalWeight", err)
 			return
@@ -2398,7 +2398,6 @@ func UpdateIssueWeight(ctx *context.Context) {
 	}
 
 	ctx.Redirect(issue.Link())
-	// ctx.JSON(http.StatusCreated, api.IssueWeight{Weight: form.Weight})
 }
 
 // UpdateIssueMilestone change issue's milestone
