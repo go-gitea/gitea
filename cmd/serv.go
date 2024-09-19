@@ -189,10 +189,7 @@ func runServ(c *cli.Context) error {
 	}
 
 	verb := words[0]
-	repoPath := words[1]
-	if repoPath[0] == '/' {
-		repoPath = repoPath[1:]
-	}
+	repoPath := strings.TrimPrefix(words[1], "/")
 
 	var lfsVerb string
 	if verb == lfsAuthenticateVerb {
