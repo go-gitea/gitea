@@ -258,11 +258,15 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
-			req = NewRequestWithBody(t, "DELETE", rootURL+"/base/notfound/1.0.0-1", nil).
+			req = NewRequestWithBody(t, "DELETE", rootURL+"/base/notfound/1.0.0-1/any", nil).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequestWithBody(t, "DELETE", groupURL+"/test/1.0.0-1", nil).
+			req = NewRequestWithBody(t, "DELETE", groupURL+"/test/1.0.0-1/x86_64", nil).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+
+			req = NewRequestWithBody(t, "DELETE", groupURL+"/test/1.0.0-1/any", nil).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNoContent)
 
@@ -270,12 +274,22 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 			respPkg := MakeRequest(t, req, http.StatusOK)
 			files, err := listTarGzFiles(respPkg.Body.Bytes())
 			require.NoError(t, err)
-			require.Len(t, files, 1) // other pkg in L225
+			require.Len(t, files, 1)
 
-			req = NewRequestWithBody(t, "DELETE", groupURL+"/test2/1.0.0-1", nil).
+			req = NewRequestWithBody(t, "DELETE", groupURL+"/test2/1.0.0-1/any", nil).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNoContent)
-			req = NewRequest(t, "GET", groupURL+"/x86_64/base.db")
+
+			req = NewRequest(t, "GET", groupURL+"/x86_64/base.db").
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusNotFound)
+
+			req = NewRequestWithBody(t, "DELETE", groupURL+"/test/1.0.0-1/aarch64", nil).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+
+			req = NewRequest(t, "GET", groupURL+"/aarch64/base.db").
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 		})
 
@@ -294,7 +308,7 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 				resp := MakeRequest(t, req, http.StatusOK)
 				require.Equal(t, pkgs[key], resp.Body.Bytes())
 
-				req = NewRequestWithBody(t, "DELETE", groupURL+"/test2/1.0.0-1", nil).
+				req = NewRequestWithBody(t, "DELETE", groupURL+"/test2/1.0.0-1/any", nil).
 					AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusNoContent)
 			})

@@ -159,18 +159,20 @@ func CommonRoutes() *web.Router {
 					arch.PushPackage(ctx)
 					return
 				} else if isDelete {
-					if groupLen < 2 {
+					if groupLen < 3 {
 						ctx.Status(http.StatusBadRequest)
 						return
 					}
-					if groupLen == 2 {
+					if groupLen == 3 {
 						ctx.SetPathParam("group", "")
 						ctx.SetPathParam("package", pathGroups[0])
 						ctx.SetPathParam("version", pathGroups[1])
+						ctx.SetPathParam("arch", pathGroups[2])
 					} else {
-						ctx.SetPathParam("group", strings.Join(pathGroups[:groupLen-2], "/"))
-						ctx.SetPathParam("package", pathGroups[groupLen-2])
-						ctx.SetPathParam("version", pathGroups[groupLen-1])
+						ctx.SetPathParam("group", strings.Join(pathGroups[:groupLen-3], "/"))
+						ctx.SetPathParam("package", pathGroups[groupLen-3])
+						ctx.SetPathParam("version", pathGroups[groupLen-2])
+						ctx.SetPathParam("arch", pathGroups[groupLen-1])
 					}
 					reqPackageAccess(perm.AccessModeWrite)(ctx)
 					if ctx.Written() {

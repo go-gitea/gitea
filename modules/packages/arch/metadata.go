@@ -262,42 +262,42 @@ func ValidatePackageSpec(p *Package) error {
 	}
 	for _, cd := range p.VersionMetadata.CheckDepends {
 		if !rePkgVer.MatchString(cd) {
-			return util.NewInvalidArgumentErrorf("invalid check dependency: " + cd)
+			return util.NewInvalidArgumentErrorf("invalid check dependency: %s", cd)
 		}
 	}
 	for _, d := range p.VersionMetadata.Depends {
 		if !rePkgVer.MatchString(d) {
-			return util.NewInvalidArgumentErrorf("invalid dependency: " + d)
+			return util.NewInvalidArgumentErrorf("invalid dependency: %s", d)
 		}
 	}
 	for _, md := range p.VersionMetadata.MakeDepends {
 		if !rePkgVer.MatchString(md) {
-			return util.NewInvalidArgumentErrorf("invalid make dependency: " + md)
+			return util.NewInvalidArgumentErrorf("invalid make dependency: %s ", md)
 		}
 	}
 	for _, p := range p.VersionMetadata.Provides {
 		if !rePkgVer.MatchString(p) {
-			return util.NewInvalidArgumentErrorf("invalid provides: " + p)
+			return util.NewInvalidArgumentErrorf("invalid provides: %s", p)
 		}
 	}
 	for _, p := range p.VersionMetadata.Conflicts {
 		if !rePkgVer.MatchString(p) {
-			return util.NewInvalidArgumentErrorf("invalid conflicts: " + p)
+			return util.NewInvalidArgumentErrorf("invalid conflicts: %s", p)
 		}
 	}
 	for _, p := range p.VersionMetadata.Replaces {
 		if !rePkgVer.MatchString(p) {
-			return util.NewInvalidArgumentErrorf("invalid replaces: " + p)
+			return util.NewInvalidArgumentErrorf("invalid replaces: %s", p)
 		}
 	}
 	for _, p := range p.VersionMetadata.Replaces {
 		if !rePkgVer.MatchString(p) {
-			return util.NewInvalidArgumentErrorf("invalid xdata: " + p)
+			return util.NewInvalidArgumentErrorf("invalid xdata: %s", p)
 		}
 	}
 	for _, od := range p.VersionMetadata.OptDepends {
 		if !reOptDep.MatchString(od) {
-			return util.NewInvalidArgumentErrorf("invalid optional dependency: " + od)
+			return util.NewInvalidArgumentErrorf("invalid optional dependency: %s", od)
 		}
 	}
 	for _, bf := range p.VersionMetadata.Backup {
