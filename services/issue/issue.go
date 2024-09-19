@@ -9,7 +9,6 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
-	issue_model "code.gitea.io/gitea/models/issues"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
@@ -49,7 +48,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 		}
 
 		if weight != 0 {
-			if _, err := issue_model.CreateWeightComment(ctx, issue.Poster, issue, weight); err != nil {
+			if _, err := issues_model.CreateWeightComment(ctx, issue.Poster, issue, weight); err != nil {
 				return err
 			}
 		}
@@ -132,11 +131,7 @@ func ChangeIssueWeight(ctx context.Context, issue *issues_model.Issue, doer *use
 		return nil
 	}
 
-	if err := issues_model.UpdateIssueWeight(ctx, issue, weight, doer); err != nil {
-		return err
-	}
-
-	return nil
+	return issues_model.UpdateIssueWeight(ctx, issue, weight, doer)
 }
 
 // UpdateAssignees is a helper function to add or delete one or multiple issue assignee(s)

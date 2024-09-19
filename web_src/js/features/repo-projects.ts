@@ -53,12 +53,11 @@ async function moveIssue({item, from, to, oldIndex}) {
   updateIssueCount(from);
   updateIssueCount(to);
 
-  let weight = item.querySelector('span[data-weight]').getAttribute('data-weight');
+  const weight = item.querySelector('span[data-weight]').getAttribute('data-weight');
 
   if (weight) {
-    weight = parseInt(weight);
-    updateWeight(from, -weight);
-    updateWeight(to, weight);
+    updateWeight(from);
+    updateWeight(to);
   }
 
   const columnSorting = {

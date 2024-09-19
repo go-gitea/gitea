@@ -99,7 +99,7 @@ type CreateIssueOption struct {
 	// list of label ids
 	Labels []int64 `json:"labels"`
 	Closed bool    `json:"closed"`
-	Weight int     `json:"weight`
+	Weight int     `json:"weight"`
 }
 
 // EditIssueOption options for editing an issue

@@ -27,11 +27,11 @@
 		</div>
 		{{end}}
 		<div class="tw-flex tw-flex-col tw-gap-2">
-            {{ $completeness := .Milestone.Completeness }}
-            {{ if .Repository.IsWeightEnabled ctx }}
-                {{ $completeness = .WeightedCompleteness }}
-            {{ end }}
-            <progress class="milestone-progress-big" value="{{$completeness}}" max="100"></progress>
+			{{$completeness := .Milestone.Completeness}}
+			{{if .Repository.IsWeightEnabled ctx}}
+				{{$completeness = .WeightedCompleteness}}
+			{{end}}
+			<progress class="milestone-progress-big" value="{{$completeness}}" max="100"></progress>
 			<div class="tw-flex tw-gap-4">
 				<div classs="tw-flex tw-items-center">
 					{{$closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix ctx.Locale}}
@@ -41,8 +41,8 @@
 
 						{{if .Milestone.DeadlineString}}
 							<span{{if .IsOverdue}} class="text red"{{end}}>
-								{{svg "octicon-calendar"}}
-								{{DateTime "short" .Milestone.DeadlineString}}
+				{{svg "octicon-calendar"}}
+				{{DateTime "short" .Milestone.DeadlineString}}
 							</span>
 						{{else}}
 							{{svg "octicon-calendar"}}
@@ -51,20 +51,20 @@
 					{{end}}
 				</div>
 				<div class="tw-mr-2">
-                    {{ctx.Locale.Tr "repo.milestones.completeness" $completeness}}
-                </div>
+					{{ctx.Locale.Tr "repo.milestones.completeness" $completeness}}
+				</div>
 				{{if .TotalTrackedTime}}
 					<div data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
 						{{svg "octicon-clock"}}
 						{{.TotalTrackedTime | Sec2Time}}
 					</div>
 				{{end}}
-                {{if .TotalWeight}}
-                    <div class="flex-text-block"  data-tooltip-content='{{ctx.Locale.Tr "weight_summary"}}'>
-                        {{svg "octicon-briefcase"}}
-                        {{.TotalWeight}}
-                    </div>
-                {{end}}
+				{{if .TotalWeight}}
+					<div class="flex-text-block" data-tooltip-content='{{ctx.Locale.Tr "weight_summary"}}'>
+						{{svg "octicon-briefcase"}}
+						{{.TotalWeight}}
+					</div>
+				{{end}}
 			</div>
 		</div>
 		<div class="divider"></div>

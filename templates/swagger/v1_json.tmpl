@@ -19777,6 +19777,11 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "weight": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Weight"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -20855,6 +20860,11 @@
         "unset_due_date": {
           "type": "boolean",
           "x-go-name": "RemoveDeadline"
+        },
+        "weight": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Weight"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -22075,6 +22085,11 @@
           "type": "boolean",
           "x-go-name": "EnableIssueDependencies"
         },
+        "enable_issue_weight": {
+          "description": "Enable issue weight (Built-in issue tracker)",
+          "type": "boolean",
+          "x-go-name": "EnableWeight"
+        },
         "enable_time_tracker": {
           "description": "Enable time tracking (Built-in issue tracker)",
           "type": "boolean",
@@ -22198,6 +22213,11 @@
         },
         "user": {
           "$ref": "#/definitions/User"
+        },
+        "weight": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Weight"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

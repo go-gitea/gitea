@@ -272,7 +272,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			return
 		}
 
-		fmt.Println(totalWeight, totalWeightClosed)
 		ctx.Data["TotalWeight"] = totalWeight
 		ctx.Data["WeightedCompleteness"] = totalWeightClosed * 100 / totalWeight
 	}
