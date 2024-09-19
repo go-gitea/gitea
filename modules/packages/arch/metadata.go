@@ -41,11 +41,15 @@ var (
 	reVer    = regexp.MustCompile(`^[a-zA-Z0-9:_.+]+-+[0-9]+$`)
 	reOptDep = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$|^[a-zA-Z0-9@._+-]+(:.*)`)
 	rePkgVer = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$|^[a-zA-Z0-9@._+-]+(>.*)|^[a-zA-Z0-9@._+-]+(<.*)|^[a-zA-Z0-9@._+-]+(=.*)`)
+
+	magicZSTD = []byte{0x28, 0xB5, 0x2F, 0xFD}
+	magicXZ   = []byte{0xFD, 0x37, 0x7A, 0x58, 0x5A}
 )
 
 type Package struct {
 	Name            string `json:"name"`
 	Version         string `json:"version"` // Includes version, release and epoch
+	CompressType    string `json:"compress_type"`
 	VersionMetadata VersionMetadata
 	FileMetadata    FileMetadata
 }
@@ -89,18 +93,38 @@ func ParsePackage(r *packages.HashedBuffer) (*Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	zstd := archiver.NewTarZstd()
-	err = zstd.Open(r, 0)
+	header := make([]byte, 5)
+	_, err = r.Read(header)
 	if err != nil {
 		return nil, err
 	}
-	defer zstd.Close()
+	_, err = r.Seek(0, io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
+
+	var tarball archiver.Reader
+	var tarballType string
+	if bytes.Equal(header[:len(magicZSTD)], magicZSTD) {
+		tarballType = "zst"
+		tarball = archiver.NewTarZstd()
+	} else if bytes.Equal(header[:len(magicXZ)], magicXZ) {
+		tarballType = "xz"
+		tarball = archiver.NewTarXz()
+	} else {
+		return nil, errors.New("not supported compression")
+	}
+	err = tarball.Open(r, 0)
+	if err != nil {
+		return nil, err
+	}
+	defer tarball.Close()
 
 	var pkg *Package
 	var mtree bool
 
 	for {
-		f, err := zstd.Read()
+		f, err := tarball.Read()
 		if err == io.EOF {
 			break
 		}
@@ -111,7 +135,7 @@ func ParsePackage(r *packages.HashedBuffer) (*Package, error) {
 
 		switch f.Name() {
 		case ".PKGINFO":
-			pkg, err = ParsePackageInfo(f)
+			pkg, err = ParsePackageInfo(tarballType, f)
 			if err != nil {
 				return nil, err
 			}
@@ -137,8 +161,10 @@ func ParsePackage(r *packages.HashedBuffer) (*Package, error) {
 
 // ParsePackageInfo Function that accepts reader for .PKGINFO file from package archive,
 // validates all field according to PKGBUILD spec and returns package.
-func ParsePackageInfo(r io.Reader) (*Package, error) {
-	p := &Package{}
+func ParsePackageInfo(compressType string, r io.Reader) (*Package, error) {
+	p := &Package{
+		CompressType: compressType,
+	}
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
@@ -281,7 +307,7 @@ func ValidatePackageSpec(p *Package) error {
 // Desc Create pacman package description file.
 func (p *Package) Desc() string {
 	entries := []string{
-		"FILENAME", fmt.Sprintf("%s-%s-%s.pkg.tar.zst", p.Name, p.Version, p.FileMetadata.Arch),
+		"FILENAME", fmt.Sprintf("%s-%s-%s.pkg.tar.%s", p.Name, p.Version, p.FileMetadata.Arch, p.CompressType),
 		"NAME", p.Name,
 		"BASE", p.VersionMetadata.Base,
 		"VERSION", p.Version,
