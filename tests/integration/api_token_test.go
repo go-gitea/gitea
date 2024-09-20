@@ -555,7 +555,7 @@ func createAPIAccessTokenWithoutCleanUp(t *testing.T, tokenName string, user *us
 	return newAccessToken
 }
 
-// Delete an API access token and assert that deletion succeeded.
+// deleteAPIAccessToken deletes an API access token and assert that deletion succeeded.
 func deleteAPIAccessToken(t *testing.T, accessToken api.AccessToken, user *user_model.User) {
 	req := NewRequestf(t, "DELETE", "/api/v1/users/"+user.LoginName+"/tokens/%d", accessToken.ID).
 		AddBasicAuth(user.Name)
