@@ -135,7 +135,6 @@ func ParsePackage(r *packages.HashedBuffer) (*Package, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer f.Close()
 
 		switch f.Name() {
 		case ".PKGINFO":
@@ -146,6 +145,7 @@ func ParsePackage(r *packages.HashedBuffer) (*Package, error) {
 		case ".MTREE":
 			mtree = true
 		}
+		_ = f.Close()
 	}
 
 	if pkg == nil {
