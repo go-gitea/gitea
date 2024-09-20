@@ -6,6 +6,7 @@ package actions
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -25,11 +26,28 @@ import (
 	"github.com/nektos/act/pkg/model"
 )
 
-func getActionWorkflowEntry(ctx *context.APIContext, entry *git.TreeEntry, commit *git.Commit) (*api.ActionWorkflow, error) {
+func getActionWorkflowPath(commit *git.Commit) string {
+	_, err := commit.SubTree(".gitea/workflows")
+	if err == nil {
+		return ".gitea/workflows"
+	}
+
+	if _, ok := err.(git.ErrNotExist); ok {
+		_, err = commit.SubTree(".github/workflows")
+		return ".github/workflows"
+	}
+
+	return ""
+}
+
+func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, entry *git.TreeEntry) (*api.ActionWorkflow, error) {
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 
+	defaultBranch, _ := commit.GetBranchName()
+
 	URL := fmt.Sprintf("%s/actions/workflows/%s", ctx.Repo.Repository.APIURL(), entry.Name())
+	HTMLURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", ctx.Repo.Repository.HTMLURL(ctx), defaultBranch, getActionWorkflowPath(commit), entry.Name())
 	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", ctx.Repo.Repository.HTMLURL(ctx), entry.Name(), ctx.Repo.Repository.DefaultBranch)
 
 	// See https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#get-a-workflow
@@ -44,19 +62,32 @@ func getActionWorkflowEntry(ctx *context.APIContext, entry *git.TreeEntry, commi
 		state = "disabled_manually"
 	}
 
-	// TODO: NodeID
-	// TODO: CreatedAt
-	// TODO: UpdatedAt
-	// TODO: HTMLURL
-	// TODO: DeletedAt
+	// Currently, the NodeID returns the hostname of the server since, as far as I know, Gitea does not have a parameter
+	// similar to an instance ID.
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unknown"
+	}
+
+	// The CreatedAt and UpdatedAt fields currently reflect the timestamp of the latest commit, which can later be refined
+	// by retrieving the first and last commits for the file history. The first commit would indicate the creation date,
+	// while the last commit would represent the modification date. The DeletedAt could be determined by identifying
+	// the last commit where the file existed. However, this implementation has not been done here yet, as it would likely
+	// cause a significant performance degradation.
+	createdAt := commit.Author.When
+	updatedAt := commit.Author.When
 
 	return &api.ActionWorkflow{
-		ID:       entry.Name(),
-		Name:     entry.Name(),
-		Path:     entry.Name(),
-		State:    state,
-		URL:      URL,
-		BadgeURL: badgeURL,
+		ID:        entry.Name(),
+		NodeID:    hostname,
+		Name:      entry.Name(),
+		Path:      entry.Name(),
+		State:     state,
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
+		URL:       URL,
+		HTMLURL:   HTMLURL,
+		BadgeURL:  badgeURL,
 	}, nil
 }
 
@@ -88,7 +119,7 @@ func ListActionWorkflows(ctx *context.APIContext) ([]*api.ActionWorkflow, error)
 
 	workflows := make([]*api.ActionWorkflow, len(entries))
 	for i, entry := range entries {
-		workflows[i], err = getActionWorkflowEntry(ctx, entry, defaultBranchCommit)
+		workflows[i], err = getActionWorkflowEntry(ctx, defaultBranchCommit, entry)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "WorkflowGetError", err.Error())
 			return nil, err
