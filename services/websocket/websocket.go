@@ -4,9 +4,14 @@
 package websocket
 
 import (
+	"context"
+
+	issues_model "code.gitea.io/gitea/models/issues"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/services/context"
-	notify_service "code.gitea.io/gitea/services/notify"
+	"code.gitea.io/gitea/modules/log"
+	gitea_context "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/pubsub"
 
 	"github.com/mitchellh/mapstructure"
@@ -31,12 +36,46 @@ func Init() *melody.Melody {
 	m.HandleDisconnect(handleDisconnect)
 
 	broker := pubsub.NewMemory() // TODO: allow for other pubsub implementations
-	notify_service.RegisterNotifier(newNotifier(m, broker))
+	notifier := newNotifier(m)
+
+	ctx, unsubscribe := context.WithCancel(context.Background())
+	graceful.GetManager().RunAtShutdown(ctx, func() {
+		unsubscribe()
+	})
+
+	broker.Subscribe(ctx, "notify", func(msg []byte) {
+		data := struct {
+			Function string
+		}{}
+
+		err := json.Unmarshal(msg, &data)
+		if err != nil {
+			log.Error("Failed to unmarshal message: %v", err)
+			return
+		}
+
+		switch data.Function {
+		case "DeleteComment":
+			var data struct {
+				Comment *issues_model.Comment
+				Doer    *user_model.User
+			}
+
+			err := json.Unmarshal(msg, &data)
+			if err != nil {
+				log.Error("Failed to unmarshal message: %v", err)
+				return
+			}
+
+			notifier.DeleteComment(context.Background(), data.Doer, data.Comment)
+		}
+	})
+
 	return m
 }
 
 func handleConnect(s *melody.Session) {
-	ctx := context.GetWebContext(s.Request)
+	ctx := gitea_context.GetWebContext(s.Request)
 
 	data := &sessionData{}
 	if ctx.IsSigned {

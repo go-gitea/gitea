@@ -14,12 +14,9 @@ import (
 
 func TestPubsub(t *testing.T) {
 	var (
-		wg sync.WaitGroup
-
-		testMessage = Message{
-			Data:  []byte("test"),
-			Topic: "hello-world",
-		}
+		wg          sync.WaitGroup
+		testTopic   = "hello-world"
+		testMessage = []byte("test")
 	)
 
 	ctx, cancel := context.WithCancelCause(
@@ -28,10 +25,10 @@ func TestPubsub(t *testing.T) {
 
 	broker := NewMemory()
 	go func() {
-		broker.Subscribe(ctx, "hello-world", func(message Message) { assert.Equal(t, testMessage, message); wg.Done() })
+		broker.Subscribe(ctx, testTopic, func(message []byte) { assert.Equal(t, testMessage, message); wg.Done() })
 	}()
 	go func() {
-		broker.Subscribe(ctx, "hello-world", func(_ Message) { wg.Done() })
+		broker.Subscribe(ctx, testTopic, func(_ []byte) { wg.Done() })
 	}()
 
 	// Wait a bit for the subscriptions to be registered
@@ -39,7 +36,7 @@ func TestPubsub(t *testing.T) {
 
 	wg.Add(2)
 	go func() {
-		broker.Publish(ctx, testMessage)
+		broker.Publish(ctx, testTopic, testMessage)
 	}()
 
 	wg.Wait()

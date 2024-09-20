@@ -5,6 +5,7 @@ package pubsub
 
 import (
 	"context"
+	"errors"
 	"sync"
 )
 
@@ -21,19 +22,21 @@ func NewMemory() Broker {
 	}
 }
 
-func (p *Memory) Publish(_ context.Context, message Message) {
+func (p *Memory) Publish(_ context.Context, _topic string, data []byte) error {
 	p.Lock()
 
-	topic, ok := p.topics[message.Topic]
+	topic, ok := p.topics[_topic]
 	if !ok {
 		p.Unlock()
-		return
+		return errors.New("topic not found")
 	}
 
 	for s := range topic {
-		go (*s)(message)
+		go (*s)(data)
 	}
 	p.Unlock()
+
+	return nil
 }
 
 func (p *Memory) Subscribe(c context.Context, topic string, subscriber Subscriber) {

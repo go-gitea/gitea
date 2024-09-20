@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/services/websocket"
 )
 
-func Init(r *web.Route) {
+func Init(r *web.Router) {
 	m := websocket.Init()
 
 	r.Any("/-/ws", func(ctx *context.Context) {

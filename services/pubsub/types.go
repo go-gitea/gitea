@@ -5,19 +5,10 @@ package pubsub
 
 import "context"
 
-// Message defines a published message.
-type Message struct {
-	// Data is the actual data in the entry.
-	Data []byte `json:"data"`
-
-	// Topic is the topic of the message.
-	Topic string `json:"topic"`
-}
-
 // Subscriber receives published messages.
-type Subscriber func(Message)
+type Subscriber func(data []byte)
 
 type Broker interface {
-	Publish(c context.Context, message Message)
+	Publish(c context.Context, topic string, data []byte) error
 	Subscribe(c context.Context, topic string, subscriber Subscriber)
 }
