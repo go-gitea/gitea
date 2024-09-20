@@ -155,6 +155,7 @@ func PushPackage(ctx *context.Context) {
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
+		return
 	}
 	if err = arch_service.BuildPacmanDB(ctx, ctx.Package.Owner.ID, group, p.FileMetadata.Arch); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -247,6 +248,7 @@ func RemovePackage(ctx *context.Context) {
 		err = arch_service.BuildCustomRepositoryFiles(ctx, ctx.Package.Owner.ID, group)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
+			return
 		}
 		ctx.Status(http.StatusNoContent)
 	} else {
