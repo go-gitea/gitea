@@ -28,7 +28,6 @@ func newNotifier(m *melody.Melody) notify_service.Notifier {
 
 // htmxAddElementEnd = "<div hx-swap-oob=\"beforebegin:%s\">%s</div>"
 // htmxUpdateElement = "<div hx-swap-oob=\"outerHTML:%s\">%s</div>"
-
 var htmxRemoveElement = "<div hx-swap-oob=\"delete:%s\"></div>"
 
 func (n *websocketNotifier) filterSessions(fn func(*melody.Session, *sessionData) bool) []*melody.Session {
