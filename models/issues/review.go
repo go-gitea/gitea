@@ -247,7 +247,7 @@ func (r *Review) TooltipContent() string {
 		}
 		return "repo.issues.review.official"
 	case ReviewTypeComment:
-		return "repo.issues.review.comment"
+		return "repo.issues.review.commented"
 	case ReviewTypeReject:
 		return "repo.issues.review.rejected"
 	case ReviewTypeRequest:
