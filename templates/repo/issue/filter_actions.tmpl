@@ -2,7 +2,7 @@
 	{{if not .Repository.IsArchived}}
 		<!-- Action Button -->
 		{{if and .IsShowClosed.Has .IsShowClosed.Value}}
-		 	<button class="ui primary basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{ctx.Locale.Tr "repo.issues.action_open"}}</button>
+			<button class="ui primary basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{ctx.Locale.Tr "repo.issues.action_open"}}</button>
 		{{else if and .IsShowClosed.Has (not .IsShowClosed.Value)}}
 			<button class="ui red basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{ctx.Locale.Tr "repo.issues.action_close"}}</button>
 		{{end}}
