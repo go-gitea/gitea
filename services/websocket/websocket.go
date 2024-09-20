@@ -31,14 +31,12 @@ type subscribeMessageData struct {
 
 func Init() *melody.Melody {
 	m = melody.New()
-	hub := &hub{
-		pubsub: pubsub.NewMemory(),
-	}
+	hub := &hub{}
 	m.HandleConnect(hub.handleConnect)
 	m.HandleMessage(hub.handleMessage)
 	m.HandleDisconnect(hub.handleDisconnect)
 
-	broker := pubsub.NewMemory() // TODO: allow for other pubsub implementations
+	broker := pubsub.InitWithNotifier()
 	notifier := newNotifier(m)
 
 	ctx, unsubscribe := context.WithCancel(context.Background())
@@ -77,9 +75,7 @@ func Init() *melody.Melody {
 	return m
 }
 
-type hub struct {
-	pubsub pubsub.Broker
-}
+type hub struct{}
 
 func (h *hub) handleConnect(s *melody.Session) {
 	ctx := gitea_context.GetWebContext(s.Request)

@@ -13,7 +13,7 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
-func Init() Broker {
+func InitWithNotifier() Broker {
 	broker := NewMemory() // TODO: allow for other pubsub implementations
 	notify_service.RegisterNotifier(newNotifier(broker))
 	return broker
