@@ -456,7 +456,6 @@ textarea:focus,
 }
 .form-field-content-aside-label > *:nth-child(2) {
   text-align: right;
-  margin-bottom: 4px;
 }
 .form-field-content-aside-label input {
   grid-column: span 2;
