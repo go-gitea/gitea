@@ -69,11 +69,13 @@ modifies/go:
   - changed-files:
       - any-glob-to-any-file:
           - "**/*.go"
+          - "**/*.tmpl"
 
-modifies/js:
+modifies/frontend:
   - changed-files:
       - any-glob-to-any-file:
           - "**/*.js"
+          - "**/*.ts"
           - "**/*.vue"
 
 docs-update-needed:
