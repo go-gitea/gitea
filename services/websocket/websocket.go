@@ -31,9 +31,12 @@ type subscribeMessageData struct {
 
 func Init() *melody.Melody {
 	m = melody.New()
-	m.HandleConnect(handleConnect)
-	m.HandleMessage(handleMessage)
-	m.HandleDisconnect(handleDisconnect)
+	hub := &hub{
+		pubsub: pubsub.NewMemory(),
+	}
+	m.HandleConnect(hub.handleConnect)
+	m.HandleMessage(hub.handleMessage)
+	m.HandleDisconnect(hub.handleDisconnect)
 
 	broker := pubsub.NewMemory() // TODO: allow for other pubsub implementations
 	notifier := newNotifier(m)
@@ -74,7 +77,11 @@ func Init() *melody.Melody {
 	return m
 }
 
-func handleConnect(s *melody.Session) {
+type hub struct {
+	pubsub pubsub.Broker
+}
+
+func (h *hub) handleConnect(s *melody.Session) {
 	ctx := gitea_context.GetWebContext(s.Request)
 
 	data := &sessionData{}
@@ -87,7 +94,7 @@ func handleConnect(s *melody.Session) {
 	// TODO: handle logouts
 }
 
-func handleMessage(s *melody.Session, _msg []byte) {
+func (h *hub) handleMessage(s *melody.Session, _msg []byte) {
 	data, err := getSessionData(s)
 	if err != nil {
 		return
@@ -101,14 +108,14 @@ func handleMessage(s *melody.Session, _msg []byte) {
 
 	switch msg.Action {
 	case "subscribe":
-		err := handleSubscribeMessage(data, msg.Data)
+		err := h.handleSubscribeMessage(data, msg.Data)
 		if err != nil {
 			return
 		}
 	}
 }
 
-func handleSubscribeMessage(data *sessionData, _data any) error {
+func (h *hub) handleSubscribeMessage(data *sessionData, _data any) error {
 	msgData := &subscribeMessageData{}
 	err := mapstructure.Decode(_data, &msgData)
 	if err != nil {
@@ -119,5 +126,5 @@ func handleSubscribeMessage(data *sessionData, _data any) error {
 	return nil
 }
 
-func handleDisconnect(s *melody.Session) {
+func (h *hub) handleDisconnect(s *melody.Session) {
 }
