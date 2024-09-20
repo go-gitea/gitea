@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	project_service "code.gitea.io/gitea/services/projects"
 )
 
 // GetProjectColumn returns a project column
@@ -416,7 +417,7 @@ func MoveIssues(ctx *context.APIContext) {
 		}
 	}
 
-	if err = project_model.MoveIssuesOnProjectColumn(ctx, column, sortedIssueIDs); err != nil {
+	if err = project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, sortedIssueIDs); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectColumn", err)
 		return
 	}

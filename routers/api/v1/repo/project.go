@@ -143,11 +143,11 @@ func CreateProject(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, convert.ToProject(ctx, project))
 }
 
-// UpdateIssueProject change an issue's project to another project in a repository
+// UpdateIssueProject moves issues from a project to another in a repository
 func UpdateIssueProject(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{reponame}/projects/{type} project repoUpdateIssueProject
 	// ---
-	// summary: Change an issue's project
+	// summary: Moves issues from a project to another in a repository
 	// consumes:
 	// - application/json
 	// parameters:
@@ -202,7 +202,7 @@ func UpdateIssueProject(ctx *context.APIContext) {
 		return
 	}
 	if _, err := issues.LoadRepositories(ctx); err != nil {
-		ctx.ServerError("LoadProjects", err)
+		ctx.ServerError("LoadRepositories", err)
 		return
 	}
 

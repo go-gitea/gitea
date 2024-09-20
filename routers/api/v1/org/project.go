@@ -47,8 +47,6 @@ func CreateProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm(ctx).(*api.CreateProjectOption)
 
@@ -98,8 +96,6 @@ func GetProjects(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	listOptions := utils.GetListOptions(ctx)
 	sortType := ctx.FormTrim("sort")

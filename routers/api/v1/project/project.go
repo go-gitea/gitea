@@ -49,7 +49,7 @@ func GetProject(ctx *context.APIContext) {
 		return
 	}
 
-	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns)
+	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns, &issues_model.IssuesOptions{})
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfColumns", err)
 		return
