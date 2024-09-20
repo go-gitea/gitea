@@ -6,11 +6,20 @@
 
 package git
 
-import "github.com/go-git/go-git/v5/plumbing"
+import (
+	"errors"
+
+	"github.com/go-git/go-git/v5/plumbing"
+)
 
 func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 	gogitTree, err := repo.gogitRepo.TreeObject(plumbing.Hash(id.RawValue()))
 	if err != nil {
+		if errors.Is(err, plumbing.ErrObjectNotFound) {
+			return nil, ErrNotExist{
+				ID: id.String(),
+			}
+		}
 		return nil, err
 	}
 
