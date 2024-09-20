@@ -69,7 +69,6 @@ modifies/go:
   - changed-files:
       - any-glob-to-any-file:
           - "**/*.go"
-          - "**/*.tmpl"
 
 modifies/frontend:
   - changed-files:
