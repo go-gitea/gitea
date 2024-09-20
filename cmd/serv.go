@@ -145,7 +145,7 @@ func runServ(c *cli.Context) error {
 
 	defer func() {
 		if err := recover(); err != nil {
-			_ = fail(ctx, "Internal Server Error", "Panic: %v", err)
+			_ = fail(ctx, "Internal Server Error", "Panic: %v\n%s", err, log.Stack(2))
 		}
 	}()
 
