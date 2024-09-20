@@ -245,14 +245,13 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 
 // GetPackageFile Get data related to provided filename and distribution, for package files
 // update download counter.
-func GetPackageFile(ctx context.Context, group, file string, ownerID int64) (io.ReadSeekCloser, error) {
+func GetPackageFile(ctx context.Context, group, file string, ownerID int64) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	pf, err := getPackageFile(ctx, group, file, ownerID)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
-	filestream, _, _, err := packages_service.GetPackageFileStream(ctx, pf)
-	return filestream, err
+	return packages_service.GetPackageFileStream(ctx, pf)
 }
 
 // Ejects parameters required to get package file property from file name.
@@ -275,10 +274,10 @@ func getPackageFile(ctx context.Context, group, file string, ownerID int64) (*pa
 	return pkgfile, nil
 }
 
-func GetPackageDBFile(ctx context.Context, group, arch string, ownerID int64, signFile bool) (io.ReadSeekCloser, error) {
+func GetPackageDBFile(ctx context.Context, group, arch string, ownerID int64, signFile bool) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	fileName := fmt.Sprintf("%s.db", arch)
 	if signFile {
@@ -286,10 +285,9 @@ func GetPackageDBFile(ctx context.Context, group, arch string, ownerID int64, si
 	}
 	file, err := packages_model.GetFileForVersionByName(ctx, pv.ID, fileName, group)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
-	filestream, _, _, err := packages_service.GetPackageFileStream(ctx, file)
-	return filestream, err
+	return packages_service.GetPackageFileStream(ctx, file)
 }
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository metadata files
