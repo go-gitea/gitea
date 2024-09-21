@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
@@ -223,6 +224,10 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 	helper.ServePackageFile(ctx, s, u, pf, opts)
 }
 
+func mavenPkgNameKey(packageName string) string {
+	return "pkg_maven_" + packageName
+}
+
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
 func UploadPackageFile(ctx *context.Context) {
 	params, err := extractPathParameters(ctx)
@@ -240,6 +245,14 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	packageName := params.GroupID + "-" + params.ArtifactID
+
+	// for the same package, only one upload at a time
+	releaser, err := globallock.Lock(ctx, mavenPkgNameKey(packageName))
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer releaser()
 
 	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
 	if err != nil {
