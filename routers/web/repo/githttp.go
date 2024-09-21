@@ -395,7 +395,8 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 
 	ctx.Resp.Header().Set("Content-Type", contentType)
 	ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", fi.Size()))
-	ctx.Resp.Header().Set("Last-Modified", fi.ModTime().Format(http.TimeFormat))
+	// http.TimeFormat required a UTC time, refer to https://pkg.go.dev/net/http#TimeFormat
+	ctx.Resp.Header().Set("Last-Modified", fi.ModTime().UTC().Format(http.TimeFormat))
 	http.ServeFile(ctx.Resp, ctx.Req, reqFile)
 }
 
