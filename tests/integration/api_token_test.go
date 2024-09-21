@@ -23,10 +23,10 @@ func TestAPICreateAndDeleteToken(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	newAccessToken := createAPIAccessTokenWithoutCleanUp(t, "test-key-1", user, nil)
+	newAccessToken := createAPIAccessTokenWithoutCleanUp(t, "test-key-1", user, []auth_model.AccessTokenScope{auth_model.AccessTokenScopeAll})
 	deleteAPIAccessToken(t, newAccessToken, user)
 
-	newAccessToken = createAPIAccessTokenWithoutCleanUp(t, "test-key-2", user, nil)
+	newAccessToken = createAPIAccessTokenWithoutCleanUp(t, "test-key-2", user, []auth_model.AccessTokenScope{auth_model.AccessTokenScopeAll})
 	deleteAPIAccessToken(t, newAccessToken, user)
 }
 
@@ -72,19 +72,19 @@ func TestAPIDeleteTokensPermission(t *testing.T) {
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 
 	// admin can delete tokens for other users
-	createAPIAccessTokenWithoutCleanUp(t, "test-key-1", user2, nil)
+	createAPIAccessTokenWithoutCleanUp(t, "test-key-1", user2, []auth_model.AccessTokenScope{auth_model.AccessTokenScopeAll})
 	req := NewRequest(t, "DELETE", "/api/v1/users/"+user2.LoginName+"/tokens/test-key-1").
 		AddBasicAuth(admin.Name)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// non-admin can delete tokens for himself
-	createAPIAccessTokenWithoutCleanUp(t, "test-key-2", user2, nil)
+	createAPIAccessTokenWithoutCleanUp(t, "test-key-2", user2, []auth_model.AccessTokenScope{auth_model.AccessTokenScopeAll})
 	req = NewRequest(t, "DELETE", "/api/v1/users/"+user2.LoginName+"/tokens/test-key-2").
 		AddBasicAuth(user2.Name)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// non-admin can't delete tokens for other users
-	createAPIAccessTokenWithoutCleanUp(t, "test-key-3", user2, nil)
+	createAPIAccessTokenWithoutCleanUp(t, "test-key-3", user2, []auth_model.AccessTokenScope{auth_model.AccessTokenScopeAll})
 	req = NewRequest(t, "DELETE", "/api/v1/users/"+user2.LoginName+"/tokens/test-key-3").
 		AddBasicAuth(user4.Name)
 	MakeRequest(t, req, http.StatusForbidden)
@@ -520,7 +520,7 @@ func runTestCase(t *testing.T, testCase *requiredScopeTestCase, user *user_model
 			unauthorizedScopes = append(unauthorizedScopes, cateogoryUnauthorizedScopes...)
 		}
 
-		accessToken := createAPIAccessTokenWithoutCleanUp(t, "test-token", user, &unauthorizedScopes)
+		accessToken := createAPIAccessTokenWithoutCleanUp(t, "test-token", user, unauthorizedScopes)
 		defer deleteAPIAccessToken(t, accessToken, user)
 
 		// Request the endpoint.  Verify that permission is denied.
@@ -532,20 +532,12 @@ func runTestCase(t *testing.T, testCase *requiredScopeTestCase, user *user_model
 
 // createAPIAccessTokenWithoutCleanUp Create an API access token and assert that
 // creation succeeded.  The caller is responsible for deleting the token.
-func createAPIAccessTokenWithoutCleanUp(t *testing.T, tokenName string, user *user_model.User, scopes *[]auth_model.AccessTokenScope) api.AccessToken {
+func createAPIAccessTokenWithoutCleanUp(t *testing.T, tokenName string, user *user_model.User, scopes []auth_model.AccessTokenScope) api.AccessToken {
 	payload := map[string]any{
-		"name": tokenName,
+		"name":   tokenName,
+		"scopes": scopes,
 	}
-	if scopes != nil {
-		for _, scope := range *scopes {
-			scopes, scopesExists := payload["scopes"].([]string)
-			if !scopesExists {
-				scopes = make([]string, 0)
-			}
-			scopes = append(scopes, string(scope))
-			payload["scopes"] = scopes
-		}
-	}
+
 	log.Debug("Requesting creation of token with scopes: %v", scopes)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/users/"+user.LoginName+"/tokens", payload).
 		AddBasicAuth(user.Name)
@@ -563,8 +555,7 @@ func createAPIAccessTokenWithoutCleanUp(t *testing.T, tokenName string, user *us
 	return newAccessToken
 }
 
-// createAPIAccessTokenWithoutCleanUp Delete an API access token and assert that
-// deletion succeeded.
+// deleteAPIAccessToken deletes an API access token and assert that deletion succeeded.
 func deleteAPIAccessToken(t *testing.T, accessToken api.AccessToken, user *user_model.User) {
 	req := NewRequestf(t, "DELETE", "/api/v1/users/"+user.LoginName+"/tokens/%d", accessToken.ID).
 		AddBasicAuth(user.Name)
