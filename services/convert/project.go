@@ -21,7 +21,9 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) (*api.Pro
 		Closed:       project.ClosedDateUnix.AsTime(),
 	}
 
-	_ = project.LoadRepo(ctx)
+	if err := project.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
 	if project.Repo != nil {
 		apiProject.Repo = &api.RepositoryMeta{
 			ID:       project.RepoID,
@@ -31,7 +33,9 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) (*api.Pro
 		}
 	}
 
-	_ = project.LoadCreator(ctx)
+	if err := project.LoadCreator(ctx); err != nil {
+		return nil, err
+	}
 	if project.Creator != nil {
 		apiProject.Creator = &api.User{
 			ID:       project.Creator.ID,
@@ -40,7 +44,9 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) (*api.Pro
 		}
 	}
 
-	_ = project.LoadOwner(ctx)
+	if err := project.LoadOwner(ctx); err != nil {
+		return nil, err
+	}
 	if project.Owner != nil {
 		apiProject.Owner = &api.User{
 			ID:       project.Owner.ID,
