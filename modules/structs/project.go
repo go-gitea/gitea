@@ -25,11 +25,11 @@ type UpdateProjectPayload struct {
 
 // swagger:model
 type Project struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	BoardType   uint8  `json:"board_type"`
-	IsClosed    bool   `json:"is_closed"`
+	ID           int64  `json:"id"`
+	Title        string `json:"title"`
+	Description  string `json:"description"`
+	TemplateType uint8  `json:"board_type"`
+	IsClosed     bool   `json:"is_closed"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
