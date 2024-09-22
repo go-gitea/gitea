@@ -6,9 +6,9 @@ package forms
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 
 	"gitea.com/go-chi/binding"
 )
@@ -41,6 +41,7 @@ type AdminEditUserForm struct {
 	Password                string `binding:"MaxSize(255)"`
 	Website                 string `binding:"ValidUrl;MaxSize(255)"`
 	Location                string `binding:"MaxSize(50)"`
+	Language                string `binding:"MaxSize(5)"`
 	MaxRepoCreation         int
 	Active                  bool
 	Admin                   bool

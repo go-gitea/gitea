@@ -18,7 +18,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
@@ -26,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	webhook_service "code.gitea.io/gitea/services/webhook"
@@ -99,9 +99,9 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 	if ctx.Data["PageIsAdmin"] == true {
 		return &ownerRepoCtx{
 			IsAdmin:         true,
-			IsSystemWebhook: ctx.Params(":configType") == "system-hooks",
+			IsSystemWebhook: ctx.PathParam(":configType") == "system-hooks",
 			Link:            path.Join(setting.AppSubURL, "/admin/hooks"),
-			LinkNew:         path.Join(setting.AppSubURL, "/admin/", ctx.Params(":configType")),
+			LinkNew:         path.Join(setting.AppSubURL, "/admin/", ctx.PathParam(":configType")),
 			NewTemplate:     tplAdminHookNew,
 		}, nil
 	}
@@ -110,7 +110,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 }
 
 func checkHookType(ctx *context.Context) string {
-	hookType := strings.ToLower(ctx.Params(":type"))
+	hookType := strings.ToLower(ctx.PathParam(":type"))
 	if !util.SliceContainsString(setting.Webhook.Types, hookType, true) {
 		ctx.NotFound("checkHookType", nil)
 		return ""
@@ -151,6 +151,7 @@ func WebhooksNew(ctx *context.Context) {
 		}
 	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
+	ctx.Data["BaseLinkNew"] = orCtx.LinkNew
 
 	ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 }
@@ -587,14 +588,15 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 		return nil, nil
 	}
 	ctx.Data["BaseLink"] = orCtx.Link
+	ctx.Data["BaseLinkNew"] = orCtx.LinkNew
 
 	var w *webhook.Webhook
 	if orCtx.RepoID > 0 {
-		w, err = webhook.GetWebhookByRepoID(ctx, orCtx.RepoID, ctx.ParamsInt64(":id"))
+		w, err = webhook.GetWebhookByRepoID(ctx, orCtx.RepoID, ctx.PathParamInt64(":id"))
 	} else if orCtx.OwnerID > 0 {
-		w, err = webhook.GetWebhookByOwnerID(ctx, orCtx.OwnerID, ctx.ParamsInt64(":id"))
+		w, err = webhook.GetWebhookByOwnerID(ctx, orCtx.OwnerID, ctx.PathParamInt64(":id"))
 	} else if orCtx.IsAdmin {
-		w, err = webhook.GetSystemOrDefaultWebhook(ctx, ctx.ParamsInt64(":id"))
+		w, err = webhook.GetSystemOrDefaultWebhook(ctx, ctx.PathParamInt64(":id"))
 	}
 	if err != nil || w == nil {
 		if webhook.IsErrWebhookNotExist(err) {
@@ -643,7 +645,7 @@ func WebHooksEdit(ctx *context.Context) {
 
 // TestWebhook test if web hook is work fine
 func TestWebhook(ctx *context.Context) {
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64(":id")
 	w, err := webhook.GetWebhookByRepoID(ctx, ctx.Repo.Repository.ID, hookID)
 	if err != nil {
 		ctx.Flash.Error("GetWebhookByRepoID: " + err.Error())
@@ -655,12 +657,7 @@ func TestWebhook(ctx *context.Context) {
 	commit := ctx.Repo.Commit
 	if commit == nil {
 		ghost := user_model.NewGhostUser()
-		objectFormat, err := git.GetObjectFormatOfRepo(ctx, ctx.Repo.Repository.RepoPath())
-		if err != nil {
-			ctx.Flash.Error("GetObjectFormatOfRepo: " + err.Error())
-			ctx.Status(http.StatusInternalServerError)
-			return
-		}
+		objectFormat := git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName)
 		commit = &git.Commit{
 			ID:            objectFormat.EmptyObjectID(),
 			Author:        ghost.NewGitSig(),
@@ -709,7 +706,7 @@ func TestWebhook(ctx *context.Context) {
 
 // ReplayWebhook replays a webhook
 func ReplayWebhook(ctx *context.Context) {
-	hookTaskUUID := ctx.Params(":uuid")
+	hookTaskUUID := ctx.PathParam(":uuid")
 
 	orCtx, w := checkWebhook(ctx)
 	if ctx.Written() {

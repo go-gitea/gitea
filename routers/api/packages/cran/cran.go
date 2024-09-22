@@ -13,11 +13,11 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	cran_model "code.gitea.io/gitea/models/packages/cran"
-	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	cran_module "code.gitea.io/gitea/modules/packages/cran"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -28,18 +28,18 @@ func apiError(ctx *context.Context, status int, obj any) {
 }
 
 func EnumerateSourcePackages(ctx *context.Context) {
-	enumeratePackages(ctx, ctx.Params("format"), &cran_model.SearchOptions{
+	enumeratePackages(ctx, ctx.PathParam("format"), &cran_model.SearchOptions{
 		OwnerID:  ctx.Package.Owner.ID,
 		FileType: cran_module.TypeSource,
 	})
 }
 
 func EnumerateBinaryPackages(ctx *context.Context) {
-	enumeratePackages(ctx, ctx.Params("format"), &cran_model.SearchOptions{
+	enumeratePackages(ctx, ctx.PathParam("format"), &cran_model.SearchOptions{
 		OwnerID:  ctx.Package.Owner.ID,
 		FileType: cran_module.TypeBinary,
-		Platform: ctx.Params("platform"),
-		RVersion: ctx.Params("rversion"),
+		Platform: ctx.PathParam("platform"),
+		RVersion: ctx.PathParam("rversion"),
 	})
 }
 
@@ -151,12 +151,12 @@ func UploadBinaryPackageFile(ctx *context.Context) {
 }
 
 func uploadPackageFile(ctx *context.Context, compositeKey string, properties map[string]string) {
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
@@ -225,7 +225,7 @@ func DownloadSourcePackageFile(ctx *context.Context) {
 	downloadPackageFile(ctx, &cran_model.SearchOptions{
 		OwnerID:  ctx.Package.Owner.ID,
 		FileType: cran_module.TypeSource,
-		Filename: ctx.Params("filename"),
+		Filename: ctx.PathParam("filename"),
 	})
 }
 
@@ -233,9 +233,9 @@ func DownloadBinaryPackageFile(ctx *context.Context) {
 	downloadPackageFile(ctx, &cran_model.SearchOptions{
 		OwnerID:  ctx.Package.Owner.ID,
 		FileType: cran_module.TypeBinary,
-		Platform: ctx.Params("platform"),
-		RVersion: ctx.Params("rversion"),
-		Filename: ctx.Params("filename"),
+		Platform: ctx.PathParam("platform"),
+		RVersion: ctx.PathParam("rversion"),
+		Filename: ctx.PathParam("filename"),
 	})
 }
 

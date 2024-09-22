@@ -3,7 +3,7 @@
 
 package migration
 
-// Messenger is a formatting function similar to i18n.Tr
+// Messenger is a formatting function similar to i18n.TrString
 type Messenger func(key string, args ...any)
 
 // NilMessenger represents an empty formatting function

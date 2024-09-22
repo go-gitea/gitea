@@ -11,9 +11,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (

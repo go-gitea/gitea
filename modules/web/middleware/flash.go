@@ -3,7 +3,11 @@
 
 package middleware
 
-import "net/url"
+import (
+	"fmt"
+	"html/template"
+	"net/url"
+)
 
 // Flash represents a one time data transfer between two requests.
 type Flash struct {
@@ -26,26 +30,36 @@ func (f *Flash) set(name, msg string, current ...bool) {
 	}
 }
 
+func flashMsgStringOrHTML(msg any) string {
+	switch v := msg.(type) {
+	case string:
+		return v
+	case template.HTML:
+		return string(v)
+	}
+	panic(fmt.Sprintf("unknown type: %T", msg))
+}
+
 // Error sets error message
-func (f *Flash) Error(msg string, current ...bool) {
-	f.ErrorMsg = msg
-	f.set("error", msg, current...)
+func (f *Flash) Error(msg any, current ...bool) {
+	f.ErrorMsg = flashMsgStringOrHTML(msg)
+	f.set("error", f.ErrorMsg, current...)
 }
 
 // Warning sets warning message
-func (f *Flash) Warning(msg string, current ...bool) {
-	f.WarningMsg = msg
-	f.set("warning", msg, current...)
+func (f *Flash) Warning(msg any, current ...bool) {
+	f.WarningMsg = flashMsgStringOrHTML(msg)
+	f.set("warning", f.WarningMsg, current...)
 }
 
 // Info sets info message
-func (f *Flash) Info(msg string, current ...bool) {
-	f.InfoMsg = msg
-	f.set("info", msg, current...)
+func (f *Flash) Info(msg any, current ...bool) {
+	f.InfoMsg = flashMsgStringOrHTML(msg)
+	f.set("info", f.InfoMsg, current...)
 }
 
 // Success sets success message
-func (f *Flash) Success(msg string, current ...bool) {
-	f.SuccessMsg = msg
-	f.set("success", msg, current...)
+func (f *Flash) Success(msg any, current ...bool) {
+	f.SuccessMsg = flashMsgStringOrHTML(msg)
+	f.set("success", f.SuccessMsg, current...)
 }

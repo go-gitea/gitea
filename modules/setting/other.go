@@ -8,6 +8,7 @@ import "code.gitea.io/gitea/modules/log"
 type OtherConfig struct {
 	ShowFooterVersion          bool
 	ShowFooterTemplateLoadTime bool
+	ShowFooterPoweredBy        bool
 	EnableFeed                 bool
 	EnableSitemap              bool
 }
@@ -15,6 +16,7 @@ type OtherConfig struct {
 var Other = OtherConfig{
 	ShowFooterVersion:          true,
 	ShowFooterTemplateLoadTime: true,
+	ShowFooterPoweredBy:        true,
 	EnableSitemap:              true,
 	EnableFeed:                 true,
 }

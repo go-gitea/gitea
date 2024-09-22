@@ -26,10 +26,10 @@ type WriteCloserError interface {
 	CloseWithError(err error) error
 }
 
-// EnsureValidGitRepository runs git rev-parse in the repository path - thus ensuring that the repository is a valid repository.
+// ensureValidGitRepository runs git rev-parse in the repository path - thus ensuring that the repository is a valid repository.
 // Run before opening git cat-file.
 // This is needed otherwise the git cat-file will hang for invalid repositories.
-func EnsureValidGitRepository(ctx context.Context, repoPath string) error {
+func ensureValidGitRepository(ctx context.Context, repoPath string) error {
 	stderr := strings.Builder{}
 	err := NewCommand(ctx, "rev-parse").
 		SetDescription(fmt.Sprintf("%s rev-parse [repo_path: %s]", GitExecutable, repoPath)).
@@ -43,8 +43,8 @@ func EnsureValidGitRepository(ctx context.Context, repoPath string) error {
 	return nil
 }
 
-// CatFileBatchCheck opens git cat-file --batch-check in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
+// catFileBatchCheck opens git cat-file --batch-check in the provided repo and returns a stdin pipe, a stdout reader and cancel function
+func catFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
 	batchStdinReader, batchStdinWriter := io.Pipe()
 	batchStdoutReader, batchStdoutWriter := io.Pipe()
 	ctx, ctxCancel := context.WithCancel(ctx)
@@ -93,8 +93,8 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 	return batchStdinWriter, batchReader, cancel
 }
 
-// CatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
+// catFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
+func catFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
 	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
 	batchStdinReader, batchStdinWriter := io.Pipe()
@@ -203,16 +203,7 @@ headerLoop:
 	}
 
 	// Discard the rest of the tag
-	discard := size - n + 1
-	for discard > math.MaxInt32 {
-		_, err := rd.Discard(math.MaxInt32)
-		if err != nil {
-			return id, err
-		}
-		discard -= math.MaxInt32
-	}
-	_, err := rd.Discard(int(discard))
-	return id, err
+	return id, DiscardFull(rd, size-n+1)
 }
 
 // ReadTreeID reads a tree ID from a cat-file --batch stream, throwing away the rest of the stream.
@@ -238,16 +229,7 @@ headerLoop:
 	}
 
 	// Discard the rest of the commit
-	discard := size - n + 1
-	for discard > math.MaxInt32 {
-		_, err := rd.Discard(math.MaxInt32)
-		if err != nil {
-			return id, err
-		}
-		discard -= math.MaxInt32
-	}
-	_, err := rd.Discard(int(discard))
-	return id, err
+	return id, DiscardFull(rd, size-n+1)
 }
 
 // git tree files are a list:
@@ -325,10 +307,10 @@ func ParseTreeLine(objectFormat ObjectFormat, rd *bufio.Reader, modeBuf, fnameBu
 
 	// Deal with the binary hash
 	idx = 0
-	len := objectFormat.FullLength() / 2
-	for idx < len {
+	length := objectFormat.FullLength() / 2
+	for idx < length {
 		var read int
-		read, err = rd.Read(shaBuf[idx:len])
+		read, err = rd.Read(shaBuf[idx:length])
 		n += read
 		if err != nil {
 			return mode, fname, sha, n, err
@@ -344,4 +326,22 @@ var callerPrefix string
 func init() {
 	_, filename, _, _ := runtime.Caller(0)
 	callerPrefix = strings.TrimSuffix(filename, "modules/git/batch_reader.go")
+}
+
+func DiscardFull(rd *bufio.Reader, discard int64) error {
+	if discard > math.MaxInt32 {
+		n, err := rd.Discard(math.MaxInt32)
+		discard -= int64(n)
+		if err != nil {
+			return err
+		}
+	}
+	for discard > 0 {
+		n, err := rd.Discard(int(discard))
+		discard -= int64(n)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

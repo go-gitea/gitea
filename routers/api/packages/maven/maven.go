@@ -6,6 +6,7 @@ package maven
 import (
 	"crypto/md5"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/xml"
@@ -19,15 +20,14 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
-
-	"github.com/minio/sha256-simd"
 )
 
 const (
@@ -115,7 +115,9 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 	xmlMetadataWithHeader := append([]byte(xml.Header), xmlMetadata...)
 
 	latest := pds[len(pds)-1]
-	ctx.Resp.Header().Set("Last-Modified", latest.Version.CreatedUnix.Format(http.TimeFormat))
+	// http.TimeFormat required a UTC time, refer to https://pkg.go.dev/net/http#TimeFormat
+	lastModifed := latest.Version.CreatedUnix.AsTime().UTC().Format(http.TimeFormat)
+	ctx.Resp.Header().Set("Last-Modified", lastModifed)
 
 	ext := strings.ToLower(filepath.Ext(params.Filename))
 	if isChecksumExtension(ext) {
@@ -141,9 +143,7 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 	ctx.Resp.Header().Set("Content-Length", strconv.Itoa(len(xmlMetadataWithHeader)))
 	ctx.Resp.Header().Set("Content-Type", contentTypeXML)
 
-	if _, err := ctx.Resp.Write(xmlMetadataWithHeader); err != nil {
-		log.Error("write bytes failed: %v", err)
-	}
+	_, _ = ctx.Resp.Write(xmlMetadataWithHeader)
 }
 
 func servePackageFile(ctx *context.Context, params parameters, serveContent bool) {
@@ -226,6 +226,10 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 	helper.ServePackageFile(ctx, s, u, pf, opts)
 }
 
+func mavenPkgNameKey(packageName string) string {
+	return "pkg_maven_" + packageName
+}
+
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
 func UploadPackageFile(ctx *context.Context) {
 	params, err := extractPathParameters(ctx)
@@ -243,6 +247,14 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	packageName := params.GroupID + "-" + params.ArtifactID
+
+	// for the same package, only one upload at a time
+	releaser, err := globallock.Lock(ctx, mavenPkgNameKey(packageName))
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer releaser()
 
 	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
 	if err != nil {
@@ -388,7 +400,7 @@ type parameters struct {
 }
 
 func extractPathParameters(ctx *context.Context) (parameters, error) {
-	parts := strings.Split(ctx.Params("*"), "/")
+	parts := strings.Split(ctx.PathParam("*"), "/")
 
 	p := parameters{
 		Filename: parts[len(parts)-1],

@@ -55,15 +55,20 @@ func startTasks(ctx context.Context) error {
 			// cancel running jobs if the event is push
 			if row.Schedule.Event == webhook_module.HookEventPush {
 				// cancel running jobs of the same workflow
-				if err := actions_model.CancelRunningJobs(
+				if err := actions_model.CancelPreviousJobs(
 					ctx,
 					row.RepoID,
 					row.Schedule.Ref,
 					row.Schedule.WorkflowID,
 					webhook_module.HookEventSchedule,
 				); err != nil {
-					log.Error("CancelRunningJobs: %v", err)
+					log.Error("CancelPreviousJobs: %v", err)
 				}
+			}
+
+			if row.Repo.IsArchived {
+				// Skip if the repo is archived
+				continue
 			}
 
 			cfg, err := row.Repo.GetUnit(ctx, unit.TypeActions)
@@ -127,8 +132,14 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		Status:        actions_model.StatusWaiting,
 	}
 
+	vars, err := actions_model.GetVariablesOfRun(ctx, run)
+	if err != nil {
+		log.Error("GetVariablesOfRun: %v", err)
+		return err
+	}
+
 	// Parse the workflow specification from the cron schedule
-	workflows, err := jobparser.Parse(cron.Content)
+	workflows, err := jobparser.Parse(cron.Content, jobparser.WithVars(vars))
 	if err != nil {
 		return err
 	}

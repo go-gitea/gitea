@@ -392,6 +392,7 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		{"@gitea,", "@gitea"},
 		{"@gitea;", "@gitea"},
 		{"@gitea/team1;", "@gitea/team1"},
+		{"@user's idea", "@user"},
 	}
 	falseTestCases := []string{
 		"@ 0",
@@ -412,7 +413,6 @@ func TestRegExp_mentionPattern(t *testing.T) {
 
 	for _, testCase := range trueTestCases {
 		found := mentionPattern.FindStringSubmatch(testCase.pat)
-		assert.Len(t, found, 2)
 		assert.Equal(t, testCase.exp, found[1])
 	}
 	for _, testCase := range falseTestCases {
@@ -429,6 +429,8 @@ func TestRegExp_issueNumericPattern(t *testing.T) {
 		"  #12",
 		"#12:",
 		"ref: #12: msg",
+		"\"#1234\"",
+		"'#1234'",
 	}
 	falseTestCases := []string{
 		"# 1234",
@@ -459,6 +461,8 @@ func TestRegExp_issueAlphanumericPattern(t *testing.T) {
 		"(ABC-123)",
 		"[ABC-123]",
 		"ABC-123:",
+		"\"ABC-123\"",
+		"'ABC-123'",
 	}
 	falseTestCases := []string{
 		"RC-08",

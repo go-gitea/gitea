@@ -11,13 +11,14 @@ import (
 	"code.gitea.io/gitea/models/db"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 // DeleteCollaboration removes collaboration relation between the user and repository.
-func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, uid int64) (err error) {
+func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User) (err error) {
 	collaboration := &repo_model.Collaboration{
 		RepoID: repo.ID,
-		UserID: uid,
+		UserID: collaborator.ID,
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -31,20 +32,25 @@ func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, uid i
 	} else if has == 0 {
 		return committer.Commit()
 	}
+
+	if err := repo.LoadOwner(ctx); err != nil {
+		return err
+	}
+
 	if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
 		return err
 	}
 
-	if err = repo_model.WatchRepo(ctx, uid, repo.ID, false); err != nil {
+	if err = repo_model.WatchRepo(ctx, collaborator, repo, false); err != nil {
 		return err
 	}
 
-	if err = models.ReconsiderWatches(ctx, repo, uid); err != nil {
+	if err = models.ReconsiderWatches(ctx, repo, collaborator); err != nil {
 		return err
 	}
 
 	// Unassign a user from any issue (s)he has been assigned to in the repository
-	if err := models.ReconsiderRepoIssuesAssignee(ctx, repo, uid); err != nil {
+	if err := models.ReconsiderRepoIssuesAssignee(ctx, repo, collaborator); err != nil {
 		return err
 	}
 

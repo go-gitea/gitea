@@ -3,13 +3,13 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<div class="ui header flex-text-block gt-sb">
+		<div class="ui header flex-text-block tw-justify-between">
 			{{ctx.Locale.Tr "repo.wiki.new_page"}}
 			{{if .PageIsWikiEdit}}
 				<a class="ui tiny primary button" href="{{.RepoLink}}/wiki?action=_new">{{ctx.Locale.Tr "repo.wiki.new_page_button"}}</a>
 			{{end}}
 		</div>
-		<form class="ui form" action="{{.Link}}?action={{if .PageIsWikiEdit}}_edit{{else}}_new{{end}}" method="post">
+		<form class="ui form" action="?action={{if .PageIsWikiEdit}}_edit{{else}}_new{{end}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
 				<input name="title" value="{{.title}}" aria-label="{{ctx.Locale.Tr "repo.wiki.page_title"}}" placeholder="{{ctx.Locale.Tr "repo.wiki.page_title"}}" autofocus required>
@@ -31,14 +31,13 @@
 				"TextareaContent" $content
 			)}}
 
-			<div class="field gt-mt-4">
+			<div class="field tw-mt-4">
 				<input name="message" aria-label="{{ctx.Locale.Tr "repo.wiki.default_commit_message"}}" placeholder="{{ctx.Locale.Tr "repo.wiki.default_commit_message"}}">
 			</div>
 			<div class="divider"></div>
 			<div class="text right">
-				<button class="ui primary button">
-					{{ctx.Locale.Tr "repo.wiki.save_page"}}
-				</button>
+				<a class="ui basic cancel button" href="{{.Link}}">{{ctx.Locale.Tr "cancel"}}</a>
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.wiki.save_page"}}</button>
 			</div>
 		</form>
 	</div>

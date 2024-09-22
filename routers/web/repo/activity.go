@@ -10,7 +10,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
@@ -22,7 +22,9 @@ func Activity(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.activity")
 	ctx.Data["PageIsActivity"] = true
 
-	ctx.Data["Period"] = ctx.Params("period")
+	ctx.Data["PageIsPulse"] = true
+
+	ctx.Data["Period"] = ctx.PathParam("period")
 
 	timeUntil := time.Now()
 	var timeFrom time.Time
@@ -73,7 +75,7 @@ func ActivityAuthors(ctx *context.Context) {
 	timeUntil := time.Now()
 	var timeFrom time.Time
 
-	switch ctx.Params("period") {
+	switch ctx.PathParam("period") {
 	case "daily":
 		timeFrom = timeUntil.Add(-time.Hour * 24)
 	case "halfweekly":

@@ -15,12 +15,12 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -143,7 +143,7 @@ func GetDeployKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := asymkey_model.GetDeployKeyByID(ctx, ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetDeployKeyByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		if asymkey_model.IsErrDeployKeyNotExist(err) {
 			ctx.NotFound()
@@ -279,7 +279,7 @@ func DeleteDeploykey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := asymkey_service.DeleteDeployKey(ctx, ctx.Doer, ctx.ParamsInt64(":id")); err != nil {
+	if err := asymkey_service.DeleteDeployKey(ctx, ctx.Doer, ctx.PathParamInt64(":id")); err != nil {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {

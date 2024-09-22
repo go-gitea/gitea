@@ -12,13 +12,13 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 
@@ -40,6 +40,7 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
 	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["ShowRegistrationButton"] = false
@@ -48,23 +49,27 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
 
-	gothUser := ctx.Session.Get("linkAccountGothUser")
-	if gothUser == nil {
-		ctx.ServerError("UserSignIn", errors.New("not in LinkAccount session"))
+	gothUser, ok := ctx.Session.Get("linkAccountGothUser").(goth.User)
+	if !ok {
+		// no account in session, so just redirect to the login page, then the user could restart the process
+		ctx.Redirect(setting.AppSubURL + "/user/login")
 		return
 	}
 
-	gu, _ := gothUser.(goth.User)
-	uname, err := getUserName(&gu)
+	if missingFields, ok := gothUser.RawData["__giteaAutoRegMissingFields"].([]string); ok {
+		ctx.Data["AutoRegistrationFailedPrompt"] = ctx.Tr("auth.oauth_callback_unable_auto_reg", gothUser.Provider, strings.Join(missingFields, ","))
+	}
+
+	uname, err := extractUserNameFromOAuth2(&gothUser)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
-	email := gu.Email
+	email := gothUser.Email
 	ctx.Data["user_name"] = uname
 	ctx.Data["email"] = email
 
-	if len(email) != 0 {
+	if email != "" {
 		u, err := user_model.GetUserByEmail(ctx, email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			ctx.ServerError("UserSignIn", err)
@@ -73,7 +78,7 @@ func LinkAccount(ctx *context.Context) {
 		if u != nil {
 			ctx.Data["user_exists"] = true
 		}
-	} else if len(uname) != 0 {
+	} else if uname != "" {
 		u, err := user_model.GetUserByName(ctx, uname)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			ctx.ServerError("UserSignIn", err)
@@ -128,6 +133,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
 	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 
@@ -215,6 +221,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
 	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 

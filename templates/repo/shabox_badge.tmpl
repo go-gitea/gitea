@@ -3,10 +3,10 @@
 		<div title="{{if eq .verification.TrustStatus "trusted"}}{{else if eq .verification.TrustStatus "untrusted"}}{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user"}}: {{else}}{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}: {{end}}{{.verification.Reason}}">
 		{{if ne .verification.SigningUser.ID 0}}
 			{{svg "gitea-lock"}}
-			{{ctx.AvatarUtils.Avatar .verification.SigningUser 28 "signature"}}
+			{{ctx.AvatarUtils.Avatar .verification.SigningUser 16 "signature"}}
 		{{else}}
 			<span title="{{ctx.Locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog"}}</span>
-			{{ctx.AvatarUtils.AvatarByEmail .verification.SigningEmail "" 28 "signature"}}
+			{{ctx.AvatarUtils.AvatarByEmail .verification.SigningEmail "" 16 "signature"}}
 		{{end}}
 		</div>
 	{{else}}

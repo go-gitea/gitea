@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/context"
 )
 
 // ResolveRefOrSha resolve ref to sha if exist
@@ -72,7 +72,7 @@ func searchRefCommitByType(ctx *context.APIContext, refType, filter string) (str
 
 // ConvertToObjectID returns a full-length SHA1 from a potential ID string
 func ConvertToObjectID(ctx gocontext.Context, repo *context.Repository, commitID string) (git.ObjectID, error) {
-	objectFormat, _ := repo.GitRepo.GetObjectFormat()
+	objectFormat := repo.GetObjectFormat()
 	if len(commitID) == objectFormat.FullLength() && objectFormat.IsValid(commitID) {
 		sha, err := git.NewIDFromString(commitID)
 		if err == nil {

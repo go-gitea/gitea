@@ -5,6 +5,7 @@ package integration
 
 import (
 	"net/http"
+	"slices"
 	"testing"
 
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -14,8 +15,9 @@ import (
 func TestOrgProjectAccess(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	// disable repo project unit
-	unit_model.DisabledRepoUnits = []unit_model.Type{unit_model.TypeProjects}
+	disabledRepoUnits := unit_model.DisabledRepoUnitsGet()
+	unit_model.DisabledRepoUnitsSet(append(slices.Clone(disabledRepoUnits), unit_model.TypeProjects))
+	defer unit_model.DisabledRepoUnitsSet(disabledRepoUnits)
 
 	// repo project, 404
 	req := NewRequest(t, "GET", "/user2/repo1/projects")

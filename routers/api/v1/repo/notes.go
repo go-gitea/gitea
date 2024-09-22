@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -52,7 +52,7 @@ func GetNote(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	sha := ctx.Params(":sha")
+	sha := ctx.PathParam(":sha")
 	if !git.IsValidRefPattern(sha) {
 		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
 		return

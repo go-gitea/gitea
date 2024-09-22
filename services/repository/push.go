@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
@@ -93,11 +92,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 	defer gitRepo.Close()
 
-	objectFormat, err := gitRepo.GetObjectFormat()
-	if err != nil {
-		return fmt.Errorf("unknown repository ObjectFormat [%s]: %w", repo.FullName(), err)
-	}
-
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		return fmt.Errorf("Failed to update size for repository: %v", err)
 	}
@@ -105,6 +99,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	addTags := make([]string, 0, len(optsList))
 	delTags := make([]string, 0, len(optsList))
 	var pusher *user_model.User
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 
 	for _, opts := range optsList {
 		log.Trace("pushUpdates: %-v %s %s %s", repo, opts.OldCommitID, opts.NewCommitID, opts.RefFullName)
@@ -187,7 +182,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 						repo.DefaultBranch = refName
 						repo.IsEmpty = false
 						if repo.DefaultBranch != setting.Repository.DefaultBranch {
-							if err := gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+							if err := gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 								if !git.IsErrUnsupportedVersion(err) {
 									return err
 								}
@@ -222,6 +217,17 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					} else {
 						// TODO: increment update the commit count cache but not remove
 						cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
+					}
+				}
+
+				// delete cache for divergence
+				if branch == repo.DefaultBranch {
+					if err := DelRepoDivergenceFromCache(ctx, repo.ID); err != nil {
+						log.Error("DelRepoDivergenceFromCache: %v", err)
+					}
+				} else {
+					if err := DelDivergenceFromCache(repo.ID, branch); err != nil {
+						log.Error("DelDivergenceFromCache: %v", err)
 					}
 				}
 
@@ -263,10 +269,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
 				}
 
-				if err = syncBranchToDB(ctx, repo.ID, opts.PusherID, branch, newCommit); err != nil {
-					return fmt.Errorf("git_model.UpdateBranch %s:%s failed: %v", repo.FullName(), branch, err)
-				}
-
 				notify_service.PushCommits(ctx, pusher, repo, opts, commits)
 
 				// Cache for big repository
@@ -278,10 +280,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				if err = pull_service.CloseBranchPulls(ctx, pusher, repo.ID, branch); err != nil {
 					// close all related pulls
 					log.Error("close related pull request failed: %v", err)
-				}
-
-				if err := git_model.AddDeletedBranch(ctx, repo.ID, branch, pusher.ID); err != nil {
-					return fmt.Errorf("AddDeletedBranch %s:%s failed: %v", repo.FullName(), branch, err)
 				}
 			}
 
@@ -321,14 +319,10 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		return nil
 	}
 
-	lowerTags := make([]string, 0, len(tags))
-	for _, tag := range tags {
-		lowerTags = append(lowerTags, strings.ToLower(tag))
-	}
-
 	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
-		RepoID:   repo.ID,
-		TagNames: lowerTags,
+		RepoID:      repo.ID,
+		TagNames:    tags,
+		IncludeTags: true,
 	})
 	if err != nil {
 		return fmt.Errorf("db.Find[repo_model.Release]: %w", err)
@@ -336,6 +330,11 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	relMap := make(map[string]*repo_model.Release)
 	for _, rel := range releases {
 		relMap[rel.LowerTagName] = rel
+	}
+
+	lowerTags := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		lowerTags = append(lowerTags, strings.ToLower(tag))
 	}
 
 	newReleases := make([]*repo_model.Release, 0, len(lowerTags)-len(relMap))
@@ -384,12 +383,12 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 
 		rel, has := relMap[lowerTag]
 
+		parts := strings.SplitN(tag.Message, "\n", 2)
+		note := ""
+		if len(parts) > 1 {
+			note = parts[1]
+		}
 		if !has {
-			parts := strings.SplitN(tag.Message, "\n", 2)
-			note := ""
-			if len(parts) > 1 {
-				note = parts[1]
-			}
 			rel = &repo_model.Release{
 				RepoID:       repo.ID,
 				Title:        parts[0],
@@ -410,10 +409,11 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 
 			newReleases = append(newReleases, rel)
 		} else {
+			rel.Title = parts[0]
+			rel.Note = note
 			rel.Sha1 = commit.ID.String()
 			rel.CreatedUnix = timeutil.TimeStamp(createdAt.Unix())
 			rel.NumCommits = commitsCount
-			rel.IsDraft = false
 			if rel.IsTag && author != nil {
 				rel.PublisherID = author.ID
 			}

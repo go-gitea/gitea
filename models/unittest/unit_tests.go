@@ -131,8 +131,8 @@ func AssertSuccessfulInsert(t assert.TestingT, beans ...any) {
 }
 
 // AssertCount assert the count of a bean
-func AssertCount(t assert.TestingT, bean, expected any) {
-	assert.EqualValues(t, expected, GetCount(t, bean))
+func AssertCount(t assert.TestingT, bean, expected any) bool {
+	return assert.EqualValues(t, expected, GetCount(t, bean))
 }
 
 // AssertInt64InRange assert value is in range [low, high]
@@ -150,7 +150,7 @@ func GetCountByCond(t assert.TestingT, tableName string, cond builder.Cond) int6
 }
 
 // AssertCountByCond test the count of database entries matching bean
-func AssertCountByCond(t assert.TestingT, tableName string, cond builder.Cond, expected int) {
-	assert.EqualValues(t, expected, GetCountByCond(t, tableName, cond),
+func AssertCountByCond(t assert.TestingT, tableName string, cond builder.Cond, expected int) bool {
+	return assert.EqualValues(t, expected, GetCountByCond(t, tableName, cond),
 		"Failed consistency test, the counted bean (of table %s) was %+v", tableName, cond)
 }

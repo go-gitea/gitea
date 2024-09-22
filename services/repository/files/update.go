@@ -40,7 +40,7 @@ type ChangeRepoFile struct {
 	Operation     string
 	TreePath      string
 	FromTreePath  string
-	ContentReader io.Reader
+	ContentReader io.ReadSeeker
 	SHA           string
 	Options       *RepoFileOptions
 }
@@ -143,7 +143,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 
 	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("NewTemporaryUploadRepository failed: %v", err)
 	}
 	defer t.Close()
 	hasOldBranch := true
@@ -208,11 +208,10 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 				return nil, fmt.Errorf("ConvertToSHA1: Invalid last commit ID: %w", err)
 			}
 			opts.LastCommitID = lastCommitID.String()
-
 		}
 
 		for _, file := range opts.Files {
-			if err := handleCheckErrors(file, commit, opts, repo); err != nil {
+			if err := handleCheckErrors(file, commit, opts); err != nil {
 				return nil, err
 			}
 		}
@@ -278,7 +277,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 }
 
 // handles the check for various issues for ChangeRepoFiles
-func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRepoFilesOptions, repo *repo_model.Repository) error {
+func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRepoFilesOptions) error {
 	if file.Operation == "update" || file.Operation == "delete" {
 		fromEntry, err := commit.GetTreeEntryByPath(file.Options.fromTreePath)
 		if err != nil {
@@ -360,7 +359,6 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 					Path: file.Options.treePath,
 				}
 			}
-
 		}
 	}
 
@@ -448,6 +446,10 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 			return err
 		}
 		if !exist {
+			_, err := file.ContentReader.Seek(0, io.SeekStart)
+			if err != nil {
+				return err
+			}
 			if err := contentStore.Put(lfsMetaObject.Pointer, file.ContentReader); err != nil {
 				if _, err2 := git_model.RemoveLFSMetaObjectByOid(ctx, repoID, lfsMetaObject.Oid); err2 != nil {
 					return fmt.Errorf("unable to remove failed inserted LFS object %s: %v (Prev Error: %w)", lfsMetaObject.Oid, err2, err)

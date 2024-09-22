@@ -15,20 +15,22 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
 	tplProfileBigAvatar base.TplName = "shared/user/profile_big_avatar"
+	tplFollowUnfollow   base.TplName = "org/follow_unfollow"
 )
 
 // OwnerProfile render profile page for a user or a organization (aka, repo owner)
@@ -52,7 +54,7 @@ func OwnerProfile(ctx *context.Context) {
 func userProfile(ctx *context.Context) {
 	// check view permissions
 	if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
-		ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
+		ctx.NotFound("user", fmt.Errorf("%s", ctx.ContextUser.Name))
 		return
 	}
 
@@ -108,32 +110,12 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		orderBy db.SearchOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.FormString("sort")
-	switch ctx.FormString("sort") {
-	case "newest":
-		orderBy = db.SearchOrderByNewest
-	case "oldest":
-		orderBy = db.SearchOrderByOldest
-	case "recentupdate":
-		orderBy = db.SearchOrderByRecentUpdated
-	case "leastupdate":
-		orderBy = db.SearchOrderByLeastUpdated
-	case "reversealphabetically":
-		orderBy = db.SearchOrderByAlphabeticallyReverse
-	case "alphabetically":
-		orderBy = db.SearchOrderByAlphabetically
-	case "moststars":
-		orderBy = db.SearchOrderByStarsReverse
-	case "feweststars":
-		orderBy = db.SearchOrderByStars
-	case "mostforks":
-		orderBy = db.SearchOrderByForksReverse
-	case "fewestforks":
-		orderBy = db.SearchOrderByForks
-	default:
-		ctx.Data["SortType"] = "recentupdate"
-		orderBy = db.SearchOrderByRecentUpdated
+	sortOrder := ctx.FormString("sort")
+	if _, ok := repo_model.OrderByFlatMap[sortOrder]; !ok {
+		sortOrder = setting.UI.ExploreDefaultSort // TODO: add new default sort order for user home?
 	}
+	ctx.Data["SortType"] = sortOrder
+	orderBy = repo_model.OrderByFlatMap[sortOrder]
 
 	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
@@ -159,6 +141,21 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		return
 	}
 	ctx.Data["NumFollowing"] = numFollowing
+
+	archived := ctx.FormOptionalBool("archived")
+	ctx.Data["IsArchived"] = archived
+
+	fork := ctx.FormOptionalBool("fork")
+	ctx.Data["IsFork"] = fork
+
+	mirror := ctx.FormOptionalBool("mirror")
+	ctx.Data["IsMirror"] = mirror
+
+	template := ctx.FormOptionalBool("template")
+	ctx.Data["IsTemplate"] = template
+
+	private := ctx.FormOptionalBool("private")
+	ctx.Data["IsPrivate"] = private
 
 	switch tab {
 	case "followers":
@@ -202,10 +199,15 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
 			StarredByID:        ctx.ContextUser.ID,
-			Collaborate:        util.OptionalBoolFalse,
+			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
+			Archived:           archived,
+			Fork:               fork,
+			Mirror:             mirror,
+			Template:           template,
+			IsPrivate:          private,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)
@@ -224,10 +226,15 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
 			WatchedByID:        ctx.ContextUser.ID,
-			Collaborate:        util.OptionalBoolFalse,
+			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
+			Archived:           archived,
+			Fork:               fork,
+			Mirror:             mirror,
+			Template:           template,
+			IsPrivate:          private,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)
@@ -269,10 +276,15 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			OwnerID:            ctx.ContextUser.ID,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
-			Collaborate:        util.OptionalBoolFalse,
+			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
+			Archived:           archived,
+			Fork:               fork,
+			Mirror:             mirror,
+			Template:           template,
+			IsPrivate:          private,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)
@@ -292,12 +304,29 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 
 	pager := context.NewPagination(total, pagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "tab", "TabName")
+	pager.AddParamString("tab", tab)
 	if tab != "followers" && tab != "following" && tab != "activity" && tab != "projects" {
-		pager.AddParam(ctx, "language", "Language")
+		pager.AddParamString("language", language)
 	}
 	if tab == "activity" {
-		pager.AddParam(ctx, "date", "Date")
+		if ctx.Data["Date"] != nil {
+			pager.AddParamString("date", fmt.Sprint(ctx.Data["Date"]))
+		}
+	}
+	if archived.Has() {
+		pager.AddParamString("archived", fmt.Sprint(archived.Value()))
+	}
+	if fork.Has() {
+		pager.AddParamString("fork", fmt.Sprint(fork.Value()))
+	}
+	if mirror.Has() {
+		pager.AddParamString("mirror", fmt.Sprint(mirror.Value()))
+	}
+	if template.Has() {
+		pager.AddParamString("template", fmt.Sprint(template.Value()))
+	}
+	if private.Has() {
+		pager.AddParamString("private", fmt.Sprint(private.Value()))
 	}
 	ctx.Data["Page"] = pager
 }
@@ -307,7 +336,7 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":
-		err = user_model.FollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
+		err = user_model.FollowUser(ctx, ctx.Doer, ctx.ContextUser)
 	case "unfollow":
 		err = user_model.UnfollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	}
@@ -318,6 +347,16 @@ func Action(ctx *context.Context) {
 		return
 	}
 
-	shared_user.PrepareContextForProfileBigAvatar(ctx)
-	ctx.HTML(http.StatusOK, tplProfileBigAvatar)
+	if ctx.ContextUser.IsIndividual() {
+		shared_user.PrepareContextForProfileBigAvatar(ctx)
+		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
+		return
+	} else if ctx.ContextUser.IsOrganization() {
+		ctx.Data["Org"] = ctx.ContextUser
+		ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
+		ctx.HTML(http.StatusOK, tplFollowUnfollow)
+		return
+	}
+	log.Error("Failed to apply action %q: unsupport context user type: %s", ctx.FormString("action"), ctx.ContextUser.Type)
+	ctx.Error(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 }

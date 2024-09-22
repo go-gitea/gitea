@@ -1,9 +1,9 @@
-<script>
+<script lang="ts">
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
-import {loadMoreFiles} from '../features/repo-diff.js';
-import {toggleElem} from '../utils/dom.js';
-import {diffTreeStore} from '../modules/stores.js';
-import {setFileFolding} from '../features/file-fold.js';
+import {loadMoreFiles} from '../features/repo-diff.ts';
+import {toggleElem} from '../utils/dom.ts';
+import {diffTreeStore} from '../modules/stores.ts';
+import {setFileFolding} from '../features/file-fold.ts';
 
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 
@@ -30,7 +30,7 @@ export default {
           let newParent = {
             name: split,
             children: [],
-            isFile
+            isFile,
           };
 
           if (isFile === true) {
@@ -40,7 +40,7 @@ export default {
           if (parent) {
             // check if the folder already exists
             const existingFolder = parent.children.find(
-              (x) => x.name === split
+              (x) => x.name === split,
             );
             if (existingFolder) {
               newParent = existingFolder;
@@ -74,7 +74,7 @@ export default {
       // reduce the depth of our tree.
       mergeChildIfOnlyOneDir(result);
       return result;
-    }
+    },
   },
   mounted() {
     // Default to true if unset
@@ -112,7 +112,7 @@ export default {
     updateState(visible) {
       const btn = document.querySelector('.diff-toggle-file-tree-button');
       const [toShow, toHide] = btn.querySelectorAll('.icon');
-      const tree = document.getElementById('diff-file-tree');
+      const tree = document.querySelector('#diff-file-tree');
       const newTooltip = btn.getAttribute(visible ? 'data-hide-text' : 'data-show-text');
       btn.setAttribute('data-tooltip-content', newTooltip);
       toggleElem(tree, visible);
@@ -129,7 +129,7 @@ export default {
   <div v-if="store.fileTreeIsVisible" class="diff-file-tree-items">
     <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
     <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item"/>
-    <div v-if="store.isIncomplete" class="gt-pt-2">
+    <div v-if="store.isIncomplete" class="tw-pt-1">
       <a :class="['ui', 'basic', 'tiny', 'button', store.isLoadingNewData ? 'disabled' : '']" @click.stop="loadMoreData">{{ store.showMoreMessage }}</a>
     </div>
   </div>

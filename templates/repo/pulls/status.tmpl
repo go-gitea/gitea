@@ -2,6 +2,7 @@
 Template Attributes:
 * CommitStatus: summary of all commit status state
 * CommitStatuses: all commit status elements
+* MissingRequiredChecks: commit check contexts that are required by branch protection but not present
 * ShowHideChecks: whether use a button to show/hide the checks
 * is_context_required: Used in pull request commit status check table
 */}}
@@ -9,7 +10,7 @@ Template Attributes:
 {{if .CommitStatus}}
 <div class="commit-status-panel">
 	<div class="ui top attached header commit-status-header">
-		{{if eq .CommitStatus.State "pending"}}
+		{{if or (eq .CommitStatus.State "pending") (.MissingRequiredChecks)}}
 			{{ctx.Locale.Tr "repo.pulls.status_checking"}}
 		{{else if eq .CommitStatus.State "success"}}
 			{{ctx.Locale.Tr "repo.pulls.status_checks_success"}}
@@ -44,6 +45,13 @@ Template Attributes:
 					{{end}}
 					<span>{{if .TargetURL}}<a href="{{.TargetURL}}">{{ctx.Locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
 				</div>
+			</div>
+		{{end}}
+		{{range .MissingRequiredChecks}}
+			<div class="commit-status-item">
+				{{svg "octicon-dot-fill" 18 "commit-status icon text yellow"}}
+				<div class="status-context gt-ellipsis">{{.}}</div>
+				<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>
 			</div>
 		{{end}}
 	</div>

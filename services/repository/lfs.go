@@ -79,7 +79,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 
 	store := lfs.NewContentStore()
 	errStop := errors.New("STOPERR")
-	objectFormat, _ := gitRepo.GetObjectFormat()
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 
 	err = git_model.IterateLFSMetaObjectsForRepo(ctx, repo.ID, func(ctx context.Context, metaObject *git_model.LFSMetaObject, count int64) error {
 		if opts.NumberToCheckPerRepo > 0 && total > opts.NumberToCheckPerRepo {

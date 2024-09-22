@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/contexttest"
 	"code.gitea.io/gitea/services/forms"
 
 	"github.com/stretchr/testify/assert"

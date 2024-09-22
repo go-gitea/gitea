@@ -6,7 +6,6 @@ package setting
 import (
 	"fmt"
 	"math"
-	"net/url"
 	"os"
 	"path/filepath"
 
@@ -19,7 +18,6 @@ var (
 		Storage           *Storage
 		Enabled           bool
 		ChunkedUploadPath string
-		RegistryHost      string
 
 		LimitTotalOwnerCount int64
 		LimitTotalOwnerSize  int64
@@ -44,6 +42,8 @@ var (
 		LimitSizeRubyGems    int64
 		LimitSizeSwift       int64
 		LimitSizeVagrant     int64
+
+		DefaultRPMSignEnabled bool
 	}{
 		Enabled:              true,
 		LimitTotalOwnerCount: -1,
@@ -65,9 +65,6 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	if err != nil {
 		return err
 	}
-
-	appURL, _ := url.Parse(AppURL)
-	Packages.RegistryHost = appURL.Host
 
 	Packages.ChunkedUploadPath = filepath.ToSlash(sec.Key("CHUNKED_UPLOAD_PATH").MustString("tmp/package-upload"))
 	if !filepath.IsAbs(Packages.ChunkedUploadPath) {
@@ -102,6 +99,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	Packages.LimitSizeRubyGems = mustBytes(sec, "LIMIT_SIZE_RUBYGEMS")
 	Packages.LimitSizeSwift = mustBytes(sec, "LIMIT_SIZE_SWIFT")
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
+	Packages.DefaultRPMSignEnabled = sec.Key("DEFAULT_RPM_SIGN_ENABLED").MustBool(false)
 	return nil
 }
 

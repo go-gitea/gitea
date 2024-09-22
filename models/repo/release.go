@@ -7,6 +7,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/url"
 	"sort"
 	"strconv"
@@ -15,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -75,11 +77,11 @@ type Release struct {
 	Target           string
 	TargetBehind     string `xorm:"-"` // to handle non-existing or empty target
 	Title            string
-	Sha1             string `xorm:"VARCHAR(64)"`
+	Sha1             string `xorm:"INDEX VARCHAR(64)"`
 	NumCommits       int64
 	NumCommitsBehind int64              `xorm:"-"`
 	Note             string             `xorm:"TEXT"`
-	RenderedNote     string             `xorm:"-"`
+	RenderedNote     template.HTML      `xorm:"-"`
 	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
 	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
 	IsTag            bool               `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
@@ -228,10 +230,11 @@ type FindReleasesOptions struct {
 	RepoID        int64
 	IncludeDrafts bool
 	IncludeTags   bool
-	IsPreRelease  util.OptionalBool
-	IsDraft       util.OptionalBool
+	IsPreRelease  optional.Option[bool]
+	IsDraft       optional.Option[bool]
 	TagNames      []string
-	HasSha1       util.OptionalBool // useful to find draft releases which are created with existing tags
+	HasSha1       optional.Option[bool] // useful to find draft releases which are created with existing tags
+	NamePattern   optional.Option[string]
 }
 
 func (opts FindReleasesOptions) ToConds() builder.Cond {
@@ -246,19 +249,24 @@ func (opts FindReleasesOptions) ToConds() builder.Cond {
 	if len(opts.TagNames) > 0 {
 		cond = cond.And(builder.In("tag_name", opts.TagNames))
 	}
-	if !opts.IsPreRelease.IsNone() {
-		cond = cond.And(builder.Eq{"is_prerelease": opts.IsPreRelease.IsTrue()})
+	if opts.IsPreRelease.Has() {
+		cond = cond.And(builder.Eq{"is_prerelease": opts.IsPreRelease.Value()})
 	}
-	if !opts.IsDraft.IsNone() {
-		cond = cond.And(builder.Eq{"is_draft": opts.IsDraft.IsTrue()})
+	if opts.IsDraft.Has() {
+		cond = cond.And(builder.Eq{"is_draft": opts.IsDraft.Value()})
 	}
-	if !opts.HasSha1.IsNone() {
-		if opts.HasSha1.IsTrue() {
+	if opts.HasSha1.Has() {
+		if opts.HasSha1.Value() {
 			cond = cond.And(builder.Neq{"sha1": ""})
 		} else {
 			cond = cond.And(builder.Eq{"sha1": ""})
 		}
 	}
+
+	if opts.NamePattern.Has() && opts.NamePattern.Value() != "" {
+		cond = cond.And(builder.Like{"lower_tag_name", strings.ToLower(opts.NamePattern.Value())})
+	}
+
 	return cond
 }
 
@@ -275,7 +283,7 @@ func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
 		ListOptions:   listOptions,
 		IncludeDrafts: true,
 		IncludeTags:   true,
-		HasSha1:       util.OptionalBoolTrue,
+		HasSha1:       optional.Some(true),
 		RepoID:        repoID,
 	}
 
@@ -394,32 +402,6 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	}
 
 	return err
-}
-
-type releaseSorter struct {
-	rels []*Release
-}
-
-func (rs *releaseSorter) Len() int {
-	return len(rs.rels)
-}
-
-func (rs *releaseSorter) Less(i, j int) bool {
-	diffNum := rs.rels[i].NumCommits - rs.rels[j].NumCommits
-	if diffNum != 0 {
-		return diffNum > 0
-	}
-	return rs.rels[i].CreatedUnix > rs.rels[j].CreatedUnix
-}
-
-func (rs *releaseSorter) Swap(i, j int) {
-	rs.rels[i], rs.rels[j] = rs.rels[j], rs.rels[i]
-}
-
-// SortReleases sorts releases by number of commits and created time.
-func SortReleases(rels []*Release) {
-	sorter := &releaseSorter{rels: rels}
-	sort.Sort(sorter)
 }
 
 // UpdateReleasesMigrationsByType updates all migrated repositories' releases from gitServiceType to replace originalAuthorID to posterID
@@ -560,4 +542,18 @@ func InsertReleases(ctx context.Context, rels ...*Release) error {
 	}
 
 	return committer.Commit()
+}
+
+func FindTagsByCommitIDs(ctx context.Context, repoID int64, commitIDs ...string) (map[string][]*Release, error) {
+	releases := make([]*Release, 0, len(commitIDs))
+	if err := db.GetEngine(ctx).Where("repo_id=?", repoID).
+		In("sha1", commitIDs).
+		Find(&releases); err != nil {
+		return nil, err
+	}
+	res := make(map[string][]*Release, len(releases))
+	for _, r := range releases {
+		res[r.Sha1] = append(res[r.Sha1], r)
+	}
+	return res, nil
 }

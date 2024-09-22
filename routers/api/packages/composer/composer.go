@@ -14,12 +14,13 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	composer_module "code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	packages_service "code.gitea.io/gitea/services/packages"
 
@@ -66,7 +67,7 @@ func SearchPackages(ctx *context.Context) {
 		OwnerID:    ctx.Package.Owner.ID,
 		Type:       packages_model.TypeComposer,
 		Name:       packages_model.SearchValue{Value: ctx.FormTrim("q")},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator:  &paginator,
 	}
 	if ctx.FormTrim("type") != "" {
@@ -133,8 +134,8 @@ func EnumeratePackages(ctx *context.Context) {
 // PackageMetadata returns the metadata for a single package
 // https://packagist.org/apidoc#get-package-data
 func PackageMetadata(ctx *context.Context) {
-	vendorName := ctx.Params("vendorname")
-	projectName := ctx.Params("projectname")
+	vendorName := ctx.PathParam("vendorname")
+	projectName := ctx.PathParam("projectname")
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeComposer, vendorName+"/"+projectName)
 	if err != nil {
@@ -167,11 +168,11 @@ func DownloadPackageFile(ctx *context.Context) {
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeComposer,
-			Name:        ctx.Params("package"),
-			Version:     ctx.Params("version"),
+			Name:        ctx.PathParam("package"),
+			Version:     ctx.PathParam("version"),
 		},
 		&packages_service.PackageFileInfo{
-			Filename: ctx.Params("filename"),
+			Filename: ctx.PathParam("filename"),
 		},
 	)
 	if err != nil {

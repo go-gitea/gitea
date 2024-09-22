@@ -7,6 +7,7 @@ package generate
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"time"
 
@@ -38,19 +39,24 @@ func NewInternalToken() (string, error) {
 	return internalToken, nil
 }
 
-// NewJwtSecret generates a new value intended to be used for JWT secrets.
-func NewJwtSecret() ([]byte, error) {
-	bytes := make([]byte, 32)
-	_, err := io.ReadFull(rand.Reader, bytes)
-	if err != nil {
+const defaultJwtSecretLen = 32
+
+// DecodeJwtSecretBase64 decodes a base64 encoded jwt secret into bytes, and check its length
+func DecodeJwtSecretBase64(src string) ([]byte, error) {
+	encoding := base64.RawURLEncoding
+	decoded := make([]byte, encoding.DecodedLen(len(src))+3)
+	if n, err := encoding.Decode(decoded, []byte(src)); err != nil {
 		return nil, err
+	} else if n != defaultJwtSecretLen {
+		return nil, fmt.Errorf("invalid base64 decoded length: %d, expects: %d", n, defaultJwtSecretLen)
 	}
-	return bytes, nil
+	return decoded[:defaultJwtSecretLen], nil
 }
 
-// NewJwtSecretBase64 generates a new base64 encoded value intended to be used for JWT secrets.
-func NewJwtSecretBase64() ([]byte, string, error) {
-	bytes, err := NewJwtSecret()
+// NewJwtSecretWithBase64 generates a jwt secret with its base64 encoded value intended to be used for saving into config file
+func NewJwtSecretWithBase64() ([]byte, string, error) {
+	bytes := make([]byte, defaultJwtSecretLen)
+	_, err := io.ReadFull(rand.Reader, bytes)
 	if err != nil {
 		return nil, "", err
 	}

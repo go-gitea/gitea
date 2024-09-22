@@ -9,9 +9,9 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/contexttest"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -35,6 +35,7 @@ func TestRepoEdit(t *testing.T) {
 	allowRebase := false
 	allowRebaseMerge := false
 	allowSquashMerge := false
+	allowFastForwardOnlyMerge := false
 	archived := true
 	opts := api.EditRepoOption{
 		Name:                      &ctx.Repo.Repository.Name,
@@ -50,6 +51,7 @@ func TestRepoEdit(t *testing.T) {
 		AllowRebase:               &allowRebase,
 		AllowRebaseMerge:          &allowRebaseMerge,
 		AllowSquash:               &allowSquashMerge,
+		AllowFastForwardOnly:      &allowFastForwardOnlyMerge,
 		Archived:                  &archived,
 	}
 

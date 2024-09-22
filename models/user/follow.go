@@ -29,9 +29,13 @@ func IsFollowing(ctx context.Context, userID, followID int64) bool {
 }
 
 // FollowUser marks someone be another's follower.
-func FollowUser(ctx context.Context, userID, followID int64) (err error) {
-	if userID == followID || IsFollowing(ctx, userID, followID) {
+func FollowUser(ctx context.Context, user, follow *User) (err error) {
+	if user.ID == follow.ID || IsFollowing(ctx, user.ID, follow.ID) {
 		return nil
+	}
+
+	if IsUserBlockedBy(ctx, user, follow.ID) || IsUserBlockedBy(ctx, follow, user.ID) {
+		return ErrBlockedUser
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -40,15 +44,15 @@ func FollowUser(ctx context.Context, userID, followID int64) (err error) {
 	}
 	defer committer.Close()
 
-	if err = db.Insert(ctx, &Follow{UserID: userID, FollowID: followID}); err != nil {
+	if err = db.Insert(ctx, &Follow{UserID: user.ID, FollowID: follow.ID}); err != nil {
 		return err
 	}
 
-	if _, err = db.Exec(ctx, "UPDATE `user` SET num_followers = num_followers + 1 WHERE id = ?", followID); err != nil {
+	if _, err = db.Exec(ctx, "UPDATE `user` SET num_followers = num_followers + 1 WHERE id = ?", follow.ID); err != nil {
 		return err
 	}
 
-	if _, err = db.Exec(ctx, "UPDATE `user` SET num_following = num_following + 1 WHERE id = ?", userID); err != nil {
+	if _, err = db.Exec(ctx, "UPDATE `user` SET num_following = num_following + 1 WHERE id = ?", user.ID); err != nil {
 		return err
 	}
 	return committer.Commit()

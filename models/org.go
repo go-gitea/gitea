@@ -12,15 +12,16 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 // RemoveOrgUser removes user from given organization.
-func RemoveOrgUser(ctx context.Context, orgID, userID int64) error {
+func RemoveOrgUser(ctx context.Context, org *organization.Organization, user *user_model.User) error {
 	ou := new(organization.OrgUser)
 
 	has, err := db.GetEngine(ctx).
-		Where("uid=?", userID).
-		And("org_id=?", orgID).
+		Where("uid=?", user.ID).
+		And("org_id=?", org.ID).
 		Get(ou)
 	if err != nil {
 		return fmt.Errorf("get org-user: %w", err)
@@ -28,13 +29,8 @@ func RemoveOrgUser(ctx context.Context, orgID, userID int64) error {
 		return nil
 	}
 
-	org, err := organization.GetOrgByID(ctx, orgID)
-	if err != nil {
-		return fmt.Errorf("GetUserByID [%d]: %w", orgID, err)
-	}
-
 	// Check if the user to delete is the last member in owner team.
-	if isOwner, err := organization.IsOrganizationOwner(ctx, orgID, userID); err != nil {
+	if isOwner, err := organization.IsOrganizationOwner(ctx, org.ID, user.ID); err != nil {
 		return err
 	} else if isOwner {
 		t, err := organization.GetOwnerTeam(ctx, org.ID)
@@ -45,8 +41,8 @@ func RemoveOrgUser(ctx context.Context, orgID, userID int64) error {
 			if err := t.LoadMembers(ctx); err != nil {
 				return err
 			}
-			if t.Members[0].ID == userID {
-				return organization.ErrLastOrgOwner{UID: userID}
+			if t.Members[0].ID == user.ID {
+				return organization.ErrLastOrgOwner{UID: user.ID}
 			}
 		}
 	}
@@ -59,28 +55,32 @@ func RemoveOrgUser(ctx context.Context, orgID, userID int64) error {
 
 	if _, err := db.DeleteByID[organization.OrgUser](ctx, ou.ID); err != nil {
 		return err
-	} else if _, err = db.Exec(ctx, "UPDATE `user` SET num_members=num_members-1 WHERE id=?", orgID); err != nil {
+	} else if _, err = db.Exec(ctx, "UPDATE `user` SET num_members=num_members-1 WHERE id=?", org.ID); err != nil {
 		return err
 	}
 
 	// Delete all repository accesses and unwatch them.
-	env, err := organization.AccessibleReposEnv(ctx, org, userID)
+	env, err := organization.AccessibleReposEnv(ctx, org, user.ID)
 	if err != nil {
 		return fmt.Errorf("AccessibleReposEnv: %w", err)
 	}
 	repoIDs, err := env.RepoIDs(1, org.NumRepos)
 	if err != nil {
-		return fmt.Errorf("GetUserRepositories [%d]: %w", userID, err)
+		return fmt.Errorf("GetUserRepositories [%d]: %w", user.ID, err)
 	}
 	for _, repoID := range repoIDs {
-		if err = repo_model.WatchRepo(ctx, userID, repoID, false); err != nil {
+		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+		if err != nil {
+			return err
+		}
+		if err = repo_model.WatchRepo(ctx, user, repo, false); err != nil {
 			return err
 		}
 	}
 
 	if len(repoIDs) > 0 {
 		if _, err = db.GetEngine(ctx).
-			Where("user_id = ?", userID).
+			Where("user_id = ?", user.ID).
 			In("repo_id", repoIDs).
 			Delete(new(access_model.Access)); err != nil {
 			return err
@@ -88,12 +88,12 @@ func RemoveOrgUser(ctx context.Context, orgID, userID int64) error {
 	}
 
 	// Delete member in their teams.
-	teams, err := organization.GetUserOrgTeams(ctx, org.ID, userID)
+	teams, err := organization.GetUserOrgTeams(ctx, org.ID, user.ID)
 	if err != nil {
 		return err
 	}
 	for _, t := range teams {
-		if err = removeTeamMember(ctx, t, userID); err != nil {
+		if err = removeTeamMember(ctx, t, user); err != nil {
 			return err
 		}
 	}

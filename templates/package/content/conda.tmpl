@@ -3,12 +3,12 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.conda.registry" | Safe}}</label>
-				<div class="markup"><pre class="code-block"><code>channel_alias: <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/conda"></gitea-origin-url>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.conda.registry"}}</label>
+				<div class="markup"><pre class="code-block"><code>channel_alias: <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/conda"></origin-url>
 channels:
-&#32;&#32;- <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/conda"></gitea-origin-url>
+&#32;&#32;- <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/conda"></origin-url>
 default_channels:
-&#32;&#32;- <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/conda"></gitea-origin-url></code></pre></div>
+&#32;&#32;- <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/conda"></origin-url></code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.conda.install"}}</label>
@@ -16,7 +16,7 @@ default_channels:
 				<div class="markup"><pre class="code-block"><code>conda install{{if $channel}} -c {{$channel}}{{end}} {{.PackageDescriptor.PackageProperties.GetByName "conda.name"}}={{.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Conda" "https://docs.gitea.com/usage/packages/conda/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Conda" "https://docs.gitea.com/usage/packages/conda/"}}</label>
 			</div>
 		</div>
 	</div>

@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -69,12 +68,16 @@ func CountIssuesByRepo(ctx context.Context, opts *IssuesOptions) (map[int64]int6
 }
 
 // CountIssues number return of issues by given conditions.
-func CountIssues(ctx context.Context, opts *IssuesOptions) (int64, error) {
+func CountIssues(ctx context.Context, opts *IssuesOptions, otherConds ...builder.Cond) (int64, error) {
 	sess := db.GetEngine(ctx).
 		Select("COUNT(issue.id) AS count").
 		Table("issue").
 		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	applyConditions(sess, opts)
+
+	for _, cond := range otherConds {
+		sess.And(cond)
+	}
 
 	return sess.Count()
 }
@@ -170,11 +173,8 @@ func applyIssuesOptions(sess *xorm.Session, opts *IssuesOptions, issueIDs []int6
 		applyReviewedCondition(sess, opts.ReviewedID)
 	}
 
-	switch opts.IsPull {
-	case util.OptionalBoolTrue:
-		sess.And("issue.is_pull=?", true)
-	case util.OptionalBoolFalse:
-		sess.And("issue.is_pull=?", false)
+	if opts.IsPull.Has() {
+		sess.And("issue.is_pull=?", opts.IsPull.Value())
 	}
 
 	return sess

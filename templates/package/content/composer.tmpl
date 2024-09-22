@@ -3,11 +3,11 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.composer.registry" | Safe}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.composer.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code>{
 	"repositories": [{
 			"type": "composer",
-			"url": "<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/composer"></gitea-origin-url>"
+			"url": "<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/composer"></origin-url>"
 		}
 	]
 }</code></pre></div>
@@ -17,16 +17,16 @@
 				<div class="markup"><pre class="code-block"><code>composer require {{.PackageDescriptor.Package.Name}}:{{.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Composer" "https://docs.gitea.com/usage/packages/composer/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Composer" "https://docs.gitea.com/usage/packages/composer/"}}</label>
 			</div>
 		</div>
 	</div>
 
-	{{if .PackageDescriptor.Metadata.Description}}
+	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.Comments}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
-		<div class="ui attached segment">
-			{{.PackageDescriptor.Metadata.Description}}
-		</div>
+		{{if .PackageDescriptor.Metadata.Description}}<div class="ui attached segment">{{.PackageDescriptor.Metadata.Description}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.Readme}}<div class="ui attached segment markup markdown">{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.Readme}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.Comments}}<div class="ui attached segment">{{StringUtils.Join .PackageDescriptor.Metadata.Comments " "}}</div>{{end}}
 	{{end}}
 
 	{{if or .PackageDescriptor.Metadata.Require .PackageDescriptor.Metadata.RequireDev}}
@@ -39,7 +39,7 @@
 		</div>
 	{{end}}
 
-	{{if or .PackageDescriptor.Metadata.Keywords}}
+	{{if .PackageDescriptor.Metadata.Keywords}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.keywords"}}</h4>
 		<div class="ui attached segment">
 			{{range .PackageDescriptor.Metadata.Keywords}}

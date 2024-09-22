@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -161,7 +161,7 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 }
 
 func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*issues_model.Issue, error) {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()

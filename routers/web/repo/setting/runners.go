@@ -11,10 +11,10 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	actions_shared "code.gitea.io/gitea/routers/web/shared/actions"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
@@ -147,7 +147,7 @@ func RunnersEdit(ctx *context.Context) {
 	}
 
 	actions_shared.RunnerDetails(ctx, page,
-		ctx.ParamsInt64(":runnerid"), rCtx.OwnerID, rCtx.RepoID,
+		ctx.PathParamInt64(":runnerid"), rCtx.OwnerID, rCtx.RepoID,
 	)
 	ctx.HTML(http.StatusOK, rCtx.RunnerEditTemplate)
 }
@@ -158,9 +158,9 @@ func RunnersEditPost(ctx *context.Context) {
 		ctx.ServerError("getRunnersCtx", err)
 		return
 	}
-	actions_shared.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"),
+	actions_shared.RunnerDetailsEditPost(ctx, ctx.PathParamInt64(":runnerid"),
 		rCtx.OwnerID, rCtx.RepoID,
-		rCtx.RedirectLink+url.PathEscape(ctx.Params(":runnerid")))
+		rCtx.RedirectLink+url.PathEscape(ctx.PathParam(":runnerid")))
 }
 
 func ResetRunnerRegistrationToken(ctx *context.Context) {
@@ -179,7 +179,7 @@ func RunnerDeletePost(ctx *context.Context) {
 		ctx.ServerError("getRunnersCtx", err)
 		return
 	}
-	actions_shared.RunnerDeletePost(ctx, ctx.ParamsInt64(":runnerid"), rCtx.RedirectLink, rCtx.RedirectLink+url.PathEscape(ctx.Params(":runnerid")))
+	actions_shared.RunnerDeletePost(ctx, ctx.PathParamInt64(":runnerid"), rCtx.RedirectLink, rCtx.RedirectLink+url.PathEscape(ctx.PathParam(":runnerid")))
 }
 
 func RedirectToDefaultSetting(ctx *context.Context) {

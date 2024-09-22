@@ -16,11 +16,9 @@ import (
 type SpecList []*ActionScheduleSpec
 
 func (specs SpecList) GetScheduleIDs() []int64 {
-	ids := make(container.Set[int64], len(specs))
-	for _, spec := range specs {
-		ids.Add(spec.ScheduleID)
-	}
-	return ids.Values()
+	return container.FilterSlice(specs, func(spec *ActionScheduleSpec) (int64, bool) {
+		return spec.ScheduleID, true
+	})
 }
 
 func (specs SpecList) LoadSchedules(ctx context.Context) error {
@@ -46,11 +44,9 @@ func (specs SpecList) LoadSchedules(ctx context.Context) error {
 }
 
 func (specs SpecList) GetRepoIDs() []int64 {
-	ids := make(container.Set[int64], len(specs))
-	for _, spec := range specs {
-		ids.Add(spec.RepoID)
-	}
-	return ids.Values()
+	return container.FilterSlice(specs, func(spec *ActionScheduleSpec) (int64, bool) {
+		return spec.RepoID, true
+	})
 }
 
 func (specs SpecList) LoadRepos(ctx context.Context) error {

@@ -7,7 +7,6 @@ package git
 
 import (
 	"io"
-	"math"
 	"strings"
 )
 
@@ -34,7 +33,10 @@ func (t *Tree) ListEntries() (Entries, error) {
 	}
 
 	if t.repo != nil {
-		wr, rd, cancel := t.repo.CatFileBatch(t.repo.Ctx)
+		wr, rd, cancel, err := t.repo.CatFileBatch(t.repo.Ctx)
+		if err != nil {
+			return nil, err
+		}
 		defer cancel()
 
 		_, _ = wr.Write([]byte(t.ID.String() + "\n"))
@@ -63,19 +65,8 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 
 		// Not a tree just use ls-tree instead
-		for sz > math.MaxInt32 {
-			discarded, err := rd.Discard(math.MaxInt32)
-			sz -= int64(discarded)
-			if err != nil {
-				return nil, err
-			}
-		}
-		for sz > 0 {
-			discarded, err := rd.Discard(int(sz))
-			sz -= int64(discarded)
-			if err != nil {
-				return nil, err
-			}
+		if err := DiscardFull(rd, sz+1); err != nil {
+			return nil, err
 		}
 	}
 
@@ -90,7 +81,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 	}
 
 	var err error
-	t.entries, err = parseTreeEntries(t.repo.objectFormat, stdout, t)
+	t.entries, err = parseTreeEntries(stdout, t)
 	if err == nil {
 		t.entriesParsed = true
 	}
@@ -114,7 +105,7 @@ func (t *Tree) listEntriesRecursive(extraArgs TrustedCmdArgs) (Entries, error) {
 	}
 
 	var err error
-	t.entriesRecursive, err = parseTreeEntries(t.repo.objectFormat, stdout, t)
+	t.entriesRecursive, err = parseTreeEntries(stdout, t)
 	if err == nil {
 		t.entriesRecursiveParsed = true
 	}

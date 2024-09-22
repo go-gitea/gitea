@@ -18,10 +18,10 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -330,7 +330,7 @@ func CheckCountQuotaExceeded(ctx context.Context, doer, owner *user_model.User) 
 	if setting.Packages.LimitTotalOwnerCount > -1 {
 		totalCount, err := packages_model.CountVersions(ctx, &packages_model.PackageSearchOptions{
 			OwnerID:    owner.ID,
-			IsInternal: util.OptionalBoolFalse,
+			IsInternal: optional.Some(false),
 		})
 		if err != nil {
 			log.Error("CountVersions failed: %v", err)
@@ -640,7 +640,7 @@ func RemoveAllPackages(ctx context.Context, userID int64) (int, error) {
 				Page:     1,
 			},
 			OwnerID:    userID,
-			IsInternal: util.OptionalBoolNone,
+			IsInternal: optional.None[bool](),
 		})
 		if err != nil {
 			return count, fmt.Errorf("GetOwnedPackages[%d]: %w", userID, err)

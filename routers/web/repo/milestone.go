@@ -12,13 +12,13 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/issue"
 
@@ -51,7 +51,7 @@ func Milestones(ctx *context.Context) {
 			PageSize: setting.UI.IssuePagingNum,
 		},
 		RepoID:   ctx.Repo.Repository.ID,
-		IsClosed: util.OptionalBoolOf(isShowClosed),
+		IsClosed: optional.Some(isShowClosed),
 		SortType: sortType,
 		Name:     keyword,
 	})
@@ -86,6 +86,7 @@ func Milestones(ctx *context.Context) {
 			},
 			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo: ctx.Repo.GitRepo,
+			Repo:    ctx.Repo.Repository,
 			Ctx:     ctx,
 		}, m.Content)
 		if err != nil {
@@ -106,8 +107,8 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, 5)
-	pager.AddParam(ctx, "state", "State")
-	pager.AddParam(ctx, "q", "Keyword")
+	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
+	pager.AddParamString("q", keyword)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplMilestone)
@@ -164,7 +165,7 @@ func EditMilestone(ctx *context.Context) {
 	ctx.Data["PageIsMilestones"] = true
 	ctx.Data["PageIsEditMilestone"] = true
 
-	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":id"))
 	if err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
 			ctx.NotFound("", nil)
@@ -204,7 +205,7 @@ func EditMilestonePost(ctx *context.Context) {
 	}
 
 	deadline = time.Date(deadline.Year(), deadline.Month(), deadline.Day(), 23, 59, 59, 0, deadline.Location())
-	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":id"))
 	if err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
 			ctx.NotFound("", nil)
@@ -228,7 +229,7 @@ func EditMilestonePost(ctx *context.Context) {
 // ChangeMilestoneStatus response for change a milestone's status
 func ChangeMilestoneStatus(ctx *context.Context) {
 	var toClose bool
-	switch ctx.Params(":action") {
+	switch ctx.PathParam(":action") {
 	case "open":
 		toClose = false
 	case "close":
@@ -237,7 +238,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 		ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones")
 		return
 	}
-	id := ctx.ParamsInt64(":id")
+	id := ctx.PathParamInt64(":id")
 
 	if err := issues_model.ChangeMilestoneStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
@@ -247,7 +248,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.Params(":action")))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.PathParam(":action")))
 }
 
 // DeleteMilestone delete a milestone
@@ -263,7 +264,7 @@ func DeleteMilestone(ctx *context.Context) {
 
 // MilestoneIssuesAndPulls lists all the issues and pull requests of the milestone
 func MilestoneIssuesAndPulls(ctx *context.Context) {
-	milestoneID := ctx.ParamsInt64(":id")
+	milestoneID := ctx.PathParamInt64(":id")
 	projectID := ctx.FormInt64("project")
 	milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 	if err != nil {
@@ -282,6 +283,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 		},
 		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo: ctx.Repo.GitRepo,
+		Repo:    ctx.Repo.Repository,
 		Ctx:     ctx,
 	}, milestone.Content)
 	if err != nil {
@@ -292,10 +294,10 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 
-	issues(ctx, milestoneID, projectID, util.OptionalBoolNone)
+	issues(ctx, milestoneID, projectID, optional.None[bool]())
 
-	ret, _ := issue.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
-	ctx.Data["NewIssueChooseTemplate"] = len(ret) > 0
+	ret := issue.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ctx.Data["NewIssueChooseTemplate"] = len(ret.IssueTemplates) > 0
 
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWriteIssuesOrPulls(false)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWriteIssuesOrPulls(true)

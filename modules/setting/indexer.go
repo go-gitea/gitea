@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-
-	"github.com/gobwas/glob"
 )
 
 // Indexer settings
@@ -30,8 +28,8 @@ var Indexer = struct {
 	RepoConnStr          string
 	RepoIndexerName      string
 	MaxIndexerFileSize   int64
-	IncludePatterns      []glob.Glob
-	ExcludePatterns      []glob.Glob
+	IncludePatterns      []*GlobMatcher
+	ExcludePatterns      []*GlobMatcher
 	ExcludeVendored      bool
 }{
 	IssueType:        "bleve",
@@ -53,21 +51,24 @@ var Indexer = struct {
 func loadIndexerFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("indexer")
 	Indexer.IssueType = sec.Key("ISSUE_INDEXER_TYPE").MustString("bleve")
-	Indexer.IssuePath = filepath.ToSlash(sec.Key("ISSUE_INDEXER_PATH").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "indexers/issues.bleve"))))
-	if !filepath.IsAbs(Indexer.IssuePath) {
-		Indexer.IssuePath = filepath.ToSlash(filepath.Join(AppWorkPath, Indexer.IssuePath))
-	}
-	Indexer.IssueConnStr = sec.Key("ISSUE_INDEXER_CONN_STR").MustString(Indexer.IssueConnStr)
-
-	if Indexer.IssueType == "meilisearch" {
-		u, err := url.Parse(Indexer.IssueConnStr)
-		if err != nil {
-			log.Warn("Failed to parse ISSUE_INDEXER_CONN_STR: %v", err)
-			u = &url.URL{}
+	if Indexer.IssueType == "bleve" {
+		Indexer.IssuePath = filepath.ToSlash(sec.Key("ISSUE_INDEXER_PATH").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "indexers/issues.bleve"))))
+		if !filepath.IsAbs(Indexer.IssuePath) {
+			Indexer.IssuePath = filepath.ToSlash(filepath.Join(AppWorkPath, Indexer.IssuePath))
 		}
-		Indexer.IssueConnAuth, _ = u.User.Password()
-		u.User = nil
-		Indexer.IssueConnStr = u.String()
+		checkOverlappedPath("[indexer].ISSUE_INDEXER_PATH", Indexer.IssuePath)
+	} else {
+		Indexer.IssueConnStr = sec.Key("ISSUE_INDEXER_CONN_STR").MustString(Indexer.IssueConnStr)
+		if Indexer.IssueType == "meilisearch" {
+			u, err := url.Parse(Indexer.IssueConnStr)
+			if err != nil {
+				log.Warn("Failed to parse ISSUE_INDEXER_CONN_STR: %v", err)
+				u = &url.URL{}
+			}
+			Indexer.IssueConnAuth, _ = u.User.Password()
+			u.User = nil
+			Indexer.IssueConnStr = u.String()
+		}
 	}
 
 	Indexer.IssueIndexerName = sec.Key("ISSUE_INDEXER_NAME").MustString(Indexer.IssueIndexerName)
@@ -90,12 +91,12 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 }
 
 // IndexerGlobFromString parses a comma separated list of patterns and returns a glob.Glob slice suited for repo indexing
-func IndexerGlobFromString(globstr string) []glob.Glob {
-	extarr := make([]glob.Glob, 0, 10)
+func IndexerGlobFromString(globstr string) []*GlobMatcher {
+	extarr := make([]*GlobMatcher, 0, 10)
 	for _, expr := range strings.Split(strings.ToLower(globstr), ",") {
 		expr = strings.TrimSpace(expr)
 		if expr != "" {
-			if g, err := glob.Compile(expr, '.', '/'); err != nil {
+			if g, err := GlobMatcherCompile(expr, '.', '/'); err != nil {
 				log.Info("Invalid glob expression '%s' (skipped): %v", expr, err)
 			} else {
 				extarr = append(extarr, g)

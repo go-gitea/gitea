@@ -19,7 +19,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -30,6 +29,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/services/context"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
@@ -42,7 +42,7 @@ func GetRawFile(ctx *context.APIContext) {
 	// ---
 	// summary: Get a file from a repository
 	// produces:
-	// - application/json
+	// - application/octet-stream
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -67,6 +67,8 @@ func GetRawFile(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: Returns raw file content.
+	//     schema:
+	//       type: file
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -92,6 +94,8 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/media/{filepath} repository repoGetRawFileOrLFS
 	// ---
 	// summary: Get a file or it's LFS object from a repository
+	// produces:
+	// - application/octet-stream
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -116,6 +120,8 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: Returns raw file content.
+	//     schema:
+	//       type: file
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -145,7 +151,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 
-	// OK, now the blob is known to have at most 1024 bytes we can simply read this in in one go (This saves reading it twice)
+	// OK, now the blob is known to have at most 1024 bytes we can simply read this in one go (This saves reading it twice)
 	dataRc, err := blob.DataAsync()
 	if err != nil {
 		ctx.ServerError("DataAsync", err)
@@ -201,7 +207,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 
-	if setting.LFS.Storage.MinioConfig.ServeDirect {
+	if setting.LFS.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name())
 		if u != nil && err == nil {
@@ -294,7 +300,7 @@ func GetArchive(ctx *context.APIContext) {
 }
 
 func archiveDownload(ctx *context.APIContext) {
-	uri := ctx.Params("*")
+	uri := ctx.PathParam("*")
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
@@ -319,8 +325,14 @@ func archiveDownload(ctx *context.APIContext) {
 func download(ctx *context.APIContext, archiveName string, archiver *repo_model.RepoArchiver) {
 	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
 
+	// Add nix format link header so tarballs lock correctly:
+	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
+	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.tar.gz?rev=%s>; rel="immutable"`,
+		ctx.Repo.Repository.APIURL(),
+		archiver.CommitID, archiver.CommitID))
+
 	rPath := archiver.RelativePath()
-	if setting.RepoArchive.Storage.MinioConfig.ServeDirect {
+	if setting.RepoArchive.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
@@ -387,7 +399,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 		return
 	}
 
-	fileName := ctx.Params("filename")
+	fileName := ctx.PathParam("filename")
 	def, err := ec.GetDefinitionForFilename(fileName)
 	if def == nil {
 		ctx.NotFound(err)
@@ -408,7 +420,7 @@ func canReadFiles(r *context.Repository) bool {
 	return r.Permission.CanRead(unit.TypeCode)
 }
 
-func base64Reader(s string) (io.Reader, error) {
+func base64Reader(s string) (io.ReadSeeker, error) {
 	b, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
 		return nil, err
@@ -571,7 +583,7 @@ func CreateFile(ctx *context.APIContext) {
 		Files: []*files_service.ChangeRepoFile{
 			{
 				Operation:     "create",
-				TreePath:      ctx.Params("*"),
+				TreePath:      ctx.PathParam("*"),
 				ContentReader: contentReader,
 			},
 		},
@@ -655,6 +667,7 @@ func UpdateFile(ctx *context.APIContext) {
 	apiOpts := web.GetForm(ctx).(*api.UpdateFileOptions)
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
+		return
 	}
 
 	if apiOpts.BranchName == "" {
@@ -674,7 +687,7 @@ func UpdateFile(ctx *context.APIContext) {
 				ContentReader: contentReader,
 				SHA:           apiOpts.SHA,
 				FromTreePath:  apiOpts.FromPath,
-				TreePath:      ctx.Params("*"),
+				TreePath:      ctx.PathParam("*"),
 			},
 		},
 		Message:   apiOpts.Message,
@@ -762,13 +775,13 @@ func changeFilesCommitMessage(ctx *context.APIContext, files []*files_service.Ch
 	}
 	message := ""
 	if len(createFiles) != 0 {
-		message += ctx.Tr("repo.editor.add", strings.Join(createFiles, ", ")+"\n")
+		message += ctx.Locale.TrString("repo.editor.add", strings.Join(createFiles, ", ")+"\n")
 	}
 	if len(updateFiles) != 0 {
-		message += ctx.Tr("repo.editor.update", strings.Join(updateFiles, ", ")+"\n")
+		message += ctx.Locale.TrString("repo.editor.update", strings.Join(updateFiles, ", ")+"\n")
 	}
 	if len(deleteFiles) != 0 {
-		message += ctx.Tr("repo.editor.delete", strings.Join(deleteFiles, ", "))
+		message += ctx.Locale.TrString("repo.editor.delete", strings.Join(deleteFiles, ", "))
 	}
 	return strings.Trim(message, "\n")
 }
@@ -833,7 +846,7 @@ func DeleteFile(ctx *context.APIContext) {
 			{
 				Operation: "delete",
 				SHA:       apiOpts.SHA,
-				TreePath:  ctx.Params("*"),
+				TreePath:  ctx.PathParam("*"),
 			},
 		},
 		Message:   apiOpts.Message,
@@ -928,7 +941,7 @@ func GetContents(ctx *context.APIContext) {
 		return
 	}
 
-	treePath := ctx.Params("*")
+	treePath := ctx.PathParam("*")
 	ref := ctx.FormTrim("ref")
 
 	if fileList, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, treePath, ref); err != nil {

@@ -9,12 +9,13 @@ import (
 	"net/url"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/contexttest"
 	"code.gitea.io/gitea/services/forms"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 
@@ -79,13 +80,20 @@ func assertPagesMetas(t *testing.T, expectedNames []string, metas any) {
 func TestWiki(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/?action=_pages")
-	ctx.SetParams("*", "Home")
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki")
+	ctx.SetPathParam("*", "Home")
 	contexttest.LoadRepo(t, ctx, 1)
 	Wiki(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	assert.EqualValues(t, "Home", ctx.Data["Title"])
 	assertPagesMetas(t, []string{"Home", "Page With Image", "Page With Spaced Name", "Unescaped File"}, ctx.Data["Pages"])
+
+	ctx, _ = contexttest.MockContext(t, "user2/repo1/jpeg.jpg")
+	ctx.SetPathParam("*", "jpeg.jpg")
+	contexttest.LoadRepo(t, ctx, 1)
+	Wiki(ctx)
+	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
+	assert.Equal(t, "/user2/repo1/wiki/raw/jpeg.jpg", ctx.Resp.Header().Get("Location"))
 }
 
 func TestWikiPages(t *testing.T) {
@@ -144,7 +152,7 @@ func TestNewWikiPost_ReservedName(t *testing.T) {
 	})
 	NewWikiPost(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	assert.EqualValues(t, ctx.Tr("repo.wiki.reserved_page"), ctx.Flash.ErrorMsg)
+	assert.EqualValues(t, ctx.Tr("repo.wiki.reserved_page", "_edit"), ctx.Flash.ErrorMsg)
 	assertWikiNotExists(t, ctx.Repo.Repository, "_edit")
 }
 
@@ -152,13 +160,20 @@ func TestEditWiki(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/Home?action=_edit")
-	ctx.SetParams("*", "Home")
+	ctx.SetPathParam("*", "Home")
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadRepo(t, ctx, 1)
 	EditWiki(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	assert.EqualValues(t, "Home", ctx.Data["Title"])
 	assert.Equal(t, wikiContent(t, ctx.Repo.Repository, "Home"), ctx.Data["content"])
+
+	ctx, _ = contexttest.MockContext(t, "user2/repo1/wiki/jpeg.jpg?action=_edit")
+	ctx.SetPathParam("*", "jpeg.jpg")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+	EditWiki(ctx)
+	assert.EqualValues(t, http.StatusForbidden, ctx.Resp.Status())
 }
 
 func TestEditWikiPost(t *testing.T) {
@@ -168,7 +183,7 @@ func TestEditWikiPost(t *testing.T) {
 	} {
 		unittest.PrepareTestEnv(t)
 		ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/Home?action=_new")
-		ctx.SetParams("*", "Home")
+		ctx.SetPathParam("*", "Home")
 		contexttest.LoadUser(t, ctx, 2)
 		contexttest.LoadRepo(t, ctx, 1)
 		web.SetForm(ctx, &forms.NewWikiForm{
@@ -199,17 +214,18 @@ func TestDeleteWikiPagePost(t *testing.T) {
 
 func TestWikiRaw(t *testing.T) {
 	for filepath, filetype := range map[string]string{
-		"jpeg.jpg":                 "image/jpeg",
-		"images/jpeg.jpg":          "image/jpeg",
-		"Page With Spaced Name":    "text/plain; charset=utf-8",
-		"Page-With-Spaced-Name":    "text/plain; charset=utf-8",
-		"Page With Spaced Name.md": "", // there is no "Page With Spaced Name.md" in repo
-		"Page-With-Spaced-Name.md": "text/plain; charset=utf-8",
+		"jpeg.jpg":                      "image/jpeg",
+		"images/jpeg.jpg":               "image/jpeg",
+		"files/Non-Renderable-File.zip": "application/octet-stream",
+		"Page With Spaced Name":         "text/plain; charset=utf-8",
+		"Page-With-Spaced-Name":         "text/plain; charset=utf-8",
+		"Page With Spaced Name.md":      "", // there is no "Page With Spaced Name.md" in repo
+		"Page-With-Spaced-Name.md":      "text/plain; charset=utf-8",
 	} {
 		unittest.PrepareTestEnv(t)
 
 		ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/raw/"+url.PathEscape(filepath))
-		ctx.SetParams("*", filepath)
+		ctx.SetPathParam("*", filepath)
 		contexttest.LoadUser(t, ctx, 2)
 		contexttest.LoadRepo(t, ctx, 1)
 		WikiRaw(ctx)
@@ -220,4 +236,39 @@ func TestWikiRaw(t *testing.T) {
 			assert.EqualValues(t, filetype, ctx.Resp.Header().Get("Content-Type"), "filepath: %s", filepath)
 		}
 	}
+}
+
+func TestDefaultWikiBranch(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	// repo with no wiki
+	repoWithNoWiki := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	assert.False(t, repoWithNoWiki.HasWiki())
+	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repoWithNoWiki, "main"))
+
+	// repo with wiki
+	assert.NoError(t, repo_model.UpdateRepositoryCols(db.DefaultContext, &repo_model.Repository{ID: 1, DefaultWikiBranch: "wrong-branch"}))
+
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki")
+	ctx.SetPathParam("*", "Home")
+	contexttest.LoadRepo(t, ctx, 1)
+	assert.Equal(t, "wrong-branch", ctx.Repo.Repository.DefaultWikiBranch)
+	Wiki(ctx) // after the visiting, the out-of-sync database record will update the branch name to "master"
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.Equal(t, "master", ctx.Repo.Repository.DefaultWikiBranch)
+
+	// invalid branch name should fail
+	assert.Error(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repo, "the bad name"))
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.Equal(t, "master", repo.DefaultWikiBranch)
+
+	// the same branch name, should succeed (actually a no-op)
+	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repo, "master"))
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.Equal(t, "master", repo.DefaultWikiBranch)
+
+	// change to another name
+	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repo, "main"))
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.Equal(t, "main", repo.DefaultWikiBranch)
 }

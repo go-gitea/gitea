@@ -13,12 +13,12 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
@@ -180,7 +180,6 @@ func ListPushMirrors(ctx *context.APIContext) {
 		if err == nil {
 			responsePushMirrors = append(responsePushMirrors, m)
 		}
-
 	}
 	ctx.SetLinkHeader(len(responsePushMirrors), utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(count)
@@ -225,7 +224,7 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 		return
 	}
 
-	mirrorName := ctx.Params(":name")
+	mirrorName := ctx.PathParam(":name")
 	// Get push mirror of a specific repo by remoteName
 	pushMirror, exist, err := db.Get[repo_model.PushMirror](ctx, repo_model.PushMirrorOptions{
 		RepoID:     ctx.Repo.Repository.ID,
@@ -326,7 +325,7 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 		return
 	}
 
-	remoteName := ctx.Params(":name")
+	remoteName := ctx.PathParam(":name")
 	// Delete push mirror on repo by name.
 	err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{RepoID: ctx.Repo.Repository.ID, RemoteName: remoteName})
 	if err != nil {
@@ -384,6 +383,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 	if err = mirror_service.AddPushMirrorRemote(ctx, pushMirror, address); err != nil {
 		if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: pushMirror.ID, RepoID: pushMirror.RepoID}); err != nil {
 			ctx.ServerError("DeletePushMirrors", err)
+			return
 		}
 		ctx.ServerError("AddPushMirrorRemote", err)
 		return

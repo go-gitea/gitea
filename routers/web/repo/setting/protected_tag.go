@@ -13,9 +13,9 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -169,7 +169,7 @@ func setTagsContext(ctx *context.Context) error {
 func selectProtectedTagByContext(ctx *context.Context) *git_model.ProtectedTag {
 	id := ctx.FormInt64("id")
 	if id == 0 {
-		id = ctx.ParamsInt64(":id")
+		id = ctx.PathParamInt64(":id")
 	}
 
 	tag, err := git_model.GetProtectedTagByID(ctx, id)

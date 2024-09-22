@@ -12,10 +12,12 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
+	actions_module "code.gitea.io/gitea/modules/actions"
 	git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -53,7 +55,11 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 		}
 		sha = payload.HeadCommit.ID
 	case webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestSync:
-		event = "pull_request"
+		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
+			event = "pull_request_target"
+		} else {
+			event = "pull_request"
+		}
 		payload, err := run.GetPullRequestEventPayload()
 		if err != nil {
 			return fmt.Errorf("GetPullRequestEventPayload: %w", err)
@@ -64,6 +70,9 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 			return fmt.Errorf("head of pull request is missing in event payload")
 		}
 		sha = payload.PullRequest.Head.Sha
+	case webhook_module.HookEventRelease:
+		event = string(run.Event)
+		sha = run.CommitSHA
 	default:
 		return nil
 	}
@@ -76,7 +85,7 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	}
 	ctxname := fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)
 	state := toCommitStatus(job.Status)
-	if statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{ListAll: true}); err == nil {
+	if statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptionsAll); err == nil {
 		for _, v := range statuses {
 			if v.Context == ctxname {
 				if v.State == state {
@@ -119,18 +128,13 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	if err != nil {
 		return fmt.Errorf("HashTypeInterfaceFromHashString: %w", err)
 	}
-	if err := git_model.NewCommitStatus(ctx, git_model.NewCommitStatusOptions{
-		Repo:    repo,
-		SHA:     commitID,
-		Creator: creator,
-		CommitStatus: &git_model.CommitStatus{
-			SHA:         sha,
-			TargetURL:   fmt.Sprintf("%s/jobs/%d", run.Link(), index),
-			Description: description,
-			Context:     ctxname,
-			CreatorID:   creator.ID,
-			State:       state,
-		},
+	if err := commitstatus_service.CreateCommitStatus(ctx, repo, creator, commitID.String(), &git_model.CommitStatus{
+		SHA:         sha,
+		TargetURL:   fmt.Sprintf("%s/jobs/%d", run.Link(), index),
+		Description: description,
+		Context:     ctxname,
+		CreatorID:   creator.ID,
+		State:       state,
 	}); err != nil {
 		return fmt.Errorf("NewCommitStatus: %w", err)
 	}

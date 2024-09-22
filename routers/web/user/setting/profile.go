@@ -20,7 +20,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -29,8 +28,10 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	user_service "code.gitea.io/gitea/services/user"
+	"code.gitea.io/gitea/services/webtheme"
 )
 
 const (
@@ -47,6 +48,8 @@ func Profile(ctx *context.Context) {
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
 
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
+
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
 
@@ -56,6 +59,7 @@ func ProfilePost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSettingsProfile)
@@ -126,7 +130,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		defer fr.Close()
 
 		if form.Avatar.Size > setting.Avatar.MaxFileSize {
-			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big", form.Avatar.Size/1024, setting.Avatar.MaxFileSize/1024))
+			return errors.New(ctx.Locale.TrString("settings.uploaded_avatar_is_too_big", form.Avatar.Size/1024, setting.Avatar.MaxFileSize/1024))
 		}
 
 		data, err := io.ReadAll(fr)
@@ -136,7 +140,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 
 		st := typesniffer.DetectContentType(data)
 		if !(st.IsImage() && !st.IsSvgImage()) {
-			return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
+			return errors.New(ctx.Locale.TrString("settings.uploaded_avatar_not_a_image"))
 		}
 		if err = user_service.UploadAvatar(ctx, ctxUser, data); err != nil {
 			return fmt.Errorf("UploadAvatar: %w", err)
@@ -181,6 +185,7 @@ func DeleteAvatar(ctx *context.Context) {
 func Organization(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.organization")
 	ctx.Data["PageIsSettingsOrganization"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	opts := organization.FindOrgOptions{
 		ListOptions: db.ListOptions{
@@ -212,6 +217,7 @@ func Organization(ctx *context.Context) {
 func Repos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.repos")
 	ctx.Data["PageIsSettingsRepos"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 	ctx.Data["allowAdopt"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories
 	ctx.Data["allowDelete"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowDeleteOfUnadoptedRepositories
 
@@ -319,6 +325,14 @@ func Appearance(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.appearance")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
+	allThemes := webtheme.GetAvailableThemes()
+	if webtheme.IsThemeAvailable(setting.UI.DefaultTheme) {
+		allThemes = util.SliceRemoveAll(allThemes, setting.UI.DefaultTheme)
+		allThemes = append([]string{setting.UI.DefaultTheme}, allThemes...) // move the default theme to the top
+	}
+	ctx.Data["AllThemes"] = allThemes
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
+
 	var hiddenCommentTypes *big.Int
 	val, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
 	if err != nil {
@@ -341,11 +355,12 @@ func UpdateUIThemePost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	if ctx.HasError() {
+		ctx.Flash.Error(ctx.GetErrMsg())
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return
 	}
 
-	if !form.IsThemeExists() {
+	if !webtheme.IsThemeAvailable(form.Theme) {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return
@@ -389,7 +404,7 @@ func UpdateUserLang(ctx *context.Context) {
 	middleware.SetLocaleCookie(ctx.Resp, ctx.Doer.Language, 0)
 
 	log.Trace("User settings updated: %s", ctx.Doer.Name)
-	ctx.Flash.Success(translation.NewLocale(ctx.Doer.Language).Tr("settings.update_language_success"))
+	ctx.Flash.Success(translation.NewLocale(ctx.Doer.Language).TrString("settings.update_language_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 }
 

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -15,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/packages/maven"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -240,5 +242,46 @@ func TestPackageMaven(t *testing.T) {
 		putFile(t, "/maven-metadata.xml", "test", http.StatusOK)
 		putFile(t, fmt.Sprintf("/%s/maven-metadata.xml", snapshotVersion), "test", http.StatusCreated)
 		putFile(t, fmt.Sprintf("/%s/maven-metadata.xml", snapshotVersion), "test-overwrite", http.StatusCreated)
+	})
+
+	t.Run("InvalidFile", func(t *testing.T) {
+		ver := packageVersion + "-invalid"
+		putFile(t, fmt.Sprintf("/%s/%s", ver, filename), "any invalid content", http.StatusCreated)
+		req := NewRequestf(t, "GET", "/%s/-/packages/maven/%s-%s/%s", user.Name, groupID, artifactID, ver)
+		resp := MakeRequest(t, req, http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "No metadata.")
+		assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+	})
+}
+
+func TestPackageMavenConcurrent(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	groupID := "com.gitea"
+	artifactID := "test-project"
+	packageVersion := "1.0.1"
+
+	root := fmt.Sprintf("/api/packages/%s/maven/%s/%s", user.Name, strings.ReplaceAll(groupID, ".", "/"), artifactID)
+
+	putFile := func(t *testing.T, path, content string, expectedStatus int) {
+		req := NewRequestWithBody(t, "PUT", root+path, strings.NewReader(content)).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, expectedStatus)
+	}
+
+	t.Run("Concurrent Upload", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		var wg sync.WaitGroup
+		for i := 0; i < 10; i++ {
+			wg.Add(1)
+			go func(i int) {
+				putFile(t, fmt.Sprintf("/%s/%s.jar", packageVersion, strconv.Itoa(i)), "test", http.StatusCreated)
+				wg.Done()
+			}(i)
+		}
+		wg.Wait()
 	})
 }

@@ -37,7 +37,7 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	}
 	apiURL := repo.APIURL()
 	apiURLLen := len(apiURL)
-	objectFormat, _ := gitRepo.GetObjectFormat()
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 	hashLen := objectFormat.FullLength()
 
 	const gitBlobsPath = "/git/blobs/"

@@ -4,9 +4,12 @@
 package webhook
 
 import (
+	"context"
 	"net/url"
 	"testing"
 
+	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
@@ -24,248 +27,226 @@ func TestDingTalkPayload(t *testing.T) {
 		}
 		return ""
 	}
+	dc := dingtalkConvertor{}
 
 	t.Run("Create", func(t *testing.T) {
 		p := createTestPayload()
 
-		d := new(DingtalkPayload)
-		pl, err := d.Create(p)
+		pl, err := dc.Create(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "[test/repo] branch test created", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "[test/repo] branch test created", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view ref test", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/src/test", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "[test/repo] branch test created", pl.ActionCard.Text)
+		assert.Equal(t, "[test/repo] branch test created", pl.ActionCard.Title)
+		assert.Equal(t, "view ref test", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/src/test", parseRealSingleURL(pl.ActionCard.SingleURL))
 	})
 
 	t.Run("Delete", func(t *testing.T) {
 		p := deleteTestPayload()
 
-		d := new(DingtalkPayload)
-		pl, err := d.Delete(p)
+		pl, err := dc.Delete(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "[test/repo] branch test deleted", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "[test/repo] branch test deleted", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view ref test", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/src/test", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "[test/repo] branch test deleted", pl.ActionCard.Text)
+		assert.Equal(t, "[test/repo] branch test deleted", pl.ActionCard.Title)
+		assert.Equal(t, "view ref test", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/src/test", parseRealSingleURL(pl.ActionCard.SingleURL))
 	})
 
 	t.Run("Fork", func(t *testing.T) {
 		p := forkTestPayload()
 
-		d := new(DingtalkPayload)
-		pl, err := d.Fork(p)
+		pl, err := dc.Fork(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "test/repo2 is forked to test/repo", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "test/repo2 is forked to test/repo", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view forked repo test/repo", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "test/repo2 is forked to test/repo", pl.ActionCard.Text)
+		assert.Equal(t, "test/repo2 is forked to test/repo", pl.ActionCard.Title)
+		assert.Equal(t, "view forked repo test/repo", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo", parseRealSingleURL(pl.ActionCard.SingleURL))
 	})
 
 	t.Run("Push", func(t *testing.T) {
 		p := pushTestPayload()
 
-		d := new(DingtalkPayload)
-		pl, err := d.Push(p)
+		pl, err := dc.Push(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1\r\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "[test/repo:test] 2 new commits", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view commits", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/src/test", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1\r\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1", pl.ActionCard.Text)
+		assert.Equal(t, "[test/repo:test] 2 new commits", pl.ActionCard.Title)
+		assert.Equal(t, "view commits", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/src/test", parseRealSingleURL(pl.ActionCard.SingleURL))
 	})
 
 	t.Run("Issue", func(t *testing.T) {
 		p := issueTestPayload()
 
-		d := new(DingtalkPayload)
 		p.Action = api.HookIssueOpened
-		pl, err := d.Issue(p)
+		pl, err := dc.Issue(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "[test/repo] Issue opened: #2 crash by user1\r\n\r\nissue body", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "#2 crash", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view issue", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "[test/repo] Issue opened: #2 crash by user1\r\n\r\nissue body", pl.ActionCard.Text)
+		assert.Equal(t, "#2 crash", pl.ActionCard.Title)
+		assert.Equal(t, "view issue", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", parseRealSingleURL(pl.ActionCard.SingleURL))
 
 		p.Action = api.HookIssueClosed
-		pl, err = d.Issue(p)
+		pl, err = dc.Issue(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "[test/repo] Issue closed: #2 crash by user1", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "#2 crash", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view issue", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "[test/repo] Issue closed: #2 crash by user1", pl.ActionCard.Text)
+		assert.Equal(t, "#2 crash", pl.ActionCard.Title)
+		assert.Equal(t, "view issue", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", parseRealSingleURL(pl.ActionCard.SingleURL))
 	})
 
 	t.Run("IssueComment", func(t *testing.T) {
 		p := issueCommentTestPayload()
 
-		d := new(DingtalkPayload)
-		pl, err := d.IssueComment(p)
+		pl, err := dc.IssueComment(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "[test/repo] New comment on issue #2 crash by user1\r\n\r\nmore info needed", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "#2 crash", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view issue comment", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/issues/2#issuecomment-4", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "[test/repo] New comment on issue #2 crash by user1\r\n\r\nmore info needed", pl.ActionCard.Text)
+		assert.Equal(t, "#2 crash", pl.ActionCard.Title)
+		assert.Equal(t, "view issue comment", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/issues/2#issuecomment-4", parseRealSingleURL(pl.ActionCard.SingleURL))
 	})
 
 	t.Run("PullRequest", func(t *testing.T) {
 		p := pullRequestTestPayload()
 
-		d := new(DingtalkPayload)
-		pl, err := d.PullRequest(p)
+		pl, err := dc.PullRequest(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "[test/repo] Pull request opened: #12 Fix bug by user1\r\n\r\nfixes bug #2", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "#12 Fix bug", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view pull request", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "[test/repo] Pull request opened: #12 Fix bug by user1\r\n\r\nfixes bug #2", pl.ActionCard.Text)
+		assert.Equal(t, "#12 Fix bug", pl.ActionCard.Title)
+		assert.Equal(t, "view pull request", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12", parseRealSingleURL(pl.ActionCard.SingleURL))
 	})
 
 	t.Run("PullRequestComment", func(t *testing.T) {
 		p := pullRequestCommentTestPayload()
 
-		d := new(DingtalkPayload)
-		pl, err := d.IssueComment(p)
+		pl, err := dc.IssueComment(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "[test/repo] New comment on pull request #12 Fix bug by user1\r\n\r\nchanges requested", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "#12 Fix bug", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view issue comment", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12#issuecomment-4", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "[test/repo] New comment on pull request #12 Fix bug by user1\r\n\r\nchanges requested", pl.ActionCard.Text)
+		assert.Equal(t, "#12 Fix bug", pl.ActionCard.Title)
+		assert.Equal(t, "view issue comment", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12#issuecomment-4", parseRealSingleURL(pl.ActionCard.SingleURL))
 	})
 
 	t.Run("Review", func(t *testing.T) {
 		p := pullRequestTestPayload()
 		p.Action = api.HookIssueReviewed
 
-		d := new(DingtalkPayload)
-		pl, err := d.Review(p, webhook_module.HookEventPullRequestReviewApproved)
+		pl, err := dc.Review(p, webhook_module.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "[test/repo] Pull request review approved : #12 Fix bug\r\n\r\ngood job", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "[test/repo] Pull request review approved : #12 Fix bug", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view pull request", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "[test/repo] Pull request review approved : #12 Fix bug\r\n\r\ngood job", pl.ActionCard.Text)
+		assert.Equal(t, "[test/repo] Pull request review approved : #12 Fix bug", pl.ActionCard.Title)
+		assert.Equal(t, "view pull request", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12", parseRealSingleURL(pl.ActionCard.SingleURL))
 	})
 
 	t.Run("Repository", func(t *testing.T) {
 		p := repositoryTestPayload()
 
-		d := new(DingtalkPayload)
-		pl, err := d.Repository(p)
+		pl, err := dc.Repository(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "[test/repo] Repository created", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "[test/repo] Repository created", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view repository", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "[test/repo] Repository created", pl.ActionCard.Text)
+		assert.Equal(t, "[test/repo] Repository created", pl.ActionCard.Title)
+		assert.Equal(t, "view repository", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo", parseRealSingleURL(pl.ActionCard.SingleURL))
 	})
 
 	t.Run("Package", func(t *testing.T) {
 		p := packageTestPayload()
 
-		d := new(DingtalkPayload)
-		pl, err := d.Package(p)
+		pl, err := dc.Package(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "Package created: GiteaContainer:latest by user1", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "Package created: GiteaContainer:latest by user1", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view package", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/user1/-/packages/container/GiteaContainer/latest", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "Package created: GiteaContainer:latest by user1", pl.ActionCard.Text)
+		assert.Equal(t, "Package created: GiteaContainer:latest by user1", pl.ActionCard.Title)
+		assert.Equal(t, "view package", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/user1/-/packages/container/GiteaContainer/latest", parseRealSingleURL(pl.ActionCard.SingleURL))
 	})
 
 	t.Run("Wiki", func(t *testing.T) {
 		p := wikiTestPayload()
 
-		d := new(DingtalkPayload)
 		p.Action = api.HookWikiCreated
-		pl, err := d.Wiki(p)
+		pl, err := dc.Wiki(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "[test/repo] New wiki page 'index' (Wiki change comment) by user1", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "[test/repo] New wiki page 'index' (Wiki change comment) by user1", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view wiki", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "[test/repo] New wiki page 'index' (Wiki change comment) by user1", pl.ActionCard.Text)
+		assert.Equal(t, "[test/repo] New wiki page 'index' (Wiki change comment) by user1", pl.ActionCard.Title)
+		assert.Equal(t, "view wiki", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", parseRealSingleURL(pl.ActionCard.SingleURL))
 
 		p.Action = api.HookWikiEdited
-		pl, err = d.Wiki(p)
+		pl, err = dc.Wiki(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "[test/repo] Wiki page 'index' edited (Wiki change comment) by user1", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "[test/repo] Wiki page 'index' edited (Wiki change comment) by user1", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view wiki", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "[test/repo] Wiki page 'index' edited (Wiki change comment) by user1", pl.ActionCard.Text)
+		assert.Equal(t, "[test/repo] Wiki page 'index' edited (Wiki change comment) by user1", pl.ActionCard.Title)
+		assert.Equal(t, "view wiki", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", parseRealSingleURL(pl.ActionCard.SingleURL))
 
 		p.Action = api.HookWikiDeleted
-		pl, err = d.Wiki(p)
+		pl, err = dc.Wiki(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "[test/repo] Wiki page 'index' deleted by user1", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "[test/repo] Wiki page 'index' deleted by user1", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view wiki", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "[test/repo] Wiki page 'index' deleted by user1", pl.ActionCard.Text)
+		assert.Equal(t, "[test/repo] Wiki page 'index' deleted by user1", pl.ActionCard.Title)
+		assert.Equal(t, "view wiki", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", parseRealSingleURL(pl.ActionCard.SingleURL))
 	})
 
 	t.Run("Release", func(t *testing.T) {
 		p := pullReleaseTestPayload()
 
-		d := new(DingtalkPayload)
-		pl, err := d.Release(p)
+		pl, err := dc.Release(p)
 		require.NoError(t, err)
-		require.NotNil(t, pl)
-		require.IsType(t, &DingtalkPayload{}, pl)
 
-		assert.Equal(t, "[test/repo] Release created: v1.0 by user1", pl.(*DingtalkPayload).ActionCard.Text)
-		assert.Equal(t, "[test/repo] Release created: v1.0 by user1", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view release", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/releases/tag/v1.0", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "[test/repo] Release created: v1.0 by user1", pl.ActionCard.Text)
+		assert.Equal(t, "[test/repo] Release created: v1.0 by user1", pl.ActionCard.Title)
+		assert.Equal(t, "view release", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/releases/tag/v1.0", parseRealSingleURL(pl.ActionCard.SingleURL))
 	})
 }
 
 func TestDingTalkJSONPayload(t *testing.T) {
 	p := pushTestPayload()
-
-	pl, err := new(DingtalkPayload).Push(p)
+	data, err := p.JSONPayload()
 	require.NoError(t, err)
-	require.NotNil(t, pl)
-	require.IsType(t, &DingtalkPayload{}, pl)
 
-	json, err := pl.JSONPayload()
+	hook := &webhook_model.Webhook{
+		RepoID:     3,
+		IsActive:   true,
+		Type:       webhook_module.DINGTALK,
+		URL:        "https://dingtalk.example.com/",
+		Meta:       ``,
+		HTTPMethod: "POST",
+	}
+	task := &webhook_model.HookTask{
+		HookID:         hook.ID,
+		EventType:      webhook_module.HookEventPush,
+		PayloadContent: string(data),
+		PayloadVersion: 2,
+	}
+
+	req, reqBody, err := newDingtalkRequest(context.Background(), hook, task)
+	require.NotNil(t, req)
+	require.NotNil(t, reqBody)
 	require.NoError(t, err)
-	assert.NotEmpty(t, json)
+
+	assert.Equal(t, "POST", req.Method)
+	assert.Equal(t, "https://dingtalk.example.com/", req.URL.String())
+	assert.Equal(t, "sha256=", req.Header.Get("X-Hub-Signature-256"))
+	assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
+	var body DingtalkPayload
+	err = json.NewDecoder(req.Body).Decode(&body)
+	assert.NoError(t, err)
+	assert.Equal(t, "[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1\r\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1", body.ActionCard.Text)
 }

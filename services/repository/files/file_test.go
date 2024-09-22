@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -99,7 +99,7 @@ func getExpectedFileResponse() *api.FileResponse {
 func TestGetFileResponseFromCommit(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
+	ctx.SetPathParam(":id", "1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadRepoCommit(t, ctx)
 	contexttest.LoadUser(t, ctx, 2)
