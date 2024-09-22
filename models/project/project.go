@@ -91,6 +91,7 @@ type Project struct {
 	RepoID       int64                  `xorm:"INDEX"`
 	Repo         *repo_model.Repository `xorm:"-"`
 	CreatorID    int64                  `xorm:"NOT NULL"`
+	Creator      *user_model.User       `xorm:"-"`
 	IsClosed     bool                   `xorm:"INDEX"`
 	TemplateType TemplateType           `xorm:"'board_type'"` // TODO: rename the column to template_type
 	CardType     CardType
