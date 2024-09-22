@@ -240,7 +240,7 @@
 	<div class="header">
 		{{ctx.Locale.Tr "repo.settings.rename_branch"}}
 	</div>
-	<form class="ui form" action="{{$.Repository.Link}}/settings/rename_branch" method="post">
+	<form class="ui form" action="{{$.Repository.Link}}/branches/rename" method="post">
 		<div class="content">
 			{{.CsrfTokenHtml}}
 			<div class="field default-branch-warning">
