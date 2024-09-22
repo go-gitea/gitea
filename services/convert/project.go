@@ -12,13 +12,13 @@ import (
 
 func ToAPIProject(ctx context.Context, project *project_model.Project) (*api.Project, error) {
 	apiProject := &api.Project{
-		Title:       project.Title,
-		Description: project.Description,
-		BoardType:   uint8(project.BoardType),
-		IsClosed:    project.IsClosed,
-		Created:     project.CreatedUnix.AsTime(),
-		Updated:     project.UpdatedUnix.AsTime(),
-		Closed:      project.ClosedDateUnix.AsTime(),
+		Title:        project.Title,
+		Description:  project.Description,
+		TemplateType: uint8(project.TemplateType),
+		IsClosed:     project.IsClosed,
+		Created:      project.CreatedUnix.AsTime(),
+		Updated:      project.UpdatedUnix.AsTime(),
+		Closed:       project.ClosedDateUnix.AsTime(),
 	}
 
 	_ = project.LoadRepo(ctx)
