@@ -205,4 +205,10 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	UpdateVariableOption api.UpdateVariableOption
+
+	// in:body
+	NewProjectPayload api.NewProjectPayload
+
+	// in:body
+	UpdateProjectPayload api.UpdateProjectPayload
 }
