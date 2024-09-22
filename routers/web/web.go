@@ -1065,8 +1065,6 @@ func registerRoutes(m *web.Route) {
 			m.Post("/{id}/delete", repo_setting.DeleteProtectedBranchRulePost)
 		}, repo.MustBeNotEmpty)
 
-		m.Post("/rename_branch", web.Bind(forms.RenameBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.RenameBranchPost)
-
 		m.Group("/tags", func() {
 			m.Get("", repo_setting.ProtectedTags)
 			m.Post("", web.Bind(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo_setting.NewProtectedTagPost)
@@ -1298,6 +1296,7 @@ func registerRoutes(m *web.Route) {
 			}, web.Bind(forms.NewBranchForm{}))
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
+			m.Post("/rename", web.Bind(forms.RenameBranchForm{}), repo_setting.RenameBranchPost)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
 
 		m.Combo("/fork").Get(repo.Fork).Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
