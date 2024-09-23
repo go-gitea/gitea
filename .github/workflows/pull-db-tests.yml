@@ -203,7 +203,7 @@ jobs:
     runs-on: ubuntu-22.04
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2019-latest
+        image: mcr.microsoft.com/mssql/server:2017-latest
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard
