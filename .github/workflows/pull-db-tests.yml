@@ -200,7 +200,7 @@ jobs:
     needs: files-changed
     # specifying the version of ubuntu in use as mssql fails on newer kernels
     # pending resolution from vendor
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     services:
       mssql:
         image: mcr.microsoft.com/mssql/server:2017-latest
