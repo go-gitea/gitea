@@ -201,8 +201,9 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mssql:
-        # some images before 2024-04 can't run on new kernels
-        image: mcr.microsoft.com/mssql/server:2019-latest
+        # rebuilt mssql image, only for gitea's testing of mssql
+        # not for general use
+        image: techknowlogick/mssql:2017
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard
