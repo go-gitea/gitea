@@ -8,23 +8,23 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
 func innerCreateProject(ctx *context.APIContext, projectType project_model.Type) {
 	form := web.GetForm(ctx).(*api.NewProjectPayload)
 	project := &project_model.Project{
-		RepoID:      0,
-		OwnerID:     ctx.Doer.ID,
-		Title:       form.Title,
-		Description: form.Description,
-		CreatorID:   ctx.Doer.ID,
-		BoardType:   project_model.BoardType(form.BoardType),
-		Type:        projectType,
+		RepoID:       0,
+		OwnerID:      ctx.Doer.ID,
+		Title:        form.Title,
+		Description:  form.Description,
+		CreatorID:    ctx.Doer.ID,
+		TemplateType: project_model.TemplateType(form.BoardType),
+		Type:         projectType,
 	}
 
 	if ctx.ContextUser != nil {
@@ -158,7 +158,7 @@ func GetProject(ctx *context.APIContext) {
 	//    "$ref": "#/responses/forbidden"
 	//  "404":
 	//    "$ref": "#/responses/notFound"
-	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.FormInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound()
@@ -202,7 +202,7 @@ func UpdateProject(ctx *context.APIContext) {
 	//  "404":
 	//    "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.UpdateProjectPayload)
-	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64("id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound()
@@ -249,7 +249,7 @@ func DeleteProject(ctx *context.APIContext) {
 	//  "404":
 	//    "$ref": "#/responses/notFound"
 
-	if err := project_model.DeleteProjectByID(ctx, ctx.ParamsInt64(":id")); err != nil {
+	if err := project_model.DeleteProjectByID(ctx, ctx.FormInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteProjectByID", err)
 		return
 	}
