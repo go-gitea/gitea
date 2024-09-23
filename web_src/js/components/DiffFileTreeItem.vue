@@ -1,6 +1,6 @@
-<script>
-import {SvgIcon} from '../svg.js';
-import {diffTreeStore} from '../modules/stores.js';
+<script lang="ts">
+import {SvgIcon} from '../svg.ts';
+import {diffTreeStore} from '../modules/stores.ts';
 
 export default {
   components: {SvgIcon},

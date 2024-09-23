@@ -19,13 +19,23 @@ import (
 
 	"gitea.com/go-chi/session"
 	"github.com/chi-middleware/proxy"
-	chi "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5"
 )
 
 // ProtocolMiddlewares returns HTTP protocol related middlewares, and it provides a global panic recovery
 func ProtocolMiddlewares() (handlers []any) {
-	// first, normalize the URL path
-	handlers = append(handlers, stripSlashesMiddleware)
+	// make sure chi uses EscapedPath(RawPath) as RoutePath, then "%2f" could be handled correctly
+	handlers = append(handlers, func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			ctx := chi.RouteContext(req.Context())
+			if req.URL.RawPath == "" {
+				ctx.RoutePath = req.URL.EscapedPath()
+			} else {
+				ctx.RoutePath = req.URL.RawPath
+			}
+			next.ServeHTTP(resp, req)
+		})
+	})
 
 	// prepare the ContextData and panic recovery
 	handlers = append(handlers, func(next http.Handler) http.Handler {
@@ -73,35 +83,6 @@ func ProtocolMiddlewares() (handlers []any) {
 	}
 
 	return handlers
-}
-
-func stripSlashesMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		// First of all escape the URL RawPath to ensure that all routing is done using a correctly escaped URL
-		req.URL.RawPath = req.URL.EscapedPath()
-
-		urlPath := req.URL.RawPath
-		rctx := chi.RouteContext(req.Context())
-		if rctx != nil && rctx.RoutePath != "" {
-			urlPath = rctx.RoutePath
-		}
-
-		sanitizedPath := &strings.Builder{}
-		prevWasSlash := false
-		for _, chr := range strings.TrimRight(urlPath, "/") {
-			if chr != '/' || !prevWasSlash {
-				sanitizedPath.WriteRune(chr)
-			}
-			prevWasSlash = chr == '/'
-		}
-
-		if rctx == nil {
-			req.URL.Path = sanitizedPath.String()
-		} else {
-			rctx.RoutePath = sanitizedPath.String()
-		}
-		next.ServeHTTP(resp, req)
-	})
 }
 
 func Sessioner() func(next http.Handler) http.Handler {

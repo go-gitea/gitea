@@ -53,7 +53,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.CreateStatusOption)
-	sha := ctx.Params("sha")
+	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
 		ctx.Error(http.StatusBadRequest, "sha not given", nil)
 		return
@@ -123,7 +123,7 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	getCommitStatuses(ctx, ctx.Params("sha"))
+	getCommitStatuses(ctx, ctx.PathParam("sha"))
 }
 
 // GetCommitStatusesByRef returns all statuses for any given commit ref
@@ -177,7 +177,7 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	filter := utils.ResolveRefOrSha(ctx, ctx.Params("ref"))
+	filter := utils.ResolveRefOrSha(ctx, ctx.PathParam("ref"))
 	if ctx.Written() {
 		return
 	}
@@ -257,7 +257,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	sha := utils.ResolveRefOrSha(ctx, ctx.Params("ref"))
+	sha := utils.ResolveRefOrSha(ctx, ctx.PathParam("ref"))
 	if ctx.Written() {
 		return
 	}

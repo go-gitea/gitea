@@ -8,6 +8,7 @@ import (
 	"bytes"
 	gocontext "context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"html/template"
 	"image"
@@ -29,6 +30,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issue_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -233,14 +235,12 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) ([]byte,
 	}
 
 	meta, err := git_model.GetLFSMetaObjectByOid(ctx, repoID, pointer.Oid)
-	if err != nil && err != git_model.ErrLFSObjectNotExist { // fallback to plain file
+	if err != nil { // fallback to plain file
+		log.Warn("Unable to access LFS pointer %s in repo %d: %v", pointer.Oid, repoID, err)
 		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
 	}
 
 	dataRc.Close()
-	if err != nil {
-		return nil, nil, nil, err
-	}
 
 	dataRc, err = lfs.ReadMetaObject(pointer)
 	if err != nil {
@@ -285,6 +285,7 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 
 	ctx.Data["FileIsText"] = fInfo.isTextFile
 	ctx.Data["FileName"] = path.Join(subfolder, readmeFile.Name())
+	ctx.Data["FileSize"] = fInfo.fileSize
 	ctx.Data["IsLFSFile"] = fInfo.isLFSFile
 
 	if fInfo.isLFSFile {
@@ -300,13 +301,12 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 		// Pretend that this is a normal text file to display 'This file is too large to be shown'
 		ctx.Data["IsFileTooLarge"] = true
 		ctx.Data["IsTextFile"] = true
-		ctx.Data["FileSize"] = fInfo.fileSize
 		return
 	}
 
 	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
-	if markupType := markup.Type(readmeFile.Name()); markupType != "" {
+	if markupType := markup.DetectMarkupTypeByFileName(readmeFile.Name()); markupType != "" {
 		ctx.Data["IsMarkup"] = true
 		ctx.Data["MarkupType"] = markupType
 
@@ -361,6 +361,9 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptionsAll)
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
+		}
+		if !ctx.Repo.CanRead(unit_model.TypeActions) {
+			git_model.CommitStatusesHideActionsURL(ctx, statuses)
 		}
 
 		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
@@ -498,7 +501,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 		readmeExist := util.IsReadmeFileName(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
 
-		markupType := markup.Type(blob.Name())
+		markupType := markup.DetectMarkupTypeByFileName(blob.Name())
 		// If the markup is detected by custom markup renderer it should not be reset later on
 		// to not pass it down to the render context.
 		detected := false
@@ -551,7 +554,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			} else {
 				ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
 			}
-			ctx.Data["NumLinesSet"] = true
 
 			language, err := files_service.TryGetContentLanguage(ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
 			if err != nil {
@@ -605,9 +607,9 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			break
 		}
 
-		// TODO: this logic seems strange, it duplicates with "isRepresentableAsText=true", it is not the same as "LFSFileGet" in "lfs.go"
-		// maybe for this case, the file is a binary file, and shouldn't be rendered?
-		if markupType := markup.Type(blob.Name()); markupType != "" {
+		// TODO: this logic duplicates with "isRepresentableAsText=true", it is not the same as "LFSFileGet" in "lfs.go"
+		// It is used by "external renders", markupRender will execute external programs to get rendered content.
+		if markupType := markup.DetectMarkupTypeByFileName(blob.Name()); markupType != "" {
 			rd := io.MultiReader(bytes.NewReader(buf), dataRc)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
@@ -738,7 +740,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		}
 	}
 
-	ctx.NotFound("Home", fmt.Errorf(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
+	ctx.NotFound("Home", errors.New(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
 }
 
 func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
@@ -772,7 +774,7 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 // Home render repository home page
 func Home(ctx *context.Context) {
 	if setting.Other.EnableFeed {
-		isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
+		isFeed, _, showFeedType := feed.GetFeedType(ctx.PathParam(":reponame"), ctx.Req)
 		if isFeed {
 			switch {
 			case ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType):
@@ -1027,16 +1029,26 @@ func renderHomeCode(ctx *context.Context) {
 			return
 		}
 
-		showRecentlyPushedNewBranches := true
-		if ctx.Repo.Repository.IsMirror ||
-			!ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypePullRequests) {
-			showRecentlyPushedNewBranches = false
+		opts := &git_model.FindRecentlyPushedNewBranchesOptions{
+			Repo:     ctx.Repo.Repository,
+			BaseRepo: ctx.Repo.Repository,
 		}
-		if showRecentlyPushedNewBranches {
-			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, ctx.Repo.Repository.DefaultBranch)
+		if ctx.Repo.Repository.IsFork {
+			opts.BaseRepo = ctx.Repo.Repository.BaseRepo
+		}
+
+		baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, opts.BaseRepo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
+
+		if !opts.Repo.IsMirror && !opts.BaseRepo.IsMirror &&
+			opts.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests) &&
+			baseRepoPerm.CanRead(unit_model.TypePullRequests) {
+			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Doer, opts)
 			if err != nil {
-				ctx.ServerError("GetRecentlyPushedBranches", err)
-				return
+				log.Error("FindRecentlyPushedNewBranches failed: %v", err)
 			}
 		}
 	}

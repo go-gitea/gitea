@@ -37,32 +37,32 @@ func (issue *Issue) projectID(ctx context.Context) int64 {
 	return ip.ProjectID
 }
 
-// ProjectBoardID return project board id if issue was assigned to one
-func (issue *Issue) ProjectBoardID(ctx context.Context) int64 {
+// ProjectColumnID return project column id if issue was assigned to one
+func (issue *Issue) ProjectColumnID(ctx context.Context) int64 {
 	var ip project_model.ProjectIssue
 	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
 	if err != nil || !has {
 		return 0
 	}
-	return ip.ProjectBoardID
+	return ip.ProjectColumnID
 }
 
-// LoadIssuesFromBoard load issues assigned to this board
-func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList, error) {
-	issueList, err := Issues(ctx, &IssuesOptions{
-		ProjectBoardID: b.ID,
-		ProjectID:      b.ProjectID,
-		SortType:       "project-column-sorting",
-	})
+// LoadIssuesFromColumn load issues assigned to this column
+func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *IssuesOptions) (IssueList, error) {
+	issueList, err := Issues(ctx, opts.Copy(func(o *IssuesOptions) {
+		o.ProjectColumnID = b.ID
+		o.ProjectID = b.ProjectID
+		o.SortType = "project-column-sorting"
+	}))
 	if err != nil {
 		return nil, err
 	}
 
 	if b.Default {
 		issues, err := Issues(ctx, &IssuesOptions{
-			ProjectBoardID: db.NoConditionID,
-			ProjectID:      b.ProjectID,
-			SortType:       "project-column-sorting",
+			ProjectColumnID: db.NoConditionID,
+			ProjectID:       b.ProjectID,
+			SortType:        "project-column-sorting",
 		})
 		if err != nil {
 			return nil, err
@@ -77,11 +77,11 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList
 	return issueList, nil
 }
 
-// LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList) (map[int64]IssueList, error) {
+// LoadIssuesFromColumnList load issues assigned to the columns
+func LoadIssuesFromColumnList(ctx context.Context, bs project_model.ColumnList, opts *IssuesOptions) (map[int64]IssueList, error) {
 	issuesMap := make(map[int64]IssueList, len(bs))
 	for i := range bs {
-		il, err := LoadIssuesFromBoard(ctx, bs[i])
+		il, err := LoadIssuesFromColumn(ctx, bs[i], opts)
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +110,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 				return util.NewPermissionDeniedErrorf("issue %d can't be accessed by project %d", issue.ID, newProject.ID)
 			}
 			if newColumnID == 0 {
-				newDefaultColumn, err := newProject.GetDefaultBoard(ctx)
+				newDefaultColumn, err := newProject.GetDefaultColumn(ctx)
 				if err != nil {
 					return err
 				}
@@ -153,10 +153,10 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 		}
 		newSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
 		return db.Insert(ctx, &project_model.ProjectIssue{
-			IssueID:        issue.ID,
-			ProjectID:      newProjectID,
-			ProjectBoardID: newColumnID,
-			Sorting:        newSorting,
+			IssueID:         issue.ID,
+			ProjectID:       newProjectID,
+			ProjectColumnID: newColumnID,
+			Sorting:         newSorting,
 		})
 	})
 }

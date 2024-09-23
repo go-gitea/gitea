@@ -68,9 +68,9 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string, any)) 
 		return pkg
 	}
 
-	packageType := ctx.Params("type")
-	name := ctx.Params("name")
-	version := ctx.Params("version")
+	packageType := ctx.PathParam("type")
+	name := ctx.PathParam("name")
+	version := ctx.PathParam("version")
 	if packageType != "" && name != "" && version != "" {
 		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pkg.Owner.ID, packages_model.Type(packageType), name, version)
 		if err != nil {

@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_20"
 	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_22"
+	"code.gitea.io/gitea/models/migrations/v1_23"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -587,6 +588,19 @@ var migrations = []Migration{
 	NewMigration("Drop wrongly created table o_auth2_application", v1_22.DropWronglyCreatedTable),
 
 	// Gitea 1.22.0-rc1 ends at 299
+
+	// v299 -> v300
+	NewMigration("Add content version to issue and comment table", v1_23.AddContentVersionToIssueAndComment),
+	// v300 -> v301
+	NewMigration("Add force-push branch protection support", v1_23.AddForcePushBranchProtection),
+	// v301 -> v302
+	NewMigration("Add skip_secondary_authorization option to oauth2 application table", v1_23.AddSkipSecondaryAuthColumnToOAuth2ApplicationTable),
+	// v302 -> v303
+	NewMigration("Add index to action_task stopped log_expired", v1_23.AddIndexToActionTaskStoppedLogExpired),
+	// v303 -> v304
+	NewMigration("Add metadata column for comment table", v1_23.AddCommentMetaDataColumn),
+	// v304 -> v305
+	NewMigration("Add index for release sha1", v1_23.AddIndexForReleaseSha1),
 }
 
 // GetCurrentDBVersion returns the current db version

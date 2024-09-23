@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
@@ -30,9 +31,9 @@ func TestCompareTag(t *testing.T) {
 	// A dropdown for both base and head.
 	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
 
-	req = NewRequest(t, "GET", "/user2/repo1/compare/invalid")
+	req = NewRequest(t, "GET", "/user2/repo1/compare/invalid").SetHeader("Accept", "text/html")
 	resp = session.MakeRequest(t, req, http.StatusNotFound)
-	assert.False(t, strings.Contains(resp.Body.String(), "/assets/img/500.png"), "expect 404 page not 500")
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "expect 404 page not 500")
 }
 
 // Compare with inferred default branch (master)
@@ -140,7 +141,7 @@ func TestCompareCodeExpand(t *testing.T) {
 
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session = loginUser(t, user2.Name)
-		testRepoFork(t, session, user1.Name, repo.Name, user2.Name, "test_blob_excerpt-fork")
+		testRepoFork(t, session, user1.Name, repo.Name, user2.Name, "test_blob_excerpt-fork", "")
 		testCreateBranch(t, session, user2.Name, "test_blob_excerpt-fork", "branch/main", "forked-branch", http.StatusSeeOther)
 		testEditFile(t, session, user2.Name, "test_blob_excerpt-fork", "forked-branch", "README.md", strings.Repeat("a\n", 15)+"CHANGED\n"+strings.Repeat("a\n", 15))
 

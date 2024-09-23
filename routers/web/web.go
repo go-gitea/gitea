@@ -129,6 +129,8 @@ func webAuth(authMethod auth_service.Method) func(*context.Context) {
 			// ensure the session uid is deleted
 			_ = ctx.Session.Delete("uid")
 		}
+
+		ctx.Csrf.PrepareForSessionUser(ctx)
 	}
 }
 
@@ -226,8 +228,8 @@ func ctxDataSet(args ...any) func(ctx *context.Context) {
 }
 
 // Routes returns all web routes
-func Routes() *web.Route {
-	routes := web.NewRoute()
+func Routes() *web.Router {
+	routes := web.NewRouter()
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", optionsCorsHandler(), public.FileHandlerFunc())
@@ -283,7 +285,7 @@ func Routes() *web.Route {
 	mid = append(mid, repo.GetActiveStopwatch)
 	mid = append(mid, goGet)
 
-	others := web.NewRoute()
+	others := web.NewRouter()
 	others.Use(mid...)
 	registerRoutes(others)
 	routes.Mount("", others)
@@ -293,7 +295,7 @@ func Routes() *web.Route {
 var ignSignInAndCsrf = verifyAuthWithOptions(&common.VerifyOptions{DisableCSRF: true})
 
 // registerRoutes register routes
-func registerRoutes(m *web.Route) {
+func registerRoutes(m *web.Router) {
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
 	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})
 	// TODO: rename them to "optSignIn", which means that the "sign-in" could be optional, depends on the VerifyOptions (RequireSignInView)
@@ -384,18 +386,18 @@ func registerRoutes(m *web.Route) {
 		return func(ctx *context.Context) {
 			// only check global disabled units when ignoreGlobal is false
 			if !ignoreGlobal && unitType.UnitGlobalDisabled() {
-				ctx.NotFound(unitType.String(), nil)
+				ctx.NotFound("Repo unit is is disabled: "+unitType.LogString(), nil)
 				return
 			}
 
 			if ctx.ContextUser == nil {
-				ctx.NotFound(unitType.String(), nil)
+				ctx.NotFound("ContextUser is nil", nil)
 				return
 			}
 
 			if ctx.ContextUser.IsOrganization() {
 				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
-					ctx.NotFound(unitType.String(), nil)
+					ctx.NotFound("ContextUser is org but doer has no access to unit", nil)
 					return
 				}
 			}
@@ -487,7 +489,7 @@ func registerRoutes(m *web.Route) {
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", func(ctx *context.Context) {
 			if unit.TypeCode.UnitGlobalDisabled() {
-				ctx.NotFound(unit.TypeCode.String(), nil)
+				ctx.NotFound("Repo unit code is disabled", nil)
 				return
 			}
 		}, explore.Code)
@@ -535,6 +537,8 @@ func registerRoutes(m *web.Route) {
 		})
 		m.Group("/webauthn", func() {
 			m.Get("", auth.WebAuthn)
+			m.Get("/passkey/assertion", auth.WebAuthnPasskeyAssertion)
+			m.Post("/passkey/login", auth.WebAuthnPasskeyLogin)
 			m.Get("/assertion", auth.WebAuthnLoginAssertion)
 			m.Post("/assertion", auth.WebAuthnLoginAssertionPost)
 		})
@@ -692,6 +696,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("", admin.Config)
 			m.Post("", admin.ChangeConfig)
 			m.Post("/test_mail", admin.SendTestMail)
+			m.Post("/test_cache", admin.TestCache)
 			m.Get("/settings", admin.ConfigSettings)
 		})
 
@@ -722,6 +727,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("/emails", func() {
 			m.Get("", admin.Emails)
 			m.Post("/activate", admin.ActivateEmail)
+			m.Post("/delete", admin.DeleteEmail)
 		})
 
 		m.Group("/orgs", func() {
@@ -879,10 +885,15 @@ func registerRoutes(m *web.Route) {
 			m.Post("/teams/{team}/action/repo/{action}", org.TeamsRepoAction)
 		}, context.OrgAssignment(true, false, true))
 
+		// require admin permission
+		m.Group("/{org}", func() {
+			m.Get("/teams/-/search", org.SearchTeam)
+		}, context.OrgAssignment(true, false, false, true))
+
+		// require owner permission
 		m.Group("/{org}", func() {
 			m.Get("/teams/new", org.NewTeam)
 			m.Post("/teams/new", web.Bind(forms.CreateTeamForm{}), org.NewTeamPost)
-			m.Get("/teams/-/search", org.SearchTeam)
 			m.Get("/teams/{team}/edit", org.EditTeam)
 			m.Post("/teams/{team}/edit", web.Bind(forms.CreateTeamForm{}), org.EditTeamPost)
 			m.Post("/teams/{team}/delete", org.DeleteTeam)
@@ -991,6 +1002,8 @@ func registerRoutes(m *web.Route) {
 			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 
+		m.Get("/repositories", org.Repositories)
+
 		m.Group("/projects", func() {
 			m.Group("", func() {
 				m.Get("", org.Projects)
@@ -1000,7 +1013,7 @@ func registerRoutes(m *web.Route) {
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
-					m.Post("", web.Bind(forms.EditProjectBoardForm{}), org.AddBoardToProjectPost)
+					m.Post("", web.Bind(forms.EditProjectColumnForm{}), org.AddColumnToProjectPost)
 					m.Post("/move", project.MoveColumns)
 					m.Post("/delete", org.DeleteProject)
 
@@ -1008,10 +1021,10 @@ func registerRoutes(m *web.Route) {
 					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), org.EditProjectPost)
 					m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
-					m.Group("/{boardID}", func() {
-						m.Put("", web.Bind(forms.EditProjectBoardForm{}), org.EditProjectBoard)
-						m.Delete("", org.DeleteProjectBoard)
-						m.Post("/default", org.SetDefaultProjectBoard)
+					m.Group("/{columnID}", func() {
+						m.Put("", web.Bind(forms.EditProjectColumnForm{}), org.EditProjectColumn)
+						m.Delete("", org.DeleteProjectColumn)
+						m.Post("/default", org.SetDefaultProjectColumn)
 						m.Post("/move", org.MoveIssues)
 					})
 				})
@@ -1057,8 +1070,6 @@ func registerRoutes(m *web.Route) {
 				Post(web.Bind(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
 			m.Post("/{id}/delete", repo_setting.DeleteProtectedBranchRulePost)
 		}, repo.MustBeNotEmpty)
-
-		m.Post("/rename_branch", web.Bind(forms.RenameBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.RenameBranchPost)
 
 		m.Group("/tags", func() {
 			m.Get("", repo_setting.ProtectedTags)
@@ -1124,6 +1135,9 @@ func registerRoutes(m *web.Route) {
 
 	// user/org home, including rss feeds
 	m.Get("/{username}/{reponame}", ignSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home)
+
+	// TODO: maybe it should relax the permission to allow "any access"
+	m.Post("/{username}/{reponame}/markup", ignSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki), web.Bind(structs.MarkupOption{}), misc.Markup)
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/find/*", repo.FindFiles)
@@ -1236,8 +1250,6 @@ func registerRoutes(m *web.Route) {
 			m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeCommentReaction)
 		}, context.RepoMustNotBeArchived())
 
-		m.Post("/markup", web.Bind(structs.MarkupOption{}), misc.Markup)
-
 		m.Group("/labels", func() {
 			m.Post("/new", web.Bind(forms.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", web.Bind(forms.CreateLabelForm{}), repo.UpdateLabel)
@@ -1290,6 +1302,7 @@ func registerRoutes(m *web.Route) {
 			}, web.Bind(forms.NewBranchForm{}))
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
+			m.Post("/rename", web.Bind(forms.RenameBranchForm{}), repo_setting.RenameBranchPost)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
 
 		m.Combo("/fork").Get(repo.Fork).Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
@@ -1356,7 +1369,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 			m.Group("/{id}", func() {
-				m.Post("", web.Bind(forms.EditProjectBoardForm{}), repo.AddBoardToProjectPost)
+				m.Post("", web.Bind(forms.EditProjectColumnForm{}), repo.AddColumnToProjectPost)
 				m.Post("/move", project.MoveColumns)
 				m.Post("/delete", repo.DeleteProject)
 
@@ -1364,10 +1377,10 @@ func registerRoutes(m *web.Route) {
 				m.Post("/edit", web.Bind(forms.CreateProjectForm{}), repo.EditProjectPost)
 				m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
-				m.Group("/{boardID}", func() {
-					m.Put("", web.Bind(forms.EditProjectBoardForm{}), repo.EditProjectBoard)
-					m.Delete("", repo.DeleteProjectBoard)
-					m.Post("/default", repo.SetDefaultProjectBoard)
+				m.Group("/{columnID}", func() {
+					m.Put("", web.Bind(forms.EditProjectColumnForm{}), repo.EditProjectColumn)
+					m.Delete("", repo.DeleteProjectColumn)
+					m.Post("/default", repo.SetDefaultProjectColumn)
 					m.Post("/move", repo.MoveIssues)
 				})
 			})
@@ -1379,6 +1392,7 @@ func registerRoutes(m *web.Route) {
 		m.Get("", actions.List)
 		m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
 		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
+		m.Post("/run", reqRepoAdmin, actions.Run)
 
 		m.Group("/runs/{run}", func() {
 			m.Combo("").
