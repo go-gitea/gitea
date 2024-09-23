@@ -198,12 +198,12 @@ jobs:
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
-    runs-on: ubuntu-latest
+    # specifying the version of ubuntu in use as mssql fails on newer kernels
+    # pending resolution from vendor
+    runs-on: ubuntu-22.04
     services:
       mssql:
-        # rebuilt mssql image, only for gitea's testing of mssql
-        # not for general use
-        image: techknowlogick/mssql:2017
+        image: mcr.microsoft.com/mssql/server:2019-latest
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard
