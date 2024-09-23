@@ -79,6 +79,7 @@ func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 	httpcache.SetCacheControlInHeader(header, duration)
 
 	if !opts.LastModified.IsZero() {
+		// http.TimeFormat required a UTC time, refer to https://pkg.go.dev/net/http#TimeFormat
 		header.Set("Last-Modified", opts.LastModified.UTC().Format(http.TimeFormat))
 	}
 }
