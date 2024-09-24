@@ -18,6 +18,7 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/httplib"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
@@ -103,6 +104,11 @@ func NewFileSign(ctx context.Context, ownerID int64, input io.Reader) (*packages
 
 // BuildPacmanDB Create db signature cache
 func BuildPacmanDB(ctx context.Context, ownerID int64, group, arch string) error {
+	lock, err := globallock.Lock(ctx, fmt.Sprintf("pkg_arch_db_%s", group))
+	if err != nil {
+		return err
+	}
+	defer lock()
 	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err

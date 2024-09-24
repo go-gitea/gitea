@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/modules/globallock"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
 	"code.gitea.io/gitea/modules/util"
@@ -47,9 +48,18 @@ func GetRepositoryKey(ctx *context.Context) {
 	})
 }
 
+func refreshLocker(ctx *context.Context, group string) (globallock.ReleaseFunc, error) {
+	return globallock.Lock(ctx, fmt.Sprintf("pkg_arch_pkg_%s", group))
+}
+
 func PushPackage(ctx *context.Context) {
 	group := ctx.PathParam("group")
-
+	releaser, err := refreshLocker(ctx, group)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer releaser()
 	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -211,6 +221,12 @@ func RemovePackage(ctx *context.Context) {
 		ver     = ctx.PathParam("version")
 		pkgArch = ctx.PathParam("arch")
 	)
+	releaser, err := refreshLocker(ctx, group)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer releaser()
 	pv, err := packages_model.GetVersionByNameAndVersion(
 		ctx, ctx.Package.Owner.ID, packages_model.TypeArch, pkg, ver,
 	)
