@@ -15,19 +15,17 @@
 				<form class="tw-flex" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
 					<input type="hidden" name="action" value="default_branch">
-					{{if not .Repository.IsEmpty}}
-						<div class="ui dropdown selection search tw-flex-1 tw-mr-2 tw-max-w-96">
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<input type="hidden" name="branch" value="{{.Repository.DefaultBranch}}">
-							<div class="default text">{{.Repository.DefaultBranch}}</div>
-							<div class="menu">
-								{{range .Branches}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
-								{{end}}
-							</div>
+					<div class="ui dropdown selection search tw-flex-1 tw-mr-2 tw-max-w-96">
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<input type="hidden" name="branch" value="{{.Repository.DefaultBranch}}">
+						<div class="default text">{{.Repository.DefaultBranch}}</div>
+						<div class="menu">
+							{{range .Branches}}
+								<div class="item" data-value="{{.}}">{{.}}</div>
+							{{end}}
 						</div>
-						<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.branches.update_default_branch"}}</button>
-					{{end}}
+					</div>
+					<button class="ui primary button"{{if .Repository.IsEmpty}} disabled{{end}}>{{ctx.Locale.Tr "repo.settings.branches.update_default_branch"}}</button>
 				</form>
 			</div>
 
