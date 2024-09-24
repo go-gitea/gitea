@@ -140,6 +140,7 @@ func ParsePackage(r *packages.HashedBuffer) (*Package, error) {
 		case ".PKGINFO":
 			pkg, err = ParsePackageInfo(tarballType, f)
 			if err != nil {
+				_ = f.Close()
 				return nil, err
 			}
 		case ".MTREE":

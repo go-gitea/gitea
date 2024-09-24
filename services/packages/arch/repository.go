@@ -175,15 +175,18 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 	if err != nil {
 		return nil, err
 	}
+	defer db.Close()
 	gw := gzip.NewWriter(db)
+	defer gw.Close()
 	tw := tar.NewWriter(gw)
+	defer tw.Close()
 	count := 0
 	for _, pkg := range pkgs {
 		versions, err := packages_model.GetVersionsByPackageName(
 			ctx, ownerID, packages_model.TypeArch, pkg.Name,
 		)
 		if err != nil {
-			return nil, errors.Join(tw.Close(), gw.Close(), db.Close(), err)
+			return nil, err
 		}
 		sort.Slice(versions, func(i, j int) bool {
 			return versions[i].CreatedUnix > versions[j].CreatedUnix
@@ -192,7 +195,7 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 		for _, ver := range versions {
 			files, err := packages_model.GetFilesByVersionID(ctx, ver.ID)
 			if err != nil {
-				return nil, errors.Join(tw.Close(), gw.Close(), db.Close(), err)
+				return nil, err
 			}
 			var pf *packages_model.PackageFile
 			for _, file := range files {
@@ -215,7 +218,7 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 				ctx, packages_model.PropertyTypeFile, pf.ID, arch_module.PropertyDescription,
 			)
 			if err != nil {
-				return nil, errors.Join(tw.Close(), gw.Close(), db.Close(), err)
+				return nil, err
 			}
 			if len(pps) >= 1 {
 				meta := []byte(pps[0].Value)
@@ -225,20 +228,18 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 					Mode: int64(os.ModePerm),
 				}
 				if err = tw.WriteHeader(header); err != nil {
-					return nil, errors.Join(tw.Close(), gw.Close(), db.Close(), err)
+					return nil, err
 				}
 				if _, err := tw.Write(meta); err != nil {
-					return nil, errors.Join(tw.Close(), gw.Close(), db.Close(), err)
+					return nil, err
 				}
 				count++
 				break
 			}
 		}
 	}
-	defer gw.Close()
-	defer tw.Close()
 	if count == 0 {
-		return nil, errors.Join(db.Close(), io.EOF)
+		return nil, io.EOF
 	}
 	return db, nil
 }

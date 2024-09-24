@@ -332,6 +332,9 @@ func getProperty(data, key string) string {
 
 func listTarGzFiles(data []byte) (fstest.MapFS, error) {
 	reader, err := gzip.NewReader(bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
 	defer reader.Close()
 	if err != nil {
 		return nil, err
