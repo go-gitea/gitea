@@ -28,11 +28,11 @@ func testRenameBranch(t *testing.T, u *url.URL) {
 
 	// get branch setting page
 	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user2/repo1/settings/branches")
+	req := NewRequest(t, "GET", "/user2/repo1/branches")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/rename_branch", map[string]string{
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/rename", map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 		"from":  "master",
 		"to":    "main",
@@ -76,7 +76,7 @@ func testRenameBranch(t *testing.T, u *url.URL) {
 	assert.Equal(t, "branch2", branch2.Name)
 
 	// rename branch2 to branch1
-	req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/rename_branch", map[string]string{
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/rename", map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 		"from":  "branch2",
 		"to":    "branch1",
@@ -103,7 +103,7 @@ func testRenameBranch(t *testing.T, u *url.URL) {
 	assert.True(t, branch1.IsDeleted) // virtual deletion
 
 	// rename branch2 to branch1 again
-	req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/rename_branch", map[string]string{
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/rename", map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 		"from":  "branch2",
 		"to":    "branch1",
