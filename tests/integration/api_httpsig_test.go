@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
-	"github.com/go-fed/httpsig"
+	"github.com/42wim/httpsig"
 	"golang.org/x/crypto/ssh"
 )
 

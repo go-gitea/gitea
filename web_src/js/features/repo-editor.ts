@@ -75,23 +75,62 @@ export function initRepoEditor() {
   }
   filenameInput.addEventListener('input', function () {
     const parts = filenameInput.value.split('/');
+    const links = Array.from(document.querySelectorAll('.breadcrumb span.section'));
+    const dividers = Array.from(document.querySelectorAll('.breadcrumb .breadcrumb-divider'));
+    let warningDiv = document.querySelector('.ui.warning.message.flash-message.flash-warning.space-related');
+    let containSpace = false;
     if (parts.length > 1) {
       for (let i = 0; i < parts.length; ++i) {
         const value = parts[i];
+        const trimValue = value.trim();
+        if (trimValue === '..') {
+          // remove previous tree path
+          if (links.length > 0) {
+            const link = links.pop();
+            const divider = dividers.pop();
+            link.remove();
+            divider.remove();
+          }
+          continue;
+        }
         if (i < parts.length - 1) {
-          if (value.length) {
-            filenameInput.before(createElementFromHTML(
+          if (trimValue.length) {
+            const linkElement = createElementFromHTML(
               `<span class="section"><a href="#">${htmlEscape(value)}</a></span>`,
-            ));
-            filenameInput.before(createElementFromHTML(
+            );
+            const dividerElement = createElementFromHTML(
               `<div class="breadcrumb-divider">/</div>`,
-            ));
+            );
+            links.push(linkElement);
+            dividers.push(dividerElement);
+            filenameInput.before(linkElement);
+            filenameInput.before(dividerElement);
           }
         } else {
           filenameInput.value = value;
         }
         this.setSelectionRange(0, 0);
+        containSpace |= (trimValue !== value && trimValue !== '');
       }
+    }
+    containSpace |= Array.from(links).some((link) => {
+      const value = link.querySelector('a').textContent;
+      return value.trim() !== value;
+    });
+    containSpace |= parts[parts.length - 1].trim() !== parts[parts.length - 1];
+    if (containSpace) {
+      if (!warningDiv) {
+        warningDiv = document.createElement('div');
+        warningDiv.classList.add('ui', 'warning', 'message', 'flash-message', 'flash-warning', 'space-related');
+        warningDiv.innerHTML = '<p>File path contains leading or trailing whitespace.</p>';
+        // Add display 'block' because display is set to 'none' in formantic\build\semantic.css
+        warningDiv.style.display = 'block';
+        const inputContainer = document.querySelector('.repo-editor-header');
+        inputContainer.insertAdjacentElement('beforebegin', warningDiv);
+      }
+      showElem(warningDiv);
+    } else if (warningDiv) {
+      hideElem(warningDiv);
     }
     joinTreePath();
   });

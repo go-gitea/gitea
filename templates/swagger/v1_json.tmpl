@@ -5446,7 +5446,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get the pull request of the commit",
+        "summary": "Get the merged pull request of the commit",
         "operationId": "repoGetCommitPullRequest",
         "parameters": [
           {
@@ -22614,6 +22614,14 @@
         "auth_username": {
           "type": "string",
           "x-go-name": "AuthUsername"
+        },
+        "aws_access_key_id": {
+          "type": "string",
+          "x-go-name": "AWSAccessKeyID"
+        },
+        "aws_secret_access_key": {
+          "type": "string",
+          "x-go-name": "AWSSecretAccessKey"
         },
         "clone_addr": {
           "type": "string",
