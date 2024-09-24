@@ -378,7 +378,7 @@ func (m *webhookNotifier) UpdateComment(ctx context.Context, doer *user_model.Us
 	var pullRequest *api.PullRequest
 	if c.Issue.IsPull {
 		eventType = webhook_module.HookEventPullRequestComment
-		pullRequest = convert.ToAPIPullRequest(ctx, c.Issue.PullRequest, nil)
+		pullRequest = convert.ToAPIPullRequest(ctx, c.Issue.PullRequest, doer)
 	} else {
 		eventType = webhook_module.HookEventIssueComment
 	}
