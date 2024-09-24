@@ -88,14 +88,14 @@ func mountBlob(ctx context.Context, pi *packages_service.PackageInfo, pb *packag
 	})
 }
 
-func containerPkgName(piName string) string {
-	return "pkg_container_" + strings.ToLower(piName)
+func containerPkgName(piOwnerID int64, piName string) string {
+	return fmt.Sprintf("pkg_%d_container_%s", piOwnerID, strings.ToLower(piName))
 }
 
 func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageInfo) (*packages_model.PackageVersion, error) {
 	var uploadVersion *packages_model.PackageVersion
 
-	releaser, err := globallock.Lock(ctx, containerPkgName(pi.Name))
+	releaser, err := globallock.Lock(ctx, containerPkgName(pi.Owner.ID, pi.Name))
 	if err != nil {
 		return nil, err
 	}
@@ -177,6 +177,12 @@ func createFileForBlob(ctx context.Context, pv *packages_model.PackageVersion, p
 }
 
 func deleteBlob(ctx context.Context, ownerID int64, image, digest string) error {
+	releaser, err := globallock.Lock(ctx, containerPkgName(ownerID, image))
+	if err != nil {
+		return err
+	}
+	defer releaser()
+
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		pfds, err := container_model.GetContainerBlobs(ctx, &container_model.BlobSearchOptions{
 			OwnerID: ownerID,
