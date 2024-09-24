@@ -334,3 +334,19 @@ func doAPIGetPullFiles(ctx APITestContext, pr *api.PullRequest, callback func(*t
 		}
 	}
 }
+
+func TestAPICommitPullRequest(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	ctx := NewAPITestContext(t, "user2", repo.Name, auth_model.AccessTokenScopeReadRepository)
+
+	mergedCommitSHA := "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3"
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/commits/%s/pull", owner.Name, repo.Name, mergedCommitSHA).AddTokenAuth(ctx.Token)
+	ctx.Session.MakeRequest(t, req, http.StatusOK)
+
+	invalidCommitSHA := "abcd1234abcd1234abcd1234abcd1234abcd1234"
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/commits/%s/pull", owner.Name, repo.Name, invalidCommitSHA).AddTokenAuth(ctx.Token)
+	ctx.Session.MakeRequest(t, req, http.StatusNotFound)
+}
