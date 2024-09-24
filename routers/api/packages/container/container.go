@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
 	user_model "code.gitea.io/gitea/models/user"
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
@@ -148,6 +150,7 @@ func DetermineSupport(ctx *context.Context) {
 // If the current user is anonymous, the ghost user is used unless RequireSignInView is enabled.
 func Authenticate(ctx *context.Context) {
 	u := ctx.Doer
+	packageScope := auth_service.GetAccessScope(ctx.Data)
 	if u == nil {
 		if setting.Service.RequireSignInView {
 			apiUnauthorizedError(ctx)
@@ -155,9 +158,21 @@ func Authenticate(ctx *context.Context) {
 		}
 
 		u = user_model.NewGhostUser()
+	} else {
+		if has, err := packageScope.HasAnyScope(
+			auth_model.AccessTokenScopeReadPackage,
+			auth_model.AccessTokenScopeWritePackage,
+			auth_model.AccessTokenScopeAll,
+		); !has {
+			if err != nil {
+				log.Error("Error checking access scope: %v", err)
+			}
+			apiUnauthorizedError(ctx)
+			return
+		}
 	}
 
-	token, err := packages_service.CreateAuthorizationToken(u)
+	token, err := packages_service.CreateAuthorizationToken(u, packageScope)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
