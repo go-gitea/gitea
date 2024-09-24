@@ -198,7 +198,9 @@ jobs:
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
-    runs-on: ubuntu-latest
+    # specifying the version of ubuntu in use as mssql fails on newer kernels
+    # pending resolution from vendor
+    runs-on: ubuntu-20.04
     services:
       mssql:
         image: mcr.microsoft.com/mssql/server:2017-latest

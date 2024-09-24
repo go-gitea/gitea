@@ -70,10 +70,11 @@ modifies/go:
       - any-glob-to-any-file:
           - "**/*.go"
 
-modifies/js:
+modifies/frontend:
   - changed-files:
       - any-glob-to-any-file:
           - "**/*.js"
+          - "**/*.ts"
           - "**/*.vue"
 
 docs-update-needed:
