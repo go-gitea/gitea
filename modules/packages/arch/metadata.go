@@ -291,7 +291,7 @@ func ValidatePackageSpec(p *Package) error {
 			return util.NewInvalidArgumentErrorf("invalid replaces: %s", p)
 		}
 	}
-	for _, p := range p.VersionMetadata.Replaces {
+	for _, p := range p.VersionMetadata.Xdata {
 		if !rePkgVer.MatchString(p) {
 			return util.NewInvalidArgumentErrorf("invalid xdata: %s", p)
 		}
