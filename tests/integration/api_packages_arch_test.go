@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"testing/fstest"
 
@@ -314,6 +315,27 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 			})
 		}
 	}
+	t.Run("Concurrent Upload", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		var wg sync.WaitGroup
+
+		targets := []string{"any", "aarch64", "x86_64"}
+		for _, tag := range targets {
+			wg.Add(1)
+			go func(i string) {
+				defer wg.Done()
+				req := NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgs[i])).
+					AddBasicAuth(user.Name)
+				MakeRequest(t, req, http.StatusCreated)
+			}(tag)
+		}
+		wg.Wait()
+		for _, target := range targets {
+			req := NewRequestWithBody(t, "DELETE", rootURL+"/test/1.0.0-1/"+target, nil).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+		}
+	})
 }
 
 func getProperty(data, key string) string {
