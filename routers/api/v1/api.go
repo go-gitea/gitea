@@ -1274,6 +1274,8 @@ func Routes() *web.Route {
 					m.Group("/{ref}", func() {
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
+					}, context.ReferencesGitRepo())
+					m.Group("/{sha}", func() {
 						m.Get("/pull", repo.GetCommitPullRequest)
 					}, context.ReferencesGitRepo())
 				}, reqRepoReader(unit.TypeCode))
