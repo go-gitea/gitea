@@ -23,7 +23,8 @@ func FullSteps(task *actions_model.ActionTask) []*actions_model.ActionTaskStep {
 	// 1. preStep(Success) -> step1(Success) -> step2(Running) -> step3(Waiting) -> postStep(Waiting): firstStep is step1.
 	// 2. preStep(Success) -> step1(Skipped) -> step2(Success) -> postStep(Success): firstStep is step2.
 	// 3. preStep(Success) -> step1(Running) -> step2(Waiting) -> postStep(Waiting): firstStep is step1.
-	// 3. preStep(Success) -> step1(Skipped) -> step2(Skipped) -> postStep(Skipped): firstStep is nil.
+	// 4. preStep(Success) -> step1(Skipped) -> step2(Skipped) -> postStep(Skipped): firstStep is nil.
+	// 5. preStep(Success) -> step1(Cancelled) -> step2(Cancelled) -> postStep(Cancelled): firstStep is nil.
 	var firstStep *actions_model.ActionTaskStep
 	// lastHasRunStep is the last step that has run.
 	// For example,
@@ -51,6 +52,7 @@ func FullSteps(task *actions_model.ActionTask) []*actions_model.ActionTaskStep {
 		Status:    actions_model.StatusRunning,
 	}
 
+	// No step has run or is running, so preStep is equal to the task
 	if firstStep == nil {
 		preStep.Stopped = task.Stopped
 		preStep.Status = task.Status
