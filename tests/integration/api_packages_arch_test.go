@@ -336,9 +336,6 @@ func listTarGzFiles(data []byte) (fstest.MapFS, error) {
 		return nil, err
 	}
 	defer reader.Close()
-	if err != nil {
-		return nil, err
-	}
 	tarRead := tar.NewReader(reader)
 	files := make(fstest.MapFS)
 	for {
