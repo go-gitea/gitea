@@ -118,6 +118,10 @@ func CreateAccessToken(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "AccessTokenScope.Normalize", fmt.Errorf("invalid access token scope provided: %w", err))
 		return
 	}
+	if scope == "" {
+		ctx.Error(http.StatusBadRequest, "AccessTokenScope", "access token must have a scope")
+		return
+	}
 	t.Scope = scope
 
 	if err := auth_model.NewAccessToken(ctx, t); err != nil {
@@ -129,6 +133,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 		Token:          t.Token,
 		ID:             t.ID,
 		TokenLastEight: t.TokenLastEight,
+		Scopes:         t.Scope.StringSlice(),
 	})
 }
 

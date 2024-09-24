@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"net/http"
 	"net/url"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateNewTagProtected(t *testing.T) {
@@ -57,6 +59,40 @@ func TestCreateNewTagProtected(t *testing.T) {
 			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunStdString(&git.RunOpts{Dir: dstPath})
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "Tag v-2 is protected")
+		})
+	})
+
+	t.Run("GitTagForce", func(t *testing.T) {
+		onGiteaRun(t, func(t *testing.T, u *url.URL) {
+			httpContext := NewAPITestContext(t, owner.Name, repo.Name)
+
+			dstPath := t.TempDir()
+
+			u.Path = httpContext.GitPath()
+			u.User = url.UserPassword(owner.Name, userPassword)
+
+			doGitClone(dstPath, u)(t)
+
+			_, _, err := git.NewCommand(git.DefaultContext, "tag", "v-1.1", "-m", "force update", "--force").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.NoError(t, err)
+
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.NoError(t, err)
+
+			_, _, err = git.NewCommand(git.DefaultContext, "tag", "v-1.1", "-m", "force update v2", "--force").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.NoError(t, err)
+
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "the tag already exists in the remote")
+
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags", "--force").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.NoError(t, err)
+			req := NewRequestf(t, "GET", "/%s/releases/tag/v-1.1", repo.FullName())
+			resp := MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			tagsTab := htmlDoc.Find(".release-list-title")
+			assert.Contains(t, tagsTab.Text(), "force update v2")
 		})
 	})
 
