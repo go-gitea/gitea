@@ -455,8 +455,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 
 	if opts.Page < 10 { // TODO: why it's 10 but other values? It's an experience value.
 		sess := db.GetEngine(ctx).Where(cond).
-			Select("`action`.*"). // this line will avoid select other joined table's columns
-			Join("INNER", "repository", "`repository`.id = `action`.repo_id")
+			Select("`action`.*") // this line will avoid select other joined table's columns
 
 		opts.SetDefaultValues()
 		sess = db.SetSessionPagination(sess, &opts)
