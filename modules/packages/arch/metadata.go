@@ -39,8 +39,8 @@ const (
 var (
 	reName   = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$`)
 	reVer    = regexp.MustCompile(`^[a-zA-Z0-9:_.+]+-+[0-9]+$`)
-	reOptDep = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+([<>]?=?[a-zA-Z0-9@._+-]+)?(:.*)?$`)
-	rePkgVer = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+([<>]?=?[a-zA-Z0-9@._+-]+)?$`)
+	reOptDep = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+([<>]?=?([0-9]+:)?[a-zA-Z0-9@._+-]+)?(:.*)?$`)
+	rePkgVer = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+([<>]?=?([0-9]+:)?[a-zA-Z0-9@._+-]+)?$`)
 
 	magicZSTD = []byte{0x28, 0xB5, 0x2F, 0xFD}
 	magicXZ   = []byte{0xFD, 0x37, 0x7A, 0x58, 0x5A}
