@@ -219,7 +219,7 @@ const (
 type IssueCommentPayload struct {
 	Action      HookIssueCommentAction `json:"action"`
 	Issue       *Issue                 `json:"issue"`
-	PullRequest *PullRequest           `json:"pull_request"`
+	PullRequest *PullRequest           `json:"pull_request,omitempty"`
 	Comment     *Comment               `json:"comment"`
 	Changes     *ChangesPayload        `json:"changes,omitempty"`
 	Repository  *Repository            `json:"repository"`
