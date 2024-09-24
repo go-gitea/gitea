@@ -49,7 +49,7 @@ func GetRepositoryKey(ctx *context.Context) {
 }
 
 func refreshLocker(ctx *context.Context, group string) (globallock.ReleaseFunc, error) {
-	return globallock.Lock(ctx, fmt.Sprintf("pkg_arch_pkg_%s", group))
+	return globallock.Lock(ctx, fmt.Sprintf("pkg_%d_arch_pkg_%s", ctx.Package.Owner.ID, group))
 }
 
 func PushPackage(ctx *context.Context) {

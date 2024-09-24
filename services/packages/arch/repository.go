@@ -105,7 +105,7 @@ func NewFileSign(ctx context.Context, ownerID int64, input io.Reader) (*packages
 // BuildPacmanDB Create db signature cache
 func BuildPacmanDB(ctx context.Context, ownerID int64, group, arch string) error {
 	// Prevent `update/delete` and `cron clean task` from running concurrently.
-	lock, err := globallock.Lock(ctx, fmt.Sprintf("pkg_arch_db_%s", group))
+	lock, err := globallock.Lock(ctx, fmt.Sprintf("pkg_%d_arch_db_%s", ownerID, group))
 	if err != nil {
 		return err
 	}
