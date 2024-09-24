@@ -291,11 +291,6 @@ func ValidatePackageSpec(p *Package) error {
 			return util.NewInvalidArgumentErrorf("invalid replaces: %s", replace)
 		}
 	}
-	for _, data := range p.VersionMetadata.XData {
-		if !rePkgVer.MatchString(data) {
-			return util.NewInvalidArgumentErrorf("invalid xdata: %s", data)
-		}
-	}
 	for _, optDepend := range p.VersionMetadata.OptDepends {
 		if !reOptDep.MatchString(optDepend) {
 			return util.NewInvalidArgumentErrorf("invalid optional dependency: %s", optDepend)
