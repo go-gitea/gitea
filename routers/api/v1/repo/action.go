@@ -616,8 +616,6 @@ func (a ActionWorkflow) ListRepositoryWorkflows(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	//   "500":
@@ -630,6 +628,7 @@ func (a ActionWorkflow) ListRepositoryWorkflows(ctx *context.APIContext) {
 
 	if len(workflows) == 0 {
 		ctx.JSON(http.StatusNotFound, nil)
+		return
 	}
 
 	ctx.SetTotalCountHeader(int64(len(workflows)))
@@ -667,8 +666,6 @@ func (a ActionWorkflow) GetWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	//   "500":
@@ -687,6 +684,7 @@ func (a ActionWorkflow) GetWorkflow(ctx *context.APIContext) {
 
 	if workflow == nil {
 		ctx.JSON(http.StatusNotFound, nil)
+		return
 	}
 
 	ctx.JSON(http.StatusOK, workflow)
@@ -723,8 +721,6 @@ func (a ActionWorkflow) DisableWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -737,6 +733,7 @@ func (a ActionWorkflow) DisableWorkflow(ctx *context.APIContext) {
 	err := actions_service.DisableActionWorkflow(ctx, workflowID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "DisableActionWorkflow", err)
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)
@@ -777,8 +774,6 @@ func (a ActionWorkflow) DispatchWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -846,6 +841,7 @@ func (a ActionWorkflow) EnableWorkflow(ctx *context.APIContext) {
 	err := actions_service.EnableActionWorkflow(ctx, workflowID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "EnableActionWorkflow", err)
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)

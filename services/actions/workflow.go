@@ -27,20 +27,16 @@ import (
 )
 
 func getActionWorkflowPath(commit *git.Commit) string {
-	_, err := commit.SubTree(".gitea/workflows")
-	if err == nil {
-		return ".gitea/workflows"
+	paths := []string{".gitea/workflows", ".github/workflows"}
+	for _, path := range paths {
+		if _, err := commit.SubTree(path); err == nil {
+			return path
+		}
 	}
-
-	if _, ok := err.(git.ErrNotExist); ok {
-		_, err = commit.SubTree(".github/workflows")
-		return ".github/workflows"
-	}
-
 	return ""
 }
 
-func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, entry *git.TreeEntry) (*api.ActionWorkflow, error) {
+func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, entry *git.TreeEntry) *api.ActionWorkflow {
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 
@@ -88,17 +84,22 @@ func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, entry *
 		URL:       URL,
 		HTMLURL:   HTMLURL,
 		BadgeURL:  badgeURL,
-	}, nil
+	}
 }
 
 func disableOrEnableWorkflow(ctx *context.APIContext, workflowID string, isEnable bool) error {
+	workflow, err := GetActionWorkflow(ctx, workflowID)
+	if err != nil {
+		return err
+	}
+
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 
 	if isEnable {
-		cfg.EnableWorkflow(workflowID)
+		cfg.EnableWorkflow(workflow.ID)
 	} else {
-		cfg.DisableWorkflow(workflowID)
+		cfg.DisableWorkflow(workflow.ID)
 	}
 
 	return repo_model.UpdateRepoUnit(ctx, cfgUnit)
@@ -119,11 +120,7 @@ func ListActionWorkflows(ctx *context.APIContext) ([]*api.ActionWorkflow, error)
 
 	workflows := make([]*api.ActionWorkflow, len(entries))
 	for i, entry := range entries {
-		workflows[i], err = getActionWorkflowEntry(ctx, defaultBranchCommit, entry)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "WorkflowGetError", err.Error())
-			return nil, err
-		}
+		workflows[i] = getActionWorkflowEntry(ctx, defaultBranchCommit, entry)
 	}
 
 	return workflows, nil
@@ -135,15 +132,13 @@ func GetActionWorkflow(ctx *context.APIContext, workflowID string) (*api.ActionW
 		return nil, err
 	}
 
-	workflows := make([]*api.ActionWorkflow, len(entries))
-	for i, entry := range entries {
+	for _, entry := range entries {
 		if entry.Name == workflowID {
-			workflows[i] = entry
-			break
+			return entry, nil
 		}
 	}
 
-	return workflows[len(workflows)-1], nil
+	return nil, fmt.Errorf("workflow not found")
 }
 
 func DisableActionWorkflow(ctx *context.APIContext, workflowID string) error {
@@ -151,44 +146,46 @@ func DisableActionWorkflow(ctx *context.APIContext, workflowID string) error {
 }
 
 func DispatchActionWorkflow(ctx *context.APIContext, workflowID string, opt *api.CreateActionWorkflowDispatch) {
-	// can not run job when workflow is disabled
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
+
 	if cfg.IsWorkflowDisabled(workflowID) {
 		ctx.Error(http.StatusInternalServerError, "WorkflowDisabled", ctx.Tr("actions.workflow.disabled"))
 		return
 	}
 
-	// get target commit of run from specified ref
 	refName := git.RefName(opt.Ref)
 	var runTargetCommit *git.Commit
 	var err error
-	if refName.IsTag() {
+
+	switch {
+	case refName.IsTag():
 		runTargetCommit, err = ctx.Repo.GitRepo.GetTagCommit(refName.TagName())
-	} else if refName.IsBranch() {
+	case refName.IsBranch():
 		runTargetCommit, err = ctx.Repo.GitRepo.GetBranchCommit(refName.BranchName())
-	} else {
+	default:
 		ctx.Error(http.StatusInternalServerError, "WorkflowRefNameError", ctx.Tr("form.git_ref_name_error", opt.Ref))
 		return
 	}
+
 	if err != nil {
 		ctx.Error(http.StatusNotFound, "WorkflowRefNotFound", ctx.Tr("form.target_ref_not_exist", opt.Ref))
 		return
 	}
 
-	// get workflow entry from default branch commit
 	defaultBranchCommit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "WorkflowDefaultBranchError", err.Error())
 		return
 	}
+
 	entries, err := actions.ListWorkflows(defaultBranchCommit)
 	if err != nil {
 		ctx.Error(http.StatusNotFound, "WorkflowListNotFound", err.Error())
+		return
 	}
 
-	// find workflow from commit
-	var workflows []*jobparser.SingleWorkflow
+	var workflow *jobparser.SingleWorkflow
 	for _, entry := range entries {
 		if entry.Name() == workflowID {
 			content, err := actions.GetContentFromEntry(entry)
@@ -196,39 +193,25 @@ func DispatchActionWorkflow(ctx *context.APIContext, workflowID string, opt *api
 				ctx.Error(http.StatusInternalServerError, "WorkflowGetContentError", err.Error())
 				return
 			}
-			workflows, err = jobparser.Parse(content)
-			if err != nil {
+			workflows, err := jobparser.Parse(content)
+			if err != nil || len(workflows) == 0 {
 				ctx.Error(http.StatusInternalServerError, "WorkflowParseError", err.Error())
 				return
 			}
+			workflow = workflows[0]
 			break
 		}
 	}
 
-	if len(workflows) == 0 {
+	if workflow == nil {
 		ctx.Error(http.StatusNotFound, "WorkflowNotFound", ctx.Tr("actions.workflow.not_found", workflowID))
 		return
 	}
 
-	workflow := &model.Workflow{
-		RawOn: workflows[0].RawOn,
-	}
-	inputs := make(map[string]any)
-	if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
-		for name, config := range workflowDispatch.Inputs {
-			value, exists := opt.Inputs[name]
-			if !exists {
-				continue
-			}
-			if config.Type == "boolean" {
-				inputs[name] = strconv.FormatBool(value == "on")
-			} else if value != "" {
-				inputs[name] = value
-			} else {
-				inputs[name] = config.Default
-			}
-		}
-	}
+	// Process workflow inputs
+	inputs := processWorkflowInputs(opt, &model.Workflow{
+		RawOn: workflow.RawOn,
+	})
 
 	workflowDispatchPayload := &api.WorkflowDispatchPayload{
 		Workflow:   workflowID,
@@ -237,8 +220,9 @@ func DispatchActionWorkflow(ctx *context.APIContext, workflowID string, opt *api
 		Inputs:     inputs,
 		Sender:     convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
 	}
-	var eventPayload []byte
-	if eventPayload, err = workflowDispatchPayload.JSONPayload(); err != nil {
+
+	eventPayload, err := workflowDispatchPayload.JSONPayload()
+	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "WorkflowDispatchJSONParseError", err.Error())
 		return
 	}
@@ -258,7 +242,7 @@ func DispatchActionWorkflow(ctx *context.APIContext, workflowID string, opt *api
 		Status:            actions_model.StatusWaiting,
 	}
 
-	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+	if err := actions_model.InsertRun(ctx, run, []*jobparser.SingleWorkflow{workflow}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "WorkflowInsertRunError", err.Error())
 		return
 	}
@@ -268,7 +252,30 @@ func DispatchActionWorkflow(ctx *context.APIContext, workflowID string, opt *api
 		ctx.Error(http.StatusInternalServerError, "WorkflowFindRunJobError", err.Error())
 		return
 	}
+
 	CreateCommitStatus(ctx, alljobs...)
+}
+
+func processWorkflowInputs(opt *api.CreateActionWorkflowDispatch, workflow *model.Workflow) map[string]any {
+	inputs := make(map[string]any)
+	if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
+		for name, config := range workflowDispatch.Inputs {
+			value, exists := opt.Inputs[name]
+			if !exists {
+				continue
+			}
+			if value == "" {
+				value = config.Default
+			}
+			switch config.Type {
+			case "boolean":
+				inputs[name] = strconv.FormatBool(value == "on")
+			default:
+				inputs[name] = value
+			}
+		}
+	}
+	return inputs
 }
 
 func EnableActionWorkflow(ctx *context.APIContext, workflowID string) error {
