@@ -36,6 +36,7 @@ func TestPackageComposer(t *testing.T) {
 	packageType := "composer-plugin"
 	packageAuthor := "Gitea Authors"
 	packageLicense := "MIT"
+	packageBin := "./bin/script"
 
 	var buf bytes.Buffer
 	archive := zip.NewWriter(&buf)
@@ -49,6 +50,9 @@ func TestPackageComposer(t *testing.T) {
 			{
 				"name": "` + packageAuthor + `"
 			}
+		],
+		"bin": [
+			"` + packageBin + `"
 		]
 	}`))
 	archive.Close()
@@ -210,6 +214,8 @@ func TestPackageComposer(t *testing.T) {
 		assert.Len(t, pkgs[0].Authors, 1)
 		assert.Equal(t, packageAuthor, pkgs[0].Authors[0].Name)
 		assert.Equal(t, "zip", pkgs[0].Dist.Type)
-		assert.Equal(t, "7b40bfd6da811b2b78deec1e944f156dbb2c747b", pkgs[0].Dist.Checksum)
+		assert.Equal(t, "4f5fa464c3cb808a1df191dbf6cb75363f8b7072", pkgs[0].Dist.Checksum)
+		assert.Len(t, pkgs[0].Bin, 1)
+		assert.Equal(t, packageBin, pkgs[0].Bin[0])
 	})
 }
