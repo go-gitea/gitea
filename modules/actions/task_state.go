@@ -25,12 +25,23 @@ func FullSteps(task *actions_model.ActionTask) []*actions_model.ActionTaskStep {
 	// 3. preStep(Success) -> step1(Running) -> step2(Waiting) -> postStep(Waiting): firstStep is step1.
 	// 3. preStep(Success) -> step1(Skipped) -> step2(Skipped) -> postStep(Skipped): firstStep is nil.
 	var firstStep *actions_model.ActionTaskStep
+	// lastHasRunStep is the last step that has run.
+	// For example,
+	// 1. preStep(Success) -> step1(Success) -> step2(Running) -> step3(Waiting) -> postStep(Waiting): lastHasRunStep is step1.
+	// 2. preStep(Success) -> step1(Success) -> step2(Success) -> step3(Success) -> postStep(Success): lastHasRunStep is step3.
+	// 3. preStep(Success) -> step1(Success) -> step2(Failure) -> step3 -> postStep(Waiting): lastHasRunStep is step2.
+	// So its Stopped is the Started of postStep when there are no more steps to run.
+	var lastHasRunStep *actions_model.ActionTaskStep
+
 	var logIndex int64
 	for _, step := range task.Steps {
-		if step.Status.HasRun() || step.Status.IsRunning() {
+		if firstStep == nil && (step.Status.HasRun() || step.Status.IsRunning()) {
 			firstStep = step
-			break
 		}
+		if step.Status.HasRun() {
+			lastHasRunStep = step
+		}
+		logIndex += step.LogLength
 	}
 
 	preStep := &actions_model.ActionTaskStep{
@@ -50,19 +61,6 @@ func FullSteps(task *actions_model.ActionTask) []*actions_model.ActionTaskStep {
 	}
 	logIndex += preStep.LogLength
 
-	// lastHasRunStep is the last step that has run.
-	// For example,
-	// 1. preStep(Success) -> step1(Success) -> step2(Running) -> step3(Waiting) -> postStep(Waiting): lastHasRunStep is step1.
-	// 2. preStep(Success) -> step1(Success) -> step2(Success) -> step3(Success) -> postStep(Success): lastHasRunStep is step3.
-	// 3. preStep(Success) -> step1(Success) -> step2(Failure) -> step3 -> postStep(Waiting): lastHasRunStep is step2.
-	// So its Stopped is the Started of postStep when there are no more steps to run.
-	var lastHasRunStep *actions_model.ActionTaskStep
-	for _, step := range task.Steps {
-		if step.Status.HasRun() {
-			lastHasRunStep = step
-		}
-		logIndex += step.LogLength
-	}
 	if lastHasRunStep == nil {
 		lastHasRunStep = preStep
 	}
