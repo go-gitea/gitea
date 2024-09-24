@@ -18,8 +18,20 @@ func FullSteps(task *actions_model.ActionTask) []*actions_model.ActionTaskStep {
 		return fullStepsOfEmptySteps(task)
 	}
 
-	firstStep := task.Steps[0]
+	// firstStep is the first step that has run or running, not include preStep.
+	// For example,
+	// 1. preStep(Success) -> step1(Success) -> step2(Running) -> step3(Waiting) -> postStep(Waiting): firstStep is step1.
+	// 2. preStep(Success) -> step1(Skipped) -> step2(Success) -> postStep(Success): firstStep is step2.
+	// 3. preStep(Success) -> step1(Running) -> step2(Waiting) -> postStep(Waiting): firstStep is step1.
+	// 3. preStep(Success) -> step1(Skipped) -> step2(Skipped) -> postStep(Skipped): firstStep is nil.
+	var firstStep *actions_model.ActionTaskStep
 	var logIndex int64
+	for _, step := range task.Steps {
+		if step.Status.HasRun() || step.Status.IsRunning() {
+			firstStep = step
+			break
+		}
+	}
 
 	preStep := &actions_model.ActionTaskStep{
 		Name:      preStepName,
@@ -28,20 +40,13 @@ func FullSteps(task *actions_model.ActionTask) []*actions_model.ActionTaskStep {
 		Status:    actions_model.StatusRunning,
 	}
 
-	if firstStep.Status.HasRun() || firstStep.Status.IsRunning() {
+	if firstStep == nil {
+		preStep.Stopped = task.Stopped
+		preStep.Status = task.Status
+	} else {
 		preStep.LogLength = firstStep.LogIndex
 		preStep.Stopped = firstStep.Started
 		preStep.Status = actions_model.StatusSuccess
-	} else if task.Status.IsDone() {
-		preStep.Stopped = task.Stopped
-		preStep.Status = actions_model.StatusFailure
-		// preStep(Success) -> step1(Skipped) -> step2(Success)
-		if firstStep.Status.IsSkipped() {
-			preStep.Status = actions_model.StatusSuccess
-		}
-		if task.Status.IsSkipped() {
-			preStep.Status = actions_model.StatusSkipped
-		}
 	}
 	logIndex += preStep.LogLength
 
