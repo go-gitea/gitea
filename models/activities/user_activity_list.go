@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
@@ -18,16 +19,16 @@ import (
 	"xorm.io/builder"
 )
 
-// ActionList defines a list of actions
-type ActionList []*Action
+// UserActivityList defines a list of UserActivity
+type UserActivityList []*UserActivity
 
-func (actions ActionList) getUserIDs() []int64 {
-	return container.FilterSlice(actions, func(action *Action) (int64, bool) {
+func (actions UserActivityList) getUserIDs() []int64 {
+	return container.FilterSlice(actions, func(action *UserActivity) (int64, bool) {
 		return action.ActUserID, true
 	})
 }
 
-func (actions ActionList) LoadActUsers(ctx context.Context) (map[int64]*user_model.User, error) {
+func (actions UserActivityList) LoadActUsers(ctx context.Context) (map[int64]*user_model.User, error) {
 	if len(actions) == 0 {
 		return nil, nil
 	}
@@ -47,13 +48,13 @@ func (actions ActionList) LoadActUsers(ctx context.Context) (map[int64]*user_mod
 	return userMaps, nil
 }
 
-func (actions ActionList) getRepoIDs() []int64 {
-	return container.FilterSlice(actions, func(action *Action) (int64, bool) {
+func (actions UserActivityList) getRepoIDs() []int64 {
+	return container.FilterSlice(actions, func(action *UserActivity) (int64, bool) {
 		return action.RepoID, true
 	})
 }
 
-func (actions ActionList) LoadRepositories(ctx context.Context) error {
+func (actions UserActivityList) LoadRepositories(ctx context.Context) error {
 	if len(actions) == 0 {
 		return nil
 	}
@@ -71,12 +72,12 @@ func (actions ActionList) LoadRepositories(ctx context.Context) error {
 	return repos.LoadUnits(ctx)
 }
 
-func (actions ActionList) loadRepoOwner(ctx context.Context, userMap map[int64]*user_model.User) (err error) {
+func (actions UserActivityList) loadRepoOwner(ctx context.Context, userMap map[int64]*user_model.User) (err error) {
 	if userMap == nil {
 		userMap = make(map[int64]*user_model.User)
 	}
 
-	missingUserIDs := container.FilterSlice(actions, func(action *Action) (int64, bool) {
+	missingUserIDs := container.FilterSlice(actions, func(action *UserActivity) (int64, bool) {
 		if action.Repo == nil {
 			return 0, false
 		}
@@ -103,7 +104,7 @@ func (actions ActionList) loadRepoOwner(ctx context.Context, userMap map[int64]*
 }
 
 // LoadAttributes loads all attributes
-func (actions ActionList) LoadAttributes(ctx context.Context) error {
+func (actions UserActivityList) LoadAttributes(ctx context.Context) error {
 	// the load sequence cannot be changed because of the dependencies
 	userMap, err := actions.LoadActUsers(ctx)
 	if err != nil {
@@ -121,7 +122,7 @@ func (actions ActionList) LoadAttributes(ctx context.Context) error {
 	return actions.LoadComments(ctx)
 }
 
-func (actions ActionList) LoadComments(ctx context.Context) error {
+func (actions UserActivityList) LoadComments(ctx context.Context) error {
 	if len(actions) == 0 {
 		return nil
 	}
@@ -152,7 +153,7 @@ func (actions ActionList) LoadComments(ctx context.Context) error {
 	return nil
 }
 
-func (actions ActionList) LoadIssues(ctx context.Context) error {
+func (actions UserActivityList) LoadIssues(ctx context.Context) error {
 	if len(actions) == 0 {
 		return nil
 	}
@@ -200,4 +201,77 @@ func (actions ActionList) LoadIssues(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// GetFeedsOptions options for retrieving feeds
+type GetFeedsOptions struct {
+	db.ListOptions
+	RequestedUser   *user_model.User       // the user we want activity for
+	RequestedTeam   *organization.Team     // the team we want activity for
+	RequestedRepo   *repo_model.Repository // the repo we want activity for
+	Actor           *user_model.User       // the user viewing the activity
+	IncludePrivate  bool                   // include private actions
+	OnlyPerformedBy bool                   // only actions performed by requested user
+	IncludeDeleted  bool                   // include deleted actions
+	Date            string                 // the day we want activity for: YYYY-MM-DD
+}
+
+// GetFeeds returns actions according to the provided options
+func GetFeeds(ctx context.Context, opts GetFeedsOptions) (UserActivityList, int64, error) {
+	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
+		return nil, 0, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
+	}
+
+	cond, err := activityQueryCondition(ctx, opts)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	actions := make([]*UserActivity, 0, opts.PageSize)
+	var count int64
+
+	if opts.Page < 10 { // TODO: why it's 10 but other values? It's an experience value.
+		sess := db.GetEngine(ctx).Where(cond).
+			Select("`user_activity`.*"). // this line will avoid select other joined table's columns
+			Join("INNER", "repository", "`repository`.id = `user_activity`.repo_id")
+
+		opts.SetDefaultValues()
+		sess = db.SetSessionPagination(sess, &opts)
+
+		count, err = sess.Desc("`user_activity`.created_unix").FindAndCount(&actions)
+		if err != nil {
+			return nil, 0, fmt.Errorf("FindAndCount: %w", err)
+		}
+	} else {
+		// First, only query which IDs are necessary, and only then query all actions to speed up the overall query
+		sess := db.GetEngine(ctx).Where(cond).
+			Select("`user_activity`.id").
+			Join("INNER", "repository", "`repository`.id = `user_activity`.repo_id")
+
+		opts.SetDefaultValues()
+		sess = db.SetSessionPagination(sess, &opts)
+
+		actionIDs := make([]int64, 0, opts.PageSize)
+		if err := sess.Table("action").Desc("`user_activity`.created_unix").Find(&actionIDs); err != nil {
+			return nil, 0, fmt.Errorf("Find(actionsIDs): %w", err)
+		}
+
+		count, err = db.GetEngine(ctx).Where(cond).
+			Table("action").
+			Cols("`user_activity`.id").
+			Join("INNER", "repository", "`repository`.id = `user_activity`.repo_id").Count()
+		if err != nil {
+			return nil, 0, fmt.Errorf("Count: %w", err)
+		}
+
+		if err := db.GetEngine(ctx).In("`user_activity`.id", actionIDs).Desc("`user_activity`.created_unix").Find(&actions); err != nil {
+			return nil, 0, fmt.Errorf("Find: %w", err)
+		}
+	}
+
+	if err := UserActivityList(actions).LoadAttributes(ctx); err != nil {
+		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
+	}
+
+	return actions, count, nil
 }

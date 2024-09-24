@@ -135,7 +135,7 @@ func registerDeleteOldActions() {
 		OlderThan: 365 * 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		return activities_model.DeleteOldActions(ctx, olderThanConfig.OlderThan)
+		return activities_model.DeleteOldUserFeeds(ctx, olderThanConfig.OlderThan)
 	})
 }
 

@@ -141,9 +141,9 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 			FixedMessage: "Removed",
 		},
 		{
-			Name:         "Action with created_unix set as an empty string",
-			Counter:      activities_model.CountActionCreatedUnixString,
-			Fixer:        activities_model.FixActionCreatedUnixString,
+			Name:         "User Activities with created_unix set as an empty string",
+			Counter:      activities_model.CountActivitiesCreatedUnixString,
+			Fixer:        activities_model.FixUserActivityCreatedUnixString,
 			FixedMessage: "Set to zero",
 		},
 		{

@@ -214,5 +214,10 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 	}
 	ctx.SetTotalCountHeader(count)
 
-	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
+	doer := ctx.Doer
+	if doer == nil {
+		doer = user_model.NewGhostUser()
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, doer.ID, feeds, ctx.Doer))
 }

@@ -4,6 +4,8 @@
 package v1_23 //nolint
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
@@ -15,11 +17,24 @@ func SplitActionTableAsTwoTables(x *xorm.Engine) error {
 	type UserFeed struct {
 		ID          int64              `xorm:"pk autoincr"`
 		UserID      int64              `xorm:"UNIQUE(s)"` // Receiver user id.
-		ActionID    int64              `xorm:"UNIQUE(s)"` // refer to action table
+		ActivityID  int64              `xorm:"UNIQUE(s)"` // refer to action table
 		CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	}
 
-	if err := x.Sync(new(UserFeed)); err != nil {
+	type UserActivity struct {
+		ID          int64 `xorm:"pk autoincr"`
+		OpType      int
+		ActUserID   int64 // Action user id.
+		RepoID      int64
+		CommentID   int64
+		IsDeleted   bool `xorm:"NOT NULL DEFAULT false"`
+		RefName     string
+		IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
+		Content     string             `xorm:"TEXT"`
+		CreatedUnix timeutil.TimeStamp `xorm:"created"`
+	}
+
+	if err := x.Sync(new(UserFeed), new(UserActivity)); err != nil {
 		return err
 	}
 
@@ -29,21 +44,13 @@ func SplitActionTableAsTwoTables(x *xorm.Engine) error {
 	}
 
 	// 3 merge records from action table
-	type result struct {
-		IssueID   int64
-		ProjectID int64
-		Cnt       int
-	}
-	var results []result
-	if err := x.Select("op_type, act_user_id, repo_id, count(*) as cnt").
-		Table("project_issue").
-		GroupBy("issue_id, project_id").
-		Having("count(*) > 1").
-		Find(&results); err != nil {
+	if _, err := x.Exec("INSERT INTO `user_activity` (`op_type`, `act_user_id`, `repo_id`, `comment_id`, `is_deleted`, `ref_name`, `is_private`, `content`, `created_unix`) SELECT `op_type`, `act_user_id`, `repo_id`, `comment_id`, `is_deleted`, `ref_name`, `is_private`, `content`, `created_unix` FROM `action`"); err != nil {
 		return err
 	}
 
 	// 4 update user_feed table to update action_id because of the merge records
 
 	// 5 drop column from action table
+
+	return fmt.Errorf("not implemented")
 }

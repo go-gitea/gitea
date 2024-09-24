@@ -24,33 +24,33 @@ import (
 	"github.com/gorilla/feeds"
 )
 
-func toBranchLink(ctx *context.Context, act *activities_model.Action) string {
+func toBranchLink(ctx *context.Context, act *activities_model.UserActivity) string {
 	return act.GetRepoAbsoluteLink(ctx) + "/src/branch/" + util.PathEscapeSegments(act.GetBranch())
 }
 
-func toTagLink(ctx *context.Context, act *activities_model.Action) string {
+func toTagLink(ctx *context.Context, act *activities_model.UserActivity) string {
 	return act.GetRepoAbsoluteLink(ctx) + "/src/tag/" + util.PathEscapeSegments(act.GetTag())
 }
 
-func toIssueLink(ctx *context.Context, act *activities_model.Action) string {
+func toIssueLink(ctx *context.Context, act *activities_model.UserActivity) string {
 	return act.GetRepoAbsoluteLink(ctx) + "/issues/" + url.PathEscape(act.GetIssueInfos()[0])
 }
 
-func toPullLink(ctx *context.Context, act *activities_model.Action) string {
+func toPullLink(ctx *context.Context, act *activities_model.UserActivity) string {
 	return act.GetRepoAbsoluteLink(ctx) + "/pulls/" + url.PathEscape(act.GetIssueInfos()[0])
 }
 
-func toSrcLink(ctx *context.Context, act *activities_model.Action) string {
+func toSrcLink(ctx *context.Context, act *activities_model.UserActivity) string {
 	return act.GetRepoAbsoluteLink(ctx) + "/src/" + util.PathEscapeSegments(act.GetBranch())
 }
 
-func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
+func toReleaseLink(ctx *context.Context, act *activities_model.UserActivity) string {
 	return act.GetRepoAbsoluteLink(ctx) + "/releases/tag/" + util.PathEscapeSegments(act.GetBranch())
 }
 
 // renderMarkdown creates a minimal markdown render context from an action.
 // If rendering fails, the original markdown text is returned
-func renderMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
+func renderMarkdown(ctx *context.Context, act *activities_model.UserActivity, content string) template.HTML {
 	markdownCtx := &markup.RenderContext{
 		Ctx: ctx,
 		Links: markup.Links{
@@ -70,10 +70,12 @@ func renderMarkdown(ctx *context.Context, act *activities_model.Action, content 
 }
 
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
-func feedActionsToFeedItems(ctx *context.Context, actions activities_model.ActionList) (items []*feeds.Item, err error) {
-	for _, act := range actions {
-		act.LoadActUser(ctx)
+func feedActionsToFeedItems(ctx *context.Context, actions activities_model.UserActivityList) (items []*feeds.Item, err error) {
+	if _, err := actions.LoadActUsers(ctx); err != nil {
+		return nil, err
+	}
 
+	for _, act := range actions {
 		// TODO: the code seems quite strange (maybe not right)
 		// sometimes it uses text content but sometimes it uses HTML content
 		// it should clearly defines which kind of content it should use for the feed items: plan text or rich HTML

@@ -63,7 +63,7 @@ func (au *AvatarUtils) Avatar(item any, others ...any) template.HTML {
 }
 
 // AvatarByAction renders user avatars from action. args: action, size (int), class (string)
-func (au *AvatarUtils) AvatarByAction(action *activities_model.Action, others ...any) template.HTML {
+func (au *AvatarUtils) AvatarByAction(action *activities_model.UserActivity, others ...any) template.HTML {
 	action.LoadActUser(au.ctx)
 	return au.Avatar(action.ActUser, others...)
 }

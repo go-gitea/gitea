@@ -49,7 +49,7 @@ func (a *actionNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue
 	}
 	repo := issue.Repo
 
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: issue.Poster.ID,
 		ActUser:   issue.Poster,
 		OpType:    activities_model.ActionCreateIssue,
@@ -66,7 +66,7 @@ func (a *actionNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue
 func (a *actionNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, closeOrReopen bool) {
 	// Compose comment action, could be plain comment, close or reopen issue/pull request.
 	// This object will be used to notify watchers in the end of function.
-	act := &activities_model.Action{
+	act := &activities_model.UserActivity{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		Content:   fmt.Sprintf("%d|%s", issue.Index, ""),
@@ -99,7 +99,7 @@ func (a *actionNotifier) IssueChangeStatus(ctx context.Context, doer *user_model
 func (a *actionNotifier) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
-	act := &activities_model.Action{
+	act := &activities_model.UserActivity{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		RepoID:    issue.Repo.ID,
@@ -145,7 +145,7 @@ func (a *actionNotifier) NewPullRequest(ctx context.Context, pull *issues_model.
 		return
 	}
 
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: pull.Issue.Poster.ID,
 		ActUser:   pull.Issue.Poster,
 		OpType:    activities_model.ActionCreatePullRequest,
@@ -159,7 +159,7 @@ func (a *actionNotifier) NewPullRequest(ctx context.Context, pull *issues_model.
 }
 
 func (a *actionNotifier) RenameRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldRepoName string) {
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		OpType:    activities_model.ActionRenameRepo,
@@ -173,7 +173,7 @@ func (a *actionNotifier) RenameRepository(ctx context.Context, doer *user_model.
 }
 
 func (a *actionNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		OpType:    activities_model.ActionTransferRepo,
@@ -187,7 +187,7 @@ func (a *actionNotifier) TransferRepository(ctx context.Context, doer *user_mode
 }
 
 func (a *actionNotifier) CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		OpType:    activities_model.ActionCreateRepo,
@@ -200,7 +200,7 @@ func (a *actionNotifier) CreateRepository(ctx context.Context, doer, u *user_mod
 }
 
 func (a *actionNotifier) ForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *repo_model.Repository) {
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		OpType:    activities_model.ActionCreateRepo,
@@ -222,11 +222,11 @@ func (a *actionNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 		return
 	}
 
-	actions := make([]*activities_model.Action, 0, 10)
+	actions := make([]*activities_model.UserActivity, 0, 10)
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
 			for _, comm := range comments {
-				actions = append(actions, &activities_model.Action{
+				actions = append(actions, &activities_model.UserActivity{
 					ActUserID: review.Reviewer.ID,
 					ActUser:   review.Reviewer,
 					Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comm.Content, "\n")[0]),
@@ -242,7 +242,7 @@ func (a *actionNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 	}
 
 	if review.Type != issues_model.ReviewTypeComment || strings.TrimSpace(comment.Content) != "" {
-		action := &activities_model.Action{
+		action := &activities_model.UserActivity{
 			ActUserID: review.Reviewer.ID,
 			ActUser:   review.Reviewer,
 			Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comment.Content, "\n")[0]),
@@ -271,7 +271,7 @@ func (a *actionNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 }
 
 func (*actionNotifier) MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		OpType:    activities_model.ActionMergePullRequest,
@@ -285,7 +285,7 @@ func (*actionNotifier) MergePullRequest(ctx context.Context, doer *user_model.Us
 }
 
 func (*actionNotifier) AutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		OpType:    activities_model.ActionAutoMergePullRequest,
@@ -303,7 +303,7 @@ func (*actionNotifier) NotifyPullRevieweDismiss(ctx context.Context, doer *user_
 	if len(review.OriginalAuthor) > 0 {
 		reviewerName = review.OriginalAuthor
 	}
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		OpType:    activities_model.ActionPullReviewDismissed,
@@ -337,7 +337,7 @@ func (a *actionNotifier) PushCommits(ctx context.Context, pusher *user_model.Use
 		opType = activities_model.ActionDeleteBranch
 	}
 
-	if err = activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err = activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: pusher.ID,
 		ActUser:   pusher,
 		OpType:    opType,
@@ -357,7 +357,7 @@ func (a *actionNotifier) CreateRef(ctx context.Context, doer *user_model.User, r
 		// has sent same action in `PushCommits`, so skip it.
 		return
 	}
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		OpType:    opType,
@@ -376,7 +376,7 @@ func (a *actionNotifier) DeleteRef(ctx context.Context, doer *user_model.User, r
 		// has sent same action in `PushCommits`, so skip it.
 		return
 	}
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		OpType:    opType,
@@ -396,7 +396,7 @@ func (a *actionNotifier) SyncPushCommits(ctx context.Context, pusher *user_model
 		return
 	}
 
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(ctx),
 		OpType:    activities_model.ActionMirrorSyncPush,
@@ -411,7 +411,7 @@ func (a *actionNotifier) SyncPushCommits(ctx context.Context, pusher *user_model
 }
 
 func (a *actionNotifier) SyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(ctx),
 		OpType:    activities_model.ActionMirrorSyncCreate,
@@ -425,7 +425,7 @@ func (a *actionNotifier) SyncCreateRef(ctx context.Context, doer *user_model.Use
 }
 
 func (a *actionNotifier) SyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(ctx),
 		OpType:    activities_model.ActionMirrorSyncDelete,
@@ -443,7 +443,7 @@ func (a *actionNotifier) NewRelease(ctx context.Context, rel *repo_model.Release
 		log.Error("LoadAttributes: %v", err)
 		return
 	}
-	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.UserActivity{
 		ActUserID: rel.PublisherID,
 		ActUser:   rel.Publisher,
 		OpType:    activities_model.ActionPublishRelease,
