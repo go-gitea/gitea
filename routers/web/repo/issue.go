@@ -467,6 +467,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["PosterID"] = posterID
 	ctx.Data["Keyword"] = keyword
+	ctx.Data["IsShowClosed"] = isShowClosed
 	switch {
 	case isShowClosed.Value():
 		ctx.Data["State"] = "closed"
