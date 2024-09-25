@@ -42,10 +42,39 @@ var (
 	reOptDep = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+([<>]?=?([0-9]+:)?[a-zA-Z0-9@._+-]+)?(:.*)?$`)
 	rePkgVer = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+([<>]?=?([0-9]+:)?[a-zA-Z0-9@._+-]+)?$`)
 
-	magicZSTD = []byte{0x28, 0xB5, 0x2F, 0xFD}
-	magicXZ   = []byte{0xFD, 0x37, 0x7A, 0x58, 0x5A}
-	magicGZ   = []byte{0x1F, 0x8B}
+	maxMagicLength = 0
+	magics         = map[string]struct {
+		magic    []byte
+		archiver func() archiver.Reader
+	}{
+		"zst": {
+			magic: []byte{0x28, 0xB5, 0x2F, 0xFD},
+			archiver: func() archiver.Reader {
+				return archiver.NewTarZstd()
+			},
+		},
+		"xz": {
+			magic: []byte{0xFD, 0x37, 0x7A, 0x58, 0x5A},
+			archiver: func() archiver.Reader {
+				return archiver.NewTarXz()
+			},
+		},
+		"gz": {
+			magic: []byte{0x1F, 0x8B},
+			archiver: func() archiver.Reader {
+				return archiver.NewTarGz()
+			},
+		},
+	}
 )
+
+func init() {
+	for _, i := range magics {
+		if nLen := len(i.magic); nLen > maxMagicLength {
+			maxMagicLength = nLen
+		}
+	}
+}
 
 type Package struct {
 	Name            string `json:"name"`
@@ -94,7 +123,8 @@ func ParsePackage(r *packages.HashedBuffer) (*Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	header := make([]byte, 5)
+
+	header := make([]byte, maxMagicLength)
 	_, err = r.Read(header)
 	if err != nil {
 		return nil, err
@@ -106,16 +136,14 @@ func ParsePackage(r *packages.HashedBuffer) (*Package, error) {
 
 	var tarball archiver.Reader
 	var tarballType string
-	if bytes.Equal(header[:len(magicZSTD)], magicZSTD) {
-		tarballType = "zst"
-		tarball = archiver.NewTarZstd()
-	} else if bytes.Equal(header[:len(magicXZ)], magicXZ) {
-		tarballType = "xz"
-		tarball = archiver.NewTarXz()
-	} else if bytes.Equal(header[:len(magicGZ)], magicGZ) {
-		tarballType = "gz"
-		tarball = archiver.NewTarGz()
-	} else {
+	for tarType, info := range magics {
+		if bytes.Equal(header[:len(info.magic)], info.magic) {
+			tarballType = tarType
+			tarball = info.archiver()
+			break
+		}
+	}
+	if tarballType == "" || tarball == nil {
 		return nil, errors.New("not supported compression")
 	}
 	err = tarball.Open(r, 0)
