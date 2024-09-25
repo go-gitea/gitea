@@ -92,7 +92,7 @@ func (reviews ReviewList) LoadIssues(ctx context.Context) error {
 // FindReviewOptions represent possible filters to find reviews
 type FindReviewOptions struct {
 	db.ListOptions
-	Type         ReviewType
+	Types        []ReviewType
 	IssueID      int64
 	ReviewerID   int64
 	OfficialOnly bool
@@ -107,8 +107,12 @@ func (opts *FindReviewOptions) toCond() builder.Cond {
 	if opts.ReviewerID > 0 {
 		cond = cond.And(builder.Eq{"reviewer_id": opts.ReviewerID})
 	}
-	if opts.Type != ReviewTypeUnknown {
-		cond = cond.And(builder.Eq{"type": opts.Type})
+	if len(opts.Types) > 0 {
+		typeConds := make([]builder.Cond, 0, len(opts.Types))
+		for _, reviewType := range opts.Types {
+			typeConds = append(typeConds, builder.Eq{"type": reviewType})
+		}
+		cond = cond.And(builder.Or(typeConds...))
 	}
 	if opts.OfficialOnly {
 		cond = cond.And(builder.Eq{"official": true})
