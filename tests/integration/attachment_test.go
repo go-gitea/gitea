@@ -29,7 +29,7 @@ func generateImg() bytes.Buffer {
 	return buff
 }
 
-func createAttachment(t *testing.T, session *TestSession, csrf string, repoURL, filename string, buff bytes.Buffer, expectedStatus int) string {
+func createAttachment(t *testing.T, session *TestSession, csrf, repoURL, filename string, buff bytes.Buffer, expectedStatus int) string {
 	body := &bytes.Buffer{}
 
 	// Setup multi-part
