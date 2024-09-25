@@ -41,7 +41,7 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 	err = writer.Close()
 	assert.NoError(t, err)
 
-	csrf := GetCSRF(t, session, "/explore/repos")
+	csrf := GetCSRF(t, session, "/user/login")
 
 	req := NewRequestWithBody(t, "POST", repoURL+"/issues/attachments", body)
 	req.Header.Add("X-Csrf-Token", csrf)
