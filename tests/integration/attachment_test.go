@@ -41,7 +41,15 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 	err = writer.Close()
 	assert.NoError(t, err)
 
-	csrf := GetCSRF(t, session, "/user/login")
+	var csrf string
+	// FIXME: It's quite hacky to determine if it's a logged in user or not and use the right URL to get the CSRF token
+	if expectedStatus == http.StatusSeeOther {
+		// the session is not logged in
+		csrf = GetCSRF(t, session, "/user/login")
+	} else {
+		// the session is logged in
+		csrf = GetCSRF(t, session, repoURL)
+	}
 
 	req := NewRequestWithBody(t, "POST", repoURL+"/issues/attachments", body)
 	req.Header.Add("X-Csrf-Token", csrf)
