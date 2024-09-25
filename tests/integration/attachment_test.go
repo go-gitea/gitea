@@ -41,7 +41,7 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 	err = writer.Close()
 	assert.NoError(t, err)
 
-	csrf := GetCSRF(t, session, repoURL)
+	csrf := GetCSRF(t, session, "/user/login")
 
 	req := NewRequestWithBody(t, "POST", repoURL+"/issues/attachments", body)
 	req.Header.Add("X-Csrf-Token", csrf)
@@ -59,8 +59,7 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 func TestCreateAnonymousAttachment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := emptyTestSession(t)
-	// this test is not right because it just doesn't pass the CSRF validation
-	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusBadRequest)
+	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusSeeOther)
 }
 
 func TestCreateIssueAttachment(t *testing.T) {
