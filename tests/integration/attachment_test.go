@@ -29,7 +29,7 @@ func generateImg() bytes.Buffer {
 	return buff
 }
 
-func createAttachment(t *testing.T, session *TestSession, repoURL, filename string, buff bytes.Buffer, expectedStatus int) string {
+func createAttachment(t *testing.T, session *TestSession, csrf string, repoURL, filename string, buff bytes.Buffer, expectedStatus int) string {
 	body := &bytes.Buffer{}
 
 	// Setup multi-part
@@ -40,16 +40,6 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 	assert.NoError(t, err)
 	err = writer.Close()
 	assert.NoError(t, err)
-
-	var csrf string
-	// FIXME: It's quite hacky to determine if it's a logged in user or not and use the right URL to get the CSRF token
-	if expectedStatus == http.StatusSeeOther {
-		// the session is not logged in
-		csrf = GetCSRF(t, session, "/user/login")
-	} else {
-		// the session is logged in
-		csrf = GetCSRF(t, session, repoURL)
-	}
 
 	req := NewRequestWithBody(t, "POST", repoURL+"/issues/attachments", body)
 	req.Header.Add("X-Csrf-Token", csrf)
@@ -67,14 +57,14 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 func TestCreateAnonymousAttachment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := emptyTestSession(t)
-	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusSeeOther)
+	createAttachment(t, session, GetCSRF(t, session, "/user/login"), "user2/repo1", "image.png", generateImg(), http.StatusSeeOther)
 }
 
 func TestCreateIssueAttachment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	const repoURL = "user2/repo1"
 	session := loginUser(t, "user2")
-	uuid := createAttachment(t, session, repoURL, "image.png", generateImg(), http.StatusOK)
+	uuid := createAttachment(t, session, GetCSRF(t, session, repoURL), repoURL, "image.png", generateImg(), http.StatusOK)
 
 	req := NewRequest(t, "GET", repoURL+"/issues/new")
 	resp := session.MakeRequest(t, req, http.StatusOK)
