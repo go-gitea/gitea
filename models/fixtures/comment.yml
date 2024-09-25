@@ -83,3 +83,22 @@
   issue_id: 2 # in repo_id 1
   review_id: 20
   created_unix: 946684810
+
+-
+  id: 10
+  type: 22 # review
+  poster_id: 5
+  issue_id: 3 # in repo_id 1
+  content: "reviewed by user5"
+  review_id: 21
+  created_unix: 946684816
+
+-
+  id: 11
+  type: 27 # review request
+  poster_id: 2
+  issue_id: 3 # in repo_id 1
+  content: "review request for user5"
+  review_id: 22
+  assignee_id: 5
+  created_unix: 946684817
