@@ -409,7 +409,7 @@ func (m *webhookNotifier) CreateIssueComment(ctx context.Context, doer *user_mod
 	var pullRequest *api.PullRequest
 	if issue.IsPull {
 		eventType = webhook_module.HookEventPullRequestComment
-		pullRequest = convert.ToAPIPullRequest(ctx, issue.PullRequest, nil)
+		pullRequest = convert.ToAPIPullRequest(ctx, issue.PullRequest, doer)
 	} else {
 		eventType = webhook_module.HookEventIssueComment
 	}
@@ -449,7 +449,7 @@ func (m *webhookNotifier) DeleteComment(ctx context.Context, doer *user_model.Us
 	var pullRequest *api.PullRequest
 	if comment.Issue.IsPull {
 		eventType = webhook_module.HookEventPullRequestComment
-		pullRequest = convert.ToAPIPullRequest(ctx, comment.Issue.PullRequest, nil)
+		pullRequest = convert.ToAPIPullRequest(ctx, comment.Issue.PullRequest, doer)
 	} else {
 		eventType = webhook_module.HookEventIssueComment
 	}
