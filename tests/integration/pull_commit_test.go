@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	pull_service "code.gitea.io/gitea/services/pull"
+
 	"github.com/stretchr/testify/assert"
 )
 
