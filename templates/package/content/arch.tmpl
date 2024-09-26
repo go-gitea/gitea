@@ -16,11 +16,11 @@ pacman-key --lsign-key '{{$.SignMail}}'</code></pre>
 				<pre
 					class="code-block"><code>
 {{- if gt (len $.Groups) 1 -}}
-# {{ctx.Locale.Tr "packages.arch.pacman.repo.multi"  $.PackageDescriptor.Package.LowerName}}
+# {{ctx.Locale.Tr "packages.arch.pacman.repo.multi" $.PackageDescriptor.Package.LowerName}}
 
 {{end -}}
 {{- $GroupSize := (len .Groups) -}}
-{{-  range $i,$v :=  .Groups -}}
+{{- range $i,$v := .Groups -}}
 {{- if gt $i 0}}
 {{end -}}{{- if gt $GroupSize 1 -}}
 # {{ctx.Locale.Tr "packages.arch.pacman.repo.multi.item" .}}
