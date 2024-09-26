@@ -161,6 +161,7 @@ func main() {
 	f, err := os.Create(licenseAliasesDestination)
 	if err != nil {
 		log.Fatalf("Failed to create license aliases json file. %s", err)
+		return
 	}
 	defer f.Close()
 
