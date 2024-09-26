@@ -19,7 +19,7 @@ type RepoLicense struct { //revive:disable-line:exported
 	RepoID   int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	CommitID string
 	// TODO: `INDEX` will be used to find repositories by license
-	License     string             `xorm:"VARCHAR(50) UNIQUE(s) INDEX NOT NULL"`
+	License     string             `xorm:"VARCHAR UNIQUE(s) INDEX NOT NULL"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX UPDATED"`
 }
