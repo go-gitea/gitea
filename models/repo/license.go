@@ -15,11 +15,10 @@ func init() {
 }
 
 type RepoLicense struct { //revive:disable-line:exported
-	ID       int64 `xorm:"pk autoincr"`
-	RepoID   int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	CommitID string
-	// TODO: `INDEX` will be used to find repositories by license
-	License     string             `xorm:"VARCHAR UNIQUE(s) INDEX NOT NULL"`
+	ID          int64 `xorm:"pk autoincr"`
+	RepoID      int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	CommitID    string
+	License     string             `xorm:"VARCHAR UNIQUE(s) NOT NULL"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX UPDATED"`
 }
