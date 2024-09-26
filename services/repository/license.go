@@ -43,7 +43,7 @@ func loadLicenseAliases() error {
 		return nil
 	}
 
-	data, err := options.AssetFS().ReadFile("", "license-aliases.json")
+	data, err := options.AssetFS().ReadFile("license", "etc", "license-aliases.json")
 	if err != nil {
 		return err
 	}

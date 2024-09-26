@@ -23,16 +23,14 @@ import (
 
 func main() {
 	var (
-		prefix                    = "gitea-licenses"
-		url                       = "https://api.github.com/repos/spdx/license-list-data/tarball"
-		githubApiToken            = ""
-		githubUsername            = ""
-		destination               = ""
-		licenseAliasesDestination = ""
+		prefix         = "gitea-licenses"
+		url            = "https://api.github.com/repos/spdx/license-list-data/tarball"
+		githubApiToken = ""
+		githubUsername = ""
+		destination    = ""
 	)
 
 	flag.StringVar(&destination, "dest", "options/license/", "destination for the licenses")
-	flag.StringVar(&licenseAliasesDestination, "aliasesdest", "options/license-aliases.json", "destination for same license json")
 	flag.StringVar(&githubUsername, "username", "", "github username")
 	flag.StringVar(&githubApiToken, "token", "", "github api token")
 	flag.Parse()
@@ -150,11 +148,19 @@ func main() {
 		log.Fatalf("Failed to create json bytes. %s", err)
 		return
 	}
+
+	licenseAliasesDestination := path.Join(destination, "etc", "license-aliases.json")
+	if err := os.MkdirAll(filepath.Dir(licenseAliasesDestination), 0o755); err != nil {
+		log.Fatalf("Failed to create directory for license aliases json file. %s", err)
+		return
+	}
+
 	f, err := os.Create(licenseAliasesDestination)
 	if err != nil {
 		log.Fatalf("Failed to create license aliases json file. %s", err)
 	}
 	defer f.Close()
+
 	if _, err = f.Write(b); err != nil {
 		log.Fatalf("Failed to write license aliases json file. %s", err)
 	}
