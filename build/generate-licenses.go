@@ -149,19 +149,16 @@ func main() {
 	b, err := json.Marshal(licenseAliases)
 	if err != nil {
 		log.Fatalf("Failed to create json bytes. %s", err)
-		return
 	}
 
 	licenseAliasesDestination := path.Join(destination, "etc", "license-aliases.json")
 	if err := os.MkdirAll(filepath.Dir(licenseAliasesDestination), 0o755); err != nil {
 		log.Fatalf("Failed to create directory for license aliases json file. %s", err)
-		return
 	}
 
 	f, err := os.Create(licenseAliasesDestination)
 	if err != nil {
 		log.Fatalf("Failed to create license aliases json file. %s", err)
-		return
 	}
 	defer f.Close()
 
