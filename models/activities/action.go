@@ -474,8 +474,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 
 		count, err = db.GetEngine(ctx).Where(cond).
 			Table("action").
-			Cols("`action`.id").
-			Join("INNER", "repository", "`repository`.id = `action`.repo_id").Count()
+			Cols("`action`.id").Count()
 		if err != nil {
 			return nil, 0, fmt.Errorf("Count: %w", err)
 		}
