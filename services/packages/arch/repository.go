@@ -254,32 +254,25 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 // GetPackageFile Get data related to provided filename and distribution, for package files
 // update download counter.
 func GetPackageFile(ctx context.Context, group, file string, ownerID int64) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
-	pf, err := getPackageFile(ctx, group, file, ownerID)
+	fileSplit := strings.Split(file, "-")
+	if len(fileSplit) <= 3 {
+		return nil, nil, nil, errors.New("invalid file format, need <name>-<version>-<release>-<arch>.pkg.<archive>")
+	}
+	var (
+		pkgName = strings.Join(fileSplit[0:len(fileSplit)-3], "-")
+		pkgVer  = fileSplit[len(fileSplit)-3] + "-" + fileSplit[len(fileSplit)-2]
+	)
+	version, err := packages_model.GetVersionByNameAndVersion(ctx, ownerID, packages_model.TypeArch, pkgName, pkgVer)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	return packages_service.GetPackageFileStream(ctx, pf)
-}
-
-// Ejects parameters required to get package file property from file name.
-func getPackageFile(ctx context.Context, group, file string, ownerID int64) (*packages_model.PackageFile, error) {
-	var (
-		splt    = strings.Split(file, "-")
-		pkgname = strings.Join(splt[0:len(splt)-3], "-")
-		vername = splt[len(splt)-3] + "-" + splt[len(splt)-2]
-	)
-
-	version, err := packages_model.GetVersionByNameAndVersion(ctx, ownerID, packages_model.TypeArch, pkgname, vername)
+	pkgFile, err := packages_model.GetFileForVersionByName(ctx, version.ID, file, group)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
-	pkgfile, err := packages_model.GetFileForVersionByName(ctx, version.ID, file, group)
-	if err != nil {
-		return nil, err
-	}
-	return pkgfile, nil
+	return packages_service.GetPackageFileStream(ctx, pkgFile)
 }
 
 func GetPackageDBFile(ctx context.Context, group, arch string, ownerID int64, signFile bool) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
