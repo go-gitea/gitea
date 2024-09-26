@@ -7,7 +7,10 @@ export function initRepoMigrationStatusChecker() {
   const repoMigrating = document.querySelector('#repo_migrating');
   if (!repoMigrating) return;
 
-  document.querySelector('#repo_migrating_retry').addEventListener('click', doMigrationRetry);
+  const retryBtn = document.querySelector('#repo_migrating_retry');
+  if (retryBtn) {
+    retryBtn.addEventListener('click', doMigrationRetry);
+  }
 
   const task = repoMigrating.getAttribute('data-migrating-task-id');
 
