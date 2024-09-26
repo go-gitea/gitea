@@ -551,7 +551,6 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	ctx.Data["Title"] = owner.Name + "/" + repo.Name
 	ctx.Data["Repository"] = repo
 	ctx.Data["Owner"] = ctx.Repo.Repository.Owner
-	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 	ctx.Data["IsRepositoryOwner"] = ctx.Repo.IsOwner()
 	ctx.Data["IsRepositoryAdmin"] = ctx.Repo.IsAdmin()
 	ctx.Data["RepoOwnerIsOrganization"] = repo.Owner.IsOrganization()

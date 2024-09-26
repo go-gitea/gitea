@@ -14,7 +14,7 @@
 				</a>
 			{{end}}
 			{{if .DetectedRepoLicenses}}
-				<a class="item muted" href="{{.RepoLink}}/src/{{.DefaultBranch}}/{{PathEscapeSegments .DetectedLicenseFileName}}" data-tooltip-placement="top" data-tooltip-content="{{StringUtils.Join .DetectedRepoLicenses ", "}}">
+				<a class="item muted" href="{{.RepoLink}}/src/{{.Repository.DefaultBranch}}/{{PathEscapeSegments .DetectedLicenseFileName}}" data-tooltip-placement="top" data-tooltip-content="{{StringUtils.Join .DetectedRepoLicenses ", "}}">
 					{{svg "octicon-law"}} <b>{{if eq (len .DetectedRepoLicenses) 1}}{{index .DetectedRepoLicenses 0}}{{else}}{{ctx.Locale.Tr "repo.multiple_licenses"}}{{end}}</b>
 				</a>
 			{{end}}
