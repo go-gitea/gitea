@@ -1,7 +1,7 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package oauth2_provider
+package oauth2_provider //nolint
 
 import (
 	"context"
@@ -15,9 +15,5 @@ func Init(ctx context.Context) error {
 		return nil
 	}
 
-	if err := InitSigningKey(); err != nil {
-		return err
-	}
-
-	return nil
+	return InitSigningKey()
 }
