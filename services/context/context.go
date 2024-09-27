@@ -256,3 +256,4 @@ func (ctx *Context) JSONError(msg any) {
 		panic(fmt.Sprintf("unsupported type: %T", msg))
 	}
 }
+
