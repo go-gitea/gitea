@@ -136,16 +136,15 @@ func ServCommand(ctx *context.PrivateContext) {
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			repoExist = false
-			for _, verb := range ctx.FormStrings("verb") {
-				if verb == "git-upload-pack" {
-					// User is fetching/cloning a non-existent repository
-					log.Warn("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
-					ctx.JSON(http.StatusNotFound, private.Response{
-						UserMsg: fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
-					})
-					return
-				}
+			if mode == perm.AccessModeRead {
+				// User is fetching/cloning a non-existent repository
+				log.Warn("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
+				ctx.JSON(http.StatusNotFound, private.Response{
+					UserMsg: fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
+				})
+				return
 			}
+			// else fallthrough (push-to-create may kick in below)
 		} else {
 			log.Error("Unable to get repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
