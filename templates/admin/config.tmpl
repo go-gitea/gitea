@@ -44,8 +44,6 @@
 				<dd>{{.LogRootPath}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.script_type"}}</dt>
 				<dd>{{.ScriptType}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.reverse_auth_user"}}</dt>
-				<dd>{{.ReverseProxyAuthUser}}</dd>
 			</dl>
 		</div>
 
@@ -179,6 +177,35 @@
 				<dd>{{.Service.ResetPwdCodeLives}} {{ctx.Locale.Tr "tool.raw_minutes"}}</dd>
 			</dl>
 		</div>
+
+		{{if .ReverseProxyAuth.Enabled}}
+			<h4 class="ui top attached header">
+				{{ctx.Locale.Tr "admin.config.reverse_proxy_auth_config"}}
+			</h4>
+			<div class="ui attached table segment">
+				<dl class="admin-dl-horizontal">
+					<dt>{{ctx.Locale.Tr "admin.config.reverse_proxy_auth_enable_autoregister"}}</dt>
+					<dd>{{.ReverseProxyAuth.EnableReverseProxyAutoRegister}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverse_auth_user"}}</dt>
+					<dd>{{.ReverseProxyAuth.ReverseProxyAuthUser}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverse_proxy_auth_enable_email"}}</dt>
+					<dd>{{.ReverseProxyAuth.EnableReverseProxyEmail}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverse_proxy_auth_email"}}</dt>
+					<dd>{{.ReverseProxyAuth.ReverseProxyAuthEmail}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverse_proxy_auth_enable_fullname"}}</dt>
+					<dd>{{.ReverseProxyAuth.EnableReverseProxyFullName}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverse_proxy_auth_fullname"}}</dt>
+					<dd>{{.ReverseProxyAuth.ReverseProxyAuthFullName}}</dd>
+
+					<dt>{{ctx.Locale.Tr "admin.config.reverse_proxy_auth_enable_api"}}</dt>
+					<dd>{{.ReverseProxyAuth.EnableReverseProxyAuthAPI}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverse_proxy_auth_limit"}}</dt>
+					<dd>{{.ReverseProxyAuth.ReverseProxyLimit}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverse_proxy_auth_trusted_proxies"}}</dt>
+					<dd>{{.ReverseProxyAuth.ReverseProxyTrustedProxies}}</dd>
+				</dl>
+			</div>
+		{{end}}
 
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.webhook_config"}}

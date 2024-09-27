@@ -60,11 +60,11 @@ func ProtocolMiddlewares() (handlers []any) {
 		})
 	})
 
-	if setting.ReverseProxyLimit > 0 {
+	if setting.ReverseProxyAuth.ReverseProxyLimit > 0 {
 		opt := proxy.NewForwardedHeadersOptions().
-			WithForwardLimit(setting.ReverseProxyLimit).
+			WithForwardLimit(setting.ReverseProxyAuth.ReverseProxyLimit).
 			ClearTrustedProxies()
-		for _, n := range setting.ReverseProxyTrustedProxies {
+		for _, n := range setting.ReverseProxyAuth.ReverseProxyTrustedProxies {
 			if !strings.Contains(n, "/") {
 				opt.AddTrustedProxy(n)
 			} else {
