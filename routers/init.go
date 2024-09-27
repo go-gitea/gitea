@@ -47,7 +47,7 @@ import (
 	markup_service "code.gitea.io/gitea/services/markup"
 	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
-	oauth2_provider "code.gitea.io/gitea/services/oauth2_provider"
+	"code.gitea.io/gitea/services/oauth2_provider"
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"

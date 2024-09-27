@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web/middleware"
-	oauth2_provider "code.gitea.io/gitea/services/oauth2_provider"
+	"code.gitea.io/gitea/services/oauth2_provider"
 )
 
 // Ensure the struct implements the interface.
