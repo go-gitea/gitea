@@ -16,7 +16,7 @@ var ReverseProxyAuth = struct {
 	ReverseProxyTrustedProxies     []string
 }{}
 
-func loadReverseProxyAuthFrom(rootCfg ConfigProvider) error {
+func loadReverseProxyAuthFrom(rootCfg ConfigProvider) {
 	serviceSec := rootCfg.Section("service")
 
 	ReverseProxyAuth.Enabled = serviceSec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
@@ -35,6 +35,4 @@ func loadReverseProxyAuthFrom(rootCfg ConfigProvider) error {
 	if len(ReverseProxyAuth.ReverseProxyTrustedProxies) == 0 {
 		ReverseProxyAuth.ReverseProxyTrustedProxies = []string{"127.0.0.0/8", "::1/128"}
 	}
-
-	return nil
 }
