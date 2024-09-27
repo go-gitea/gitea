@@ -8,13 +8,15 @@ import (
 	"strconv"
 
 	admin_model "code.gitea.io/gitea/models/admin"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/services/context"
 )
 
 // TaskStatus returns task's status
 func TaskStatus(ctx *context.Context) {
-	task, opts, err := admin_model.GetMigratingTaskByID(ctx, ctx.PathParamInt64("task"), ctx.Doer.ID)
+	task, _, err := admin_model.GetMigratingTaskByID(ctx, ctx.PathParamInt64("task"), 0)
 	if err != nil {
 		if admin_model.IsErrTaskDoesNotExist(err) {
 			ctx.JSON(http.StatusNotFound, map[string]any{
@@ -24,6 +26,27 @@ func TaskStatus(ctx *context.Context) {
 		}
 		ctx.JSON(http.StatusInternalServerError, map[string]any{
 			"err": err,
+		})
+		return
+	}
+
+	if err := task.LoadRepo(ctx); err != nil {
+		ctx.JSON(http.StatusInternalServerError, map[string]any{
+			"err": err,
+		})
+		return
+	}
+
+	perm, err := access_model.GetUserRepoPermission(ctx, task.Repo, ctx.Doer)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, map[string]any{
+			"err": err,
+		})
+		return
+	}
+	if !perm.CanRead(unit.TypeCode) {
+		ctx.JSON(http.StatusForbidden, map[string]any{
+			"error": "you do not have access to this task",
 		})
 		return
 	}
@@ -43,11 +66,7 @@ func TaskStatus(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"status":    task.Status,
-		"message":   message,
-		"repo-id":   task.RepoID,
-		"repo-name": opts.RepoName,
-		"start":     task.StartTime,
-		"end":       task.EndTime,
+		"status":  task.Status,
+		"message": message,
 	})
 }
