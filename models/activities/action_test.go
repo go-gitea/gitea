@@ -228,6 +228,8 @@ func TestNotifyWatchers(t *testing.T) {
 }
 
 func TestGetFeedsCorrupted(t *testing.T) {
+	// Now we will not check for corrupted data in the feeds
+	// users should run doctor to fix their data
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
@@ -241,8 +243,8 @@ func TestGetFeedsCorrupted(t *testing.T) {
 		IncludePrivate: true,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, actions, 0)
-	assert.Equal(t, int64(0), count)
+	assert.Len(t, actions, 1)
+	assert.Equal(t, int64(1), count)
 }
 
 func TestConsistencyUpdateAction(t *testing.T) {

@@ -198,11 +198,12 @@ jobs:
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
-    runs-on: ubuntu-latest
+    # specifying the version of ubuntu in use as mssql fails on newer kernels
+    # pending resolution from vendor
+    runs-on: ubuntu-20.04
     services:
       mssql:
-        # some images before 2024-04 can't run on new kernels
-        image: mcr.microsoft.com/mssql/server:2019-latest
+        image: mcr.microsoft.com/mssql/server:2017-latest
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard
