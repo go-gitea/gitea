@@ -1282,11 +1282,11 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 			log.Error("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
 			err = fmt.Errorf("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
 			return nil, goth.User{}, err
-		} else {
-			log.Error("OAuth2 Provider %s error(start BeginAuthHandler): %v", authSource.Name, err)
-			gothic.BeginAuthHandler(response, request)
-			return nil, goth.User{}, nil
 		}
+
+		log.Error("OAuth2 Provider %s error(start BeginAuthHandler): %v", authSource.Name, err)
+		gothic.BeginAuthHandler(response, request)
+		return nil, goth.User{}, nil
 	}
 
 	if oauth2Source.RequiredClaimName != "" {
