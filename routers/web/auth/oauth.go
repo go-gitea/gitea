@@ -893,6 +893,9 @@ func SignInOAuth(ctx *context.Context) {
 
 	// try to do a direct callback flow, so we don't authenticate the user again but use the valid accesstoken to get the user
 	user, gothUser, err := oAuth2UserLoginCallback(ctx, authSource, ctx.Req, ctx.Resp)
+	if ctx.Written() {
+		return
+	}
 	if err == nil && user != nil {
 		// we got the user without going through the whole OAuth2 authentication flow again
 		handleOAuth2SignIn(ctx, authSource, user, gothUser)
@@ -943,6 +946,9 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	u, gothUser, err := oAuth2UserLoginCallback(ctx, authSource, ctx.Req, ctx.Resp)
+	if ctx.Written() {
+		return
+	}
 	if err != nil {
 		if user_model.IsErrUserProhibitLogin(err) {
 			uplerr := err.(user_model.ErrUserProhibitLogin)
@@ -1275,8 +1281,12 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 		if err.Error() == "securecookie: the value is too long" || strings.Contains(err.Error(), "Data too long") {
 			log.Error("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
 			err = fmt.Errorf("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
+			return nil, goth.User{}, err
+		} else {
+			log.Error("OAuth2 Provider %s error(start BeginAuthHandler): %v", authSource.Name, err)
+			gothic.BeginAuthHandler(response, request)
+			return nil, goth.User{}, nil
 		}
-		return nil, goth.User{}, err
 	}
 
 	if oauth2Source.RequiredClaimName != "" {
