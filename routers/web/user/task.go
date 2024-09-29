@@ -16,7 +16,14 @@ import (
 
 // TaskStatus returns task's status
 func TaskStatus(ctx *context.Context) {
-	task, _, err := admin_model.GetMigratingTaskByID(ctx, ctx.PathParamInt64("task"), 0)
+	taskID := ctx.PathParamInt64("task")
+	if taskID <= 0 {
+		ctx.JSON(http.StatusBadRequest, map[string]any{
+			"err": "invalid task ID",
+		})
+		return
+	}
+	task, _, err := admin_model.GetMigratingTaskByID(ctx, taskID, 0)
 	if err != nil {
 		if admin_model.IsErrTaskDoesNotExist(err) {
 			ctx.JSON(http.StatusNotFound, map[string]any{
