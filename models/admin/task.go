@@ -17,6 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // Task represents a task
@@ -181,12 +183,8 @@ func GetMigratingTask(ctx context.Context, repoID int64) (*Task, error) {
 
 // GetMigratingTaskByID returns the migrating task by repo's id
 func GetMigratingTaskByID(ctx context.Context, id, doerID int64) (*Task, *migration.MigrateOptions, error) {
-	task := Task{
-		ID:     id,
-		DoerID: doerID,
-		Type:   structs.TaskTypeMigrateRepo,
-	}
-	has, err := db.GetEngine(ctx).Get(&task)
+	task := Task{}
+	has, err := db.GetEngine(ctx).Where(builder.Eq{"id": id, "doer_id": doerID, "`type`": structs.TaskTypeMigrateRepo}).Get(&task)
 	if err != nil {
 		return nil, nil, err
 	} else if !has {
