@@ -2077,13 +2077,24 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	if ctx.IsSigned {
-		forkedRepos, err := repo_model.FindUserOrgForks(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID)
+		forkedRepos, err := repo_model.GetForksByUserAndOrgs(ctx, ctx.Doer, ctx.Repo.Repository)
 		if err != nil {
-			ctx.ServerError("FindUserOrgForks", err)
+			ctx.ServerError("GetForksByUserAndOrgs", err)
 			return
 		}
+		allowedRepos := make([]*repo_model.Repository, 0, len(forkedRepos)+1)
+		for _, repo := range append(forkedRepos, ctx.Repo.Repository) {
+			perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
+			}
+			if perm.CanWrite(unit.TypeCode) {
+				allowedRepos = append(allowedRepos, repo)
+			}
+		}
 
-		ctx.Data["AllowedRepos"] = append(forkedRepos, ctx.Repo.Repository)
+		ctx.Data["AllowedRepos"] = allowedRepos
 
 		devLinks, err := issue_service.FindIssueDevLinksByIssue(ctx, issue)
 		if err != nil {
