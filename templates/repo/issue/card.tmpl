@@ -59,6 +59,12 @@
 				<span class="tw-align-middle">{{.GetTasksDone}} / {{$tasks}}</span>
 			</div>
 		{{end}}
+		{{if .Repo.IsWeightEnabled ctx}}
+		<div class="meta tw-my-1">
+			{{svg "octicon-briefcase" 16 "tw-mr-1 tw-align-middle"}}
+			<span class="tw-align-middle" data-weight={{.Weight}}>{{.Weight}}</span>
+		</div>
+		{{end}}
 	</div>
 
 	{{if or .Labels .Assignees}}

@@ -70,6 +70,8 @@ var Service = struct {
 	DefaultUserIsRestricted                 bool
 	EnableTimetracking                      bool
 	DefaultEnableTimetracking               bool
+	EnableIssueWeight                       bool
+	DefaultEnableIssueWeight                bool
 	DefaultEnableDependencies               bool
 	AllowCrossRepositoryDependencies        bool
 	DefaultAllowOnlyContributorsToTrackTime bool
@@ -184,6 +186,11 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	if Service.EnableTimetracking {
 		Service.DefaultEnableTimetracking = sec.Key("DEFAULT_ENABLE_TIMETRACKING").MustBool(true)
 	}
+	Service.EnableIssueWeight = sec.Key("ENABLE_ISSUE_WEIGHT").MustBool(false)
+	if Service.EnableIssueWeight {
+		Service.DefaultEnableIssueWeight = sec.Key("DEFAULT_ENABLE_ISSUE_WEIGHT").MustBool(true)
+	}
+
 	Service.DefaultEnableDependencies = sec.Key("DEFAULT_ENABLE_DEPENDENCIES").MustBool(true)
 	Service.AllowCrossRepositoryDependencies = sec.Key("ALLOW_CROSS_REPOSITORY_DEPENDENCIES").MustBool(true)
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)

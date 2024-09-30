@@ -2,6 +2,7 @@
 {{range .Issue.Comments}}
 	{{if call $.ShouldShowCommentType .Type}}
 		{{$createdStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
+		{{$isWeightEnabled:= $.Repository.IsWeightEnabled ctx}}
 
 		<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF,
 		5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 8 = MILESTONE_CHANGE,
@@ -700,6 +701,40 @@
 					{{else}}{{ctx.Locale.Tr "repo.issues.unpin_comment" $createdStr}}{{end}}
 				</span>
 			</div>
+		{{else if and (eq .Type 38) ($isWeightEnabled)}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-clock"}}</span>
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				<span class="text grey muted-links">
+					{{template "shared/user/authorlink" .Poster}}
+					{{ctx.Locale.Tr "repo.issues.weight_added" .Content $createdStr}}
+				</span>
+			</div>
+		{{else if and (eq .Type 39) ($isWeightEnabled)}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-clock"}}</span>
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				<span class="text grey muted-links">
+					{{template "shared/user/authorlink" .Poster}}
+					{{$splitWeight := StringUtils.Split .Content "|"}}
+					{{if eq (len $splitWeight) 2}}
+						{{$to := (index $splitWeight 0)}}
+						{{$from := (index $splitWeight 1)}}
+
+						{{ctx.Locale.Tr "repo.issues.weight_modified" $to $from $createdStr}}
+					{{end}}
+				</span>
+			</div>
+		{{else if and (eq .Type 40) ($isWeightEnabled)}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-clock"}}</span>
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				<span class="text grey muted-links">
+					{{template "shared/user/authorlink" .Poster}}
+					{{ctx.Locale.Tr "repo.issues.weight_removed" .Content $createdStr}}
+				</span>
+			</div>
 		{{end}}
+
 	{{end}}
 {{end}}

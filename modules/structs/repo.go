@@ -24,6 +24,8 @@ type InternalTracker struct {
 	AllowOnlyContributorsToTrackTime bool `json:"allow_only_contributors_to_track_time"`
 	// Enable dependencies for issues and pull requests (Built-in issue tracker)
 	EnableIssueDependencies bool `json:"enable_issue_dependencies"`
+	// Enable issue weight (Built-in issue tracker)
+	EnableWeight bool `json:"enable_issue_weight"`
 }
 
 // ExternalTracker represents settings for external tracker

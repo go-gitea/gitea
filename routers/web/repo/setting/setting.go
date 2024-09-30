@@ -523,6 +523,7 @@ func SettingsPost(ctx *context.Context) {
 					EnableTimetracker:                form.EnableTimetracker,
 					AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
 					EnableDependencies:               form.EnableIssueDependencies,
+					EnableWeight:                     form.EnableIssueWeight,
 				},
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)

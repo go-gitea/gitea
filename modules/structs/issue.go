@@ -80,6 +80,7 @@ type Issue struct {
 	Repo        *RepositoryMeta  `json:"repository"`
 
 	PinOrder int `json:"pin_order"`
+	Weight   int `json:"weight"`
 }
 
 // CreateIssueOption options to create one issue
@@ -98,6 +99,7 @@ type CreateIssueOption struct {
 	// list of label ids
 	Labels []int64 `json:"labels"`
 	Closed bool    `json:"closed"`
+	Weight int     `json:"weight"`
 }
 
 // EditIssueOption options for editing an issue
@@ -113,6 +115,7 @@ type EditIssueOption struct {
 	// swagger:strfmt date-time
 	Deadline       *time.Time `json:"due_date"`
 	RemoveDeadline *bool      `json:"unset_due_date"`
+	Weight         *int       `json:"weight"`
 }
 
 // EditDeadlineOption options for creating a deadline
@@ -122,11 +125,21 @@ type EditDeadlineOption struct {
 	Deadline *time.Time `json:"due_date"`
 }
 
+type EditWeightOption struct {
+	// required:true
+	Weight int `json:"weight"`
+}
+
 // IssueDeadline represents an issue deadline
 // swagger:model
 type IssueDeadline struct {
 	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
+}
+
+// IssueWeight represents an issue weight
+type IssueWeight struct {
+	Weight int `json:"weight"`
 }
 
 // IssueFormFieldType defines issue form field type, can be "markdown", "textarea", "input", "dropdown" or "checkboxes"

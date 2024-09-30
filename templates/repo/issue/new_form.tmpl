@@ -185,6 +185,15 @@
 				</div>
 			</div>
 		{{end}}
+		<div class="divider"></div>
+		<div class="ui floating jump">
+			<span class="text flex-text-block">
+				<strong>Weight</strong>
+			</span>
+		</div>
+		<div class="ui list">
+			<input name="weight" {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} id="issue_weight" type="number" value="{{.Issue.Weight}}" min="1" autocomplete="off">
+		</div>
 	</div>
 	<input type="hidden" name="redirect_after_creation" value="{{.redirect_after_creation}}">
 </form>

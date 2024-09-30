@@ -707,7 +707,7 @@ func CreateIssue(ctx *context.APIContext) {
 		form.Labels = make([]int64, 0)
 	}
 
-	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, 0); err != nil {
+	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, 0, form.Weight); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
@@ -825,6 +825,13 @@ func EditIssue(ctx *context.APIContext) {
 		err = issue_service.ChangeIssueRef(ctx, issue, ctx.Doer, *form.Ref)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateRef", err)
+			return
+		}
+	}
+
+	if form.Weight != nil {
+		if err := issue_service.ChangeIssueWeight(ctx, issue, ctx.Doer, *form.Weight); err != nil {
+			ctx.Error(http.StatusInternalServerError, "ChangeWeight", err)
 			return
 		}
 	}

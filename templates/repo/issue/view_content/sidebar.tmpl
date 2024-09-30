@@ -257,6 +257,43 @@
 		</div>
 	</div>
 
+	{{if .Repository.IsWeightEnabled $.Context}}
+		<div class="divider"></div>
+
+		<div class="ui floating jump">
+			<a class="text muted flex-text-block issue-weight-edit">
+				<strong>{{ctx.Locale.Tr "repo.issues.weight.title"}}</strong>
+				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
+					{{svg "octicon-pencil" 16 "tw-ml-1"}}
+				{{end}}
+			</a>
+		</div>
+
+		<div class="ui list">
+			{{if eq .Issue.Weight 0}}
+				<span class="issue-weight-view item">{{ctx.Locale.Tr "repo.issues.weight.no_weight"}}</span>
+			{{end}}
+
+			{{if gt .Issue.Weight 0}}
+				<div class="tw-flex issue-weight-view">
+					<strong class="item">{{.Issue.Weight}} -</strong>
+					<form action="{{.Issue.Link}}/weight" method="post" id="update-issue-weight-form">
+						{{$.CsrfTokenHtml}}
+						<input name="weight" type="hidden" value="0" autocomplete="off">
+						<button class="tw-bg-transparent hover:tw-underline" style="color: var(--color-text)">
+							{{ctx.Locale.Tr "repo.issues.weight.remove_weight"}}
+						</button>
+					</form>
+				</div>
+			{{end}}
+
+			<form class="ui tw-hidden fluid input issue-weight-form" action="{{.Issue.Link}}/weight" method="post" id="update-issue-weight-form">
+				{{$.CsrfTokenHtml}}
+				<input name="weight" {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} id="issueWeight" type="number" value="{{if gt .Issue.Weight 0}}{{.Issue.Weight}}{{end}}" min="0" autocomplete="off">
+			</form>
+		</div>
+	{{end}}
+
 	<div class="divider"></div>
 
 	{{if .Participants}}

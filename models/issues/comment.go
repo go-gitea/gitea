@@ -114,6 +114,10 @@ const (
 
 	CommentTypePin   // 36 pin Issue
 	CommentTypeUnpin // 37 unpin Issue
+
+	CommentTypeAddedWeight    // 38 Added a weight
+	CommentTypeModifiedWeight // 39 Modified the weight
+	CommentTypeRemovedWeight  // 40 Removed a weight
 )
 
 var commentStrings = []string{
@@ -940,6 +944,40 @@ func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Is
 	} else { // Otherwise modified
 		commentType = CommentTypeModifiedDeadline
 		content = newDeadlineUnix.FormatDate() + "|" + issue.DeadlineUnix.FormatDate()
+	}
+
+	if err := issue.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+
+	opts := &CreateCommentOptions{
+		Type:    commentType,
+		Doer:    doer,
+		Repo:    issue.Repo,
+		Issue:   issue,
+		Content: content,
+	}
+	comment, err := CreateComment(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	return comment, nil
+}
+
+func CreateWeightComment(ctx context.Context, doer *user_model.User, issue *Issue, newWeight int) (*Comment, error) {
+	var content string
+	var commentType CommentType
+
+	// weight = 0 means deleting
+	if newWeight == 0 {
+		commentType = CommentTypeRemovedWeight
+		content = fmt.Sprintf("%d", issue.Weight)
+	} else if issue.Weight == 0 || issue.Weight == newWeight {
+		commentType = CommentTypeAddedWeight
+		content = fmt.Sprintf("%d", newWeight)
+	} else { // Otherwise modified
+		commentType = CommentTypeModifiedWeight
+		content = fmt.Sprintf("%d|%d", newWeight, issue.Weight)
 	}
 
 	if err := issue.LoadRepo(ctx); err != nil {

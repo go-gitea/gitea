@@ -388,6 +388,14 @@
 								</div>
 							</div>
 						{{end}}
+						{{if .Repository.CanEnableWeight}}
+							<div class="field">
+								<div class="ui checkbox">
+									<input name="enable_issue_weight" class="enable-system" type="checkbox" {{if .Repository.IsWeightEnabled $.Context}}checked{{end}}>
+									<label>{{ctx.Locale.Tr "repo.settings.enable_weight"}}</label>
+								</div>
+							</div>
+						{{end}}
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="enable_issue_dependencies" type="checkbox" {{if (.Repository.IsDependenciesEnabled $.Context)}}checked{{end}}>

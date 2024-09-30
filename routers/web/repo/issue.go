@@ -265,6 +265,17 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		ctx.Data["TotalTrackedTime"] = totalTrackedTime
 	}
 
+	if repo.IsWeightEnabled(ctx) {
+		totalWeight, totalWeightClosed, err := issues_model.GetIssueTotalWeight(ctx, statsOpts)
+		if err != nil {
+			ctx.ServerError("GetIssueTotalWeight", err)
+			return
+		}
+
+		ctx.Data["TotalWeight"] = totalWeight
+		ctx.Data["WeightedCompleteness"] = totalWeightClosed * 100 / totalWeight
+	}
+
 	archived := ctx.FormBool("archived")
 
 	page := ctx.FormInt("page")
@@ -1278,9 +1289,10 @@ func NewIssuePost(ctx *context.Context) {
 		MilestoneID: milestoneID,
 		Content:     content,
 		Ref:         form.Ref,
+		Weight:      form.Weight,
 	}
 
-	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs, projectID); err != nil {
+	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs, projectID, form.Weight); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
@@ -2359,6 +2371,33 @@ func UpdateIssueDeadline(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: &deadline})
+}
+
+// UpdateIssueWeight updates an issue weight
+func UpdateIssueWeight(ctx *context.Context) {
+	form := web.GetForm(ctx).(*api.EditWeightOption)
+
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	if err != nil {
+		if issues_model.IsErrIssueNotExist(err) {
+			ctx.NotFound("GetIssueByIndex", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err.Error())
+		}
+		return
+	}
+
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Error(http.StatusForbidden, "", "Not repo writer")
+		return
+	}
+
+	if err := issues_model.UpdateIssueWeight(ctx, issue, form.Weight, ctx.Doer); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateIssueWeight", err.Error())
+		return
+	}
+
+	ctx.Redirect(issue.Link())
 }
 
 // UpdateIssueMilestone change issue's milestone

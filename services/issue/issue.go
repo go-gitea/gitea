@@ -23,7 +23,7 @@ import (
 )
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64, projectID int64) error {
+func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64, projectID int64, weight int) error {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return err
 	}
@@ -43,6 +43,12 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 		}
 		if projectID > 0 {
 			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectID, 0); err != nil {
+				return err
+			}
+		}
+
+		if weight != 0 {
+			if _, err := issues_model.CreateWeightComment(ctx, issue.Poster, issue, weight); err != nil {
 				return err
 			}
 		}
@@ -117,6 +123,15 @@ func ChangeIssueRef(ctx context.Context, issue *issues_model.Issue, doer *user_m
 	notify_service.IssueChangeRef(ctx, doer, issue, oldRef)
 
 	return nil
+}
+
+// ChangeIssueWeight changes the weight of this issue, as the given user.
+func ChangeIssueWeight(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, weight int) error {
+	if issue.Weight == weight {
+		return nil
+	}
+
+	return issues_model.UpdateIssueWeight(ctx, issue, weight, doer)
 }
 
 // UpdateAssignees is a helper function to add or delete one or multiple issue assignee(s)

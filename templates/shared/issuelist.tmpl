@@ -25,13 +25,19 @@
 							{{end}}
 						</span>
 					</div>
-					{{if or .TotalTrackedTime .Assignees .NumComments}}
+					{{if or .TotalTrackedTime .Assignees .NumComments .Weight}}
 					<div class="flex-item-trailing">
 						{{if .TotalTrackedTime}}
-						<div class="text grey flex-text-block">
+							<div class="text grey flex-text-block">
 								{{svg "octicon-clock" 16}}
 								{{.TotalTrackedTime | Sec2Time}}
-						</div>
+							</div>
+						{{end}}
+						{{if .Repo.IsWeightEnabled ctx}}
+							<div class="text grey flex-text-block">
+								{{svg "octicon-briefcase" 16}}
+								{{.Weight}}
+							</div>
 						{{end}}
 						{{if .Assignees}}
 						<div class="text grey">

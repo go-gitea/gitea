@@ -38,6 +38,24 @@ func (repo *Repository) IsTimetrackerEnabled(ctx context.Context) bool {
 	return u.IssuesConfig().EnableTimetracker
 }
 
+func (repo *Repository) CanEnableWeight() bool {
+	return setting.Service.EnableIssueWeight
+}
+
+// IsTimetrackerEnabled returns whether or not the timetracker is enabled. It returns the default value from config if an error occurs.
+func (repo *Repository) IsWeightEnabled(ctx context.Context) bool {
+	if !setting.Service.EnableIssueWeight {
+		return false
+	}
+
+	var u *RepoUnit
+	var err error
+	if u, err = repo.GetUnit(ctx, unit.TypeIssues); err != nil {
+		return setting.Service.DefaultEnableIssueWeight
+	}
+	return u.IssuesConfig().EnableWeight
+}
+
 // AllowOnlyContributorsToTrackTime returns value of IssuesConfig or the default value
 func (repo *Repository) AllowOnlyContributorsToTrackTime(ctx context.Context) bool {
 	var u *RepoUnit

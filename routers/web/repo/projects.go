@@ -441,6 +441,7 @@ func ViewProject(ctx *context.Context) {
 
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
+	ctx.Data["IsWeightEnabled"] = ctx.Repo.Repository.IsWeightEnabled(ctx)
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Columns"] = columns

@@ -101,6 +101,12 @@
 											{{.TotalTrackedTime|Sec2Time}}
 										</div>
 									{{end}}
+									{{if .TotalWeight}}
+										<div class="flex-text-block">
+											{{svg "octicon-briefcase"}}
+											{{.TotalWeight}}
+										</div>
+									{{end}}
 									{{if .UpdatedUnix}}
 										<div class="flex-text-block">
 											{{svg "octicon-clock"}}

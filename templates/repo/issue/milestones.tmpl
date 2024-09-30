@@ -18,14 +18,18 @@
 		<div class="milestone-list">
 			{{range .Milestones}}
 				<li class="milestone-card">
+					{{$completeness := .Completeness}}
+					{{if $.Repository.IsWeightEnabled ctx}}
+						{{$completeness = .WeightedCompleteness}}
+					{{end}}
 					<div class="milestone-header">
 						<h3 class="flex-text-block tw-m-0">
 							{{svg "octicon-milestone" 16}}
 							<a class="muted" href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
 						</h3>
 						<div class="tw-flex tw-items-center">
-							<span class="tw-mr-2">{{.Completeness}}%</span>
-							<progress value="{{.Completeness}}" max="100"></progress>
+							<span class="tw-mr-2">{{$completeness}}%</span>
+							<progress value="{{$completeness}}" max="100"></progress>
 						</div>
 					</div>
 					<div class="milestone-toolbar">
@@ -42,6 +46,12 @@
 								<div class="flex-text-block">
 									{{svg "octicon-clock"}}
 									{{.TotalTrackedTime|Sec2Time}}
+								</div>
+							{{end}}
+							{{if .TotalWeight}}
+								<div class="flex-text-block">
+									{{svg "octicon-briefcase"}}
+									{{.TotalWeight}}
 								</div>
 							{{end}}
 							{{if .UpdatedUnix}}

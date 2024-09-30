@@ -1202,6 +1202,7 @@ func registerRoutes(m *web.Router) {
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
 				m.Post("/deadline", web.Bind(structs.EditDeadlineOption{}), repo.UpdateIssueDeadline)
+				m.Post("/weight", web.Bind(structs.EditWeightOption{}), repo.UpdateIssueWeight)
 				m.Post("/watch", repo.IssueWatch)
 				m.Post("/ref", repo.UpdateIssueRef)
 				m.Post("/pin", reqRepoAdmin, repo.IssuePinOrUnpin)

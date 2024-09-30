@@ -87,6 +87,23 @@ export function initRepoIssueDue() {
   });
 }
 
+function focusAtEnd(selector) {
+  const element = document.querySelector(selector);
+  const value = element.value;
+
+  element.value = '';
+  element.focus();
+  element.value = value;
+}
+
+export function initRepoIssueWeight() {
+  $(document).on('click', '.issue-weight-edit', () => {
+    toggleElem('.issue-weight-form');
+    toggleElem('.issue-weight-view');
+    focusAtEnd('#issueWeight');
+  });
+}
+
 /**
  * @param {HTMLElement} item
  */
