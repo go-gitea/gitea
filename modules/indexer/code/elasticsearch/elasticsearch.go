@@ -318,7 +318,8 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 					NumOfFragments(0). // return all highting content on fragments
 					HighlighterType("fvh"),
 			).
-			Sort("repo_id", true).
+			Sort("_score", false).
+			Sort("updated_at", true).
 			From(start).Size(pageSize).
 			Do(ctx)
 		if err != nil {
@@ -349,7 +350,8 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 				NumOfFragments(0). // return all highting content on fragments
 				HighlighterType("fvh"),
 		).
-		Sort("repo_id", true).
+		Sort("_score", false).
+		Sort("updated_at", true).
 		From(start).Size(pageSize).
 		Do(ctx)
 	if err != nil {
