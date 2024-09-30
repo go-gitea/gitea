@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
@@ -287,4 +288,41 @@ func MigrateCancelPost(ctx *context.Context) {
 		}
 	}
 	ctx.Redirect(ctx.Repo.Repository.Link())
+}
+
+// MigrateStatus returns migrate task's status
+func MigrateStatus(ctx *context.Context) {
+	task, err := admin_model.GetMigratingTask(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		if admin_model.IsErrTaskDoesNotExist(err) {
+			ctx.JSON(http.StatusNotFound, map[string]any{
+				"err": "task does not exist or you do not have access to this task",
+			})
+			return
+		}
+		log.Error("GetMigratingTask: %v", err)
+		ctx.JSON(http.StatusInternalServerError, map[string]any{
+			"err": http.StatusText(http.StatusInternalServerError),
+		})
+		return
+	}
+
+	message := task.Message
+
+	if task.Message != "" && task.Message[0] == '{' {
+		// assume message is actually a translatable string
+		var translatableMessage admin_model.TranslatableMessage
+		if err := json.Unmarshal([]byte(message), &translatableMessage); err != nil {
+			translatableMessage = admin_model.TranslatableMessage{
+				Format: "migrate.migrating_failed.error",
+				Args:   []any{task.Message},
+			}
+		}
+		message = ctx.Locale.TrString(translatableMessage.Format, translatableMessage.Args...)
+	}
+
+	ctx.JSON(http.StatusOK, map[string]any{
+		"status":  task.Status,
+		"message": message,
+	})
 }
