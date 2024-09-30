@@ -108,11 +108,7 @@ func (opts *FindReviewOptions) toCond() builder.Cond {
 		cond = cond.And(builder.Eq{"reviewer_id": opts.ReviewerID})
 	}
 	if len(opts.Types) > 0 {
-		typeConds := make([]builder.Cond, 0, len(opts.Types))
-		for _, reviewType := range opts.Types {
-			typeConds = append(typeConds, builder.Eq{"type": reviewType})
-		}
-		cond = cond.And(builder.Or(typeConds...))
+		cond = cond.And(builder.In("type", opts.Types))
 	}
 	if opts.OfficialOnly {
 		cond = cond.And(builder.Eq{"official": true})
