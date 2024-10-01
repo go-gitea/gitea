@@ -348,7 +348,7 @@ func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *is
 	reviews, err := issues_model.FindReviews(ctx, issues_model.FindReviewOptions{
 		ListOptions: db.ListOptionsAll,
 		IssueID:     pull.IssueID,
-		Type:        issues_model.ReviewTypeApprove,
+		Types:       []issues_model.ReviewType{issues_model.ReviewTypeApprove},
 		Dismissed:   optional.Some(false),
 	})
 	if err != nil {

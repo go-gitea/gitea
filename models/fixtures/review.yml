@@ -179,3 +179,22 @@
   content: "Review Comment"
   updated_unix: 946684810
   created_unix: 946684810
+
+-
+  id: 21
+  type: 2
+  reviewer_id: 5
+  issue_id: 3
+  content: "reviewed by user5"
+  commit_id: 4a357436d925b5c974181ff12a994538ddc5a269
+  updated_unix: 946684816
+  created_unix: 946684816
+
+-
+  id: 22
+  type: 4
+  reviewer_id: 5
+  issue_id: 3
+  content: "review request for user5"
+  updated_unix: 946684817
+  created_unix: 946684817
