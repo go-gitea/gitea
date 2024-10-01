@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/build/license"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -139,7 +140,12 @@ func main() {
 	licenseAliases := make(map[string]string)
 	for _, fileNames := range aliasesFiles {
 		if len(fileNames) > 1 {
-			licenseName := getLicenseNameFromAliases(fileNames)
+			licenseName := license.GetLicenseNameFromAliases(fileNames)
+			if licenseName == "" {
+				// license name should not be empty as expected
+				// if it is empty, we need to rewrite the logic of GetLicenseNameFromAliases
+				log.Fatalf("GetLicenseNameFromAliases: license name is empty")
+			}
 			for _, fileName := range fileNames {
 				licenseAliases[fileName] = licenseName
 			}
@@ -167,39 +173,4 @@ func main() {
 	}
 
 	fmt.Println("Done")
-}
-
-func getLicenseNameFromAliases(fnl []string) string {
-	if len(fnl) == 0 {
-		return ""
-	}
-
-	shortestItem := func(list []string) string {
-		s := list[0]
-		for _, l := range list[1:] {
-			if len(l) < len(s) {
-				s = l
-			}
-		}
-		return s
-	}
-	allHasPrefix := func(list []string, s string) bool {
-		for _, l := range list {
-			if !strings.HasPrefix(l, s) {
-				return false
-			}
-		}
-		return true
-	}
-
-	sl := shortestItem(fnl)
-	slv := strings.Split(sl, "-")
-	var result string
-	for i := len(slv); i >= 0; i-- {
-		result = strings.Join(slv[:i], "-")
-		if allHasPrefix(fnl, result) {
-			return result
-		}
-	}
-	return ""
 }
