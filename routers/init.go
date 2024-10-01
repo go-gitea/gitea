@@ -172,6 +172,8 @@ func InitWebInstalled(ctx context.Context) {
 
 	actions_service.Init()
 
+	mustInit(repo_service.InitLicenseClassifier)
+
 	// Finally start up the cron
 	cron.NewContext(ctx)
 }

@@ -66,11 +66,7 @@ func ConvertLicenseName(name string) string {
 	return name
 }
 
-func initClassifier() error {
-	if classifier != nil {
-		return nil
-	}
-
+func InitLicenseClassifier() error {
 	// threshold should be 0.84~0.86 or the test will be failed
 	classifier = licenseclassifier.NewClassifier(.85)
 	licenseFiles, err := options.AssetFS().ListFiles("license", true)
@@ -190,9 +186,6 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit
 func detectLicense(r io.Reader) ([]string, error) {
 	if r == nil {
 		return nil, nil
-	}
-	if err := initClassifier(); err != nil {
-		return nil, err
 	}
 
 	matches, err := classifier.MatchFrom(r)

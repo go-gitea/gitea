@@ -52,7 +52,7 @@ func Test_detectLicense(t *testing.T) {
 		})
 	}
 
-	err = initClassifier()
+	err = InitLicenseClassifier()
 	assert.NoError(t, err)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
