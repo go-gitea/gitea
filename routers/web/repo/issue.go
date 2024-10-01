@@ -1381,6 +1381,40 @@ func getBranchData(ctx *context.Context, issue *issues_model.Issue) {
 	}
 }
 
+type IssueCloseBtnItem struct {
+	Value            issues_model.IssueClosedStatus
+	Status           string
+	StatusAndComment string
+}
+
+var issueCloseBtnItems = []IssueCloseBtnItem{
+	{
+		Value:            -1,
+		Status:           "repo.issues.close_as.reopen",
+		StatusAndComment: "repo.issues.comment_and_close_as.reopen",
+	},
+	{
+		Value:            issues_model.IssueClosedStatusCommon,
+		Status:           "repo.issues.close_as.common",
+		StatusAndComment: "repo.issues.comment_and_close_as.common",
+	},
+	{
+		Value:            issues_model.IssueClosedStatusArchived,
+		Status:           "repo.issues.close_as.archived",
+		StatusAndComment: "repo.issues.comment_and_close_as.archived",
+	},
+	{
+		Value:            issues_model.IssueClosedStatusResolved,
+		Status:           "repo.issues.close_as.resolved",
+		StatusAndComment: "repo.issues.comment_and_close_as.resolved",
+	},
+	{
+		Value:            issues_model.IssueClosedStatusStale,
+		Status:           "repo.issues.close_as.stale",
+		StatusAndComment: "repo.issues.comment_and_close_as.stale",
+	},
+}
+
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
 	if ctx.PathParam(":type") == "issues" {
@@ -1441,6 +1475,21 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["PageIsIssueList"] = true
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
+
+		// assemble data for close/reopen issue dropdown.
+		var btnItems []IssueCloseBtnItem
+		for _, item := range issueCloseBtnItems {
+			if !issue.IsClosed && item.Value == -1 {
+				// if issue is open, do not append "reopen" btn item.
+				continue
+			}
+			if issue.IsClosed && item.Value == issue.ClosedStatus {
+				// if issue is closed and the status of issue is equal to this item, skip it.
+				continue
+			}
+			btnItems = append(btnItems, item)
+		}
+		ctx.Data["IssueCloseBtnItems"] = btnItems
 	}
 
 	if issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {
@@ -2971,7 +3020,8 @@ func UpdateIssueStatus(ctx *context.Context) {
 			continue
 		}
 		if issue.IsClosed != isClosed {
-			if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, "", isClosed); err != nil {
+			issue.IsClosed = isClosed
+			if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, ""); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
 					ctx.JSON(http.StatusPreconditionFailed, map[string]any{
 						"error": ctx.Tr("repo.issues.dependency.issue_batch_close_blocked", issue.Index),
@@ -3149,6 +3199,8 @@ func NewComment(ctx *context.Context) {
 		}
 	}()
 
+	defer closeOrReopenIssue(ctx, form, issue, comment)
+
 	// Fix #321: Allow empty comments, as long as we have attachments.
 	if len(form.Content) == 0 && len(attachments) == 0 {
 		return
@@ -3165,6 +3217,127 @@ func NewComment(ctx *context.Context) {
 	}
 
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
+}
+
+// closeOrReopenIssue close or reopen Issue(including PR) after creating comment.
+func closeOrReopenIssue(ctx *context.Context, form *forms.CreateCommentForm, issue *issues_model.Issue, comment *issues_model.Comment) {
+	// Check if issue admin/poster changes the status of issue.
+	if (ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) || (ctx.IsSigned && issue.IsPoster(ctx.Doer.ID))) &&
+		(form.Status == "reopen" || form.Status == "close") &&
+		!(issue.IsPull && issue.PullRequest.HasMerged) {
+
+		// Duplication and conflict check should apply to reopen pull request.
+		var pr *issues_model.PullRequest
+
+		if form.Status == "reopen" && issue.IsPull {
+			pull := issue.PullRequest
+			var err error
+			pr, err = issues_model.GetUnmergedPullRequest(ctx, pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch, pull.Flow)
+			if err != nil {
+				if !issues_model.IsErrPullRequestNotExist(err) {
+					ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+					return
+				}
+			}
+
+			// Regenerate patch and test conflict.
+			if pr == nil {
+				issue.PullRequest.HeadCommitID = ""
+				pull_service.AddToTaskQueue(ctx, issue.PullRequest)
+			}
+
+			// check whether the ref of PR <refs/pulls/pr_index/head> in base repo is consistent with the head commit of head branch in the head repo
+			// get head commit of PR
+			prHeadRef := pull.GetGitRefName()
+			if err := pull.LoadBaseRepo(ctx); err != nil {
+				ctx.ServerError("Unable to load base repo", err)
+				return
+			}
+			prHeadCommitID, err := git.GetFullCommitID(ctx, pull.BaseRepo.RepoPath(), prHeadRef)
+			if err != nil {
+				ctx.ServerError("Get head commit Id of pr fail", err)
+				return
+			}
+
+			// get head commit of branch in the head repo
+			if err := pull.LoadHeadRepo(ctx); err != nil {
+				ctx.ServerError("Unable to load head repo", err)
+				return
+			}
+			if ok := git.IsBranchExist(ctx, pull.HeadRepo.RepoPath(), pull.BaseBranch); !ok {
+				// todo localize
+				ctx.JSONError("The origin branch is delete, cannot reopen.")
+				return
+			}
+			headBranchRef := pull.GetGitHeadBranchRefName()
+			headBranchCommitID, err := git.GetFullCommitID(ctx, pull.HeadRepo.RepoPath(), headBranchRef)
+			if err != nil {
+				ctx.ServerError("Get head commit Id of head branch fail", err)
+				return
+			}
+
+			err = pull.LoadIssue(ctx)
+			if err != nil {
+				ctx.ServerError("load the issue of pull request error", err)
+				return
+			}
+
+			if prHeadCommitID != headBranchCommitID {
+				// force push to base repo
+				err := git.Push(ctx, pull.HeadRepo.RepoPath(), git.PushOptions{
+					Remote: pull.BaseRepo.RepoPath(),
+					Branch: pull.HeadBranch + ":" + prHeadRef,
+					Force:  true,
+					Env:    repo_module.InternalPushingEnvironment(pull.Issue.Poster, pull.BaseRepo),
+				})
+				if err != nil {
+					ctx.ServerError("force push error", err)
+					return
+				}
+			}
+		}
+
+		if pr != nil {
+			ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
+		} else {
+			issue.IsClosed = form.Status == "close"
+			issue.ClosedStatus = issues_model.IssueClosedStatus(0)
+			if issue.IsClosed {
+				issue.ClosedStatus = form.ClosedStatus
+			}
+			if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, ""); err != nil {
+				log.Error("ChangeStatus: %v", err)
+
+				if issues_model.IsErrDependenciesLeft(err) {
+					if issue.IsPull {
+						ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+					} else {
+						ctx.JSONError(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
+					}
+					return
+				}
+			} else {
+				if err := stopTimerIfAvailable(ctx.Doer, issue); err != nil {
+					ctx.ServerError("CreateOrStopIssueStopwatch", err)
+					return
+				}
+
+				log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
+			}
+		}
+
+	}
+
+	// Redirect to comment hashtag if there is any actual content.
+	typeName := "issues"
+	if issue.IsPull {
+		typeName = "pulls"
+	}
+	if comment != nil {
+		ctx.JSONRedirect(fmt.Sprintf("%s/%s/%d#%s", ctx.Repo.RepoLink, typeName, issue.Index, comment.HashTag()))
+	} else {
+		ctx.JSONRedirect(fmt.Sprintf("%s/%s/%d", ctx.Repo.RepoLink, typeName, issue.Index))
+	}
 }
 
 // UpdateCommentContent change comment of issue's content

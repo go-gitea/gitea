@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -33,7 +34,7 @@ func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
 	return nil
 }
 
-func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed, isMergePull bool) (*Comment, error) {
+func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
 	// Reload the issue
 	currentIssue, err := GetIssueByID(ctx, issue.ID)
 	if err != nil {
@@ -41,18 +42,19 @@ func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 	}
 
 	// Nothing should be performed if current status is same as target status
-	if currentIssue.IsClosed == isClosed {
-		if !issue.IsPull {
+	if currentIssue.IsClosed == issue.IsClosed {
+		if issue.IsPull {
+			return nil, ErrPullWasClosed{
+				ID: issue.ID,
+			}
+		}
+		if currentIssue.ClosedStatus == issue.ClosedStatus {
 			return nil, ErrIssueWasClosed{
 				ID: issue.ID,
 			}
 		}
-		return nil, ErrPullWasClosed{
-			ID: issue.ID,
-		}
 	}
 
-	issue.IsClosed = isClosed
 	return doChangeIssueStatus(ctx, issue, doer, isMergePull)
 }
 
@@ -76,7 +78,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 		issue.ClosedUnix = 0
 	}
 
-	if err := UpdateIssueCols(ctx, issue, "is_closed", "closed_unix"); err != nil {
+	if err := UpdateIssueCols(ctx, issue, "is_closed", "closed_status", "closed_unix"); err != nil {
 		return nil, err
 	}
 
@@ -104,6 +106,11 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 
 	// New action comment
 	cmtType := CommentTypeClose
+	var content string
+	if !issue.IsPull && issue.IsClosed {
+		content = strconv.Itoa(int(issue.ClosedStatus))
+	}
+
 	if !issue.IsClosed {
 		cmtType = CommentTypeReopen
 	} else if isMergePull {
@@ -111,15 +118,16 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 	}
 
 	return CreateComment(ctx, &CreateCommentOptions{
-		Type:  cmtType,
-		Doer:  doer,
-		Repo:  issue.Repo,
-		Issue: issue,
+		Type:    cmtType,
+		Doer:    doer,
+		Repo:    issue.Repo,
+		Issue:   issue,
+		Content: content,
 	})
 }
 
 // ChangeIssueStatus changes issue status to open or closed.
-func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed bool) (*Comment, error) {
+func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
@@ -127,7 +135,7 @@ func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 		return nil, err
 	}
 
-	return changeIssueStatus(ctx, issue, doer, isClosed, false)
+	return changeIssueStatus(ctx, issue, doer, false)
 }
 
 // ChangeIssueTitle changes the title of this issue, as the given user.
@@ -432,6 +440,71 @@ func UpdateIssueMentions(ctx context.Context, issueID int64, mentions []*user_mo
 		return fmt.Errorf("UpdateIssueUsersByMentions: %w", err)
 	}
 	return nil
+}
+
+// UpdateIssueByAPI updates all allowed fields of given issue.
+// If the issue status is changed a statusChangeComment is returned
+// similarly if the title is changed the titleChanged bool is set to true
+func UpdateIssueByAPI(issue *Issue, doer *user_model.User) (statusChangeComment *Comment, titleChanged bool, err error) {
+	ctx, committer, err := db.TxContext(db.DefaultContext)
+	if err != nil {
+		return nil, false, err
+	}
+	defer committer.Close()
+
+	if err := issue.LoadRepo(ctx); err != nil {
+		return nil, false, fmt.Errorf("loadRepo: %w", err)
+	}
+
+	// Reload the issue
+	currentIssue, err := GetIssueByID(ctx, issue.ID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if _, err := db.GetEngine(ctx).ID(issue.ID).Cols(
+		"name", "content", "milestone_id", "priority",
+		"deadline_unix", "updated_unix", "is_locked").
+		Update(issue); err != nil {
+		return nil, false, err
+	}
+
+	titleChanged = currentIssue.Title != issue.Title
+	if titleChanged {
+		opts := &CreateCommentOptions{
+			Type:     CommentTypeChangeTitle,
+			Doer:     doer,
+			Repo:     issue.Repo,
+			Issue:    issue,
+			OldTitle: currentIssue.Title,
+			NewTitle: issue.Title,
+		}
+		_, err := CreateComment(ctx, opts)
+		if err != nil {
+			return nil, false, fmt.Errorf("createComment: %w", err)
+		}
+	}
+
+	if issue.IsPull {
+		if currentIssue.IsClosed != issue.IsClosed {
+			statusChangeComment, err = doChangeIssueStatus(ctx, issue, doer, false)
+			if err != nil {
+				return nil, false, err
+			}
+		}
+	} else {
+		if currentIssue.IsClosed != issue.IsClosed || currentIssue.ClosedStatus != issue.ClosedStatus {
+			statusChangeComment, err = doChangeIssueStatus(ctx, issue, doer, false)
+			if err != nil {
+				return nil, false, err
+			}
+		}
+	}
+
+	if err := issue.AddCrossReferences(ctx, doer, true); err != nil {
+		return nil, false, err
+	}
+	return statusChangeComment, titleChanged, committer.Commit()
 }
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.

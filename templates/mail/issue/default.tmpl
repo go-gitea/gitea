@@ -36,7 +36,15 @@
 	{{end}}
 	<p>
 		{{if eq .ActionName "close"}}
-			{{.locale.Tr "mail.issue.action.close" .Doer.Name .Issue.Index}}
+			{{$closeTrans := "mail.issue.action.close"}}
+			{{if eq .Issue.ClosedStatus 1}}
+				{{$closeTrans = "mail.issue.action.close_as_archived"}}
+			{{else if eq .Issue.ClosedStatus 2}}
+				{{$closeTrans = "mail.issue.action.close_as_resolved"}}
+			{{else if eq .Issue.ClosedStatus 3}}
+				{{$closeTrans = "mail.issue.action.close_as_stale"}}
+			{{end}}
+			{{.locale.Tr $closeTrans (Escape .Doer.Name) .Issue.Index | Str2html}}
 		{{else if eq .ActionName "reopen"}}
 			{{.locale.Tr "mail.issue.action.reopen" .Doer.Name .Issue.Index}}
 		{{else if eq .ActionName "merge"}}

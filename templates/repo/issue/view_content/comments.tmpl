@@ -104,7 +104,16 @@
 					{{if .Issue.IsPull}}
 						{{ctx.Locale.Tr "repo.pulls.closed_at" .EventTag $createdStr}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.issues.closed_at" .EventTag $createdStr}}
+						{{$closedStatus := .GetIssueClosedStatus}}
+						{{$trans := "repo.issues.closed_at"}}
+						{{if eq $closedStatus 1}}
+							{{$trans = "repo.issues.closed_as_archived_at"}}
+						{{else if eq $closedStatus 2}}
+							{{$trans = "repo.issues.closed_as_resolved_at"}}
+						{{else if eq $closedStatus 3}}
+							{{$trans = "repo.issues.closed_as_stale_at"}}
+						{{end}}
+						{{ctx.Locale.Tr $trans .EventTag $createdStr}}
 					{{end}}
 				</span>
 			</div>

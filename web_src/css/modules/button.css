@@ -102,6 +102,16 @@
   margin: 0 -0.21428571em 0 0.42857143em;
 }
 
+/* other button styles */
+
+.ui.buttons {
+  vertical-align: middle;
+}
+
+.ui.buttons .button:first-child {
+  border-left: 1px solid var(--color-light-border);
+}
+
 .ui.compact.buttons .button,
 .ui.compact.button {
   padding: 0.58928571em 1.125em;

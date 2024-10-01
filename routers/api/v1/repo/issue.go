@@ -719,7 +719,8 @@ func CreateIssue(ctx *context.APIContext) {
 	}
 
 	if form.Closed {
-		if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, "", true); err != nil {
+		issue.IsClosed = form.Closed
+		if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, ""); err != nil {
 			if issues_model.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
 				return
@@ -906,6 +907,26 @@ func EditIssue(ctx *context.APIContext) {
 			isClosed = true
 		default:
 			ctx.Error(http.StatusPreconditionFailed, "UnknownIssueStateError", fmt.Sprintf("unknown state: %s", state))
+		}
+
+		issue.ClosedStatus = issues_model.IssueClosedStatusCommon
+		if issue.IsClosed && form.ClosedStatus != nil {
+			switch *form.ClosedStatus {
+			case api.ClosedStatusArchived:
+				issue.ClosedStatus = issues_model.IssueClosedStatusArchived
+			case api.ClosedStatusResolved:
+				issue.ClosedStatus = issues_model.IssueClosedStatusResolved
+			case api.ClosedStatusStale:
+				issue.ClosedStatus = issues_model.IssueClosedStatusStale
+			default:
+				issue.ClosedStatus = issues_model.IssueClosedStatusCommon
+			}
+		}
+	}
+	statusChangeComment, titleChanged, err := issues_model.UpdateIssueByAPI(issue, ctx.Doer)
+	if err != nil {
+		if issues_model.IsErrDependenciesLeft(err) {
+			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
 			return
 		}
 

@@ -543,7 +543,8 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	if _, err := changeIssueStatus(ctx, pr.Issue, pr.Merger, true, true); err != nil {
+	pr.Issue.IsClosed = true
+	if _, err := changeIssueStatus(ctx, pr.Issue, pr.Merger, true); err != nil {
 		return false, fmt.Errorf("Issue.changeStatus: %w", err)
 	}
 

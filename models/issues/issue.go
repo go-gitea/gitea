@@ -94,6 +94,15 @@ func (err ErrIssueWasClosed) Error() string {
 	return fmt.Sprintf("Issue [%d] %d was already closed", err.ID, err.Index)
 }
 
+type IssueClosedStatus int8
+
+const (
+	IssueClosedStatusCommon   IssueClosedStatus = iota // 0 close issue without any state.
+	IssueClosedStatusArchived                          // 1
+	IssueClosedStatusResolved                          // 2
+	IssueClosedStatusStale                             // 3
+)
+
 var ErrIssueAlreadyChanged = util.NewInvalidArgumentErrorf("the issue is already changed")
 
 // Issue represents an issue or pull request of repository.
@@ -121,6 +130,7 @@ type Issue struct {
 	Assignee          *user_model.User `xorm:"-"`
 	isAssigneeLoaded  bool             `xorm:"-"`
 	IsClosed          bool             `xorm:"INDEX"`
+	ClosedStatus     IssueClosedStatus `xorm:"NOT NULL DEFAULT 0"`
 	IsRead            bool             `xorm:"-"`
 	IsPull            bool             `xorm:"INDEX"` // Indicates whether is a pull request or not.
 	PullRequest       *PullRequest     `xorm:"-"`

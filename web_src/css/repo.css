@@ -918,16 +918,6 @@ td .commit-summary {
   border: none;
 }
 
-@media (max-width: 767.98px) {
-  .repository.view.issue .comment-list .comment .content .form .button {
-    width: 100%;
-    margin: 0;
-  }
-  .repository.view.issue .comment-list .comment .content .form .button:not(:last-child) {
-    margin-bottom: 1rem;
-  }
-}
-
 .repository.view.issue .comment-list .comment .merge-section {
   background-color: var(--color-box-body);
 }
@@ -990,10 +980,6 @@ td .commit-summary {
   clear: none;
 }
 
-.repository.view.issue .comment-list .comment .ui.form .field.footer {
-  overflow: hidden;
-}
-
 .repository.view.issue .comment-list .comment .ui.form .field .tab.markup {
   min-height: 5rem;
 }
@@ -1005,6 +991,11 @@ td .commit-summary {
 .repository.view.issue .comment-list .code-comment {
   border: 1px solid transparent;
   margin: 0;
+}
+
+/* fix fomantic's border-radius via :first-child with hidden elements */
+.collapsible-comment-box:has(.gt-hidden) {
+  border-radius: var(--border-radius) !important;
 }
 
 .repository.view.issue .comment-list .code-comment .comment-header {

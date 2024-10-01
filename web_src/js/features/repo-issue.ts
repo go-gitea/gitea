@@ -662,24 +662,45 @@ export function initRepoIssueBranchSelect() {
   });
 }
 
-export async function initSingleCommentEditor($commentForm) {
+export function initSingleCommentEditor($commentForm) {
   // pages:
-  // * normal new issue/pr page: no status-button, no comment-button (there is only a normal submit button which can submit empty content)
-  // * issue/pr view page: with comment form, has status-button and comment-button
-  const opts = {};
-  const statusButton = document.querySelector('#status-button');
-  const commentButton = document.querySelector('#comment-button');
-  opts.onContentChanged = (editor) => {
-    const editorText = editor.value().trim();
-    if (statusButton) {
-      statusButton.textContent = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
-    }
-    if (commentButton) {
-      commentButton.disabled = !editorText;
-    }
+  // * normal new issue/pr page, no status-button
+  // * issue/pr view page, with comment form, has status button, and/or status dropdown
+  const $statusButton = $commentForm.find('.status-button');
+  const $statusDropdown = $commentForm.find('.status-dropdown');
+  let comboMarkdownEditor;
+
+  // update the status-button's text according to the editor's content
+  const updateStatusButtonText = () => {
+    if (!comboMarkdownEditor || !$statusButton.length) return;
+    $statusButton.text($statusButton.attr(comboMarkdownEditor.value().trim() ? 'data-status-and-comment' : 'data-status'));
   };
-  const editor = await initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
-  opts.onContentChanged(editor); // sync state of buttons with the initial content
+
+  // update the status-button's text and value according to the selected dropdown's value (close status)
+  const updateStatusButtonByCloseStatus = (val) => {
+    if (!$statusButton.length) return;
+    const $item = $statusDropdown.dropdown('get item');
+    $statusButton.attr('data-status', $item.attr('data-status'));
+    $statusButton.attr('data-status-and-comment', $item.attr('data-status-and-comment'));
+    $statusButton.value = val === '-1' ? 'reopen' : 'close';
+    updateStatusButtonText();
+  };
+
+  if ($statusDropdown.length) {
+    $statusDropdown.dropdown('setting', {
+      selectOnKeydown: false,
+      allowReselection: true,
+      onChange: updateStatusButtonByCloseStatus,
+    });
+    const selectedValue = $statusDropdown.find('input[type=hidden]').val();
+    $statusDropdown.dropdown('set selected', selectedValue);
+    updateStatusButtonByCloseStatus(selectedValue);
+  }
+
+  const editorOpts = {onContentChanged: updateStatusButtonText};
+  initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), editorOpts).then((editor) => {
+    comboMarkdownEditor = editor;
+  });
 }
 
 export function initIssueTemplateCommentEditors($commentForm) {

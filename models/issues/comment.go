@@ -1297,6 +1297,11 @@ func (c *Comment) HasOriginalAuthor() bool {
 	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
 }
 
+func (c *Comment) GetIssueClosedStatus() int {
+	n, _ := strconv.Atoi(c.Content)
+	return n
+}
+
 // InsertIssueComments inserts many comments of issues.
 func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 	if len(comments) == 0 {

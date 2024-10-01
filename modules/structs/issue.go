@@ -25,6 +25,12 @@ const (
 	StateAll StateType = "all"
 )
 
+const (
+	ClosedStatusArchived = "archived"
+	ClosedStatusResolved = "resolved"
+	ClosedStatusStale    = "stale"
+)
+
 // PullRequestMeta PR info if an issue is a PR
 type PullRequestMeta struct {
 	HasMerged        bool       `json:"merged"`
@@ -113,6 +119,7 @@ type EditIssueOption struct {
 	// swagger:strfmt date-time
 	Deadline       *time.Time `json:"due_date"`
 	RemoveDeadline *bool      `json:"unset_due_date"`
+	ClosedStatus   *string    `json:"closed_status"`
 }
 
 // EditDeadlineOption options for creating a deadline
