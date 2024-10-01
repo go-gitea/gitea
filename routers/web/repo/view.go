@@ -69,6 +69,99 @@ const (
 	tplMigrating    base.TplName = "repo/migrate/migrating"
 )
 
+// locate a README for a tree in one of the supported paths.
+//
+// entries is passed to reduce calls to ListEntries(), so
+// this has precondition:
+//
+//	entries == ctx.Repo.Commit.SubTree(ctx.Repo.TreePath).ListEntries()
+//
+// FIXME: There has to be a more efficient way of doing this
+func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, tryWellKnownDirs bool) (string, *git.TreeEntry, error) {
+	// Create a list of extensions in priority order
+	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
+	// 2. Txt files - e.g. README.txt
+	// 3. No extension - e.g. README
+	exts := append(localizedExtensions(".md", ctx.Locale.Language()), ".txt", "") // sorted by priority
+	extCount := len(exts)
+	readmeFiles := make([]*git.TreeEntry, extCount+1)
+
+	docsEntries := make([]*git.TreeEntry, 3) // (one of docs/, .gitea/ or .github/)
+	for _, entry := range entries {
+		if tryWellKnownDirs && entry.IsDir() {
+			// as a special case for the top-level repo introduction README,
+			// fall back to subfolders, looking for e.g. docs/README.md, .gitea/README.zh-CN.txt, .github/README.txt, ...
+			// (note that docsEntries is ignored unless we are at the root)
+			lowerName := strings.ToLower(entry.Name())
+			switch lowerName {
+			case "docs":
+				if entry.Name() == "docs" || docsEntries[0] == nil {
+					docsEntries[0] = entry
+				}
+			case ".gitea":
+				if entry.Name() == ".gitea" || docsEntries[1] == nil {
+					docsEntries[1] = entry
+				}
+			case ".github":
+				if entry.Name() == ".github" || docsEntries[2] == nil {
+					docsEntries[2] = entry
+				}
+			}
+			continue
+		}
+		if i, ok := util.IsReadmeFileExtension(entry.Name(), exts...); ok {
+			log.Debug("Potential readme file: %s", entry.Name())
+			if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].Name(), entry.Blob().Name()) {
+				if entry.IsLink() {
+					target, err := entry.FollowLinks()
+					if err != nil && !git.IsErrBadLink(err) {
+						return "", nil, err
+					} else if target != nil && (target.IsExecutable() || target.IsRegular()) {
+						readmeFiles[i] = entry
+					}
+				} else {
+					readmeFiles[i] = entry
+				}
+			}
+		}
+	}
+	var readmeFile *git.TreeEntry
+	for _, f := range readmeFiles {
+		if f != nil {
+			readmeFile = f
+			break
+		}
+	}
+
+	if ctx.Repo.TreePath == "" && readmeFile == nil {
+		for _, subTreeEntry := range docsEntries {
+			if subTreeEntry == nil {
+				continue
+			}
+			subTree := subTreeEntry.Tree()
+			if subTree == nil {
+				// this should be impossible; if subTreeEntry exists so should this.
+				continue
+			}
+			var err error
+			childEntries, err := subTree.ListEntries()
+			if err != nil {
+				return "", nil, err
+			}
+
+			subfolder, readmeFile, err := findReadmeFileInEntries(ctx, childEntries, false)
+			if err != nil && !git.IsErrNotExist(err) {
+				return "", nil, err
+			}
+			if readmeFile != nil {
+				return path.Join(subTreeEntry.Name(), subfolder), readmeFile, nil
+			}
+		}
+	}
+
+	return "", readmeFile, nil
+}
+
 func renderDirectory(ctx *context.Context) {
 	entries := renderDirectoryFiles(ctx, 1*time.Second)
 	if ctx.Written() {
@@ -80,13 +173,35 @@ func renderDirectory(ctx *context.Context) {
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 	}
 
-	subfolder, readmeFile, err := repo_service.FindFileInEntries(util.FileTypeReadme, entries, ctx.Repo.TreePath, ctx.Locale.Language(), true)
+	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, entries, true)
 	if err != nil {
-		ctx.ServerError("findFileInEntries", err)
+		ctx.ServerError("findReadmeFileInEntries", err)
 		return
 	}
 
 	renderReadmeFile(ctx, subfolder, readmeFile)
+}
+
+// localizedExtensions prepends the provided language code with and without a
+// regional identifier to the provided extension.
+// Note: the language code will always be lower-cased, if a region is present it must be separated with a `-`
+// Note: ext should be prefixed with a `.`
+func localizedExtensions(ext, languageCode string) (localizedExts []string) {
+	if len(languageCode) < 1 {
+		return []string{ext}
+	}
+
+	lowerLangCode := "." + strings.ToLower(languageCode)
+
+	if strings.Contains(lowerLangCode, "-") {
+		underscoreLangCode := strings.ReplaceAll(lowerLangCode, "-", "_")
+		indexOfDash := strings.Index(lowerLangCode, "-")
+		// e.g. [.zh-cn.md, .zh_cn.md, .zh.md, _zh.md, .md]
+		return []string{lowerLangCode + ext, underscoreLangCode + ext, lowerLangCode[:indexOfDash] + ext, "_" + lowerLangCode[1:indexOfDash] + ext, ext}
+	}
+
+	// e.g. [.en.md, .md]
+	return []string{lowerLangCode + ext, ext}
 }
 
 type fileInfo struct {
@@ -384,7 +499,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
 		shouldRenderSource := ctx.FormString("display") == "source"
-		readmeExist := util.IsFileName(blob.Name(), util.FileTypeReadme)
+		readmeExist := util.IsReadmeFileName(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
 
 		markupType := markup.DetectMarkupTypeByFileName(blob.Name())
@@ -963,11 +1078,7 @@ func renderHomeCode(ctx *context.Context) {
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
-	ctx.Data["DetectedLicenseFileName"], err = repo_service.GetDetectedLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
-	if err != nil {
-		ctx.ServerError("GetDetectedLicenseFileName", err)
-		return
-	}
+	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
 	ctx.HTML(http.StatusOK, tplRepoHome)
 }
 

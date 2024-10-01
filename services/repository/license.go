@@ -18,14 +18,14 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/queue"
-	"code.gitea.io/gitea/modules/util"
 
 	licenseclassifier "github.com/google/licenseclassifier/v2"
 )
 
 var (
-	classifier     *licenseclassifier.Classifier
-	licenseAliases map[string]string
+	classifier      *licenseclassifier.Classifier
+	LicenseFileName string = "LICENSE"
+	licenseAliases  map[string]string
 
 	// licenseUpdaterQueue represents a queue to handle update repo licenses
 	licenseUpdaterQueue *queue.WorkerPoolQueue[*LicenseUpdaterOptions]
@@ -161,14 +161,18 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit
 		return nil
 	}
 
-	licenseFile, err := findLicenseFile(commit)
-	if err != nil {
-		return fmt.Errorf("findLicenseFile: %w", err)
+	b, err := commit.GetBlobByPath(LicenseFileName)
+	if err != nil && !git.IsErrNotExist(err) {
+		return fmt.Errorf("GetBlobByPath: %w", err)
+	}
+
+	if git.IsErrNotExist(err) {
+		return repo_model.CleanRepoLicenses(ctx, repo)
 	}
 
 	licenses := make([]string, 0)
-	if licenseFile != nil {
-		r, err := licenseFile.Blob().DataAsync()
+	if b != nil {
+		r, err := b.DataAsync()
 		if err != nil {
 			return err
 		}
@@ -180,34 +184,6 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit
 		}
 	}
 	return repo_model.UpdateRepoLicenses(ctx, repo, commit.ID.String(), licenses)
-}
-
-// GetDetectedLicenseFileName returns license file name in the repository if it exists
-func GetDetectedLicenseFileName(ctx context.Context, repo *repo_model.Repository, commit *git.Commit) (string, error) {
-	if commit == nil {
-		return "", nil
-	}
-	licenseFile, err := findLicenseFile(commit)
-	if err != nil {
-		return "", fmt.Errorf("findLicenseFile: %w", err)
-	}
-	if licenseFile != nil {
-		return licenseFile.Name(), nil
-	}
-	return "", nil
-}
-
-// findLicenseFile returns the entry of license file in the repository if it exists
-func findLicenseFile(commit *git.Commit) (*git.TreeEntry, error) {
-	if commit == nil {
-		return nil, nil
-	}
-	entries, err := commit.ListEntries()
-	if err != nil {
-		return nil, fmt.Errorf("ListEntries: %w", err)
-	}
-	_, f, err := FindFileInEntries(util.FileTypeLicense, entries, "", "", false)
-	return f, err
 }
 
 // detectLicense returns the licenses detected by the given content buff

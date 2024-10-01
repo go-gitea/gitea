@@ -111,3 +111,10 @@ func CopyLicense(ctx context.Context, originalRepo, destRepo *Repository) error 
 	}
 	return nil
 }
+
+// CleanRepoLicenses will remove all license record of the repo
+func CleanRepoLicenses(ctx context.Context, repo *Repository) error {
+	return db.DeleteBeans(ctx, &RepoLicense{
+		RepoID: repo.ID,
+	})
+}

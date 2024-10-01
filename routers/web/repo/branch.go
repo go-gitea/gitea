@@ -89,12 +89,7 @@ func Branches(ctx *context.Context) {
 	pager := context.NewPagination(int(branchesCount), pageSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
-
-	ctx.Data["DetectedLicenseFileName"], err = repo_service.GetDetectedLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
-	if err != nil {
-		ctx.ServerError("GetDetectedLicenseFileName", err)
-		return
-	}
+	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
 	ctx.HTML(http.StatusOK, tplBranch)
 }
 

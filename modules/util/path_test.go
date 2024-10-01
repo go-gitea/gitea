@@ -76,10 +76,10 @@ func TestMisc_IsReadmeFileName(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		assert.True(t, IsFileName(testCase, FileTypeReadme))
+		assert.True(t, IsReadmeFileName(testCase))
 	}
 	for _, testCase := range falseTestCases {
-		assert.False(t, IsFileName(testCase, FileTypeReadme))
+		assert.False(t, IsReadmeFileName(testCase))
 	}
 
 	type extensionTestcase struct {
@@ -131,7 +131,7 @@ func TestMisc_IsReadmeFileName(t *testing.T) {
 	}
 
 	for _, testCase := range testCasesExtensions {
-		idx, ok := IsFileExtension(testCase.name, FileTypeReadme, exts...)
+		idx, ok := IsReadmeFileExtension(testCase.name, exts...)
 		assert.Equal(t, testCase.expected, ok)
 		assert.Equal(t, testCase.idx, idx)
 	}
