@@ -52,11 +52,6 @@ func getRequestScheme(req *http.Request) string {
 	return ""
 }
 
-func getForwardedHost(req *http.Request) string {
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
-	return req.Header.Get("X-Forwarded-Host")
-}
-
 // GuessCurrentAppURL tries to guess the current full app URL (with sub-path) by http headers. It always has a '/' suffix, exactly the same as setting.AppURL
 func GuessCurrentAppURL(ctx context.Context) string {
 	return GuessCurrentHostURL(ctx) + setting.AppSubURL + "/"
@@ -81,11 +76,9 @@ func GuessCurrentHostURL(ctx context.Context) string {
 	if reqScheme == "" {
 		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
 	}
-	reqHost := getForwardedHost(req)
-	if reqHost == "" {
-		reqHost = req.Host
-	}
-	return reqScheme + "://" + reqHost
+	// X-Forwarded-Host has many problems: non-standard, not well-defined (X-Forwarded-Port or not), conflicts with Host header.
+	// So do not use X-Forwarded-Host, just use Host header directly.
+	return reqScheme + "://" + req.Host
 }
 
 // MakeAbsoluteURL tries to make a link to an absolute URL:
