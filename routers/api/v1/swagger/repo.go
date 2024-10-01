@@ -359,6 +359,13 @@ type swaggerLanguageStatistics struct {
 	Body map[string]int64 `json:"body"`
 }
 
+// LicensesList
+// swagger:response LicensesList
+type swaggerLicensesList struct {
+	// in: body
+	Body []string `json:"body"`
+}
+
 // CombinedStatus
 // swagger:response CombinedStatus
 type swaggerCombinedStatus struct {
