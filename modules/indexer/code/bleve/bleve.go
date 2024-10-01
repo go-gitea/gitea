@@ -284,6 +284,8 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		searchRequest.AddFacet("languages", bleve.NewFacetRequest("Language", 10))
 	}
 
+	searchRequest.SortBy([]string{"-_score", "UpdatedAt"})
+
 	result, err := b.inner.Indexer.SearchInContext(ctx, searchRequest)
 	if err != nil {
 		return 0, nil, nil, err
