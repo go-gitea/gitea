@@ -14,7 +14,7 @@ func AddRepositoryLicenses(x *xorm.Engine) error {
 		ID          int64 `xorm:"pk autoincr"`
 		RepoID      int64 `xorm:"UNIQUE(s) NOT NULL"`
 		CommitID    string
-		License     string             `xorm:"VARCHAR UNIQUE(s) NOT NULL"`
+		License     string             `xorm:"VARCHAR(255) UNIQUE(s) NOT NULL"`
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX UPDATED"`
 	}
