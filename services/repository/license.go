@@ -24,7 +24,7 @@ import (
 
 var (
 	classifier      *licenseclassifier.Classifier
-	LicenseFileName string = "LICENSE"
+	LicenseFileName = "LICENSE"
 	licenseAliases  map[string]string
 
 	// licenseUpdaterQueue represents a queue to handle update repo licenses
