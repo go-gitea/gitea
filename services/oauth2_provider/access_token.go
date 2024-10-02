@@ -232,10 +232,14 @@ func GetOAuthGroupsForUser(ctx context.Context, user *user_model.User) ([]string
 
 	var groups []string
 	for _, org := range orgs {
-		if onlyPublicGroups {
-			if public, err := org_model.IsPublicMembership(ctx, org.ID, user.ID); err == nil {
-				if !public || !org.Visibility.IsPublic() {
-					continue
+		// process additional scopes only if enabled in settings
+		// this could be removed once additional scopes get accepted
+		if setting.OAuth2.EnableAdditionalGrantScopes {
+			if onlyPublicGroups {
+				if public, err := org_model.IsPublicMembership(ctx, org.ID, user.ID); err == nil {
+					if !public || !org.Visibility.IsPublic() {
+						continue
+					}
 				}
 			}
 		}

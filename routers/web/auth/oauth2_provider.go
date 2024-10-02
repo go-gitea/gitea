@@ -85,7 +85,7 @@ type userInfoResponse struct {
 	PreferredUsername string   `json:"preferred_username"`
 	Email             string   `json:"email"`
 	Picture           string   `json:"picture"`
-	Groups            []string `json:"groups"`
+	Groups            []string `json:"groups,omitempty"`
 }
 
 // InfoOAuth manages request for userinfo endpoint

@@ -26,9 +26,10 @@ var (
 )
 
 // CheckOAuthAccessToken returns uid of user from oauth token
-func CheckOAuthAccessToken(ctx context.Context, accessToken string) int64 {
+func CheckOAuthAccessToken(ctx context.Context, accessToken string) (int64, auth_model.AccessTokenScope) {
+	var accessTokenScope auth_model.AccessTokenScope
 	if !setting.OAuth2.Enabled {
-		return 0
+		return 0, accessTokenScope
 	}
 
 	// JWT tokens require a ".", if the token isn't like that, return early
