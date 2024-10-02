@@ -138,7 +138,7 @@ func GetActionWorkflow(ctx *context.APIContext, workflowID string) (*api.ActionW
 		}
 	}
 
-	return nil, fmt.Errorf("workflow not found")
+	return nil, fmt.Errorf("workflow '%s' not found", workflowID)
 }
 
 func DisableActionWorkflow(ctx *context.APIContext, workflowID string) error {
@@ -150,7 +150,7 @@ func DispatchActionWorkflow(ctx *context.APIContext, workflowID string, opt *api
 	cfg := cfgUnit.ActionsConfig()
 
 	if cfg.IsWorkflowDisabled(workflowID) {
-		ctx.Error(http.StatusInternalServerError, "WorkflowDisabled", ctx.Tr("actions.workflow.disabled"))
+		ctx.Error(http.StatusInternalServerError, "WorkflowDisabled", fmt.Sprintf("workflow '%s' is disabled", workflowID))
 		return
 	}
 
@@ -164,12 +164,12 @@ func DispatchActionWorkflow(ctx *context.APIContext, workflowID string, opt *api
 	case refName.IsBranch():
 		runTargetCommit, err = ctx.Repo.GitRepo.GetBranchCommit(refName.BranchName())
 	default:
-		ctx.Error(http.StatusInternalServerError, "WorkflowRefNameError", ctx.Tr("form.git_ref_name_error", opt.Ref))
+		ctx.Error(http.StatusInternalServerError, "WorkflowRefNameError", fmt.Sprintf("%s must be a well-formed Git reference name.", opt.Ref))
 		return
 	}
 
 	if err != nil {
-		ctx.Error(http.StatusNotFound, "WorkflowRefNotFound", ctx.Tr("form.target_ref_not_exist", opt.Ref))
+		ctx.Error(http.StatusNotFound, "WorkflowRefNotFound", fmt.Sprintf("target ref does not exist %s", opt.Ref))
 		return
 	}
 
@@ -204,7 +204,7 @@ func DispatchActionWorkflow(ctx *context.APIContext, workflowID string, opt *api
 	}
 
 	if workflow == nil {
-		ctx.Error(http.StatusNotFound, "WorkflowNotFound", ctx.Tr("actions.workflow.not_found", workflowID))
+		ctx.Error(http.StatusNotFound, "WorkflowNotFound", fmt.Sprintf("workflow '%s' is not found", workflowID))
 		return
 	}
 

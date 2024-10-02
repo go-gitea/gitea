@@ -623,11 +623,12 @@ func (a ActionWorkflow) ListRepositoryWorkflows(ctx *context.APIContext) {
 
 	workflows, err := actions_service.ListActionWorkflows(ctx)
 	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ListActionWorkflows", err)
 		return
 	}
 
 	if len(workflows) == 0 {
-		ctx.JSON(http.StatusNotFound, nil)
+		ctx.Error(http.StatusNotFound, "ListActionWorkflows", err)
 		return
 	}
 
@@ -679,11 +680,12 @@ func (a ActionWorkflow) GetWorkflow(ctx *context.APIContext) {
 
 	workflow, err := actions_service.GetActionWorkflow(ctx, workflowID)
 	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetActionWorkflow", err)
 		return
 	}
 
 	if workflow == nil {
-		ctx.JSON(http.StatusNotFound, nil)
+		ctx.Error(http.StatusNotFound, "GetActionWorkflow", err)
 		return
 	}
 
