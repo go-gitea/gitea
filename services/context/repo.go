@@ -607,7 +607,10 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		}
 	}
 
-	isHomeOrSettings := ctx.Link == ctx.Repo.RepoLink || ctx.Link == ctx.Repo.RepoLink+"/settings" || strings.HasPrefix(ctx.Link, ctx.Repo.RepoLink+"/settings/")
+	isHomeOrSettings := ctx.Link == ctx.Repo.RepoLink ||
+		ctx.Link == ctx.Repo.RepoLink+"/settings" ||
+		strings.HasPrefix(ctx.Link, ctx.Repo.RepoLink+"/settings/") ||
+		ctx.Link == ctx.Repo.RepoLink+"/-/migrate/status"
 
 	// Disable everything when the repo is being created
 	if ctx.Repo.Repository.IsBeingCreated() || ctx.Repo.Repository.IsBroken() {
