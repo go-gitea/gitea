@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/private"
 	gitea_context "code.gitea.io/gitea/services/context"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // SetDefaultBranch updates the default branch
@@ -36,5 +37,15 @@ func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
 		})
 		return
 	}
+
+	if err := repo_service.AddRepoToLicenseUpdaterQueue(&repo_service.LicenseUpdaterOptions{
+		RepoID: ctx.Repo.Repository.ID,
+	}); err != nil {
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
+		})
+		return
+	}
+
 	ctx.PlainText(http.StatusOK, "success")
 }

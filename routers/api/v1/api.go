@@ -1327,6 +1327,7 @@ func Routes() *web.Router {
 				m.Get("/issue_config", context.ReferencesGitRepo(), repo.GetIssueConfig)
 				m.Get("/issue_config/validate", context.ReferencesGitRepo(), repo.ValidateIssueConfig)
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
+				m.Get("/licenses", reqRepoReader(unit.TypeCode), repo.GetLicenses)
 				m.Get("/activities/feeds", repo.ListRepoActivityFeeds)
 				m.Get("/new_pin_allowed", repo.AreNewIssuePinsAllowed)
 				m.Group("/avatar", func() {

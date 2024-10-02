@@ -303,6 +303,25 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			rollbackRepo.OwnerID = u.ID
 			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}
+
+		// update licenses
+		var licenses []string
+		if len(opts.License) > 0 {
+			licenses = append(licenses, ConvertLicenseName(opts.License))
+
+			stdout, _, err := git.NewCommand(ctx, "rev-parse", "HEAD").
+				SetDescription(fmt.Sprintf("CreateRepository(git rev-parse HEAD): %s", repoPath)).
+				RunStdString(&git.RunOpts{Dir: repoPath})
+			if err != nil {
+				log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+				rollbackRepo = repo
+				rollbackRepo.OwnerID = u.ID
+				return fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
+			}
+			if err := repo_model.UpdateRepoLicenses(ctx, repo, stdout, licenses); err != nil {
+				return err
+			}
+		}
 		return nil
 	}); err != nil {
 		if rollbackRepo != nil {

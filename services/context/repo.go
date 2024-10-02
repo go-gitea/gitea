@@ -404,6 +404,13 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Data["PushMirrors"] = pushMirrors
 	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
 	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
+
+	repoLicenses, err := repo_model.GetRepoLicenses(ctx, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetRepoLicenses", err)
+		return
+	}
+	ctx.Data["DetectedRepoLicenses"] = repoLicenses.StringList()
 }
 
 // RepoAssignment returns a middleware to handle repository assignment

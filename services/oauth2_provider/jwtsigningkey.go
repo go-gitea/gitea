@@ -1,7 +1,7 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package oauth2
+package oauth2_provider //nolint
 
 import (
 	"crypto/ecdsa"
