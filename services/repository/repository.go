@@ -18,6 +18,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -96,6 +97,12 @@ func PushCreateRepo(ctx context.Context, authUser, owner *user_model.User, repoN
 
 // Init start repository service
 func Init(ctx context.Context) error {
+	licenseUpdaterQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "repo_license_updater", repoLicenseUpdater)
+	if licenseUpdaterQueue == nil {
+		return fmt.Errorf("unable to create repo_license_updater queue")
+	}
+	go graceful.GetManager().RunWithCancel(licenseUpdaterQueue)
+
 	if err := repo_module.LoadRepoConfig(); err != nil {
 		return err
 	}

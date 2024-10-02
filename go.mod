@@ -68,6 +68,7 @@ require (
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/go-github/v61 v61.0.0
+	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/google/pprof v0.0.0-20240618054019-d3b898a103f8
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.2.0
@@ -91,7 +92,7 @@ require (
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/microsoft/go-mssqldb v1.7.2
-	github.com/minio/minio-go/v7 v7.0.71
+	github.com/minio/minio-go/v7 v7.0.77
 	github.com/msteinert/pam v1.2.0
 	github.com/nektos/act v0.2.63
 	github.com/niklasfasching/go-org v1.7.0
@@ -123,7 +124,7 @@ require (
 	golang.org/x/image v0.18.0
 	golang.org/x/net v0.28.0
 	golang.org/x/oauth2 v0.21.0
-	golang.org/x/sys v0.23.0
+	golang.org/x/sys v0.24.0
 	golang.org/x/text v0.17.0
 	golang.org/x/tools v0.24.0
 	google.golang.org/grpc v1.62.1
@@ -206,6 +207,7 @@ require (
 	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/go-fed/httpsig v1.1.1-0.20201223112313-55836744818e // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
+	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-openapi/analysis v0.23.0 // indirect
 	github.com/go-openapi/errors v0.22.0 // indirect
 	github.com/go-openapi/inflect v0.21.0 // indirect
@@ -280,7 +282,7 @@ require (
 	github.com/rhysd/actionlint v1.7.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
-	github.com/rs/xid v1.5.0 // indirect
+	github.com/rs/xid v1.6.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
