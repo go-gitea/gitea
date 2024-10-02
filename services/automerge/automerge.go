@@ -284,7 +284,7 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 	}
 
 	// We don't check doer's permission here because their permissions have been checked
-	// before ids were stored to the auto_merge table
+	// before the pull request was scheduled to auto merge
 	perm := access_model.Permission{AccessMode: perm.AccessModeWrite}
 
 	if err := pull_service.CheckPullMergeable(ctx, doer, &perm, pr, pull_service.MergeCheckTypeGeneral, false); err != nil {
