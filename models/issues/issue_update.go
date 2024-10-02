@@ -33,7 +33,7 @@ func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
 	return nil
 }
 
-func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed, isMergePull bool) (*Comment, error) {
+func ChangeIssuePullStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed, isMergePull bool) (*Comment, error) {
 	// Reload the issue
 	currentIssue, err := GetIssueByID(ctx, issue.ID)
 	if err != nil {
@@ -127,41 +127,7 @@ func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 		return nil, err
 	}
 
-	return changeIssueStatus(ctx, issue, doer, isClosed, false)
-}
-
-// ChangeIssueTitle changes the title of this issue, as the given user.
-func ChangeIssueTitle(ctx context.Context, issue *Issue, doer *user_model.User, oldTitle string) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = UpdateIssueCols(ctx, issue, "name"); err != nil {
-		return fmt.Errorf("updateIssueCols: %w", err)
-	}
-
-	if err = issue.LoadRepo(ctx); err != nil {
-		return fmt.Errorf("loadRepo: %w", err)
-	}
-
-	opts := &CreateCommentOptions{
-		Type:     CommentTypeChangeTitle,
-		Doer:     doer,
-		Repo:     issue.Repo,
-		Issue:    issue,
-		OldTitle: oldTitle,
-		NewTitle: issue.Title,
-	}
-	if _, err = CreateComment(ctx, opts); err != nil {
-		return fmt.Errorf("createComment: %w", err)
-	}
-	if err = issue.AddCrossReferences(ctx, doer, true); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	return ChangeIssuePullStatus(ctx, issue, doer, isClosed, false)
 }
 
 // ChangeIssueRef changes the branch of this issue, as the given user.
@@ -231,48 +197,6 @@ func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string) 
 			return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
 		}
 	}
-	return committer.Commit()
-}
-
-// ChangeIssueContent changes issue content, as the given user.
-func ChangeIssueContent(ctx context.Context, issue *Issue, doer *user_model.User, content string, contentVersion int) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	hasContentHistory, err := HasIssueContentHistory(ctx, issue.ID, 0)
-	if err != nil {
-		return fmt.Errorf("HasIssueContentHistory: %w", err)
-	}
-	if !hasContentHistory {
-		if err = SaveIssueContentHistory(ctx, issue.PosterID, issue.ID, 0,
-			issue.CreatedUnix, issue.Content, true); err != nil {
-			return fmt.Errorf("SaveIssueContentHistory: %w", err)
-		}
-	}
-
-	issue.Content = content
-	issue.ContentVersion = contentVersion + 1
-
-	affected, err := db.GetEngine(ctx).ID(issue.ID).Cols("content", "content_version").Where("content_version = ?", contentVersion).Update(issue)
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return ErrIssueAlreadyChanged
-	}
-
-	if err = SaveIssueContentHistory(ctx, doer.ID, issue.ID, 0,
-		timeutil.TimeStampNow(), issue.Content, false); err != nil {
-		return fmt.Errorf("SaveIssueContentHistory: %w", err)
-	}
-
-	if err = issue.AddCrossReferences(ctx, doer, true); err != nil {
-		return fmt.Errorf("addCrossReferences: %w", err)
-	}
-
 	return committer.Commit()
 }
 
@@ -365,6 +289,10 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 		return err
 	}
 
+	if err := UpdateIssueAttachments(ctx, opts.Issue.ID, opts.Attachments); err != nil {
+		return err
+	}
+
 	if len(opts.Attachments) > 0 {
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
 		if err != nil {
@@ -383,40 +311,6 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 	}
 
 	return opts.Issue.AddCrossReferences(ctx, doer, false)
-}
-
-// NewIssue creates new issue with labels for repository.
-func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
-	if err != nil {
-		return fmt.Errorf("generate issue index failed: %w", err)
-	}
-
-	issue.Index = idx
-
-	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
-		Repo:        repo,
-		Issue:       issue,
-		LabelIDs:    labelIDs,
-		Attachments: uuids,
-	}); err != nil {
-		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
-			return err
-		}
-		return fmt.Errorf("newIssue: %w", err)
-	}
-
-	if err = committer.Commit(); err != nil {
-		return fmt.Errorf("Commit: %w", err)
-	}
-
-	return nil
 }
 
 // UpdateIssueMentions updates issue-user relations for mentioned users.

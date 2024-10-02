@@ -1136,33 +1136,16 @@ func UpdateCommentInvalidate(ctx context.Context, c *Comment) error {
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *user_model.User) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
-
+func UpdateComment(ctx context.Context, c *Comment, contentVersion int) error {
 	c.ContentVersion = contentVersion + 1
 
-	affected, err := sess.ID(c.ID).AllCols().Where("content_version = ?", contentVersion).Update(c)
+	affected, err := db.GetEngine(ctx).ID(c.ID).AllCols().Where("content_version = ?", contentVersion).Update(c)
 	if err != nil {
 		return err
 	}
 	if affected == 0 {
 		return ErrCommentAlreadyChanged
 	}
-	if err := c.LoadIssue(ctx); err != nil {
-		return err
-	}
-	if err := c.AddCrossReferences(ctx, doer, true); err != nil {
-		return err
-	}
-	if err := committer.Commit(); err != nil {
-		return fmt.Errorf("Commit: %w", err)
-	}
-
 	return nil
 }
 
@@ -1192,7 +1175,7 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	if err := comment.neuterCrossReferences(ctx); err != nil {
+	if err := neuterCrossReferences(ctx, comment.IssueID, comment.ID); err != nil {
 		return err
 	}
 

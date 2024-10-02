@@ -216,6 +216,40 @@ func TestIssue_loadTotalTimes(t *testing.T) {
 	assert.Equal(t, int64(3682), ms.TotalTrackedTime)
 }
 
+// createIssue creates new issue with labels for repository.
+func createIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
+	if err != nil {
+		return fmt.Errorf("generate issue index failed: %w", err)
+	}
+
+	issue.Index = idx
+
+	if err = issues_model.NewIssueWithIndex(ctx, issue.Poster, issues_model.NewIssueOptions{
+		Repo:        repo,
+		Issue:       issue,
+		LabelIDs:    labelIDs,
+		Attachments: uuids,
+	}); err != nil {
+		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || issues_model.IsErrNewIssueInsert(err) {
+			return err
+		}
+		return fmt.Errorf("newIssue: %w", err)
+	}
+
+	if err = committer.Commit(); err != nil {
+		return fmt.Errorf("Commit: %w", err)
+	}
+
+	return nil
+}
+
 func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *issues_model.Issue {
 	var newIssue issues_model.Issue
 	t.Run(title, func(t *testing.T) {
@@ -229,7 +263,7 @@ func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *is
 			Title:    title,
 			Content:  content,
 		}
-		err := issues_model.NewIssue(db.DefaultContext, repo, &issue, nil, nil)
+		err := createIssue(db.DefaultContext, repo, &issue, nil, nil)
 		assert.NoError(t, err)
 
 		has, err := db.GetEngine(db.DefaultContext).ID(issue.ID).Get(&newIssue)
