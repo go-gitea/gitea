@@ -28,11 +28,11 @@ const ReverseProxyMethodName = "reverse_proxy"
 // ReverseProxy implements the Auth interface, but actually relies on
 // a reverse proxy for authentication of users.
 // On successful authentication the proxy is expected to populate the username in the
-// "setting.ReverseProxyAuthUser" header. Optionally it can also populate the email of the
+// "setting.ReverseProxyAuth.ReverseProxyAuthUser" header. Optionally it can also populate the email of the
 // user in the "setting.ReverseProxyAuthEmail" header.
 type ReverseProxy struct{}
 
-// getUserName extracts the username from the "setting.ReverseProxyAuthUser" header
+// getUserName extracts the username from the "setting.ReverseProxyAuth.ReverseProxyAuthUser" header
 func (r *ReverseProxy) getUserName(req *http.Request) string {
 	return strings.TrimSpace(req.Header.Get(setting.ReverseProxyAuth.ReverseProxyAuthUser))
 }
@@ -42,11 +42,11 @@ func (r *ReverseProxy) Name() string {
 	return ReverseProxyMethodName
 }
 
-// getUserFromAuthUser extracts the username from the "setting.ReverseProxyAuthUser" header
+// getUserFromAuthUser extracts the username from the "setting.ReverseProxyAuth.ReverseProxyAuthUser" header
 // of the request and returns the corresponding user object for that name.
 // Verification of header data is not performed as it should have already been done by
 // the reverse proxy.
-// If a username is available in the "setting.ReverseProxyAuthUser" header an existing
+// If a username is available in the "setting.ReverseProxyAuth.ReverseProxyAuthUser" header an existing
 // user object is returned (populated with username or email found in header).
 // Returns nil if header is empty.
 func (r *ReverseProxy) getUserFromAuthUser(req *http.Request) (*user_model.User, error) {
