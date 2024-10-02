@@ -90,23 +90,25 @@ func parseScopes(sec ConfigSection, name string) []string {
 }
 
 var OAuth2 = struct {
-	Enabled                    bool
-	AccessTokenExpirationTime  int64
-	RefreshTokenExpirationTime int64
-	InvalidateRefreshTokens    bool
-	JWTSigningAlgorithm        string `ini:"JWT_SIGNING_ALGORITHM"`
-	JWTSigningPrivateKeyFile   string `ini:"JWT_SIGNING_PRIVATE_KEY_FILE"`
-	MaxTokenLength             int
-	DefaultApplications        []string
+	Enabled                     bool
+	AccessTokenExpirationTime   int64
+	RefreshTokenExpirationTime  int64
+	InvalidateRefreshTokens     bool
+	JWTSigningAlgorithm         string `ini:"JWT_SIGNING_ALGORITHM"`
+	JWTSigningPrivateKeyFile    string `ini:"JWT_SIGNING_PRIVATE_KEY_FILE"`
+	MaxTokenLength              int
+	DefaultApplications         []string
+	EnableAdditionalGrantScopes bool
 }{
-	Enabled:                    true,
-	AccessTokenExpirationTime:  3600,
-	RefreshTokenExpirationTime: 730,
-	InvalidateRefreshTokens:    false,
-	JWTSigningAlgorithm:        "RS256",
-	JWTSigningPrivateKeyFile:   "jwt/private.pem",
-	MaxTokenLength:             math.MaxInt16,
-	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager", "tea"},
+	Enabled:                     true,
+	AccessTokenExpirationTime:   3600,
+	RefreshTokenExpirationTime:  730,
+	InvalidateRefreshTokens:     false,
+	JWTSigningAlgorithm:         "RS256",
+	JWTSigningPrivateKeyFile:    "jwt/private.pem",
+	MaxTokenLength:              math.MaxInt16,
+	DefaultApplications:         []string{"git-credential-oauth", "git-credential-manager", "tea"},
+	EnableAdditionalGrantScopes: false,
 }
 
 func loadOAuth2From(rootCfg ConfigProvider) {
