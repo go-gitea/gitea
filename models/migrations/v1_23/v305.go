@@ -9,14 +9,15 @@ import (
 	"xorm.io/xorm"
 )
 
-func CreateTableIssueDevLink(x *xorm.Engine) error {
-	type IssueDevLink struct {
-		ID           int64 `xorm:"pk autoincr"`
-		IssueID      int64 `xorm:"INDEX"`
-		LinkType     int
-		LinkedRepoID int64              `xorm:"INDEX"` // it can link to self repo or other repo
-		LinkIndex    string             // branch name, pull request number or commit sha
-		CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+func AddRepositoryLicenses(x *xorm.Engine) error {
+	type RepoLicense struct {
+		ID          int64 `xorm:"pk autoincr"`
+		RepoID      int64 `xorm:"UNIQUE(s) NOT NULL"`
+		CommitID    string
+		License     string             `xorm:"VARCHAR(255) UNIQUE(s) NOT NULL"`
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX UPDATED"`
 	}
-	return x.Sync(new(IssueDevLink))
+
+	return x.Sync(new(RepoLicense))
 }
