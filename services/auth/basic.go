@@ -77,7 +77,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	// check oauth2 token
-	uid := CheckOAuthAccessToken(req.Context(), authToken)
+	uid, _ := CheckOAuthAccessToken(req.Context(), authToken)
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
 

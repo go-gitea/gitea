@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/oauth2_provider"
+	oauth2_provider "code.gitea.io/gitea/services/oauth2_provider"
 )
 
 // Ensure the struct implements the interface.
@@ -26,27 +26,30 @@ var (
 )
 
 // CheckOAuthAccessToken returns uid of user from oauth token
-func CheckOAuthAccessToken(ctx context.Context, accessToken string) int64 {
+// + non default openid scopes requested
+func CheckOAuthAccessToken(ctx context.Context, accessToken string) (int64, auth_model.AccessTokenScope) {
+	var accessTokenScope auth_model.AccessTokenScope
 	// JWT tokens require a "."
 	if !strings.Contains(accessToken, ".") {
-		return 0
+		return 0, accessTokenScope
 	}
 	token, err := oauth2_provider.ParseToken(accessToken, oauth2_provider.DefaultSigningKey)
 	if err != nil {
 		log.Trace("oauth2.ParseToken: %v", err)
-		return 0
+		return 0, accessTokenScope
 	}
 	var grant *auth_model.OAuth2Grant
 	if grant, err = auth_model.GetOAuth2GrantByID(ctx, token.GrantID); err != nil || grant == nil {
-		return 0
+		return 0, accessTokenScope
 	}
 	if token.Kind != oauth2_provider.KindAccessToken {
-		return 0
+		return 0, accessTokenScope
 	}
 	if token.ExpiresAt.Before(time.Now()) || token.IssuedAt.After(time.Now()) {
-		return 0
+		return 0, accessTokenScope
 	}
-	return grant.UserID
+	accessTokenScope = oauth2_provider.GrantAdditionalScopes(grant.Scope)
+	return grant.UserID, accessTokenScope
 }
 
 // OAuth2 implements the Auth interface and authenticates requests
@@ -92,10 +95,11 @@ func parseToken(req *http.Request) (string, bool) {
 func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store DataStore) int64 {
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
-		uid := CheckOAuthAccessToken(ctx, tokenSHA)
+		uid, accessTokenScope := CheckOAuthAccessToken(ctx, tokenSHA)
+
 		if uid != 0 {
 			store.GetData()["IsApiToken"] = true
-			store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScopeAll // fallback to all
+			store.GetData()["ApiTokenScope"] = accessTokenScope
 		}
 		return uid
 	}
