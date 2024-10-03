@@ -13,7 +13,7 @@ import (
 )
 
 // ChangeContent changes issue content, as the given user.
-func ChangeContent(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, content string) error {
+func ChangeContent(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, content string, contentVersion int) error {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
@@ -26,7 +26,7 @@ func ChangeContent(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 
 	oldContent := issue.Content
 
-	if err := issues_model.ChangeIssueContent(ctx, issue, doer, content); err != nil {
+	if err := issues_model.ChangeIssueContent(ctx, issue, doer, content, contentVersion); err != nil {
 		return err
 	}
 

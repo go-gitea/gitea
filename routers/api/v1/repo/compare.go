@@ -53,7 +53,7 @@ func CompareDiff(ctx *context.APIContext) {
 		defer gitRepo.Close()
 	}
 
-	infoPath := ctx.Params("*")
+	infoPath := ctx.PathParam("*")
 	infos := []string{ctx.Repo.Repository.DefaultBranch, ctx.Repo.Repository.DefaultBranch}
 	if infoPath != "" {
 		infos = strings.SplitN(infoPath, "...", 2)
@@ -64,7 +64,7 @@ func CompareDiff(ctx *context.APIContext) {
 		}
 	}
 
-	_, _, headGitRepo, ci, _, _ := parseCompareInfo(ctx, api.CreatePullRequestOption{
+	_, headGitRepo, ci, _, _ := parseCompareInfo(ctx, api.CreatePullRequestOption{
 		Base: infos[0],
 		Head: infos[1],
 	})

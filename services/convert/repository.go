@@ -176,6 +176,11 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		language = repo.PrimaryLanguage.Language
 	}
 
+	repoLicenses, err := repo_model.GetRepoLicenses(ctx, repo)
+	if err != nil {
+		return nil
+	}
+
 	repoAPIURL := repo.APIURL()
 
 	return &api.Repository{
@@ -192,7 +197,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		Fork:                          repo.IsFork,
 		Parent:                        parent,
 		Mirror:                        repo.IsMirror,
-		HTMLURL:                       repo.HTMLURL(),
+		HTMLURL:                       repo.HTMLURL(ctx),
 		URL:                           repoAPIURL,
 		SSHURL:                        cloneLink.SSH,
 		CloneURL:                      cloneLink.HTTPS,
@@ -237,6 +242,9 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		MirrorInterval:                mirrorInterval,
 		MirrorUpdated:                 mirrorUpdated,
 		RepoTransfer:                  transfer,
+		Topics:                        repo.Topics,
+		ObjectFormatName:              repo.ObjectFormatName,
+		Licenses:                      repoLicenses.StringList(),
 	}
 }
 

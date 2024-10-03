@@ -89,9 +89,11 @@ func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
 	return avatars.GenerateEmailAvatarFastLink(ctx, u.AvatarEmail, size)
 }
 
-// AvatarLink returns the full avatar url with http host. TODO: refactor it to a relative URL, but it is still used in API response at the moment
+// AvatarLink returns the full avatar url with http host.
+// TODO: refactor it to a relative URL, but it is still used in API response at the moment
 func (u *User) AvatarLink(ctx context.Context) string {
-	return httplib.MakeAbsoluteURL(ctx, u.AvatarLinkWithSize(ctx, 0))
+	relLink := u.AvatarLinkWithSize(ctx, 0) // it can't be empty
+	return httplib.MakeAbsoluteURL(ctx, relLink)
 }
 
 // IsUploadAvatarChanged returns true if the current user's avatar would be changed with the provided data

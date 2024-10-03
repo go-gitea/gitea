@@ -72,12 +72,12 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	releaseID := ctx.ParamsInt64(":id")
+	releaseID := ctx.PathParamInt64(":id")
 	if !checkReleaseMatchRepo(ctx, releaseID) {
 		return
 	}
 
-	attachID := ctx.ParamsInt64(":attachment_id")
+	attachID := ctx.PathParamInt64(":attachment_id")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
@@ -126,7 +126,7 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	releaseID := ctx.ParamsInt64(":id")
+	releaseID := ctx.PathParamInt64(":id")
 	release, err := repo_model.GetReleaseByID(ctx, releaseID)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
@@ -199,7 +199,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Check if release exists an load release
-	releaseID := ctx.ParamsInt64(":id")
+	releaseID := ctx.PathParamInt64(":id")
 	if !checkReleaseMatchRepo(ctx, releaseID) {
 		return
 	}
@@ -297,12 +297,12 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
 
 	// Check if release exists an load release
-	releaseID := ctx.ParamsInt64(":id")
+	releaseID := ctx.PathParamInt64(":id")
 	if !checkReleaseMatchRepo(ctx, releaseID) {
 		return
 	}
 
-	attachID := ctx.ParamsInt64(":attachment_id")
+	attachID := ctx.PathParamInt64(":attachment_id")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
@@ -365,12 +365,12 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	// Check if release exists an load release
-	releaseID := ctx.ParamsInt64(":id")
+	releaseID := ctx.PathParamInt64(":id")
 	if !checkReleaseMatchRepo(ctx, releaseID) {
 		return
 	}
 
-	attachID := ctx.ParamsInt64(":attachment_id")
+	attachID := ctx.PathParamInt64(":attachment_id")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {

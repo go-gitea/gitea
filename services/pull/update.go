@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 )
@@ -25,8 +26,12 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		return fmt.Errorf("update of agit flow pull request's head branch is unsupported")
 	}
 
-	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
-	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
+	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer releaser()
 
 	diffCount, err := GetDiverging(ctx, pr)
 	if err != nil {
@@ -117,27 +122,25 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		return false, false, err
 	}
 
-	// can't do rebase on protected branch because need force push
-	if pb == nil {
-		if err := pr.LoadBaseRepo(ctx); err != nil {
-			return false, false, err
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return false, false, err
+	}
+	prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
+	if err != nil {
+		if repo_model.IsErrUnitTypeNotExist(err) {
+			return false, false, nil
 		}
-		prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
-		if err != nil {
-			if repo_model.IsErrUnitTypeNotExist(err) {
-				return false, false, nil
-			}
-			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
-			return false, false, err
-		}
-		rebaseAllowed = prUnit.PullRequestsConfig().AllowRebaseUpdate
+		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
+		return false, false, err
 	}
 
-	// Update function need push permission
+	rebaseAllowed = prUnit.PullRequestsConfig().AllowRebaseUpdate
+
+	// If branch protected, disable rebase unless user is whitelisted to force push (which extends regular push)
 	if pb != nil {
 		pb.Repo = pull.BaseRepo
-		if !pb.CanUserPush(ctx, user) {
-			return false, false, nil
+		if !pb.CanUserForcePush(ctx, user) {
+			rebaseAllowed = false
 		}
 	}
 

@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	org_model "code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
 	attachment_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -23,6 +24,7 @@ import (
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	project_service "code.gitea.io/gitea/services/projects"
 )
 
 const (
@@ -34,7 +36,7 @@ const (
 // MustEnableProjects check if projects are enabled in settings
 func MustEnableProjects(ctx *context.Context) {
 	if unit.TypeProjects.UnitGlobalDisabled() {
-		ctx.NotFound("EnableKanbanBoard", nil)
+		ctx.NotFound("EnableProjects", nil)
 		return
 	}
 }
@@ -42,7 +44,7 @@ func MustEnableProjects(ctx *context.Context) {
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
-	ctx.Data["Title"] = ctx.Tr("repo.project_board")
+	ctx.Data["Title"] = ctx.Tr("repo.projects")
 
 	sortType := ctx.FormTrim("sort")
 
@@ -139,7 +141,7 @@ func canWriteProjects(ctx *context.Context) bool {
 // RenderNewProject render creating a project page
 func RenderNewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
-	ctx.Data["BoardTypes"] = project_model.GetBoardConfig()
+	ctx.Data["TemplateConfigs"] = project_model.GetTemplateConfigs()
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["PageIsViewProjects"] = true
@@ -168,12 +170,12 @@ func NewProjectPost(ctx *context.Context) {
 	}
 
 	newProject := project_model.Project{
-		OwnerID:     ctx.ContextUser.ID,
-		Title:       form.Title,
-		Description: form.Content,
-		CreatorID:   ctx.Doer.ID,
-		BoardType:   form.BoardType,
-		CardType:    form.CardType,
+		OwnerID:      ctx.ContextUser.ID,
+		Title:        form.Title,
+		Description:  form.Content,
+		CreatorID:    ctx.Doer.ID,
+		TemplateType: form.TemplateType,
+		CardType:     form.CardType,
 	}
 
 	if ctx.ContextUser.IsOrganization() {
@@ -194,7 +196,7 @@ func NewProjectPost(ctx *context.Context) {
 // ChangeProjectStatus updates the status of a project between "open" and "close"
 func ChangeProjectStatus(ctx *context.Context) {
 	var toClose bool
-	switch ctx.Params(":action") {
+	switch ctx.PathParam(":action") {
 	case "open":
 		toClose = false
 	case "close":
@@ -203,7 +205,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 		ctx.JSONRedirect(ctx.ContextUser.HomeLink() + "/-/projects")
 		return
 	}
-	id := ctx.ParamsInt64(":id")
+	id := ctx.PathParamInt64(":id")
 
 	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, 0, id, toClose); err != nil {
 		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
@@ -214,7 +216,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 
 // DeleteProject delete a project
 func DeleteProject(ctx *context.Context) {
-	p, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	p, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
@@ -243,7 +245,7 @@ func RenderEditProject(ctx *context.Context) {
 
 	shared_user.RenderUserHeader(ctx)
 
-	p, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	p, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
@@ -267,7 +269,7 @@ func RenderEditProject(ctx *context.Context) {
 // EditProjectPost response for editing a project
 func EditProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateProjectForm)
-	projectID := ctx.ParamsInt64(":id")
+	projectID := ctx.PathParamInt64(":id")
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["PageIsViewProjects"] = true
@@ -314,9 +316,9 @@ func EditProjectPost(ctx *context.Context) {
 	}
 }
 
-// ViewProject renders the project board for a project
+// ViewProject renders the project with board view for a project
 func ViewProject(ctx *context.Context) {
-	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
@@ -326,15 +328,37 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	boards, err := project.GetBoards(ctx)
+	columns, err := project.GetColumns(ctx)
 	if err != nil {
-		ctx.ServerError("GetProjectBoards", err)
+		ctx.ServerError("GetProjectColumns", err)
 		return
 	}
 
-	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards)
+	var labelIDs []int64
+	// 1,-2 means including label 1 and excluding label 2
+	// 0 means issues with no label
+	// blank means labels will not be filtered for issues
+	selectLabels := ctx.FormString("labels")
+	if selectLabels == "" {
+		ctx.Data["AllLabels"] = true
+	} else if selectLabels == "0" {
+		ctx.Data["NoLabel"] = true
+	}
+	if len(selectLabels) > 0 {
+		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
+		if err != nil {
+			ctx.Flash.Error(ctx.Tr("invalid_data", selectLabels), true)
+		}
+	}
+
+	assigneeID := ctx.FormInt64("assignee")
+
+	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns, &issues_model.IssuesOptions{
+		LabelIDs:   labelIDs,
+		AssigneeID: assigneeID,
+	})
 	if err != nil {
-		ctx.ServerError("LoadIssuesOfBoards", err)
+		ctx.ServerError("LoadIssuesOfColumns", err)
 		return
 	}
 
@@ -371,13 +395,53 @@ func ViewProject(ctx *context.Context) {
 		}
 	}
 
+	// TODO: Add option to filter also by repository specific labels
+	labels, err := issues_model.GetLabelsByOrgID(ctx, project.OwnerID, "", db.ListOptions{})
+	if err != nil {
+		ctx.ServerError("GetLabelsByOrgID", err)
+		return
+	}
+
+	// Get the exclusive scope for every label ID
+	labelExclusiveScopes := make([]string, 0, len(labelIDs))
+	for _, labelID := range labelIDs {
+		foundExclusiveScope := false
+		for _, label := range labels {
+			if label.ID == labelID || label.ID == -labelID {
+				labelExclusiveScopes = append(labelExclusiveScopes, label.ExclusiveScope())
+				foundExclusiveScope = true
+				break
+			}
+		}
+		if !foundExclusiveScope {
+			labelExclusiveScopes = append(labelExclusiveScopes, "")
+		}
+	}
+
+	for _, l := range labels {
+		l.LoadSelectedLabelsAfterClick(labelIDs, labelExclusiveScopes)
+	}
+	ctx.Data["Labels"] = labels
+	ctx.Data["NumLabels"] = len(labels)
+
+	// Get assignees.
+	assigneeUsers, err := org_model.GetOrgAssignees(ctx, project.OwnerID)
+	if err != nil {
+		ctx.ServerError("GetRepoAssignees", err)
+		return
+	}
+	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
+
+	ctx.Data["SelectLabels"] = selectLabels
+	ctx.Data["AssigneeID"] = assigneeID
+
 	project.RenderedContent = templates.RenderMarkdownToHtml(ctx, project.Description)
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
-	ctx.Data["Columns"] = boards // TODO: rename boards to columns in backend
+	ctx.Data["Columns"] = columns
 	shared_user.RenderUserHeader(ctx)
 
 	err = shared_user.LoadHeaderCount(ctx)
@@ -389,8 +453,8 @@ func ViewProject(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
 
-// DeleteProjectBoard allows for the deletion of a project board
-func DeleteProjectBoard(ctx *context.Context) {
+// DeleteProjectColumn allows for the deletion of a project column
+func DeleteProjectColumn(ctx *context.Context) {
 	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
@@ -398,64 +462,64 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 
-	pb, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
+	pb, err := project_model.GetColumn(ctx, ctx.PathParamInt64(":columnID"))
 	if err != nil {
-		ctx.ServerError("GetProjectBoard", err)
+		ctx.ServerError("GetProjectColumn", err)
 		return
 	}
-	if pb.ProjectID != ctx.ParamsInt64(":id") {
+	if pb.ProjectID != ctx.PathParamInt64(":id") {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
-			"message": fmt.Sprintf("ProjectBoard[%d] is not in Project[%d] as expected", pb.ID, project.ID),
+			"message": fmt.Sprintf("ProjectColumn[%d] is not in Project[%d] as expected", pb.ID, project.ID),
 		})
 		return
 	}
 
 	if project.OwnerID != ctx.ContextUser.ID {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
-			"message": fmt.Sprintf("ProjectBoard[%d] is not in Owner[%d] as expected", pb.ID, ctx.ContextUser.ID),
+			"message": fmt.Sprintf("ProjectColumn[%d] is not in Owner[%d] as expected", pb.ID, ctx.ContextUser.ID),
 		})
 		return
 	}
 
-	if err := project_model.DeleteBoardByID(ctx, ctx.ParamsInt64(":boardID")); err != nil {
-		ctx.ServerError("DeleteProjectBoardByID", err)
+	if err := project_model.DeleteColumnByID(ctx, ctx.PathParamInt64(":columnID")); err != nil {
+		ctx.ServerError("DeleteProjectColumnByID", err)
 		return
 	}
 
 	ctx.JSONOK()
 }
 
-// AddBoardToProjectPost allows a new board to be added to a project.
-func AddBoardToProjectPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.EditProjectBoardForm)
+// AddColumnToProjectPost allows a new column to be added to a project.
+func AddColumnToProjectPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.EditProjectColumnForm)
 
-	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 
-	if err := project_model.NewBoard(ctx, &project_model.Board{
+	if err := project_model.NewColumn(ctx, &project_model.Column{
 		ProjectID: project.ID,
 		Title:     form.Title,
 		Color:     form.Color,
 		CreatorID: ctx.Doer.ID,
 	}); err != nil {
-		ctx.ServerError("NewProjectBoard", err)
+		ctx.ServerError("NewProjectColumn", err)
 		return
 	}
 
 	ctx.JSONOK()
 }
 
-// CheckProjectBoardChangePermissions check permission
-func CheckProjectBoardChangePermissions(ctx *context.Context) (*project_model.Project, *project_model.Board) {
+// CheckProjectColumnChangePermissions check permission
+func CheckProjectColumnChangePermissions(ctx *context.Context) (*project_model.Project, *project_model.Column) {
 	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
@@ -463,68 +527,66 @@ func CheckProjectBoardChangePermissions(ctx *context.Context) (*project_model.Pr
 		return nil, nil
 	}
 
-	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return nil, nil
 	}
 
-	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
+	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64(":columnID"))
 	if err != nil {
-		ctx.ServerError("GetProjectBoard", err)
+		ctx.ServerError("GetProjectColumn", err)
 		return nil, nil
 	}
-	if board.ProjectID != ctx.ParamsInt64(":id") {
+	if column.ProjectID != ctx.PathParamInt64(":id") {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
-			"message": fmt.Sprintf("ProjectBoard[%d] is not in Project[%d] as expected", board.ID, project.ID),
+			"message": fmt.Sprintf("ProjectColumn[%d] is not in Project[%d] as expected", column.ID, project.ID),
 		})
 		return nil, nil
 	}
 
 	if project.OwnerID != ctx.ContextUser.ID {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
-			"message": fmt.Sprintf("ProjectBoard[%d] is not in Repository[%d] as expected", board.ID, project.ID),
+			"message": fmt.Sprintf("ProjectColumn[%d] is not in Repository[%d] as expected", column.ID, project.ID),
 		})
 		return nil, nil
 	}
-	return project, board
+	return project, column
 }
 
-// EditProjectBoard allows a project board's to be updated
-func EditProjectBoard(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.EditProjectBoardForm)
-	_, board := CheckProjectBoardChangePermissions(ctx)
+// EditProjectColumn allows a project column's to be updated
+func EditProjectColumn(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.EditProjectColumnForm)
+	_, column := CheckProjectColumnChangePermissions(ctx)
 	if ctx.Written() {
 		return
 	}
 
 	if form.Title != "" {
-		board.Title = form.Title
+		column.Title = form.Title
 	}
-
-	board.Color = form.Color
-
+	column.Color = form.Color
 	if form.Sorting != 0 {
-		board.Sorting = form.Sorting
+		column.Sorting = form.Sorting
 	}
 
-	if err := project_model.UpdateBoard(ctx, board); err != nil {
-		ctx.ServerError("UpdateProjectBoard", err)
+	if err := project_model.UpdateColumn(ctx, column); err != nil {
+		ctx.ServerError("UpdateProjectColumn", err)
 		return
 	}
 
 	ctx.JSONOK()
 }
 
-// SetDefaultProjectBoard set default board for uncategorized issues/pulls
-func SetDefaultProjectBoard(ctx *context.Context) {
-	project, board := CheckProjectBoardChangePermissions(ctx)
+// SetDefaultProjectColumn set default column for uncategorized issues/pulls
+func SetDefaultProjectColumn(ctx *context.Context) {
+	project, column := CheckProjectColumnChangePermissions(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	if err := project_model.SetDefaultBoard(ctx, project.ID, board.ID); err != nil {
-		ctx.ServerError("SetDefaultBoard", err)
+	if err := project_model.SetDefaultColumn(ctx, project.ID, column.ID); err != nil {
+		ctx.ServerError("SetDefaultColumn", err)
 		return
 	}
 
@@ -540,7 +602,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
@@ -550,14 +612,14 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
+	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64(":columnID"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectBoard", project_model.IsErrProjectBoardNotExist, err)
+		ctx.NotFoundOrServerError("GetProjectColumn", project_model.IsErrProjectColumnNotExist, err)
 		return
 	}
 
-	if board.ProjectID != project.ID {
-		ctx.NotFound("BoardNotInProject", nil)
+	if column.ProjectID != project.ID {
+		ctx.NotFound("ColumnNotInProject", nil)
 		return
 	}
 
@@ -571,6 +633,7 @@ func MoveIssues(ctx *context.Context) {
 	form := &movedIssuesForm{}
 	if err = json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
 		ctx.ServerError("DecodeMovedIssuesForm", err)
+		return
 	}
 
 	issueIDs := make([]int64, 0, len(form.Issues))
@@ -602,8 +665,8 @@ func MoveIssues(ctx *context.Context) {
 		}
 	}
 
-	if err = project_model.MoveIssuesOnProjectBoard(ctx, board, sortedIssueIDs); err != nil {
-		ctx.ServerError("MoveIssuesOnProjectBoard", err)
+	if err = project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, sortedIssueIDs); err != nil {
+		ctx.ServerError("MoveIssuesOnProjectColumn", err)
 		return
 	}
 
