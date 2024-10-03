@@ -3,6 +3,8 @@
   flex-direction: row;
   flex-wrap: nowrap;
   overflow-x: auto;
+  overflow-y: clip;
+  align-items: stretch;
   margin: 0 0.5em;
 }
 
@@ -25,8 +27,8 @@
   margin: 0 0.5rem !important;
   padding: 0.5rem !important;
   width: 320px;
-  height: calc(100vh - 450px);
-  min-height: 60vh;
+  height: initial;
+  min-height: max(calc(100vh - 400px), 300px);
   flex: 0 0 auto;
   overflow: visible;
   display: flex;
@@ -61,7 +63,7 @@
   padding: 0 !important;
   flex-wrap: nowrap !important;
   flex-direction: column;
-  overflow-x: auto;
+  overflow-x: clip;
   gap: .25rem;
 }
 

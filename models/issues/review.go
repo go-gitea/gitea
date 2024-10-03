@@ -247,7 +247,7 @@ func (r *Review) TooltipContent() string {
 		}
 		return "repo.issues.review.official"
 	case ReviewTypeComment:
-		return "repo.issues.review.comment"
+		return "repo.issues.review.commented"
 	case ReviewTypeReject:
 		return "repo.issues.review.rejected"
 	case ReviewTypeRequest:
@@ -389,7 +389,7 @@ func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Iss
 		return nil, nil
 	}
 	reviews, err := FindReviews(ctx, FindReviewOptions{
-		Type:       ReviewTypePending,
+		Types:      []ReviewType{ReviewTypePending},
 		IssueID:    issue.ID,
 		ReviewerID: reviewer.ID,
 	})

@@ -2,6 +2,11 @@ module code.gitea.io/gitea
 
 go 1.23
 
+// rfc5280 said: "The serial number is an integer assigned by the CA to each certificate."
+// But some CAs use negative serial number, just relax the check. related:
+// Default TLS cert uses negative serial number #895 https://github.com/microsoft/mssql-docker/issues/895
+godebug x509negativeserial=1
+
 require (
 	code.gitea.io/actions-proto-go v0.4.0
 	code.gitea.io/gitea-vet v0.2.3
@@ -30,6 +35,7 @@ require (
 	github.com/blevesearch/bleve/v2 v2.4.2
 	github.com/buildkite/terminal-to-html/v3 v3.12.1
 	github.com/caddyserver/certmagic v0.21.3
+	github.com/charmbracelet/git-lfs-transfer v0.2.0
 	github.com/chi-middleware/proxy v1.1.1
 	github.com/dimiro1/reply v0.0.0-20200315094148-d0136a4c9e21
 	github.com/djherbis/buffer v1.2.0
@@ -62,6 +68,7 @@ require (
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/go-github/v61 v61.0.0
+	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/google/pprof v0.0.0-20240618054019-d3b898a103f8
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.2.0
@@ -85,7 +92,7 @@ require (
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/microsoft/go-mssqldb v1.7.2
-	github.com/minio/minio-go/v7 v7.0.71
+	github.com/minio/minio-go/v7 v7.0.77
 	github.com/msteinert/pam v1.2.0
 	github.com/nektos/act v0.2.63
 	github.com/niklasfasching/go-org v1.7.0
@@ -117,7 +124,7 @@ require (
 	golang.org/x/image v0.18.0
 	golang.org/x/net v0.28.0
 	golang.org/x/oauth2 v0.21.0
-	golang.org/x/sys v0.23.0
+	golang.org/x/sys v0.24.0
 	golang.org/x/text v0.17.0
 	golang.org/x/tools v0.24.0
 	google.golang.org/grpc v1.62.1
@@ -192,6 +199,7 @@ require (
 	github.com/fatih/color v1.17.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fxamacker/cbor/v2 v2.6.0 // indirect
+	github.com/git-lfs/pktline v0.0.0-20230103162542-ca444d533ef1 // indirect
 	github.com/go-ap/errors v0.0.0-20240304112515-6077fa9c17b0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.7 // indirect
 	github.com/go-enry/go-oniguruma v1.2.1 // indirect
@@ -199,6 +207,7 @@ require (
 	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/go-fed/httpsig v1.1.1-0.20201223112313-55836744818e // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
+	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-openapi/analysis v0.23.0 // indirect
 	github.com/go-openapi/errors v0.22.0 // indirect
 	github.com/go-openapi/inflect v0.21.0 // indirect
@@ -273,7 +282,7 @@ require (
 	github.com/rhysd/actionlint v1.7.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
-	github.com/rs/xid v1.5.0 // indirect
+	github.com/rs/xid v1.6.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
@@ -323,6 +332,8 @@ replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
 replace github.com/nektos/act => gitea.com/gitea/act v0.259.1
+
+replace github.com/charmbracelet/git-lfs-transfer => gitea.com/gitea/git-lfs-transfer v0.2.0
 
 // TODO: This could be removed after https://github.com/mholt/archiver/pull/396 merged
 replace github.com/mholt/archiver/v3 => github.com/anchore/archiver/v3 v3.5.2

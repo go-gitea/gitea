@@ -833,10 +833,16 @@ func EditIssue(ctx *context.APIContext) {
 	if (form.Deadline != nil || form.RemoveDeadline != nil) && canWrite {
 		var deadlineUnix timeutil.TimeStamp
 
-		if (form.RemoveDeadline == nil || !*form.RemoveDeadline) && !form.Deadline.IsZero() {
-			deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-				23, 59, 59, 0, form.Deadline.Location())
-			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
+		if form.RemoveDeadline == nil || !*form.RemoveDeadline {
+			if form.Deadline == nil {
+				ctx.Error(http.StatusBadRequest, "", "The due_date cannot be empty")
+				return
+			}
+			if !form.Deadline.IsZero() {
+				deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
+					23, 59, 59, 0, form.Deadline.Location())
+				deadlineUnix = timeutil.TimeStamp(deadline.Unix())
+			}
 		}
 
 		if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
