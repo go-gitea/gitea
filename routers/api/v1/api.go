@@ -407,6 +407,21 @@ func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 			ctx.Error(http.StatusForbidden, "reqRepoReader", "user should have specific read permission or be a repo admin or a site admin")
 			return
 		}
+
+		if true == ctx.Data["IsApiToken"] {
+			switch unitType {
+			case unit.TypeCode:
+				publicRepo, pubRepoExists := ctx.Data["ApiTokenScopePublicRepoOnly"]
+
+				if pubRepoExists && publicRepo.(bool) &&
+					ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
+					ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public repos")
+					return
+				}
+
+				return
+			}
+		}
 	}
 }
 
