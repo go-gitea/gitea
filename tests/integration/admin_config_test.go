@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
@@ -17,7 +18,7 @@ func TestAdminConfig(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/admin/config")
+	req := NewRequest(t, "GET", setting.AdminRouterPrefix+"/config")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 }
