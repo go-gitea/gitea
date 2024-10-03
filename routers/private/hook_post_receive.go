@@ -278,10 +278,19 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 			branch := refFullName.BranchName()
 
-			// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
-			if !repo.IsFork && branch == baseRepo.DefaultBranch {
-				results = append(results, private.HookPostReceiveBranchResult{})
-				continue
+			if branch == baseRepo.DefaultBranch {
+				if err := repo_service.AddRepoToLicenseUpdaterQueue(&repo_service.LicenseUpdaterOptions{
+					RepoID: repo.ID,
+				}); err != nil {
+					ctx.JSON(http.StatusInternalServerError, private.Response{Err: err.Error()})
+					return
+				}
+
+				// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
+				if !repo.IsFork {
+					results = append(results, private.HookPostReceiveBranchResult{})
+					continue
+				}
 			}
 
 			pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, issues_model.PullRequestFlowGithub)

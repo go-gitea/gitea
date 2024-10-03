@@ -138,10 +138,8 @@ func Contexter() func(next http.Handler) http.Handler {
 	csrfOpts := CsrfOptions{
 		Secret:         hex.EncodeToString(setting.GetGeneralTokenSigningSecret()),
 		Cookie:         setting.CSRFCookieName,
-		SetCookie:      true,
 		Secure:         setting.SessionConfig.Secure,
 		CookieHTTPOnly: setting.CSRFCookieHTTPOnly,
-		Header:         "X-Csrf-Token",
 		CookieDomain:   setting.SessionConfig.Domain,
 		CookiePath:     setting.SessionConfig.CookiePath,
 		SameSite:       setting.SessionConfig.SameSite,
@@ -167,7 +165,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Base.AppendContextValue(WebContextKey, ctx)
 			ctx.Base.AppendContextValueFunc(gitrepo.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
 
-			ctx.Csrf = PrepareCSRFProtector(csrfOpts, ctx)
+			ctx.Csrf = NewCSRFProtector(csrfOpts)
 
 			// Get the last flash message from cookie
 			lastFlashCookie := middleware.GetSiteCookie(ctx.Req, CookieNameFlash)
@@ -204,8 +202,6 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["SystemConfig"] = setting.Config()
-			ctx.Data["CsrfToken"] = ctx.Csrf.GetToken()
-			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
 
 			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations

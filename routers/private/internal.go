@@ -12,7 +12,9 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/lfs"
 
 	"gitea.com/go-chi/binding"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
@@ -44,6 +46,14 @@ func bind[T any](_ T) any {
 		binding.Bind(ctx.Req, theObj)
 		web.SetForm(ctx, theObj)
 	}
+}
+
+// SwapAuthToken swaps Authorization header with X-Auth header
+func swapAuthToken(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		req.Header.Set("Authorization", req.Header.Get("X-Auth"))
+		next.ServeHTTP(w, req)
+	})
 }
 
 // Routes registers all internal APIs routes to web application.
@@ -79,6 +89,26 @@ func Routes() *web.Router {
 	r.Post("/mail/send", SendEmail)
 	r.Post("/restore_repo", RestoreRepo)
 	r.Post("/actions/generate_actions_runner_token", GenerateActionsRunnerToken)
+
+	r.Group("/repo/{username}/{reponame}", func() {
+		r.Group("/info/lfs", func() {
+			r.Post("/objects/batch", lfs.CheckAcceptMediaType, lfs.BatchHandler)
+			r.Put("/objects/{oid}/{size}", lfs.UploadHandler)
+			r.Get("/objects/{oid}/{filename}", lfs.DownloadHandler)
+			r.Get("/objects/{oid}", lfs.DownloadHandler)
+			r.Post("/verify", lfs.CheckAcceptMediaType, lfs.VerifyHandler)
+			r.Group("/locks", func() {
+				r.Get("/", lfs.GetListLockHandler)
+				r.Post("/", lfs.PostLockHandler)
+				r.Post("/verify", lfs.VerifyLockHandler)
+				r.Post("/{lid}/unlock", lfs.UnLockHandler)
+			}, lfs.CheckAcceptMediaType)
+			r.Any("/*", func(ctx *context.Context) {
+				ctx.NotFound("", nil)
+			})
+		}, swapAuthToken)
+	}, common.Sessioner(), context.Contexter())
+	// end "/repo/{username}/{reponame}": git (LFS) API mirror
 
 	return r
 }
