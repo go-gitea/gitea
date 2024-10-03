@@ -228,7 +228,6 @@ func (b *Indexer) doDelete(ctx context.Context, repoID int64) error {
 	_, err := b.inner.Client.DeleteByQuery(b.inner.VersionedIndexName()).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
 		Do(ctx)
-
 	return err
 }
 
