@@ -388,6 +388,8 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 			ctx.Error(http.StatusForbidden, "reqRepoWriter", "user should have a permission to write to a repo")
 			return
 		}
+
+		checkPublicOnly(ctx, unit.TypeCode)
 	}
 }
 
@@ -397,6 +399,23 @@ func reqRepoBranchWriter(ctx *context.APIContext) {
 	if !ok || (!ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, options.Branch()) && !ctx.IsUserSiteAdmin()) {
 		ctx.Error(http.StatusForbidden, "reqRepoBranchWriter", "user should have a permission to write to this branch")
 		return
+	}
+
+	checkPublicOnly(ctx, unit.TypeCode)
+}
+
+func checkPublicOnly(ctx *context.APIContext, unitType unit.Type) {
+	if true == ctx.Data["IsApiToken"] {
+		switch unitType {
+		case unit.TypeCode:
+			publicRepo, pubRepoExists := ctx.Data["ApiTokenScopePublicRepoOnly"]
+
+			if pubRepoExists && publicRepo.(bool) &&
+				ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
+				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public repos")
+				return
+			}
+		}
 	}
 }
 
@@ -408,20 +427,7 @@ func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 			return
 		}
 
-		if true == ctx.Data["IsApiToken"] {
-			switch unitType {
-			case unit.TypeCode:
-				publicRepo, pubRepoExists := ctx.Data["ApiTokenScopePublicRepoOnly"]
-
-				if pubRepoExists && publicRepo.(bool) &&
-					ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
-					ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public repos")
-					return
-				}
-
-				return
-			}
-		}
+		checkPublicOnly(ctx, unitType)
 	}
 }
 
