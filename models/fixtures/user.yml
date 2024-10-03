@@ -918,8 +918,8 @@
   num_following: 0
   num_stars: 0
   num_repos: 0
-  num_teams: 1
-  num_members: 1
+  num_teams: 2
+  num_members: 2
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
@@ -1289,8 +1289,8 @@
   num_following: 0
   num_stars: 0
   num_repos: 0
-  num_teams: 1
-  num_members: 1
+  num_teams: 2
+  num_members: 2
   visibility: 2
   repo_admin_change_team_access: false
   theme: ""

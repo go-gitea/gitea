@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -52,7 +53,12 @@ var defaultTransformers = []transformer{
 }
 
 func generateExpansion(src string, templateRepo, generateRepo *repo_model.Repository, sanitizeFileName bool) string {
+	year, month, day := time.Now().Date()
 	expansions := []expansion{
+		{Name: "YEAR", Value: strconv.Itoa(year), Transformers: nil},
+		{Name: "MONTH", Value: fmt.Sprintf("%02d", int(month)), Transformers: nil},
+		{Name: "MONTH_ENGLISH", Value: month.String(), Transformers: defaultTransformers},
+		{Name: "DAY", Value: fmt.Sprintf("%02d", day), Transformers: nil},
 		{Name: "REPO_NAME", Value: generateRepo.Name, Transformers: defaultTransformers},
 		{Name: "TEMPLATE_NAME", Value: templateRepo.Name, Transformers: defaultTransformers},
 		{Name: "REPO_DESCRIPTION", Value: generateRepo.Description, Transformers: nil},

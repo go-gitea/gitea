@@ -52,7 +52,7 @@ func (ctx *Context) RedirectToCurrentSite(location ...string) {
 			continue
 		}
 
-		if !httplib.IsCurrentGiteaSiteURL(loc) {
+		if !httplib.IsCurrentGiteaSiteURL(ctx, loc) {
 			continue
 		}
 

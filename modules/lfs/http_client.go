@@ -136,14 +136,13 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 
 	for _, object := range result.Objects {
 		if object.Error != nil {
-			objectError := errors.New(object.Error.Message)
-			log.Trace("Error on object %v: %v", object.Pointer, objectError)
+			log.Trace("Error on object %v: %v", object.Pointer, object.Error)
 			if uc != nil {
-				if _, err := uc(object.Pointer, objectError); err != nil {
+				if _, err := uc(object.Pointer, object.Error); err != nil {
 					return err
 				}
 			} else {
-				if err := dc(object.Pointer, nil, objectError); err != nil {
+				if err := dc(object.Pointer, nil, object.Error); err != nil {
 					return err
 				}
 			}
@@ -181,6 +180,10 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 		} else {
 			link, ok := object.Actions["download"]
 			if !ok {
+				// no actions block in response, try legacy response schema
+				link, ok = object.Links["download"]
+			}
+			if !ok {
 				log.Debug("%+v", object)
 				return errors.New("missing action 'download'")
 			}
@@ -211,7 +214,7 @@ func createRequest(ctx context.Context, method, url string, headers map[string]s
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
-	req.Header.Set("Accept", MediaType)
+	req.Header.Set("Accept", AcceptHeader)
 
 	return req, nil
 }
@@ -251,6 +254,6 @@ func handleErrorResponse(resp *http.Response) error {
 		return err
 	}
 
-	log.Trace("ErrorResponse: %v", er)
+	log.Trace("ErrorResponse(%v): %v", resp.Status, er)
 	return errors.New(er.Message)
 }

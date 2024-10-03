@@ -176,7 +176,7 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 // migrateRepository will download information and then upload it to Uploader, this is a simple
 // process for small repository. For a big repository, save all the data to disk
 // before upload is better
-func migrateRepository(ctx context.Context, doer *user_model.User, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger) error {
+func migrateRepository(_ context.Context, doer *user_model.User, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger) error {
 	if messenger == nil {
 		messenger = base.NilMessenger
 	}
@@ -498,10 +498,6 @@ func Init() error {
 	}
 	// TODO: at the moment, if ALLOW_LOCALNETWORKS=false, ALLOWED_DOMAINS=domain.com, and domain.com has IP 127.0.0.1, then it's still allowed.
 	// if we want to block such case, the private&loopback should be added to the blockList when ALLOW_LOCALNETWORKS=false
-
-	if setting.Proxy.Enabled && setting.Proxy.ProxyURLFixed != nil {
-		allowList.AppendPattern(setting.Proxy.ProxyURLFixed.Host)
-	}
 
 	return nil
 }

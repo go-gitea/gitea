@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"net/http"
 	"net/url"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateNewTagProtected(t *testing.T) {
@@ -26,22 +28,10 @@ func TestCreateNewTagProtected(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	t.Run("API", func(t *testing.T) {
+	t.Run("Code", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		err := release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1", "first tag")
-		assert.NoError(t, err)
-
-		err = git_model.InsertProtectedTag(db.DefaultContext, &git_model.ProtectedTag{
-			RepoID:      repo.ID,
-			NamePattern: "v-*",
-		})
-		assert.NoError(t, err)
-		err = git_model.InsertProtectedTag(db.DefaultContext, &git_model.ProtectedTag{
-			RepoID:           repo.ID,
-			NamePattern:      "v-1.1",
-			AllowlistUserIDs: []int64{repo.OwnerID},
-		})
+		err := release.CreateNewTag(git.DefaultContext, owner, repo, "master", "t-first", "first tag")
 		assert.NoError(t, err)
 
 		err = release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-2", "second tag")
@@ -54,13 +44,12 @@ func TestCreateNewTagProtected(t *testing.T) {
 
 	t.Run("Git", func(t *testing.T) {
 		onGiteaRun(t, func(t *testing.T, u *url.URL) {
-			username := "user2"
-			httpContext := NewAPITestContext(t, username, "repo1")
+			httpContext := NewAPITestContext(t, owner.Name, repo.Name)
 
 			dstPath := t.TempDir()
 
 			u.Path = httpContext.GitPath()
-			u.User = url.UserPassword(username, userPassword)
+			u.User = url.UserPassword(owner.Name, userPassword)
 
 			doGitClone(dstPath, u)(t)
 
@@ -70,6 +59,40 @@ func TestCreateNewTagProtected(t *testing.T) {
 			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunStdString(&git.RunOpts{Dir: dstPath})
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "Tag v-2 is protected")
+		})
+	})
+
+	t.Run("GitTagForce", func(t *testing.T) {
+		onGiteaRun(t, func(t *testing.T, u *url.URL) {
+			httpContext := NewAPITestContext(t, owner.Name, repo.Name)
+
+			dstPath := t.TempDir()
+
+			u.Path = httpContext.GitPath()
+			u.User = url.UserPassword(owner.Name, userPassword)
+
+			doGitClone(dstPath, u)(t)
+
+			_, _, err := git.NewCommand(git.DefaultContext, "tag", "v-1.1", "-m", "force update", "--force").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.NoError(t, err)
+
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.NoError(t, err)
+
+			_, _, err = git.NewCommand(git.DefaultContext, "tag", "v-1.1", "-m", "force update v2", "--force").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.NoError(t, err)
+
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "the tag already exists in the remote")
+
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags", "--force").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.NoError(t, err)
+			req := NewRequestf(t, "GET", "/%s/releases/tag/v-1.1", repo.FullName())
+			resp := MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			tagsTab := htmlDoc.Find(".release-list-title")
+			assert.Contains(t, tagsTab.Text(), "force update v2")
 		})
 	})
 
