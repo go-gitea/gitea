@@ -389,7 +389,14 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 			return
 		}
 
-		checkPublicOnly(ctx, unit.TypeCode)
+		for _, unitType := range unitTypes {
+			if ctx.Repo.CanWrite(unitType) {
+				checkPublicOnly(ctx, unitType)
+				if ctx.Written() {
+					return
+				}
+			}
+		}
 	}
 }
 
