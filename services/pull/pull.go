@@ -995,6 +995,8 @@ type CommitInfo struct {
 }
 
 // GetPullCommits returns all commits on given pull request and the last review commit sha
+// Attention: The last review commit sha must be from the latest review whose commit id is not empty.
+// So the type of the latest review cannot be "ReviewTypeRequest".
 func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]CommitInfo, string, error) {
 	pull := issue.PullRequest
 
@@ -1040,7 +1042,11 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Co
 		lastreview, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
 			IssueID:    issue.ID,
 			ReviewerID: ctx.Doer.ID,
-			Type:       issues_model.ReviewTypeUnknown,
+			Types: []issues_model.ReviewType{
+				issues_model.ReviewTypeApprove,
+				issues_model.ReviewTypeComment,
+				issues_model.ReviewTypeReject,
+			},
 		})
 
 		if err != nil && !issues_model.IsErrReviewNotExist(err) {
