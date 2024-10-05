@@ -14,18 +14,15 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 )
 
+// DeleteRepoDeployKeys deletes all deploy keys of a repository. permissions check should be done outside
 func DeleteRepoDeployKeys(ctx context.Context, doer *user_model.User, repoID int64) (int, error) {
 	deployKeys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
 		return 0, fmt.Errorf("listDeployKeys: %w", err)
 	}
 
-	if err := checkDeployPerm(ctx, doer, repoID, 0); err != nil {
-		return 0, err
-	}
-
 	for _, dKey := range deployKeys {
-		if err := deleteDeployKeyFromDB(ctx, doer, dKey); err != nil {
+		if err := deleteDeployKeyFromDB(ctx, dKey); err != nil {
 			return 0, fmt.Errorf("deleteDeployKeys: %w", err)
 		}
 	}
@@ -56,7 +53,7 @@ func checkDeployPerm(ctx context.Context, doer *user_model.User, repoID, keyID i
 }
 
 // deleteDeployKeyFromDB delete deploy keys from database
-func deleteDeployKeyFromDB(ctx context.Context, doer *user_model.User, key *asymkey_model.DeployKey) error {
+func deleteDeployKeyFromDB(ctx context.Context, key *asymkey_model.DeployKey) error {
 	if _, err := db.DeleteByID[asymkey_model.DeployKey](ctx, key.ID); err != nil {
 		return fmt.Errorf("delete deploy key [%d]: %w", key.ID, err)
 	}
@@ -94,7 +91,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		return err
 	}
 
-	if err := deleteDeployKeyFromDB(dbCtx, doer, key); err != nil {
+	if err := deleteDeployKeyFromDB(dbCtx, key); err != nil {
 		return err
 	}
 	if err := committer.Commit(); err != nil {
