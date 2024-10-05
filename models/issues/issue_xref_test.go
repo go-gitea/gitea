@@ -69,6 +69,40 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0})
 }
 
+// changeIssueTitle changes the title of this issue, as the given user.
+func changeIssueTitle(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, oldTitle string) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = issues_model.UpdateIssueCols(ctx, issue, "name"); err != nil {
+		return fmt.Errorf("updateIssueCols: %w", err)
+	}
+
+	if err = issue.LoadRepo(ctx); err != nil {
+		return fmt.Errorf("loadRepo: %w", err)
+	}
+
+	opts := &issues_model.CreateCommentOptions{
+		Type:     issues_model.CommentTypeChangeTitle,
+		Doer:     doer,
+		Repo:     issue.Repo,
+		Issue:    issue,
+		OldTitle: oldTitle,
+		NewTitle: issue.Title,
+	}
+	if _, err = issues_model.CreateComment(ctx, opts); err != nil {
+		return fmt.Errorf("createComment: %w", err)
+	}
+	if err = issue.AddCrossReferences(ctx, doer, true); err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
 func TestXRef_NeuterCrossReferences(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -81,6 +115,10 @@ func TestXRef_NeuterCrossReferences(t *testing.T) {
 	ref := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0})
 	assert.Equal(t, issues_model.CommentTypeIssueRef, ref.Type)
 	assert.Equal(t, references.XRefActionNone, ref.RefAction)
+
+	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	i.Title = "title2, no mentions"
+	assert.NoError(t, changeIssueTitle(db.DefaultContext, i, d, title))
 
 	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0})
 	assert.Equal(t, issues_model.CommentTypeIssueRef, ref.Type)
