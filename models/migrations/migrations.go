@@ -473,7 +473,7 @@ var migrations = []*xormigrate.Migration{
 	// v259 -> v260
 	NewMigration("Convert scoped access tokens", v1_20.ConvertScopedAccessTokens),
 
-	// Gitea 1.20.0 ends at 260
+	// Gitea 1.20.0 ends at v260
 
 	// v260 -> v261
 	NewMigration("Drop custom_labels column of action_runner table", v1_21.DropCustomLabelsColumnOfActionRunner),
@@ -574,6 +574,8 @@ var migrations = []*xormigrate.Migration{
 	NewMigration("Add metadata column for comment table", v1_23.AddCommentMetaDataColumn),
 	// v304 -> v305
 	NewMigration("Add index for release sha1", v1_23.AddIndexForReleaseSha1),
+	// v305 -> v306
+	NewMigration("Add Repository Licenses", v1_23.AddRepositoryLicenses),
 }
 
 // EnsureUpToDate will check if the db is at the correct version

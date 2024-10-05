@@ -37,6 +37,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -486,12 +487,16 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 }
 
 // GetCSRF returns CSRF token from body
+// If it fails, it means the CSRF token is not found in the response body returned by the url with the given session.
+// In this case, you should find a better url to get it.
 func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 	t.Helper()
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
-	return doc.GetCSRF()
+	csrf := doc.GetCSRF()
+	require.NotEmpty(t, csrf)
+	return csrf
 }
 
 // GetCSRFFrom returns CSRF token from body

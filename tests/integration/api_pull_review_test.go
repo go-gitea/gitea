@@ -38,7 +38,7 @@ func TestAPIPullReview(t *testing.T) {
 
 	var reviews []*api.PullReview
 	DecodeJSON(t, resp, &reviews)
-	if !assert.Len(t, reviews, 6) {
+	if !assert.Len(t, reviews, 8) {
 		return
 	}
 	for _, r := range reviews {
