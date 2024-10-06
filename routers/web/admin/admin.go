@@ -185,9 +185,9 @@ func DashboardPost(ctx *context.Context) {
 		}
 	}
 	if form.From == "monitor" {
-		ctx.Redirect(setting.AppSubURL + setting.AdminRouterPrefix + "/monitor/cron")
+		ctx.Redirect(setting.AppSubURL + "/-/admin/monitor/cron")
 	} else {
-		ctx.Redirect(setting.AppSubURL + setting.AdminRouterPrefix)
+		ctx.Redirect(setting.AppSubURL + "/-/admin")
 	}
 }
 

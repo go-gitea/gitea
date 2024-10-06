@@ -7,11 +7,6 @@ import (
 	"code.gitea.io/gitea/modules/container"
 )
 
-const (
-	// AdminRouterPrefix admin router prefix
-	AdminRouterPrefix = "/-/admin"
-)
-
 // Admin settings
 var Admin struct {
 	DisableRegularOrgCreation   bool
