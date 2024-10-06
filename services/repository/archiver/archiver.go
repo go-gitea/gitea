@@ -68,7 +68,7 @@ func (e RepoRefNotFoundError) Is(err error) bool {
 }
 
 // NewRequest creates an archival request, based on the URI.  The
-// resulting ArchiveRequest is suitable for being passed to ArchiveRepository()
+// resulting ArchiveRequest is suitable for being passed to Await()
 // if it's determined that the request still needs to be satisfied.
 func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest, error) {
 	r := &ArchiveRequest{
@@ -151,6 +151,12 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 	}
 }
 
+// doArchive satisfies the ArchiveRequest being passed in.  Processing
+// will occur in a separate goroutine, as this phase may take a while to
+// complete.  If the archive already exists, doArchive will not do
+// anything.  In all cases, the caller should be examining the *ArchiveRequest
+// being returned for completion, as it may be different than the one they passed
+// in.
 func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("ArchiveRequest[%d]: %s", r.RepoID, r.GetArchiveName()))
 	defer finished()
@@ -259,16 +265,6 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 	return archiver, nil
 }
 
-// ArchiveRepository satisfies the ArchiveRequest being passed in.  Processing
-// will occur in a separate goroutine, as this phase may take a while to
-// complete.  If the archive already exists, ArchiveRepository will not do
-// anything.  In all cases, the caller should be examining the *ArchiveRequest
-// being returned for completion, as it may be different than the one they passed
-// in.
-func ArchiveRepository(ctx context.Context, request *ArchiveRequest) (*repo_model.RepoArchiver, error) {
-	return doArchive(ctx, request)
-}
-
 var archiverQueue *queue.WorkerPoolQueue[*ArchiveRequest]
 
 // Init initializes archiver
@@ -276,8 +272,10 @@ func Init(ctx context.Context) error {
 	handler := func(items ...*ArchiveRequest) []*ArchiveRequest {
 		for _, archiveReq := range items {
 			log.Trace("ArchiverData Process: %#v", archiveReq)
-			if _, err := doArchive(ctx, archiveReq); err != nil {
+			if archiver, err := doArchive(ctx, archiveReq); err != nil {
 				log.Error("Archive %v failed: %v", archiveReq, err)
+			} else {
+				log.Trace("ArchiverData Success: %#v", archiver)
 			}
 		}
 		return nil
