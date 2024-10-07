@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // ________                            .__                __  .__
@@ -205,11 +206,26 @@ func (opts FindOrgMembersOpts) PublicOnly() bool {
 	return opts.Doer == nil || !opts.IsMember && !opts.Doer.IsAdmin
 }
 
+func (opts FindOrgMembersOpts) addTeamMatesOnlyFilter(ctx context.Context, sess *xorm.Session) error {
+	if opts.Doer != nil && opts.IsMember && opts.Doer.IsRestricted {
+		teamMates := builder.Select("DISTINCT team_user.uid").
+			From("team_user").
+			Where(builder.In("team_user.team_id", userTeamIDbuilder(opts.OrgID, opts.Doer.ID))).
+			And(builder.Eq{"team_user.org_id": opts.OrgID})
+
+		sess.In("org_user.uid", teamMates)
+	}
+	return nil
+}
+
 // CountOrgMembers counts the organization's members
 func CountOrgMembers(ctx context.Context, opts *FindOrgMembersOpts) (int64, error) {
 	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly() {
 		sess.And("is_public = ?", true)
+	}
+	if err := opts.addTeamMatesOnlyFilter(ctx, sess); err != nil {
+		return 0, err
 	}
 
 	return sess.Count(new(OrgUser))
@@ -535,6 +551,9 @@ func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUs
 	if opts.PublicOnly() {
 		sess.And("is_public = ?", true)
 	}
+	if err := opts.addTeamMatesOnlyFilter(ctx, sess); err != nil {
+		return nil, err
+	}
 
 	if opts.ListOptions.PageSize > 0 {
 		sess = db.SetSessionPagination(sess, opts)
@@ -658,10 +677,17 @@ func (org *Organization) getUserTeamIDs(ctx context.Context, userID int64) ([]in
 	return teamIDs, db.GetEngine(ctx).
 		Table("team").
 		Cols("team.id").
-		Where("`team_user`.org_id = ?", org.ID).
-		Join("INNER", "team_user", "`team_user`.team_id = team.id").
-		And("`team_user`.uid = ?", userID).
+		Where(userTeamIDbuilder(org.ID, userID)).
 		Find(&teamIDs)
+}
+
+func userTeamIDbuilder(orgID, userID int64) *builder.Builder {
+	return builder.Select("team.id").From("team").
+		InnerJoin("team_user", "team_user.team_id = team.id").
+		Where(builder.Eq{
+			"team_user.org_id": orgID,
+			"team_user.uid":    userID,
+		})
 }
 
 // TeamsWithAccessToRepo returns all teams that have given access level to the repository.
