@@ -2149,8 +2149,12 @@ td .commit-summary {
   gap: 0 !important;
 }
 
-.archived-label {
-  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0) 0%,rgba(255, 255, 255, 0) 5%, rgba(92, 194, 214, 0.3) 5%, rgba(92, 194, 214, 0.3) 10%, rgba(255, 255, 255, 0.3) 10%) !important;
+.archived-label[style^="color: #fff"] {
+  background-image: repeating-linear-gradient(-45deg, transparent, transparent 6px, #0005 6px, #0005 12px);
+}
+
+.archived-label[style^="color: #000"] {
+  background-image: repeating-linear-gradient(-45deg, transparent, transparent 6px, #fff5 6px, #fff5 12px);
 }
 
 .ui.label.scope-left {
