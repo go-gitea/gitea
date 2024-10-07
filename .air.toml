@@ -21,3 +21,6 @@ exclude_dir = [
 ]
 exclude_regex = ["_test.go$", "_gen.go$"]
 stop_on_error = true
+
+[log]
+main_only = true

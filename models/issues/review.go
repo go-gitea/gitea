@@ -155,14 +155,14 @@ func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 	if r.CodeComments != nil {
 		return err
 	}
-	if err = r.loadIssue(ctx); err != nil {
+	if err = r.LoadIssue(ctx); err != nil {
 		return err
 	}
 	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r, false)
 	return err
 }
 
-func (r *Review) loadIssue(ctx context.Context) (err error) {
+func (r *Review) LoadIssue(ctx context.Context) (err error) {
 	if r.Issue != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (r *Review) LoadReviewerTeam(ctx context.Context) (err error) {
 
 // LoadAttributes loads all attributes except CodeComments
 func (r *Review) LoadAttributes(ctx context.Context) (err error) {
-	if err = r.loadIssue(ctx); err != nil {
+	if err = r.LoadIssue(ctx); err != nil {
 		return err
 	}
 	if err = r.LoadCodeComments(ctx); err != nil {
@@ -214,9 +214,13 @@ func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	return err
 }
 
+// HTMLTypeColorName returns the color used in the ui indicating the review
 func (r *Review) HTMLTypeColorName() string {
 	switch r.Type {
 	case ReviewTypeApprove:
+		if !r.Official {
+			return "grey"
+		}
 		if r.Stale {
 			return "yellow"
 		}
@@ -229,6 +233,27 @@ func (r *Review) HTMLTypeColorName() string {
 		return "yellow"
 	}
 	return "grey"
+}
+
+// TooltipContent returns the locale string describing the review type
+func (r *Review) TooltipContent() string {
+	switch r.Type {
+	case ReviewTypeApprove:
+		if r.Stale {
+			return "repo.issues.review.stale"
+		}
+		if !r.Official {
+			return "repo.issues.review.unofficial"
+		}
+		return "repo.issues.review.official"
+	case ReviewTypeComment:
+		return "repo.issues.review.commented"
+	case ReviewTypeReject:
+		return "repo.issues.review.rejected"
+	case ReviewTypeRequest:
+		return "repo.issues.review.requested"
+	}
+	return ""
 }
 
 // GetReviewByID returns the review by the given ID
@@ -364,7 +389,7 @@ func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Iss
 		return nil, nil
 	}
 	reviews, err := FindReviews(ctx, FindReviewOptions{
-		Type:       ReviewTypePending,
+		Types:      []ReviewType{ReviewTypePending},
 		IssueID:    issue.ID,
 		ReviewerID: reviewer.ID,
 	})

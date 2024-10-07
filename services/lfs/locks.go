@@ -136,8 +136,8 @@ func GetListLockHandler(ctx *context.Context) {
 
 // PostLockHandler create lock
 func PostLockHandler(ctx *context.Context) {
-	userName := ctx.Params("username")
-	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
+	userName := ctx.PathParam("username")
+	repoName := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
 
 	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, userName, repoName)
@@ -208,8 +208,8 @@ func PostLockHandler(ctx *context.Context) {
 
 // VerifyLockHandler list locks for verification
 func VerifyLockHandler(ctx *context.Context) {
-	userName := ctx.Params("username")
-	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
+	userName := ctx.PathParam("username")
+	repoName := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
 
 	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, userName, repoName)
@@ -279,8 +279,8 @@ func VerifyLockHandler(ctx *context.Context) {
 
 // UnLockHandler delete locks
 func UnLockHandler(ctx *context.Context) {
-	userName := ctx.Params("username")
-	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
+	userName := ctx.PathParam("username")
+	repoName := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
 
 	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, userName, repoName)
@@ -321,7 +321,7 @@ func UnLockHandler(ctx *context.Context) {
 		return
 	}
 
-	lock, err := git_model.DeleteLFSLockByID(ctx, ctx.ParamsInt64("lid"), repository, ctx.Doer, req.Force)
+	lock, err := git_model.DeleteLFSLockByID(ctx, ctx.PathParamInt64("lid"), repository, ctx.Doer, req.Force)
 	if err != nil {
 		if git_model.IsErrLFSUnauthorizedAction(err) {
 			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
@@ -330,7 +330,7 @@ func UnLockHandler(ctx *context.Context) {
 			})
 			return
 		}
-		log.Error("Unable to DeleteLFSLockByID[%d] by user %-v with force %t: Error: %v", ctx.ParamsInt64("lid"), ctx.Doer, req.Force, err)
+		log.Error("Unable to DeleteLFSLockByID[%d] by user %-v with force %t: Error: %v", ctx.PathParamInt64("lid"), ctx.Doer, req.Force, err)
 		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
 			Message: "unable to delete lock : Internal Server Error",
 		})

@@ -4,6 +4,8 @@
 package internal
 
 import (
+	"strconv"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -27,7 +29,7 @@ type IndexerData struct {
 	NoLabel            bool               `json:"no_label"` // True if LabelIDs is empty
 	MilestoneID        int64              `json:"milestone_id"`
 	ProjectID          int64              `json:"project_id"`
-	ProjectBoardID     int64              `json:"project_board_id"`
+	ProjectColumnID    int64              `json:"project_board_id"` // the key should be kept as project_board_id to keep compatible
 	PosterID           int64              `json:"poster_id"`
 	AssigneeID         int64              `json:"assignee_id"`
 	MentionIDs         []int64            `json:"mention_ids"`
@@ -89,8 +91,8 @@ type SearchOptions struct {
 
 	MilestoneIDs []int64 // milestones the issues have
 
-	ProjectID      optional.Option[int64] // project the issues belong to
-	ProjectBoardID optional.Option[int64] // project board the issues belong to
+	ProjectID       optional.Option[int64] // project the issues belong to
+	ProjectColumnID optional.Option[int64] // project column the issues belong to
 
 	PosterID optional.Option[int64] // poster of the issues
 
@@ -122,6 +124,12 @@ func (o *SearchOptions) Copy(edit ...func(options *SearchOptions)) *SearchOption
 		e(&v)
 	}
 	return &v
+}
+
+// used for optimized issue index based search
+func (o *SearchOptions) IsKeywordNumeric() bool {
+	_, err := strconv.Atoi(o.Keyword)
+	return err == nil
 }
 
 type SortBy string

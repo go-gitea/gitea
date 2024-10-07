@@ -109,7 +109,11 @@
 				{{if .IsBlockedByApprovals}}
 					<div class="item">
 						{{svg "octicon-x"}}
-						{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
+						{{if .RequireApprovalsWhitelist}}
+							{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals_whitelisted" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
+						{{else}}
+							{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
+						{{end}}
 					</div>
 				{{else if .IsBlockedByRejection}}
 					<div class="item">
@@ -199,7 +203,6 @@
 
 				{{if .AllowMerge}} {{/* user is allowed to merge */}}
 					{{$prUnit := .Repository.MustGetUnit $.Context ctx.Consts.RepoUnitTypePullRequests}}
-					{{$approvers := (.Issue.PullRequest.GetApprovers ctx)}}
 					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash $prUnit.PullRequestsConfig.AllowFastForwardOnly}}
 						{{$hasPendingPullRequestMergeTip := ""}}
 						{{if .HasPendingPullRequestMerge}}
@@ -208,11 +211,10 @@
 						{{end}}
 						<div class="divider"></div>
 						<script type="module">
-							const issueUrl = window.location.origin + {{$.Issue.Link}};
 							const defaultMergeTitle = {{.DefaultMergeMessage}};
 							const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
-							const defaultMergeMessage = {{if .DefaultMergeBody}}{{.DefaultMergeBody}}{{else}}`Reviewed-on: ${issueUrl}\n` + {{$approvers}}{{end}};
-							const defaultSquashMergeMessage = {{if .DefaultSquashMergeBody}}{{.DefaultSquashMergeBody}}{{else}}`Reviewed-on: ${issueUrl}\n` + {{$approvers}}{{end}};
+							const defaultMergeMessage = {{.DefaultMergeBody}};
+							const defaultSquashMergeMessage = {{.DefaultSquashMergeBody}};
 							const mergeForm = {
 								'baseLink': {{.Link}},
 								'textCancel': {{ctx.Locale.Tr "cancel"}},

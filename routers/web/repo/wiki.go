@@ -138,18 +138,41 @@ func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
 	return content
 }
 
-// wikiContentsByName returns the contents of a wiki page, along with a boolean
-// indicating whether the page exists. Writes to ctx if an error occurs.
-func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName wiki_service.WebPath) ([]byte, *git.TreeEntry, string, bool) {
+// wikiEntryByName returns the entry of a wiki page, along with a boolean
+// indicating whether the entry exists. Writes to ctx if an error occurs.
+// The last return value indicates whether the file should be returned as a raw file
+func wikiEntryByName(ctx *context.Context, commit *git.Commit, wikiName wiki_service.WebPath) (*git.TreeEntry, string, bool, bool) {
+	isRaw := false
 	gitFilename := wiki_service.WebPathToGitPath(wikiName)
 	entry, err := findEntryForFile(commit, gitFilename)
 	if err != nil && !git.IsErrNotExist(err) {
 		ctx.ServerError("findEntryForFile", err)
-		return nil, nil, "", false
-	} else if entry == nil {
+		return nil, "", false, false
+	}
+	if entry == nil {
+		// check if the file without ".md" suffix exists
+		gitFilename := strings.TrimSuffix(gitFilename, ".md")
+		entry, err = findEntryForFile(commit, gitFilename)
+		if err != nil && !git.IsErrNotExist(err) {
+			ctx.ServerError("findEntryForFile", err)
+			return nil, "", false, false
+		}
+		isRaw = true
+	}
+	if entry == nil {
+		return nil, "", true, false
+	}
+	return entry, gitFilename, false, isRaw
+}
+
+// wikiContentsByName returns the contents of a wiki page, along with a boolean
+// indicating whether the page exists. Writes to ctx if an error occurs.
+func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName wiki_service.WebPath) ([]byte, *git.TreeEntry, string, bool) {
+	entry, gitFilename, noEntry, _ := wikiEntryByName(ctx, commit, wikiName)
+	if entry == nil {
 		return nil, nil, "", true
 	}
-	return wikiContentsByEntry(ctx, entry), entry, gitFilename, false
+	return wikiContentsByEntry(ctx, entry), entry, gitFilename, noEntry
 }
 
 func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
@@ -215,12 +238,24 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	isSideBar := pageName == "_Sidebar"
 	isFooter := pageName == "_Footer"
 
-	// lookup filename in wiki - get filecontent, gitTree entry , real filename
-	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
+	// lookup filename in wiki - get gitTree entry , real filename
+	entry, pageFilename, noEntry, isRaw := wikiEntryByName(ctx, commit, pageName)
 	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
 	}
+	if isRaw {
+		ctx.Redirect(util.URLJoin(ctx.Repo.RepoLink, "wiki/raw", string(pageName)))
+	}
 	if entry == nil || ctx.Written() {
+		if wikiRepo != nil {
+			wikiRepo.Close()
+		}
+		return nil, nil
+	}
+
+	// get filecontent
+	data := wikiContentsByEntry(ctx, entry)
+	if ctx.Written() {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
@@ -410,6 +445,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParamString("action", "_revision")
 	ctx.Data["Page"] = pager
 
 	return wikiRepo, entry
@@ -441,12 +477,21 @@ func renderEditPage(ctx *context.Context) {
 	ctx.Data["Title"] = displayName
 	ctx.Data["title"] = displayName
 
-	// lookup filename in wiki - get filecontent, gitTree entry , real filename
-	data, entry, _, noEntry := wikiContentsByName(ctx, commit, pageName)
+	// lookup filename in wiki -  gitTree entry , real filename
+	entry, _, noEntry, isRaw := wikiEntryByName(ctx, commit, pageName)
 	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
 	}
+	if isRaw {
+		ctx.Error(http.StatusForbidden, "Editing of raw wiki files is not allowed")
+	}
 	if entry == nil || ctx.Written() {
+		return
+	}
+
+	// get filecontent
+	data := wikiContentsByEntry(ctx, entry)
+	if ctx.Written() {
 		return
 	}
 
@@ -532,7 +577,7 @@ func Wiki(ctx *context.Context) {
 	}
 
 	wikiPath := entry.Name()
-	if markup.Type(wikiPath) != markdown.MarkupName {
+	if markup.DetectMarkupTypeByFileName(wikiPath) != markdown.MarkupName {
 		ext := strings.ToUpper(filepath.Ext(wikiPath))
 		ctx.Data["FormatWarning"] = fmt.Sprintf("%s rendering is not supported at the moment. Rendered as Markdown.", ext)
 	}

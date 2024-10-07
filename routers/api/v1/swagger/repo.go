@@ -70,6 +70,20 @@ type swaggerResponseAnnotatedTag struct {
 	Body api.AnnotatedTag `json:"body"`
 }
 
+// TagProtectionList
+// swagger:response TagProtectionList
+type swaggerResponseTagProtectionList struct {
+	// in:body
+	Body []api.TagProtection `json:"body"`
+}
+
+// TagProtection
+// swagger:response TagProtection
+type swaggerResponseTagProtection struct {
+	// in:body
+	Body api.TagProtection `json:"body"`
+}
+
 // Reference
 // swagger:response Reference
 type swaggerResponseReference struct {
@@ -343,6 +357,13 @@ type swaggerTopicNames struct {
 type swaggerLanguageStatistics struct {
 	// in: body
 	Body map[string]int64 `json:"body"`
+}
+
+// LicensesList
+// swagger:response LicensesList
+type swaggerLicensesList struct {
+	// in: body
+	Body []string `json:"body"`
 }
 
 // CombinedStatus

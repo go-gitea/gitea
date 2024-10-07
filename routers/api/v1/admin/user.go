@@ -133,7 +133,7 @@ func CreateUser(ctx *context.APIContext) {
 		u.UpdatedUnix = u.CreatedUnix
 	}
 
-	if err := user_model.AdminCreateUser(ctx, u, overwriteDefault); err != nil {
+	if err := user_model.AdminCreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			user_model.IsErrEmailAlreadyUsed(err) ||
 			db.IsErrNameReserved(err) ||
@@ -373,7 +373,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := asymkey_service.DeletePublicKey(ctx, ctx.ContextUser, ctx.ParamsInt64(":id")); err != nil {
+	if err := asymkey_service.DeletePublicKey(ctx, ctx.ContextUser, ctx.PathParamInt64(":id")); err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
 		} else if asymkey_model.IsErrKeyAccessDenied(err) {

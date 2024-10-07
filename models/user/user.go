@@ -8,6 +8,8 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"mime"
+	"net/mail"
 	"net/url"
 	"path/filepath"
 	"regexp"
@@ -146,6 +148,14 @@ type User struct {
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
+}
+
+// Meta defines the meta information of a user, to be stored in the K/V table
+type Meta struct {
+	// Store the initial registration of the user, to aid in spam prevention
+	// Ensure that one IP isn't creating many accounts (following mediawiki approach)
+	InitialIP        string
+	InitialUserAgent string
 }
 
 func init() {
@@ -304,7 +314,7 @@ func (u *User) OrganisationLink() string {
 func (u *User) GenerateEmailActivateCode(email string) string {
 	code := base.CreateTimeLimitCode(
 		fmt.Sprintf("%d%s%s%s%s", u.ID, email, u.LowerName, u.Passwd, u.Rands),
-		setting.Service.ActiveCodeLives, nil)
+		setting.Service.ActiveCodeLives, time.Now(), nil)
 
 	// Add tail hex username
 	code += hex.EncodeToString([]byte(u.LowerName))
@@ -411,6 +421,34 @@ func (u *User) DisplayName() string {
 		return trimmed
 	}
 	return u.Name
+}
+
+var emailToReplacer = strings.NewReplacer(
+	"\n", "",
+	"\r", "",
+	"<", "",
+	">", "",
+	",", "",
+	":", "",
+	";", "",
+)
+
+// EmailTo returns a string suitable to be put into a e-mail `To:` header.
+func (u *User) EmailTo() string {
+	sanitizedDisplayName := emailToReplacer.Replace(u.DisplayName())
+
+	// should be an edge case but nice to have
+	if sanitizedDisplayName == u.Email {
+		return u.Email
+	}
+
+	to := fmt.Sprintf("%s <%s>", sanitizedDisplayName, u.Email)
+	add, err := mail.ParseAddress(to)
+	if err != nil {
+		return u.Email
+	}
+
+	return fmt.Sprintf("%s <%s>", mime.QEncoding.Encode("utf-8", add.Name), add.Address)
 }
 
 // GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
@@ -585,17 +623,17 @@ type CreateUserOverwriteOptions struct {
 }
 
 // CreateUser creates record of a new user.
-func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
-	return createUser(ctx, u, false, overwriteDefault...)
+func CreateUser(ctx context.Context, u *User, meta *Meta, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, meta, false, overwriteDefault...)
 }
 
 // AdminCreateUser is used by admins to manually create users
-func AdminCreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
-	return createUser(ctx, u, true, overwriteDefault...)
+func AdminCreateUser(ctx context.Context, u *User, meta *Meta, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, meta, true, overwriteDefault...)
 }
 
 // createUser creates record of a new user.
-func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
 	}
@@ -715,6 +753,22 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 		return err
 	}
 
+	if setting.RecordUserSignupMetadata {
+		// insert initial IP and UserAgent
+		if err = SetUserSetting(ctx, u.ID, SignupIP, meta.InitialIP); err != nil {
+			return err
+		}
+
+		// trim user agent string to a reasonable length, if necessary
+		userAgent := strings.TrimSpace(meta.InitialUserAgent)
+		if len(userAgent) > 255 {
+			userAgent = userAgent[:255]
+		}
+		if err = SetUserSetting(ctx, u.ID, SignupUserAgent, userAgent); err != nil {
+			return err
+		}
+	}
+
 	// insert email address
 	if err := db.Insert(ctx, &EmailAddress{
 		UID:         u.ID,
@@ -791,14 +845,11 @@ func GetVerifyUser(ctx context.Context, code string) (user *User) {
 
 // VerifyUserActiveCode verifies active code when active account
 func VerifyUserActiveCode(ctx context.Context, code string) (user *User) {
-	minutes := setting.Service.ActiveCodeLives
-
 	if user = GetVerifyUser(ctx, code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
 		data := fmt.Sprintf("%d%s%s%s%s", user.ID, user.Email, user.LowerName, user.Passwd, user.Rands)
-
-		if base.VerifyTimeLimitCode(data, minutes, prefix) {
+		if base.VerifyTimeLimitCode(time.Now(), data, setting.Service.ActiveCodeLives, prefix) {
 			return user
 		}
 	}
@@ -859,6 +910,10 @@ func GetUserByID(ctx context.Context, id int64) (*User, error) {
 
 // GetUserByIDs returns the user objects by given IDs if exists.
 func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
 	users := make([]*User, 0, len(ids))
 	err := db.GetEngine(ctx).In("id", ids).
 		Table("user").
@@ -1232,12 +1287,14 @@ func GetOrderByName() string {
 	return "name"
 }
 
-// IsFeatureDisabledWithLoginType checks if a user feature is disabled, taking into account the login type of the
+// IsFeatureDisabledWithLoginType checks if a user features are disabled, taking into account the login type of the
 // user if applicable
-func IsFeatureDisabledWithLoginType(user *User, feature string) bool {
+func IsFeatureDisabledWithLoginType(user *User, features ...string) bool {
 	// NOTE: in the long run it may be better to check the ExternalLoginUser table rather than user.LoginType
-	return (user != nil && user.LoginType > auth.Plain && setting.Admin.ExternalUserDisableFeatures.Contains(feature)) ||
-		setting.Admin.UserDisabledFeatures.Contains(feature)
+	if user != nil && user.LoginType > auth.Plain {
+		return setting.Admin.ExternalUserDisableFeatures.Contains(features...)
+	}
+	return setting.Admin.UserDisabledFeatures.Contains(features...)
 }
 
 // DisabledFeaturesWithLoginType returns the set of user features disabled, taking into account the login type

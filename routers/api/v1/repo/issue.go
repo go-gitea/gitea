@@ -599,7 +599,7 @@ func GetIssue(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -779,7 +779,7 @@ func EditIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	form := web.GetForm(ctx).(*api.EditIssueOption)
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -810,8 +810,13 @@ func EditIssue(ctx *context.APIContext) {
 		}
 	}
 	if form.Body != nil {
-		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body)
+		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, issue.ContentVersion)
 		if err != nil {
+			if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
+				ctx.Error(http.StatusBadRequest, "ChangeContent", err)
+				return
+			}
+
 			ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
 			return
 		}
@@ -828,10 +833,16 @@ func EditIssue(ctx *context.APIContext) {
 	if (form.Deadline != nil || form.RemoveDeadline != nil) && canWrite {
 		var deadlineUnix timeutil.TimeStamp
 
-		if (form.RemoveDeadline == nil || !*form.RemoveDeadline) && !form.Deadline.IsZero() {
-			deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-				23, 59, 59, 0, form.Deadline.Location())
-			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
+		if form.RemoveDeadline == nil || !*form.RemoveDeadline {
+			if form.Deadline == nil {
+				ctx.Error(http.StatusBadRequest, "", "The due_date cannot be empty")
+				return
+			}
+			if !form.Deadline.IsZero() {
+				deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
+					23, 59, 59, 0, form.Deadline.Location())
+				deadlineUnix = timeutil.TimeStamp(deadline.Unix())
+			}
 		}
 
 		if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
@@ -886,13 +897,27 @@ func EditIssue(ctx *context.APIContext) {
 				return
 			}
 		}
-		if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, "", api.StateClosed == api.StateType(*form.State)); err != nil {
-			if issues_model.IsErrDependenciesLeft(err) {
-				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
+
+		var isClosed bool
+		switch state := api.StateType(*form.State); state {
+		case api.StateOpen:
+			isClosed = false
+		case api.StateClosed:
+			isClosed = true
+		default:
+			ctx.Error(http.StatusPreconditionFailed, "UnknownIssueStateError", fmt.Sprintf("unknown state: %s", state))
+			return
+		}
+
+		if issue.IsClosed != isClosed {
+			if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, "", isClosed); err != nil {
+				if issues_model.IsErrDependenciesLeft(err) {
+					ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
+					return
+				}
+				ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
 				return
 			}
-			ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
-			return
 		}
 	}
 
@@ -937,7 +962,7 @@ func DeleteIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
@@ -993,7 +1018,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.EditDeadlineOption)
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
