@@ -113,8 +113,8 @@ func ListPullRequests(ctx *context.APIContext) {
 		return
 	}
 	var posterID int64
-	if ctx.FormString("poster") != "" {
-		poster, err := user_model.GetUserByName(ctx, ctx.FormString("poster"))
+	if posterStr := ctx.FormString("poster"); posterStr != "" {
+		poster, err := user_model.GetUserByName(ctx, posterStr)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Poster not found", err)
