@@ -95,10 +95,12 @@ func home(ctx *context.Context, viewRepositories bool) {
 	}
 
 	opts := &organization.FindOrgMembersOpts{
+		Doer:        ctx.Doer,
 		OrgID:       org.ID,
-		PublicOnly:  ctx.Org.PublicMemberOnly,
+		IsMember:    ctx.Org.IsMember,
 		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
 	}
+
 	members, _, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)

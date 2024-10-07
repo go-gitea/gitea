@@ -103,7 +103,7 @@ func TestUser_GetTeams(t *testing.T) {
 func TestUser_GetMembers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-	members, _, err := org.GetMembers(db.DefaultContext)
+	members, _, err := org.GetMembers(db.DefaultContext, &user_model.User{IsAdmin: true})
 	assert.NoError(t, err)
 	if assert.Len(t, members, 3) {
 		assert.Equal(t, int64(2), members[0].ID)
@@ -213,7 +213,6 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 	orgUsers, err := organization.GetOrgUsersByOrgID(db.DefaultContext, &organization.FindOrgMembersOpts{
 		ListOptions: db.ListOptions{},
 		OrgID:       3,
-		PublicOnly:  false,
 	})
 	assert.NoError(t, err)
 	if assert.Len(t, orgUsers, 3) {
@@ -240,7 +239,6 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 	orgUsers, err = organization.GetOrgUsersByOrgID(db.DefaultContext, &organization.FindOrgMembersOpts{
 		ListOptions: db.ListOptions{},
 		OrgID:       unittest.NonexistentID,
-		PublicOnly:  false,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, orgUsers, 0)
