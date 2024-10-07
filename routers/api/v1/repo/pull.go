@@ -83,6 +83,10 @@ func ListPullRequests(ctx *context.APIContext) {
 	//   items:
 	//     type: integer
 	//     format: int64
+	// - name: owner
+	//   in: query
+	//   description: filter by owner
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -102,6 +106,19 @@ func ListPullRequests(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "PullRequests", err)
 		return
 	}
+	var ownerID int64
+	if ctx.FormString("owner") != "" {
+		owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.Error(http.StatusBadRequest, "Owner not found", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			}
+			return
+		}
+		ownerID = owner.ID
+	}
 	listOptions := utils.GetListOptions(ctx)
 	prs, maxResults, err := issues_model.PullRequests(ctx, ctx.Repo.Repository.ID, &issues_model.PullRequestsOptions{
 		ListOptions: listOptions,
@@ -109,6 +126,7 @@ func ListPullRequests(ctx *context.APIContext) {
 		SortType:    ctx.FormTrim("sort"),
 		Labels:      labelIDs,
 		MilestoneID: ctx.FormInt64("milestone"),
+		OwnerID:     ownerID,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "PullRequests", err)

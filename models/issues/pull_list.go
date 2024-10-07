@@ -26,6 +26,7 @@ type PullRequestsOptions struct {
 	SortType    string
 	Labels      []int64
 	MilestoneID int64
+	OwnerID     int64
 }
 
 func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) *xorm.Session {
@@ -44,6 +45,10 @@ func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullR
 
 	if opts.MilestoneID > 0 {
 		sess.And("issue.milestone_id=?", opts.MilestoneID)
+	}
+
+	if opts.OwnerID > 0 {
+		sess.And("issue.owner_id=?", opts.OwnerID)
 	}
 
 	return sess
