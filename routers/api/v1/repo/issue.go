@@ -79,17 +79,17 @@ func SearchIssues(ctx *context.APIContext) {
 	//   format: date-time
 	// - name: assigned
 	//   in: query
-	//   description: Filter issues assigned to the authenticated user
+	//   description: Filter issues or pulls assigned to the authenticated user
 	//   type: boolean
 	//   default: false
 	// - name: created
 	//   in: query
-	//   description: Filter issues created by the authenticated user
+	//   description: Filter issues or pulls created by the authenticated user
 	//   type: boolean
 	//   default: false
 	// - name: mentioned
 	//   in: query
-	//   description: Filter issues mentioning the authenticated user
+	//   description: Filter issues or pulls mentioning the authenticated user
 	//   type: boolean
 	//   default: false
 	// - name: review_requested
