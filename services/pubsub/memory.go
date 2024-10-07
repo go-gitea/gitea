@@ -49,14 +49,17 @@ func (p *Memory) Subscribe(c context.Context, topic string, subscriber Subscribe
 	p.topics[topic][&subscriber] = struct{}{}
 	p.Unlock()
 
-	// Wait for context to be done
-	<-c.Done()
+	// Unsubscribe when context is done
+	go func() {
+		// Wait for context to be done
+		<-c.Done()
 
-	// Unsubscribe
-	p.Lock()
-	delete(p.topics[topic], &subscriber)
-	if len(p.topics[topic]) == 0 {
-		delete(p.topics, topic)
-	}
-	p.Unlock()
+		// Unsubscribe
+		p.Lock()
+		delete(p.topics[topic], &subscriber)
+		if len(p.topics[topic]) == 0 {
+			delete(p.topics, topic)
+		}
+		p.Unlock()
+	}()
 }

@@ -7,7 +7,6 @@ import (
 	"context"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,20 +23,11 @@ func TestPubsub(t *testing.T) {
 	)
 
 	broker := NewMemory()
-	go func() {
-		broker.Subscribe(ctx, testTopic, func(message []byte) { assert.Equal(t, testMessage, message); wg.Done() })
-	}()
-	go func() {
-		broker.Subscribe(ctx, testTopic, func(_ []byte) { wg.Done() })
-	}()
-
-	// Wait a bit for the subscriptions to be registered
-	<-time.After(100 * time.Millisecond)
+	broker.Subscribe(ctx, testTopic, func(message []byte) { assert.Equal(t, testMessage, message); wg.Done() })
+	broker.Subscribe(ctx, testTopic, func(_ []byte) { wg.Done() })
 
 	wg.Add(2)
-	go func() {
-		broker.Publish(ctx, testTopic, testMessage)
-	}()
+	broker.Publish(ctx, testTopic, testMessage)
 
 	wg.Wait()
 	cancel(nil)
