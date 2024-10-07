@@ -25,7 +25,7 @@
 						</div>
 					</div>
 				{{end}}
-				<div class="ui attached segment">
+				<div class="ui{{if not $canAddRemove}} top{{end}} attached segment">
 					<div class="flex-list">
 						{{range .Team.Repos}}
 							<div class="flex-item tw-items-center">
@@ -48,7 +48,7 @@
 							</div>
 						{{else}}
 							<div class="flex-item">
-								<span class="text grey italic">{{ctx.Locale.Tr "org.teams.repos.none"}}</span>
+								<span class="text grey tw-italic">{{ctx.Locale.Tr "org.teams.repos.none"}}</span>
 							</div>
 						{{end}}
 					</div>

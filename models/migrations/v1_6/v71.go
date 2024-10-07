@@ -61,7 +61,6 @@ func AddScratchHash(x *xorm.Engine) error {
 			if _, err := sess.ID(tfa.ID).Cols("scratch_salt, scratch_hash").Update(tfa); err != nil {
 				return fmt.Errorf("couldn't add in scratch_hash and scratch_salt: %w", err)
 			}
-
 		}
 	}
 

@@ -169,18 +169,22 @@ func Migrate(ctx *context.APIContext) {
 		opts.PullRequests = false
 		opts.Releases = false
 	}
+	if gitServiceType == api.CodeCommitService {
+		opts.AWSAccessKeyID = form.AWSAccessKeyID
+		opts.AWSSecretAccessKey = form.AWSSecretAccessKey
+	}
 
 	repo, err := repo_service.CreateRepositoryDirectly(ctx, ctx.Doer, repoOwner, repo_service.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    form.CloneAddr,
 		GitServiceType: gitServiceType,
-		IsPrivate:      opts.Private,
+		IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 		IsMirror:       opts.Mirror,
 		Status:         repo_model.RepositoryBeingMigrated,
 	})
 	if err != nil {
-		handleMigrateError(ctx, repoOwner, remoteAddr, err)
+		handleMigrateError(ctx, repoOwner, err)
 		return
 	}
 
@@ -207,7 +211,7 @@ func Migrate(ctx *context.APIContext) {
 	}()
 
 	if repo, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.Doer, repoOwner.Name, opts, nil); err != nil {
-		handleMigrateError(ctx, repoOwner, remoteAddr, err)
+		handleMigrateError(ctx, repoOwner, err)
 		return
 	}
 
@@ -215,7 +219,7 @@ func Migrate(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeAdmin}))
 }
 
-func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, remoteAddr string, err error) {
+func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err error) {
 	switch {
 	case repo_model.IsErrRepoAlreadyExist(err):
 		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")

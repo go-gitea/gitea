@@ -111,7 +111,7 @@ func TestAPINotification(t *testing.T) {
 
 	MakeRequest(t, NewRequest(t, "GET", "/api/v1/notifications/new"), http.StatusUnauthorized)
 
-	new := struct {
+	newStruct := struct {
 		New int64 `json:"new"`
 	}{}
 
@@ -119,8 +119,8 @@ func TestAPINotification(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/notifications/new").
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &new)
-	assert.True(t, new.New > 0)
+	DecodeJSON(t, resp, &newStruct)
+	assert.True(t, newStruct.New > 0)
 
 	// -- mark notifications as read --
 	req = NewRequest(t, "GET", "/api/v1/notifications?status-types=unread").
@@ -153,8 +153,8 @@ func TestAPINotification(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/notifications/new").
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &new)
-	assert.True(t, new.New == 0)
+	DecodeJSON(t, resp, &newStruct)
+	assert.True(t, newStruct.New == 0)
 }
 
 func TestAPINotificationPUT(t *testing.T) {

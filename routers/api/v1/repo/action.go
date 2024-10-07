@@ -9,17 +9,77 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	secret_model "code.gitea.io/gitea/models/secret"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/shared"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/convert"
 	secret_service "code.gitea.io/gitea/services/secrets"
 )
 
+// ListActionsSecrets list an repo's actions secrets
+func (Action) ListActionsSecrets(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/secrets repository repoListActionsSecrets
+	// ---
+	// summary: List an repo's actions secrets
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repository
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/SecretList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repo := ctx.Repo.Repository
+
+	opts := &secret_model.FindSecretsOptions{
+		RepoID:      repo.ID,
+		ListOptions: utils.GetListOptions(ctx),
+	}
+
+	secrets, count, err := db.FindAndCount[secret_model.Secret](ctx, opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	apiSecrets := make([]*api.Secret, len(secrets))
+	for k, v := range secrets {
+		apiSecrets[k] = &api.Secret{
+			Name:    v.Name,
+			Created: v.CreatedUnix.AsTime(),
+		}
+	}
+
+	ctx.SetTotalCountHeader(count)
+	ctx.JSON(http.StatusOK, apiSecrets)
+}
+
 // create or update one secret of the repository
-func CreateOrUpdateSecret(ctx *context.APIContext) {
+func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/actions/secrets/{secretname} repository updateRepoSecret
 	// ---
 	// summary: Create or Update a secret value in a repository
@@ -57,12 +117,11 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
 
-	_, created, err := secret_service.CreateOrUpdateSecret(ctx, owner.ID, repo.ID, ctx.Params("secretname"), opt.Data)
+	_, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
@@ -82,7 +141,7 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 }
 
 // DeleteSecret delete one secret of the repository
-func DeleteSecret(ctx *context.APIContext) {
+func (Action) DeleteSecret(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/actions/secrets/{secretname} repository deleteRepoSecret
 	// ---
 	// summary: Delete a secret in a repository
@@ -114,10 +173,9 @@ func DeleteSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	err := secret_service.DeleteSecretByName(ctx, owner.ID, repo.ID, ctx.Params("secretname"))
+	err := secret_service.DeleteSecretByName(ctx, 0, repo.ID, ctx.PathParam("secretname"))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "DeleteSecret", err)
@@ -133,7 +191,7 @@ func DeleteSecret(ctx *context.APIContext) {
 }
 
 // GetVariable get a repo-level variable
-func GetVariable(ctx *context.APIContext) {
+func (Action) GetVariable(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/variables/{variablename} repository getRepoVariable
 	// ---
 	// summary: Get a repo-level variable
@@ -164,7 +222,7 @@ func GetVariable(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		RepoID: ctx.Repo.Repository.ID,
-		Name:   ctx.Params("variablename"),
+		Name:   ctx.PathParam("variablename"),
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -186,7 +244,7 @@ func GetVariable(ctx *context.APIContext) {
 }
 
 // DeleteVariable delete a repo-level variable
-func DeleteVariable(ctx *context.APIContext) {
+func (Action) DeleteVariable(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/actions/variables/{variablename} repository deleteRepoVariable
 	// ---
 	// summary: Delete a repo-level variable
@@ -220,7 +278,7 @@ func DeleteVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := actions_service.DeleteVariableByName(ctx, 0, ctx.Repo.Repository.ID, ctx.Params("variablename")); err != nil {
+	if err := actions_service.DeleteVariableByName(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParam("variablename")); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "DeleteVariableByName", err)
 		} else if errors.Is(err, util.ErrNotExist) {
@@ -235,7 +293,7 @@ func DeleteVariable(ctx *context.APIContext) {
 }
 
 // CreateVariable create a repo-level variable
-func CreateVariable(ctx *context.APIContext) {
+func (Action) CreateVariable(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/actions/variables/{variablename} repository createRepoVariable
 	// ---
 	// summary: Create a repo-level variable
@@ -274,7 +332,7 @@ func CreateVariable(ctx *context.APIContext) {
 	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 
 	repoID := ctx.Repo.Repository.ID
-	variableName := ctx.Params("variablename")
+	variableName := ctx.PathParam("variablename")
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		RepoID: repoID,
@@ -302,7 +360,7 @@ func CreateVariable(ctx *context.APIContext) {
 }
 
 // UpdateVariable update a repo-level variable
-func UpdateVariable(ctx *context.APIContext) {
+func (Action) UpdateVariable(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/actions/variables/{variablename} repository updateRepoVariable
 	// ---
 	// summary: Update a repo-level variable
@@ -342,7 +400,7 @@ func UpdateVariable(ctx *context.APIContext) {
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		RepoID: ctx.Repo.Repository.ID,
-		Name:   ctx.Params("variablename"),
+		Name:   ctx.PathParam("variablename"),
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -354,7 +412,7 @@ func UpdateVariable(ctx *context.APIContext) {
 	}
 
 	if opt.Name == "" {
-		opt.Name = ctx.Params("variablename")
+		opt.Name = ctx.PathParam("variablename")
 	}
 	if _, err := actions_service.UpdateVariable(ctx, v.ID, opt.Name, opt.Value); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -369,7 +427,7 @@ func UpdateVariable(ctx *context.APIContext) {
 }
 
 // ListVariables list repo-level variables
-func ListVariables(ctx *context.APIContext) {
+func (Action) ListVariables(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/variables repository getRepoVariablesList
 	// ---
 	// summary: Get repo-level variables list
@@ -422,4 +480,104 @@ func ListVariables(ctx *context.APIContext) {
 
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, variables)
+}
+
+// GetRegistrationToken returns the token to register repo runners
+func (Action) GetRegistrationToken(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runners/registration-token repository repoGetRunnerRegistrationToken
+	// ---
+	// summary: Get a repository's actions runner registration token
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RegistrationToken"
+
+	shared.GetRegistrationToken(ctx, 0, ctx.Repo.Repository.ID)
+}
+
+var _ actions_service.API = new(Action)
+
+// Action implements actions_service.API
+type Action struct{}
+
+// NewAction creates a new Action service
+func NewAction() actions_service.API {
+	return Action{}
+}
+
+// ListActionTasks list all the actions of a repository
+func ListActionTasks(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/tasks repository ListActionTasks
+	// ---
+	// summary: List a repository's action tasks
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, default maximum page size is 50
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/TasksList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	tasks, total, err := db.FindAndCount[actions_model.ActionTask](ctx, &actions_model.FindTaskOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ListActionTasks", err)
+		return
+	}
+
+	res := new(api.ActionTaskResponse)
+	res.TotalCount = total
+
+	res.Entries = make([]*api.ActionTask, len(tasks))
+	for i := range tasks {
+		convertedTask, err := convert.ToActionTask(ctx, tasks[i])
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "ToActionTask", err)
+			return
+		}
+		res.Entries[i] = convertedTask
+	}
+
+	ctx.JSON(http.StatusOK, &res)
 }

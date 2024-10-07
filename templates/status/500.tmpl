@@ -1,12 +1,12 @@
 {{/* This page should only depend the minimal template functions/variables, to avoid triggering new panics.
-* base template functions: AppName, AssetUrlPrefix, AssetVersion, AppSubUrl, ThemeName
+* base template functions: AppName, AssetUrlPrefix, AssetVersion, AppSubUrl, UserThemeName
 * ctx.Locale
 * .Flash
 * .ErrorMsg
 * .SignedUser (optional)
 */}}
 <!DOCTYPE html>
-<html lang="{{ctx.Locale.Lang}}" data-theme="{{ThemeName .SignedUser}}">
+<html lang="{{ctx.Locale.Lang}}" data-theme="{{UserThemeName .SignedUser}}">
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Internal Server Error - {{AppName}}</title>
@@ -33,17 +33,18 @@
 			<div class="ui container" >
 				<style> .ui.message.flash-message { text-align: left; } </style>
 				{{template "base/alert" .}}
-			</div>
-			<p class="tw-mt-8 center"><img src="{{AssetUrlPrefix}}/img/500.png" alt="Internal Server Error"></p>
-			<div class="divider"></div>
-			<div class="ui container tw-my-8">
-				{{if .ErrorMsg}}
-					<p>{{ctx.Locale.Tr "error.occurred"}}:</p>
-					<pre class="tw-whitespace-pre-wrap tw-break-all">{{.ErrorMsg}}</pre>
-				{{end}}
-				<div class="center tw-mt-8">
-					{{if or .SignedUser.IsAdmin .ShowFooterVersion}}<p>{{ctx.Locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
-					{{if .SignedUser.IsAdmin}}<p>{{ctx.Locale.Tr "error.report_message"}}</p>{{end}}
+				<div class="status-page-error">
+					<div class="status-page-error-title">500 Internal Server Error</div>
+					{{if .ErrorMsg}}
+					<div class="tw-mt-8">
+						<p>{{ctx.Locale.Tr "error.occurred"}}:</p>
+						<pre class="tw-whitespace-pre-wrap tw-break-all">{{.ErrorMsg}}</pre>
+					</div>
+					{{end}}
+					<div class="tw-mt-8 tw-text-center">
+						{{if or .SignedUser.IsAdmin .ShowFooterVersion}}<p>{{ctx.Locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
+						{{if .SignedUser.IsAdmin}}<p>{{ctx.Locale.Tr "error.report_message" "https://github.com/go-gitea/gitea/issues"}}</p>{{end}}
+					</div>
 				</div>
 			</div>
 		</div>

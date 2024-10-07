@@ -16,6 +16,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -64,7 +65,7 @@ func SettingsCtxData(ctx *context.Context) {
 	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
-	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	if ctx.Doer.IsAdmin {
 		if setting.Indexer.RepoIndexerEnabled {
@@ -109,7 +110,7 @@ func SettingsPost(ctx *context.Context) {
 	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
-	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	repo := ctx.Repo.Repository
 
@@ -169,15 +170,7 @@ func SettingsPost(ctx *context.Context) {
 			form.Private = repo.BaseRepo.IsPrivate || repo.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
 		}
 
-		visibilityChanged := repo.IsPrivate != form.Private
-		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
-		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private && !ctx.Doer.IsAdmin {
-			ctx.RenderWithErr(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
-			return
-		}
-
-		repo.IsPrivate = form.Private
-		if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
+		if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -247,7 +240,8 @@ func SettingsPost(ctx *context.Context) {
 
 		remoteAddress, err := util.SanitizeURL(form.MirrorAddress)
 		if err != nil {
-			ctx.ServerError("SanitizeURL", err)
+			ctx.Data["Err_MirrorAddress"] = true
+			handleSettingRemoteAddrError(ctx, err, form)
 			return
 		}
 		pullMirror.RemoteAddress = remoteAddress
@@ -408,7 +402,8 @@ func SettingsPost(ctx *context.Context) {
 
 		remoteAddress, err := util.SanitizeURL(form.PushMirrorAddress)
 		if err != nil {
-			ctx.ServerError("SanitizeURL", err)
+			ctx.Data["Err_PushMirrorAddress"] = true
+			handleSettingRemoteAddrError(ctx, err, form)
 			return
 		}
 
@@ -476,9 +471,10 @@ func SettingsPost(ctx *context.Context) {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeWiki)
 		} else if form.EnableWiki && !form.EnableExternalWiki && !unit_model.TypeWiki.UnitGlobalDisabled() {
 			units = append(units, repo_model.RepoUnit{
-				RepoID: repo.ID,
-				Type:   unit_model.TypeWiki,
-				Config: new(repo_model.UnitConfig),
+				RepoID:             repo.ID,
+				Type:               unit_model.TypeWiki,
+				Config:             new(repo_model.UnitConfig),
+				EveryoneAccessMode: perm.ParseAccessMode(form.DefaultWikiEveryoneAccess, perm.AccessModeNone, perm.AccessModeRead, perm.AccessModeWrite),
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalWiki)
 		} else {
@@ -787,6 +783,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.GitRepo = nil
 		}
 
+		oldFullname := repo.FullName()
 		if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, repo, nil); err != nil {
 			if repo_model.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
@@ -801,8 +798,13 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		log.Trace("Repository transfer process was started: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
-		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_started", newOwner.DisplayName()))
+		if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
+			log.Trace("Repository transfer process was started: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
+			ctx.Flash.Success(ctx.Tr("repo.settings.transfer_started", newOwner.DisplayName()))
+		} else {
+			log.Trace("Repository transferred: %s -> %s", oldFullname, ctx.Repo.Repository.FullName())
+			ctx.Flash.Success(ctx.Tr("repo.settings.transfer_succeed"))
+		}
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "cancel_transfer":
@@ -930,6 +932,39 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
 
 		log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
+	case "visibility":
+		if repo.IsFork {
+			ctx.Flash.Error(ctx.Tr("repo.settings.visibility.fork_error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		var err error
+
+		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
+		if setting.Repository.ForcePrivate && repo.IsPrivate && !ctx.Doer.IsAdmin {
+			ctx.RenderWithErr(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
+			return
+		}
+
+		if repo.IsPrivate {
+			err = repo_service.MakeRepoPublic(ctx, repo)
+		} else {
+			err = repo_service.MakeRepoPrivate(ctx, repo)
+		}
+
+		if err != nil {
+			log.Error("Tried to change the visibility of the repo: %s", err)
+			ctx.Flash.Error(ctx.Tr("repo.settings.visibility.error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.visibility.success"))
+
+		log.Trace("Repository visibility changed: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
 	default:

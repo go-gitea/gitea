@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	notify_service "code.gitea.io/gitea/services/notify"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -119,17 +120,15 @@ func getDivergenceCacheKey(repoID int64, branchName string) string {
 
 // getDivergenceFromCache gets the divergence from cache
 func getDivergenceFromCache(repoID int64, branchName string) (*git.DivergeObject, bool) {
-	data := cache.GetCache().Get(getDivergenceCacheKey(repoID, branchName))
+	data, ok := cache.GetCache().Get(getDivergenceCacheKey(repoID, branchName))
 	res := git.DivergeObject{
 		Ahead:  -1,
 		Behind: -1,
 	}
-	s, ok := data.([]byte)
-	if !ok || len(s) == 0 {
+	if !ok || data == "" {
 		return &res, false
 	}
-
-	if err := json.Unmarshal(s, &res); err != nil {
+	if err := json.Unmarshal(util.UnsafeStringToBytes(data), &res); err != nil {
 		log.Error("json.UnMarshal failed: %v", err)
 		return &res, false
 	}
@@ -141,11 +140,28 @@ func putDivergenceFromCache(repoID int64, branchName string, divergence *git.Div
 	if err != nil {
 		return err
 	}
-	return cache.GetCache().Put(getDivergenceCacheKey(repoID, branchName), bs, 30*24*60*60)
+	return cache.GetCache().Put(getDivergenceCacheKey(repoID, branchName), util.UnsafeBytesToString(bs), 30*24*60*60)
 }
 
 func DelDivergenceFromCache(repoID int64, branchName string) error {
 	return cache.GetCache().Delete(getDivergenceCacheKey(repoID, branchName))
+}
+
+// DelRepoDivergenceFromCache deletes all divergence caches of a repository
+func DelRepoDivergenceFromCache(ctx context.Context, repoID int64) error {
+	dbBranches, err := db.Find[git_model.Branch](ctx, git_model.FindBranchOptions{
+		RepoID:      repoID,
+		ListOptions: db.ListOptionsAll,
+	})
+	if err != nil {
+		return err
+	}
+	for i := range dbBranches {
+		if err := DelDivergenceFromCache(repoID, dbBranches[i].Name); err != nil {
+			log.Error("DelDivergenceFromCache: %v", err)
+		}
+	}
+	return nil
 }
 
 func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *git_model.Branch, protectedBranches *git_model.ProtectedBranchRules,
@@ -333,7 +349,7 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 				if _, err := git_model.UpdateBranch(ctx, repoID, pusherID, branchName, commit); err != nil {
 					return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repoID, branchName, err)
 				}
-				return nil
+				continue
 			}
 
 			// if database have branches but not this branch, it means this is a new branch
@@ -467,13 +483,12 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	}
 
 	rawBranch, err := git_model.GetBranch(ctx, repo.ID, branchName)
-	if err != nil {
+	if err != nil && !git_model.IsErrBranchNotExist(err) {
 		return fmt.Errorf("GetBranch: %vc", err)
 	}
 
-	if rawBranch.IsDeleted {
-		return nil
-	}
+	// database branch record not exist or it's a deleted branch
+	notExist := git_model.IsErrBranchNotExist(err) || rawBranch.IsDeleted
 
 	commit, err := gitRepo.GetBranchCommit(branchName)
 	if err != nil {
@@ -481,8 +496,10 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, doer.ID); err != nil {
-			return err
+		if !notExist {
+			if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, doer.ID); err != nil {
+				return err
+			}
 		}
 
 		return gitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
@@ -528,7 +545,7 @@ func handlerBranchSync(items ...*BranchSyncOptions) []*BranchSyncOptions {
 	return nil
 }
 
-func addRepoToBranchSyncQueue(repoID, doerID int64) error {
+func addRepoToBranchSyncQueue(repoID int64) error {
 	return branchSyncQueue.Push(&BranchSyncOptions{
 		RepoID: repoID,
 	})
@@ -544,9 +561,9 @@ func initBranchSyncQueue(ctx context.Context) error {
 	return nil
 }
 
-func AddAllRepoBranchesToSyncQueue(ctx context.Context, doerID int64) error {
+func AddAllRepoBranchesToSyncQueue(ctx context.Context) error {
 	if err := db.Iterate(ctx, builder.Eq{"is_empty": false}, func(ctx context.Context, repo *repo_model.Repository) error {
-		return addRepoToBranchSyncQueue(repo.ID, doerID)
+		return addRepoToBranchSyncQueue(repo.ID)
 	}); err != nil {
 		return fmt.Errorf("run sync all branches failed: %v", err)
 	}
@@ -593,6 +610,14 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 		return nil
 	}); err != nil {
 		return err
+	}
+
+	if !repo.IsEmpty {
+		if err := AddRepoToLicenseUpdaterQueue(&LicenseUpdaterOptions{
+			RepoID: repo.ID,
+		}); err != nil {
+			log.Error("AddRepoToLicenseUpdaterQueue: %v", err)
+		}
 	}
 
 	notify_service.ChangeDefaultBranch(ctx, repo)

@@ -22,11 +22,8 @@
   "admin": false,
   "components": [
     "api",
-    "button",
-    "dimmer",
     "dropdown",
     "form",
-    "menu",
     "modal",
     "search",
     "tab"

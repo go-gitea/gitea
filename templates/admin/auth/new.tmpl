@@ -59,7 +59,7 @@
 						<input name="attributes_in_bind" type="checkbox" {{if .attributes_in_bind}}checked{{end}}>
 					</div>
 				</div>
-				<div class="ldap inline field {{if not (eq .type 2)}}tw-hidden{{end}}">
+				<div class="oauth2 ldap inline field {{if not (or (eq .type 2) (eq .type 6))}}tw-hidden{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.auths.syncenabled"}}</strong></label>
 						<input name="is_sync_enabled" type="checkbox" {{if .is_sync_enabled}}checked{{end}}>
@@ -91,29 +91,29 @@
 			<h5 class="ui top attached header">{{ctx.Locale.Tr "admin.auths.tip.oauth2_provider"}}</h5>
 			<div class="ui attached segment">
 				<li>Bitbucket</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.bitbucket"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.bitbucket" "https://bitbucket.org/account/user/{your-username}/oauth-consumers/new"}}</span>
 				<li>Dropbox</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.dropbox"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.dropbox" "https://www.dropbox.com/developers/apps"}}</span>
 				<li>Facebook</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.facebook"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.facebook" "https://developers.facebook.com/apps"}}</span>
 				<li>GitHub</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.github"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.github" "https://github.com/settings/applications/new"}}</span>
 				<li>GitLab</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.gitlab_new"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.gitlab_new" "https://gitlab.com/-/profile/applications"}}</span>
 				<li>Google</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.google_plus"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.google_plus" "https://console.developers.google.com/"}}</span>
 				<li>OpenID Connect</li>
 				<span>{{ctx.Locale.Tr "admin.auths.tip.openid_connect"}}</span>
 				<li>Twitter</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.twitter"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.twitter" "https://dev.twitter.com/apps"}}</span>
 				<li>Discord</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.discord"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.discord" "https://discordapp.com/developers/applications/me"}}</span>
 				<li>Gitea</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.gitea"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.gitea" "https://docs.gitea.com/development/oauth2-provider"}}</span>
 				<li>Nextcloud</li>
 				<span>{{ctx.Locale.Tr "admin.auths.tip.nextcloud"}}</span>
 				<li>Yandex</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.yandex"}}</span>
+				<span>{{ctx.Locale.Tr "admin.auths.tip.yandex" "https://oauth.yandex.com/client/new"}}</span>
 				<li>Mastodon</li>
 				<span>{{ctx.Locale.Tr "admin.auths.tip.mastodon"}}</span>
 			</div>

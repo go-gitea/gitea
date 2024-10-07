@@ -21,6 +21,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -39,7 +40,7 @@ var (
 	ErrHasMerged             = errors.New("has already been merged")
 	ErrIsWorkInProgress      = errors.New("work in progress PRs cannot be merged")
 	ErrIsChecking            = errors.New("cannot merge while conflict checking is in progress")
-	ErrNotMergableState      = errors.New("not in mergeable state")
+	ErrNotMergeableState     = errors.New("not in mergeable state")
 	ErrDependenciesLeft      = errors.New("is blocked by an open dependency")
 )
 
@@ -66,8 +67,8 @@ const (
 	MergeCheckTypeAuto                           // Auto Merge (Scheduled Merge) After Checks Succeed
 )
 
-// CheckPullMergable check if the pull mergable based on all conditions (branch protection, merge options, ...)
-func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *issues_model.PullRequest, mergeCheckType MergeCheckType, adminSkipProtectionCheck bool) error {
+// CheckPullMergeable check if the pull mergeable based on all conditions (branch protection, merge options, ...)
+func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *issues_model.PullRequest, mergeCheckType MergeCheckType, adminSkipProtectionCheck bool) error {
 	return db.WithTx(stdCtx, func(ctx context.Context) error {
 		if pr.HasMerged {
 			return ErrHasMerged
@@ -97,7 +98,7 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 		}
 
 		if !pr.CanAutoMerge() && !pr.IsEmpty() {
-			return ErrNotMergableState
+			return ErrNotMergeableState
 		}
 
 		if pr.IsChecking() {
@@ -334,9 +335,15 @@ func handler(items ...string) []string {
 }
 
 func testPR(id int64) {
-	pullWorkingPool.CheckIn(fmt.Sprint(id))
-	defer pullWorkingPool.CheckOut(fmt.Sprint(id))
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("Test PR[%d] from patch checking queue", id))
+	ctx := graceful.GetManager().HammerContext()
+	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(id))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return
+	}
+	defer releaser()
+
+	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Test PR[%d] from patch checking queue", id))
 	defer finished()
 
 	pr, err := issues_model.GetPullRequestByID(ctx, id)

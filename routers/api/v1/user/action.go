@@ -49,7 +49,7 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
 
-	_, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Doer.ID, 0, ctx.Params("secretname"), opt.Data)
+	_, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Doer.ID, 0, ctx.PathParam("secretname"), opt.Data)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
@@ -91,7 +91,7 @@ func DeleteSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := secret_service.DeleteSecretByName(ctx, ctx.Doer.ID, 0, ctx.Params("secretname"))
+	err := secret_service.DeleteSecretByName(ctx, ctx.Doer.ID, 0, ctx.PathParam("secretname"))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "DeleteSecret", err)
@@ -138,7 +138,7 @@ func CreateVariable(ctx *context.APIContext) {
 	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 
 	ownerID := ctx.Doer.ID
-	variableName := ctx.Params("variablename")
+	variableName := ctx.PathParam("variablename")
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		OwnerID: ownerID,
@@ -198,7 +198,7 @@ func UpdateVariable(ctx *context.APIContext) {
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		OwnerID: ctx.Doer.ID,
-		Name:    ctx.Params("variablename"),
+		Name:    ctx.PathParam("variablename"),
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -210,7 +210,7 @@ func UpdateVariable(ctx *context.APIContext) {
 	}
 
 	if opt.Name == "" {
-		opt.Name = ctx.Params("variablename")
+		opt.Name = ctx.PathParam("variablename")
 	}
 	if _, err := actions_service.UpdateVariable(ctx, v.ID, opt.Name, opt.Value); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -247,7 +247,7 @@ func DeleteVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := actions_service.DeleteVariableByName(ctx, ctx.Doer.ID, 0, ctx.Params("variablename")); err != nil {
+	if err := actions_service.DeleteVariableByName(ctx, ctx.Doer.ID, 0, ctx.PathParam("variablename")); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "DeleteVariableByName", err)
 		} else if errors.Is(err, util.ErrNotExist) {
@@ -284,7 +284,7 @@ func GetVariable(ctx *context.APIContext) {
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		OwnerID: ctx.Doer.ID,
-		Name:    ctx.Params("variablename"),
+		Name:    ctx.PathParam("variablename"),
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {

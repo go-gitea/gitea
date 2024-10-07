@@ -95,6 +95,9 @@ cpu.out
 /.air
 /.go-licenses
 
+# Files and folders that were previously generated
+/public/assets/img/webpack
+
 # Snapcraft
 snap/.snapcraft/
 parts/

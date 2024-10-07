@@ -9,7 +9,6 @@
   font-family: var(--fonts-regular);
   font-weight: var(--font-weight-medium);
   line-height: 1.28571429;
-  text-transform: none;
 }
 
 .ui.header:first-child {
@@ -133,12 +132,6 @@ h4.ui.header .sub.header {
 .ui.attached.header > .ui.right .ui.tiny.button {
   padding: 6px 10px;
   font-weight: var(--font-weight-normal);
-}
-
-/* open dropdown menus to the left in right-attached headers */
-.ui.attached.header > .ui.right .ui.dropdown .menu {
-  right: 0;
-  left: auto;
 }
 
 /* if a .top.attached.header is followed by a .segment, add some margin */

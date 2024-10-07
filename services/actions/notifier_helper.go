@@ -43,7 +43,8 @@ func withMethod(ctx context.Context, method string) context.Context {
 			return ctx
 		}
 	}
-	return context.WithValue(ctx, methodCtxKey, method)
+	// FIXME: review the use of this nolint directive
+	return context.WithValue(ctx, methodCtxKey, method) //nolint:staticcheck
 }
 
 // getMethod gets the notification method that this context currently executes.
@@ -65,7 +66,7 @@ type notifyInput struct {
 	Event webhook_module.HookEventType
 
 	// optional
-	Ref         string
+	Ref         git.RefName
 	Payload     api.Payloader
 	PullRequest *issues_model.PullRequest
 }
@@ -78,13 +79,18 @@ func newNotifyInput(repo *repo_model.Repository, doer *user_model.User, event we
 	}
 }
 
+func newNotifyInputForSchedules(repo *repo_model.Repository) *notifyInput {
+	// the doer here will be ignored as we force using action user when handling schedules
+	return newNotifyInput(repo, user_model.NewActionsUser(), webhook_module.HookEventSchedule)
+}
+
 func (input *notifyInput) WithDoer(doer *user_model.User) *notifyInput {
 	input.Doer = doer
 	return input
 }
 
 func (input *notifyInput) WithRef(ref string) *notifyInput {
-	input.Ref = ref
+	input.Ref = git.RefName(ref)
 	return input
 }
 
@@ -96,7 +102,7 @@ func (input *notifyInput) WithPayload(payload api.Payloader) *notifyInput {
 func (input *notifyInput) WithPullRequest(pr *issues_model.PullRequest) *notifyInput {
 	input.PullRequest = pr
 	if input.Ref == "" {
-		input.Ref = pr.GetGitRefName()
+		input.Ref = git.RefName(pr.GetGitRefName())
 	}
 	return input
 }
@@ -139,20 +145,25 @@ func notify(ctx context.Context, input *notifyInput) error {
 	defer gitRepo.Close()
 
 	ref := input.Ref
-	if ref != input.Repo.DefaultBranch && actions_module.IsDefaultBranchWorkflow(input.Event) {
+	if ref.BranchName() != input.Repo.DefaultBranch && actions_module.IsDefaultBranchWorkflow(input.Event) {
 		if ref != "" {
 			log.Warn("Event %q should only trigger workflows on the default branch, but its ref is %q. Will fall back to the default branch",
 				input.Event, ref)
 		}
-		ref = input.Repo.DefaultBranch
+		ref = git.RefNameFromBranch(input.Repo.DefaultBranch)
 	}
 	if ref == "" {
 		log.Warn("Ref of event %q is empty, will fall back to the default branch", input.Event)
-		ref = input.Repo.DefaultBranch
+		ref = git.RefNameFromBranch(input.Repo.DefaultBranch)
+	}
+
+	commitID, err := gitRepo.GetRefCommitID(ref.String())
+	if err != nil {
+		return fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
 	}
 
 	// Get the commit object for the ref
-	commit, err := gitRepo.GetCommit(ref)
+	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
@@ -163,7 +174,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 
 	var detectedWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
-	shouldDetectSchedules := input.Event == webhook_module.HookEventPush && git.RefName(input.Ref).BranchName() == input.Repo.DefaultBranch
+	shouldDetectSchedules := input.Event == webhook_module.HookEventPush && input.Ref.BranchName() == input.Repo.DefaultBranch
 	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit,
 		input.Event,
 		input.Payload,
@@ -215,12 +226,12 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	if shouldDetectSchedules {
-		if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
+		if err := handleSchedules(ctx, schedules, commit, input, ref.String()); err != nil {
 			return err
 		}
 	}
 
-	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
+	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref.String())
 }
 
 func skipWorkflows(input *notifyInput, commit *git.Commit) bool {
@@ -293,12 +304,14 @@ func handleWorkflows(
 			TriggerEvent:      dwf.TriggerEvent.Name,
 			Status:            actions_model.StatusWaiting,
 		}
-		if need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer); err != nil {
+
+		need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
+		if err != nil {
 			log.Error("check if need approval for repo %d with user %d: %v", input.Repo.ID, input.Doer.ID, err)
 			continue
-		} else {
-			run.NeedApproval = need
 		}
+
+		run.NeedApproval = need
 
 		if err := run.LoadAttributes(ctx); err != nil {
 			log.Error("LoadAttributes: %v", err)
@@ -485,7 +498,7 @@ func handleSchedules(
 			RepoID:        input.Repo.ID,
 			OwnerID:       input.Repo.OwnerID,
 			WorkflowID:    dwf.EntryName,
-			TriggerUserID: input.Doer.ID,
+			TriggerUserID: user_model.ActionsUserID,
 			Ref:           ref,
 			CommitSHA:     commit.ID.String(),
 			Event:         input.Event,
@@ -525,12 +538,9 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	}
 
 	// We need a notifyInput to call handleSchedules
-	// Here we use the commit author as the Doer of the notifyInput
-	commitUser, err := user_model.GetUserByEmail(ctx, commit.Author.Email)
-	if err != nil {
-		return fmt.Errorf("get user by email: %w", err)
-	}
-	notifyInput := newNotifyInput(repo, commitUser, webhook_module.HookEventSchedule)
+	// if repo is a mirror, commit author maybe an external user,
+	// so we use action user as the Doer of the notifyInput
+	notifyInput := newNotifyInputForSchedules(repo)
 
 	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, repo.DefaultBranch)
 }

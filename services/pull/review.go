@@ -6,6 +6,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -43,9 +44,12 @@ func (err ErrDismissRequestOnClosedPR) Unwrap() error {
 	return util.ErrPermissionDenied
 }
 
+// ErrSubmitReviewOnClosedPR represents an error when an user tries to submit an approve or reject review associated to a closed or merged PR.
+var ErrSubmitReviewOnClosedPR = errors.New("can't submit review for a closed or merged PR")
+
 // checkInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
-func checkInvalidation(ctx context.Context, c *issues_model.Comment, doer *user_model.User, repo *git.Repository, branch string) error {
+func checkInvalidation(ctx context.Context, c *issues_model.Comment, repo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
 	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
 	if err != nil && (strings.Contains(err.Error(), "fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
@@ -79,7 +83,7 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 		return fmt.Errorf("find code comments: %v", err)
 	}
 	for _, comment := range codeComments {
-		if err := checkInvalidation(ctx, comment, doer, repo, branch); err != nil {
+		if err := checkInvalidation(ctx, comment, repo, branch); err != nil {
 			return err
 		}
 	}
@@ -293,6 +297,10 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 	if reviewType != issues_model.ReviewTypeApprove && reviewType != issues_model.ReviewTypeReject {
 		stale = false
 	} else {
+		if issue.IsClosed {
+			return nil, nil, ErrSubmitReviewOnClosedPR
+		}
+
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
 			return nil, nil, err
@@ -340,7 +348,7 @@ func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *is
 	reviews, err := issues_model.FindReviews(ctx, issues_model.FindReviewOptions{
 		ListOptions: db.ListOptionsAll,
 		IssueID:     pull.IssueID,
-		Type:        issues_model.ReviewTypeApprove,
+		Types:       []issues_model.ReviewType{issues_model.ReviewTypeApprove},
 		Dismissed:   optional.Some(false),
 	})
 	if err != nil {

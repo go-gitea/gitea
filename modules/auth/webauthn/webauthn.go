@@ -31,7 +31,7 @@ func Init() {
 			RPID:          setting.Domain,
 			RPOrigins:     []string{appURL},
 			AuthenticatorSelection: protocol.AuthenticatorSelection{
-				UserVerification: "discouraged",
+				UserVerification: protocol.VerificationDiscouraged,
 			},
 			AttestationPreference: protocol.PreferDirectAttestation,
 		},
@@ -66,7 +66,7 @@ func (u *User) WebAuthnIcon() string {
 	return (*user_model.User)(u).AvatarLink(db.DefaultContext)
 }
 
-// WebAuthnCredentials implementns the webauthn.User interface
+// WebAuthnCredentials implements the webauthn.User interface
 func (u *User) WebAuthnCredentials() []webauthn.Credential {
 	dbCreds, err := auth.GetWebAuthnCredentialsByUID(db.DefaultContext, u.ID)
 	if err != nil {

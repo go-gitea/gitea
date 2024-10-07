@@ -7,7 +7,6 @@
 .dashboard.feeds .context.user.menu .ui.header,
 .dashboard.issues .context.user.menu .ui.header {
   font-size: 1rem;
-  text-transform: none;
 }
 
 .dashboard.feeds .filter.menu,

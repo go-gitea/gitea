@@ -2,7 +2,11 @@
   overflow: hidden;
   font-size: 16px;
   line-height: 1.5 !important;
-  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.conversation-holder .markup {
+  overflow-wrap: anywhere; /* prevent overflow in code comments. TODO: properly restrict .conversation-holder width and remove this */
 }
 
 .markup > *:first-child {
@@ -204,10 +208,7 @@
 
 .markup input[type="checkbox"]::after {
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  right: 0;
+  inset: 0;
   pointer-events: none;
   background: var(--color-text);
   mask-size: cover;

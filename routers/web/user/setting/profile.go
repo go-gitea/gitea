@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	user_service "code.gitea.io/gitea/services/user"
+	"code.gitea.io/gitea/services/webtheme"
 )
 
 const (
@@ -47,6 +48,8 @@ func Profile(ctx *context.Context) {
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
 
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
+
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
 
@@ -56,6 +59,7 @@ func ProfilePost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSettingsProfile)
@@ -65,6 +69,11 @@ func ProfilePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateProfileForm)
 
 	if form.Name != "" {
+		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeUsername) {
+			ctx.Flash.Error(ctx.Tr("user.form.change_username_disabled"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings")
+			return
+		}
 		if err := user_service.RenameUser(ctx, ctx.Doer, form.Name); err != nil {
 			switch {
 			case user_model.IsErrUserIsNotLocal(err):
@@ -87,7 +96,6 @@ func ProfilePost(ctx *context.Context) {
 	}
 
 	opts := &user_service.UpdateOptions{
-		FullName:            optional.Some(form.FullName),
 		KeepEmailPrivate:    optional.Some(form.KeepEmailPrivate),
 		Description:         optional.Some(form.Description),
 		Website:             optional.Some(form.Website),
@@ -95,6 +103,16 @@ func ProfilePost(ctx *context.Context) {
 		Visibility:          optional.Some(form.Visibility),
 		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
 	}
+
+	if form.FullName != "" {
+		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeFullName) {
+			ctx.Flash.Error(ctx.Tr("user.form.change_full_name_disabled"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings")
+			return
+		}
+		opts.FullName = optional.Some(form.FullName)
+	}
+
 	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
@@ -181,6 +199,7 @@ func DeleteAvatar(ctx *context.Context) {
 func Organization(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.organization")
 	ctx.Data["PageIsSettingsOrganization"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	opts := organization.FindOrgOptions{
 		ListOptions: db.ListOptions{
@@ -212,6 +231,7 @@ func Organization(ctx *context.Context) {
 func Repos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.repos")
 	ctx.Data["PageIsSettingsRepos"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 	ctx.Data["allowAdopt"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories
 	ctx.Data["allowDelete"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowDeleteOfUnadoptedRepositories
 
@@ -319,6 +339,14 @@ func Appearance(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.appearance")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
+	allThemes := webtheme.GetAvailableThemes()
+	if webtheme.IsThemeAvailable(setting.UI.DefaultTheme) {
+		allThemes = util.SliceRemoveAll(allThemes, setting.UI.DefaultTheme)
+		allThemes = append([]string{setting.UI.DefaultTheme}, allThemes...) // move the default theme to the top
+	}
+	ctx.Data["AllThemes"] = allThemes
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
+
 	var hiddenCommentTypes *big.Int
 	val, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
 	if err != nil {
@@ -341,11 +369,12 @@ func UpdateUIThemePost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	if ctx.HasError() {
+		ctx.Flash.Error(ctx.GetErrMsg())
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return
 	}
 
-	if !form.IsThemeExists() {
+	if !webtheme.IsThemeAvailable(form.Theme) {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return

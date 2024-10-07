@@ -47,7 +47,7 @@
 	</div>
 </div>
 
-<div class="ui attached bottom segment">
+<div class="ui bottom attached segment">
 	<h5 class="ui top header">
 		{{ctx.Locale.Tr "settings.create_oauth2_application"}}
 	</h5>
@@ -61,9 +61,17 @@
 			<label for="redirect-uris">{{ctx.Locale.Tr "settings.oauth2_redirect_uris"}}</label>
 			<textarea name="redirect_uris" id="redirect-uris"></textarea>
 		</div>
-		<div class="field ui checkbox {{if .Err_ConfidentialClient}}error{{end}}">
-			<label>{{ctx.Locale.Tr "settings.oauth2_confidential_client"}}</label>
-			<input type="checkbox" name="confidential_client" checked>
+		<div class="field {{if .Err_ConfidentialClient}}error{{end}}">
+			<div class="ui checkbox">
+				<label>{{ctx.Locale.Tr "settings.oauth2_confidential_client"}}</label>
+				<input class="disable-setting" type="checkbox" name="confidential_client" data-target="#skip-secondary-authorization" checked>
+			</div>
+		</div>
+		<div class="field {{if .Err_SkipSecondaryAuthorization}}error{{end}} disabled" id="skip-secondary-authorization">
+			<div class="ui checkbox">
+				<label>{{ctx.Locale.Tr "settings.oauth2_skip_secondary_authorization"}}</label>
+				<input type="checkbox" name="skip_secondary_authorization">
+			</div>
 		</div>
 		<button class="ui primary button">
 			{{ctx.Locale.Tr "settings.create_oauth2_application_button"}}

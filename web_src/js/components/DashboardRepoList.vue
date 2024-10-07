@@ -1,8 +1,8 @@
-<script>
+<script lang="ts">
 import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
-import {SvgIcon} from '../svg.js';
-import {GET} from '../modules/fetch.js';
+import {SvgIcon} from '../svg.ts';
+import {GET} from '../modules/fetch.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
@@ -78,7 +78,6 @@ const sfc = {
     searchURL() {
       return `${this.subUrl}/repo/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
       }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
-      }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
       }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
       }${this.privateFilter === 'private' ? '&is_private=true' : ''}${this.privateFilter === 'public' ? '&is_private=false' : ''
       }`;
@@ -101,7 +100,7 @@ const sfc = {
   },
 
   mounted() {
-    const el = document.getElementById('dashboard-repo-list');
+    const el = document.querySelector('#dashboard-repo-list');
     this.changeReposFilter(this.reposFilter);
     $(el).find('.dropdown').dropdown();
     nextTick(() => {
@@ -251,9 +250,9 @@ const sfc = {
         this.repos = json.data.map((webSearchRepo) => {
           return {
             ...webSearchRepo.repository,
-            latest_commit_status_state: webSearchRepo.latest_commit_status.State,
+            latest_commit_status_state: webSearchRepo.latest_commit_status?.State, // if latest_commit_status is null, it means there is no commit status
+            latest_commit_status_state_link: webSearchRepo.latest_commit_status?.TargetURL,
             locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
-            latest_commit_status_state_link: webSearchRepo.latest_commit_status.TargetURL,
           };
         });
         const count = response.headers.get('X-Total-Count');
@@ -330,7 +329,7 @@ const sfc = {
 };
 
 export function initDashboardRepoList() {
-  const el = document.getElementById('dashboard-repo-list');
+  const el = document.querySelector('#dashboard-repo-list');
   if (el) {
     createApp(sfc).mount(el);
   }
@@ -509,10 +508,8 @@ ul li:not(:last-child) {
 }
 
 .repos-filter {
-  padding-top: 0 !important;
   margin-top: 0 !important;
   border-bottom-width: 0 !important;
-  margin-bottom: 2px !important;
 }
 
 .repos-filter .item {
