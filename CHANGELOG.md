@@ -7,7 +7,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.22.3](https://github.com/go-gitea/gitea/releases/tag/1.22.3) - 2024-10-06
 
 * SECURITY
-  
 * BUGFIXES
   * Fix javascript error when an anonymous user visiting migration page (#32144) (#32179)
   * Don't init singing keys if oauth2 provider disabled (#32177)
