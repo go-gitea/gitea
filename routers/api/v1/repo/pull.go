@@ -84,7 +84,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	//   items:
 	//     type: integer
 	//     format: int64
-	// - name: owner
+	// - name: poster
 	//   in: query
 	//   description: Filter by pull request author
 	//   type: string
@@ -112,18 +112,18 @@ func ListPullRequests(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "PullRequests", err)
 		return
 	}
-	var ownerID int64
+	var posterID int64
 	if ctx.FormString("owner") != "" {
-		owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
+		poster, err := user_model.GetUserByName(ctx, ctx.FormString("poster"))
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.Error(http.StatusBadRequest, "Owner not found", err)
+				ctx.Error(http.StatusBadRequest, "Poster not found", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 			}
 			return
 		}
-		ownerID = owner.ID
+		posterID = poster.ID
 	}
 	listOptions := utils.GetListOptions(ctx)
 	prs, maxResults, err := issues_model.PullRequests(ctx, ctx.Repo.Repository.ID, &issues_model.PullRequestsOptions{
@@ -132,7 +132,7 @@ func ListPullRequests(ctx *context.APIContext) {
 		SortType:    ctx.FormTrim("sort"),
 		Labels:      labelIDs,
 		MilestoneID: ctx.FormInt64("milestone"),
-		OwnerID:     ownerID,
+		PosterID:    posterID,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "PullRequests", err)
