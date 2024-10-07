@@ -52,32 +52,33 @@ func ListPullRequests(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: Owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
-	//   description: name of the repo
+	//   description: Name of the repo
 	//   type: string
 	//   required: true
 	// - name: state
 	//   in: query
-	//   description: "State of pull request: open or closed (optional)"
+	//   description: State of pull request
 	//   type: string
-	//   enum: [closed, open, all]
+	//   enum: [open, closed, all]
+	//   default: open
 	// - name: sort
 	//   in: query
-	//   description: "Type of sort"
+	//   description: Type of sort
 	//   type: string
 	//   enum: [oldest, recentupdate, leastupdate, mostcomment, leastcomment, priority]
 	// - name: milestone
 	//   in: query
-	//   description: "ID of the milestone"
+	//   description: ID of the milestone
 	//   type: integer
 	//   format: int64
 	// - name: labels
 	//   in: query
-	//   description: "Label IDs"
+	//   description: Label IDs
 	//   type: array
 	//   collectionFormat: multi
 	//   items:
@@ -85,21 +86,26 @@ func ListPullRequests(ctx *context.APIContext) {
 	//     format: int64
 	// - name: owner
 	//   in: query
-	//   description: filter by owner
+	//   description: Filter by pull request author
 	//   type: string
 	// - name: page
 	//   in: query
-	//   description: page number of results to return (1-based)
+	//   description: Page number of results to return (1-based)
 	//   type: integer
+	//   minimum: 1
+	//   default: 1
 	// - name: limit
 	//   in: query
-	//   description: page size of results
+	//   description: Page size of results
 	//   type: integer
+	//   minimum: 0
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "500":
+	//     "$ref": "#/responses/error"
 
 	labelIDs, err := base.StringsToInt64s(ctx.FormStrings("labels"))
 	if err != nil {
