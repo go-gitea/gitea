@@ -113,7 +113,7 @@ func ListPullRequests(ctx *context.APIContext) {
 		return
 	}
 	var posterID int64
-	if ctx.FormString("owner") != "" {
+	if ctx.FormString("poster") != "" {
 		poster, err := user_model.GetUserByName(ctx, ctx.FormString("poster"))
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
