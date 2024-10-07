@@ -4,6 +4,45 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.22.3](https://github.com/go-gitea/gitea/releases/tag/1.22.3) - 2024-10-06
+
+* SECURITY
+  
+* BUGFIXES
+  * Fix javascript error when an anonymous user visiting migration page (#32144) (#32179)
+  * Don't init singing keys if oauth2 provider disabled (#32177)
+  * Don't join repository when loading action table data (#32127) (#32143)
+  * Fix wrong status of `Set up Job` when first step is skipped (#32120) (#32125)
+  * Fix bug when deleting a migrated branch (#32075) (#32123)
+  * Truncate commit message during Discord webhook push events (#31970) (#32121)
+  * Allow set branch protection in an empty repository (#32095) (#32119)
+  * Fix panic when cloning with wrong ssh format. (#32076) (#32118)
+  * Fix rename branch permission bug (#32066) (#32108)
+  * Fix: database not update release when using `git push --tags --force` (#32040) (#32074)
+  * Add missing comment reply handling (#32050) (#32065)
+  * Do not escape relative path in RPM primary index (#32038) (#32054)
+  * Fix `/repos/{owner}/{repo}/pulls/{index}/files` endpoint not populating `previous_filename` (#32017) (#32028)
+  * Support allowed hosts for migrations to work with proxy (#32025) (#32026)
+  * Fix the logic of finding the latest pull review commit ID (#32139) (#32165)
+  * Fix bug in getting merged pull request by commit (#32079) (#32117)
+  * Fix wrong last modify time (#32102) (#32104)
+  * Fix incorrect `/tokens` api (#32085) (#32092)
+  * Handle invalid target when creating releases using API (#31841) (#32043)
+  * Check if the `due_date` is nil when editing issues (#32035) (#32042)
+  * Fix container parallel upload bugs (#32022)
+  * Fixed race condition when deleting documents by repoId in ElasticSearch (#32185) (#32188)
+  * Increase `cacheContextLifetime` to reduce false reports (#32011) (#32023)
+  * Refactor CSRF protector (#32057) (#32069)
+  * Fix Bug in Issue/pulls list (#32081) (#32115)
+  * Include collaboration repositories on dashboard source/forks/mirrors list (#31946) (#32122)
+* TESTING
+  * Fix mssql ci with a new mssql version on ci (#32094)
+* MISC
+  * Upgrade some dependencies include minio-go (#32166)
+  * Add bin to Composer Metadata (#32099) (#32106)
+  * Lazy load avatar images (#32051) (#32063)
+  * Upgrade cache to v0.2.1 (#32003) (#32009)
+
 ## [1.22.2](https://github.com/go-gitea/gitea/releases/tag/1.22.2) - 2024-08-28
 
 * Security
