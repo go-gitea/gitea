@@ -7,10 +7,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.22.3](https://github.com/go-gitea/gitea/releases/tag/1.22.3) - 2024-10-06
 
 * SECURITY
+* PERFORMANCE
+  * Increase `cacheContextLifetime` to reduce false reports (#32011) (#32023)
+  * Don't join repository when loading action table data (#32127) (#32143)
 * BUGFIXES
   * Fix javascript error when an anonymous user visiting migration page (#32144) (#32179)
   * Don't init singing keys if oauth2 provider disabled (#32177)
-  * Don't join repository when loading action table data (#32127) (#32143)
   * Fix wrong status of `Set up Job` when first step is skipped (#32120) (#32125)
   * Fix bug when deleting a migrated branch (#32075) (#32123)
   * Truncate commit message during Discord webhook push events (#31970) (#32121)
@@ -30,7 +32,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Check if the `due_date` is nil when editing issues (#32035) (#32042)
   * Fix container parallel upload bugs (#32022)
   * Fixed race condition when deleting documents by repoId in ElasticSearch (#32185) (#32188)
-  * Increase `cacheContextLifetime` to reduce false reports (#32011) (#32023)
   * Refactor CSRF protector (#32057) (#32069)
   * Fix Bug in Issue/pulls list (#32081) (#32115)
   * Include collaboration repositories on dashboard source/forks/mirrors list (#31946) (#32122)
