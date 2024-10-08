@@ -46,11 +46,12 @@ export function initRepoTopicBar() {
           topicArray.sort();
           for (const topic of topicArray) {
             // it should match the code in repo/home.tmpl
+            // TODO: sort items in topicDropdown, or items in edit div will have different order to the items in view div
             const link = document.createElement('a');
             link.classList.add('repo-topic', 'ui', 'large', 'label');
             link.href = `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`;
             link.textContent = topic;
-            viewDiv.append(link); // insert all new topics before manage button
+            viewDiv.append(link);
           }
         }
         hideElem(editDiv);
