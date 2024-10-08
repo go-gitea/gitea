@@ -271,6 +271,12 @@ func TestAPISearchIssues(t *testing.T) {
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, expectedIssueCount)
 
+	publicOnlyToken := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopePublicOnly)
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(publicOnlyToken)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 15) // 15 public issues
+
 	since := "2000-01-01T00:50:01+00:00" // 946687801
 	before := time.Unix(999307200, 0).Format(time.RFC3339)
 	query.Add("since", since)
