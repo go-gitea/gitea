@@ -33,7 +33,7 @@ func TestRenameUsername(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf":    GetCSRF(t, session, "/user/settings"),
+		"_csrf":    GetUserCSRFToken(t, session),
 		"name":     "newUsername",
 		"email":    "user2@example.com",
 		"language": "en-US",
@@ -77,7 +77,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 		t.Logf("Testing username %s", invalidUsername)
 
 		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"_csrf": GetCSRF(t, session, "/user/settings"),
+			"_csrf": GetUserCSRFToken(t, session),
 			"name":  invalidUsername,
 			"email": "user2@example.com",
 		})
@@ -135,7 +135,7 @@ func TestRenameReservedUsername(t *testing.T) {
 	for _, reservedUsername := range reservedUsernames {
 		t.Logf("Testing username %s", reservedUsername)
 		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"_csrf":    GetCSRF(t, session, "/user/settings"),
+			"_csrf":    GetUserCSRFToken(t, session),
 			"name":     reservedUsername,
 			"email":    "user2@example.com",
 			"language": "en-US",
@@ -293,7 +293,7 @@ func TestUserLocationMapLink(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf":    GetCSRF(t, session, "/user/settings"),
+		"_csrf":    GetUserCSRFToken(t, session),
 		"name":     "user2",
 		"email":    "user@example.com",
 		"language": "en-US",

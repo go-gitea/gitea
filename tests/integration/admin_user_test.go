@@ -51,7 +51,7 @@ func testSuccessfullEdit(t *testing.T, formData user_model.User) {
 
 func makeRequest(t *testing.T, formData user_model.User, headerCode int) {
 	session := loginUser(t, "user1")
-	csrf := GetCSRF(t, session, "/admin/users/"+strconv.Itoa(int(formData.ID))+"/edit")
+	csrf := GetUserCSRFToken(t, session)
 	req := NewRequestWithValues(t, "POST", "/admin/users/"+strconv.Itoa(int(formData.ID))+"/edit", map[string]string{
 		"_csrf":      csrf,
 		"user_name":  formData.Name,
@@ -72,7 +72,7 @@ func TestAdminDeleteUser(t *testing.T) {
 
 	session := loginUser(t, "user1")
 
-	csrf := GetCSRF(t, session, "/admin/users/8/edit")
+	csrf := GetUserCSRFToken(t, session)
 	req := NewRequestWithValues(t, "POST", "/admin/users/8/delete", map[string]string{
 		"_csrf": csrf,
 	})
