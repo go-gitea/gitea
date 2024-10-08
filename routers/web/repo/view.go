@@ -902,6 +902,22 @@ func renderLanguageStats(ctx *context.Context) {
 	ctx.Data["LanguageStats"] = langs
 }
 
+func renderLatestRelease(ctx *context.Context) {
+	release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
+		ctx.ServerError("GetLatestReleaseByRepoID", err)
+		return
+	}
+
+	if release != nil {
+		if err = release.LoadAttributes(ctx); err != nil {
+			ctx.ServerError("release.LoadAttributes", err)
+			return
+		}
+		ctx.Data["LatestRelease"] = release
+	}
+}
+
 func renderRepoTopics(ctx *context.Context) {
 	topics, err := db.Find[repo_model.Topic](ctx, &repo_model.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
@@ -1010,6 +1026,11 @@ func renderHomeCode(ctx *context.Context) {
 	}
 
 	renderLanguageStats(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	renderLatestRelease(ctx)
 	if ctx.Written() {
 		return
 	}
