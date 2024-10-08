@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.22.3](https://github.com/go-gitea/gitea/releases/tag/1.22.3) - 2024-10-06
 
 * SECURITY
+  * Fix bug when a token is given public only (#32204) (#32218)
 * PERFORMANCE
   * Increase `cacheContextLifetime` to reduce false reports (#32011) (#32023)
   * Don't join repository when loading action table data (#32127) (#32143)
@@ -35,6 +36,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Refactor CSRF protector (#32057) (#32069)
   * Fix Bug in Issue/pulls list (#32081) (#32115)
   * Include collaboration repositories on dashboard source/forks/mirrors list (#31946) (#32122)
+  * Add null check for responseData.invalidTopics (#32212) (#32217)
 * TESTING
   * Fix mssql ci with a new mssql version on ci (#32094)
 * MISC
