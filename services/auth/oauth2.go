@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/oauth2_provider"
 )
 
 // Ensure the struct implements the interface.
@@ -31,7 +31,7 @@ func CheckOAuthAccessToken(ctx context.Context, accessToken string) int64 {
 	if !strings.Contains(accessToken, ".") {
 		return 0
 	}
-	token, err := oauth2.ParseToken(accessToken, oauth2.DefaultSigningKey)
+	token, err := oauth2_provider.ParseToken(accessToken, oauth2_provider.DefaultSigningKey)
 	if err != nil {
 		log.Trace("oauth2.ParseToken: %v", err)
 		return 0
@@ -40,7 +40,7 @@ func CheckOAuthAccessToken(ctx context.Context, accessToken string) int64 {
 	if grant, err = auth_model.GetOAuth2GrantByID(ctx, token.GrantID); err != nil || grant == nil {
 		return 0
 	}
-	if token.Type != oauth2.TypeAccessToken {
+	if token.Kind != oauth2_provider.KindAccessToken {
 		return 0
 	}
 	if token.ExpiresAt.Before(time.Now()) || token.IssuedAt.After(time.Now()) {

@@ -83,7 +83,6 @@ func ListPullReviews(ctx *context.APIContext) {
 
 	opts := issues_model.FindReviewOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		Type:        issues_model.ReviewTypeUnknown,
 		IssueID:     pr.IssueID,
 	}
 

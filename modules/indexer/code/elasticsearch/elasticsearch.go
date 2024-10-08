@@ -20,6 +20,7 @@ import (
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -197,8 +198,33 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 	return nil
 }
 
-// Delete deletes indexes by ids
+// Delete entries by repoId
 func (b *Indexer) Delete(ctx context.Context, repoID int64) error {
+	if err := b.doDelete(ctx, repoID); err != nil {
+		// Maybe there is a conflict during the delete operation, so we should retry after a refresh
+		log.Warn("Deletion of entries of repo %v within index %v was erroneus. Trying to refresh index before trying again", repoID, b.inner.VersionedIndexName(), err)
+		if err := b.refreshIndex(ctx); err != nil {
+			return err
+		}
+		if err := b.doDelete(ctx, repoID); err != nil {
+			log.Error("Could not delete entries of repo %v within index %v", repoID, b.inner.VersionedIndexName())
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *Indexer) refreshIndex(ctx context.Context) error {
+	if _, err := b.inner.Client.Refresh(b.inner.VersionedIndexName()).Do(ctx); err != nil {
+		log.Error("Error while trying to refresh index %v", b.inner.VersionedIndexName(), err)
+		return err
+	}
+
+	return nil
+}
+
+// Delete entries by repoId
+func (b *Indexer) doDelete(ctx context.Context, repoID int64) error {
 	_, err := b.inner.Client.DeleteByQuery(b.inner.VersionedIndexName()).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
 		Do(ctx)
@@ -318,7 +344,8 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 					NumOfFragments(0). // return all highting content on fragments
 					HighlighterType("fvh"),
 			).
-			Sort("repo_id", true).
+			Sort("_score", false).
+			Sort("updated_at", true).
 			From(start).Size(pageSize).
 			Do(ctx)
 		if err != nil {
@@ -349,7 +376,8 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 				NumOfFragments(0). // return all highting content on fragments
 				HighlighterType("fvh"),
 		).
-		Sort("repo_id", true).
+		Sort("_score", false).
+		Sort("updated_at", true).
 		From(start).Size(pageSize).
 		Do(ctx)
 	if err != nil {

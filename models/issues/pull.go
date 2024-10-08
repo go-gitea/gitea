@@ -268,6 +268,10 @@ func (pr *PullRequest) LoadAttributes(ctx context.Context) (err error) {
 	return nil
 }
 
+func (pr *PullRequest) IsAgitFlow() bool {
+	return pr.Flow == PullRequestFlowAGit
+}
+
 // LoadHeadRepo loads the head repository, pr.HeadRepo will remain nil if it does not exist
 // and thus ErrRepoNotExist will never be returned
 func (pr *PullRequest) LoadHeadRepo(ctx context.Context) (err error) {
@@ -410,7 +414,7 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 
 	// Note: This doesn't page as we only expect a very limited number of reviews
 	reviews, err := FindLatestReviews(ctx, FindReviewOptions{
-		Type:         ReviewTypeApprove,
+		Types:        []ReviewType{ReviewTypeApprove},
 		IssueID:      pr.IssueID,
 		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,
 	})

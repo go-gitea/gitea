@@ -1,7 +1,7 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package oauth2
+package oauth2_provider //nolint
 
 import (
 	"fmt"
@@ -12,29 +12,22 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// ___________     __
-// \__    ___/___ |  | __ ____   ____
-//   |    | /  _ \|  |/ // __ \ /    \
-//   |    |(  <_> )    <\  ___/|   |  \
-//   |____| \____/|__|_ \\___  >___|  /
-//                     \/    \/     \/
-
 // Token represents an Oauth grant
 
-// TokenType represents the type of token for an oauth application
-type TokenType int
+// TokenKind represents the type of token for an oauth application
+type TokenKind int
 
 const (
-	// TypeAccessToken is a token with short lifetime to access the api
-	TypeAccessToken TokenType = 0
-	// TypeRefreshToken is token with long lifetime to refresh access tokens obtained by the client
-	TypeRefreshToken = iota
+	// KindAccessToken is a token with short lifetime to access the api
+	KindAccessToken TokenKind = 0
+	// KindRefreshToken is token with long lifetime to refresh access tokens obtained by the client
+	KindRefreshToken = iota
 )
 
 // Token represents a JWT token used to authenticate a client
 type Token struct {
 	GrantID int64     `json:"gnt"`
-	Type    TokenType `json:"tt"`
+	Kind    TokenKind `json:"tt"`
 	Counter int64     `json:"cnt,omitempty"`
 	jwt.RegisteredClaims
 }
