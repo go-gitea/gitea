@@ -50,7 +50,7 @@ export function initRepoTopicBar() {
             link.classList.add('repo-topic', 'ui', 'large', 'label');
             link.href = `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`;
             link.textContent = topic;
-            mgrBtn.parentNode.insertBefore(link, mgrBtn); // insert all new topics before manage button
+            viewDiv.append(link); // insert all new topics before manage button
           }
         }
         hideElem(editDiv);
