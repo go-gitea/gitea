@@ -60,7 +60,7 @@ export function initRepoTopicBar() {
       // how to test: input topic like " invalid topic " (with spaces), and select it from the list, then "Save"
       const responseData = await response.json();
       lastErrorToast = showErrorToast(responseData.message, {duration: 5000});
-      if (responseData.invalidTopics.length > 0) {
+      if (responseData.invalidTopics && responseData.invalidTopics.length > 0) {
         const {invalidTopics} = responseData;
         const topicLabels = queryElemChildren(topicDropdown, 'a.ui.label');
         for (const [index, value] of topics.split(',').entries()) {
