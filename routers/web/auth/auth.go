@@ -804,6 +804,8 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		return
 	}
 
+	ctx.Csrf.PrepareForSessionUser(ctx)
+
 	if err := resetLocale(ctx, user); err != nil {
 		ctx.ServerError("resetLocale", err)
 		return

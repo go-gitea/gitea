@@ -139,6 +139,7 @@ func (c *csrfProtector) PrepareForSessionUser(ctx *Context) {
 
 func (c *csrfProtector) validateToken(ctx *Context, token string) {
 	if !ValidCsrfToken(token, c.opt.Secret, c.id, "POST", time.Now()) {
+		c.DeleteCookie(ctx)
 		// currently, there should be no access to the APIPath with CSRF token. because templates shouldn't use the `/api/` endpoints.
 		// FIXME: distinguish what the response is for: HTML (web page) or JSON (fetch)
 		http.Error(ctx.Resp, "Invalid CSRF token.", http.StatusBadRequest)

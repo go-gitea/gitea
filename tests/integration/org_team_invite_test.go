@@ -233,17 +233,13 @@ func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
 	}
 
 	// enable email confirmation temporarily
-	defer func(prevVal bool) {
-		setting.Service.RegisterEmailConfirm = prevVal
-	}(setting.Service.RegisterEmailConfirm)
-	setting.Service.RegisterEmailConfirm = true
-
+	defer test.MockVariableValue(&setting.Service.RegisterEmailConfirm, true)()
 	defer tests.PrepareTestEnv(t)()
 
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 
-	// create the invite
+	// user1: create the invite
 	session := loginUser(t, "user1")
 
 	teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
@@ -261,46 +257,27 @@ func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, invites, 1)
 
-	// accept the invite
+	// new user: accept the invite
+	session = emptyTestSession(t)
+
 	inviteURL := fmt.Sprintf("/org/invite/%s", invites[0].Token)
 	req = NewRequest(t, "GET", fmt.Sprintf("/user/sign_up?redirect_to=%s", url.QueryEscape(inviteURL)))
-	inviteResp := MakeRequest(t, req, http.StatusOK)
-
-	doc := NewHTMLParser(t, resp.Body)
+	session.MakeRequest(t, req, http.StatusOK)
 	req = NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
-		"_csrf":     doc.GetCSRF(),
 		"user_name": "doesnotexist",
 		"email":     "doesnotexist@example.com",
 		"password":  "examplePassword!1",
 		"retype":    "examplePassword!1",
 	})
-	for _, c := range inviteResp.Result().Cookies() {
-		req.AddCookie(c)
-	}
-
-	resp = MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	user, err := user_model.GetUserByName(db.DefaultContext, "doesnotexist")
 	assert.NoError(t, err)
-
-	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
-	cr := http.Request{Header: ch}
-
-	session = emptyTestSession(t)
-	baseURL, err := url.Parse(setting.AppURL)
-	assert.NoError(t, err)
-	session.jar.SetCookies(baseURL, cr.Cookies())
 
 	activateURL := fmt.Sprintf("/user/activate?code=%s", user.GenerateEmailActivateCode("doesnotexist@example.com"))
 	req = NewRequestWithValues(t, "POST", activateURL, map[string]string{
 		"password": "examplePassword!1",
 	})
-
-	// use the cookies set by the signup request
-	for _, c := range inviteResp.Result().Cookies() {
-		req.AddCookie(c)
-	}
 
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	// should be redirected to accept the invite
