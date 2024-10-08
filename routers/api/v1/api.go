@@ -991,7 +991,7 @@ func Routes() *web.Router {
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
 			}, context.UserAssignmentAPI(), checkTokenPublicOnly())
-		}, reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Users (requires user scope)
 		m.Group("/user", func() {
@@ -1072,7 +1072,7 @@ func Routes() *web.Router {
 
 			// (repo scope)
 			m.Group("/starred", func() {
-				m.Get("", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), user.GetMyStarredRepos)
+				m.Get("", user.GetMyStarredRepos)
 				m.Group("/{username}/{reponame}", func() {
 					m.Get("", user.IsStarring)
 					m.Put("", user.Star)
@@ -1104,7 +1104,7 @@ func Routes() *web.Router {
 					m.Delete("", user.UnblockUser)
 				}, context.UserAssignmentAPI(), checkTokenPublicOnly())
 			})
-		}, reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Repositories (requires repo scope, org scope)
 		m.Post("/org/{org}/repos",
