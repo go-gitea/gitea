@@ -177,7 +177,7 @@ func (opts *SearchBadgeOptions) ToOrders() string {
 func (opts *SearchBadgeOptions) ToJoins() []db.JoinFunc {
 	return []db.JoinFunc{
 		func(e db.Engine) error {
-			e.Join("INNER", "badge", "badge.badge_id = badge.id")
+			e.Join("INNER", "badge", "`user_badge`.badge_id=badge.id")
 			return nil
 		},
 	}
