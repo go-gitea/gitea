@@ -268,12 +268,12 @@ func checkTokenPublicOnly() func(ctx *context.APIContext) {
 				return
 			}
 		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryUser):
-			if ctx.ContextUser != nil && !ctx.ContextUser.IsOrganization() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
+			if ctx.ContextUser != nil && ctx.ContextUser.IsUser() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
 				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public users")
 				return
 			}
 		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryActivityPub):
-			if ctx.ContextUser != nil && !ctx.ContextUser.IsOrganization() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
+			if ctx.ContextUser != nil && ctx.ContextUser.IsUser() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
 				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public activitypub")
 				return
 			}
