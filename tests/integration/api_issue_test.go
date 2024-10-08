@@ -75,6 +75,34 @@ func TestAPIListIssues(t *testing.T) {
 	}
 }
 
+func TestAPIListIssuesPublicOnly(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo1.OwnerID})
+
+	session := loginUser(t, owner1.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner1.Name, repo1.Name))
+	link.RawQuery = url.Values{"state": {"all"}}.Encode()
+	req := NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	owner2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo2.OwnerID})
+
+	session = loginUser(t, owner2.Name)
+	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
+	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner2.Name, repo2.Name))
+	link.RawQuery = url.Values{"state": {"all"}}.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+
+	publicOnlyToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopePublicOnly)
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(publicOnlyToken)
+	MakeRequest(t, req, http.StatusForbidden)
+}
+
 func TestAPICreateIssue(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	const body, title = "apiTestBody", "apiTestTitle"
@@ -242,6 +270,12 @@ func TestAPISearchIssues(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, expectedIssueCount)
+
+	publicOnlyToken := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopePublicOnly)
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(publicOnlyToken)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 15) // 15 public issues
 
 	since := "2000-01-01T00:50:01+00:00" // 946687801
 	before := time.Unix(999307200, 0).Format(time.RFC3339)
