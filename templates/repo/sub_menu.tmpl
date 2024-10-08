@@ -13,7 +13,12 @@
 					{{svg "octicon-tag"}} <b>{{ctx.Locale.PrettyNumber .NumTags}}</b> {{ctx.Locale.TrN .NumTags "repo.tag" "repo.tags"}}
 				</a>
 			{{end}}
-			<span class="item not-mobile" {{if not (eq .Repository.Size 0)}}data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>
+			{{if .DetectedRepoLicenses}}
+				<a class="item muted" href="{{.RepoLink}}/src/{{.Repository.DefaultBranch}}/{{PathEscapeSegments .LicenseFileName}}" data-tooltip-placement="top" data-tooltip-content="{{StringUtils.Join .DetectedRepoLicenses ", "}}">
+					{{svg "octicon-law"}} <b>{{if eq (len .DetectedRepoLicenses) 1}}{{index .DetectedRepoLicenses 0}}{{else}}{{ctx.Locale.Tr "repo.multiple_licenses"}}{{end}}</b>
+				</a>
+			{{end}}
+			<span class="item not-mobile" {{if not (eq .Repository.Size 0)}}data-tooltip-placement="top" data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>
 				{{$fileSizeFormatted := FileSize .Repository.Size}}{{/* the formatted string is always "{val} {unit}" */}}
 				{{$fileSizeFields := StringUtils.Split $fileSizeFormatted " "}}
 				{{svg "octicon-database"}} <b>{{ctx.Locale.PrettyNumber (index $fileSizeFields 0)}}</b> {{index $fileSizeFields 1}}
