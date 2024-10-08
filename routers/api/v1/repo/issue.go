@@ -162,7 +162,7 @@ func SearchIssues(ctx *context.APIContext) {
 			Actor:   ctx.Doer,
 		}
 		if ctx.IsSigned {
-			opts.Private = true
+			opts.Private = !ctx.PublicOnly
 			opts.AllLimited = true
 		}
 		if ctx.FormString("owner") != "" {
