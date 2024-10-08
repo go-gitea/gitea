@@ -42,7 +42,7 @@ export async function initCitationFileCopyContent() {
     citationCopyApa.classList.toggle('primary', !isBibtex);
   };
 
-  document.querySelector('#cite-repo-button')?.addEventListener('click', async (e) => {
+  document.querySelector('#cite-repo-button')?.addEventListener('click', async () => {
     $(modal).modal('show');
     $(modal).addClass('is-loading');
 
