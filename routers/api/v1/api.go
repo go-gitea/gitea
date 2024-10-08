@@ -269,6 +269,8 @@ func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeC
 			return
 		}
 
+		ctx.Data["requiredScopeCategories"] = requiredScopeCategories
+
 		// check if scope only applies to public resources
 		publicOnly, err := scope.PublicOnly()
 		if err != nil {
@@ -276,10 +278,23 @@ func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeC
 			return
 		}
 
-		if !publicOnly {
+		// assign to true so that those searching should only filter public repositories/users/organizations
+		ctx.PublicOnly = publicOnly
+	}
+}
+
+func checkTokenPublicOnly() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !ctx.PublicOnly {
 			return
 		}
 
+		requiredScopeCategories, ok := ctx.Data["requiredScopeCategories"].([]auth_model.AccessTokenScopeCategory)
+		if !ok || len(requiredScopeCategories) == 0 {
+			return
+		}
+
+		// public Only permission check
 		switch {
 		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryRepository),
 			auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryIssue):
@@ -893,11 +908,11 @@ func Routes() *web.Router {
 				m.Group("/user/{username}", func() {
 					m.Get("", activitypub.Person)
 					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
-				}, context.UserAssignmentAPI())
+				}, context.UserAssignmentAPI(), checkTokenPublicOnly())
 				m.Group("/user-id/{user-id}", func() {
 					m.Get("", activitypub.Person)
 					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
-				}, context.UserIDAssignmentAPI())
+				}, context.UserIDAssignmentAPI(), checkTokenPublicOnly())
 			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub))
 		}
 
@@ -926,13 +941,13 @@ func Routes() *web.Router {
 		// Notifications (requires 'notifications' scope)
 		m.Group("/notifications", func() {
 			m.Combo("").
-				Get(reqToken(), notify.ListNotifications).
-				Put(reqToken(), notify.ReadNotifications)
-			m.Get("/new", reqToken(), notify.NewAvailable)
+				Get(notify.ListNotifications).
+				Put(notify.ReadNotifications)
+			m.Get("/new", notify.NewAvailable)
 			m.Combo("/threads/{id}").
-				Get(reqToken(), notify.GetThread).
-				Patch(reqToken(), notify.ReadThread)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
+				Get(notify.GetThread).
+				Patch(notify.ReadThread)
+		}, reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
 
 		// Users (requires user scope)
 		m.Group("/users", func() {
@@ -953,8 +968,8 @@ func Routes() *web.Router {
 				}, reqSelfOrAdmin(), reqBasicOrRevProxyAuth())
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
-			}, context.UserAssignmentAPI(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), individualPermsChecker)
-		})
+			}, context.UserAssignmentAPI(), checkTokenPublicOnly(), individualPermsChecker)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
 		// Users (requires user scope)
 		m.Group("/users", func() {
@@ -971,8 +986,8 @@ func Routes() *web.Router {
 				m.Get("/starred", user.GetStarredRepos)
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
-			}, reqToken(), context.UserAssignmentAPI(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
-		})
+			}, context.UserAssignmentAPI(), checkTokenPublicOnly())
+		}, reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
 		// Users (requires user scope)
 		m.Group("/user", func() {
@@ -1058,8 +1073,8 @@ func Routes() *web.Router {
 					m.Get("", user.IsStarring)
 					m.Put("", user.Star)
 					m.Delete("", user.Unstar)
-				}, repoAssignment(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
-			})
+				}, repoAssignment(), checkTokenPublicOnly())
+			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 			m.Get("/times", repo.ListMyTrackedTimes)
 			m.Get("/stopwatches", repo.GetStopwatches)
 			m.Get("/subscriptions", user.GetMyWatchedRepos)
@@ -1083,7 +1098,7 @@ func Routes() *web.Router {
 					m.Get("", user.CheckUserBlock)
 					m.Put("", user.BlockUser)
 					m.Delete("", user.UnblockUser)
-				}, context.UserAssignmentAPI())
+				}, context.UserAssignmentAPI(), checkTokenPublicOnly())
 			})
 		}, reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
@@ -1101,10 +1116,10 @@ func Routes() *web.Router {
 
 		// Repos (requires repo scope)
 		m.Group("/repos", func() {
-			m.Get("/search", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), repo.Search)
+			m.Get("/search", repo.Search)
 
 			// (repo scope)
-			m.Post("/migrate", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), bind(api.MigrateRepoOptions{}), repo.Migrate)
+			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/{username}/{reponame}", func() {
 				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
@@ -1350,8 +1365,8 @@ func Routes() *web.Router {
 					m.Post("", bind(api.UpdateRepoAvatarOption{}), repo.UpdateAvatar)
 					m.Delete("", repo.DeleteAvatar)
 				}, reqAdmin(), reqToken())
-			}, repoAssignment(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
-		})
+			}, repoAssignment(), checkTokenPublicOnly())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
 		// Notifications (requires notifications scope)
 		m.Group("/repos", func() {
@@ -1359,12 +1374,12 @@ func Routes() *web.Router {
 				m.Combo("/notifications", reqToken()).
 					Get(notify.ListRepoNotifications).
 					Put(notify.ReadRepoNotifications)
-			}, repoAssignment(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
-		})
+			}, repoAssignment(), checkTokenPublicOnly())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
 
 		// Issue (requires issue scope)
 		m.Group("/repos", func() {
-			m.Get("/issues/search", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue), repo.SearchIssues)
+			m.Get("/issues/search", repo.SearchIssues)
 
 			m.Group("/{username}/{reponame}", func() {
 				m.Group("/issues", func() {
@@ -1473,8 +1488,8 @@ func Routes() *web.Router {
 						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
 						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
 				})
-			}, repoAssignment(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
-		})
+			}, repoAssignment(), checkTokenPublicOnly())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 
 		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
 		m.Group("/packages/{username}", func() {
@@ -1484,14 +1499,14 @@ func Routes() *web.Router {
 				m.Get("/files", reqToken(), packages.ListPackageFiles)
 			})
 			m.Get("/", reqToken(), packages.ListPackages)
-		}, context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage))
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead), checkTokenPublicOnly())
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), org.ListMyOrgs)
 		m.Group("/users/{username}/orgs", func() {
 			m.Get("", reqToken(), org.ListUserOrgs)
 			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)
-		}, context.UserAssignmentAPI(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization))
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), context.UserAssignmentAPI(), checkTokenPublicOnly())
 		m.Post("/orgs", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Get("/orgs", org.GetAll, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization))
 		m.Group("/orgs/{org}", func() {
@@ -1549,7 +1564,7 @@ func Routes() *web.Router {
 					m.Delete("", org.UnblockUser)
 				})
 			}, reqToken(), reqOrgOwnership())
-		}, orgAssignment(true), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization))
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Get(reqToken(), org.GetTeam).
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).
@@ -1569,7 +1584,7 @@ func Routes() *web.Router {
 					Get(reqToken(), org.GetTeamRepo)
 			})
 			m.Get("/activities/feeds", org.ListTeamActivityFeeds)
-		}, orgAssignment(false, true), reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqTeamMembership())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken(), reqTeamMembership(), checkTokenPublicOnly())
 
 		m.Group("/admin", func() {
 			m.Group("/cron", func() {
