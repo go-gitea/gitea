@@ -4,6 +4,7 @@
 package packages
 
 import (
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -62,6 +63,20 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 					ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
 					ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
 					return
+				}
+
+				// check if scope only applies to public resources
+				publicOnly, err := scope.PublicOnly()
+				if err != nil {
+					ctx.Error(http.StatusForbidden, "tokenRequiresScope", "parsing public resource scope failed: "+err.Error())
+					return
+				}
+
+				if publicOnly {
+					if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
+						ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public packages")
+						return
+					}
 				}
 			}
 		}
@@ -643,9 +658,52 @@ func CommonRoutes() *web.Router {
 				})
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
-	}, context.UserAssignmentWeb(), context.PackageAssignment())
+	}, context.UserAssignmentWeb(), context.PackageAssignment(), checkPackageTokenScope)
 
 	return r
+}
+
+func checkPackageTokenScope(ctx *context.Context) {
+	// Need OAuth2 token to be present.
+	scope, scopeExists := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if ctx.Data["IsApiToken"] != true || !scopeExists {
+		return
+	}
+
+	// use the http method to determine the access level
+	requiredScopeLevel := auth_model.Read
+	if ctx.Req.Method == "POST" || ctx.Req.Method == "PUT" || ctx.Req.Method == "PATCH" || ctx.Req.Method == "DELETE" {
+		requiredScopeLevel = auth_model.Write
+	}
+
+	// get the required scope for the given access level and category
+	requiredScopes := auth_model.GetRequiredScopes(requiredScopeLevel, auth_model.AccessTokenScopeCategoryPackage)
+	allow, err := scope.HasScope(requiredScopes...)
+	if err != nil {
+		ctx.Error(http.StatusForbidden, "tokenRequiresScope", "checking scope failed: "+err.Error())
+		return
+	}
+
+	if !allow {
+		ctx.Error(http.StatusForbidden, "tokenRequiresScope", fmt.Sprintf("token does not have at least one of required scope(s): %v", requiredScopes))
+		return
+	}
+
+	// check if scope only applies to public resources
+	publicOnly, err := scope.PublicOnly()
+	if err != nil {
+		ctx.Error(http.StatusForbidden, "tokenRequiresScope", "parsing public resource scope failed: "+err.Error())
+		return
+	}
+
+	if !publicOnly {
+		return
+	}
+
+	if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
+		ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public packages")
+		return
+	}
 }
 
 // ContainerRoutes provides endpoints that implement the OCI API to serve containers
