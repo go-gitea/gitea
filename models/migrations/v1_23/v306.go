@@ -280,7 +280,7 @@ func MigrateToXormigrate(x *xorm.Engine) error {
 	v := currentVersion.Version
 	if minDBVersion > v {
 		log.Fatal(`Gitea no longer supports auto-migration from your previously installed version.
-Please try upgrading to a lower version first (suggested v1.6.4), then upgrade to this version.`)
+Please try upgrading to i.e. v1.6.4 first, then upgrade to this version.`)
 		return nil
 	}
 
