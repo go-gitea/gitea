@@ -374,7 +374,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	if !ctx.Repo.Permission.HasAnyUnitAccessOrEveryoneAccess() {
+	if !canWriteAsMaintainer(ctx) && !ctx.Repo.Permission.HasAnyUnitAccessOrEveryoneAccess() {
 		if ctx.FormString("go-get") == "1" {
 			EarlyResponseForGoGetMeta(ctx)
 			return
@@ -1047,4 +1047,12 @@ func GitHookService() func(ctx *Context) {
 			return
 		}
 	}
+}
+
+// canWriteAsMaintainer check if the doer can write to a branch as a maintainer
+func canWriteAsMaintainer(ctx *Context) bool {
+	// There is no need to check if the branch exists.
+	// If the branch does not exist, CanMaintainerWriteToBranch will return false.
+	branchName := getRefNameFromPath(ctx.Repo, ctx.PathParam("*"), func(_ string) bool { return true })
+	return issues_model.CanMaintainerWriteToBranch(ctx, ctx.Repo.Permission, branchName, ctx.Doer)
 }
