@@ -4,7 +4,7 @@
 	<div class="ui container {{if .IsBlame}}fluid padded{{end}}">
 		{{template "base/alert" .}}
 		{{template "repo/code/recently_pushed_new_branches" .}}
-		
+
 		<div class="flex-container">
 			<div class="flex-container-main" data-home={{.IsHomePage}}>
 				{{if .Repository.IsArchived}}
@@ -219,7 +219,7 @@
 									<div class="flex-item-title">
 										{{ctx.Locale.Tr "repo.repo_lang"}}
 									</div>
-								
+
 									<div class="flex-item-body">
 										<div class="language-stats">
 											{{range .LanguageStats}}
