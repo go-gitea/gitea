@@ -133,9 +133,9 @@
 									{{ctx.Locale.Tr "repo.repo_desc"}}
 								</div>
 								{{if and (not .HideRepoInfo) (not .IsBlame)}}
-									<div class="flex-item-body repo-description tw-break-anywhere tw-gap-2">
+									<div class="flex-item-body repo-description tw-break-anywhere tw-gap-2 tw-mt-2">
 										{{- $description := .Repository.DescriptionHTML ctx -}}
-										{{if $description}}{{$description | RenderCodeBlock}}{{end}}
+										{{if $description}}{{$description | RenderCodeBlock}}{{else}}{{ctx.Locale.Tr "repo.repo_no_desc"}}{{end}}
 										{{if .Repository.Website}}{{svg "octicon-link"}}<a href="{{.Repository.Website}}">{{.Repository.Website}}</a>{{end}}
 									</div>
 									<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-2 tw-my-2" id="repo-topics">
@@ -161,15 +161,24 @@
 									</div>
 								{{end}}
 								{{if .ReadmeExist}}
-									<div class="flex-item-body">
+									<div class="flex-item-body tw-mt-2">
 										<a class="tw-flex tw-items-center tw-gap-2 muted" href="{{.TreeLink}}/{{.FileName}}">
 											{{svg "octicon-book"}}{{ctx.Locale.Tr "readme"}}
 										</a>
 									</div>
 								{{end}}
+								{{if .DetectedRepoLicenses}}
+									<div class="flex-item-body">
+										<a class="tw-flex tw-items-center tw-gap-2 muted" href="{{.RepoLink}}/src/{{.Repository.DefaultBranch}}/{{PathEscapeSegments .LicenseFileName}}" data-tooltip-placement="top" data-tooltip-content="{{StringUtils.Join .DetectedRepoLicenses ", "}}">
+											{{svg "octicon-law"}}{{if eq (len .DetectedRepoLicenses) 1}}{{index .DetectedRepoLicenses 0}}{{else}}{{ctx.Locale.Tr "repo.multiple_licenses"}}{{end}}
+										</a>
+									</div>
+								{{end}}
 								{{if .CitiationExist}}
 									<div class="flex-item-body">
-										<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.cite_this_repo"}}</a>
+										<a class="tw-flex tw-items-center tw-gap-2 muted" id="cite-repo-button">
+											{{svg "octicon-cross-reference"}}{{ctx.Locale.Tr "repo.cite_this_repo"}}
+										</a>
 									</div>
 								{{end}}
 							</div>
