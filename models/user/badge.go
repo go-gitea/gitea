@@ -185,11 +185,11 @@ func (opts *SearchBadgeOptions) ToJoins() []db.JoinFunc {
 
 func SearchBadges(ctx context.Context, opts *SearchBadgeOptions) (badges []*Badge, _ int64, _ error) {
 	sessCount := opts.toSearchQueryBase(ctx)
-	defer sessCount.Close()
 	count, err := sessCount.Count(new(Badge))
 	if err != nil {
 		return nil, 0, fmt.Errorf("count: %w", err)
 	}
+	sessCount.Close()
 
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = db.SearchOrderByID
