@@ -408,6 +408,10 @@ func (u *User) IsIndividual() bool {
 	return u.Type == UserTypeIndividual
 }
 
+func (u *User) IsUser() bool {
+	return u.Type == UserTypeIndividual || u.Type == UserTypeBot
+}
+
 // IsBot returns whether or not the user is of type bot
 func (u *User) IsBot() bool {
 	return u.Type == UserTypeBot
