@@ -20,11 +20,12 @@ func TestTelegramPayload(t *testing.T) {
 	tc := telegramConvertor{}
 
 	t.Run("Correct webhook params", func(t *testing.T) {
-		p := createTelegramPayload("testMsg ")
-
-		assert.Equal(t, "HTML", p.ParseMode)
-		assert.Equal(t, true, p.DisableWebPreview)
-		assert.Equal(t, "testMsg", p.Message)
+		p := createTelegramPayloadHTML(`<a href=".">testMsg</a> <bad>`)
+		assert.Equal(t, TelegramPayload{
+			Message:           `<a href="." rel="nofollow">testMsg</a>`,
+			ParseMode:         "HTML",
+			DisableWebPreview: true,
+		}, p)
 	})
 
 	t.Run("Create", func(t *testing.T) {
@@ -33,7 +34,7 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Create(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] branch <a href="http://localhost:3000/test/repo/src/test">test</a> created`, pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] branch <a href="http://localhost:3000/test/repo/src/test" rel="nofollow">test</a> created`, pl.Message)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
@@ -42,7 +43,7 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Delete(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] branch <a href="http://localhost:3000/test/repo/src/test">test</a> deleted`, pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] branch <a href="http://localhost:3000/test/repo/src/test" rel="nofollow">test</a> deleted`, pl.Message)
 	})
 
 	t.Run("Fork", func(t *testing.T) {
@@ -51,7 +52,7 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Fork(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `test/repo2 is forked to <a href="http://localhost:3000/test/repo">test/repo</a>`, pl.Message)
+		assert.Equal(t, `test/repo2 is forked to <a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>`, pl.Message)
 	})
 
 	t.Run("Push", func(t *testing.T) {
@@ -60,7 +61,9 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Push(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>:<a href=\"http://localhost:3000/test/repo/src/test\">test</a>] 2 new commits\n[<a href=\"http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778\">2020558</a>] commit message - user1\n[<a href=\"http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778\">2020558</a>] commit message - user1", pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>:<a href="http://localhost:3000/test/repo/src/test" rel="nofollow">test</a>] 2 new commits
+[<a href="http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778" rel="nofollow">2020558</a>] commit message - user1
+[<a href="http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778" rel="nofollow">2020558</a>] commit message - user1`, pl.Message)
 	})
 
 	t.Run("Issue", func(t *testing.T) {
@@ -70,13 +73,15 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Issue(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Issue opened: <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://try.gitea.io/user1\">user1</a>\n\nissue body", pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Issue opened: <a href="http://localhost:3000/test/repo/issues/2" rel="nofollow">#2 crash</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>
+
+issue body`, pl.Message)
 
 		p.Action = api.HookIssueClosed
 		pl, err = tc.Issue(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Issue closed: <a href="http://localhost:3000/test/repo/issues/2">#2 crash</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Issue closed: <a href="http://localhost:3000/test/repo/issues/2" rel="nofollow">#2 crash</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>`, pl.Message)
 	})
 
 	t.Run("IssueComment", func(t *testing.T) {
@@ -85,7 +90,8 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.IssueComment(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] New comment on issue <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://try.gitea.io/user1\">user1</a>\nmore info needed", pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] New comment on issue <a href="http://localhost:3000/test/repo/issues/2" rel="nofollow">#2 crash</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>
+more info needed`, pl.Message)
 	})
 
 	t.Run("PullRequest", func(t *testing.T) {
@@ -94,7 +100,8 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.PullRequest(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Pull request opened: <a href=\"http://localhost:3000/test/repo/pulls/12\">#12 Fix bug</a> by <a href=\"https://try.gitea.io/user1\">user1</a>\nfixes bug #2", pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Pull request opened: <a href="http://localhost:3000/test/repo/pulls/12" rel="nofollow">#12 Fix bug</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>
+fixes bug #2`, pl.Message)
 	})
 
 	t.Run("PullRequestComment", func(t *testing.T) {
@@ -103,7 +110,8 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.IssueComment(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] New comment on pull request <a href=\"http://localhost:3000/test/repo/pulls/12\">#12 Fix bug</a> by <a href=\"https://try.gitea.io/user1\">user1</a>\nchanges requested", pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] New comment on pull request <a href="http://localhost:3000/test/repo/pulls/12" rel="nofollow">#12 Fix bug</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>
+changes requested`, pl.Message)
 	})
 
 	t.Run("Review", func(t *testing.T) {
@@ -113,7 +121,8 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Review(p, webhook_module.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
 
-		assert.Equal(t, "[test/repo] Pull request review approved: #12 Fix bug\ngood job", pl.Message)
+		assert.Equal(t, `[test/repo] Pull request review approved: #12 Fix bug
+good job`, pl.Message)
 	})
 
 	t.Run("Repository", func(t *testing.T) {
@@ -122,7 +131,7 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Repository(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Repository created`, pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Repository created`, pl.Message)
 	})
 
 	t.Run("Package", func(t *testing.T) {
@@ -131,7 +140,7 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Package(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `Package created: <a href="http://localhost:3000/user1/-/packages/container/GiteaContainer/latest">GiteaContainer:latest</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.Message)
+		assert.Equal(t, `Package created: <a href="http://localhost:3000/user1/-/packages/container/GiteaContainer/latest" rel="nofollow">GiteaContainer:latest</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>`, pl.Message)
 	})
 
 	t.Run("Wiki", func(t *testing.T) {
@@ -141,19 +150,19 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Wiki(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] New wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' (Wiki change comment) by <a href="https://try.gitea.io/user1">user1</a>`, pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] New wiki page &#39;<a href="http://localhost:3000/test/repo/wiki/index" rel="nofollow">index</a>&#39; (Wiki change comment) by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>`, pl.Message)
 
 		p.Action = api.HookWikiEdited
 		pl, err = tc.Wiki(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' edited (Wiki change comment) by <a href="https://try.gitea.io/user1">user1</a>`, pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Wiki page &#39;<a href="http://localhost:3000/test/repo/wiki/index" rel="nofollow">index</a>&#39; edited (Wiki change comment) by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>`, pl.Message)
 
 		p.Action = api.HookWikiDeleted
 		pl, err = tc.Wiki(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' deleted by <a href="https://try.gitea.io/user1">user1</a>`, pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Wiki page &#39;<a href="http://localhost:3000/test/repo/wiki/index" rel="nofollow">index</a>&#39; deleted by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>`, pl.Message)
 	})
 
 	t.Run("Release", func(t *testing.T) {
@@ -162,7 +171,7 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Release(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Release created: <a href="http://localhost:3000/test/repo/releases/tag/v1.0">v1.0</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Release created: <a href="http://localhost:3000/test/repo/releases/tag/v1.0" rel="nofollow">v1.0</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>`, pl.Message)
 	})
 }
 
@@ -198,5 +207,7 @@ func TestTelegramJSONPayload(t *testing.T) {
 	var body TelegramPayload
 	err = json.NewDecoder(req.Body).Decode(&body)
 	assert.NoError(t, err)
-	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>:<a href=\"http://localhost:3000/test/repo/src/test\">test</a>] 2 new commits\n[<a href=\"http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778\">2020558</a>] commit message - user1\n[<a href=\"http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778\">2020558</a>] commit message - user1", body.Message)
+	assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>:<a href="http://localhost:3000/test/repo/src/test" rel="nofollow">test</a>] 2 new commits
+[<a href="http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778" rel="nofollow">2020558</a>] commit message - user1
+[<a href="http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778" rel="nofollow">2020558</a>] commit message - user1`, body.Message)
 }

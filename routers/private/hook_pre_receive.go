@@ -187,6 +187,8 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		return
 	}
 
+	isForcePush := false
+
 	// 2. Disallow force pushes to protected branches
 	if oldCommitID != objectFormat.EmptyObjectID().String() {
 		output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").AddDynamicArguments(oldCommitID, "^"+newCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
@@ -197,11 +199,15 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			})
 			return
 		} else if len(output) > 0 {
-			log.Warn("Forbidden: Branch: %s in %-v is protected from force push", branchName, repo)
-			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: fmt.Sprintf("branch %s is protected from force push", branchName),
-			})
-			return
+			if protectBranch.CanForcePush {
+				isForcePush = true
+			} else {
+				log.Warn("Forbidden: Branch: %s in %-v is protected from force push", branchName, repo)
+				ctx.JSON(http.StatusForbidden, private.Response{
+					UserMsg: fmt.Sprintf("branch %s is protected from force push", branchName),
+				})
+				return
+			}
 		}
 	}
 
@@ -233,7 +239,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 	globs := protectBranch.GetProtectedFilePatterns()
 	if len(globs) > 0 {
-		_, err := pull_service.CheckFileProtection(gitRepo, oldCommitID, newCommitID, globs, 1, ctx.env)
+		_, err := pull_service.CheckFileProtection(gitRepo, branchName, oldCommitID, newCommitID, globs, 1, ctx.env)
 		if err != nil {
 			if !models.IsErrFilePathProtected(err) {
 				log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
@@ -248,10 +254,15 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		}
 	}
 
-	// 5. Check if the doer is allowed to push
+	// 5. Check if the doer is allowed to push (and force-push if the incoming push is a force-push)
 	var canPush bool
 	if ctx.opts.DeployKeyID != 0 {
-		canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
+		// This flag is only ever true if protectBranch.CanForcePush is true
+		if isForcePush {
+			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableForcePushAllowlist || protectBranch.ForcePushAllowlistDeployKeys)
+		} else {
+			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
+		}
 	} else {
 		user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
 		if err != nil {
@@ -261,7 +272,11 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			})
 			return
 		}
-		canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, user)
+		if isForcePush {
+			canPush = !changedProtectedfiles && protectBranch.CanUserForcePush(ctx, user)
+		} else {
+			canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, user)
+		}
 	}
 
 	// 6. If we're not allowed to push directly
@@ -282,7 +297,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			// Allow commits that only touch unprotected files
 			globs := protectBranch.GetUnprotectedFilePatterns()
 			if len(globs) > 0 {
-				unprotectedFilesOnly, err := pull_service.CheckUnprotectedFiles(gitRepo, oldCommitID, newCommitID, globs, ctx.env)
+				unprotectedFilesOnly, err := pull_service.CheckUnprotectedFiles(gitRepo, branchName, oldCommitID, newCommitID, globs, ctx.env)
 				if err != nil {
 					log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
 					ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -297,6 +312,13 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			}
 
 			// Or we're simply not able to push to this protected branch
+			if isForcePush {
+				log.Warn("Forbidden: User %d is not allowed to force-push to protected branch: %s in %-v", ctx.opts.UserID, branchName, repo)
+				ctx.JSON(http.StatusForbidden, private.Response{
+					UserMsg: fmt.Sprintf("Not allowed to force-push to protected branch %s", branchName),
+				})
+				return
+			}
 			log.Warn("Forbidden: User %d is not allowed to push to protected branch: %s in %-v", ctx.opts.UserID, branchName, repo)
 			ctx.JSON(http.StatusForbidden, private.Response{
 				UserMsg: fmt.Sprintf("Not allowed to push to protected branch %s", branchName),

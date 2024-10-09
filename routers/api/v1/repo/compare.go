@@ -53,7 +53,7 @@ func CompareDiff(ctx *context.APIContext) {
 		defer gitRepo.Close()
 	}
 
-	infoPath := ctx.Params("*")
+	infoPath := ctx.PathParam("*")
 	infos := []string{ctx.Repo.Repository.DefaultBranch, ctx.Repo.Repository.DefaultBranch}
 	if infoPath != "" {
 		infos = strings.SplitN(infoPath, "...", 2)

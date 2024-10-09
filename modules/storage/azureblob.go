@@ -114,7 +114,7 @@ func convertAzureBlobErr(err error) error {
 	if !errors.As(err, &respErr) {
 		return err
 	}
-	return fmt.Errorf(respErr.ErrorCode)
+	return fmt.Errorf("%s", respErr.ErrorCode)
 }
 
 // NewAzureBlobStorage returns a azure blob storage

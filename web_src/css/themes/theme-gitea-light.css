@@ -212,6 +212,7 @@
   --color-button: #f8f9fb;
   --color-code-bg: #fafdff;
   --color-shadow: #00001726;
+  --color-shadow-opaque: #c7ced5;
   --color-secondary-bg: #f2f5f8;
   --color-expand-button: #cfe8fa;
   --color-placeholder-text: var(--color-text-light-3);

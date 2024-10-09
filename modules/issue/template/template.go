@@ -88,6 +88,9 @@ func validateYaml(template *api.IssueTemplate) error {
 			if err := validateBoolItem(position, field.Attributes, "multiple"); err != nil {
 				return err
 			}
+			if err := validateBoolItem(position, field.Attributes, "list"); err != nil {
+				return err
+			}
 			if err := validateOptions(field, idx); err != nil {
 				return err
 			}
@@ -340,7 +343,13 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 			}
 		}
 		if len(checkeds) > 0 {
-			_, _ = fmt.Fprintf(builder, "%s\n", strings.Join(checkeds, ", "))
+			if list, ok := f.Attributes["list"].(bool); ok && list {
+				for _, check := range checkeds {
+					_, _ = fmt.Fprintf(builder, "- %s\n", check)
+				}
+			} else {
+				_, _ = fmt.Fprintf(builder, "%s\n", strings.Join(checkeds, ", "))
+			}
 		} else {
 			_, _ = fmt.Fprint(builder, blankPlaceholder)
 		}
@@ -392,7 +401,7 @@ func (f *valuedField) Render() string {
 }
 
 func (f *valuedField) Value() string {
-	return strings.TrimSpace(f.Get(fmt.Sprintf("form-field-" + f.ID)))
+	return strings.TrimSpace(f.Get(fmt.Sprintf("form-field-%s", f.ID)))
 }
 
 func (f *valuedField) Options() []*valuedOption {

@@ -29,10 +29,10 @@ func newMatrixRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_mo
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
 		return nil, nil, fmt.Errorf("GetMatrixPayload meta json: %w", err)
 	}
-	mc := matrixConvertor{
+	var pc payloadConvertor[MatrixPayload] = matrixConvertor{
 		MsgType: messageTypeText[meta.MessageType],
 	}
-	payload, err := newPayload(mc, []byte(t.PayloadContent), t.EventType)
+	payload, err := newPayload(pc, []byte(t.PayloadContent), t.EventType)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -86,8 +86,6 @@ type MatrixPayload struct {
 	FormattedBody string               `json:"formatted_body"`
 	Commits       []*api.PayloadCommit `json:"io.gitea.commits,omitempty"`
 }
-
-var _ payloadConvertor[MatrixPayload] = matrixConvertor{}
 
 type matrixConvertor struct {
 	MsgType string

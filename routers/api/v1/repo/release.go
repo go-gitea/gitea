@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -50,7 +51,7 @@ func GetRelease(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	id := ctx.ParamsInt64(":id")
+	id := ctx.PathParamInt64(":id")
 	release, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseForRepoByID", err)
@@ -251,6 +252,8 @@ func CreateRelease(ctx *context.APIContext) {
 				ctx.Error(http.StatusConflict, "ReleaseAlreadyExist", err)
 			} else if models.IsErrProtectedTagName(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "ProtectedTagName", err)
+			} else if git.IsErrNotExist(err) {
+				ctx.Error(http.StatusNotFound, "ErrNotExist", fmt.Errorf("target \"%v\" not found: %w", rel.Target, err))
 			} else {
 				ctx.Error(http.StatusInternalServerError, "CreateRelease", err)
 			}
@@ -317,7 +320,7 @@ func EditRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.EditReleaseOption)
-	id := ctx.ParamsInt64(":id")
+	id := ctx.PathParamInt64(":id")
 	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseForRepoByID", err)
@@ -394,7 +397,7 @@ func DeleteRelease(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	id := ctx.ParamsInt64(":id")
+	id := ctx.PathParamInt64(":id")
 	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseForRepoByID", err)

@@ -500,7 +500,7 @@ var migrations = []Migration{
 	// v259 -> v260
 	NewMigration("Convert scoped access tokens", v1_20.ConvertScopedAccessTokens),
 
-	// Gitea 1.20.0 ends at 260
+	// Gitea 1.20.0 ends at v260
 
 	// v260 -> v261
 	NewMigration("Drop custom_labels column of action_runner table", v1_21.DropCustomLabelsColumnOfActionRunner),
@@ -591,6 +591,18 @@ var migrations = []Migration{
 
 	// v299 -> v300
 	NewMigration("Add content version to issue and comment table", v1_23.AddContentVersionToIssueAndComment),
+	// v300 -> v301
+	NewMigration("Add force-push branch protection support", v1_23.AddForcePushBranchProtection),
+	// v301 -> v302
+	NewMigration("Add skip_secondary_authorization option to oauth2 application table", v1_23.AddSkipSecondaryAuthColumnToOAuth2ApplicationTable),
+	// v302 -> v303
+	NewMigration("Add index to action_task stopped log_expired", v1_23.AddIndexToActionTaskStoppedLogExpired),
+	// v303 -> v304
+	NewMigration("Add metadata column for comment table", v1_23.AddCommentMetaDataColumn),
+	// v304 -> v305
+	NewMigration("Add index for release sha1", v1_23.AddIndexForReleaseSha1),
+	// v305 -> v306
+	NewMigration("Add Repository Licenses", v1_23.AddRepositoryLicenses),
 }
 
 // GetCurrentDBVersion returns the current db version

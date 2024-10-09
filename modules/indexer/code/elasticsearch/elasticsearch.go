@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
@@ -154,17 +155,19 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elasti
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
-		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-		if err := git.EnsureValidGitRepository(ctx, repo.RepoPath()); err != nil {
-			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
+		r, err := gitrepo.OpenRepository(ctx, repo)
+		if err != nil {
 			return err
 		}
-
-		batchWriter, batchReader, cancel := git.CatFileBatch(ctx, repo.RepoPath())
-		defer cancel()
+		defer r.Close()
+		batch, err := r.NewBatch(ctx)
+		if err != nil {
+			return err
+		}
+		defer batch.Close()
 
 		for _, update := range changes.Updates {
-			updateReqs, err := b.addUpdate(ctx, batchWriter, batchReader, sha, update, repo)
+			updateReqs, err := b.addUpdate(ctx, batch.Writer, batch.Reader, sha, update, repo)
 			if err != nil {
 				return err
 			}
@@ -172,7 +175,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 				reqs = append(reqs, updateReqs...)
 			}
 		}
-		cancel()
+		batch.Close()
 	}
 
 	for _, filename := range changes.RemovedFilenames {
@@ -195,8 +198,33 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 	return nil
 }
 
-// Delete deletes indexes by ids
+// Delete entries by repoId
 func (b *Indexer) Delete(ctx context.Context, repoID int64) error {
+	if err := b.doDelete(ctx, repoID); err != nil {
+		// Maybe there is a conflict during the delete operation, so we should retry after a refresh
+		log.Warn("Deletion of entries of repo %v within index %v was erroneus. Trying to refresh index before trying again", repoID, b.inner.VersionedIndexName(), err)
+		if err := b.refreshIndex(ctx); err != nil {
+			return err
+		}
+		if err := b.doDelete(ctx, repoID); err != nil {
+			log.Error("Could not delete entries of repo %v within index %v", repoID, b.inner.VersionedIndexName())
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *Indexer) refreshIndex(ctx context.Context) error {
+	if _, err := b.inner.Client.Refresh(b.inner.VersionedIndexName()).Do(ctx); err != nil {
+		log.Error("Error while trying to refresh index %v", b.inner.VersionedIndexName(), err)
+		return err
+	}
+
+	return nil
+}
+
+// Delete entries by repoId
+func (b *Indexer) doDelete(ctx context.Context, repoID int64) error {
 	_, err := b.inner.Client.DeleteByQuery(b.inner.VersionedIndexName()).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
 		Do(ctx)
@@ -316,7 +344,8 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 					NumOfFragments(0). // return all highting content on fragments
 					HighlighterType("fvh"),
 			).
-			Sort("repo_id", true).
+			Sort("_score", false).
+			Sort("updated_at", true).
 			From(start).Size(pageSize).
 			Do(ctx)
 		if err != nil {
@@ -347,7 +376,8 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 				NumOfFragments(0). // return all highting content on fragments
 				HighlighterType("fvh"),
 		).
-		Sort("repo_id", true).
+		Sort("_score", false).
+		Sort("updated_at", true).
 		From(start).Size(pageSize).
 		Do(ctx)
 	if err != nil {
