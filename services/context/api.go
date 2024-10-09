@@ -35,9 +35,10 @@ type APIContext struct {
 
 	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
 
-	Repo    *Repository
-	Org     *APIOrganization
-	Package *Package
+	Repo       *Repository
+	Org        *APIOrganization
+	Package    *Package
+	PublicOnly bool // Whether the request is for a public endpoint
 }
 
 func init() {

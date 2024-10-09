@@ -38,6 +38,19 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 		assert.Contains(t, user.UserName, query)
 		assert.NotEmpty(t, user.Email)
 	}
+
+	publicToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
+	req = NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query).
+		AddTokenAuth(publicToken)
+	resp = MakeRequest(t, req, http.StatusOK)
+	results = SearchResults{}
+	DecodeJSON(t, resp, &results)
+	assert.NotEmpty(t, results.Data)
+	for _, user := range results.Data {
+		assert.Contains(t, user.UserName, query)
+		assert.NotEmpty(t, user.Email)
+		assert.True(t, user.Visibility == "public")
+	}
 }
 
 func TestAPIUserSearchNotLoggedIn(t *testing.T) {
