@@ -109,7 +109,11 @@
 				{{if .IsBlockedByApprovals}}
 					<div class="item">
 						{{svg "octicon-x"}}
-						{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
+						{{if .RequireApprovalsWhitelist}}
+							{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals_whitelisted" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
+						{{else}}
+							{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
+						{{end}}
 					</div>
 				{{else if .IsBlockedByRejection}}
 					<div class="item">

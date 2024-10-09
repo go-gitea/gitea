@@ -129,6 +129,8 @@ func webAuth(authMethod auth_service.Method) func(*context.Context) {
 			// ensure the session uid is deleted
 			_ = ctx.Session.Delete("uid")
 		}
+
+		ctx.Csrf.PrepareForSessionUser(ctx)
 	}
 }
 
@@ -667,7 +669,6 @@ func registerRoutes(m *web.Router) {
 		m.Get("/forgot_password", auth.ForgotPasswd)
 		m.Post("/forgot_password", auth.ForgotPasswdPost)
 		m.Post("/logout", auth.SignOut)
-		m.Get("/task/{task}", reqSignIn, user.TaskStatus)
 		m.Get("/stopwatches", reqSignIn, user.GetStopwatches)
 		m.Get("/search", ignExploreSignIn, user.Search)
 		m.Group("/oauth2", func() {
@@ -883,10 +884,15 @@ func registerRoutes(m *web.Router) {
 			m.Post("/teams/{team}/action/repo/{action}", org.TeamsRepoAction)
 		}, context.OrgAssignment(true, false, true))
 
+		// require admin permission
+		m.Group("/{org}", func() {
+			m.Get("/teams/-/search", org.SearchTeam)
+		}, context.OrgAssignment(true, false, false, true))
+
+		// require owner permission
 		m.Group("/{org}", func() {
 			m.Get("/teams/new", org.NewTeam)
 			m.Post("/teams/new", web.Bind(forms.CreateTeamForm{}), org.NewTeamPost)
-			m.Get("/teams/-/search", org.SearchTeam)
 			m.Get("/teams/{team}/edit", org.EditTeam)
 			m.Post("/teams/{team}/edit", web.Bind(forms.CreateTeamForm{}), org.EditTeamPost)
 			m.Post("/teams/{team}/delete", org.DeleteTeam)
@@ -995,6 +1001,8 @@ func registerRoutes(m *web.Router) {
 			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 
+		m.Get("/repositories", org.Repositories)
+
 		m.Group("/projects", func() {
 			m.Group("", func() {
 				m.Get("", org.Projects)
@@ -1033,6 +1041,13 @@ func registerRoutes(m *web.Router) {
 	}, ignSignIn, context.UserAssignmentWeb(), context.OrgAssignment())
 	// end "/{username}/-": packages, projects, code
 
+	m.Group("/{username}/{reponame}/-", func() {
+		m.Group("/migrate", func() {
+			m.Get("/status", repo.MigrateStatus)
+		})
+	}, ignSignIn, context.RepoAssignment, reqRepoCodeReader)
+	// end "/{username}/{reponame}/-": migrate
+
 	m.Group("/{username}/{reponame}/settings", func() {
 		m.Group("", func() {
 			m.Combo("").Get(repo_setting.Settings).
@@ -1060,9 +1075,7 @@ func registerRoutes(m *web.Router) {
 			m.Combo("/edit").Get(repo_setting.SettingsProtectedBranch).
 				Post(web.Bind(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
 			m.Post("/{id}/delete", repo_setting.DeleteProtectedBranchRulePost)
-		}, repo.MustBeNotEmpty)
-
-		m.Post("/rename_branch", web.Bind(forms.RenameBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.RenameBranchPost)
+		})
 
 		m.Group("/tags", func() {
 			m.Get("", repo_setting.ProtectedTags)
@@ -1296,6 +1309,7 @@ func registerRoutes(m *web.Router) {
 			}, web.Bind(forms.NewBranchForm{}))
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
+			m.Post("/rename", web.Bind(forms.RenameBranchForm{}), repo_setting.RenameBranchPost)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
 
 		m.Combo("/fork").Get(repo.Fork).Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
