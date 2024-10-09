@@ -4,7 +4,7 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.22.3](https://github.com/go-gitea/gitea/releases/tag/1.22.3) - 2024-10-06
+## [1.22.3](https://github.com/go-gitea/gitea/releases/tag/1.22.3) - 2024-10-08
 
 * SECURITY
   * Fix bug when a token is given public only (#32204) (#32218)
