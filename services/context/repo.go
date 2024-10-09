@@ -404,6 +404,13 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Data["PushMirrors"] = pushMirrors
 	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
 	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
+
+	repoLicenses, err := repo_model.GetRepoLicenses(ctx, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetRepoLicenses", err)
+		return
+	}
+	ctx.Data["DetectedRepoLicenses"] = repoLicenses.StringList()
 }
 
 // RepoAssignment returns a middleware to handle repository assignment
@@ -607,7 +614,10 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		}
 	}
 
-	isHomeOrSettings := ctx.Link == ctx.Repo.RepoLink || ctx.Link == ctx.Repo.RepoLink+"/settings" || strings.HasPrefix(ctx.Link, ctx.Repo.RepoLink+"/settings/")
+	isHomeOrSettings := ctx.Link == ctx.Repo.RepoLink ||
+		ctx.Link == ctx.Repo.RepoLink+"/settings" ||
+		strings.HasPrefix(ctx.Link, ctx.Repo.RepoLink+"/settings/") ||
+		ctx.Link == ctx.Repo.RepoLink+"/-/migrate/status"
 
 	// Disable everything when the repo is being created
 	if ctx.Repo.Repository.IsBeingCreated() || ctx.Repo.Repository.IsBroken() {
