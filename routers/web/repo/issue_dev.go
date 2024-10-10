@@ -42,7 +42,7 @@ func CreateBranchFromIssue(ctx *context.Context) {
 		}
 		gitRepo, err = gitrepo.OpenRepository(ctx, repo)
 		if err != nil {
-			ctx.ServerError("GetRepositoryByID", err)
+			ctx.ServerError("OpenRepository", err)
 			return
 		}
 		defer gitRepo.Close()
