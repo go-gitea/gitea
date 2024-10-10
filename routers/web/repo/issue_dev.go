@@ -4,6 +4,8 @@
 package repo
 
 import (
+	"net/http"
+
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -19,6 +21,11 @@ import (
 )
 
 func CreateBranchFromIssue(ctx *context.Context) {
+	if ctx.HasError() { // form binding error check
+		ctx.JSONError(ctx.GetErrMsg())
+		return
+	}
+
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
@@ -56,12 +63,7 @@ func CreateBranchFromIssue(ctx *context.Context) {
 
 	canCreateBranch := perm.CanWrite(unit_model.TypeCode) && repo.CanCreateBranch()
 	if !canCreateBranch {
-		ctx.NotFound("CreateBranch", nil)
-		return
-	}
-
-	if ctx.HasError() {
-		ctx.JSONError(ctx.GetErrMsg())
+		ctx.Error(http.StatusForbidden, "No permission to create branch in this repository")
 		return
 	}
 
