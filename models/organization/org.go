@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // ________                            .__                __  .__
@@ -205,11 +206,26 @@ func (opts FindOrgMembersOpts) PublicOnly() bool {
 	return opts.Doer == nil || !opts.IsMember && !opts.Doer.IsAdmin
 }
 
+func (opts FindOrgMembersOpts) addTeamMatesOnlyFilter(ctx context.Context, sess *xorm.Session) error {
+	if opts.Doer != nil && opts.IsMember && opts.Doer.IsRestricted {
+		teamMates := builder.Select("DISTINCT team_user.uid").
+			From("team_user").
+			Where(builder.In("team_user.team_id", userTeamIDbuilder(opts.OrgID, opts.Doer.ID))).
+			And(builder.Eq{"team_user.org_id": opts.OrgID})
+
+		sess.In("org_user.uid", teamMates)
+	}
+	return nil
+}
+
 // CountOrgMembers counts the organization's members
 func CountOrgMembers(ctx context.Context, opts *FindOrgMembersOpts) (int64, error) {
 	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly() {
 		sess.And("is_public = ?", true)
+	}
+	if err := opts.addTeamMatesOnlyFilter(ctx, sess); err != nil {
+		return 0, err
 	}
 
 	return sess.Count(new(OrgUser))
@@ -534,6 +550,9 @@ func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUs
 	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly() {
 		sess.And("is_public = ?", true)
+	}
+	if err := opts.addTeamMatesOnlyFilter(ctx, sess); err != nil {
+		return nil, err
 	}
 
 	if opts.ListOptions.PageSize > 0 {
