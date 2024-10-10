@@ -358,8 +358,8 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			return
 		}
 
-		// Clear whatever CSRF cookie has right now, force to generate a new one
-		ctx.Csrf.DeleteCookie(ctx)
+		// force to generate a new CSRF token
+		ctx.Csrf.PrepareForSessionUser(ctx)
 
 		if err := resetLocale(ctx, u); err != nil {
 			ctx.ServerError("resetLocale", err)

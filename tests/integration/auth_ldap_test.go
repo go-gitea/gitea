@@ -156,7 +156,7 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute, groupFilter string, groupM
 		groupTeamMap = groupMapParams[1]
 	}
 	session := loginUser(t, "user1")
-	csrf := GetCSRF(t, session, "/admin/auths/new")
+	csrf := GetUserCSRFToken(t, session)
 	req := NewRequestWithValues(t, "POST", "/admin/auths/new", buildAuthSourceLDAPPayload(csrf, sshKeyAttribute, groupFilter, groupTeamMap, groupTeamMapRemoval))
 	session.MakeRequest(t, req, http.StatusSeeOther)
 }
@@ -252,7 +252,7 @@ func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	csrf := GetCSRF(t, session, "/admin/auths/new")
+	csrf := GetUserCSRFToken(t, session)
 	payload := buildAuthSourceLDAPPayload(csrf, "", "", "", "")
 	payload["attribute_username"] = ""
 	req := NewRequestWithValues(t, "POST", "/admin/auths/new", payload)
@@ -487,7 +487,7 @@ func TestLDAPPreventInvalidGroupTeamMap(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	csrf := GetCSRF(t, session, "/admin/auths/new")
+	csrf := GetUserCSRFToken(t, session)
 	req := NewRequestWithValues(t, "POST", "/admin/auths/new", buildAuthSourceLDAPPayload(csrf, "", "", `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, "off"))
 	session.MakeRequest(t, req, http.StatusOK) // StatusOK = failed, StatusSeeOther = ok
 }
