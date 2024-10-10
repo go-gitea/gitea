@@ -364,7 +364,7 @@ export default sfc; // activate the IDE's Vue plugin
                 <div class="ui checkbox" ref="checkboxArchivedFilter" :title="checkboxArchivedFilterTitle">
                   <!--the "hidden" is necessary to make the checkbox work without Fomantic UI js,
                       otherwise if the "input" handles click event for intermediate status, it breaks the internal state-->
-                  <input type="checkbox" class="hidden" v-bind.prop="checkboxArchivedFilterProps">
+                  <input type="checkbox" class="no-select hidden" v-bind.prop="checkboxArchivedFilterProps">
                   <label>
                     <svg-icon name="octicon-archive" :size="16" class-name="tw-mr-1"/>
                     {{ textShowArchived }}
@@ -373,7 +373,7 @@ export default sfc; // activate the IDE's Vue plugin
               </a>
               <a class="item" @click="togglePrivateFilter()">
                 <div class="ui checkbox" ref="checkboxPrivateFilter" :title="checkboxPrivateFilterTitle">
-                  <input type="checkbox" class="hidden" v-bind.prop="checkboxPrivateFilterProps">
+                  <input type="checkbox" class="no-select hidden" v-bind.prop="checkboxPrivateFilterProps">
                   <label>
                     <svg-icon name="octicon-lock" :size="16" class-name="tw-mr-1"/>
                     {{ textShowPrivate }}
@@ -544,5 +544,9 @@ ul li:not(:last-child) {
 
 .repo-owner-name-list li.active {
   background: var(--color-hover);
+}
+
+.no-select {
+  pointer-events: none;
 }
 </style>
