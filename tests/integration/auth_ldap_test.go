@@ -157,7 +157,7 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute, groupFilter string, groupM
 	}
 	session := loginUser(t, "user1")
 	csrf := GetUserCSRFToken(t, session)
-	req := NewRequestWithValues(t, "POST", "/admin/auths/new", buildAuthSourceLDAPPayload(csrf, sshKeyAttribute, groupFilter, groupTeamMap, groupTeamMapRemoval))
+	req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", buildAuthSourceLDAPPayload(csrf, sshKeyAttribute, groupFilter, groupTeamMap, groupTeamMapRemoval))
 	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
@@ -187,7 +187,7 @@ func TestLDAPAuthChange(t *testing.T) {
 	addAuthSourceLDAP(t, "", "")
 
 	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/admin/auths")
+	req := NewRequest(t, "GET", "/-/admin/auths")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	href, exists := doc.Find("table.table td a").Attr("href")
@@ -255,11 +255,11 @@ func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
 	csrf := GetUserCSRFToken(t, session)
 	payload := buildAuthSourceLDAPPayload(csrf, "", "", "", "")
 	payload["attribute_username"] = ""
-	req := NewRequestWithValues(t, "POST", "/admin/auths/new", payload)
+	req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", payload)
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	for _, u := range gitLDAPUsers {
-		req := NewRequest(t, "GET", "/admin/users?q="+u.UserName)
+		req := NewRequest(t, "GET", "/-/admin/users?q="+u.UserName)
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
@@ -488,6 +488,6 @@ func TestLDAPPreventInvalidGroupTeamMap(t *testing.T) {
 
 	session := loginUser(t, "user1")
 	csrf := GetUserCSRFToken(t, session)
-	req := NewRequestWithValues(t, "POST", "/admin/auths/new", buildAuthSourceLDAPPayload(csrf, "", "", `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, "off"))
+	req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", buildAuthSourceLDAPPayload(csrf, "", "", `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, "off"))
 	session.MakeRequest(t, req, http.StatusOK) // StatusOK = failed, StatusSeeOther = ok
 }

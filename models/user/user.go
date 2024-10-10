@@ -565,7 +565,6 @@ var (
 		".",
 		"..",
 		".well-known",
-		"admin",
 		"api",
 		"assets",
 		"attachments",

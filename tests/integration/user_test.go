@@ -97,7 +97,6 @@ func TestRenameReservedUsername(t *testing.T) {
 
 	reservedUsernames := []string{
 		// ".", "..", ".well-known", // The names are not only reserved but also invalid
-		"admin",
 		"api",
 		"assets",
 		"attachments",
