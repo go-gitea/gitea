@@ -166,7 +166,7 @@ func setMergeTarget(ctx *context.Context, pull *issues_model.PullRequest) {
 	ctx.Data["BaseTarget"] = pull.BaseBranch
 	headBranchLink := ""
 	if pull.Flow == issues_model.PullRequestFlowGithub {
-		b, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, pull.HeadBranch)
+		b, err := git_model.GetBranch(ctx, pull.HeadRepoID, pull.HeadBranch)
 		switch {
 		case err == nil:
 			if !b.IsDeleted {
