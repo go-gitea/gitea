@@ -5,6 +5,7 @@ package integration
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -102,8 +103,8 @@ func TestRenameReservedUsername(t *testing.T) {
 	}
 
 	session := loginUser(t, "user2")
+	locale := translation.NewLocale("en-US")
 	for _, reservedUsername := range reservedUsernames {
-		t.Logf("Testing username %s", reservedUsername)
 		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
 			"_csrf":    GetUserCSRFToken(t, session),
 			"name":     reservedUsername,
@@ -115,11 +116,12 @@ func TestRenameReservedUsername(t *testing.T) {
 		req = NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		assert.Contains(t,
-			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			translation.NewLocale("en-US").TrString("user.form.name_reserved", reservedUsername),
-		)
-
+		actualMsg := strings.TrimSpace(htmlDoc.doc.Find(".ui.negative.message").Text())
+		expectedMsg := locale.TrString("user.form.name_reserved", reservedUsername)
+		if strings.Contains(reservedUsername, ".") {
+			expectedMsg = locale.TrString("user.form.name_pattern_not_allowed", reservedUsername)
+		}
+		assert.Equal(t, expectedMsg, actualMsg)
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: reservedUsername})
 	}
 }
