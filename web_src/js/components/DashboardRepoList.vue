@@ -362,7 +362,7 @@ export default sfc; // activate the IDE's Vue plugin
             <div class="menu">
               <a class="item" @click="toggleArchivedFilter()">
                 <div class="ui checkbox" ref="checkboxArchivedFilter" :title="checkboxArchivedFilterTitle">
-                  <!--the "tw-pointer-events-none" is necessary to make the checkbox work without Fomantic UI js,
+                  <!--the "tw-pointer-events-none" is necessary to prevent the checkbox from handling user's input,
                       otherwise if the "input" handles click event for intermediate status, it breaks the internal state-->
                   <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxArchivedFilterProps">
                   <label>
