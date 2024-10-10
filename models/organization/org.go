@@ -658,7 +658,7 @@ func (org *Organization) getUserTeamIDs(ctx context.Context, userID int64) ([]in
 	return teamIDs, db.GetEngine(ctx).
 		Table("team").
 		Cols("team.id").
-		Where(userTeamIDbuilder(org.ID, userID)).
+		Where(builder.In("team.id", userTeamIDbuilder(org.ID, userID))).
 		Find(&teamIDs)
 }
 
