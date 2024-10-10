@@ -50,7 +50,7 @@ func CreateBranchFromIssue(ctx *context.Context) {
 
 	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("GetRepositoryByID", err)
+		ctx.ServerError("GetUserRepoPermission", err)
 		return
 	}
 
