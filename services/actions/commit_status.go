@@ -70,7 +70,7 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 			return fmt.Errorf("head of pull request is missing in event payload")
 		}
 		sha = payload.PullRequest.Head.Sha
-	case webhook_module.HookEventRelease:
+	case webhook_module.HookEventRelease, webhook_module.HookEventSchedule:
 		event = string(run.Event)
 		sha = run.CommitSHA
 	default:
