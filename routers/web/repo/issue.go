@@ -2105,11 +2105,10 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["DevLinks"] = devLinks
 		for _, link := range devLinks {
-			if link.LinkType == issues_model.IssueDevLinkTypePullRequest {
-				if !(link.PullRequest.Issue.IsClosed && !link.PullRequest.HasMerged) {
-					ctx.Data["MaybeFixed"] = link.PullRequest
-					break
-				}
+			if link.LinkType == issues_model.IssueDevLinkTypePullRequest &&
+				!(link.PullRequest.Issue.IsClosed && !link.PullRequest.HasMerged) {
+				ctx.Data["MaybeFixed"] = link.PullRequest
+				break
 			}
 		}
 	}
