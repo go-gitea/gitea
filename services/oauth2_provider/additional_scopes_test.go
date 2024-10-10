@@ -10,7 +10,6 @@ import (
 )
 
 func TestGrantAdditionalScopes(t *testing.T) {
-	setting.OAuth2.EnableAdditionalGrantScopes = true
 	tests := []struct {
 		grantScopes    string
 		expectedScopes string

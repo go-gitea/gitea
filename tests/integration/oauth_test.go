@@ -515,7 +515,7 @@ func TestOAuth_GrantScopesReadUserFailRepos(t *testing.T) {
 	err := db.Insert(db.DefaultContext, grant)
 	require.NoError(t, err)
 
-	assert.Contains(t, grant.Scope, "openid profile email read:user")
+	assert.ElementsMatch(t, []string{"openid", "profile", "email", "read:user"}, strings.Split(grant.Scope, " "))
 
 	ctx := loginUserWithPasswordRemember(t, user.Name, "password", true)
 
@@ -596,7 +596,7 @@ func TestOAuth_GrantScopesReadRepositoryFailOrganization(t *testing.T) {
 	err := db.Insert(db.DefaultContext, grant)
 	require.NoError(t, err)
 
-	assert.Contains(t, grant.Scope, "openid profile email read:user read:repository")
+	assert.ElementsMatch(t, []string{"openid", "profile", "email", "read:user", "read:repository"}, strings.Split(grant.Scope, " "))
 
 	ctx := loginUserWithPasswordRemember(t, user.Name, "password", true)
 
@@ -790,7 +790,7 @@ func TestOAuth_GrantScopesClaimGroupsAll(t *testing.T) {
 	}
 }
 
-func TestOAuth_GrantScopesEnabledClaimGroups(t *testing.T) {
+func TestOAuth_GrantScopesClaimGroupsPublicOnly(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
@@ -819,7 +819,7 @@ func TestOAuth_GrantScopesEnabledClaimGroups(t *testing.T) {
 	err := db.Insert(db.DefaultContext, grant)
 	require.NoError(t, err)
 
-	assert.Contains(t, grant.Scope, "openid profile email groups")
+	assert.ElementsMatch(t, []string{"openid", "profile", "email", "groups"}, strings.Split(grant.Scope, " "))
 
 	ctx := loginUserWithPasswordRemember(t, user.Name, "password", true)
 
