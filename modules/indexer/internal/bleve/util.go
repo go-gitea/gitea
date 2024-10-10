@@ -53,6 +53,9 @@ func openIndexer(path string, latestVersion int) (bleve.Index, int, error) {
 	return index, 0, nil
 }
 
+// This method test the GuessFuzzinessByKeyword method. The fuzziness is based on the levenshtein distance and determines how many chars
+// may be different on two string and they still be considered equivalent.
+// Given a phrasse, its shortest word determines its fuzziness. If a phrase uses CJK (eg: `갃갃갃` `啊啊啊`), the fuzziness is zero.
 func GuessFuzzinessByKeyword(s string) int {
 	tokenizer := unicode.NewUnicodeTokenizer()
 	tokens := tokenizer.Tokenize([]byte(s))

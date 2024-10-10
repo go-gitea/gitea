@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBleveIndexAndSearch(t *testing.T) {
+func TestBleveGuessFuzzinessByKeyword(t *testing.T) {
 	scenarios := []struct {
 		Input     string
-		Fuzziness int
+		Fuzziness int // See util.go for the definition of fuzziness in this particular context
 	}{
 		{
 			Input:     "",
