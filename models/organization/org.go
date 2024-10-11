@@ -658,10 +658,17 @@ func (org *Organization) getUserTeamIDs(ctx context.Context, userID int64) ([]in
 	return teamIDs, db.GetEngine(ctx).
 		Table("team").
 		Cols("team.id").
-		Where("`team_user`.org_id = ?", org.ID).
-		Join("INNER", "team_user", "`team_user`.team_id = team.id").
-		And("`team_user`.uid = ?", userID).
+		Where(builder.In("team.id", userTeamIDbuilder(org.ID, userID))).
 		Find(&teamIDs)
+}
+
+func userTeamIDbuilder(orgID, userID int64) *builder.Builder {
+	return builder.Select("team.id").From("team").
+		InnerJoin("team_user", "team_user.team_id = team.id").
+		Where(builder.Eq{
+			"team_user.org_id": orgID,
+			"team_user.uid":    userID,
+		})
 }
 
 // TeamsWithAccessToRepo returns all teams that have given access level to the repository.
