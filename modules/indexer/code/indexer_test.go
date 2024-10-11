@@ -44,6 +44,8 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 			Langs   int
 			Results []codeSearchResult
 		}{
+			// Search for an exact match on the contents of a file
+			// This scenario yields a single result (the file README.md on the repo '1')
 			{
 				RepoIDs: nil,
 				Keyword: "Description",
@@ -55,11 +57,15 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
+			// Search for an exact match on the contents of a file within the repo '2'.
+			// This scenario yields no results
 			{
 				RepoIDs: []int64{2},
 				Keyword: "Description",
 				Langs:   0,
 			},
+			// Search for an exact match on the contents of a file
+			// This scenario yields a single result (the file README.md on the repo '1')
 			{
 				RepoIDs: nil,
 				Keyword: "repo1",
@@ -71,16 +77,22 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
+			// Search for an exact match on the contents of a file within the repo '2'.
+			// This scenario yields no results
 			{
 				RepoIDs: []int64{2},
 				Keyword: "repo1",
 				Langs:   0,
 			},
+			// Search for a non-existing term.
+			// This scenario yields no results
 			{
 				RepoIDs: nil,
 				Keyword: "non-exist",
 				Langs:   0,
 			},
+			// Search for an exact match on the contents of a file within the repo '62'.
+			// This scenario yields a single result (the file avocado.md on the repo '62')
 			{
 				RepoIDs: []int64{62},
 				Keyword: "pineaple",
@@ -92,6 +104,8 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
+			// Search for an exact match on the filename within the repo '62'.
+			// This scenario yields a single result (the file avocado.md on the repo '62')
 			{
 				RepoIDs: []int64{62},
 				Keyword: "avocado.md",
@@ -103,6 +117,8 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
+			// Search for an partial match on the filename within the repo '62'.
+			// This scenario yields a single result (the file avocado.md on the repo '62')
 			{
 				RepoIDs: []int64{62},
 				Keyword: "avo",
@@ -114,6 +130,8 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
+			// Search for matches on both the contents and the filenames within the repo '62'.
+			// This scenario yields two results: the first result is baed on the file (cucumber.md) while the second is based on the contents
 			{
 				RepoIDs: []int64{62},
 				Keyword: "cucumber",
@@ -129,6 +147,8 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
+			// Search for matches on the filenames within the repo '62'.
+			// This scenario yields two results (both are based on filename, the first one is an exact match)
 			{
 				RepoIDs: []int64{62},
 				Keyword: "ham",
@@ -144,6 +164,8 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
+			// Search for matches on the contents of files within the repo '62'.
+			// This scenario yields two results (both are based on contents, the first one is an exact match where as the second is a 'fuzzy' one)
 			{
 				RepoIDs: []int64{62},
 				Keyword: "This is not cheese",
