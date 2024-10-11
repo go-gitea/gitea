@@ -211,6 +211,7 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	orgUsers, err := organization.GetOrgUsersByOrgID(db.DefaultContext, &organization.FindOrgMembersOpts{
+		Doer:        &user_model.User{IsActive: true},
 		ListOptions: db.ListOptions{},
 		OrgID:       3,
 	})
@@ -234,6 +235,13 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 			UID:      28,
 			IsPublic: true,
 		}, *orgUsers[2])
+
+		orgUsers, err = organization.GetOrgUsersByOrgID(db.DefaultContext, &organization.FindOrgMembersOpts{
+			ListOptions: db.ListOptions{},
+			OrgID:       3,
+		})
+		assert.NoError(t, err)
+		assert.Len(t, orgUsers, 2)
 	}
 
 	orgUsers, err = organization.GetOrgUsersByOrgID(db.DefaultContext, &organization.FindOrgMembersOpts{
