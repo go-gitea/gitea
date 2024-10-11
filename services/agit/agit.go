@@ -25,7 +25,13 @@ import (
 func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *private.HookOptions) ([]private.HookProcReceiveRefResult, error) {
 	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
 	topicBranch := opts.GitPushOptions["topic"]
-	forcePush, _ := strconv.ParseBool(opts.GitPushOptions["force-push"])
+	forcePushStr := opts.GitPushOptions["force-push"]
+	var forcePush bool
+	if forcePushStr == "" {
+		forcePush = true
+	} else {
+		forcePush, _ = strconv.ParseBool(forcePushStr)
+	}
 	title := strings.TrimSpace(opts.GitPushOptions["title"])
 	description := strings.TrimSpace(opts.GitPushOptions["description"]) // TODO: Add more options?
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
