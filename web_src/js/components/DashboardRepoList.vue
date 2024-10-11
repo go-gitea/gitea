@@ -4,7 +4,7 @@ import $ from 'jquery';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 
-const {appSubUrl, assetUrlPrefix, pageData} = window.config;
+const {appSubUrl, assetUrlPrefix, pageData, defaultShowFullName} = window.config;
 
 // make sure this matches templates/repo/commit_status.tmpl
 const commitStatus = {
@@ -64,6 +64,7 @@ const sfc = {
       canCreateOrganization: false,
       organizationsTotalCount: 0,
       organizationId: 0,
+      defaultShowFullName,
 
       subUrl: appSubUrl,
       ...pageData.dashboardRepoList,
@@ -471,7 +472,7 @@ export default sfc; // activate the IDE's Vue plugin
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
-              <div class="text truncate">{{ org.name }}</div>
+              <div class="text truncate">{{ defaultShowFullName && org.full_name ? org.full_name : org.name }}</div>
               <div><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
