@@ -565,42 +565,43 @@ var (
 		".",
 		"..",
 		".well-known",
-		"admin",
-		"api",
-		"assets",
-		"attachments",
-		"avatar",
-		"avatars",
-		"captcha",
-		"commits",
-		"debug",
-		"error",
-		"explore",
-		"favicon.ico",
-		"ghost",
-		"issues",
-		"login",
-		"manifest.json",
-		"metrics",
-		"milestones",
-		"new",
-		"notifications",
-		"org",
-		"pulls",
-		"raw",
-		"repo",
+
+		"api",     // gitea api
+		"metrics", // prometheus metrics api
+		"v2",      // container registry api
+
+		"assets",      // static asset files
+		"attachments", // issue attachments
+
+		"avatar",  // avatar by email hash
+		"avatars", // user avatars by file name
 		"repo-avatars",
-		"robots.txt",
-		"search",
-		"serviceworker.js",
-		"ssh_info",
+
+		"captcha",
+		"login", // oauth2 login
+		"org",   // org create/manage, or "/org/{org}", BUT if an org is named as "invite" then it goes wrong
+		"repo",  // repo create/migrate, etc
+		"user",  // user login/activate/settings, etc
+
+		"explore",
+		"issues",
+		"pulls",
+		"milestones",
+		"notifications",
+
+		"favicon.ico",
+		"manifest.json", // web app manifests
+		"robots.txt",    // search engine robots
+		"sitemap.xml",   // search engine sitemap
+		"ssh_info",      // agit info
 		"swagger.v1.json",
-		"user",
-		"v2",
-		"gitea-actions",
+
+		"ghost",         // reserved name for deleted users (id: -1)
+		"gitea-actions", // gitea builtin user (id: -2)
 	}
 
-	// DON'T ADD ANY NEW STUFF, WE SOLVE THIS WITH `/user/{obj}` PATHS!
+	// These names are reserved for user accounts: user's keys, user's rss feed, user's avatar, etc.
+	// DO NOT add any new stuff! The paths with these names are processed by `/{username}` handler (UsernameSubRoute) manually.
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom", "*.png"}
 )
 

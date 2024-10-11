@@ -10,7 +10,7 @@ export function initAdminConfigs() {
   for (const el of elAdminConfig.querySelectorAll('input[type="checkbox"][data-config-dyn-key]')) {
     el.addEventListener('change', async () => {
       try {
-        const resp = await POST(`${appSubUrl}/admin/config`, {
+        const resp = await POST(`${appSubUrl}/-/admin/config`, {
           data: new URLSearchParams({key: el.getAttribute('data-config-dyn-key'), value: el.checked}),
         });
         const json = await resp.json();
