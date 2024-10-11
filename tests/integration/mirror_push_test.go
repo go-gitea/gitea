@@ -81,7 +81,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 func doCreatePushMirror(ctx APITestContext, address, username, password string) func(t *testing.T) {
 	return func(t *testing.T) {
-		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/settings", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)))
+		csrf := GetUserCSRFToken(t, ctx.Session)
 
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), map[string]string{
 			"_csrf":                csrf,
@@ -101,7 +101,7 @@ func doCreatePushMirror(ctx APITestContext, address, username, password string) 
 
 func doRemovePushMirror(ctx APITestContext, address, username, password string, pushMirrorID int) func(t *testing.T) {
 	return func(t *testing.T) {
-		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/settings", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)))
+		csrf := GetUserCSRFToken(t, ctx.Session)
 
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), map[string]string{
 			"_csrf":                csrf,

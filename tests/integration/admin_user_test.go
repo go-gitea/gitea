@@ -19,11 +19,11 @@ func TestAdminViewUsers(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/admin/users")
+	req := NewRequest(t, "GET", "/-/admin/users")
 	session.MakeRequest(t, req, http.StatusOK)
 
 	session = loginUser(t, "user2")
-	req = NewRequest(t, "GET", "/admin/users")
+	req = NewRequest(t, "GET", "/-/admin/users")
 	session.MakeRequest(t, req, http.StatusForbidden)
 }
 
@@ -31,11 +31,11 @@ func TestAdminViewUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/admin/users/1")
+	req := NewRequest(t, "GET", "/-/admin/users/1")
 	session.MakeRequest(t, req, http.StatusOK)
 
 	session = loginUser(t, "user2")
-	req = NewRequest(t, "GET", "/admin/users/1")
+	req = NewRequest(t, "GET", "/-/admin/users/1")
 	session.MakeRequest(t, req, http.StatusForbidden)
 }
 
@@ -51,8 +51,8 @@ func testSuccessfullEdit(t *testing.T, formData user_model.User) {
 
 func makeRequest(t *testing.T, formData user_model.User, headerCode int) {
 	session := loginUser(t, "user1")
-	csrf := GetCSRF(t, session, "/admin/users/"+strconv.Itoa(int(formData.ID))+"/edit")
-	req := NewRequestWithValues(t, "POST", "/admin/users/"+strconv.Itoa(int(formData.ID))+"/edit", map[string]string{
+	csrf := GetUserCSRFToken(t, session)
+	req := NewRequestWithValues(t, "POST", "/-/admin/users/"+strconv.Itoa(int(formData.ID))+"/edit", map[string]string{
 		"_csrf":      csrf,
 		"user_name":  formData.Name,
 		"login_name": formData.LoginName,
@@ -72,8 +72,8 @@ func TestAdminDeleteUser(t *testing.T) {
 
 	session := loginUser(t, "user1")
 
-	csrf := GetCSRF(t, session, "/admin/users/8/edit")
-	req := NewRequestWithValues(t, "POST", "/admin/users/8/delete", map[string]string{
+	csrf := GetUserCSRFToken(t, session)
+	req := NewRequestWithValues(t, "POST", "/-/admin/users/8/delete", map[string]string{
 		"_csrf": csrf,
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)

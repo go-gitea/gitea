@@ -27,14 +27,7 @@ import (
 )
 
 func testCreateBranch(t testing.TB, session *TestSession, user, repo, oldRefSubURL, newBranchName string, expectedStatus int) string {
-	var csrf string
-	if expectedStatus == http.StatusNotFound {
-		// src/branch/branch_name may not container "_csrf" input,
-		// so we need to get it from cookies not from body
-		csrf = GetCSRFFromCookie(t, session, path.Join(user, repo, "src/branch/master"))
-	} else {
-		csrf = GetCSRFFromCookie(t, session, path.Join(user, repo, "src", oldRefSubURL))
-	}
+	csrf := GetUserCSRFToken(t, session)
 	req := NewRequestWithValues(t, "POST", path.Join(user, repo, "branches/_new", oldRefSubURL), map[string]string{
 		"_csrf":           csrf,
 		"new_branch_name": newBranchName,
