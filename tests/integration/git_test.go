@@ -966,11 +966,17 @@ func TestAgitPullPush(t *testing.T) {
 		assert.NoError(t, err)
 
 		// push to create an agit pull request
-		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push").Run(&git.RunOpts{Dir: dstPath})
+		err = git.NewCommand(git.DefaultContext, "push", "origin",
+			"-o", "title=test-title", "-o", "description=test-description",
+			"HEAD:refs/for/master/test-agit-push",
+		).Run(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 
 		// check pull request exist
-		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Flow: issues_model.PullRequestFlowAGit, HeadBranch: "user2/test-agit-push"})
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Flow: issues_model.PullRequestFlowAGit, HeadBranch: "user2/test-agit-push"})
+		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
+		assert.Equal(t, "test-title", pr.Issue.Title)
+		assert.Equal(t, "test-description", pr.Issue.Content)
 
 		// commit 2
 		_, err = generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-2-")
