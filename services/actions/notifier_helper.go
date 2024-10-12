@@ -124,7 +124,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		log.Debug("ignore executing %v for event %v whose doer is %v", getMethod(ctx), input.Event, input.Doer.Name)
 
 		// we should update schedule tasks in this case, because
-		//   1. schedule tasks cannot be triggerd by other events, so cyclic triggering will not occur
+		//   1. schedule tasks cannot be triggered by other events, so cyclic triggering will not occur
 		//   2. some schedule tasks may update the repo periodically, so the refs of schedule tasks need to be updated
 		if shouldDetectSchedules {
 			return DetectAndHandleSchedules(ctx, input.Repo)
