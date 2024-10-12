@@ -15,7 +15,6 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -986,13 +985,12 @@ func TestAgitPullPush(t *testing.T) {
 		assert.NoError(t, err)
 
 		// test force push without confirm
-		stderr := strings.Builder{}
-		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push").Run(&git.RunOpts{Dir: dstPath, Stderr: &stderr})
+		_, stderr, err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push").RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.Error(t, err)
-		assert.Contains(t, stderr.String(), "[remote rejected] HEAD -> refs/for/master/test-agit-push (request `force-push` push option)")
+		assert.Contains(t, stderr, "[remote rejected] HEAD -> refs/for/master/test-agit-push (request `force-push` push option)")
 
 		// test force push with confirm
-		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push", "-o", "force-push").Run(&git.RunOpts{Dir: dstPath, Stderr: &stderr})
+		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push", "-o", "force-push").Run(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 	})
 }
