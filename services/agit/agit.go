@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -24,10 +23,10 @@ import (
 // ProcReceive handle proc receive work
 func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *private.HookOptions) ([]private.HookProcReceiveRefResult, error) {
 	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
+	forcePush := opts.GitPushOptions.Bool(private.GitPushOptionForcePush)
 	topicBranch := opts.GitPushOptions["topic"]
-	forcePush, _ := strconv.ParseBool(opts.GitPushOptions["force-push"])
 	title := strings.TrimSpace(opts.GitPushOptions["title"])
-	description := strings.TrimSpace(opts.GitPushOptions["description"]) // TODO: Add more options?
+	description := strings.TrimSpace(opts.GitPushOptions["description"])
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 	userName := strings.ToLower(opts.UserName)
 
@@ -178,7 +177,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
-		if !forcePush {
+		if !forcePush.Value() {
 			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").
 				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).
 				RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
