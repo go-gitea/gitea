@@ -761,8 +761,8 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*issues_model
 	}
 
 	prTitle := pr.Title
-	if pr.IsDraft {
-		prTitle = fmt.Sprintf("%s%s", setting.Repository.PullRequest.WorkInProgressPrefixes[0], pr.Title)
+	if pr.IsDraft && !issues_model.HasWorkInProgressPrefix(pr.Title) {
+		prTitle = fmt.Sprintf("%s %s", setting.Repository.PullRequest.WorkInProgressPrefixes[0], pr.Title)
 	}
 
 	issue := issues_model.Issue{
