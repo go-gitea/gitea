@@ -5,6 +5,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -941,5 +943,56 @@ func TestDataAsync_Issue29101(t *testing.T) {
 		r2, err := b.DataAsync()
 		assert.NoError(t, err)
 		defer r2.Close()
+	})
+}
+
+func TestAgitPullPush(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		u.Path = baseAPITestContext.GitPath()
+		u.User = url.UserPassword("user2", userPassword)
+
+		dstPath := t.TempDir()
+		doGitClone(dstPath, u)(t)
+
+		gitRepo, err := git.OpenRepository(context.Background(), dstPath)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+
+		doGitCreateBranch(dstPath, "test-agit-push")
+
+		// commit 1
+		_, err = generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+		assert.NoError(t, err)
+
+		// push to create an agit pull request
+		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push").Run(&git.RunOpts{Dir: dstPath})
+		assert.NoError(t, err)
+
+		// check pull request exist
+		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Flow: issues_model.PullRequestFlowAGit, HeadBranch: "user2/test-agit-push"})
+
+		// commit 2
+		_, err = generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-2-")
+		assert.NoError(t, err)
+
+		// push 2
+		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push").Run(&git.RunOpts{Dir: dstPath})
+		assert.NoError(t, err)
+
+		// reset to first commit
+		err = git.NewCommand(git.DefaultContext, "reset", "--hard", "HEAD~1").Run(&git.RunOpts{Dir: dstPath})
+		assert.NoError(t, err)
+
+		// test force push without confirm
+		stderr := strings.Builder{}
+		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push").Run(&git.RunOpts{Dir: dstPath, Stderr: &stderr})
+		assert.Error(t, err)
+		assert.Contains(t, stderr.String(), "[remote rejected] HEAD -> refs/for/master/test-agit-push (request `force-push` push option)")
+
+		// test force push with confirm
+		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push", "-o", "force-push").Run(&git.RunOpts{Dir: dstPath, Stderr: &stderr})
+		assert.NoError(t, err)
 	})
 }
