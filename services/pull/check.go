@@ -118,13 +118,26 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 				err = nil
 			}
 
-			// * if the doer is admin, they could skip the branch protection check
+			// * if the doer is admin, they could sometimes skip the branch protection check
 			if adminSkipProtectionCheck {
-				if isRepoAdmin, errCheckAdmin := access_model.IsUserRepoAdmin(ctx, pr.BaseRepo, doer); errCheckAdmin != nil {
+				pb, pbErr := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+				if pbErr != nil {
+					return fmt.Errorf("LoadProtectedBranch: %v", err)
+				}
+
+				isRepoAdmin, errCheckAdmin := access_model.IsUserRepoAdmin(ctx, pr.BaseRepo, doer)
+
+				/**
+				 * Checks are only skipable if there is no branch protection available or BlockAdminMergeOverride
+				 * of branch protection is set to false
+				 */
+				if errCheckAdmin != nil {
 					log.Error("Unable to check if %-v is a repo admin in %-v: %v", doer, pr.BaseRepo, errCheckAdmin)
 					return errCheckAdmin
-				} else if isRepoAdmin {
-					err = nil // repo admin can skip the check, so clear the error
+				} else if isRepoAdmin && pb != nil && !pb.BlockAdminMergeOverride {
+					err = nil
+				} else if isRepoAdmin && pb == nil {
+					err = nil
 				}
 			}
 
