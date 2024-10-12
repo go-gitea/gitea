@@ -219,6 +219,7 @@ type ProtectBranchForm struct {
 	RequireSignedCommits          bool
 	ProtectedFilePatterns         string
 	UnprotectedFilePatterns       string
+	BlockAdminMergeOverride       bool
 }
 
 // Validate validates the fields
