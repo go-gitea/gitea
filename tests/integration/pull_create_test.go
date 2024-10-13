@@ -199,3 +199,30 @@ func TestPullBranchDelete(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 	})
 }
+
+/*
+Setup:
+The base repository is: user2/repo1
+Fork repository to: user1/repo1
+Push extra commit to: user2/repo1, which changes README.md
+Create a PR on user1/repo1
+
+Test checks:
+Check if pull request can be created from base to the fork repository.
+*/
+func TestPullCreatePrFromBaseToFork(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		sessionFork := loginUser(t, "user1")
+		testRepoFork(t, sessionFork, "user2", "repo1", "user1", "repo1", "")
+
+		// Edit base repository
+		sessionBase := loginUser(t, "user2")
+		testEditFile(t, sessionBase, "user2", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+
+		// Create a PR
+		resp := testPullCreateDirectly(t, sessionFork, "user1", "repo1", "master", "user2", "repo1", "master", "This is a pull title")
+		// check the redirected URL
+		url := test.RedirectURL(resp)
+		assert.Regexp(t, "^/user1/repo1/pulls/[0-9]*$", url)
+	})
+}

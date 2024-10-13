@@ -10,7 +10,7 @@ export async function initAdminSelfCheck() {
   const elContent = document.querySelector('.page-content.admin .admin-setting-content');
 
   // send frontend self-check request
-  const resp = await POST(`${appSubUrl}/admin/self_check`, {
+  const resp = await POST(`${appSubUrl}/-/admin/self_check`, {
     data: new URLSearchParams({
       location_origin: window.location.origin,
       now: Date.now(), // TODO: check time difference between server and client

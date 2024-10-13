@@ -37,6 +37,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -485,19 +486,19 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 	assert.True(t, result.Valid())
 }
 
-// GetCSRF returns CSRF token from body
-func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
+// GetUserCSRFToken returns CSRF token for current user
+func GetUserCSRFToken(t testing.TB, session *TestSession) string {
 	t.Helper()
-	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-	return doc.GetCSRF()
+	cookie := session.GetCookie("_csrf")
+	require.NotEmpty(t, cookie)
+	return cookie.Value
 }
 
-// GetCSRFFrom returns CSRF token from body
-func GetCSRFFromCookie(t testing.TB, session *TestSession, urlStr string) string {
+// GetUserCSRFToken returns CSRF token for anonymous user (not logged in)
+func GetAnonymousCSRFToken(t testing.TB, session *TestSession) string {
 	t.Helper()
-	req := NewRequest(t, "GET", urlStr)
-	session.MakeRequest(t, req, http.StatusOK)
-	return session.GetCookie("_csrf").Value
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusOK)
+	csrfToken := NewHTMLParser(t, resp.Body).GetCSRF()
+	require.NotEmpty(t, csrfToken)
+	return csrfToken
 }

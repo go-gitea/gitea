@@ -452,13 +452,10 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 
 	actions := make([]*Action, 0, opts.PageSize)
 	var count int64
+	opts.SetDefaultValues()
 
 	if opts.Page < 10 { // TODO: why it's 10 but other values? It's an experience value.
-		sess := db.GetEngine(ctx).Where(cond).
-			Select("`action`.*"). // this line will avoid select other joined table's columns
-			Join("INNER", "repository", "`repository`.id = `action`.repo_id")
-
-		opts.SetDefaultValues()
+		sess := db.GetEngine(ctx).Where(cond)
 		sess = db.SetSessionPagination(sess, &opts)
 
 		count, err = sess.Desc("`action`.created_unix").FindAndCount(&actions)
@@ -467,11 +464,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		}
 	} else {
 		// First, only query which IDs are necessary, and only then query all actions to speed up the overall query
-		sess := db.GetEngine(ctx).Where(cond).
-			Select("`action`.id").
-			Join("INNER", "repository", "`repository`.id = `action`.repo_id")
-
-		opts.SetDefaultValues()
+		sess := db.GetEngine(ctx).Where(cond).Select("`action`.id")
 		sess = db.SetSessionPagination(sess, &opts)
 
 		actionIDs := make([]int64, 0, opts.PageSize)
@@ -481,8 +474,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 
 		count, err = db.GetEngine(ctx).Where(cond).
 			Table("action").
-			Cols("`action`.id").
-			Join("INNER", "repository", "`repository`.id = `action`.repo_id").Count()
+			Cols("`action`.id").Count()
 		if err != nil {
 			return nil, 0, fmt.Errorf("Count: %w", err)
 		}
