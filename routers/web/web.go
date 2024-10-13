@@ -683,7 +683,7 @@ func registerRoutes(m *web.Router) {
 	adminReq := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true, AdminRequired: true})
 
 	// ***** START: Admin *****
-	m.Group("/admin", func() {
+	m.Group("/-/admin", func() {
 		m.Get("", admin.Dashboard)
 		m.Get("/system_status", admin.SystemStatus)
 		m.Post("", web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)

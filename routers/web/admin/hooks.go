@@ -36,8 +36,8 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 	sys["Title"] = ctx.Tr("admin.systemhooks")
 	sys["Description"] = ctx.Tr("admin.systemhooks.desc", "https://docs.gitea.com/usage/webhooks")
 	sys["Webhooks"], err = webhook.GetSystemWebhooks(ctx, optional.None[bool]())
-	sys["BaseLink"] = setting.AppSubURL + "/admin/hooks"
-	sys["BaseLinkNew"] = setting.AppSubURL + "/admin/system-hooks"
+	sys["BaseLink"] = setting.AppSubURL + "/-/admin/hooks"
+	sys["BaseLinkNew"] = setting.AppSubURL + "/-/admin/system-hooks"
 	if err != nil {
 		ctx.ServerError("GetWebhooksAdmin", err)
 		return
@@ -46,8 +46,8 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 	def["Title"] = ctx.Tr("admin.defaulthooks")
 	def["Description"] = ctx.Tr("admin.defaulthooks.desc", "https://docs.gitea.com/usage/webhooks")
 	def["Webhooks"], err = webhook.GetDefaultWebhooks(ctx)
-	def["BaseLink"] = setting.AppSubURL + "/admin/hooks"
-	def["BaseLinkNew"] = setting.AppSubURL + "/admin/default-hooks"
+	def["BaseLink"] = setting.AppSubURL + "/-/admin/hooks"
+	def["BaseLinkNew"] = setting.AppSubURL + "/-/admin/default-hooks"
 	if err != nil {
 		ctx.ServerError("GetWebhooksAdmin", err)
 		return
@@ -67,5 +67,5 @@ func DeleteDefaultOrSystemWebhook(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSONRedirect(setting.AppSubURL + "/admin/hooks")
+	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/hooks")
 }
