@@ -23,6 +23,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
@@ -169,9 +170,6 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		return fmt.Errorf("unable to load head repo: %w", err)
 	}
 
-	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
-	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
-
 	prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 	if err != nil {
 		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
@@ -184,11 +182,18 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}
 
+	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer releaser()
 	defer func() {
 		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
 	}()
 
 	_, err = doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message, repo_module.PushTriggerPRMergeToBase)
+	releaser()
 	if err != nil {
 		return err
 	}
@@ -219,6 +224,10 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	// Reset cached commit count
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
 
+	return handleCloseCrossReferences(ctx, pr, doer)
+}
+
+func handleCloseCrossReferences(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) error {
 	// Resolve cross references
 	refs, err := pr.ResolveCrossReferences(ctx)
 	if err != nil {
@@ -483,10 +492,14 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 
 // MergedManually mark pr as merged manually
 func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) error {
-	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
-	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
+	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer releaser()
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
+	err = db.WithTx(ctx, func(ctx context.Context) error {
 		if err := pr.LoadBaseRepo(ctx); err != nil {
 			return err
 		}
@@ -536,11 +549,14 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 			return fmt.Errorf("SetMerged failed")
 		}
 		return nil
-	}); err != nil {
+	})
+	releaser()
+	if err != nil {
 		return err
 	}
 
 	notify_service.MergePullRequest(baseGitRepo.Ctx, doer, pr)
 	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commitID)
-	return nil
+
+	return handleCloseCrossReferences(ctx, pr, doer)
 }

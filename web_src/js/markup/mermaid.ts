@@ -20,6 +20,7 @@ export async function renderMermaid() {
     startOnLoad: false,
     theme: isDarkTheme() ? 'dark' : 'neutral',
     securityLevel: 'strict',
+    suppressErrorRendering: true,
   });
 
   for (const el of els) {

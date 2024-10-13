@@ -76,7 +76,7 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 			IsAdmin:            true,
 			RunnersTemplate:    tplAdminRunners,
 			RunnerEditTemplate: tplAdminRunnerEdit,
-			RedirectLink:       setting.AppSubURL + "/admin/actions/runners/",
+			RedirectLink:       setting.AppSubURL + "/-/admin/actions/runners/",
 		}, nil
 	}
 

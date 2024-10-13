@@ -863,6 +863,7 @@ export function initRepositoryActionView() {
   word-break: break-all;
   white-space: break-spaces;
   margin-left: 10px;
+  overflow-wrap: anywhere;
 }
 
 /* selectors here are intentionally exact to only match fullscreen */

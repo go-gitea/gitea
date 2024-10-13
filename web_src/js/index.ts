@@ -3,7 +3,6 @@ import './bootstrap.ts';
 import './htmx.ts';
 
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
-import {initScopedAccessTokenCategories} from './components/ScopedAccessTokenSelector.vue';
 import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
 import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
@@ -61,7 +60,7 @@ import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
 import {initCommonOrganization} from './features/common-organization.ts';
 import {initRepoWikiForm} from './features/repo-wiki.ts';
-import {initRepoCommentForm, initRepository} from './features/repo-legacy.ts';
+import {initRepoCommentForm, initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCopyContent} from './features/copycontent.ts';
 import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
@@ -78,7 +77,9 @@ import {initDirAuto} from './modules/dirauto.ts';
 import {initRepositorySearch} from './features/repo-search.ts';
 import {initColorPickers} from './features/colorpicker.ts';
 import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
+import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
 import {initGlobalFetchAction} from './features/common-fetch-action.ts';
+import {initScopedAccessTokenCategories} from './features/scoped-access-token.ts';
 import {
   initFootLanguageMenu,
   initGlobalDropdown,
@@ -97,12 +98,12 @@ initGiteaFomantic();
 initDirAuto();
 initSubmitEventPolyfill();
 
-function callInitFunctions(functions) {
+function callInitFunctions(functions: (() => any)[]) {
   // Start performance trace by accessing a URL by "https://localhost/?_ui_performance_trace=1" or "https://localhost/?key=value&_ui_performance_trace=1"
   // It is a quick check, no side effect so no need to do slow URL parsing.
   const initStart = performance.now();
   if (window.location.search.includes('_ui_performance_trace=1')) {
-    let results = [];
+    let results: {name: string, dur: number}[] = [];
     for (const func of functions) {
       const start = performance.now();
       func();
@@ -181,6 +182,7 @@ onDomReady(() => {
     initRepoBranchButton,
     initRepoCodeView,
     initRepoCommentForm,
+    initBranchSelectorTabs,
     initRepoEllipsisButton,
     initRepoDiffCommitBranchesAndTags,
     initRepoEditor,
@@ -225,5 +227,7 @@ onDomReady(() => {
     initPdfViewer,
     initScopedAccessTokenCategories,
     initColorPickers,
+
+    initOAuth2SettingsDisableCheckbox,
   ]);
 });

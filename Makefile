@@ -23,12 +23,12 @@ SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
-XGO_VERSION := go-1.22.x
+XGO_VERSION := go-1.23.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.6.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.0
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.7.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.60.3
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.5.1
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.31.0
@@ -137,7 +137,7 @@ TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
-TEST_TAGS ?= sqlite sqlite_unlock_notify
+TEST_TAGS ?= $(TAGS_SPLIT) sqlite sqlite_unlock_notify
 
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
@@ -179,6 +179,7 @@ TEST_PGSQL_DBNAME ?= testgitea
 TEST_PGSQL_USERNAME ?= postgres
 TEST_PGSQL_PASSWORD ?= postgres
 TEST_PGSQL_SCHEMA ?= gtestschema
+TEST_MINIO_ENDPOINT ?= minio:9000
 TEST_MSSQL_HOST ?= mssql:1433
 TEST_MSSQL_DBNAME ?= gitea
 TEST_MSSQL_USERNAME ?= sa
@@ -574,6 +575,7 @@ generate-ini-pgsql:
 		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
 		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
 		-e 's|{{TEST_PGSQL_SCHEMA}}|${TEST_PGSQL_SCHEMA}|g' \
+		-e 's|{{TEST_MINIO_ENDPOINT}}|${TEST_MINIO_ENDPOINT}|g' \
 		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
 		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
 		-e 's|{{TEST_TYPE}}|$(or $(TEST_TYPE),integration)|g' \
@@ -858,18 +860,19 @@ deps-backend:
 
 .PHONY: deps-tools
 deps-tools:
-	$(GO) install $(AIR_PACKAGE)
-	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
-	$(GO) install $(GOFUMPT_PACKAGE)
-	$(GO) install $(GOLANGCI_LINT_PACKAGE)
-	$(GO) install $(GXZ_PACKAGE)
-	$(GO) install $(MISSPELL_PACKAGE)
-	$(GO) install $(SWAGGER_PACKAGE)
-	$(GO) install $(XGO_PACKAGE)
-	$(GO) install $(GO_LICENSES_PACKAGE)
-	$(GO) install $(GOVULNCHECK_PACKAGE)
-	$(GO) install $(ACTIONLINT_PACKAGE)
-	$(GO) install $(GOPLS_PACKAGE)
+	$(GO) install $(AIR_PACKAGE) & \
+	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE) & \
+	$(GO) install $(GOFUMPT_PACKAGE) & \
+	$(GO) install $(GOLANGCI_LINT_PACKAGE) & \
+	$(GO) install $(GXZ_PACKAGE) & \
+	$(GO) install $(MISSPELL_PACKAGE) & \
+	$(GO) install $(SWAGGER_PACKAGE) & \
+	$(GO) install $(XGO_PACKAGE) & \
+	$(GO) install $(GO_LICENSES_PACKAGE) & \
+	$(GO) install $(GOVULNCHECK_PACKAGE) & \
+	$(GO) install $(ACTIONLINT_PACKAGE) & \
+	$(GO) install $(GOPLS_PACKAGE) & \
+	wait
 
 node_modules: package-lock.json
 	npm install --no-save
@@ -886,6 +889,8 @@ update: update-js update-py
 update-js: node-check | node_modules
 	npx updates -u -f package.json
 	rm -rf node_modules package-lock.json
+	npm install --package-lock
+	npx nolyfill install
 	npm install --package-lock
 	@touch node_modules
 

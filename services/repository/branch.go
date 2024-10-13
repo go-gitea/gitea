@@ -147,6 +147,23 @@ func DelDivergenceFromCache(repoID int64, branchName string) error {
 	return cache.GetCache().Delete(getDivergenceCacheKey(repoID, branchName))
 }
 
+// DelRepoDivergenceFromCache deletes all divergence caches of a repository
+func DelRepoDivergenceFromCache(ctx context.Context, repoID int64) error {
+	dbBranches, err := db.Find[git_model.Branch](ctx, git_model.FindBranchOptions{
+		RepoID:      repoID,
+		ListOptions: db.ListOptionsAll,
+	})
+	if err != nil {
+		return err
+	}
+	for i := range dbBranches {
+		if err := DelDivergenceFromCache(repoID, dbBranches[i].Name); err != nil {
+			log.Error("DelDivergenceFromCache: %v", err)
+		}
+	}
+	return nil
+}
+
 func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *git_model.Branch, protectedBranches *git_model.ProtectedBranchRules,
 	repoIDToRepo map[int64]*repo_model.Repository,
 	repoIDToGitRepo map[int64]*git.Repository,
@@ -466,13 +483,12 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	}
 
 	rawBranch, err := git_model.GetBranch(ctx, repo.ID, branchName)
-	if err != nil {
+	if err != nil && !git_model.IsErrBranchNotExist(err) {
 		return fmt.Errorf("GetBranch: %vc", err)
 	}
 
-	if rawBranch.IsDeleted {
-		return nil
-	}
+	// database branch record not exist or it's a deleted branch
+	notExist := git_model.IsErrBranchNotExist(err) || rawBranch.IsDeleted
 
 	commit, err := gitRepo.GetBranchCommit(branchName)
 	if err != nil {
@@ -480,8 +496,10 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, doer.ID); err != nil {
-			return err
+		if !notExist {
+			if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, doer.ID); err != nil {
+				return err
+			}
 		}
 
 		return gitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
@@ -592,6 +610,14 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 		return nil
 	}); err != nil {
 		return err
+	}
+
+	if !repo.IsEmpty {
+		if err := AddRepoToLicenseUpdaterQueue(&LicenseUpdaterOptions{
+			RepoID: repo.ID,
+		}); err != nil {
+			log.Error("AddRepoToLicenseUpdaterQueue: %v", err)
+		}
 	}
 
 	notify_service.ChangeDefaultBranch(ctx, repo)
