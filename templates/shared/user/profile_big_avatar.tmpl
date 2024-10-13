@@ -14,7 +14,7 @@
 	<div class="content tw-break-anywhere profile-avatar-name">
 		{{if .ContextUser.FullName}}<span class="header text center">{{.ContextUser.FullName}}</span>{{end}}
 		<span class="username text center">{{.ContextUser.Name}} {{if .IsAdmin}}
-					<a class="muted" href="{{AppSubUrl}}/admin/users/{{.ContextUser.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">
+					<a class="muted" href="{{AppSubUrl}}/-/admin/users/{{.ContextUser.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">
 						{{svg "octicon-gear" 18}}
 					</a>
 				{{end}}</span>

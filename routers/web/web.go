@@ -669,7 +669,6 @@ func registerRoutes(m *web.Router) {
 		m.Get("/forgot_password", auth.ForgotPasswd)
 		m.Post("/forgot_password", auth.ForgotPasswdPost)
 		m.Post("/logout", auth.SignOut)
-		m.Get("/task/{task}", reqSignIn, user.TaskStatus)
 		m.Get("/stopwatches", reqSignIn, user.GetStopwatches)
 		m.Get("/search", ignExploreSignIn, user.Search)
 		m.Group("/oauth2", func() {
@@ -684,7 +683,7 @@ func registerRoutes(m *web.Router) {
 	adminReq := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true, AdminRequired: true})
 
 	// ***** START: Admin *****
-	m.Group("/admin", func() {
+	m.Group("/-/admin", func() {
 		m.Get("", admin.Dashboard)
 		m.Get("/system_status", admin.SystemStatus)
 		m.Post("", web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
@@ -1041,6 +1040,13 @@ func registerRoutes(m *web.Router) {
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false), individualPermsChecker)
 	}, ignSignIn, context.UserAssignmentWeb(), context.OrgAssignment())
 	// end "/{username}/-": packages, projects, code
+
+	m.Group("/{username}/{reponame}/-", func() {
+		m.Group("/migrate", func() {
+			m.Get("/status", repo.MigrateStatus)
+		})
+	}, ignSignIn, context.RepoAssignment, reqRepoCodeReader)
+	// end "/{username}/{reponame}/-": migrate
 
 	m.Group("/{username}/{reponame}/settings", func() {
 		m.Group("", func() {
