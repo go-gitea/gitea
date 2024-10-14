@@ -656,11 +656,11 @@ func (org *Organization) getUserTeams(ctx context.Context, userID int64, cols ..
 func (org *Organization) getUserTeamIDs(ctx context.Context, userID int64) ([]int64, error) {
 	teamIDs := make([]int64, 0, org.NumTeams)
 	return teamIDs, db.GetEngine(ctx).
-		Where(userTeamIDbuilder(org.ID, userID)).
+		Where(getUserTeamIDsQueryBuilder(org.ID, userID)).
 		Find(&teamIDs)
 }
 
-func userTeamIDbuilder(orgID, userID int64) *builder.Builder {
+func getUserTeamIDsQueryBuilder(orgID, userID int64) *builder.Builder {
 	return builder.Select("team.id").From("team").
 		InnerJoin("team_user", "team_user.team_id = team.id").
 		Where(builder.Eq{
