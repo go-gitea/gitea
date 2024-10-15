@@ -19,15 +19,40 @@ function initRepoDiffReviewButton() {
   const counter = reviewBox.querySelector('.review-comments-counter');
   if (!counter) return;
 
-  $(document).on('click', 'button[name="pending_review"]', (e) => {
-    const $form = $(e.target).closest('form');
-    // Watch for the form's submit event.
-    $form.on('submit', () => {
-      const num = parseInt(counter.getAttribute('data-pending-comment-number')) + 1 || 1;
+  function handleFormSubmit(form, textarea) {
+    if (form.getAttribute('data-handler-attached') === 'true') return;
+    form.setAttribute('data-handler-attached', 'true');
+    form.addEventListener('submit', (event) => {
+      if (textarea.value.trim() === '') {
+        event.preventDefault();
+        return;
+      }
+      const num = (parseInt(counter.getAttribute('data-pending-comment-number')) || 0) + 1;
       counter.setAttribute('data-pending-comment-number', num);
       counter.textContent = num;
       animateOnce(reviewBox, 'pulse-1p5-200');
+      form.removeAttribute('data-handler-attached');
     });
+  }
+
+  // Handle submit on click
+  document.addEventListener('click', (e) => {
+    if (e.target.name === 'pending_review') {
+      const form = e.target.closest('form');
+      const textarea = form.querySelector('textarea');
+      handleFormSubmit(form, textarea);
+    }
+  });
+
+  // Handle submit by ctrl+enter
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      const textarea = e.target;
+      if (textarea.tagName.toLowerCase() === 'textarea') {
+        const form = textarea.closest('form');
+        handleFormSubmit(form, textarea);
+      }
+    }
   });
 }
 
