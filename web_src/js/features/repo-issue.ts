@@ -188,7 +188,7 @@ export function initRepoIssueCommentDelete() {
           const side = conversationHolder.getAttribute('data-side');
           const idx = conversationHolder.getAttribute('data-idx');
           const lineType = conversationHolder.closest('tr')?.getAttribute('data-line-type');
-          
+
           // the conversation holder could appear either on the "Conversation" page, or the "Files Changed" page
           // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment"
           if (lineType) {
