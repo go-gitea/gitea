@@ -215,7 +215,6 @@ func (opts FindOrgMembersOpts) applyTeamMatesOnlyFilter(sess *xorm.Session) {
 
 		sess.In("org_user.uid", teamMates)
 	}
-	return nil
 }
 
 // CountOrgMembers counts the organization's members
