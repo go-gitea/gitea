@@ -206,7 +206,7 @@ func (opts FindOrgMembersOpts) PublicOnly() bool {
 	return opts.Doer == nil || !(opts.IsMember || opts.Doer.IsAdmin)
 }
 
-func (opts FindOrgMembersOpts) applyTeamMatesOnlyFilter(sess *xorm.Session) error {
+func (opts FindOrgMembersOpts) applyTeamMatesOnlyFilter(sess *xorm.Session) {
 	if opts.Doer != nil && opts.IsMember && opts.Doer.IsRestricted {
 		teamMates := builder.Select("DISTINCT team_user.uid").
 			From("team_user").
@@ -224,9 +224,7 @@ func CountOrgMembers(ctx context.Context, opts *FindOrgMembersOpts) (int64, erro
 	if opts.PublicOnly() {
 		sess.And("is_public = ?", true)
 	}
-	if err := opts.applyTeamMatesOnlyFilter(sess); err != nil {
-		return 0, err
-	}
+	opts.applyTeamMatesOnlyFilter(sess)
 
 	return sess.Count(new(OrgUser))
 }
@@ -551,9 +549,7 @@ func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUs
 	if opts.PublicOnly() {
 		sess.And("is_public = ?", true)
 	}
-	if err := opts.applyTeamMatesOnlyFilter(sess); err != nil {
-		return nil, err
-	}
+	opts.applyTeamMatesOnlyFilter(sess)
 
 	if opts.ListOptions.PageSize > 0 {
 		sess = db.SetSessionPagination(sess, opts)
