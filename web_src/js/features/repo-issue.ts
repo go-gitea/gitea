@@ -674,11 +674,13 @@ export async function initSingleCommentEditor($commentForm) {
   const commentButton = document.querySelector('#comment-button');
   opts.onContentChanged = (editor) => {
     const editorText = editor.value().trim();
+    const isUploading = editor.attachedDropzoneInst.getUploadingFiles().length != 0;
+
     if (statusButton) {
       statusButton.textContent = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
     }
     if (commentButton) {
-      commentButton.disabled = !editorText;
+      commentButton.disabled = !editorText || isUploading;
     }
   };
   const editor = await initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
