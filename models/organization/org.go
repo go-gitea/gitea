@@ -210,7 +210,7 @@ func (opts FindOrgMembersOpts) addTeamMatesOnlyFilter(ctx context.Context, sess 
 	if opts.Doer != nil && opts.IsMember && opts.Doer.IsRestricted {
 		teamMates := builder.Select("DISTINCT team_user.uid").
 			From("team_user").
-			Where(builder.In("team_user.team_id", userTeamIDbuilder(opts.OrgID, opts.Doer.ID))).
+			Where(builder.In("team_user.team_id", getUserTeamIDsQueryBuilder(opts.OrgID, opts.Doer.ID))).
 			And(builder.Eq{"team_user.org_id": opts.OrgID})
 
 		sess.In("org_user.uid", teamMates)
