@@ -4,6 +4,7 @@
 package organization_test
 
 import (
+	"sort"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -210,31 +211,38 @@ func TestFindOrgs(t *testing.T) {
 func TestGetOrgUsersByOrgID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	orgUsers, err := organization.GetOrgUsersByOrgID(db.DefaultContext, &organization.FindOrgMembersOpts{
-		ListOptions: db.ListOptions{},
-		OrgID:       3,
-	})
-	assert.NoError(t, err)
-	if assert.Len(t, orgUsers, 3) {
-		assert.Equal(t, organization.OrgUser{
-			ID:       orgUsers[0].ID,
-			OrgID:    3,
-			UID:      2,
-			IsPublic: true,
-		}, *orgUsers[0])
-		assert.Equal(t, organization.OrgUser{
-			ID:       orgUsers[1].ID,
-			OrgID:    3,
-			UID:      4,
-			IsPublic: false,
-		}, *orgUsers[1])
-		assert.Equal(t, organization.OrgUser{
-			ID:       orgUsers[2].ID,
-			OrgID:    3,
-			UID:      28,
-			IsPublic: true,
-		}, *orgUsers[2])
+	opts := &organization.FindOrgMembersOpts{
+		Doer:  &user_model.User{IsAdmin: true},
+		OrgID: 3,
 	}
+	assert.False(t, opts.PublicOnly())
+	orgUsers, err := organization.GetOrgUsersByOrgID(db.DefaultContext, opts)
+	assert.NoError(t, err)
+	sort.Slice(orgUsers, func(i, j int) bool {
+		return orgUsers[i].ID < orgUsers[j].ID
+	})
+	assert.EqualValues(t, []*organization.OrgUser{{
+		ID:       1,
+		OrgID:    3,
+		UID:      2,
+		IsPublic: true,
+	}, {
+		ID:       2,
+		OrgID:    3,
+		UID:      4,
+		IsPublic: false,
+	}, {
+		ID:       9,
+		OrgID:    3,
+		UID:      28,
+		IsPublic: true,
+	}}, orgUsers)
+
+	opts = &organization.FindOrgMembersOpts{OrgID: 3}
+	assert.True(t, opts.PublicOnly())
+	orgUsers, err = organization.GetOrgUsersByOrgID(db.DefaultContext, opts)
+	assert.NoError(t, err)
+	assert.Len(t, orgUsers, 2)
 
 	orgUsers, err = organization.GetOrgUsersByOrgID(db.DefaultContext, &organization.FindOrgMembersOpts{
 		ListOptions: db.ListOptions{},
