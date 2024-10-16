@@ -282,8 +282,22 @@
 	{{end}}
 	{{if .Repository.IsTimetrackerEnabled $.Context}}
 		{{if and .CanUseTimetracker (not .Repository.IsArchived)}}
-			<div class="divider"></div>
-			<div class="ui timetrack">
+			<div class="ui divider"></div>
+			<div>
+					<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_estimate"}}</strong></span>
+
+					<form method="post" id="set_time_estimate_form" class="gt-mt-3" action="{{.Issue.Link}}/time_estimate">
+						{{$.CsrfTokenHtml}}
+							<div class="ui input fluid">
+								<input name="time_estimate" placeholder='{{ctx.Locale.Tr "repo.issues.add_time_estimate"}}' value="{{TimeEstimateToStr .Issue.TimeEstimate}}" data-value="{{$.Issue.TimeEstimate}}" type="text" >
+							</div>
+							<button class="ui fluid button green tooltip tw-mt-1">
+								{{ctx.Locale.Tr "repo.issues.save"}}
+							</button>
+					</form>
+				</div>
+				<div class="divider"></div>
+				<div class="ui timetrack">
 				<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.tracker"}}</strong></span>
 				<div class="tw-mt-2">
 					<form method="post" action="{{.Issue.Link}}/times/stopwatch/toggle" id="toggle_stopwatch_form">
@@ -315,9 +329,8 @@
 							<div class="header">{{ctx.Locale.Tr "repo.issues.add_time"}}</div>
 							<div class="content">
 								<form method="post" id="add_time_manual_form" action="{{.Issue.Link}}/times/add" class="ui input fluid tw-gap-2">
-									{{$.CsrfTokenHtml}}
-									<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
-									<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
+										{{$.CsrfTokenHtml}}
+										<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_estimate"}}' type="text" name="time_string">
 								</form>
 							</div>
 							<div class="actions">
@@ -336,8 +349,9 @@
 		{{if .WorkingUsers}}
 			<div class="divider"></div>
 			<div class="ui comments">
-				<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Time)}}</strong></span>
-				<div>
+				<div class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" | SafeHTML}}</strong></div>
+					<div>{{SecToTimeExact .Issue.TotalTrackedTime false}}</div>
+					<div class="gt-mt-3">
 					{{range $user, $trackedtime := .WorkingUsers}}
 						<div class="comment tw-mt-2">
 							<a class="avatar">

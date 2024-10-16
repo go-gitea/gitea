@@ -13,6 +13,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -1803,6 +1804,11 @@ func ViewIssue(ctx *context.Context) {
 					comment.Content = comment.Content[1:]
 				}
 			}
+		} else if comment.Type == issues_model.CommentTypeChangeTimeEstimate {
+			timeSec, _ := util.ToInt64(comment.Content)
+			timeStr := util.SecToTimeExact(timeSec, timeSec < 60)
+
+			comment.RenderedContent = templates.SanitizeHTML(timeStr)
 		}
 
 		if comment.Type == issues_model.CommentTypeClose || comment.Type == issues_model.CommentTypeMergePull {
@@ -2245,6 +2251,57 @@ func UpdateIssueTitle(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]any{
 		"title": issue.Title,
 	})
+}
+
+// UpdateIssueTimeEstimate change issue's planned time
+var (
+	rTimeEstimateStr          = regexp.MustCompile(`^([\d]+w)?\s?([\d]+d)?\s?([\d]+h)?\s?([\d]+m)?$`)
+	rTimeEstimateStrHoursOnly = regexp.MustCompile(`^([\d]+)$`)
+)
+
+func UpdateIssueTimeEstimate(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+		ctx.Error(http.StatusForbidden)
+		return
+	}
+
+	url := issue.Link()
+
+	timeStr := ctx.FormString("time_estimate")
+
+	// Validate input
+	if !rTimeEstimateStr.MatchString(timeStr) && !rTimeEstimateStrHoursOnly.MatchString(timeStr) {
+		ctx.Flash.Error(ctx.Tr("repo.issues.time_estimate_invalid"))
+		ctx.Redirect(url, http.StatusSeeOther)
+		return
+	}
+
+	total := util.TimeEstimateFromStr(timeStr)
+
+	// User entered something wrong
+	if total == 0 && len(timeStr) != 0 {
+		ctx.Flash.Error(ctx.Tr("repo.issues.time_estimate_invalid"))
+		ctx.Redirect(url, http.StatusSeeOther)
+		return
+	}
+
+	// No time changed
+	if issue.TimeEstimate == total {
+		ctx.Redirect(url, http.StatusSeeOther)
+		return
+	}
+
+	if err := issue_service.ChangeTimeEstimate(ctx, issue, ctx.Doer, total); err != nil {
+		ctx.ServerError("ChangeTimeEstimate", err)
+		return
+	}
+
+	ctx.Redirect(url, http.StatusSeeOther)
 }
 
 // UpdateIssueRef change issue's ref (branch)

@@ -43,6 +43,7 @@ var hiddenCommentTypeGroups = hiddenCommentTypeGroupsType{
 		/*14*/ issues_model.CommentTypeAddTimeManual,
 		/*15*/ issues_model.CommentTypeCancelTracking,
 		/*26*/ issues_model.CommentTypeDeleteTimeManual,
+		/*38*/ issues_model.CommentTypeChangeTimeEstimate,
 	},
 	"deadline": {
 		/*16*/ issues_model.CommentTypeAddedDeadline,
