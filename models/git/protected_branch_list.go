@@ -48,7 +48,7 @@ func FindRepoProtectedBranchRules(ctx context.Context, repoID int64) (ProtectedB
 	if err != nil {
 		return nil, err
 	}
-	rules.sort() // to make non-glob rules have higher priority, and for same glob/non-glob rules, first created rules have higher priority
+	rules.sort() // make sure first match is detected in right order
 	return rules, nil
 }
 
