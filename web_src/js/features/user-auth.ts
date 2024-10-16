@@ -1,11 +1,14 @@
-import {checkAppUrl} from './common-page.ts';
+import {checkAppUrl} from './common-page.js';
+
+export function initUserCheckAppUrl() {
+  if (!document.querySelector('.page-content.user.signin, .page-content.user.signup, .page-content.user.link-account')) return;
+  checkAppUrl();
+}
 
 export function initUserAuthOauth2() {
   const outer = document.querySelector('#oauth2-login-navigator');
   if (!outer) return;
   const inner = document.querySelector('#oauth2-login-navigator-inner');
-
-  checkAppUrl();
 
   for (const link of outer.querySelectorAll('.oauth-login-link')) {
     link.addEventListener('click', () => {
