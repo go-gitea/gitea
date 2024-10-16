@@ -358,9 +358,10 @@ func (f *NewDingtalkHookForm) Validate(req *http.Request, errs binding.Errors) b
 
 // NewTelegramHookForm form for creating telegram hook
 type NewTelegramHookForm struct {
-	BotToken string `binding:"Required"`
-	ChatID   string `binding:"Required"`
-	ThreadID string
+	BotToken   string `binding:"Required"`
+	ChatID     string `binding:"Required"`
+	CustomHost string
+	ThreadID   string
 	WebhookForm
 }
 
