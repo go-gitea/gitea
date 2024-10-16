@@ -92,7 +92,7 @@ func TestBranchRuleSort(t *testing.T) {
 		RuleName:    "a",
 		CreatedUnix: 4,
 	}}
-	expect := []string{"c", "b", "a", "a/*", "b/*"}
+	expect := []string{"a", "b", "c", "a/*", "b/*"}
 
 	pbr := ProtectedBranchRules(in)
 	pbr.sort()
