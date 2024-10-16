@@ -254,7 +254,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 
 // checkBranchName validates branch name with existing repository branches
 func checkBranchName(ctx context.Context, repo *repo_model.Repository, name string) error {
-	_, err := gitrepo.WalkReferences(ctx, repo, func(_, refName string) error {
+	_, err := gitrepo.WalkReferences(ctx, repo, git.ObjectBranch, func(_, refName string) error {
 		branchRefName := strings.TrimPrefix(refName, git.BranchPrefix)
 		switch {
 		case branchRefName == name:

@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -38,6 +39,9 @@ func initDBSkipLogger(ctx context.Context) error {
 	// some doctor sub-commands need to use git command
 	if err := git.InitFull(ctx); err != nil {
 		return fmt.Errorf("git.InitFull: %w", err)
+	}
+	if err := gitrepo.Init(ctx); err != nil {
+		return fmt.Errorf("gitrepo.Init: %w", err)
 	}
 	return nil
 }
