@@ -37,6 +37,7 @@ type PullRequest struct {
 	ForeignIndex   int64
 	Context        DownloaderContext `yaml:"-"`
 	EnsuredSafe    bool              `yaml:"ensured_safe"`
+	IsDraft        bool              `yaml:"is_draft"`
 }
 
 func (p *PullRequest) GetLocalIndex() int64          { return p.Number }

@@ -21,7 +21,6 @@ import (
 func testLoginFailed(t *testing.T, username, password, message string) {
 	session := emptyTestSession(t)
 	req := NewRequestWithValues(t, "POST", "/user/login", map[string]string{
-		"_csrf":     GetCSRF(t, session, "/user/login"),
 		"user_name": username,
 		"password":  password,
 	})
@@ -68,7 +67,6 @@ func TestSigninWithRememberMe(t *testing.T) {
 
 	session := emptyTestSession(t)
 	req := NewRequestWithValues(t, "POST", "/user/login", map[string]string{
-		"_csrf":     GetCSRF(t, session, "/user/login"),
 		"user_name": user.Name,
 		"password":  userPassword,
 		"remember":  "on",

@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	esRepoIndexerLatestVersion = 1
+	esRepoIndexerLatestVersion = 2
 	// multi-match-types, currently only 2 types are used
 	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
 	esMultiMatchTypeBestFields   = "best_fields"
@@ -57,11 +57,49 @@ func NewIndexer(url, indexerName string) *Indexer {
 
 const (
 	defaultMapping = `{
+		"settings": {
+    		"analysis": {
+      			"analyzer": {
+        			"filename_path_analyzer": {
+          				"tokenizer": "path_tokenizer"
+        			},
+        			"reversed_filename_path_analyzer": {
+          				"tokenizer": "reversed_path_tokenizer"
+        			}
+      			},
+				"tokenizer": {
+					"path_tokenizer": {
+						"type": "path_hierarchy",
+						"delimiter": "/"
+					},
+					"reversed_path_tokenizer": {
+						"type": "path_hierarchy",
+						"delimiter": "/",
+						"reverse": true
+					}
+				}
+			}
+  		},
 		"mappings": {
 			"properties": {
 				"repo_id": {
 					"type": "long",
 					"index": true
+				},
+				"filename": {
+					"type": "text",
+					"term_vector": "with_positions_offsets",
+					"index": true,
+					"fields": {
+         		  		"path": {
+            				"type": "text",
+            				"analyzer": "reversed_filename_path_analyzer"
+						},
+          				"path_reversed": {
+            				"type": "text",
+            				"analyzer": "filename_path_analyzer"
+          				}
+        			}
 				},
 				"content": {
 					"type": "text",
@@ -136,6 +174,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 			Id(id).
 			Doc(map[string]any{
 				"repo_id":    repo.ID,
+				"filename":   update.Filename,
 				"content":    string(charset.ToUTF8DropErrors(fileContents, charset.ConvertOpts{})),
 				"commit_id":  sha,
 				"language":   analyze.GetCodeLanguage(update.Filename, fileContents),
@@ -231,11 +270,11 @@ func (b *Indexer) doDelete(ctx context.Context, repoID int64) error {
 	return err
 }
 
-// indexPos find words positions for start and the following end on content. It will
+// contentMatchIndexPos find words positions for start and the following end on content. It will
 // return the beginning position of the first start and the ending position of the
 // first end following the start string.
 // If not found any of the positions, it will return -1, -1.
-func indexPos(content, start, end string) (int, int) {
+func contentMatchIndexPos(content, start, end string) (int, int) {
 	startIdx := strings.Index(content, start)
 	if startIdx < 0 {
 		return -1, -1
@@ -244,33 +283,34 @@ func indexPos(content, start, end string) (int, int) {
 	if endIdx < 0 {
 		return -1, -1
 	}
-	return startIdx, startIdx + len(start) + endIdx + len(end)
+	return startIdx, (startIdx + len(start) + endIdx + len(end)) - 9 // remove the length <em></em> since we give Content the original data
 }
 
 func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
 	hits := make([]*internal.SearchResult, 0, pageSize)
 	for _, hit := range searchResult.Hits.Hits {
+		repoID, fileName := internal.ParseIndexerID(hit.Id)
+		res := make(map[string]any)
+		if err := json.Unmarshal(hit.Source, &res); err != nil {
+			return 0, nil, nil, err
+		}
+
 		// FIXME: There is no way to get the position the keyword on the content currently on the same request.
 		// So we get it from content, this may made the query slower. See
 		// https://discuss.elastic.co/t/fetching-position-of-keyword-in-matched-document/94291
 		var startIndex, endIndex int
-		c, ok := hit.Highlight["content"]
-		if ok && len(c) > 0 {
+		if c, ok := hit.Highlight["filename"]; ok && len(c) > 0 {
+			startIndex, endIndex = internal.FilenameMatchIndexPos(res["content"].(string))
+		} else if c, ok := hit.Highlight["content"]; ok && len(c) > 0 {
 			// FIXME: Since the highlighting content will include <em> and </em> for the keywords,
 			// now we should find the positions. But how to avoid html content which contains the
 			// <em> and </em> tags? If elastic search has handled that?
-			startIndex, endIndex = indexPos(c[0], "<em>", "</em>")
+			startIndex, endIndex = contentMatchIndexPos(c[0], "<em>", "</em>")
 			if startIndex == -1 {
 				panic(fmt.Sprintf("1===%s,,,%#v,,,%s", kw, hit.Highlight, c[0]))
 			}
 		} else {
 			panic(fmt.Sprintf("2===%#v", hit.Highlight))
-		}
-
-		repoID, fileName := internal.ParseIndexerID(hit.Id)
-		res := make(map[string]any)
-		if err := json.Unmarshal(hit.Source, &res); err != nil {
-			return 0, nil, nil, err
 		}
 
 		language := res["language"].(string)
@@ -283,7 +323,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 			UpdatedUnix: timeutil.TimeStamp(res["updated_at"].(float64)),
 			Language:    language,
 			StartIndex:  startIndex,
-			EndIndex:    endIndex - 9, // remove the length <em></em> since we give Content the original data
+			EndIndex:    endIndex,
 			Color:       enry.GetColor(language),
 		})
 	}
@@ -315,7 +355,10 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		searchType = esMultiMatchTypeBestFields
 	}
 
-	kwQuery := elastic.NewMultiMatchQuery(opts.Keyword, "content").Type(searchType)
+	kwQuery := elastic.NewBoolQuery().Should(
+		elastic.NewMultiMatchQuery(opts.Keyword, "content").Type(searchType),
+		elastic.NewMultiMatchQuery(opts.Keyword, "filename^10").Type(esMultiMatchTypePhrasePrefix),
+	)
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
 	if len(opts.RepoIDs) > 0 {
@@ -341,6 +384,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 			Highlight(
 				elastic.NewHighlight().
 					Field("content").
+					Field("filename").
 					NumOfFragments(0). // return all highting content on fragments
 					HighlighterType("fvh"),
 			).
@@ -373,6 +417,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		Highlight(
 			elastic.NewHighlight().
 				Field("content").
+				Field("filename").
 				NumOfFragments(0). // return all highting content on fragments
 				HighlighterType("fvh"),
 		).
