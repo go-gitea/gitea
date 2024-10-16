@@ -453,3 +453,12 @@ export function checkAppUrl() {
   showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
 Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`, 'warning');
 }
+
+export function checkAppUrlScheme() {
+  const curUrl = window.location.href;
+  // some users visit "http://domain" while appUrl is "https://domain", COOKIE_SECURE makes it impossible to sign in
+  if (curUrl.startsWith('http:') && appUrl.startsWith('https:')) {
+    showGlobalErrorMessage(`Your ROOT_URL in app.ini "${appUrl}" uses HTTPS, it doesn't match the HTTP site you are visiting.
+Mismatched ROOT_URL config would cause problems for sign-in/sign-up, etc.`, 'warning');
+  }
+}

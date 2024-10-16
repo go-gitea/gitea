@@ -1,4 +1,9 @@
-import {checkAppUrl} from './common-global.js';
+import {checkAppUrl, checkAppUrlScheme} from './common-global.js';
+
+export function initUserCheckAppUrl() {
+  if (!document.querySelector('.page-content.user.signin, .page-content.user.signup, .page-content.user.link-account')) return;
+  checkAppUrlScheme();
+}
 
 export function initUserAuthOauth2() {
   const outer = document.getElementById('oauth2-login-navigator');
