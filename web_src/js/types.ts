@@ -12,6 +12,7 @@ export type Config = {
   assetVersionEncoded: string,
   assetUrlPrefix: string,
   runModeIsProd: boolean,
+  defaultShowFullName: boolean,
   customEmojis: Record<string, string>,
   csrfToken: string,
   pageData: Record<string, any>,
