@@ -91,6 +91,7 @@ func (protectBranch *ProtectedBranch) loadGlob() {
 		protectBranch.isPlainName = true
 		return
 	}
+	// now we load the glob
 	var err error
 	protectBranch.globRule, err = glob.Compile(protectBranch.RuleName, '/')
 	if err != nil {
