@@ -125,3 +125,6 @@ type EditBranchProtectionOption struct {
 	ProtectedFilePatterns         *string  `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       *string  `json:"unprotected_file_patterns"`
 }
+
+// UpdateBranchProtectionPriories a list to update the branch protection rule priorities
+type UpdateBranchProtectionPriories []int64

@@ -1085,3 +1085,47 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 
 	ctx.Status(http.StatusNoContent)
 }
+
+// UpdateBranchProtectionPriories updates the priorities of branch protections for a repo
+func UpdateBranchProtectionPriories(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/branch_protections/priority/move repository repoUpdateBranchProtectionPriories
+	// ---
+	// summary: Update the priorities of branch protections for a repository.
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/UpdateBranchProtectionPriories"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+	form := web.GetForm(ctx).(*api.UpdateBranchProtectionPriories)
+	repo := ctx.Repo.Repository
+
+	if err := git_model.UpdateProtectBranchPriorities(ctx, repo, *form); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateProtectBranchPriorities", err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
