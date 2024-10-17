@@ -203,6 +203,7 @@ func LoadSettings() {
 
 	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
+	loadReverseProxyAuthFrom(CfgProvider)
 	loadOAuth2ClientFrom(CfgProvider)
 	loadCacheFrom(CfgProvider)
 	loadSessionFrom(CfgProvider)
@@ -223,6 +224,7 @@ func LoadSettings() {
 func LoadSettingsForInstall() {
 	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
+	loadReverseProxyAuthFrom(CfgProvider)
 	loadMailerFrom(CfgProvider)
 }
 

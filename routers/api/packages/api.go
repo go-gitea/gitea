@@ -89,7 +89,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 }
 
 func verifyAuth(r *web.Router, authMethods []auth.Method) {
-	if setting.Service.EnableReverseProxyAuth {
+	if setting.ReverseProxyAuth.Enabled {
 		authMethods = append(authMethods, &auth.ReverseProxy{})
 	}
 	authGroup := auth.NewGroup(authMethods...)

@@ -364,7 +364,7 @@ func reqExploreSignIn() func(ctx *context.APIContext) {
 
 func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.IsSigned && setting.Service.EnableReverseProxyAuthAPI && ctx.Data["AuthedMethod"].(string) == auth.ReverseProxyMethodName {
+		if ctx.IsSigned && setting.ReverseProxyAuth.EnableReverseProxyAuthAPI && ctx.Data["AuthedMethod"].(string) == auth.ReverseProxyMethodName {
 			return
 		}
 		if !ctx.IsBasicAuth {
@@ -733,7 +733,7 @@ func buildAuthGroup() *auth.Group {
 		&auth.HTTPSign{},
 		&auth.Basic{}, // FIXME: this should be removed once we don't allow basic auth in API
 	)
-	if setting.Service.EnableReverseProxyAuthAPI {
+	if setting.ReverseProxyAuth.EnableReverseProxyAuthAPI {
 		group.Add(&auth.ReverseProxy{})
 	}
 

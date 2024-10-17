@@ -28,13 +28,13 @@ const ReverseProxyMethodName = "reverse_proxy"
 // ReverseProxy implements the Auth interface, but actually relies on
 // a reverse proxy for authentication of users.
 // On successful authentication the proxy is expected to populate the username in the
-// "setting.ReverseProxyAuthUser" header. Optionally it can also populate the email of the
+// "setting.ReverseProxyAuth.ReverseProxyAuthUser" header. Optionally it can also populate the email of the
 // user in the "setting.ReverseProxyAuthEmail" header.
 type ReverseProxy struct{}
 
-// getUserName extracts the username from the "setting.ReverseProxyAuthUser" header
+// getUserName extracts the username from the "setting.ReverseProxyAuth.ReverseProxyAuthUser" header
 func (r *ReverseProxy) getUserName(req *http.Request) string {
-	return strings.TrimSpace(req.Header.Get(setting.ReverseProxyAuthUser))
+	return strings.TrimSpace(req.Header.Get(setting.ReverseProxyAuth.ReverseProxyAuthUser))
 }
 
 // Name represents the name of auth method
@@ -42,11 +42,11 @@ func (r *ReverseProxy) Name() string {
 	return ReverseProxyMethodName
 }
 
-// getUserFromAuthUser extracts the username from the "setting.ReverseProxyAuthUser" header
+// getUserFromAuthUser extracts the username from the "setting.ReverseProxyAuth.ReverseProxyAuthUser" header
 // of the request and returns the corresponding user object for that name.
 // Verification of header data is not performed as it should have already been done by
 // the reverse proxy.
-// If a username is available in the "setting.ReverseProxyAuthUser" header an existing
+// If a username is available in the "setting.ReverseProxyAuth.ReverseProxyAuthUser" header an existing
 // user object is returned (populated with username or email found in header).
 // Returns nil if header is empty.
 func (r *ReverseProxy) getUserFromAuthUser(req *http.Request) (*user_model.User, error) {
@@ -69,7 +69,7 @@ func (r *ReverseProxy) getUserFromAuthUser(req *http.Request) (*user_model.User,
 
 // getEmail extracts the email from the "setting.ReverseProxyAuthEmail" header
 func (r *ReverseProxy) getEmail(req *http.Request) string {
-	return strings.TrimSpace(req.Header.Get(setting.ReverseProxyAuthEmail))
+	return strings.TrimSpace(req.Header.Get(setting.ReverseProxyAuth.ReverseProxyAuthEmail))
 }
 
 // getUserFromAuthEmail extracts the username from the "setting.ReverseProxyAuthEmail" header
@@ -80,7 +80,7 @@ func (r *ReverseProxy) getEmail(req *http.Request) string {
 // user object is returned (populated with the email found in header).
 // Returns nil if header is empty or if "setting.EnableReverseProxyEmail" is disabled.
 func (r *ReverseProxy) getUserFromAuthEmail(req *http.Request) *user_model.User {
-	if !setting.Service.EnableReverseProxyEmail {
+	if !setting.ReverseProxyAuth.EnableReverseProxyEmail {
 		return nil
 	}
 	email := r.getEmail(req)
@@ -130,7 +130,7 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 
 // isAutoRegisterAllowed checks if EnableReverseProxyAutoRegister setting is true
 func (r *ReverseProxy) isAutoRegisterAllowed() bool {
-	return setting.Service.EnableReverseProxyAutoRegister
+	return setting.ReverseProxyAuth.EnableReverseProxyAutoRegister
 }
 
 // newUser creates a new user object for the purpose of automatic registration
@@ -142,16 +142,16 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 	}
 
 	email := gouuid.New().String() + "@localhost"
-	if setting.Service.EnableReverseProxyEmail {
-		webAuthEmail := req.Header.Get(setting.ReverseProxyAuthEmail)
+	if setting.ReverseProxyAuth.EnableReverseProxyEmail {
+		webAuthEmail := req.Header.Get(setting.ReverseProxyAuth.ReverseProxyAuthEmail)
 		if len(webAuthEmail) > 0 {
 			email = webAuthEmail
 		}
 	}
 
 	var fullname string
-	if setting.Service.EnableReverseProxyFullName {
-		fullname = req.Header.Get(setting.ReverseProxyAuthFullName)
+	if setting.ReverseProxyAuth.EnableReverseProxyFullName {
+		fullname = req.Header.Get(setting.ReverseProxyAuth.ReverseProxyAuthFullName)
 	}
 
 	user := &user_model.User{
