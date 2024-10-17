@@ -623,6 +623,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	protectBranch = &git_model.ProtectedBranch{
 		RepoID:                        ctx.Repo.Repository.ID,
 		RuleName:                      ruleName,
+		Priority:                      form.Priority,
 		CanPush:                       form.EnablePush,
 		EnableWhitelist:               form.EnablePush && form.EnablePushWhitelist,
 		WhitelistDeployKeys:           form.EnablePush && form.EnablePushWhitelist && form.PushWhitelistDeployKeys,
@@ -798,6 +799,10 @@ func EditBranchProtection(ctx *context.APIContext) {
 				}
 			}
 		}
+	}
+
+	if form.Priority != nil {
+		protectBranch.Priority = *form.Priority
 	}
 
 	if form.EnableMergeWhitelist != nil {
