@@ -79,8 +79,9 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPa
 		return nil, err
 	}
 
-	artifact.ExpiredUnix = timeutil.TimeStamp(time.Now().Unix() + timeutil.Day*expiredDays)
-	if err := UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+	if _, err := db.GetEngine(ctx).ID(artifact.ID).Cols("expired_unix").Update(&ActionArtifact{
+		ExpiredUnix: timeutil.TimeStamp(time.Now().Unix() + timeutil.Day*expiredDays),
+	}); err != nil {
 		return nil, err
 	}
 
