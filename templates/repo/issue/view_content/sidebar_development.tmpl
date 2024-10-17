@@ -1,0 +1,107 @@
+<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.development"}}</strong></span>
+<div class="ui devlinks list">
+<div>
+<a class="tw-mt-1 fluid ui show-modal" data-modal="#create_branch">{{ctx.Locale.Tr "repo.branch.new_branch"}}</a>
+</div>
+{{range .DevLinks}}
+	{{if .PullRequest}}
+		<span>{{template "shared/issueicon" .PullRequest.Issue}}
+		<a href="{{.PullRequest.Issue.Link}}" class="item">
+			{{.PullRequest.Issue.Title}}
+		</a>
+		</span>
+		<div>
+		{{ctx.Locale.Tr "repo.issues.link.created" (DateTime "short" .PullRequest.Issue.CreatedUnix)}}
+		{{if .PullRequest.HasMerged}}
+			{{ctx.Locale.Tr "repo.issues.pr.completed"}}
+			</div>
+			<div>
+			{{svg "octicon-git-commit" 14}} <a href="{{.PullRequest.BaseRepo.Link}}/src/commit/{{.PullRequest.MergedCommitID}}">{{.PullRequest.MergedCommitID | ShortSha}}</a>
+			</div>
+			<div>
+			{{ctx.Locale.Tr "repo.issues.link.created" (DateTime "short" .PullRequest.MergedUnix)}}
+		{{else if .PullRequest.ChangedProtectedFiles}}
+			{{ctx.Locale.Tr "repo.issues.pr.conflicted"}}
+		{{end}}
+		</div>
+	{{else if and .Branch .DisplayBranch}}
+		<div class="tw-flex tw-justify-between">
+			<div class="tw-flex tw-left tw-items-center tw-h-full">
+				{{svg "octicon-git-branch" 14}}
+				<a href="{{.Branch.Repo.Link}}/src/branch/{{.Branch.Name}}">
+					<span class="gt-ellipsis">{{.Branch.Name}}</span>
+				</a>
+			</div>
+			<div class="tw-right">
+				<a class="ui button mini compact basic icon" href="{{$.Issue.Repo.Link}}/compare/{{$.Issue.Repo.DefaultBranch}}...{{.Branch.Repo.FullName}}:{{.Branch.Name}}?ref_issue_index={{$.Issue.Index}}">
+				{{svg "octicon-git-pull-request"}}
+				</a>
+			</div>
+		</div>
+		<div>{{ctx.Locale.Tr "repo.issues.branch.latest" (DateTime "short" .Branch.CommitTime)}}</div>
+	{{end}}
+{{end}}
+</div>
+
+<div class="ui tiny modal" id="create_branch">
+	<div class="header">
+		{{ctx.Locale.Tr "repo.branch.new_branch"}}
+	</div>
+	<div class="content">
+		<form class="ui form form-fetch-action" action="{{.Issue.Link}}/create_branch"
+			method="post">
+			{{.CsrfTokenHtml}}
+			<div class="field">
+				<label for="new_branch_name">{{ctx.Locale.Tr "repo.branch.name"}}</label>
+				<input name="new_branch_name" type="text">
+			</div>
+
+			<div class="field">
+				<label for="source_repository">{{ctx.Locale.Tr "repository"}}</label>
+				<div class="ui fluid dropdown selection">
+					<select name="repo_id">
+						<option value=""> </option>
+						{{range .AllowedRepos}}
+							<option value="{{.ID}}">{{.FullName}}</option>
+						{{end}}
+					</select>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+
+					<div class="default text"> </div>
+
+					<div class="menu">
+						{{range .AllowedRepos}}
+							<div class="item" data-value="{{.ID}}">{{.FullName}}</div>
+						{{end}}
+					</div>
+				</div>
+			</div>
+
+			<div class="field">
+				<label for="source_branch_name">{{ctx.Locale.Tr "repo.issues.base_branch"}}</label>
+				<div class="ui fluid dropdown selection">
+					<select name="source_branch_name">
+						<option value=""> </option>
+						{{range .Branches}}
+							<option value="{{.}}"{{if eq . $.Issue.Ref}} checked{{end}}>{{.}}</option>
+						{{end}}
+					</select>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+
+					<div class="default text"> </div>
+
+					<div class="menu">
+						{{range .Branches}}
+							<div class="item" data-value="{{.}}">{{.}}</div>
+						{{end}}
+					</div>
+				</div>
+			</div>
+
+			<div class="text right actions">
+				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.branch.new_branch"}}</button>
+			</div>
+		</form>
+	</div>
+</div>

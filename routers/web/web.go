@@ -1229,6 +1229,7 @@ func registerRoutes(m *web.Router) {
 				m.Post("/lock", reqRepoIssuesOrPullsWriter, web.Bind(forms.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoIssuesOrPullsWriter, repo.UnlockIssue)
 				m.Post("/delete", reqRepoAdmin, repo.DeleteIssue)
+				m.Post("/create_branch", web.Bind(forms.NewBranchForm{}), repo.CreateBranchFromIssue)
 			}, context.RepoMustNotBeArchived())
 
 			m.Group("/{index}", func() {
