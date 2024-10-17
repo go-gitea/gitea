@@ -83,7 +83,7 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	bodyTemplates = template.Must(template.New("issue/comment").Parse(bodyTpl))
 
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
-	msgs, err := composeIssueCommentMessages(&mailCommentContext{
+	msgs, err := composeIssueCommentMessages(&MailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
 		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCommentIssue,
 		Content: fmt.Sprintf("test @%s %s#%d body", doer.Name, issue.Repo.FullName(), issue.Index),
@@ -129,7 +129,7 @@ func TestComposeIssueMessage(t *testing.T) {
 	bodyTemplates = template.Must(template.New("issue/new").Parse(bodyTpl))
 
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
-	msgs, err := composeIssueCommentMessages(&mailCommentContext{
+	msgs, err := composeIssueCommentMessages(&MailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
 		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCreateIssue,
 		Content: "test body",
@@ -176,14 +176,14 @@ func TestTemplateSelection(t *testing.T) {
 		assert.Contains(t, wholemsg, expBody)
 	}
 
-	msg := testComposeIssueCommentMessage(t, &mailCommentContext{
+	msg := testComposeIssueCommentMessage(t, &MailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
 		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCreateIssue,
 		Content: "test body",
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "issue/new/subject", "issue/new/body")
 
-	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
+	msg = testComposeIssueCommentMessage(t, &MailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
 		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCommentIssue,
 		Content: "test body", Comment: comment,
@@ -192,14 +192,14 @@ func TestTemplateSelection(t *testing.T) {
 
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2, Repo: repo, Poster: doer})
 	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4, Issue: pull})
-	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
+	msg = testComposeIssueCommentMessage(t, &MailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
 		Issue:   pull, Doer: doer, ActionType: activities_model.ActionCommentPull,
 		Content: "test body", Comment: comment,
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "pull/comment/subject", "pull/comment/body")
 
-	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
+	msg = testComposeIssueCommentMessage(t, &MailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
 		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCloseIssue,
 		Content: "test body", Comment: comment,
@@ -218,7 +218,7 @@ func TestTemplateServices(t *testing.T) {
 		bodyTemplates = template.Must(template.New("issue/default").Parse(tplBody))
 
 		recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
-		msg := testComposeIssueCommentMessage(t, &mailCommentContext{
+		msg := testComposeIssueCommentMessage(t, &MailCommentContext{
 			Context: context.TODO(), // TODO: use a correct context
 			Issue:   issue, Doer: doer, ActionType: actionType,
 			Content: "test body", Comment: comment,
@@ -252,7 +252,7 @@ func TestTemplateServices(t *testing.T) {
 		"//Re: //")
 }
 
-func testComposeIssueCommentMessage(t *testing.T, ctx *mailCommentContext, recipients []*user_model.User, fromMention bool, info string) *Message {
+func testComposeIssueCommentMessage(t *testing.T, ctx *MailCommentContext, recipients []*user_model.User, fromMention bool, info string) *Message {
 	msgs, err := composeIssueCommentMessages(ctx, "en-US", recipients, fromMention, info)
 	assert.NoError(t, err)
 	assert.Len(t, msgs, 1)
@@ -262,7 +262,7 @@ func testComposeIssueCommentMessage(t *testing.T, ctx *mailCommentContext, recip
 func TestGenerateAdditionalHeaders(t *testing.T) {
 	doer, _, issue, _ := prepareMailerTest(t)
 
-	ctx := &mailCommentContext{Context: context.TODO() /* TODO: use a correct context */, Issue: issue, Doer: doer}
+	ctx := &MailCommentContext{Context: context.TODO() /* TODO: use a correct context */, Issue: issue, Doer: doer}
 	recipient := &user_model.User{Name: "test", Email: "test@gitea.com"}
 
 	headers := generateAdditionalHeaders(ctx, "dummy-reason", recipient)
