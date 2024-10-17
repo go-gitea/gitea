@@ -60,6 +60,9 @@ const (
 		"settings": {
     		"analysis": {
       			"analyzer": {
+					"content_analyzer": {
+						"tokenizer": "content_tokenizer"
+					},
         			"filename_path_analyzer": {
           				"tokenizer": "path_tokenizer"
         			},
@@ -68,6 +71,10 @@ const (
         			}
       			},
 				"tokenizer": {
+					"content_tokenizer": {
+						"type": "simple_pattern_split",
+						"pattern": "[^a-zA-Z0-9]"
+					},
 					"path_tokenizer": {
 						"type": "path_hierarchy",
 						"delimiter": "/"
@@ -104,7 +111,8 @@ const (
 				"content": {
 					"type": "text",
 					"term_vector": "with_positions_offsets",
-					"index": true
+					"index": true,
+					"analyzer": "content_analyzer"
 				},
 				"commit_id": {
 					"type": "keyword",

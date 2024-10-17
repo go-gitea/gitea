@@ -181,6 +181,30 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
+			// Search for matches on the contents of files when the criteria is a expression.
+			{
+				RepoIDs: []int64{62},
+				Keyword: "console.log",
+				Langs:   1,
+				Results: []codeSearchResult{
+					{
+						Filename: "example-file.js",
+						Content:  "console.log(\"Hello, World!\")",
+					},
+				},
+			},
+			// Search for matches on the contents of files when the criteria is part of a expression.
+			{
+				RepoIDs: []int64{62},
+				Keyword: "log",
+				Langs:   1,
+				Results: []codeSearchResult{
+					{
+						Filename: "example-file.js",
+						Content:  "console.log(\"Hello, World!\")",
+					},
+				},
+			},
 		}
 
 		for _, kw := range keywords {
