@@ -118,7 +118,7 @@ func (d *DiffLine) GetHTMLDiffLineType() string {
 
 // CanComment returns whether a line can get commented
 func (d *DiffLine) CanComment() bool {
-	return len(d.Comments) == 0 && d.Type != DiffLineSection
+	return len(d.Comments) == 0
 }
 
 // GetCommentSide returns the comment side of the first comment, if not set returns empty string
