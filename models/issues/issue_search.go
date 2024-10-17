@@ -34,7 +34,7 @@ type IssuesOptions struct { //nolint
 	ReviewedID         int64
 	SubscriberID       int64
 	MilestoneIDs       []int64
-	ProjectID          int64
+	ProjectIDs         []int64
 	ProjectColumnID    int64
 	IsClosed           optional.Option[bool]
 	IsPull             optional.Option[bool]
@@ -183,11 +183,13 @@ func applyMilestoneCondition(sess *xorm.Session, opts *IssuesOptions) {
 }
 
 func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) {
-	if opts.ProjectID > 0 { // specific project
-		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
-			And("project_issue.project_id=?", opts.ProjectID)
-	} else if opts.ProjectID == db.NoConditionID { // show those that are in no project
-		sess.And(builder.NotIn("issue.id", builder.Select("issue_id").From("project_issue").And(builder.Neq{"project_id": 0})))
+	if len(opts.ProjectIDs) > 0 { // specific project
+		if opts.ProjectIDs[0] == db.NoConditionID { // show those that are in no project
+			sess.And(builder.NotIn("issue.id", builder.Select("issue_id").From("project_issue").And(builder.Neq{"project_id": 0})))
+		} else {
+			sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
+				In("project_issue.project_id", opts.ProjectIDs)
+		}
 	}
 	// opts.ProjectID == 0 means all projects,
 	// do not need to apply any condition
@@ -198,6 +200,8 @@ func applyProjectColumnCondition(sess *xorm.Session, opts *IssuesOptions) {
 	// do not need to apply any condition
 	if opts.ProjectColumnID > 0 {
 		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectColumnID}))
+	} else if len(opts.ProjectIDs) > 0 {
+		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}).And(builder.In("project_id", opts.ProjectIDs)))
 	} else if opts.ProjectColumnID == db.NoConditionID {
 		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
 	}

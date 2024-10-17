@@ -1369,7 +1369,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	}
 
 	if projectID > 0 && ctx.Repo.CanWrite(unit.TypeProjects) {
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, pullIssue, ctx.Doer, projectID, 0); err != nil {
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, pullIssue, ctx.Doer, projectID, 0, "attach"); err != nil {
 			if !errors.Is(err, util.ErrPermissionDenied) {
 				ctx.ServerError("IssueAssignOrRemoveProject", err)
 				return
