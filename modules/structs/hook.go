@@ -217,13 +217,14 @@ const (
 
 // IssueCommentPayload represents a payload information of issue comment event.
 type IssueCommentPayload struct {
-	Action     HookIssueCommentAction `json:"action"`
-	Issue      *Issue                 `json:"issue"`
-	Comment    *Comment               `json:"comment"`
-	Changes    *ChangesPayload        `json:"changes,omitempty"`
-	Repository *Repository            `json:"repository"`
-	Sender     *User                  `json:"sender"`
-	IsPull     bool                   `json:"is_pull"`
+	Action      HookIssueCommentAction `json:"action"`
+	Issue       *Issue                 `json:"issue"`
+	PullRequest *PullRequest           `json:"pull_request,omitempty"`
+	Comment     *Comment               `json:"comment"`
+	Changes     *ChangesPayload        `json:"changes,omitempty"`
+	Repository  *Repository            `json:"repository"`
+	Sender      *User                  `json:"sender"`
+	IsPull      bool                   `json:"is_pull"`
 }
 
 // JSONPayload implements Payload
