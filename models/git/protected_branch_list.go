@@ -6,7 +6,6 @@ package git
 import (
 	"context"
 	"sort"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/optional"
@@ -30,12 +29,7 @@ func (rules ProtectedBranchRules) sort() {
 		rules[i].loadGlob()
 		rules[j].loadGlob()
 		if rules[i].isPlainName != rules[j].isPlainName {
-			// plain name comes first, so plain name means "less"
-			return rules[i].isPlainName
-		}
-		if rules[i].isPlainName {
-			// both are plain names so sort alphabetically
-			return strings.Compare(rules[i].RuleName, rules[j].RuleName) < 0
+			return rules[i].isPlainName // plain name comes first, so plain name means "less"
 		}
 		return rules[i].CreatedUnix < rules[j].CreatedUnix
 	})
@@ -48,7 +42,7 @@ func FindRepoProtectedBranchRules(ctx context.Context, repoID int64) (ProtectedB
 	if err != nil {
 		return nil, err
 	}
-	rules.sort() // make sure first match is detected in right order
+	rules.sort() // to make non-glob rules have higher priority, and for same glob/non-glob rules, first created rules have higher priority
 	return rules, nil
 }
 
