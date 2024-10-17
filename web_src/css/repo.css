@@ -136,6 +136,7 @@
 .repository .clone-panel {
   display: flex;
   flex: 1;
+  min-width: 200px;
 }
 
 .repository.wiki .clone-panel {
@@ -156,17 +157,32 @@
   margin-left: -1px; /* make the borders overlap to avoid double borders */
 }
 
-.repository .clone-panel > button:first-of-type {
-  border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
+.repository #clone-panel {
+  position: relative;
 }
 
-.repository .clone-panel > button:last-of-type {
-  border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
+.clone-panel .ui.segment {
+  border: none;
 }
 
-.repository .clone-panel .dropdown .menu {
-  right: 0 !important;
-  left: auto !important;
+.repository .clone-panel > button {
+  border-radius: var(--border-radius) !important;
+}
+
+.clone.tabs {
+  cursor: pointer;
+
+  border-bottom: 3px solid;
+  border-color: transparent;
+
+  font-weight: var(--font-weight-semibold);
+  font-size: 1rem;
+
+  padding: 0.5rem;
+}
+
+.clone.tabs.primary {
+  border-color: var(--color-primary);
 }
 
 .repository .repo-description {

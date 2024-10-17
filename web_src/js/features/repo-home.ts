@@ -1,10 +1,37 @@
 import $ from 'jquery';
 import {stripTags} from '../utils.ts';
+import {createTippy} from '../modules/tippy.ts';
 import {hideElem, queryElemChildren, showElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 
 const {appSubUrl} = window.config;
+
+export function initRepoClonePanel() {
+  const $clonePanelBtn = $('.js-btn-clone-panel');
+  // The following part is only for diff views
+  if (!$clonePanelBtn.length) return;
+
+  const $panel = $clonePanelBtn.parent().find('.clone-panel');
+  const $closeBtn = $panel.find('.close');
+
+  if ($clonePanelBtn.length && $panel.length) {
+    const tippy = createTippy($clonePanelBtn[0], {
+      content: $panel[0],
+      theme: 'default',
+      placement: 'bottom-start',
+      trigger: 'click',
+      maxWidth: '300px',
+      interactive: true,
+      hideOnClick: true,
+    });
+
+    $closeBtn.on('click', (e) => {
+      e.preventDefault();
+      tippy.hide();
+    });
+  }
+}
 
 export function initRepoTopicBar() {
   const mgrBtn = document.querySelector('#manage_topic');
