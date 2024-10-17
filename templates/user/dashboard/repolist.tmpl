@@ -13,6 +13,7 @@ const data = {
 	textFilter: {{ctx.Locale.Tr "home.filter"}},
 	textShowArchived: {{ctx.Locale.Tr "home.show_archived"}},
 	textShowPrivate: {{ctx.Locale.Tr "home.show_private"}},
+	textRepoReachLimitOfCreation: {{ctx.Locale.TrN .SignedUser.MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .SignedUser.MaxCreationLimit}},
 
 	textShowBothArchivedUnarchived: {{ctx.Locale.Tr "home.show_both_archived_unarchived"}},
 	textShowOnlyUnarchived: {{ctx.Locale.Tr "home.show_only_unarchived"}},
@@ -49,6 +50,7 @@ data.organizations = [{{range .Orgs}}{'name': {{.Name}}, 'num_repos': {{.NumRepo
 data.isOrganization = false;
 data.organizationsTotalCount = {{.UserOrgsCount}};
 data.canCreateOrganization = {{.SignedUser.CanCreateOrganization}};
+data.canCreateRepo = {{.SignedUser.CanCreateRepo}};
 {{else}}
 data.organizationId = {{.ContextUser.ID}};
 {{end}}

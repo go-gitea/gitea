@@ -1397,6 +1397,12 @@ table th[data-sortt-desc] .svg {
   min-width: 0;
 }
 
+.ui.dropdown .menu > .disabled-with-tooltip.item {
+  cursor: default;
+  opacity: var(--opacity-disabled);
+  background: inherit;
+}
+
 .ui.dropdown.ellipsis-items-nowrap > .text {
   overflow: hidden;
   white-space: nowrap;
