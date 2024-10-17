@@ -156,9 +156,9 @@ const sfc = {
       POST(`${this.run.link}/approve`);
     },
 
-    createLogLine(line, startTime, stepIndex) {
+    createLogLine(line, startTime, stepIndex, {classNames, wrappings} = {}) {
       const div = document.createElement('div');
-      div.classList.add('job-log-line');
+      div.classList.add('job-log-line', ...classNames);
       div.setAttribute('id', `jobstep-${stepIndex}-${line.index}`);
       div._jobLogTime = line.timestamp;
 
@@ -184,19 +184,50 @@ const sfc = {
 
       const logMessage = document.createElement('span');
       logMessage.className = 'log-msg';
-      logMessage.innerHTML = renderAnsi(line.message);
-      div.append(logTimeStamp);
-      div.append(logMessage);
-      div.append(logTimeSeconds);
 
+      let html = renderAnsi(line.message);
+      for (const [before, after] of wrappings) {
+        html = `${before}${html}${after}`;
+      }
+      logMessage.innerHTML = html;
+
+      div.append(logTimeStamp, logMessage, logTimeSeconds);
       return div;
     },
 
+    getLineHTML({message, index, timestamp}, startTime, stepIndex) {
+      const wrappings = [];
+      const classNames = [];
+
+      if (message.startsWith('::endgroup')) {
+        classNames.push('endgroup');
+      } else if (message.startsWith('::add-matcher')) {
+        classNames.push('add-matcher');
+      } else if (message.startsWith('::remove-matcher')) {
+        classNames.push('remove-matcher');
+      } else {
+        if (message.startsWith('::group::')) {
+          message = message.substring(9);
+          wrappings.push(['<details><summary>', '</summary></details>']);
+        }
+        if (message.startsWith('::error::')) {
+          message = message.substring(9);
+          wrappings.push(['<span class="tw-text-red">', '</span>']);
+        }
+        if (message.startsWith('[command]')) {
+          message = message.substring(9);
+          wrappings.push(['<span class="tw-text-blue">', '</span>']);
+        }
+      }
+
+      return this.createLogLine({message, index, timestamp}, startTime, stepIndex, {classNames, wrappings});
+    },
+
     appendLogs(stepIndex, logLines, startTime) {
+      const el = this.getLogsContainer(stepIndex);
+
       for (const line of logLines) {
-        // TODO: group support: ##[group]GroupTitle , ##[endgroup]
-        const el = this.getLogsContainer(stepIndex);
-        el.append(this.createLogLine(line, startTime, stepIndex));
+        el.append(this.getLineHTML(line, startTime, stepIndex));
       }
     },
 
@@ -832,6 +863,12 @@ export function initRepositoryActionView() {
 
 .job-log-line:target {
   scroll-margin-top: 95px;
+}
+
+.job-log-line.add-matcher,
+.job-log-line.remove-matcher,
+.job-log-line.endgroup {
+  display: none !important;
 }
 
 /* class names 'log-time-seconds' and 'log-time-stamp' are used in the method toggleTimeDisplay */
