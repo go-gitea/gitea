@@ -723,6 +723,16 @@ func registerRoutes(m *web.Router) {
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
 		})
 
+		m.Group("/badges", func() {
+			m.Get("", admin.Badges)
+			m.Combo("/new").Get(admin.NewBadge).Post(web.Bind(forms.AdminCreateBadgeForm{}), admin.NewBadgePost)
+			m.Get("/{badge_slug}", admin.ViewBadge)
+			m.Combo("/{badge_slug}/edit").Get(admin.EditBadge).Post(web.Bind(forms.AdminCreateBadgeForm{}), admin.EditBadgePost)
+			m.Post("/{badge_slug}/delete", admin.DeleteBadge)
+			m.Combo("/{badge_slug}/users").Get(admin.BadgeUsers).Post(admin.BadgeUsersPost)
+			m.Post("/{badge_slug}/users/delete", admin.DeleteBadgeUser)
+		})
+
 		m.Group("/emails", func() {
 			m.Get("", admin.Emails)
 			m.Post("/activate", admin.ActivateEmail)
