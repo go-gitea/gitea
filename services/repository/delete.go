@@ -7,11 +7,9 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
 	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -76,16 +74,11 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	}
 
 	// Delete Deploy Keys
-	deployKeys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: repoID})
+	deleted, err := asymkey_service.DeleteRepoDeployKeys(ctx, doer, repoID)
 	if err != nil {
-		return fmt.Errorf("listDeployKeys: %w", err)
+		return err
 	}
-	needRewriteKeysFile := len(deployKeys) > 0
-	for _, dKey := range deployKeys {
-		if err := models.DeleteDeployKey(ctx, doer, dKey.ID); err != nil {
-			return fmt.Errorf("deleteDeployKeys: %w", err)
-		}
-	}
+	needRewriteKeysFile := deleted > 0
 
 	if cnt, err := sess.ID(repoID).Delete(&repo_model.Repository{}); err != nil {
 		return err
