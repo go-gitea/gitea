@@ -236,9 +236,16 @@ func PublicizeMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if userToPublicize.ID != ctx.Doer.ID {
-		ctx.Error(http.StatusForbidden, "", "Cannot publicize another member")
-		return
+	if userToPublicize.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
+		isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
+			return
+		}
+		if !isOwner {
+			ctx.Error(http.StatusForbidden, "", "Cannot publicize another member")
+			return
+		}
 	}
 	err := organization.ChangeOrgUserStatus(ctx, ctx.Org.Organization.ID, userToPublicize.ID, true)
 	if err != nil {
@@ -278,9 +285,16 @@ func ConcealMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if userToConceal.ID != ctx.Doer.ID {
-		ctx.Error(http.StatusForbidden, "", "Cannot conceal another member")
-		return
+	if userToConceal.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
+		isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
+			return
+		}
+		if !isOwner {
+			ctx.Error(http.StatusForbidden, "", "Cannot conceal another member")
+			return
+		}
 	}
 	err := organization.ChangeOrgUserStatus(ctx, ctx.Org.Organization.ID, userToConceal.ID, false)
 	if err != nil {
