@@ -83,7 +83,8 @@ func IsRuleNameSpecial(ruleName string) bool {
 }
 
 func (protectBranch *ProtectedBranch) loadGlob() {
-	if protectBranch.globRule == nil && !protectBranch.isPlainName {
+	if protectBranch.isPlainName || protectBranch.globRule != nil {
+	    return
 		// detect if it is not glob
 		if !IsRuleNameSpecial(protectBranch.RuleName) {
 			protectBranch.isPlainName = true
