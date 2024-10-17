@@ -1836,7 +1836,7 @@ td .commit-summary {
   background: var(--color-secondary);
 }
 
-.repository .repository-summary .segment.language-stats {
+.language-stats {
   display: flex;
   gap: 2px;
   padding: 0;
@@ -1844,6 +1844,25 @@ td .commit-summary {
   white-space: nowrap;
   border-radius: 0 0 3px 3px !important;
   overflow: hidden;
+  width: 100%;
+  margin-top: 1rem;
+  margin-bottom: 5px;
+}
+
+.language-stats-details {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.language-stats-details .item {
+  height: 30px;
+  line-height: var(--line-height-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25em;
+  padding: 0 0.5em; /* make the UI look better for narrow (mobile) view */
+  text-decoration: none;
 }
 
 #cite-repo-modal #citation-panel {

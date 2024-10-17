@@ -30,6 +30,7 @@ export async function initCitationFileCopyContent() {
   const citationCopyApa = document.querySelector('#citation-copy-apa');
   const citationCopyBibtex = document.querySelector('#citation-copy-bibtex');
   const inputContent = document.querySelector('#citation-copy-content');
+  const modal = document.querySelector('#cite-repo-modal');
 
   if ((!citationCopyApa && !citationCopyBibtex) || !inputContent) return;
 
@@ -41,9 +42,9 @@ export async function initCitationFileCopyContent() {
     citationCopyApa.classList.toggle('primary', !isBibtex);
   };
 
-  document.querySelector('#cite-repo-button')?.addEventListener('click', async (e) => {
-    const dropdownBtn = e.target.closest('.ui.dropdown.button');
-    dropdownBtn.classList.add('is-loading');
+  document.querySelector('#cite-repo-button')?.addEventListener('click', async () => {
+    $(modal).modal('show');
+    $(modal).addClass('is-loading');
 
     try {
       try {
@@ -68,9 +69,7 @@ export async function initCitationFileCopyContent() {
         inputContent.select();
       });
     } finally {
-      dropdownBtn.classList.remove('is-loading');
+      $(modal).removeClass('is-loading');
     }
-
-    $('#cite-repo-modal').modal('show');
   });
 }

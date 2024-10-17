@@ -21,6 +21,10 @@
   min-width: 0; /* make the "text truncate" work, otherwise the flex axis is not limited and the text just overflows */
 }
 
+.flex-container-repo {
+  width: 25%;
+}
+
 @media (max-width: 767.98px) {
   .flex-container {
     flex-direction: column;
@@ -28,6 +32,9 @@
   .flex-container-nav,
   .flex-container-sidebar {
     order: -1;
+    width: auto;
+  }
+  .flex-container-repo {
     width: auto;
   }
 }
