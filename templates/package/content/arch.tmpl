@@ -1,0 +1,143 @@
+{{if eq .PackageDescriptor.Package.Type "arch"}}
+<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
+<div class="ui attached segment">
+	<div class="ui form">
+		<div class="field">
+			<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.arch.pacman.helper.gpg"}}</label>
+			<div class="markup">
+				<pre class="code-block"><code>wget -O sign.gpg <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/arch/repository.key"></origin-url>
+pacman-key --add sign.gpg
+pacman-key --lsign-key '{{$.SignMail}}'</code></pre>
+			</div>
+		</div>
+		<div class="field">
+			<label>{{svg "octicon-gear"}} {{ctx.Locale.Tr "packages.arch.pacman.conf"}}</label>
+			<div class="markup">
+				<pre
+					class="code-block"><code>
+{{- if gt (len $.Groups) 1 -}}
+# {{ctx.Locale.Tr "packages.arch.pacman.repo.multi" $.PackageDescriptor.Package.LowerName}}
+
+{{end -}}
+{{- $GroupSize := (len .Groups) -}}
+{{- range $i,$v := .Groups -}}
+{{- if gt $i 0}}
+{{end -}}{{- if gt $GroupSize 1 -}}
+# {{ctx.Locale.Tr "packages.arch.pacman.repo.multi.item" .}}
+{{end -}}
+[{{$.PackageDescriptor.Owner.LowerName}}.{{$.RegistryHost}}]
+SigLevel = Required
+Server = <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/arch/{{.}}/$arch"></origin-url>
+{{end -}}
+</code></pre>
+			</div>
+		</div>
+		<div class="field">
+			<label>{{svg "octicon-sync"}} {{ctx.Locale.Tr "packages.arch.pacman.sync"}}</label>
+			<div class="markup">
+				<pre class="code-block"><code>pacman -Sy {{.PackageDescriptor.Package.LowerName}}</code></pre>
+			</div>
+		</div>
+		<div class="field">
+			<label>{{ctx.Locale.Tr "packages.registry.documentation" "Arch"
+				"https://docs.gitea.com/usage/packages/arch/"}}</label>
+		</div>
+	</div>
+</div>
+
+<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.arch.version.properties"}}</h4>
+<div class="ui attached segment">
+	<table class="ui very basic compact table">
+		<tbody>
+			<tr>
+				<td class="collapsing">
+					<h5>{{ctx.Locale.Tr "packages.arch.version.description"}}</h5>
+				</td>
+				<td>{{.PackageDescriptor.Metadata.Description}}</td>
+			</tr>
+
+			{{if .PackageDescriptor.Metadata.Groups}}
+			<tr>
+				<td class="collapsing">
+					<h5>{{ctx.Locale.Tr "packages.arch.version.groups"}}</h5>
+				</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Groups ", "}}</td>
+			</tr>
+			{{end}}
+
+			{{if .PackageDescriptor.Metadata.Provides}}
+			<tr>
+				<td class="collapsing">
+					<h5>{{ctx.Locale.Tr "packages.arch.version.provides"}}</h5>
+				</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Provides ", "}}</td>
+			</tr>
+			{{end}}
+
+			{{if .PackageDescriptor.Metadata.Depends}}
+			<tr>
+				<td class="collapsing">
+					<h5>{{ctx.Locale.Tr "packages.arch.version.depends"}}</h5>
+				</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Depends ", "}}</td>
+			</tr>
+			{{end}}
+
+			{{if .PackageDescriptor.Metadata.OptDepends}}
+			<tr>
+				<td class="collapsing">
+					<h5>{{ctx.Locale.Tr "packages.arch.version.optdepends"}}</h5>
+				</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.OptDepends ", "}}</td>
+			</tr>
+			{{end}}
+
+			{{if .PackageDescriptor.Metadata.MakeDepends}}
+			<tr>
+				<td class="collapsing">
+					<h5>{{ctx.Locale.Tr "packages.arch.version.makedepends"}}</h5>
+				</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.MakeDepends ", "}}</td>
+			</tr>
+			{{end}}
+
+			{{if .PackageDescriptor.Metadata.CheckDepends}}
+			<tr>
+				<td class="collapsing">
+					<h5>{{ctx.Locale.Tr "packages.arch.version.checkdepends"}}</h5>
+				</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.CheckDepends ", "}}</td>
+			</tr>
+			{{end}}
+
+			{{if .PackageDescriptor.Metadata.Conflicts}}
+			<tr>
+				<td class="collapsing">
+					<h5>{{ctx.Locale.Tr "packages.arch.version.conflicts"}}</h5>
+				</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Conflicts ", "}}</td>
+			</tr>
+			{{end}}
+
+			{{if .PackageDescriptor.Metadata.Replaces}}
+			<tr>
+				<td class="collapsing">
+					<h5>{{ctx.Locale.Tr "packages.arch.version.replaces"}}</h5>
+				</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Replaces ", "}}</td>
+			</tr>
+			{{end}}
+
+			{{if .PackageDescriptor.Metadata.Backup}}
+			<tr>
+				<td class="collapsing">
+					<h5>{{ctx.Locale.Tr "packages.arch.version.backup"}}</h5>
+				</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Backup ", "}}</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+</div>
+
+{{end}}
