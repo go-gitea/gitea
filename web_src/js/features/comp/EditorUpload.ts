@@ -99,8 +99,17 @@ async function handleUploadFiles(editor, dropzoneEl, files, e) {
     const {width, dppx} = await imageInfo(file);
     const placeholder = `[${name}](uploading ...)`;
 
-    editor.insertPlaceholder(placeholder);
-    await uploadFile(dropzoneEl, file); // the "file" will get its "uuid" during the upload
+    // Placeholders should be inserted on uploading the thumnail.
+    // If not, the check upload process may fail
+    const handleInsertPlaceholder = () => editor.insertPlaceholder(placeholder); 
+    dropzoneEl.dropzone.on('thumbnail', handleInsertPlaceholder);
+    try {
+      await uploadFile(dropzoneEl, file); // the "file" will get its "uuid" during the upload
+    } catch (err) {
+      throw err;
+    } finally {
+      dropzoneEl.dropzone.off('thumbnail', handleInsertPlaceholder); 
+    }
     editor.replacePlaceholder(placeholder, generateMarkdownLinkForAttachment(file, {width, dppx}));
   }
 }

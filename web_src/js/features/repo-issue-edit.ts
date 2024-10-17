@@ -78,10 +78,21 @@ async function onEditContent(event) {
 
   comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
   if (!comboMarkdownEditor) {
+    const opts = {};
+    opts.onContentChanged = (editor) => {
+      const saveButton = editContentZone.querySelector('.ui.primary.button');
+      const isUploading = editor.isUploading();
+      if (saveButton) {
+        saveButton.disabled = isUploading;
+      }
+    };
+
     editContentZone.innerHTML = document.querySelector('#issue-comment-editor-template').innerHTML;
-    comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
+    comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'), opts);
+   
     editContentZone.querySelector('.ui.cancel.button').addEventListener('click', cancelAndReset);
     editContentZone.querySelector('.ui.primary.button').addEventListener('click', saveAndRefresh);
+    opts.onContentChanged(comboMarkdownEditor);
   }
 
   // Show write/preview tab and copy raw content as needed
