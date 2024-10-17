@@ -2149,9 +2149,16 @@ td .commit-summary {
   gap: 0 !important;
 }
 
-.archived-label {
-  filter: grayscale(0.5);
-  opacity: 0.5;
+.archived-label[style^="color: #000"],
+.archived-label.scope-parent .scope-left[style^="color: #000"],
+.archived-label.scope-parent .scope-right[style^="color: #000"] {
+  background-image: repeating-linear-gradient(-45deg, transparent, transparent 6px, rgba(0, 0, 0, 0.2) 6px, rgba(0, 0, 0, 0.2) 12px);
+}
+
+.archived-label[style^="color: #fff"],
+.archived-label.scope-parent .scope-left[style^="color: #fff"],
+.archived-label.scope-parent .scope-right[style^="color: #fff"] {
+  background-image: repeating-linear-gradient(-45deg, transparent, transparent 6px, rgba(255, 255, 255, 0.3) 6px, rgba(255, 255, 255, 0.3) 12px);
 }
 
 .ui.label.scope-left {
