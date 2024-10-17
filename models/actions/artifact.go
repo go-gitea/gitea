@@ -78,6 +78,12 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPa
 	} else if err != nil {
 		return nil, err
 	}
+
+	artifact.ExpiredUnix = timeutil.TimeStamp(time.Now().Unix() + 3600*24*expiredDays)
+	if err := UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+		return nil, err
+	}
+
 	return artifact, nil
 }
 
