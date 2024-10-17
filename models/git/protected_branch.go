@@ -34,6 +34,7 @@ type ProtectedBranch struct {
 	RepoID                        int64                  `xorm:"UNIQUE(s)"`
 	Repo                          *repo_model.Repository `xorm:"-"`
 	RuleName                      string                 `xorm:"'branch_name' UNIQUE(s)"` // a branch name or a glob match to branch name
+	Priority                      int64                  `xorm:"NOT NULL DEFAULT 0"`
 	globRule                      glob.Glob              `xorm:"-"`
 	isPlainName                   bool                   `xorm:"-"`
 	CanPush                       bool                   `xorm:"NOT NULL DEFAULT false"`
@@ -83,14 +84,18 @@ func IsRuleNameSpecial(ruleName string) bool {
 }
 
 func (protectBranch *ProtectedBranch) loadGlob() {
-	if protectBranch.globRule == nil {
+	if protectBranch.globRule == nil && !protectBranch.isPlainName {
+		// detect if it is not glob
+		if !IsRuleNameSpecial(protectBranch.RuleName) {
+			protectBranch.isPlainName = true
+			return
+		}
 		var err error
 		protectBranch.globRule, err = glob.Compile(protectBranch.RuleName, '/')
 		if err != nil {
 			log.Warn("Invalid glob rule for ProtectedBranch[%d]: %s %v", protectBranch.ID, protectBranch.RuleName, err)
 			protectBranch.globRule = glob.MustCompile(glob.QuoteMeta(protectBranch.RuleName), '/')
 		}
-		protectBranch.isPlainName = !IsRuleNameSpecial(protectBranch.RuleName)
 	}
 }
 
@@ -406,19 +411,51 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	}
 	protectBranch.ApprovalsWhitelistTeamIDs = whitelist
 
-	// Make sure protectBranch.ID is not 0 for whitelists
-	if protectBranch.ID == 0 {
-		if _, err = db.GetEngine(ctx).Insert(protectBranch); err != nil {
-			return fmt.Errorf("Insert: %v", err)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// Looks like it's a new rule
+		if protectBranch.ID == 0 {
+			// as it's a new rule and if priority was not set, we need to calc it.
+			if protectBranch.Priority == 0 {
+				var lowestPrio int64
+				db.GetEngine(ctx).Table(protectBranch).
+					Select("MAX(priority)").
+					Where("repo_id = ?", protectBranch.RepoID).
+					Get(&lowestPrio)
+				log.Trace("Create new ProtectedBranch at repo[%d] and detect current lowest priority '%d'", protectBranch.RepoID, lowestPrio)
+				protectBranch.Priority = lowestPrio + 1
+			}
+
+			if _, err = db.GetEngine(ctx).Insert(protectBranch); err != nil {
+				return fmt.Errorf("Insert: %v", err)
+			}
+			return nil
+		}
+
+		// update the rule
+		if _, err = db.GetEngine(ctx).ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
+			return fmt.Errorf("Update: %v", err)
+		}
+
+		return nil
+	})
+}
+
+func UpdateProtectBranchPriorities(ctx context.Context, repo *repo_model.Repository, ids []int64) error {
+	prio := int64(1)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, id := range ids {
+			if _, err := db.GetEngine(ctx).
+				ID(id).Where("repo_id = ?", repo.ID).
+				Cols("priority").
+				Update(&ProtectedBranch{
+					Priority: prio,
+				}); err != nil {
+				return err
+			}
+			prio++
 		}
 		return nil
-	}
-
-	if _, err = db.GetEngine(ctx).ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
-		return fmt.Errorf("Update: %v", err)
-	}
-
-	return nil
+	})
 }
 
 // updateApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with
