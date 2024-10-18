@@ -1,0 +1,126 @@
+<div class="require-actions-container">
+	<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "actions.require_action.require_action_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
+	<div class="ui right">
+		<div class="ui top right">
+			<button class="ui primary tiny button show-modal"
+					data-modal="#add-require-actions-modal"
+					data-modal-form.action="{{.Link}}/add"
+					data-modal-header="{{ctx.Locale.Tr "actions.require_action.add"}}">
+					{{ctx.Locale.Tr "actions.require_action.add"}}
+			</button>
+		</div>
+	</div>
+	</h4>
+	<div class="ui attached segment">
+		<form class="ui form ignore-dirty" id="require-action-list-search-form" action="{{$.Link}}">
+			<!-- Search Text -->
+				{{template "shared/search/combo" dict "Value" .Keyword}}
+				<button class="ui primary button">{{ctx.Locale.Tr "actions.require_action.search"}}</button>
+		</form>
+	</div>
+	<div class="ui attached table segment">
+		<table class="ui very basic striped table unstackable">
+			<thead>
+				<tr>
+					<th data-sortt-asc="newest" data-sortt-desc="oldest">
+						{{ctx.Locale.Tr "actions.require_action.id"}}
+					</th>
+					<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
+						{{ctx.Locale.Tr "actions.require_action.workflow"}}
+					</th>
+					<th>{{ctx.Locale.Tr "actions.require_action.repo"}}</th>
+					<th>{{ctx.Locale.Tr "actions.require_action.link"}}</th>
+					<th>{{ctx.Locale.Tr "actions.require_action.remove"}}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{if .RequireActions}}
+					{{range .RequireActions}}
+					<tr>
+						<td>{{.ID}}</td>
+						<td><p data-tooltip-content="{{.RepoName}}">{{.WorkflowName}}</p></td>
+						<td>{{.RepoName}}</td>
+						<td><a href="/{{$.OrgName}}/{{.RepoName}}">Workflow Link</a></td>
+						<td class="require_action-ops">
+							{{if .Removable $.OrgID}}
+							<button class="btn interact-bg tw-p-2 link-action"
+								data-tooltip-content="{{ctx.Locale.Tr "actions.require_action.deletion"}}"
+								data-url="{{$.Link}}/{{.ID}}/delete"
+								data-modal-confirm="{{ctx.Locale.Tr "actions.require_action.deletion.description"}}"
+							>
+								{{svg "octicon-trash"}}
+							</button>
+							<!-- <a href="{{$.Link}}/{{.ID}}/delete">{{svg "octicon-x-circle-fill"}}</a>-->
+							{{end}}
+						</td>
+					</tr>
+					{{end}}
+				{{else}}
+					<tr>
+						<td class="center aligned" colspan="8">{{ctx.Locale.Tr "actions.require_action.none"}}</td>
+					</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+	{{template "base/paginate"}}
+</div>
+
+
+
+{{/* Add RequireAction dialog */}}
+<div class="ui small modal" id="add-require-actions-modal">
+	<div class="header">
+		<span id="actions-modal-header">Enable Workflows</span>
+	</div>
+	<form class="ui form form-fetch-action" method="post">
+		<div class="content">
+			<div class="item">
+				<a href="https://docs.gitea.com/usage/actions/require-action">{{ctx.Locale.Tr "actions.require_action.enable_global_workflow"}}</a>
+			</div>
+			<div class="divider"></div>
+			<table class="ui very basic striped table unstackable">
+			<thead>
+				<tr>
+					<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
+						{{ctx.Locale.Tr "actions.require_action.workflow"}}
+					</th>
+					<th>
+						{{ctx.Locale.Tr "actions.require_action.repo"}}
+					</th>
+				</tr>
+			</thead>
+			<tbody>
+			{{if .GlobalEnableWorkflows}}
+				{{range .GlobalEnableWorkflows}}
+				<tr>
+				<td><div class="field">
+					<div class="ui radio checkbox">
+						<input class="select-org-radio" name="workflow_name" type="radio" value="{{.Filename}}">
+						<label>{{.Filename}}</label>
+					</div>
+					<input name="repo_name" type="hidden" value="{{.RepoName}}">
+				</div></td>
+				<td><div class="field">
+					<a href="/{{$.OrgName}}/{{.RepoName}}">
+						<label>{{.RepoName}}</label>
+					</a>
+				</div></td>
+				</tr>
+				{{end}}
+			{{else}}
+					<tr>
+						<td class="center aligned" colspan="8">{{ctx.Locale.Tr "actions.require_action.none"}}</td>
+					</tr>
+			{{end}}
+			</tbody>
+			</table>
+			<div class="divider"></div>
+			<div class="item">
+				<a href="{{$.Link}}/add">{{ctx.Locale.Tr "actions.require_action.add_require_action"}}</a>
+			</div>
+		</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+	</form>
+</div>
