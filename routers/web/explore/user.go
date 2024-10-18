@@ -134,6 +134,8 @@ func Users(ctx *context.Context) {
 		ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		return
 	}
+	ctx.Data["OrganizationsIsDisabled"] = setting.Service.Explore.DisableOrganizationsPage
+	ctx.Data["CodeIsDisabled"] = setting.Service.Explore.DisableCodePage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreUsers"] = true

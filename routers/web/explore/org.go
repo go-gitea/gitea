@@ -14,7 +14,13 @@ import (
 
 // Organizations render explore organizations page
 func Organizations(ctx *context.Context) {
+	if setting.Service.Explore.DisableOrganizationsPage {
+		ctx.Redirect(setting.AppSubURL + "/explore/repos")
+		return
+	}
+
 	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
+	ctx.Data["CodeIsDisabled"] = setting.Service.Explore.DisableCodePage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreOrganizations"] = true
