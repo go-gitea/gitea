@@ -17,6 +17,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -501,4 +502,31 @@ func GetAnonymousCSRFToken(t testing.TB, session *TestSession) string {
 	csrfToken := NewHTMLParser(t, resp.Body).GetCSRF()
 	require.NotEmpty(t, csrfToken)
 	return csrfToken
+}
+
+func loginUserWithPasswordRemember(t testing.TB, userName, password string, rememberMe bool) *TestSession {
+	t.Helper()
+	req := NewRequest(t, "GET", "/user/login")
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	doc := NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/user/login", map[string]string{
+		"_csrf":     doc.GetCSRF(),
+		"user_name": userName,
+		"password":  password,
+		"remember":  strconv.FormatBool(rememberMe),
+	})
+	resp = MakeRequest(t, req, http.StatusSeeOther)
+
+	ch := http.Header{}
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
+	cr := http.Request{Header: ch}
+
+	session := emptyTestSession(t)
+
+	baseURL, err := url.Parse(setting.AppURL)
+	require.NoError(t, err)
+	session.jar.SetCookies(baseURL, cr.Cookies())
+
+	return session
 }
