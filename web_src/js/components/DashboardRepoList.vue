@@ -349,9 +349,12 @@ export default sfc; // activate the IDE's Vue plugin
           {{ textMyRepos }}
           <span class="ui grey label tw-ml-2">{{ reposTotalCount }}</span>
         </div>
-        <a class="tw-flex tw-items-center muted" :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
+        <a v-if="canCreateRepo" class="tw-flex tw-items-center muted" :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
         </a>
+        <span v-else class="tw-flex tw-items-center disabled" :data-tooltip-content="textRepoReachLimitOfCreation">
+          <svg-icon name="octicon-plus"/>
+        </span>
       </h4>
       <div class="ui attached segment repos-search">
         <div class="ui small fluid action left icon input">
@@ -545,4 +548,9 @@ ul li:not(:last-child) {
 .repo-owner-name-list li.active {
   background: var(--color-hover);
 }
+
+span.disabled {
+  opacity: var(--opacity-disabled);
+}
+
 </style>
