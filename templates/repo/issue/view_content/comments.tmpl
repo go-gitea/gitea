@@ -12,7 +12,8 @@
 		26 = DELETE_TIME_MANUAL, 27 = REVIEW_REQUEST, 28 = MERGE_PULL_REQUEST,
 		29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED
 		32 = DISMISSED_REVIEW, 33 = COMMENT_TYPE_CHANGE_ISSUE_REF, 34 = PR_SCHEDULE_TO_AUTO_MERGE,
-		35 = CANCEL_SCHEDULED_AUTO_MERGE_PR, 36 = PIN_ISSUE, 37 = UNPIN_ISSUE -->
+		35 = CANCEL_SCHEDULED_AUTO_MERGE_PR, 36 = PIN_ISSUE, 37 = UNPIN_ISSUE,
+		38 = COMMENT_TYPE_CHANGE_TIME_ESTIMATE -->
 		{{if eq .Type 0}}
 			<div class="timeline-item comment" id="{{.HashTag}}">
 			{{if .OriginalAuthor}}
@@ -249,18 +250,18 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.stop_tracking_history" $createdStr}}
-				</span>
-				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
-				<div class="detail flex-text-block">
-					{{svg "octicon-clock"}}
+
+					{{$timeStr := ""}}
 					{{if .RenderedContent}}
 						{{/* compatibility with time comments made before v1.21 */}}
-						<span class="text grey muted-links">{{.RenderedContent}}</span>
+						{{$timeStr = .RenderedContent}}
 					{{else}}
-						<span class="text grey muted-links">{{.Content|Sec2Time}}</span>
+						{{$timeStr = .Content|Sec2Time}}
 					{{end}}
-				</div>
+
+					{{ctx.Locale.Tr "repo.issues.stop_tracking_history" $timeStr $createdStr | SafeHTML}}
+				</span>
+				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
 			</div>
 		{{else if eq .Type 14}}
 			<div class="timeline-item event" id="{{.HashTag}}">
@@ -268,18 +269,18 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.add_time_history" $createdStr}}
-				</span>
-				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
-				<div class="detail flex-text-block">
-					{{svg "octicon-clock"}}
+
+					{{$timeStr := ""}}
 					{{if .RenderedContent}}
 						{{/* compatibility with time comments made before v1.21 */}}
-						<span class="text grey muted-links">{{.RenderedContent}}</span>
+						{{$timeStr = .RenderedContent}}
 					{{else}}
-						<span class="text grey muted-links">{{.Content|Sec2Time}}</span>
+						{{$timeStr = .Content|Sec2Time}}
 					{{end}}
-				</div>
+
+					{{ctx.Locale.Tr "repo.issues.add_time_history" $timeStr $createdStr | SafeHTML}}
+				</span>
+				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
 			</div>
 		{{else if eq .Type 15}}
 			<div class="timeline-item event" id="{{.HashTag}}">
@@ -698,6 +699,15 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{if eq .Type 36}}{{ctx.Locale.Tr "repo.issues.pin_comment" $createdStr}}
 					{{else}}{{ctx.Locale.Tr "repo.issues.unpin_comment" $createdStr}}{{end}}
+				</span>
+			</div>
+		{{else if eq .Type 38}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-clock"}}</span>
+				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
+				<span class="text grey muted-links">
+					{{template "shared/user/authorlink" .Poster}}
+					{{ctx.Locale.Tr "repo.issues.change_time_estimate_at" .RenderedContent $createdStr | SafeHTML}}
 				</span>
 			</div>
 		{{end}}

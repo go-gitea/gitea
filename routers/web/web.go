@@ -1225,6 +1225,7 @@ func registerRoutes(m *web.Router) {
 						m.Post("/cancel", repo.CancelStopwatch)
 					})
 				})
+				m.Post("/time_estimate", repo.UpdateIssueTimeEstimate)
 				m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeIssueReaction)
 				m.Post("/lock", reqRepoIssuesOrPullsWriter, web.Bind(forms.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoIssuesOrPullsWriter, repo.UnlockIssue)
