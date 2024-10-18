@@ -8,10 +8,12 @@
 				{{svg "octicon-person"}} {{ctx.Locale.Tr "explore.users"}}
 			</a>
 		{{end}}
+		{{if not .OrganizationsIsDisabled}}
 		<a class="{{if .PageIsExploreOrganizations}}active {{end}}item" href="{{AppSubUrl}}/explore/organizations">
 			{{svg "octicon-organization"}} {{ctx.Locale.Tr "explore.organizations"}}
 		</a>
-		{{if and (not ctx.Consts.RepoUnitTypeCode.UnitGlobalDisabled) .IsRepoIndexerEnabled}}
+		{{end}}
+		{{if and (not ctx.Consts.RepoUnitTypeCode.UnitGlobalDisabled) (and .IsRepoIndexerEnabled (not .CodeIsDisabled))}}
 		<a class="{{if .PageIsExploreCode}}active {{end}}item" href="{{AppSubUrl}}/explore/code">
 			{{svg "octicon-code"}} {{ctx.Locale.Tr "explore.code"}}
 		</a>
