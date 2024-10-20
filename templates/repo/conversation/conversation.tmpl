@@ -1,0 +1,17 @@
+<!-- Pass in IsIssue (bool) if this conversation is attached to an Issue -->
+<!-- Pass in IsCommit (bool) if this conversation is attached to a Commit -->
+<div class="ui timeline">
+    {{if .IsIssue}}
+        {{template "repo/conversation/issue_header_comment" .}}
+    {{end}}
+
+    {{template "repo/conversation/comments" .}}
+
+    {{if .IsIssue}}
+        {{if and .Issue.IsPull (not $.Repository.IsArchived)}}
+            {{template "repo/issue/view_content/pull".}}
+        {{end}}
+    {{end}}
+
+    {{template "repo/conversation/comment_form" .}}
+</div>

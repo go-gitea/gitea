@@ -26,7 +26,7 @@ import (
 const (
 	tplDiffConversation     base.TplName = "repo/diff/conversation"
 	tplConversationOutdated base.TplName = "repo/diff/conversation_outdated"
-	tplTimelineConversation base.TplName = "repo/issue/view_content/conversation"
+	tplTimelineConversation base.TplName = "repo/conversation/conversation"
 	tplNewComment           base.TplName = "repo/diff/new_comment"
 )
 
@@ -46,6 +46,8 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	}
 	ctx.Data["PageIsPullFiles"] = true
 	ctx.Data["Issue"] = issue
+	ctx.Data["IsIssue"] = true
+	ctx.Data["Comments"] = issue.Comments
 	ctx.Data["CurrentReview"] = currentReview
 	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(issue.PullRequest.GetGitRefName())
 	if err != nil {
@@ -193,6 +195,8 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 	ctx.Data["Issue"] = comment.Issue
+	ctx.Data["IsIssue"] = true
+	ctx.Data["Comments"] = comment.Issue.Comments
 	if err = comment.Issue.LoadPullRequest(ctx); err != nil {
 		ctx.ServerError("comment.Issue.LoadPullRequest", err)
 		return

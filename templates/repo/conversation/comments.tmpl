@@ -1,5 +1,6 @@
+<!-- Provide Issue for any types other than type 0 -->
 {{template "base/alert"}}
-{{range .Issue.Comments}}
+{{range .Comments}}
 	{{if call $.ShouldShowCommentType .Type}}
 		{{$createdStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
 
@@ -85,7 +86,7 @@
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}
 				<span class="text grey muted-links">
-					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
+					{{template "repo/conversation/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{if .Issue.IsPull}}
 						{{ctx.Locale.Tr "repo.pulls.reopened_at" .EventTag $createdStr}}
 					{{else}}
@@ -100,7 +101,7 @@
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}
 				<span class="text grey muted-links">
-					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
+					{{template "repo/conversation/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{if .Issue.IsPull}}
 						{{ctx.Locale.Tr "repo.pulls.closed_at" .EventTag $createdStr}}
 					{{else}}
@@ -115,7 +116,7 @@
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}
 				<span class="text grey muted-links">
-					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
+					{{template "repo/conversation/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{$link := printf "%s/commit/%s" $.Repository.Link ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
 					{{if eq $.Issue.PullRequest.Status 3}}
 						{{ctx.Locale.Tr "repo.issues.comment_manually_pull_merged_at" (HTMLFormat `<a class="ui sha" href="%[1]s"><b>%[2]s</b></a>` $link (ShortSha $.Issue.PullRequest.MergedCommitID)) (HTMLFormat "<b>%[1]s</b>" $.BaseTarget) $createdStr}}
@@ -251,7 +252,7 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{ctx.Locale.Tr "repo.issues.stop_tracking_history" $createdStr}}
 				</span>
-				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
+				{{template "repo/conversation/comments_delete_time" dict "ctxData" $ "comment" .}}
 				<div class="detail flex-text-block">
 					{{svg "octicon-clock"}}
 					{{if .RenderedContent}}
@@ -270,7 +271,7 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{ctx.Locale.Tr "repo.issues.add_time_history" $createdStr}}
 				</span>
-				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
+				{{template "repo/conversation/comments_delete_time" dict "ctxData" $ "comment" .}}
 				<div class="detail flex-text-block">
 					{{svg "octicon-clock"}}
 					{{if .RenderedContent}}
@@ -384,7 +385,7 @@
 						{{if .Review}}{{svg (printf "octicon-%s" .Review.Type.Icon)}}{{end}}
 					</span>
 					<span class="text grey muted-links">
-						{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
+						{{template "repo/conversation/comments_authorlink" dict "ctxData" $ "comment" .}}
 						{{if eq $reviewType 1}}
 							{{ctx.Locale.Tr "repo.issues.review.approve" $createdStr}}
 						{{else if eq $reviewType 2}}
@@ -458,7 +459,7 @@
 				<div class="timeline-item event">
 					{{range $filename, $lines := .Review.CodeComments}}
 						{{range $line, $comms := $lines}}
-							{{template "repo/issue/view_content/conversation" dict "." $ "comments" $comms}}
+							{{template "repo/conversation/conversation" dict "." $ "comments" $comms}}
 						{{end}}
 					{{end}}
 				</div>
@@ -496,7 +497,7 @@
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}
 				<span class="text grey muted-links">
-					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
+					{{template "repo/conversation/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{ctx.Locale.Tr "repo.pulls.change_target_branch_at" .OldRef .NewRef $createdStr}}
 				</span>
 			</div>
@@ -685,7 +686,7 @@
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
 				<span class="text grey muted-links">
-					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
+					{{template "repo/conversation/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{if eq .Type 34}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr}}
 					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr}}{{end}}
 				</span>

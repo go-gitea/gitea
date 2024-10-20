@@ -1,0 +1,21 @@
+{{$textareaContent := .BodyQuery}}
+{{if not $textareaContent}}{{$textareaContent = .IssueTemplate}}{{end}}
+{{if not $textareaContent}}{{$textareaContent = .PullRequestTemplate}}{{end}}
+{{if not $textareaContent}}{{$textareaContent = .content}}{{end}}
+
+<div class="field">
+	{{template "shared/combomarkdowneditor" (dict
+		"MarkdownPreviewUrl" (print .Repository.Link "/markup")
+		"MarkdownPreviewContext" .RepoLink
+		"TextareaName" "content"
+		"TextareaContent" $textareaContent
+		"TextareaPlaceholder"  (ctx.Locale.Tr "repo.diff.comment.placeholder")
+		"DropzoneParentContainer" "form, .ui.form"
+	)}}
+</div>
+
+{{if .IsAttachmentEnabled}}
+	<div class="field">
+		{{template "repo/upload" .}}
+	</div>
+{{end}}

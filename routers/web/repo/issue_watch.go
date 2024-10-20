@@ -58,6 +58,8 @@ func IssueWatch(ctx *context.Context) {
 	}
 
 	ctx.Data["Issue"] = issue
+	ctx.Data["IsIssue"] = true
+	ctx.Data["Comments"] = issue.Comments
 	ctx.Data["IssueWatch"] = &issues_model.IssueWatch{IsWatching: watch}
 	ctx.HTML(http.StatusOK, tplWatching)
 }

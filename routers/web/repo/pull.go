@@ -128,6 +128,8 @@ func getPullInfo(ctx *context.Context) (issue *issues_model.Issue, ok bool) {
 	}
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, emoji.ReplaceAliases(issue.Title))
 	ctx.Data["Issue"] = issue
+	ctx.Data["IsIssue"] = true
+	ctx.Data["Comments"] = issue.Comments
 
 	if !issue.IsPull {
 		ctx.NotFound("ViewPullCommits", nil)
