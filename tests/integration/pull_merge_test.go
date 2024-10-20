@@ -981,12 +981,10 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		// create a pull request
 		session := loginUser(t, "user1")
-		// user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		forkedName := "repo1-1"
 		testRepoFork(t, session, "user2", "repo1", "user1", forkedName, "")
-		defer func() {
-			testDeleteRepository(t, session, "user1", forkedName)
-		}()
+		defer testDeleteRepository(t, session, "user1", forkedName)
+
 		testEditFile(t, session, "user1", forkedName, "master", "README.md", "Hello, World (Edited)\n")
 		testPullCreate(t, session, "user1", forkedName, false, "master", "master", "Indexer notifier test pull")
 
