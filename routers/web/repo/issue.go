@@ -1943,7 +1943,6 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
 			ctx.Data["ChangedProtectedFilesNum"] = len(pull.ChangedProtectedFiles)
 			ctx.Data["RequireApprovalsWhitelist"] = pb.EnableApprovalsWhitelist
-			ctx.Data["BlockAdminMergeOverride"] = pb.BlockAdminMergeOverride
 		}
 		ctx.Data["WillSign"] = false
 		if ctx.Doer != nil {
