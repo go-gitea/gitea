@@ -165,9 +165,9 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 
 // Repos render explore repositories page
 func Repos(ctx *context.Context) {
-	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
-	ctx.Data["OrganizationsIsDisabled"] = setting.Service.Explore.DisableOrganizationsPage
-	ctx.Data["CodeIsDisabled"] = setting.Service.Explore.DisableCodePage
+	ctx.Data["UsersIsDisabled"] = setting.Config().Service.ExplorePage.DisableUsersPage.Value(ctx)
+	ctx.Data["OrganizationsIsDisabled"] = setting.Config().Service.ExplorePage.DisableOrganizationsPage.Value(ctx)
+	ctx.Data["CodeIsDisabled"] = setting.Config().Service.ExplorePage.DisableCodePage.Value(ctx)
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreRepositories"] = true

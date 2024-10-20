@@ -39,4 +39,39 @@
 		</div>
 	</form>
 </div>
+
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "admin.config.service_config"}}
+</h4>
+<div class="ui attached table segment">
+	<dl class="admin-dl-horizontal">
+		<dt>{{ctx.Locale.Tr "admin.config.explore_require_signin_view"}}</dt>
+		<dd>
+			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.explore_require_signin_view"}}">
+				<input type="checkbox" data-config-dyn-key="service.explore.require_signin_view" {{if .SystemConfig.Service.ExplorePage.RequireSigninView.Value ctx}}checked{{end}}><label></label>
+			</div>
+		</dd>
+		<div class="divider"></div>
+		<dt>{{ctx.Locale.Tr "admin.config.explore_disable_users_page"}}</dt>
+		<dd>
+			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.explore_disable_users_page"}}">
+				<input type="checkbox" data-config-dyn-key="service.explore.disable_users_page" {{if .SystemConfig.Service.ExplorePage.DisableUsersPage.Value ctx}}checked{{end}}><label></label>
+			</div>
+		</dd>
+		<div class="divider"></div>
+		<dt>{{ctx.Locale.Tr "admin.config.explore_disable_organizations_page"}}</dt>
+		<dd>
+			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.explore_disable_organizations_page"}}">
+				<input type="checkbox" data-config-dyn-key="service.explore.disable_organizations_page" {{if .SystemConfig.Service.ExplorePage.DisableOrganizationsPage.Value ctx}}checked{{end}}><label></label>
+			</div>
+		</dd>
+		<div class="divider"></div>
+		<dt>{{ctx.Locale.Tr "admin.config.explore_disable_code_page"}}</dt>
+		<dd>
+			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.explore_disable_code_page"}}">
+				<input type="checkbox" data-config-dyn-key="service.explore.disable_code_page" {{if .SystemConfig.Service.ExplorePage.DisableCodePage.Value ctx}}checked{{end}}><label></label>
+			</div>
+		</dd>
+	</dl>
+</div>
 {{template "admin/layout_footer" .}}

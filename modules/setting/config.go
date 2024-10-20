@@ -51,9 +51,21 @@ type RepositoryStruct struct {
 	OpenWithEditorApps *config.Value[OpenWithEditorAppsType]
 }
 
+type ExplorePage struct {
+	RequireSigninView        *config.Value[bool]
+	DisableUsersPage         *config.Value[bool]
+	DisableOrganizationsPage *config.Value[bool]
+	DisableCodePage          *config.Value[bool]
+}
+
+type ServiceStruct struct {
+	ExplorePage *ExplorePage
+}
+
 type ConfigStruct struct {
 	Picture    *PictureStruct
 	Repository *RepositoryStruct
+	Service    *ServiceStruct
 }
 
 var (
@@ -70,6 +82,14 @@ func initDefaultConfig() {
 		},
 		Repository: &RepositoryStruct{
 			OpenWithEditorApps: config.ValueJSON[OpenWithEditorAppsType]("repository.open-with.editor-apps"),
+		},
+		Service: &ServiceStruct{
+			ExplorePage: &ExplorePage{
+				RequireSigninView:        config.ValueJSON[bool]("service.explore.require_signin_view").WithFileConfig(config.CfgSecKey{Sec: "service.explore", Key: "REQUIRE_SIGNIN_VIEW"}),
+				DisableUsersPage:         config.ValueJSON[bool]("service.explore.disable_users_page").WithFileConfig(config.CfgSecKey{Sec: "service.explore", Key: "DISABLE_USERS_PAGE"}),
+				DisableOrganizationsPage: config.ValueJSON[bool]("service.explore.disable_organizations_page").WithFileConfig(config.CfgSecKey{Sec: "service.explore", Key: "DISABLE_ORGANIZATIONS_PAGE"}),
+				DisableCodePage:          config.ValueJSON[bool]("service.explore.disable_code_page").WithFileConfig(config.CfgSecKey{Sec: "service.explore", Key: "DISABLE_CODE_PAGE"}),
+			},
 		},
 	}
 }

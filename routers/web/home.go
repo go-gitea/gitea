@@ -67,7 +67,7 @@ func Home(ctx *context.Context) {
 // HomeSitemap renders the main sitemap
 func HomeSitemap(ctx *context.Context) {
 	m := sitemap.NewSitemapIndex()
-	if !setting.Service.Explore.DisableUsersPage {
+	if !setting.Config().Service.ExplorePage.DisableUsersPage.Value(ctx) {
 		_, cnt, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
 			Type:        user_model.UserTypeIndividual,
 			ListOptions: db.ListOptions{PageSize: 1},

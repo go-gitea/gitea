@@ -130,12 +130,12 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 
 // Users render explore users page
 func Users(ctx *context.Context) {
-	if setting.Service.Explore.DisableUsersPage {
+	if setting.Config().Service.ExplorePage.DisableUsersPage.Value(ctx) {
 		ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		return
 	}
-	ctx.Data["OrganizationsIsDisabled"] = setting.Service.Explore.DisableOrganizationsPage
-	ctx.Data["CodeIsDisabled"] = setting.Service.Explore.DisableCodePage
+	ctx.Data["OrganizationsIsDisabled"] = setting.Config().Service.ExplorePage.DisableOrganizationsPage.Value(ctx)
+	ctx.Data["CodeIsDisabled"] = setting.Config().Service.ExplorePage.DisableCodePage.Value(ctx)
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreUsers"] = true
