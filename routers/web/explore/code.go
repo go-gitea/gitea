@@ -21,12 +21,8 @@ const (
 
 // Code render explore code page
 func Code(ctx *context.Context) {
-	if !setting.Indexer.RepoIndexerEnabled {
+	if !setting.Indexer.RepoIndexerEnabled || setting.Service.Explore.DisableCodePage {
 		ctx.Redirect(setting.AppSubURL + "/explore")
-		return
-	}
-	if setting.Service.Explore.DisableCodePage {
-		ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		return
 	}
 

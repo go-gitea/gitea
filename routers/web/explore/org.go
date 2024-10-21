@@ -15,7 +15,7 @@ import (
 // Organizations render explore organizations page
 func Organizations(ctx *context.Context) {
 	if setting.Service.Explore.DisableOrganizationsPage {
-		ctx.Redirect(setting.AppSubURL + "/explore/repos")
+		ctx.Redirect(setting.AppSubURL + "/explore")
 		return
 	}
 
