@@ -3444,107 +3444,125 @@
         "operationId": "issueSearchIssues",
         "parameters": [
           {
+            "enum": [
+              "open",
+              "closed",
+              "all"
+            ],
             "type": "string",
-            "description": "whether issue is open or closed",
+            "default": "open",
+            "description": "State of the issue",
             "name": "state",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded",
+            "description": "Comma-separated list of label names. Fetch only issues that have any of these labels. Non existent labels are discarded.",
             "name": "labels",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "comma separated list of milestone names. Fetch only issues that have any of this milestones. Non existent are discarded",
+            "description": "Comma-separated list of milestone names. Fetch only issues that have any of these milestones. Non existent milestones are discarded.",
             "name": "milestones",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "search string",
+            "description": "Search string",
             "name": "q",
             "in": "query"
           },
           {
             "type": "integer",
             "format": "int64",
-            "description": "repository to prioritize in the results",
+            "description": "Repository ID to prioritize in the results",
             "name": "priority_repo_id",
             "in": "query"
           },
           {
+            "enum": [
+              "issues",
+              "pulls"
+            ],
             "type": "string",
-            "description": "filter by type (issues / pulls) if set",
+            "description": "Filter by issue type",
             "name": "type",
             "in": "query"
           },
           {
             "type": "string",
             "format": "date-time",
-            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "description": "Only show issues updated after the given time (RFC 3339 format)",
             "name": "since",
             "in": "query"
           },
           {
             "type": "string",
             "format": "date-time",
-            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "description": "Only show issues updated before the given time (RFC 3339 format)",
             "name": "before",
             "in": "query"
           },
           {
             "type": "boolean",
-            "description": "filter (issues / pulls) assigned to you, default is false",
+            "default": false,
+            "description": "Filter issues or pulls assigned to the authenticated user",
             "name": "assigned",
             "in": "query"
           },
           {
             "type": "boolean",
-            "description": "filter (issues / pulls) created by you, default is false",
+            "default": false,
+            "description": "Filter issues or pulls created by the authenticated user",
             "name": "created",
             "in": "query"
           },
           {
             "type": "boolean",
-            "description": "filter (issues / pulls) mentioning you, default is false",
+            "default": false,
+            "description": "Filter issues or pulls mentioning the authenticated user",
             "name": "mentioned",
             "in": "query"
           },
           {
             "type": "boolean",
-            "description": "filter pulls requesting your review, default is false",
+            "default": false,
+            "description": "Filter pull requests where the authenticated user's review was requested",
             "name": "review_requested",
             "in": "query"
           },
           {
             "type": "boolean",
-            "description": "filter pulls reviewed by you, default is false",
+            "default": false,
+            "description": "Filter pull requests reviewed by the authenticated user",
             "name": "reviewed",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter by owner",
+            "description": "Filter by repository owner",
             "name": "owner",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter by team (requires organization owner parameter to be provided)",
+            "description": "Filter by team (requires organization owner parameter)",
             "name": "team",
             "in": "query"
           },
           {
+            "minimum": 1,
             "type": "integer",
-            "description": "page number of results to return (1-based)",
+            "default": 1,
+            "description": "Page number of results to return (1-based)",
             "name": "page",
             "in": "query"
           },
           {
+            "minimum": 0,
             "type": "integer",
-            "description": "page size of results",
+            "description": "Number of items per page",
             "name": "limit",
             "in": "query"
           }
@@ -3552,6 +3570,12 @@
         "responses": {
           "200": {
             "$ref": "#/responses/IssueList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
