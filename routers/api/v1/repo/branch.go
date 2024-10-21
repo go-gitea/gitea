@@ -645,7 +645,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		BlockOnOutdatedBranch:         form.BlockOnOutdatedBranch,
 	}
 
-	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
+	if err := git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
 		ForcePushUserIDs: forcePushAllowlistUsers,
@@ -654,14 +654,13 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,
 		ApprovalsTeamIDs: approvalsWhitelistTeams,
-	})
-	if err != nil {
+	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateProtectBranch", err)
 		return
 	}
 
 	if isBranchExist {
-		if err = pull_service.CheckPRsForBaseBranch(ctx, ctx.Repo.Repository, ruleName); err != nil {
+		if err := pull_service.CheckPRsForBaseBranch(ctx, ctx.Repo.Repository, ruleName); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CheckPRsForBaseBranch", err)
 			return
 		}
