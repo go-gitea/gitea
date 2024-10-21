@@ -417,10 +417,12 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 			// as it's a new rule and if priority was not set, we need to calc it.
 			if protectBranch.Priority == 0 {
 				var lowestPrio int64
-				db.GetEngine(ctx).Table(protectBranch).
+				if _, err := db.GetEngine(ctx).Table(protectBranch).
 					Select("MAX(priority)").
 					Where("repo_id = ?", protectBranch.RepoID).
-					Get(&lowestPrio)
+					Get(&lowestPrio); err != nil {
+					return err
+				}
 				log.Trace("Create new ProtectedBranch at repo[%d] and detect current lowest priority '%d'", protectBranch.RepoID, lowestPrio)
 				protectBranch.Priority = lowestPrio + 1
 			}

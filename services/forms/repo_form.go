@@ -228,7 +228,7 @@ func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) bin
 }
 
 type ProtectBranchPriorityForm struct {
-	IDS []int64
+	IDs []int64
 }
 
 //  __      __      ___.   .__                   __
