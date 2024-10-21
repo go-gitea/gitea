@@ -325,7 +325,7 @@ func UpdateBranchProtectionPriories(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.ProtectBranchPriorityForm)
 	repo := ctx.Repo.Repository
 
-	if err := git_model.UpdateProtectBranchPriorities(ctx, repo, form.IDS); err != nil {
+	if err := git_model.UpdateProtectBranchPriorities(ctx, repo, form.IDs); err != nil {
 		ctx.ServerError("UpdateProtectBranchPriorities", err)
 		return
 	}
