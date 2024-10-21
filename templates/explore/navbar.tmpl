@@ -13,7 +13,7 @@
 			{{svg "octicon-organization"}} {{ctx.Locale.Tr "explore.organizations"}}
 		</a>
 		{{end}}
-		{{if and (not ctx.Consts.RepoUnitTypeCode.UnitGlobalDisabled) (and .IsRepoIndexerEnabled (not .CodeIsDisabled))}}
+		{{if and (not ctx.Consts.RepoUnitTypeCode.UnitGlobalDisabled) .IsRepoIndexerEnabled (not .CodeIsDisabled)}}
 		<a class="{{if .PageIsExploreCode}}active {{end}}item" href="{{AppSubUrl}}/explore/code">
 			{{svg "octicon-code"}} {{ctx.Locale.Tr "explore.code"}}
 		</a>
