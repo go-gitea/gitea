@@ -49,6 +49,7 @@ import {
   initRepoSettingsCollaboration,
   initRepoSettingSearchTeamBox,
 } from './features/repo-settings.ts';
+import {initRepoBranchesSettings} from './features/repo-settings-branches.ts';
 import {initRepoDiffView} from './features/repo-diff.ts';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.ts';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
@@ -206,6 +207,7 @@ onDomReady(() => {
     initRepoSettingGitHook,
     initRepoSettingSearchTeamBox,
     initRepoSettingsCollaboration,
+    initRepoBranchesSettings,
     initRepoTemplateSearch,
     initRepoTopicBar,
     initRepoWikiForm,
