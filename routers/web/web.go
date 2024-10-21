@@ -1456,7 +1456,7 @@ func registerRoutes(m *web.Router) {
 			m.Get("/data", repo.RecentCommitsData)
 		}, reqRepoCodeReader)
 	},
-		ignSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases),
+		ignSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases, unit.TypeCode),
 		context.RepoRef(), repo.MustBeNotEmpty,
 	)
 	// end "/{username}/{reponame}/activity"
