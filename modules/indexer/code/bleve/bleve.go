@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	path_filter "code.gitea.io/gitea/modules/indexer/code/bleve/token/path"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
@@ -53,6 +54,7 @@ type RepoIndexerData struct {
 	RepoID    int64
 	CommitID  string
 	Content   string
+	Filename  string
 	Language  string
 	UpdatedAt time.Time
 }
@@ -64,8 +66,10 @@ func (d *RepoIndexerData) Type() string {
 
 const (
 	repoIndexerAnalyzer      = "repoIndexerAnalyzer"
+	filenameIndexerAnalyzer  = "filenameIndexerAnalyzer"
+	filenameIndexerTokenizer = "filenameIndexerTokenizer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 6
+	repoIndexerLatestVersion = 7
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer
@@ -79,6 +83,11 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	textFieldMapping.IncludeInAll = false
 	docMapping.AddFieldMappingsAt("Content", textFieldMapping)
 
+	fileNamedMapping := bleve.NewTextFieldMapping()
+	fileNamedMapping.IncludeInAll = false
+	fileNamedMapping.Analyzer = filenameIndexerAnalyzer
+	docMapping.AddFieldMappingsAt("Filename", fileNamedMapping)
+
 	termFieldMapping := bleve.NewTextFieldMapping()
 	termFieldMapping.IncludeInAll = false
 	termFieldMapping.Analyzer = analyzer_keyword.Name
@@ -90,6 +99,7 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	docMapping.AddFieldMappingsAt("UpdatedAt", timeFieldMapping)
 
 	mapping := bleve.NewIndexMapping()
+
 	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return nil, err
 	} else if err := mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]any{
@@ -100,6 +110,16 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	}); err != nil {
 		return nil, err
 	}
+
+	if err := mapping.AddCustomAnalyzer(filenameIndexerAnalyzer, map[string]any{
+		"type":          analyzer_custom.Name,
+		"char_filters":  []string{},
+		"tokenizer":     unicode.Name,
+		"token_filters": []string{unicodeNormalizeName, path_filter.Name, lowercase.Name},
+	}); err != nil {
+		return nil, err
+	}
+
 	mapping.DefaultAnalyzer = repoIndexerAnalyzer
 	mapping.AddDocumentMapping(repoIndexerDocType, docMapping)
 	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
@@ -174,6 +194,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	return batch.Index(id, &RepoIndexerData{
 		RepoID:    repo.ID,
 		CommitID:  commitSha,
+		Filename:  update.Filename,
 		Content:   string(charset.ToUTF8DropErrors(fileContents, charset.ConvertOpts{})),
 		Language:  analyze.GetCodeLanguage(update.Filename, fileContents),
 		UpdatedAt: time.Now().UTC(),
@@ -240,13 +261,18 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		keywordQuery query.Query
 	)
 
-	phraseQuery := bleve.NewMatchPhraseQuery(opts.Keyword)
-	phraseQuery.FieldVal = "Content"
-	phraseQuery.Analyzer = repoIndexerAnalyzer
-	keywordQuery = phraseQuery
+	pathQuery := bleve.NewPrefixQuery(strings.ToLower(opts.Keyword))
+	pathQuery.FieldVal = "Filename"
+	pathQuery.SetBoost(10)
+
+	contentQuery := bleve.NewMatchQuery(opts.Keyword)
+	contentQuery.FieldVal = "Content"
+
 	if opts.IsKeywordFuzzy {
-		phraseQuery.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(opts.Keyword)
+		contentQuery.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(opts.Keyword)
 	}
+
+	keywordQuery = bleve.NewDisjunctionQuery(contentQuery, pathQuery)
 
 	if len(opts.RepoIDs) > 0 {
 		repoQueries := make([]query.Query, 0, len(opts.RepoIDs))
@@ -277,7 +303,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 
 	from, pageSize := opts.GetSkipTake()
 	searchRequest := bleve.NewSearchRequestOptions(indexerQuery, pageSize, from, false)
-	searchRequest.Fields = []string{"Content", "RepoID", "Language", "CommitID", "UpdatedAt"}
+	searchRequest.Fields = []string{"Content", "Filename", "RepoID", "Language", "CommitID", "UpdatedAt"}
 	searchRequest.IncludeLocations = true
 
 	if len(opts.Language) == 0 {
@@ -307,6 +333,10 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 				endIndex = locationEnd
 			}
 		}
+		if len(hit.Locations["Filename"]) > 0 {
+			startIndex, endIndex = internal.FilenameMatchIndexPos(hit.Fields["Content"].(string))
+		}
+
 		language := hit.Fields["Language"].(string)
 		var updatedUnix timeutil.TimeStamp
 		if t, err := time.Parse(time.RFC3339, hit.Fields["UpdatedAt"].(string)); err == nil {

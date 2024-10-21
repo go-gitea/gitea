@@ -486,23 +486,19 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 	assert.True(t, result.Valid())
 }
 
-// GetCSRF returns CSRF token from body
-// If it fails, it means the CSRF token is not found in the response body returned by the url with the given session.
-// In this case, you should find a better url to get it.
-func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
+// GetUserCSRFToken returns CSRF token for current user
+func GetUserCSRFToken(t testing.TB, session *TestSession) string {
 	t.Helper()
-	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-	csrf := doc.GetCSRF()
-	require.NotEmpty(t, csrf)
-	return csrf
+	cookie := session.GetCookie("_csrf")
+	require.NotEmpty(t, cookie)
+	return cookie.Value
 }
 
-// GetCSRFFrom returns CSRF token from body
-func GetCSRFFromCookie(t testing.TB, session *TestSession, urlStr string) string {
+// GetUserCSRFToken returns CSRF token for anonymous user (not logged in)
+func GetAnonymousCSRFToken(t testing.TB, session *TestSession) string {
 	t.Helper()
-	req := NewRequest(t, "GET", urlStr)
-	session.MakeRequest(t, req, http.StatusOK)
-	return session.GetCookie("_csrf").Value
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusOK)
+	csrfToken := NewHTMLParser(t, resp.Body).GetCSRF()
+	require.NotEmpty(t, csrfToken)
+	return csrfToken
 }

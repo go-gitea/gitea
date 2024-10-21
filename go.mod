@@ -54,7 +54,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.13
 	github.com/go-chi/cors v1.2.1
 	github.com/go-co-op/gocron v1.37.0
-	github.com/go-enry/go-enry/v2 v2.8.8
+	github.com/go-enry/go-enry/v2 v2.9.1
 	github.com/go-git/go-billy/v5 v5.5.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/go-ldap/ldap/v3 v3.4.6
@@ -331,7 +331,7 @@ replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
-replace github.com/nektos/act => gitea.com/gitea/act v0.259.1
+replace github.com/nektos/act => gitea.com/gitea/act v0.261.3
 
 replace github.com/charmbracelet/git-lfs-transfer => gitea.com/gitea/git-lfs-transfer v0.2.0
 

@@ -45,7 +45,7 @@ func ListHooks(ctx *context.APIContext) {
 	}
 	hooks := make([]*api.Hook, len(sysHooks))
 	for i, hook := range sysHooks {
-		h, err := webhook_service.ToHook(setting.AppURL+"/admin", hook)
+		h, err := webhook_service.ToHook(setting.AppURL+"/-/admin", hook)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
 			return
@@ -83,7 +83,7 @@ func GetHook(ctx *context.APIContext) {
 		}
 		return
 	}
-	h, err := webhook_service.ToHook("/admin/", hook)
+	h, err := webhook_service.ToHook("/-/admin/", hook)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
 		return
