@@ -1196,6 +1196,7 @@ func Routes() *web.Router {
 						m.Patch("", bind(api.EditBranchProtectionOption{}), mustNotBeArchived, repo.EditBranchProtection)
 						m.Delete("", repo.DeleteBranchProtection)
 					})
+					m.Post("/priority/move", bind(api.UpdateBranchProtectionPriories{}), mustNotBeArchived, repo.UpdateBranchProtectionPriories)
 				}, reqToken(), reqAdmin())
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)

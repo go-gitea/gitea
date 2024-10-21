@@ -25,6 +25,7 @@ type BranchProtection struct {
 	// Deprecated: true
 	BranchName                    string   `json:"branch_name"`
 	RuleName                      string   `json:"rule_name"`
+	Priority                      int64    `json:"priority"`
 	EnablePush                    bool     `json:"enable_push"`
 	EnablePushWhitelist           bool     `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
@@ -63,6 +64,7 @@ type CreateBranchProtectionOption struct {
 	// Deprecated: true
 	BranchName                    string   `json:"branch_name"`
 	RuleName                      string   `json:"rule_name"`
+	Priority                      int64    `json:"priority"`
 	EnablePush                    bool     `json:"enable_push"`
 	EnablePushWhitelist           bool     `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
@@ -94,6 +96,7 @@ type CreateBranchProtectionOption struct {
 
 // EditBranchProtectionOption options for editing a branch protection
 type EditBranchProtectionOption struct {
+	Priority                      *int64   `json:"priority"`
 	EnablePush                    *bool    `json:"enable_push"`
 	EnablePushWhitelist           *bool    `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
@@ -121,4 +124,9 @@ type EditBranchProtectionOption struct {
 	RequireSignedCommits          *bool    `json:"require_signed_commits"`
 	ProtectedFilePatterns         *string  `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       *string  `json:"unprotected_file_patterns"`
+}
+
+// UpdateBranchProtectionPriories a list to update the branch protection rule priorities
+type UpdateBranchProtectionPriories []struct {
+	ID int64 `json:"id"`
 }

@@ -4666,6 +4666,58 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/branch_protections/priority/move": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update the priorities of branch protections for a repository.",
+        "operationId": "repoUpdateBranchProtectionPriories",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateBranchProtectionPriories"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/branch_protections/{name}": {
       "get": {
         "produces": [
@@ -18861,6 +18913,11 @@
           },
           "x-go-name": "MergeWhitelistUsernames"
         },
+        "priority": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Priority"
+        },
         "protected_file_patterns": {
           "type": "string",
           "x-go-name": "ProtectedFilePatterns"
@@ -19550,6 +19607,11 @@
             "type": "string"
           },
           "x-go-name": "MergeWhitelistUsernames"
+        },
+        "priority": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Priority"
         },
         "protected_file_patterns": {
           "type": "string",
@@ -20764,6 +20826,11 @@
             "type": "string"
           },
           "x-go-name": "MergeWhitelistUsernames"
+        },
+        "priority": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Priority"
         },
         "protected_file_patterns": {
           "type": "string",
@@ -24847,6 +24914,21 @@
             "format": "int64"
           },
           "x-go-name": "TeamIDs"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpdateBranchProtectionPriories": {
+      "description": "UpdateBranchProtectionPriories a list to update the branch protection rule priorities",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "ID"
+          }
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
