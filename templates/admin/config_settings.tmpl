@@ -48,28 +48,28 @@
 		<dt>{{ctx.Locale.Tr "admin.config.explore_require_signin_view"}}</dt>
 		<dd>
 			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.explore_require_signin_view"}}">
-				<input type="checkbox" data-config-dyn-key="service.explore.require_signin_view" {{if .SystemConfig.Service.Explore.RequireSigninView.Value ctx}}checked{{end}}><label></label>
+				<input type="checkbox" data-config-dyn-key="service.explore.require_signin_view" {{if .SystemConfig.Service.ExplorePage.RequireSigninView.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.explore_disable_users_page"}}</dt>
 		<dd>
 			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.explore_disable_users_page"}}">
-				<input type="checkbox" data-config-dyn-key="service.explore.disable_users_page" {{if .SystemConfig.Service.Explore.DisableUsersPage.Value ctx}}checked{{end}}><label></label>
+				<input type="checkbox" data-config-dyn-key="service.explore.disable_users_page" {{if .SystemConfig.Service.ExplorePage.DisableUsersPage.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.explore_disable_organizations_page"}}</dt>
 		<dd>
 			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.explore_disable_organizations_page"}}">
-				<input type="checkbox" data-config-dyn-key="service.explore.disable_organizations_page" {{if .SystemConfig.Service.Explore.DisableOrganizationsPage.Value ctx}}checked{{end}}><label></label>
+				<input type="checkbox" data-config-dyn-key="service.explore.disable_organizations_page" {{if .SystemConfig.Service.ExplorePage.DisableOrganizationsPage.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.explore_disable_code_page"}}</dt>
 		<dd>
 			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.explore_disable_code_page"}}">
-				<input type="checkbox" data-config-dyn-key="service.explore.disable_code_page" {{if .SystemConfig.Service.Explore.DisableCodePage.Value ctx}}checked{{end}}><label></label>
+				<input type="checkbox" data-config-dyn-key="service.explore.disable_code_page" {{if .SystemConfig.Service.ExplorePage.DisableCodePage.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
 	</dl>

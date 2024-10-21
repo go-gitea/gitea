@@ -231,13 +231,13 @@ func ChangeConfig(ctx *context.Context) {
 		return string(b), nil
 	}
 	marshallers := map[string]func(string) (string, error){
-		cfg.Picture.DisableGravatar.DynKey():                  marshalBool,
-		cfg.Picture.EnableFederatedAvatar.DynKey():            marshalBool,
-		cfg.Repository.OpenWithEditorApps.DynKey():            marshalOpenWithApps,
-		cfg.Service.Explore.RequireSigninView.DynKey():        marshalBool,
-		cfg.Service.Explore.DisableUsersPage.DynKey():         marshalBool,
-		cfg.Service.Explore.DisableOrganizationsPage.DynKey(): marshalBool,
-		cfg.Service.Explore.DisableCodePage.DynKey():          marshalBool,
+		cfg.Picture.DisableGravatar.DynKey():                      marshalBool,
+		cfg.Picture.EnableFederatedAvatar.DynKey():                marshalBool,
+		cfg.Repository.OpenWithEditorApps.DynKey():                marshalOpenWithApps,
+		cfg.Service.ExplorePage.RequireSigninView.DynKey():        marshalBool,
+		cfg.Service.ExplorePage.DisableUsersPage.DynKey():         marshalBool,
+		cfg.Service.ExplorePage.DisableOrganizationsPage.DynKey(): marshalBool,
+		cfg.Service.ExplorePage.DisableCodePage.DynKey():          marshalBool,
 	}
 	marshaller, hasMarshaller := marshallers[key]
 	if !hasMarshaller {
