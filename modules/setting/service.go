@@ -87,6 +87,14 @@ var Service = struct {
 	EnableOpenIDSignUp bool
 	OpenIDWhitelist    []*regexp.Regexp
 	OpenIDBlacklist    []*regexp.Regexp
+
+	// Explore page settings
+	Explore struct {
+		RequireSigninView        bool `ini:"REQUIRE_SIGNIN_VIEW"`
+		DisableUsersPage         bool `ini:"DISABLE_USERS_PAGE"`
+		DisableOrganizationsPage bool `ini:"DISABLE_ORGANIZATIONS_PAGE"`
+		DisableCodePage          bool `ini:"DISABLE_CODE_PAGE"`
+	} `ini:"service.explore"`
 }{
 	AllowedUserVisibilityModesSlice: []bool{true, true, true},
 }
@@ -227,6 +235,8 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 		}
 	}
 	Service.ValidSiteURLSchemes = schemes
+
+	mustMapSetting(rootCfg, "service.explore", &Service.Explore)
 
 	loadOpenIDSetting(rootCfg)
 }

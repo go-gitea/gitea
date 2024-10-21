@@ -25,13 +25,13 @@ func Code(ctx *context.Context) {
 		ctx.Redirect(setting.AppSubURL + "/explore")
 		return
 	}
-	if setting.Config().Service.ExplorePage.DisableCodePage.Value(ctx) {
+	if setting.Service.Explore.DisableCodePage {
 		ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		return
 	}
 
-	ctx.Data["UsersIsDisabled"] = setting.Config().Service.ExplorePage.DisableUsersPage.Value(ctx)
-	ctx.Data["OrganizationsIsDisabled"] = setting.Config().Service.ExplorePage.DisableOrganizationsPage.Value(ctx)
+	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
+	ctx.Data["OrganizationsIsDisabled"] = setting.Service.Explore.DisableOrganizationsPage
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
