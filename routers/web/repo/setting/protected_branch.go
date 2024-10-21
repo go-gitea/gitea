@@ -322,10 +322,10 @@ func DeleteProtectedBranchRulePost(ctx *context.Context) {
 }
 
 func UpdateBranchProtectionPriories(ctx *context.Context) {
-	form := web.GetForm(ctx).([]int64)
+	form := web.GetForm(ctx).(*forms.ProtectBranchPriorityForm)
 	repo := ctx.Repo.Repository
 
-	if err := git_model.UpdateProtectBranchPriorities(ctx, repo, form); err != nil {
+	if err := git_model.UpdateProtectBranchPriorities(ctx, repo, form.IDS); err != nil {
 		ctx.ServerError("UpdateProtectBranchPriorities", err)
 		return
 	}
