@@ -19,8 +19,8 @@ func Organizations(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
-	ctx.Data["CodeIsDisabled"] = setting.Service.Explore.DisableCodePage
+	ctx.Data["UsersPageIsDisabled"] = setting.Service.Explore.DisableUsersPage
+	ctx.Data["CodePageIsDisabled"] = setting.Service.Explore.DisableCodePage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreOrganizations"] = true
