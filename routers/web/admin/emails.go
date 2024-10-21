@@ -134,7 +134,7 @@ func ActivateEmail(ctx *context.Context) {
 		ctx.Flash.Info(ctx.Tr("admin.emails.updated"))
 	}
 
-	redirect, _ := url.Parse(setting.AppSubURL + "/admin/emails")
+	redirect, _ := url.Parse(setting.AppSubURL + "/-/admin/emails")
 	q := url.Values{}
 	if val := ctx.FormTrim("q"); len(val) > 0 {
 		q.Set("q", val)

@@ -187,14 +187,17 @@ export function initRepoIssueCommentDelete() {
           const path = conversationHolder.getAttribute('data-path');
           const side = conversationHolder.getAttribute('data-side');
           const idx = conversationHolder.getAttribute('data-idx');
-          const lineType = conversationHolder.closest('tr').getAttribute('data-line-type');
+          const lineType = conversationHolder.closest('tr')?.getAttribute('data-line-type');
 
-          if (lineType === 'same') {
-            document.querySelector(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).classList.remove('tw-invisible');
-          } else {
-            document.querySelector(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).classList.remove('tw-invisible');
+          // the conversation holder could appear either on the "Conversation" page, or the "Files Changed" page
+          // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment"
+          if (lineType) {
+            if (lineType === 'same') {
+              document.querySelector(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).classList.remove('tw-invisible');
+            } else {
+              document.querySelector(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).classList.remove('tw-invisible');
+            }
           }
-
           conversationHolder.remove();
         }
 
