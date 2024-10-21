@@ -127,4 +127,6 @@ type EditBranchProtectionOption struct {
 }
 
 // UpdateBranchProtectionPriories a list to update the branch protection rule priorities
-type UpdateBranchProtectionPriories []int64
+type UpdateBranchProtectionPriories []struct {
+	ID int64 `json:"id"`
+}

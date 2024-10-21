@@ -24922,8 +24922,14 @@
       "description": "UpdateBranchProtectionPriories a list to update the branch protection rule priorities",
       "type": "array",
       "items": {
-        "type": "integer",
-        "format": "int64"
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "ID"
+          }
+        }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
