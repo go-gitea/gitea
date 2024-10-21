@@ -301,7 +301,7 @@ func registerRoutes(m *web.Router) {
 	// TODO: rename them to "optSignIn", which means that the "sign-in" could be optional, depends on the VerifyOptions (RequireSignInView)
 	ignSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
 	ignExploreSignIn := func(ctx *context.Context) {
-		verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Config().Service.ExplorePage.RequireSigninView.Value(ctx)})(ctx)
+		verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Config().Service.Explore.RequireSigninView.Value(ctx)})(ctx)
 	}
 
 	validation.AddBindingRules()

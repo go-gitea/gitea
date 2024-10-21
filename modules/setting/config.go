@@ -51,7 +51,7 @@ type RepositoryStruct struct {
 	OpenWithEditorApps *config.Value[OpenWithEditorAppsType]
 }
 
-type ExplorePage struct {
+type Explore struct {
 	RequireSigninView        *config.Value[bool]
 	DisableUsersPage         *config.Value[bool]
 	DisableOrganizationsPage *config.Value[bool]
@@ -59,7 +59,7 @@ type ExplorePage struct {
 }
 
 type ServiceStruct struct {
-	ExplorePage *ExplorePage
+	Explore *Explore
 }
 
 type ConfigStruct struct {
@@ -84,7 +84,7 @@ func initDefaultConfig() {
 			OpenWithEditorApps: config.ValueJSON[OpenWithEditorAppsType]("repository.open-with.editor-apps"),
 		},
 		Service: &ServiceStruct{
-			ExplorePage: &ExplorePage{
+			Explore: &Explore{
 				RequireSigninView:        config.ValueJSON[bool]("service.explore.require_signin_view").WithFileConfig(config.CfgSecKey{Sec: "service.explore", Key: "REQUIRE_SIGNIN_VIEW"}),
 				DisableUsersPage:         config.ValueJSON[bool]("service.explore.disable_users_page").WithFileConfig(config.CfgSecKey{Sec: "service.explore", Key: "DISABLE_USERS_PAGE"}),
 				DisableOrganizationsPage: config.ValueJSON[bool]("service.explore.disable_organizations_page").WithFileConfig(config.CfgSecKey{Sec: "service.explore", Key: "DISABLE_ORGANIZATIONS_PAGE"}),
