@@ -354,14 +354,18 @@ func reqToken() func(ctx *context.APIContext) {
 	}
 }
 
-func reqExploreSignInAndUsersExploreEnabled() func(ctx *context.APIContext) {
+func reqExploreSignIn() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if setting.Service.Explore.RequireSigninView && !ctx.IsSigned {
+			ctx.Error(http.StatusUnauthorized, "reqExploreSignIn", "you must be signed in to search for users")
+		}
+	}
+}
+
+func reqUsersExploreEnabled() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if setting.Service.Explore.DisableUsersPage {
 			ctx.NotFound()
-			return
-		}
-		if setting.Service.Explore.RequireSigninView && !ctx.IsSigned {
-			ctx.Error(http.StatusUnauthorized, "reqExploreSignIn", "you must be signed in to search for users")
 		}
 	}
 }
@@ -959,16 +963,16 @@ func Routes() *web.Router {
 
 		// Users (requires user scope)
 		m.Group("/users", func() {
-			m.Get("/search", reqExploreSignInAndUsersExploreEnabled(), user.Search)
+			m.Get("/search", reqExploreSignIn(), reqUsersExploreEnabled(), user.Search)
 
 			m.Group("/{username}", func() {
-				m.Get("", reqExploreSignInAndUsersExploreEnabled(), user.GetInfo)
+				m.Get("", reqExploreSignIn(), user.GetInfo)
 
 				if setting.Service.EnableUserHeatmap {
 					m.Get("/heatmap", user.GetUserHeatmapData)
 				}
 
-				m.Get("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqExploreSignInAndUsersExploreEnabled(), user.ListUserRepos)
+				m.Get("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqExploreSignIn(), user.ListUserRepos)
 				m.Group("/tokens", func() {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), reqToken(), user.CreateAccessToken)
