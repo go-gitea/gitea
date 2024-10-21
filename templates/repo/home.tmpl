@@ -21,10 +21,10 @@
 				{{$isHomepage := (eq $n 0)}}
 
 				{{if $isHomepage}}
-					<div class="mobile">
+					<div class="only-mobile">
 						{{template "repo/home_search_code" .}}
 					</div>
-					<div class="flex-list mobile">
+					<div class="flex-list only-mobile">
 						{{template "repo/home_share_sidebar" .}}
 					</div>
 				{{end}}
