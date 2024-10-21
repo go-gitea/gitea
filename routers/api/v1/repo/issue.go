@@ -41,80 +41,93 @@ func SearchIssues(ctx *context.APIContext) {
 	// parameters:
 	// - name: state
 	//   in: query
-	//   description: whether issue is open or closed
+	//   description: State of the issue
 	//   type: string
+	//   enum: [open, closed, all]
+	//   default: open
 	// - name: labels
 	//   in: query
-	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
+	//   description: Comma-separated list of label names. Fetch only issues that have any of these labels. Non existent labels are discarded.
 	//   type: string
 	// - name: milestones
 	//   in: query
-	//   description: comma separated list of milestone names. Fetch only issues that have any of this milestones. Non existent are discarded
+	//   description: Comma-separated list of milestone names. Fetch only issues that have any of these milestones. Non existent milestones are discarded.
 	//   type: string
 	// - name: q
 	//   in: query
-	//   description: search string
+	//   description: Search string
 	//   type: string
 	// - name: priority_repo_id
 	//   in: query
-	//   description: repository to prioritize in the results
+	//   description: Repository ID to prioritize in the results
 	//   type: integer
 	//   format: int64
 	// - name: type
 	//   in: query
-	//   description: filter by type (issues / pulls) if set
+	//   description: Filter by issue type
 	//   type: string
+	//   enum: [issues, pulls]
 	// - name: since
 	//   in: query
-	//   description: Only show notifications updated after the given time. This is a timestamp in RFC 3339 format
+	//   description: Only show issues updated after the given time (RFC 3339 format)
 	//   type: string
 	//   format: date-time
-	//   required: false
 	// - name: before
 	//   in: query
-	//   description: Only show notifications updated before the given time. This is a timestamp in RFC 3339 format
+	//   description: Only show issues updated before the given time (RFC 3339 format)
 	//   type: string
 	//   format: date-time
-	//   required: false
 	// - name: assigned
 	//   in: query
-	//   description: filter (issues / pulls) assigned to you, default is false
+	//   description: Filter issues or pulls assigned to the authenticated user
 	//   type: boolean
+	//   default: false
 	// - name: created
 	//   in: query
-	//   description: filter (issues / pulls) created by you, default is false
+	//   description: Filter issues or pulls created by the authenticated user
 	//   type: boolean
+	//   default: false
 	// - name: mentioned
 	//   in: query
-	//   description: filter (issues / pulls) mentioning you, default is false
+	//   description: Filter issues or pulls mentioning the authenticated user
 	//   type: boolean
+	//   default: false
 	// - name: review_requested
 	//   in: query
-	//   description: filter pulls requesting your review, default is false
+	//   description: Filter pull requests where the authenticated user's review was requested
 	//   type: boolean
+	//   default: false
 	// - name: reviewed
 	//   in: query
-	//   description: filter pulls reviewed by you, default is false
+	//   description: Filter pull requests reviewed by the authenticated user
 	//   type: boolean
+	//   default: false
 	// - name: owner
 	//   in: query
-	//   description: filter by owner
+	//   description: Filter by repository owner
 	//   type: string
 	// - name: team
 	//   in: query
-	//   description: filter by team (requires organization owner parameter to be provided)
+	//   description: Filter by team (requires organization owner parameter)
 	//   type: string
 	// - name: page
 	//   in: query
-	//   description: page number of results to return (1-based)
+	//   description: Page number of results to return (1-based)
 	//   type: integer
+	//   minimum: 1
+	//   default: 1
 	// - name: limit
 	//   in: query
-	//   description: page size of results
+	//   description: Number of items per page
 	//   type: integer
+	//   minimum: 0
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
