@@ -2,17 +2,19 @@ import {createSortable} from '../modules/sortable.ts';
 import {POST} from '../modules/fetch.ts';
 
 export function initRepoBranchesSettings() {
-  const protectedBranchesList = document.querySelector('#protected-branches-list');
+  const protectedBranchesList = document.querySelector(
+    '#protected-branches-list',
+  );
   if (!protectedBranchesList) return;
 
   createSortable(protectedBranchesList, {
     handle: '.drag-handle',
     animation: 150,
-    onEnd: async (e) => {  // eslint-disable-line @typescript-eslint/no-misused-promises
+    onEnd: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises
       const newOrder = Array.from(protectedBranchesList.children, (item) => {
         const id = item.getAttribute('data-id');
-        return id ? parseInt(id, 10) : NaN;
-      }).filter(id => !isNaN(id));
+        return id ? parseInt(id) : NaN;
+      }).filter((id) => !Number.isNaN(id));
 
       try {
         await POST(protectedBranchesList.getAttribute('data-priority-url'), {
