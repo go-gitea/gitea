@@ -138,10 +138,10 @@ class ComboMarkdownEditor {
   }
 
   isUploading() {
-    if (!this.dropzone) return false; 
-    return this.attachedDropzoneInst.getUploadingFiles().length != 0;
+    if (!this.dropzone) return false;
+    return this.attachedDropzoneInst.getUploadingFiles().length !== 0;
   }
-  
+
   setupTab() {
     const tabs = this.container.querySelectorAll('.tabular.menu > .item');
 

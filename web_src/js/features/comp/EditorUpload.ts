@@ -10,7 +10,7 @@ import {
 
 let uploadIdCounter = 0;
 
-function uploadFile(dropzoneEl, file) {
+function uploadFile(dropzoneEl, file, placeholderCallback) {
   return new Promise((resolve) => {
     const curUploadId = uploadIdCounter++;
     file._giteaUploadId = curUploadId;
@@ -23,6 +23,8 @@ function uploadFile(dropzoneEl, file) {
     };
     dropzoneInst.on(DropzoneCustomEventUploadDone, onUploadDone);
     dropzoneInst.handleFiles([file]);
+    // if there is no setTimeout, then ComboMarkdownEditor.isUploading() does not working correctly
+    setTimeout(() => placeholderCallback(), 0);
   });
 }
 
@@ -99,17 +101,8 @@ async function handleUploadFiles(editor, dropzoneEl, files, e) {
     const {width, dppx} = await imageInfo(file);
     const placeholder = `[${name}](uploading ...)`;
 
-    // Placeholders should be inserted on uploading the thumnail.
-    // If not, the check upload process may fail
-    const handleInsertPlaceholder = () => editor.insertPlaceholder(placeholder); 
-    dropzoneEl.dropzone.on('thumbnail', handleInsertPlaceholder);
-    try {
-      await uploadFile(dropzoneEl, file); // the "file" will get its "uuid" during the upload
-    } catch (err) {
-      throw err;
-    } finally {
-      dropzoneEl.dropzone.off('thumbnail', handleInsertPlaceholder); 
-    }
+    // the "file" will get its "uuid" during the upload
+    await uploadFile(dropzoneEl, file, () => editor.insertPlaceholder(placeholder));
     editor.replacePlaceholder(placeholder, generateMarkdownLinkForAttachment(file, {width, dppx}));
   }
 }

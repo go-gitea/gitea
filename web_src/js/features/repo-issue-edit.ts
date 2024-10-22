@@ -89,7 +89,7 @@ async function onEditContent(event) {
 
     editContentZone.innerHTML = document.querySelector('#issue-comment-editor-template').innerHTML;
     comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'), opts);
-   
+
     editContentZone.querySelector('.ui.cancel.button').addEventListener('click', cancelAndReset);
     editContentZone.querySelector('.ui.primary.button').addEventListener('click', saveAndRefresh);
     opts.onContentChanged(comboMarkdownEditor);
