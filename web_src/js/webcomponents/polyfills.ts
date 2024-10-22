@@ -8,7 +8,7 @@ try {
   Intl.NumberFormat = function(locales: string | string[], options: Intl.NumberFormatOptions) {
     if (options.style === 'unit') {
       return {
-        format(value: number | BigInt | string) {
+        format(value: number | bigint | string) {
           return ` ${value} ${options.unit}`;
         },
       };
