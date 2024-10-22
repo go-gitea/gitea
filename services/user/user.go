@@ -32,16 +32,16 @@ import (
 
 // RenameUser renames a user
 func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
+	if newUserName == u.Name {
+		return nil
+	}
+
 	// Non-local users are not allowed to change their username.
 	if !u.IsOrganization() && !u.IsLocal() {
 		return user_model.ErrUserIsNotLocal{
 			UID:  u.ID,
 			Name: u.Name,
 		}
-	}
-
-	if newUserName == u.Name {
-		return nil
 	}
 
 	if err := user_model.IsUsableUsername(newUserName); err != nil {

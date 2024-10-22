@@ -99,7 +99,7 @@ func DeletePackageVersion(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
-	ctx.JSONRedirect(setting.AppSubURL + "/admin/packages?page=" + url.QueryEscape(ctx.FormString("page")) + "&q=" + url.QueryEscape(ctx.FormString("q")) + "&type=" + url.QueryEscape(ctx.FormString("type")))
+	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/packages?page=" + url.QueryEscape(ctx.FormString("page")) + "&q=" + url.QueryEscape(ctx.FormString("q")) + "&type=" + url.QueryEscape(ctx.FormString("type")))
 }
 
 func CleanupExpiredData(ctx *context.Context) {
@@ -109,5 +109,5 @@ func CleanupExpiredData(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.packages.cleanup.success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/packages")
+	ctx.Redirect(setting.AppSubURL + "/-/admin/packages")
 }

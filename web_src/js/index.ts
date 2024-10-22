@@ -24,7 +24,7 @@ import {initFindFileInRepo} from './features/repo-findfile.ts';
 import {initCommentContent, initMarkupContent} from './markup/content.ts';
 import {initPdfViewer} from './render/pdf.ts';
 
-import {initUserAuthOauth2} from './features/user-auth.ts';
+import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
 import {
   initRepoIssueDue,
   initRepoIssueReferenceRepositorySearch,
@@ -219,6 +219,7 @@ onDomReady(() => {
     initCommitStatuses,
     initCaptcha,
 
+    initUserCheckAppUrl,
     initUserAuthOauth2,
     initUserAuthWebAuthn,
     initUserAuthWebAuthnRegister,
