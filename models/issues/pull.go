@@ -701,7 +701,7 @@ func GetPullRequestByIssueID(ctx context.Context, issueID int64) (*PullRequest, 
 	return pr, pr.LoadAttributes(ctx)
 }
 
-// GetPullRequestsByBaseHeadInfo returns the pull request by given base and head
+// GetPullRequestByBaseHeadInfo returns the pull request by given base and head
 func GetPullRequestByBaseHeadInfo(ctx context.Context, baseID, headID int64, base, head string) (*PullRequest, error) {
 	pr := &PullRequest{}
 	sess := db.GetEngine(ctx).
