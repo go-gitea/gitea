@@ -8,41 +8,38 @@ export function initCompSearchUserBox() {
   const searchUserBox = document.querySelector('#search-user-box');
   if (!searchUserBox) return;
 
-  const $searchUserBox = $(searchUserBox);
   const allowEmailInput = searchUserBox.getAttribute('data-allow-email') === 'true';
   const allowEmailDescription = searchUserBox.getAttribute('data-allow-email-description') ?? undefined;
-  $searchUserBox.search({
+  $(searchUserBox).search({
     minCharacters: 2,
     apiSettings: {
-      url: `${appSubUrl}/user/search?active=1&q={query}`,
+      url: `${appSubUrl}/user/search_candidates?q={query}`,
       onResponse(response) {
-        const items = [];
-        const searchQuery = $searchUserBox.find('input').val();
+        const resultItems = [];
+        const searchQuery = searchUserBox.querySelector('input').value;
         const searchQueryUppercase = searchQuery.toUpperCase();
-        $.each(response.data, (_i, item) => {
+        for (const item of response.data) {
           const resultItem = {
             title: item.login,
             image: item.avatar_url,
+            description: htmlEscape(item.full_name),
           };
-          if (item.full_name) {
-            resultItem.description = htmlEscape(item.full_name);
-          }
           if (searchQueryUppercase === item.login.toUpperCase()) {
-            items.unshift(resultItem);
+            resultItems.unshift(resultItem); // add the exact match to the top
           } else {
-            items.push(resultItem);
+            resultItems.push(resultItem);
           }
-        });
+        }
 
-        if (allowEmailInput && !items.length && looksLikeEmailAddressCheck.test(searchQuery)) {
+        if (allowEmailInput && !resultItems.length && looksLikeEmailAddressCheck.test(searchQuery)) {
           const resultItem = {
             title: searchQuery,
             description: allowEmailDescription,
           };
-          items.push(resultItem);
+          resultItems.push(resultItem);
         }
 
-        return {results: items};
+        return {results: resultItems};
       },
     },
     searchFields: ['login', 'full_name'],
