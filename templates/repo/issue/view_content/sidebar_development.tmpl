@@ -1,8 +1,10 @@
 <span class="text"><strong>{{ctx.Locale.Tr "repo.issues.development"}}</strong></span>
 <div class="ui devlinks list">
+{{if not .Issue.IsClosed}}
 <div>
-<a class="tw-mt-1 fluid ui show-modal" data-modal="#create_branch">{{ctx.Locale.Tr "repo.branch.new_branch"}}</a>
+	<a class="tw-mt-1 fluid ui show-modal" data-modal="#create_branch">{{ctx.Locale.Tr "repo.branch.new_branch"}}</a>
 </div>
+{{end}}
 {{range .DevLinks}}
 	{{if .PullRequest}}
 		<span>{{template "shared/issueicon" .PullRequest.Issue}}
@@ -60,7 +62,6 @@
 				<label for="source_repository">{{ctx.Locale.Tr "repository"}}</label>
 				<div class="ui fluid dropdown selection">
 					<select name="repo_id">
-						<option value=""> </option>
 						{{range .AllowedRepos}}
 							<option value="{{.ID}}">{{.FullName}}</option>
 						{{end}}
@@ -81,7 +82,6 @@
 				<label for="source_branch_name">{{ctx.Locale.Tr "repo.issues.base_branch"}}</label>
 				<div class="ui fluid dropdown selection">
 					<select name="source_branch_name">
-						<option value=""> </option>
 						{{range .Branches}}
 							<option value="{{.}}"{{if eq . $.Issue.Ref}} checked{{end}}>{{.}}</option>
 						{{end}}
