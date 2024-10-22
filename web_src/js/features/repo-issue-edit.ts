@@ -1,11 +1,12 @@
 import $ from 'jquery';
 import {handleReply} from './repo-issue.ts';
-import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
+import {getComboMarkdownEditor, initComboMarkdownEditor, ComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {hideElem, showElem} from '../utils/dom.ts';
 import {attachRefIssueContextPopup} from './contextpopup.ts';
 import {initCommentContent, initMarkupContent} from '../markup/content.ts';
+import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 
 async function onEditContent(event) {
   event.preventDefault();
@@ -15,7 +16,7 @@ async function onEditContent(event) {
   const renderContent = segment.querySelector('.render-content');
   const rawContent = segment.querySelector('.raw-content');
 
-  let comboMarkdownEditor;
+  let comboMarkdownEditor : ComboMarkdownEditor;
 
   const cancelAndReset = (e) => {
     e.preventDefault();
@@ -78,21 +79,13 @@ async function onEditContent(event) {
 
   comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
   if (!comboMarkdownEditor) {
-    const opts = {};
-    opts.onContentChanged = (editor) => {
-      const saveButton = editContentZone.querySelector('.ui.primary.button');
-      const isUploading = editor.isUploading();
-      if (saveButton) {
-        saveButton.disabled = isUploading;
-      }
-    };
-
     editContentZone.innerHTML = document.querySelector('#issue-comment-editor-template').innerHTML;
-    comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'), opts);
-
+    const saveButton = editContentZone.querySelector('.ui.primary.button');
+    comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
+    const syncUiState = () => saveButton.disabled = comboMarkdownEditor.isUploading();
+    comboMarkdownEditor.container.addEventListener(ComboMarkdownEditor.EventUploadStateChanged, syncUiState);
     editContentZone.querySelector('.ui.cancel.button').addEventListener('click', cancelAndReset);
-    editContentZone.querySelector('.ui.primary.button').addEventListener('click', saveAndRefresh);
-    opts.onContentChanged(comboMarkdownEditor);
+    saveButton.addEventListener('click', saveAndRefresh);
   }
 
   // Show write/preview tab and copy raw content as needed
@@ -104,6 +97,7 @@ async function onEditContent(event) {
   }
   comboMarkdownEditor.switchTabToEditor();
   comboMarkdownEditor.focus();
+  triggerUploadStateChanged(comboMarkdownEditor.container);
 }
 
 export function initRepoIssueCommentEdit() {

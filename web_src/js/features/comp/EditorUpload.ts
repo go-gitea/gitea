@@ -7,10 +7,17 @@ import {
   DropzoneCustomEventUploadDone,
   generateMarkdownLinkForAttachment,
 } from '../dropzone.ts';
+import type CodeMirror from 'codemirror';
 
 let uploadIdCounter = 0;
 
-function uploadFile(dropzoneEl, file, placeholderCallback) {
+export const EventUploadStateChanged = 'ce-upload-state-changed';
+
+export function triggerUploadStateChanged(target) {
+  target.dispatchEvent(new CustomEvent(EventUploadStateChanged, {bubbles: true}));
+}
+
+function uploadFile(dropzoneEl, file) {
   return new Promise((resolve) => {
     const curUploadId = uploadIdCounter++;
     file._giteaUploadId = curUploadId;
@@ -18,17 +25,17 @@ function uploadFile(dropzoneEl, file, placeholderCallback) {
     const onUploadDone = ({file}) => {
       if (file._giteaUploadId === curUploadId) {
         dropzoneInst.off(DropzoneCustomEventUploadDone, onUploadDone);
-        resolve();
+        resolve(file);
       }
     };
     dropzoneInst.on(DropzoneCustomEventUploadDone, onUploadDone);
     dropzoneInst.handleFiles([file]);
-    // if there is no setTimeout, then ComboMarkdownEditor.isUploading() does not working correctly
-    setTimeout(() => placeholderCallback(), 0);
   });
 }
 
 class TextareaEditor {
+  editor : HTMLTextAreaElement;
+
   constructor(editor) {
     this.editor = editor;
   }
@@ -63,6 +70,8 @@ class TextareaEditor {
 }
 
 class CodeMirrorEditor {
+  editor: CodeMirror.EditorFromTextArea;
+
   constructor(editor) {
     this.editor = editor;
   }
@@ -101,8 +110,8 @@ async function handleUploadFiles(editor, dropzoneEl, files, e) {
     const {width, dppx} = await imageInfo(file);
     const placeholder = `[${name}](uploading ...)`;
 
-    // the "file" will get its "uuid" during the upload
-    await uploadFile(dropzoneEl, file, () => editor.insertPlaceholder(placeholder));
+    editor.insertPlaceholder(placeholder);
+    await uploadFile(dropzoneEl, file); // the "file" will get its "uuid" during the upload
     editor.replacePlaceholder(placeholder, generateMarkdownLinkForAttachment(file, {width, dppx}));
   }
 }
