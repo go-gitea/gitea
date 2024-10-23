@@ -168,8 +168,6 @@ func TestInt64sToStrings(t *testing.T) {
 	)
 }
 
-// TODO: Test EntryIcon
-
 func TestSetupGiteaRoot(t *testing.T) {
 	_ = os.Setenv("GITEA_ROOT", "test")
 	assert.Equal(t, "test", SetupGiteaRoot())
