@@ -2,9 +2,9 @@ import {matchEmoji, matchMention, matchIssue} from '../../utils/match.ts';
 import {emojiString} from '../emoji.ts';
 import {svg} from '../../svg.ts';
 
-type Issue = {state: 'open' | 'closed'; pull_request: {draft: boolean; merged: boolean} | null};
+type Issue = {id: string; title: string; state: 'open' | 'closed'; pull_request?: {draft: boolean; merged: boolean}};
 function getIssueIcon(issue: Issue) {
-  if (issue.pull_request !== null) {
+  if (issue.pull_request) {
     if (issue.state === 'open') {
       if (issue.pull_request.draft === true) {
         return 'octicon-git-pull-request-draft'; // WIP PR
@@ -21,7 +21,7 @@ function getIssueIcon(issue: Issue) {
 }
 
 function getIssueColor(issue: Issue) {
-  if (issue.pull_request !== null) {
+  if (issue.pull_request) {
     if (issue.pull_request.draft === true) {
       return 'grey'; // WIP PR
     } else if (issue.pull_request.merged === true) {
@@ -90,11 +90,11 @@ export function initTextExpander(expander) {
 
         const ul = document.createElement('ul');
         ul.classList.add('suggestions');
-        for (const {value, name, issue} of matches) {
+        for (const issue of matches) {
           const li = document.createElement('li');
           li.classList.add('tw-flex', 'tw-gap-2');
           li.setAttribute('role', 'option');
-          li.setAttribute('data-value', `${key}${value}`);
+          li.setAttribute('data-value', `${key}${issue.id}`);
 
           const icon = document.createElement('div');
           icon.innerHTML = svg(getIssueIcon(issue), 16, ['text', getIssueColor(issue)].join(' ')).trim();
@@ -102,11 +102,11 @@ export function initTextExpander(expander) {
 
           const id = document.createElement('span');
           id.classList.add('id');
-          id.textContent = value;
+          id.textContent = issue.id;
           li.append(id);
 
           const nameSpan = document.createElement('span');
-          nameSpan.textContent = name;
+          nameSpan.textContent = issue.title;
           li.append(nameSpan);
 
           ul.append(li);

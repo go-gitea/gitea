@@ -28,12 +28,12 @@ export function matchEmoji(queryText: string): string[] {
   return sortAndReduce(results);
 }
 
-type Mention = {value: string; name: string; fullname: string; avatar: string};
-export function matchMention(queryText: string): Mention[] {
+type MentionSuggestion = {value: string; name: string; fullname: string; avatar: string};
+export function matchMention(queryText: string): MentionSuggestion[] {
   const query = queryText.toLowerCase();
 
   // results is a map of weights, lower is better
-  const results = new Map<Mention, number>();
+  const results = new Map<MentionSuggestion, number>();
   for (const obj of window.config.mentionValues ?? []) {
     const index = obj.key.toLowerCase().indexOf(query);
     if (index === -1) continue;
@@ -44,113 +44,20 @@ export function matchMention(queryText: string): Mention[] {
   return sortAndReduce(results);
 }
 
-type Issue = {state: 'open' | 'closed'; pull_request: {draft: boolean; merged: boolean} | null};
-type IssueMention = {value: string; name: string; issue: Issue};
-export async function matchIssue(url: string, queryText: string): Promise<IssueMention[]> {
+type Issue = {id: number; title: string; state: 'open' | 'closed'; pull_request?: {draft: boolean; merged: boolean}};
+export async function matchIssue(url: string, queryText: string): Promise<Issue[]> {
   const query = queryText.toLowerCase();
 
-  // http://localhost:3000/anbraten/test/issues/1
-  // http://localhost:3000/anbraten/test/compare/main...anbraten-patch-1
+  // TODO: support sub-path
   const repository = (new URL(url)).pathname.split('/').slice(1, 3).join('/');
-  const issuePullRequestId = url.split('/').slice(-1)[0];
+  const issuePullRequestId = parseInt(url.split('/').slice(-1)[0]);
 
-  console.log('suggestions for 1', {
-    repository,
-    query,
+  const res = await request(`/api/v1/repos/${repository}/issues?q=${query}`, {
+    method: 'GET',
   });
 
-  // TODO: fetch data from api
-  // const res = await request('/-/suggestions', {
-  //   method: 'GET',
-  //   data: {
-  //     repository,
-  //     query,
-  //   },
-  // });
-  // console.log(await res.json());
+  const issues: Issue[] = await res.json();
 
-  // results is a map of weights, lower is better
-  const results = new Map<IssueMention, number>();
-  // for (const obj of window.config.mentionValues ?? []) {
-  //   const index = obj.key.toLowerCase().indexOf(query);
-  //   if (index === -1) continue;
-  //   const existing = results.get(obj);
-  //   results.set(obj, existing ? existing - index : index);
-  // }
-
-  results.set({
-    value: '28958',
-    name: 'Live removal of issue comments using htmx websocket',
-    issue: {
-      state: 'open',
-      pull_request: {
-        merged: false,
-        draft: false,
-      },
-    },
-  }, 0);
-
-  results.set({
-    value: '32234',
-    name: 'Calculate `PublicOnly` for org membership only once',
-    issue: {
-      state: 'closed',
-      pull_request: {
-        merged: true,
-        draft: false,
-      },
-    },
-  }, 1);
-
-  results.set({
-    value: '32280',
-    name: 'Optimize branch protection rule loading',
-    issue: {
-      state: 'open',
-      pull_request: {
-        merged: false,
-        draft: false,
-      },
-    },
-  }, 2);
-
-  results.set({
-    value: '32326',
-    name: 'Shallow Mirroring',
-    issue: {
-      state: 'open',
-      pull_request: null,
-    },
-  }, 3);
-
-  results.set({
-    value: '32248',
-    name: 'Make admins adhere to branch protection rules',
-    issue: {
-      state: 'closed',
-      pull_request: {
-        merged: true,
-        draft: false,
-      },
-    },
-  }, 4);
-
-  results.set({
-    value: '32249',
-    name: 'Add a way to disable branch protection rules for admins',
-    issue: {
-      state: 'closed',
-      pull_request: null,
-    },
-  }, 5);
-
-  // filter out current issue/pull request
-  for (const [key] of results.entries()) {
-    if (key.value === issuePullRequestId) {
-      results.delete(key);
-      break;
-    }
-  }
-
-  return sortAndReduce(results);
+  // filter issue with same id
+  return issues.filter((i) => i.id !== issuePullRequestId);
 }
