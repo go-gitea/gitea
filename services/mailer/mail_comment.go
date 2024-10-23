@@ -26,7 +26,7 @@ func MailParticipantsComment(ctx context.Context, c *issues_model.Comment, opTyp
 		content = ""
 	}
 	if err := mailIssueCommentToParticipants(
-		&mailCommentContext{
+		&MailCommentContext{
 			Context:    ctx,
 			Issue:      issue,
 			Doer:       c.Poster,
@@ -49,7 +49,7 @@ func MailMentionsComment(ctx context.Context, pr *issues_model.PullRequest, c *i
 	visited := make(container.Set[int64], len(mentions)+1)
 	visited.Add(c.Poster.ID)
 	if err = mailIssueCommentBatch(
-		&mailCommentContext{
+		&MailCommentContext{
 			Context:    ctx,
 			Issue:      pr.Issue,
 			Doer:       c.Poster,

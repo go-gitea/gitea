@@ -22,7 +22,7 @@ func fallbackMailSubject(issue *issues_model.Issue) string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.FullName(), issue.Title, issue.Index)
 }
 
-type mailCommentContext struct {
+type MailCommentContext struct {
 	context.Context
 	Issue                 *issues_model.Issue
 	Doer                  *user_model.User
@@ -41,7 +41,7 @@ const (
 // This function sends two list of emails:
 // 1. Repository watchers (except for WIP pull requests) and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
-func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_model.User) error {
+func mailIssueCommentToParticipants(ctx *MailCommentContext, mentions []*user_model.User) error {
 	// Required by the mail composer; make sure to load these before calling the async function
 	if err := ctx.Issue.LoadRepo(ctx); err != nil {
 		return fmt.Errorf("LoadRepo: %w", err)
@@ -120,7 +120,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	return nil
 }
 
-func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, visited container.Set[int64], fromMention bool) error {
+func mailIssueCommentBatch(ctx *MailCommentContext, users []*user_model.User, visited container.Set[int64], fromMention bool) error {
 	checkUnit := unit.TypeIssues
 	if ctx.Issue.IsPull {
 		checkUnit = unit.TypePullRequests
@@ -186,7 +186,7 @@ func MailParticipants(ctx context.Context, issue *issues_model.Issue, doer *user
 	}
 	forceDoerNotification := opType == activities_model.ActionAutoMergePullRequest
 	if err := mailIssueCommentToParticipants(
-		&mailCommentContext{
+		&MailCommentContext{
 			Context:               ctx,
 			Issue:                 issue,
 			Doer:                  doer,

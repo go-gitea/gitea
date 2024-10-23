@@ -13,21 +13,23 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	shellquote "github.com/kballard/go-shellquote"
+	"github.com/kballard/go-shellquote"
 )
 
 // Mailer represents mail service.
 type Mailer struct {
 	// Mailer
-	Name                 string              `ini:"NAME"`
-	From                 string              `ini:"FROM"`
-	EnvelopeFrom         string              `ini:"ENVELOPE_FROM"`
-	OverrideEnvelopeFrom bool                `ini:"-"`
-	FromName             string              `ini:"-"`
-	FromEmail            string              `ini:"-"`
-	SendAsPlainText      bool                `ini:"SEND_AS_PLAIN_TEXT"`
-	SubjectPrefix        string              `ini:"SUBJECT_PREFIX"`
-	OverrideHeader       map[string][]string `ini:"-"`
+	Name                                  string              `ini:"NAME"`
+	From                                  string              `ini:"FROM"`
+	EnvelopeFrom                          string              `ini:"ENVELOPE_FROM"`
+	OverrideEnvelopeFrom                  bool                `ini:"-"`
+	FromName                              string              `ini:"-"`
+	FromEmail                             string              `ini:"-"`
+	SendAsPlainText                       bool                `ini:"SEND_AS_PLAIN_TEXT"`
+	SubjectPrefix                         string              `ini:"SUBJECT_PREFIX"`
+	OverrideHeader                        map[string][]string `ini:"-"`
+	Base64EmbedImages                     bool                `ini:"BASE64_EMBED_IMAGES"`
+	Base64EmbedImagesMaxSizePerAttachment int64               `ini:"BASE64_EMBED_IMAGES_MAX_SIZE_PER_ATTACHMENT"`
 
 	// SMTP sender
 	Protocol             string `ini:"PROTOCOL"`
@@ -150,6 +152,8 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute)
 	sec.Key("SENDMAIL_CONVERT_CRLF").MustBool(true)
 	sec.Key("FROM").MustString(sec.Key("USER").String())
+	sec.Key("BASE64_EMBED_IMAGES").MustBool(false)
+	sec.Key("BASE64_EMBED_IMAGES_MAX_SIZE_PER_ATTACHMENT").MustInt64(5 * 1024 * 1024)
 
 	// Now map the values on to the MailService
 	MailService = &Mailer{}

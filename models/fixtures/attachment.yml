@@ -153,3 +153,16 @@
   download_count: 0
   size: 0
   created_unix: 946684800
+
+-
+  id: 13
+  uuid: 1b267670-1793-4cd0-abc1-449269b7cff9
+  repo_id: 1
+  issue_id: 2
+  release_id: 0
+  uploader_id: 2
+  comment_id: 0
+  name: gitea.png
+  download_count: 0
+  size: 1458
+  created_unix: 946684800

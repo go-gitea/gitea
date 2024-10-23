@@ -7,9 +7,12 @@ package mailer
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"html/template"
+	"io"
 	"mime"
+	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -18,7 +21,9 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
@@ -26,11 +31,13 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
 	"code.gitea.io/gitea/services/mailer/token"
 
+	"golang.org/x/net/html"
 	"gopkg.in/gomail.v2"
 )
 
@@ -195,7 +202,7 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 	SendAsync(msg)
 }
 
-func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipients []*user_model.User, fromMention bool, info string) ([]*Message, error) {
+func composeIssueCommentMessages(ctx *MailCommentContext, lang string, recipients []*user_model.User, fromMention bool, info string) ([]*Message, error) {
 	var (
 		subject string
 		link    string
@@ -230,6 +237,15 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	}, ctx.Content)
 	if err != nil {
 		return nil, err
+	}
+
+	if setting.MailService.Base64EmbedImages {
+		bodyStr := string(body)
+		bodyStr, err = Base64InlineImages(bodyStr, ctx)
+		if err != nil {
+			return nil, err
+		}
+		body = template.HTML(bodyStr)
 	}
 
 	actType, actName, tplName := actionToTemplate(ctx.Issue, ctx.ActionType, commentType, reviewType)
@@ -363,6 +379,102 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	return msgs, nil
 }
 
+func Base64InlineImages(body string, ctx *MailCommentContext) (string, error) {
+	doc, err := html.Parse(strings.NewReader(body))
+	if err != nil {
+		log.Error("Failed to parse HTML body: %v", err)
+		return "", err
+	}
+
+	var processNode func(*html.Node)
+	processNode = func(n *html.Node) {
+		if n.Type == html.ElementNode {
+			if n.Data == "img" {
+				for i, attr := range n.Attr {
+					if attr.Key == "src" {
+						attachmentPath := attr.Val
+						dataURI, err := AttachmentSrcToBase64DataURI(attachmentPath, ctx)
+						if err != nil {
+							log.Trace("attachmentSrcToDataURI not possible: %v", err) // Not an error, just skip. This is probably an image from outside the gitea instance.
+							continue
+						}
+						log.Trace("Old value of src attribute: %s, new value (first 100 characters): %s", attr.Val, dataURI[:100])
+						n.Attr[i].Val = dataURI
+						break
+					}
+				}
+			}
+		}
+
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			processNode(c)
+		}
+	}
+
+	processNode(doc)
+
+	var buf bytes.Buffer
+	err = html.Render(&buf, doc)
+	if err != nil {
+		log.Error("Failed to render modified HTML: %v", err)
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+func AttachmentSrcToBase64DataURI(attachmentPath string, ctx *MailCommentContext) (string, error) {
+	maxSizePerImageAttachment := setting.MailService.Base64EmbedImagesMaxSizePerAttachment
+	if !strings.HasPrefix(attachmentPath, setting.AppURL) { // external image
+		return "", fmt.Errorf("external image")
+	}
+	parts := strings.Split(attachmentPath, "/attachments/")
+	if len(parts) <= 1 {
+		return "", fmt.Errorf("invalid attachment path: %s", attachmentPath)
+	}
+
+	attachmentUUID := parts[len(parts)-1]
+	attachment, err := repo_model.GetAttachmentByUUID(ctx, attachmentUUID)
+	if err != nil {
+		return "", err
+	}
+
+	// "Doer" is theoretically not the correct permission check (as Doer created the action on which to send), but as this is batch processed the receipants can't be accessed.
+	// Therefore we check the Doer, with which we counter leaking information as a Doer brute force attack on attachments would be possible.
+	perm, err := access_model.GetUserRepoPermission(ctx, ctx.Issue.Repo, ctx.Doer)
+	if err != nil {
+		return "", err
+	}
+	if !perm.CanRead(unit.TypeIssues) {
+		return "", fmt.Errorf("no permission")
+	}
+
+	fr, err := storage.Attachments.Open(attachment.RelativePath())
+	if err != nil {
+		return "", err
+	}
+	defer fr.Close()
+
+	content, err := io.ReadAll(fr)
+	if err != nil {
+		return "", err
+	}
+
+	if len(content) > int(maxSizePerImageAttachment) {
+		return "", fmt.Errorf("image too large (%d bytes) of max %d bytes", len(content), maxSizePerImageAttachment)
+	}
+
+	mimeType := http.DetectContentType(content)
+
+	if !strings.HasPrefix(mimeType, "image/") {
+		return "", fmt.Errorf("not an image")
+	}
+
+	encoded := base64.StdEncoding.EncodeToString(content)
+	dataURI := fmt.Sprintf("data:%s;base64,%s", mimeType, encoded)
+
+	return dataURI, nil
+}
+
 func generateMessageIDForIssue(issue *issues_model.Issue, comment *issues_model.Comment, actionType activities_model.ActionType) string {
 	var path string
 	if issue.IsPull {
@@ -394,7 +506,7 @@ func generateMessageIDForRelease(release *repo_model.Release) string {
 	return fmt.Sprintf("<%s/releases/%d@%s>", release.Repo.FullName(), release.ID, setting.Domain)
 }
 
-func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient *user_model.User) map[string]string {
+func generateAdditionalHeaders(ctx *MailCommentContext, reason string, recipient *user_model.User) map[string]string {
 	repo := ctx.Issue.Repo
 
 	return map[string]string{
@@ -458,7 +570,7 @@ func SendIssueAssignedMail(ctx context.Context, issue *issues_model.Issue, doer 
 	}
 
 	for lang, tos := range langMap {
-		msgs, err := composeIssueCommentMessages(&mailCommentContext{
+		msgs, err := composeIssueCommentMessages(&MailCommentContext{
 			Context:    ctx,
 			Issue:      issue,
 			Doer:       doer,
