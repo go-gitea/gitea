@@ -7,6 +7,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -218,10 +219,13 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 }
 
 // UpdateTeam updates information of team.
-func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeAllChanged bool) (err error) {
+func UpdateTeam(ctx context.Context, t *organization.Team, updateCols ...string) (err error) {
 	if len(t.Name) == 0 {
 		return util.NewInvalidArgumentErrorf("empty team name")
 	}
+
+	authChanged := slices.Contains(updateCols, "authorize")
+	includeAllChanged := slices.Contains(updateCols, "includes_all_repositories")
 
 	if len(t.Description) > 255 {
 		t.Description = t.Description[:255]
@@ -246,8 +250,7 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 	}
 
 	sess := db.GetEngine(ctx)
-	if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",
-		"can_create_org_repo", "authorize", "includes_all_repositories").Update(t); err != nil {
+	if _, err = sess.ID(t.ID).Cols(updateCols...).Update(t); err != nil {
 		return fmt.Errorf("update: %w", err)
 	}
 

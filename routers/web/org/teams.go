@@ -482,61 +482,24 @@ func EditTeam(ctx *context.Context) {
 func EditTeamPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateTeamForm)
 	t := ctx.Org.Team
-	newAccessMode := perm.ParseAccessMode(form.Permission)
-	unitPerms := getUnitPerms(ctx.Req.Form, newAccessMode)
-	if newAccessMode < perm.AccessModeAdmin {
-		// if newAccessMode is less than admin accessmode, then it should be general accessmode,
-		// so we should calculate the minial accessmode from units accessmodes.
-		newAccessMode = unit_model.MinUnitAccessMode(unitPerms)
-	}
-	isAuthChanged := false
-	isIncludeAllChanged := false
-	includesAllRepositories := form.RepoAccess == "all"
+	unitPerms := getUnitPerms(ctx.Req.Form, perm.ParseAccessMode(form.Permission))
 
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["Team"] = t
 	ctx.Data["Units"] = unit_model.Units
 
-	if !t.IsOwnerTeam() {
-		t.Name = form.TeamName
-		if t.AccessMode != newAccessMode {
-			isAuthChanged = true
-			t.AccessMode = newAccessMode
-		}
-
-		if t.IncludesAllRepositories != includesAllRepositories {
-			isIncludeAllChanged = true
-			t.IncludesAllRepositories = includesAllRepositories
-		}
-		t.CanCreateOrgRepo = form.CanCreateOrgRepo
-	} else {
-		t.CanCreateOrgRepo = true
-	}
-
-	t.Description = form.Description
-	units := make([]*org_model.TeamUnit, 0, len(unitPerms))
-	for tp, perm := range unitPerms {
-		units = append(units, &org_model.TeamUnit{
-			OrgID:      t.OrgID,
-			TeamID:     t.ID,
-			Type:       tp,
-			AccessMode: perm,
-		})
-	}
-	t.Units = units
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplTeamNew)
-		return
-	}
-
 	if t.AccessMode < perm.AccessModeAdmin && len(unitPerms) == 0 {
 		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
 
-	if err := models.UpdateTeam(ctx, t, isAuthChanged, isIncludeAllChanged); err != nil {
+	if err := org_service.UpdateTeam(ctx, t, form.TeamName, form.Description,
+		form.Permission == "admin",
+		form.RepoAccess == "all",
+		form.CanCreateOrgRepo,
+		unitPerms,
+	); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case org_model.IsErrTeamAlreadyExist(err):
