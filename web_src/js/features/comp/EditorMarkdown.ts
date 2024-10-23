@@ -1,5 +1,7 @@
+export const EventEditorContentChanged = 'ce-editor-content-changed';
+
 export function triggerEditorContentChanged(target) {
-  target.dispatchEvent(new CustomEvent('ce-editor-content-changed', {bubbles: true}));
+  target.dispatchEvent(new CustomEvent(EventEditorContentChanged, {bubbles: true}));
 }
 
 function handleIndentSelection(textarea, e) {
