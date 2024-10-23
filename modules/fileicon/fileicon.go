@@ -45,15 +45,27 @@ func getBasicFileIconName(entry *git.TreeEntry) string {
 	return "octicon-file"
 }
 
+// getFileIconNames returns a list of possible icon names for a file or directory
+// Folder named `sub-folder` =>
+//   - `folder_sub-folder“ (. will be replaced with _)
+//   - `folder`
+//
+// File named `.gitignore` =>
+//   - `file__gitignore` (. will be replaced with _)
+//   - `file_`
+//
+// File named `README.md` =>
+//   - `file_readme_md`
+//   - `file_md`
 func getFileIconNames(entry *git.TreeEntry) []string {
-	fileName := strings.ToLower(path.Base(entry.Name()))
+	fileName := strings.ReplaceAll(strings.ToLower(path.Base(entry.Name())), ".", "_")
 
 	if entry.IsDir() {
 		return []string{"folder_" + fileName, "folder"}
 	}
 
 	if entry.IsRegular() {
-		ext := strings.ToLower(strings.TrimPrefix(path.Ext(fileName), "."))
+		ext := strings.ToLower(strings.TrimPrefix(path.Ext(entry.Name()), "."))
 		return []string{"file_" + fileName, "file_" + ext, "file"}
 	}
 
@@ -61,7 +73,7 @@ func getFileIconNames(entry *git.TreeEntry) []string {
 }
 
 func loadCustomIcon(iconPath string) (string, error) {
-	log.Info("Loading custom icon from %s", iconPath)
+	log.Debug("Loading custom icon from %s", iconPath)
 
 	if icon, ok := fileIconCache.Get(iconPath); ok {
 		return icon, nil
