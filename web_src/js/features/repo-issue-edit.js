@@ -4,6 +4,7 @@ import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkd
 import {createDropzone} from './dropzone.js';
 import {GET, POST} from '../modules/fetch.js';
 import {hideElem, showElem} from '../utils/dom.js';
+import {isImageFile} from '../utils/image.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
 
@@ -84,7 +85,9 @@ async function onEditContent(event) {
             for (const attachment of data) {
               const imgSrc = `${dropzone.getAttribute('data-link-url')}/${attachment.uuid}`;
               dz.emit('addedfile', attachment);
-              dz.emit('thumbnail', attachment, imgSrc);
+              if (isImageFile(attachment.name)) {
+                dz.emit('thumbnail', attachment, imgSrc);
+              }
               dz.emit('complete', attachment);
               fileUuidDict[attachment.uuid] = {submitted: true};
               dropzone.querySelector(`img[src='${imgSrc}']`).style.maxWidth = '100%';

@@ -45,3 +45,7 @@ export async function imageInfo(blob) {
 
   return {width, dppx};
 }
+
+export function isImageFile(name) {
+  return /\.(jpe?g|png|gif|webp|svg|heic)$/i.test(name);
+}
