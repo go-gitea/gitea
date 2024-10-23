@@ -2,7 +2,6 @@
 import './bootstrap.ts';
 import './htmx.ts';
 
-import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
 import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
 import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
@@ -42,7 +41,7 @@ import {initRepoTemplateSearch} from './features/repo-template.ts';
 import {initRepoCodeView} from './features/repo-code.ts';
 import {initSshKeyFormParser} from './features/sshkey-helper.ts';
 import {initUserSettings} from './features/user-settings.ts';
-import {initRepoArchiveLinks} from './features/repo-common.ts';
+import {initRepoActivityTopAuthorsChart, initRepoArchiveLinks} from './features/repo-common.ts';
 import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
 import {
   initRepoSettingGitHook,

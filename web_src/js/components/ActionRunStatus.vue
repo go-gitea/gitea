@@ -2,31 +2,21 @@
     Please also update the template file above if this vue is modified.
     action status accepted: success, skipped, waiting, blocked, running, failure, cancelled, unknown
 -->
-<script lang="ts">
+<script lang="ts" setup>
 import {SvgIcon} from '../svg.ts';
 
-export default {
-  components: {SvgIcon},
-  props: {
-    status: {
-      type: String,
-      required: true,
-    },
-    size: {
-      type: Number,
-      default: 16,
-    },
-    className: {
-      type: String,
-      default: '',
-    },
-    localeStatus: {
-      type: String,
-      default: '',
-    },
-  },
-};
+withDefaults(defineProps<{
+  status: '',
+  size?: number,
+  className?: string,
+  localeStatus?: string,
+}>(), {
+  size: 16,
+  className: undefined,
+  localeStatus: undefined,
+});
 </script>
+
 <template>
   <span class="tw-flex tw-items-center" :data-tooltip-content="localeStatus" v-if="status">
     <SvgIcon name="octicon-check-circle-fill" class="text green" :size="size" :class-name="className" v-if="status === 'success'"/>
