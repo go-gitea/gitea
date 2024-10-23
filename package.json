@@ -54,7 +54,7 @@
     "typescript": "5.5.4",
     "uint8-to-base64": "0.2.0",
     "vanilla-colorful": "0.7.2",
-    "vue": "3.4.38",
+    "vue": "3.5.12",
     "vue-bar-graph": "2.1.0",
     "vue-chartjs": "5.3.1",
     "vue-loader": "17.4.2",

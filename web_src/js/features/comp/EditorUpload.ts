@@ -7,8 +7,15 @@ import {
   DropzoneCustomEventUploadDone,
   generateMarkdownLinkForAttachment,
 } from '../dropzone.ts';
+import type CodeMirror from 'codemirror';
 
 let uploadIdCounter = 0;
+
+export const EventUploadStateChanged = 'ce-upload-state-changed';
+
+export function triggerUploadStateChanged(target) {
+  target.dispatchEvent(new CustomEvent(EventUploadStateChanged, {bubbles: true}));
+}
 
 function uploadFile(dropzoneEl, file) {
   return new Promise((resolve) => {
@@ -18,7 +25,7 @@ function uploadFile(dropzoneEl, file) {
     const onUploadDone = ({file}) => {
       if (file._giteaUploadId === curUploadId) {
         dropzoneInst.off(DropzoneCustomEventUploadDone, onUploadDone);
-        resolve();
+        resolve(file);
       }
     };
     dropzoneInst.on(DropzoneCustomEventUploadDone, onUploadDone);
@@ -27,6 +34,8 @@ function uploadFile(dropzoneEl, file) {
 }
 
 class TextareaEditor {
+  editor : HTMLTextAreaElement;
+
   constructor(editor) {
     this.editor = editor;
   }
@@ -61,6 +70,8 @@ class TextareaEditor {
 }
 
 class CodeMirrorEditor {
+  editor: CodeMirror.EditorFromTextArea;
+
   constructor(editor) {
     this.editor = editor;
   }
