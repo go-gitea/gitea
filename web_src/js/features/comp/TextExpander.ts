@@ -1,8 +1,9 @@
 import {matchEmoji, matchMention, matchIssue} from '../../utils/match.ts';
 import {emojiString} from '../emoji.ts';
 import {svg} from '../../svg.ts';
+import {parseIssueHref} from '../../utils.ts';
 
-type Issue = {id: string; title: string; state: 'open' | 'closed'; pull_request?: {draft: boolean; merged: boolean}};
+type Issue = {id: number; title: string; state: 'open' | 'closed'; pull_request?: {draft: boolean; merged: boolean}};
 function getIssueIcon(issue: Issue) {
   if (issue.pull_request) {
     if (issue.state === 'open') {
@@ -84,8 +85,8 @@ export function initTextExpander(expander) {
       provide({matched: true, fragment: ul});
     } else if (key === '#') {
       provide(new Promise(async (resolve) => {
-        const url = window.location.href;
-        const matches = await matchIssue(url, text);
+        const {owner, repo, index} = parseIssueHref(window.location.href);
+        const matches = await matchIssue(owner, repo, index, text);
         if (!matches.length) return resolve({matched: false});
 
         const ul = document.createElement('ul');
@@ -102,7 +103,7 @@ export function initTextExpander(expander) {
 
           const id = document.createElement('span');
           id.classList.add('id');
-          id.textContent = issue.id;
+          id.textContent = issue.id.toString();
           li.append(id);
 
           const nameSpan = document.createElement('span');

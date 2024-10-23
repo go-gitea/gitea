@@ -1,5 +1,5 @@
 import emojis from '../../../assets/emoji.json';
-import { request } from '../modules/fetch.ts';
+import {request} from '../modules/fetch.ts';
 
 const maxMatches = 6;
 
@@ -45,19 +45,16 @@ export function matchMention(queryText: string): MentionSuggestion[] {
 }
 
 type Issue = {id: number; title: string; state: 'open' | 'closed'; pull_request?: {draft: boolean; merged: boolean}};
-export async function matchIssue(url: string, queryText: string): Promise<Issue[]> {
+export async function matchIssue(owner: string, repo: string, _issueIndex: string, queryText: string): Promise<Issue[]> {
   const query = queryText.toLowerCase();
 
-  // TODO: support sub-path
-  const repository = (new URL(url)).pathname.split('/').slice(1, 3).join('/');
-  const issuePullRequestId = parseInt(url.split('/').slice(-1)[0]);
-
-  const res = await request(`/api/v1/repos/${repository}/issues?q=${query}`, {
+  const res = await request(`/api/v1/repos/${owner}/${repo}/issues?q=${query}`, {
     method: 'GET',
   });
 
   const issues: Issue[] = await res.json();
+  const issueIndex = parseInt(_issueIndex);
 
   // filter issue with same id
-  return issues.filter((i) => i.id !== issuePullRequestId);
+  return issues.filter((i) => i.id !== issueIndex);
 }
