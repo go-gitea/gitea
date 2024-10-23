@@ -643,6 +643,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ProtectedFilePatterns:         form.ProtectedFilePatterns,
 		UnprotectedFilePatterns:       form.UnprotectedFilePatterns,
 		BlockOnOutdatedBranch:         form.BlockOnOutdatedBranch,
+		BlockAdminMergeOverride:       form.BlockAdminMergeOverride,
 	}
 
 	if err := git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
@@ -854,6 +855,10 @@ func EditBranchProtection(ctx *context.APIContext) {
 
 	if form.BlockOnOutdatedBranch != nil {
 		protectBranch.BlockOnOutdatedBranch = *form.BlockOnOutdatedBranch
+	}
+
+	if form.BlockAdminMergeOverride != nil {
+		protectBranch.BlockAdminMergeOverride = *form.BlockAdminMergeOverride
 	}
 
 	var whitelistUsers, forcePushAllowlistUsers, mergeWhitelistUsers, approvalsWhitelistUsers []int64

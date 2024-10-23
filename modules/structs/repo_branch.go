@@ -53,6 +53,7 @@ type BranchProtection struct {
 	RequireSignedCommits          bool     `json:"require_signed_commits"`
 	ProtectedFilePatterns         string   `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       string   `json:"unprotected_file_patterns"`
+	BlockAdminMergeOverride       bool     `json:"block_admin_merge_override"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -92,6 +93,7 @@ type CreateBranchProtectionOption struct {
 	RequireSignedCommits          bool     `json:"require_signed_commits"`
 	ProtectedFilePatterns         string   `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       string   `json:"unprotected_file_patterns"`
+	BlockAdminMergeOverride       bool     `json:"block_admin_merge_override"`
 }
 
 // EditBranchProtectionOption options for editing a branch protection
@@ -124,6 +126,7 @@ type EditBranchProtectionOption struct {
 	RequireSignedCommits          *bool    `json:"require_signed_commits"`
 	ProtectedFilePatterns         *string  `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       *string  `json:"unprotected_file_patterns"`
+	BlockAdminMergeOverride       *bool    `json:"block_admin_merge_override"`
 }
 
 // UpdateBranchProtectionPriories a list to update the branch protection rule priorities

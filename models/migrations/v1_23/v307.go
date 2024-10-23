@@ -3,11 +3,14 @@
 
 package v1_23 //nolint
 
-import "xorm.io/xorm"
+import (
+	"xorm.io/xorm"
+)
 
-func AddBlockAdminMergeOverrideBranchProtection(x *xorm.Engine) error {
+func AddPriorityToProtectedBranch(x *xorm.Engine) error {
 	type ProtectedBranch struct {
-		BlockAdminMergeOverride bool `xorm:"NOT NULL DEFAULT false"`
+		Priority int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
+
 	return x.Sync(new(ProtectedBranch))
 }
