@@ -494,12 +494,14 @@ func EditTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err := org_service.UpdateTeam(ctx, t, form.TeamName, form.Description,
-		form.Permission == "admin",
-		form.RepoAccess == "all",
-		form.CanCreateOrgRepo,
-		unitPerms,
-	); err != nil {
+	if err := org_service.UpdateTeam(ctx, t, org_service.UpdateTeamOptions{
+		TeamName:                form.TeamName,
+		Description:             form.Description,
+		IsAdmin:                 form.Permission == "admin",
+		IncludesAllRepositories: form.RepoAccess == "all",
+		CanCreateOrgRepo:        form.CanCreateOrgRepo,
+		UnitPerms:               unitPerms,
+	}); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case org_model.IsErrTeamAlreadyExist(err):

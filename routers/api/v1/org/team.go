@@ -320,14 +320,14 @@ func EditTeam(ctx *context.APIContext) {
 		}
 	}
 
-	if err := org_service.UpdateTeam(ctx, team,
-		teamName,
-		description,
-		form.Permission == "admin",
-		includeAllRepos,
-		canCreateOrgRepo,
-		unitPerms,
-	); err != nil {
+	if err := org_service.UpdateTeam(ctx, team, org_service.UpdateTeamOptions{
+		TeamName:                teamName,
+		Description:             description,
+		IsAdmin:                 form.Permission == "admin",
+		IncludesAllRepositories: includeAllRepos,
+		CanCreateOrgRepo:        canCreateOrgRepo,
+		UnitPerms:               unitPerms,
+	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "EditTeam", err)
 		return
 	}
