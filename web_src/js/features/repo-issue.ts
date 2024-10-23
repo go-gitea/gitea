@@ -97,7 +97,7 @@ function excludeLabel(item) {
   const regStr = `labels=((?:-?[0-9]+%2c)*)(${id})((?:%2c-?[0-9]+)*)&`;
   const newStr = 'labels=$1-$2$3&';
 
-  window.location = href.replace(new RegExp(regStr), newStr);
+  window.location.assign(href.replace(new RegExp(regStr), newStr));
 }
 
 export function initRepoIssueSidebarList() {
