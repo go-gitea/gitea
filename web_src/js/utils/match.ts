@@ -48,7 +48,7 @@ export function matchMention(queryText: string): MentionSuggestion[] {
 export async function matchIssue(owner: string, repo: string, _issueIndex: string, queryText: string): Promise<Issue[]> {
   const query = queryText.toLowerCase();
 
-  const res = await GET(`/api/v1/repos/${owner}/${repo}/issues?q=${query}`);
+  const res = await GET(`/api/v1/repos/${owner}/${repo}/issues?q=${query}&limit=5`);
 
   const issues: Issue[] = await res.json();
   const issueIndex = parseInt(_issueIndex);
