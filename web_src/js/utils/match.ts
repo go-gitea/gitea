@@ -44,14 +44,17 @@ export function matchMention(queryText: string): Mention[] {
   return sortAndReduce(results);
 }
 
-type IssueOrPullRequest = {value: string; name: string; type: 'issue' | 'pull-request'};
-export async function matchIssueOrPullRequest(url: string, queryText: string): IssueOrPullRequest[] {
+type Issue = {state: 'open' | 'closed'; pull_request: {draft: boolean; merged: boolean} | null};
+type IssueMention = {value: string; name: string; issue: Issue};
+export async function matchIssue(url: string, queryText: string): Promise<IssueMention[]> {
   const query = queryText.toLowerCase();
 
-  const repository = url.split('/').slice(-2).join('/');
+  // http://localhost:3000/anbraten/test/issues/1
+  // http://localhost:3000/anbraten/test/compare/main...anbraten-patch-1
+  const repository = (new URL(url)).pathname.split('/').slice(1, 3).join('/');
   const issuePullRequestId = url.split('/').slice(-1)[0];
 
-  console.log('suggestions for', {
+  console.log('suggestions for 1', {
     repository,
     query,
   });
@@ -67,7 +70,7 @@ export async function matchIssueOrPullRequest(url: string, queryText: string): I
   // console.log(await res.json());
 
   // results is a map of weights, lower is better
-  const results = new Map<IssueOrPullRequest, number>();
+  const results = new Map<IssueMention, number>();
   // for (const obj of window.config.mentionValues ?? []) {
   //   const index = obj.key.toLowerCase().indexOf(query);
   //   if (index === -1) continue;
@@ -78,32 +81,68 @@ export async function matchIssueOrPullRequest(url: string, queryText: string): I
   results.set({
     value: '28958',
     name: 'Live removal of issue comments using htmx websocket',
-    type: 'pull-request',
+    issue: {
+      state: 'open',
+      pull_request: {
+        merged: false,
+        draft: false,
+      },
+    },
   }, 0);
 
   results.set({
     value: '32234',
     name: 'Calculate `PublicOnly` for org membership only once',
-    type: 'pull-request',
+    issue: {
+      state: 'closed',
+      pull_request: {
+        merged: true,
+        draft: false,
+      },
+    },
   }, 1);
 
   results.set({
     value: '32280',
     name: 'Optimize branch protection rule loading',
-    type: 'pull-request',
+    issue: {
+      state: 'open',
+      pull_request: {
+        merged: false,
+        draft: false,
+      },
+    },
   }, 2);
 
   results.set({
     value: '32326',
     name: 'Shallow Mirroring',
-    type: 'issue',
+    issue: {
+      state: 'open',
+      pull_request: null,
+    },
   }, 3);
 
   results.set({
     value: '32248',
     name: 'Make admins adhere to branch protection rules',
-    type: 'pull-request',
+    issue: {
+      state: 'closed',
+      pull_request: {
+        merged: true,
+        draft: false,
+      },
+    },
   }, 4);
+
+  results.set({
+    value: '32249',
+    name: 'Add a way to disable branch protection rules for admins',
+    issue: {
+      state: 'closed',
+      pull_request: null,
+    },
+  }, 5);
 
   // filter out current issue/pull request
   for (const [key] of results.entries()) {
