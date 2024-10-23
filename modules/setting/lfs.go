@@ -10,7 +10,12 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 )
 
-// LFS represents the configuration for Git LFS
+const (
+	LFSConfigSectionServer = "server"
+	LFSConfigSectionClient = "lfs_client"
+)
+
+// LFS represents the legacy configuration for Git LFS, to be migrated to LFSServer
 var LFS = struct {
 	StartServer    bool          `ini:"LFS_START_SERVER"`
 	AllowPureSSH   bool          `ini:"LFS_ALLOW_PURE_SSH"`
@@ -18,15 +23,21 @@ var LFS = struct {
 	HTTPAuthExpiry time.Duration `ini:"LFS_HTTP_AUTH_EXPIRY"`
 	MaxFileSize    int64         `ini:"LFS_MAX_FILE_SIZE"`
 	LocksPagingNum int           `ini:"LFS_LOCKS_PAGING_NUM"`
+	MaxBatchSize   int           `ini:"LFS_MAX_BATCH_SIZE"`
 
 	Storage *Storage
 }{}
 
+// LFSClient represents configuration for mirroring upstream Git LFS
+var LFSClient = struct {
+	BatchSize int `ini:"BATCH_SIZE"`
+}{}
+
 func loadLFSFrom(rootCfg ConfigProvider) error {
-	sec := rootCfg.Section("server")
-	if err := sec.MapTo(&LFS); err != nil {
-		return fmt.Errorf("failed to map LFS settings: %v", err)
-	}
+	mustMapSetting(rootCfg, LFSConfigSectionClient, &LFSClient)
+	mustMapSetting(rootCfg, LFSConfigSectionServer, &LFS)
+
+	sec := rootCfg.Section(LFSConfigSectionServer)
 
 	lfsSec, _ := rootCfg.GetSection("lfs")
 
@@ -51,6 +62,10 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 	// Rest of LFS service settings
 	if LFS.LocksPagingNum == 0 {
 		LFS.LocksPagingNum = 50
+	}
+
+	if LFSClient.BatchSize < 1 {
+		LFSClient.BatchSize = 20
 	}
 
 	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(24 * time.Hour)
