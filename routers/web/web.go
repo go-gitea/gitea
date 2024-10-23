@@ -41,6 +41,7 @@ import (
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
+	"code.gitea.io/gitea/routers/web/websocket"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -545,6 +546,8 @@ func registerRoutes(m *web.Router) {
 	}, reqSignOut)
 
 	m.Any("/user/events", routing.MarkLongPolling, events.Events)
+
+	websocket.Init(m)
 
 	m.Group("/login/oauth", func() {
 		m.Get("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
