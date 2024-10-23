@@ -2,6 +2,7 @@ import {matchEmoji, matchMention, matchIssue} from '../../utils/match.ts';
 import {emojiString} from '../emoji.ts';
 import {svg} from '../../svg.ts';
 import {parseIssueHref} from '../../utils.ts';
+import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
 
 type Issue = {id: number; title: string; state: 'open' | 'closed'; pull_request?: {draft: boolean; merged: boolean}};
 function getIssueIcon(issue: Issue) {
@@ -92,14 +93,14 @@ export function initTextExpander(expander) {
         const ul = document.createElement('ul');
         ul.classList.add('suggestions');
         for (const issue of matches) {
-          const li = document.createElement('li');
+          const li = createElementFromAttrs('li', {
+            role: 'option',
+            'data-value': `${key}${issue.id}`,
+          });
           li.classList.add('tw-flex', 'tw-gap-2');
-          li.setAttribute('role', 'option');
-          li.setAttribute('data-value', `${key}${issue.id}`);
 
-          const icon = document.createElement('div');
-          icon.innerHTML = svg(getIssueIcon(issue), 16, ['text', getIssueColor(issue)].join(' ')).trim();
-          li.append(icon.firstChild);
+          const icon = svg(getIssueIcon(issue), 16, ['text', getIssueColor(issue)].join(' '));
+          li.append(createElementFromHTML(icon));
 
           const id = document.createElement('span');
           id.classList.add('id');
