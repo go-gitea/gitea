@@ -85,7 +85,7 @@ type userInfoResponse struct {
 	Username string   `json:"preferred_username"`
 	Email    string   `json:"email"`
 	Picture  string   `json:"picture"`
-	Groups   []string `json:"groups"`
+	Groups   []string `json:"groups,omitempty"`
 }
 
 // InfoOAuth manages request for userinfo endpoint
@@ -104,7 +104,8 @@ func InfoOAuth(ctx *context.Context) {
 		Picture:  ctx.Doer.AvatarLink(ctx),
 	}
 
-	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer)
+	onlyPublicGroups := ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private"))
+	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer, onlyPublicGroups)
 	if err != nil {
 		ctx.ServerError("Oauth groups for user", err)
 		return
@@ -302,6 +303,13 @@ func AuthorizeOAuth(ctx *context.Context) {
 		}
 		ctx.Redirect(redirect.String())
 		return
+	}
+
+	// check if additional scopes
+	if oauth2_provider.GrantAdditionalScopes(form.Scope) == auth.AccessTokenScopeAll {
+		ctx.Data["AdditionalScopes"] = false
+	} else {
+		ctx.Data["AdditionalScopes"] = true
 	}
 
 	// show authorize page to grant access
