@@ -1,7 +1,10 @@
 <div class="ui fluid vertical menu">
+	{{if (or (.Permission.CanRead ctx.Consts.RepoUnitTypeIssues) (.Permission.CanRead ctx.Consts.RepoUnitTypePullRequests))}}
 	<a class="{{if .PageIsPulse}}active {{end}}item" href="{{.RepoLink}}/activity">
 		{{ctx.Locale.Tr "repo.activity.navbar.pulse"}}
 	</a>
+	{{end}}
+	{{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 	<a class="{{if .PageIsContributors}}active {{end}}item" href="{{.RepoLink}}/activity/contributors">
 		{{ctx.Locale.Tr "repo.activity.navbar.contributors"}}
 	</a>
@@ -11,4 +14,5 @@
 	<a class="{{if .PageIsRecentCommits}}active{{end}} item" href="{{.RepoLink}}/activity/recent-commits">
 		{{ctx.Locale.Tr "repo.activity.navbar.recent_commits"}}
 	</a>
+	{{end}}
 </div>
