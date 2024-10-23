@@ -11,7 +11,18 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
+	lru "github.com/hashicorp/golang-lru/v2"
 )
+
+var fileIconCache *lru.Cache[string, string]
+
+func init() {
+	var err error
+	fileIconCache, err = lru.New[string, string](1000)
+	if err != nil {
+		log.Fatal("Failed to create file icon cache: %v", err)
+	}
+}
 
 func getBasicFileIconName(entry *git.TreeEntry) string {
 	switch {
@@ -35,49 +46,53 @@ func getBasicFileIconName(entry *git.TreeEntry) string {
 }
 
 func getFileIconNames(entry *git.TreeEntry) []string {
+	fileName := strings.ToLower(path.Base(entry.Name()))
+
 	if entry.IsDir() {
-		fileName := strings.ToLower(path.Base(entry.Name()))
-		return []string{fileName, "directory"}
+		return []string{"folder_" + fileName, "folder"}
 	}
 
 	if entry.IsRegular() {
-		fileName := strings.ToLower(path.Base(entry.Name()))
 		ext := strings.ToLower(strings.TrimPrefix(path.Ext(fileName), "."))
-		return []string{fileName, ext, "file"}
+		return []string{"file_" + fileName, "file_" + ext, "file"}
 	}
 
 	return nil
 }
 
 func loadCustomIcon(iconPath string) (string, error) {
+	log.Info("Loading custom icon from %s", iconPath)
+
+	if icon, ok := fileIconCache.Get(iconPath); ok {
+		return icon, nil
+	}
+
 	// Try to load the icon from the filesystem
 	if _, err := os.Stat(iconPath); err != nil {
 		return "", err
 	}
 
-	// Read the SVG file
 	iconData, err := os.ReadFile(iconPath)
 	if err != nil {
 		return "", err
 	}
+
+	fileIconCache.Add(iconPath, string(iconData))
 
 	return string(iconData), nil
 }
 
 // FileIcon returns a custom icon from a folder or the default octicon for displaying files/directories
 func FileIcon(ctx context.Context, entry *git.TreeEntry) template.HTML {
-	iconPack, ok := ctx.Value("icon-pack").(string) // TODO: allow user to select an icon pack from a list
-	iconPack = "demo"
-	ok = true
-
-	if ok && iconPack != "" {
+	iconTheme := setting.UI.FileIconTheme
+	if iconTheme != "" {
 		iconNames := getFileIconNames(entry)
 
 		// Try to load the custom icon
 		for _, iconName := range iconNames {
-			iconPath := path.Join(setting.AppDataPath, "icons", iconPack, iconName+".svg")
+			iconPath := path.Join(setting.AppDataPath, "icons", iconTheme, iconName+".svg")
 			if icon, err := loadCustomIcon(iconPath); err == nil {
-				return template.HTML(icon)
+				return svg.RenderHTMLFromString(icon)
 			}
 		}
 	}
