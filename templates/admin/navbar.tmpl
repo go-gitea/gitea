@@ -5,10 +5,10 @@
 		<details class="item toggleable-item" {{if or .PageIsAdminDashboard .PageIsAdminSelfCheck}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "admin.maintenance"}}</summary>
 			<div class="menu">
-				<a class="{{if .PageIsAdminDashboard}}active {{end}}item" href="{{AppSubUrl}}/admin">
+				<a class="{{if .PageIsAdminDashboard}}active {{end}}item" href="{{AppSubUrl}}/-/admin">
 					{{ctx.Locale.Tr "admin.dashboard"}}
 				</a>
-				<a class="{{if .PageIsAdminSelfCheck}}active {{end}}item" href="{{AppSubUrl}}/admin/self_check">
+				<a class="{{if .PageIsAdminSelfCheck}}active {{end}}item" href="{{AppSubUrl}}/-/admin/self_check">
 					{{ctx.Locale.Tr "admin.self_check"}}
 				</a>
 			</div>
@@ -16,16 +16,16 @@
 		<details class="item toggleable-item" {{if or .PageIsAdminUsers .PageIsAdminEmails .PageIsAdminOrganizations .PageIsAdminAuthentications}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "admin.identity_access"}}</summary>
 			<div class="menu">
-				<a class="{{if .PageIsAdminAuthentications}}active {{end}}item" href="{{AppSubUrl}}/admin/auths">
+				<a class="{{if .PageIsAdminAuthentications}}active {{end}}item" href="{{AppSubUrl}}/-/admin/auths">
 					{{ctx.Locale.Tr "admin.authentication"}}
 				</a>
-				<a class="{{if .PageIsAdminOrganizations}}active {{end}}item" href="{{AppSubUrl}}/admin/orgs">
+				<a class="{{if .PageIsAdminOrganizations}}active {{end}}item" href="{{AppSubUrl}}/-/admin/orgs">
 					{{ctx.Locale.Tr "admin.organizations"}}
 				</a>
-				<a class="{{if .PageIsAdminUsers}}active {{end}}item" href="{{AppSubUrl}}/admin/users">
+				<a class="{{if .PageIsAdminUsers}}active {{end}}item" href="{{AppSubUrl}}/-/admin/users">
 					{{ctx.Locale.Tr "admin.users"}}
 				</a>
-				<a class="{{if .PageIsAdminEmails}}active {{end}}item" href="{{AppSubUrl}}/admin/emails">
+				<a class="{{if .PageIsAdminEmails}}active {{end}}item" href="{{AppSubUrl}}/-/admin/emails">
 					{{ctx.Locale.Tr "admin.emails"}}
 				</a>
 			</div>
@@ -34,11 +34,11 @@
 			<summary>{{ctx.Locale.Tr "admin.assets"}}</summary>
 			<div class="menu">
 				{{if .EnablePackages}}
-					<a class="{{if .PageIsAdminPackages}}active {{end}}item" href="{{AppSubUrl}}/admin/packages">
+					<a class="{{if .PageIsAdminPackages}}active {{end}}item" href="{{AppSubUrl}}/-/admin/packages">
 						{{ctx.Locale.Tr "packages.title"}}
 					</a>
 				{{end}}
-				<a class="{{if .PageIsAdminRepositories}}active {{end}}item" href="{{AppSubUrl}}/admin/repos">
+				<a class="{{if .PageIsAdminRepositories}}active {{end}}item" href="{{AppSubUrl}}/-/admin/repos">
 					{{ctx.Locale.Tr "admin.repositories"}}
 				</a>
 			</div>
@@ -48,22 +48,22 @@
 			<details class="item toggleable-item" {{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks .PageIsAdminApplications}}open{{end}}>
 				<summary>{{ctx.Locale.Tr "admin.integrations"}}</summary>
 				<div class="menu">
-					<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/admin/applications">
+					<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/-/admin/applications">
 						{{ctx.Locale.Tr "settings.applications"}}
 					</a>
-					<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active {{end}}item" href="{{AppSubUrl}}/admin/hooks">
+					<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active {{end}}item" href="{{AppSubUrl}}/-/admin/hooks">
 						{{ctx.Locale.Tr "admin.hooks"}}
 					</a>
 				</div>
 			</details>
 		{{else}}
 			{{if not DisableWebhooks}}
-			<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active {{end}}item" href="{{AppSubUrl}}/admin/hooks">
+			<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active {{end}}item" href="{{AppSubUrl}}/-/admin/hooks">
 				{{ctx.Locale.Tr "admin.hooks"}}
 			</a>
 			{{end}}
 			{{if .EnableOAuth2}}
-				<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/admin/applications">
+				<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/-/admin/applications">
 					{{ctx.Locale.Tr "settings.applications"}}
 				</a>
 			{{end}}
@@ -72,10 +72,10 @@
 		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsVariables}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
-				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{AppSubUrl}}/admin/actions/runners">
+				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{AppSubUrl}}/-/admin/actions/runners">
 					{{ctx.Locale.Tr "actions.runners"}}
 				</a>
-				<a class="{{if .PageIsSharedSettingsVariables}}active {{end}}item" href="{{AppSubUrl}}/admin/actions/variables">
+				<a class="{{if .PageIsSharedSettingsVariables}}active {{end}}item" href="{{AppSubUrl}}/-/admin/actions/variables">
 					{{ctx.Locale.Tr "actions.variables"}}
 				</a>
 			</div>
@@ -84,30 +84,30 @@
 		<details class="item toggleable-item" {{if or .PageIsAdminConfig}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "admin.config"}}</summary>
 			<div class="menu">
-				<a class="{{if .PageIsAdminConfigSummary}}active {{end}}item" href="{{AppSubUrl}}/admin/config">
+				<a class="{{if .PageIsAdminConfigSummary}}active {{end}}item" href="{{AppSubUrl}}/-/admin/config">
 					{{ctx.Locale.Tr "admin.config_summary"}}
 				</a>
-				<a class="{{if .PageIsAdminConfigSettings}}active {{end}}item" href="{{AppSubUrl}}/admin/config/settings">
+				<a class="{{if .PageIsAdminConfigSettings}}active {{end}}item" href="{{AppSubUrl}}/-/admin/config/settings">
 					{{ctx.Locale.Tr "admin.config_settings"}}
 				</a>
 			</div>
 		</details>
-		<a class="{{if .PageIsAdminNotices}}active {{end}}item" href="{{AppSubUrl}}/admin/notices">
+		<a class="{{if .PageIsAdminNotices}}active {{end}}item" href="{{AppSubUrl}}/-/admin/notices">
 			{{ctx.Locale.Tr "admin.notices"}}
 		</a>
 		<details class="item toggleable-item" {{if or .PageIsAdminMonitorStats .PageIsAdminMonitorCron .PageIsAdminMonitorQueue .PageIsAdminMonitorStacktrace}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "admin.monitor"}}</summary>
 			<div class="menu">
-				<a class="{{if .PageIsAdminMonitorStats}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/stats">
+				<a class="{{if .PageIsAdminMonitorStats}}active {{end}}item" href="{{AppSubUrl}}/-/admin/monitor/stats">
 					{{ctx.Locale.Tr "admin.monitor.stats"}}
 				</a>
-				<a class="{{if .PageIsAdminMonitorCron}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/cron">
+				<a class="{{if .PageIsAdminMonitorCron}}active {{end}}item" href="{{AppSubUrl}}/-/admin/monitor/cron">
 					{{ctx.Locale.Tr "admin.monitor.cron"}}
 				</a>
-				<a class="{{if .PageIsAdminMonitorQueue}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/queue">
+				<a class="{{if .PageIsAdminMonitorQueue}}active {{end}}item" href="{{AppSubUrl}}/-/admin/monitor/queue">
 					{{ctx.Locale.Tr "admin.monitor.queues"}}
 				</a>
-				<a class="{{if .PageIsAdminMonitorStacktrace}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/stacktrace">
+				<a class="{{if .PageIsAdminMonitorStacktrace}}active {{end}}item" href="{{AppSubUrl}}/-/admin/monitor/stacktrace">
 					{{ctx.Locale.Tr "admin.monitor.stacktrace"}}
 				</a>
 			</div>

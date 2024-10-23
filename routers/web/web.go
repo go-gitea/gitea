@@ -672,9 +672,8 @@ func registerRoutes(m *web.Router) {
 		m.Get("/forgot_password", auth.ForgotPasswd)
 		m.Post("/forgot_password", auth.ForgotPasswdPost)
 		m.Post("/logout", auth.SignOut)
-		m.Get("/task/{task}", reqSignIn, user.TaskStatus)
 		m.Get("/stopwatches", reqSignIn, user.GetStopwatches)
-		m.Get("/search", ignExploreSignIn, user.Search)
+		m.Get("/search_candidates", ignExploreSignIn, user.SearchCandidates)
 		m.Group("/oauth2", func() {
 			m.Get("/{provider}", auth.SignInOAuth)
 			m.Get("/{provider}/callback", auth.SignInOAuthCallback)
@@ -687,7 +686,7 @@ func registerRoutes(m *web.Router) {
 	adminReq := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true, AdminRequired: true})
 
 	// ***** START: Admin *****
-	m.Group("/admin", func() {
+	m.Group("/-/admin", func() {
 		m.Get("", admin.Dashboard)
 		m.Get("/system_status", admin.SystemStatus)
 		m.Post("", web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
@@ -1044,6 +1043,13 @@ func registerRoutes(m *web.Router) {
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false), individualPermsChecker)
 	}, ignSignIn, context.UserAssignmentWeb(), context.OrgAssignment())
 	// end "/{username}/-": packages, projects, code
+
+	m.Group("/{username}/{reponame}/-", func() {
+		m.Group("/migrate", func() {
+			m.Get("/status", repo.MigrateStatus)
+		})
+	}, ignSignIn, context.RepoAssignment, reqRepoCodeReader)
+	// end "/{username}/{reponame}/-": migrate
 
 	m.Group("/{username}/{reponame}/settings", func() {
 		m.Group("", func() {
@@ -1459,6 +1465,35 @@ func registerRoutes(m *web.Router) {
 	// end "/{username}/{reponame}/activity"
 
 	m.Group("/{username}/{reponame}", func() {
+		m.Group("/pulls/{index}", func() {
+			m.Get("", repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewIssue)
+			m.Get(".diff", repo.DownloadPullDiff)
+			m.Get(".patch", repo.DownloadPullPatch)
+			m.Group("/commits", func() {
+				m.Get("", context.RepoRef(), repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewPullCommits)
+				m.Get("/list", context.RepoRef(), repo.GetPullCommits)
+				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
+			})
+			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind(forms.MergePullRequestForm{}), repo.MergePullRequest)
+			m.Post("/cancel_auto_merge", context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
+			m.Post("/update", repo.UpdatePullRequest)
+			m.Post("/set_allow_maintainer_edit", web.Bind(forms.UpdateAllowEditsForm{}), repo.SetAllowEdits)
+			m.Post("/cleanup", context.RepoMustNotBeArchived(), context.RepoRef(), repo.CleanUpPullRequest)
+			m.Group("/files", func() {
+				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForAllCommitsOfPr)
+				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesStartingFromCommit)
+				m.Get("/{shaFrom:[a-f0-9]{7,40}}..{shaTo:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)
+				m.Group("/reviews", func() {
+					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
+					m.Post("/comments", web.Bind(forms.CodeCommentForm{}), repo.SetShowOutdatedComments, repo.CreateCodeComment)
+					m.Post("/submit", web.Bind(forms.SubmitReviewForm{}), repo.SubmitReview)
+				}, context.RepoMustNotBeArchived())
+			})
+		})
+	}, ignSignIn, context.RepoAssignment, repo.MustAllowPulls, reqRepoPullsReader)
+	// end "/{username}/{reponame}/pulls/{index}": repo pull request
+
+	m.Group("/{username}/{reponame}", func() {
 		m.Group("/activity_author_data", func() {
 			m.Get("", repo.ActivityAuthors)
 			m.Get("/{period}", repo.ActivityAuthors)
@@ -1495,32 +1530,6 @@ func registerRoutes(m *web.Router) {
 			repo.MustBeNotEmpty(ctx)
 			return cancel
 		})
-
-		m.Group("/pulls/{index}", func() {
-			m.Get("", repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewIssue)
-			m.Get(".diff", repo.DownloadPullDiff)
-			m.Get(".patch", repo.DownloadPullPatch)
-			m.Group("/commits", func() {
-				m.Get("", context.RepoRef(), repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewPullCommits)
-				m.Get("/list", context.RepoRef(), repo.GetPullCommits)
-				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
-			})
-			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind(forms.MergePullRequestForm{}), repo.MergePullRequest)
-			m.Post("/cancel_auto_merge", context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
-			m.Post("/update", repo.UpdatePullRequest)
-			m.Post("/set_allow_maintainer_edit", web.Bind(forms.UpdateAllowEditsForm{}), repo.SetAllowEdits)
-			m.Post("/cleanup", context.RepoMustNotBeArchived(), context.RepoRef(), repo.CleanUpPullRequest)
-			m.Group("/files", func() {
-				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForAllCommitsOfPr)
-				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesStartingFromCommit)
-				m.Get("/{shaFrom:[a-f0-9]{7,40}}..{shaTo:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)
-				m.Group("/reviews", func() {
-					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
-					m.Post("/comments", web.Bind(forms.CodeCommentForm{}), repo.SetShowOutdatedComments, repo.CreateCodeComment)
-					m.Post("/submit", web.Bind(forms.SubmitReviewForm{}), repo.SubmitReview)
-				}, context.RepoMustNotBeArchived())
-			})
-		}, repo.MustAllowPulls)
 
 		m.Group("/media", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.SingleDownloadOrLFS)

@@ -3,7 +3,7 @@ import {htmlEscape} from 'escape-goat';
 import {createTippy, showTemporaryTooltip} from '../modules/tippy.ts';
 import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
-import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
+import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
@@ -187,14 +187,17 @@ export function initRepoIssueCommentDelete() {
           const path = conversationHolder.getAttribute('data-path');
           const side = conversationHolder.getAttribute('data-side');
           const idx = conversationHolder.getAttribute('data-idx');
-          const lineType = conversationHolder.closest('tr').getAttribute('data-line-type');
+          const lineType = conversationHolder.closest('tr')?.getAttribute('data-line-type');
 
-          if (lineType === 'same') {
-            document.querySelector(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).classList.remove('tw-invisible');
-          } else {
-            document.querySelector(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).classList.remove('tw-invisible');
+          // the conversation holder could appear either on the "Conversation" page, or the "Files Changed" page
+          // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment"
+          if (lineType) {
+            if (lineType === 'same') {
+              document.querySelector(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).classList.remove('tw-invisible');
+            } else {
+              document.querySelector(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).classList.remove('tw-invisible');
+            }
           }
-
           conversationHolder.remove();
         }
 
@@ -480,9 +483,9 @@ export function initRepoPullRequestReview() {
     await handleReply(this);
   });
 
-  const $reviewBox = $('.review-box-panel');
-  if ($reviewBox.length === 1) {
-    const _promise = initComboMarkdownEditor($reviewBox.find('.combo-markdown-editor'));
+  const elReviewBox = document.querySelector('.review-box-panel');
+  if (elReviewBox) {
+    initComboMarkdownEditor(elReviewBox.querySelector('.combo-markdown-editor'));
   }
 
   // The following part is only for diff views
@@ -545,7 +548,7 @@ export function initRepoPullRequestReview() {
         $td.find("input[name='line']").val(idx);
         $td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
         $td.find("input[name='path']").val(path);
-        const editor = await initComboMarkdownEditor($td.find('.combo-markdown-editor'));
+        const editor = await initComboMarkdownEditor($td[0].querySelector('.combo-markdown-editor'));
         editor.focus();
       } catch (error) {
         console.error(error);
@@ -666,20 +669,22 @@ export async function initSingleCommentEditor($commentForm) {
   // pages:
   // * normal new issue/pr page: no status-button, no comment-button (there is only a normal submit button which can submit empty content)
   // * issue/pr view page: with comment form, has status-button and comment-button
-  const opts = {};
-  const statusButton = document.querySelector('#status-button');
-  const commentButton = document.querySelector('#comment-button');
-  opts.onContentChanged = (editor) => {
-    const editorText = editor.value().trim();
+  const editor = await initComboMarkdownEditor($commentForm[0].querySelector('.combo-markdown-editor'));
+  const statusButton = document.querySelector<HTMLButtonElement>('#status-button');
+  const commentButton = document.querySelector<HTMLButtonElement>('#comment-button');
+  const syncUiState = () => {
+    const editorText = editor.value().trim(), isUploading = editor.isUploading();
     if (statusButton) {
       statusButton.textContent = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
+      statusButton.disabled = isUploading;
     }
     if (commentButton) {
-      commentButton.disabled = !editorText;
+      commentButton.disabled = !editorText || isUploading;
     }
   };
-  const editor = await initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
-  opts.onContentChanged(editor); // sync state of buttons with the initial content
+  editor.container.addEventListener(ComboMarkdownEditor.EventUploadStateChanged, syncUiState);
+  editor.container.addEventListener(ComboMarkdownEditor.EventEditorContentChanged, syncUiState);
+  syncUiState();
 }
 
 export function initIssueTemplateCommentEditors($commentForm) {
@@ -687,16 +692,13 @@ export function initIssueTemplateCommentEditors($commentForm) {
   // * new issue with issue template
   const $comboFields = $commentForm.find('.combo-editor-dropzone');
 
-  const initCombo = async ($combo) => {
-    const $dropzoneContainer = $combo.find('.form-field-dropzone');
-    const $formField = $combo.find('.form-field-real');
-    const $markdownEditor = $combo.find('.combo-markdown-editor');
+  const initCombo = async (elCombo) => {
+    const $formField = $(elCombo.querySelector('.form-field-real'));
+    const dropzoneContainer = elCombo.querySelector('.form-field-dropzone');
+    const markdownEditor = elCombo.querySelector('.combo-markdown-editor');
 
-    const editor = await initComboMarkdownEditor($markdownEditor, {
-      onContentChanged: (editor) => {
-        $formField.val(editor.value());
-      },
-    });
+    const editor = await initComboMarkdownEditor(markdownEditor);
+    editor.container.addEventListener(ComboMarkdownEditor.EventEditorContentChanged, () => $formField.val(editor.value()));
 
     $formField.on('focus', async () => {
       // deactivate all markdown editors
@@ -706,8 +708,8 @@ export function initIssueTemplateCommentEditors($commentForm) {
 
       // activate this markdown editor
       hideElem($formField);
-      showElem($markdownEditor);
-      showElem($dropzoneContainer);
+      showElem(markdownEditor);
+      showElem(dropzoneContainer);
 
       await editor.switchToUserPreference();
       editor.focus();
@@ -715,7 +717,7 @@ export function initIssueTemplateCommentEditors($commentForm) {
   };
 
   for (const el of $comboFields) {
-    initCombo($(el));
+    initCombo(el);
   }
 }
 
