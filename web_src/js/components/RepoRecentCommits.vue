@@ -14,7 +14,7 @@ import {
   startDaysBetween,
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
-  DayData,
+  type DayData,
 } from '../utils/time.ts';
 import {chartJsColors} from '../utils/color.ts';
 import {sleep} from '../utils.ts';

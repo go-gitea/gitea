@@ -4,7 +4,7 @@ import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {sleep} from '../utils.ts';
 import RepoActivityTopAuthors from '../components/RepoActivityTopAuthors.vue';
-import { createApp } from 'vue';
+import {createApp} from 'vue';
 
 async function onDownloadArchive(e) {
   e.preventDefault();

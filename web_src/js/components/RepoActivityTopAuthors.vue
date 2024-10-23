@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {VueBarGraph} from 'vue-bar-graph';
-import {computed, createApp, onMounted, ref} from 'vue';
+import {computed, onMounted, ref} from 'vue';
 
 const colors = ref({
   barColor: 'green',
