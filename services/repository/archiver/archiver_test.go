@@ -80,13 +80,13 @@ func TestArchive_Basic(t *testing.T) {
 	inFlight[1] = tgzReq
 	inFlight[2] = secondReq
 
-	ArchiveRepository(db.DefaultContext, zipReq)
-	ArchiveRepository(db.DefaultContext, tgzReq)
-	ArchiveRepository(db.DefaultContext, secondReq)
+	doArchive(db.DefaultContext, zipReq)
+	doArchive(db.DefaultContext, tgzReq)
+	doArchive(db.DefaultContext, secondReq)
 
 	// Make sure sending an unprocessed request through doesn't affect the queue
 	// count.
-	ArchiveRepository(db.DefaultContext, zipReq)
+	doArchive(db.DefaultContext, zipReq)
 
 	// Sleep two seconds to make sure the queue doesn't change.
 	time.Sleep(2 * time.Second)
@@ -101,7 +101,7 @@ func TestArchive_Basic(t *testing.T) {
 	// We still have the other three stalled at completion, waiting to remove
 	// from archiveInProgress.  Try to submit this new one before its
 	// predecessor has cleared out of the queue.
-	ArchiveRepository(db.DefaultContext, zipReq2)
+	doArchive(db.DefaultContext, zipReq2)
 
 	// Now we'll submit a request and TimedWaitForCompletion twice, before and
 	// after we release it.  We should trigger both the timeout and non-timeout
@@ -109,7 +109,7 @@ func TestArchive_Basic(t *testing.T) {
 	timedReq, err := NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, secondCommit+".tar.gz")
 	assert.NoError(t, err)
 	assert.NotNil(t, timedReq)
-	ArchiveRepository(db.DefaultContext, timedReq)
+	doArchive(db.DefaultContext, timedReq)
 
 	zipReq2, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, firstCommit+".zip")
 	assert.NoError(t, err)
