@@ -21,3 +21,9 @@
   issue_id: 5
   project_id: 1
   project_board_id: 3
+
+-
+  id: 5
+  issue_id: 5
+  project_id: 1
+  project_board_id: 1
