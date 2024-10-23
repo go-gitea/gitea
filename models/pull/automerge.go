@@ -74,7 +74,7 @@ func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMe
 		return false, nil, err
 	}
 
-	doer, err := user_model.GetUserByID(ctx, scheduledPRM.DoerID)
+	doer, err := user_model.GetPossibleUserByID(ctx, scheduledPRM.DoerID)
 	if err != nil {
 		return false, nil, err
 	}

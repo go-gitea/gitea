@@ -27,7 +27,7 @@ func (n *automergeNotifier) PullRequestReview(ctx context.Context, pr *issues_mo
 	// as a missing / blocking reviews could have blocked a pending automerge let's recheck
 	if review.Type == issues_model.ReviewTypeApprove {
 		if err := StartPRCheckAndAutoMergeBySHA(ctx, review.CommitID, pr.BaseRepo); err != nil {
-			log.Error("StartPullRequestAutoMergeCheckBySHA: %v", err)
+			log.Error("StartPRCheckAndAutoMergeBySHA: %v", err)
 		}
 	}
 }
