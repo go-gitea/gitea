@@ -36,13 +36,14 @@ func getBasicFileIconName(entry *git.TreeEntry) string {
 
 func getFileIconNames(entry *git.TreeEntry) []string {
 	if entry.IsDir() {
-		return []string{"directory"}
+		fileName := strings.ToLower(path.Base(entry.Name()))
+		return []string{fileName, "directory"}
 	}
 
 	if entry.IsRegular() {
 		fileName := strings.ToLower(path.Base(entry.Name()))
 		ext := strings.ToLower(strings.TrimPrefix(path.Ext(fileName), "."))
-		return []string{fileName, ext}
+		return []string{fileName, ext, "file"}
 	}
 
 	return nil
