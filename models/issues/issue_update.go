@@ -718,6 +718,10 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 			return nil, err
 		}
 
+		if _, err = sess.In("issue_id", issueIDs).Delete(&IssueDevLink{}); err != nil {
+			return nil, err
+		}
+
 		var attachments []*repo_model.Attachment
 		err = sess.In("issue_id", issueIDs).Find(&attachments)
 		if err != nil {

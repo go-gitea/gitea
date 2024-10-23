@@ -257,6 +257,11 @@
 		</div>
 	</div>
 
+	{{if not .Issue.IsPull}}
+		<div class="divider"></div>
+		{{template "repo/issue/view_content/sidebar_development" .}}
+	{{end}}
+
 	<div class="divider"></div>
 
 	{{if .Participants}}
