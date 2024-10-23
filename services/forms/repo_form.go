@@ -153,6 +153,7 @@ type RepoSettingForm struct {
 	EnablePulls                           bool
 	EnableActions                         bool
 	PullsIgnoreWhitespace                 bool
+	PullsShowDependencies                 bool
 	PullsAllowMerge                       bool
 	PullsAllowRebase                      bool
 	PullsAllowRebaseMerge                 bool

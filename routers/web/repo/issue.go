@@ -324,6 +324,25 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		return
 	}
 
+	if unit, err := repo.GetUnit(ctx, unit.TypePullRequests); err == nil {
+		if config := unit.PullRequestsConfig(); config.ShowDependencies {
+			blockingDependenciesMap, err := issues.BlockingDependenciesMap(ctx)
+			if err != nil {
+				ctx.ServerError("BlockingDependenciesMap", err)
+				return
+			}
+
+			blockedByDependenciesMap, err := issues.BlockedByDependenciesMap(ctx)
+			if err != nil {
+				ctx.ServerError("BlockedByDependenciesMap", err)
+				return
+			}
+
+			ctx.Data["BlockingDependenciesMap"] = blockingDependenciesMap
+			ctx.Data["BlockedByDependenciesMap"] = blockedByDependenciesMap
+		}
+	}
+
 	if ctx.IsSigned {
 		if err := issues.LoadIsRead(ctx, ctx.Doer.ID); err != nil {
 			ctx.ServerError("LoadIsRead", err)

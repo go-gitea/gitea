@@ -646,6 +646,12 @@
 								<label>{{ctx.Locale.Tr "repo.settings.pulls.ignore_whitespace"}}</label>
 							</div>
 						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="pulls_show_dependencies" type="checkbox" {{if and $pullRequestEnabled ($prUnit.PullRequestsConfig.ShowDependencies)}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "repo.settings.pulls.show_dependencies"}}</label>
+							</div>
+						</div>
 					</div>
 				{{end}}
 

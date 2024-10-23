@@ -634,3 +634,55 @@ func (issues IssueList) LoadIsRead(ctx context.Context, userID int64) error {
 
 	return nil
 }
+
+func (issues IssueList) BlockingDependenciesMap(ctx context.Context) (issueDepsMap map[int64][]*DependencyInfo, err error) {
+	var issueDeps []*DependencyInfo
+
+	err = db.GetEngine(ctx).
+		Table("issue").
+		Join("INNER", "repository", "repository.id = issue.repo_id").
+		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
+		Where(builder.In("issue_dependency.dependency_id", issues.getIssueIDs())).
+		// sort by repo id then index
+		Asc("`issue`.`repo_id`").
+		Asc("`issue`.`index`").
+		Find(&issueDeps)
+	if err != nil {
+		return nil, err
+	}
+
+	issueDepsMap = make(map[int64][]*DependencyInfo, len(issues))
+	for _, depInfo := range issueDeps {
+		depInfo.Issue.Repo = &depInfo.Repository
+
+		issueDepsMap[depInfo.DependencyID] = append(issueDepsMap[depInfo.DependencyID], depInfo)
+	}
+
+	return issueDepsMap, nil
+}
+
+func (issues IssueList) BlockedByDependenciesMap(ctx context.Context) (issueDepsMap map[int64][]*DependencyInfo, err error) {
+	var issueDeps []*DependencyInfo
+
+	err = db.GetEngine(ctx).
+		Table("issue").
+		Join("INNER", "repository", "repository.id = issue.repo_id").
+		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
+		Where(builder.In("issue_dependency.issue_id", issues.getIssueIDs())).
+		// sort by repo id then index
+		Asc("`issue`.`repo_id`").
+		Asc("`issue`.`index`").
+		Find(&issueDeps)
+	if err != nil {
+		return nil, err
+	}
+
+	issueDepsMap = make(map[int64][]*DependencyInfo, len(issues))
+	for _, depInfo := range issueDeps {
+		depInfo.Issue.Repo = &depInfo.Repository
+
+		issueDepsMap[depInfo.IssueID] = append(issueDepsMap[depInfo.IssueID], depInfo)
+	}
+
+	return issueDepsMap, nil
+}

@@ -121,6 +121,16 @@
 							</span>
 						</span>
 					{{end}}
+					{{if $.BlockedByDependenciesMap}}
+						{{template "shared/issue_dependency" (dict
+							"Dependencies" (index $.BlockedByDependenciesMap .ID)
+							"TitleKey" "repo.issues.dependency.blocked_by_following")}}
+						{{end}}
+					{{if $.BlockingDependenciesMap}}
+						{{template "shared/issue_dependency" (dict
+							"Dependencies" (index $.BlockingDependenciesMap .ID)
+							"TitleKey" "repo.issues.dependency.blocks_following")}}
+					{{end}}
 					{{if .IsPull}}
 						{{$approveOfficial := call $approvalCounts .ID "approve"}}
 						{{$rejectOfficial := call $approvalCounts .ID "reject"}}
