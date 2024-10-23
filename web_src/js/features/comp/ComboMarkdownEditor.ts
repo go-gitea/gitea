@@ -3,14 +3,19 @@ import '@github/text-expander-element';
 import $ from 'jquery';
 import {attachTribute} from '../tribute.ts';
 import {hideElem, showElem, autosize, isElemVisible} from '../../utils/dom.ts';
-import {initEasyMDEPaste, initTextareaEvents} from './EditorUpload.ts';
+import {
+  EventUploadStateChanged,
+  initEasyMDEPaste,
+  initTextareaEvents,
+  triggerUploadStateChanged,
+} from './EditorUpload.ts';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.ts';
 import {renderPreviewPanelContent} from '../repo-editor.ts';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.ts';
 import {initTextExpander} from './TextExpander.ts';
 import {showErrorToast} from '../../modules/toast.ts';
 import {POST} from '../../modules/fetch.ts';
-import {initTextareaMarkdown} from './EditorMarkdown.ts';
+import {EventEditorContentChanged, initTextareaMarkdown, triggerEditorContentChanged} from './EditorMarkdown.ts';
 import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
 
 let elementIdCounter = 0;
@@ -37,7 +42,34 @@ export function validateTextareaNonEmpty(textarea) {
   return true;
 }
 
-class ComboMarkdownEditor {
+export class ComboMarkdownEditor {
+  static EventEditorContentChanged = EventEditorContentChanged;
+  static EventUploadStateChanged = EventUploadStateChanged;
+
+  public container : HTMLElement;
+
+  // TODO: use correct types to replace these "any" types
+  options: any;
+
+  tabEditor: HTMLElement;
+  tabPreviewer: HTMLElement;
+
+  easyMDE: any;
+  easyMDEToolbarActions: any;
+  easyMDEToolbarDefault: any;
+
+  textarea: HTMLTextAreaElement & {_giteaComboMarkdownEditor: any};
+  textareaMarkdownToolbar: HTMLElement;
+  textareaAutosize: any;
+
+  dropzone: HTMLElement;
+  attachedDropzoneInst: any;
+
+  previewUrl: string;
+  previewContext: string;
+  previewMode: string;
+  previewWiki: boolean;
+
   constructor(container, options = {}) {
     container._giteaComboMarkdownEditor = this;
     this.options = options;
@@ -63,14 +95,13 @@ class ComboMarkdownEditor {
 
   setupContainer() {
     initTextExpander(this.container.querySelector('text-expander'));
-    this.container.addEventListener('ce-editor-content-changed', (e) => this.options?.onContentChanged?.(this, e));
   }
 
   setupTextarea() {
     this.textarea = this.container.querySelector('.markdown-text-editor');
     this.textarea._giteaComboMarkdownEditor = this;
     this.textarea.id = `_combo_markdown_editor_${String(elementIdCounter++)}`;
-    this.textarea.addEventListener('input', (e) => this.options?.onContentChanged?.(this, e));
+    this.textarea.addEventListener('input', () => triggerEditorContentChanged(this.container));
     this.applyEditorHeights(this.textarea, this.options.editorHeights);
 
     if (this.textarea.getAttribute('data-disable-autosize') !== 'true') {
@@ -115,15 +146,21 @@ class ComboMarkdownEditor {
 
   async setupDropzone() {
     const dropzoneParentContainer = this.container.getAttribute('data-dropzone-parent-container');
-    if (dropzoneParentContainer) {
-      this.dropzone = this.container.closest(this.container.getAttribute('data-dropzone-parent-container'))?.querySelector('.dropzone');
-      if (this.dropzone) this.attachedDropzoneInst = await initDropzone(this.dropzone);
-    }
+    if (!dropzoneParentContainer) return;
+    this.dropzone = this.container.closest(this.container.getAttribute('data-dropzone-parent-container'))?.querySelector('.dropzone');
+    if (!this.dropzone) return;
+
+    this.attachedDropzoneInst = await initDropzone(this.dropzone);
+    // dropzone events
+    // * "processing" means a file is being uploaded
+    // * "queuecomplete" means all files have been uploaded
+    this.attachedDropzoneInst.on('processing', () => triggerUploadStateChanged(this.container));
+    this.attachedDropzoneInst.on('queuecomplete', () => triggerUploadStateChanged(this.container));
   }
 
   dropzoneGetFiles() {
     if (!this.dropzone) return null;
-    return Array.from(this.dropzone.querySelectorAll('.files [name=files]'), (el) => el.value);
+    return Array.from(this.dropzone.querySelectorAll<HTMLInputElement>('.files [name=files]'), (el) => el.value);
   }
 
   dropzoneReloadFiles() {
@@ -137,8 +174,13 @@ class ComboMarkdownEditor {
     this.attachedDropzoneInst.emit(DropzoneCustomEventReloadFiles);
   }
 
+  isUploading() {
+    if (!this.dropzone) return false;
+    return this.attachedDropzoneInst.getQueuedFiles().length || this.attachedDropzoneInst.getUploadingFiles().length;
+  }
+
   setupTab() {
-    const tabs = this.container.querySelectorAll('.tabular.menu > .item');
+    const tabs = this.container.querySelectorAll<HTMLElement>('.tabular.menu > .item');
 
     // Fomantic Tab requires the "data-tab" to be globally unique.
     // So here it uses our defined "data-tab-for" and "data-tab-panel" to generate the "data-tab" attribute for Fomantic.
@@ -170,7 +212,7 @@ class ComboMarkdownEditor {
       formData.append('mode', this.previewMode);
       formData.append('context', this.previewContext);
       formData.append('text', this.value());
-      formData.append('wiki', this.previewWiki);
+      formData.append('wiki', String(this.previewWiki));
       const response = await POST(this.previewUrl, {data: formData});
       const data = await response.text();
       renderPreviewPanelContent($(panelPreviewer), data);
@@ -237,24 +279,24 @@ class ComboMarkdownEditor {
     easyMDEOpt.toolbar = this.parseEasyMDEToolbar(EasyMDE, easyMDEOpt.toolbar ?? this.easyMDEToolbarDefault);
 
     this.easyMDE = new EasyMDE(easyMDEOpt);
-    this.easyMDE.codemirror.on('change', (...args) => {this.options?.onContentChanged?.(this, ...args)});
+    this.easyMDE.codemirror.on('change', () => triggerEditorContentChanged(this.container));
     this.easyMDE.codemirror.setOption('extraKeys', {
       'Cmd-Enter': (cm) => handleGlobalEnterQuickSubmit(cm.getTextArea()),
       'Ctrl-Enter': (cm) => handleGlobalEnterQuickSubmit(cm.getTextArea()),
       Enter: (cm) => {
-        const tributeContainer = document.querySelector('.tribute-container');
+        const tributeContainer = document.querySelector<HTMLElement>('.tribute-container');
         if (!tributeContainer || tributeContainer.style.display === 'none') {
           cm.execCommand('newlineAndIndent');
         }
       },
       Up: (cm) => {
-        const tributeContainer = document.querySelector('.tribute-container');
+        const tributeContainer = document.querySelector<HTMLElement>('.tribute-container');
         if (!tributeContainer || tributeContainer.style.display === 'none') {
           return cm.execCommand('goLineUp');
         }
       },
       Down: (cm) => {
-        const tributeContainer = document.querySelector('.tribute-container');
+        const tributeContainer = document.querySelector<HTMLElement>('.tribute-container');
         if (!tributeContainer || tributeContainer.style.display === 'none') {
           return cm.execCommand('goLineDown');
         }
@@ -314,13 +356,7 @@ export function getComboMarkdownEditor(el) {
   return el?._giteaComboMarkdownEditor;
 }
 
-export async function initComboMarkdownEditor(container, options = {}) {
-  if (container instanceof $) {
-    if (container.length !== 1) {
-      throw new Error('initComboMarkdownEditor: container must be a single element');
-    }
-    container = container[0];
-  }
+export async function initComboMarkdownEditor(container: HTMLElement, options = {}) {
   if (!container) {
     throw new Error('initComboMarkdownEditor: container is null');
   }

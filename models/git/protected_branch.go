@@ -63,6 +63,7 @@ type ProtectedBranch struct {
 	RequireSignedCommits          bool     `xorm:"NOT NULL DEFAULT false"`
 	ProtectedFilePatterns         string   `xorm:"TEXT"`
 	UnprotectedFilePatterns       string   `xorm:"TEXT"`
+	BlockAdminMergeOverride       bool     `xorm:"NOT NULL DEFAULT false"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
