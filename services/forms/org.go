@@ -53,19 +53,12 @@ func (f *UpdateOrgSettingForm) Validate(req *http.Request, errs binding.Errors) 
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// ___________
-// \__    ___/___ _____    _____
-//   |    |_/ __ \\__  \  /     \
-//   |    |\  ___/ / __ \|  Y Y  \
-//   |____| \___  >____  /__|_|  /
-//              \/     \/      \/
-
 // CreateTeamForm form for creating team
 type CreateTeamForm struct {
 	TeamName         string `binding:"Required;AlphaDashDot;MaxSize(255)"`
 	Description      string `binding:"MaxSize(255)"`
-	Permission       string
-	RepoAccess       string
+	Permission       string `binding:"Required;In(admin, read)"`
+	RepoAccess       string `binding:"Required;In(specified, all)"`
 	CanCreateOrgRepo bool
 }
 
