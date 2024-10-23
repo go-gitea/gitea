@@ -1,6 +1,7 @@
 <script lang="ts">
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
+import {getIssueColor, getIssueIcon} from '../features/issue.ts';
 
 const {appSubUrl, i18n} = window.config;
 
@@ -24,37 +25,6 @@ export default {
         return `${body.substring(0, 85)}…`;
       }
       return body;
-    },
-
-    icon() {
-      if (this.issue.pull_request !== null) {
-        if (this.issue.state === 'open') {
-          if (this.issue.pull_request.draft === true) {
-            return 'octicon-git-pull-request-draft'; // WIP PR
-          }
-          return 'octicon-git-pull-request'; // Open PR
-        } else if (this.issue.pull_request.merged === true) {
-          return 'octicon-git-merge'; // Merged PR
-        }
-        return 'octicon-git-pull-request'; // Closed PR
-      } else if (this.issue.state === 'open') {
-        return 'octicon-issue-opened'; // Open Issue
-      }
-      return 'octicon-issue-closed'; // Closed Issue
-    },
-
-    color() {
-      if (this.issue.pull_request !== null) {
-        if (this.issue.pull_request.draft === true) {
-          return 'grey'; // WIP PR
-        } else if (this.issue.pull_request.merged === true) {
-          return 'purple'; // Merged PR
-        }
-      }
-      if (this.issue.state === 'open') {
-        return 'green'; // Open Issue
-      }
-      return 'red'; // Closed Issue
     },
   },
   mounted() {
@@ -85,16 +55,19 @@ export default {
         this.loading = false;
       }
     },
+    getIssueColor,
+    getIssueIcon,
   },
 };
 </script>
+
 <template>
   <div ref="root">
     <div v-if="loading" class="tw-h-12 tw-w-12 is-loading"/>
     <div v-if="!loading && issue !== null" class="tw-flex tw-flex-col tw-gap-2">
       <div class="tw-text-12">{{ issue.repository.full_name }} on {{ createdAt }}</div>
       <div class="flex-text-block">
-        <svg-icon :name="icon" :class="['text', color]"/>
+        <svg-icon :name="getIssueColor(issue)" :class="['text', getIssueColor(issue)]"/>
         <span class="issue-title tw-font-semibold tw-break-anywhere">
           {{ issue.title }}
           <span class="index">#{{ issue.number }}</span>

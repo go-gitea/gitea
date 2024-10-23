@@ -1,5 +1,6 @@
 import emojis from '../../../assets/emoji.json';
-import {request} from '../modules/fetch.ts';
+import type {Issue} from '../features/issue.ts';
+import {GET} from '../modules/fetch.ts';
 
 const maxMatches = 6;
 
@@ -44,13 +45,10 @@ export function matchMention(queryText: string): MentionSuggestion[] {
   return sortAndReduce(results);
 }
 
-type Issue = {id: number; title: string; state: 'open' | 'closed'; pull_request?: {draft: boolean; merged: boolean}};
 export async function matchIssue(owner: string, repo: string, _issueIndex: string, queryText: string): Promise<Issue[]> {
   const query = queryText.toLowerCase();
 
-  const res = await request(`/api/v1/repos/${owner}/${repo}/issues?q=${query}`, {
-    method: 'GET',
-  });
+  const res = await GET(`/api/v1/repos/${owner}/${repo}/issues?q=${query}`);
 
   const issues: Issue[] = await res.json();
   const issueIndex = parseInt(_issueIndex);

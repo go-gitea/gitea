@@ -3,38 +3,40 @@ import {emojiString} from '../emoji.ts';
 import {svg} from '../../svg.ts';
 import {parseIssueHref} from '../../utils.ts';
 import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
+import {getIssueColor, getIssueIcon} from '../issue.ts';
+import {debounce} from 'perfect-debounce';
 
-type Issue = {id: number; title: string; state: 'open' | 'closed'; pull_request?: {draft: boolean; merged: boolean}};
-function getIssueIcon(issue: Issue) {
-  if (issue.pull_request) {
-    if (issue.state === 'open') {
-      if (issue.pull_request.draft === true) {
-        return 'octicon-git-pull-request-draft'; // WIP PR
-      }
-      return 'octicon-git-pull-request'; // Open PR
-    } else if (issue.pull_request.merged === true) {
-      return 'octicon-git-merge'; // Merged PR
-    }
-    return 'octicon-git-pull-request'; // Closed PR
-  } else if (issue.state === 'open') {
-    return 'octicon-issue-opened'; // Open Issue
-  }
-  return 'octicon-issue-closed'; // Closed Issue
-}
+const debouncedSuggestIssues = debounce((key: string, text: string) => new Promise<{matched:boolean; fragment?: HTMLElement}>(async (resolve) => {
+  const {owner, repo, index} = parseIssueHref(window.location.href);
+  const matches = await matchIssue(owner, repo, index, text);
+  if (!matches.length) return resolve({matched: false});
 
-function getIssueColor(issue: Issue) {
-  if (issue.pull_request) {
-    if (issue.pull_request.draft === true) {
-      return 'grey'; // WIP PR
-    } else if (issue.pull_request.merged === true) {
-      return 'purple'; // Merged PR
-    }
+  const ul = document.createElement('ul');
+  ul.classList.add('suggestions');
+  for (const issue of matches) {
+    const li = createElementFromAttrs('li', {
+      role: 'option',
+      'data-value': `${key}${issue.id}`,
+    });
+    li.classList.add('tw-flex', 'tw-gap-2');
+
+    const icon = svg(getIssueIcon(issue), 16, ['text', getIssueColor(issue)].join(' '));
+    li.append(createElementFromHTML(icon));
+
+    const id = document.createElement('span');
+    id.classList.add('id');
+    id.textContent = issue.id.toString();
+    li.append(id);
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = issue.title;
+    li.append(nameSpan);
+
+    ul.append(li);
   }
-  if (issue.state === 'open') {
-    return 'green'; // Open Issue
-  }
-  return 'red'; // Closed Issue
-}
+
+  resolve({matched: true, fragment: ul});
+}), 100);
 
 export function initTextExpander(expander) {
   expander?.addEventListener('text-expander-change', ({detail: {key, provide, text}}) => {
@@ -85,37 +87,7 @@ export function initTextExpander(expander) {
 
       provide({matched: true, fragment: ul});
     } else if (key === '#') {
-      provide(new Promise(async (resolve) => {
-        const {owner, repo, index} = parseIssueHref(window.location.href);
-        const matches = await matchIssue(owner, repo, index, text);
-        if (!matches.length) return resolve({matched: false});
-
-        const ul = document.createElement('ul');
-        ul.classList.add('suggestions');
-        for (const issue of matches) {
-          const li = createElementFromAttrs('li', {
-            role: 'option',
-            'data-value': `${key}${issue.id}`,
-          });
-          li.classList.add('tw-flex', 'tw-gap-2');
-
-          const icon = svg(getIssueIcon(issue), 16, ['text', getIssueColor(issue)].join(' '));
-          li.append(createElementFromHTML(icon));
-
-          const id = document.createElement('span');
-          id.classList.add('id');
-          id.textContent = issue.id.toString();
-          li.append(id);
-
-          const nameSpan = document.createElement('span');
-          nameSpan.textContent = issue.title;
-          li.append(nameSpan);
-
-          ul.append(li);
-        }
-
-        resolve({matched: true, fragment: ul});
-      }));
+      provide(debouncedSuggestIssues(key, text));
     }
   });
   expander?.addEventListener('text-expander-value', ({detail}) => {
