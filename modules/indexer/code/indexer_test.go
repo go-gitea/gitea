@@ -181,6 +181,55 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
+			// Search for matches on the contents of files regardless of case.
+			{
+				RepoIDs: nil,
+				Keyword: "dESCRIPTION",
+				Langs:   1,
+				Results: []codeSearchResult{
+					{
+						Filename: "README.md",
+						Content:  "# repo1\n\nDescription for repo1",
+					},
+				},
+			},
+			// Search for an exact match on the filename within the repo '62' (case insenstive).
+			// This scenario yields a single result (the file avocado.md on the repo '62')
+			{
+				RepoIDs: []int64{62},
+				Keyword: "AVOCADO.MD",
+				Langs:   1,
+				Results: []codeSearchResult{
+					{
+						Filename: "avocado.md",
+						Content:  "# repo1\n\npineaple pie of cucumber juice",
+					},
+				},
+			},
+			// Search for matches on the contents of files when the criteria is a expression.
+			{
+				RepoIDs: []int64{62},
+				Keyword: "console.log",
+				Langs:   1,
+				Results: []codeSearchResult{
+					{
+						Filename: "example-file.js",
+						Content:  "console.log(\"Hello, World!\")",
+					},
+				},
+			},
+			// Search for matches on the contents of files when the criteria is part of a expression.
+			{
+				RepoIDs: []int64{62},
+				Keyword: "log",
+				Langs:   1,
+				Results: []codeSearchResult{
+					{
+						Filename: "example-file.js",
+						Content:  "console.log(\"Hello, World!\")",
+					},
+				},
+			},
 		}
 
 		for _, kw := range keywords {
