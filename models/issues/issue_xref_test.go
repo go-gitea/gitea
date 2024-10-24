@@ -4,6 +4,7 @@
 package issues_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -68,6 +69,40 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0})
 }
 
+// changeIssueTitle changes the title of this issue, as the given user.
+func changeIssueTitle(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, oldTitle string) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = issues_model.UpdateIssueCols(ctx, issue, "name"); err != nil {
+		return fmt.Errorf("updateIssueCols: %w", err)
+	}
+
+	if err = issue.LoadRepo(ctx); err != nil {
+		return fmt.Errorf("loadRepo: %w", err)
+	}
+
+	opts := &issues_model.CreateCommentOptions{
+		Type:     issues_model.CommentTypeChangeTitle,
+		Doer:     doer,
+		Repo:     issue.Repo,
+		Issue:    issue,
+		OldTitle: oldTitle,
+		NewTitle: issue.Title,
+	}
+	if _, err = issues_model.CreateComment(ctx, opts); err != nil {
+		return fmt.Errorf("createComment: %w", err)
+	}
+	if err = issue.AddCrossReferences(ctx, doer, true); err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
 func TestXRef_NeuterCrossReferences(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -83,11 +118,53 @@ func TestXRef_NeuterCrossReferences(t *testing.T) {
 
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	i.Title = "title2, no mentions"
-	assert.NoError(t, issues_model.ChangeIssueTitle(db.DefaultContext, i, d, title))
+	assert.NoError(t, changeIssueTitle(db.DefaultContext, i, d, title))
 
 	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0})
 	assert.Equal(t, issues_model.CommentTypeIssueRef, ref.Type)
 	assert.Equal(t, references.XRefActionNeutered, ref.RefAction)
+}
+
+// newPullRequest creates new pull request with labels for repository.
+func newPullRequest(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, pr *issues_model.PullRequest) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
+	if err != nil {
+		return fmt.Errorf("generate pull request index failed: %w", err)
+	}
+
+	issue.Index = idx
+
+	if err = issues_model.NewIssueWithIndex(ctx, issue.Poster, issues_model.NewIssueOptions{
+		Repo:        repo,
+		Issue:       issue,
+		LabelIDs:    labelIDs,
+		Attachments: uuids,
+		IsPull:      true,
+	}); err != nil {
+		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || issues_model.IsErrNewIssueInsert(err) {
+			return err
+		}
+		return fmt.Errorf("newIssue: %w", err)
+	}
+
+	pr.Index = issue.Index
+	pr.BaseRepo = repo
+	pr.IssueID = issue.ID
+	if err = db.Insert(ctx, pr); err != nil {
+		return fmt.Errorf("insert pull repo: %w", err)
+	}
+
+	if err = committer.Commit(); err != nil {
+		return fmt.Errorf("Commit: %w", err)
+	}
+
+	return nil
 }
 
 func TestXRef_ResolveCrossReferences(t *testing.T) {
@@ -163,7 +240,7 @@ func testCreatePR(t *testing.T, repo, doer int64, title, content string) *issues
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer})
 	i := &issues_model.Issue{RepoID: r.ID, PosterID: d.ID, Poster: d, Title: title, Content: content, IsPull: true}
 	pr := &issues_model.PullRequest{HeadRepoID: repo, BaseRepoID: repo, HeadBranch: "head", BaseBranch: "base", Status: issues_model.PullRequestStatusMergeable}
-	assert.NoError(t, issues_model.NewPullRequest(db.DefaultContext, r, i, nil, nil, pr))
+	assert.NoError(t, newPullRequest(db.DefaultContext, r, i, nil, nil, pr))
 	pr.Issue = i
 	return pr
 }

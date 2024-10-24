@@ -33,9 +33,25 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := issues_model.NewIssue(ctx, repo, issue, labelIDs, uuids); err != nil {
-			return err
+		idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
+		if err != nil {
+			return fmt.Errorf("generate issue index failed: %w", err)
 		}
+
+		issue.Index = idx
+
+		if err = issues_model.NewIssueWithIndex(ctx, issue.Poster, issues_model.NewIssueOptions{
+			Repo:        repo,
+			Issue:       issue,
+			LabelIDs:    labelIDs,
+			Attachments: uuids,
+		}); err != nil {
+			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || issues_model.IsErrNewIssueInsert(err) {
+				return err
+			}
+			return fmt.Errorf("newIssue: %w", err)
+		}
+
 		for _, assigneeID := range assigneeIDs {
 			if _, err := AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assigneeID, true); err != nil {
 				return err
@@ -86,7 +102,26 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 		}
 	}
 
-	if err := issues_model.ChangeIssueTitle(ctx, issue, doer, oldTitle); err != nil {
+	if err := issues_model.UpdateIssueCols(ctx, issue, "name"); err != nil {
+		return fmt.Errorf("updateIssueCols: %w", err)
+	}
+
+	if err := issue.LoadRepo(ctx); err != nil {
+		return fmt.Errorf("loadRepo: %w", err)
+	}
+
+	opts := &issues_model.CreateCommentOptions{
+		Type:     issues_model.CommentTypeChangeTitle,
+		Doer:     doer,
+		Repo:     issue.Repo,
+		Issue:    issue,
+		OldTitle: oldTitle,
+		NewTitle: issue.Title,
+	}
+	if _, err := issues_model.CreateComment(ctx, opts); err != nil {
+		return fmt.Errorf("createComment: %w", err)
+	}
+	if err := issue.AddCrossReferences(ctx, doer, true); err != nil {
 		return err
 	}
 

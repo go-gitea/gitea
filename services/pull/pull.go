@@ -104,8 +104,31 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 
 	var reviewNotifiers []*issue_service.ReviewRequestNotifier
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr); err != nil {
-			return err
+		idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
+		if err != nil {
+			return fmt.Errorf("generate pull request index failed: %w", err)
+		}
+
+		issue.Index = idx
+
+		if err = issues_model.NewIssueWithIndex(ctx, issue.Poster, issues_model.NewIssueOptions{
+			Repo:        repo,
+			Issue:       issue,
+			LabelIDs:    labelIDs,
+			Attachments: uuids,
+			IsPull:      true,
+		}); err != nil {
+			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || issues_model.IsErrNewIssueInsert(err) {
+				return err
+			}
+			return fmt.Errorf("newIssue: %w", err)
+		}
+
+		pr.Index = issue.Index
+		pr.BaseRepo = repo
+		pr.IssueID = issue.ID
+		if err = db.Insert(ctx, pr); err != nil {
+			return fmt.Errorf("insert pull repo: %w", err)
 		}
 
 		for _, assigneeID := range assigneeIDs {

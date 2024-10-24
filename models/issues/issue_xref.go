@@ -68,10 +68,10 @@ func (issue *Issue) AddCrossReferences(stdCtx context.Context, doer *user_model.
 		OrigIssue: issue,
 		RemoveOld: removeOld,
 	}
-	return issue.createCrossReferences(stdCtx, ctx, issue.Title, issue.Content)
+	return createCrossReferences(stdCtx, ctx, issue.Title, issue.Content)
 }
 
-func (issue *Issue) createCrossReferences(stdCtx context.Context, ctx *crossReferencesContext, plaincontent, mdcontent string) error {
+func createCrossReferences(stdCtx context.Context, ctx *crossReferencesContext, plaincontent, mdcontent string) error {
 	xreflist, err := ctx.OrigIssue.getCrossReferences(stdCtx, ctx, plaincontent, mdcontent)
 	if err != nil {
 		return err
@@ -248,11 +248,7 @@ func (c *Comment) AddCrossReferences(stdCtx context.Context, doer *user_model.Us
 		OrigComment: c,
 		RemoveOld:   removeOld,
 	}
-	return c.Issue.createCrossReferences(stdCtx, ctx, "", c.Content)
-}
-
-func (c *Comment) neuterCrossReferences(ctx context.Context) error {
-	return neuterCrossReferences(ctx, c.IssueID, c.ID)
+	return createCrossReferences(stdCtx, ctx, "", c.Content)
 }
 
 // LoadRefComment loads comment that created this reference from database
