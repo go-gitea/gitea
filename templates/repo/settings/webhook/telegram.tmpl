@@ -10,6 +10,10 @@
 			<label for="chat_id">{{ctx.Locale.Tr "repo.settings.chat_id"}}</label>
 			<input id="chat_id" name="chat_id" type="text" value="{{.TelegramHook.ChatID}}" required>
 		</div>
+		<div class="field {{if .Err_CustomHost}}error{{end}}">
+			<label for="custom_host">{{ctx.Locale.Tr "repo.settings.custom_host"}}</label>
+			<input id="custom_host" name="custom_host" type="text" value="{{.TelegramHook.CustomHost}}" placeholder="https://api.telegram.org">
+		</div>
 		<div class="field {{if .Err_ThreadID}}error{{end}}">
 			<label for="thread_id">{{ctx.Locale.Tr "repo.settings.thread_id"}}</label>
 			<input id="thread_id" name="thread_id" type="text" value="{{.TelegramHook.ThreadID}}">
