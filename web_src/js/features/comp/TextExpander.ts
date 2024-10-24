@@ -17,14 +17,13 @@ const debouncedSuggestIssues = debounce((key: string, text: string) => new Promi
     const li = createElementFromAttrs('li', {
       role: 'option',
       'data-value': `${key}${issue.id}`,
+      class: 'tw-flex tw-gap-2',
     });
-    li.classList.add('tw-flex', 'tw-gap-2');
 
     const icon = svg(getIssueIcon(issue), 16, ['text', getIssueColor(issue)].join(' '));
     li.append(createElementFromHTML(icon));
 
     const id = document.createElement('span');
-    id.classList.add('id');
     id.textContent = issue.id.toString();
     li.append(id);
 

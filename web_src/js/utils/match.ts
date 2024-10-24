@@ -45,14 +45,12 @@ export function matchMention(queryText: string): MentionSuggestion[] {
   return sortAndReduce(results);
 }
 
-export async function matchIssue(owner: string, repo: string, _issueIndex: string, queryText: string): Promise<Issue[]> {
-  const query = queryText.toLowerCase();
-
-  const res = await GET(`/${owner}/${repo}/-/issues/suggestions?q=${query}`);
+export async function matchIssue(owner: string, repo: string, issueIndexStr: string, query: string): Promise<Issue[]> {
+  const res = await GET(`${window.location.origin}${window.config.appSubUrl}/${owner}/${repo}/-/issues/suggestions?q=${encodeURIComponent(query)}`);
 
   const issues: Issue[] = await res.json();
-  const issueIndex = parseInt(_issueIndex);
+  const issueIndex = parseInt(issueIndexStr);
 
-  // filter issue with same id
+  // filter out issue with same id
   return issues.filter((i) => i.id !== issueIndex);
 }
