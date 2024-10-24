@@ -10,7 +10,13 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 )
 
-// LFS represents the configuration for Git LFS
+const (
+	LFSConfigSectionLegacyServer = "server"
+	LFSConfigSectionServer       = "lfs.server"
+	LFSConfigSectionClient       = "lfs.client"
+)
+
+// LFS represents the legacy configuration for Git LFS, to be migrated to LFSServer
 var LFS = struct {
 	StartServer    bool          `ini:"LFS_START_SERVER"`
 	AllowPureSSH   bool          `ini:"LFS_ALLOW_PURE_SSH"`
@@ -22,11 +28,22 @@ var LFS = struct {
 	Storage *Storage
 }{}
 
+// LFSServer represents configuration for hosting Git LFS
+var LFSServer = struct {
+	MaxBatchSize int `ini:"MAX_BATCH_SIZE"`
+}{}
+
+// LFSClient represents configuration for mirroring upstream Git LFS
+var LFSClient = struct {
+	BatchSize int `ini:"BATCH_SIZE"`
+}{}
+
 func loadLFSFrom(rootCfg ConfigProvider) error {
-	sec := rootCfg.Section("server")
-	if err := sec.MapTo(&LFS); err != nil {
-		return fmt.Errorf("failed to map LFS settings: %v", err)
-	}
+	mustMapSetting(rootCfg, LFSConfigSectionServer, &LFSServer)
+	mustMapSetting(rootCfg, LFSConfigSectionClient, &LFSClient)
+	mustMapSetting(rootCfg, LFSConfigSectionLegacyServer, &LFS)
+
+	legacySec := rootCfg.Section(LFSConfigSectionLegacyServer)
 
 	lfsSec, _ := rootCfg.GetSection("lfs")
 
@@ -35,7 +52,7 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 	// if these are removed, the warning will not be shown
 	deprecatedSetting(rootCfg, "server", "LFS_CONTENT_PATH", "lfs", "PATH", "v1.19.0")
 
-	if val := sec.Key("LFS_CONTENT_PATH").String(); val != "" {
+	if val := legacySec.Key("LFS_CONTENT_PATH").String(); val != "" {
 		if lfsSec == nil {
 			lfsSec = rootCfg.Section("lfs")
 		}
@@ -53,7 +70,11 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 		LFS.LocksPagingNum = 50
 	}
 
-	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(24 * time.Hour)
+	if LFSClient.BatchSize < 1 {
+		LFSClient.BatchSize = 20
+	}
+
+	LFS.HTTPAuthExpiry = legacySec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(24 * time.Hour)
 
 	if !LFS.StartServer || !InstallLock {
 		return nil
