@@ -3,7 +3,6 @@ package fileicon
 import (
 	"context"
 	"html/template"
-	"os"
 	"path"
 	"strings"
 
@@ -72,39 +71,31 @@ func getFileIconNames(entry *git.TreeEntry) []string {
 	return nil
 }
 
-func loadCustomIcon(iconPath string) (string, error) {
-	log.Debug("Loading custom icon from %s", iconPath)
-
-	if icon, ok := fileIconCache.Get(iconPath); ok {
-		return icon, nil
-	}
-
-	// Try to load the icon from the filesystem
-	if _, err := os.Stat(iconPath); err != nil {
-		return "", err
-	}
-
-	iconData, err := os.ReadFile(iconPath)
-	if err != nil {
-		return "", err
-	}
-
-	fileIconCache.Add(iconPath, string(iconData))
-
-	return string(iconData), nil
+type fileIconBackend interface {
+	GetIcon(string) (string, error)
 }
 
 // FileIcon returns a custom icon from a folder or the default octicon for displaying files/directories
 func FileIcon(ctx context.Context, entry *git.TreeEntry) template.HTML {
+	backend := &fileIconHTTPBackend{
+		theme:   setting.UI.FileIconTheme,
+		baseURL: "https://raw.githubusercontent.com/anbraten/gitea-icons/refs/heads/master/gitea/",
+	}
+
 	iconTheme := setting.UI.FileIconTheme
 	if iconTheme != "" {
 		iconNames := getFileIconNames(entry)
 
 		// Try to load the custom icon
 		for _, iconName := range iconNames {
-			iconPath := path.Join(setting.AppDataPath, "icons", iconTheme, iconName+".svg")
-			if icon, err := loadCustomIcon(iconPath); err == nil {
-				return svg.RenderHTMLFromString(icon)
+			if icon, err := backend.GetIcon(iconName); err == nil {
+				if icon, ok := fileIconCache.Get(iconName); ok {
+					return svg.RenderHTMLFromString(icon)
+				}
+
+				fileIconCache.Add(iconName, string(icon))
+
+				return svg.RenderHTMLFromString(string(icon))
 			}
 		}
 	}
