@@ -85,6 +85,7 @@ type ViewResponse struct {
 			CanRerun          bool       `json:"canRerun"`
 			CanDeleteArtifact bool       `json:"canDeleteArtifact"`
 			Done              bool       `json:"done"`
+			WorkflowFileLink  string     `json:"workflowFileLink"`
 			WorkflowID        string     `json:"workflowID"`
 			WorkflowLink      string     `json:"workflowLink"`
 			IsSchedule        bool       `json:"isSchedule"`
@@ -170,6 +171,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.CanRerun = run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.CanDeleteArtifact = run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.Done = run.Status.IsDone()
+	resp.State.Run.WorkflowFileLink = actions.GetRunsWorkflowFileLink(run, ctx.Repo.GitRepo)
 	resp.State.Run.WorkflowID = run.WorkflowID
 	resp.State.Run.WorkflowLink = run.WorkflowLink()
 	resp.State.Run.IsSchedule = run.IsSchedule()

@@ -5,9 +5,11 @@ package actions
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -67,6 +69,42 @@ func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 		}
 	}
 	return ret, nil
+}
+
+// GetRunsWorkflowFileLink return url for the source of the workflow file for an ActionRun
+func GetRunsWorkflowFileLink(run *actions_model.ActionRun, gitRepo *git.Repository) string {
+	if run.Repo == nil || run.CommitSHA == "" {
+		return ""
+	}
+
+	commit, err := gitRepo.GetCommit(run.CommitSHA)
+	if err != nil {
+		return ""
+	}
+
+	entries, err := ListWorkflows(commit)
+	if err != nil {
+		return ""
+	}
+
+	var workflowEntry *git.TreeEntry
+	for _, entry := range entries {
+		if entry.Name() == run.WorkflowID {
+			workflowEntry = entry
+			break
+		}
+	}
+
+	if workflowEntry == nil {
+		return ""
+	}
+
+	workflowFilePath := workflowEntry.GetPathInRepo()
+	if workflowFilePath == "" {
+		return ""
+	}
+
+	return fmt.Sprintf("%s/src/commit/%s/%s", run.Repo.Link(), run.CommitSHA, workflowFilePath)
 }
 
 func GetContentFromEntry(entry *git.TreeEntry) ([]byte, error) {

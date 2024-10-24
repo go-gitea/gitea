@@ -1,58 +1,13 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build gogit
-
 package git
 
 import (
 	"testing"
 
-	"github.com/go-git/go-git/v5/plumbing/filemode"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/stretchr/testify/assert"
 )
-
-func getTestEntries() Entries {
-	return Entries{
-		&TreeEntry{gogitTreeEntry: &object.TreeEntry{Name: "v1.0", Mode: filemode.Dir}},
-		&TreeEntry{gogitTreeEntry: &object.TreeEntry{Name: "v2.0", Mode: filemode.Dir}},
-		&TreeEntry{gogitTreeEntry: &object.TreeEntry{Name: "v2.1", Mode: filemode.Dir}},
-		&TreeEntry{gogitTreeEntry: &object.TreeEntry{Name: "v2.12", Mode: filemode.Dir}},
-		&TreeEntry{gogitTreeEntry: &object.TreeEntry{Name: "v2.2", Mode: filemode.Dir}},
-		&TreeEntry{gogitTreeEntry: &object.TreeEntry{Name: "v12.0", Mode: filemode.Dir}},
-		&TreeEntry{gogitTreeEntry: &object.TreeEntry{Name: "abc", Mode: filemode.Regular}},
-		&TreeEntry{gogitTreeEntry: &object.TreeEntry{Name: "bcd", Mode: filemode.Regular}},
-	}
-}
-
-func TestEntriesSort(t *testing.T) {
-	entries := getTestEntries()
-	entries.Sort()
-	assert.Equal(t, "v1.0", entries[0].Name())
-	assert.Equal(t, "v12.0", entries[1].Name())
-	assert.Equal(t, "v2.0", entries[2].Name())
-	assert.Equal(t, "v2.1", entries[3].Name())
-	assert.Equal(t, "v2.12", entries[4].Name())
-	assert.Equal(t, "v2.2", entries[5].Name())
-	assert.Equal(t, "abc", entries[6].Name())
-	assert.Equal(t, "bcd", entries[7].Name())
-}
-
-func TestEntriesCustomSort(t *testing.T) {
-	entries := getTestEntries()
-	entries.CustomSort(func(s1, s2 string) bool {
-		return s1 > s2
-	})
-	assert.Equal(t, "v2.2", entries[0].Name())
-	assert.Equal(t, "v2.12", entries[1].Name())
-	assert.Equal(t, "v2.1", entries[2].Name())
-	assert.Equal(t, "v2.0", entries[3].Name())
-	assert.Equal(t, "v12.0", entries[4].Name())
-	assert.Equal(t, "v1.0", entries[5].Name())
-	assert.Equal(t, "bcd", entries[6].Name())
-	assert.Equal(t, "abc", entries[7].Name())
-}
 
 func TestFollowLink(t *testing.T) {
 	r, err := openRepositoryWithDefaultContext("tests/repos/repo1_bare")
@@ -99,4 +54,31 @@ func TestFollowLink(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = target.FollowLink()
 	assert.EqualError(t, err, "link_short: broken link")
+}
+
+func TestGetPathInRepo(t *testing.T) {
+	r, err := openRepositoryWithDefaultContext("tests/repos/repo1_bare")
+	assert.NoError(t, err)
+	defer r.Close()
+
+	commit, err := r.GetCommit("37991dec2c8e592043f47155ce4808d4580f9123")
+	assert.NoError(t, err)
+
+	// nested entry
+	entry, err := commit.Tree.GetTreeEntryByPath("foo/bar/link_to_hello")
+	assert.NoError(t, err)
+	path := entry.GetPathInRepo()
+	assert.Equal(t, "foo/bar/link_to_hello", path)
+
+	// folder
+	entry, err = commit.Tree.GetTreeEntryByPath("foo/bar")
+	assert.NoError(t, err)
+	path = entry.GetPathInRepo()
+	assert.Equal(t, "foo/bar", path)
+
+	// top level file
+	entry, err = commit.Tree.GetTreeEntryByPath("file2.txt")
+	assert.NoError(t, err)
+	path = entry.GetPathInRepo()
+	assert.Equal(t, "file2.txt", path)
 }

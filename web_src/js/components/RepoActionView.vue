@@ -46,6 +46,7 @@ const sfc = {
         done: false,
         workflowID: '',
         workflowLink: '',
+        workflowFileLink: '',
         isSchedule: false,
         jobs: [
           // {
@@ -350,10 +351,12 @@ export function initRepositoryActionView() {
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       areYouSure: el.getAttribute('data-locale-are-you-sure'),
       confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),
+      runDetails: el.getAttribute('data-locale-runs-details'),
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
       showFullScreen: el.getAttribute('data-locale-show-full-screen'),
       downloadLogs: el.getAttribute('data-locale-download-logs'),
+      workflowFile: el.getAttribute('data-locale-workflow-file'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
         waiting: el.getAttribute('data-locale-status-waiting'),
@@ -421,17 +424,29 @@ export function initRepositoryActionView() {
             </a>
           </div>
         </div>
-        <div class="job-artifacts" v-if="artifacts.length > 0">
-          <div class="job-artifacts-title">
+        <div class="left-side-section" v-if="artifacts.length > 0">
+          <div class="left-side-section-title">
             {{ locale.artifactsTitle }}
           </div>
-          <ul class="job-artifacts-list">
-            <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.name">
-              <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
-                <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon"/>{{ artifact.name }}
+          <ul class="left-side-section-list">
+            <li class="left-side-section-item" v-for="artifact in artifacts" :key="artifact.name">
+              <a class="left-side-section-link" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                <SvgIcon name="octicon-file" class="ui text black left-side-section-icon"/>{{ artifact.name }}
               </a>
-              <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)" class="job-artifacts-delete">
-                <SvgIcon name="octicon-trash" class="ui text black job-artifacts-icon"/>
+              <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)" class="left-side-section-delete">
+                <SvgIcon name="octicon-trash" class="ui text black left-side-section-icon"/>
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div class="left-side-section" v-if="run.workflowFileLink">
+          <div class="left-side-section-title">
+            {{ locale.runDetails }}
+          </div>
+          <ul class="left-side-section-list">
+            <li class="left-side-section-item">
+              <a class="left-side-section-link" target="_blank" :href="run.workflowFileLink">
+                <SvgIcon name="octicon-file" class="ui text black left-side-section-icon"/>{{ locale.workflowFile }}
               </a>
             </li>
           </ul>
@@ -565,26 +580,26 @@ export function initRepositoryActionView() {
   }
 }
 
-.job-artifacts-title {
+.left-side-section-title {
   font-size: 18px;
   margin-top: 16px;
   padding: 16px 10px 0 20px;
   border-top: 1px solid var(--color-secondary);
 }
 
-.job-artifacts-item {
+.left-side-section-item {
   margin: 5px 0;
   padding: 6px;
   display: flex;
   justify-content: space-between;
 }
 
-.job-artifacts-list {
+.left-side-section-list {
   padding-left: 12px;
   list-style: none;
 }
 
-.job-artifacts-icon {
+.left-side-section-icon {
   padding-right: 3px;
 }
 
