@@ -102,7 +102,7 @@ func buildAuthGroup() *auth_service.Group {
 	group.Add(&auth_service.OAuth2{}) // FIXME: this should be removed and only applied in download and oauth related routers
 	group.Add(&auth_service.Basic{})  // FIXME: this should be removed and only applied in download and git/lfs routers
 
-	if setting.Service.EnableReverseProxyAuth {
+	if setting.ReverseProxyAuth.Enabled {
 		group.Add(&auth_service.ReverseProxy{}) // reverseproxy should before Session, otherwise the header will be ignored if user has login
 	}
 	group.Add(&auth_service.Session{})
