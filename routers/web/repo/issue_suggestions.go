@@ -5,7 +5,6 @@ package repo
 
 import (
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -25,7 +24,7 @@ type issueSuggestion struct {
 
 // IssueSuggestions returns a list of issue suggestions
 func IssueSuggestions(ctx *context.Context) {
-	keyword := strings.ToLower(ctx.Req.FormValue("q"))
+	keyword := ctx.Req.FormValue("q")
 
 	searchOpt := &issue_indexer.SearchOptions{
 		Paginator: &db.ListOptions{

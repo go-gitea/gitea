@@ -46,7 +46,7 @@ export function matchMention(queryText: string): MentionSuggestion[] {
 }
 
 export async function matchIssue(owner: string, repo: string, issueIndexStr: string, query: string): Promise<Issue[]> {
-  const res = await GET(`${window.location.origin}${window.config.appSubUrl}/${owner}/${repo}/-/issues/suggestions?q=${encodeURIComponent(query)}`);
+  const res = await GET(`${window.config.appSubUrl}/${owner}/${repo}/-/issues/suggestions?q=${encodeURIComponent(query)}`);
 
   const issues: Issue[] = await res.json();
   const issueIndex = parseInt(issueIndexStr);
