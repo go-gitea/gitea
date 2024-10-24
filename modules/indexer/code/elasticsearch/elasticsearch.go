@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	esRepoIndexerLatestVersion = 2
+	esRepoIndexerLatestVersion = 3
 	// multi-match-types, currently only 2 types are used
 	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
 	esMultiMatchTypeBestFields   = "best_fields"
