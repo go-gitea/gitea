@@ -4,154 +4,205 @@
 	<div class="ui container {{if .IsBlame}}fluid padded{{end}}">
 		{{template "base/alert" .}}
 		{{template "repo/code/recently_pushed_new_branches" .}}
-		{{if and (not .HideRepoInfo) (not .IsBlame)}}
-		<div class="repo-description tw-break-anywhere">
-			{{- $description := .Repository.DescriptionHTML ctx -}}
-			{{if $description}}{{$description | RenderCodeBlock}}{{end}}
-			{{if .Repository.Website}}<a href="{{.Repository.Website}}">{{.Repository.Website}}</a>{{end}}
-		</div>
-		<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-2 tw-my-2" id="repo-topics">
-			{{/* it should match the code in issue-home.js */}}
-			{{range .Topics}}<a class="repo-topic ui large label" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
-			{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<button id="manage_topic" class="btn interact-fg tw-text-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
-		</div>
-		{{end}}
-		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
-		<div class="ui form tw-hidden tw-flex tw-gap-2 tw-my-2" id="topic_edit">
-			<div class="ui fluid multiple search selection dropdown tw-flex-wrap tw-flex-1">
-				<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
-				{{range .Topics}}
-					{{/* keep the same layout as Fomantic UI generated labels */}}
-					<a class="ui label transition visible tw-cursor-default tw-inline-block" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
-				{{end}}
-				<div class="text"></div>
-			</div>
-			<div>
-				<button class="ui basic button" id="cancel_topic_edit">{{ctx.Locale.Tr "cancel"}}</button>
-				<button class="ui primary button" id="save_topic" data-link="{{.RepoLink}}/topics">{{ctx.Locale.Tr "save"}}</button>
-			</div>
-		</div>
-		{{end}}
-		{{if .Repository.IsArchived}}
-			<div class="ui warning message tw-text-center">
-				{{if .Repository.ArchivedUnix.IsZero}}
-					{{ctx.Locale.Tr "repo.archive.title"}}
-				{{else}}
-					{{ctx.Locale.Tr "repo.archive.title_date" (DateTime "long" .Repository.ArchivedUnix)}}
-				{{end}}
-			</div>
-		{{end}}
-		{{template "repo/sub_menu" .}}
-		{{$n := len .TreeNames}}
-		{{$l := Eval $n "-" 1}}
-		{{$isHomepage := (eq $n 0)}}
-		<div class="repo-button-row" data-is-homepage="{{$isHomepage}}">
-			<div class="repo-button-row-left">
-				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "tw-mr-1"}}
-				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
-					{{$cmpBranch := ""}}
-					{{if ne .Repository.ID .BaseRepo.ID}}
-						{{$cmpBranch = printf "%s/%s:" (.Repository.OwnerName|PathEscape) (.Repository.Name|PathEscape)}}
-					{{end}}
-					{{$cmpBranch = print $cmpBranch (.BranchName|PathEscapeSegments)}}
-					{{$compareLink := printf "%s/compare/%s...%s" .BaseRepo.Link (.BaseRepo.DefaultBranch|PathEscapeSegments) $cmpBranch}}
-					<a id="new-pull-request" role="button" class="ui compact basic button" href="{{$compareLink}}"
-						data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{ctx.Locale.Tr "repo.pulls.compare_changes"}}{{else}}{{ctx.Locale.Tr "action.compare_branch"}}{{end}}">
-						{{svg "octicon-git-pull-request"}}
-					</a>
-				{{end}}
-				<!-- Show go to file and breadcrumbs if not on home page -->
-				{{if $isHomepage}}
-					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{ctx.Locale.Tr "repo.find_file.go_to_file"}}</a>
-				{{end}}
 
-				{{if and .CanWriteCode .IsViewBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
-					<button class="ui dropdown basic compact jump button"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
-						{{ctx.Locale.Tr "repo.editor.add_file"}}
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
-							<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-								{{ctx.Locale.Tr "repo.editor.new_file"}}
-							</a>
-							{{if .RepositoryUploadEnabled}}
-							<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-								{{ctx.Locale.Tr "repo.editor.upload_file"}}
-							</a>
-							{{end}}
-							<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-								{{ctx.Locale.Tr "repo.editor.patch"}}
-							</a>
-						</div>
-					</button>
-				{{end}}
-
-				{{if and $isHomepage (.Repository.IsTemplate)}}
-					<a role="button" class="ui primary compact button" href="{{AppSubUrl}}/repo/create?template_id={{.Repository.ID}}">
-						{{ctx.Locale.Tr "repo.use_template"}}
-					</a>
-				{{end}}
-				{{if $isHomepage}}
-					{{/* only show the "code search" on the repo home page, it only does global search,
-						so do not show it when viewing file or directory to avoid misleading users (it doesn't search in a directory) */}}
-					<form class="ignore-dirty tw-flex tw-flex-1" action="{{.RepoLink}}/search" method="get">
-						<div class="ui small action input tw-flex-1">
-							<input name="q" size="10" placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
-							{{template "shared/search/button"}}
-						</div>
-					</form>
-				{{else}}
-					<span class="breadcrumb repo-path tw-ml-1">
-						<a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
-						{{- range $i, $v := .TreeNames -}}
-							<span class="breadcrumb-divider">/</span>
-							{{- if eq $i $l -}}
-								<span class="active section" title="{{$v}}">{{$v}}</span>
-							{{- else -}}
-								{{$p := index $.Paths $i}}<span class="section"><a href="{{$.BranchLink}}/{{PathEscapeSegments $p}}" title="{{$v}}">{{$v}}</a></span>
-							{{- end -}}
-						{{- end -}}
-					</span>
-				{{end}}
-			</div>
-			<div class="repo-button-row-right">
-				<!-- Only show clone panel in repository home page -->
-				{{if $isHomepage}}
-					<div class="clone-panel ui action tiny input">
-						{{template "repo/clone_buttons" .}}
-						<button class="ui small jump dropdown icon button" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
-							{{svg "octicon-kebab-horizontal"}}
-							<div class="menu">
-								{{if not $.DisableDownloadSourceArchives}}
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_zip"}}</a>
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_tar"}}</a>
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_bundle"}}</a>
-								{{end}}
-								{{if .CitiationExist}}
-									<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.cite_this_repo"}}</a>
-								{{end}}
-								{{range .OpenWithEditorApps}}
-									<a class="item js-clone-url-editor" data-href-template="{{.OpenURL}}">{{.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" .DisplayName}}</a>
-								{{end}}
-							</div>
-						</button>
-						{{template "repo/clone_script" .}}{{/* the script will update `.js-clone-url` and related elements */}}
+		<div class="flex-container">
+			<div class="flex-container-main" data-home={{.IsHomePage}}>
+				{{if .Repository.IsArchived}}
+					<div class="ui warning message tw-text-center">
+						{{if .Repository.ArchivedUnix.IsZero}}
+							{{ctx.Locale.Tr "repo.archive.title"}}
+						{{else}}
+							{{ctx.Locale.Tr "repo.archive.title_date" (DateTime "long" .Repository.ArchivedUnix)}}
+						{{end}}
 					</div>
-					{{template "repo/cite/cite_modal" .}}
 				{{end}}
-				{{if and (not $isHomepage) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home), TODO: split the templates, avoid using "if" tricks */}}
-					<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
-						{{svg "octicon-history" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_history"}}
-					</a>
+				{{$n := len .TreeNames}}
+				{{$l := Eval $n "-" 1}}
+				{{$isHomepage := (eq $n 0)}}
+
+				{{if $isHomepage}}
+					<div class="only-mobile">
+						{{template "repo/home_search_code" .}}
+					</div>
+					<div class="flex-list only-mobile">
+						{{template "repo/home_share_sidebar" .}}
+					</div>
+				{{end}}
+				{{template "repo/sub_menu" .}}
+
+				<div class="repo-button-row" data-is-homepage="{{$isHomepage}}">
+					<div class="repo-button-row-left">
+						{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "tw-mr-1"}}
+						{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
+							{{$cmpBranch := ""}}
+							{{if ne .Repository.ID .BaseRepo.ID}}
+								{{$cmpBranch = printf "%s/%s:" (.Repository.OwnerName|PathEscape) (.Repository.Name|PathEscape)}}
+							{{end}}
+							{{$cmpBranch = print $cmpBranch (.BranchName|PathEscapeSegments)}}
+							{{$compareLink := printf "%s/compare/%s...%s" .BaseRepo.Link (.BaseRepo.DefaultBranch|PathEscapeSegments) $cmpBranch}}
+							<a id="new-pull-request" role="button" class="ui compact basic button" href="{{$compareLink}}"
+								data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{ctx.Locale.Tr "repo.pulls.compare_changes"}}{{else}}{{ctx.Locale.Tr "action.compare_branch"}}{{end}}">
+								{{svg "octicon-git-pull-request"}}
+							</a>
+						{{end}}
+						<!-- Show go to file and breadcrumbs if not on home page -->
+						{{if $isHomepage}}
+							<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{ctx.Locale.Tr "repo.find_file.go_to_file"}}</a>
+						{{end}}
+
+						{{if and .CanWriteCode .IsViewBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
+							<button class="ui dropdown basic compact jump button"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+								{{ctx.Locale.Tr "repo.editor.add_file"}}
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="menu">
+									<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+										{{ctx.Locale.Tr "repo.editor.new_file"}}
+									</a>
+									{{if .RepositoryUploadEnabled}}
+									<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+										{{ctx.Locale.Tr "repo.editor.upload_file"}}
+									</a>
+									{{end}}
+									<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+										{{ctx.Locale.Tr "repo.editor.patch"}}
+									</a>
+								</div>
+							</button>
+						{{end}}
+
+						{{if and $isHomepage (.Repository.IsTemplate)}}
+							<a role="button" class="ui primary compact button" href="{{AppSubUrl}}/repo/create?template_id={{.Repository.ID}}">
+								{{ctx.Locale.Tr "repo.use_template"}}
+							</a>
+						{{end}}
+						{{if not $isHomepage}}
+							<span class="breadcrumb repo-path tw-ml-1">
+								<a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
+								{{- range $i, $v := .TreeNames -}}
+									<span class="breadcrumb-divider">/</span>
+									{{- if eq $i $l -}}
+										<span class="active section" title="{{$v}}">{{$v}}</span>
+									{{- else -}}
+										{{$p := index $.Paths $i}}<span class="section"><a href="{{$.BranchLink}}/{{PathEscapeSegments $p}}" title="{{$v}}">{{$v}}</a></span>
+									{{- end -}}
+								{{- end -}}
+							</span>
+						{{end}}
+					</div>
+					<div class="repo-button-row-right">
+						<!-- Only show clone panel in repository home page -->
+						{{if $isHomepage}}
+							<div class="clone-panel ui action tiny input">
+								{{template "repo/clone_buttons" .}}
+								<button class="ui small jump dropdown icon button" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
+									{{svg "octicon-kebab-horizontal"}}
+									<div class="menu">
+										{{if not $.DisableDownloadSourceArchives}}
+											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_zip"}}</a>
+											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_tar"}}</a>
+											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_bundle"}}</a>
+										{{end}}
+										{{range .OpenWithEditorApps}}
+											<a class="item js-clone-url-editor" data-href-template="{{.OpenURL}}">{{.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" .DisplayName}}</a>
+										{{end}}
+									</div>
+								</button>
+								{{template "repo/clone_script" .}}{{/* the script will update `.js-clone-url` and related elements */}}
+							</div>
+							{{template "repo/cite/cite_modal" .}}
+						{{end}}
+						{{if and (not $isHomepage) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home), TODO: split the templates, avoid using "if" tricks */}}
+							<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
+								{{svg "octicon-history" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_history"}}
+							</a>
+						{{end}}
+					</div>
+				</div>
+				{{if .IsViewFile}}
+					{{template "repo/view_file" .}}
+				{{else if .IsBlame}}
+					{{template "repo/blame" .}}
+				{{else}}{{/* IsViewDirectory */}}
+					{{template "repo/view_list" .}}
 				{{end}}
 			</div>
+
+			{{if $isHomepage}}
+				<div class="flex-container-repo">
+					<div class="not-mobile">
+						{{template "repo/home_search_code" .}}
+					</div>
+
+					<div class="flex-list">
+						<div class="flex-item not-mobile">
+							{{template "repo/home_share_sidebar" .}}
+						</div>
+
+						{{if .LatestRelease}}
+							<div class="flex-item">
+								<div class="flex-item-main">
+									<div class="flex-item-title">
+										<a class="item muted" href="{{.Link}}/releases">
+											{{ctx.Locale.Tr "repo.releases"}}
+											<span class="ui small label">{{.NumReleases}}</span>
+										</a>
+									</div>
+									<div class="flex-item">
+										<div class="flex-item-icon">
+											{{svg "octicon-tag" 16}}
+										</div>
+										<div class="flex-item-main">
+											<div class="flex-item-header">
+												<div class="flex-item-title tw-gap-2">
+													<a class="muted" href="{{.LatestRelease.Link}}">{{.LatestRelease.Title}}</a>
+													<span class="ui basic green label tw-h-100">{{ctx.Locale.Tr "latest"}}</span>
+												</div>
+											</div>
+											<div class="flex-item-body">
+												<span class="time">{{TimeSinceUnix .LatestRelease.CreatedUnix ctx.Locale}}</span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						{{end}}
+
+						{{if and (.Permission.CanRead ctx.Consts.RepoUnitTypeCode) (not .IsEmptyRepo) .LanguageStats}}
+							<div class="flex-item">
+								<div class="flex-item-main">
+									<div class="flex-item-title">
+										{{ctx.Locale.Tr "repo.repo_lang"}}
+									</div>
+
+									<div class="flex-item-body">
+										<div class="language-stats">
+											{{range .LanguageStats}}
+												<div class="bar" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-tooltip-placement="top" data-tooltip-content={{.Language}} data-tooltip-follow-cursor="horizontal"></div>
+											{{end}}
+										</div>
+										<div class="language-stats-details">
+											{{range .LanguageStats}}
+												<div class="item">
+													<i class="color-icon" style="background-color: {{.Color}}"></i>
+													<span class="tw-font-semibold">
+														{{if eq .Language "other"}}
+															{{ctx.Locale.Tr "repo.language_other"}}
+														{{else}}
+															{{.Language}}
+														{{end}}
+													</span>
+													{{.Percentage}}%
+												</div>
+											{{end}}
+										</div>
+									</div>
+								</div>
+							</div>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
 		</div>
-		{{if .IsViewFile}}
-			{{template "repo/view_file" .}}
-		{{else if .IsBlame}}
-			{{template "repo/blame" .}}
-		{{else}}{{/* IsViewDirectory */}}
-			{{template "repo/view_list" .}}
-		{{end}}
 	</div>
 </div>
 {{template "base/footer" .}}
