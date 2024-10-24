@@ -147,6 +147,9 @@ type swaggerParameterBodies struct {
 	EditBranchProtectionOption api.EditBranchProtectionOption
 
 	// in:body
+	UpdateBranchProtectionPriories api.UpdateBranchProtectionPriories
+
+	// in:body
 	CreateOAuth2ApplicationOptions api.CreateOAuth2ApplicationOptions
 
 	// in:body

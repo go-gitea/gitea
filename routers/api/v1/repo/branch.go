@@ -623,6 +623,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	protectBranch = &git_model.ProtectedBranch{
 		RepoID:                        ctx.Repo.Repository.ID,
 		RuleName:                      ruleName,
+		Priority:                      form.Priority,
 		CanPush:                       form.EnablePush,
 		EnableWhitelist:               form.EnablePush && form.EnablePushWhitelist,
 		WhitelistDeployKeys:           form.EnablePush && form.EnablePushWhitelist && form.PushWhitelistDeployKeys,
@@ -645,7 +646,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		BlockAdminMergeOverride:       form.BlockAdminMergeOverride,
 	}
 
-	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
+	if err := git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
 		ForcePushUserIDs: forcePushAllowlistUsers,
@@ -654,14 +655,13 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,
 		ApprovalsTeamIDs: approvalsWhitelistTeams,
-	})
-	if err != nil {
+	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateProtectBranch", err)
 		return
 	}
 
 	if isBranchExist {
-		if err = pull_service.CheckPRsForBaseBranch(ctx, ctx.Repo.Repository, ruleName); err != nil {
+		if err := pull_service.CheckPRsForBaseBranch(ctx, ctx.Repo.Repository, ruleName); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CheckPRsForBaseBranch", err)
 			return
 		}
@@ -799,6 +799,10 @@ func EditBranchProtection(ctx *context.APIContext) {
 				}
 			}
 		}
+	}
+
+	if form.Priority != nil {
+		protectBranch.Priority = *form.Priority
 	}
 
 	if form.EnableMergeWhitelist != nil {
@@ -1080,6 +1084,55 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 
 	if err := git_model.DeleteProtectedBranch(ctx, ctx.Repo.Repository, bp.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteProtectedBranch", err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+// UpdateBranchProtectionPriories updates the priorities of branch protections for a repo
+func UpdateBranchProtectionPriories(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/branch_protections/priority/move repository repoUpdateBranchProtectionPriories
+	// ---
+	// summary: Update the priorities of branch protections for a repository.
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/UpdateBranchProtectionPriories"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+	form := web.GetForm(ctx).(*api.UpdateBranchProtectionPriories)
+	repo := ctx.Repo.Repository
+
+	ids := make([]int64, len(*form))
+	for i, v := range *form {
+		ids[i] = v.ID
+	}
+
+	if err := git_model.UpdateProtectBranchPriorities(ctx, repo, ids); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateProtectBranchPriorities", err)
 		return
 	}
 
