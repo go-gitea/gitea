@@ -191,5 +191,19 @@ func TestAPIGetContentsRefFormats(t *testing.T) {
 		raw, err = io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 		assert.EqualValues(t, content, string(raw))
+
+		// Test with a filepath with 40 characters
+		fileWith40c := setting.AppURL + "api/v1/repos/user2/repo1/raw/" + "a_file_path_with_40_characters_for_tests"
+		resp = MakeRequest(t, NewRequest(t, http.MethodGet, fileWith40c), http.StatusOK)
+		raw, err = io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		assert.EqualValues(t, "# test\n", string(raw))
+
+		// Test with a filepath with 40 characters and name is a commit SHA
+		fileWith40c = setting.AppURL + "api/v1/repos/user2/repo1/raw/" + "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+		resp = MakeRequest(t, NewRequest(t, http.MethodGet, fileWith40c), http.StatusOK)
+		raw, err = io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		assert.EqualValues(t, "# 65f1bf27bc3bf70f64657658635e66094edbcb4d\n", string(raw))
 	})
 }
