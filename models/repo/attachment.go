@@ -25,6 +25,7 @@ type Attachment struct {
 	UUID              string `xorm:"uuid UNIQUE"`
 	RepoID            int64  `xorm:"INDEX"`           // this should not be zero
 	IssueID           int64  `xorm:"INDEX"`           // maybe zero when creating
+	ConversationID    int64  `xorm:"INDEX"`           // maybe zero when creating
 	ReleaseID         int64  `xorm:"INDEX"`           // maybe zero when creating
 	UploaderID        int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
 	CommentID         int64  `xorm:"INDEX"`
@@ -260,4 +261,10 @@ func DeleteOrphanedAttachments(ctx context.Context) error {
 	_, err := db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
 		Delete(new(Attachment))
 	return err
+}
+
+// GetAttachmentsByIssueID returns all attachments of an issue.
+func GetAttachmentsByConversationID(ctx context.Context, conversationID int64) ([]*Attachment, error) {
+	attachments := make([]*Attachment, 0, 10)
+	return attachments, db.GetEngine(ctx).Where("conversation_id = ? AND comment_id = 0", conversationID).Find(&attachments)
 }

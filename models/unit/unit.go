@@ -31,6 +31,7 @@ const (
 	TypeProjects                    // 8 Projects
 	TypePackages                    // 9 Packages
 	TypeActions                     // 10 Actions
+	TypeConversations               //11 Conversations
 )
 
 // Value returns integer value for unit type (used by template)

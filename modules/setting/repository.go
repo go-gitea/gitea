@@ -94,6 +94,10 @@ var (
 			MaxPinned   int
 		} `ini:"repository.issue"`
 
+		Conversation struct {
+			LockReasons []string
+		} `ini:"repository.conversation"`
+
 		Release struct {
 			AllowedTypes     string
 			DefaultPagingNum int

@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	conversation_model "code.gitea.io/gitea/models/conversations"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -412,6 +413,33 @@ func Diff(ctx *context.Context) {
 		ctx.ServerError("commit.GetBranchName", err)
 		return
 	}
+
+	conversation, err := conversation_model.GetConversationByCommitID(ctx, commitID)
+	if err != nil {
+		// If failed to get a conversation, generate a new one for this commit
+		if conversation_model.IsErrConversationNotExist(err) {
+			err = conversation_model.NewConversation(ctx, ctx.Repo.Repository, &conversation_model.Conversation{
+				RepoID:    ctx.Repo.Repository.ID,
+				CommitSha: commitID,
+				Type:      conversation_model.ConversationTypeCommit,
+			}, []string{})
+			if err != nil {
+				ctx.ServerError("commit.NewConversation", err)
+				return
+			}
+			// And attempt to get it again
+			conversation, err = conversation_model.GetConversationByCommitID(ctx, commitID)
+			if err != nil {
+				ctx.ServerError("commit.GetConversationAfterNew", err)
+				return
+			}
+		} else {
+			ctx.ServerError("commit.GetConversation", err)
+			return
+		}
+	}
+
+	ctx.Data["Comments"] = conversation.Comments
 
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 
+	conversations_model "code.gitea.io/gitea/models/conversations"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -155,6 +156,16 @@ func GetIssueNotification(ctx context.Context, userID, issueID int64) (*Notifica
 	_, err := db.GetEngine(ctx).
 		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
+		Get(notification)
+	return notification, err
+}
+
+// GetConversationNotification return the notification about an conversation
+func GetConversationNotification(ctx context.Context, userID, conversationID int64) (*Notification, error) {
+	notification := new(Notification)
+	_, err := db.GetEngine(ctx).
+		Where("user_id = ?", userID).
+		And("conversation_id = ?", conversationID).
 		Get(notification)
 	return notification, err
 }
@@ -307,6 +318,32 @@ func SetIssueReadBy(ctx context.Context, issueID, userID int64) error {
 
 func setIssueNotificationStatusReadIfUnread(ctx context.Context, userID, issueID int64) error {
 	notification, err := GetIssueNotification(ctx, userID, issueID)
+	// ignore if not exists
+	if err != nil {
+		return nil
+	}
+
+	if notification.Status != NotificationStatusUnread {
+		return nil
+	}
+
+	notification.Status = NotificationStatusRead
+
+	_, err = db.GetEngine(ctx).ID(notification.ID).Cols("status").Update(notification)
+	return err
+}
+
+// SetConversationReadBy sets conversation to be read by given user.
+func SetConversationReadBy(ctx context.Context, conversationID, userID int64) error {
+	if err := conversations_model.UpdateConversationUserByRead(ctx, userID, conversationID); err != nil {
+		return err
+	}
+
+	return setConversationNotificationStatusReadIfUnread(ctx, userID, conversationID)
+}
+
+func setConversationNotificationStatusReadIfUnread(ctx context.Context, userID, conversationID int64) error {
+	notification, err := GetConversationNotification(ctx, userID, conversationID)
 	// ignore if not exists
 	if err != nil {
 		return nil

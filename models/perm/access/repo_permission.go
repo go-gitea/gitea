@@ -127,6 +127,10 @@ func (p *Permission) CanReadIssuesOrPulls(isPull bool) bool {
 	return p.CanRead(unit.TypeIssues)
 }
 
+func (p *Permission) CanReadConversations() bool {
+	return p.CanRead(unit.TypeConversations)
+}
+
 // CanWrite returns true if user could write to this unit
 func (p *Permission) CanWrite(unitType unit.Type) bool {
 	return p.CanAccess(perm_model.AccessModeWrite, unitType)
@@ -139,6 +143,10 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 		return p.CanWrite(unit.TypePullRequests)
 	}
 	return p.CanWrite(unit.TypeIssues)
+}
+
+func (p *Permission) CanWriteConversations() bool {
+	return p.CanWrite(unit.TypeConversations)
 }
 
 func (p *Permission) ReadableUnitTypes() []unit.Type {

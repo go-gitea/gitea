@@ -14,6 +14,12 @@ import (
 
 // Indexer settings
 var Indexer = struct {
+	ConversationType        string
+	ConversationPath        string
+	ConversationConnStr     string
+	ConversationConnAuth    string
+	ConversationIndexerName string
+
 	IssueType        string
 	IssuePath        string
 	IssueConnStr     string
@@ -32,6 +38,12 @@ var Indexer = struct {
 	ExcludePatterns      []*GlobMatcher
 	ExcludeVendored      bool
 }{
+	ConversationType:        "bleve",
+	ConversationPath:        "indexers/conversations.bleve",
+	ConversationConnStr:     "",
+	ConversationConnAuth:    "",
+	ConversationIndexerName: "gitea_conversations",
+
 	IssueType:        "bleve",
 	IssuePath:        "indexers/issues.bleve",
 	IssueConnStr:     "",

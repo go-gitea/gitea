@@ -139,24 +139,26 @@ type Repository struct {
 	DefaultBranch       string
 	DefaultWikiBranch   string
 
-	NumWatches          int
-	NumStars            int
-	NumForks            int
-	NumIssues           int
-	NumClosedIssues     int
-	NumOpenIssues       int `xorm:"-"`
-	NumPulls            int
-	NumClosedPulls      int
-	NumOpenPulls        int `xorm:"-"`
-	NumMilestones       int `xorm:"NOT NULL DEFAULT 0"`
-	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
-	NumOpenMilestones   int `xorm:"-"`
-	NumProjects         int `xorm:"NOT NULL DEFAULT 0"`
-	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
-	NumOpenProjects     int `xorm:"-"`
-	NumActionRuns       int `xorm:"NOT NULL DEFAULT 0"`
-	NumClosedActionRuns int `xorm:"NOT NULL DEFAULT 0"`
-	NumOpenActionRuns   int `xorm:"-"`
+	NumWatches             int
+	NumStars               int
+	NumForks               int
+	NumIssues              int
+	NumClosedIssues        int
+	NumOpenIssues          int `xorm:"-"`
+	NumPulls               int
+	NumClosedPulls         int
+	NumOpenPulls           int `xorm:"-"`
+	NumMilestones          int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedMilestones    int `xorm:"NOT NULL DEFAULT 0"`
+	NumOpenMilestones      int `xorm:"-"`
+	NumProjects            int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedProjects      int `xorm:"NOT NULL DEFAULT 0"`
+	NumOpenProjects        int `xorm:"-"`
+	NumActionRuns          int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedActionRuns    int `xorm:"NOT NULL DEFAULT 0"`
+	NumOpenActionRuns      int `xorm:"-"`
+	NumConversations       int `xorm:"NOT NULL DEFAULT 0"`
+	NumLockedConversations int `xorm:"NOT NULL DEFAULT 0"`
 
 	IsPrivate  bool `xorm:"INDEX"`
 	IsEmpty    bool `xorm:"INDEX"`
@@ -900,6 +902,27 @@ func UpdateRepoIssueNumbers(ctx context.Context, repoID int64, isPull, isClosed 
 		"repo_id": repoID,
 		"is_pull": isPull,
 	}.And(builder.If(isClosed, builder.Eq{"is_closed": isClosed})))
+
+	// builder.Update(cond) will generate SQL like UPDATE ... SET cond
+	query := builder.Update(builder.Eq{field: subQuery}).
+		From("repository").
+		Where(builder.Eq{"id": repoID})
+	_, err := db.Exec(ctx, query)
+	return err
+}
+
+// UpdateRepoConversationNumbers updates one of a repositories amount of (locked|unlocked) (Conversation) with the current count
+func UpdateRepoConversationNumbers(ctx context.Context, repoID int64, isLocked bool) error {
+	field := "num_"
+	if isLocked {
+		field += "locked_"
+	}
+	field += "conversations"
+
+	subQuery := builder.Select("count(*)").
+		From("conversation").Where(builder.Eq{
+		"repo_id": repoID,
+	}.And(builder.If(isLocked, builder.Eq{"is_locked": isLocked})))
 
 	// builder.Update(cond) will generate SQL like UPDATE ... SET cond
 	query := builder.Update(builder.Eq{field: subQuery}).

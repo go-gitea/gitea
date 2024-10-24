@@ -15,6 +15,7 @@ var UI = struct {
 	ExplorePagingNum        int
 	SitemapPagingNum        int
 	IssuePagingNum          int
+	ConversationPagingNum   int
 	RepoSearchPagingNum     int
 	MembersPagingNum        int
 	FeedMaxCommitNum        int
@@ -73,6 +74,7 @@ var UI = struct {
 	ExplorePagingNum:        20,
 	SitemapPagingNum:        20,
 	IssuePagingNum:          20,
+	ConversationPagingNum:   20,
 	RepoSearchPagingNum:     20,
 	MembersPagingNum:        20,
 	FeedMaxCommitNum:        5,
