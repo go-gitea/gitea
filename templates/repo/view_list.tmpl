@@ -24,8 +24,8 @@
 			<tr data-entryname="{{$entry.Name}}" data-ready="{{if $commit}}true{{else}}false{{end}}" class="{{if not $commit}}not{{end}}ready entry">
 				<td class="name four wide">
 					<span class="truncate">
+						{{FileIcon $.Context $entry}}
 						{{if $entry.IsSubModule}}
-							{{svg "octicon-file-submodule"}}
 							{{$refURL := $subModuleFile.RefURL AppUrl $.Repository.FullName $.SSHDomain}} {{/* FIXME: the usage of AppUrl seems incorrect, it would be fixed in the future, use AppSubUrl instead */}}
 							{{if $refURL}}
 								<a class="muted" href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{PathEscape $subModuleFile.RefID}}">{{ShortSha $subModuleFile.RefID}}</a>
@@ -35,7 +35,6 @@
 						{{else}}
 							{{if $entry.IsDir}}
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
-								{{svg "octicon-file-directory-fill"}}
 								<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
 									{{$subJumpablePathFields := StringUtils.Split $subJumpablePathName "/"}}
 									{{$subJumpablePathFieldLast := (Eval (len $subJumpablePathFields) "-" 1)}}
@@ -47,7 +46,6 @@
 									{{end}}
 								</a>
 							{{else}}
-								{{svg (printf "octicon-%s" (EntryIcon $entry))}}
 								<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
 							{{end}}
 						{{end}}

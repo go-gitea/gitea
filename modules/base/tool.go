@@ -21,8 +21,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/dustin/go-humanize"
@@ -163,28 +161,6 @@ func Int64sToStrings(ints []int64) []string {
 		strs[i] = strconv.FormatInt(ints[i], 10)
 	}
 	return strs
-}
-
-// EntryIcon returns the octicon class for displaying files/directories
-func EntryIcon(entry *git.TreeEntry) string {
-	switch {
-	case entry.IsLink():
-		te, err := entry.FollowLink()
-		if err != nil {
-			log.Debug(err.Error())
-			return "file-symlink-file"
-		}
-		if te.IsDir() {
-			return "file-directory-symlink"
-		}
-		return "file-symlink-file"
-	case entry.IsDir():
-		return "file-directory-fill"
-	case entry.IsSubModule():
-		return "file-submodule"
-	}
-
-	return "file"
 }
 
 // SetupGiteaRoot Sets GITEA_ROOT if it is not already set and returns the value

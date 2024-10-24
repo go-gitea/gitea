@@ -16,6 +16,7 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -58,7 +59,7 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// svg / avatar / icon / color
 		"svg":           svg.RenderHTML,
-		"EntryIcon":     base.EntryIcon,
+		"FileIcon":      fileicon.FileIcon,
 		"MigrationIcon": migrationIcon,
 		"ActionIcon":    actionIcon,
 		"SortArrow":     sortArrow,
