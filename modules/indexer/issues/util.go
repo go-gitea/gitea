@@ -87,9 +87,9 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		return nil, false, err
 	}
 
-	var projectID int64
-	if issue.Project != nil {
-		projectID = issue.Project.ID
+	projectIDs := make([]int64, 0, len(issue.Projects))
+	for _, project := range issue.Projects {
+		projectIDs = append(projectIDs, project.ID)
 	}
 
 	return &internal.IndexerData{
@@ -104,7 +104,7 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		LabelIDs:           labels,
 		NoLabel:            len(labels) == 0,
 		MilestoneID:        issue.MilestoneID,
-		ProjectID:          projectID,
+		ProjectIDs:         projectIDs,
 		ProjectColumnID:    issue.ProjectColumnID(ctx),
 		PosterID:           issue.PosterID,
 		AssigneeID:         issue.AssigneeID,

@@ -202,12 +202,17 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		mileIDs = []int64{milestoneID}
 	}
 
+	var projIDs []int64
+	if projectID > 0 || projectID == db.NoConditionID {
+		projIDs = []int64{projectID}
+	}
+
 	var issueStats *issues_model.IssueStats
 	statsOpts := &issues_model.IssuesOptions{
 		RepoIDs:           []int64{repo.ID},
 		LabelIDs:          labelIDs,
 		MilestoneIDs:      mileIDs,
-		ProjectID:         projectID,
+		ProjectIDs:        projIDs,
 		AssigneeID:        assigneeID,
 		MentionedID:       mentionedID,
 		PosterID:          posterID,
@@ -297,7 +302,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			ReviewRequestedID: reviewRequestedID,
 			ReviewedID:        reviewedID,
 			MilestoneIDs:      mileIDs,
-			ProjectID:         projectID,
+			ProjectIDs:        projIDs,
 			IsClosed:          isShowClosed,
 			IsPull:            isPullOption,
 			LabelIDs:          labelIDs,
@@ -2707,7 +2712,7 @@ func SearchIssues(ctx *context.Context) {
 		IsClosed:            isClosed,
 		IncludedAnyLabelIDs: includedAnyLabels,
 		MilestoneIDs:        includedMilestones,
-		ProjectID:           projectID,
+		ProjectIDs:          projectID,
 		SortBy:              issue_indexer.SortByCreatedDesc,
 	}
 
@@ -2870,12 +2875,12 @@ func ListIssues(ctx *context.Context) {
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		Keyword:   keyword,
-		RepoIDs:   []int64{ctx.Repo.Repository.ID},
-		IsPull:    isPull,
-		IsClosed:  isClosed,
-		ProjectID: projectID,
-		SortBy:    issue_indexer.SortByCreatedDesc,
+		Keyword:    keyword,
+		RepoIDs:    []int64{ctx.Repo.Repository.ID},
+		IsPull:     isPull,
+		IsClosed:   isClosed,
+		ProjectIDs: projectID,
+		SortBy:     issue_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = optional.Some(since)

@@ -465,11 +465,9 @@ func UpdateIssueProject(ctx *context.Context) {
 	}
 
 	projectID := ctx.FormInt64("id")
+	action := ctx.FormString("action")
 	for _, issue := range issues {
-		if issue.Project != nil && issue.Project.ID == projectID {
-			continue
-		}
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, 0); err != nil {
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, 0, action); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) {
 				continue
 			}

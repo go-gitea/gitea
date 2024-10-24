@@ -93,10 +93,10 @@
 							<span class="gt-ellipsis">{{.Milestone.Name}}</span>
 						</a>
 					{{end}}
-					{{if .Project}}
-						<a class="project flex-text-inline tw-max-w-[300px]" href="{{.Project.Link ctx}}">
-							{{svg .Project.IconName 14}}
-							<span class="gt-ellipsis">{{.Project.Title}}</span>
+					{{range .Projects}}
+						<a class="project flex-text-inline tw-max-w-[300px]" href="{{.Link ctx}}">
+							{{svg .IconName 14}}
+							<span class="gt-ellipsis">{{.Title}}</span>
 						</a>
 					{{end}}
 					{{if .Ref}}

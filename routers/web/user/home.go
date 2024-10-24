@@ -360,7 +360,6 @@ func Issues(ctx *context.Context) {
 		ctx.Status(http.StatusNotFound)
 		return
 	}
-
 	ctx.Data["Title"] = ctx.Tr("issues")
 	ctx.Data["PageIsIssues"] = true
 	buildIssueOverview(ctx, unit.TypeIssues)
