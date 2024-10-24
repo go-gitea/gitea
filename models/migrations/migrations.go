@@ -605,6 +605,8 @@ var migrations = []Migration{
 	NewMigration("Add Repository Licenses", v1_23.AddRepositoryLicenses),
 	// v306 -> v307
 	NewMigration("Add BlockAdminMergeOverride to ProtectedBranch", v1_23.AddBlockAdminMergeOverrideBranchProtection),
+	// v307 -> v308
+	NewMigration("Add index(user_id, is_deleted) for action table", v1_23.AddNewIndexForUserDashboard),
 }
 
 // GetCurrentDBVersion returns the current db version
