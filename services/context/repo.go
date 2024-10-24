@@ -823,13 +823,16 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 		// For legacy and API support only full commit sha
 		parts := strings.Split(path, "/")
 
-		if len(parts) > 1 && len(parts[0]) == git.ObjectFormatFromName(repo.Repository.ObjectFormatName).FullLength() {
-			repo.TreePath = strings.Join(parts[1:], "/")
-			return parts[0]
+		if len(parts) > 1 {
+			if len(parts[0]) == git.ObjectFormatFromName(repo.Repository.ObjectFormatName).FullLength() {
+				repo.TreePath = strings.Join(parts[1:], "/")
+				return parts[0]
+			}
+			if refName := getRefName(ctx, repo, RepoRefBlob); len(refName) > 0 {
+				return refName
+			}
 		}
-		if refName := getRefName(ctx, repo, RepoRefBlob); len(refName) > 0 {
-			return refName
-		}
+
 		repo.TreePath = path
 		return repo.Repository.DefaultBranch
 	case RepoRefBranch:
