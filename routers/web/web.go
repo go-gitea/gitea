@@ -1045,9 +1045,8 @@ func registerRoutes(m *web.Router) {
 		m.Group("/migrate", func() {
 			m.Get("/status", repo.MigrateStatus)
 		})
-		m.Get("/issues/suggestions", repo.IssueSuggestions)
 	}, ignSignIn, context.RepoAssignment, reqRepoCodeReader)
-	// end "/{username}/{reponame}/-": migrate, issue suggestions
+	// end "/{username}/{reponame}/-": migrate
 
 	m.Group("/{username}/{reponame}/settings", func() {
 		m.Group("", func() {
@@ -1179,6 +1178,7 @@ func registerRoutes(m *web.Router) {
 				})
 			})
 		}, context.RepoRef())
+		m.Get("/issues/suggestions", repo.IssueSuggestions)
 	}, ignSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader)
 	// end "/{username}/{reponame}": view milestone, label, issue, pull, etc
 

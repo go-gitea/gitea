@@ -8,7 +8,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/unit"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -26,6 +28,16 @@ type issueSuggestion struct {
 func IssueSuggestions(ctx *context.Context) {
 	keyword := ctx.Req.FormValue("q")
 
+	canReadIssues := ctx.Repo.CanRead(unit.TypeIssues)
+	canReadPulls := ctx.Repo.CanRead(unit.TypePullRequests)
+
+	var isPull optional.Option[bool]
+	if canReadPulls && !canReadIssues {
+		isPull = optional.Some(true)
+	} else if canReadIssues && !canReadPulls {
+		isPull = optional.Some(false)
+	}
+
 	searchOpt := &issue_indexer.SearchOptions{
 		Paginator: &db.ListOptions{
 			Page:     0,
@@ -33,7 +45,7 @@ func IssueSuggestions(ctx *context.Context) {
 		},
 		Keyword:  keyword,
 		RepoIDs:  []int64{ctx.Repo.Repository.ID},
-		IsPull:   nil,
+		IsPull:   isPull,
 		IsClosed: nil,
 		SortBy:   issue_indexer.SortByUpdatedDesc,
 	}
