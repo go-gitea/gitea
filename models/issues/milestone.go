@@ -11,12 +11,14 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // ErrMilestoneNotExist represents a "MilestoneNotExist" kind of error.
@@ -82,9 +84,17 @@ func (m *Milestone) BeforeUpdate() {
 
 // AfterLoad is invoked from XORM after setting the value of a field of
 // this object.
-func (m *Milestone) AfterLoad() {
+func (m *Milestone) AfterLoad(session *xorm.Session) {
 	m.NumOpenIssues = m.NumIssues - m.NumClosedIssues
-	if m.DeadlineUnix.Year() == 9999 {
+	if m.DeadlineUnix == 0 {
+		return
+	}
+	if m.DeadlineUnix.Year() > 9000 {
+		m.DeadlineUnix = 0
+		m.IsOverdue = false
+		if _, err := session.ID(m.ID).NoAutoTime().Cols("deadline_unix", "is_overdue").Update(m); err != nil {
+			log.Error("AfterLoad update legacy deadline failed: %v", err)
+		}
 		return
 	}
 

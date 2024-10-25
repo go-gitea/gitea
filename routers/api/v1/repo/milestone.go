@@ -7,7 +7,6 @@ package repo
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -155,16 +154,16 @@ func CreateMilestone(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.CreateMilestoneOption)
 
-	if form.Deadline == nil {
-		defaultDeadline, _ := time.ParseInLocation("2006-01-02", "9999-12-31", time.Local)
-		form.Deadline = &defaultDeadline
+	var deadlineUnix int64
+	if form.Deadline != nil {
+		deadlineUnix = form.Deadline.Unix()
 	}
 
 	milestone := &issues_model.Milestone{
 		RepoID:       ctx.Repo.Repository.ID,
 		Name:         form.Title,
 		Content:      form.Description,
-		DeadlineUnix: timeutil.TimeStamp(form.Deadline.Unix()),
+		DeadlineUnix: timeutil.TimeStamp(deadlineUnix),
 	}
 
 	if form.State == "closed" {
