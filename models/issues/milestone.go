@@ -89,6 +89,7 @@ func (m *Milestone) AfterLoad(session *xorm.Session) {
 	if m.DeadlineUnix == 0 {
 		return
 	}
+	// for legacy reasons, all years after 9000 are considered as no deadline
 	if m.DeadlineUnix.Year() > 9000 {
 		m.DeadlineUnix = 0
 		m.IsOverdue = false

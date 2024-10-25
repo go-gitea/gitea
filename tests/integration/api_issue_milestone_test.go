@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -59,6 +60,7 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	DecodeJSON(t, resp, &apiMilestone)
 	assert.Equal(t, "wow", apiMilestone.Title)
 	assert.Equal(t, structs.StateClosed, apiMilestone.State)
+	assert.Equal(t, (*time.Time)(nil), apiMilestone.Deadline)
 
 	var apiMilestones []structs.Milestone
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/milestones?state=%s", owner.Name, repo.Name, "all")).
@@ -66,6 +68,7 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiMilestones)
 	assert.Len(t, apiMilestones, 4)
+	assert.Equal(t, (*time.Time)(nil), apiMilestones[0].Deadline)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/milestones/%s", owner.Name, repo.Name, apiMilestones[2].Title)).
 		AddTokenAuth(token)
