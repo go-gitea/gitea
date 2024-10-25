@@ -9,7 +9,11 @@
         </a>
         <div class="content">
             <div class="ui segment">
-                <form class="ui form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
+                {{if .IsIssue}}
+                    <form class="ui form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
+                {{else}}
+                    <form class="ui form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/conversations/{{.Conversation.Index}}/comments" method="post">
+                {{end}}
                     {{template "repo/conversation/comment_tab" .}}
                     {{.CsrfTokenHtml}}
                     <div class="field footer">

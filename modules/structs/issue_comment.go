@@ -13,6 +13,7 @@ type Comment struct {
 	HTMLURL          string        `json:"html_url"`
 	PRURL            string        `json:"pull_request_url"`
 	IssueURL         string        `json:"issue_url"`
+	ConversationURL  string        `json:"conversation_url"`
 	Poster           *User         `json:"user"`
 	OriginalAuthor   string        `json:"original_author"`
 	OriginalAuthorID int64         `json:"original_author_id"`
@@ -36,16 +37,29 @@ type EditIssueCommentOption struct {
 	Body string `json:"body" binding:"Required"`
 }
 
+// CreateIssueCommentOption options for creating a comment on an issue
+type CreateConversationCommentOption struct {
+	// required:true
+	Body string `json:"body" binding:"Required"`
+}
+
+// EditIssueCommentOption options for editing a comment
+type EditConversationCommentOption struct {
+	// required: true
+	Body string `json:"body" binding:"Required"`
+}
+
 // TimelineComment represents a timeline comment (comment of any type) on a commit or issue
 type TimelineComment struct {
 	ID   int64  `json:"id"`
 	Type string `json:"type"`
 
-	HTMLURL  string `json:"html_url"`
-	PRURL    string `json:"pull_request_url"`
-	IssueURL string `json:"issue_url"`
-	Poster   *User  `json:"user"`
-	Body     string `json:"body"`
+	HTMLURL         string `json:"html_url"`
+	PRURL           string `json:"pull_request_url"`
+	IssueURL        string `json:"issue_url"`
+	ConversationURL string `json:"conversation_url"`
+	Poster          *User  `json:"user"`
+	Body            string `json:"body"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time

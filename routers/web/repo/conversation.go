@@ -374,7 +374,7 @@ func DeleteConversation(ctx *context.Context) {
 	ctx.Redirect(fmt.Sprintf("%s/conversations", ctx.Repo.Repository.Link()), http.StatusSeeOther)
 }
 
-func conversationGetBranchData(ctx *context.Context, conversation *conversations_model.Conversation) {
+func conversationGetBranchData(ctx *context.Context) {
 	ctx.Data["BaseBranch"] = nil
 	ctx.Data["HeadBranch"] = nil
 	ctx.Data["HeadUserName"] = nil
@@ -548,7 +548,7 @@ func GetActionConversation(ctx *context.Context) *conversations_model.Conversati
 		return nil
 	}
 	conversation.Repo = ctx.Repo.Repository
-	checkConversationRights(ctx, conversation)
+	checkConversationRights(ctx)
 	if ctx.Written() {
 		return nil
 	}
@@ -559,9 +559,9 @@ func GetActionConversation(ctx *context.Context) *conversations_model.Conversati
 	return conversation
 }
 
-func checkConversationRights(ctx *context.Context, conversation *conversations_model.Conversation) {
+func checkConversationRights(ctx *context.Context) {
 	if !ctx.Repo.CanRead(unit.TypeConversations) {
-		ctx.NotFound("ConversationOrPullRequestUnitNotAllowed", nil)
+		ctx.NotFound("ConversationUnitNotAllowed", nil)
 	}
 }
 
@@ -891,7 +891,7 @@ func BatchDeleteConversations(ctx *context.Context) {
 
 // NewComment create a comment for conversation
 func NewConversationComment(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateCommentForm)
+	form := web.GetForm(ctx).(*forms.CreateConversationCommentForm)
 	conversation := GetActionConversation(ctx)
 	if ctx.Written() {
 		return
@@ -937,9 +937,9 @@ func NewConversationComment(ctx *context.Context) {
 		// Redirect to comment hashtag if there is any actual content.
 		typeName := "commits"
 		if comment != nil {
-			ctx.JSONRedirect(fmt.Sprintf("%s/%s/%d#%s", ctx.Repo.RepoLink, typeName, conversation.CommitSha, comment.HashTag()))
+			ctx.JSONRedirect(fmt.Sprintf("%s/%s/%s#%s", ctx.Repo.RepoLink, typeName, conversation.CommitSha, comment.HashTag()))
 		} else {
-			ctx.JSONRedirect(fmt.Sprintf("%s/%s/%d", ctx.Repo.RepoLink, typeName, conversation.CommitSha))
+			ctx.JSONRedirect(fmt.Sprintf("%s/%s/%s", ctx.Repo.RepoLink, typeName, conversation.CommitSha))
 		}
 	}()
 

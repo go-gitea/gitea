@@ -281,8 +281,8 @@ type Comment struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
-	// Reference issue in commit message
-	CommitSHA string `xorm:"VARCHAR(64)"`
+	// Reference issue in commit mes `xorm:"VARCHAR(64)"`sage
+	CommitSHA string
 
 	Attachments []*repo_model.Attachment `xorm:"-"`
 	Reactions   ReactionList             `xorm:"-"`

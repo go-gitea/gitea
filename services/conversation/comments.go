@@ -23,12 +23,13 @@ func CreateConversationComment(ctx context.Context, doer *user_model.User, repo 
 	}
 
 	comment, err := conversations_model.CreateComment(ctx, &conversations_model.CreateCommentOptions{
-		Type:         conversations_model.CommentTypeComment,
-		Doer:         doer,
-		Repo:         repo,
-		Conversation: conversation,
-		Content:      content,
-		Attachments:  attachments,
+		Type:           conversations_model.CommentTypeComment,
+		Doer:           doer,
+		Repo:           repo,
+		Conversation:   conversation,
+		ConversationID: conversation.ID,
+		Content:        content,
+		Attachments:    attachments,
 	})
 	if err != nil {
 		return nil, err

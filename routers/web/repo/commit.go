@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"math/big"
 	"net/http"
 	"path"
 	"strings"
@@ -26,11 +27,13 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
 	repo_service "code.gitea.io/gitea/services/repository"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -439,7 +442,45 @@ func Diff(ctx *context.Context) {
 		}
 	}
 
+	for _, comment := range conversation.Comments {
+		comment.Conversation = conversation
+
+		if comment.Type == conversation_model.CommentTypeComment {
+			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+				Links: markup.Links{
+					Base: ctx.Repo.RepoLink,
+				},
+				Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+				GitRepo: ctx.Repo.GitRepo,
+				Repo:    ctx.Repo.Repository,
+				Ctx:     ctx,
+			}, comment.Content)
+			if err != nil {
+				ctx.ServerError("RenderString", err)
+				return
+			}
+		}
+	}
+
+	ctx.Data["Conversation"] = conversation
 	ctx.Data["Comments"] = conversation.Comments
+
+	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+	}
+
+	var hiddenCommentTypes *big.Int
+	if ctx.IsSigned {
+		val, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
+		if err != nil {
+			ctx.ServerError("GetUserSetting", err)
+			return
+		}
+		hiddenCommentTypes, _ = new(big.Int).SetString(val, 10) // we can safely ignore the failed conversion here
+	}
+	ctx.Data["ShouldShowCommentType"] = func(commentType conversation_model.CommentType) bool {
+		return hiddenCommentTypes == nil || hiddenCommentTypes.Bit(int(commentType)) == 0
+	}
 
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }

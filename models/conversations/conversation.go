@@ -138,7 +138,11 @@ func (conversation *Conversation) Link() string {
 }
 
 func (conversation *Conversation) loadComments(ctx context.Context) (err error) {
-	return conversation.loadCommentsByType(ctx, CommentTypeUndefined)
+	conversation.Comments, err = FindComments(ctx, &FindCommentsOptions{
+		ConversationID: conversation.ID,
+	})
+
+	return err
 }
 
 func (conversation *Conversation) loadCommentsByType(ctx context.Context, tp CommentType) (err error) {
@@ -278,6 +282,11 @@ func GetConversationByCommitID(ctx context.Context, commitID string) (*Conversat
 	} else if !has {
 		return nil, ErrConversationNotExist{0, 0, 0}
 	}
+	err = conversation.LoadAttributes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	return conversation, nil
 }
 

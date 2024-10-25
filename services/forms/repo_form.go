@@ -474,6 +474,12 @@ func (f *CreateCommentForm) Validate(req *http.Request, errs binding.Errors) bin
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+type CreateConversationCommentForm struct {
+	Content   string
+	Files     []string
+	CommitSha string
+}
+
 // ReactionForm form for adding and removing reaction
 type ReactionForm struct {
 	Content string `binding:"Required"`

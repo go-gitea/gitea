@@ -667,6 +667,14 @@ func mustAllowPulls(ctx *context.APIContext) {
 	}
 }
 
+func mustEnableConversations(ctx *context.APIContext) {
+	if !ctx.Repo.CanRead(unit.TypeConversations) {
+		ctx.NotFound()
+		return
+	}
+
+}
+
 func mustEnableIssuesOrPulls(ctx *context.APIContext) {
 	if !ctx.Repo.CanRead(unit.TypeIssues) &&
 		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(unit.TypePullRequests)) {
@@ -1494,6 +1502,23 @@ func Routes() *web.Router {
 				})
 			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
+
+		// Conversation
+		m.Group("/repos", func() {
+			m.Group("/{username}/{reponame}", func() {
+				m.Group("/conversations", func() {
+					m.Group("/{index}", func() {
+						m.Group("/comments", func() {
+							m.Combo("").Get(repo.ListConversationComments).
+								Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
+							// m.Combo("/{id}", reqToken()).Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueCommentDeprecated).
+							// 	Delete(repo.DeleteIssueCommentDeprecated)
+						})
+
+					}, mustEnableConversations)
+				})
+			})
+		})
 
 		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
 		m.Group("/packages/{username}", func() {

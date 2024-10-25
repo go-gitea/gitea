@@ -1276,6 +1276,14 @@ func registerRoutes(m *web.Router) {
 	}, reqSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader)
 	// end "/{username}/{reponame}": create or edit issues, pulls, labels, milestones
 
+	m.Group("/{username}/{reponame}", func() {
+		m.Group("/conversations", func() {
+			m.Group("/{index}", func() {
+				m.Combo("/comments").Post(repo.ConversationMustAllowUserComment, web.Bind(forms.CreateConversationCommentForm{}), repo.NewConversationComment)
+			}, context.RepoMustNotBeArchived())
+		})
+	}, reqSignIn, context.RepoAssignment)
+
 	m.Group("/{username}/{reponame}", func() { // repo code
 		m.Group("", func() {
 			m.Group("", func() {

@@ -281,6 +281,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		Type:           opts.Type,
 		PosterID:       opts.Doer.ID,
 		Poster:         opts.Doer,
+		Content:        opts.Content,
 		ConversationID: opts.ConversationID,
 	}
 	if _, err = e.Insert(comment); err != nil {
@@ -367,7 +368,7 @@ func (opts FindCommentsOptions) ToConds() builder.Cond {
 func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
-	if opts.RepoID > 0 || opts.IsPull.Has() {
+	if opts.RepoID > 0 {
 		sess.Join("INNER", "conversation", "conversation.id = comment.conversation_id")
 	}
 
@@ -567,4 +568,19 @@ func (c *Comment) APIURL(ctx context.Context) string {
 // HasOriginalAuthor returns if a comment was migrated and has an original author.
 func (c *Comment) HasOriginalAuthor() bool {
 	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
+}
+
+func (c *Comment) ConversationURL(ctx context.Context) string {
+	err := c.LoadConversation(ctx)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadConversation(%d): %v", c.ConversationID, err)
+		return ""
+	}
+
+	err = c.Conversation.LoadRepo(ctx)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("loadRepo(%d): %v", c.Conversation.RepoID, err)
+		return ""
+	}
+	return c.Conversation.HTMLURL()
 }
