@@ -603,6 +603,8 @@ var migrations = []Migration{
 	NewMigration("Add index for release sha1", v1_23.AddIndexForReleaseSha1),
 	// v305 -> v306
 	NewMigration("Add Repository Licenses", v1_23.AddRepositoryLicenses),
+	// v306 -> v307
+	NewMigration("Add BlockAdminMergeOverride to ProtectedBranch", v1_23.AddBlockAdminMergeOverrideBranchProtection),
 }
 
 // GetCurrentDBVersion returns the current db version
