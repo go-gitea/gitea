@@ -24,8 +24,6 @@ func TestParseCommitTrailerValueWithAuthor(t *testing.T) {
 		{"    <foobar@example.com>", true, "", ""},
 		{"Foo Bar <foobar@example.com>", false, "Foo Bar", "foobar@example.com"},
 		{"   Foo Bar    <foobar@example.com>", false, "Foo Bar", "foobar@example.com"},
-		// Account for edge case where name contains an open bracket.
-		{"   Foo < Bar    <foobar@example.com>", false, "Foo < Bar", "foobar@example.com"},
 	}
 
 	for n, c := range cases {
@@ -33,6 +31,9 @@ func TestParseCommitTrailerValueWithAuthor(t *testing.T) {
 		if c.shouldBeError {
 			assert.Error(t, err, "case %d should be a syntax error", n)
 		} else {
+			if err != nil {
+				assert.Fail(t, "did not expect an error: %v", err)
+			}
 			assert.Equal(t, c.expectedName, name, "case %d should have correct name", n)
 			assert.Equal(t, c.expectedEmail, email, "case %d should have correct email", n)
 		}

@@ -6,7 +6,6 @@ package util
 import (
 	"errors"
 	"net/mail"
-	"strings"
 )
 
 var ErrInvalidCommitTrailerValueSyntax = errors.New("syntax error occurred while parsing a commit trailer value")
@@ -17,26 +16,17 @@ var ErrInvalidCommitTrailerValueSyntax = errors.New("syntax error occurred while
 //
 // Foo Bar <foobar@example.com>
 func ParseCommitTrailerValueWithAuthor(value string) (name, email string, err error) {
-	value = strings.TrimSpace(value)
-	if !strings.HasSuffix(value, ">") {
-		return "", "", ErrInvalidCommitTrailerValueSyntax
+	addr, err := mail.ParseAddress(value)
+	if err != nil {
+		return name, email, err
 	}
 
-	closedBracketIdx := len(value) - 1
-	openBracketIdx := strings.LastIndex(value, "<")
-	if openBracketIdx == -1 {
-		return "", "", ErrInvalidCommitTrailerValueSyntax
+	if addr.Name == "" {
+		return name, email, errors.New("commit trailer missing name")
 	}
 
-	email = value[openBracketIdx+1 : closedBracketIdx]
-	if _, err := mail.ParseAddress(email); err != nil {
-		return "", "", ErrInvalidCommitTrailerValueSyntax
-	}
-
-	name = strings.TrimSpace(value[:openBracketIdx])
-	if len(name) == 0 {
-		return "", "", ErrInvalidCommitTrailerValueSyntax
-	}
+	name = addr.Name
+	email = addr.Address
 
 	return name, email, nil
 }
