@@ -8,8 +8,6 @@ import (
 	"net/mail"
 )
 
-var ErrInvalidCommitTrailerValueSyntax = errors.New("syntax error occurred while parsing a commit trailer value")
-
 // ParseCommitTrailerValueWithAuthor parses a commit trailer value that contains author data.
 // Note that it only parses the value and does not consider the trailer key i.e. we just
 // parse something like the following:
