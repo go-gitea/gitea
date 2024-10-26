@@ -1,5 +1,5 @@
-<script>
-import VueBarGraph from 'vue-bar-graph';
+<script lang="ts">
+import {VueBarGraph} from 'vue-bar-graph';
 import {createApp} from 'vue';
 
 const sfc = {
@@ -51,7 +51,7 @@ const sfc = {
 };
 
 export function initRepoActivityTopAuthorsChart() {
-  const el = document.getElementById('repo-activity-top-authors-chart');
+  const el = document.querySelector('#repo-activity-top-authors-chart');
   if (el) {
     createApp(sfc).mount(el);
   }

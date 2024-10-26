@@ -92,7 +92,7 @@ func TestCreateUser(t *testing.T) {
 		MustChangePassword: false,
 	}
 
-	assert.NoError(t, user_model.CreateUser(db.DefaultContext, user))
+	assert.NoError(t, user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{}))
 
 	assert.NoError(t, DeleteUser(db.DefaultContext, user, false))
 }
@@ -114,12 +114,10 @@ func TestRenameUser(t *testing.T) {
 	})
 
 	t.Run("Non usable username", func(t *testing.T) {
-		usernames := []string{"--diff", "aa.png", ".well-known", "search", "aaa.atom"}
+		usernames := []string{"--diff", ".well-known", "gitea-actions", "aaa.atom", "aa.png"}
 		for _, username := range usernames {
-			t.Run(username, func(t *testing.T) {
-				assert.Error(t, user_model.IsUsableUsername(username))
-				assert.Error(t, RenameUser(db.DefaultContext, user, username))
-			})
+			assert.Error(t, user_model.IsUsableUsername(username), "non-usable username: %s", username)
+			assert.Error(t, RenameUser(db.DefaultContext, user, username), "non-usable username: %s", username)
 		}
 	})
 
@@ -177,7 +175,7 @@ func TestCreateUser_Issue5882(t *testing.T) {
 	for _, v := range tt {
 		setting.Admin.DisableRegularOrgCreation = v.disableOrgCreation
 
-		assert.NoError(t, user_model.CreateUser(db.DefaultContext, v.user))
+		assert.NoError(t, user_model.CreateUser(db.DefaultContext, v.user, &user_model.Meta{}))
 
 		u, err := user_model.GetUserByEmail(db.DefaultContext, v.user.Email)
 		assert.NoError(t, err)

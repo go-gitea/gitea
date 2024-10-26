@@ -23,8 +23,8 @@
 					<input type="hidden" name="scope" value="{{.Scope}}">
 					<input type="hidden" name="nonce" value="{{.Nonce}}">
 					<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
-					<button type="submit" id="authorize-app" value="{{ctx.Locale.Tr "auth.authorize_application"}}" class="ui red inline button">{{ctx.Locale.Tr "auth.authorize_application"}}</button>
-					<a href="{{.RedirectURI}}" class="ui basic primary inline button">Cancel</a>
+					<button type="submit" id="authorize-app" name="granted" value="true" class="ui red inline button">{{ctx.Locale.Tr "auth.authorize_application"}}</button>
+					<button type="submit" name="granted" value="false" class="ui basic primary inline button">{{ctx.Locale.Tr "cancel"}}</button>
 				</form>
 			</div>
 		</div>

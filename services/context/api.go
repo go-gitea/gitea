@@ -35,9 +35,10 @@ type APIContext struct {
 
 	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
 
-	Repo    *Repository
-	Org     *APIOrganization
-	Package *Package
+	Repo       *Repository
+	Org        *APIOrganization
+	Package    *Package
+	PublicOnly bool // Whether the request is for a public endpoint
 }
 
 func init() {
@@ -317,7 +318,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			}
 			ctx.Repo.Commit = commit
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			ctx.Repo.TreePath = ctx.Params("*")
+			ctx.Repo.TreePath = ctx.PathParam("*")
 			next.ServeHTTP(w, req)
 			return
 		}
@@ -347,7 +348,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				return
 			}
 		} else {
-			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.Params("*")))
+			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.PathParam("*")))
 			return
 		}
 

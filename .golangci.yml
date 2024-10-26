@@ -22,6 +22,7 @@ linters:
     - typecheck
     - unconvert
     - unused
+    - unparam
     - wastedassign
 
 run:
@@ -29,6 +30,8 @@ run:
 
 output:
   sort-results: true
+  sort-order: [file]
+  show-stats: true
 
 linters-settings:
   stylecheck:
@@ -40,11 +43,7 @@ linters-settings:
       - ifElseChain
       - singleCaseSwitch # Every time this occurred in the code, there  was no other way.
   revive:
-    ignore-generated-header: false
-    severity: warning
-    confidence: 0.8
-    errorCode: 1
-    warningCode: 1
+    severity: error
     rules:
       - name: atomic
       - name: bare-return

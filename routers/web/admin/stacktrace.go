@@ -40,7 +40,7 @@ func Stacktrace(ctx *context.Context) {
 
 // StacktraceCancel cancels a process
 func StacktraceCancel(ctx *context.Context) {
-	pid := ctx.Params("pid")
+	pid := ctx.PathParam("pid")
 	process.GetManager().Cancel(process.IDType(pid))
-	ctx.JSONRedirect(setting.AppSubURL + "/admin/monitor/stacktrace")
+	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/monitor/stacktrace")
 }

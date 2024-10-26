@@ -37,10 +37,11 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/xeipuuv/gojsonschema"
 )
 
-var testWebRoutes *web.Route
+var testWebRoutes *web.Router
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
@@ -485,10 +486,19 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 	assert.True(t, result.Valid())
 }
 
-func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
+// GetUserCSRFToken returns CSRF token for current user
+func GetUserCSRFToken(t testing.TB, session *TestSession) string {
 	t.Helper()
-	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-	return doc.GetCSRF()
+	cookie := session.GetCookie("_csrf")
+	require.NotEmpty(t, cookie)
+	return cookie.Value
+}
+
+// GetUserCSRFToken returns CSRF token for anonymous user (not logged in)
+func GetAnonymousCSRFToken(t testing.TB, session *TestSession) string {
+	t.Helper()
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusOK)
+	csrfToken := NewHTMLParser(t, resp.Body).GetCSRF()
+	require.NotEmpty(t, csrfToken)
+	return csrfToken
 }

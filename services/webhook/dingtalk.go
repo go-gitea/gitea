@@ -20,8 +20,8 @@ import (
 )
 
 type (
-	// DingtalkPayload represents
-	DingtalkPayload dingtalk.Payload
+	DingtalkPayload   dingtalk.Payload
+	dingtalkConvertor struct{}
 )
 
 // Create implements PayloadConvertor Create method
@@ -92,9 +92,9 @@ func (dc dingtalkConvertor) Push(p *api.PushPayload) (DingtalkPayload, error) {
 
 // Issue implements PayloadConvertor Issue method
 func (dc dingtalkConvertor) Issue(p *api.IssuePayload) (DingtalkPayload, error) {
-	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter, true)
+	text, issueTitle, extraMarkdown, _ := getIssuesPayloadInfo(p, noneLinkFormatter, true)
 
-	return createDingtalkPayload(issueTitle, text+"\r\n\r\n"+attachmentText, "view issue", p.Issue.HTMLURL), nil
+	return createDingtalkPayload(issueTitle, text+"\r\n\r\n"+extraMarkdown, "view issue", p.Issue.HTMLURL), nil
 }
 
 // Wiki implements PayloadConvertor Wiki method
@@ -114,9 +114,9 @@ func (dc dingtalkConvertor) IssueComment(p *api.IssueCommentPayload) (DingtalkPa
 
 // PullRequest implements PayloadConvertor PullRequest method
 func (dc dingtalkConvertor) PullRequest(p *api.PullRequestPayload) (DingtalkPayload, error) {
-	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
+	text, issueTitle, extraMarkdown, _ := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
 
-	return createDingtalkPayload(issueTitle, text+"\r\n\r\n"+attachmentText, "view pull request", p.PullRequest.HTMLURL), nil
+	return createDingtalkPayload(issueTitle, text+"\r\n\r\n"+extraMarkdown, "view pull request", p.PullRequest.HTMLURL), nil
 }
 
 // Review implements PayloadConvertor Review method
@@ -186,10 +186,7 @@ func createDingtalkPayload(title, text, singleTitle, singleURL string) DingtalkP
 	}
 }
 
-type dingtalkConvertor struct{}
-
-var _ payloadConvertor[DingtalkPayload] = dingtalkConvertor{}
-
-func newDingtalkRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
-	return newJSONRequest(dingtalkConvertor{}, w, t, true)
+func newDingtalkRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+	var pc payloadConvertor[DingtalkPayload] = dingtalkConvertor{}
+	return newJSONRequest(pc, w, t, true)
 }

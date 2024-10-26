@@ -104,12 +104,33 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 	buffer := new(bytes.Buffer)
 	for _, file := range filenames {
 		if file != "" {
-			buffer.WriteString("0 ")
-			buffer.WriteString(objectFormat.EmptyObjectID().String())
-			buffer.WriteByte('\t')
-			buffer.WriteString(file)
-			buffer.WriteByte('\000')
+			// using format: mode SP type SP sha1 TAB path
+			buffer.WriteString("0 blob " + objectFormat.EmptyObjectID().String() + "\t" + file + "\000")
 		}
+	}
+	return cmd.Run(&RunOpts{
+		Dir:    repo.Path,
+		Stdin:  bytes.NewReader(buffer.Bytes()),
+		Stdout: stdout,
+		Stderr: stderr,
+	})
+}
+
+type IndexObjectInfo struct {
+	Mode     string
+	Object   ObjectID
+	Filename string
+}
+
+// AddObjectsToIndex adds the provided object hashes to the index at the provided filenames
+func (repo *Repository) AddObjectsToIndex(objects ...IndexObjectInfo) error {
+	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "-z", "--index-info")
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	buffer := new(bytes.Buffer)
+	for _, object := range objects {
+		// using format: mode SP type SP sha1 TAB path
+		buffer.WriteString(object.Mode + " blob " + object.Object.String() + "\t" + object.Filename + "\000")
 	}
 	return cmd.Run(&RunOpts{
 		Dir:    repo.Path,
@@ -121,9 +142,7 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 
 // AddObjectToIndex adds the provided object hash to the index at the provided filename
 func (repo *Repository) AddObjectToIndex(mode string, object ObjectID, filename string) error {
-	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments(mode, object.String(), filename)
-	_, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
-	return err
+	return repo.AddObjectsToIndex(IndexObjectInfo{Mode: mode, Object: object, Filename: filename})
 }
 
 // WriteTree writes the current index as a tree to the object db and returns its hash

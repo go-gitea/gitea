@@ -113,7 +113,8 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 
 		var err error
 		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Ctx: ctx,
+			Ctx:  ctx,
+			Repo: issue.Repo,
 			Links: markup.Links{
 				Base: issue.Repo.Link(),
 			},

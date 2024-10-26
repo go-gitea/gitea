@@ -47,7 +47,7 @@ jobs:
         run: |
           REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
           echo "Cleaned name is ${REF_NAME}"
-          echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
+          echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
       - name: configure aws
         uses: aws-actions/configure-aws-credentials@v4
         with:

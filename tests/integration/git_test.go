@@ -5,6 +5,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -360,12 +361,62 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		t.Run("PushProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected"))
 
 		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, auth_model.AccessTokenScopeWriteRepository)
-		t.Run("ProtectProtectedBranchNoWhitelist", doProtectBranch(ctx, "protected", "", ""))
-		t.Run("GenerateCommit", func(t *testing.T) {
+
+		// Protect branch without any whitelisting
+		t.Run("ProtectBranchNoWhitelist", func(t *testing.T) {
+			doProtectBranch(ctx, "protected", "", "", "")
+		})
+
+		// Try to push without permissions, which should fail
+		t.Run("TryPushWithoutPermissions", func(t *testing.T) {
 			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
 			assert.NoError(t, err)
+			doGitPushTestRepositoryFail(dstPath, "origin", "protected")
 		})
-		t.Run("FailToPushToProtectedBranch", doGitPushTestRepositoryFail(dstPath, "origin", "protected"))
+
+		// Set up permissions for normal push but not force push
+		t.Run("SetupNormalPushPermissions", func(t *testing.T) {
+			doProtectBranch(ctx, "protected", baseCtx.Username, "", "")
+		})
+
+		// Normal push should work
+		t.Run("NormalPushWithPermissions", func(t *testing.T) {
+			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+			assert.NoError(t, err)
+			doGitPushTestRepository(dstPath, "origin", "protected")
+		})
+
+		// Try to force push without force push permissions, which should fail
+		t.Run("ForcePushWithoutForcePermissions", func(t *testing.T) {
+			t.Run("CreateDivergentHistory", func(t *testing.T) {
+				git.NewCommand(git.DefaultContext, "reset", "--hard", "HEAD~1").Run(&git.RunOpts{Dir: dstPath})
+				_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-new")
+				assert.NoError(t, err)
+			})
+			doGitPushTestRepositoryFail(dstPath, "-f", "origin", "protected")
+		})
+
+		// Set up permissions for force push but not normal push
+		t.Run("SetupForcePushPermissions", func(t *testing.T) {
+			doProtectBranch(ctx, "protected", "", baseCtx.Username, "")
+		})
+
+		// Try to force push without normal push permissions, which should fail
+		t.Run("ForcePushWithoutNormalPermissions", func(t *testing.T) {
+			doGitPushTestRepositoryFail(dstPath, "-f", "origin", "protected")
+		})
+
+		// Set up permissions for normal and force push (both are required to force push)
+		t.Run("SetupNormalAndForcePushPermissions", func(t *testing.T) {
+			doProtectBranch(ctx, "protected", baseCtx.Username, baseCtx.Username, "")
+		})
+
+		// Force push should now work
+		t.Run("ForcePushWithPermissions", func(t *testing.T) {
+			doGitPushTestRepository(dstPath, "-f", "origin", "protected")
+		})
+
+		t.Run("ProtectProtectedBranchNoWhitelist", doProtectBranch(ctx, "protected", "", "", ""))
 		t.Run("PushToUnprotectedBranch", doGitPushTestRepository(dstPath, "origin", "protected:unprotected"))
 		var pr api.PullRequest
 		var err error
@@ -387,14 +438,14 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		t.Run("MergePR", doAPIMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
 
-		t.Run("ProtectProtectedBranchUnprotectedFilePaths", doProtectBranch(ctx, "protected", "", "unprotected-file-*"))
+		t.Run("ProtectProtectedBranchUnprotectedFilePaths", doProtectBranch(ctx, "protected", "", "", "unprotected-file-*"))
 		t.Run("GenerateCommit", func(t *testing.T) {
 			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "unprotected-file-")
 			assert.NoError(t, err)
 		})
 		t.Run("PushUnprotectedFilesToProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected"))
 
-		t.Run("ProtectProtectedBranchWhitelist", doProtectBranch(ctx, "protected", baseCtx.Username, ""))
+		t.Run("ProtectProtectedBranchWhitelist", doProtectBranch(ctx, "protected", baseCtx.Username, "", ""))
 
 		t.Run("CheckoutMaster", doGitCheckoutBranch(dstPath, "master"))
 		t.Run("CreateBranchForced", doGitCreateBranch(dstPath, "toforce"))
@@ -409,33 +460,37 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 	}
 }
 
-func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFilePatterns string) func(t *testing.T) {
+func doProtectBranch(ctx APITestContext, branch, userToWhitelistPush, userToWhitelistForcePush, unprotectedFilePatterns string) func(t *testing.T) {
 	// We are going to just use the owner to set the protection.
 	return func(t *testing.T) {
-		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/settings/branches", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)))
+		csrf := GetUserCSRFToken(t, ctx.Session)
 
-		if userToWhitelist == "" {
-			// Change branch to protected
-			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), map[string]string{
-				"_csrf":                     csrf,
-				"rule_name":                 branch,
-				"unprotected_file_patterns": unprotectedFilePatterns,
-			})
-			ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
-		} else {
-			user, err := user_model.GetUserByName(db.DefaultContext, userToWhitelist)
-			assert.NoError(t, err)
-			// Change branch to protected
-			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), map[string]string{
-				"_csrf":                     csrf,
-				"rule_name":                 branch,
-				"enable_push":               "whitelist",
-				"enable_whitelist":          "on",
-				"whitelist_users":           strconv.FormatInt(user.ID, 10),
-				"unprotected_file_patterns": unprotectedFilePatterns,
-			})
-			ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
+		formData := map[string]string{
+			"_csrf":                     csrf,
+			"rule_name":                 branch,
+			"unprotected_file_patterns": unprotectedFilePatterns,
 		}
+
+		if userToWhitelistPush != "" {
+			user, err := user_model.GetUserByName(db.DefaultContext, userToWhitelistPush)
+			assert.NoError(t, err)
+			formData["whitelist_users"] = strconv.FormatInt(user.ID, 10)
+			formData["enable_push"] = "whitelist"
+			formData["enable_whitelist"] = "on"
+		}
+
+		if userToWhitelistForcePush != "" {
+			user, err := user_model.GetUserByName(db.DefaultContext, userToWhitelistForcePush)
+			assert.NoError(t, err)
+			formData["force_push_allowlist_users"] = strconv.FormatInt(user.ID, 10)
+			formData["enable_force_push"] = "whitelist"
+			formData["enable_force_push_allowlist"] = "on"
+		}
+
+		// Send the request to update branch protection settings
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), formData)
+		ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
+
 		// Check if master branch has been locked successfully
 		flashCookie := ctx.Session.GetCookie(gitea_context.CookieNameFlash)
 		assert.NotNil(t, flashCookie)
@@ -590,7 +645,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 
 func doBranchDelete(ctx APITestContext, owner, repo, branch string) func(*testing.T) {
 	return func(t *testing.T) {
-		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/branches", url.PathEscape(owner), url.PathEscape(repo)))
+		csrf := GetUserCSRFToken(t, ctx.Session)
 
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/branches/delete?name=%s", url.PathEscape(owner), url.PathEscape(repo), url.QueryEscape(branch)), map[string]string{
 			"_csrf": csrf,
@@ -887,5 +942,61 @@ func TestDataAsync_Issue29101(t *testing.T) {
 		r2, err := b.DataAsync()
 		assert.NoError(t, err)
 		defer r2.Close()
+	})
+}
+
+func TestAgitPullPush(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		u.Path = baseAPITestContext.GitPath()
+		u.User = url.UserPassword("user2", userPassword)
+
+		dstPath := t.TempDir()
+		doGitClone(dstPath, u)(t)
+
+		gitRepo, err := git.OpenRepository(context.Background(), dstPath)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+
+		doGitCreateBranch(dstPath, "test-agit-push")
+
+		// commit 1
+		_, err = generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+		assert.NoError(t, err)
+
+		// push to create an agit pull request
+		err = git.NewCommand(git.DefaultContext, "push", "origin",
+			"-o", "title=test-title", "-o", "description=test-description",
+			"HEAD:refs/for/master/test-agit-push",
+		).Run(&git.RunOpts{Dir: dstPath})
+		assert.NoError(t, err)
+
+		// check pull request exist
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Flow: issues_model.PullRequestFlowAGit, HeadBranch: "user2/test-agit-push"})
+		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
+		assert.Equal(t, "test-title", pr.Issue.Title)
+		assert.Equal(t, "test-description", pr.Issue.Content)
+
+		// commit 2
+		_, err = generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-2-")
+		assert.NoError(t, err)
+
+		// push 2
+		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push").Run(&git.RunOpts{Dir: dstPath})
+		assert.NoError(t, err)
+
+		// reset to first commit
+		err = git.NewCommand(git.DefaultContext, "reset", "--hard", "HEAD~1").Run(&git.RunOpts{Dir: dstPath})
+		assert.NoError(t, err)
+
+		// test force push without confirm
+		_, stderr, err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push").RunStdString(&git.RunOpts{Dir: dstPath})
+		assert.Error(t, err)
+		assert.Contains(t, stderr, "[remote rejected] HEAD -> refs/for/master/test-agit-push (request `force-push` push option)")
+
+		// test force push with confirm
+		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push", "-o", "force-push").Run(&git.RunOpts{Dir: dstPath})
+		assert.NoError(t, err)
 	})
 }

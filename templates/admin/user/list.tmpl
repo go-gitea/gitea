@@ -3,7 +3,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.users.user_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/users/new">{{ctx.Locale.Tr "admin.users.new_account"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/-/admin/users/new">{{ctx.Locale.Tr "admin.users.new_account"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached segment">
@@ -93,9 +93,9 @@
 								{{end}}
 							</td>
 							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
-							<td>{{if .IsActive}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td>{{if .IsRestricted}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td>{{if index $.UsersTwoFaStatus .ID}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
+							<td>{{svg (Iif .IsActive "octicon-check" "octicon-x")}}</td>
+							<td>{{svg (Iif .IsRestricted "octicon-check" "octicon-x")}}</td>
+							<td>{{svg (Iif (index $.UsersTwoFaStatus .ID) "octicon-check" "octicon-x")}}</td>
 							<td>{{DateTime "short" .CreatedUnix}}</td>
 							{{if .LastLoginUnix}}
 								<td>{{DateTime "short" .LastLoginUnix}}</td>

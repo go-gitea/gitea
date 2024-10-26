@@ -217,13 +217,14 @@ const (
 
 // IssueCommentPayload represents a payload information of issue comment event.
 type IssueCommentPayload struct {
-	Action     HookIssueCommentAction `json:"action"`
-	Issue      *Issue                 `json:"issue"`
-	Comment    *Comment               `json:"comment"`
-	Changes    *ChangesPayload        `json:"changes,omitempty"`
-	Repository *Repository            `json:"repository"`
-	Sender     *User                  `json:"sender"`
-	IsPull     bool                   `json:"is_pull"`
+	Action      HookIssueCommentAction `json:"action"`
+	Issue       *Issue                 `json:"issue"`
+	PullRequest *PullRequest           `json:"pull_request,omitempty"`
+	Comment     *Comment               `json:"comment"`
+	Changes     *ChangesPayload        `json:"changes,omitempty"`
+	Repository  *Repository            `json:"repository"`
+	Sender      *User                  `json:"sender"`
+	IsPull      bool                   `json:"is_pull"`
 }
 
 // JSONPayload implements Payload
@@ -492,5 +493,19 @@ type PackagePayload struct {
 
 // JSONPayload implements Payload
 func (p *PackagePayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
+// WorkflowDispatchPayload represents a workflow dispatch payload
+type WorkflowDispatchPayload struct {
+	Workflow   string         `json:"workflow"`
+	Ref        string         `json:"ref"`
+	Inputs     map[string]any `json:"inputs"`
+	Repository *Repository    `json:"repository"`
+	Sender     *User          `json:"sender"`
+}
+
+// JSONPayload implements Payload
+func (p *WorkflowDispatchPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }

@@ -53,8 +53,8 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 			return nil
 		}
 
-		if setting.LFS.Storage.MinioConfig.ServeDirect {
-			// If we have a signed url (S3, object storage), redirect to this directly.
+		if setting.LFS.Storage.ServeDirect() {
+			// If we have a signed url (S3, object storage, blob storage), redirect to this directly.
 			u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name())
 			if u != nil && err == nil {
 				ctx.Redirect(u.String())
@@ -139,7 +139,7 @@ func SingleDownloadOrLFS(ctx *context.Context) {
 
 // DownloadByID download a file by sha1 ID
 func DownloadByID(ctx *context.Context) {
-	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.Params("sha"))
+	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetBlob", nil)
@@ -155,7 +155,7 @@ func DownloadByID(ctx *context.Context) {
 
 // DownloadByIDOrLFS download a file by sha1 ID taking account of LFS
 func DownloadByIDOrLFS(ctx *context.Context) {
-	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.Params("sha"))
+	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetBlob", nil)

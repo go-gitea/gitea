@@ -5,7 +5,7 @@
 		{{template "base/alert" .}}
 		{{template "repo/code/recently_pushed_new_branches" .}}
 		{{if and (not .HideRepoInfo) (not .IsBlame)}}
-		<div class="repo-description gt-word-break">
+		<div class="repo-description tw-break-anywhere">
 			{{- $description := .Repository.DescriptionHTML ctx -}}
 			{{if $description}}{{$description | RenderCodeBlock}}{{end}}
 			{{if .Repository.Website}}<a href="{{.Repository.Website}}">{{.Repository.Website}}</a>{{end}}
@@ -45,7 +45,7 @@
 		{{$n := len .TreeNames}}
 		{{$l := Eval $n "-" 1}}
 		{{$isHomepage := (eq $n 0)}}
-		<div class="repo-button-row">
+		<div class="repo-button-row" data-is-homepage="{{$isHomepage}}">
 			<div class="repo-button-row-left">
 				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "tw-mr-1"}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}

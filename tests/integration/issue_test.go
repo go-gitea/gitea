@@ -191,6 +191,34 @@ func TestNewIssue(t *testing.T) {
 	testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 }
 
+func TestEditIssue(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
+		"_csrf":   GetUserCSRFToken(t, session),
+		"content": "modified content",
+		"context": fmt.Sprintf("/%s/%s", "user2", "repo1"),
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
+		"_csrf":   GetUserCSRFToken(t, session),
+		"content": "modified content",
+		"context": fmt.Sprintf("/%s/%s", "user2", "repo1"),
+	})
+	session.MakeRequest(t, req, http.StatusBadRequest)
+
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
+		"_csrf":           GetUserCSRFToken(t, session),
+		"content":         "modified content",
+		"content_version": "1",
+		"context":         fmt.Sprintf("/%s/%s", "user2", "repo1"),
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
 func TestIssueCommentClose(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
@@ -218,11 +246,11 @@ func TestIssueCommentDelete(t *testing.T) {
 
 	// Using the ID of a comment that does not belong to the repository must fail
 	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d/delete", "user5", "repo4", commentID), map[string]string{
-		"_csrf": GetCSRF(t, session, issueURL),
+		"_csrf": GetUserCSRFToken(t, session),
 	})
 	session.MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d/delete", "user2", "repo1", commentID), map[string]string{
-		"_csrf": GetCSRF(t, session, issueURL),
+		"_csrf": GetUserCSRFToken(t, session),
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 	unittest.AssertNotExistsBean(t, &issues_model.Comment{ID: commentID})
@@ -242,19 +270,57 @@ func TestIssueCommentUpdate(t *testing.T) {
 
 	// Using the ID of a comment that does not belong to the repository must fail
 	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user5", "repo4", commentID), map[string]string{
-		"_csrf":   GetCSRF(t, session, issueURL),
+		"_csrf":   GetUserCSRFToken(t, session),
 		"content": modifiedContent,
 	})
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
-		"_csrf":   GetCSRF(t, session, issueURL),
+		"_csrf":   GetUserCSRFToken(t, session),
 		"content": modifiedContent,
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 
 	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: commentID})
 	assert.Equal(t, modifiedContent, comment.Content)
+}
+
+func TestIssueCommentUpdateSimultaneously(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+	comment1 := "Test comment 1"
+	commentID := testIssueAddComment(t, session, issueURL, comment1, "")
+
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: commentID})
+	assert.Equal(t, comment1, comment.Content)
+
+	modifiedContent := comment.Content + "MODIFIED"
+
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
+		"_csrf":   GetUserCSRFToken(t, session),
+		"content": modifiedContent,
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	modifiedContent = comment.Content + "2"
+
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
+		"_csrf":   GetUserCSRFToken(t, session),
+		"content": modifiedContent,
+	})
+	session.MakeRequest(t, req, http.StatusBadRequest)
+
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
+		"_csrf":           GetUserCSRFToken(t, session),
+		"content":         modifiedContent,
+		"content_version": "1",
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: commentID})
+	assert.Equal(t, modifiedContent, comment.Content)
+	assert.Equal(t, 2, comment.ContentVersion)
 }
 
 func TestIssueReaction(t *testing.T) {

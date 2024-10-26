@@ -45,7 +45,7 @@ func TestWithCacheContext(t *testing.T) {
 		timeNow = now
 	}()
 	timeNow = func() time.Time {
-		return now().Add(10 * time.Second)
+		return now().Add(5 * time.Minute)
 	}
 	v = GetContextData(ctx, field, "my_config1")
 	assert.Nil(t, v)

@@ -30,6 +30,11 @@ type BranchProtection struct {
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
 	PushWhitelistTeams            []string `json:"push_whitelist_teams"`
 	PushWhitelistDeployKeys       bool     `json:"push_whitelist_deploy_keys"`
+	EnableForcePush               bool     `json:"enable_force_push"`
+	EnableForcePushAllowlist      bool     `json:"enable_force_push_allowlist"`
+	ForcePushAllowlistUsernames   []string `json:"force_push_allowlist_usernames"`
+	ForcePushAllowlistTeams       []string `json:"force_push_allowlist_teams"`
+	ForcePushAllowlistDeployKeys  bool     `json:"force_push_allowlist_deploy_keys"`
 	EnableMergeWhitelist          bool     `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
 	MergeWhitelistTeams           []string `json:"merge_whitelist_teams"`
@@ -47,6 +52,7 @@ type BranchProtection struct {
 	RequireSignedCommits          bool     `json:"require_signed_commits"`
 	ProtectedFilePatterns         string   `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       string   `json:"unprotected_file_patterns"`
+	BlockAdminMergeOverride       bool     `json:"block_admin_merge_override"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -63,6 +69,11 @@ type CreateBranchProtectionOption struct {
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
 	PushWhitelistTeams            []string `json:"push_whitelist_teams"`
 	PushWhitelistDeployKeys       bool     `json:"push_whitelist_deploy_keys"`
+	EnableForcePush               bool     `json:"enable_force_push"`
+	EnableForcePushAllowlist      bool     `json:"enable_force_push_allowlist"`
+	ForcePushAllowlistUsernames   []string `json:"force_push_allowlist_usernames"`
+	ForcePushAllowlistTeams       []string `json:"force_push_allowlist_teams"`
+	ForcePushAllowlistDeployKeys  bool     `json:"force_push_allowlist_deploy_keys"`
 	EnableMergeWhitelist          bool     `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
 	MergeWhitelistTeams           []string `json:"merge_whitelist_teams"`
@@ -80,6 +91,7 @@ type CreateBranchProtectionOption struct {
 	RequireSignedCommits          bool     `json:"require_signed_commits"`
 	ProtectedFilePatterns         string   `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       string   `json:"unprotected_file_patterns"`
+	BlockAdminMergeOverride       bool     `json:"block_admin_merge_override"`
 }
 
 // EditBranchProtectionOption options for editing a branch protection
@@ -89,6 +101,11 @@ type EditBranchProtectionOption struct {
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
 	PushWhitelistTeams            []string `json:"push_whitelist_teams"`
 	PushWhitelistDeployKeys       *bool    `json:"push_whitelist_deploy_keys"`
+	EnableForcePush               *bool    `json:"enable_force_push"`
+	EnableForcePushAllowlist      *bool    `json:"enable_force_push_allowlist"`
+	ForcePushAllowlistUsernames   []string `json:"force_push_allowlist_usernames"`
+	ForcePushAllowlistTeams       []string `json:"force_push_allowlist_teams"`
+	ForcePushAllowlistDeployKeys  *bool    `json:"force_push_allowlist_deploy_keys"`
 	EnableMergeWhitelist          *bool    `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
 	MergeWhitelistTeams           []string `json:"merge_whitelist_teams"`
@@ -106,4 +123,5 @@ type EditBranchProtectionOption struct {
 	RequireSignedCommits          *bool    `json:"require_signed_commits"`
 	ProtectedFilePatterns         *string  `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       *string  `json:"unprotected_file_patterns"`
+	BlockAdminMergeOverride       *bool    `json:"block_admin_merge_override"`
 }

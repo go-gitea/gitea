@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -19,32 +20,36 @@ import (
 func TestCreateFile(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user2")
-
-		// Request editor page
-		req := NewRequest(t, "GET", "/user2/repo1/_new/master/")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-
-		doc := NewHTMLParser(t, resp.Body)
-		lastCommit := doc.GetInputValueByName("last_commit")
-		assert.NotEmpty(t, lastCommit)
-
-		// Save new file to master branch
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/_new/master/", map[string]string{
-			"_csrf":         doc.GetCSRF(),
-			"last_commit":   lastCommit,
-			"tree_path":     "test.txt",
-			"content":       "Content",
-			"commit_choice": "direct",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		testCreateFile(t, session, "user2", "repo1", "master", "test.txt", "Content")
 	})
+}
+
+func testCreateFile(t *testing.T, session *TestSession, user, repo, branch, filePath, content string) *httptest.ResponseRecorder {
+	// Request editor page
+	newURL := fmt.Sprintf("/%s/%s/_new/%s/", user, repo, branch)
+	req := NewRequest(t, "GET", newURL)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	doc := NewHTMLParser(t, resp.Body)
+	lastCommit := doc.GetInputValueByName("last_commit")
+	assert.NotEmpty(t, lastCommit)
+
+	// Save new file to master branch
+	req = NewRequestWithValues(t, "POST", newURL, map[string]string{
+		"_csrf":         doc.GetCSRF(),
+		"last_commit":   lastCommit,
+		"tree_path":     filePath,
+		"content":       content,
+		"commit_choice": "direct",
+	})
+	return session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
 func TestCreateFileOnProtectedBranch(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user2")
 
-		csrf := GetCSRF(t, session, "/user2/repo1/settings/branches")
+		csrf := GetUserCSRFToken(t, session)
 		// Change master branch to protected
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
 			"_csrf":       csrf,
@@ -79,7 +84,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 		assert.Contains(t, resp.Body.String(), "Cannot commit to protected branch &#34;master&#34;.")
 
 		// remove the protected branch
-		csrf = GetCSRF(t, session, "/user2/repo1/settings/branches")
+		csrf = GetUserCSRFToken(t, session)
 
 		// Change master branch to protected
 		req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/1/delete", map[string]string{

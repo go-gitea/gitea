@@ -161,6 +161,7 @@ func (f *AuthorizationForm) Validate(req *http.Request, errs binding.Errors) bin
 // GrantApplicationForm form for authorizing oauth2 clients
 type GrantApplicationForm struct {
 	ClientID    string `binding:"Required"`
+	Granted     bool
 	RedirectURI string
 	State       string
 	Scope       string
@@ -364,9 +365,10 @@ func (f *NewAccessTokenForm) GetScope() (auth_model.AccessTokenScope, error) {
 
 // EditOAuth2ApplicationForm form for editing oauth2 applications
 type EditOAuth2ApplicationForm struct {
-	Name               string `binding:"Required;MaxSize(255)" form:"application_name"`
-	RedirectURIs       string `binding:"Required" form:"redirect_uris"`
-	ConfidentialClient bool   `form:"confidential_client"`
+	Name                       string `binding:"Required;MaxSize(255)" form:"application_name"`
+	RedirectURIs               string `binding:"Required" form:"redirect_uris"`
+	ConfidentialClient         bool   `form:"confidential_client"`
+	SkipSecondaryAuthorization bool   `form:"skip_secondary_authorization"`
 }
 
 // Validate validates the fields

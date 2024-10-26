@@ -58,6 +58,9 @@ func RequireRepoWriterOr(unitTypes ...unit.Type) func(ctx *Context) {
 func RequireRepoReader(unitType unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.Repo.CanRead(unitType) {
+			if unitType == unit.TypeCode && canWriteAsMaintainer(ctx) {
+				return
+			}
 			if log.IsTrace() {
 				if ctx.IsSigned {
 					log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+

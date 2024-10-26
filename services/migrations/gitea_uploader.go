@@ -107,7 +107,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 			Description:    repo.Description,
 			OriginalURL:    repo.OriginalURL,
 			GitServiceType: opts.GitServiceType,
-			IsPrivate:      opts.Private,
+			IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 			IsMirror:       opts.Mirror,
 			Status:         repo_model.RepositoryBeingMigrated,
 		})
@@ -760,10 +760,15 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*issues_model
 		pr.Updated = pr.Created
 	}
 
+	prTitle := pr.Title
+	if pr.IsDraft && !issues_model.HasWorkInProgressPrefix(pr.Title) {
+		prTitle = fmt.Sprintf("%s %s", setting.Repository.PullRequest.WorkInProgressPrefixes[0], pr.Title)
+	}
+
 	issue := issues_model.Issue{
 		RepoID:      g.repo.ID,
 		Repo:        g.repo,
-		Title:       pr.Title,
+		Title:       prTitle,
 		Index:       pr.Number,
 		Content:     pr.Content,
 		MilestoneID: milestoneID,

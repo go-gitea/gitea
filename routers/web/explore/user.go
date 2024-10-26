@@ -33,8 +33,8 @@ func isKeywordValid(keyword string) bool {
 // RenderUserSearch render user search page
 func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, tplName base.TplName) {
 	// Sitemap index for sitemap paths
-	opts.Page = int(ctx.ParamsInt64("idx"))
-	isSitemap := ctx.Params("idx") != ""
+	opts.Page = int(ctx.PathParamInt64("idx"))
+	isSitemap := ctx.PathParam("idx") != ""
 	if opts.Page <= 1 {
 		opts.Page = ctx.FormInt("page")
 	}
@@ -131,9 +131,11 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 // Users render explore users page
 func Users(ctx *context.Context) {
 	if setting.Service.Explore.DisableUsersPage {
-		ctx.Redirect(setting.AppSubURL + "/explore/repos")
+		ctx.Redirect(setting.AppSubURL + "/explore")
 		return
 	}
+	ctx.Data["OrganizationsPageIsDisabled"] = setting.Service.Explore.DisableOrganizationsPage
+	ctx.Data["CodePageIsDisabled"] = setting.Service.Explore.DisableCodePage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreUsers"] = true
