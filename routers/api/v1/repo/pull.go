@@ -1000,7 +1000,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message)
+		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, form.DeleteBranchAfterMerge)
 		if err != nil {
 			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
 				ctx.Error(http.StatusConflict, "ScheduleAutoMerge", err)

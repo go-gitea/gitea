@@ -63,9 +63,9 @@ func addToQueue(pr *issues_model.PullRequest, sha string) {
 }
 
 // ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
-func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, style repo_model.MergeStyle, message string) (scheduled bool, err error) {
+func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, style repo_model.MergeStyle, message string, deleteBranchAfterMerge bool) (scheduled bool, err error) {
 	err = db.WithTx(ctx, func(ctx context.Context) error {
-		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message); err != nil {
+		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message, deleteBranchAfterMerge); err != nil {
 			return err
 		}
 		scheduled = true
