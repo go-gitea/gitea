@@ -161,6 +161,10 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 						break
 					}
 					coAuthorName, coAuthorEmail, err := util.ParseCommitTrailerValueWithAuthor(line)
+					if authorEmail == coAuthorEmail {
+						// Authors shouldn't be co-authors too.
+						continue
+					}
 					if err != nil {
 						continue
 					}
