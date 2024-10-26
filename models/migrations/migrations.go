@@ -419,7 +419,7 @@ func EnsureUpToDate(x *xorm.Engine) error {
 	expectedDB := ExpectedDBVersion()
 
 	if currentDB != expectedDB {
-		return fmt.Errorf(`current database version %d is not equal to the expectedDB version %d. Please run "gitea [--config /path/to/app.ini] migrate" to update the database version`, currentDB, expectedDB)
+		return fmt.Errorf(`current database version %d is not equal to the expected version %d. Please run "gitea [--config /path/to/app.ini] migrate" to update the database version`, currentDB, expectedDB)
 	}
 
 	return nil
