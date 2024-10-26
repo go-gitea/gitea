@@ -24,7 +24,7 @@ type UpdateTeamOptions struct {
 func UpdateTeam(ctx context.Context, team *org_model.Team, opts UpdateTeamOptions) error {
 	var changedCols []string
 
-	newAccessMode := perm.AccessModeRead
+	var newAccessMode perm.AccessMode
 	if opts.IsAdmin {
 		newAccessMode = perm.AccessModeAdmin
 	} else {

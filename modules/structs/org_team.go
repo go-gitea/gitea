@@ -44,7 +44,7 @@ type EditTeamOption struct {
 	Description             *string `json:"description" binding:"MaxSize(255)"`
 	IncludesAllRepositories *bool   `json:"includes_all_repositories"`
 	// enum: read,write,admin
-	Permission string `json:"permission" binding:"`
+	Permission string `json:"permission" binding:"Required;In(read,write,admin)"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki"]
 	// Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.
 	Units []string `json:"units"`

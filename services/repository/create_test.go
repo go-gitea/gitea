@@ -111,7 +111,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	teams[4].IncludesAllRepositories = true
 	teamRepos[4] = repoIDs
 	for i, team := range teams {
-		assert.NoError(t, models.UpdateTeam(db.DefaultContext, team, false, true), "%s: UpdateTeam", team.Name)
+		assert.NoError(t, models.UpdateTeam(db.DefaultContext, team, "includes_all_repositories"), "%s: UpdateTeam", team.Name)
 		testTeamRepositories(team.ID, teamRepos[i])
 	}
 
