@@ -152,7 +152,7 @@ func TestAPIEditIssueAttachmentWithUnallowedFile(t *testing.T) {
 
 	attachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 1})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: attachment.RepoID})
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: attachment.IssueID})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: attachment.IssueID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
