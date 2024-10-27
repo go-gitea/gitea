@@ -22,7 +22,6 @@ import (
 
 	"code.gitea.io/gitea/build/license"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -40,7 +39,7 @@ func main() {
 	flag.StringVar(&githubApiToken, "token", "", "github api token")
 	flag.Parse()
 
-	file, err := os.CreateTemp(setting.TempDir(), prefix)
+	file, err := os.CreateTemp(os.TempDir(), prefix)
 	if err != nil {
 		log.Fatalf("Failed to create temp file. %s", err)
 	}
