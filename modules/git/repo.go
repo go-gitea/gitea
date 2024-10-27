@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/proxy"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -279,11 +280,11 @@ func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch
 
 // CreateBundle create bundle content to the target path
 func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.Writer) error {
-	tmp, err := os.MkdirTemp(os.TempDir(), "gitea-bundle")
+	tmp, err := os.MkdirTemp(setting.TempDir(), "gitea-bundle")
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(tmp)
+	defer util.RemoveAll(tmp)
 
 	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(repo.Path, "objects"))
 	_, _, err = NewCommand(ctx, "init", "--bare").RunStdString(&RunOpts{Dir: tmp, Env: env})

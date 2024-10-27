@@ -4,6 +4,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,9 +17,9 @@ import (
 // localCopyPath returns the local repository temporary copy path.
 func localCopyPath() string {
 	if setting.Repository.Local.LocalCopyPath == "" {
-		return filepath.Join(os.TempDir(), "local-repo")
+		return filepath.Join(setting.TempDir(), "local-repo")
 	} else if !filepath.IsAbs(setting.Repository.Local.LocalCopyPath) {
-		return filepath.Join(os.TempDir(), setting.Repository.Local.LocalCopyPath)
+		return filepath.Join(setting.TempDir(), setting.Repository.Local.LocalCopyPath)
 	}
 	return setting.Repository.Local.LocalCopyPath
 }
@@ -30,7 +31,7 @@ func CleanUpTemporaryPaths() {
 }
 
 // CreateTemporaryPath creates a temporary path
-func CreateTemporaryPath(prefix string) (string, func(), error) {
+func CreateTemporaryPath(prefix string) (string, context.CancelFunc, error) {
 	if err := os.MkdirAll(localCopyPath(), os.ModePerm); err != nil {
 		log.Error("Unable to create localcopypath directory: %s (%v)", localCopyPath(), err)
 		return "", func() {}, fmt.Errorf("failed to create localcopypath directory %s: %w", localCopyPath(), err)
