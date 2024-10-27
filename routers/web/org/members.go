@@ -44,7 +44,7 @@ func Members(ctx *context.Context) {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
-		opts.IsMember = isMember
+		opts.IsDoerMember = isMember
 	}
 	ctx.Data["PublicOnly"] = opts.PublicOnly()
 

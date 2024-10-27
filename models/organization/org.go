@@ -196,13 +196,13 @@ func (org *Organization) CanCreateRepo() bool {
 // FindOrgMembersOpts represensts find org members conditions
 type FindOrgMembersOpts struct {
 	db.ListOptions
-	Doer     *user_model.User
-	IsMember bool
-	OrgID    int64
+	Doer         *user_model.User
+	IsDoerMember bool
+	OrgID        int64
 }
 
 func (opts FindOrgMembersOpts) PublicOnly() bool {
-	return opts.Doer == nil || !(opts.IsMember || opts.Doer.IsAdmin)
+	return opts.Doer == nil || !(opts.IsDoerMember || opts.Doer.IsAdmin)
 }
 
 // CountOrgMembers counts the organization's members

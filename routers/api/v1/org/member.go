@@ -20,10 +20,10 @@ import (
 // listMembers list an organization's members
 func listMembers(ctx *context.APIContext, isMember bool) {
 	opts := &organization.FindOrgMembersOpts{
-		Doer:        ctx.Doer,
-		IsMember:    isMember,
-		OrgID:       ctx.Org.Organization.ID,
-		ListOptions: utils.GetListOptions(ctx),
+		Doer:         ctx.Doer,
+		IsDoerMember: isMember,
+		OrgID:        ctx.Org.Organization.ID,
+		ListOptions:  utils.GetListOptions(ctx),
 	}
 
 	count, err := organization.CountOrgMembers(ctx, opts)
