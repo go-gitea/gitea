@@ -22,7 +22,7 @@ import (
 	rpm_service "code.gitea.io/gitea/services/packages/rpm"
 )
 
-// Task method to execute cleanup rules and cleanup expired package data
+// CleanupTask executes cleanup rules and cleanup expired package data
 func CleanupTask(ctx context.Context, olderThan time.Duration) error {
 	if err := ExecuteCleanupRules(ctx); err != nil {
 		return err
