@@ -4,7 +4,6 @@
 package storage
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -56,6 +55,6 @@ func TestBuildLocalPath(t *testing.T) {
 }
 
 func TestLocalStorageIterator(t *testing.T) {
-	dir := filepath.Join(os.TempDir(), "TestLocalStorageIteratorTestDir")
+	dir := filepath.Join(t.TempDir(), "TestLocalStorageIteratorTestDir")
 	testStorageIterator(t, setting.LocalStorageType, &setting.Storage{Path: dir})
 }

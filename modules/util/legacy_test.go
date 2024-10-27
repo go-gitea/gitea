@@ -11,13 +11,15 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCopyFile(t *testing.T) {
 	testContent := []byte("hello")
 
-	tmpDir := os.TempDir()
+	tmpDir := setting.TempDir()
 	now := time.Now()
 	srcFile := fmt.Sprintf("%s/copy-test-%d-src.txt", tmpDir, now.UnixMicro())
 	dstFile := fmt.Sprintf("%s/copy-test-%d-dst.txt", tmpDir, now.UnixMicro())

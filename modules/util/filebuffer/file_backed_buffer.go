@@ -9,6 +9,8 @@ import (
 	"io"
 	"math"
 	"os"
+
+	"code.gitea.io/gitea/modules/setting"
 )
 
 var (
@@ -73,7 +75,7 @@ func (b *FileBackedBuffer) Write(p []byte) (int, error) {
 		n, err = b.file.Write(p)
 	} else {
 		if b.size+int64(len(p)) > b.maxMemorySize {
-			b.file, err = os.CreateTemp("", "gitea-buffer-")
+			b.file, err = os.CreateTemp(setting.TempDir(), "gitea-buffer-")
 			if err != nil {
 				return 0, err
 			}

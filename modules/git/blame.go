@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -195,7 +196,7 @@ func tryCreateBlameIgnoreRevsFile(commit *Commit) *string {
 	}
 	defer r.Close()
 
-	f, err := os.CreateTemp("", "gitea_git-blame-ignore-revs")
+	f, err := os.CreateTemp(setting.TempDir(), "gitea_git-blame-ignore-revs")
 	if err != nil {
 		return nil
 	}

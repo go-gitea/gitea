@@ -30,23 +30,28 @@ type TemporaryUploadRepository struct {
 	repo     *repo_model.Repository
 	gitRepo  *git.Repository
 	basePath string
+	cancel   func()
 }
 
 // NewTemporaryUploadRepository creates a new temporary upload repository
 func NewTemporaryUploadRepository(ctx context.Context, repo *repo_model.Repository) (*TemporaryUploadRepository, error) {
-	basePath, err := repo_module.CreateTemporaryPath("upload")
+	basePath, cancel, err := repo_module.CreateTemporaryPath("upload")
 	if err != nil {
 		return nil, err
 	}
-	t := &TemporaryUploadRepository{ctx: ctx, repo: repo, basePath: basePath}
+	t := &TemporaryUploadRepository{
+		ctx: ctx, repo: repo,
+		basePath: basePath,
+		cancel:   cancel,
+	}
 	return t, nil
 }
 
 // Close the repository cleaning up all files
 func (t *TemporaryUploadRepository) Close() {
 	defer t.gitRepo.Close()
-	if err := repo_module.RemoveTemporaryPath(t.basePath); err != nil {
-		log.Error("Failed to remove temporary path %s: %v", t.basePath, err)
+	if t.cancel != nil {
+		t.cancel()
 	}
 }
 

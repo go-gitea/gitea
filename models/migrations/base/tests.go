@@ -141,7 +141,7 @@ func MainTest(m *testing.M) {
 		setting.CustomConf = giteaConf
 	}
 
-	tmpDataPath, err := os.MkdirTemp("", "data")
+	tmpDataPath, err := os.MkdirTemp(setting.TempDir(), "data")
 	if err != nil {
 		fmt.Printf("Unable to create temporary data path %v\n", err)
 		os.Exit(1)

@@ -134,6 +134,10 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	return nil
 }
 
+func createRepoTempDir(repoName string) (string, error) {
+	return os.MkdirTemp(filepath.Join(setting.TempDir(), "repos"), "gitea-"+repoName)
+}
+
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
 	if err = repo_module.CheckInitRepository(ctx, repo.OwnerName, repo.Name, opts.ObjectFormatName); err != nil {
@@ -142,9 +146,9 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 
 	// Initialize repository according to user's choice.
 	if opts.AutoInit {
-		tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
+		tmpDir, err := createRepoTempDir(repo.Name)
 		if err != nil {
-			return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.RepoPath(), err)
+			return fmt.Errorf("failed to create temp dir for repository %s: %w", repo.RepoPath(), err)
 		}
 		defer func() {
 			if err := util.RemoveAll(tmpDir); err != nil {

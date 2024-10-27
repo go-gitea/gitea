@@ -107,7 +107,10 @@ func Init(ctx context.Context) error {
 		return err
 	}
 	system_model.RemoveAllWithNotice(ctx, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
-	system_model.RemoveAllWithNotice(ctx, "Clean up temporary repositories", repo_module.LocalCopyPath())
+	repo_module.CleanUpTemporaryPaths()
+	if err := system_model.CreateNotice(db.DefaultContext, system_model.NoticeRepository, "Clean up temporary repositories"); err != nil {
+		log.Error("CreateRepositoryNotice: %v", err)
+	}
 	if err := initPushQueue(); err != nil {
 		return err
 	}

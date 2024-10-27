@@ -303,7 +303,7 @@ var (
 
 func dummyInfoRefs(ctx *context.Context) {
 	infoRefsOnce.Do(func() {
-		tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-info-refs-cache")
+		tmpDir, err := os.MkdirTemp(setting.TempDir(), "gitea-info-refs-cache")
 		if err != nil {
 			log.Error("Failed to create temp dir for git-receive-pack cache: %v", err)
 			return
