@@ -206,7 +206,11 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 	w := io.MultiWriter(packagesContent, gzw, xzw)
 
 	addSeparator := false
-	if err := debian_model.SearchPackages(ctx, opts, func(pfd *packages_model.PackageFileDescriptor) {
+	pfds, err := debian_model.SearchPackages(ctx, opts)
+	if err != nil {
+		return err
+	}
+	for _, pfd := range pfds {
 		if addSeparator {
 			fmt.Fprintln(w)
 		}
@@ -220,10 +224,7 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 		fmt.Fprintf(w, "SHA1: %s\n", pfd.Blob.HashSHA1)
 		fmt.Fprintf(w, "SHA256: %s\n", pfd.Blob.HashSHA256)
 		fmt.Fprintf(w, "SHA512: %s\n", pfd.Blob.HashSHA512)
-	}); err != nil {
-		return err
 	}
-
 	gzw.Close()
 	xzw.Close()
 
