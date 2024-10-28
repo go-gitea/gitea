@@ -153,6 +153,7 @@ func serveInstall(ctx *cli.Context) error {
 func serveInstalled(ctx *cli.Context) error {
 	setting.InitCfgProvider(setting.CustomConf)
 	setting.LoadCommonSettings()
+	setting.CleanUpTempDirs()
 	setting.MustInstalled()
 
 	showWebStartupMessage("Prepare to run web server")

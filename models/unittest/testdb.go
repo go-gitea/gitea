@@ -60,6 +60,7 @@ func InitSettings() {
 	}
 	setting.InitCfgProvider(setting.CustomConf)
 	setting.LoadCommonSettings()
+	setting.CleanUpTempDirs()
 
 	if err := setting.PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)

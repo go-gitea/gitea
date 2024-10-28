@@ -3,7 +3,10 @@
 
 package setting
 
-import "os"
+import (
+	"os"
+	"path/filepath"
+)
 
 // Global settings
 var (
@@ -21,5 +24,9 @@ var (
 
 // TempDir returns the OS temp directory
 func TempDir() string {
-	return os.TempDir()
+	return filepath.Join(os.TempDir(), "gitea")
+}
+
+func CleanUpTempDirs() {
+	_ = os.RemoveAll(TempDir())
 }
