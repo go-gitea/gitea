@@ -2,6 +2,7 @@
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {computed, onMounted, ref} from 'vue';
+import type {Issue} from '../types';
 
 const {appSubUrl, i18n} = window.config;
 
@@ -19,8 +20,6 @@ const body = computed(() => {
   }
   return body;
 });
-
-type Issue = {id: number; title: string; state: 'open' | 'closed'; pull_request?: {draft: boolean; merged: boolean}};
 
 function getIssueIcon(issue: Issue) {
   if (issue.pull_request) {
