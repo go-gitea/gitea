@@ -4,8 +4,10 @@
 package setting
 
 import (
+	"log"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 // Global settings
@@ -20,11 +22,19 @@ var (
 
 	// AppName is the Application name, used in the page title. ini: "APP_NAME"
 	AppName string
+
+	createTempOnce sync.Once
 )
 
 // TempDir returns the OS temp directory
 func TempDir() string {
-	return filepath.Join(os.TempDir(), "gitea")
+	tempDir := filepath.Join(os.TempDir(), "gitea")
+	createTempOnce.Do(func() {
+		if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
+			log.Fatalf("Failed to create temp directory %s: %v", tempDir, err)
+		}
+	})
+	return tempDir
 }
 
 func CleanUpTempDirs() {
