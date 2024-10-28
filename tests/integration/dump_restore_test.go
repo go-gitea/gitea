@@ -44,7 +44,7 @@ func TestDumpRestore(t *testing.T) {
 
 		reponame := "repo1"
 
-		basePath, err := os.MkdirTemp("", reponame)
+		basePath, err := os.MkdirTemp(setting.TempDir(), reponame)
 		assert.NoError(t, err)
 		defer util.RemoveAll(basePath)
 

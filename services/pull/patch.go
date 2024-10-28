@@ -346,7 +346,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	}
 
 	// 3b. Create a plain patch from head to base
-	tmpPatchFile, err := os.CreateTemp("", "patch")
+	tmpPatchFile, err := os.CreateTemp(setting.TempDir(), "patch")
 	if err != nil {
 		log.Error("Unable to create temporary patch file! Error: %v", err)
 		return false, fmt.Errorf("unable to create temporary patch file! Error: %w", err)

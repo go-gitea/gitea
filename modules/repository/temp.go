@@ -4,9 +4,9 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/log"
@@ -14,30 +14,42 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// LocalCopyPath returns the local repository temporary copy path.
-func LocalCopyPath() string {
-	if filepath.IsAbs(setting.Repository.Local.LocalCopyPath) {
-		return setting.Repository.Local.LocalCopyPath
+// localCopyPath returns the local repository temporary copy path.
+func localCopyPath() string {
+	if setting.Repository.Local.LocalCopyPath == "" {
+		return filepath.Join(setting.TempDir(), "local-repo")
+	} else if !filepath.IsAbs(setting.Repository.Local.LocalCopyPath) {
+		return filepath.Join(setting.TempDir(), setting.Repository.Local.LocalCopyPath)
 	}
-	return path.Join(setting.AppDataPath, setting.Repository.Local.LocalCopyPath)
+	return setting.Repository.Local.LocalCopyPath
+}
+
+func CleanUpTemporaryPaths() {
+	if err := util.RemoveAll(localCopyPath()); err != nil {
+		log.Error("Unable to remove local repository temporary copy path: %s (%v)", localCopyPath(), err)
+	}
 }
 
 // CreateTemporaryPath creates a temporary path
-func CreateTemporaryPath(prefix string) (string, error) {
-	if err := os.MkdirAll(LocalCopyPath(), os.ModePerm); err != nil {
-		log.Error("Unable to create localcopypath directory: %s (%v)", LocalCopyPath(), err)
-		return "", fmt.Errorf("Failed to create localcopypath directory %s: %w", LocalCopyPath(), err)
+func CreateTemporaryPath(prefix string) (string, context.CancelFunc, error) {
+	if err := os.MkdirAll(localCopyPath(), os.ModePerm); err != nil {
+		log.Error("Unable to create localcopypath directory: %s (%v)", localCopyPath(), err)
+		return "", func() {}, fmt.Errorf("failed to create localcopypath directory %s: %w", localCopyPath(), err)
 	}
-	basePath, err := os.MkdirTemp(LocalCopyPath(), prefix+".git")
+	basePath, err := os.MkdirTemp(localCopyPath(), prefix+".git")
 	if err != nil {
 		log.Error("Unable to create temporary directory: %s-*.git (%v)", prefix, err)
-		return "", fmt.Errorf("Failed to create dir %s-*.git: %w", prefix, err)
+		return "", func() {}, fmt.Errorf("failed to create dir %s-*.git: %w", prefix, err)
 	}
-	return basePath, nil
+	return basePath, func() {
+		if err := removeTemporaryPath(basePath); err != nil {
+			log.Error("Unable to remove temporary directory: %s (%v)", basePath, err)
+		}
+	}, nil
 }
 
-// RemoveTemporaryPath removes the temporary path
-func RemoveTemporaryPath(basePath string) error {
+// removeTemporaryPath removes the temporary path
+func removeTemporaryPath(basePath string) error {
 	if _, err := os.Stat(basePath); !os.IsNotExist(err) {
 		return util.RemoveAll(basePath)
 	}
