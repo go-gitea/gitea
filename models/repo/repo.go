@@ -168,6 +168,7 @@ type Repository struct {
 	RenderingMetas         map[string]string `xorm:"-"`
 	DocumentRenderingMetas map[string]string `xorm:"-"`
 	Units                  []*RepoUnit       `xorm:"-"`
+	DefaultUnit            unit.Type         `xorm:"NOT NULL DEFAULT 1"`
 	PrimaryLanguage        *LanguageStat     `xorm:"-"`
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`

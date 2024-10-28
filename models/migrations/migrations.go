@@ -364,6 +364,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(304, "Add index for release sha1", v1_23.AddIndexForReleaseSha1),
 		newMigration(305, "Add Repository Licenses", v1_23.AddRepositoryLicenses),
 		newMigration(306, "Add BlockAdminMergeOverride to ProtectedBranch", v1_23.AddBlockAdminMergeOverrideBranchProtection),
+		newMigration(307, "Add DefaultUnit to Repository", v1_23.AddDefaultUnitToRepository),
 	}
 	return preparedMigrations
 }
