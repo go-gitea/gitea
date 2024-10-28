@@ -23,6 +23,9 @@
 				</div>
 			</td>
 			<td colspan="7" class="lines-code lines-code-old ">{{$inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale}}{{/*
+					*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{/*
+						*/}}{{svg "octicon-plus"}}{{/*
+						*/}}</button>{{/*
 				*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff}}</td>
 		{{else}}
 			{{$inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale}}
@@ -30,6 +33,9 @@
 			<td class="lines-escape lines-escape-old">{{if and $line.LeftIdx $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>{{end}}</td>
 			<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
 			<td class="lines-code lines-code-old">{{/*
+					*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{/*
+						*/}}{{svg "octicon-plus"}}{{/*
+						*/}}</button>{{/*
 				*/}}{{if $line.LeftIdx}}{{template "repo/diff/section_code" dict "diff" $inlineDiff}}{{else}}{{/*
 					*/}}<code class="code-inner"></code>{{/*
 				*/}}{{end}}{{/*
@@ -38,12 +44,22 @@
 			<td class="lines-escape lines-escape-new">{{if and $line.RightIdx $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>{{end}}</td>
 			<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
 			<td class="lines-code lines-code-new">{{/*
+					*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{/*
+						*/}}{{svg "octicon-plus"}}{{/*
+						*/}}</button>{{/*
 				*/}}{{if $line.RightIdx}}{{template "repo/diff/section_code" dict "diff" $inlineDiff}}{{else}}{{/*
 					*/}}<code class="code-inner"></code>{{/*
 				*/}}{{end}}{{/*
 			*/}}</td>
 		{{end}}
 	</tr>
+		{{if $line.Comments}}
+			<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
+				<td class="add-comment-left add-comment-right" colspan="5">
+					{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
+				</td>
+			</tr>
+		{{end}}
 	{{end}}
 {{else}}
 	{{range $k, $line := $.section.Lines}}
@@ -76,7 +92,14 @@
 		{{$inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale}}
 		<td class="lines-escape">{{if $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>{{end}}</td>
 		<td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
-		<td class="lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}"><code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code></td>
+		<td class="lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}"><button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{svg "octicon-plus"}}</button><code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code></td>
 	</tr>
+		{{if $line.Comments}}
+			<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
+				<td class="add-comment-left add-comment-right" colspan="5">
+					{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
+				</td>
+			</tr>
+		{{end}}
 	{{end}}
 {{end}}
