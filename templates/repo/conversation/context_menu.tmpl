@@ -7,7 +7,7 @@
 		{{if .issue}}
 			{{$referenceUrl = printf "%s#%s" .ctxData.Issue.Link .item.HashTag}}
 		{{else}}
-			{{$referenceUrl = printf "%s/files#%s" .ctxData.Issue.Link .item.HashTag}}
+			{{$referenceUrl = printf "%s/files#%s" .ctxData.Conversation.Link .item.HashTag}}
 		{{end}}
 		<div class="item context js-aria-clickable" data-clipboard-text-type="url" data-clipboard-text="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.issues.context.copy_link"}}</div>
 		{{if .ctxData.IsSigned}}
@@ -18,11 +18,15 @@
 				{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
 					<div class="item context js-aria-clickable reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</div>
 				{{end}}
-				{{if or .ctxData.Permission.IsAdmin .IsCommentPoster .ctxData.HasIssuesOrPullsWritePermission}}
+				{{if or .ctxData.Permission.IsAdmin .IsCommentPoster .ctxData.HasIssuesOrPullsWritePermission .ctxData.HasConversationsWritePermission}}
 					<div class="divider"></div>
 					<div class="item context js-aria-clickable edit-content">{{ctx.Locale.Tr "repo.issues.context.edit"}}</div>
 					{{if .delete}}
-						<div class="item context js-aria-clickable delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctxData.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
+						{{if .ctxData.IsIssue}}
+							<div class="item context js-aria-clickable delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctxData.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
+						{{else}}
+							<div class="item context js-aria-clickable delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctxData.RepoLink}}/conversations/comments/{{.item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.conversations.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.conversations.context.delete"}}</div>
+						{{end}}
 					{{end}}
 				{{end}}
 			{{end}}

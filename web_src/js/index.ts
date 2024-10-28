@@ -34,7 +34,7 @@ import {
   initRepoPullRequestAllowMaintainerEdit,
   initRepoPullRequestReview, initRepoIssueSidebarList, initArchivedLabelHandler,
 } from './features/repo-issue.ts';
-import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
+import {initRepoEllipsisButton, initCommitStatuses, initRepoConversationCommentDelete} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
 import {initAdminEmails} from './features/admin/emails.ts';
 import {initAdminCommon} from './features/admin/common.ts';
@@ -215,6 +215,7 @@ onDomReady(() => {
     initRepoContributors,
     initRepoCodeFrequency,
     initRepoRecentCommits,
+    initRepoConversationCommentDelete,
 
     initCommitStatuses,
     initCaptcha,

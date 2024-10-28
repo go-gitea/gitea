@@ -1281,7 +1281,14 @@ func registerRoutes(m *web.Router) {
 			m.Group("/{index}", func() {
 				m.Combo("/comments").Post(repo.ConversationMustAllowUserComment, web.Bind(forms.CreateConversationCommentForm{}), repo.NewConversationComment)
 			}, context.RepoMustNotBeArchived())
+
+			m.Group("/comments/{id}", func() {
+				m.Post("", repo.UpdateConversationCommentContent)
+				m.Post("/delete", repo.DeleteConversationComment)
+				m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeConversationCommentReaction)
+			}, context.RepoMustNotBeArchived())
 		})
+
 	}, reqSignIn, context.RepoAssignment)
 
 	m.Group("/{username}/{reponame}", func() { // repo code

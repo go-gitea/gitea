@@ -57,8 +57,8 @@ func (err ErrReactionAlreadyExist) Unwrap() error {
 	return util.ErrAlreadyExist
 }
 
-// Reaction represents a reactions on conversations and comments.
-type Reaction struct {
+// CommentReaction represents a reactions on conversations and comments.
+type CommentReaction struct {
 	ID               int64              `xorm:"pk autoincr"`
 	Type             string             `xorm:"INDEX UNIQUE(s) NOT NULL"`
 	ConversationID   int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
@@ -71,7 +71,7 @@ type Reaction struct {
 }
 
 // LoadUser load user of reaction
-func (r *Reaction) LoadUser(ctx context.Context) (*user_model.User, error) {
+func (r *CommentReaction) LoadUser(ctx context.Context) (*user_model.User, error) {
 	if r.User != nil {
 		return r.User, nil
 	}
@@ -84,7 +84,7 @@ func (r *Reaction) LoadUser(ctx context.Context) (*user_model.User, error) {
 }
 
 // RemapExternalUser ExternalUserRemappable interface
-func (r *Reaction) RemapExternalUser(externalName string, externalID, userID int64) error {
+func (r *CommentReaction) RemapExternalUser(externalName string, externalID, userID int64) error {
 	r.OriginalAuthor = externalName
 	r.OriginalAuthorID = externalID
 	r.UserID = userID
@@ -92,16 +92,16 @@ func (r *Reaction) RemapExternalUser(externalName string, externalID, userID int
 }
 
 // GetUserID ExternalUserRemappable interface
-func (r *Reaction) GetUserID() int64 { return r.UserID }
+func (r *CommentReaction) GetUserID() int64 { return r.UserID }
 
 // GetExternalName ExternalUserRemappable interface
-func (r *Reaction) GetExternalName() string { return r.OriginalAuthor }
+func (r *CommentReaction) GetExternalName() string { return r.OriginalAuthor }
 
 // GetExternalID ExternalUserRemappable interface
-func (r *Reaction) GetExternalID() int64 { return r.OriginalAuthorID }
+func (r *CommentReaction) GetExternalID() int64 { return r.OriginalAuthorID }
 
 func init() {
-	db.RegisterModel(new(Reaction))
+	db.RegisterModel(new(CommentReaction))
 }
 
 // FindReactionsOptions describes the conditions to Find reactions
@@ -166,18 +166,18 @@ func FindReactions(ctx context.Context, opts FindReactionsOptions) (ReactionList
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 
-		reactions := make([]*Reaction, 0, opts.PageSize)
+		reactions := make([]*CommentReaction, 0, opts.PageSize)
 		count, err := sess.FindAndCount(&reactions)
 		return reactions, count, err
 	}
 
-	reactions := make([]*Reaction, 0, 10)
+	reactions := make([]*CommentReaction, 0, 10)
 	count, err := sess.FindAndCount(&reactions)
 	return reactions, count, err
 }
 
-func createReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, error) {
-	reaction := &Reaction{
+func createReaction(ctx context.Context, opts *ReactionOptions) (*CommentReaction, error) {
+	reaction := &CommentReaction{
 		Type:           opts.Type,
 		UserID:         opts.DoerID,
 		ConversationID: opts.ConversationID,
@@ -218,7 +218,7 @@ type ReactionOptions struct {
 }
 
 // CreateReaction creates reaction for conversation or comment.
-func CreateReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, error) {
+func CreateReaction(ctx context.Context, opts *ReactionOptions) (*CommentReaction, error) {
 	if !setting.UI.ReactionsLookup.Contains(opts.Type) {
 		return nil, ErrForbiddenConversationReaction{opts.Type}
 	}
@@ -242,7 +242,7 @@ func CreateReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, erro
 
 // DeleteReaction deletes reaction for conversation or comment.
 func DeleteReaction(ctx context.Context, opts *ReactionOptions) error {
-	reaction := &Reaction{
+	reaction := &CommentReaction{
 		Type:           opts.Type,
 		UserID:         opts.DoerID,
 		ConversationID: opts.ConversationID,
@@ -280,7 +280,7 @@ func DeleteCommentReaction(ctx context.Context, doerID, conversationID, commentI
 }
 
 // ReactionList represents list of reactions
-type ReactionList []*Reaction
+type ReactionList []*CommentReaction
 
 // HasUser check if user has reacted
 func (list ReactionList) HasUser(userID int64) bool {
@@ -305,7 +305,7 @@ func (list ReactionList) GroupByType() map[string]ReactionList {
 }
 
 func (list ReactionList) getUserIDs() []int64 {
-	return container.FilterSlice(list, func(reaction *Reaction) (int64, bool) {
+	return container.FilterSlice(list, func(reaction *CommentReaction) (int64, bool) {
 		if reaction.OriginalAuthor != "" {
 			return 0, false
 		}

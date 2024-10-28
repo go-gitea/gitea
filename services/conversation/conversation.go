@@ -86,7 +86,7 @@ func deleteConversation(ctx context.Context, conversation *conversations_model.C
 		&conversations_model.ConversationDependency{ConversationID: conversation.ID},
 		&conversations_model.ConversationUser{ConversationID: conversation.ID},
 		//&activities_model.Notification{ConversationID: conversation.ID},
-		&conversations_model.Reaction{ConversationID: conversation.ID},
+		&conversations_model.CommentReaction{ConversationID: conversation.ID},
 		&repo_model.Attachment{ConversationID: conversation.ID},
 		&conversations_model.Comment{ConversationID: conversation.ID},
 		&conversations_model.ConversationDependency{DependencyID: conversation.ID},

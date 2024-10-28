@@ -300,7 +300,7 @@ func DeleteConversationsByRepoID(ctx context.Context, repoID int64) (attachmentP
 			return nil, err
 		}
 
-		_, err = sess.In("conversation_id", conversationIDs).Delete(&Reaction{})
+		_, err = sess.In("conversation_id", conversationIDs).Delete(&CommentReaction{})
 		if err != nil {
 			return nil, err
 		}

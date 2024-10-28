@@ -280,7 +280,10 @@
 			</div>
 		{{end}}
 		{{template "repo/diff/box" .}}
-		{{template "repo/conversation/conversation" .}}
+		
+		<div class="issue-content-left comment-list prevent-before-timeline">
+			{{template "repo/conversation/conversation" .}}
+		</div>
 	</div>
 </div>
 {{template "base/footer" .}}
