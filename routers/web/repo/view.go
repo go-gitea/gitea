@@ -722,6 +722,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 			}
 		}
 
+		// TODO: ctx.Repo.Repository.DefaultUnit has to be respected here ... but we need to let code unit have it's own subpath ...
 		var firstUnit *unit_model.Unit
 		for _, repoUnitType := range ctx.Repo.Permission.ReadableUnitTypes() {
 			if repoUnitType == unit_model.TypeCode {
