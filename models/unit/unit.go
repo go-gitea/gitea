@@ -206,7 +206,7 @@ var (
 	UnitCode = Unit{
 		TypeCode,
 		"repo.code",
-		"/",
+		"/code",
 		"repo.code.desc",
 		0,
 		perm.AccessModeOwner,

@@ -1140,7 +1140,8 @@ func registerRoutes(m *web.Router) {
 	// end "/{username}/{reponame}/settings"
 
 	// user/org home, including rss feeds
-	m.Get("/{username}/{reponame}", ignSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home)
+	m.Get("/{username}/{reponame}", ignSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.HomeWithFeedCheck)
+	m.Get("/{username}/{reponame}/code", ignSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home)
 
 	// TODO: maybe it should relax the permission to allow "any access"
 	m.Post("/{username}/{reponame}/markup", ignSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki), web.Bind(structs.MarkupOption{}), misc.Markup)

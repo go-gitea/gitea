@@ -773,8 +773,8 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 }
 
-// Home render repository home page
-func Home(ctx *context.Context) {
+// HomeWithFeedCheck render repository home page or return feed
+func HomeWithFeedCheck(ctx *context.Context) {
 	if setting.Other.EnableFeed {
 		isFeed, _, showFeedType := feed.GetFeedType(ctx.PathParam(":reponame"), ctx.Req)
 		if isFeed {
@@ -790,6 +790,15 @@ func Home(ctx *context.Context) {
 		}
 	}
 
+	defaultURI := ctx.Repo.Repository.MustGetUnit(ctx, ctx.Repo.Repository.DefaultUnit).Unit().URI
+	if defaultURI == "/" { // support legacy code units
+		defaultURI = "/code"
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + defaultURI)
+}
+
+// Home render repository home page
+func Home(ctx *context.Context) {
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
 		return
