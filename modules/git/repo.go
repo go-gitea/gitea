@@ -284,7 +284,9 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 	if err != nil {
 		return err
 	}
-	defer util.RemoveAll(tmp)
+	defer func() {
+		_ = util.RemoveAll(tmp)
+	}()
 
 	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(repo.Path, "objects"))
 	_, _, err = NewCommand(ctx, "init", "--bare").RunStdString(&RunOpts{Dir: tmp, Env: env})
