@@ -446,6 +446,7 @@ func registerRoutes(m *web.Router) {
 		m.Group("/secrets", func() {
 			m.Get("", repo_setting.Secrets)
 			m.Post("", web.Bind(forms.AddSecretForm{}), repo_setting.SecretsPost)
+			m.Post("/{secret_id}/edit", web.Bind(forms.EditSecretForm{}), repo_setting.SecretsEdit)
 			m.Post("/delete", repo_setting.SecretsDelete)
 		})
 	}
