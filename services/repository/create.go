@@ -135,7 +135,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 }
 
 func createRepoTempDir(repoName string) (string, error) {
-	return os.MkdirTemp(filepath.Join(setting.TempDir(), "repos"), "gitea-"+repoName)
+	return os.MkdirTemp(setting.TempDir(), "repos-"+repoName)
 }
 
 // InitRepository initializes README and .gitignore if needed.
