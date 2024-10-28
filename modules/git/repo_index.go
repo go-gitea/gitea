@@ -63,9 +63,16 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename, tmpD
 			log.Error("failed to remove tmp index file: %v", err)
 		}
 	}
+
+	// Defer the cancel function to ensure cleanup in case of an error
+	defer func() {
+		if err != nil {
+			cancel()
+		}
+	}()
+
 	err = repo.ReadTreeToIndex(treeish, filename)
 	if err != nil {
-		defer cancel()
 		return "", "", func() {}, err
 	}
 	return filename, tmpDir, cancel, err
