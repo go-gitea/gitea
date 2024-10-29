@@ -1,4 +1,4 @@
-export type Issue = {id: number; title: string; state: 'open' | 'closed'; pull_request?: {draft: boolean; merged: boolean}};
+import type {Issue} from '../types.ts';
 
 export function getIssueIcon(issue: Issue) {
   if (issue.pull_request) {
