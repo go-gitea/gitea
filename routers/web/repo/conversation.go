@@ -1013,7 +1013,7 @@ func UpdateConversationCommentContent(ctx *context.Context) {
 
 	// when the update request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
 	if !ctx.FormBool("ignore_attachments") {
-		if err := updateAttachments(ctx, comment, ctx.FormStrings("files[]")); err != nil {
+		if err := updateConversationAttachments(ctx, comment, ctx.FormStrings("files[]")); err != nil {
 			ctx.ServerError("UpdateAttachments", err)
 			return
 		}

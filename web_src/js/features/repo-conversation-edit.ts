@@ -72,6 +72,7 @@ export function initRepoConversationCommentEdit() {
   
         const response = await POST(editContentZone.getAttribute('data-update-url'), {data: params});
         const data = await response.json();
+
         if (response.status === 400) {
           showErrorToast(data.errorMessage);
           return;

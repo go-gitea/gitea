@@ -75,7 +75,15 @@
 							{{end}}
 						</div>
 						<div id="{{if $IsIssue}}issue{{end}}comment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
-						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+
+						{{if $IsIssue}}
+							{{$EditURL:=printf "%s/%s/%d" $.RepoLink "comments" .ID}}
+							<div class="edit-content-zone tw-hidden" data-update-url="{{$EditURL}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$EditURL}}/attachments"></div>
+						{{else}}
+							{{$EditURL:=printf "%s/%s/%d" $.RepoLink "conversations/comments" .ID}}
+							<div class="edit-content-zone tw-hidden" data-update-url="{{$EditURL}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$EditURL}}/attachments"></div>
+						{{end}}
+						
 						{{if .Attachments}}
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 						{{end}}
