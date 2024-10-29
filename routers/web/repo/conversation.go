@@ -935,7 +935,7 @@ func NewConversationComment(ctx *context.Context) {
 	defer func() {
 
 		// Redirect to comment hashtag if there is any actual content.
-		typeName := "commits"
+		typeName := "commit"
 		if comment != nil {
 			ctx.JSONRedirect(fmt.Sprintf("%s/%s/%s#%s", ctx.Repo.RepoLink, typeName, conversation.CommitSha, comment.HashTag()))
 		} else {

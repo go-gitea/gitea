@@ -1,4 +1,4 @@
-import {GET, POST} from '../modules/fetch.ts';
+import {POST} from '../modules/fetch.ts';
 
 export function initRepoConversationCommentDelete() {
     // Delete comment
@@ -57,3 +57,4 @@ export function initRepoConversationCommentDelete() {
       }
     });
   }
+

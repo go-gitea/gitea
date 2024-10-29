@@ -15,21 +15,21 @@
 		{{if .commit}}
 			{{$referenceUrl = printf "%s#%s" .ctxData.Conversation.Link .item.HashTag}}
 		{{end}}
-		<div class="item context js-aria-clickable" data-clipboard-text-type="url" data-clipboard-text="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.issues.context.copy_link"}}</div>
+		<div class="item context js-aria-clickable" data-clipboard-text-type="url" data-clipboard-text="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.conversations.context.copy_link"}}</div>
 		{{if .ctxData.IsSigned}}
 			{{$needDivider := false}}
 			{{if not .ctxData.Repository.IsArchived}}
 				{{$needDivider = true}}
-				<div class="item context js-aria-clickable quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.quote_reply"}}</div>
-				{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
-					<div class="item context js-aria-clickable reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</div>
+				<div class="item context js-aria-clickable quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.HashTag}}-raw">{{ctx.Locale.Tr "repo.conversations.context.quote_reply"}}</div>
+				{{if and .issue (not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled)}}
+					<div class="item context js-aria-clickable reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.conversations.context.reference_issue"}}</div>
 				{{end}}
 				{{if or .ctxData.Permission.IsAdmin .IsCommentPoster .ctxData.HasIssuesOrPullsWritePermission .ctxData.HasConversationsWritePermission}}
 					<div class="divider"></div>
-					<div class="item context js-aria-clickable edit-content">{{ctx.Locale.Tr "repo.issues.context.edit"}}</div>
+					<div class="item context js-aria-clickable edit-content">{{ctx.Locale.Tr "repo.conversations.context.edit"}}</div>
 					{{if .delete}}
 						{{if .ctxData.IsIssue}}
-							<div class="item context js-aria-clickable delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctxData.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
+							<div class="item context js-aria-clickable delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctxData.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.conversations.context.delete"}}</div>
 						{{else}}
 							<div class="item context js-aria-clickable delete-comment conversation-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctxData.RepoLink}}/conversations/comments/{{.item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.conversations.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.conversations.context.delete"}}</div>
 						{{end}}
