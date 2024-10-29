@@ -50,35 +50,35 @@ func (repo *Repository) readTreeToIndex(id ObjectID, indexFilename ...string) er
 }
 
 // ReadTreeToTemporaryIndex reads a treeish to a temporary index file
-func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename, tmpDir string, cancel context.CancelFunc, err error) {
-	cancel = func() {
-		if tmpDir == "" {
-			return
-		}
-		if removeErr := util.RemoveAll(tmpDir); removeErr != nil {
-			log.Error("failed to remove tmp index file: %v", removeErr)
-		}
-	}
-
-	// Defer the cancel function to ensure cleanup in case of an error
+func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (tmpIndexFilename, tmpDir string, cancel context.CancelFunc, err error) {
 	defer func() {
-		if err != nil {
+		// if error happens and there is a cancel function, do clean up
+		if err != nil && cancel != nil {
 			cancel()
+			cancel = nil
 		}
 	}()
 
+	removeDirFn := func(dir string) func() { // it can't use the return value "tmpDir" directly because it is empty when error occurs
+		return func() {
+			if err := util.RemoveAll(dir); err != nil {
+				log.Error("failed to remove tmp index dir: %v", err)
+			}
+		}
+	}
+
 	tmpDir, err = os.MkdirTemp("", "index")
 	if err != nil {
-		return filename, tmpDir, cancel, err
+		return "", "", nil, err
 	}
 
-	filename = filepath.Join(tmpDir, ".tmp-index")
-
-	err = repo.ReadTreeToIndex(treeish, filename)
+	tmpIndexFilename = filepath.Join(tmpDir, ".tmp-index")
+	cancel = removeDirFn(tmpDir)
+	err = repo.ReadTreeToIndex(treeish, tmpIndexFilename)
 	if err != nil {
-		return "", "", func() {}, err
+		return "", "", cancel, err
 	}
-	return filename, tmpDir, cancel, err
+	return tmpIndexFilename, tmpDir, cancel, err
 }
 
 // EmptyIndex empties the index
