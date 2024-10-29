@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
+import {getIssueColor, getIssueIcon} from '../features/issue.ts';
 import {computed, onMounted, ref} from 'vue';
-import type {Issue} from '../types';
 
 const {appSubUrl, i18n} = window.config;
 
@@ -20,37 +20,6 @@ const body = computed(() => {
   }
   return body;
 });
-
-function getIssueIcon(issue: Issue) {
-  if (issue.pull_request) {
-    if (issue.state === 'open') {
-      if (issue.pull_request.draft === true) {
-        return 'octicon-git-pull-request-draft'; // WIP PR
-      }
-      return 'octicon-git-pull-request'; // Open PR
-    } else if (issue.pull_request.merged === true) {
-      return 'octicon-git-merge'; // Merged PR
-    }
-    return 'octicon-git-pull-request'; // Closed PR
-  } else if (issue.state === 'open') {
-    return 'octicon-issue-opened'; // Open Issue
-  }
-  return 'octicon-issue-closed'; // Closed Issue
-}
-
-function getIssueColor(issue: Issue) {
-  if (issue.pull_request) {
-    if (issue.pull_request.draft === true) {
-      return 'grey'; // WIP PR
-    } else if (issue.pull_request.merged === true) {
-      return 'purple'; // Merged PR
-    }
-  }
-  if (issue.state === 'open') {
-    return 'green'; // Open Issue
-  }
-  return 'red'; // Closed Issue
-}
 
 const root = ref<HTMLElement | null>(null);
 
