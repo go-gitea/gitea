@@ -872,7 +872,7 @@ func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) (IssueList,
 	return issues, nil
 }
 
-// IsNewPinnedAllowed returns if a new Issue or Pull request can be pinned
+// IsNewPinAllowed returns if a new Issue or Pull request can be pinned
 func IsNewPinAllowed(ctx context.Context, repoID int64, isPull bool) (bool, error) {
 	var maxPin int
 	_, err := db.GetEngine(ctx).SQL("SELECT COUNT(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ? AND pin_order > 0", repoID, isPull).Get(&maxPin)
