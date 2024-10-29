@@ -112,6 +112,7 @@ func NewTemplateContextForWeb(ctx *Context) TemplateContext {
 		"RepoUnitTypeProjects":        unit.TypeProjects,
 		"RepoUnitTypePackages":        unit.TypePackages,
 		"RepoUnitTypeActions":         unit.TypeActions,
+		"RepoUnitTypeConversations":   unit.TypeConversations,
 	}
 	return tmplCtx
 }

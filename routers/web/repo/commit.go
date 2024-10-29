@@ -463,7 +463,9 @@ func Diff(ctx *context.Context) {
 	}
 
 	ctx.Data["Conversation"] = conversation
+	ctx.Data["ConversationTitle"] = "Comments"
 	ctx.Data["Comments"] = conversation.Comments
+	ctx.Data["IsCommit"] = true
 
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)

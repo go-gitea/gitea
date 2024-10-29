@@ -5,6 +5,9 @@ import {
   initRepoIssueTitleEdit, initRepoIssueWipToggle,
   initRepoPullRequestUpdate, updateIssuesMeta, initIssueTemplateCommentEditors, initSingleCommentEditor,
 } from './repo-issue.ts';
+import {
+  initRepoConversationCommentDelete
+} from './repo-conversation.ts'
 import {initUnicodeEscapeButton} from './repo-unicode-escape.ts';
 import {svg} from '../svg.ts';
 import {htmlEscape} from 'escape-goat';
@@ -398,7 +401,6 @@ export function initRepository() {
     initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
     initRepoPullRequestUpdate();
-    initCompReactionSelector();
 
     initRepoPullRequestMergeForm();
     initRepoPullRequestCommitStatus();
@@ -415,6 +417,12 @@ export function initRepository() {
       const $form = $repoComparePull.find('.pullrequest-form');
       showElem($form);
     });
+  }
+
+  // Conversations
+  if ($('.conversation-container').length > 0) {
+    initCompReactionSelector();
+    initRepoConversationCommentDelete();
   }
 
   initUnicodeEscapeButton();

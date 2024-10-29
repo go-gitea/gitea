@@ -815,6 +815,7 @@ func registerRoutes(m *web.Router) {
 	reqRepoPullsReader := context.RequireRepoReader(unit.TypePullRequests)
 	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(unit.TypeIssues, unit.TypePullRequests)
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(unit.TypeIssues, unit.TypePullRequests)
+	reqRepoConversationReader := context.RequireRepoReader(unit.TypeConversations)
 	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeProjects)
 	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeProjects)
 	reqRepoActionsReader := context.RequireRepoReader(unit.TypeActions)
@@ -1289,7 +1290,7 @@ func registerRoutes(m *web.Router) {
 			}, context.RepoMustNotBeArchived())
 		})
 
-	}, reqSignIn, context.RepoAssignment)
+	}, reqSignIn, context.RepoAssignment, reqRepoConversationReader)
 
 	m.Group("/{username}/{reponame}", func() { // repo code
 		m.Group("", func() {

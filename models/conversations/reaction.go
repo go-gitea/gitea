@@ -117,24 +117,24 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 	// If Conversation ID is set add to Query
 	cond := builder.NewCond()
 	if opts.ConversationID > 0 {
-		cond = cond.And(builder.Eq{"reaction.conversation_id": opts.ConversationID})
+		cond = cond.And(builder.Eq{"comment_reaction.conversation_id": opts.ConversationID})
 	}
 	// If CommentID is > 0 add to Query
 	// If it is 0 Query ignore CommentID to select
 	// If it is -1 it explicit search of Conversation Reactions where CommentID = 0
 	if opts.CommentID > 0 {
-		cond = cond.And(builder.Eq{"reaction.comment_id": opts.CommentID})
+		cond = cond.And(builder.Eq{"comment_reaction.comment_id": opts.CommentID})
 	} else if opts.CommentID == -1 {
-		cond = cond.And(builder.Eq{"reaction.comment_id": 0})
+		cond = cond.And(builder.Eq{"comment_reaction.comment_id": 0})
 	}
 	if opts.UserID > 0 {
 		cond = cond.And(builder.Eq{
-			"reaction.user_id":            opts.UserID,
-			"reaction.original_author_id": 0,
+			"comment_reaction.user_id":            opts.UserID,
+			"comment_reaction.original_author_id": 0,
 		})
 	}
 	if opts.Reaction != "" {
-		cond = cond.And(builder.Eq{"reaction.type": opts.Reaction})
+		cond = cond.And(builder.Eq{"comment_reaction.type": opts.Reaction})
 	}
 
 	return cond
@@ -161,8 +161,8 @@ func FindConversationReactions(ctx context.Context, conversationID int64, listOp
 func FindReactions(ctx context.Context, opts FindReactionsOptions) (ReactionList, int64, error) {
 	sess := db.GetEngine(ctx).
 		Where(opts.toConds()).
-		In("reaction.`type`", setting.UI.Reactions).
-		Asc("reaction.conversation_id", "reaction.comment_id", "reaction.created_unix", "reaction.id")
+		In("comment_reaction.`type`", setting.UI.Reactions).
+		Asc("comment_reaction.conversation_id", "comment_reaction.comment_id", "comment_reaction.created_unix", "comment_reaction.id")
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 

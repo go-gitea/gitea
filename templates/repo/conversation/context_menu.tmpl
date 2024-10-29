@@ -6,8 +6,14 @@
 		{{$referenceUrl := ""}}
 		{{if .issue}}
 			{{$referenceUrl = printf "%s#%s" .ctxData.Issue.Link .item.HashTag}}
-		{{else}}
-			{{$referenceUrl = printf "%s/files#%s" .ctxData.Conversation.Link .item.HashTag}}
+		{{end}}
+
+		{{if .pull}}
+			{{$referenceUrl = printf "%s/files#%s" .ctxData.Issue.Link .item.HashTag}}
+		{{end}}
+		
+		{{if .commit}}
+			{{$referenceUrl = printf "%s#%s" .ctxData.Conversation.Link .item.HashTag}}
 		{{end}}
 		<div class="item context js-aria-clickable" data-clipboard-text-type="url" data-clipboard-text="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.issues.context.copy_link"}}</div>
 		{{if .ctxData.IsSigned}}
@@ -25,7 +31,7 @@
 						{{if .ctxData.IsIssue}}
 							<div class="item context js-aria-clickable delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctxData.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
 						{{else}}
-							<div class="item context js-aria-clickable delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctxData.RepoLink}}/conversations/comments/{{.item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.conversations.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.conversations.context.delete"}}</div>
+							<div class="item context js-aria-clickable delete-comment conversation-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctxData.RepoLink}}/conversations/comments/{{.item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.conversations.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.conversations.context.delete"}}</div>
 						{{end}}
 					{{end}}
 				{{end}}

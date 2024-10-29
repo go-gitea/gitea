@@ -133,7 +133,7 @@ func init() {
 func (conversation *Conversation) Link() string {
 	switch conversation.Type {
 	default:
-		return fmt.Sprintf("%s/%s/%s", conversation.Repo.Link(), "commits", conversation.CommitSha)
+		return fmt.Sprintf("%s/%s/%s", conversation.Repo.Link(), "commit", conversation.CommitSha)
 	}
 }
 
@@ -204,6 +204,10 @@ func (conversation *Conversation) LoadAttributes(ctx context.Context) (err error
 	}
 
 	if err = conversation.loadComments(ctx); err != nil {
+		return err
+	}
+
+	if err = conversation.loadReactions(ctx); err != nil {
 		return err
 	}
 
@@ -325,4 +329,33 @@ func (conversation *Conversation) APIURL(ctx context.Context) string {
 		}
 	}
 	return fmt.Sprintf("%s/commit/%s", conversation.Repo.APIURL(), conversation.CommitSha)
+}
+
+func (conversation *Conversation) loadReactions(ctx context.Context) (err error) {
+	reactions, _, err := FindReactions(ctx, FindReactionsOptions{
+		ConversationID: conversation.ID,
+	})
+	if err != nil {
+		return err
+	}
+	if err = conversation.LoadRepo(ctx); err != nil {
+		return err
+	}
+	// Load reaction user data
+	if _, err := reactions.LoadUsers(ctx, conversation.Repo); err != nil {
+		return err
+	}
+
+	// Cache comments to map
+	comments := make(map[int64]*Comment)
+	for _, comment := range conversation.Comments {
+		comments[comment.ID] = comment
+	}
+	// Add reactions to comment
+	for _, react := range reactions {
+		if comment, ok := comments[react.CommentID]; ok {
+			comment.Reactions = append(comment.Reactions, react)
+		}
+	}
+	return nil
 }
