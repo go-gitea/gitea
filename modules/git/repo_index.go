@@ -51,16 +51,12 @@ func (repo *Repository) readTreeToIndex(id ObjectID, indexFilename ...string) er
 
 // ReadTreeToTemporaryIndex reads a treeish to a temporary index file
 func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename, tmpDir string, cancel context.CancelFunc, err error) {
-	tmpDir, err = os.MkdirTemp("", "index")
-	if err != nil {
-		return filename, tmpDir, cancel, err
-	}
-
-	filename = filepath.Join(tmpDir, ".tmp-index")
 	cancel = func() {
-		err := util.RemoveAll(tmpDir)
-		if err != nil {
-			log.Error("failed to remove tmp index file: %v", err)
+		if tmpDir == "" {
+			return
+		}
+		if removeErr := util.RemoveAll(tmpDir); removeErr != nil {
+			log.Error("failed to remove tmp index file: %v", removeErr)
 		}
 	}
 
@@ -70,6 +66,13 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename, tmpD
 			cancel()
 		}
 	}()
+
+	tmpDir, err = os.MkdirTemp("", "index")
+	if err != nil {
+		return filename, tmpDir, cancel, err
+	}
+
+	filename = filepath.Join(tmpDir, ".tmp-index")
 
 	err = repo.ReadTreeToIndex(treeish, filename)
 	if err != nil {
