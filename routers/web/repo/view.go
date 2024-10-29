@@ -796,7 +796,7 @@ func HomeWithFeedCheck(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink+defaultURI, http.StatusMovedPermanently)
 }
 
-// CodeHome render repository home page
+// CodeHome render repository code unit page
 func CodeHome(ctx *context.Context) {
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {

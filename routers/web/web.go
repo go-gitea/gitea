@@ -1581,10 +1581,10 @@ func registerRoutes(m *web.Router) {
 		m.Get("/atom/branch/*", context.RepoRefByType(context.RepoRefBranch), feedEnabled, feed.RenderBranchFeed)
 
 		m.Group("/src", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Home)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.Home)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.Home)
-			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.Home) // "/*" route is deprecated, and kept for backward compatibility
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.CodeHome)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.CodeHome)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.CodeHome)
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.CodeHome) // "/*" route is deprecated, and kept for backward compatibility
 		}, repo.SetEditorconfigIfExists)
 
 		m.Get("/forks", context.RepoRef(), repo.Forks)
