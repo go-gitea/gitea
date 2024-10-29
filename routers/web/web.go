@@ -1179,6 +1179,7 @@ func registerRoutes(m *web.Router) {
 				})
 			})
 		}, context.RepoRef())
+		m.Get("/issues/suggestions", repo.IssueSuggestions)
 	}, ignSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader)
 	// end "/{username}/{reponame}": view milestone, label, issue, pull, etc
 
