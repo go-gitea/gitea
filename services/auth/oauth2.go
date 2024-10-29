@@ -31,6 +31,10 @@ func CheckOAuthAccessToken(ctx context.Context, accessToken string) int64 {
 	if !strings.Contains(accessToken, ".") {
 		return 0
 	}
+	if !setting.OAuth2.Enabled {
+		return 0
+	}
+
 	token, err := oauth2_provider.ParseToken(accessToken, oauth2_provider.DefaultSigningKey)
 	if err != nil {
 		log.Trace("oauth2.ParseToken: %v", err)
