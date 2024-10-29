@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/structs"
@@ -525,7 +526,7 @@ func (c *Comment) UpdateAttachments(ctx context.Context, uuids []string) error {
 	return committer.Commit()
 }
 
-// HashTag returns unique hash tag for issue.
+// HashTag returns unique hash tag for conversation.
 func (comment *Comment) HashTag() string {
 	return fmt.Sprintf("comment-%d", comment.ID)
 }
@@ -583,4 +584,44 @@ func (c *Comment) ConversationURL(ctx context.Context) string {
 		return ""
 	}
 	return c.Conversation.HTMLURL()
+}
+
+// InsertConversationComments inserts many comments of conversations.
+func InsertConversationComments(ctx context.Context, comments []*Comment) error {
+	if len(comments) == 0 {
+		return nil
+	}
+
+	conversationIDs := container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
+		return comment.ConversationID, true
+	})
+
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	for _, comment := range comments {
+		if _, err := db.GetEngine(ctx).NoAutoTime().Insert(comment); err != nil {
+			return err
+		}
+
+		for _, reaction := range comment.Reactions {
+			reaction.ConversationID = comment.ConversationID
+			reaction.CommentID = comment.ID
+		}
+		if len(comment.Reactions) > 0 {
+			if err := db.Insert(ctx, comment.Reactions); err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, conversationID := range conversationIDs {
+		if _, err := db.Exec(ctx, "UPDATE conversation set num_comments = (SELECT count(*) FROM comment WHERE conversation_id = ? AND `type`=?) WHERE id = ?",
+			conversationID, CommentTypeComment, conversationID); err != nil {
+			return err
+		}
+	}
+	return committer.Commit()
 }
