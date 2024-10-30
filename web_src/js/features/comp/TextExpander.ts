@@ -14,29 +14,17 @@ const debouncedSuggestIssues = debounce((key: string, text: string) => new Promi
   const matches = await matchIssue(issuePathInfo.ownerName, issuePathInfo.repoName, issuePathInfo.indexString, text);
   if (!matches.length) return resolve({matched: false});
 
-  const ul = document.createElement('ul');
-  ul.classList.add('suggestions');
+  const ul = createElementFromAttrs('ul', {class: 'suggestions'});
   for (const issue of matches) {
-    const li = createElementFromAttrs('li', {
-      role: 'option',
-      'data-value': `${key}${issue.number}`,
-      class: 'tw-flex tw-gap-2',
-    });
-
-    const icon = svg(getIssueIcon(issue), 16, ['text', getIssueColor(issue)].join(' '));
-    li.append(createElementFromHTML(icon));
-
-    const id = document.createElement('span');
-    id.textContent = String(issue.number);
-    li.append(id);
-
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = issue.title;
-    li.append(nameSpan);
-
+    const li = createElementFromAttrs(
+      'li',
+      {role: 'option', class: 'tw-flex tw-gap-2', 'data-value': `${key}${issue.number}`},
+      createElementFromHTML(svg(getIssueIcon(issue), 16, ['text', getIssueColor(issue)])),
+      createElementFromAttrs('span', null, String(issue.number)),
+      createElementFromAttrs('span', null, issue.title),
+    );
     ul.append(li);
   }
-
   resolve({matched: true, fragment: ul});
 }), 100);
 
