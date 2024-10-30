@@ -24,9 +24,6 @@ func toConversation(ctx context.Context, conversation *conversations_model.Conve
 	if err := conversation.LoadRepo(ctx); err != nil {
 		return &api.Conversation{}
 	}
-	if err := conversation.LoadAttachments(ctx); err != nil {
-		return &api.Conversation{}
-	}
 
 	apiConversation := &api.Conversation{
 		ID:       conversation.ID,

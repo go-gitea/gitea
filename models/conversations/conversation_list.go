@@ -108,11 +108,6 @@ func (conversations ConversationList) LoadAttachments(ctx context.Context) (err 
 		left -= limit
 		conversationsIDs = conversationsIDs[limit:]
 	}
-
-	for _, conversation := range conversations {
-		conversation.Attachments = attachments[conversation.ID]
-		conversation.isAttachmentsLoaded = true
-	}
 	return nil
 }
 

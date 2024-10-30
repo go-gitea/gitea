@@ -115,15 +115,13 @@ type Conversation struct {
 
 	IsLocked bool `xorm:"-"`
 
-	Comments            CommentList              `xorm:"-"`
-	Attachments         []*repo_model.Attachment `xorm:"-"`
-	isAttachmentsLoaded bool                     `xorm:"-"`
+	Comments CommentList `xorm:"-"`
 
 	CommitSha string `xorm:"VARCHAR(64)"`
 	IsRead    bool   `xorm:"-"`
 }
 
-// IssueIndex represents the issue index table
+// ConversationIndex represents the conversation index table
 type ConversationIndex db.ResourceIndex
 
 func init() {
@@ -173,7 +171,7 @@ func GetConversationByID(ctx context.Context, id int64) (*Conversation, error) {
 	return conversation, nil
 }
 
-// GetIssueByIndex returns raw issue without loading attributes by index in a repository.
+// GetConversationByIndex returns raw conversation without loading attributes by index in a repository.
 func GetConversationByIndex(ctx context.Context, repoID, index int64) (*Conversation, error) {
 	if index < 1 {
 		return nil, ErrConversationNotExist{}
@@ -202,10 +200,6 @@ func (conversation *Conversation) LoadAttributes(ctx context.Context) (err error
 		return err
 	}
 
-	if err = conversation.LoadAttachments(ctx); err != nil {
-		return err
-	}
-
 	if err = conversation.loadComments(ctx); err != nil {
 		return err
 	}
@@ -228,19 +222,6 @@ func (conversation *Conversation) LoadRepo(ctx context.Context) (err error) {
 	return nil
 }
 
-func (conversation *Conversation) LoadAttachments(ctx context.Context) (err error) {
-	if conversation.isAttachmentsLoaded || conversation.Attachments != nil {
-		return nil
-	}
-
-	conversation.Attachments, err = repo_model.GetAttachmentsByConversationID(ctx, conversation.ID)
-	if err != nil {
-		return fmt.Errorf("getAttachmentsByConversationID [%d]: %w", conversation.ID, err)
-	}
-	conversation.isAttachmentsLoaded = true
-	return nil
-}
-
 // GetConversationIDsByRepoID returns all conversation ids by repo id
 func GetConversationIDsByRepoID(ctx context.Context, repoID int64) ([]int64, error) {
 	ids := make([]int64, 0, 10)
@@ -248,31 +229,31 @@ func GetConversationIDsByRepoID(ctx context.Context, repoID int64) ([]int64, err
 	return ids, err
 }
 
-// GetConversationsByIDs return issues with the given IDs.
+// GetConversationsByIDs return conversations with the given IDs.
 // If keepOrder is true, the order of the returned Conversations will be the same as the given IDs.
-func GetConversationsByIDs(ctx context.Context, issueIDs []int64, keepOrder ...bool) (ConversationList, error) {
-	issues := make([]*Conversation, 0, len(issueIDs))
+func GetConversationsByIDs(ctx context.Context, conversationIDs []int64, keepOrder ...bool) (ConversationList, error) {
+	conversations := make([]*Conversation, 0, len(conversationIDs))
 
-	if err := db.GetEngine(ctx).In("id", issueIDs).Find(&issues); err != nil {
+	if err := db.GetEngine(ctx).In("id", conversationIDs).Find(&conversations); err != nil {
 		return nil, err
 	}
 
 	if len(keepOrder) > 0 && keepOrder[0] {
-		m := make(map[int64]*Conversation, len(issues))
+		m := make(map[int64]*Conversation, len(conversations))
 		appended := container.Set[int64]{}
-		for _, issue := range issues {
-			m[issue.ID] = issue
+		for _, conversation := range conversations {
+			m[conversation.ID] = conversation
 		}
-		issues = issues[:0]
-		for _, id := range issueIDs {
-			if issue, ok := m[id]; ok && !appended.Contains(id) { // make sure the id is existed and not appended
+		conversations = conversations[:0]
+		for _, id := range conversationIDs {
+			if conversation, ok := m[id]; ok && !appended.Contains(id) { // make sure the id is existed and not appended
 				appended.Add(id)
-				issues = append(issues, issue)
+				conversations = append(conversations, conversation)
 			}
 		}
 	}
 
-	return issues, nil
+	return conversations, nil
 }
 
 func GetConversationByCommitID(ctx context.Context, commitID string) (*Conversation, error) {
@@ -318,7 +299,7 @@ func (conversation *Conversation) HTMLURL() string {
 	return fmt.Sprintf("%s/%s/%s", conversation.Repo.HTMLURL(), "commit", conversation.CommitSha)
 }
 
-// APIURL returns the absolute APIURL to this issue.
+// APIURL returns the absolute APIURL to this conversation.
 func (conversation *Conversation) APIURL(ctx context.Context) string {
 	if conversation.Repo == nil {
 		err := conversation.LoadRepo(ctx)

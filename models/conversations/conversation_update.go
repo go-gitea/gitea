@@ -283,18 +283,6 @@ func DeleteConversationsByRepoID(ctx context.Context, repoID int64) (attachmentP
 			return nil, err
 		}
 
-		// Dependencies for conversations in this repository
-		_, err = sess.In("conversation_id", conversationIDs).Delete(&ConversationDependency{})
-		if err != nil {
-			return nil, err
-		}
-
-		// Delete dependencies for conversations in other repositories
-		_, err = sess.In("dependency_id", conversationIDs).Delete(&ConversationDependency{})
-		if err != nil {
-			return nil, err
-		}
-
 		_, err = sess.In("conversation_id", conversationIDs).Delete(&ConversationUser{})
 		if err != nil {
 			return nil, err

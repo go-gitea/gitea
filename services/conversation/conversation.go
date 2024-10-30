@@ -9,10 +9,8 @@ import (
 	conversations_model "code.gitea.io/gitea/models/conversations"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/storage"
 )
 
 // NewConversation creates new conversation with labels for repository.
@@ -74,21 +72,15 @@ func deleteConversation(ctx context.Context, conversation *conversations_model.C
 		return err
 	}
 
-	for i := range conversation.Attachments {
-		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete conversation attachment", conversation.Attachments[i].RelativePath())
-	}
-
 	// delete all database data still assigned to this conversation
 	if err := db.DeleteBeans(ctx,
 		&conversations_model.ConversationContentHistory{ConversationID: conversation.ID},
 		&conversations_model.Comment{ConversationID: conversation.ID},
-		&conversations_model.ConversationDependency{ConversationID: conversation.ID},
 		&conversations_model.ConversationUser{ConversationID: conversation.ID},
 		//&activities_model.Notification{ConversationID: conversation.ID},
 		&conversations_model.CommentReaction{ConversationID: conversation.ID},
 		&repo_model.Attachment{ConversationID: conversation.ID},
 		&conversations_model.Comment{ConversationID: conversation.ID},
-		&conversations_model.ConversationDependency{DependencyID: conversation.ID},
 		&conversations_model.Comment{DependentConversationID: conversation.ID},
 	); err != nil {
 		return err

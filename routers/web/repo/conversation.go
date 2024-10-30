@@ -965,19 +965,6 @@ func ChangeConversationCommentReaction(ctx *context.Context) {
 	})
 }
 
-// GetConversationAttachments returns attachments for the conversation
-func GetConversationAttachments(ctx *context.Context) {
-	conversation := GetActionConversation(ctx)
-	if ctx.Written() {
-		return
-	}
-	attachments := make([]*api.Attachment, len(conversation.Attachments))
-	for i := 0; i < len(conversation.Attachments); i++ {
-		attachments[i] = convert.ToAttachment(ctx.Repo.Repository, conversation.Attachments[i])
-	}
-	ctx.JSON(http.StatusOK, attachments)
-}
-
 // GetCommentAttachments returns attachments for the comment
 func GetConversationCommentAttachments(ctx *context.Context) {
 	comment, err := conversations_model.GetCommentByID(ctx, ctx.PathParamInt64(":id"))
@@ -1020,8 +1007,6 @@ func GetConversationCommentAttachments(ctx *context.Context) {
 func updateConversationAttachments(ctx *context.Context, item any, files []string) error {
 	var attachments []*repo_model.Attachment
 	switch content := item.(type) {
-	case *conversations_model.Conversation:
-		attachments = content.Attachments
 	case *conversations_model.Comment:
 		attachments = content.Attachments
 	default:
@@ -1050,8 +1035,6 @@ func updateConversationAttachments(ctx *context.Context, item any, files []strin
 		}
 	}
 	switch content := item.(type) {
-	case *conversations_model.Conversation:
-		content.Attachments, err = repo_model.GetAttachmentsByConversationID(ctx, content.ID)
 	case *conversations_model.Comment:
 		content.Attachments, err = repo_model.GetAttachmentsByCommentID(ctx, content.ID)
 	default:
