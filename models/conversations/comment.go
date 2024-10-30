@@ -135,8 +135,6 @@ type Comment struct {
 	ConversationID int64 `xorm:"INDEX"`
 	Conversation   *Conversation
 
-	DependentConversationID int64 `xorm:"INDEX"`
-
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
@@ -163,39 +161,6 @@ func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 			log.Error("getUserByID[%d]: %v", c.ID, err)
 		}
 	}
-	return err
-}
-
-// Creates conversation dependency comment
-func createConversationDependencyComment(ctx context.Context, doer *user_model.User, conversation, dependentConversation *Conversation, add bool) (err error) {
-	cType := CommentTypeAddDependency
-	if !add {
-		cType = CommentTypeRemoveDependency
-	}
-	if err = conversation.LoadRepo(ctx); err != nil {
-		return err
-	}
-
-	// Make two comments, one in each conversation
-	opts := &CreateCommentOptions{
-		Type:                    cType,
-		Doer:                    doer,
-		Repo:                    conversation.Repo,
-		Conversation:            conversation,
-		DependentConversationID: dependentConversation.ID,
-	}
-	if _, err = CreateComment(ctx, opts); err != nil {
-		return err
-	}
-
-	opts = &CreateCommentOptions{
-		Type:                    cType,
-		Doer:                    doer,
-		Repo:                    conversation.Repo,
-		Conversation:            dependentConversation,
-		DependentConversationID: conversation.ID,
-	}
-	_, err = CreateComment(ctx, opts)
 	return err
 }
 
