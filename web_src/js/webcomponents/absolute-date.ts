@@ -1,34 +1,32 @@
-import {Temporal} from 'temporal-polyfill';
-
-export function toAbsoluteLocaleDate(dateStr: string, lang: string, opts: Intl.DateTimeFormatOptions) {
-  return Temporal.PlainDate.from(dateStr).toLocaleString(lang ?? [], opts);
+export function toAbsoluteLocaleDate(date: string, lang?: string, opts?: Intl.DateTimeFormatOptions) {
+  // only use the date part, it is guaranteed to be in ISO format (YYYY-MM-DDTHH:mm:ss.sssZ) or (YYYY-MM-DD)
+  // if there is an "Invalid Date" error, there must be something wrong in code and should be fixed.
+  // TODO: there is a root problem in backend code: the date "YYYY-MM-DD" is passed to backend without timezone (eg: deadline),
+  // then backend parses it in server's timezone and stores the parsed timestamp into database.
+  // If the user's timezone is different from the server's, the date might be displayed in the wrong day.
+  const dateSep = date.indexOf('T');
+  date = dateSep === -1 ? date : date.substring(0, dateSep);
+  return new Date(`${date}T00:00:00`).toLocaleString(lang || [], opts);
 }
 
 window.customElements.define('absolute-date', class extends HTMLElement {
   static observedAttributes = ['date', 'year', 'month', 'weekday', 'day'];
-  initialized: boolean;
+
+  initialized = false;
 
   update = () => {
-    const year = (this.getAttribute('year') ?? '') as Intl.DateTimeFormatOptions['year'];
-    const month = (this.getAttribute('month') ?? '') as Intl.DateTimeFormatOptions['month'];
-    const weekday = (this.getAttribute('weekday') ?? '') as Intl.DateTimeFormatOptions['weekday'];
-    const day = (this.getAttribute('day') ?? '') as Intl.DateTimeFormatOptions['day'];
+    const opt: Intl.DateTimeFormatOptions = {};
+    for (const attr of ['year', 'month', 'weekday', 'day']) {
+      if (this.getAttribute(attr)) opt[attr] = this.getAttribute(attr);
+    }
     const lang = this.closest('[lang]')?.getAttribute('lang') ||
       this.ownerDocument.documentElement.getAttribute('lang') || '';
 
-    // only use the first 10 characters, e.g. the `yyyy-mm-dd` part
-    const dateStr = this.getAttribute('date').substring(0, 10);
-
     if (!this.shadowRoot) this.attachShadow({mode: 'open'});
-    this.shadowRoot.textContent = toAbsoluteLocaleDate(dateStr, lang, {
-      ...(year && {year}),
-      ...(month && {month}),
-      ...(weekday && {weekday}),
-      ...(day && {day}),
-    });
+    this.shadowRoot.textContent = toAbsoluteLocaleDate(this.getAttribute('date'), lang, opt);
   };
 
-  attributeChangedCallback(_name: string, oldValue: any, newValue: any) {
+  attributeChangedCallback(_name: string, oldValue: string | null, newValue: string | null) {
     if (!this.initialized || oldValue === newValue) return;
     this.update();
   }
