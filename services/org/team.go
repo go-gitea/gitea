@@ -25,10 +25,10 @@ type UpdateTeamOptions struct {
 func UpdateTeam(ctx context.Context, team *org_model.Team, opts UpdateTeamOptions) error {
 	var changedCols []string
 
-	var newAccessMode perm.AccessMode
+	newAccessMode := team.AccessMode
 	if opts.IsAdmin {
 		newAccessMode = perm.AccessModeAdmin
-	} else {
+	} else if len(opts.UnitPerms) > 0 {
 		// if newAccessMode is less than admin accessmode, then it should be general accessmode,
 		// so we should calculate the minial accessmode from units accessmodes.
 		newAccessMode = unit_model.MinUnitAccessMode(opts.UnitPerms)

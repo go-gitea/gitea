@@ -255,7 +255,7 @@ func UpdateTeam(ctx context.Context, t *organization.Team, updateCols ...string)
 	}
 
 	// update units for team
-	if len(t.Units) > 0 {
+	if slices.Contains(updateCols, "units") {
 		for _, unit := range t.Units {
 			unit.TeamID = t.ID
 		}

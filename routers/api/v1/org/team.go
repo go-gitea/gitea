@@ -320,10 +320,15 @@ func EditTeam(ctx *context.APIContext) {
 		}
 	}
 
+	isAdmin := team.AccessMode == perm.AccessModeAdmin
+	if form.Permission != "" && form.Permission == "admin" {
+		isAdmin = true
+	}
+
 	if err := org_service.UpdateTeam(ctx, team, org_service.UpdateTeamOptions{
 		TeamName:                teamName,
 		Description:             description,
-		IsAdmin:                 form.Permission == "admin",
+		IsAdmin:                 isAdmin,
 		IncludesAllRepositories: includeAllRepos,
 		CanCreateOrgRepo:        canCreateOrgRepo,
 		UnitPerms:               unitPerms,
