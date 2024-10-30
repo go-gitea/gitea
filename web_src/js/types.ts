@@ -36,3 +36,13 @@ export type IssueData = {
   type: string,
   index: string,
 }
+
+export type Issue = {
+  id: number;
+  title: string;
+  state: 'open' | 'closed';
+  pull_request?: {
+    draft: boolean;
+    merged: boolean;
+  };
+};
