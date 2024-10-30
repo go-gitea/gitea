@@ -10,12 +10,10 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 )
 
-const (
-	LFSConfigSectionServer = "server"
-	LFSConfigSectionClient = "lfs_client"
-)
-
-// LFS represents the legacy configuration for Git LFS, to be migrated to LFSServer
+// LFS represents the server-side configuration for Git LFS.
+// Ideally these options should be in a section like "[lfs_server]",
+// but they are in "[server]" section due to historical reasons.
+// Could be refactored in the future while keeping backwards compatibility.
 var LFS = struct {
 	StartServer    bool          `ini:"LFS_START_SERVER"`
 	AllowPureSSH   bool          `ini:"LFS_ALLOW_PURE_SSH"`
@@ -28,16 +26,16 @@ var LFS = struct {
 	Storage *Storage
 }{}
 
-// LFSClient represents configuration for mirroring upstream Git LFS
+// LFSClient represents configuration for Gitea's LFS clients, for example: mirroring upstream Git LFS
 var LFSClient = struct {
 	BatchSize int `ini:"BATCH_SIZE"`
 }{}
 
 func loadLFSFrom(rootCfg ConfigProvider) error {
-	mustMapSetting(rootCfg, LFSConfigSectionClient, &LFSClient)
-	mustMapSetting(rootCfg, LFSConfigSectionServer, &LFS)
+	mustMapSetting(rootCfg, "lfs_client", &LFSClient)
 
-	sec := rootCfg.Section(LFSConfigSectionServer)
+	mustMapSetting(rootCfg, "server", &LFS)
+	sec := rootCfg.Section("server")
 
 	lfsSec, _ := rootCfg.GetSection("lfs")
 
