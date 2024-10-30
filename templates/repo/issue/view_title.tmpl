@@ -102,7 +102,7 @@
 										{{$sameBase := ne $.BaseName $.HeadUserName}}
 										{{$differentBranch := ne . $.HeadBranch}}
 										{{if or $sameBase $differentBranch}}
-											<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-branch="{{.}}">{{$.BaseName}}{{if $.HeadRepo}}/{{$.HeadRepo}}{{end}}:{{.}}</div>
+											<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-branch="{{.}}">{{$.BaseName}}:{{.}}</div>
 										{{end}}
 									{{end}}
 								</div>
