@@ -87,10 +87,10 @@ async function onEditContent(event) {
               dz.emit('addedfile', attachment);
               if (isImageFile(attachment.name)) {
                 dz.emit('thumbnail', attachment, imgSrc);
+                dropzone.querySelector(`img[src='${imgSrc}']`).style.maxWidth = '100%';
               }
               dz.emit('complete', attachment);
               fileUuidDict[attachment.uuid] = {submitted: true};
-              dropzone.querySelector(`img[src='${imgSrc}']`).style.maxWidth = '100%';
               const input = document.createElement('input');
               input.id = attachment.uuid;
               input.name = 'files';
