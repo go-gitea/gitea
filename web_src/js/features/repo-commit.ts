@@ -1,6 +1,5 @@
 import {createTippy} from '../modules/tippy.ts';
 import {toggleElem} from '../utils/dom.ts';
-import {GET, POST} from '../modules/fetch.ts';
 
 export function initRepoEllipsisButton() {
   for (const button of document.querySelectorAll('.js-toggle-commit-body')) {

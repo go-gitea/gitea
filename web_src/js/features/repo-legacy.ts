@@ -6,11 +6,11 @@ import {
   initRepoPullRequestUpdate, updateIssuesMeta, initIssueTemplateCommentEditors, initSingleCommentEditor,
 } from './repo-issue.ts';
 import {
-  initRepoConversationCommentDelete
-} from './repo-conversation.ts'
+  initRepoConversationCommentDelete,
+} from './repo-conversation.ts';
 import {
-  initRepoConversationCommentEdit
-} from './repo-conversation-edit.ts'
+  initRepoConversationCommentEdit,
+} from './repo-conversation-edit.ts';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.ts';
 import {svg} from '../svg.ts';
 import {htmlEscape} from 'escape-goat';
@@ -426,7 +426,7 @@ export function initRepository() {
   if ($('.conversation-container').length > 0) {
     initCompReactionSelector();
     initRepoConversationCommentDelete();
-    if ($('.repository.view.issue').length == 0) {
+    if ($('.repository.view.issue').length === 0) {
       initRepoConversationCommentEdit();
     }
   }

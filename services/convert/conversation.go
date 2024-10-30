@@ -7,24 +7,20 @@ import (
 	"context"
 
 	conversations_model "code.gitea.io/gitea/models/conversations"
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func ToConversation(ctx context.Context, doer *user_model.User, conversation *conversations_model.Conversation) *api.Conversation {
-	return toConversation(ctx, doer, conversation, WebAssetDownloadURL)
+func ToConversation(ctx context.Context, conversation *conversations_model.Conversation) *api.Conversation {
+	return toConversation(ctx, conversation)
 }
 
 // ToAPIConversation converts an Conversation to API format
-// it assumes some fields assigned with values:
-// Required - Poster, Labels,
-// Optional - Milestone, Assignee, PullRequest
-func ToAPIConversation(ctx context.Context, doer *user_model.User, conversation *conversations_model.Conversation) *api.Conversation {
-	return toConversation(ctx, doer, conversation, APIAssetDownloadURL)
+func ToAPIConversation(ctx context.Context, conversation *conversations_model.Conversation) *api.Conversation {
+	return toConversation(ctx, conversation)
 }
 
-func toConversation(ctx context.Context, doer *user_model.User, conversation *conversations_model.Conversation, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Conversation {
+func toConversation(ctx context.Context, conversation *conversations_model.Conversation) *api.Conversation {
 	if err := conversation.LoadRepo(ctx); err != nil {
 		return &api.Conversation{}
 	}
@@ -33,13 +29,12 @@ func toConversation(ctx context.Context, doer *user_model.User, conversation *co
 	}
 
 	apiConversation := &api.Conversation{
-		ID:          conversation.ID,
-		Index:       conversation.Index,
-		Attachments: toAttachments(conversation.Repo, conversation.Attachments, getDownloadURL),
-		IsLocked:    conversation.IsLocked,
-		Comments:    conversation.NumComments,
-		Created:     conversation.CreatedUnix.AsTime(),
-		Updated:     conversation.UpdatedUnix.AsTime(),
+		ID:       conversation.ID,
+		Index:    conversation.Index,
+		IsLocked: conversation.IsLocked,
+		Comments: conversation.NumComments,
+		Created:  conversation.CreatedUnix.AsTime(),
+		Updated:  conversation.UpdatedUnix.AsTime(),
 	}
 
 	if conversation.Repo != nil {
@@ -68,7 +63,7 @@ func toConversation(ctx context.Context, doer *user_model.User, conversation *co
 func ToConversationList(ctx context.Context, doer *user_model.User, il conversations_model.ConversationList) []*api.Conversation {
 	result := make([]*api.Conversation, len(il))
 	for i := range il {
-		result[i] = ToConversation(ctx, doer, il[i])
+		result[i] = ToConversation(ctx, il[i])
 	}
 	return result
 }
@@ -77,7 +72,7 @@ func ToConversationList(ctx context.Context, doer *user_model.User, il conversat
 func ToAPIConversationList(ctx context.Context, doer *user_model.User, il conversations_model.ConversationList) []*api.Conversation {
 	result := make([]*api.Conversation, len(il))
 	for i := range il {
-		result[i] = ToAPIConversation(ctx, doer, il[i])
+		result[i] = ToAPIConversation(ctx, il[i])
 	}
 	return result
 }

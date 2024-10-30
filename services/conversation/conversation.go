@@ -17,14 +17,13 @@ import (
 
 // NewConversation creates new conversation with labels for repository.
 func NewConversation(ctx context.Context, repo *repo_model.Repository, uuids []string, conversation *conversations_model.Conversation) error {
-
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		return conversations_model.NewConversation(ctx, repo, conversation, uuids)
 	}); err != nil {
 		return err
 	}
 
-	//notify_service.NewConversation(ctx, conversation, mentions)
+	// notify_service.NewConversation(ctx, conversation, mentions)
 
 	return nil
 }
@@ -41,7 +40,7 @@ func DeleteConversation(ctx context.Context, doer *user_model.User, gitRepo *git
 		return err
 	}
 
-	//notify_service.DeleteConversation(ctx, doer, conversation)
+	// notify_service.DeleteConversation(ctx, doer, conversation)
 
 	return nil
 }

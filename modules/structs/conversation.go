@@ -16,22 +16,11 @@ import (
 // Conversation represents an conversation in a repository
 // swagger:model
 type Conversation struct {
-	ID               int64         `json:"id"`
-	URL              string        `json:"url"`
-	HTMLURL          string        `json:"html_url"`
-	Index            int64         `json:"number"`
-	Poster           *User         `json:"user"`
-	OriginalAuthor   string        `json:"original_author"`
-	OriginalAuthorID int64         `json:"original_author_id"`
-	Title            string        `json:"title"`
-	Body             string        `json:"body"`
-	Ref              string        `json:"ref"`
-	Attachments      []*Attachment `json:"assets"`
-	Labels           []*Label      `json:"labels"`
-	Milestone        *Milestone    `json:"milestone"`
-	// deprecated
-	Assignee  *User   `json:"assignee"`
-	Assignees []*User `json:"assignees"`
+	ID      int64  `json:"id"`
+	URL     string `json:"url"`
+	HTMLURL string `json:"html_url"`
+	Index   int64  `json:"number"`
+	Ref     string `json:"ref"`
 	// Whether the conversation is open or locked
 	//
 	// type: string
@@ -48,35 +37,12 @@ type Conversation struct {
 	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
 
-	PullRequest *PullRequestMeta `json:"pull_request"`
-	Repo        *RepositoryMeta  `json:"repository"`
-
-	PinOrder int `json:"pin_order"`
+	Repo *RepositoryMeta `json:"repository"`
 }
 
 // CreateConversationOption options to create one conversation
 type CreateConversationOption struct {
-	// required:true
-	Title string `json:"title" binding:"Required"`
-	Body  string `json:"body"`
-	Ref   string `json:"ref"`
-	// deprecated
-	Assignee  string   `json:"assignee"`
-	Assignees []string `json:"assignees"`
-	// swagger:strfmt date-time
-	Deadline *time.Time `json:"due_date"`
-	// milestone id
-	Milestone int64 `json:"milestone"`
-	// list of label ids
-	Labels []int64 `json:"labels"`
-	Locked bool    `json:"locked"`
-}
-
-// EditConversationOption options for editing an conversation
-type EditConversationOption struct {
-	Title string  `json:"title"`
-	Body  *string `json:"body"`
-	Ref   *string `json:"ref"`
+	Locked bool `json:"locked"`
 }
 
 // ConversationFormFieldType defines conversation form field type, can be "markdown", "textarea", "input", "dropdown" or "checkboxes"

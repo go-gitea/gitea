@@ -5,6 +5,7 @@ package conversations
 import (
 	"context"
 	"fmt"
+	"html/template"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -16,8 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
-
-	"html/template"
 
 	"xorm.io/builder"
 )
@@ -527,11 +526,11 @@ func (c *Comment) UpdateAttachments(ctx context.Context, uuids []string) error {
 }
 
 // HashTag returns unique hash tag for conversation.
-func (comment *Comment) HashTag() string {
-	return fmt.Sprintf("comment-%d", comment.ID)
+func (c *Comment) HashTag() string {
+	return fmt.Sprintf("comment-%d", c.ID)
 }
 
-func (c *Comment) hashLink(ctx context.Context) string {
+func (c *Comment) hashLink() string {
 	return "#" + c.HashTag()
 }
 
@@ -547,7 +546,7 @@ func (c *Comment) HTMLURL(ctx context.Context) string {
 		log.Error("loadRepo(%d): %v", c.Conversation.RepoID, err)
 		return ""
 	}
-	return c.Conversation.HTMLURL() + c.hashLink(ctx)
+	return c.Conversation.HTMLURL() + c.hashLink()
 }
 
 // APIURL formats a API-string to the conversation-comment

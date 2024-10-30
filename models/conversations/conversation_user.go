@@ -66,7 +66,6 @@ func GetConversationMentionIDs(ctx context.Context, conversationID int64) ([]int
 
 // NewConversationUsers inserts an conversation related users
 func NewConversationUsers(ctx context.Context, repo *repo_model.Repository, conversation *Conversation) error {
-
 	// Leave a seat for poster itself to append later, but if poster is one of assignee
 	// and just waste 1 unit is cheaper than re-allocate memory once.
 	conversationUsers := make([]*ConversationUser, 0, 1)

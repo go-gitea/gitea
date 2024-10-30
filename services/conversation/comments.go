@@ -35,7 +35,7 @@ func CreateConversationComment(ctx context.Context, doer *user_model.User, repo 
 		return nil, err
 	}
 
-	//notify_service.CreateConversationComment(ctx, doer, repo, conversation, comment, mentions)
+	// notify_service.CreateConversationComment(ctx, doer, repo, conversation, comment, mentions)
 
 	return comment, nil
 }
@@ -80,7 +80,7 @@ func UpdateComment(ctx context.Context, c *conversations_model.Comment, contentV
 		}
 	}
 
-	//notify_service.UpdateComment(ctx, doer, c, oldContent)
+	// notify_service.UpdateComment(ctx, doer, c, oldContent)
 
 	return nil
 }
@@ -94,7 +94,7 @@ func DeleteComment(ctx context.Context, doer *user_model.User, comment *conversa
 		return err
 	}
 
-	//notify_service.DeleteComment(ctx, doer, comment)
+	// notify_service.DeleteComment(ctx, doer, comment)
 
 	return nil
 }

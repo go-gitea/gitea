@@ -1289,7 +1289,6 @@ func registerRoutes(m *web.Router) {
 				m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeConversationCommentReaction)
 			}, context.RepoMustNotBeArchived())
 		})
-
 	}, reqSignIn, context.RepoAssignment, reqRepoConversationReader)
 
 	m.Group("/{username}/{reponame}", func() { // repo code

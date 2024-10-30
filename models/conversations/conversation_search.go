@@ -7,12 +7,10 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
@@ -257,48 +255,6 @@ func applyConditions(sess *xorm.Session, opts *ConversationsOptions) {
 	}
 
 	applyLabelsCondition(sess, opts)
-}
-
-// teamUnitsRepoCond returns query condition for those repo id in the special org team with special units access
-func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Type) builder.Cond {
-	return builder.In(id,
-		builder.Select("repo_id").From("team_repo").Where(
-			builder.Eq{
-				"team_id": teamID,
-			}.And(
-				builder.Or(
-					// Check if the user is member of the team.
-					builder.In(
-						"team_id", builder.Select("team_id").From("team_user").Where(
-							builder.Eq{
-								"uid": userID,
-							},
-						),
-					),
-					// Check if the user is in the owner team of the organisation.
-					builder.Exists(builder.Select("team_id").From("team_user").
-						Where(builder.Eq{
-							"org_id": orgID,
-							"team_id": builder.Select("id").From("team").Where(
-								builder.Eq{
-									"org_id":     orgID,
-									"lower_name": strings.ToLower(organization.OwnerTeamName),
-								}),
-							"uid": userID,
-						}),
-					),
-				)).And(
-				builder.In(
-					"team_id", builder.Select("team_id").From("team_unit").Where(
-						builder.Eq{
-							"`team_unit`.org_id": orgID,
-						}.And(
-							builder.In("`team_unit`.type", units),
-						),
-					),
-				),
-			),
-		))
 }
 
 func applyPosterCondition(sess *xorm.Session, posterID int64) {

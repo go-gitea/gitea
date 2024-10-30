@@ -189,9 +189,5 @@ func (comments CommentList) LoadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 
-	if err = comments.LoadConversations(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return comments.LoadConversations(ctx)
 }

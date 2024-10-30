@@ -211,11 +211,7 @@ func (conversation *Conversation) LoadAttributes(ctx context.Context) (err error
 		return err
 	}
 
-	if err = conversation.Comments.LoadAttributes(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return conversation.Comments.LoadAttributes(ctx)
 }
 
 // LoadRepo loads conversation's repository

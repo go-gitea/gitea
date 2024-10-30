@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"html/template"
@@ -48,9 +47,6 @@ const (
 	tplConversationNew    base.TplName = "repo/conversation/new"
 	tplConversationChoose base.TplName = "repo/conversation/choose"
 	tplConversationView   base.TplName = "repo/conversation/view"
-
-	conversationTemplateKey      = "ConversationTemplate"
-	conversationTemplateTitleKey = "ConversationTemplateTitle"
 )
 
 // MustAllowUserComment checks to make sure if an conversation is locked.
@@ -98,210 +94,8 @@ func ConversationMustAllowPulls(ctx *context.Context) {
 	}
 }
 
-func conversations(ctx *context.Context) {
-	var err error
-	viewType := ctx.FormString("type")
-	sortType := ctx.FormString("sort")
-	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested", "reviewed_by"}
-	if !util.SliceContainsString(types, viewType, true) {
-		viewType = "all"
-	}
-
-	var (
-		assigneeID        = ctx.FormInt64("assignee")
-		posterID          = ctx.FormInt64("poster")
-		mentionedID       int64
-		reviewRequestedID int64
-		reviewedID        int64
-	)
-
-	if ctx.IsSigned {
-		switch viewType {
-		case "created_by":
-			posterID = ctx.Doer.ID
-		case "mentioned":
-			mentionedID = ctx.Doer.ID
-		case "assigned":
-			assigneeID = ctx.Doer.ID
-		case "review_requested":
-			reviewRequestedID = ctx.Doer.ID
-		case "reviewed_by":
-			reviewedID = ctx.Doer.ID
-		}
-	}
-
-	repo := ctx.Repo.Repository
-
-	keyword := strings.Trim(ctx.FormString("q"), " ")
-	if bytes.Contains([]byte(keyword), []byte{0x00}) {
-		keyword = ""
-	}
-
-	var conversationStats *conversations_model.ConversationStats
-	statsOpts := &conversations_model.ConversationsOptions{
-		RepoIDs:           []int64{repo.ID},
-		AssigneeID:        assigneeID,
-		MentionedID:       mentionedID,
-		PosterID:          posterID,
-		ReviewRequestedID: reviewRequestedID,
-		ReviewedID:        reviewedID,
-		ConversationIDs:   nil,
-	}
-	if keyword != "" {
-		allConversationIDs, err := conversationIDsFromSearch(ctx, keyword, statsOpts)
-		if err != nil {
-			if conversation_indexer.IsAvailable(ctx) {
-				ctx.ServerError("conversationIDsFromSearch", err)
-				return
-			}
-			ctx.Data["ConversationIndexerUnavailable"] = true
-			return
-		}
-		statsOpts.ConversationIDs = allConversationIDs
-	}
-	if keyword != "" && len(statsOpts.ConversationIDs) == 0 {
-		// So it did search with the keyword, but no conversation found.
-		// Just set conversationStats to empty.
-		conversationStats = &conversations_model.ConversationStats{}
-	} else {
-		// So it did search with the keyword, and found some conversations. It needs to get conversationStats of these conversations.
-		// Or the keyword is empty, so it doesn't need conversationIDs as filter, just get conversationStats with statsOpts.
-		conversationStats, err = conversations_model.GetConversationStats(ctx, statsOpts)
-		if err != nil {
-			ctx.ServerError("GetConversationStats", err)
-			return
-		}
-	}
-
-	var isShowClosed optional.Option[bool]
-	switch ctx.FormString("state") {
-	case "closed":
-		isShowClosed = optional.Some(true)
-	case "all":
-		isShowClosed = optional.None[bool]()
-	default:
-		isShowClosed = optional.Some(false)
-	}
-	// if there are closed conversations and no open conversations, default to showing all conversations
-	if len(ctx.FormString("state")) == 0 && conversationStats.OpenCount == 0 && conversationStats.ClosedCount != 0 {
-		isShowClosed = optional.None[bool]()
-	}
-
-	archived := ctx.FormBool("archived")
-
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
-
-	var total int
-	switch {
-	case isShowClosed.Value():
-		total = int(conversationStats.ClosedCount)
-	case !isShowClosed.Has():
-		total = int(conversationStats.OpenCount + conversationStats.ClosedCount)
-	default:
-		total = int(conversationStats.OpenCount)
-	}
-	pager := context.NewPagination(total, setting.UI.ConversationPagingNum, page, 5)
-
-	var conversations conversations_model.ConversationList
-	{
-		ids, err := conversationIDsFromSearch(ctx, keyword, &conversations_model.ConversationsOptions{
-			Paginator: &db.ListOptions{
-				Page:     pager.Paginater.Current(),
-				PageSize: setting.UI.ConversationPagingNum,
-			},
-			RepoIDs:           []int64{repo.ID},
-			AssigneeID:        assigneeID,
-			PosterID:          posterID,
-			MentionedID:       mentionedID,
-			ReviewRequestedID: reviewRequestedID,
-			ReviewedID:        reviewedID,
-			IsClosed:          isShowClosed,
-			SortType:          sortType,
-		})
-		if err != nil {
-			if conversation_indexer.IsAvailable(ctx) {
-				ctx.ServerError("conversationIDsFromSearch", err)
-				return
-			}
-			ctx.Data["ConversationIndexerUnavailable"] = true
-			return
-		}
-		conversations, err = conversations_model.GetConversationsByIDs(ctx, ids, true)
-		if err != nil {
-			ctx.ServerError("GetConversationsByIDs", err)
-			return
-		}
-	}
-
-	if ctx.IsSigned {
-		if err := conversations.LoadIsRead(ctx, ctx.Doer.ID); err != nil {
-			ctx.ServerError("LoadIsRead", err)
-			return
-		}
-	} else {
-		for i := range conversations {
-			conversations[i].IsRead = true
-		}
-	}
-
-	if err := conversations.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("conversations.LoadAttributes", err)
-		return
-	}
-
-	ctx.Data["Conversations"] = conversations
-
-	handleTeamMentions(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
-	ctx.Data["ConversationStats"] = conversationStats
-	ctx.Data["OpenCount"] = conversationStats.OpenCount
-	ctx.Data["ClosedCount"] = conversationStats.ClosedCount
-	ctx.Data["ViewType"] = viewType
-	ctx.Data["SortType"] = sortType
-	ctx.Data["AssigneeID"] = assigneeID
-	ctx.Data["PosterID"] = posterID
-	ctx.Data["Keyword"] = keyword
-	ctx.Data["IsShowClosed"] = isShowClosed
-	switch {
-	case isShowClosed.Value():
-		ctx.Data["State"] = "closed"
-	case !isShowClosed.Has():
-		ctx.Data["State"] = "all"
-	default:
-		ctx.Data["State"] = "open"
-	}
-	ctx.Data["ShowArchivedLabels"] = archived
-
-	pager.AddParamString("q", keyword)
-	pager.AddParamString("type", viewType)
-	pager.AddParamString("sort", sortType)
-	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
-	pager.AddParamString("assignee", fmt.Sprint(assigneeID))
-	pager.AddParamString("poster", fmt.Sprint(posterID))
-	pager.AddParamString("archived", fmt.Sprint(archived))
-
-	ctx.Data["Page"] = pager
-}
-
-func conversationIDsFromSearch(ctx *context.Context, keyword string, opts *conversations_model.ConversationsOptions) ([]int64, error) {
-	ids, _, err := conversation_indexer.SearchConversations(ctx, conversation_indexer.ToSearchOptions(keyword, opts))
-	if err != nil {
-		return nil, fmt.Errorf("SearchConversations: %w", err)
-	}
-	return ids, nil
-}
-
 // Conversations render conversations page
 func Conversations(ctx *context.Context) {
-
-	renderMilestones(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -313,7 +107,6 @@ func Conversations(ctx *context.Context) {
 
 // NewConversation render creating conversation page
 func NewConversation(ctx *context.Context) {
-
 	ctx.Data["Title"] = ctx.Tr("repo.conversations.new")
 	ctx.Data["PageIsConversationList"] = true
 	ctx.Data["NewConversationChooseTemplate"] = false
@@ -372,13 +165,6 @@ func DeleteConversation(ctx *context.Context) {
 	}
 
 	ctx.Redirect(fmt.Sprintf("%s/conversations", ctx.Repo.Repository.Link()), http.StatusSeeOther)
-}
-
-func conversationGetBranchData(ctx *context.Context) {
-	ctx.Data["BaseBranch"] = nil
-	ctx.Data["HeadBranch"] = nil
-	ctx.Data["HeadUserName"] = nil
-	ctx.Data["BaseName"] = ctx.Repo.Repository.OwnerName
 }
 
 // ViewConversation render conversation view page
@@ -446,7 +232,7 @@ func ViewConversation(ctx *context.Context) {
 	)
 
 	// Check if the user can use the dependencies
-	//ctx.Data["CanCreateConversationDependencies"] = ctx.Repo.CanCreateConversationDependencies(ctx, ctx.Doer, conversation.IsPull)
+	// ctx.Data["CanCreateConversationDependencies"] = ctx.Repo.CanCreateConversationDependencies(ctx, ctx.Doer, conversation.IsPull)
 
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
@@ -484,7 +270,7 @@ func ViewConversation(ctx *context.Context) {
 				continue
 			}
 
-			comment.ShowRole, err = conversationRoleDescriptor(ctx, repo, comment.Poster, conversation, comment.HasOriginalAuthor())
+			comment.ShowRole, err = conversationRoleDescriptor(ctx, repo, comment.Poster, comment.HasOriginalAuthor())
 			if err != nil {
 				ctx.ServerError("roleDescriptor", err)
 				return
@@ -622,7 +408,7 @@ func GetConversationInfo(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"convertedConversation": convert.ToConversation(ctx, ctx.Doer, conversation),
+		"convertedConversation": convert.ToConversation(ctx, conversation),
 	})
 }
 
@@ -812,8 +598,6 @@ func ListConversations(ctx *context.Context) {
 
 	isPull := optional.None[bool]()
 	switch ctx.FormString("type") {
-	case "pulls":
-		isPull = optional.Some(true)
 	case "conversations":
 		isPull = optional.Some(false)
 	}
@@ -933,7 +717,6 @@ func NewConversationComment(ctx *context.Context) {
 
 	var comment *conversations_model.Comment
 	defer func() {
-
 		// Redirect to comment hashtag if there is any actual content.
 		typeName := "commit"
 		if comment != nil {
@@ -1278,7 +1061,7 @@ func updateConversationAttachments(ctx *context.Context, item any, files []strin
 }
 
 // roleDescriptor returns the role descriptor for a comment in/with the given repo, poster and conversation
-func conversationRoleDescriptor(ctx *context.Context, repo *repo_model.Repository, poster *user_model.User, conversation *conversations_model.Conversation, hasOriginalAuthor bool) (conversations_model.RoleDescriptor, error) {
+func conversationRoleDescriptor(ctx *context.Context, repo *repo_model.Repository, poster *user_model.User, hasOriginalAuthor bool) (conversations_model.RoleDescriptor, error) {
 	roleDescriptor := conversations_model.RoleDescriptor{}
 
 	if hasOriginalAuthor {

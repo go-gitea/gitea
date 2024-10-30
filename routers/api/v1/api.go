@@ -672,7 +672,6 @@ func mustEnableConversations(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-
 }
 
 func mustEnableIssuesOrPulls(ctx *context.APIContext) {
@@ -1514,7 +1513,6 @@ func Routes() *web.Router {
 							// m.Combo("/{id}", reqToken()).Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueCommentDeprecated).
 							// 	Delete(repo.DeleteIssueCommentDeprecated)
 						})
-
 					}, mustEnableConversations)
 				})
 			})
