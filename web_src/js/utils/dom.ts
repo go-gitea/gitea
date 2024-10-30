@@ -167,7 +167,7 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
       const isBorderBox = computedStyle.boxSizing === 'border-box';
       const borderAddOn = isBorderBox ? topBorderWidth + bottomBorderWidth : 0;
 
-      const adjustedViewportMarginBottom = bottom < viewportMarginBottom ? bottom : viewportMarginBottom;
+      const adjustedViewportMarginBottom = Math.min(bottom, viewportMarginBottom);
       const curHeight = parseFloat(computedStyle.height);
       const maxHeight = curHeight + bottom - adjustedViewportMarginBottom;
 
@@ -281,7 +281,7 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
 
   textarea.contentEditable = 'true';
   try {
-    success = document.execCommand('insertText', false, text); // eslint-disable-line deprecation/deprecation
+    success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated
   } catch {
     success = false;
   }
