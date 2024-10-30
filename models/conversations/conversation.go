@@ -1,3 +1,6 @@
+// Copyright 2024 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package conversations
 
 // Someone should decouple Comment from issues, and rename it something like ConversationEvent (@RedCocoon, 2024)

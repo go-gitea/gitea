@@ -1,3 +1,6 @@
+// Copyright 2024 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package conversations
 
 // This comment.go was refactored from issues/comment.go to make it context-agnostic to improve reusability.
