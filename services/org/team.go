@@ -5,6 +5,7 @@ package org
 
 import (
 	"context"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -34,7 +35,12 @@ func UpdateTeam(ctx context.Context, team *org_model.Team, opts UpdateTeamOption
 	}
 
 	if !team.IsOwnerTeam() {
-		team.Name = opts.TeamName
+		if team.Name != opts.TeamName {
+			team.Name = opts.TeamName
+			team.LowerName = strings.ToLower(opts.TeamName)
+			changedCols = append(changedCols, "name", "lower_name")
+		}
+
 		if team.AccessMode != newAccessMode {
 			team.AccessMode = newAccessMode
 			changedCols = append(changedCols, "authorize")
@@ -44,22 +50,24 @@ func UpdateTeam(ctx context.Context, team *org_model.Team, opts UpdateTeamOption
 			team.IncludesAllRepositories = opts.IncludesAllRepositories
 			changedCols = append(changedCols, "includes_all_repositories")
 		}
-		units := make([]*org_model.TeamUnit, 0, len(opts.UnitPerms))
-		for tp, perm := range opts.UnitPerms {
-			units = append(units, &org_model.TeamUnit{
-				OrgID:      team.OrgID,
-				TeamID:     team.ID,
-				Type:       tp,
-				AccessMode: perm,
-			})
+		if len(opts.UnitPerms) > 0 {
+			units := make([]*org_model.TeamUnit, 0, len(opts.UnitPerms))
+			for tp, perm := range opts.UnitPerms {
+				units = append(units, &org_model.TeamUnit{
+					OrgID:      team.OrgID,
+					TeamID:     team.ID,
+					Type:       tp,
+					AccessMode: perm,
+				})
+			}
+			team.Units = units
+			changedCols = append(changedCols, "units")
 		}
-		team.Units = units
-		changedCols = append(changedCols, "units")
 		if team.CanCreateOrgRepo != opts.CanCreateOrgRepo {
 			team.CanCreateOrgRepo = opts.CanCreateOrgRepo
 			changedCols = append(changedCols, "can_create_org_repo")
 		}
-	} else {
+	} else { // make the possible legacy data correct, we force to update these fields
 		team.CanCreateOrgRepo = true
 		team.IncludesAllRepositories = true
 		changedCols = append(changedCols, "can_create_org_repo", "includes_all_repositories")

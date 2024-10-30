@@ -57,7 +57,7 @@ func (f *UpdateOrgSettingForm) Validate(req *http.Request, errs binding.Errors) 
 type CreateTeamForm struct {
 	TeamName         string `binding:"Required;AlphaDashDot;MaxSize(255)"`
 	Description      string `binding:"MaxSize(255)"`
-	Permission       string `binding:"Required;In(read,write,admin)"`
+	Permission       string `binding:"Required;In(,read,write,admin)"`
 	RepoAccess       string `binding:"Required;In(specified, all)"`
 	CanCreateOrgRepo bool
 }

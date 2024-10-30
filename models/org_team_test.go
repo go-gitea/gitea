@@ -84,7 +84,7 @@ func TestUpdateTeam(t *testing.T) {
 	team.Name = "newName"
 	team.Description = strings.Repeat("A long description!", 100)
 	team.AccessMode = perm.AccessModeAdmin
-	assert.NoError(t, UpdateTeam(db.DefaultContext, team, "authorize"))
+	assert.NoError(t, UpdateTeam(db.DefaultContext, team, "name", "lower_name", "description", "authorize"))
 
 	team = unittest.AssertExistsAndLoadBean(t, &organization.Team{Name: "newName"})
 	assert.True(t, strings.HasPrefix(team.Description, "A long description!"))
@@ -103,7 +103,7 @@ func TestUpdateTeam2(t *testing.T) {
 	team.LowerName = "owners"
 	team.Name = "Owners"
 	team.Description = strings.Repeat("A long description!", 100)
-	err := UpdateTeam(db.DefaultContext, team, "authorize")
+	err := UpdateTeam(db.DefaultContext, team, "name", "lower_name", "description", "authorize")
 	assert.True(t, organization.IsErrTeamAlreadyExist(err))
 
 	unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID})
