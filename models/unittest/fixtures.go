@@ -25,7 +25,7 @@ func GetXORMEngine(engine ...*xorm.Engine) (x *xorm.Engine) {
 	if len(engine) == 1 {
 		return engine[0]
 	}
-	return db.DefaultContext.(*db.Context).Engine().(*xorm.Engine)
+	return db.GetEngine(db.DefaultContext).(*xorm.Engine)
 }
 
 // InitFixtures initialize test fixtures for a test database

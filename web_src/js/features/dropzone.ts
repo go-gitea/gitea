@@ -128,10 +128,12 @@ export async function initDropzone(dropzoneEl) {
       fileUuidDict = {};
       for (const attachment of respData) {
         const file = {name: attachment.name, uuid: attachment.uuid, size: attachment.size};
-        const imgSrc = `${attachmentBaseLinkUrl}/${file.uuid}`;
         dzInst.emit('addedfile', file);
-        dzInst.emit('thumbnail', file, imgSrc);
         dzInst.emit('complete', file);
+        if (isImageFile(file.name)) {
+          const imgSrc = `${attachmentBaseLinkUrl}/${file.uuid}`;
+          dzInst.emit('thumbnail', file, imgSrc);
+        }
         addCopyLink(file); // it is from server response, so no "type"
         fileUuidDict[file.uuid] = {submitted: true};
         const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${file.uuid}`, value: file.uuid});
