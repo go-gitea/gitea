@@ -1,14 +1,17 @@
 import {matchEmoji, matchMention, matchIssue} from '../../utils/match.ts';
 import {emojiString} from '../emoji.ts';
 import {svg} from '../../svg.ts';
-import {parseIssueHref} from '../../utils.ts';
+import {parseIssueHref, parseIssueNewHref} from '../../utils.ts';
 import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
 import {getIssueColor, getIssueIcon} from '../issue.ts';
 import {debounce} from 'perfect-debounce';
 
 const debouncedSuggestIssues = debounce((key: string, text: string) => new Promise<{matched:boolean; fragment?: HTMLElement}>(async (resolve) => {
-  const {owner, repo, index} = parseIssueHref(window.location.href);
-  const matches = await matchIssue(owner, repo, index, text);
+  let issuePathInfo = parseIssueHref(window.location.href);
+  if (!issuePathInfo.ownerName) issuePathInfo = parseIssueNewHref(window.location.href);
+  if (!issuePathInfo.ownerName) return resolve({matched: false});
+
+  const matches = await matchIssue(issuePathInfo.ownerName, issuePathInfo.repoName, issuePathInfo.indexString, text);
   if (!matches.length) return resolve({matched: false});
 
   const ul = document.createElement('ul');
@@ -16,7 +19,7 @@ const debouncedSuggestIssues = debounce((key: string, text: string) => new Promi
   for (const issue of matches) {
     const li = createElementFromAttrs('li', {
       role: 'option',
-      'data-value': `${key}${issue.id}`,
+      'data-value': `${key}${issue.number}`,
       class: 'tw-flex tw-gap-2',
     });
 
@@ -24,7 +27,7 @@ const debouncedSuggestIssues = debounce((key: string, text: string) => new Promi
     li.append(createElementFromHTML(icon));
 
     const id = document.createElement('span');
-    id.textContent = issue.id.toString();
+    id.textContent = String(issue.number);
     li.append(id);
 
     const nameSpan = document.createElement('span');
