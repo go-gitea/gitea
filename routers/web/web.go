@@ -670,7 +670,7 @@ func registerRoutes(m *web.Router) {
 		m.Post("/forgot_password", auth.ForgotPasswdPost)
 		m.Post("/logout", auth.SignOut)
 		m.Get("/stopwatches", reqSignIn, user.GetStopwatches)
-		m.Get("/search", ignExploreSignIn, user.Search)
+		m.Get("/search_candidates", ignExploreSignIn, user.SearchCandidates)
 		m.Group("/oauth2", func() {
 			m.Get("/{provider}", auth.SignInOAuth)
 			m.Get("/{provider}/callback", auth.SignInOAuthCallback)
@@ -1179,6 +1179,7 @@ func registerRoutes(m *web.Router) {
 				})
 			})
 		}, context.RepoRef())
+		m.Get("/issues/suggestions", repo.IssueSuggestions)
 	}, ignSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader)
 	// end "/{username}/{reponame}": view milestone, label, issue, pull, etc
 

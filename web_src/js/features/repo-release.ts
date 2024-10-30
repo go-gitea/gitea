@@ -50,7 +50,7 @@ function initTagNameEditor() {
 }
 
 function initRepoReleaseEditor() {
-  const editor = document.querySelector('.repository.new.release .combo-markdown-editor');
+  const editor = document.querySelector<HTMLElement>('.repository.new.release .combo-markdown-editor');
   if (!editor) {
     return;
   }

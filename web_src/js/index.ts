@@ -2,7 +2,6 @@
 import './bootstrap.ts';
 import './htmx.ts';
 
-import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
 import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
 import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
@@ -24,7 +23,7 @@ import {initFindFileInRepo} from './features/repo-findfile.ts';
 import {initCommentContent, initMarkupContent} from './markup/content.ts';
 import {initPdfViewer} from './render/pdf.ts';
 
-import {initUserAuthOauth2} from './features/user-auth.ts';
+import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
 import {
   initRepoIssueDue,
   initRepoIssueReferenceRepositorySearch,
@@ -42,7 +41,7 @@ import {initRepoTemplateSearch} from './features/repo-template.ts';
 import {initRepoCodeView} from './features/repo-code.ts';
 import {initSshKeyFormParser} from './features/sshkey-helper.ts';
 import {initUserSettings} from './features/user-settings.ts';
-import {initRepoArchiveLinks} from './features/repo-common.ts';
+import {initRepoActivityTopAuthorsChart, initRepoArchiveLinks} from './features/repo-common.ts';
 import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
 import {
   initRepoSettingGitHook,
@@ -219,6 +218,7 @@ onDomReady(() => {
     initCommitStatuses,
     initCaptcha,
 
+    initUserCheckAppUrl,
     initUserAuthOauth2,
     initUserAuthWebAuthn,
     initUserAuthWebAuthnRegister,
