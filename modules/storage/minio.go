@@ -276,8 +276,12 @@ func (m *MinioStorage) Delete(path string) error {
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
-func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
-	reqParams := make(url.Values)
+func (m *MinioStorage) URL(path, name string, serveDirectReqParams url.Values) (*url.URL, error) {
+	// copy serveDirectReqParams
+	reqParams, err := url.ParseQuery(serveDirectReqParams.Encode())
+	if err != nil {
+		return nil, err
+	}
 	// TODO it may be good to embed images with 'inline' like ServeData does, but we don't want to have to read the file, do we?
 	reqParams.Set("response-content-disposition", "attachment; filename=\""+quoteEscaper.Replace(name)+"\"")
 	u, err := m.client.PresignedGetObject(m.ctx, m.bucket, m.buildMinioPath(path), 5*time.Minute, reqParams)
