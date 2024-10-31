@@ -46,8 +46,8 @@ var (
 			Usage: "Disable TLS verification.",
 		},
 		&cli.StringFlag{
-			Name:  "host",
-			Usage: "The address where the LDAP server can be reached.",
+			Name:  "host-list",
+			Usage: "List of addresses where the LDAP server(s) can be reached.",
 		},
 		&cli.IntFlag{
 			Name:  "port",
@@ -206,8 +206,8 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	if c.IsSet("name") {
 		config.Name = c.String("name")
 	}
-	if c.IsSet("host") {
-		config.Host = c.String("host")
+	if c.IsSet("host-list") {
+		config.HostList = c.String("host-list")
 	}
 	if c.IsSet("port") {
 		config.Port = c.Int("port")
@@ -308,7 +308,7 @@ func (a *authService) getAuthSource(ctx context.Context, c *cli.Context, authTyp
 
 // addLdapBindDn adds a new LDAP via Bind DN authentication source.
 func (a *authService) addLdapBindDn(c *cli.Context) error {
-	if err := argsSet(c, "name", "security-protocol", "host", "port", "user-search-base", "user-filter", "email-attribute"); err != nil {
+	if err := argsSet(c, "name", "security-protocol", "host-list", "port", "user-search-base", "user-filter", "email-attribute"); err != nil {
 		return err
 	}
 
@@ -359,7 +359,7 @@ func (a *authService) updateLdapBindDn(c *cli.Context) error {
 
 // addLdapSimpleAuth adds a new LDAP (simple auth) authentication source.
 func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
-	if err := argsSet(c, "name", "security-protocol", "host", "port", "user-dn", "user-filter", "email-attribute"); err != nil {
+	if err := argsSet(c, "name", "security-protocol", "host-list", "port", "user-dn", "user-filter", "email-attribute"); err != nil {
 		return err
 	}
 
