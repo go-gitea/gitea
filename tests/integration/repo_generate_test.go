@@ -27,7 +27,9 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateID, templateOw
 
 	// Step1: go to the main page of template repo
 	req = NewRequestf(t, "GET", "/%s/%s", templateOwnerName, templateRepoName)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusMovedPermanently)
+	req = NewRequest(t, "GET", resp.Result().Header.Get("Location"))
+	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	// Step2: click the "Use this template" button
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -53,7 +55,7 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateID, templateOw
 
 	// Step4: check the existence of the generated repo
 	req = NewRequestf(t, "GET", "/%s/%s", generateOwnerName, generateRepoName)
-	session.MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusMovedPermanently)
 
 	// Step5: check substituted values in Readme
 	req = NewRequestf(t, "GET", "/%s/%s/raw/branch/master/README.md", generateOwnerName, generateRepoName)
