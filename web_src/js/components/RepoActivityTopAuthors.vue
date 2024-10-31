@@ -17,7 +17,7 @@ const colors = ref({
 const activityTopAuthors = window.config.pageData.repoActivityTopAuthors || [];
 
 const graphPoints = computed(() => {
-  return activityTopAuthors.value.map((item) => {
+  return activityTopAuthors.map((item) => {
     return {
       value: item.commits,
       label: item.name,
@@ -26,7 +26,7 @@ const graphPoints = computed(() => {
 });
 
 const graphAuthors = computed(() => {
-  return activityTopAuthors.value.map((item, idx) => {
+  return activityTopAuthors.map((item, idx) => {
     return {
       position: idx + 1,
       ...item,
@@ -35,7 +35,7 @@ const graphAuthors = computed(() => {
 });
 
 const graphWidth = computed(() => {
-  return activityTopAuthors.value.length * 40;
+  return activityTopAuthors.length * 40;
 });
 
 const styleElement = ref<HTMLElement | null>(null);

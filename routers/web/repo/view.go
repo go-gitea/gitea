@@ -143,7 +143,6 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, try
 				// this should be impossible; if subTreeEntry exists so should this.
 				continue
 			}
-			var err error
 			childEntries, err := subTree.ListEntries()
 			if err != nil {
 				return "", nil, err

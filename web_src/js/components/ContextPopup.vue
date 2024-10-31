@@ -3,6 +3,7 @@ import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {getIssueColor, getIssueIcon} from '../features/issue.ts';
 import {computed, onMounted, ref} from 'vue';
+import type {IssuePathInfo} from '../types.ts';
 
 const {appSubUrl, i18n} = window.config;
 
@@ -25,19 +26,19 @@ const root = ref<HTMLElement | null>(null);
 
 onMounted(() => {
   root.value.addEventListener('ce-load-context-popup', (e: CustomEvent) => {
-    const data = e.detail;
+    const data: IssuePathInfo = e.detail;
     if (!loading.value && issue.value === null) {
       load(data);
     }
   });
 });
 
-async function load(data) {
+async function load(issuePathInfo: IssuePathInfo) {
   loading.value = true;
   i18nErrorMessage.value = null;
 
   try {
-    const response = await GET(`${appSubUrl}/${data.owner}/${data.repo}/issues/${data.index}/info`); // backend: GetIssueInfo
+    const response = await GET(`${appSubUrl}/${issuePathInfo.ownerName}/${issuePathInfo.repoName}/issues/${issuePathInfo.indexString}/info`); // backend: GetIssueInfo
     const respJson = await response.json();
     if (!response.ok) {
       i18nErrorMessage.value = respJson.message ?? i18n.network_error;
