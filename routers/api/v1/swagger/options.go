@@ -205,4 +205,10 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	UpdateVariableOption api.UpdateVariableOption
+
+	// in:body
+	CreateConversationCommentOption api.CreateConversationCommentOption
+
+	// in:body
+	EditConversationCommentOption api.EditConversationCommentOption
 }
