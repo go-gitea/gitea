@@ -11,7 +11,6 @@ import (
 	conversations_model "code.gitea.io/gitea/models/conversations"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -253,16 +252,8 @@ func ListRepoConversationComments(ctx *context.APIContext) {
 		return
 	}
 
-	var isPull optional.Option[bool]
 	canReadConversation := ctx.Repo.CanRead(unit.TypeConversations)
-	canReadPull := ctx.Repo.CanRead(unit.TypePullRequests)
-	if canReadConversation && canReadPull {
-		isPull = optional.None[bool]()
-	} else if canReadConversation {
-		isPull = optional.Some(false)
-	} else if canReadPull {
-		isPull = optional.Some(true)
-	} else {
+	if !canReadConversation {
 		ctx.NotFound()
 		return
 	}
@@ -273,7 +264,6 @@ func ListRepoConversationComments(ctx *context.APIContext) {
 		Type:        conversations_model.CommentTypeComment,
 		Since:       since,
 		Before:      before,
-		IsPull:      isPull,
 	}
 
 	comments, err := conversations_model.FindComments(ctx, opts)

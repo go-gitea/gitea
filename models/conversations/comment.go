@@ -15,7 +15,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
@@ -276,15 +275,10 @@ type FindCommentsOptions struct {
 	db.ListOptions
 	RepoID          int64
 	ConversationID  int64
-	ReviewID        int64
 	Since           int64
 	Before          int64
-	Line            int64
-	TreePath        string
 	Type            CommentType
 	ConversationIDs []int64
-	Invalidated     optional.Option[bool]
-	IsPull          optional.Option[bool]
 }
 
 // ToConds implements FindOptions interface
