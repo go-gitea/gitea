@@ -24,7 +24,7 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Step1: go to the main page of repo
-	req = NewRequestf(t, "GET", "/%s/%s", ownerName, repoName)
+	req = NewRequestf(t, "GET", "/%s/%s/code", ownerName, repoName)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Step2: click the fork button
@@ -49,7 +49,7 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Step4: check the existence of the forked repo
-	req = NewRequestf(t, "GET", "/%s/%s", forkOwnerName, forkRepoName)
+	req = NewRequestf(t, "GET", "/%s/%s/code", forkOwnerName, forkRepoName)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	return resp
