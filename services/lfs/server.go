@@ -179,6 +179,11 @@ func BatchHandler(ctx *context.Context) {
 		return
 	}
 
+	if setting.LFS.MaxBatchSize != 0 && len(br.Objects) > setting.LFS.MaxBatchSize {
+		writeStatus(ctx, http.StatusRequestEntityTooLarge)
+		return
+	}
+
 	contentStore := lfs_module.NewContentStore()
 
 	var responseObjects []*lfs_module.ObjectResponse
