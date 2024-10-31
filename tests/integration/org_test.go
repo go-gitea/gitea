@@ -74,7 +74,7 @@ func TestLimitedOrg(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 	req = NewRequest(t, "GET", "/limited_org/public_repo_on_limited_org/code")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/limited_org/private_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/private_repo_on_limited_org/code")
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
@@ -191,7 +191,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s", orgName))
 	restrictedSession.MakeRequest(t, req, http.StatusOK)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))
+	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/code", orgName, repoName))
 	restrictedSession.MakeRequest(t, req, http.StatusOK)
 }
 
