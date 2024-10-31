@@ -63,10 +63,10 @@
 					<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_reviewers"}}</div>
 					{{range .Reviewers}}
 						{{if .User}}
-							<a class="item muted" data-id="{{.ItemID}}" data-id-selector="#reviewer_{{.ItemID}}">
-								<span class="octicon-check gt-invisible">{{svg "octicon-check"}}</span>
+							<a class="item muted" href="#" data-id="{{.ItemID}}" data-id-selector="#reviewer_{{.ItemID}}">
+								<span class="octicon-check tw-invisible">{{svg "octicon-check"}}</span>
 								<span class="text">
-									{{ctx.AvatarUtils.Avatar .User 28 "gt-mr-3"}}{{template "repo/search_name" .User}}
+									{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}{{template "repo/search_name" .User}}
 								</span>
 							</a>
 						{{end}}
@@ -91,9 +91,13 @@
 				<div class="selected">
 					{{range .Reviewers}}
 								{{if .User}}
-									<a id="reviewer_{{.ItemID}}" class="muted sidebar-item-link item gt-df gt-ac gt-f1 gt-py-3 gt-hidden" href="{{.User.HomeLink}}">{{ctx.AvatarUtils.Avatar .User 20 "gt-mr-3"}}{{.User.GetDisplayName}}</a>
+									<a class="item tw-p-1 muted tw-hidden" id="reviewer_{{.ItemID}}" href="{{.User.HomeLink}}">
+										{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2 tw-align-middle"}}{{.User.GetDisplayName}}
+									</a>
 								{{else if .Team}}
-									<span id="reviewer_{{.ItemID}}" class="text item gt-df gt-ac gt-f1 gt-py-3 gt-hidden">{{svg "octicon-people" 20 "gt-mr-3"}}{{$.Repository.OwnerName}}/{{.Team.Name}}</span>
+									<a class="item tw-p-1 muted tw-hidden" id="reviewer_{{.ItemID}}" href="{{.Team.Name}}">
+										{{ctx.AvatarUtils.Avatar .Team 28 "tw-mr-2 tw-align-middle"}}{{$.Repository.OwnerName}}/{{.Team.Name}}
+									</a>
 								{{end}}
 					{{end}}
 				</div>
