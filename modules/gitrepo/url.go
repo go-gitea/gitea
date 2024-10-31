@@ -4,5 +4,5 @@
 package gitrepo
 
 func RepoGitURL(repo Repository) string {
-	return repoPath(repo)
+	return curService.RepoGitURL(repo)
 }
