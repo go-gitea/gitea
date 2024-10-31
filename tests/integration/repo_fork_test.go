@@ -69,7 +69,9 @@ func TestRepoForkToOrg(t *testing.T) {
 	// Check that no more forking is allowed as user2 owns repository
 	//  and org3 organization that owner user2 is also now has forked this repository
 	req := NewRequest(t, "GET", "/user2/repo1")
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusMovedPermanently)
+	req = NewRequest(t, "GET", resp.Result().Header.Get("Location"))
+	resp = MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	_, exists := htmlDoc.doc.Find(`a.ui.button[href*="/fork"]`).Attr("href")
 	assert.False(t, exists, "Forking should not be allowed anymore")

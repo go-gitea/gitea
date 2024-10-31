@@ -25,7 +25,7 @@ func TestViewRepo(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	req := NewRequest(t, "GET", "/user2/repo1")
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusMovedPermanently)
 
 	link := resp.Result().Header.Get("Location")
 	req = NewRequest(t, "GET", link)

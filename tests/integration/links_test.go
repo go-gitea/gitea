@@ -152,7 +152,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 	DecodeJSON(t, respAPI, &apiRepos)
 
 	repoLinks := []string{
-		"",
+		"/code",
 		"/issues",
 		"/pulls",
 		"/commits/branch/master",
