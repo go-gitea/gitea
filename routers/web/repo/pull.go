@@ -395,12 +395,17 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	var headBranchSha string
 	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
-		headGitRepo, err := gitrepo.OpenRepository(ctx, pull.HeadRepo)
-		if err != nil {
-			ctx.ServerError("OpenRepository", err)
-			return nil
+		var headGitRepo *git.Repository
+		if ctx.Repo != nil && ctx.Repo.Repository != nil && pull.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
+			headGitRepo = ctx.Repo.GitRepo
+		} else {
+			headGitRepo, err = gitrepo.OpenRepository(ctx, pull.HeadRepo)
+			if err != nil {
+				ctx.ServerError("OpenRepository", err)
+				return nil
+			}
+			defer headGitRepo.Close()
 		}
-		defer headGitRepo.Close()
 
 		if pull.Flow == issues_model.PullRequestFlowGithub {
 			headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
@@ -740,17 +745,31 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		maxLines, maxFiles = -1, -1
 	}
 
+	baseCommit, err := ctx.Repo.GitRepo.GetCommit(startCommitID)
+	if err != nil {
+		ctx.ServerError("GetCommit", err)
+		return
+	}
+	commit, err := gitRepo.GetCommit(endCommitID)
+	if err != nil {
+		ctx.ServerError("GetCommit", err)
+		return
+	}
+
 	diffOptions := &gitdiff.DiffOptions{
 		AfterCommitID:      endCommitID,
+		AfterCommit:        commit,
 		SkipTo:             ctx.FormString("skip-to"),
 		MaxLines:           maxLines,
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:           maxFiles,
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+		FileOnly:           fileOnly,
 	}
 
 	if !willShowSpecifiedCommit {
 		diffOptions.BeforeCommitID = startCommitID
+		diffOptions.BeforeCommit = baseCommit
 	}
 
 	var methodWithError string
@@ -812,17 +831,6 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
-
-	baseCommit, err := ctx.Repo.GitRepo.GetCommit(startCommitID)
-	if err != nil {
-		ctx.ServerError("GetCommit", err)
-		return
-	}
-	commit, err := gitRepo.GetCommit(endCommitID)
-	if err != nil {
-		ctx.ServerError("GetCommit", err)
-		return
-	}
 
 	if ctx.IsSigned && ctx.Doer != nil {
 		if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
