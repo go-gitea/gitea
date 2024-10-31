@@ -118,14 +118,14 @@ func TestActionsArtifactDownload(t *testing.T) {
 	assert.Equal(t, int64(2), listResp.Count)
 
 	// Return list might be in any order. Get one file.
-	artifact_idx := -1
+	var artifact_idx int
 	for i, artifact := range listResp.Value {
 		if artifact.Name == "artifact-download" {
 			artifact_idx = i
 			break
 		}
 	}
-	assert.True(t, artifact_idx >= 0)
+	assert.NotNil(t, artifact_idx)
 	assert.Equal(t, listResp.Value[artifact_idx].Name, "artifact-download")
 	assert.Contains(t, listResp.Value[artifact_idx].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
