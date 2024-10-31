@@ -308,7 +308,7 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 
 	// acquire artifact upload url
 	req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts", toProtoJSON(&actions.ListArtifactsRequest{
-		NameFilter:              wrapperspb.String("artifact"),
+		NameFilter:              wrapperspb.String("artifact-v4-download"),
 		WorkflowRunBackendId:    "792",
 		WorkflowJobRunBackendId: "193",
 	})).AddTokenAuth(token)
@@ -319,7 +319,7 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 
 	// confirm artifact upload
 	req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/GetSignedArtifactURL", toProtoJSON(&actions.GetSignedArtifactURLRequest{
-		Name:                    "artifact",
+		Name:                    "artifact-v4-download",
 		WorkflowRunBackendId:    "792",
 		WorkflowJobRunBackendId: "193",
 	})).
@@ -331,8 +331,8 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 
 	req = NewRequest(t, "GET", finalizeResp.SignedUrl)
 	resp = MakeRequest(t, req, http.StatusOK)
-	body := strings.Repeat("A", 1024)
-	assert.Equal(t, resp.Body.String(), body)
+	body := strings.Repeat("D", 1024)
+	assert.Equal(t, body, resp.Body.String())
 }
 
 func TestActionsArtifactV4Delete(t *testing.T) {
@@ -343,7 +343,7 @@ func TestActionsArtifactV4Delete(t *testing.T) {
 
 	// delete artifact by name
 	req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/DeleteArtifact", toProtoJSON(&actions.DeleteArtifactRequest{
-		Name:                    "artifact",
+		Name:                    "artifact-v4-download",
 		WorkflowRunBackendId:    "792",
 		WorkflowJobRunBackendId: "193",
 	})).AddTokenAuth(token)

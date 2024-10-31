@@ -116,23 +116,33 @@ func TestActionsArtifactDownload(t *testing.T) {
 	var listResp listArtifactsResponse
 	DecodeJSON(t, resp, &listResp)
 	assert.Equal(t, int64(2), listResp.Count)
-	assert.Equal(t, "artifact-download", listResp.Value[0].Name)
-	assert.Contains(t, listResp.Value[0].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
-	idx := strings.Index(listResp.Value[0].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-	url := listResp.Value[0].FileContainerResourceURL[idx+1:] + "?itemPath=artifact-download"
+	// Return list might be in any order. Get one file.
+	artifact_idx := -1
+	for i, artifact := range listResp.Value {
+		if artifact.Name == "artifact-download" {
+			artifact_idx = i
+			break
+		}
+	}
+	assert.True(t, artifact_idx >= 0)
+	assert.Equal(t, listResp.Value[artifact_idx].Name, "artifact-download")
+	assert.Contains(t, listResp.Value[artifact_idx].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
+
+	idx := strings.Index(listResp.Value[artifact_idx].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
+	url := listResp.Value[artifact_idx].FileContainerResourceURL[idx+1:] + "?itemPath=artifact-download"
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)
 	var downloadResp downloadArtifactResponse
 	DecodeJSON(t, resp, &downloadResp)
 	assert.Len(t, downloadResp.Value, 1)
-	assert.Equal(t, "artifact-download/abc.txt", downloadResp.Value[0].Path)
-	assert.Equal(t, "file", downloadResp.Value[0].ItemType)
-	assert.Contains(t, downloadResp.Value[0].ContentLocation, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
+	assert.Equal(t, "artifact-download/abc.txt", downloadResp.Value[artifact_idx].Path)
+	assert.Equal(t, "file", downloadResp.Value[artifact_idx].ItemType)
+	assert.Contains(t, downloadResp.Value[artifact_idx].ContentLocation, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
-	idx = strings.Index(downloadResp.Value[0].ContentLocation, "/api/actions_pipeline/_apis/pipelines/")
-	url = downloadResp.Value[0].ContentLocation[idx:]
+	idx = strings.Index(downloadResp.Value[artifact_idx].ContentLocation, "/api/actions_pipeline/_apis/pipelines/")
+	url = downloadResp.Value[artifact_idx].ContentLocation[idx:]
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)
