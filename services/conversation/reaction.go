@@ -11,7 +11,7 @@ import (
 )
 
 // CreateCommentReaction creates a reaction on a comment.
-func CreateCommentReaction(ctx context.Context, doer *user_model.User, comment *conversations_model.Comment, content string) (*conversations_model.CommentReaction, error) {
+func CreateCommentReaction(ctx context.Context, doer *user_model.User, comment *conversations_model.ConversationComment, content string) (*conversations_model.CommentReaction, error) {
 	if err := comment.LoadConversation(ctx); err != nil {
 		return nil, err
 	}

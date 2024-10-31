@@ -116,7 +116,7 @@ func (conversations ConversationList) loadComments(ctx context.Context, cond bui
 		return nil
 	}
 
-	comments := make(map[int64][]*Comment, len(conversations))
+	comments := make(map[int64][]*ConversationComment, len(conversations))
 	conversationsIDs := conversations.getConversationIDs()
 	left := len(conversationsIDs)
 	for left > 0 {
@@ -124,18 +124,18 @@ func (conversations ConversationList) loadComments(ctx context.Context, cond bui
 		if left < limit {
 			limit = left
 		}
-		rows, err := db.GetEngine(ctx).Table("comment").
-			Join("INNER", "conversation", "conversation.id = comment.conversation_id").
+		rows, err := db.GetEngine(ctx).Table("conversation_comment").
+			Join("INNER", "conversation", "conversation.id = conversation_comment.conversation_id").
 			In("conversation.id", conversationsIDs[:limit]).
 			Where(cond).
 			NoAutoCondition().
-			Rows(new(Comment))
+			Rows(new(ConversationComment))
 		if err != nil {
 			return err
 		}
 
 		for rows.Next() {
-			var comment Comment
+			var comment ConversationComment
 			err = rows.Scan(&comment)
 			if err != nil {
 				if err1 := rows.Close(); err1 != nil {

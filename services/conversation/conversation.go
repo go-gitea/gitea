@@ -75,12 +75,12 @@ func deleteConversation(ctx context.Context, conversation *conversations_model.C
 	// delete all database data still assigned to this conversation
 	if err := db.DeleteBeans(ctx,
 		&conversations_model.ConversationContentHistory{ConversationID: conversation.ID},
-		&conversations_model.Comment{ConversationID: conversation.ID},
+		&conversations_model.ConversationComment{ConversationID: conversation.ID},
 		&conversations_model.ConversationUser{ConversationID: conversation.ID},
 		//&activities_model.Notification{ConversationID: conversation.ID},
 		&conversations_model.CommentReaction{ConversationID: conversation.ID},
 		&repo_model.Attachment{ConversationID: conversation.ID},
-		&conversations_model.Comment{ConversationID: conversation.ID},
+		&conversations_model.ConversationComment{ConversationID: conversation.ID},
 	); err != nil {
 		return err
 	}

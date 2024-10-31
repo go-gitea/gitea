@@ -278,7 +278,7 @@ func DeleteConversationsByRepoID(ctx context.Context, repoID int64) (attachmentP
 		}
 
 		// Delete comments and attachments
-		_, err = sess.In("conversation_id", conversationIDs).Delete(&Comment{})
+		_, err = sess.In("conversation_id", conversationIDs).Delete(&ConversationComment{})
 		if err != nil {
 			return nil, err
 		}
@@ -293,7 +293,7 @@ func DeleteConversationsByRepoID(ctx context.Context, repoID int64) (attachmentP
 			return nil, err
 		}
 
-		_, err = sess.In("dependent_conversation_id", conversationIDs).Delete(&Comment{})
+		_, err = sess.In("dependent_conversation_id", conversationIDs).Delete(&ConversationComment{})
 		if err != nil {
 			return nil, err
 		}

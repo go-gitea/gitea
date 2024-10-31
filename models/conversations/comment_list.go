@@ -12,7 +12,7 @@ import (
 )
 
 // CommentList defines a list of comments
-type CommentList []*Comment
+type CommentList []*ConversationComment
 
 // LoadPosters loads posters
 func (comments CommentList) LoadPosters(ctx context.Context) error {
@@ -20,7 +20,7 @@ func (comments CommentList) LoadPosters(ctx context.Context) error {
 		return nil
 	}
 
-	posterIDs := container.FilterSlice(comments, func(c *Comment) (int64, bool) {
+	posterIDs := container.FilterSlice(comments, func(c *ConversationComment) (int64, bool) {
 		return c.PosterID, c.Poster == nil && c.PosterID > 0
 	})
 
@@ -39,7 +39,7 @@ func (comments CommentList) LoadPosters(ctx context.Context) error {
 
 // getConversationIDs returns all the conversation ids on this comment list which conversation hasn't been loaded
 func (comments CommentList) getConversationIDs() []int64 {
-	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
+	return container.FilterSlice(comments, func(comment *ConversationComment) (int64, bool) {
 		return comment.ConversationID, comment.Conversation == nil
 	})
 }
@@ -109,7 +109,7 @@ func (comments CommentList) LoadConversations(ctx context.Context) error {
 
 // getAttachmentCommentIDs only return the comment ids which possibly has attachments
 func (comments CommentList) getAttachmentCommentIDs() []int64 {
-	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
+	return container.FilterSlice(comments, func(comment *ConversationComment) (int64, bool) {
 		return comment.ID, comment.Type.HasAttachmentSupport()
 	})
 }

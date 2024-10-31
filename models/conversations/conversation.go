@@ -327,7 +327,7 @@ func (conversation *Conversation) loadReactions(ctx context.Context) (err error)
 	}
 
 	// Cache comments to map
-	comments := make(map[int64]*Comment)
+	comments := make(map[int64]*ConversationComment)
 	for _, comment := range conversation.Comments {
 		comments[comment.ID] = comment
 	}

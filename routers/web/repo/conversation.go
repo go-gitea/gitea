@@ -226,7 +226,7 @@ func ViewConversation(ctx *context.Context) {
 		role                 conversations_model.RoleDescriptor
 		ok                   bool
 		marked               = make(map[int64]conversations_model.RoleDescriptor)
-		comment              *conversations_model.Comment
+		comment              *conversations_model.ConversationComment
 		participants         = make([]*user_model.User, 1, 10)
 		latestCloseCommentID int64
 	)
@@ -715,7 +715,7 @@ func NewConversationComment(ctx *context.Context) {
 		return
 	}
 
-	var comment *conversations_model.Comment
+	var comment *conversations_model.ConversationComment
 	defer func() {
 		// Redirect to comment hashtag if there is any actual content.
 		typeName := "commit"
@@ -1007,7 +1007,7 @@ func GetConversationCommentAttachments(ctx *context.Context) {
 func updateConversationAttachments(ctx *context.Context, item any, files []string) error {
 	var attachments []*repo_model.Attachment
 	switch content := item.(type) {
-	case *conversations_model.Comment:
+	case *conversations_model.ConversationComment:
 		attachments = content.Attachments
 	default:
 		return fmt.Errorf("unknown Type: %T", content)
@@ -1025,7 +1025,7 @@ func updateConversationAttachments(ctx *context.Context, item any, files []strin
 		switch content := item.(type) {
 		case *conversations_model.Conversation:
 			err = conversations_model.UpdateConversationAttachments(ctx, content.ID, files)
-		case *conversations_model.Comment:
+		case *conversations_model.ConversationComment:
 			err = content.UpdateAttachments(ctx, files)
 		default:
 			return fmt.Errorf("unknown Type: %T", content)
@@ -1035,7 +1035,7 @@ func updateConversationAttachments(ctx *context.Context, item any, files []strin
 		}
 	}
 	switch content := item.(type) {
-	case *conversations_model.Comment:
+	case *conversations_model.ConversationComment:
 		content.Attachments, err = repo_model.GetAttachmentsByCommentID(ctx, content.ID)
 	default:
 		return fmt.Errorf("unknown Type: %T", content)

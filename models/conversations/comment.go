@@ -105,18 +105,11 @@ func (t CommentType) HasMailReplySupport() bool {
 	return false
 }
 
-// CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
-type CommentMetaData struct {
-	ProjectColumnID    int64  `json:"project_column_id,omitempty"`
-	ProjectColumnTitle string `json:"project_column_title,omitempty"`
-	ProjectTitle       string `json:"project_title,omitempty"`
-}
-
-// Comment represents a comment in commit and conversation page.
-// Comment struct should not contain any pointers unrelated to Conversation unless absolutely necessary.
+// ConversationComment represents a comment in commit and conversation page.
+// ConversationComment struct should not contain any pointers unrelated to Conversation unless absolutely necessary.
 // To have pointers outside of conversation, create another comment type (e.g. ConversationComment) and use a converter to load it in.
 // The database data for the comments however, for all comment types, are defined here.
-type Comment struct {
+type ConversationComment struct {
 	ID   int64       `xorm:"pk autoincr"`
 	Type CommentType `xorm:"INDEX"`
 
@@ -143,11 +136,11 @@ type Comment struct {
 }
 
 func init() {
-	db.RegisterModel(new(Comment))
+	db.RegisterModel(new(ConversationComment))
 }
 
 // LoadPoster loads comment poster
-func (c *Comment) LoadPoster(ctx context.Context) (err error) {
+func (c *ConversationComment) LoadPoster(ctx context.Context) (err error) {
 	if c.Poster != nil {
 		return nil
 	}
@@ -165,7 +158,7 @@ func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 }
 
 // LoadReactions loads comment reactions
-func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository) (err error) {
+func (c *ConversationComment) LoadReactions(ctx context.Context, repo *repo_model.Repository) (err error) {
 	if c.Reactions != nil {
 		return nil
 	}
@@ -184,7 +177,7 @@ func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository
 }
 
 // AfterDelete is invoked from XORM after the object is deleted.
-func (c *Comment) AfterDelete(ctx context.Context) {
+func (c *ConversationComment) AfterDelete(ctx context.Context) {
 	if c.ID <= 0 {
 		return
 	}
@@ -236,7 +229,7 @@ type CreateCommentOptions struct {
 }
 
 // CreateComment creates comment with context
-func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
+func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *ConversationComment, err error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
@@ -245,7 +238,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 
 	e := db.GetEngine(ctx)
 
-	comment := &Comment{
+	comment := &ConversationComment{
 		Type:           opts.Type,
 		PosterID:       opts.Doer.ID,
 		Poster:         opts.Doer,
@@ -267,8 +260,8 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 }
 
 // GetCommentByID returns the comment by given ID.
-func GetCommentByID(ctx context.Context, id int64) (*Comment, error) {
-	c := new(Comment)
+func GetCommentByID(ctx context.Context, id int64) (*ConversationComment, error) {
+	c := new(ConversationComment)
 	has, err := db.GetEngine(ctx).ID(id).Get(c)
 	if err != nil {
 		return nil, err
@@ -301,43 +294,28 @@ func (opts FindCommentsOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Eq{"conversation.repo_id": opts.RepoID})
 	}
 	if opts.ConversationID > 0 {
-		cond = cond.And(builder.Eq{"comment.conversation_id": opts.ConversationID})
+		cond = cond.And(builder.Eq{"conversation_comment.conversation_id": opts.ConversationID})
 	} else if len(opts.ConversationIDs) > 0 {
-		cond = cond.And(builder.In("comment.conversation_id", opts.ConversationIDs))
-	}
-	if opts.ReviewID > 0 {
-		cond = cond.And(builder.Eq{"comment.review_id": opts.ReviewID})
+		cond = cond.And(builder.In("conversation_comment.conversation_id", opts.ConversationIDs))
 	}
 	if opts.Since > 0 {
-		cond = cond.And(builder.Gte{"comment.updated_unix": opts.Since})
+		cond = cond.And(builder.Gte{"conversation_comment.updated_unix": opts.Since})
 	}
 	if opts.Before > 0 {
-		cond = cond.And(builder.Lte{"comment.updated_unix": opts.Before})
+		cond = cond.And(builder.Lte{"conversation_comment.updated_unix": opts.Before})
 	}
 	if opts.Type != CommentTypeUndefined {
-		cond = cond.And(builder.Eq{"comment.type": opts.Type})
-	}
-	if opts.Line != 0 {
-		cond = cond.And(builder.Eq{"comment.line": opts.Line})
-	}
-	if len(opts.TreePath) > 0 {
-		cond = cond.And(builder.Eq{"comment.tree_path": opts.TreePath})
-	}
-	if opts.Invalidated.Has() {
-		cond = cond.And(builder.Eq{"comment.invalidated": opts.Invalidated.Value()})
-	}
-	if opts.IsPull.Has() {
-		cond = cond.And(builder.Eq{"conversation.is_pull": opts.IsPull.Value()})
+		cond = cond.And(builder.Eq{"conversation_comment.type": opts.Type})
 	}
 	return cond
 }
 
 // FindComments returns all comments according options
 func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, error) {
-	comments := make([]*Comment, 0, 10)
+	comments := make([]*ConversationComment, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
 	if opts.RepoID > 0 {
-		sess.Join("INNER", "conversation", "conversation.id = comment.conversation_id")
+		sess.Join("INNER", "conversation", "conversation.id = conversation_comment.conversation_id")
 	}
 
 	if opts.Page != 0 {
@@ -347,8 +325,8 @@ func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, 
 	// WARNING: If you change this order you will need to fix createCodeComment
 
 	return comments, sess.
-		Asc("comment.created_unix").
-		Asc("comment.id").
+		Asc("conversation_comment.created_unix").
+		Asc("conversation_comment.id").
 		Find(&comments)
 }
 
@@ -356,19 +334,19 @@ func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, 
 func CountComments(ctx context.Context, opts *FindCommentsOptions) (int64, error) {
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
 	if opts.RepoID > 0 {
-		sess.Join("INNER", "conversation", "conversation.id = comment.conversation_id")
+		sess.Join("INNER", "conversation", "conversation.id = conversation_comment.conversation_id")
 	}
-	return sess.Count(&Comment{})
+	return sess.Count(&ConversationComment{})
 }
 
 // UpdateCommentInvalidate updates comment invalidated column
-func UpdateCommentInvalidate(ctx context.Context, c *Comment) error {
+func UpdateCommentInvalidate(ctx context.Context, c *ConversationComment) error {
 	_, err := db.GetEngine(ctx).ID(c.ID).Cols("invalidated").Update(c)
 	return err
 }
 
-// UpdateComment updates information of comment.
-func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *user_model.User) error {
+// UpdateComment updates information of comment
+func UpdateComment(ctx context.Context, c *ConversationComment, contentVersion int, doer *user_model.User) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -393,7 +371,7 @@ func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *us
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(ctx context.Context, comment *Comment) error {
+func DeleteComment(ctx context.Context, comment *ConversationComment) error {
 	e := db.GetEngine(ctx)
 	if _, err := e.ID(comment.ID).NoAutoCondition().Delete(comment); err != nil {
 		return err
@@ -418,11 +396,11 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
 func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := db.GetEngine(ctx).Table("comment").
-		Join("INNER", "conversation", "conversation.id = comment.conversation_id").
+	_, err := db.GetEngine(ctx).Table("conversation_comment").
+		Join("INNER", "conversation", "conversation.id = conversation_comment.conversation_id").
 		Join("INNER", "repository", "conversation.repo_id = repository.id").
 		Where("repository.original_service_type = ?", tp).
-		And("comment.original_author_id = ?", originalAuthorID).
+		And("conversation_comment.original_author_id = ?", originalAuthorID).
 		Update(map[string]any{
 			"poster_id":          posterID,
 			"original_author":    "",
@@ -431,7 +409,7 @@ func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceTy
 	return err
 }
 
-func UpdateAttachments(ctx context.Context, opts *CreateCommentOptions, comment *Comment) error {
+func UpdateAttachments(ctx context.Context, opts *CreateCommentOptions, comment *ConversationComment) error {
 	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
 	if err != nil {
 		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)
@@ -449,7 +427,7 @@ func UpdateAttachments(ctx context.Context, opts *CreateCommentOptions, comment 
 }
 
 // LoadConversation loads the conversation reference for the comment
-func (c *Comment) LoadConversation(ctx context.Context) (err error) {
+func (c *ConversationComment) LoadConversation(ctx context.Context) (err error) {
 	if c.Conversation != nil {
 		return nil
 	}
@@ -458,7 +436,7 @@ func (c *Comment) LoadConversation(ctx context.Context) (err error) {
 }
 
 // LoadAttachments loads attachments (it never returns error, the error during `GetAttachmentsByCommentIDCtx` is ignored)
-func (c *Comment) LoadAttachments(ctx context.Context) error {
+func (c *ConversationComment) LoadAttachments(ctx context.Context) error {
 	if len(c.Attachments) > 0 {
 		return nil
 	}
@@ -472,7 +450,7 @@ func (c *Comment) LoadAttachments(ctx context.Context) error {
 }
 
 // UpdateAttachments update attachments by UUIDs for the comment
-func (c *Comment) UpdateAttachments(ctx context.Context, uuids []string) error {
+func (c *ConversationComment) UpdateAttachments(ctx context.Context, uuids []string) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -494,16 +472,16 @@ func (c *Comment) UpdateAttachments(ctx context.Context, uuids []string) error {
 }
 
 // HashTag returns unique hash tag for conversation.
-func (c *Comment) HashTag() string {
+func (c *ConversationComment) HashTag() string {
 	return fmt.Sprintf("comment-%d", c.ID)
 }
 
-func (c *Comment) hashLink() string {
+func (c *ConversationComment) hashLink() string {
 	return "#" + c.HashTag()
 }
 
 // HTMLURL formats a URL-string to the conversation-comment
-func (c *Comment) HTMLURL(ctx context.Context) string {
+func (c *ConversationComment) HTMLURL(ctx context.Context) string {
 	err := c.LoadConversation(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadConversation(%d): %v", c.ConversationID, err)
@@ -518,7 +496,7 @@ func (c *Comment) HTMLURL(ctx context.Context) string {
 }
 
 // APIURL formats a API-string to the conversation-comment
-func (c *Comment) APIURL(ctx context.Context) string {
+func (c *ConversationComment) APIURL(ctx context.Context) string {
 	err := c.LoadConversation(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadConversation(%d): %v", c.ConversationID, err)
@@ -534,11 +512,11 @@ func (c *Comment) APIURL(ctx context.Context) string {
 }
 
 // HasOriginalAuthor returns if a comment was migrated and has an original author.
-func (c *Comment) HasOriginalAuthor() bool {
+func (c *ConversationComment) HasOriginalAuthor() bool {
 	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
 }
 
-func (c *Comment) ConversationURL(ctx context.Context) string {
+func (c *ConversationComment) ConversationURL(ctx context.Context) string {
 	err := c.LoadConversation(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadConversation(%d): %v", c.ConversationID, err)
@@ -554,12 +532,12 @@ func (c *Comment) ConversationURL(ctx context.Context) string {
 }
 
 // InsertConversationComments inserts many comments of conversations.
-func InsertConversationComments(ctx context.Context, comments []*Comment) error {
+func InsertConversationComments(ctx context.Context, comments []*ConversationComment) error {
 	if len(comments) == 0 {
 		return nil
 	}
 
-	conversationIDs := container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
+	conversationIDs := container.FilterSlice(comments, func(comment *ConversationComment) (int64, bool) {
 		return comment.ConversationID, true
 	})
 

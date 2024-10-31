@@ -15,7 +15,7 @@ import (
 )
 
 // CreateConversationComment creates a plain conversation comment.
-func CreateConversationComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, conversation *conversations_model.Conversation, content string, attachments []string) (*conversations_model.Comment, error) {
+func CreateConversationComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, conversation *conversations_model.Conversation, content string, attachments []string) (*conversations_model.ConversationComment, error) {
 	if user_model.IsUserBlockedBy(ctx, doer, repo.OwnerID) {
 		if isAdmin, _ := access_model.IsUserRepoAdmin(ctx, repo, doer); !isAdmin {
 			return nil, user_model.ErrBlockedUser
@@ -41,7 +41,7 @@ func CreateConversationComment(ctx context.Context, doer *user_model.User, repo 
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(ctx context.Context, c *conversations_model.Comment, contentVersion int, doer *user_model.User, oldContent string) error {
+func UpdateComment(ctx context.Context, c *conversations_model.ConversationComment, contentVersion int, doer *user_model.User, oldContent string) error {
 	if err := c.LoadConversation(ctx); err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func UpdateComment(ctx context.Context, c *conversations_model.Comment, contentV
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(ctx context.Context, doer *user_model.User, comment *conversations_model.Comment) error {
+func DeleteComment(ctx context.Context, doer *user_model.User, comment *conversations_model.ConversationComment) error {
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		return conversations_model.DeleteComment(ctx, comment)
 	})

@@ -13,7 +13,7 @@ import (
 )
 
 // ToAPIComment converts a conversations_model.Comment to the api.Comment format for API usage
-func ConversationToAPIComment(ctx context.Context, repo *repo_model.Repository, c *conversations_model.Comment) *api.Comment {
+func ConversationToAPIComment(ctx context.Context, repo *repo_model.Repository, c *conversations_model.ConversationComment) *api.Comment {
 	return &api.Comment{
 		ID:              c.ID,
 		Poster:          ToUser(ctx, c.Poster, nil),
@@ -27,7 +27,7 @@ func ConversationToAPIComment(ctx context.Context, repo *repo_model.Repository, 
 }
 
 // ToTimelineComment converts a conversations_model.Comment to the api.TimelineComment format
-func ConversationCommentToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *conversations_model.Comment, doer *user_model.User) *api.TimelineComment {
+func ConversationCommentToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *conversations_model.ConversationComment, doer *user_model.User) *api.TimelineComment {
 	comment := &api.TimelineComment{
 		ID:              c.ID,
 		Type:            c.Type.String(),
