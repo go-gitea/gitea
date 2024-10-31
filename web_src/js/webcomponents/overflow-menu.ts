@@ -4,6 +4,14 @@ import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
 import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg';
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
+  tippyContent: HTMLDivElement;
+  tippyItems: Array<HTMLElement>;
+  button: HTMLButtonElement;
+  menuItemsEl: HTMLElement;
+  resizeObserver: ResizeObserver;
+  mutationObserver: MutationObserver;
+  lastWidth: number;
+
   updateItems = throttle(100, () => { // eslint-disable-line unicorn/consistent-function-scoping -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/2088
     if (!this.tippyContent) {
       const div = document.createElement('div');
@@ -11,7 +19,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       div.tabIndex = -1; // for initial focus, programmatic focus only
       div.addEventListener('keydown', (e) => {
         if (e.key === 'Tab') {
-          const items = this.tippyContent.querySelectorAll('[role="menuitem"]');
+          const items = this.tippyContent.querySelectorAll<HTMLElement>('[role="menuitem"]');
           if (e.shiftKey) {
             if (document.activeElement === items[0]) {
               e.preventDefault();
@@ -32,27 +40,27 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
           if (document.activeElement?.matches('[role="menuitem"]')) {
             e.preventDefault();
             e.stopPropagation();
-            document.activeElement.click();
+            (document.activeElement as HTMLElement).click();
           }
         } else if (e.key === 'ArrowDown') {
           if (document.activeElement?.matches('.tippy-target')) {
             e.preventDefault();
             e.stopPropagation();
-            document.activeElement.querySelector('[role="menuitem"]:first-of-type').focus();
+            document.activeElement.querySelector<HTMLElement>('[role="menuitem"]:first-of-type').focus();
           } else if (document.activeElement?.matches('[role="menuitem"]')) {
             e.preventDefault();
             e.stopPropagation();
-            document.activeElement.nextElementSibling?.focus();
+            (document.activeElement.nextElementSibling as HTMLElement)?.focus();
           }
         } else if (e.key === 'ArrowUp') {
           if (document.activeElement?.matches('.tippy-target')) {
             e.preventDefault();
             e.stopPropagation();
-            document.activeElement.querySelector('[role="menuitem"]:last-of-type').focus();
+            document.activeElement.querySelector<HTMLElement>('[role="menuitem"]:last-of-type').focus();
           } else if (document.activeElement?.matches('[role="menuitem"]')) {
             e.preventDefault();
             e.stopPropagation();
-            document.activeElement.previousElementSibling?.focus();
+            (document.activeElement.previousElementSibling as HTMLElement)?.focus();
           }
         }
       });
@@ -60,8 +68,8 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       this.tippyContent = div;
     }
 
-    const itemFlexSpace = this.menuItemsEl.querySelector('.item-flex-space');
-    const itemOverFlowMenuButton = this.querySelector('.overflow-menu-button');
+    const itemFlexSpace = this.menuItemsEl.querySelector<HTMLSpanElement>('.item-flex-space');
+    const itemOverFlowMenuButton = this.querySelector<HTMLButtonElement>('.overflow-menu-button');
 
     // move items in tippy back into the menu items for subsequent measurement
     for (const item of this.tippyItems || []) {
@@ -78,7 +86,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     itemOverFlowMenuButton?.style.setProperty('display', 'none', 'important');
     this.tippyItems = [];
     const menuRight = this.offsetLeft + this.offsetWidth;
-    const menuItems = this.menuItemsEl.querySelectorAll('.item, .item-flex-space');
+    const menuItems = this.menuItemsEl.querySelectorAll<HTMLElement>('.item, .item-flex-space');
     let afterFlexSpace = false;
     for (const item of menuItems) {
       if (item.classList.contains('item-flex-space')) {
@@ -189,14 +197,14 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     // template rendering, wait for its addition.
     // The eslint rule is not sophisticated enough or aware of this problem, see
     // https://github.com/43081j/eslint-plugin-wc/pull/130
-    const menuItemsEl = this.querySelector('.overflow-menu-items'); // eslint-disable-line wc/no-child-traversal-in-connectedcallback
+    const menuItemsEl = this.querySelector<HTMLElement>('.overflow-menu-items'); // eslint-disable-line wc/no-child-traversal-in-connectedcallback
     if (menuItemsEl) {
       this.menuItemsEl = menuItemsEl;
       this.init();
     } else {
       this.mutationObserver = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
-          for (const node of mutation.addedNodes) {
+          for (const node of mutation.addedNodes as NodeListOf<HTMLElement>) {
             if (!isDocumentFragmentOrElementNode(node)) continue;
             if (node.classList.contains('overflow-menu-items')) {
               this.menuItemsEl = node;
