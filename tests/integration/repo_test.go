@@ -27,6 +27,10 @@ func TestViewRepo(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2/repo1")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
+	link := resp.Result().Header.Get("Location")
+	req = NewRequest(t, "GET", link)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
 	repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
@@ -44,7 +48,7 @@ func TestViewRepo(t *testing.T) {
 func testViewRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/org3/repo3")
+	req := NewRequest(t, "GET", "/org3/repo3/code")
 	session := loginUser(t, "user2")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -124,7 +128,11 @@ func TestViewRepo1CloneLinkAnonymous(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1")
-	resp := MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusMovedPermanently)
+
+	link := resp.Result().Header.Get("Location")
+	req = NewRequest(t, "GET", link)
+	resp = MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find("#repo-clone-https").Attr("data-link")
