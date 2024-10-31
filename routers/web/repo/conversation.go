@@ -869,23 +869,23 @@ func DeleteConversationComment(ctx *context.Context) {
 // ChangeCommentReaction create a reaction for comment
 func ChangeConversationCommentReaction(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.ReactionForm)
-	comment, err := conversations_model.GetCommentByID(ctx, ctx.PathParamInt64(":id"))
+	conversation_comment, err := conversations_model.GetCommentByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetCommentByID", conversations_model.IsErrCommentNotExist, err)
+		ctx.NotFoundOrServerError("GetConversationCommentByID", conversations_model.IsErrCommentNotExist, err)
 		return
 	}
 
-	if err := comment.LoadConversation(ctx); err != nil {
+	if err := conversation_comment.LoadConversation(ctx); err != nil {
 		ctx.NotFoundOrServerError("LoadConversation", conversations_model.IsErrConversationNotExist, err)
 		return
 	}
 
-	if comment.Conversation.RepoID != ctx.Repo.Repository.ID {
+	if conversation_comment.Conversation.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound("CompareRepoID", conversations_model.ErrCommentNotExist{})
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanReadConversations()) {
+	if !ctx.IsSigned || (ctx.Doer.ID != conversation_comment.PosterID && !ctx.Repo.CanReadConversations()) {
 		if log.IsTrace() {
 			if ctx.IsSigned {
 				conversationType := "conversations"
@@ -904,50 +904,50 @@ func ChangeConversationCommentReaction(ctx *context.Context) {
 		return
 	}
 
-	if !comment.Type.HasContentSupport() {
+	if !conversation_comment.Type.HasContentSupport() {
 		ctx.Error(http.StatusNoContent)
 		return
 	}
 
 	switch ctx.PathParam(":action") {
 	case "react":
-		reaction, err := conversation_service.CreateCommentReaction(ctx, ctx.Doer, comment, form.Content)
+		reaction, err := conversation_service.CreateCommentReaction(ctx, ctx.Doer, conversation_comment, form.Content)
 		if err != nil {
 			if conversations_model.IsErrForbiddenConversationReaction(err) || errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.ServerError("ChangeConversationReaction", err)
 				return
 			}
-			log.Info("CreateCommentReaction: %s", err)
+			log.Info("CreateConversationCommentReaction: %s", err)
 			break
 		}
 		// Reload new reactions
-		comment.Reactions = nil
-		if err = comment.LoadReactions(ctx, ctx.Repo.Repository); err != nil {
-			log.Info("comment.LoadReactions: %s", err)
+		conversation_comment.Reactions = nil
+		if err = conversation_comment.LoadReactions(ctx, ctx.Repo.Repository); err != nil {
+			log.Info("conversation_comment.LoadReactions: %s", err)
 			break
 		}
 
-		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, comment.Conversation.ID, comment.ID, reaction.ID)
+		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, conversation_comment.Conversation.ID, conversation_comment.ID, reaction.ID)
 	case "unreact":
-		if err := conversations_model.DeleteCommentReaction(ctx, ctx.Doer.ID, comment.Conversation.ID, comment.ID, form.Content); err != nil {
-			ctx.ServerError("DeleteCommentReaction", err)
+		if err := conversations_model.DeleteCommentReaction(ctx, ctx.Doer.ID, conversation_comment.Conversation.ID, conversation_comment.ID, form.Content); err != nil {
+			ctx.ServerError("DeleteConversationCommentReaction", err)
 			return
 		}
 
 		// Reload new reactions
-		comment.Reactions = nil
-		if err = comment.LoadReactions(ctx, ctx.Repo.Repository); err != nil {
+		conversation_comment.Reactions = nil
+		if err = conversation_comment.LoadReactions(ctx, ctx.Repo.Repository); err != nil {
 			log.Info("comment.LoadReactions: %s", err)
 			break
 		}
 
-		log.Trace("Reaction for comment removed: %d/%d/%d", ctx.Repo.Repository.ID, comment.Conversation.ID, comment.ID)
+		log.Trace("Reaction for conversation comment removed: %d/%d/%d", ctx.Repo.Repository.ID, conversation_comment.Conversation.ID, conversation_comment.ID)
 	default:
 		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.PathParam(":action")), nil)
 		return
 	}
 
-	if len(comment.Reactions) == 0 {
+	if len(conversation_comment.Reactions) == 0 {
 		ctx.JSON(http.StatusOK, map[string]any{
 			"empty": true,
 			"html":  "",
@@ -956,8 +956,8 @@ func ChangeConversationCommentReaction(ctx *context.Context) {
 	}
 
 	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
-		"ActionURL": fmt.Sprintf("%s/conversations/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
-		"Reactions": comment.Reactions.GroupByType(),
+		"ActionURL": fmt.Sprintf("%s/conversations/comments/%d/reactions", ctx.Repo.RepoLink, conversation_comment.ID),
+		"Reactions": conversation_comment.Reactions.GroupByType(),
 	})
 	if err != nil {
 		ctx.ServerError("ChangeCommentReaction.HTMLString", err)
