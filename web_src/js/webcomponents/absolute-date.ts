@@ -26,7 +26,7 @@ window.customElements.define('absolute-date', class extends HTMLElement {
     this.shadowRoot.textContent = toAbsoluteLocaleDate(this.getAttribute('date'), lang, opt);
   };
 
-  attributeChangedCallback(_name, oldValue, newValue) {
+  attributeChangedCallback(_name: string, oldValue: string | null, newValue: string | null) {
     if (!this.initialized || oldValue === newValue) return;
     this.update();
   }
