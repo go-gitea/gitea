@@ -167,7 +167,7 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
       const isBorderBox = computedStyle.boxSizing === 'border-box';
       const borderAddOn = isBorderBox ? topBorderWidth + bottomBorderWidth : 0;
 
-      const adjustedViewportMarginBottom = bottom < viewportMarginBottom ? bottom : viewportMarginBottom;
+      const adjustedViewportMarginBottom = Math.min(bottom, viewportMarginBottom);
       const curHeight = parseFloat(computedStyle.height);
       const maxHeight = curHeight + bottom - adjustedViewportMarginBottom;
 
@@ -281,7 +281,7 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
 
   textarea.contentEditable = 'true';
   try {
-    success = document.execCommand('insertText', false, text); // eslint-disable-line deprecation/deprecation
+    success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated
   } catch {
     success = false;
   }
@@ -298,22 +298,24 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
 }
 
 // Warning: Do not enter any unsanitized variables here
-export function createElementFromHTML(htmlString: string) {
+export function createElementFromHTML(htmlString: string): HTMLElement {
   const div = document.createElement('div');
   div.innerHTML = htmlString.trim();
-  return div.firstChild as Element;
+  return div.firstChild as HTMLElement;
 }
 
-export function createElementFromAttrs(tagName: string, attrs: Record<string, any>) {
+export function createElementFromAttrs(tagName: string, attrs: Record<string, any>, ...children: (Node|string)[]): HTMLElement {
   const el = document.createElement(tagName);
-  for (const [key, value] of Object.entries(attrs)) {
+  for (const [key, value] of Object.entries(attrs || {})) {
     if (value === undefined || value === null) continue;
     if (typeof value === 'boolean') {
       el.toggleAttribute(key, value);
     } else {
       el.setAttribute(key, String(value));
     }
-    // TODO: in the future we could make it also support "textContent" and "innerHTML" properties if needed
+  }
+  for (const child of children) {
+    el.append(child instanceof Node ? child : document.createTextNode(child));
   }
   return el;
 }
