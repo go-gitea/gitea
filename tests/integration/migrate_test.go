@@ -73,14 +73,19 @@ func TestMigrateGiteaForm(t *testing.T) {
 
 		// Step 0: verify the repo is available
 		req := NewRequestf(t, "GET", "/%s/%s", ownerName, repoName)
-		_ = session.MakeRequest(t, req, http.StatusOK)
+		resp := session.MakeRequest(t, req, http.StatusMovedPermanently)
+		req = NewRequest(t, "GET", resp.Result().Header.Get("Location"))
+		_ = MakeRequest(t, req, http.StatusOK)
+
 		// Step 1: get the Gitea migration form
 		req = NewRequestf(t, "GET", "/repo/migrate/?service_type=%d", structs.GiteaService)
-		resp := session.MakeRequest(t, req, http.StatusOK)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+
 		// Step 2: load the form
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		link, exists := htmlDoc.doc.Find(`form.ui.form[action^="/repo/migrate"]`).Attr("action")
 		assert.True(t, exists, "The template has changed")
+
 		// Step 4: submit the migration to only migrate issues
 		migratedRepoName := "otherrepo"
 		req = NewRequestWithValues(t, "POST", link, map[string]string{
@@ -94,9 +99,11 @@ func TestMigrateGiteaForm(t *testing.T) {
 			"uid":         fmt.Sprintf("%d", repoOwner.ID),
 		})
 		resp = session.MakeRequest(t, req, http.StatusSeeOther)
+
 		// Step 5: a redirection displays the migrated repository
 		loc := resp.Header().Get("Location")
 		assert.EqualValues(t, fmt.Sprintf("/%s/%s", ownerName, migratedRepoName), loc)
+
 		// Step 6: check the repo was created
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: migratedRepoName})
 	})
