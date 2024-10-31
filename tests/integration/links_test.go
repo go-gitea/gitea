@@ -32,8 +32,7 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user/login",
 		"/user/forgot_password",
 		"/api/swagger",
-		"/user2/repo1",
-		"/user2/repo1/",
+		"/user2/repo1/code",
 		"/user2/repo1/projects",
 		"/user2/repo1/projects/1",
 		"/user2/repo1/releases/tag/delete-tag", // It's the only one existing record on release.yml which has is_tag: true
@@ -56,6 +55,8 @@ func TestRedirectsNoLogin(t *testing.T) {
 		"/user2/repo1/src/master/directory/file.txt": "/user2/repo1/src/branch/master/directory/file.txt",
 		"/user/avatar/Ghost/-1":                      "/assets/img/avatar_default.png",
 		"/api/v1/swagger":                            "/api/swagger",
+		"/user2/repo1":                               "/user2/repo1/code",
+		"/user2/repo1/":                              "/user2/repo1/code",
 	}
 	for link, redirectLink := range redirects {
 		req := NewRequest(t, "GET", link)
