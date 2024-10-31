@@ -213,8 +213,7 @@ func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node
 		return ast.WalkContinue, nil
 	}
 
-	var err error
-	_, err = w.WriteString(fmt.Sprintf(`<i class="icon %s"></i>`, name))
+	_, err := w.WriteString(fmt.Sprintf(`<i class="icon %s"></i>`, name))
 	if err != nil {
 		return ast.WalkStop, err
 	}
