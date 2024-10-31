@@ -119,7 +119,7 @@ func TestViewRepo2(t *testing.T) {
 func TestViewRepo3(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/org3/repo3")
+	req := NewRequest(t, "GET", "/org3/repo3/code")
 	session := loginUser(t, "user4")
 	session.MakeRequest(t, req, http.StatusOK)
 }
