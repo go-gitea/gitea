@@ -224,6 +224,11 @@ func UpdateTeam(ctx context.Context, t *organization.Team, updateCols ...string)
 		return util.NewInvalidArgumentErrorf("empty team name")
 	}
 
+	if slices.Contains(updateCols, "name") && !slices.Contains(updateCols, "lower_name") {
+		t.LowerName = strings.ToLower(t.Name)
+		updateCols = append(updateCols, "lower_name")
+	}
+
 	authChanged := slices.Contains(updateCols, "authorize")
 	includeAllChanged := slices.Contains(updateCols, "includes_all_repositories")
 
