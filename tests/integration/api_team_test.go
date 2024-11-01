@@ -12,6 +12,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -42,6 +43,7 @@ func TestAPITeam(t *testing.T) {
 	DecodeJSON(t, resp, &apiTeam)
 	assert.EqualValues(t, team.ID, apiTeam.ID)
 	assert.Equal(t, team.Name, apiTeam.Name)
+	assert.Equal(t, team.Description, apiTeam.Description)
 	assert.EqualValues(t, convert.ToOrganization(db.DefaultContext, org), apiTeam.Organization)
 
 	// non team member user will not access the teams details
@@ -59,10 +61,30 @@ func TestAPITeam(t *testing.T) {
 
 	// Get an admin user able to create, update and delete teams.
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 6})
 	session = loginUser(t, user.Name)
 	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 
-	org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 6})
+	// edit owner team
+	editDescription := "this is owner team"
+	editFalse := false
+	teamToEdit := &api.EditTeamOption{
+		Name:                    "not_owner_team", // should be ignored
+		Description:             &editDescription,
+		Permission:              "admin",                                              // should be ignored
+		IncludesAllRepositories: &editFalse,                                           // should be ignored
+		Units:                   []string{"repo.code", "repo.pulls", "repo.releases"}, // should be ignored
+	}
+
+	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", team.ID), teamToEdit).
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiTeam = api.Team{}
+	DecodeJSON(t, resp, &apiTeam)
+	checkTeamResponse(t, "Edit Owner Team", &apiTeam, org_model.OwnerTeamName, *teamToEdit.Description, true,
+		"owner", unit.AllUnitKeyNames(), nil)
+	checkTeamBean(t, apiTeam.ID, org_model.OwnerTeamName, *teamToEdit.Description, true,
+		"owner", unit.AllUnitKeyNames(), nil)
 
 	// Create team.
 	teamToCreate := &api.CreateTeamOption{
@@ -84,9 +106,9 @@ func TestAPITeam(t *testing.T) {
 	teamID := apiTeam.ID
 
 	// Edit team.
-	editDescription := "team 1"
-	editFalse := false
-	teamToEdit := &api.EditTeamOption{
+	editDescription = "team 1"
+	editFalse = false
+	teamToEdit = &api.EditTeamOption{
 		Name:                    "teamone",
 		Description:             &editDescription,
 		Permission:              "admin",
