@@ -20162,6 +20162,20 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateConversationCommentOption": {
+      "description": "CreateIssueCommentOption options for creating a comment on an issue",
+      "type": "object",
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateEmailOption": {
       "description": "CreateEmailOption options when creating email addresses",
       "type": "object",
@@ -21344,6 +21358,20 @@
         "unprotected_file_patterns": {
           "type": "string",
           "x-go-name": "UnprotectedFilePatterns"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "EditConversationCommentOption": {
+      "description": "EditIssueCommentOption options for editing a comment",
+      "type": "object",
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -26893,7 +26921,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/UpdateVariableOption"
+        "$ref": "#/definitions/EditConversationCommentOption"
       }
     },
     "redirect": {
