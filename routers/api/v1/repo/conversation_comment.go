@@ -493,56 +493,6 @@ func EditConversationComment(ctx *context.APIContext) {
 	editConversationComment(ctx, *form)
 }
 
-// EditConversationCommentDeprecated modify a comment of an conversation
-func EditConversationCommentDeprecated(ctx *context.APIContext) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/conversations/{index}/comments/{id} conversation conversationEditCommentDeprecated
-	// ---
-	// summary: Edit a comment
-	// deprecated: true
-	// consumes:
-	// - application/json
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: index
-	//   in: path
-	//   description: this parameter is ignored
-	//   type: integer
-	//   required: true
-	// - name: id
-	//   in: path
-	//   description: id of the comment to edit
-	//   type: integer
-	//   format: int64
-	//   required: true
-	// - name: body
-	//   in: body
-	//   schema:
-	//     "$ref": "#/definitions/EditConversationCommentOption"
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/Comment"
-	//   "204":
-	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-
-	form := web.GetForm(ctx).(*api.EditConversationCommentOption)
-	editConversationComment(ctx, *form)
-}
-
 func editConversationComment(ctx *context.APIContext, form api.EditConversationCommentOption) {
 	comment, err := conversations_model.GetCommentByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
@@ -603,45 +553,6 @@ func DeleteConversationComment(ctx *context.APIContext) {
 	//   in: path
 	//   description: name of the repo
 	//   type: string
-	//   required: true
-	// - name: id
-	//   in: path
-	//   description: id of comment to delete
-	//   type: integer
-	//   format: int64
-	//   required: true
-	// responses:
-	//   "204":
-	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-
-	deleteConversationComment(ctx)
-}
-
-// DeleteConversationCommentDeprecated delete a comment from an conversation
-func DeleteConversationCommentDeprecated(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/conversations/{index}/comments/{id} conversation conversationDeleteCommentDeprecated
-	// ---
-	// summary: Delete a comment
-	// deprecated: true
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: index
-	//   in: path
-	//   description: this parameter is ignored
-	//   type: integer
 	//   required: true
 	// - name: id
 	//   in: path
