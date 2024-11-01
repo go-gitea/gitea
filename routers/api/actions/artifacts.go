@@ -429,7 +429,7 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 	for _, artifact := range artifacts {
 		var downloadURL string
 		if setting.Actions.ArtifactStorage.MinioConfig.ServeDirect {
-			u, err := ar.fs.URL(artifact.StoragePath, artifact.ArtifactName)
+			u, err := ar.fs.URL(artifact.StoragePath, artifact.ArtifactName, nil)
 			if err != nil && !errors.Is(err, storage.ErrURLNotSupported) {
 				log.Error("Error getting serve direct url: %v", err)
 			}
