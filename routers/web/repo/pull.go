@@ -740,17 +740,6 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		maxLines, maxFiles = -1, -1
 	}
 
-	baseCommit, err := ctx.Repo.GitRepo.GetCommit(startCommitID)
-	if err != nil {
-		ctx.ServerError("GetCommit", err)
-		return
-	}
-	commit, err := gitRepo.GetCommit(endCommitID)
-	if err != nil {
-		ctx.ServerError("GetCommit", err)
-		return
-	}
-
 	diffOptions := &gitdiff.DiffOptions{
 		AfterCommitID:      endCommitID,
 		SkipTo:             ctx.FormString("skip-to"),
@@ -824,6 +813,17 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
+
+	baseCommit, err := ctx.Repo.GitRepo.GetCommit(startCommitID)
+	if err != nil {
+		ctx.ServerError("GetCommit", err)
+		return
+	}
+	commit, err := gitRepo.GetCommit(endCommitID)
+	if err != nil {
+		ctx.ServerError("GetCommit", err)
+		return
+	}
 
 	if ctx.IsSigned && ctx.Doer != nil {
 		if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
