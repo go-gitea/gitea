@@ -753,7 +753,6 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 	diffOptions := &gitdiff.DiffOptions{
 		AfterCommitID:      endCommitID,
-		AfterCommit:        commit,
 		SkipTo:             ctx.FormString("skip-to"),
 		MaxLines:           maxLines,
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
@@ -764,7 +763,6 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 	if !willShowSpecifiedCommit {
 		diffOptions.BeforeCommitID = startCommitID
-		diffOptions.BeforeCommit = baseCommit
 	}
 
 	var methodWithError string

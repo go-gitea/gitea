@@ -1082,9 +1082,7 @@ func readFileName(rd *strings.Reader) (string, bool) {
 // DiffOptions represents the options for a DiffRange
 type DiffOptions struct {
 	BeforeCommitID     string
-	BeforeCommit       *git.Commit
 	AfterCommitID      string
-	AfterCommit        *git.Commit
 	SkipTo             string
 	MaxLines           int
 	MaxLineCharacters  int
@@ -1100,13 +1098,10 @@ type DiffOptions struct {
 func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
 	repoPath := gitRepo.Path
 
-	commit := opts.AfterCommit
-	if commit == nil {
-		var err error
-		commit, err = gitRepo.GetCommit(opts.AfterCommitID)
-		if err != nil {
-			return nil, err
-		}
+	var beforeCommit *git.Commit
+	commit, err := gitRepo.GetCommit(opts.AfterCommitID)
+	if err != nil {
+		return nil, err
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -1135,12 +1130,10 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 			AddDynamicArguments(actualBeforeCommitID, opts.AfterCommitID)
 		opts.BeforeCommitID = actualBeforeCommitID
 
-		if opts.BeforeCommit == nil {
-			var err error
-			opts.BeforeCommit, err = gitRepo.GetCommit(opts.BeforeCommitID)
-			if err != nil {
-				return nil, err
-			}
+		var err error
+		beforeCommit, err = gitRepo.GetCommit(opts.BeforeCommitID)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -1213,7 +1206,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 		}
 		diffFile.IsGenerated = isGenerated.Value()
 
-		tailSection := diffFile.GetTailSection(gitRepo, opts.BeforeCommit, commit)
+		tailSection := diffFile.GetTailSection(gitRepo, beforeCommit, commit)
 		if tailSection != nil {
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
