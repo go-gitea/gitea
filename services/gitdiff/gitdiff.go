@@ -1104,8 +1104,8 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 		return nil, err
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	cmdCtx, cmdCancel := context.WithCancel(ctx)
+	defer cmdCancel()
 
 	cmdDiff := git.NewCommand(ctx)
 	objectFormat, err := gitRepo.GetObjectFormat()
@@ -1169,9 +1169,9 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 		_ = writer.Close()
 	}()
 
-	diff, err := ParsePatch(ctx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)
+	diff, err := ParsePatch(cmdCtx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)
 	// Ensure the git process is killed if it didn't exit already
-	cancel()
+	cmdCancel()
 	if err != nil {
 		return nil, fmt.Errorf("unable to ParsePatch: %w", err)
 	}
