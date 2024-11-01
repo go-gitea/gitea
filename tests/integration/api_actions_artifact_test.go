@@ -23,8 +23,15 @@ type getUploadArtifactRequest struct {
 	RetentionDays int64
 }
 
+func prepareTestEnvActionsArtifacts(t *testing.T) func() {
+	t.Helper()
+	f := tests.PrepareTestEnv(t, 1)
+	tests.PrepareArtifactsStorage(t)
+	return f
+}
+
 func TestActionsArtifactUploadSingleFile(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	// acquire artifact upload url
 	req := NewRequestWithJSON(t, "POST", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts", getUploadArtifactRequest{
@@ -58,7 +65,7 @@ func TestActionsArtifactUploadSingleFile(t *testing.T) {
 }
 
 func TestActionsArtifactUploadInvalidHash(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	// artifact id 54321 not exist
 	url := "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts/8e5b948a454515dbabfc7eb718ddddddd/upload?itemPath=artifact/abc.txt"
@@ -73,7 +80,7 @@ func TestActionsArtifactUploadInvalidHash(t *testing.T) {
 }
 
 func TestActionsArtifactConfirmUploadWithoutName(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	req := NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
@@ -82,7 +89,7 @@ func TestActionsArtifactConfirmUploadWithoutName(t *testing.T) {
 }
 
 func TestActionsArtifactUploadWithoutToken(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	req := NewRequestWithJSON(t, "POST", "/api/actions_pipeline/_apis/pipelines/workflows/1/artifacts", nil)
 	MakeRequest(t, req, http.StatusUnauthorized)
@@ -108,7 +115,7 @@ type (
 )
 
 func TestActionsArtifactDownload(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
@@ -152,7 +159,7 @@ func TestActionsArtifactDownload(t *testing.T) {
 }
 
 func TestActionsArtifactUploadMultipleFile(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	const testArtifactName = "multi-files"
 
@@ -208,7 +215,7 @@ func TestActionsArtifactUploadMultipleFile(t *testing.T) {
 }
 
 func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	const testArtifactName = "multi-file-download"
 
@@ -263,7 +270,7 @@ func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
 }
 
 func TestActionsArtifactUploadWithRetentionDays(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	// acquire artifact upload url
 	req := NewRequestWithJSON(t, "POST", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts", getUploadArtifactRequest{
@@ -299,7 +306,7 @@ func TestActionsArtifactUploadWithRetentionDays(t *testing.T) {
 }
 
 func TestActionsArtifactOverwrite(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	{
 		// download old artifact uploaded by tests above, it should 1024 A

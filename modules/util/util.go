@@ -230,6 +230,20 @@ func IfZero[T comparable](v, def T) T {
 	return v
 }
 
+// DefArg helps the "optional argument" in Golang: func(foo string, optionalArg ...int)
+// it returns the first non-zero value from the given optional argument,
+// or the default value if there is no optional argument.
+func DefArg[T any](defArgs []T, def T) (ret T) {
+	if len(defArgs) == 1 {
+		return defArgs[0]
+	}
+	return def
+}
+
+func DefArgZero[T any](defArgs []T) (ret T) {
+	return DefArg(defArgs, ret)
+}
+
 func ReserveLineBreakForTextarea(input string) string {
 	// Since the content is from a form which is a textarea, the line endings are \r\n.
 	// It's a standard behavior of HTML.
