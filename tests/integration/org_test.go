@@ -11,7 +11,6 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unittest"
@@ -230,7 +229,7 @@ func TestOwnerTeamsEdit(t *testing.T) {
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3, Type: user_model.UserTypeOrganization})
 	session := loginUser(t, user1.Name)
 
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{OrgID: org.ID, Name: org_model.OwnerTeamName})
+	team := unittest.AssertExistsAndLoadBean(t, &org_model.Team{OrgID: org.ID, Name: org_model.OwnerTeamName})
 	assert.EqualValues(t, perm.AccessModeOwner, team.AccessMode)
 	assert.EqualValues(t, "", team.Description)
 	assert.NoError(t, team.LoadUnits(db.DefaultContext))
@@ -247,7 +246,7 @@ func TestOwnerTeamsEdit(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// reload team
-	team = unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: team.ID})
+	team = unittest.AssertExistsAndLoadBean(t, &org_model.Team{ID: team.ID})
 	assert.EqualValues(t, perm.AccessModeOwner, team.AccessMode)
 	assert.EqualValues(t, org_model.OwnerTeamName, team.Name)
 	assert.EqualValues(t, "Just a description", team.Description)

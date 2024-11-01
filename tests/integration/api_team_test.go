@@ -11,7 +11,6 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/repo"
@@ -28,9 +27,9 @@ import (
 func TestAPITeam(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	teamUser := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 1})
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamUser.TeamID})
-	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: teamUser.OrgID})
+	teamUser := unittest.AssertExistsAndLoadBean(t, &org_model.TeamUser{ID: 1})
+	team := unittest.AssertExistsAndLoadBean(t, &org_model.Team{ID: teamUser.TeamID})
+	org := unittest.AssertExistsAndLoadBean(t, &org_model.Organization{ID: teamUser.OrgID})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser.UID})
 
 	session := loginUser(t, user.Name)
@@ -47,7 +46,7 @@ func TestAPITeam(t *testing.T) {
 	assert.EqualValues(t, convert.ToOrganization(db.DefaultContext, org), apiTeam.Organization)
 
 	// non team member user will not access the teams details
-	teamUser2 := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 3})
+	teamUser2 := unittest.AssertExistsAndLoadBean(t, &org_model.TeamUser{ID: 3})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser2.UID})
 
 	session = loginUser(t, user2.Name)
@@ -61,7 +60,7 @@ func TestAPITeam(t *testing.T) {
 
 	// Get an admin user able to create, update and delete teams.
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 6})
+	org = unittest.AssertExistsAndLoadBean(t, &org_model.Organization{ID: 6})
 	session = loginUser(t, user.Name)
 	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 
@@ -140,7 +139,7 @@ func TestAPITeam(t *testing.T) {
 		teamToEdit.Permission, unit.AllUnitKeyNames(), nil)
 
 	// Read team.
-	teamRead := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
+	teamRead := unittest.AssertExistsAndLoadBean(t, &org_model.Team{ID: teamID})
 	assert.NoError(t, teamRead.LoadUnits(db.DefaultContext))
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamID).
 		AddTokenAuth(token)
@@ -154,7 +153,7 @@ func TestAPITeam(t *testing.T) {
 	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d", teamID).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
-	unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
+	unittest.AssertNotExistsBean(t, &org_model.Team{ID: teamID})
 
 	// create team again via UnitsMap
 	// Create team.
@@ -211,7 +210,7 @@ func TestAPITeam(t *testing.T) {
 		"read", nil, teamToEdit.UnitsMap)
 
 	// Read team.
-	teamRead = unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
+	teamRead = unittest.AssertExistsAndLoadBean(t, &org_model.Team{ID: teamID})
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamID).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
@@ -225,7 +224,7 @@ func TestAPITeam(t *testing.T) {
 	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d", teamID).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
-	unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
+	unittest.AssertNotExistsBean(t, &org_model.Team{ID: teamID})
 
 	// Create admin team
 	teamToCreate = &api.CreateTeamOption{
@@ -244,7 +243,7 @@ func TestAPITeam(t *testing.T) {
 		if ut == unit.TypeExternalTracker || ut == unit.TypeExternalWiki {
 			up = perm.AccessModeRead
 		}
-		unittest.AssertExistsAndLoadBean(t, &organization.TeamUnit{
+		unittest.AssertExistsAndLoadBean(t, &org_model.TeamUnit{
 			OrgID:      org.ID,
 			TeamID:     apiTeam.ID,
 			Type:       ut,
@@ -257,7 +256,7 @@ func TestAPITeam(t *testing.T) {
 	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d", teamID).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
-	unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
+	unittest.AssertNotExistsBean(t, &org_model.Team{ID: teamID})
 }
 
 func checkTeamResponse(t *testing.T, testName string, apiTeam *api.Team, name, description string, includesAllRepositories bool, permission string, units []string, unitsMap map[string]string) {
@@ -278,7 +277,7 @@ func checkTeamResponse(t *testing.T, testName string, apiTeam *api.Team, name, d
 }
 
 func checkTeamBean(t *testing.T, id int64, name, description string, includesAllRepositories bool, permission string, units []string, unitsMap map[string]string) {
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: id})
+	team := unittest.AssertExistsAndLoadBean(t, &org_model.Team{ID: id})
 	assert.NoError(t, team.LoadUnits(db.DefaultContext), "LoadUnits")
 	apiTeam, err := convert.ToTeam(db.DefaultContext, team)
 	assert.NoError(t, err)
@@ -321,7 +320,7 @@ func TestAPIGetTeamRepo(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
 	teamRepo := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 24})
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5})
+	team := unittest.AssertExistsAndLoadBean(t, &org_model.Team{ID: 5})
 
 	var results api.Repository
 
