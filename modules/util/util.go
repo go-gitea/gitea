@@ -230,21 +230,21 @@ func IfZero[T comparable](v, def T) T {
 	return v
 }
 
-// DefaultArg helps the "optional argument" in Golang:
+// OptionalArg helps the "optional argument" in Golang:
 //
-//	func foo(optionalArg ...int) { return DefaultArg(optionalArg) }
-//		calling `foo()` gets 0, calling `foo(100)` gets 100
-//	func bar(optionalArg ...int) { return DefaultArg(optionalArg, 42) }
-//		calling `bar()` gets 42, calling `bar(100)` gets 100
+//	func foo(optArg ...int) { return OptionalArg(optArg) }
+//		calling `foo()` gets zero value 0, calling `foo(100)` gets 100
+//	func bar(optArg ...int) { return OptionalArg(optArg, 42) }
+//		calling `bar()` gets default value 42, calling `bar(100)` gets 100
 //
-// Passing more than 1 item to `optionalArg` or `def` is undefined behavior.
-// At the moment it only returns the first argument.
-func DefaultArg[T any](optionalArg []T, def ...T) (ret T) {
-	if len(optionalArg) >= 1 {
-		return optionalArg[0]
+// Passing more than 1 item to `optArg` or `defaultValue` is undefined behavior.
+// At the moment only the first item is used.
+func OptionalArg[T any](optArg []T, defaultValue ...T) (ret T) {
+	if len(optArg) >= 1 {
+		return optArg[0]
 	}
-	if len(def) >= 1 {
-		return def[0]
+	if len(defaultValue) >= 1 {
+		return defaultValue[0]
 	}
 	return ret
 }

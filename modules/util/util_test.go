@@ -242,11 +242,11 @@ func TestReserveLineBreakForTextarea(t *testing.T) {
 }
 
 func TestDefaultArg(t *testing.T) {
-	foo := func(other any, optionalArg ...int) int {
-		return DefaultArg(optionalArg)
+	foo := func(other any, optArg ...int) int {
+		return OptionalArg(optArg)
 	}
-	bar := func(other any, optionalArg ...int) int {
-		return DefaultArg(optionalArg, 42)
+	bar := func(other any, optArg ...int) int {
+		return OptionalArg(optArg, 42)
 	}
 	assert.Equal(t, 0, foo(nil))
 	assert.Equal(t, 100, foo(nil, 100))
