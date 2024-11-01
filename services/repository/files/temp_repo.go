@@ -372,10 +372,14 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 			log.Error("Unable to ParsePatch in temporary repo %s (%s). Error: %v", t.repo.FullName(), t.basePath, finalErr)
 			return nil, finalErr
 		}
-		log.Error("Unable to run diff-index pipeline in temporary repo %s (%s). Error: %v\nStderr: %s",
-			t.repo.FullName(), t.basePath, err, stderr)
-		return nil, fmt.Errorf("Unable to run diff-index pipeline in temporary repo %s. Error: %w\nStderr: %s",
-			t.repo.FullName(), err, stderr)
+
+		// If the process exited early, don't error
+		if err != context.Canceled {
+			log.Error("Unable to run diff-index pipeline in temporary repo %s (%s). Error: %v\nStderr: %s",
+				t.repo.FullName(), t.basePath, err, stderr)
+			return nil, fmt.Errorf("Unable to run diff-index pipeline in temporary repo %s. Error: %w\nStderr: %s",
+				t.repo.FullName(), err, stderr)
+		}
 	}
 
 	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(t.ctx, t.basePath, git.TrustedCmdArgs{"--cached"}, "HEAD")
