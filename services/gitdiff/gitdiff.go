@@ -487,7 +487,7 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 const cmdDiffHead = "diff --git "
 
 // ParsePatch builds a Diff object from a io.Reader and some parameters.
-func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, reader io.Reader, skipToFile string, cancel context.CancelFunc) (*Diff, error) {
+func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, reader io.Reader, skipToFile string) (*Diff, error) {
 	log.Debug("ParsePatch(%d, %d, %d, ..., %s)", maxLines, maxLineCharacters, maxFiles, skipToFile)
 	var curFile *DiffFile
 
@@ -529,16 +529,6 @@ parsingLoop:
 			lastFile := createDiffFile(diff, line)
 			diff.End = lastFile.Name
 			diff.IsIncomplete = true
-
-			// signal that we are exiting this diff early
-			if cancel != nil {
-				cancel()
-			}
-			_, err := io.Copy(io.Discard, reader)
-			if err != nil {
-				// By the definition of io.Copy this never returns io.EOF
-				return diff, fmt.Errorf("error during io.Copy: %w", err)
-			}
 			break parsingLoop
 		}
 
@@ -1186,7 +1176,9 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 		_ = writer.Close()
 	}()
 
-	diff, err := ParsePatch(ctx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile, cancel)
+	diff, err := ParsePatch(ctx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)
+	// Ensure the git process is killed if it didn't exit already
+	cancel()
 	if err != nil {
 		return nil, fmt.Errorf("unable to ParsePatch: %w", err)
 	}
@@ -1352,7 +1344,7 @@ outer:
 // CommentAsDiff returns c.Patch as *Diff
 func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) {
 	diff, err := ParsePatch(ctx, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch), "", nil)
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch), "")
 	if err != nil {
 		log.Error("Unable to parse patch: %v", err)
 		return nil, err

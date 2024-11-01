@@ -191,7 +191,7 @@ c,d,e`,
 	}
 
 	for n, c := range cases {
-		diff, err := ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.diff), "", nil)
+		diff, err := ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.diff), "")
 		if err != nil {
 			t.Errorf("ParsePatch failed: %s", err)
 		}
