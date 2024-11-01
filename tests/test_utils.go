@@ -192,6 +192,20 @@ func PrepareAttachmentsStorage(t testing.TB) {
 	}))
 }
 
+func PrepareArtifactsStorage(t testing.TB) {
+	// prepare actions artifacts directory and files
+	assert.NoError(t, storage.Clean(storage.ActionsArtifacts))
+
+	s, err := storage.NewStorage(setting.LocalStorageType, &setting.Storage{
+		Path: filepath.Join(filepath.Dir(setting.AppPath), "tests", "testdata", "data", "artifacts"),
+	})
+	assert.NoError(t, err)
+	assert.NoError(t, s.IterateObjects("", func(p string, obj storage.Object) error {
+		_, err = storage.Copy(storage.ActionsArtifacts, p, s, p)
+		return err
+	}))
+}
+
 func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	t.Helper()
 	ourSkip := 1
@@ -206,6 +220,7 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	// load git repo fixtures
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
@@ -226,6 +241,9 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "pull"), 0o755)
 		}
 	}
+
+	// Initialize actions artifact data
+	PrepareArtifactsStorage(t)
 
 	// load LFS object fixtures
 	// (LFS storage can be on any of several backends, including remote servers, so we init it with the storage API)

@@ -131,7 +131,7 @@ var (
 	ActionsArtifacts ObjectStorage = uninitializedStorage
 )
 
-// Init init the stoarge
+// Init init the storage
 func Init() error {
 	for _, f := range []func() error{
 		initAttachments,
