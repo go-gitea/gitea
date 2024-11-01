@@ -1,8 +1,10 @@
 import emojis from '../../../assets/emoji.json';
+import {GET} from '../modules/fetch.ts';
+import type {Issue} from '../features/issue.ts';
 
 const maxMatches = 6;
 
-function sortAndReduce(map: Map<string, number>) {
+function sortAndReduce<T>(map: Map<T, number>): T[] {
   const sortedMap = new Map(Array.from(map.entries()).sort((a, b) => a[1] - b[1]));
   return Array.from(sortedMap.keys()).slice(0, maxMatches);
 }
@@ -27,11 +29,12 @@ export function matchEmoji(queryText: string): string[] {
   return sortAndReduce(results);
 }
 
-export function matchMention(queryText: string): string[] {
+type MentionSuggestion = {value: string; name: string; fullname: string; avatar: string};
+export function matchMention(queryText: string): MentionSuggestion[] {
   const query = queryText.toLowerCase();
 
   // results is a map of weights, lower is better
-  const results = new Map();
+  const results = new Map<MentionSuggestion, number>();
   for (const obj of window.config.mentionValues ?? []) {
     const index = obj.key.toLowerCase().indexOf(query);
     if (index === -1) continue;
@@ -40,4 +43,14 @@ export function matchMention(queryText: string): string[] {
   }
 
   return sortAndReduce(results);
+}
+
+export async function matchIssue(owner: string, repo: string, issueIndexStr: string, query: string): Promise<Issue[]> {
+  const res = await GET(`${window.config.appSubUrl}/${owner}/${repo}/issues/suggestions?q=${encodeURIComponent(query)}`);
+
+  const issues: Issue[] = await res.json();
+  const issueNumber = parseInt(issueIndexStr);
+
+  // filter out issue with same id
+  return issues.filter((i) => i.number !== issueNumber);
 }
