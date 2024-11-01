@@ -911,37 +911,13 @@ func ChangeConversationCommentReaction(ctx *context.Context) {
 
 	switch ctx.PathParam(":action") {
 	case "react":
-		reaction, err := conversation_service.CreateCommentReaction(ctx, ctx.Doer, comment, form.Content)
-		if err != nil {
-			if conversations_model.IsErrForbiddenConversationReaction(err) || errors.Is(err, user_model.ErrBlockedUser) {
-				ctx.ServerError("ChangeConversationReaction", err)
-				return
-			}
-			log.Info("CreateConversationCommentReaction: %s", err)
+		if err = AddReaction(ctx, form, comment, nil); err != nil {
 			break
 		}
-		// Reload new reactions
-		comment.Reactions = nil
-		if err = comment.LoadReactions(ctx, ctx.Repo.Repository); err != nil {
-			log.Info("comment.LoadReactions: %s", err)
-			break
-		}
-
-		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, comment.Conversation.ID, comment.ID, reaction.ID)
 	case "unreact":
-		if err := conversations_model.DeleteCommentReaction(ctx, ctx.Doer.ID, comment.Conversation.ID, comment.ID, form.Content); err != nil {
-			ctx.ServerError("DeleteConversationCommentReaction", err)
-			return
-		}
-
-		// Reload new reactions
-		comment.Reactions = nil
-		if err = comment.LoadReactions(ctx, ctx.Repo.Repository); err != nil {
-			log.Info("comment.LoadReactions: %s", err)
+		if err = RemoveReaction(ctx, form, comment, nil); err != nil {
 			break
 		}
-
-		log.Trace("Reaction for conversation comment removed: %d/%d/%d", ctx.Repo.Repository.ID, comment.Conversation.ID, comment.ID)
 	default:
 		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.PathParam(":action")), nil)
 		return

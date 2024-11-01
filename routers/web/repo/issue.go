@@ -3261,37 +3261,13 @@ func ChangeIssueReaction(ctx *context.Context) {
 
 	switch ctx.PathParam(":action") {
 	case "react":
-		reaction, err := issue_service.CreateIssueReaction(ctx, ctx.Doer, issue, form.Content)
-		if err != nil {
-			if issues_model.IsErrForbiddenIssueReaction(err) || errors.Is(err, user_model.ErrBlockedUser) {
-				ctx.ServerError("ChangeIssueReaction", err)
-				return
-			}
-			log.Info("CreateIssueReaction: %s", err)
+		if err := AddReaction(ctx, form, nil, issue); err != nil {
 			break
 		}
-		// Reload new reactions
-		issue.Reactions = nil
-		if err = issue.LoadAttributes(ctx); err != nil {
-			log.Info("issue.LoadAttributes: %s", err)
-			break
-		}
-
-		log.Trace("Reaction for issue created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, reaction.ID)
 	case "unreact":
-		if err := issues_model.DeleteIssueReaction(ctx, ctx.Doer.ID, issue.ID, form.Content); err != nil {
-			ctx.ServerError("DeleteIssueReaction", err)
-			return
-		}
-
-		// Reload new reactions
-		issue.Reactions = nil
-		if err := issue.LoadAttributes(ctx); err != nil {
-			log.Info("issue.LoadAttributes: %s", err)
+		if err := RemoveReaction(ctx, form, nil, issue); err != nil {
 			break
 		}
-
-		log.Trace("Reaction for issue removed: %d/%d", ctx.Repo.Repository.ID, issue.ID)
 	default:
 		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.PathParam(":action")), nil)
 		return
