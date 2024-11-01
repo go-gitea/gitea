@@ -92,7 +92,7 @@ export function onDomReady(cb: () => Promisable<void>) {
 
 // checks whether an element is owned by the current document, and whether it is a document fragment or element node
 // if it is, it means it is a "normal" element managed by us, which can be modified safely.
-export function isDocumentFragmentOrElementNode(el: Element) {
+export function isDocumentFragmentOrElementNode(el: Element | Node) {
   try {
     return el.ownerDocument === document && el.nodeType === Node.ELEMENT_NODE || el.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
   } catch {
@@ -167,7 +167,7 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
       const isBorderBox = computedStyle.boxSizing === 'border-box';
       const borderAddOn = isBorderBox ? topBorderWidth + bottomBorderWidth : 0;
 
-      const adjustedViewportMarginBottom = bottom < viewportMarginBottom ? bottom : viewportMarginBottom;
+      const adjustedViewportMarginBottom = Math.min(bottom, viewportMarginBottom);
       const curHeight = parseFloat(computedStyle.height);
       const maxHeight = curHeight + bottom - adjustedViewportMarginBottom;
 
@@ -281,7 +281,7 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
 
   textarea.contentEditable = 'true';
   try {
-    success = document.execCommand('insertText', false, text); // eslint-disable-line deprecation/deprecation
+    success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated
   } catch {
     success = false;
   }

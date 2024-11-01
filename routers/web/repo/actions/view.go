@@ -663,7 +663,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	if len(artifacts) == 1 && artifacts[0].ArtifactName+".zip" == artifacts[0].ArtifactPath && artifacts[0].ContentEncoding == "application/zip" {
 		art := artifacts[0]
 		if setting.Actions.ArtifactStorage.ServeDirect() {
-			u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath)
+			u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, nil)
 			if u != nil && err == nil {
 				ctx.Redirect(u.String())
 				return
