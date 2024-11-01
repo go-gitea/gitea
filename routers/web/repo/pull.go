@@ -395,17 +395,12 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	var headBranchSha string
 	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
-		var headGitRepo *git.Repository
-		if ctx.Repo != nil && ctx.Repo.Repository != nil && pull.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
-			headGitRepo = ctx.Repo.GitRepo
-		} else {
-			headGitRepo, err = gitrepo.OpenRepository(ctx, pull.HeadRepo)
-			if err != nil {
-				ctx.ServerError("OpenRepository", err)
-				return nil
-			}
-			defer headGitRepo.Close()
+		headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pull.HeadRepo)
+		if err != nil {
+			ctx.ServerError("RepositoryFromContextOrOpen", err)
+			return nil
 		}
+		defer closer.Close()
 
 		if pull.Flow == issues_model.PullRequestFlowGithub {
 			headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
