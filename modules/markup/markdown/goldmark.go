@@ -45,7 +45,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 	ctx := pc.Get(renderContextKey).(*markup.RenderContext)
 	rc := pc.Get(renderConfigKey).(*RenderConfig)
 
-	tocList := make([]markup.Header, 0, 20)
+	tocList := make([]Header, 0, 20)
 	if rc.yamlNode != nil {
 		metaNode := rc.toMetaNode()
 		if metaNode != nil {
