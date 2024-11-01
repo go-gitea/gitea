@@ -33,7 +33,6 @@ func AddReaction(ctx *context.Context, form *forms.ReactionForm, comment *conver
 
 		log.Trace("Reaction for issue created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, reaction.ID)
 	} else if comment != nil {
-
 		reaction, err := conversation_service.CreateCommentReaction(ctx, ctx.Doer, comment, form.Content)
 		if err != nil {
 			if conversations_model.IsErrForbiddenConversationReaction(err) || errors.Is(err, user_model.ErrBlockedUser) {
