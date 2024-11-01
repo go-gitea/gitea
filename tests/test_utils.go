@@ -262,7 +262,7 @@ func PrepareCleanPackageData(t testing.TB) {
 
 func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	t.Helper()
-	deferFn := PrintCurrentTest(t, util.DefArgZero(skip)+1)
+	deferFn := PrintCurrentTest(t, util.DefaultArg(skip)+1)
 
 	// load database fixtures
 	assert.NoError(t, unittest.LoadFixtures())
@@ -276,7 +276,7 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 
 func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	t.Helper()
-	return testlogger.PrintCurrentTest(t, util.DefArgZero(skip)+1)
+	return testlogger.PrintCurrentTest(t, util.DefaultArg(skip)+1)
 }
 
 // Printf takes a format and args and prints the string to os.Stdout

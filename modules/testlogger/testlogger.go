@@ -93,7 +93,7 @@ func (w *testLoggerWriterCloser) Reset() {
 func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	t.Helper()
 	start := time.Now()
-	actualSkip := util.DefArgZero(skip) + 1
+	actualSkip := util.DefaultArg(skip) + 1
 	_, filename, line, _ := runtime.Caller(actualSkip)
 
 	if log.CanColorStdout {
