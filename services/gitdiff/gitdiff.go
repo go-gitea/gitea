@@ -1107,7 +1107,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	cmdCtx, cmdCancel := context.WithCancel(ctx)
 	defer cmdCancel()
 
-	cmdDiff := git.NewCommand(ctx)
+	cmdDiff := git.NewCommand(cmdCtx)
 	objectFormat, err := gitRepo.GetObjectFormat()
 	if err != nil {
 		return nil, err
