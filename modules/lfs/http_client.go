@@ -150,7 +150,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 
 // performSingleOperation performs an LFS upload or download operation on a single object
 func performSingleOperation(ctx context.Context, object *ObjectResponse, dc DownloadCallback, uc UploadCallback, transferAdapter TransferAdapter) error {
-	// the response from an lfs batch api request for this specific object id contained an error
+	// the response from a lfs batch api request for this specific object id contained an error
 	if object.Error != nil {
 		log.Trace("Error on object %v: %v", object.Pointer, object.Error)
 
@@ -161,15 +161,12 @@ func performSingleOperation(ctx context.Context, object *ObjectResponse, dc Down
 			}
 		} else {
 			// this was NOT an 'upload' request inside the batch request, meaning it must be a 'download' request
-			err := dc(object.Pointer, nil, object.Error)
-			if errors.Is(object.Error, ErrObjectNotExist) {
-				log.Warn("Ignoring missing upstream LFS object %-v: %v", object.Pointer, err)
-				return nil
+			if err := dc(object.Pointer, nil, object.Error); err != nil {
+				return err
 			}
-
-			// this was a 'download' request which was a legitimate error response from the batch api (not an http/404)
-			return err
 		}
+		// if the callback returns no err, then the error could be ignored, and the operations should continue
+		return nil
 	}
 
 	// the response from an lfs batch api request contained necessary upload/download fields to act upon
