@@ -45,9 +45,9 @@
   position: relative;
 }
 .combo-markdown-editor md-header::after {
-  font-size: 65%;
+  font-size: 10px;
   position: absolute;
-  top: 10px;
+  top: 7px;
 }
 .combo-markdown-editor md-header[level="1"]::after {
   content: "1";
