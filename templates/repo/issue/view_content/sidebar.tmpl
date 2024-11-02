@@ -368,7 +368,7 @@
 				<div class="tw-flex tw-justify-between tw-items-center">
 					<div class="due-date {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
 						{{svg "octicon-calendar" 16 "tw-mr-2"}}
-						{{DateTime "long" .Issue.DeadlineUnix.FormatDate}}
+						{{ctx.DateUtils.AbsoluteLong .Issue.DeadlineUnix}}
 					</div>
 					<div>
 						{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
