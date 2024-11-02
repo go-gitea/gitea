@@ -137,11 +137,10 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 	}
 
 	errGroup, groupCtx := errgroup.WithContext(ctx)
-	errGroup.SetLimit(setting.LFSClient.BatchConcurrency)
+	errGroup.SetLimit(setting.LFSClient.BatchOperationConcurrency)
 	for _, object := range result.Objects {
 		errGroup.Go(func() error {
-			err := performSingleOperation(groupCtx, object, dc, uc, transferAdapter)
-			return err
+			return performSingleOperation(groupCtx, object, dc, uc, transferAdapter)
 		})
 	}
 

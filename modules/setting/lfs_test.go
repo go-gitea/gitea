@@ -114,7 +114,7 @@ BATCH_SIZE = 0
 	assert.NoError(t, loadLFSFrom(cfg))
 	assert.EqualValues(t, 100, LFS.MaxBatchSize)
 	assert.EqualValues(t, 20, LFSClient.BatchSize)
-	assert.EqualValues(t, 20, LFSClient.BatchConcurrency)
+	assert.EqualValues(t, 20, LFSClient.BatchOperationConcurrency)
 
 	iniStr = `
 [lfs_client]
@@ -126,5 +126,5 @@ BATCH_OPERATION_CONCURRENCY = 10
 
 	assert.NoError(t, loadLFSFrom(cfg))
 	assert.EqualValues(t, 50, LFSClient.BatchSize)
-	assert.EqualValues(t, 10, LFSClient.BatchConcurrency)
+	assert.EqualValues(t, 10, LFSClient.BatchOperationConcurrency)
 }

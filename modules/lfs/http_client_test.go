@@ -251,7 +251,7 @@ func TestHTTPClientDownload(t *testing.T) {
 				"dummy": dummy,
 			},
 		}
-		setting.LFSClient.BatchConcurrency = 1
+		setting.LFSClient.BatchOperationConcurrency = 1
 
 		err := client.Download(context.Background(), []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
 			if objectError != nil {
