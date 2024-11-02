@@ -1,6 +1,6 @@
 import emojis from '../../../assets/emoji.json';
-import type {Issue} from '../features/issue.ts';
 import {GET} from '../modules/fetch.ts';
+import type {Issue} from '../features/issue.ts';
 
 const maxMatches = 6;
 
@@ -49,8 +49,8 @@ export async function matchIssue(owner: string, repo: string, issueIndexStr: str
   const res = await GET(`${window.config.appSubUrl}/${owner}/${repo}/issues/suggestions?q=${encodeURIComponent(query)}`);
 
   const issues: Issue[] = await res.json();
-  const issueIndex = parseInt(issueIndexStr);
+  const issueNumber = parseInt(issueIndexStr);
 
   // filter out issue with same id
-  return issues.filter((i) => i.id !== issueIndex);
+  return issues.filter((i) => i.number !== issueNumber);
 }
