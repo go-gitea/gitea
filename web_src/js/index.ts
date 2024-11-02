@@ -43,6 +43,7 @@ import {initSshKeyFormParser} from './features/sshkey-helper.ts';
 import {initUserSettings} from './features/user-settings.ts';
 import {initRepoActivityTopAuthorsChart, initRepoArchiveLinks} from './features/repo-common.ts';
 import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
+import {initRequireActionsSelect} from './features/require-actions-select.js';
 import {
   initRepoSettingGitHook,
   initRepoSettingsCollaboration,
@@ -178,6 +179,7 @@ onDomReady(() => {
 
     initRepoActivityTopAuthorsChart,
     initRepoArchiveLinks,
+    initRequireActionsSelect,
     initRepoBranchButton,
     initRepoCodeView,
     initRepoCommentForm,

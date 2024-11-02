@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -38,6 +39,7 @@ const (
 
 type Workflow struct {
 	Entry  git.TreeEntry
+	Global bool
 	ErrMsg string
 }
 
@@ -71,9 +73,19 @@ func List(ctx *context.Context) {
 
 	var workflows []Workflow
 	var curWorkflow *model.Workflow
+	var globalEntries []*git.TreeEntry
+	globalWorkflow, err := db.Find[actions_model.RequireAction](ctx, actions_model.FindRequireActionOptions{
+		OrgID: ctx.Repo.Repository.Owner.ID,
+	})
+	if err != nil {
+		ctx.ServerError("Global Workflow DB find fail", err)
+		return
+	}
 	if empty, err := ctx.Repo.GitRepo.IsEmpty(); err != nil {
 		ctx.ServerError("IsEmpty", err)
-		return
+		if len(globalWorkflow) < 1 {
+			return
+		}
 	} else if !empty {
 		commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 		if err != nil {
@@ -84,6 +96,23 @@ func List(ctx *context.Context) {
 		if err != nil {
 			ctx.ServerError("ListWorkflows", err)
 			return
+		}
+		for _, gEntry := range globalWorkflow {
+			if gEntry.RepoName == ctx.Repo.Repository.Name {
+				log.Trace("Same Repo conflict: %s\n", gEntry.RepoName)
+				continue
+			}
+			gRepo, _ := repo_model.GetRepositoryByName(ctx, gEntry.OrgID, gEntry.RepoName)
+			gGitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, gRepo)
+			// it may be a hack for now..... not sure any better way to do this
+			gCommit, _ := gGitRepo.GetBranchCommit(gRepo.DefaultBranch)
+			gEntries, _ := actions.ListWorkflows(gCommit)
+			for _, entry := range gEntries {
+				if gEntry.WorkflowName == entry.Name() {
+					globalEntries = append(globalEntries, entry)
+					entries = append(entries, entry)
+				}
+			}
 		}
 
 		// Get all runner labels
@@ -103,7 +132,14 @@ func List(ctx *context.Context) {
 
 		workflows = make([]Workflow, 0, len(entries))
 		for _, entry := range entries {
-			workflow := Workflow{Entry: *entry}
+			var workflowIsGlobal bool
+			workflowIsGlobal = false
+			for i := range globalEntries {
+				if globalEntries[i] == entry {
+					workflowIsGlobal = true
+				}
+			}
+			workflow := Workflow{Entry: *entry, Global: workflowIsGlobal}
 			content, err := actions.GetContentFromEntry(entry)
 			if err != nil {
 				ctx.ServerError("GetContentFromEntry", err)
@@ -165,8 +201,16 @@ func List(ctx *context.Context) {
 		page = 1
 	}
 
+	workflow := ctx.FormString("workflow")
+	isGlobal := false
+	ctx.Data["CurWorkflow"] = workflow
+
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
 	ctx.Data["ActionsConfig"] = actionsConfig
+
+	if strings.HasSuffix(ctx.Repo.Repository.Name, ".workflow") {
+		ctx.Data["AllowGlobalWorkflow"] = true
+	}
 
 	if len(workflowID) > 0 && ctx.Repo.IsAdmin() {
 		ctx.Data["AllowDisableOrEnableWorkflow"] = true
@@ -205,6 +249,9 @@ func List(ctx *context.Context) {
 				ctx.Data["Tags"] = tags
 			}
 		}
+		ctx.Data["CurWorkflowDisabled"] = actionsConfig.IsWorkflowDisabled(workflow)
+		ctx.Data["CurGlobalWorkflowEnable"] = actionsConfig.IsGlobalWorkflowEnabled(workflow)
+		isGlobal = actionsConfig.IsGlobalWorkflowEnabled(workflow)
 	}
 
 	// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
@@ -261,6 +308,9 @@ func List(ctx *context.Context) {
 	pager.AddParamString("workflow", workflowID)
 	pager.AddParamString("actor", fmt.Sprint(actorID))
 	pager.AddParamString("status", fmt.Sprint(status))
+	if isGlobal {
+		pager.AddParamString("global", fmt.Sprint(isGlobal))
+	}
 	ctx.Data["Page"] = pager
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 

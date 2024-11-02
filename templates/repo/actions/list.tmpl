@@ -10,7 +10,11 @@
 				<div class="ui fluid vertical menu">
 					<a class="item{{if not $.CurWorkflow}} active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
-						<a class="item{{if eq .Entry.Name $.CurWorkflow}} active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">{{.Entry.Name}}
+						{{if .Global}}
+						<a class="item{{if eq .Entry.Name $.CurWorkflow}} active{{end}}" href="?workflow={{.Entry.Name}}&isGlobal=true&actor={{$.CurActor}}&status={{$.CurStatus}}">(global) {{.Entry.Name}}</a>
+						{{else}}
+						<a class="item{{if eq .Entry.Name $.CurWorkflow}} active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">{{.Entry.Name}}</a>
+{{end}}
 							{{if .ErrMsg}}
 								<span data-tooltip-content="{{.ErrMsg}}">
 									{{svg "octicon-alert" 16 "text red"}}
@@ -20,7 +24,9 @@
 							{{if $.ActionsConfig.IsWorkflowDisabled .Entry.Name}}
 								<div class="ui red label">{{ctx.Locale.Tr "disabled"}}</div>
 							{{end}}
-						</a>
+							{{if $.ActionsConfig.IsGlobalWorkflowEnabled .Entry.Name}}
+								<div class="ui red label">{{ctx.Locale.Tr "Global Enabled"}}</div>
+							{{end}}
 					{{end}}
 				</div>
 			</div>
@@ -64,7 +70,10 @@
 							{{end}}
 						</div>
 					</div>
-
+					<!-- IsGlobalWorkflowEnabled -->
+					<div class="ui dropdown jump item">
+						<span class="text">{{ctx.Locale.Tr "actions.workflow.global"}}</span>
+					</div>
 					{{if .AllowDisableOrEnableWorkflow}}
 						<button class="ui jump dropdown btn interact-bg tw-p-2">
 							{{svg "octicon-kebab-horizontal"}}
@@ -72,6 +81,11 @@
 								<a class="item link-action" data-url="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}">
 									{{if .CurWorkflowDisabled}}{{ctx.Locale.Tr "actions.workflow.enable"}}{{else}}{{ctx.Locale.Tr "actions.workflow.disable"}}{{end}}
 								</a>
+								{{if .AllowGlobalWorkflow}}
+									<a class="item link-action" data-url="{{$.Link}}/{{if .CurGlobalWorkflowEnable}}global_disable{{else}}global_enable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}">
+										{{if .CurGlobalWorkflowEnable}}{{ctx.Locale.Tr "actions.workflow.global_disable"}}{{else}}{{ctx.Locale.Tr "actions.workflow.global_enable"}}{{end}}
+									</a>
+								{{end}}
 							</div>
 						</button>
 					{{end}}

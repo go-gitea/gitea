@@ -95,6 +95,17 @@ func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
 	return events, nil
 }
 
+func DetectGlobalWorkflows(
+	gitRepo *git.Repository,
+	commit *git.Commit,
+	triggedEvent webhook_module.HookEventType,
+	payload api.Payloader,
+	detectSchedule bool,
+	entries git.Entries,
+) ([]*DetectedWorkflow, []*DetectedWorkflow, error) {
+	return _DetectWorkflows(gitRepo, commit, triggedEvent, payload, detectSchedule, entries)
+}
+
 func DetectWorkflows(
 	gitRepo *git.Repository,
 	commit *git.Commit,
@@ -106,7 +117,17 @@ func DetectWorkflows(
 	if err != nil {
 		return nil, nil, err
 	}
+	return _DetectWorkflows(gitRepo, commit, triggedEvent, payload, detectSchedule, entries)
+}
 
+func _DetectWorkflows(
+	gitRepo *git.Repository,
+	commit *git.Commit,
+	triggedEvent webhook_module.HookEventType,
+	payload api.Payloader,
+	detectSchedule bool,
+	entries git.Entries,
+) ([]*DetectedWorkflow, []*DetectedWorkflow, error) {
 	workflows := make([]*DetectedWorkflow, 0, len(entries))
 	schedules := make([]*DetectedWorkflow, 0, len(entries))
 	for _, entry := range entries {
@@ -146,12 +167,25 @@ func DetectWorkflows(
 	return workflows, schedules, nil
 }
 
+func DetectScheduledGlobalWorkflows(gitRepo *git.Repository, commit *git.Commit, entries git.Entries) ([]*DetectedWorkflow, error) {
+	return _DetectScheduledWorkflows(gitRepo, commit, entries)
+}
+
 func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
 	entries, err := ListWorkflows(commit)
 	if err != nil {
 		return nil, err
 	}
+	return _DetectScheduledWorkflows(gitRepo, commit, entries)
+}
 
+func _DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit, entries git.Entries) ([]*DetectedWorkflow, error) {
+	if gitRepo != nil {
+		log.Trace("detect scheduled workflow for gitRepo.Path: %q", gitRepo.Path)
+	}
+	if commit != nil {
+		log.Trace("detect scheduled commit for commit ID: %q", commit.ID)
+	}
 	wfs := make([]*DetectedWorkflow, 0, len(entries))
 	for _, entry := range entries {
 		content, err := GetContentFromEntry(entry)
