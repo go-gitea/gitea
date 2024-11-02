@@ -602,12 +602,7 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 			log.Error("CancelPreviousJobs: %v", err)
 		}
 
-		if err := gitrepo.SetDefaultBranch(ctx, repo, newBranchName); err != nil {
-			if !git.IsErrUnsupportedVersion(err) {
-				return err
-			}
-		}
-		return nil
+		return gitrepo.SetDefaultBranch(ctx, repo, newBranchName)
 	}); err != nil {
 		return err
 	}
