@@ -325,6 +325,13 @@ func registerRoutes(m *web.Router) {
 		}
 	}
 
+	oauth2Enabled := func(ctx *context.Context) {
+		if !setting.OAuth2.Enabled {
+			ctx.Error(http.StatusForbidden)
+			return
+		}
+	}
+
 	reqMilestonesDashboardPageEnabled := func(ctx *context.Context) {
 		if !setting.Service.ShowMilestonesDashboardPage {
 			ctx.Error(http.StatusForbidden)
@@ -546,19 +553,19 @@ func registerRoutes(m *web.Router) {
 
 	m.Any("/user/events", routing.MarkLongPolling, events.Events)
 
-	if setting.OAuth2.Enabled {
-		m.Group("/login/oauth", func() {
+	m.Group("/login/oauth", func() {
+		m.Group("", func() {
 			m.Get("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
 			m.Post("/grant", web.Bind(forms.GrantApplicationForm{}), auth.GrantApplicationOAuth)
 			// TODO manage redirection
 			m.Post("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
 		}, ignSignInAndCsrf, reqSignIn)
 
-		m.Methods("GET, OPTIONS", "/login/oauth/userinfo", optionsCorsHandler(), ignSignInAndCsrf, auth.InfoOAuth)
-		m.Methods("POST, OPTIONS", "/login/oauth/access_token", optionsCorsHandler(), web.Bind(forms.AccessTokenForm{}), ignSignInAndCsrf, auth.AccessTokenOAuth)
-		m.Methods("GET, OPTIONS", "/login/oauth/keys", optionsCorsHandler(), ignSignInAndCsrf, auth.OIDCKeys)
-		m.Methods("POST, OPTIONS", "/login/oauth/introspect", optionsCorsHandler(), web.Bind(forms.IntrospectTokenForm{}), ignSignInAndCsrf, auth.IntrospectOAuth)
-	}
+		m.Methods("GET, OPTIONS", "/userinfo", optionsCorsHandler(), ignSignInAndCsrf, auth.InfoOAuth)
+		m.Methods("POST, OPTIONS", "/access_token", optionsCorsHandler(), web.Bind(forms.AccessTokenForm{}), ignSignInAndCsrf, auth.AccessTokenOAuth)
+		m.Methods("GET, OPTIONS", "/keys", optionsCorsHandler(), ignSignInAndCsrf, auth.OIDCKeys)
+		m.Methods("POST, OPTIONS", "/introspect", optionsCorsHandler(), web.Bind(forms.IntrospectTokenForm{}), ignSignInAndCsrf, auth.IntrospectOAuth)
+	}, oauth2Enabled)
 
 	m.Group("/user/settings", func() {
 		m.Get("", user_setting.Profile)
@@ -600,20 +607,23 @@ func registerRoutes(m *web.Router) {
 			m.Post("/account_link", linkAccountEnabled, security.DeleteAccountLink)
 		})
 
-		if setting.OAuth2.Enabled {
-			m.Group("/applications/oauth2", func() {
+		m.Group("/applications", func() {
+			// oauth2 applications
+			m.Group("/oauth2", func() {
 				m.Get("/{id}", user_setting.OAuth2ApplicationShow)
 				m.Post("/{id}", web.Bind(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsEdit)
 				m.Post("/{id}/regenerate_secret", user_setting.OAuthApplicationsRegenerateSecret)
 				m.Post("", web.Bind(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsPost)
 				m.Post("/{id}/delete", user_setting.DeleteOAuth2Application)
 				m.Post("/{id}/revoke/{grantId}", user_setting.RevokeOAuth2Grant)
-			})
-			m.Combo("/applications").Get(user_setting.Applications).
-				Post(web.Bind(forms.NewAccessTokenForm{}), user_setting.ApplicationsPost)
-		}
+			}, oauth2Enabled)
 
-		m.Post("/applications/delete", user_setting.DeleteApplication)
+			// access token applications
+			m.Combo("").Get(user_setting.Applications).
+				Post(web.Bind(forms.NewAccessTokenForm{}), user_setting.ApplicationsPost)
+			m.Post("/delete", user_setting.DeleteApplication)
+		})
+
 		m.Combo("/keys").Get(user_setting.Keys).
 			Post(web.Bind(forms.AddKeyForm{}), user_setting.KeysPost)
 		m.Post("/keys/delete", user_setting.DeleteKey)
@@ -779,17 +789,15 @@ func registerRoutes(m *web.Router) {
 			m.Post("/empty", admin.EmptyNotices)
 		})
 
-		if setting.OAuth2.Enabled {
-			m.Group("/applications", func() {
-				m.Get("", admin.Applications)
-				m.Post("/oauth2", web.Bind(forms.EditOAuth2ApplicationForm{}), admin.ApplicationsPost)
-				m.Group("/oauth2/{id}", func() {
-					m.Combo("").Get(admin.EditApplication).Post(web.Bind(forms.EditOAuth2ApplicationForm{}), admin.EditApplicationPost)
-					m.Post("/regenerate_secret", admin.ApplicationsRegenerateSecret)
-					m.Post("/delete", admin.DeleteApplication)
-				})
+		m.Group("/applications", func() {
+			m.Get("", admin.Applications)
+			m.Post("/oauth2", web.Bind(forms.EditOAuth2ApplicationForm{}), admin.ApplicationsPost)
+			m.Group("/oauth2/{id}", func() {
+				m.Combo("").Get(admin.EditApplication).Post(web.Bind(forms.EditOAuth2ApplicationForm{}), admin.EditApplicationPost)
+				m.Post("/regenerate_secret", admin.ApplicationsRegenerateSecret)
+				m.Post("/delete", admin.DeleteApplication)
 			})
-		}
+		}, oauth2Enabled)
 
 		m.Group("/actions", func() {
 			m.Get("", admin.RedirectToDefaultSetting)
@@ -913,12 +921,7 @@ func registerRoutes(m *web.Router) {
 						m.Post("/regenerate_secret", org.OAuthApplicationsRegenerateSecret)
 						m.Post("/delete", org.DeleteOAuth2Application)
 					})
-				}, func(ctx *context.Context) {
-					if !setting.OAuth2.Enabled {
-						ctx.Error(http.StatusForbidden)
-						return
-					}
-				})
+				}, oauth2Enabled)
 
 				m.Group("/hooks", func() {
 					m.Get("", org.Webhooks)

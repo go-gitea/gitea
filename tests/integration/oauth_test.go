@@ -483,9 +483,9 @@ func TestOAuthIntrospection(t *testing.T) {
 func TestGitOpWithOAuthDisabled(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	setting.OAuth2.Enabled = true
+	setting.OAuth2.Enabled = false
 	defer func() {
-		setting.OAuth2.Enabled = false
+		setting.OAuth2.Enabled = true
 	}()
 
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
