@@ -54,6 +54,7 @@ func NewFuncMap() template.FuncMap {
 		"StringUtils": NewStringUtils,
 		"SliceUtils":  NewSliceUtils,
 		"JsonUtils":   NewJsonUtils,
+		"DateUtils":   NewDateUtils, // TODO: to be replaced by DateUtils
 
 		// -----------------------------------------------------------------
 		// svg / avatar / icon / color

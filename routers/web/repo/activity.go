@@ -48,8 +48,8 @@ func Activity(ctx *context.Context) {
 		ctx.Data["Period"] = "weekly"
 		timeFrom = timeUntil.Add(-time.Hour * 168)
 	}
-	ctx.Data["DateFrom"] = timeFrom.UTC().Format(time.RFC3339)
-	ctx.Data["DateUntil"] = timeUntil.UTC().Format(time.RFC3339)
+	ctx.Data["DateFrom"] = timeFrom
+	ctx.Data["DateUntil"] = timeUntil
 	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + ctx.Data["Period"].(string))
 
 	var err error
