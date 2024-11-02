@@ -4,7 +4,7 @@ test('EditorMarkdown', () => {
   const textarea = document.createElement('textarea');
   initTextareaMarkdown(textarea);
 
-  const testInput = function (value, expected) {
+  const testInput = (value, expected) => {
     textarea.value = value;
     textarea.setSelectionRange(value.length, value.length);
     const e = new KeyboardEvent('keydown', {key: 'Enter', cancelable: true});
