@@ -557,8 +557,8 @@ func renderMilestones(ctx *context.Context) {
 	ctx.Data["ClosedMilestones"] = closedMilestones
 }
 
-// RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
-func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.Repository) {
+// RetrieveRepoMilestonesAndAssignees find all the milestones, assignees, and reviewers of a repository
+func RetrieveRepoMilestonesAssigneesAndReviewers(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
 	ctx.Data["OpenMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		RepoID:   repo.ID,
@@ -585,6 +585,8 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	handleTeamMentions(ctx)
+
+	retrieveReviewers(ctx)
 }
 
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
@@ -862,7 +864,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 		labels = append(labels, orgLabels...)
 	}
 
-	RetrieveRepoMilestonesAndAssignees(ctx, repo)
+	RetrieveRepoMilestonesAssigneesAndReviewers(ctx, repo)
 	if ctx.Written() {
 		return nil
 	}
@@ -881,6 +883,46 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, isPull)
 
 	return labels
+}
+
+func retrieveReviewers(ctx *context.Context) {
+	// Get reviewer info for pr
+	var (
+		reviewers       []*user_model.User
+		teamReviewers   []*organization.Team
+		reviewersResult []*repoReviewerSelection
+	)
+	reviewers, err := repo_model.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer.ID, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetReviewers", err)
+		return
+	}
+
+	teamReviewers, err = repo_service.GetReviewerTeams(ctx, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetReviewerTeams", err)
+		return
+	}
+
+	for _, user := range reviewers {
+		reviewersResult = append(reviewersResult, &repoReviewerSelection{
+			IsTeam:    false,
+			CanChange: true,
+			User:      user,
+			ItemID:    user.ID,
+		})
+	}
+
+	// negative reviewIDs represent team requests
+	for _, team := range teamReviewers {
+		reviewersResult = append(reviewersResult, &repoReviewerSelection{
+			IsTeam:    true,
+			CanChange: true,
+			Team:      team,
+			ItemID:    -team.ID,
+		})
+	}
+	ctx.Data["Reviewers"] = reviewersResult
 }
 
 // Tries to load and set an issue template. The first return value indicates if a template was loaded.
@@ -1573,7 +1615,7 @@ func ViewIssue(ctx *context.Context) {
 
 	// Check milestone and assignee.
 	if ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
-		RetrieveRepoMilestonesAndAssignees(ctx, repo)
+		RetrieveRepoMilestonesAssigneesAndReviewers(ctx, repo)
 		retrieveProjects(ctx, repo)
 
 		if ctx.Written() {
