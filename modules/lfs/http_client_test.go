@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -213,36 +214,42 @@ func TestHTTPClientDownload(t *testing.T) {
 		},
 		// case 5
 		{
+			endpoint:      "https://error-in-response-objects.io",
+			expectederror: "Object not found",
+		},
+		// case 6
+		{
 			endpoint:      "https://empty-actions-map.io",
 			expectederror: "missing action 'download'",
 		},
-		// case 6
+		// case 7
 		{
 			endpoint:      "https://download-actions-map.io",
 			expectederror: "",
 		},
-		// case 7
+		// case 8
 		{
 			endpoint:      "https://upload-actions-map.io",
 			expectederror: "missing action 'download'",
 		},
-		// case 8
+		// case 9
 		{
 			endpoint:      "https://verify-actions-map.io",
 			expectederror: "missing action 'download'",
 		},
-		// case 9
+		// case 10
 		{
 			endpoint:      "https://unknown-actions-map.io",
 			expectederror: "missing action 'download'",
 		},
-		// case 10
+		// case 11
 		{
 			endpoint:      "https://legacy-batch-request-download.io",
 			expectederror: "",
 		},
 	}
 
+	defer test.MockVariableValue(&setting.LFSClient.BatchOperationConcurrency, 1)()
 	for n, c := range cases {
 		client := &HTTPClient{
 			client:   hc,
@@ -251,7 +258,6 @@ func TestHTTPClientDownload(t *testing.T) {
 				"dummy": dummy,
 			},
 		}
-		setting.LFSClient.BatchOperationConcurrency = 1
 
 		err := client.Download(context.Background(), []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
 			if objectError != nil {
