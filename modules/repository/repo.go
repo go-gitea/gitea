@@ -340,9 +340,10 @@ func pullMirrorReleaseSync(ctx context.Context, repo *repo_model.Repository, git
 
 		for _, tag := range updates {
 			if _, err := db.GetEngine(ctx).Where("repo_id = ? AND lower_tag_name = ?", repo.ID, strings.ToLower(tag.Name)).
-				Cols("sha1").
+				Cols("sha1", "created_unix").
 				Update(&repo_model.Release{
-					Sha1: tag.Object.String(),
+					Sha1:        tag.Object.String(),
+					CreatedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
 				}); err != nil {
 				return fmt.Errorf("unable to update tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
 			}
