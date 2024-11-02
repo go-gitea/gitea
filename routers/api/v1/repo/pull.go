@@ -555,7 +555,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 		}
 	}
 	// handle reviewers
-	var reviewerIds []int64
+	var reviewerIDs []int64
 
 	for _, r := range form.Reviewers {
 		var reviewer *user_model.User
@@ -573,7 +573,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetUser", err)
 			return
 		}
-		reviewerIds = append(reviewerIds, reviewer.ID)
+		reviewerIDs = append(reviewerIDs, reviewer.ID)
 	}
 
 	// handle teams as reviewers
@@ -589,11 +589,11 @@ func CreatePullRequest(ctx *context.APIContext) {
 				ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
 				return
 			}
-			reviewerIds = append(reviewerIds, -teamReviewer.ID)
+			reviewerIDs = append(reviewerIDs, -teamReviewer.ID)
 		}
 	}
 
-	if err := pull_service.NewPullRequest(ctx, repo, prIssue, labelIDs, []string{}, pr, assigneeIDs, reviewerIds); err != nil {
+	if err := pull_service.NewPullRequest(ctx, repo, prIssue, labelIDs, []string{}, pr, assigneeIDs, reviewerIDs); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
