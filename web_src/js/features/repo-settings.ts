@@ -6,7 +6,7 @@ import {POST} from '../modules/fetch.ts';
 
 const {appSubUrl, csrfToken} = window.config;
 
-export function initRepoSettingsCollaboration() {
+function initRepoSettingsCollaboration() {
   // Change collaborator access mode
   for (const dropdownEl of queryElems('.page-content.repository .ui.dropdown.access-mode')) {
     const textEl = dropdownEl.querySelector(':scope > .text');
@@ -43,7 +43,7 @@ export function initRepoSettingsCollaboration() {
   }
 }
 
-export function initRepoSettingSearchTeamBox() {
+function initRepoSettingsSearchTeamBox() {
   const searchTeamBox = document.querySelector('#search-team-box');
   if (!searchTeamBox) return;
 
@@ -69,13 +69,13 @@ export function initRepoSettingSearchTeamBox() {
   });
 }
 
-export function initRepoSettingGitHook() {
+function initRepoSettingsGitHook() {
   if (!$('.edit.githook').length) return;
   const filename = document.querySelector('.hook-filename').textContent;
-  const _promise = createMonaco($('#content')[0], filename, {language: 'shell'});
+  createMonaco($('#content')[0], filename, {language: 'shell'});
 }
 
-export function initRepoSettingBranches() {
+function initRepoSettingsBranches() {
   if (!document.querySelector('.repository.settings.branches')) return;
 
   for (const el of document.querySelectorAll('.toggle-target-enabled')) {
@@ -116,4 +116,42 @@ export function initRepoSettingBranches() {
   };
   markMatchedStatusChecks();
   document.querySelector('#status_check_contexts').addEventListener('input', onInputDebounce(markMatchedStatusChecks));
+}
+
+function initRepoSettingsOptions() {
+  if ($('.repository.settings.options').length > 0) {
+    // Enable or select internal/external wiki system and issue tracker.
+    $('.enable-system').on('change', function () {
+      if (this.checked) {
+        $($(this).data('target')).removeClass('disabled');
+        if (!$(this).data('context')) $($(this).data('context')).addClass('disabled');
+      } else {
+        $($(this).data('target')).addClass('disabled');
+        if (!$(this).data('context')) $($(this).data('context')).removeClass('disabled');
+      }
+    });
+    $('.enable-system-radio').on('change', function () {
+      if (this.value === 'false') {
+        $($(this).data('target')).addClass('disabled');
+        if ($(this).data('context') !== undefined) $($(this).data('context')).removeClass('disabled');
+      } else if (this.value === 'true') {
+        $($(this).data('target')).removeClass('disabled');
+        if ($(this).data('context') !== undefined) $($(this).data('context')).addClass('disabled');
+      }
+    });
+    const $trackerIssueStyleRadios = $('.js-tracker-issue-style');
+    $trackerIssueStyleRadios.on('change input', () => {
+      const checkedVal = $trackerIssueStyleRadios.filter(':checked').val();
+      $('#tracker-issue-style-regex-box').toggleClass('disabled', checkedVal !== 'regexp');
+    });
+  }
+}
+
+export function initRepoSettings() {
+  if (!document.querySelector('.page-content.repository.settings')) return;
+  initRepoSettingsOptions();
+  initRepoSettingsBranches();
+  initRepoSettingsCollaboration();
+  initRepoSettingsSearchTeamBox();
+  initRepoSettingsGitHook();
 }
