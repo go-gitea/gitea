@@ -147,10 +147,6 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 			if err != nil {
 				return err
 			}
-			_, err = issue_service.ReviewRequest(ctx, issue, issue.Poster, reviewer, true)
-			if err != nil {
-				return err
-			}
 		}
 
 		pr.Issue = issue
@@ -233,6 +229,17 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 			return ErrDependenciesLeft
 		}
 		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
+	}
+
+	for _, reviewerID := range reviewerIDs {
+		reviewer, err := user_model.GetUserByID(ctx, reviewerID)
+		if err != nil {
+			return ErrDependenciesLeft
+		}
+		_, err = issue_service.ReviewRequest(ctx, issue, issue.Poster, reviewer, true)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
