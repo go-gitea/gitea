@@ -11,18 +11,9 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/context"
 )
-
-type issueSuggestion struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	State       string `json:"state"`
-	PullRequest *struct {
-		Merged bool `json:"merged"`
-		Draft  bool `json:"draft"`
-	} `json:"pull_request,omitempty"`
-}
 
 // IssueSuggestions returns a list of issue suggestions
 func IssueSuggestions(ctx *context.Context) {
@@ -61,13 +52,14 @@ func IssueSuggestions(ctx *context.Context) {
 		return
 	}
 
-	suggestions := make([]*issueSuggestion, 0, len(issues))
+	suggestions := make([]*structs.Issue, 0, len(issues))
 
 	for _, issue := range issues {
-		suggestion := &issueSuggestion{
+		suggestion := &structs.Issue{
 			ID:    issue.ID,
+			Index: issue.Index,
 			Title: issue.Title,
-			State: string(issue.State()),
+			State: issue.State(),
 		}
 
 		if issue.IsPull {
@@ -76,12 +68,9 @@ func IssueSuggestions(ctx *context.Context) {
 				return
 			}
 			if issue.PullRequest != nil {
-				suggestion.PullRequest = &struct {
-					Merged bool `json:"merged"`
-					Draft  bool `json:"draft"`
-				}{
-					Merged: issue.PullRequest.HasMerged,
-					Draft:  issue.PullRequest.IsWorkInProgress(ctx),
+				suggestion.PullRequest = &structs.PullRequestMeta{
+					HasMerged:        issue.PullRequest.HasMerged,
+					IsWorkInProgress: issue.PullRequest.IsWorkInProgress(ctx),
 				}
 			}
 		}

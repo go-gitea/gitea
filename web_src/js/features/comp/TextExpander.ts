@@ -1,39 +1,29 @@
 import {matchEmoji, matchMention, matchIssue} from '../../utils/match.ts';
 import {emojiString} from '../emoji.ts';
 import {svg} from '../../svg.ts';
-import {parseIssueHref} from '../../utils.ts';
+import {parseIssueHref, parseIssueNewHref} from '../../utils.ts';
 import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
 import {getIssueColor, getIssueIcon} from '../issue.ts';
 import {debounce} from 'perfect-debounce';
 
 const debouncedSuggestIssues = debounce((key: string, text: string) => new Promise<{matched:boolean; fragment?: HTMLElement}>(async (resolve) => {
-  const {owner, repo, index} = parseIssueHref(window.location.href);
-  const matches = await matchIssue(owner, repo, index, text);
+  let issuePathInfo = parseIssueHref(window.location.href);
+  if (!issuePathInfo.ownerName) issuePathInfo = parseIssueNewHref(window.location.href);
+  if (!issuePathInfo.ownerName) return resolve({matched: false});
+
+  const matches = await matchIssue(issuePathInfo.ownerName, issuePathInfo.repoName, issuePathInfo.indexString, text);
   if (!matches.length) return resolve({matched: false});
 
-  const ul = document.createElement('ul');
-  ul.classList.add('suggestions');
+  const ul = createElementFromAttrs('ul', {class: 'suggestions'});
   for (const issue of matches) {
-    const li = createElementFromAttrs('li', {
-      role: 'option',
-      'data-value': `${key}${issue.id}`,
-      class: 'tw-flex tw-gap-2',
-    });
-
-    const icon = svg(getIssueIcon(issue), 16, ['text', getIssueColor(issue)].join(' '));
-    li.append(createElementFromHTML(icon));
-
-    const id = document.createElement('span');
-    id.textContent = issue.id.toString();
-    li.append(id);
-
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = issue.title;
-    li.append(nameSpan);
-
+    const li = createElementFromAttrs(
+      'li', {role: 'option', class: 'tw-flex tw-gap-2', 'data-value': `${key}${issue.number}`},
+      createElementFromHTML(svg(getIssueIcon(issue), 16, ['text', getIssueColor(issue)])),
+      createElementFromAttrs('span', null, `#${issue.number}`),
+      createElementFromAttrs('span', null, issue.title),
+    );
     ul.append(li);
   }
-
   resolve({matched: true, fragment: ul});
 }), 100);
 
