@@ -7,6 +7,8 @@ import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} fr
 import {toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
+import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
+import {updateIssuesMeta} from './repo-common.ts';
 
 const {appSubUrl} = window.config;
 
@@ -369,17 +371,6 @@ export function initRepoIssueWipTitle() {
   });
 }
 
-export async function updateIssuesMeta(url, action, issue_ids, id) {
-  try {
-    const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
-    if (!response.ok) {
-      throw new Error('Failed to update issues meta');
-    }
-  } catch (error) {
-    console.error(error);
-  }
-}
-
 export function initRepoIssueComments() {
   if (!$('.repository.view.issue .timeline').length) return;
 
@@ -665,7 +656,7 @@ export function initRepoIssueBranchSelect() {
   });
 }
 
-export async function initSingleCommentEditor($commentForm) {
+async function initSingleCommentEditor($commentForm) {
   // pages:
   // * normal new issue/pr page: no status-button, no comment-button (there is only a normal submit button which can submit empty content)
   // * issue/pr view page: with comment form, has status-button and comment-button
@@ -687,7 +678,7 @@ export async function initSingleCommentEditor($commentForm) {
   syncUiState();
 }
 
-export function initIssueTemplateCommentEditors($commentForm) {
+function initIssueTemplateCommentEditors($commentForm) {
   // pages:
   // * new issue with issue template
   const $comboFields = $commentForm.find('.combo-editor-dropzone');
@@ -732,4 +723,19 @@ export function initArchivedLabelHandler() {
   for (const label of document.querySelectorAll('[data-is-archived]')) {
     toggleElem(label, label.classList.contains('checked'));
   }
+}
+
+export function initRepoCommentFormAndSidebar() {
+  const $commentForm = $('.comment.form');
+  if (!$commentForm.length) return;
+
+  if ($commentForm.find('.field.combo-editor-dropzone').length) {
+    // at the moment, if a form has multiple combo-markdown-editors, it must be an issue template form
+    initIssueTemplateCommentEditors($commentForm);
+  } else if ($commentForm.find('.combo-markdown-editor').length) {
+    // it's quite unclear about the "comment form" elements, sometimes it's for issue comment, sometimes it's for file editor/uploader message
+    initSingleCommentEditor($commentForm);
+  }
+
+  initRepoIssueSidebar();
 }
