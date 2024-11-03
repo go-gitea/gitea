@@ -12,9 +12,7 @@ import (
 )
 
 // DateTime renders an absolute time HTML element by datetime.
-func DateTime(format string, datetime any, extraAttrs ...string) template.HTML {
-	// TODO: remove the extraAttrs argument, it's not used in any call to DateTime
-
+func DateTime(format string, datetime any) template.HTML {
 	if p, ok := datetime.(*time.Time); ok {
 		datetime = *p
 	}
@@ -34,9 +32,6 @@ func DateTime(format string, datetime any, extraAttrs ...string) template.HTML {
 	switch v := datetime.(type) {
 	case nil:
 		return "-"
-	case string:
-		datetimeEscaped = html.EscapeString(v)
-		textEscaped = datetimeEscaped
 	case time.Time:
 		if v.IsZero() || v.Unix() == 0 {
 			return "-"
@@ -51,10 +46,7 @@ func DateTime(format string, datetime any, extraAttrs ...string) template.HTML {
 		panic(fmt.Sprintf("Unsupported time type %T", datetime))
 	}
 
-	attrs := make([]string, 0, 10+len(extraAttrs))
-	attrs = append(attrs, extraAttrs...)
-	attrs = append(attrs, `weekday=""`, `year="numeric"`)
-
+	attrs := []string{`weekday=""`, `year="numeric"`}
 	switch format {
 	case "short", "long": // date only
 		attrs = append(attrs, `month="`+format+`"`, `day="numeric"`)
