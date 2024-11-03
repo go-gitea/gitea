@@ -116,7 +116,7 @@
 											{{if .DeadlineString}}
 												<span{{if .IsOverdue}} class="text red"{{end}}>
 													{{svg "octicon-calendar" 14}}
-													{{DateTime "short" .DeadlineString}}
+													{{ctx.DateUtils.AbsoluteShort (.DeadlineString|ctx.DateUtils.ParseLegacy)}}
 												</span>
 											{{else}}
 												{{svg "octicon-calendar" 14}}
