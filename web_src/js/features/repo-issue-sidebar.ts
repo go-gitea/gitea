@@ -223,6 +223,8 @@ function selectItem(select_id, input_id) {
       icon = svg('octicon-project', 18, 'tw-mr-2');
     } else if (input_id === '#assignee_id') {
       icon = `<img class="ui avatar image tw-mr-2" alt="avatar" src=${$(this).data('avatar')}>`;
+    } else if (input_id === '#reviewer_id') {
+      icon = `<img class="ui avatar image tw-mr-2" alt="avatar" src=${$(this).data('avatar')}>`;
     }
 
     $list.find('.selected').html(`
@@ -265,10 +267,12 @@ export function initRepoIssueSidebar() {
   initListSubmits('select-label', 'labels');
   initListSubmits('select-assignees', 'assignees');
   initListSubmits('select-assignees-modify', 'assignees');
+  initListSubmits('select-reviewers', 'reviewers');
   initListSubmits('select-reviewers-modify', 'assignees');
 
   // Milestone, Assignee, Project
   selectItem('.select-project', '#project_id');
   selectItem('.select-milestone', '#milestone_id');
   selectItem('.select-assignee', '#assignee_id');
+  selectItem('.select-reviewer', '#reviewer_id');
 }
