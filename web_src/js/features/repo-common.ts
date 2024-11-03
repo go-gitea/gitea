@@ -90,3 +90,14 @@ export function initRepoCommonFilterSearchDropdown(selector) {
     message: {noResults: $dropdown[0].getAttribute('data-no-results')},
   });
 }
+
+export async function updateIssuesMeta(url, action, issue_ids, id) {
+  try {
+    const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
+    if (!response.ok) {
+      throw new Error('Failed to update issues meta');
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
