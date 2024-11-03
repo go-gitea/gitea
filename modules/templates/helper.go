@@ -73,7 +73,7 @@ func NewFuncMap() template.FuncMap {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
 
-		// for backward compatibility only, do not use it anymore
+		// for backward compatibility only, do not use them anymore
 		"TimeSince":     timeSinceLegacy,
 		"TimeSinceUnix": timeSinceLegacy,
 		"DateTime":      dateTimeLegacy,

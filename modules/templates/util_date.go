@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 )
 
 type DateUtils struct{}
@@ -63,7 +64,7 @@ func dateTimeLegacy(format string, datetime any, _ ...string) template.HTML {
 	return dateTimeFormat(format, datetime)
 }
 
-func timeSinceLegacy(time any, _ ...any) template.HTML {
+func timeSinceLegacy(time any, _ translation.Locale) template.HTML {
 	if !setting.IsProd || setting.IsInTesting {
 		panic("timeSinceLegacy is for backward compatibility only, do not use it in new code")
 	}
@@ -74,9 +75,15 @@ func anyToTime(any any) (t time.Time, isZero bool) {
 	switch v := any.(type) {
 	case nil:
 		// it is zero
+	case *time.Time:
+		if v != nil {
+			t = *v
+		}
 	case time.Time:
 		t = v
 	case timeutil.TimeStamp:
+		t = v.AsTime()
+	case timeutil.TimeStampNano:
 		t = v.AsTime()
 	case int:
 		t = timeutil.TimeStamp(v).AsTime()
