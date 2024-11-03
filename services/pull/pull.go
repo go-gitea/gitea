@@ -117,38 +117,6 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 			assigneeCommentMap[assigneeID] = comment
 		}
 
-		for _, reviewerID := range reviewerIDs {
-			// negative reviewIDs represent team requests
-			if reviewerID < 0 {
-				team, err := organization.GetTeamByID(ctx, -reviewerID)
-				if err != nil {
-					return err
-				}
-				err = issue_service.IsValidTeamReviewRequest(ctx, team, issue.Poster, true, issue)
-				if err != nil {
-					return err
-				}
-				_, err = issue_service.TeamReviewRequest(ctx, issue, issue.Poster, team, true)
-				if err != nil {
-					return err
-				}
-				continue
-			}
-
-			reviewer, err := user_model.GetUserByID(ctx, reviewerID)
-			if err != nil {
-				return err
-			}
-			permDoer, err := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
-			if err != nil {
-				return err
-			}
-			err = issue_service.IsValidReviewRequest(ctx, reviewer, issue.Poster, true, issue, &permDoer)
-			if err != nil {
-				return err
-			}
-		}
-
 		pr.Issue = issue
 		issue.PullRequest = pr
 
@@ -232,11 +200,32 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	}
 
 	for _, reviewerID := range reviewerIDs {
+		// negative reviewIDs represent team requests
+		if reviewerID < 0 {
+			team, err := organization.GetTeamByID(ctx, -reviewerID)
+			if err != nil {
+				return err
+			}
+			err = issue_service.IsValidTeamReviewRequest(ctx, team, issue.Poster, true, issue)
+			if err != nil {
+				return err
+			}
+			_, err = issue_service.TeamReviewRequest(ctx, issue, issue.Poster, team, true)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
 		reviewer, err := user_model.GetUserByID(ctx, reviewerID)
 		if err != nil {
-			return ErrDependenciesLeft
+			return err
 		}
-		_, err = issue_service.ReviewRequest(ctx, issue, issue.Poster, reviewer, true)
+		permDoer, err := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+		if err != nil {
+			return err
+		}
+		err = issue_service.IsValidReviewRequest(ctx, reviewer, issue.Poster, true, issue, &permDoer)
 		if err != nil {
 			return err
 		}
