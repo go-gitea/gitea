@@ -14,29 +14,6 @@ import (
 // CommentList defines a list of comments
 type CommentList []*ConversationComment
 
-// LoadPosters loads posters
-func (comments CommentList) LoadPosters(ctx context.Context) error {
-	if len(comments) == 0 {
-		return nil
-	}
-
-	posterIDs := container.FilterSlice(comments, func(c *ConversationComment) (int64, bool) {
-		return c.PosterID, c.Poster == nil && c.PosterID > 0
-	})
-
-	posterMaps, err := getPostersByIDs(ctx, posterIDs)
-	if err != nil {
-		return err
-	}
-
-	for _, comment := range comments {
-		if comment.Poster == nil {
-			comment.Poster = getPoster(comment.PosterID, posterMaps)
-		}
-	}
-	return nil
-}
-
 // getConversationIDs returns all the conversation ids on this comment list which conversation hasn't been loaded
 func (comments CommentList) getConversationIDs() []int64 {
 	return container.FilterSlice(comments, func(comment *ConversationComment) (int64, bool) {
@@ -181,10 +158,6 @@ func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 // LoadAttributes loads attributes of the comments, except for attachments and
 // comments
 func (comments CommentList) LoadAttributes(ctx context.Context) (err error) {
-	if err = comments.LoadPosters(ctx); err != nil {
-		return err
-	}
-
 	if err = comments.LoadAttachments(ctx); err != nil {
 		return err
 	}
