@@ -38,7 +38,7 @@
 						{{if .Milestone.DeadlineString}}
 							<span{{if .IsOverdue}} class="text red"{{end}}>
 								{{svg "octicon-calendar"}}
-								{{ctx.DateUtils.AbsoluteShort (.Milestone.DeadlineString|ctx.DateUtils.ParseLegacy)}}
+								{{DateUtils.AbsoluteShort (.Milestone.DeadlineString|DateUtils.ParseLegacy)}}
 							</span>
 						{{else}}
 							{{svg "octicon-calendar"}}

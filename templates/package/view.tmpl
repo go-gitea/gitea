@@ -92,7 +92,7 @@
 				{{range .LatestVersions}}
 					<div class="item tw-flex">
 						<a class="tw-flex-1 gt-ellipsis" title="{{.Version}}" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
-						<span class="text small">{{ctx.DateUtils.AbsoluteShort .CreatedUnix}}</span>
+						<span class="text small">{{DateUtils.AbsoluteShort .CreatedUnix}}</span>
 					</div>
 				{{end}}
 				</div>

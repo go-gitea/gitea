@@ -59,7 +59,7 @@
 									{{if .DeadlineString}}
 										<span class="flex-text-inline {{if .IsOverdue}}text red{{end}}">
 											{{svg "octicon-calendar" 14}}
-											{{ctx.DateUtils.AbsoluteShort (.DeadlineString|ctx.DateUtils.ParseLegacy)}}
+											{{DateUtils.AbsoluteShort (.DeadlineString|DateUtils.ParseLegacy)}}
 										</span>
 									{{else}}
 										{{svg "octicon-calendar" 14}}
