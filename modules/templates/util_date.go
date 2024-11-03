@@ -72,6 +72,8 @@ func timeSinceLegacy(time any, _ ...any) template.HTML {
 
 func anyToTime(any any) (t time.Time, isZero bool) {
 	switch v := any.(type) {
+	case nil:
+		// it is zero
 	case time.Time:
 		t = v
 	case timeutil.TimeStamp:

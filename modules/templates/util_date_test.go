@@ -19,7 +19,7 @@ func TestDateTime(t *testing.T) {
 	defer test.MockVariableValue(&setting.DefaultUILocation, testTz)()
 	defer test.MockVariableValue(&setting.IsInTesting, false)()
 
-	du := NewDateUtils(nil)
+	du := NewDateUtils()
 
 	refTimeStr := "2018-01-01T00:00:00Z"
 	refDateStr := "2018-01-01"
