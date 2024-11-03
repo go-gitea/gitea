@@ -130,11 +130,11 @@ func TestConversation_InsertConversation(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// there are 5 conversations and max index is 5 on repository 1, so this one should 6
-	conversation := testInsertConversation(t, "my conversation1", "special conversation's comments?", 6)
+	conversation := testInsertConversation(t, "my conversation1", 6)
 	_, err := db.DeleteByID[conversations_model.Conversation](db.DefaultContext, conversation.ID)
 	assert.NoError(t, err)
 
-	conversation = testInsertConversation(t, `my conversation2, this is my son's love \n \r \ `, "special conversation's '' comments?", 7)
+	conversation = testInsertConversation(t, `my conversation2, this is my son's love \n \r \ `, 7)
 	_, err = db.DeleteByID[conversations_model.Conversation](db.DefaultContext, conversation.ID)
 	assert.NoError(t, err)
 }
@@ -146,7 +146,7 @@ func TestResourceIndex(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func(i int) {
-			testInsertConversation(t, fmt.Sprintf("conversation %d", i+1), "my conversation", 0)
+			testInsertConversation(t, fmt.Sprintf("conversation %d", i+1), 0)
 			wg.Done()
 		}(i)
 	}
@@ -168,7 +168,7 @@ func TestCorrectConversationStats(t *testing.T) {
 	for i := 0; i < conversationAmount; i++ {
 		wg.Add(1)
 		go func(i int) {
-			testInsertConversation(t, fmt.Sprintf("Conversation %d", i+1), "Bugs are nasty", 0)
+			testInsertConversation(t, fmt.Sprintf("Conversation %d", i+1), 0)
 			wg.Done()
 		}(i)
 	}
@@ -228,7 +228,11 @@ func TestConversationLoadAttributes(t *testing.T) {
 	}
 }
 
-func assertCreateConversations(t *testing.T, isPull bool) {
+func TestCreateConversation(t *testing.T) {
+	assertCreateConversations(t)
+}
+
+func assertCreateConversations(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	reponame := "repo1"
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame})
@@ -245,7 +249,7 @@ func assertCreateConversations(t *testing.T, isPull bool) {
 	unittest.AssertExistsAndLoadBean(t, &conversations_model.Conversation{RepoID: repo.ID, ID: conversationID})
 }
 
-func testInsertConversation(t *testing.T, title, content string, expectIndex int64) *conversations_model.Conversation {
+func testInsertConversation(t *testing.T, title string, expectIndex int64) *conversations_model.Conversation {
 	var newConversation conversations_model.Conversation
 	t.Run(title, func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})

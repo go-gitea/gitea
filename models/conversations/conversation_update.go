@@ -423,7 +423,7 @@ func NewConversation(ctx context.Context, repo *repo_model.Repository, conversat
 	}
 
 	if err = committer.Commit(); err != nil {
-		return fmt.Errorf("Commit: %w", err)
+		return fmt.Errorf("commit: %w", err)
 	}
 
 	return nil
