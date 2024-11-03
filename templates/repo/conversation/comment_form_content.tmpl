@@ -1,24 +1,24 @@
 {{template "repo/conversation/comment_tab" .}}
 {{.CsrfTokenHtml}}
 <div class="field footer">
-    <div class="text right">
-        {{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
-            {{if and .IsIssue .Issue.IsClosed}}
-                <button id="status-button" class="ui primary basic button" data-status="{{ctx.Locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
-                    {{ctx.Locale.Tr "repo.issues.reopen_issue"}}
-                </button>
-            {{else}}
-                {{$closeTranslationKey := "repo.issues.close"}}
-                {{if and .IsIssue .Issue.IsPull}}
-                    {{$closeTranslationKey = "repo.pulls.close"}}
-                {{end}}
-                <button id="status-button" class="ui red basic button" data-status="{{ctx.Locale.Tr $closeTranslationKey}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.close_comment_issue"}}" name="status" value="close">
-                    {{ctx.Locale.Tr $closeTranslationKey}}
-                </button>
-            {{end}}
-        {{end}}
-        <button id="comment-button" class="ui primary button">
-            {{ctx.Locale.Tr "repo.issues.create_comment"}}
-        </button>
-    </div>
+	<div class="text right">
+		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
+			{{if and .IsIssue .Issue.IsClosed}}
+				<button id="status-button" class="ui primary basic button" data-status="{{ctx.Locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
+					{{ctx.Locale.Tr "repo.issues.reopen_issue"}}
+				</button>
+			{{else}}
+				{{$closeTranslationKey := "repo.issues.close"}}
+				{{if and .IsIssue .Issue.IsPull}}
+					{{$closeTranslationKey = "repo.pulls.close"}}
+				{{end}}
+				<button id="status-button" class="ui red basic button" data-status="{{ctx.Locale.Tr $closeTranslationKey}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.close_comment_issue"}}" name="status" value="close">
+					{{ctx.Locale.Tr $closeTranslationKey}}
+				</button>
+			{{end}}
+		{{end}}
+		<button id="comment-button" class="ui primary button">
+			{{ctx.Locale.Tr "repo.issues.create_comment"}}
+		</button>
+	</div>
 </div>

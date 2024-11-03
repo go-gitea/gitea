@@ -1,27 +1,27 @@
 <!-- Pass in IsIssue (bool) if this conversation is attached to an Issue -->
 <div class="conversation-container">
-    {{if .ConversationTitle}}
-        <div class="divider"></div>
+	{{if .ConversationTitle}}
+		<div class="divider"></div>
 		<h2 class="tw-mb-0 tw-flex-1">
-            <span class="conversation-title" title="Comments">{{.ConversationTitle}}</span>
-        </h2>
-        <div class="divider"></div>
-    {{end}}
-    <div class="conversation-content comment-list prevent-before-timeline">
-        <div class="ui timeline">
-            {{if .IsIssue}}
-                {{template "repo/conversation/issue_header_comment" .}}
-            {{end}}
+			<span class="conversation-title" title="Comments">{{.ConversationTitle}}</span>
+		</h2>
+		<div class="divider"></div>
+	{{end}}
+	<div class="conversation-content comment-list prevent-before-timeline">
+		<div class="ui timeline">
+			{{if .IsIssue}}
+				{{template "repo/conversation/issue_header_comment" .}}
+			{{end}}
 
-            {{template "repo/conversation/comments" .}}
+			{{template "repo/conversation/comments" .}}
 
-            {{if .IsIssue}}
-                {{if and .Issue.IsPull (not $.Repository.IsArchived)}}
-                    {{template "repo/issue/view_content/pull".}}
-                {{end}}
-            {{end}}
+			{{if .IsIssue}}
+				{{if and .Issue.IsPull (not $.Repository.IsArchived)}}
+					{{template "repo/issue/view_content/pull".}}
+				{{end}}
+			{{end}}
 
-            {{template "repo/conversation/comment_form" .}}
-        </div>
-    </div>
+			{{template "repo/conversation/comment_form" .}}
+		</div>
+	</div>
 </div>

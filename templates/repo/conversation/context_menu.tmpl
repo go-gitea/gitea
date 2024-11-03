@@ -11,7 +11,7 @@
 		{{if .pull}}
 			{{$referenceUrl = printf "%s/files#%s" .ctxData.Issue.Link .item.HashTag}}
 		{{end}}
-		
+
 		{{if .commit}}
 			{{$referenceUrl = printf "%s#%s" .ctxData.Conversation.Link .item.HashTag}}
 		{{end}}

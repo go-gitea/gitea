@@ -83,7 +83,7 @@
 							{{$EditURL:=printf "%s/%s/%d" $.RepoLink "conversations/comments" .ID}}
 							<div class="edit-content-zone tw-hidden" data-update-url="{{$EditURL}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$EditURL}}/attachments"></div>
 						{{end}}
-						
+
 						{{if .Attachments}}
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 						{{end}}

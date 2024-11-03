@@ -2,46 +2,46 @@
 <!-- If the user has not signed in, it shows a box to suggest sign in instead -->
 
 {{if .IsSigned}}
-    {{if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (not (and .IsIssue .Issue.IsLocked))) (not .Repository.IsArchived)}}
-    <div class="timeline-item comment form">
-        <a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
-            {{ctx.AvatarUtils.Avatar .SignedUser 40}}
-        </a>
-        <div class="content">
-            <div class="ui segment">
-                {{if .IsIssue}}
-                    <form class="ui form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
-                        {{template "repo/conversation/comment_form_content" .}}
-                    </form>
-                {{else}}
-                    <form class="ui form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/conversations/{{.Conversation.Index}}/comments" method="post">
-                        {{template "repo/conversation/comment_form_content" .}}
-                    </form>
-                {{end}}
-            </div>
-        </div>
-    </div>
-    {{else if .Repository.IsArchived}}
-        <div class="ui warning message tw-text-center">
-            {{if and .IsIssue .Issue.IsPull}}
-                {{ctx.Locale.Tr "repo.archive.pull.nocomment"}}
-            {{else}}
-                {{ctx.Locale.Tr "repo.archive.issue.nocomment"}}
-            {{end}}
-        </div>
-    {{end}}
+	{{if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (not (and .IsIssue .Issue.IsLocked))) (not .Repository.IsArchived)}}
+	<div class="timeline-item comment form">
+		<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
+			{{ctx.AvatarUtils.Avatar .SignedUser 40}}
+		</a>
+		<div class="content">
+			<div class="ui segment">
+				{{if .IsIssue}}
+					<form class="ui form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
+						{{template "repo/conversation/comment_form_content" .}}
+					</form>
+				{{else}}
+					<form class="ui form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/conversations/{{.Conversation.Index}}/comments" method="post">
+						{{template "repo/conversation/comment_form_content" .}}
+					</form>
+				{{end}}
+			</div>
+		</div>
+	</div>
+	{{else if .Repository.IsArchived}}
+		<div class="ui warning message tw-text-center">
+			{{if and .IsIssue .Issue.IsPull}}
+				{{ctx.Locale.Tr "repo.archive.pull.nocomment"}}
+			{{else}}
+				{{ctx.Locale.Tr "repo.archive.issue.nocomment"}}
+			{{end}}
+		</div>
+	{{end}}
 {{else}} {{/* not .IsSigned */}}
-    {{if .Repository.IsArchived}}
-        <div class="ui warning message tw-text-center">
-            {{if .IsIssue and .Issue.IsPull}}
-                {{ctx.Locale.Tr "repo.archive.pull.nocomment"}}
-            {{else}}
-                {{ctx.Locale.Tr "repo.archive.issue.nocomment"}}
-            {{end}}
-        </div>
-    {{else}}
-        <div class="ui warning message">
-            {{ctx.Locale.Tr "repo.issues.sign_in_require_desc" .SignInLink}}
-        </div>
-    {{end}}
+	{{if .Repository.IsArchived}}
+		<div class="ui warning message tw-text-center">
+			{{if .IsIssue and .Issue.IsPull}}
+				{{ctx.Locale.Tr "repo.archive.pull.nocomment"}}
+			{{else}}
+				{{ctx.Locale.Tr "repo.archive.issue.nocomment"}}
+			{{end}}
+		</div>
+	{{else}}
+		<div class="ui warning message">
+			{{ctx.Locale.Tr "repo.issues.sign_in_require_desc" .SignInLink}}
+		</div>
+	{{end}}
 {{end}}{{/* end if: .IsSigned */}}
