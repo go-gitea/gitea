@@ -338,3 +338,27 @@ func (conversation *Conversation) loadReactions(ctx context.Context) (err error)
 	}
 	return nil
 }
+
+// InsertConversations insert issues to database
+func InsertConversations(ctx context.Context, conversations ...*Conversation) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	for _, conversation := range conversations {
+		if err := insertConversation(ctx, conversation); err != nil {
+			return err
+		}
+	}
+	return committer.Commit()
+}
+
+func insertConversation(ctx context.Context, conversation *Conversation) error {
+	sess := db.GetEngine(ctx)
+	if _, err := sess.NoAutoTime().Insert(conversation); err != nil {
+		return err
+	}
+	return nil
+}
