@@ -53,11 +53,13 @@
 			<div class="ui {{if not .Reviewers}}disabled{{end}} floating jump select-reviewers dropdown">
 				<span class="text flex-text-block">
 					<strong>{{ctx.Locale.Tr "repo.issues.review.reviewers"}}</strong>
-					{{svg "octicon-gear" 16 "gt-ml-2"}}
+					{{if .HasIssuesOrPullsWritePermission}}
+						{{svg "octicon-gear" 16 "tw-ml-1"}}
+					{{end}}
 				</span>
 				<div class="filter menu" data-id="#reviewer_ids">
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_reviewers"}}">
 					</div>
 					<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_reviewers"}}</div>
@@ -75,9 +77,9 @@
 					{{range .Reviewers}}
 						{{if .Team}}
 							<a class="item muted" data-id="{{.ItemID}}" data-id-selector="#reviewer_{{.ItemID}}">
-								<span class="octicon-check gt-invisible">{{svg "octicon-check" 16}}</span>
+								<span class="octicon-check tw-invisible">{{svg "octicon-check" 16}}</span>
 								<span class="text">
-									{{svg "octicon-people" 16 "gt-ml-4 gt-mr-2"}}{{$.Repository.OwnerName}}/{{.Team.Name}}
+									{{svg "octicon-people" 16 "tw-ml-4 tw-mr-1"}}{{$.Repository.OwnerName}}/{{.Team.Name}}
 								</span>
 							</a>
 						{{end}}
@@ -96,7 +98,7 @@
 									</a>
 								{{else if .Team}}
 									<a class="item tw-p-1 muted tw-hidden" id="reviewer_{{.ItemID}}" href="{{.Team.Name}}">
-										{{ctx.AvatarUtils.Avatar .Team 28 "tw-mr-2 tw-align-middle"}}{{$.Repository.OwnerName}}/{{.Team.Name}}
+										{{svg "octicon-people" 20 "tw-mr-2"}}{{$.Repository.OwnerName}}/{{.Team.Name}}
 									</a>
 								{{end}}
 					{{end}}
