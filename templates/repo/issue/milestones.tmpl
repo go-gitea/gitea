@@ -52,7 +52,7 @@
 							{{end}}
 							<div class="flex-text-block">
 								{{if .IsClosed}}
-									{{$closedDate:= TimeSinceUnix .ClosedDateUnix ctx.Locale}}
+									{{$closedDate:= DateUtils.TimeSince .ClosedDateUnix}}
 									{{svg "octicon-clock" 14}}
 									{{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
 								{{else}}

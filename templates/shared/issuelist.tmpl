@@ -60,7 +60,7 @@
 							#{{.Index}}
 						{{end}}
 					</a>
-					{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
+					{{$timeStr := DateUtils.TimeSince .GetLastEventTimestamp}}
 					{{if .OriginalAuthor}}
 						{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor}}
 					{{else if gt .Poster.ID 0}}
