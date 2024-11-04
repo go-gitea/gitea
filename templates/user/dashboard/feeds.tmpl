@@ -78,7 +78,7 @@
 						{{$reviewer := index .GetIssueInfos 1}}
 						{{ctx.Locale.Tr "action.review_dismissed" (printf "%s/pulls/%s" (.GetRepoLink ctx) $index) $index (.ShortRepoPath ctx) $reviewer}}
 					{{end}}
-					{{TimeSince .GetCreate ctx.Locale}}
+					{{DateUtils.TimeSince .GetCreate}}
 				</div>
 				{{if .GetOpType.InActions "commit_repo" "mirror_sync_push"}}
 					{{$push := ActionContent2Commits .}}
