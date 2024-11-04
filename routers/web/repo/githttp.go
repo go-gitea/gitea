@@ -467,7 +467,7 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 		Stderr:            &stderr,
 		UseContextTimeout: true,
 	}); err != nil {
-		if err.Error() != "signal: killed" {
+		if !git.IsErrCanceledOrKilled(err) {
 			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.getRepoDir(), err, stderr.String())
 		}
 		return
