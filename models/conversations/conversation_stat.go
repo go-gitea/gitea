@@ -143,18 +143,6 @@ func applyConversationsOptions(sess *xorm.Session, opts *ConversationsOptions, c
 		sess.In("conversation.id", conversationIDs)
 	}
 
-	if opts.PosterID > 0 {
-		applyPosterCondition(sess, opts.PosterID)
-	}
-
-	if opts.MentionedID > 0 {
-		applyMentionedCondition(sess, opts.MentionedID)
-	}
-
-	if opts.IsPull.Has() {
-		sess.And("conversation.is_pull=?", opts.IsPull.Value())
-	}
-
 	return sess
 }
 
