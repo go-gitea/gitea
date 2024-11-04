@@ -1,6 +1,6 @@
 {{range .comments}}
 
-{{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
+{{$createdStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
 <div class="comment" id="{{.HashTag}}">
 	{{if .OriginalAuthor}}
 		<span class="avatar">{{ctx.AvatarUtils.Avatar nil}}</span>

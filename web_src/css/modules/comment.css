@@ -21,6 +21,7 @@
   padding: 0.5em 0 0;
   border: none;
   border-top: none;
+  line-height: 1.2;
 }
 
 .edit-content-zone .comment {

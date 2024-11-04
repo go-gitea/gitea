@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/services/context"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -72,10 +73,10 @@ func GetContentHistoryList(ctx *context.Context) {
 		class := avatars.DefaultAvatarClass + " tw-mr-2"
 		name := html.EscapeString(username)
 		avatarHTML := string(templates.AvatarHTML(src, 28, class, username))
-		timeSinceHTML := string(templates.TimeSince(item.EditedUnix))
+		timeSinceText := string(timeutil.TimeSinceUnix(item.EditedUnix, ctx.Locale))
 
 		results = append(results, map[string]any{
-			"name":  avatarHTML + "<strong>" + name + "</strong> " + actionText + " " + timeSinceHTML,
+			"name":  avatarHTML + "<strong>" + name + "</strong> " + actionText + " " + timeSinceText,
 			"value": item.HistoryID,
 		})
 	}

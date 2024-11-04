@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -279,7 +280,7 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 				commitCnt++
 
 				// User avatar image
-				commitSince := templates.TimeSince(commit.Author.When)
+				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Locale)
 
 				var avatar string
 				if commit.User != nil {

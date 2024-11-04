@@ -8,7 +8,7 @@
 					</div>
 				</div>
 			</th>
-			<th class="text grey right age">{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{DateUtils.TimeSince .LatestCommit.Committer.When}}{{end}}{{end}}</th>
+			<th class="text grey right age">{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{TimeSince .LatestCommit.Committer.When ctx.Locale}}{{end}}{{end}}</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -63,7 +63,7 @@
 						{{end}}
 					</span>
 				</td>
-				<td class="text right age three wide">{{if $commit}}{{DateUtils.TimeSince $commit.Committer.When}}{{end}}</td>
+				<td class="text right age three wide">{{if $commit}}{{TimeSince $commit.Committer.When ctx.Locale}}{{end}}</td>
 			</tr>
 		{{end}}
 	</tbody>

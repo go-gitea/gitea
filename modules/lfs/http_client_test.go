@@ -12,8 +12,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -185,84 +183,93 @@ func TestHTTPClientDownload(t *testing.T) {
 
 	cases := []struct {
 		endpoint      string
-		expectedError string
+		expectederror string
 	}{
+		// case 0
 		{
 			endpoint:      "https://status-not-ok.io",
-			expectedError: io.ErrUnexpectedEOF.Error(),
+			expectederror: io.ErrUnexpectedEOF.Error(),
 		},
+		// case 1
 		{
 			endpoint:      "https://invalid-json-response.io",
-			expectedError: "invalid json",
+			expectederror: "invalid json",
 		},
+		// case 2
 		{
 			endpoint:      "https://valid-batch-request-download.io",
-			expectedError: "",
+			expectederror: "",
 		},
+		// case 3
 		{
 			endpoint:      "https://response-no-objects.io",
-			expectedError: "",
+			expectederror: "",
 		},
+		// case 4
 		{
 			endpoint:      "https://unknown-transfer-adapter.io",
-			expectedError: "TransferAdapter not found: ",
+			expectederror: "TransferAdapter not found: ",
 		},
+		// case 5
 		{
 			endpoint:      "https://error-in-response-objects.io",
-			expectedError: "Object not found",
+			expectederror: "Object not found",
 		},
+		// case 6
 		{
 			endpoint:      "https://empty-actions-map.io",
-			expectedError: "missing action 'download'",
+			expectederror: "missing action 'download'",
 		},
+		// case 7
 		{
 			endpoint:      "https://download-actions-map.io",
-			expectedError: "",
+			expectederror: "",
 		},
+		// case 8
 		{
 			endpoint:      "https://upload-actions-map.io",
-			expectedError: "missing action 'download'",
+			expectederror: "missing action 'download'",
 		},
+		// case 9
 		{
 			endpoint:      "https://verify-actions-map.io",
-			expectedError: "missing action 'download'",
+			expectederror: "missing action 'download'",
 		},
+		// case 10
 		{
 			endpoint:      "https://unknown-actions-map.io",
-			expectedError: "missing action 'download'",
+			expectederror: "missing action 'download'",
 		},
+		// case 11
 		{
 			endpoint:      "https://legacy-batch-request-download.io",
-			expectedError: "",
+			expectederror: "",
 		},
 	}
 
-	defer test.MockVariableValue(&setting.LFSClient.BatchOperationConcurrency, 3)()
-	for _, c := range cases {
-		t.Run(c.endpoint, func(t *testing.T) {
-			client := &HTTPClient{
-				client:   hc,
-				endpoint: c.endpoint,
-				transfers: map[string]TransferAdapter{
-					"dummy": dummy,
-				},
-			}
+	for n, c := range cases {
+		client := &HTTPClient{
+			client:   hc,
+			endpoint: c.endpoint,
+			transfers: map[string]TransferAdapter{
+				"dummy": dummy,
+			},
+		}
 
-			err := client.Download(context.Background(), []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
-				if objectError != nil {
-					return objectError
-				}
-				b, err := io.ReadAll(content)
-				assert.NoError(t, err)
-				assert.Equal(t, []byte("dummy"), b)
-				return nil
-			})
-			if c.expectedError != "" {
-				assert.ErrorContains(t, err, c.expectedError)
-			} else {
-				assert.NoError(t, err)
+		err := client.Download(context.Background(), []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
+			if objectError != nil {
+				return objectError
 			}
+			b, err := io.ReadAll(content)
+			assert.NoError(t, err)
+			assert.Equal(t, []byte("dummy"), b)
+			return nil
 		})
+		if len(c.expectederror) > 0 {
+			assert.True(t, strings.Contains(err.Error(), c.expectederror), "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
+		} else {
+			assert.NoError(t, err, "case %d", n)
+		}
 	}
 }
 
@@ -289,73 +296,81 @@ func TestHTTPClientUpload(t *testing.T) {
 
 	cases := []struct {
 		endpoint      string
-		expectedError string
+		expectederror string
 	}{
+		// case 0
 		{
 			endpoint:      "https://status-not-ok.io",
-			expectedError: io.ErrUnexpectedEOF.Error(),
+			expectederror: io.ErrUnexpectedEOF.Error(),
 		},
+		// case 1
 		{
 			endpoint:      "https://invalid-json-response.io",
-			expectedError: "invalid json",
+			expectederror: "invalid json",
 		},
+		// case 2
 		{
 			endpoint:      "https://valid-batch-request-upload.io",
-			expectedError: "",
+			expectederror: "",
 		},
+		// case 3
 		{
 			endpoint:      "https://response-no-objects.io",
-			expectedError: "",
+			expectederror: "",
 		},
+		// case 4
 		{
 			endpoint:      "https://unknown-transfer-adapter.io",
-			expectedError: "TransferAdapter not found: ",
+			expectederror: "TransferAdapter not found: ",
 		},
+		// case 5
 		{
 			endpoint:      "https://error-in-response-objects.io",
-			expectedError: "Object not found",
+			expectederror: "Object not found",
 		},
+		// case 6
 		{
 			endpoint:      "https://empty-actions-map.io",
-			expectedError: "",
+			expectederror: "",
 		},
+		// case 7
 		{
 			endpoint:      "https://download-actions-map.io",
-			expectedError: "missing action 'upload'",
+			expectederror: "missing action 'upload'",
 		},
+		// case 8
 		{
 			endpoint:      "https://upload-actions-map.io",
-			expectedError: "",
+			expectederror: "",
 		},
+		// case 9
 		{
 			endpoint:      "https://verify-actions-map.io",
-			expectedError: "missing action 'upload'",
+			expectederror: "missing action 'upload'",
 		},
+		// case 10
 		{
 			endpoint:      "https://unknown-actions-map.io",
-			expectedError: "missing action 'upload'",
+			expectederror: "missing action 'upload'",
 		},
 	}
 
-	defer test.MockVariableValue(&setting.LFSClient.BatchOperationConcurrency, 3)()
-	for _, c := range cases {
-		t.Run(c.endpoint, func(t *testing.T) {
-			client := &HTTPClient{
-				client:   hc,
-				endpoint: c.endpoint,
-				transfers: map[string]TransferAdapter{
-					"dummy": dummy,
-				},
-			}
+	for n, c := range cases {
+		client := &HTTPClient{
+			client:   hc,
+			endpoint: c.endpoint,
+			transfers: map[string]TransferAdapter{
+				"dummy": dummy,
+			},
+		}
 
-			err := client.Upload(context.Background(), []Pointer{p}, func(p Pointer, objectError error) (io.ReadCloser, error) {
-				return io.NopCloser(new(bytes.Buffer)), objectError
-			})
-			if c.expectedError != "" {
-				assert.ErrorContains(t, err, c.expectedError)
-			} else {
-				assert.NoError(t, err)
-			}
+		err := client.Upload(context.Background(), []Pointer{p}, func(p Pointer, objectError error) (io.ReadCloser, error) {
+			return io.NopCloser(new(bytes.Buffer)), objectError
 		})
+		if len(c.expectederror) > 0 {
+			assert.True(t, strings.Contains(err.Error(), c.expectederror), "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
+		} else {
+			assert.NoError(t, err, "case %d", n)
+		}
 	}
 }

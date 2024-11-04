@@ -62,9 +62,9 @@
 							</a>
 							<div class="notifications-updated tw-items-center tw-mr-2">
 								{{if .Issue}}
-									{{DateUtils.TimeSince .Issue.UpdatedUnix}}
+									{{TimeSinceUnix .Issue.UpdatedUnix ctx.Locale}}
 								{{else}}
-									{{DateUtils.TimeSince .UpdatedUnix}}
+									{{TimeSinceUnix .UpdatedUnix ctx.Locale}}
 								{{end}}
 							</div>
 							<div class="notifications-buttons tw-items-center tw-justify-end tw-gap-1 tw-px-1">

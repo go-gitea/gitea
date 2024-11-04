@@ -1,7 +1,7 @@
 import {imageInfo} from '../../utils/image.ts';
 import {replaceTextareaSelection} from '../../utils/dom.ts';
 import {isUrl} from '../../utils/url.ts';
-import {textareaInsertText, triggerEditorContentChanged} from './EditorMarkdown.ts';
+import {triggerEditorContentChanged} from './EditorMarkdown.ts';
 import {
   DropzoneCustomEventRemovedFile,
   DropzoneCustomEventUploadDone,
@@ -41,7 +41,14 @@ class TextareaEditor {
   }
 
   insertPlaceholder(value) {
-    textareaInsertText(this.editor, value);
+    const editor = this.editor;
+    const startPos = editor.selectionStart;
+    const endPos = editor.selectionEnd;
+    editor.value = editor.value.substring(0, startPos) + value + editor.value.substring(endPos);
+    editor.selectionStart = startPos;
+    editor.selectionEnd = startPos + value.length;
+    editor.focus();
+    triggerEditorContentChanged(editor);
   }
 
   replacePlaceholder(oldVal, newVal) {
