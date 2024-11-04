@@ -194,13 +194,13 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		ctx.ServerError("CanMarkConversation", err)
 		return
 	}
-	ctx.Data["Issue"] = comment.Issue
-	ctx.Data["IsIssue"] = true
-	ctx.Data["Comments"] = comment.Issue.Comments
 	if err = comment.Issue.LoadPullRequest(ctx); err != nil {
 		ctx.ServerError("comment.Issue.LoadPullRequest", err)
 		return
 	}
+	ctx.Data["Issue"] = comment.Issue
+	ctx.Data["IsIssue"] = true
+	ctx.Data["Comments"] = comment.Issue.Comments
 	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(comment.Issue.PullRequest.GetGitRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
