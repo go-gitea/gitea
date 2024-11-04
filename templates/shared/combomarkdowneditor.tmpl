@@ -21,7 +21,11 @@ Template Attributes:
 	<div class="ui tab active" data-tab-panel="markdown-writer">
 		<markdown-toolbar>
 			<div class="markdown-toolbar-group">
-				<md-header class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.heading.tooltip"}}">{{svg "octicon-heading"}}</md-header>
+				<md-header class="markdown-toolbar-button" level="1" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.heading.tooltip"}}">{{svg "octicon-heading"}}</md-header>
+				<md-header class="markdown-toolbar-button" level="2" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.heading.tooltip"}}">{{svg "octicon-heading"}}</md-header>
+				<md-header class="markdown-toolbar-button" level="3" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.heading.tooltip"}}">{{svg "octicon-heading"}}</md-header>
+			</div>
+			<div class="markdown-toolbar-group">
 				<md-bold class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.bold.tooltip"}}">{{svg "octicon-bold"}}</md-bold>
 				<md-italic class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.italic.tooltip"}}">{{svg "octicon-italic"}}</md-italic>
 			</div>
@@ -34,6 +38,7 @@ Template Attributes:
 				<md-unordered-list class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.list.unordered.tooltip"}}">{{svg "octicon-list-unordered"}}</md-unordered-list>
 				<md-ordered-list class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.list.ordered.tooltip"}}">{{svg "octicon-list-ordered"}}</md-ordered-list>
 				<md-task-list class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.list.task.tooltip"}}">{{svg "octicon-tasklist"}}</md-task-list>
+				<button class="markdown-toolbar-button markdown-button-table-add" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.add.tooltip"}}">{{svg "octicon-table"}}</button>
 			</div>
 			<div class="markdown-toolbar-group">
 				<md-mention class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.mention.tooltip"}}">{{svg "octicon-mention"}}</md-mention>
@@ -55,5 +60,13 @@ Template Attributes:
 	</div>
 	<div class="ui tab markup" data-tab-panel="markdown-previewer">
 		{{ctx.Locale.Tr "loading"}}
+	</div>
+	<div class="markdown-add-table-panel tippy-target">
+		<div class="ui form tw-p-4 flex-text-block">
+			<input type="number" name="rows" min="1" value="3" size="3" class="tw-w-24" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.rows"}}">
+			x
+			<input type="number" name="cols" min="1" value="3" size="3" class="tw-w-24" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.cols"}}">
+			<button class="ui button primary" type="button">{{ctx.Locale.Tr "editor.buttons.table.add.insert"}}</button>
+		</div>
 	</div>
 </div>
