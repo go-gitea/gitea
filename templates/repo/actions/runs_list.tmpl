@@ -33,7 +33,7 @@
 					<span class="ui label run-list-ref gt-ellipsis">{{.PrettyRef}}</span>
 				{{end}}
 				<div class="run-list-item-right">
-					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{TimeSinceUnix .Updated ctx.Locale}}</div>
+					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince .Updated}}</div>
 					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
 				</div>
 			</div>
