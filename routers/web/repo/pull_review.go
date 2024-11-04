@@ -6,6 +6,7 @@ package repo
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -197,6 +198,19 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 	if err = comment.Issue.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("comment.Issue.LoadAttributes", err)
 		return
+	}
+
+	var hiddenCommentTypes *big.Int
+	if ctx.IsSigned {
+		val, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
+		if err != nil {
+			ctx.ServerError("GetUserSetting", err)
+			return
+		}
+		hiddenCommentTypes, _ = new(big.Int).SetString(val, 10) // we can safely ignore the failed conversion here
+	}
+	ctx.Data["ShouldShowCommentType"] = func(commentType issues_model.CommentType) bool {
+		return hiddenCommentTypes == nil || hiddenCommentTypes.Bit(int(commentType)) == 0
 	}
 	ctx.Data["Issue"] = comment.Issue
 	ctx.Data["IsIssue"] = true
