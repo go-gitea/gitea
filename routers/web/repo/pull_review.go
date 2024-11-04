@@ -194,8 +194,8 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		ctx.ServerError("CanMarkConversation", err)
 		return
 	}
-	if err = comment.Issue.LoadPullRequest(ctx); err != nil {
-		ctx.ServerError("comment.Issue.LoadPullRequest", err)
+	if err = comment.Issue.LoadAttributes(ctx); err != nil {
+		ctx.ServerError("comment.Issue.LoadAttributes", err)
 		return
 	}
 	ctx.Data["Issue"] = comment.Issue
