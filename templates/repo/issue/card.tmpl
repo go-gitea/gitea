@@ -24,7 +24,7 @@
 		<div class="meta">
 			<span class="text light grey muted-links">
 				{{if not $.Page.Repository}}{{.Repo.FullName}}{{end}}#{{.Index}}
-				{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
+				{{$timeStr := DateUtils.TimeSince .GetLastEventTimestamp}}
 				{{if .OriginalAuthor}}
 					{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor}}
 				{{else if gt .Poster.ID 0}}

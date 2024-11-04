@@ -1,7 +1,7 @@
 {{template "base/alert"}}
 {{range .Issue.Comments}}
 	{{if call $.ShouldShowCommentType .Type}}
-		{{$createdStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
+		{{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
 
 		<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF,
 		5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 8 = MILESTONE_CHANGE,
@@ -137,7 +137,7 @@
 			{{else if eq .RefAction 2}}
 				{{$refTr = "repo.issues.ref_reopening_from"}}
 			{{end}}
-			{{$createdStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
+			{{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-bookmark"}}</span>
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
@@ -296,7 +296,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$dueDate := ctx.DateUtils.AbsoluteLong (.Content|ctx.DateUtils.ParseLegacy)}}
+					{{$dueDate := DateUtils.AbsoluteLong (.Content|DateUtils.ParseLegacy)}}
 					{{ctx.Locale.Tr "repo.issues.due_date_added" $dueDate $createdStr}}
 				</span>
 			</div>
@@ -308,8 +308,8 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{$parsedDeadline := StringUtils.Split .Content "|"}}
 					{{if eq (len $parsedDeadline) 2}}
-						{{$to := ctx.DateUtils.AbsoluteLong ((index $parsedDeadline 0)|ctx.DateUtils.ParseLegacy)}}
-						{{$from := ctx.DateUtils.AbsoluteLong ((index $parsedDeadline 1)|ctx.DateUtils.ParseLegacy)}}
+						{{$to := DateUtils.AbsoluteLong ((index $parsedDeadline 0)|DateUtils.ParseLegacy)}}
+						{{$from := DateUtils.AbsoluteLong ((index $parsedDeadline 1)|DateUtils.ParseLegacy)}}
 						{{ctx.Locale.Tr "repo.issues.due_date_modified" $to $from $createdStr}}
 					{{end}}
 				</span>
@@ -320,7 +320,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$dueDate := ctx.DateUtils.AbsoluteLong (.Content|ctx.DateUtils.ParseLegacy)}}
+					{{$dueDate := DateUtils.AbsoluteLong (.Content|DateUtils.ParseLegacy)}}
 					{{ctx.Locale.Tr "repo.issues.due_date_remove" $dueDate $createdStr}}
 				</span>
 			</div>
