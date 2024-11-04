@@ -19,7 +19,7 @@ func TestDateTime(t *testing.T) {
 	defer test.MockVariableValue(&setting.DefaultUILocation, testTz)()
 	defer test.MockVariableValue(&setting.IsInTesting, false)()
 
-	du := NewDateUtils(nil)
+	du := NewDateUtils()
 
 	refTimeStr := "2018-01-01T00:00:00Z"
 	refDateStr := "2018-01-01"
@@ -48,4 +48,25 @@ func TestDateTime(t *testing.T) {
 
 	actual = du.FullTime(refTimeStamp)
 	assert.EqualValues(t, `<relative-time weekday="" year="numeric" format="datetime" month="short" day="numeric" hour="numeric" minute="numeric" second="numeric" data-tooltip-content data-tooltip-interactive="true" datetime="2017-12-31T19:00:00-05:00">2017-12-31 19:00:00 -05:00</relative-time>`, actual)
+}
+
+func TestTimeSince(t *testing.T) {
+	testTz, _ := time.LoadLocation("America/New_York")
+	defer test.MockVariableValue(&setting.DefaultUILocation, testTz)()
+	defer test.MockVariableValue(&setting.IsInTesting, false)()
+
+	du := NewDateUtils()
+	assert.EqualValues(t, "-", du.TimeSince(nil))
+
+	refTimeStr := "2018-01-01T00:00:00Z"
+	refTime, _ := time.Parse(time.RFC3339, refTimeStr)
+
+	actual := du.TimeSince(refTime)
+	assert.EqualValues(t, `<relative-time prefix="" tense="past" datetime="2018-01-01T00:00:00Z" data-tooltip-content data-tooltip-interactive="true">2018-01-01 00:00:00 +00:00</relative-time>`, actual)
+
+	actual = timeSinceTo(&refTime, time.Time{})
+	assert.EqualValues(t, `<relative-time prefix="" tense="future" datetime="2018-01-01T00:00:00Z" data-tooltip-content data-tooltip-interactive="true">2018-01-01 00:00:00 +00:00</relative-time>`, actual)
+
+	actual = timeSinceLegacy(timeutil.TimeStampNano(refTime.UnixNano()), nil)
+	assert.EqualValues(t, `<relative-time prefix="" tense="past" datetime="2017-12-31T19:00:00-05:00" data-tooltip-content data-tooltip-interactive="true">2017-12-31 19:00:00 -05:00</relative-time>`, actual)
 }
