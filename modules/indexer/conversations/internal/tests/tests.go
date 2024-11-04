@@ -120,25 +120,25 @@ var cases = []*testIndexerCase{
 		Name: "Keyword",
 		ExtraData: []*internal.IndexerData{
 			{ID: 1000},
-			{ID: 1001},
+			{ID: 1001, Comments: []string{"hi", "hello world"}},
 			{ID: 1002, Comments: []string{"hi", "hello world"}},
 		},
 		SearchOptions: &internal.SearchOptions{
 			Keyword: "hello",
 		},
-		ExpectedIDs:   []int64{1002, 1001, 1000},
-		ExpectedTotal: 3,
+		ExpectedIDs:   []int64{1002, 1001},
+		ExpectedTotal: 2,
 	},
 	{
 		Name: "RepoIDs",
 		ExtraData: []*internal.IndexerData{
-			{ID: 1001, RepoID: 1, IsPublic: false},
-			{ID: 1002, RepoID: 1, IsPublic: false},
-			{ID: 1003, RepoID: 2, IsPublic: true},
-			{ID: 1004, RepoID: 2, IsPublic: true},
-			{ID: 1005, RepoID: 3, IsPublic: true},
-			{ID: 1006, RepoID: 4, IsPublic: false},
-			{ID: 1007, RepoID: 5, IsPublic: false},
+			{ID: 1001, RepoID: 1, IsPublic: false, Comments: []string{"hi", "hello world"}},
+			{ID: 1002, RepoID: 1, IsPublic: false, Comments: []string{"hi", "hello world"}},
+			{ID: 1003, RepoID: 2, IsPublic: true, Comments: []string{"hi", "hello world"}},
+			{ID: 1004, RepoID: 2, IsPublic: true, Comments: []string{"hi", "hello world"}},
+			{ID: 1005, RepoID: 3, IsPublic: true, Comments: []string{"hi", "hello world"}},
+			{ID: 1006, RepoID: 4, IsPublic: false, Comments: []string{"hi", "hello world"}},
+			{ID: 1007, RepoID: 5, IsPublic: false, Comments: []string{"hi", "hello world"}},
 		},
 		SearchOptions: &internal.SearchOptions{
 			Keyword: "hello",
@@ -150,13 +150,13 @@ var cases = []*testIndexerCase{
 	{
 		Name: "RepoIDs and AllPublic",
 		ExtraData: []*internal.IndexerData{
-			{ID: 1001, RepoID: 1, IsPublic: false},
-			{ID: 1002, RepoID: 1, IsPublic: false},
-			{ID: 1003, RepoID: 2, IsPublic: true},
-			{ID: 1004, RepoID: 2, IsPublic: true},
-			{ID: 1005, RepoID: 3, IsPublic: true},
-			{ID: 1006, RepoID: 4, IsPublic: false},
-			{ID: 1007, RepoID: 5, IsPublic: false},
+			{ID: 1001, RepoID: 1, IsPublic: false, Comments: []string{"hi", "hello world"}},
+			{ID: 1002, RepoID: 1, IsPublic: false, Comments: []string{"hi", "hello world"}},
+			{ID: 1003, RepoID: 2, IsPublic: true, Comments: []string{"hi", "hello world"}},
+			{ID: 1004, RepoID: 2, IsPublic: true, Comments: []string{"hi", "hello world"}},
+			{ID: 1005, RepoID: 3, IsPublic: true, Comments: []string{"hi", "hello world"}},
+			{ID: 1006, RepoID: 4, IsPublic: false, Comments: []string{"hi", "hello world"}},
+			{ID: 1007, RepoID: 5, IsPublic: false, Comments: []string{"hi", "hello world"}},
 		},
 		SearchOptions: &internal.SearchOptions{
 			Keyword:   "hello",
@@ -348,27 +348,6 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 			comments := make([]string, id%4)
 			for i := range comments {
 				comments[i] = fmt.Sprintf("comment%d", i)
-			}
-
-			labelIDs := make([]int64, id%5)
-			for i := range labelIDs {
-				labelIDs[i] = int64(i) + 1 // LabelID should not be 0
-			}
-			mentionIDs := make([]int64, id%6)
-			for i := range mentionIDs {
-				mentionIDs[i] = int64(i) + 1 // MentionID should not be 0
-			}
-			reviewedIDs := make([]int64, id%7)
-			for i := range reviewedIDs {
-				reviewedIDs[i] = int64(i) + 1 // ReviewID should not be 0
-			}
-			reviewRequestedIDs := make([]int64, id%8)
-			for i := range reviewRequestedIDs {
-				reviewRequestedIDs[i] = int64(i) + 1 // ReviewRequestedID should not be 0
-			}
-			subscriberIDs := make([]int64, id%9)
-			for i := range subscriberIDs {
-				subscriberIDs[i] = int64(i) + 1 // SubscriberID should not be 0
 			}
 
 			data = append(data, &internal.IndexerData{
