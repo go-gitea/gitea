@@ -480,7 +480,7 @@
 				<div class="timeline-item event">
 					{{range $filename, $lines := .Review.CodeComments}}
 						{{range $line, $comms := $lines}}
-							{{template "repo/conversation/conversation" dict "." $ "comments" $comms}}
+							{{template "repo/issue/view_content/conversation" dict "." $ "comments" $comms}}
 						{{end}}
 					{{end}}
 				</div>
