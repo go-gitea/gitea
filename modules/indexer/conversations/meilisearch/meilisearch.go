@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package meilisearch
@@ -137,68 +137,6 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 			q.Or(inner_meilisearch.NewFilterEq("is_public", true))
 		}
 		query.And(q)
-	}
-
-	if options.IsPull.Has() {
-		query.And(inner_meilisearch.NewFilterEq("is_pull", options.IsPull.Value()))
-	}
-	if options.IsClosed.Has() {
-		query.And(inner_meilisearch.NewFilterEq("is_closed", options.IsClosed.Value()))
-	}
-
-	if options.NoLabelOnly {
-		query.And(inner_meilisearch.NewFilterEq("no_label", true))
-	} else {
-		if len(options.IncludedLabelIDs) > 0 {
-			q := &inner_meilisearch.FilterAnd{}
-			for _, labelID := range options.IncludedLabelIDs {
-				q.And(inner_meilisearch.NewFilterEq("label_ids", labelID))
-			}
-			query.And(q)
-		} else if len(options.IncludedAnyLabelIDs) > 0 {
-			query.And(inner_meilisearch.NewFilterIn("label_ids", options.IncludedAnyLabelIDs...))
-		}
-		if len(options.ExcludedLabelIDs) > 0 {
-			q := &inner_meilisearch.FilterAnd{}
-			for _, labelID := range options.ExcludedLabelIDs {
-				q.And(inner_meilisearch.NewFilterNot(inner_meilisearch.NewFilterEq("label_ids", labelID)))
-			}
-			query.And(q)
-		}
-	}
-
-	if len(options.MilestoneIDs) > 0 {
-		query.And(inner_meilisearch.NewFilterIn("milestone_id", options.MilestoneIDs...))
-	}
-
-	if options.ProjectID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("project_id", options.ProjectID.Value()))
-	}
-	if options.ProjectColumnID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("project_board_id", options.ProjectColumnID.Value()))
-	}
-
-	if options.PosterID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("poster_id", options.PosterID.Value()))
-	}
-
-	if options.AssigneeID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("assignee_id", options.AssigneeID.Value()))
-	}
-
-	if options.MentionID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("mention_ids", options.MentionID.Value()))
-	}
-
-	if options.ReviewedID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("reviewed_ids", options.ReviewedID.Value()))
-	}
-	if options.ReviewRequestedID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("review_requested_ids", options.ReviewRequestedID.Value()))
-	}
-
-	if options.SubscriberID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("subscriber_ids", options.SubscriberID.Value()))
 	}
 
 	if options.UpdatedAfterUnix.Has() {

@@ -1,4 +1,4 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package elasticsearch
@@ -160,68 +160,6 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 			q.Should(elastic.NewTermQuery("is_public", true))
 		}
 		query.Must(q)
-	}
-
-	if options.IsPull.Has() {
-		query.Must(elastic.NewTermQuery("is_pull", options.IsPull.Value()))
-	}
-	if options.IsClosed.Has() {
-		query.Must(elastic.NewTermQuery("is_closed", options.IsClosed.Value()))
-	}
-
-	if options.NoLabelOnly {
-		query.Must(elastic.NewTermQuery("no_label", true))
-	} else {
-		if len(options.IncludedLabelIDs) > 0 {
-			q := elastic.NewBoolQuery()
-			for _, labelID := range options.IncludedLabelIDs {
-				q.Must(elastic.NewTermQuery("label_ids", labelID))
-			}
-			query.Must(q)
-		} else if len(options.IncludedAnyLabelIDs) > 0 {
-			query.Must(elastic.NewTermsQuery("label_ids", toAnySlice(options.IncludedAnyLabelIDs)...))
-		}
-		if len(options.ExcludedLabelIDs) > 0 {
-			q := elastic.NewBoolQuery()
-			for _, labelID := range options.ExcludedLabelIDs {
-				q.MustNot(elastic.NewTermQuery("label_ids", labelID))
-			}
-			query.Must(q)
-		}
-	}
-
-	if len(options.MilestoneIDs) > 0 {
-		query.Must(elastic.NewTermsQuery("milestone_id", toAnySlice(options.MilestoneIDs)...))
-	}
-
-	if options.ProjectID.Has() {
-		query.Must(elastic.NewTermQuery("project_id", options.ProjectID.Value()))
-	}
-	if options.ProjectColumnID.Has() {
-		query.Must(elastic.NewTermQuery("project_board_id", options.ProjectColumnID.Value()))
-	}
-
-	if options.PosterID.Has() {
-		query.Must(elastic.NewTermQuery("poster_id", options.PosterID.Value()))
-	}
-
-	if options.AssigneeID.Has() {
-		query.Must(elastic.NewTermQuery("assignee_id", options.AssigneeID.Value()))
-	}
-
-	if options.MentionID.Has() {
-		query.Must(elastic.NewTermQuery("mention_ids", options.MentionID.Value()))
-	}
-
-	if options.ReviewedID.Has() {
-		query.Must(elastic.NewTermQuery("reviewed_ids", options.ReviewedID.Value()))
-	}
-	if options.ReviewRequestedID.Has() {
-		query.Must(elastic.NewTermQuery("review_requested_ids", options.ReviewRequestedID.Value()))
-	}
-
-	if options.SubscriberID.Has() {
-		query.Must(elastic.NewTermQuery("subscriber_ids", options.SubscriberID.Value()))
 	}
 
 	if options.UpdatedAfterUnix.Has() || options.UpdatedBeforeUnix.Has() {

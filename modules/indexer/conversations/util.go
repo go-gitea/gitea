@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package conversations
@@ -43,17 +43,11 @@ func getConversationIndexerData(ctx context.Context, conversationID int64) (*int
 		return nil, false, err
 	}
 
-	mentionIDs, err := conversation_model.GetConversationMentionIDs(ctx, conversationID)
-	if err != nil {
-		return nil, false, err
-	}
-
 	return &internal.IndexerData{
 		ID:           conversation.ID,
 		RepoID:       conversation.RepoID,
 		IsPublic:     !conversation.Repo.IsPrivate,
 		Comments:     comments,
-		MentionIDs:   mentionIDs,
 		UpdatedUnix:  conversation.UpdatedUnix,
 		CreatedUnix:  conversation.CreatedUnix,
 		CommentCount: int64(len(conversation.Comments)),

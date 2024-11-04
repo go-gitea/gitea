@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 // This package contains tests for conversations indexer modules.
@@ -10,7 +10,6 @@ package tests
 import (
 	"context"
 	"fmt"
-	"slices"
 	"testing"
 	"time"
 
@@ -120,8 +119,8 @@ var cases = []*testIndexerCase{
 	{
 		Name: "Keyword",
 		ExtraData: []*internal.IndexerData{
-			{ID: 1000, Title: "hi hello world"},
-			{ID: 1001, Content: "hi hello world"},
+			{ID: 1000},
+			{ID: 1001},
 			{ID: 1002, Comments: []string{"hi", "hello world"}},
 		},
 		SearchOptions: &internal.SearchOptions{
@@ -133,13 +132,13 @@ var cases = []*testIndexerCase{
 	{
 		Name: "RepoIDs",
 		ExtraData: []*internal.IndexerData{
-			{ID: 1001, Title: "hello world", RepoID: 1, IsPublic: false},
-			{ID: 1002, Title: "hello world", RepoID: 1, IsPublic: false},
-			{ID: 1003, Title: "hello world", RepoID: 2, IsPublic: true},
-			{ID: 1004, Title: "hello world", RepoID: 2, IsPublic: true},
-			{ID: 1005, Title: "hello world", RepoID: 3, IsPublic: true},
-			{ID: 1006, Title: "hello world", RepoID: 4, IsPublic: false},
-			{ID: 1007, Title: "hello world", RepoID: 5, IsPublic: false},
+			{ID: 1001, RepoID: 1, IsPublic: false},
+			{ID: 1002, RepoID: 1, IsPublic: false},
+			{ID: 1003, RepoID: 2, IsPublic: true},
+			{ID: 1004, RepoID: 2, IsPublic: true},
+			{ID: 1005, RepoID: 3, IsPublic: true},
+			{ID: 1006, RepoID: 4, IsPublic: false},
+			{ID: 1007, RepoID: 5, IsPublic: false},
 		},
 		SearchOptions: &internal.SearchOptions{
 			Keyword: "hello",
@@ -151,13 +150,13 @@ var cases = []*testIndexerCase{
 	{
 		Name: "RepoIDs and AllPublic",
 		ExtraData: []*internal.IndexerData{
-			{ID: 1001, Title: "hello world", RepoID: 1, IsPublic: false},
-			{ID: 1002, Title: "hello world", RepoID: 1, IsPublic: false},
-			{ID: 1003, Title: "hello world", RepoID: 2, IsPublic: true},
-			{ID: 1004, Title: "hello world", RepoID: 2, IsPublic: true},
-			{ID: 1005, Title: "hello world", RepoID: 3, IsPublic: true},
-			{ID: 1006, Title: "hello world", RepoID: 4, IsPublic: false},
-			{ID: 1007, Title: "hello world", RepoID: 5, IsPublic: false},
+			{ID: 1001, RepoID: 1, IsPublic: false},
+			{ID: 1002, RepoID: 1, IsPublic: false},
+			{ID: 1003, RepoID: 2, IsPublic: true},
+			{ID: 1004, RepoID: 2, IsPublic: true},
+			{ID: 1005, RepoID: 3, IsPublic: true},
+			{ID: 1006, RepoID: 4, IsPublic: false},
+			{ID: 1007, RepoID: 5, IsPublic: false},
 		},
 		SearchOptions: &internal.SearchOptions{
 			Keyword:   "hello",
@@ -173,330 +172,9 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			IsPull: optional.Some(false),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.False(t, data[v.ID].IsPull)
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool { return !v.IsPull }), result.Total)
-		},
-	},
-	{
-		Name: "pull only",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			IsPull: optional.Some(true),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.True(t, data[v.ID].IsPull)
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool { return v.IsPull }), result.Total)
-		},
-	},
-	{
-		Name: "opened only",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			IsClosed: optional.Some(false),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.False(t, data[v.ID].IsClosed)
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool { return !v.IsClosed }), result.Total)
-		},
-	},
-	{
-		Name: "closed only",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			IsClosed: optional.Some(true),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.True(t, data[v.ID].IsClosed)
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool { return v.IsClosed }), result.Total)
-		},
-	},
-	{
-		Name: "labels",
-		ExtraData: []*internal.IndexerData{
-			{ID: 1000, Title: "hello a", LabelIDs: []int64{2000, 2001, 2002}},
-			{ID: 1001, Title: "hello b", LabelIDs: []int64{2000, 2001}},
-			{ID: 1002, Title: "hello c", LabelIDs: []int64{2000, 2001, 2003}},
-			{ID: 1003, Title: "hello d", LabelIDs: []int64{2000}},
-			{ID: 1004, Title: "hello e", LabelIDs: []int64{}},
-		},
-		SearchOptions: &internal.SearchOptions{
-			Keyword:          "hello",
-			IncludedLabelIDs: []int64{2000, 2001},
-			ExcludedLabelIDs: []int64{2003},
-		},
-		ExpectedIDs:   []int64{1001, 1000},
-		ExpectedTotal: 2,
-	},
-	{
-		Name: "include any labels",
-		ExtraData: []*internal.IndexerData{
-			{ID: 1000, Title: "hello a", LabelIDs: []int64{2000, 2001, 2002}},
-			{ID: 1001, Title: "hello b", LabelIDs: []int64{2001}},
-			{ID: 1002, Title: "hello c", LabelIDs: []int64{2000, 2001, 2003}},
-			{ID: 1003, Title: "hello d", LabelIDs: []int64{2002}},
-			{ID: 1004, Title: "hello e", LabelIDs: []int64{}},
-		},
-		SearchOptions: &internal.SearchOptions{
-			Keyword:             "hello",
-			IncludedAnyLabelIDs: []int64{2001, 2002},
-			ExcludedLabelIDs:    []int64{2003},
-		},
-		ExpectedIDs:   []int64{1003, 1001, 1000},
-		ExpectedTotal: 3,
-	},
-	{
-		Name: "MilestoneIDs",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			MilestoneIDs: []int64{1, 2, 6},
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.Contains(t, []int64{1, 2, 6}, data[v.ID].MilestoneID)
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.MilestoneID == 1 || v.MilestoneID == 2 || v.MilestoneID == 6
-			}), result.Total)
-		},
-	},
-	{
-		Name: "no MilestoneIDs",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			MilestoneIDs: []int64{0},
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.Equal(t, int64(0), data[v.ID].MilestoneID)
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.MilestoneID == 0
-			}), result.Total)
-		},
-	},
-	{
-		Name: "ProjectID",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			ProjectID: optional.Some(int64(1)),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.Equal(t, int64(1), data[v.ID].ProjectID)
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectID == 1
-			}), result.Total)
-		},
-	},
-	{
-		Name: "no ProjectID",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			ProjectID: optional.Some(int64(0)),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.Equal(t, int64(0), data[v.ID].ProjectID)
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectID == 0
-			}), result.Total)
-		},
-	},
-	{
-		Name: "ProjectColumnID",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			ProjectColumnID: optional.Some(int64(1)),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.Equal(t, int64(1), data[v.ID].ProjectColumnID)
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectColumnID == 1
-			}), result.Total)
-		},
-	},
-	{
-		Name: "no ProjectColumnID",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			ProjectColumnID: optional.Some(int64(0)),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.Equal(t, int64(0), data[v.ID].ProjectColumnID)
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectColumnID == 0
-			}), result.Total)
-		},
-	},
-	{
-		Name: "PosterID",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			PosterID: optional.Some(int64(1)),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.Equal(t, int64(1), data[v.ID].PosterID)
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.PosterID == 1
-			}), result.Total)
-		},
-	},
-	{
-		Name: "AssigneeID",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			AssigneeID: optional.Some(int64(1)),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.Equal(t, int64(1), data[v.ID].AssigneeID)
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.AssigneeID == 1
-			}), result.Total)
-		},
-	},
-	{
-		Name: "no AssigneeID",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			AssigneeID: optional.Some(int64(0)),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.Equal(t, int64(0), data[v.ID].AssigneeID)
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.AssigneeID == 0
-			}), result.Total)
-		},
-	},
-	{
-		Name: "MentionID",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			MentionID: optional.Some(int64(1)),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.Contains(t, data[v.ID].MentionIDs, int64(1))
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return slices.Contains(v.MentionIDs, 1)
-			}), result.Total)
-		},
-	},
-	{
-		Name: "ReviewedID",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			ReviewedID: optional.Some(int64(1)),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.Contains(t, data[v.ID].ReviewedIDs, int64(1))
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return slices.Contains(v.ReviewedIDs, 1)
-			}), result.Total)
-		},
-	},
-	{
-		Name: "ReviewRequestedID",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			ReviewRequestedID: optional.Some(int64(1)),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.Contains(t, data[v.ID].ReviewRequestedIDs, int64(1))
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return slices.Contains(v.ReviewRequestedIDs, 1)
-			}), result.Total)
-		},
-	},
-	{
-		Name: "SubscriberID",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			SubscriberID: optional.Some(int64(1)),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
-			for _, v := range result.Hits {
-				assert.Contains(t, data[v.ID].SubscriberIDs, int64(1))
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return slices.Contains(v.SubscriberIDs, 1)
-			}), result.Total)
 		},
 	},
 	{
@@ -694,29 +372,14 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 			}
 
 			data = append(data, &internal.IndexerData{
-				ID:                 id,
-				RepoID:             repoID,
-				IsPublic:           repoID%2 == 0,
-				Title:              fmt.Sprintf("conversation%d of repo%d", conversationIndex, repoID),
-				Content:            fmt.Sprintf("content%d", conversationIndex),
-				Comments:           comments,
-				IsPull:             conversationIndex%2 == 0,
-				IsClosed:           conversationIndex%3 == 0,
-				LabelIDs:           labelIDs,
-				NoLabel:            len(labelIDs) == 0,
-				MilestoneID:        conversationIndex % 4,
-				ProjectID:          conversationIndex % 5,
-				ProjectColumnID:    conversationIndex % 6,
-				PosterID:           id%10 + 1, // PosterID should not be 0
-				AssigneeID:         conversationIndex % 10,
-				MentionIDs:         mentionIDs,
-				ReviewedIDs:        reviewedIDs,
-				ReviewRequestedIDs: reviewRequestedIDs,
-				SubscriberIDs:      subscriberIDs,
-				UpdatedUnix:        timeutil.TimeStamp(id + conversationIndex),
-				CreatedUnix:        timeutil.TimeStamp(id),
-				DeadlineUnix:       timeutil.TimeStamp(id + conversationIndex + repoID),
-				CommentCount:       int64(len(comments)),
+				ID:           id,
+				RepoID:       repoID,
+				IsPublic:     repoID%2 == 0,
+				Comments:     comments,
+				UpdatedUnix:  timeutil.TimeStamp(id + conversationIndex),
+				CreatedUnix:  timeutil.TimeStamp(id),
+				DeadlineUnix: timeutil.TimeStamp(id + conversationIndex + repoID),
+				CommentCount: int64(len(comments)),
 			})
 		}
 	}

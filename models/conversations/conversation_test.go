@@ -73,8 +73,7 @@ func TestConversations(t *testing.T) {
 	}{
 		{
 			conversations_model.ConversationsOptions{
-				AssigneeID: 1,
-				SortType:   "oldest",
+				SortType: "oldest",
 			},
 			[]int64{1, 6},
 		},
@@ -91,7 +90,6 @@ func TestConversations(t *testing.T) {
 		},
 		{
 			conversations_model.ConversationsOptions{
-				LabelIDs: []int64{1},
 				Paginator: &db.ListOptions{
 					Page:     1,
 					PageSize: 4,
@@ -101,7 +99,6 @@ func TestConversations(t *testing.T) {
 		},
 		{
 			conversations_model.ConversationsOptions{
-				LabelIDs: []int64{1, 2},
 				Paginator: &db.ListOptions{
 					Page:     1,
 					PageSize: 4,
@@ -110,9 +107,7 @@ func TestConversations(t *testing.T) {
 			[]int64{}, // conversations with **both** label 1 and 2, none of these conversations matches, TODO: add more tests
 		},
 		{
-			conversations_model.ConversationsOptions{
-				MilestoneIDs: []int64{1},
-			},
+			conversations_model.ConversationsOptions{},
 			[]int64{2},
 		},
 	} {

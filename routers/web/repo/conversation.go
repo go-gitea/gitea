@@ -1,5 +1,4 @@
-// Copyright 2014 The Gogs Authors. All rights reserved.
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gogs Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package repo
@@ -420,16 +419,6 @@ func SearchConversations(ctx *context.Context) {
 		return
 	}
 
-	var isClosed optional.Option[bool]
-	switch ctx.FormString("state") {
-	case "closed":
-		isClosed = optional.Some(true)
-	case "all":
-		isClosed = optional.None[bool]()
-	default:
-		isClosed = optional.Some(false)
-	}
-
 	repoIDs, allPublic := GetUserAccessibleRepo(ctx)
 
 	keyword := ctx.FormTrim("q")
@@ -454,7 +443,6 @@ func SearchConversations(ctx *context.Context) {
 		Keyword:   keyword,
 		RepoIDs:   repoIDs,
 		AllPublic: allPublic,
-		IsClosed:  isClosed,
 		SortBy:    conversation_indexer.SortByCreatedDesc,
 	}
 
@@ -463,25 +451,6 @@ func SearchConversations(ctx *context.Context) {
 	}
 	if before != 0 {
 		searchOpt.UpdatedBeforeUnix = optional.Some(before)
-	}
-
-	if ctx.IsSigned {
-		ctxUserID := ctx.Doer.ID
-		if ctx.FormBool("created") {
-			searchOpt.PosterID = optional.Some(ctxUserID)
-		}
-		if ctx.FormBool("assigned") {
-			searchOpt.AssigneeID = optional.Some(ctxUserID)
-		}
-		if ctx.FormBool("mentioned") {
-			searchOpt.MentionID = optional.Some(ctxUserID)
-		}
-		if ctx.FormBool("review_requested") {
-			searchOpt.ReviewRequestedID = optional.Some(ctxUserID)
-		}
-		if ctx.FormBool("reviewed") {
-			searchOpt.ReviewedID = optional.Some(ctxUserID)
-		}
 	}
 
 	// FIXME: It's unsupported to sort by priority repo when searching by indexer,
@@ -579,44 +548,9 @@ func ListConversations(ctx *context.Context) {
 		return
 	}
 
-	var isClosed optional.Option[bool]
-	switch ctx.FormString("state") {
-	case "closed":
-		isClosed = optional.Some(true)
-	case "all":
-		isClosed = optional.None[bool]()
-	default:
-		isClosed = optional.Some(false)
-	}
-
 	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
-	}
-
-	projectID := optional.None[int64]()
-	if v := ctx.FormInt64("project"); v > 0 {
-		projectID = optional.Some(v)
-	}
-
-	isPull := optional.None[bool]()
-	switch ctx.FormString("type") {
-	case "conversations":
-		isPull = optional.Some(false)
-	}
-
-	// FIXME: we should be more efficient here
-	createdByID := getUserIDForFilter(ctx, "created_by")
-	if ctx.Written() {
-		return
-	}
-	assignedByID := getUserIDForFilter(ctx, "assigned_by")
-	if ctx.Written() {
-		return
-	}
-	mentionedByID := getUserIDForFilter(ctx, "mentioned_by")
-	if ctx.Written() {
-		return
 	}
 
 	searchOpt := &conversation_indexer.SearchOptions{
@@ -624,27 +558,15 @@ func ListConversations(ctx *context.Context) {
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		Keyword:   keyword,
-		RepoIDs:   []int64{ctx.Repo.Repository.ID},
-		IsPull:    isPull,
-		IsClosed:  isClosed,
-		ProjectID: projectID,
-		SortBy:    conversation_indexer.SortByCreatedDesc,
+		Keyword: keyword,
+		RepoIDs: []int64{ctx.Repo.Repository.ID},
+		SortBy:  conversation_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = optional.Some(since)
 	}
 	if before != 0 {
 		searchOpt.UpdatedBeforeUnix = optional.Some(before)
-	}
-	if createdByID > 0 {
-		searchOpt.PosterID = optional.Some(createdByID)
-	}
-	if assignedByID > 0 {
-		searchOpt.AssigneeID = optional.Some(assignedByID)
-	}
-	if mentionedByID > 0 {
-		searchOpt.MentionID = optional.Some(mentionedByID)
 	}
 
 	ids, total, err := conversation_indexer.SearchConversations(ctx, searchOpt)

@@ -1,4 +1,4 @@
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package bleve
@@ -177,78 +177,6 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 			repoQueries = append(repoQueries, inner_bleve.BoolFieldQuery(true, "is_public"))
 		}
 		queries = append(queries, bleve.NewDisjunctionQuery(repoQueries...))
-	}
-
-	if options.IsPull.Has() {
-		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsPull.Value(), "is_pull"))
-	}
-	if options.IsClosed.Has() {
-		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsClosed.Value(), "is_closed"))
-	}
-
-	if options.NoLabelOnly {
-		queries = append(queries, inner_bleve.BoolFieldQuery(true, "no_label"))
-	} else {
-		if len(options.IncludedLabelIDs) > 0 {
-			var includeQueries []query.Query
-			for _, labelID := range options.IncludedLabelIDs {
-				includeQueries = append(includeQueries, inner_bleve.NumericEqualityQuery(labelID, "label_ids"))
-			}
-			queries = append(queries, bleve.NewConjunctionQuery(includeQueries...))
-		} else if len(options.IncludedAnyLabelIDs) > 0 {
-			var includeQueries []query.Query
-			for _, labelID := range options.IncludedAnyLabelIDs {
-				includeQueries = append(includeQueries, inner_bleve.NumericEqualityQuery(labelID, "label_ids"))
-			}
-			queries = append(queries, bleve.NewDisjunctionQuery(includeQueries...))
-		}
-		if len(options.ExcludedLabelIDs) > 0 {
-			var excludeQueries []query.Query
-			for _, labelID := range options.ExcludedLabelIDs {
-				q := bleve.NewBooleanQuery()
-				q.AddMustNot(inner_bleve.NumericEqualityQuery(labelID, "label_ids"))
-				excludeQueries = append(excludeQueries, q)
-			}
-			queries = append(queries, bleve.NewConjunctionQuery(excludeQueries...))
-		}
-	}
-
-	if len(options.MilestoneIDs) > 0 {
-		var milestoneQueries []query.Query
-		for _, milestoneID := range options.MilestoneIDs {
-			milestoneQueries = append(milestoneQueries, inner_bleve.NumericEqualityQuery(milestoneID, "milestone_id"))
-		}
-		queries = append(queries, bleve.NewDisjunctionQuery(milestoneQueries...))
-	}
-
-	if options.ProjectID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectID.Value(), "project_id"))
-	}
-	if options.ProjectColumnID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectColumnID.Value(), "project_board_id"))
-	}
-
-	if options.PosterID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.PosterID.Value(), "poster_id"))
-	}
-
-	if options.AssigneeID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.AssigneeID.Value(), "assignee_id"))
-	}
-
-	if options.MentionID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.MentionID.Value(), "mention_ids"))
-	}
-
-	if options.ReviewedID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ReviewedID.Value(), "reviewed_ids"))
-	}
-	if options.ReviewRequestedID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ReviewRequestedID.Value(), "review_requested_ids"))
-	}
-
-	if options.SubscriberID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.SubscriberID.Value(), "subscriber_ids"))
 	}
 
 	if options.UpdatedAfterUnix.Has() || options.UpdatedBeforeUnix.Has() {

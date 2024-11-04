@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package internal
@@ -18,25 +18,10 @@ type IndexerData struct {
 	IsPublic bool  `json:"is_public"` // If the repo is public
 
 	// Fields used for keyword searching
-	Title    string   `json:"title"`
-	Content  string   `json:"content"`
 	Comments []string `json:"comments"`
 
 	// Fields used for filtering
-	IsPull             bool               `json:"is_pull"`
-	IsClosed           bool               `json:"is_closed"`
-	LabelIDs           []int64            `json:"label_ids"`
-	NoLabel            bool               `json:"no_label"` // True if LabelIDs is empty
-	MilestoneID        int64              `json:"milestone_id"`
-	ProjectID          int64              `json:"project_id"`
-	ProjectColumnID    int64              `json:"project_board_id"` // the key should be kept as project_board_id to keep compatible
-	PosterID           int64              `json:"poster_id"`
-	AssigneeID         int64              `json:"assignee_id"`
-	MentionIDs         []int64            `json:"mention_ids"`
-	ReviewedIDs        []int64            `json:"reviewed_ids"`
-	ReviewRequestedIDs []int64            `json:"review_requested_ids"`
-	SubscriberIDs      []int64            `json:"subscriber_ids"`
-	UpdatedUnix        timeutil.TimeStamp `json:"updated_unix"`
+	UpdatedUnix timeutil.TimeStamp `json:"updated_unix"`
 
 	// Fields used for sorting
 	// UpdatedUnix is both used for filtering and sorting.
@@ -80,30 +65,6 @@ type SearchOptions struct {
 
 	RepoIDs   []int64 // repository IDs which the conversations belong to
 	AllPublic bool    // if include all public repositories
-
-	IsPull   optional.Option[bool] // if the conversations is a pull request
-	IsClosed optional.Option[bool] // if the conversations is closed
-
-	IncludedLabelIDs    []int64 // labels the conversations have
-	ExcludedLabelIDs    []int64 // labels the conversations don't have
-	IncludedAnyLabelIDs []int64 // labels the conversations have at least one. It will be ignored if IncludedLabelIDs is not empty. It's an uncommon filter, but it has been supported accidentally by conversations.ConversationsOptions.IncludedLabelNames.
-	NoLabelOnly         bool    // if the conversations have no label, if true, IncludedLabelIDs and ExcludedLabelIDs, IncludedAnyLabelIDs will be ignored
-
-	MilestoneIDs []int64 // milestones the conversations have
-
-	ProjectID       optional.Option[int64] // project the conversations belong to
-	ProjectColumnID optional.Option[int64] // project column the conversations belong to
-
-	PosterID optional.Option[int64] // poster of the conversations
-
-	AssigneeID optional.Option[int64] // assignee of the conversations, zero means no assignee
-
-	MentionID optional.Option[int64] // mentioned user of the conversations
-
-	ReviewedID        optional.Option[int64] // reviewer of the conversations
-	ReviewRequestedID optional.Option[int64] // requested reviewer of the conversations
-
-	SubscriberID optional.Option[int64] // subscriber of the conversations
 
 	UpdatedAfterUnix  optional.Option[int64]
 	UpdatedBeforeUnix optional.Option[int64]

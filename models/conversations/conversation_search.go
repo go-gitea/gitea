@@ -6,13 +6,10 @@ package conversations
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
 
 	"xorm.io/builder"
@@ -21,29 +18,14 @@ import (
 
 // ConversationsOptions represents options of an conversation.
 type ConversationsOptions struct { //nolint
-	Paginator          *db.ListOptions
-	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
-	AllPublic          bool    // include also all public repositories
-	RepoCond           builder.Cond
-	AssigneeID         int64
-	PosterID           int64
-	MentionedID        int64
-	ReviewRequestedID  int64
-	ReviewedID         int64
-	SubscriberID       int64
-	MilestoneIDs       []int64
-	ProjectID          int64
-	ProjectColumnID    int64
-	IsClosed           optional.Option[bool]
-	IsPull             optional.Option[bool]
-	LabelIDs           []int64
-	IncludedLabelNames []string
-	ExcludedLabelNames []string
-	IncludeMilestones  []string
-	SortType           string
-	ConversationIDs    []int64
-	UpdatedAfterUnix   int64
-	UpdatedBeforeUnix  int64
+	Paginator         *db.ListOptions
+	RepoIDs           []int64 // overwrites RepoCond if the length is not 0
+	AllPublic         bool    // include also all public repositories
+	RepoCond          builder.Cond
+	SortType          string
+	ConversationIDs   []int64
+	UpdatedAfterUnix  int64
+	UpdatedBeforeUnix int64
 	// prioritize conversations from this repo
 	PriorityRepoID int64
 	IsArchived     optional.Option[bool]
@@ -124,75 +106,6 @@ func applyLimit(sess *xorm.Session, opts *ConversationsOptions) {
 	sess.Limit(opts.Paginator.PageSize, start)
 }
 
-func applyLabelsCondition(sess *xorm.Session, opts *ConversationsOptions) {
-	if len(opts.LabelIDs) > 0 {
-		if opts.LabelIDs[0] == 0 {
-			sess.Where("conversation.id NOT IN (SELECT conversation_id FROM conversation_label)")
-		} else {
-			// deduplicate the label IDs for inclusion and exclusion
-			includedLabelIDs := make(container.Set[int64])
-			excludedLabelIDs := make(container.Set[int64])
-			for _, labelID := range opts.LabelIDs {
-				if labelID > 0 {
-					includedLabelIDs.Add(labelID)
-				} else if labelID < 0 { // 0 is not supported here, so just ignore it
-					excludedLabelIDs.Add(-labelID)
-				}
-			}
-			// ... and use them in a subquery of the form :
-			//  where (select count(*) from conversation_label where conversation_id=conversation.id and label_id in (2, 4, 6)) = 3
-			// This equality is guaranteed thanks to unique index (conversation_id,label_id) on table conversation_label.
-			if len(includedLabelIDs) > 0 {
-				subQuery := builder.Select("count(*)").From("conversation_label").Where(builder.Expr("conversation_id = conversation.id")).
-					And(builder.In("label_id", includedLabelIDs.Values()))
-				sess.Where(builder.Eq{strconv.Itoa(len(includedLabelIDs)): subQuery})
-			}
-			// or (select count(*)...) = 0 for excluded labels
-			if len(excludedLabelIDs) > 0 {
-				subQuery := builder.Select("count(*)").From("conversation_label").Where(builder.Expr("conversation_id = conversation.id")).
-					And(builder.In("label_id", excludedLabelIDs.Values()))
-				sess.Where(builder.Eq{"0": subQuery})
-			}
-		}
-	}
-}
-
-func applyMilestoneCondition(sess *xorm.Session, opts *ConversationsOptions) {
-	if len(opts.MilestoneIDs) == 1 && opts.MilestoneIDs[0] == db.NoConditionID {
-		sess.And("conversation.milestone_id = 0")
-	} else if len(opts.MilestoneIDs) > 0 {
-		sess.In("conversation.milestone_id", opts.MilestoneIDs)
-	}
-
-	if len(opts.IncludeMilestones) > 0 {
-		sess.In("conversation.milestone_id",
-			builder.Select("id").
-				From("milestone").
-				Where(builder.In("name", opts.IncludeMilestones)))
-	}
-}
-
-func applyProjectCondition(sess *xorm.Session, opts *ConversationsOptions) {
-	if opts.ProjectID > 0 { // specific project
-		sess.Join("INNER", "project_conversation", "conversation.id = project_conversation.conversation_id").
-			And("project_conversation.project_id=?", opts.ProjectID)
-	} else if opts.ProjectID == db.NoConditionID { // show those that are in no project
-		sess.And(builder.NotIn("conversation.id", builder.Select("conversation_id").From("project_conversation").And(builder.Neq{"project_id": 0})))
-	}
-	// opts.ProjectID == 0 means all projects,
-	// do not need to apply any condition
-}
-
-func applyProjectColumnCondition(sess *xorm.Session, opts *ConversationsOptions) {
-	// opts.ProjectColumnID == 0 means all project columns,
-	// do not need to apply any condition
-	if opts.ProjectColumnID > 0 {
-		sess.In("conversation.id", builder.Select("conversation_id").From("project_conversation").Where(builder.Eq{"project_board_id": opts.ProjectColumnID}))
-	} else if opts.ProjectColumnID == db.NoConditionID {
-		sess.In("conversation.id", builder.Select("conversation_id").From("project_conversation").Where(builder.Eq{"project_board_id": 0}))
-	}
-}
-
 func applyRepoConditions(sess *xorm.Session, opts *ConversationsOptions) {
 	if len(opts.RepoIDs) == 1 {
 		opts.RepoCond = builder.Eq{"conversation.repo_id": opts.RepoIDs[0]}
@@ -217,24 +130,6 @@ func applyConditions(sess *xorm.Session, opts *ConversationsOptions) {
 
 	applyRepoConditions(sess, opts)
 
-	if opts.IsClosed.Has() {
-		sess.And("conversation.is_closed=?", opts.IsClosed.Value())
-	}
-
-	if opts.PosterID > 0 {
-		applyPosterCondition(sess, opts.PosterID)
-	}
-
-	if opts.MentionedID > 0 {
-		applyMentionedCondition(sess, opts.MentionedID)
-	}
-
-	if opts.SubscriberID > 0 {
-		applySubscribedCondition(sess, opts.SubscriberID)
-	}
-
-	applyMilestoneCondition(sess, opts)
-
 	if opts.UpdatedAfterUnix != 0 {
 		sess.And(builder.Gte{"conversation.updated_unix": opts.UpdatedAfterUnix})
 	}
@@ -242,60 +137,9 @@ func applyConditions(sess *xorm.Session, opts *ConversationsOptions) {
 		sess.And(builder.Lte{"conversation.updated_unix": opts.UpdatedBeforeUnix})
 	}
 
-	applyProjectCondition(sess, opts)
-
-	applyProjectColumnCondition(sess, opts)
-
-	if opts.IsPull.Has() {
-		sess.And("conversation.is_pull=?", opts.IsPull.Value())
-	}
-
 	if opts.IsArchived.Has() {
 		sess.And(builder.Eq{"repository.is_archived": opts.IsArchived.Value()})
 	}
-
-	applyLabelsCondition(sess, opts)
-}
-
-func applyPosterCondition(sess *xorm.Session, posterID int64) {
-	sess.And("conversation.poster_id=?", posterID)
-}
-
-func applyMentionedCondition(sess *xorm.Session, mentionedID int64) {
-	sess.Join("INNER", "conversation_user", "conversation.id = conversation_user.conversation_id").
-		And("conversation_user.is_mentioned = ?", true).
-		And("conversation_user.uid = ?", mentionedID)
-}
-
-func applySubscribedCondition(sess *xorm.Session, subscriberID int64) {
-	sess.And(
-		builder.
-			NotIn("conversation.id",
-				builder.Select("conversation_id").
-					From("conversation_watch").
-					Where(builder.Eq{"is_watching": false, "user_id": subscriberID}),
-			),
-	).And(
-		builder.Or(
-			builder.In("conversation.id", builder.
-				Select("conversation_id").
-				From("conversation_watch").
-				Where(builder.Eq{"is_watching": true, "user_id": subscriberID}),
-			),
-			builder.In("conversation.id", builder.
-				Select("conversation_id").
-				From("comment").
-				Where(builder.Eq{"poster_id": subscriberID}),
-			),
-			builder.Eq{"conversation.poster_id": subscriberID},
-			builder.In("conversation.repo_id", builder.
-				Select("id").
-				From("watch").
-				Where(builder.And(builder.Eq{"user_id": subscriberID},
-					builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto))),
-			),
-		),
-	)
 }
 
 // Conversations returns a list of conversations by given conditions.
