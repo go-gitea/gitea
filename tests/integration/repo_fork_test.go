@@ -24,7 +24,7 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Step1: go to the main page of repo
-	req = NewRequestf(t, "GET", "/%s/%s", ownerName, repoName)
+	req = NewRequestf(t, "GET", "/%s/%s/code", ownerName, repoName)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Step2: click the fork button
@@ -49,7 +49,7 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Step4: check the existence of the forked repo
-	req = NewRequestf(t, "GET", "/%s/%s", forkOwnerName, forkRepoName)
+	req = NewRequestf(t, "GET", "/%s/%s/code", forkOwnerName, forkRepoName)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	return resp
@@ -69,7 +69,9 @@ func TestRepoForkToOrg(t *testing.T) {
 	// Check that no more forking is allowed as user2 owns repository
 	//  and org3 organization that owner user2 is also now has forked this repository
 	req := NewRequest(t, "GET", "/user2/repo1")
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusMovedPermanently)
+	req = NewRequest(t, "GET", resp.Result().Header.Get("Location"))
+	resp = MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	_, exists := htmlDoc.doc.Find(`a.ui.button[href*="/fork"]`).Attr("href")
 	assert.False(t, exists, "Forking should not be allowed anymore")

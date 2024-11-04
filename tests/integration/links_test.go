@@ -32,8 +32,7 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user/login",
 		"/user/forgot_password",
 		"/api/swagger",
-		"/user2/repo1",
-		"/user2/repo1/",
+		"/user2/repo1/code",
 		"/user2/repo1/projects",
 		"/user2/repo1/projects/1",
 		"/user2/repo1/releases/tag/delete-tag", // It's the only one existing record on release.yml which has is_tag: true
@@ -60,6 +59,20 @@ func TestRedirectsNoLogin(t *testing.T) {
 	for link, redirectLink := range redirects {
 		req := NewRequest(t, "GET", link)
 		resp := MakeRequest(t, req, http.StatusSeeOther)
+		assert.EqualValues(t, path.Join(setting.AppSubURL, redirectLink), test.RedirectURL(resp))
+	}
+}
+
+func TestPermanentRedirectsNoLogin(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	redirects := map[string]string{
+		"/user2/repo1":  "/user2/repo1/code",
+		"/user2/repo1/": "/user2/repo1/code",
+	}
+	for link, redirectLink := range redirects {
+		req := NewRequest(t, "GET", link)
+		resp := MakeRequest(t, req, http.StatusMovedPermanently)
 		assert.EqualValues(t, path.Join(setting.AppSubURL, redirectLink), test.RedirectURL(resp))
 	}
 }
@@ -139,7 +152,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 	DecodeJSON(t, respAPI, &apiRepos)
 
 	repoLinks := []string{
-		"",
+		"/code",
 		"/issues",
 		"/pulls",
 		"/commits/branch/master",

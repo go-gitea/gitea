@@ -200,7 +200,9 @@ func prepareRepoPR(t *testing.T, baseSession, headSession *TestSession, baseRepo
 func checkRecentlyPushedNewBranches(t *testing.T, session *TestSession, repoPath string, expected []string) {
 	branches := make([]string, 0, 2)
 	req := NewRequest(t, "GET", repoPath)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusMovedPermanently)
+	req = NewRequest(t, "GET", resp.Result().Header.Get("Location"))
+	resp = MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	doc.doc.Find(".ui.positive.message div a").Each(func(index int, branch *goquery.Selection) {
 		branches = append(branches, branch.Text())

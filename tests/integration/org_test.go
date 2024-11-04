@@ -63,7 +63,7 @@ func TestLimitedOrg(t *testing.T) {
 	session := loginUser(t, "user2")
 	req = NewRequest(t, "GET", "/limited_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/limited_org/public_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/public_repo_on_limited_org/code")
 	session.MakeRequest(t, req, http.StatusOK)
 	req = NewRequest(t, "GET", "/limited_org/private_repo_on_limited_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
@@ -72,9 +72,9 @@ func TestLimitedOrg(t *testing.T) {
 	session = loginUser(t, "user1")
 	req = NewRequest(t, "GET", "/limited_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/limited_org/public_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/public_repo_on_limited_org/code")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/limited_org/private_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/private_repo_on_limited_org/code")
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
@@ -102,7 +102,7 @@ func TestPrivateOrg(t *testing.T) {
 	session = loginUser(t, "user4")
 	req = NewRequest(t, "GET", "/privated_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org") // colab of this repo
+	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org/code") // colab of this repo
 	session.MakeRequest(t, req, http.StatusOK)
 	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
@@ -111,9 +111,9 @@ func TestPrivateOrg(t *testing.T) {
 	session = loginUser(t, "user1")
 	req = NewRequest(t, "GET", "/privated_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org/code")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org/code")
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
@@ -191,7 +191,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s", orgName))
 	restrictedSession.MakeRequest(t, req, http.StatusOK)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))
+	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/code", orgName, repoName))
 	restrictedSession.MakeRequest(t, req, http.StatusOK)
 }
 

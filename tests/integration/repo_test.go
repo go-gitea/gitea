@@ -25,7 +25,11 @@ func TestViewRepo(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	req := NewRequest(t, "GET", "/user2/repo1")
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusMovedPermanently)
+
+	link := resp.Result().Header.Get("Location")
+	req = NewRequest(t, "GET", link)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
@@ -44,7 +48,7 @@ func TestViewRepo(t *testing.T) {
 func testViewRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/org3/repo3")
+	req := NewRequest(t, "GET", "/org3/repo3/code")
 	session := loginUser(t, "user2")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -115,7 +119,7 @@ func TestViewRepo2(t *testing.T) {
 func TestViewRepo3(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/org3/repo3")
+	req := NewRequest(t, "GET", "/org3/repo3/code")
 	session := loginUser(t, "user4")
 	session.MakeRequest(t, req, http.StatusOK)
 }
@@ -124,7 +128,11 @@ func TestViewRepo1CloneLinkAnonymous(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1")
-	resp := MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusMovedPermanently)
+
+	link := resp.Result().Header.Get("Location")
+	req = NewRequest(t, "GET", link)
+	resp = MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find("#repo-clone-https").Attr("data-link")
@@ -139,7 +147,7 @@ func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	req := NewRequest(t, "GET", "/user2/repo1")
+	req := NewRequest(t, "GET", "/user2/repo1/code")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -158,7 +166,11 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	req := NewRequest(t, "GET", "/user2/repo20.git")
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusMovedPermanently)
+
+	link := resp.Result().Header.Get("Location")
+	req = NewRequest(t, "GET", link)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	files := htmlDoc.doc.Find("#repo-files-table > TBODY > TR > TD.name > SPAN.truncate")
@@ -269,7 +281,7 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 	}
 
 	// viewing the top level
-	check("Home", "/user2/readme-test/", "README.md", "markdown", "The cake is a lie.")
+	check("Home", "/user2/readme-test/code", "README.md", "markdown", "The cake is a lie.")
 
 	// viewing different file extensions
 	check("md", "/user2/readme-test/src/branch/master/", "README.md", "markdown", "The cake is a lie.")

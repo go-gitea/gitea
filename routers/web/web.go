@@ -1139,8 +1139,10 @@ func registerRoutes(m *web.Router) {
 	)
 	// end "/{username}/{reponame}/settings"
 
-	// user/org home, including rss feeds
-	m.Get("/{username}/{reponame}", ignSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home)
+	// user/org home, witch either redirects to default unit or return rss feeds
+	m.Get("/{username}/{reponame}", ignSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.HomeWithFeedCheck)
+	// show the code unit's home view
+	m.Get("/{username}/{reponame}/code", ignSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.CodeHome)
 
 	// TODO: maybe it should relax the permission to allow "any access"
 	m.Post("/{username}/{reponame}/markup", ignSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki), web.Bind(structs.MarkupOption{}), misc.Markup)
@@ -1579,10 +1581,10 @@ func registerRoutes(m *web.Router) {
 		m.Get("/atom/branch/*", context.RepoRefByType(context.RepoRefBranch), feedEnabled, feed.RenderBranchFeed)
 
 		m.Group("/src", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Home)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.Home)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.Home)
-			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.Home) // "/*" route is deprecated, and kept for backward compatibility
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.CodeHome)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.CodeHome)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.CodeHome)
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.CodeHome) // "/*" route is deprecated, and kept for backward compatibility
 		}, repo.SetEditorconfigIfExists)
 
 		m.Get("/forks", context.RepoRef(), repo.Forks)
