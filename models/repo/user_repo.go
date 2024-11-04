@@ -131,7 +131,7 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 	// Leave a seat for owner itself to append later, but if owner is an organization
 	// and just waste 1 unit is cheaper than re-allocate memory once.
 	users := make([]*user_model.User, 0, len(uniqueUserIDs)+1)
-	if len(userIDs) > 0 {
+	if len(uniqueUserIDs) > 0 {
 		if err = e.In("id", uniqueUserIDs.Values()).
 			Where(builder.Eq{"`user`.is_active": true}).
 			OrderBy(user_model.GetOrderByName()).
