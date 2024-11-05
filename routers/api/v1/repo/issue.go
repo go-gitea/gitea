@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -1046,18 +1047,11 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 		return
 	}
 
-	var deadlineUnix timeutil.TimeStamp
-	var deadline time.Time
-	if form.Deadline != nil && !form.Deadline.IsZero() {
-		deadline = time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-			23, 59, 59, 0, time.Local)
-		deadlineUnix = timeutil.TimeStamp(deadline.Unix())
-	}
-
+	deadlineUnix, _ := common.ParseAPIDeadlineToEndOfDay(form.Deadline)
 	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: &deadline})
+	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: deadlineUnix.AsTimePtr()})
 }

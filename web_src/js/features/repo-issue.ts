@@ -43,52 +43,6 @@ export function initRepoIssueTimeTracking() {
   });
 }
 
-async function updateDeadline(deadlineString) {
-  hideElem('#deadline-err-invalid-date');
-  document.querySelector('#deadline-loader')?.classList.add('is-loading');
-
-  let realDeadline = null;
-  if (deadlineString !== '') {
-    const newDate = Date.parse(deadlineString);
-
-    if (Number.isNaN(newDate)) {
-      document.querySelector('#deadline-loader')?.classList.remove('is-loading');
-      showElem('#deadline-err-invalid-date');
-      return false;
-    }
-    realDeadline = new Date(newDate);
-  }
-
-  try {
-    const response = await POST(document.querySelector('#update-issue-deadline-form').getAttribute('action'), {
-      data: {due_date: realDeadline},
-    });
-
-    if (response.ok) {
-      window.location.reload();
-    } else {
-      throw new Error('Invalid response');
-    }
-  } catch (error) {
-    console.error(error);
-    document.querySelector('#deadline-loader').classList.remove('is-loading');
-    showElem('#deadline-err-invalid-date');
-  }
-}
-
-export function initRepoIssueDue() {
-  $(document).on('click', '.issue-due-edit', () => {
-    toggleElem('#deadlineForm');
-  });
-  $(document).on('click', '.issue-due-remove', () => {
-    updateDeadline('');
-  });
-  $(document).on('submit', '.issue-due-form', () => {
-    updateDeadline($('#deadlineDate').val());
-    return false;
-  });
-}
-
 /**
  * @param {HTMLElement} item
  */

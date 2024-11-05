@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
@@ -192,6 +193,14 @@ var RelationCommit = &Commit{
 	Row: -1,
 }
 
+func parseGitTime(timeStr string) time.Time {
+	t, err := time.Parse(time.RFC3339, timeStr)
+	if err != nil {
+		return time.Unix(0, 0)
+	}
+	return t
+}
+
 // NewCommit creates a new commit from a provided line
 func NewCommit(row, column int, line []byte) (*Commit, error) {
 	data := bytes.SplitN(line, []byte("|"), 5)
@@ -206,7 +215,7 @@ func NewCommit(row, column int, line []byte) (*Commit, error) {
 		// 1 matches git log --pretty=format:%H => commit hash
 		Rev: string(data[1]),
 		// 2 matches git log --pretty=format:%ad => author date (format respects --date= option)
-		Date: string(data[2]),
+		Date: parseGitTime(string(data[2])),
 		// 3 matches git log --pretty=format:%h => abbreviated commit hash
 		ShortRev: string(data[3]),
 		// 4 matches git log --pretty=format:%s => subject
@@ -245,7 +254,7 @@ type Commit struct {
 	Column       int
 	Refs         []git.Reference
 	Rev          string
-	Date         string
+	Date         time.Time
 	ShortRev     string
 	Subject      string
 }
