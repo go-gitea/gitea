@@ -14,10 +14,14 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	migrate_base "code.gitea.io/gitea/models/migrations/base"
+	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/doctor"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/urfave/cli/v2"
 	"xorm.io/xorm"
@@ -33,6 +37,7 @@ var CmdDoctor = &cli.Command{
 		cmdDoctorCheck,
 		cmdRecreateTable,
 		cmdDoctorConvert,
+		cmdDisableMirrorActionsUnit,
 	},
 }
 
@@ -136,6 +141,48 @@ func runRecreateTable(ctx *cli.Context) error {
 		}
 		return recreateTables(x)
 	})
+}
+
+var cmdDisableMirrorActionsUnit = &cli.Command{
+	Name:   "disable-mirror-actions-unit",
+	Usage:  "Disable the actions unit for all mirrors",
+	Action: runDisableMirrorActionsUnit,
+}
+
+func runDisableMirrorActionsUnit(_ *cli.Context) error {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(stdCtx); err != nil {
+		return err
+	}
+
+	const pageSize = repo_model.RepositoryListDefaultPageSize
+	for page := 1; ; page++ {
+		repos, count, err := repo_model.SearchRepository(stdCtx, &repo_model.SearchRepoOptions{
+			ListOptions: db.ListOptions{
+				PageSize: pageSize,
+				Page:     page,
+			},
+			Mirror: optional.Some(true),
+		})
+		if err != nil {
+			return fmt.Errorf("SearchRepository: %w", err)
+		}
+		if len(repos) == 0 {
+			break
+		}
+		log.Info("Processing %d-%d of %d repos", (page-1)*pageSize+1, (page-1)*pageSize+len(repos), count)
+		for _, repo := range repos {
+			if err := repo_service.UpdateRepositoryUnits(stdCtx, repo, nil, []unit_model.Type{unit_model.TypeActions}); err != nil {
+				return err
+			}
+		}
+	}
+
+	log.Info("Finish processing")
+
+	return nil
 }
 
 func setupDoctorDefaultLogger(ctx *cli.Context, colorize bool) {
