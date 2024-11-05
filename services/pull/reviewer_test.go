@@ -56,3 +56,17 @@ func TestRepoGetReviewers(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 1)
 }
+
+func TestRepoGetReviewerTeams(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	teams, err := pull_service.GetReviewerTeams(db.DefaultContext, repo2)
+	assert.NoError(t, err)
+	assert.Empty(t, teams)
+
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	teams, err = pull_service.GetReviewerTeams(db.DefaultContext, repo3)
+	assert.NoError(t, err)
+	assert.Len(t, teams, 2)
+}
