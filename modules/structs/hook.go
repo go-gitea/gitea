@@ -509,15 +509,14 @@ type CommitStatusPayload struct {
 	Commit  *PayloadCommit `json:"commit"`
 	Context string         `json:"context"`
 	// swagger:strfmt date-time
-	CreatedAt   time.Time `json:"created_at"`
-	Description string    `json:"description"`
-	ID          int64     `json:"id"`
-	// Name        string         `json:"name"`
-	Repo      *Repository `json:"repository"`
-	Sender    *User       `json:"sender"`
-	SHA       string      `json:"sha"`
-	State     string      `json:"state"`
-	TargetURL string      `json:"target_url"`
+	CreatedAt   time.Time   `json:"created_at"`
+	Description string      `json:"description"`
+	ID          int64       `json:"id"`
+	Repo        *Repository `json:"repository"`
+	Sender      *User       `json:"sender"`
+	SHA         string      `json:"sha"`
+	State       string      `json:"state"`
+	TargetURL   string      `json:"target_url"`
 	// swagger:strfmt date-time
 	UpdatedAt *time.Time `json:"updated_at"`
 }
