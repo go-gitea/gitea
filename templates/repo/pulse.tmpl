@@ -1,5 +1,5 @@
 <h2 class="ui header activity-header">
-	<span>{{ctx.DateUtils.AbsoluteLong .DateFrom}} - {{ctx.DateUtils.AbsoluteLong .DateUntil}}</span>
+	<span>{{DateUtils.AbsoluteLong .DateFrom}} - {{DateUtils.AbsoluteLong .DateUntil}}</span>
 	<!-- Period -->
 	<div class="ui floating dropdown jump filter">
 		<div class="ui basic compact button">
@@ -127,7 +127,7 @@
 				{{if not .IsTag}}
 					<a class="title" href="{{$.RepoLink}}/src/{{.TagName | PathEscapeSegments}}">{{.Title | RenderEmoji $.Context | RenderCodeBlock}}</a>
 				{{end}}
-				{{TimeSinceUnix .CreatedUnix ctx.Locale}}
+				{{DateUtils.TimeSince .CreatedUnix}}
 			</p>
 		{{end}}
 	</div>
@@ -146,7 +146,7 @@
 			<p class="desc">
 				<span class="ui purple label">{{ctx.Locale.Tr "repo.activity.merged_prs_label"}}</span>
 				#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | RenderEmoji $.Context | RenderCodeBlock}}</a>
-				{{TimeSinceUnix .MergedUnix ctx.Locale}}
+				{{DateUtils.TimeSince .MergedUnix}}
 			</p>
 		{{end}}
 	</div>
@@ -165,7 +165,7 @@
 			<p class="desc">
 				<span class="ui green label">{{ctx.Locale.Tr "repo.activity.opened_prs_label"}}</span>
 				#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | RenderEmoji $.Context | RenderCodeBlock}}</a>
-				{{TimeSinceUnix .Issue.CreatedUnix ctx.Locale}}
+				{{DateUtils.TimeSince .Issue.CreatedUnix}}
 			</p>
 		{{end}}
 	</div>
@@ -184,7 +184,7 @@
 			<p class="desc">
 				<span class="ui red label">{{ctx.Locale.Tr "repo.activity.closed_issue_label"}}</span>
 				#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji $.Context | RenderCodeBlock}}</a>
-				{{TimeSinceUnix .ClosedUnix ctx.Locale}}
+				{{DateUtils.TimeSince .ClosedUnix}}
 			</p>
 		{{end}}
 	</div>
@@ -203,7 +203,7 @@
 			<p class="desc">
 				<span class="ui green label">{{ctx.Locale.Tr "repo.activity.new_issue_label"}}</span>
 				#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji $.Context | RenderCodeBlock}}</a>
-				{{TimeSinceUnix .CreatedUnix ctx.Locale}}
+				{{DateUtils.TimeSince .CreatedUnix}}
 			</p>
 		{{end}}
 	</div>
@@ -224,7 +224,7 @@
 				{{else}}
 				<a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji $.Context | RenderCodeBlock}}</a>
 				{{end}}
-				{{TimeSinceUnix .UpdatedUnix ctx.Locale}}
+				{{DateUtils.TimeSince .UpdatedUnix}}
 			</p>
 		{{end}}
 	</div>

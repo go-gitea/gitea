@@ -15,8 +15,14 @@ import {easyMDEToolbarActions} from './EasyMDEToolbarActions.ts';
 import {initTextExpander} from './TextExpander.ts';
 import {showErrorToast} from '../../modules/toast.ts';
 import {POST} from '../../modules/fetch.ts';
-import {EventEditorContentChanged, initTextareaMarkdown, triggerEditorContentChanged} from './EditorMarkdown.ts';
+import {
+  EventEditorContentChanged,
+  initTextareaMarkdown,
+  textareaInsertText,
+  triggerEditorContentChanged,
+} from './EditorMarkdown.ts';
 import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
+import {createTippy} from '../../modules/tippy.ts';
 
 let elementIdCounter = 0;
 
@@ -122,8 +128,7 @@ export class ComboMarkdownEditor {
     const monospaceText = monospaceButton.getAttribute(monospaceEnabled ? 'data-disable-text' : 'data-enable-text');
     monospaceButton.setAttribute('data-tooltip-content', monospaceText);
     monospaceButton.setAttribute('aria-checked', String(monospaceEnabled));
-
-    monospaceButton?.addEventListener('click', (e) => {
+    monospaceButton.addEventListener('click', (e) => {
       e.preventDefault();
       const enabled = localStorage?.getItem('markdown-editor-monospace') !== 'true';
       localStorage.setItem('markdown-editor-monospace', String(enabled));
@@ -134,11 +139,13 @@ export class ComboMarkdownEditor {
     });
 
     const easymdeButton = this.container.querySelector('.markdown-switch-easymde');
-    easymdeButton?.addEventListener('click', async (e) => {
+    easymdeButton.addEventListener('click', async (e) => {
       e.preventDefault();
       this.userPreferredEditor = 'easymde';
       await this.switchToEasyMDE();
     });
+
+    this.initMarkdownButtonTableAdd();
 
     initTextareaMarkdown(this.textarea);
     initTextareaEvents(this.textarea, this.dropzone);
@@ -216,6 +223,42 @@ export class ComboMarkdownEditor {
       const response = await POST(this.previewUrl, {data: formData});
       const data = await response.text();
       renderPreviewPanelContent($(panelPreviewer), data);
+    });
+  }
+
+  generateMarkdownTable(rows: number, cols: number): string {
+    const tableLines = [];
+    tableLines.push(
+      `| ${'Header '.repeat(cols).trim().split(' ').join(' | ')} |`,
+      `| ${'--- '.repeat(cols).trim().split(' ').join(' | ')} |`,
+    );
+    for (let i = 0; i < rows; i++) {
+      tableLines.push(`| ${'Cell '.repeat(cols).trim().split(' ').join(' | ')} |`);
+    }
+    return tableLines.join('\n');
+  }
+
+  initMarkdownButtonTableAdd() {
+    const addTableButton = this.container.querySelector('.markdown-button-table-add');
+    const addTablePanel = this.container.querySelector('.markdown-add-table-panel');
+    // here the tippy can't attach to the button because the button already owns a tippy for tooltip
+    const addTablePanelTippy = createTippy(addTablePanel, {
+      content: addTablePanel,
+      trigger: 'manual',
+      placement: 'bottom',
+      hideOnClick: true,
+      interactive: true,
+      getReferenceClientRect: () => addTableButton.getBoundingClientRect(),
+    });
+    addTableButton.addEventListener('click', () => addTablePanelTippy.show());
+
+    addTablePanel.querySelector('.ui.button.primary').addEventListener('click', () => {
+      let rows = parseInt(addTablePanel.querySelector<HTMLInputElement>('[name=rows]').value);
+      let cols = parseInt(addTablePanel.querySelector<HTMLInputElement>('[name=cols]').value);
+      rows = Math.max(1, Math.min(100, rows));
+      cols = Math.max(1, Math.min(100, cols));
+      textareaInsertText(this.textarea, `\n${this.generateMarkdownTable(rows, cols)}\n\n`);
+      addTablePanelTippy.hide();
     });
   }
 
