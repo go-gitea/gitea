@@ -84,7 +84,7 @@ func (m *Milestone) BeforeUpdate() {
 // this object.
 func (m *Milestone) AfterLoad() {
 	m.NumOpenIssues = m.NumIssues - m.NumClosedIssues
-	if m.DeadlineUnix.Year() == 9999 {
+	if m.DeadlineUnix.Year() >= 9999 {
 		return
 	}
 
