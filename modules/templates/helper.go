@@ -73,11 +73,6 @@ func NewFuncMap() template.FuncMap {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
 
-		// for backward compatibility only, do not use them anymore
-		"TimeSince":     timeSinceLegacy,
-		"TimeSinceUnix": timeSinceLegacy,
-		"DateTime":      dateTimeLegacy,
-
 		// -----------------------------------------------------------------
 		// setting
 		"AppName": func() string {
@@ -156,18 +151,8 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// render
-		"RenderCommitMessage":            RenderCommitMessage,
-		"RenderCommitMessageLinkSubject": renderCommitMessageLinkSubject,
-
-		"RenderCommitBody": renderCommitBody,
-		"RenderCodeBlock":  renderCodeBlock,
-		"RenderIssueTitle": renderIssueTitle,
-		"RenderEmoji":      renderEmoji,
-		"ReactionToEmoji":  reactionToEmoji,
-
-		"RenderMarkdownToHtml": RenderMarkdownToHtml,
-		"RenderLabel":          renderLabel,
-		"RenderLabels":         RenderLabels,
+		"RenderCodeBlock": renderCodeBlock,
+		"ReactionToEmoji": reactionToEmoji,
 
 		// -----------------------------------------------------------------
 		// misc
@@ -179,6 +164,22 @@ func NewFuncMap() template.FuncMap {
 
 		"FilenameIsImage": filenameIsImage,
 		"TabSizeClass":    tabSizeClass,
+
+		// for backward compatibility only, do not use them anymore
+		"TimeSince":     timeSinceLegacy,
+		"TimeSinceUnix": timeSinceLegacy,
+		"DateTime":      dateTimeLegacy,
+
+		"RenderEmoji":      renderEmojiLegacy,
+		"RenderLabel":      renderLabelLegacy,
+		"RenderLabels":     renderLabelsLegacy,
+		"RenderIssueTitle": renderIssueTitleLegacy,
+
+		"RenderMarkdownToHtml": renderMarkdownToHtmlLegacy,
+
+		"RenderCommitMessage":            renderCommitMessageLegacy,
+		"RenderCommitMessageLinkSubject": renderCommitMessageLinkSubjectLegacy,
+		"RenderCommitBody":               renderCommitBodyLegacy,
 	}
 }
 
@@ -295,4 +296,10 @@ func userThemeName(user *user_model.User) string {
 		return user.Theme
 	}
 	return setting.UI.DefaultTheme
+}
+
+func panicIfDevOrTesting() {
+	if !setting.IsProd || setting.IsInTesting {
+		panic("legacy template functions are for backward compatibility only, do not use them in new code")
+	}
 }
