@@ -27,7 +27,7 @@ import (
 const (
 	tplDiffConversation     base.TplName = "repo/diff/conversation"
 	tplConversationOutdated base.TplName = "repo/diff/conversation_outdated"
-	tplTimelineConversation base.TplName = "repo/conversation/conversation"
+	tplTimelineConversation base.TplName = "repo/issue/view_content/conversation"
 	tplNewComment           base.TplName = "repo/diff/new_comment"
 )
 
