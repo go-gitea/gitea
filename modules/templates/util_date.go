@@ -28,7 +28,7 @@ func (du *DateUtils) AbsoluteShort(time any) template.HTML {
 
 // AbsoluteLong renders in "January 01, 2006" format
 func (du *DateUtils) AbsoluteLong(time any) template.HTML {
-	return dateTimeFormat("short", time)
+	return dateTimeFormat("long", time)
 }
 
 // FullTime renders in "Jan 01, 2006 20:33:44" format
