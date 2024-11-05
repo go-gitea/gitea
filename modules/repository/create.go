@@ -68,11 +68,12 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 
 	// insert units for repo
 	defaultUnits := unit.DefaultRepoUnits
-	if isFork {
+	switch {
+	case isFork:
 		defaultUnits = unit.DefaultForkRepoUnits
-	} else if repo.IsMirror {
+	case repo.IsMirror:
 		defaultUnits = unit.DefaultMirrorRepoUnits
-	} else if repo.IsTemplate {
+	case repo.IsTemplate:
 		defaultUnits = unit.DefaultTemplateRepoUnits
 	}
 	units := make([]repo_model.RepoUnit, 0, len(defaultUnits))
