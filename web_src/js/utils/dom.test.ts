@@ -8,11 +8,11 @@ test('createElementFromAttrs', () => {
   const el = createElementFromAttrs('button', {
     id: 'the-id',
     class: 'cls-1 cls-2',
-    'data-foo': 'the-data',
     disabled: true,
     checked: false,
     required: null,
     tabindex: 0,
-  });
-  expect(el.outerHTML).toEqual('<button id="the-id" class="cls-1 cls-2" data-foo="the-data" disabled="" tabindex="0"></button>');
+    'data-foo': 'the-data',
+  }, 'txt', createElementFromHTML('<span>inner</span>'));
+  expect(el.outerHTML).toEqual('<button id="the-id" class="cls-1 cls-2" disabled="" tabindex="0" data-foo="the-data">txt<span>inner</span></button>');
 });

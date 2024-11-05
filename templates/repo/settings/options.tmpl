@@ -117,7 +117,7 @@
 							<tr>
 								<td>{{.PullMirror.RemoteAddress}}</td>
 								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
-								<td>{{DateTime "full" .PullMirror.UpdatedUnix}}</td>
+								<td>{{DateUtils.FullTime .PullMirror.UpdatedUnix}}</td>
 								<td class="right aligned">
 									<form method="post" class="tw-inline-block">
 										{{.CsrfTokenHtml}}
@@ -205,7 +205,7 @@
 							<tr>
 								<td class="tw-break-anywhere">{{.RemoteAddress}}</td>
 								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
-								<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error"}}</div>{{end}}</td>
+								<td>{{if .LastUpdateUnix}}{{DateUtils.FullTime .LastUpdateUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error"}}</div>{{end}}</td>
 								<td class="right aligned">
 									<button
 										class="ui tiny button show-modal"
