@@ -26,8 +26,8 @@
 							<td><a href="{{AppSubUrl}}/-/admin/auths/{{.ID}}">{{.Name}}</a></td>
 							<td>{{.TypeName}}</td>
 							<td>{{svg (Iif .IsActive "octicon-check" "octicon-x")}}</td>
-							<td>{{DateTime "short" .UpdatedUnix}}</td>
-							<td>{{DateTime "short" .CreatedUnix}}</td>
+							<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
+							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							<td><a href="{{AppSubUrl}}/-/admin/auths/{{.ID}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}

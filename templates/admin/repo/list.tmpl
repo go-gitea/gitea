@@ -82,8 +82,8 @@
 							<td>{{.NumIssues}}</td>
 							<td>{{FileSize .GitSize}}</td>
 							<td>{{FileSize .LFSSize}}</td>
-							<td>{{DateTime "short" .UpdatedUnix}}</td>
-							<td>{{DateTime "short" .CreatedUnix}}</td>
+							<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
+							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trash"}}</a></td>
 						</tr>
 					{{end}}

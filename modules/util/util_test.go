@@ -240,3 +240,16 @@ func TestReserveLineBreakForTextarea(t *testing.T) {
 	assert.Equal(t, ReserveLineBreakForTextarea("test\r\ndata"), "test\ndata")
 	assert.Equal(t, ReserveLineBreakForTextarea("test\r\ndata\r\n"), "test\ndata\n")
 }
+
+func TestOptionalArg(t *testing.T) {
+	foo := func(other any, optArg ...int) int {
+		return OptionalArg(optArg)
+	}
+	bar := func(other any, optArg ...int) int {
+		return OptionalArg(optArg, 42)
+	}
+	assert.Equal(t, 0, foo(nil))
+	assert.Equal(t, 100, foo(nil, 100))
+	assert.Equal(t, 42, bar(nil))
+	assert.Equal(t, 100, bar(nil, 100))
+}

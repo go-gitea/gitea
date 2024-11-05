@@ -1,5 +1,5 @@
 import {encode, decode} from 'uint8-to-base64';
-import type {IssueData} from './types.ts';
+import type {IssuePathInfo} from './types.ts';
 
 // transform /path/to/file.ext to file.ext
 export function basename(path: string): string {
@@ -31,10 +31,16 @@ export function stripTags(text: string): string {
   return text.replace(/<[^>]*>?/g, '');
 }
 
-export function parseIssueHref(href: string): IssueData {
+export function parseIssueHref(href: string): IssuePathInfo {
   const path = (href || '').replace(/[#?].*$/, '');
-  const [_, owner, repo, type, index] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
-  return {owner, repo, type, index};
+  const [_, ownerName, repoName, pathType, indexString] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
+  return {ownerName, repoName, pathType, indexString};
+}
+
+export function parseIssueNewHref(href: string): IssuePathInfo {
+  const path = (href || '').replace(/[#?].*$/, '');
+  const [_, ownerName, repoName, pathType, indexString] = /([^/]+)\/([^/]+)\/(issues|pulls)\/new/.exec(path) || [];
+  return {ownerName, repoName, pathType, indexString};
 }
 
 // parse a URL, either relative '/path' or absolute 'https://localhost/path'

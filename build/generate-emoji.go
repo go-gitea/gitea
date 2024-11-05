@@ -53,8 +53,6 @@ func (e Emoji) MarshalJSON() ([]byte, error) {
 }
 
 func main() {
-	var err error
-
 	flag.Parse()
 
 	// generate data
@@ -83,8 +81,6 @@ var replacer = strings.NewReplacer(
 var emojiRE = regexp.MustCompile(`\{Emoji:"([^"]*)"`)
 
 func generate() ([]byte, error) {
-	var err error
-
 	// load gemoji data
 	res, err := http.Get(gemojiURL)
 	if err != nil {
