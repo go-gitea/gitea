@@ -143,62 +143,6 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 	return users, nil
 }
 
-// GetReviewers get all users can be requested to review:
-// - Poster should not be listed
-// - For collabrators, all users that have read access or higher to the repository.
-// - For repository under orgnization, users under the teams which have read permission or higher of pull request unit
-// - Owner will be listed if it's not an organization, not the poster and not in the list of reviewers
-func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64) ([]*user_model.User, error) {
-	if err := repo.LoadOwner(ctx); err != nil {
-		return nil, err
-	}
-
-	e := db.GetEngine(ctx)
-	uniqueUserIDs := make(container.Set[int64])
-
-	if repo.Owner.IsOrganization() {
-		additionalUserIDs := make([]int64, 0, 10)
-		if err := e.Table("team_user").
-			Join("INNER", "team_repo", "`team_repo`.team_id = `team_user`.team_id").
-			Join("INNER", "team_unit", "`team_unit`.team_id = `team_user`.team_id").
-			Where("`team_repo`.repo_id = ? AND (`team_unit`.access_mode >= ? AND `team_unit`.`type` = ?)",
-				repo.ID, perm.AccessModeRead, unit.TypePullRequests).
-			Distinct("`team_user`.uid").
-			Select("`team_user`.uid").
-			Find(&additionalUserIDs); err != nil {
-			return nil, err
-		}
-		uniqueUserIDs.AddMultiple(additionalUserIDs...)
-	} else {
-		userIDs := make([]int64, 0, 10)
-		if err := e.Table("access").
-			Where("repo_id = ? AND mode >= ?", repo.ID, perm.AccessModeRead).
-			Select("user_id").
-			Find(&userIDs); err != nil {
-			return nil, err
-		}
-		uniqueUserIDs.AddMultiple(userIDs...)
-	}
-	uniqueUserIDs.Remove(posterID) // posterID should not be in the list of reviewers
-
-	// Leave a seat for owner itself to append later, but if owner is an organization
-	// and just waste 1 unit is cheaper than re-allocate memory once.
-	users := make([]*user_model.User, 0, len(uniqueUserIDs)+1)
-	if len(uniqueUserIDs) > 0 {
-		if err := e.In("id", uniqueUserIDs.Values()).
-			Where(builder.Eq{"`user`.is_active": true}).
-			OrderBy(user_model.GetOrderByName()).
-			Find(&users); err != nil {
-			return nil, err
-		}
-	}
-	if repo.OwnerID != posterID && !repo.Owner.IsOrganization() && !uniqueUserIDs.Contains(repo.OwnerID) {
-		users = append(users, repo.Owner)
-	}
-
-	return users, nil
-}
-
 // GetIssuePostersWithSearch returns users with limit of 30 whose username started with prefix that have authored an issue/pull request for the given repository
 // If isShowFullName is set to true, also include full name prefix search
 func GetIssuePostersWithSearch(ctx context.Context, repo *Repository, isPull bool, search string, isShowFullName bool) ([]*user_model.User, error) {
