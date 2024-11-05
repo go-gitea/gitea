@@ -97,9 +97,7 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 		return err
 	}
 
-	pushCommit := repo_module.CommitToPushCommit(commit)
-
-	notify.CreateCommitStatus(ctx, repo, pushCommit, creator, status)
+	notify.CreateCommitStatus(ctx, repo, repo_module.CommitToPushCommit(commit), creator, status)
 
 	defaultBranchCommit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
 	if err != nil {
@@ -111,8 +109,6 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 			log.Error("deleteCommitStatusCache[%d:%s] failed: %v", repo.ID, repo.DefaultBranch, err)
 		}
 	}
-
-	notify.CreateCommitStatus(ctx, repo, repo_module.CommitToPushCommit(commit), creator, status)
 
 	return nil
 }
