@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // prAutoMergeQueue represents a queue to handle update pull request tests
@@ -302,5 +303,11 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 		// The resolution is add a new column on automerge table named `error_message` to store the error message and displayed
 		// on the pull request page. But this should not be finished in a bug fix PR which will be backport to release branch.
 		return
+	}
+
+	if pr.Flow == issues_model.PullRequestFlowGithub && scheduledPRM.DeleteBranchAfterMerge {
+		if err := repo_service.DeleteBranch(ctx, doer, pr.HeadRepo, headGitRepo, pr.HeadBranch); err != nil {
+			log.Error("deleteBranch after automerge for pull[%d] failed: %v", pr.ID, err)
+		}
 	}
 }
