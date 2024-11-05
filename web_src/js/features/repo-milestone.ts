@@ -1,11 +1,9 @@
-import $ from 'jquery';
-
 export function initRepoMilestone() {
-  // Milestones
-  if ($('.repository.new.milestone').length > 0) {
-    $('#clear-date').on('click', () => {
-      $('#deadline').val('');
-      return false;
-    });
-  }
+  const page = document.querySelector('.repository.new.milestone');
+  if (!page) return;
+
+  const deadline = page.querySelector<HTMLInputElement>('form input[name=deadline]');
+  document.querySelector('#milestone-clear-deadline').addEventListener('click', () => {
+    deadline.value = '';
+  });
 }
