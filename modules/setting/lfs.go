@@ -68,8 +68,8 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 	}
 
 	if LFSClient.BatchOperationConcurrency < 1 {
-		// match the default git-lfs's `lfs.concurrenttransfers`
-		LFSClient.BatchOperationConcurrency = 3
+		// match the default git-lfs's `lfs.concurrenttransfers` https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-config.adoc#upload-and-download-transfer-settings
+		LFSClient.BatchOperationConcurrency = 8
 	}
 
 	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(24 * time.Hour)
