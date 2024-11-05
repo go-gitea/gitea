@@ -65,9 +65,14 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func newTestRenderUtils() *RenderUtils {
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, translation.ContextKey, &translation.MockLocale{})
+	return NewRenderUtils(ctx)
+}
+
 func TestRenderCommitBody(t *testing.T) {
 	type args struct {
-		ctx   context.Context
 		msg   string
 		metas map[string]string
 	}
@@ -79,7 +84,6 @@ func TestRenderCommitBody(t *testing.T) {
 		{
 			name: "multiple lines",
 			args: args{
-				ctx: context.Background(),
 				msg: "first line\nsecond line",
 			},
 			want: "second line",
@@ -87,7 +91,6 @@ func TestRenderCommitBody(t *testing.T) {
 		{
 			name: "multiple lines with leading newlines",
 			args: args{
-				ctx: context.Background(),
 				msg: "\n\n\n\nfirst line\nsecond line",
 			},
 			want: "second line",
@@ -95,15 +98,15 @@ func TestRenderCommitBody(t *testing.T) {
 		{
 			name: "multiple lines with trailing newlines",
 			args: args{
-				ctx: context.Background(),
 				msg: "first line\nsecond line\n\n\n",
 			},
 			want: "second line",
 		},
 	}
+	ut := newTestRenderUtils()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, renderCommitBody(tt.args.ctx, tt.args.msg, tt.args.metas), "RenderCommitBody(%v, %v, %v)", tt.args.ctx, tt.args.msg, tt.args.metas)
+			assert.Equalf(t, tt.want, ut.RenderCommitBody(tt.args.msg, tt.args.metas), "RenderCommitBody(%v, %v)", tt.args.msg, tt.args.metas)
 		})
 	}
 
@@ -127,19 +130,19 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
   space`
 
-	assert.EqualValues(t, expected, renderCommitBody(context.Background(), testInput(), testMetas))
+	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitBody(testInput(), testMetas))
 }
 
 func TestRenderCommitMessage(t *testing.T) {
 	expected := `space <a href="/mention-user" class="mention">@mention-user</a>  `
 
-	assert.EqualValues(t, expected, RenderCommitMessage(context.Background(), testInput(), testMetas))
+	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessage(testInput(), testMetas))
 }
 
 func TestRenderCommitMessageLinkSubject(t *testing.T) {
 	expected := `<a href="https://example.com/link" class="default-link muted">space </a><a href="/mention-user" class="mention">@mention-user</a>`
 
-	assert.EqualValues(t, expected, renderCommitMessageLinkSubject(context.Background(), testInput(), "https://example.com/link", testMetas))
+	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", testMetas))
 }
 
 func TestRenderIssueTitle(t *testing.T) {
@@ -165,7 +168,7 @@ mail@domain.com
   space<SPACE><SPACE>
 `
 	expected = strings.ReplaceAll(expected, "<SPACE>", " ")
-	assert.EqualValues(t, expected, renderIssueTitle(context.Background(), testInput(), testMetas))
+	assert.EqualValues(t, expected, newTestRenderUtils().RenderIssueTitle(testInput(), testMetas))
 }
 
 func TestRenderMarkdownToHtml(t *testing.T) {
@@ -190,25 +193,23 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 #123
 space</p>
 `
-	assert.Equal(t, expected, string(RenderMarkdownToHtml(context.Background(), testInput())))
+	assert.Equal(t, expected, string(newTestRenderUtils().MarkdownToHtml(testInput())))
 }
 
 func TestRenderLabels(t *testing.T) {
-	ctx := context.Background()
-	locale := &translation.MockLocale{}
-
+	ut := newTestRenderUtils()
 	label := &issues.Label{ID: 123, Name: "label-name", Color: "label-color"}
 	issue := &issues.Issue{}
 	expected := `/owner/repo/issues?labels=123`
-	assert.Contains(t, RenderLabels(ctx, locale, []*issues.Label{label}, "/owner/repo", issue), expected)
+	assert.Contains(t, ut.RenderLabels([]*issues.Label{label}, "/owner/repo", issue), expected)
 
 	label = &issues.Label{ID: 123, Name: "label-name", Color: "label-color"}
 	issue = &issues.Issue{IsPull: true}
 	expected = `/owner/repo/pulls?labels=123`
-	assert.Contains(t, RenderLabels(ctx, locale, []*issues.Label{label}, "/owner/repo", issue), expected)
+	assert.Contains(t, ut.RenderLabels([]*issues.Label{label}, "/owner/repo", issue), expected)
 }
 
 func TestUserMention(t *testing.T) {
-	rendered := RenderMarkdownToHtml(context.Background(), "@no-such-user @mention-user @mention-user")
+	rendered := newTestRenderUtils().MarkdownToHtml("@no-such-user @mention-user @mention-user")
 	assert.EqualValues(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
 }

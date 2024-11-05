@@ -4,6 +4,16 @@ export function triggerEditorContentChanged(target) {
   target.dispatchEvent(new CustomEvent(EventEditorContentChanged, {bubbles: true}));
 }
 
+export function textareaInsertText(textarea, value) {
+  const startPos = textarea.selectionStart;
+  const endPos = textarea.selectionEnd;
+  textarea.value = textarea.value.substring(0, startPos) + value + textarea.value.substring(endPos);
+  textarea.selectionStart = startPos;
+  textarea.selectionEnd = startPos + value.length;
+  textarea.focus();
+  triggerEditorContentChanged(textarea);
+}
+
 function handleIndentSelection(textarea, e) {
   const selStart = textarea.selectionStart;
   const selEnd = textarea.selectionEnd;
@@ -46,7 +56,7 @@ function handleIndentSelection(textarea, e) {
   triggerEditorContentChanged(textarea);
 }
 
-function handleNewline(textarea, e) {
+function handleNewline(textarea: HTMLTextAreaElement, e: Event) {
   const selStart = textarea.selectionStart;
   const selEnd = textarea.selectionEnd;
   if (selEnd !== selStart) return; // do not process when there is a selection
@@ -66,9 +76,9 @@ function handleNewline(textarea, e) {
   const indention = /^\s*/.exec(line)[0];
   line = line.slice(indention.length);
 
-  // parse the prefixes: "1. ", "- ", "* ", "[ ] ", "[x] "
+  // parse the prefixes: "1. ", "- ", "* ", there could also be " [ ] " or " [x] " for task lists
   // there must be a space after the prefix because none of "1.foo" / "-foo" is a list item
-  const prefixMatch = /^([0-9]+\.|[-*]|\[ \]|\[x\])\s/.exec(line);
+  const prefixMatch = /^([0-9]+\.|[-*])(\s\[([ x])\])?\s/.exec(line);
   let prefix = '';
   if (prefixMatch) {
     prefix = prefixMatch[0];
@@ -85,8 +95,9 @@ function handleNewline(textarea, e) {
   } else {
     // start a new line with the same indention and prefix
     let newPrefix = prefix;
-    if (newPrefix === '[x]') newPrefix = '[ ]';
-    if (/^\d+\./.test(newPrefix)) newPrefix = `1. `; // a simple approach, otherwise it needs to parse the lines after the current line
+    // a simple approach, otherwise it needs to parse the lines after the current line
+    if (/^\d+\./.test(prefix)) newPrefix = `1. ${newPrefix.slice(newPrefix.indexOf('.') + 2)}`;
+    newPrefix = newPrefix.replace('[x]', '[ ]');
     const newLine = `\n${indention}${newPrefix}`;
     textarea.value = value.slice(0, selStart) + newLine + value.slice(selEnd);
     textarea.setSelectionRange(selStart + newLine.length, selStart + newLine.length);
