@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
@@ -224,9 +225,7 @@ func EditMilestone(ctx *context.APIContext) {
 	if form.Description != nil {
 		milestone.Content = *form.Description
 	}
-	if form.Deadline != nil && !form.Deadline.IsZero() {
-		milestone.DeadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
-	}
+	milestone.DeadlineUnix, _ = common.ParseAPIDeadlineToEndOfDay(form.Deadline)
 
 	oldIsClosed := milestone.IsClosed
 	if form.State != nil {
