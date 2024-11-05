@@ -84,7 +84,6 @@ var (
 	DefaultMirrorRepoUnits = []Type{
 		TypeCode,
 		TypeIssues,
-		TypePullRequests,
 		TypeReleases,
 		TypeWiki,
 		TypeProjects,
