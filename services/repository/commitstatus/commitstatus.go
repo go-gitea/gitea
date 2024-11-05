@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/notify"
 )
 
@@ -114,12 +113,6 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	}
 
 	notify.CreateCommitStatus(ctx, repo, repo_module.CommitToPushCommit(commit), creator, status)
-
-	if status.State.IsSuccess() {
-		if err := automerge.StartPRCheckAndAutoMergeBySHA(ctx, sha, repo); err != nil {
-			return fmt.Errorf("MergeScheduledPullRequest[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, creator.ID, sha, err)
-		}
-	}
 
 	return nil
 }
