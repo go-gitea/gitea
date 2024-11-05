@@ -1,7 +1,7 @@
 
 <!-- Fake comment that is based on the Issue's Title and Description -->
 <div id="{{.Issue.HashTag}}" class="timeline-item comment first">
-	{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix ctx.Locale}}
+	{{$createdStr:= DateUtils.TimeSince .Issue.CreatedUnix ctx.Locale}}
 	{{if .Issue.OriginalAuthor}}
 	<span class="timeline-avatar">
 		{{ctx.AvatarUtils.Avatar nil 40}}
