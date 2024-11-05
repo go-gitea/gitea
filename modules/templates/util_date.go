@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/translation"
 )
 
 type DateUtils struct{}
@@ -52,23 +51,6 @@ func parseLegacy(datetime string) time.Time {
 		t, _ = time.ParseInLocation(time.DateOnly, datetime, setting.DefaultUILocation)
 	}
 	return t
-}
-
-func dateTimeLegacy(format string, datetime any, _ ...string) template.HTML {
-	if !setting.IsProd || setting.IsInTesting {
-		panic("dateTimeLegacy is for backward compatibility only, do not use it in new code")
-	}
-	if s, ok := datetime.(string); ok {
-		datetime = parseLegacy(s)
-	}
-	return dateTimeFormat(format, datetime)
-}
-
-func timeSinceLegacy(time any, _ translation.Locale) template.HTML {
-	if !setting.IsProd || setting.IsInTesting {
-		panic("timeSinceLegacy is for backward compatibility only, do not use it in new code")
-	}
-	return TimeSince(time)
 }
 
 func anyToTime(any any) (t time.Time, isZero bool) {
