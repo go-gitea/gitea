@@ -4,7 +4,7 @@
 		<div class="field inline">
 			<div class="ui checkbox tw-mr-0 {{if and ($opt.visible) (not (SliceUtils.Contains $opt.visible "form"))}}tw-hidden{{end}}">
 				<input type="checkbox" name="form-field-{{$.item.ID}}-{{$i}}" {{if $opt.required}}required{{end}}>
-				<label>{{RenderMarkdownToHtml $.context $opt.label}}</label>
+				<label>{{ctx.RenderUtils.MarkdownToHtml $opt.label}}</label>
 			</div>
 			{{if $opt.required}}
 				<label class="required"></label>
