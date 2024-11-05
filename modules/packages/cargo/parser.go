@@ -137,7 +137,7 @@ func parsePackage(r io.Reader) (*Package, error) {
 	dependencies := make([]*Dependency, 0, len(meta.Deps))
 	for _, dep := range meta.Deps {
 		dependencies = append(dependencies, &Dependency{
-			Name:            dep.Name,
+			Name:            dep.ExplicitNameInToml,
 			Req:             dep.VersionReq,
 			Features:        dep.Features,
 			Optional:        dep.Optional,
@@ -145,6 +145,7 @@ func parsePackage(r io.Reader) (*Package, error) {
 			Target:          dep.Target,
 			Kind:            dep.Kind,
 			Registry:        dep.Registry,
+			Package:         &dep.Name,
 		})
 	}
 
