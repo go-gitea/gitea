@@ -331,7 +331,7 @@ export function animateOnce(el: Element, animationClassName: string): Promise<vo
   });
 }
 
-export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, selector: string) : T|null {
+export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, selector: string) : T | null {
   const elems = parent.querySelectorAll<HTMLElement>(selector);
   const candidates = Array.from(elems).filter(isElemVisible);
   if (candidates.length > 1) throw new Error(`Expected exactly one visible element matching selector "${selector}", but found ${candidates.length}`);
