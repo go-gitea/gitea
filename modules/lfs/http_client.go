@@ -136,6 +136,9 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 		return fmt.Errorf("TransferAdapter not found: %s", result.Transfer)
 	}
 
+	if setting.LFSClient.BatchOperationConcurrency <= 0 {
+		panic("BatchOperationConcurrency must be greater than 0, forgot to init?")
+	}
 	errGroup, groupCtx := errgroup.WithContext(ctx)
 	errGroup.SetLimit(setting.LFSClient.BatchOperationConcurrency)
 	for _, object := range result.Objects {
