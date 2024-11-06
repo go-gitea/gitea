@@ -32,16 +32,16 @@ import (
 
 // RenameUser renames a user
 func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
+	if newUserName == u.Name {
+		return nil
+	}
+
 	// Non-local users are not allowed to change their username.
 	if !u.IsOrganization() && !u.IsLocal() {
 		return user_model.ErrUserIsNotLocal{
 			UID:  u.ID,
 			Name: u.Name,
 		}
-	}
-
-	if newUserName == u.Name {
-		return nil
 	}
 
 	if err := user_model.IsUsableUsername(newUserName); err != nil {
@@ -289,6 +289,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 		if err = DeleteUser(ctx, u, false); err != nil {
 			// Ignore inactive users that were ever active but then were set inactive by admin
 			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) || models.IsErrUserOwnPackages(err) {
+				log.Warn("Inactive user %q has repositories, organizations or packages, skipping deletion: %v", u.Name, err)
 				continue
 			}
 			select {

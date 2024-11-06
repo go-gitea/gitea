@@ -45,7 +45,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 	ctx := pc.Get(renderContextKey).(*markup.RenderContext)
 	rc := pc.Get(renderConfigKey).(*RenderConfig)
 
-	tocList := make([]markup.Header, 0, 20)
+	tocList := make([]Header, 0, 20)
 	if rc.yamlNode != nil {
 		metaNode := rc.toMetaNode()
 		if metaNode != nil {
@@ -213,8 +213,7 @@ func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node
 		return ast.WalkContinue, nil
 	}
 
-	var err error
-	_, err = w.WriteString(fmt.Sprintf(`<i class="icon %s"></i>`, name))
+	_, err := w.WriteString(fmt.Sprintf(`<i class="icon %s"></i>`, name))
 	if err != nil {
 		return ast.WalkStop, err
 	}
