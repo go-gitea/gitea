@@ -142,11 +142,11 @@ export default {
       Object.assign(this.locale, results.locale);
     },
     showAllChanges() {
-      window.location = `${this.issueLink}/files${this.queryParams}`;
+      window.location.assign(`${this.issueLink}/files${this.queryParams}`);
     },
     /** Called when user clicks on since last review */
     changesSinceLastReviewClick() {
-      window.location = `${this.issueLink}/files/${this.lastReviewCommitSha}..${this.commits.at(-1).id}${this.queryParams}`;
+      window.location.assign(`${this.issueLink}/files/${this.lastReviewCommitSha}..${this.commits.at(-1).id}${this.queryParams}`);
     },
     /** Clicking on a single commit opens this specific commit */
     commitClicked(commitId, newWindow = false) {
@@ -154,7 +154,7 @@ export default {
       if (newWindow) {
         window.open(url);
       } else {
-        window.location = url;
+        window.location.assign(url);
       }
     },
     /**
@@ -176,14 +176,14 @@ export default {
           const lastCommitIdx = this.commits.findLastIndex((x) => x.selected);
           if (lastCommitIdx === this.commits.length - 1) {
             // user selected all commits - just show the normal diff page
-            window.location = `${this.issueLink}/files${this.queryParams}`;
+            window.location.assign(`${this.issueLink}/files${this.queryParams}`);
           } else {
-            window.location = `${this.issueLink}/files/${this.commits[lastCommitIdx].id}${this.queryParams}`;
+            window.location.assign(`${this.issueLink}/files/${this.commits[lastCommitIdx].id}${this.queryParams}`);
           }
         } else {
           const start = this.commits[this.commits.findIndex((x) => x.selected) - 1].id;
           const end = this.commits.findLast((x) => x.selected).id;
-          window.location = `${this.issueLink}/files/${start}..${end}${this.queryParams}`;
+          window.location.assign(`${this.issueLink}/files/${start}..${end}${this.queryParams}`);
         }
       }
     },

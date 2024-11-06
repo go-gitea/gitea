@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
@@ -306,24 +305,8 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			return
 		}
 
-		if ref := ctx.FormTrim("ref"); len(ref) > 0 {
-			commit, err := ctx.Repo.GitRepo.GetCommit(ref)
-			if err != nil {
-				if git.IsErrNotExist(err) {
-					ctx.NotFound()
-				} else {
-					ctx.Error(http.StatusInternalServerError, "GetCommit", err)
-				}
-				return
-			}
-			ctx.Repo.Commit = commit
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			ctx.Repo.TreePath = ctx.PathParam("*")
-			next.ServeHTTP(w, req)
-			return
-		}
-
-		refName := getRefName(ctx.Base, ctx.Repo, RepoRefAny)
+		// NOTICE: the "ref" here for internal usage only (e.g. woodpecker)
+		refName, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.FormTrim("ref"))
 		var err error
 
 		if ctx.Repo.GitRepo.IsBranchExist(refName) {

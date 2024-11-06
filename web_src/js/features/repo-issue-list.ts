@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {updateIssuesMeta} from './repo-issue.ts';
+import {updateIssuesMeta} from './repo-common.ts';
 import {toggleElem, hideElem, isElemHidden} from '../utils/dom.ts';
 import {htmlEscape} from 'escape-goat';
 import {confirmModal} from './comp/ConfirmModal.ts';

@@ -976,3 +976,50 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 	})
 }
+
+func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		// create a pull request
+		session := loginUser(t, "user1")
+		forkedName := "repo1-1"
+		testRepoFork(t, session, "user2", "repo1", "user1", forkedName, "")
+		defer testDeleteRepository(t, session, "user1", forkedName)
+
+		testEditFile(t, session, "user1", forkedName, "master", "README.md", "Hello, World (Edited)\n")
+		testPullCreate(t, session, "user1", forkedName, false, "master", "master", "Indexer notifier test pull")
+
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: forkedName})
+		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			BaseRepoID: baseRepo.ID,
+			BaseBranch: "master",
+			HeadRepoID: forkedRepo.ID,
+			HeadBranch: "master",
+		})
+
+		// add protected branch for commit status
+		csrf := GetUserCSRFToken(t, session)
+		// Change master branch to protected
+		pbCreateReq := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
+			"_csrf":                      csrf,
+			"rule_name":                  "master",
+			"enable_push":                "true",
+			"enable_status_check":        "true",
+			"status_check_contexts":      "gitea/actions",
+			"block_admin_merge_override": "true",
+		})
+		session.MakeRequest(t, pbCreateReq, http.StatusSeeOther)
+
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		mergeReq := NewRequestWithValues(t, "POST", "/api/v1/repos/user2/repo1/pulls/6/merge", map[string]string{
+			"_csrf":                     csrf,
+			"head_commit_id":            "",
+			"merge_when_checks_succeed": "false",
+			"force_merge":               "true",
+			"do":                        "rebase",
+		}).AddTokenAuth(token)
+
+		session.MakeRequest(t, mergeReq, http.StatusMethodNotAllowed)
+	})
+}
