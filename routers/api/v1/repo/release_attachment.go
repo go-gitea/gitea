@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/attachment"
+	attachment_service "code.gitea.io/gitea/services/attachment"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/convert"
@@ -234,7 +234,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment.UploadAttachment(ctx, content, setting.Repository.Release.AllowedTypes, size, &repo_model.Attachment{
+	attach, err := attachment_service.UploadAttachment(ctx, content, setting.Repository.Release.AllowedTypes, size, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
@@ -291,6 +291,8 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -322,8 +324,13 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 		attach.Name = form.Name
 	}
 
-	if err := repo_model.UpdateAttachment(ctx, attach); err != nil {
+	if err := attachment_service.UpdateAttachment(ctx, setting.Repository.Release.AllowedTypes, attach); err != nil {
+		if upload.IsErrFileTypeForbidden(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", attach)
+		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
 }
