@@ -242,6 +242,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Conversa
 		PosterID:       opts.Doer.ID,
 		Poster:         opts.Doer,
 		Content:        opts.Content,
+		Conversation:   opts.Conversation,
 		ConversationID: opts.ConversationID,
 	}
 	if _, err = e.Insert(comment); err != nil {
@@ -249,6 +250,10 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Conversa
 	}
 
 	if err = opts.Repo.LoadOwner(ctx); err != nil {
+		return nil, err
+	}
+
+	if err = updateCommentInfos(ctx, opts, comment); err != nil {
 		return nil, err
 	}
 
@@ -375,6 +380,12 @@ func DeleteComment(ctx context.Context, comment *ConversationComment) error {
 		CommentID: comment.ID,
 	}); err != nil {
 		return err
+	}
+
+	if comment.Type == CommentTypeComment {
+		if _, err := e.ID(comment.ConversationID).Decr("num_comments").Update(new(Conversation)); err != nil {
+			return err
+		}
 	}
 
 	if _, err := e.Table("action").
@@ -563,4 +574,16 @@ func InsertConversationComments(ctx context.Context, comments []*ConversationCom
 		}
 	}
 	return committer.Commit()
+}
+
+func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment *ConversationComment) (err error) {
+	// Check comment type.
+	switch opts.Type {
+	case CommentTypeComment:
+		if _, err = db.Exec(ctx, "UPDATE `conversation` SET num_comments=num_comments+1 WHERE id=?", opts.Conversation.ID); err != nil {
+			return err
+		}
+	}
+	// update the conversation's updated_unix column
+	return UpdateConversationCols(ctx, opts.Conversation, "updated_unix")
 }
