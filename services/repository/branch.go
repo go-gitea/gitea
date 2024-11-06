@@ -36,7 +36,7 @@ import (
 
 // CreateNewBranch creates a new repository branch
 func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, oldBranchName, branchName string) (err error) {
-	branch, err := git_model.GetBranch(ctx, repo.ID, oldBranchName)
+	branch, err := git_model.GetNonDeletedBranch(ctx, repo.ID, oldBranchName)
 	if err != nil {
 		return err
 	}

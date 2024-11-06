@@ -58,7 +58,7 @@ func GetBranch(ctx *context.APIContext) {
 
 	branchName := ctx.PathParam("*")
 
-	branch, err := ctx.Repo.GitRepo.GetBranch(branchName)
+	branch, err := git_model.GetNonDeletedBranch(ctx, ctx.Repo.Repository.ID, branchName)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) {
 			ctx.NotFound(err)
@@ -68,7 +68,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	c, err := branch.GetCommit()
+	c, err := ctx.Repo.GitRepo.GetCommit(branch.CommitID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 		return
@@ -269,13 +269,13 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branch, err := ctx.Repo.GitRepo.GetBranch(opt.BranchName)
+	branch, err := git_model.GetNonDeletedBranch(ctx, ctx.Repo.Repository.ID, opt.BranchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranch", err)
 		return
 	}
 
-	commit, err := branch.GetCommit()
+	commit, err := ctx.Repo.GitRepo.GetCommit(branch.CommitID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 		return
