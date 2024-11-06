@@ -269,8 +269,8 @@ export function initSubmitEventPolyfill() {
  */
 export function isElemVisible(element: HTMLElement): boolean {
   if (!element) return false;
-
-  return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+  // checking element.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
+  return Boolean((element.offsetWidth || element.offsetHeight || element.getClientRects().length) && element.style.display !== 'none');
 }
 
 // replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this
@@ -329,4 +329,11 @@ export function animateOnce(el: Element, animationClassName: string): Promise<vo
     }, {once: true});
     el.classList.add(animationClassName);
   });
+}
+
+export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, selector: string): T | null {
+  const elems = parent.querySelectorAll<HTMLElement>(selector);
+  const candidates = Array.from(elems).filter(isElemVisible);
+  if (candidates.length > 1) throw new Error(`Expected exactly one visible element matching selector "${selector}", but found ${candidates.length}`);
+  return candidates.length ? candidates[0] as T : null;
 }

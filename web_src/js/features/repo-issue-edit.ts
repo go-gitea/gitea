@@ -3,7 +3,7 @@ import {handleReply} from './repo-issue.ts';
 import {getComboMarkdownEditor, initComboMarkdownEditor, ComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {hideElem, showElem} from '../utils/dom.ts';
+import {hideElem, querySingleVisibleElem, showElem} from '../utils/dom.ts';
 import {attachRefIssueContextPopup} from './contextpopup.ts';
 import {initCommentContent, initMarkupContent} from '../markup/content.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
@@ -77,20 +77,22 @@ async function onEditContent(event) {
     }
   };
 
-  comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
-  if (!comboMarkdownEditor) {
-    editContentZone.innerHTML = document.querySelector('#issue-comment-editor-template').innerHTML;
-    const saveButton = editContentZone.querySelector('.ui.primary.button');
-    comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
-    const syncUiState = () => saveButton.disabled = comboMarkdownEditor.isUploading();
-    comboMarkdownEditor.container.addEventListener(ComboMarkdownEditor.EventUploadStateChanged, syncUiState);
-    editContentZone.querySelector('.ui.cancel.button').addEventListener('click', cancelAndReset);
-    saveButton.addEventListener('click', saveAndRefresh);
-  }
-
   // Show write/preview tab and copy raw content as needed
   showElem(editContentZone);
   hideElem(renderContent);
+
+  comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
+  if (!comboMarkdownEditor) {
+    editContentZone.innerHTML = document.querySelector('#issue-comment-editor-template').innerHTML;
+    const saveButton = querySingleVisibleElem<HTMLButtonElement>(editContentZone, '.ui.primary.button');
+    const cancelButton = querySingleVisibleElem<HTMLButtonElement>(editContentZone, '.ui.cancel.button');
+    comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
+    const syncUiState = () => saveButton.disabled = comboMarkdownEditor.isUploading();
+    comboMarkdownEditor.container.addEventListener(ComboMarkdownEditor.EventUploadStateChanged, syncUiState);
+    cancelButton.addEventListener('click', cancelAndReset);
+    saveButton.addEventListener('click', saveAndRefresh);
+  }
+
   // FIXME: ideally here should reload content and attachment list from backend for existing editor, to avoid losing data
   if (!comboMarkdownEditor.value()) {
     comboMarkdownEditor.value(rawContent.textContent);
