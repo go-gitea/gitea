@@ -3,7 +3,6 @@
   type: 0 # comment
   poster_id: 2
   conversation_id: 1 # in repo_id 1
-  label_id: 1
   content: "1"
   created_unix: 946684810
 -
