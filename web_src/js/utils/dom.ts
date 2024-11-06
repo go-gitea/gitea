@@ -330,3 +330,13 @@ export function animateOnce(el: Element, animationClassName: string): Promise<vo
     el.classList.add(animationClassName);
   });
 }
+
+export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, selector: string) : T|null {
+  const elems = parent.querySelectorAll<HTMLElement>(selector);
+  const candidates = [];
+  for (const button of elems) {
+    if (isElemVisible(button)) candidates.push(button);
+  }
+  if (candidates.length > 1) throw new Error('multiple primary buttons found, only one could be defined');
+  return candidates.length ? candidates[0] as T : null;
+}
