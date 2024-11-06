@@ -280,7 +280,7 @@
 			</div>
 		</div>
 	{{end}}
-	{{if .Repository.IsTimetrackerEnabled $.Context}}
+	{{if .Repository.IsTimetrackerEnabled ctx}}
 		{{if and .CanUseTimetracker (not .Repository.IsArchived)}}
 			<div class="divider"></div>
 			<div class="ui timetrack">
@@ -358,48 +358,35 @@
 
 	<div class="divider"></div>
 	<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.due_date"}}</strong></span>
-	<div class="ui form" id="deadline-loader">
-		<div class="ui negative message tw-hidden" id="deadline-err-invalid-date">
-			{{svg "octicon-x" 16 "close icon"}}
-			{{ctx.Locale.Tr "repo.issues.due_date_invalid"}}
-		</div>
-		{{if ne .Issue.DeadlineUnix 0}}
-			<p>
-				<div class="tw-flex tw-justify-between tw-items-center">
-					<div class="due-date {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
-						{{svg "octicon-calendar" 16 "tw-mr-2"}}
-						{{DateTime "long" .Issue.DeadlineUnix.FormatDate}}
-					</div>
-					<div>
-						{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-							<a class="issue-due-edit muted" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_form_edit"}}">{{svg "octicon-pencil" 16 "tw-mr-1"}}</a>
-							<a class="issue-due-remove muted" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_form_remove"}}">{{svg "octicon-trash"}}</a>
-						{{end}}
-					</div>
+	<div class="ui form tw-mt-2">
+		{{if .Issue.DeadlineUnix}}
+			<div class="tw-flex tw-justify-between tw-items-center tw-gap-2">
+				<div class="due-date {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
+					{{svg "octicon-calendar"}} {{DateUtils.AbsoluteLong .Issue.DeadlineUnix}}
 				</div>
-			</p>
+				<div class="flex-text-block">
+					{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
+						<a class="issue-due-edit muted" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_form_edit"}}">{{svg "octicon-pencil"}}</a>
+						<a class="issue-due-remove muted" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_form_remove"}}">{{svg "octicon-trash"}}</a>
+					{{end}}
+				</div>
+			</div>
 		{{else}}
-			<p>{{ctx.Locale.Tr "repo.issues.due_date_not_set"}}</p>
+			{{ctx.Locale.Tr "repo.issues.due_date_not_set"}}
 		{{end}}
 
 		{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-			<div {{if ne .Issue.DeadlineUnix 0}} class="tw-hidden"{{end}} id="deadlineForm">
-				<form class="ui fluid action input issue-due-form" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline" method="post" id="update-issue-deadline-form">
-					{{$.CsrfTokenHtml}}
-					<input required placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.FormatDate}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
-					<button class="ui icon button">
-						{{if ne .Issue.DeadlineUnix 0}}
-							{{svg "octicon-pencil"}}
-						{{else}}
-							{{svg "octicon-plus"}}
-						{{end}}
-					</button>
-				</form>
-			</div>
+			<form class="ui fluid action input issue-due-form form-fetch-action tw-mt-2 {{if .Issue.DeadlineUnix}}tw-hidden{{end}}"
+						method="post" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline"
+			>
+				{{$.CsrfTokenHtml}}
+				<input required type="date" name="deadline" placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}" {{if .Issue.DeadlineUnix}}value="{{.Issue.DeadlineUnix.FormatDate}}"{{end}}>
+				<button class="ui icon button">{{Iif .Issue.DeadlineUnix (svg "octicon-pencil") (svg "octicon-plus")}}</button>
+			</form>
 		{{end}}
 	</div>
 
-	{{if .Repository.IsDependenciesEnabled $.Context}}
+	{{if .Repository.IsDependenciesEnabled ctx}}
 		<div class="divider"></div>
 
 		<div class="ui depending">
@@ -423,8 +410,8 @@
 					{{range .BlockingDependencies}}
 						<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} tw-flex tw-items-center tw-justify-between">
 							<div class="item-left tw-flex tw-justify-center tw-flex-col tw-flex-1 gt-ellipsis">
-								<a class="title muted" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
-									#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
+								<a class="title muted" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
+									#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
 								</a>
 								<div class="text small gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">
 									{{.Repository.OwnerName}}/{{.Repository.Name}}
@@ -455,8 +442,8 @@
 					{{range .BlockedByDependencies}}
 						<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} tw-flex tw-items-center tw-justify-between">
 							<div class="item-left tw-flex tw-justify-center tw-flex-col tw-flex-1 gt-ellipsis">
-								<a class="title muted" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
-									#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
+								<a class="title muted" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
+									#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
 								</a>
 								<div class="text small gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">
 									{{.Repository.OwnerName}}/{{.Repository.Name}}
@@ -477,8 +464,8 @@
 								<div class="item-left tw-flex tw-justify-center tw-flex-col tw-flex-1 gt-ellipsis">
 									<div class="gt-ellipsis">
 										<span data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.no_permission.can_remove"}}">{{svg "octicon-lock" 16}}</span>
-										<span class="title" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
-											#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
+										<span class="title" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
+											#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
 										</span>
 									</div>
 									<div class="text small gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">

@@ -7,6 +7,8 @@ import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} fr
 import {toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
+import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
+import {updateIssuesMeta} from './repo-common.ts';
 
 const {appSubUrl} = window.config;
 
@@ -41,52 +43,6 @@ export function initRepoIssueTimeTracking() {
   });
 }
 
-async function updateDeadline(deadlineString) {
-  hideElem('#deadline-err-invalid-date');
-  document.querySelector('#deadline-loader')?.classList.add('is-loading');
-
-  let realDeadline = null;
-  if (deadlineString !== '') {
-    const newDate = Date.parse(deadlineString);
-
-    if (Number.isNaN(newDate)) {
-      document.querySelector('#deadline-loader')?.classList.remove('is-loading');
-      showElem('#deadline-err-invalid-date');
-      return false;
-    }
-    realDeadline = new Date(newDate);
-  }
-
-  try {
-    const response = await POST(document.querySelector('#update-issue-deadline-form').getAttribute('action'), {
-      data: {due_date: realDeadline},
-    });
-
-    if (response.ok) {
-      window.location.reload();
-    } else {
-      throw new Error('Invalid response');
-    }
-  } catch (error) {
-    console.error(error);
-    document.querySelector('#deadline-loader').classList.remove('is-loading');
-    showElem('#deadline-err-invalid-date');
-  }
-}
-
-export function initRepoIssueDue() {
-  $(document).on('click', '.issue-due-edit', () => {
-    toggleElem('#deadlineForm');
-  });
-  $(document).on('click', '.issue-due-remove', () => {
-    updateDeadline('');
-  });
-  $(document).on('submit', '.issue-due-form', () => {
-    updateDeadline($('#deadlineDate').val());
-    return false;
-  });
-}
-
 /**
  * @param {HTMLElement} item
  */
@@ -97,7 +53,7 @@ function excludeLabel(item) {
   const regStr = `labels=((?:-?[0-9]+%2c)*)(${id})((?:%2c-?[0-9]+)*)&`;
   const newStr = 'labels=$1-$2$3&';
 
-  window.location = href.replace(new RegExp(regStr), newStr);
+  window.location.assign(href.replace(new RegExp(regStr), newStr));
 }
 
 export function initRepoIssueSidebarList() {
@@ -367,17 +323,6 @@ export function initRepoIssueWipTitle() {
 
     $issueTitle.val(`${wipPrefixes[0]} ${$issueTitle.val()}`);
   });
-}
-
-export async function updateIssuesMeta(url, action, issue_ids, id) {
-  try {
-    const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
-    if (!response.ok) {
-      throw new Error('Failed to update issues meta');
-    }
-  } catch (error) {
-    console.error(error);
-  }
 }
 
 export function initRepoIssueComments() {
@@ -665,7 +610,7 @@ export function initRepoIssueBranchSelect() {
   });
 }
 
-export async function initSingleCommentEditor($commentForm) {
+async function initSingleCommentEditor($commentForm) {
   // pages:
   // * normal new issue/pr page: no status-button, no comment-button (there is only a normal submit button which can submit empty content)
   // * issue/pr view page: with comment form, has status-button and comment-button
@@ -687,7 +632,7 @@ export async function initSingleCommentEditor($commentForm) {
   syncUiState();
 }
 
-export function initIssueTemplateCommentEditors($commentForm) {
+function initIssueTemplateCommentEditors($commentForm) {
   // pages:
   // * new issue with issue template
   const $comboFields = $commentForm.find('.combo-editor-dropzone');
@@ -732,4 +677,19 @@ export function initArchivedLabelHandler() {
   for (const label of document.querySelectorAll('[data-is-archived]')) {
     toggleElem(label, label.classList.contains('checked'));
   }
+}
+
+export function initRepoCommentFormAndSidebar() {
+  const $commentForm = $('.comment.form');
+  if (!$commentForm.length) return;
+
+  if ($commentForm.find('.field.combo-editor-dropzone').length) {
+    // at the moment, if a form has multiple combo-markdown-editors, it must be an issue template form
+    initIssueTemplateCommentEditors($commentForm);
+  } else if ($commentForm.find('.combo-markdown-editor').length) {
+    // it's quite unclear about the "comment form" elements, sometimes it's for issue comment, sometimes it's for file editor/uploader message
+    initSingleCommentEditor($commentForm);
+  }
+
+  initRepoIssueSidebar();
 }
