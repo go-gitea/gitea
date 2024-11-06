@@ -37,7 +37,7 @@
 				{{if .Repository.ArchivedUnix.IsZero}}
 					{{ctx.Locale.Tr "repo.archive.title"}}
 				{{else}}
-					{{ctx.Locale.Tr "repo.archive.title_date" (DateTime "long" .Repository.ArchivedUnix)}}
+					{{ctx.Locale.Tr "repo.archive.title_date" (DateUtils.AbsoluteLong .Repository.ArchivedUnix)}}
 				{{end}}
 			</div>
 		{{end}}

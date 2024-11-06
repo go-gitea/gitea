@@ -3,20 +3,11 @@
 
 package v1_23 //nolint
 
-import (
-	"code.gitea.io/gitea/modules/timeutil"
+import "xorm.io/xorm"
 
-	"xorm.io/xorm"
-)
-
-func CreateTableIssueDevLink(x *xorm.Engine) error {
-	type IssueDevLink struct {
-		ID           int64 `xorm:"pk autoincr"`
-		IssueID      int64 `xorm:"INDEX"`
-		LinkType     int
-		LinkedRepoID int64              `xorm:"INDEX"` // it can link to self repo or other repo
-		LinkIndex    string             // branch name, pull request number or commit sha
-		CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+func AddBlockAdminMergeOverrideBranchProtection(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		BlockAdminMergeOverride bool `xorm:"NOT NULL DEFAULT false"`
 	}
-	return x.Sync(new(IssueDevLink))
+	return x.Sync(new(ProtectedBranch))
 }

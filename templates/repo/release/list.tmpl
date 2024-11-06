@@ -51,7 +51,7 @@
 								{{ctx.Locale.Tr "repo.released_this"}}
 							</span>
 							{{if $release.CreatedUnix}}
-								<span class="time">{{TimeSinceUnix $release.CreatedUnix ctx.Locale}}</span>
+								<span class="time">{{DateUtils.TimeSince $release.CreatedUnix}}</span>
 							{{end}}
 							{{if and (not $release.IsDraft) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 								| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{$release.TagName | PathEscapeSegments}}...{{$release.TargetBehind | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.release.ahead.commits" $release.NumCommitsBehind}}</a> {{ctx.Locale.Tr "repo.release.ahead.target" $release.TargetBehind}}</span>

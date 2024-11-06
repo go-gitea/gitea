@@ -30,9 +30,20 @@ export type RequestOpts = {
   data?: RequestData,
 } & RequestInit;
 
-export type IssueData = {
-  owner: string,
-  repo: string,
-  type: string,
-  index: string,
+export type IssuePathInfo = {
+  ownerName: string,
+  repoName: string,
+  pathType: string,
+  indexString?: string,
 }
+
+export type Issue = {
+  id: number;
+  number: number;
+  title: string;
+  state: 'open' | 'closed';
+  pull_request?: {
+    draft: boolean;
+    merged: boolean;
+  };
+};

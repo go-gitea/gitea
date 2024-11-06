@@ -27,7 +27,6 @@ plugins:
   - "@stylistic/eslint-plugin-js"
   - "@typescript-eslint/eslint-plugin"
   - eslint-plugin-array-func
-  - eslint-plugin-deprecation
   - eslint-plugin-github
   - eslint-plugin-i
   - eslint-plugin-no-jquery
@@ -248,6 +247,7 @@ rules:
   "@typescript-eslint/no-base-to-string": [0]
   "@typescript-eslint/no-confusing-non-null-assertion": [2]
   "@typescript-eslint/no-confusing-void-expression": [0]
+  "@typescript-eslint/no-deprecated": [2]
   "@typescript-eslint/no-dupe-class-members": [0]
   "@typescript-eslint/no-duplicate-enum-values": [2]
   "@typescript-eslint/no-duplicate-type-constituents": [2, {ignoreUnions: true}]
@@ -359,7 +359,6 @@ rules:
   default-case-last: [2]
   default-case: [0]
   default-param-last: [0]
-  deprecation/deprecation: [2]
   dot-notation: [0]
   eqeqeq: [2]
   for-direction: [2]
@@ -816,6 +815,7 @@ rules:
   unicorn/catch-error-name: [0]
   unicorn/consistent-destructuring: [2]
   unicorn/consistent-empty-array-spread: [2]
+  unicorn/consistent-existence-index-check: [0]
   unicorn/consistent-function-scoping: [2]
   unicorn/custom-error-definition: [0]
   unicorn/empty-brace-spaces: [2]
@@ -892,10 +892,12 @@ rules:
   unicorn/prefer-dom-node-text-content: [2]
   unicorn/prefer-event-target: [2]
   unicorn/prefer-export-from: [0]
+  unicorn/prefer-global-this: [0]
   unicorn/prefer-includes: [2]
   unicorn/prefer-json-parse-buffer: [0]
   unicorn/prefer-keyboard-event-key: [2]
   unicorn/prefer-logical-operator-over-ternary: [2]
+  unicorn/prefer-math-min-max: [2]
   unicorn/prefer-math-trunc: [2]
   unicorn/prefer-modern-dom-apis: [0]
   unicorn/prefer-modern-math-apis: [2]

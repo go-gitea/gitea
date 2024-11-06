@@ -1,7 +1,7 @@
 {{template "base/alert"}}
 {{range .Issue.Comments}}
 	{{if call $.ShouldShowCommentType .Type}}
-		{{$createdStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
+		{{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
 
 		<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF,
 		5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 8 = MILESTONE_CHANGE,
@@ -137,7 +137,7 @@
 			{{else if eq .RefAction 2}}
 				{{$refTr = "repo.issues.ref_reopening_from"}}
 			{{end}}
-			{{$createdStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
+			{{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-bookmark"}}</span>
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
@@ -173,11 +173,11 @@
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
 						{{if and .AddedLabels (not .RemovedLabels)}}
-							{{ctx.Locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels ctx ctx.Locale .AddedLabels $.RepoLink .Issue) $createdStr}}
+							{{ctx.Locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (ctx.RenderUtils.RenderLabels .AddedLabels $.RepoLink .Issue) $createdStr}}
 						{{else if and (not .AddedLabels) .RemovedLabels}}
-							{{ctx.Locale.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels ctx ctx.Locale .RemovedLabels $.RepoLink .Issue) $createdStr}}
+							{{ctx.Locale.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (ctx.RenderUtils.RenderLabels .RemovedLabels $.RepoLink .Issue) $createdStr}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.add_remove_labels" (RenderLabels ctx ctx.Locale .AddedLabels $.RepoLink .Issue) (RenderLabels ctx ctx.Locale .RemovedLabels $.RepoLink .Issue) $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.add_remove_labels" (ctx.RenderUtils.RenderLabels .AddedLabels $.RepoLink .Issue) (ctx.RenderUtils.RenderLabels .RemovedLabels $.RepoLink .Issue) $createdStr}}
 						{{end}}
 					</span>
 				</div>
@@ -222,7 +222,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.change_title_at" (.OldTitle|RenderEmoji $.Context) (.NewTitle|RenderEmoji $.Context) $createdStr}}
+					{{ctx.Locale.Tr "repo.issues.change_title_at" (.OldTitle|ctx.RenderUtils.RenderEmoji) (.NewTitle|ctx.RenderUtils.RenderEmoji) $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 11}}
@@ -296,7 +296,8 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.due_date_added" (DateTime "long" .Content) $createdStr}}
+					{{$dueDate := DateUtils.AbsoluteLong (.Content|DateUtils.ParseLegacy)}}
+					{{ctx.Locale.Tr "repo.issues.due_date_added" $dueDate $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 17}}
@@ -307,8 +308,8 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{$parsedDeadline := StringUtils.Split .Content "|"}}
 					{{if eq (len $parsedDeadline) 2}}
-						{{$from := DateTime "long" (index $parsedDeadline 1)}}
-						{{$to := DateTime "long" (index $parsedDeadline 0)}}
+						{{$to := DateUtils.AbsoluteLong ((index $parsedDeadline 0)|DateUtils.ParseLegacy)}}
+						{{$from := DateUtils.AbsoluteLong ((index $parsedDeadline 1)|DateUtils.ParseLegacy)}}
 						{{ctx.Locale.Tr "repo.issues.due_date_modified" $to $from $createdStr}}
 					{{end}}
 				</span>
@@ -319,7 +320,8 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.due_date_remove" (DateTime "long" .Content) $createdStr}}
+					{{$dueDate := DateUtils.AbsoluteLong (.Content|DateUtils.ParseLegacy)}}
+					{{ctx.Locale.Tr "repo.issues.due_date_remove" $dueDate $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 19}}
@@ -624,7 +626,7 @@
 			<div class="timeline-item-group">
 				<div class="timeline-item event" id="{{.HashTag}}">
 					<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-						<img src="{{.Poster.AvatarLink $.Context}}" width="40" height="40">
+						<img src="{{.Poster.AvatarLink ctx}}" width="40" height="40">
 					</a>
 					<span class="badge grey">{{svg "octicon-x" 16}}</span>
 					<span class="text grey muted-links">
