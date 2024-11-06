@@ -62,7 +62,7 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		cond = builder.Or(
 			db.BuildCaseInsensitiveLike("conversation.name", options.Keyword),
 			db.BuildCaseInsensitiveLike("conversation.content", options.Keyword),
-			builder.In("conversation.id", builder.Select("conversation_id").
+			builder.In("conversation.id", builder.Select("id").
 				From("comment").
 				Where(builder.And(
 					builder.Eq{"type": conversation_model.CommentTypeComment},

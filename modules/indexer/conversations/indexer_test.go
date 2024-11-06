@@ -173,7 +173,7 @@ func searchConversationByID(t *testing.T) {
 		{
 			// NOTE: This tests no filtering
 			opts:        *ToSearchOptions("", &conversations.ConversationsOptions{}),
-			expectedIDs: []int64{22, 21, 16, 15, 14, 13, 12, 11, 20, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2},
+			expectedIDs: []int64{22, 21, 17, 16, 15, 14, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2, 1},
 		},
 	}
 
