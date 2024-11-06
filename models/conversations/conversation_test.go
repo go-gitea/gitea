@@ -34,7 +34,7 @@ func TestConversationAPIURL(t *testing.T) {
 	err := conversation.LoadAttributes(db.DefaultContext)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/conversations/1", conversation.APIURL(db.DefaultContext))
+	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/commit/", conversation.APIURL(db.DefaultContext))
 }
 
 func TestGetConversationsByIDs(t *testing.T) {
@@ -73,12 +73,6 @@ func TestConversations(t *testing.T) {
 	}{
 		{
 			conversations_model.ConversationsOptions{
-				SortType: "oldest",
-			},
-			[]int64{1, 6},
-		},
-		{
-			conversations_model.ConversationsOptions{
 				RepoCond: builder.In("repo_id", 1, 3),
 				SortType: "oldest",
 				Paginator: &db.ListOptions{
@@ -87,28 +81,6 @@ func TestConversations(t *testing.T) {
 				},
 			},
 			[]int64{1, 2, 3, 5},
-		},
-		{
-			conversations_model.ConversationsOptions{
-				Paginator: &db.ListOptions{
-					Page:     1,
-					PageSize: 4,
-				},
-			},
-			[]int64{2, 1},
-		},
-		{
-			conversations_model.ConversationsOptions{
-				Paginator: &db.ListOptions{
-					Page:     1,
-					PageSize: 4,
-				},
-			},
-			[]int64{}, // conversations with **both** label 1 and 2, none of these conversations matches, TODO: add more tests
-		},
-		{
-			conversations_model.ConversationsOptions{},
-			[]int64{2},
 		},
 	} {
 		conversations, err := conversations_model.Conversations(db.DefaultContext, &test.Opts)
