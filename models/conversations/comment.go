@@ -243,7 +243,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Conversa
 		Poster:         opts.Doer,
 		Content:        opts.Content,
 		Conversation:   opts.Conversation,
-		ConversationID: opts.ConversationID,
+		ConversationID: opts.Conversation.ID,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -253,7 +253,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Conversa
 		return nil, err
 	}
 
-	if err = updateCommentInfos(ctx, opts, comment); err != nil {
+	if err = updateCommentInfos(ctx, opts); err != nil {
 		return nil, err
 	}
 
@@ -568,7 +568,7 @@ func InsertConversationComments(ctx context.Context, comments []*ConversationCom
 	}
 
 	for _, conversationID := range conversationIDs {
-		if _, err := db.Exec(ctx, "UPDATE conversation set num_comments = (SELECT count(*) FROM comment WHERE conversation_id = ? AND `type`=?) WHERE id = ?",
+		if _, err := db.Exec(ctx, "UPDATE conversation set num_comments = (SELECT count(*) FROM conversation_comment WHERE conversation_id = ? AND `type`=?) WHERE id = ?",
 			conversationID, CommentTypeComment, conversationID); err != nil {
 			return err
 		}
@@ -576,7 +576,7 @@ func InsertConversationComments(ctx context.Context, comments []*ConversationCom
 	return committer.Commit()
 }
 
-func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment *ConversationComment) (err error) {
+func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions) (err error) {
 	// Check comment type.
 	switch opts.Type {
 	case CommentTypeComment:
