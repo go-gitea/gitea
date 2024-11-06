@@ -186,6 +186,34 @@ func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBran
 	return resp.Result().StatusCode == status
 }
 
+func TestAPIRenameBranch(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		t.Run("RenameBranchWithEmptyRepo", func(t *testing.T) {
+			testAPIRenameBranch(t, "user10", "repo6", "master", "test", http.StatusNotFound)
+		})
+		t.Run("RenameBranchWithSameBranchNames", func(t *testing.T) {
+			testAPIRenameBranch(t, "user2", "repo1", "master", "master", http.StatusUnprocessableEntity)
+		})
+		t.Run("RenameBranchWithBranchThatAlreadyExists", func(t *testing.T) {
+			testAPIRenameBranch(t, "user2", "repo1", "master", "branch2", http.StatusUnprocessableEntity)
+		})
+		t.Run("RenameBranchWithNonExistentBranch", func(t *testing.T) {
+			testAPIRenameBranch(t, "user2", "repo1", "i-dont-exist", "branch2", http.StatusUnprocessableEntity)
+		})
+		t.Run("RenameBranchNormalScenario", func(t *testing.T) {
+			testAPIRenameBranch(t, "user2", "repo1", "branch2", "new-branch-name", http.StatusCreated)
+		})
+	})
+}
+
+func testAPIRenameBranch(t *testing.T, ownerName, repoName, from, to string, expectedHTTPStatus int) {
+	token := getUserToken(t, ownerName, auth_model.AccessTokenScopeWriteRepository)
+	req := NewRequestWithJSON(t, "POST", "api/v1/repos/"+ownerName+"/"+repoName+"/branches/"+from+"/rename", &api.RenameBranchRepoOption{
+		NewName: to,
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, expectedHTTPStatus)
+}
+
 func TestAPIBranchProtection(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

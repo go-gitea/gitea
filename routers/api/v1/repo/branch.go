@@ -386,6 +386,95 @@ func ListBranches(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiBranches)
 }
 
+// RenameBranch renames a repository's branch.
+func RenameBranch(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/branches/{name}/rename repository repoRenameBranch
+	// ---
+	// summary: Rename a branch
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: name
+	//   in: path
+	//   description: original name of the branch
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/RenameBranchRepoOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Branch"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	opt := web.GetForm(ctx).(*api.RenameBranchRepoOption)
+	repo := ctx.Repo.Repository
+
+	if repo.IsEmpty {
+		ctx.Error(http.StatusNotFound, "", "Git Repository is empty.")
+		return
+	}
+
+	if repo.IsMirror {
+		ctx.Error(http.StatusForbidden, "", "Git Repository is a mirror.")
+		return
+	}
+
+	msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, ctx.Repo.GitRepo, ctx.PathParam("name"), opt.NewName)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "RenameBranch", err)
+		return
+	}
+	if msg != "" {
+		ctx.Error(http.StatusUnprocessableEntity, "", msg)
+		return
+	}
+
+	branch, err := ctx.Repo.GitRepo.GetBranch(opt.NewName)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetBranch", err)
+		return
+	}
+
+	commit, err := branch.GetCommit()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+		return
+	}
+
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branch.Name)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetFirstMatchProtectedBranchRule", err)
+		return
+	}
+
+	br, err := convert.ToBranch(ctx, repo, opt.NewName, commit, pb, ctx.Doer, ctx.Repo.IsAdmin())
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, br)
+}
+
 // GetBranchProtection gets a branch protection
 func GetBranchProtection(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/branch_protections/{name} repository repoGetBranchProtection
