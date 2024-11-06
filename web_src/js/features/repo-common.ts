@@ -3,6 +3,8 @@ import {hideElem, queryElems, showElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {sleep} from '../utils.ts';
+import RepoActivityTopAuthors from '../components/RepoActivityTopAuthors.vue';
+import {createApp} from 'vue';
 
 async function onDownloadArchive(e) {
   e.preventDefault();
@@ -30,6 +32,13 @@ async function onDownloadArchive(e) {
 
 export function initRepoArchiveLinks() {
   queryElems('a.archive-link[href]', (el) => el.addEventListener('click', onDownloadArchive));
+}
+
+export function initRepoActivityTopAuthorsChart() {
+  const el = document.querySelector('#repo-activity-top-authors-chart');
+  if (el) {
+    createApp(RepoActivityTopAuthors).mount(el);
+  }
 }
 
 export function initRepoCloneLink() {
@@ -80,4 +89,15 @@ export function initRepoCommonFilterSearchDropdown(selector) {
     },
     message: {noResults: $dropdown[0].getAttribute('data-no-results')},
   });
+}
+
+export async function updateIssuesMeta(url, action, issue_ids, id) {
+  try {
+    const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
+    if (!response.ok) {
+      throw new Error('Failed to update issues meta');
+    }
+  } catch (error) {
+    console.error(error);
+  }
 }

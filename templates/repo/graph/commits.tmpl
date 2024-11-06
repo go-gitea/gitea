@@ -29,7 +29,7 @@
 						</a>
 					</span>
 					<span class="message tw-inline-block gt-ellipsis tw-mr-2">
-						<span>{{RenderCommitMessage $.Context $commit.Subject ($.Repository.ComposeMetas ctx)}}</span>
+						<span>{{ctx.RenderUtils.RenderCommitMessage $commit.Subject ($.Repository.ComposeMetas ctx)}}</span>
 					</span>
 					<span class="commit-refs tw-flex tw-items-center tw-mr-1">
 						{{range $commit.Refs}}
@@ -37,7 +37,7 @@
 							{{if eq $refGroup "pull"}}
 								{{if or (not $.HidePRRefs) (SliceUtils.Contains $.SelectedBranches .Name)}}
 									<!-- it's intended to use issues not pulls, if it's a pull you will get redirected -->
-									<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/{{if $.Repository.UnitEnabled $.Context ctx.Consts.RepoUnitTypePullRequests}}pulls{{else}}issues{{end}}/{{.ShortName|PathEscape}}">
+									<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/{{if $.Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypePullRequests}}pulls{{else}}issues{{end}}/{{.ShortName|PathEscape}}">
 										{{svg "octicon-git-pull-request"}} #{{.ShortName}}
 									</a>
 								{{end}}
@@ -56,7 +56,7 @@
 							{{end}}
 						{{end}}
 					</span>
-					<span class="author tw-flex tw-items-center tw-mr-2 tw-gap-[1px]">
+					<span class="author tw-flex tw-items-center tw-mr-2 tw-gap-1">
 						{{$userName := $commit.Commit.Author.Name}}
 						{{if $commit.User}}
 							{{if and $commit.User.FullName DefaultShowFullName}}
@@ -69,7 +69,7 @@
 							{{$userName}}
 						{{end}}
 					</span>
-					<span class="time tw-flex tw-items-center">{{DateTime "full" $commit.Date}}</span>
+					<span class="time tw-flex tw-items-center">{{DateUtils.FullTime $commit.Date}}</span>
 				{{end}}
 			</li>
 		{{end}}
