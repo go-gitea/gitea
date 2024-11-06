@@ -122,11 +122,11 @@ func IsCollaborator(ctx *context.APIContext) {
 	}
 }
 
-// AddCollaborator add a collaborator to a repository
-func AddCollaborator(ctx *context.APIContext) {
+// AddOrUpdateCollaborator add or update a collaborator to a repository
+func AddOrUpdateCollaborator(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/collaborators/{collaborator} repository repoAddCollaborator
 	// ---
-	// summary: Add a collaborator to a repository
+	// summary: Add or Update a collaborator to a repository
 	// produces:
 	// - application/json
 	// parameters:
@@ -181,11 +181,11 @@ func AddCollaborator(ctx *context.APIContext) {
 		p = perm.ParseAccessMode(*form.Permission)
 	}
 
-	if err := repo_service.AddCollaborator(ctx, ctx.Repo.Repository, collaborator, p); err != nil {
+	if err := repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, collaborator, p); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Error(http.StatusForbidden, "AddCollaborator", err)
+			ctx.Error(http.StatusForbidden, "AddOrUpdateCollaborator", err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "AddCollaborator", err)
+			ctx.Error(http.StatusInternalServerError, "AddOrUpdateCollaborator", err)
 		}
 		return
 	}

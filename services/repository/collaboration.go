@@ -17,7 +17,7 @@ import (
 	"xorm.io/builder"
 )
 
-func AddCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User, mode perm.AccessMode) error {
+func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User, mode perm.AccessMode) error {
 	if err := repo.LoadOwner(ctx); err != nil {
 		return err
 	}
@@ -27,17 +27,26 @@ func AddCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_m
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		has, err := db.Exist[repo_model.Collaboration](ctx, builder.Eq{
+		collaboration, has, err := db.Get[repo_model.Collaboration](ctx, builder.Eq{
 			"repo_id": repo.ID,
 			"user_id": u.ID,
 		})
 		if err != nil {
 			return err
 		} else if has {
-			return nil
-		}
-
-		if err = db.Insert(ctx, &repo_model.Collaboration{
+			if collaboration.Mode == mode {
+				return nil
+			}
+			if _, err = db.GetEngine(ctx).
+				Where("repo_id=?", repo.ID).
+				And("user_id=?", u.ID).
+				Cols("mode").
+				Update(&repo_model.Collaboration{
+					Mode: mode,
+				}); err != nil {
+				return err
+			}
+		} else if err = db.Insert(ctx, &repo_model.Collaboration{
 			RepoID: repo.ID,
 			UserID: u.ID,
 			Mode:   mode,

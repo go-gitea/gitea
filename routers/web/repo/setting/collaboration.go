@@ -99,12 +99,12 @@ func CollaborationPost(ctx *context.Context) {
 		}
 	}
 
-	if err = repo_service.AddCollaborator(ctx, ctx.Repo.Repository, u, perm.AccessModeWrite); err != nil {
+	if err = repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, u, perm.AccessModeWrite); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator.blocked_user"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		} else {
-			ctx.ServerError("AddCollaborator", err)
+			ctx.ServerError("AddOrUpdateCollaborator", err)
 		}
 		return
 	}

@@ -418,7 +418,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		return err
 	}
 	if !hasAccess {
-		if err := AddCollaborator(ctx, repo, newOwner, perm.AccessModeRead); err != nil {
+		if err := AddOrUpdateCollaborator(ctx, repo, newOwner, perm.AccessModeRead); err != nil {
 			return err
 		}
 	}
