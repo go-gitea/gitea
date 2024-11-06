@@ -42,8 +42,7 @@ func disableMirrorActionsUnit(ctx context.Context, logger log.Logger, autofix bo
 	} else {
 		logger.Warn("Found %d mirrors with actions unit enabled", len(reposToFix))
 	}
-
-	if !autofix {
+	if !autofix || len(reposToFix) == 0 {
 		return nil
 	}
 
@@ -52,7 +51,6 @@ func disableMirrorActionsUnit(ctx context.Context, logger log.Logger, autofix bo
 			return err
 		}
 	}
-
 	logger.Info("Fixed %d mirrors with actions unit enabled", len(reposToFix))
 
 	return nil
