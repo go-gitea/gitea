@@ -161,10 +161,7 @@ func InitEngine(ctx context.Context) error {
 // SetDefaultEngine sets the default engine for db
 func SetDefaultEngine(ctx context.Context, eng *xorm.Engine) {
 	x = eng
-	DefaultContext = &Context{
-		Context: ctx,
-		e:       x,
-	}
+	DefaultContext = &Context{Context: ctx, engine: x}
 }
 
 // UnsetDefaultEngine closes and unsets the default engine

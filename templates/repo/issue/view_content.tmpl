@@ -6,7 +6,7 @@
 	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}">
 	<input type="hidden" id="type" value="{{.IssueType}}">
 
-	{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix ctx.Locale}}
+	{{$createdStr:= DateUtils.TimeSince .Issue.CreatedUnix}}
 	<div class="issue-content-left comment-list prevent-before-timeline">
 		<div class="ui timeline">
 			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">

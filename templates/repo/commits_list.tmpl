@@ -59,10 +59,10 @@
 					<td class="message">
 						<span class="message-wrapper">
 						{{if $.PageIsWiki}}
-							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | RenderEmoji $.Context}}</span>
+							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | ctx.RenderUtils.RenderEmoji}}</span>
 						{{else}}
 							{{$commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
-							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.Context .Message $commitLink ($.Repository.ComposeMetas ctx)}}</span>
+							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .Message $commitLink ($.Repository.ComposeMetas ctx)}}</span>
 						{{end}}
 						</span>
 						{{if IsMultilineCommitMessage .Message}}
@@ -70,7 +70,7 @@
 						{{end}}
 						{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 						{{if IsMultilineCommitMessage .Message}}
-						<pre class="commit-body tw-hidden">{{RenderCommitBody $.Context .Message ($.Repository.ComposeMetas ctx)}}</pre>
+						<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .Message ($.Repository.ComposeMetas ctx)}}</pre>
 						{{end}}
 						{{if $.CommitsTagsMap}}
 							{{range (index $.CommitsTagsMap .ID.String)}}
@@ -79,9 +79,9 @@
 						{{end}}
 					</td>
 					{{if .Committer}}
-						<td class="text right aligned">{{TimeSince .Committer.When ctx.Locale}}</td>
+						<td class="text right aligned">{{DateUtils.TimeSince .Committer.When}}</td>
 					{{else}}
-						<td class="text right aligned">{{TimeSince .Author.When ctx.Locale}}</td>
+						<td class="text right aligned">{{DateUtils.TimeSince .Author.When}}</td>
 					{{end}}
 					<td class="text right aligned tw-py-0">
 						<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>

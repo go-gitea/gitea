@@ -1,14 +1,21 @@
 import {imageInfo} from '../../utils/image.ts';
 import {replaceTextareaSelection} from '../../utils/dom.ts';
 import {isUrl} from '../../utils/url.ts';
-import {triggerEditorContentChanged} from './EditorMarkdown.ts';
+import {textareaInsertText, triggerEditorContentChanged} from './EditorMarkdown.ts';
 import {
   DropzoneCustomEventRemovedFile,
   DropzoneCustomEventUploadDone,
   generateMarkdownLinkForAttachment,
 } from '../dropzone.ts';
+import type CodeMirror from 'codemirror';
 
 let uploadIdCounter = 0;
+
+export const EventUploadStateChanged = 'ce-upload-state-changed';
+
+export function triggerUploadStateChanged(target) {
+  target.dispatchEvent(new CustomEvent(EventUploadStateChanged, {bubbles: true}));
+}
 
 function uploadFile(dropzoneEl, file) {
   return new Promise((resolve) => {
@@ -18,7 +25,7 @@ function uploadFile(dropzoneEl, file) {
     const onUploadDone = ({file}) => {
       if (file._giteaUploadId === curUploadId) {
         dropzoneInst.off(DropzoneCustomEventUploadDone, onUploadDone);
-        resolve();
+        resolve(file);
       }
     };
     dropzoneInst.on(DropzoneCustomEventUploadDone, onUploadDone);
@@ -27,19 +34,14 @@ function uploadFile(dropzoneEl, file) {
 }
 
 class TextareaEditor {
+  editor : HTMLTextAreaElement;
+
   constructor(editor) {
     this.editor = editor;
   }
 
   insertPlaceholder(value) {
-    const editor = this.editor;
-    const startPos = editor.selectionStart;
-    const endPos = editor.selectionEnd;
-    editor.value = editor.value.substring(0, startPos) + value + editor.value.substring(endPos);
-    editor.selectionStart = startPos;
-    editor.selectionEnd = startPos + value.length;
-    editor.focus();
-    triggerEditorContentChanged(editor);
+    textareaInsertText(this.editor, value);
   }
 
   replacePlaceholder(oldVal, newVal) {
@@ -61,6 +63,8 @@ class TextareaEditor {
 }
 
 class CodeMirrorEditor {
+  editor: CodeMirror.EditorFromTextArea;
+
   constructor(editor) {
     this.editor = editor;
   }

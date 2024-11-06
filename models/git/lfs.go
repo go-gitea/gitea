@@ -136,8 +136,6 @@ var ErrLFSObjectNotExist = db.ErrNotExist{Resource: "LFS Meta object"}
 // NewLFSMetaObject stores a given populated LFSMetaObject structure in the database
 // if it is not already present.
 func NewLFSMetaObject(ctx context.Context, repoID int64, p lfs.Pointer) (*LFSMetaObject, error) {
-	var err error
-
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
