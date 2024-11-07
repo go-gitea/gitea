@@ -179,6 +179,13 @@ func init() {
 		}
 	}
 
+	checkForConversationConsistency := func(t assert.TestingT, bean any) {
+		conversation := reflectionWrap(bean)
+		typeComment := modelsCommentTypeComment
+		actual := GetCountByCond(t, "comment", builder.Eq{"`type`": typeComment, "conversation_id": conversation.int("ID")})
+		assert.EqualValues(t, conversation.int("NumComments"), actual, "Unexpected number of comments for issue id: %d", conversation.int("ID"))
+	}
+
 	consistencyCheckMap["user"] = checkForUserConsistency
 	consistencyCheckMap["repository"] = checkForRepoConsistency
 	consistencyCheckMap["issue"] = checkForIssueConsistency
@@ -187,4 +194,5 @@ func init() {
 	consistencyCheckMap["label"] = checkForLabelConsistency
 	consistencyCheckMap["team"] = checkForTeamConsistency
 	consistencyCheckMap["action"] = checkForActionConsistency
+	consistencyCheckMap["conversation"] = checkForConversationConsistency
 }
