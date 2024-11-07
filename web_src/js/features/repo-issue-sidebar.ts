@@ -3,6 +3,7 @@ import {POST} from '../modules/fetch.ts';
 import {updateIssuesMeta} from './repo-common.ts';
 import {svg} from '../svg.ts';
 import {htmlEscape} from 'escape-goat';
+import {toggleElem} from '../utils/dom.ts';
 
 // if there are draft comments, confirm before reloading, to avoid losing comments
 function reloadConfirmDraftComment() {
@@ -258,8 +259,22 @@ function selectItem(select_id, input_id) {
   });
 }
 
+function initRepoIssueDue() {
+  const form = document.querySelector<HTMLFormElement>('.issue-due-form');
+  if (!form) return;
+  const deadline = form.querySelector<HTMLInputElement>('input[name=deadline]');
+  document.querySelector('.issue-due-edit')?.addEventListener('click', () => {
+    toggleElem(form);
+  });
+  document.querySelector('.issue-due-remove')?.addEventListener('click', () => {
+    deadline.value = '';
+    form.dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}));
+  });
+}
+
 export function initRepoIssueSidebar() {
   initBranchSelector();
+  initRepoIssueDue();
 
   // Init labels and assignees
   initListSubmits('select-label', 'labels');

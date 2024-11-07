@@ -30,7 +30,7 @@
 					{{end}}
 					{{$previousExclusiveScope = $exclusiveScope}}
 					<div class="item issue-action tw-flex tw-justify-between" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{svg (Iif $exclusiveScope "octicon-dot-fill" "octicon-check")}}{{end}} {{RenderLabel $.Context ctx.Locale .}}
+						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{svg (Iif $exclusiveScope "octicon-dot-fill" "octicon-check")}}{{end}} {{ctx.RenderUtils.RenderLabel .}}
 						{{template "repo/issue/labels/label_archived" .}}
 					</div>
 				{{end}}

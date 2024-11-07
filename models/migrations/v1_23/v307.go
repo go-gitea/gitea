@@ -9,21 +9,13 @@ import (
 	"xorm.io/xorm"
 )
 
-type pullAutoMerge struct {
-	ID                     int64  `xorm:"pk autoincr"`
-	PullID                 int64  `xorm:"UNIQUE"`
-	DoerID                 int64  `xorm:"INDEX NOT NULL"`
-	MergeStyle             string `xorm:"varchar(30)"`
-	Message                string `xorm:"LONGTEXT"`
-	DeleteBranchAfterMerge bool
-	CreatedUnix            timeutil.TimeStamp `xorm:"created"`
-}
-
-// TableName return database table name for xorm
-func (pullAutoMerge) TableName() string {
-	return "pull_auto_merge"
-}
-
-func AddDeleteBranchAfterMergeForAutoMerge(x *xorm.Engine) error {
-	return x.Sync(new(pullAutoMerge))
+func FixMilestoneNoDueDate(x *xorm.Engine) error {
+	type Milestone struct {
+		DeadlineUnix timeutil.TimeStamp
+	}
+	// Wednesday, December 1, 9999 12:00:00 AM GMT+00:00
+	_, err := x.Table("milestone").Where("deadline_unix > 253399622400").
+		Cols("deadline_unix").
+		Update(&Milestone{DeadlineUnix: 0})
+	return err
 }
