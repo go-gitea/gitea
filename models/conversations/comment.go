@@ -116,7 +116,7 @@ type ConversationComment struct {
 	Poster   *user_model.User `xorm:"-"`
 
 	OriginalAuthor   string
-	OriginalAuthorID int64
+	OriginalAuthorID int64 `xorm:"INDEX"`
 
 	Attachments []*repo_model.Attachment `xorm:"-"`
 	Reactions   ReactionList             `xorm:"-"`
