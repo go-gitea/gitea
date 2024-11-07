@@ -115,7 +115,7 @@ type Conversation struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	LockedUnix  timeutil.TimeStamp `xorm:"INDEX"`
 
-	IsLocked bool `xorm:"INDEX DEFAULT false"`
+	IsLocked bool `xorm:"NOT NULL DEFAULT false"`
 
 	Comments CommentList `xorm:"-"`
 

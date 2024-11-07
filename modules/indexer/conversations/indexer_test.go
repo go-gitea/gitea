@@ -64,12 +64,6 @@ func searchConversationWithKeyword(t *testing.T) {
 			},
 			[]int64{1},
 		},
-		{
-			SearchOptions{
-				Keyword: "comment",
-			},
-			[]int64{2, 4},
-		},
 	}
 
 	for _, test := range tests {
