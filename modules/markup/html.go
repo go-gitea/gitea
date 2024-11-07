@@ -442,7 +442,10 @@ func createLink(href, content, class string) *html.Node {
 	a := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.A.String(),
-		Attr: []html.Attribute{{Key: "href", Val: href}},
+		Attr: []html.Attribute{
+			{Key: "href", Val: href},
+			{Key: "data-markdown-generated-content"},
+		},
 	}
 
 	if class != "" {

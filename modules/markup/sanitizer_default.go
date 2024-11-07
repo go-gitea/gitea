@@ -107,6 +107,7 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 		"start", "summary", "tabindex", "target",
 		"title", "type", "usemap", "valign", "value",
 		"vspace", "width", "itemprop",
+		"data-markdown-generated-content",
 	}
 
 	generalSafeElements := []string{
