@@ -1,4 +1,4 @@
-import {encode, decode} from 'uint8-to-base64';
+import {decode, encode} from 'uint8-to-base64';
 import type {IssuePageInfo, IssuePathInfo} from './types.ts';
 
 // transform /path/to/file.ext to file.ext
@@ -45,12 +45,12 @@ export function parseIssueNewHref(href: string): IssuePathInfo {
 
 export function parseIssuePageInfo(): IssuePageInfo {
   const el = document.querySelector('#issue-page-info');
-  const info = {} as IssuePageInfo;
-  info.issueNumber = parseInt(el?.getAttribute('data-issue-index'));
-  info.issueDependencySearchType = el?.getAttribute('data-issue-dependency-search-type') || '';
-  info.repoId = parseInt(el?.getAttribute('data-issue-repo-id'));
-  info.repoLink = el?.getAttribute('data-issue-repo-link') || '';
-  return info;
+  return {
+    issueNumber: parseInt(el?.getAttribute('data-issue-index')),
+    issueDependencySearchType: el?.getAttribute('data-issue-dependency-search-type') || '',
+    repoId: parseInt(el?.getAttribute('data-issue-repo-id')),
+    repoLink: el?.getAttribute('data-issue-repo-link') || '',
+  };
 }
 
 // parse a URL, either relative '/path' or absolute 'https://localhost/path'
