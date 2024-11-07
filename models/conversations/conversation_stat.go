@@ -15,13 +15,9 @@ import (
 
 // ConversationStats represents conversation statistic information.
 type ConversationStats struct {
-	OpenCount, ClosedCount int64
+	OpenCount, LockedCount int64
 	YourRepositoriesCount  int64
-	AssignCount            int64
 	CreateCount            int64
-	MentionCount           int64
-	ReviewRequestedCount   int64
-	ReviewedCount          int64
 }
 
 // Filter modes.
@@ -100,14 +96,9 @@ func GetConversationStats(ctx context.Context, opts *ConversationsOptions) (*Con
 		if err != nil {
 			return nil, err
 		}
-		accum.OpenCount += stats.OpenCount
-		accum.ClosedCount += stats.ClosedCount
 		accum.YourRepositoriesCount += stats.YourRepositoriesCount
-		accum.AssignCount += stats.AssignCount
 		accum.CreateCount += stats.CreateCount
-		accum.OpenCount += stats.MentionCount
-		accum.ReviewRequestedCount += stats.ReviewRequestedCount
-		accum.ReviewedCount += stats.ReviewedCount
+		accum.LockedCount += stats.LockedCount
 		i = chunk
 	}
 	return accum, nil
@@ -126,7 +117,7 @@ func getConversationStatsChunk(ctx context.Context, opts *ConversationsOptions, 
 	if err != nil {
 		return stats, err
 	}
-	stats.ClosedCount, err = applyConversationsOptions(sess, opts, conversationIDs).
+	stats.LockedCount, err = applyConversationsOptions(sess, opts, conversationIDs).
 		And("conversation.is_closed = ?", true).
 		Count(new(Conversation))
 	return stats, err
