@@ -45,7 +45,7 @@ func searchConversationWithKeyword(t *testing.T) {
 	}{
 		{
 			SearchOptions{
-				Keyword: "conversation2",
+				Keyword: "conversationcomment2",
 				RepoIDs: []int64{1},
 			},
 			[]int64{2},
@@ -59,17 +59,16 @@ func searchConversationWithKeyword(t *testing.T) {
 		},
 		{
 			SearchOptions{
-				Keyword: "for",
-				RepoIDs: []int64{1},
-			},
-			[]int64{11, 5, 3, 2, 1},
-		},
-		{
-			SearchOptions{
 				Keyword: "good",
 				RepoIDs: []int64{1},
 			},
 			[]int64{1},
+		},
+		{
+			SearchOptions{
+				Keyword: "comment",
+			},
+			[]int64{2, 4},
 		},
 	}
 
