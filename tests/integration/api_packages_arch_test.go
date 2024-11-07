@@ -336,6 +336,30 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 			MakeRequest(t, req, http.StatusNoContent)
 		}
 	})
+	t.Run("Package Arch Test", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgs["any"])).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "GET", rootURL+"/x86_64/base.db")
+		respPkg := MakeRequest(t, req, http.StatusOK)
+
+		files, err := listTarGzFiles(respPkg.Body.Bytes())
+		require.NoError(t, err)
+		require.Len(t, files, 1)
+
+		req = NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgs["otherXZ"])).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "GET", rootURL+"/x86_64/base.db")
+		respPkg = MakeRequest(t, req, http.StatusOK)
+
+		files, err = listTarGzFiles(respPkg.Body.Bytes())
+		require.NoError(t, err)
+		require.Len(t, files, 2)
+	})
 }
 
 func getProperty(data, key string) string {

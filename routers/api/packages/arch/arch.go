@@ -165,6 +165,12 @@ func PushPackage(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	if p.FileMetadata.Arch == "any" {
+		if err = arch_service.BuildCustomRepositoryFiles(ctx, ctx.Package.Owner.ID, group); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	}
 	ctx.Status(http.StatusCreated)
 }
 
