@@ -104,7 +104,7 @@ type Conversation struct {
 	Index  int64                  `xorm:"UNIQUE(repo_index)"`
 	RepoID int64                  `xorm:"INDEX UNIQUE(repo_index)"`
 	Repo   *repo_model.Repository `xorm:"-"`
-	Type   ConversationType
+	Type   ConversationType       `xorm:"INDEX"`
 
 	NumComments int
 
