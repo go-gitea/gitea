@@ -25,7 +25,7 @@ pacman-key --lsign-key '{{$.SignMail}}'</code></pre>
 {{end -}}{{- if gt $GroupSize 1 -}}
 # {{ctx.Locale.Tr "packages.arch.pacman.repo.multi.item" .}}
 {{end -}}
-[{{$.PackageDescriptor.Owner.LowerName}}.{{$.RegistryHost}}]
+[{{$.PackageDescriptor.Owner.LowerName}}.{{$.PackageRegistryHost}}]
 SigLevel = Required
 Server = <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/arch/{{.}}/$arch"></origin-url>
 {{end -}}

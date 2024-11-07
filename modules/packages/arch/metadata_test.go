@@ -448,6 +448,6 @@ dummy6
 
 func TestOptVersionCheck(t *testing.T) {
 	for _, s := range []string{"foo", "foo>=1.0.0", "foo<=1.0.0", "foo>=1:1.0.0: aaa"} {
-		require.True(t, reOptDep.MatchString(s), s)
+		require.True(t, GlobalVar().reOptDep.MatchString(s), s)
 	}
 }
