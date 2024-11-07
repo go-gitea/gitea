@@ -1,5 +1,8 @@
+<!-- Provide Issue for any types other than type 0 -->
 {{template "base/alert"}}
-{{range .Issue.Comments}}
+{{$IsIssue:= .IsIssue}}
+{{$IsCommit:= .IsCommit}}
+{{range .Comments}}
 	{{if call $.ShouldShowCommentType .Type}}
 		{{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
 
@@ -53,9 +56,14 @@
 						<div class="comment-header-right actions tw-flex tw-items-center">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 							{{if not $.Repository.IsArchived}}
-								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+								{{if $IsIssue}}
+									{{template "repo/conversation/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+								{{else}}
+									{{template "repo/conversation/add_reaction" dict "ActionURL" (printf "%s/conversations/comments/%d/reactions" $.RepoLink .ID)}}
+								{{end}}
 							{{end}}
-							{{template "repo/issue/view_content/context_menu" dict "item" . "delete" true "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+
+							{{template "repo/conversation/context_menu" dict "ctxData" $ "item" . "delete" true "issue" $IsIssue "pull" ((and $IsIssue .Issue.IsPull)) "commit" $IsCommit "diff" false "IsIssue" $IsIssue "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 						</div>
 					</div>
 					<div class="ui attached segment comment-body" role="article">
@@ -66,15 +74,27 @@
 								<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 							{{end}}
 						</div>
-						<div id="issuecomment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
-						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+						<div id="{{if $IsIssue}}issue{{end}}comment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
+
+						{{if $IsIssue}}
+							{{$EditURL:=printf "%s/%s/%d" $.RepoLink "comments" .ID}}
+							<div class="edit-content-zone tw-hidden" data-update-url="{{$EditURL}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$EditURL}}/attachments"></div>
+						{{else}}
+							{{$EditURL:=printf "%s/%s/%d" $.RepoLink "conversations/comments" .ID}}
+							<div class="edit-content-zone tw-hidden" data-update-url="{{$EditURL}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$EditURL}}/attachments"></div>
+						{{end}}
+
 						{{if .Attachments}}
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 						{{end}}
 					</div>
 					{{$reactions := .Reactions.GroupByType}}
 					{{if $reactions}}
-						{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+						{{if $IsIssue}}
+							{{template "repo/conversation/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+						{{else}}
+							{{template "repo/conversation/reactions" dict "ActionURL" (printf "%s/conversations/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+						{{end}}
 					{{end}}
 				</div>
 			</div>
@@ -85,7 +105,7 @@
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}
 				<span class="text grey muted-links">
-					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
+					{{template "repo/conversation/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{if .Issue.IsPull}}
 						{{ctx.Locale.Tr "repo.pulls.reopened_at" .EventTag $createdStr}}
 					{{else}}
@@ -100,7 +120,7 @@
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}
 				<span class="text grey muted-links">
-					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
+					{{template "repo/conversation/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{if .Issue.IsPull}}
 						{{ctx.Locale.Tr "repo.pulls.closed_at" .EventTag $createdStr}}
 					{{else}}
@@ -115,7 +135,7 @@
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}
 				<span class="text grey muted-links">
-					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
+					{{template "repo/conversation/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{$link := printf "%s/commit/%s" $.Repository.Link ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
 					{{if eq $.Issue.PullRequest.Status 3}}
 						{{ctx.Locale.Tr "repo.issues.comment_manually_pull_merged_at" (HTMLFormat `<a class="ui sha" href="%[1]s"><b>%[2]s</b></a>` $link (ShortSha $.Issue.PullRequest.MergedCommitID)) (HTMLFormat "<b>%[1]s</b>" $.BaseTarget) $createdStr}}
@@ -251,7 +271,7 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{ctx.Locale.Tr "repo.issues.stop_tracking_history" $createdStr}}
 				</span>
-				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
+				{{template "repo/conversation/comments_delete_time" dict "ctxData" $ "comment" .}}
 				<div class="detail flex-text-block">
 					{{svg "octicon-clock"}}
 					{{if .RenderedContent}}
@@ -270,7 +290,7 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{ctx.Locale.Tr "repo.issues.add_time_history" $createdStr}}
 				</span>
-				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
+				{{template "repo/conversation/comments_delete_time" dict "ctxData" $ "comment" .}}
 				<div class="detail flex-text-block">
 					{{svg "octicon-clock"}}
 					{{if .RenderedContent}}
@@ -386,7 +406,7 @@
 						{{if .Review}}{{svg (printf "octicon-%s" .Review.Type.Icon)}}{{end}}
 					</span>
 					<span class="text grey muted-links">
-						{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
+						{{template "repo/conversation/comments_authorlink" dict "ctxData" $ "comment" .}}
 						{{if eq $reviewType 1}}
 							{{ctx.Locale.Tr "repo.issues.review.approve" $createdStr}}
 						{{else if eq $reviewType 2}}
@@ -429,8 +449,8 @@
 							<div class="comment-header-right actions tw-flex tw-items-center">
 								{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 								{{if not $.Repository.IsArchived}}
-									{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-									{{template "repo/issue/view_content/context_menu" dict "item" . "delete" false "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+									{{template "repo/conversation/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+									{{template "repo/conversation/context_menu" dict "ctxData" $ "item" . "delete" false "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 								{{end}}
 							</div>
 						</div>
@@ -498,7 +518,7 @@
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}
 				<span class="text grey muted-links">
-					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
+					{{template "repo/conversation/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{ctx.Locale.Tr "repo.pulls.change_target_branch_at" .OldRef .NewRef $createdStr}}
 				</span>
 			</div>
@@ -687,7 +707,7 @@
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
 				<span class="text grey muted-links">
-					{{template "repo/issue/view_content/comments_authorlink" dict "ctxData" $ "comment" .}}
+					{{template "repo/conversation/comments_authorlink" dict "ctxData" $ "comment" .}}
 					{{if eq .Type 34}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr}}
 					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr}}{{end}}
 				</span>
