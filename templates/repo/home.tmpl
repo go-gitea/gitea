@@ -12,7 +12,7 @@
 						{{if .Repository.ArchivedUnix.IsZero}}
 							{{ctx.Locale.Tr "repo.archive.title"}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.archive.title_date" (DateTime "long" .Repository.ArchivedUnix)}}
+							{{ctx.Locale.Tr "repo.archive.title_date" (DateUtils.AbsoluteLong .Repository.ArchivedUnix)}}
 						{{end}}
 					</div>
 				{{end}}
@@ -159,7 +159,7 @@
 												</div>
 											</div>
 											<div class="flex-item-body">
-												<span class="time">{{TimeSinceUnix .LatestRelease.CreatedUnix ctx.Locale}}</span>
+												<span class="time">{{DateUtils.TimeSince .LatestRelease.CreatedUnix}}</span>
 											</div>
 										</div>
 									</div>
