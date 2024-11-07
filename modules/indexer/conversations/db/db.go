@@ -60,7 +60,7 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		subQuery := builder.Select("id").From("conversation").Where(repoCond)
 
 		cond = builder.Or(
-			builder.In("conversation.id", builder.Select("id").
+			builder.In("conversation.id", builder.Select("conversation_id").
 				From("comment").
 				Where(builder.And(
 					builder.Eq{"type": conversation_model.CommentTypeComment},
