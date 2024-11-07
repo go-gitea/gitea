@@ -343,7 +343,7 @@ func generateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		ObjectFormatName: templateRepo.ObjectFormatName,
 	}
 
-	if err = repo_module.CreateRepositoryByExample(ctx, doer, owner, generateRepo, false, false); err != nil {
+	if err = CreateRepositoryByExample(ctx, doer, owner, generateRepo, false, false); err != nil {
 		return nil, err
 	}
 
