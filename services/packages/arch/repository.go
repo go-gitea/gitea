@@ -285,12 +285,9 @@ func GetPackageDBFile(ctx context.Context, group, arch string, ownerID int64, si
 		fileName = fmt.Sprintf("%s.db.sig", arch)
 	}
 	file, err := packages_model.GetFileForVersionByName(ctx, pv.ID, fileName, group)
-	// failback to any db
 	if errors.Is(err, util.ErrNotExist) && arch != "any" {
-		fileName = "any.db"
-		if signFile {
-			fileName = "any.db.sig"
-		}
+		// fail back to any db
+		fileName = util.Iif(signFile, "any.db.sig", "any.db")
 		file, err = packages_model.GetFileForVersionByName(ctx, pv.ID, fileName, group)
 	}
 	if err != nil {

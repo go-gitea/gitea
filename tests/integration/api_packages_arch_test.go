@@ -34,14 +34,15 @@ import (
 func TestPackageArch(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	unPack := func(s string) []byte {
+	unpack := func(s string) []byte {
 		data, _ := base64.StdEncoding.DecodeString(strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(s), "\n", ""), "\r", ""))
 		return data
 	}
 	rootURL := fmt.Sprintf("/api/packages/%s/arch", user.Name)
 
 	pkgs := map[string][]byte{
-		"any": unPack(`
+		// pkgname = test, arch = any
+		"any": unpack(`
 KLUv/QBYXRMABmOHSbCWag6dY6d8VNtVR3rpBnWdBbkDAxM38Dj3XG3FK01TCKlWtMV9QpskYdsm
 e6fh5gWqM8edeurYNESoIUz/RmtyQy68HVrBj1p+AIoAYABFSJh4jcDyWNQgHIKIuNgIll64S4oY
 FFIUk6vJQBMIIl2iYtIysqKWVYMCYvXDpAKTMzVGwZTUWhbciFCglIMH1QMbEtjHpohSi8XRYwPr
@@ -55,7 +56,7 @@ JtFpalPD30drDWi7Bl8NB3J/P3csijQyldWZ8gy3TNslLsozMw74DhoAXoAfnE8xydUUHPZ3hML4
 2zVDGiEXSGYRx4BKQDcDJA5S9Ca25FRgPtSWSowZJpJTYAR9WCPHUDgACm6+hBecGDPNClpwHZ2A
 EQ==
 `),
-		"x86_64": unPack(`
+		"x86_64": unpack(`
 KLUv/QBYnRMAFmOJS7BUbg7Un8q21hxCopsOMn6UGTzJRbHI753uOeMdxZ+V7ajoETVxl9CSBCR5
 2a3K1vr1gwyp9gCTH422bRNxHEg7Z0z9HV4rH/DGFn8AjABjAFQ2oaUVMRRGViVoqmxAVKuoKQVM
 NJRwTDl9NcHCClliWjTpWin6sRUZsXSipWlAipQnleThRgFF5QTAzpth0UPFkhQeJRnYOaqSScEC
@@ -69,7 +70,7 @@ uHHN9r74usjkduX5VEhNz9TnxV9trSabvYAwuIZffN0zSeZM3c3GUHX8dG6jeUgHGgBbgB9cUDHJ
 1RR09teBwvjbNUMaIRdIZhHHgEpANwMkDpL0JsbkVFA+0JZKjBkmklNgBH1YI8dQOAAKbr6EF5wY
 M80KWnAdnYAR
 `),
-		"aarch64": unPack(`
+		"aarch64": unpack(`
 KLUv/QBYdRQAVuSMS7BUbg7Un8q21hxCopsOMn6UGTzJRbHI753uOeMdxZ+V7ajoEbUkUXbXhXW/
 7FanWzv7B/EcMxhodFqyZkUcB9LOGVN/h9MqG7zFFmoAaQB8AEFrvpXntn3V/cXXaE7Lc9uP5uFP
 VXPl+ue7qnJ9Zp8vU3PVvYu9HvbAL8+tz4y+0O1J3TPXqbZ5l3+lapk5ee+L577qXvdf+Atn+P69
@@ -82,7 +83,8 @@ I2dkIEMjxsSOiAlJjH4HIwbTjayZJidXVxKQYH2gICOCBhK7KqMlLZ4gMCU1BapYlsTAXnywepyy
 jMBmtEhxyCnCZdUAwYKxAxeRFVk4TCL0aYgWjt3kHTg9SjVStppI2YCSWshUEFGdmJmyCVGpnqIU
 KNlA0hEjIOACGSLqYpXAD5SSNVT2MJRJwREAF4FRHPBlCJMSNwFguGAWDJBg+KIArkIJGNtCydUL
 TuN1oBh/+zKkEblAsgjGqVgUwKLP+UOMOGCpAhICtg6ncFJH`),
-		"otherXZ": unPack(`
+		// pkgname = test2, arch = any
+		"otherXZ": unpack(`
 /Td6WFoAAATm1rRGBMCyBIAYIQEWAAAAAAAAABaHRszgC/8CKl0AFxNGhTWwfXmuDQEJlHgNLrkq
 VxpJY6d9iRTt6gB4uCj0481rnYfXaUADHzOFuF3490RPrM6juPXrknqtVyuWJ5efW19BgwctN6xk
 UiXiZaXVAWVWJWy2XHJiyYCMWBfIjUfo1ccOgwolwgFHJ64ZJjbayA3k6lYPcImuAqYL5NEVHpwl
@@ -95,7 +97,7 @@ MZDP1PBie6GqDV2GuPz+0XXmul/ds+XysG19HIkKbJ+cQKp5o7Y0tI7EHM8GhwMl7MjgpQGj5nuv
 J/QqTPWE0nJf1PW/J9yFQVR1Xo0TJyiX8/ObwmbqUPpxRGjKlYRBvn0jbTdUAENBSn+QVcASRGFE
 SB9OM2B8Bg4jR/oojs8Beoq7zbIblgAAAACfRtXvhmznOgABzgSAGAAAKklb4rHEZ/sCAAAAAARZ
 Wg==`),
-		"otherZST": unPack(`
+		"otherZST": unpack(`
 KLUv/QRYbRMABuOHS9BSNQdQ56F+xNFoV3CijY54JYt3VqV1iUU3xmj00y2pyBOCuokbhDYpvNsj
 ZJeCxqH+nQFpMf4Wa92okaZoF4eH6HsXXCBo+qy3Fn4AigBgAEaYrLCQEuAom6YbHyuKZAFYksqi
 sSOFiRs0WDmlACk0CnpnaAeKiCS3BlwVkViJEbDS43lFNbLkZEmGhc305Nn4AMLGiUkBDiMTG5Vz
@@ -108,7 +110,7 @@ Y9bYrCTHtwdfPPPOYiU5fvB5FssfNN2V5EIPfg9LnM+JhtVEO8+FZw5LXA068YNPhimu9sHPQiWv
 qc6fE9BTnxIe/LTKatab+WYu7T74uWNRxJW5W5Ux0bDLuG1ioCwjg4DvGgBcgB8cUDHJ1RQ89neE
 wvjbNUMiIZdo5hbHgEpANwMkDnL0Jr7kVFg+0pZKjBkmklNgBH1YI8dQOAAKbr6EF5wYM80KWnAd
 nYARrByncQ==`),
-		"otherGZ": unPack(`
+		"otherGZ": unpack(`
 H4sIAAAAAAAAA9PzDQlydWWgKTAwMDAzMVEA0UCAThsYGBuZKRiamBmbm5qZGJqbKBgYGpobGzMo
 GNDWWRBQWlySWAR0SlF+fgk+dYTk0T03RIB8NweEwVx71tDviIFA60O75Rtc5s+9YbxteUHzhUWi
 HBkWDcbGcUqCukrLGi4Lv8jIqNsbXhueXW8uzTe79Lr9/TVbnl69c3wR652f21+7rnU5kmjTc/38
@@ -336,10 +338,11 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 			MakeRequest(t, req, http.StatusNoContent)
 		}
 	})
-	t.Run("Package Arch Test", func(t *testing.T) {
+
+	t.Run("List Meta.Arch[any]", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		req := NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgs["any"])).
-			AddBasicAuth(user.Name)
+
+		req := NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgs["any"])).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
 		req = NewRequest(t, "GET", rootURL+"/x86_64/base.db")
@@ -347,18 +350,17 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 
 		files, err := listTarGzFiles(respPkg.Body.Bytes())
 		require.NoError(t, err)
-		require.Len(t, files, 1)
+		require.Len(t, files, 1) // only one package: "test"
 
-		req = NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgs["otherXZ"])).
-			AddBasicAuth(user.Name)
+		req = NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgs["otherXZ"])).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
 		req = NewRequest(t, "GET", rootURL+"/x86_64/base.db")
-		respPkg = MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 
-		files, err = listTarGzFiles(respPkg.Body.Bytes())
+		files, err = listTarGzFiles(resp.Body.Bytes())
 		require.NoError(t, err)
-		require.Len(t, files, 2)
+		require.Len(t, files, 2) // now there are 2 packages: "test" and "test2"
 	})
 }
 
