@@ -328,6 +328,7 @@ func Diff(ctx *context.Context) {
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:           maxFiles,
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+		FileOnly:           fileOnly,
 	}, files...)
 	if err != nil {
 		ctx.NotFound("GetDiff", err)

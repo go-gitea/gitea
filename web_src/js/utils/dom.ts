@@ -92,7 +92,7 @@ export function onDomReady(cb: () => Promisable<void>) {
 
 // checks whether an element is owned by the current document, and whether it is a document fragment or element node
 // if it is, it means it is a "normal" element managed by us, which can be modified safely.
-export function isDocumentFragmentOrElementNode(el: Element) {
+export function isDocumentFragmentOrElementNode(el: Element | Node) {
   try {
     return el.ownerDocument === document && el.nodeType === Node.ELEMENT_NODE || el.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
   } catch {
@@ -167,7 +167,7 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
       const isBorderBox = computedStyle.boxSizing === 'border-box';
       const borderAddOn = isBorderBox ? topBorderWidth + bottomBorderWidth : 0;
 
-      const adjustedViewportMarginBottom = bottom < viewportMarginBottom ? bottom : viewportMarginBottom;
+      const adjustedViewportMarginBottom = Math.min(bottom, viewportMarginBottom);
       const curHeight = parseFloat(computedStyle.height);
       const maxHeight = curHeight + bottom - adjustedViewportMarginBottom;
 
@@ -269,8 +269,8 @@ export function initSubmitEventPolyfill() {
  */
 export function isElemVisible(element: HTMLElement): boolean {
   if (!element) return false;
-
-  return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+  // checking element.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
+  return Boolean((element.offsetWidth || element.offsetHeight || element.getClientRects().length) && element.style.display !== 'none');
 }
 
 // replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this
@@ -281,7 +281,7 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
 
   textarea.contentEditable = 'true';
   try {
-    success = document.execCommand('insertText', false, text); // eslint-disable-line deprecation/deprecation
+    success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated
   } catch {
     success = false;
   }
@@ -298,22 +298,24 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
 }
 
 // Warning: Do not enter any unsanitized variables here
-export function createElementFromHTML(htmlString: string) {
+export function createElementFromHTML(htmlString: string): HTMLElement {
   const div = document.createElement('div');
   div.innerHTML = htmlString.trim();
-  return div.firstChild as Element;
+  return div.firstChild as HTMLElement;
 }
 
-export function createElementFromAttrs(tagName: string, attrs: Record<string, any>) {
+export function createElementFromAttrs(tagName: string, attrs: Record<string, any>, ...children: (Node|string)[]): HTMLElement {
   const el = document.createElement(tagName);
-  for (const [key, value] of Object.entries(attrs)) {
+  for (const [key, value] of Object.entries(attrs || {})) {
     if (value === undefined || value === null) continue;
     if (typeof value === 'boolean') {
       el.toggleAttribute(key, value);
     } else {
       el.setAttribute(key, String(value));
     }
-    // TODO: in the future we could make it also support "textContent" and "innerHTML" properties if needed
+  }
+  for (const child of children) {
+    el.append(child instanceof Node ? child : document.createTextNode(child));
   }
   return el;
 }
@@ -327,4 +329,11 @@ export function animateOnce(el: Element, animationClassName: string): Promise<vo
     }, {once: true});
     el.classList.add(animationClassName);
   });
+}
+
+export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, selector: string): T | null {
+  const elems = parent.querySelectorAll<HTMLElement>(selector);
+  const candidates = Array.from(elems).filter(isElemVisible);
+  if (candidates.length > 1) throw new Error(`Expected exactly one visible element matching selector "${selector}", but found ${candidates.length}`);
+  return candidates.length ? candidates[0] as T : null;
 }

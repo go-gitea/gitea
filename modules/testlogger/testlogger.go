@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -92,10 +93,7 @@ func (w *testLoggerWriterCloser) Reset() {
 func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	t.Helper()
 	start := time.Now()
-	actualSkip := 1
-	if len(skip) > 0 {
-		actualSkip = skip[0] + 1
-	}
+	actualSkip := util.OptionalArg(skip) + 1
 	_, filename, line, _ := runtime.Caller(actualSkip)
 
 	if log.CanColorStdout {

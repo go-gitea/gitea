@@ -96,9 +96,9 @@
 							<td>{{svg (Iif .IsActive "octicon-check" "octicon-x")}}</td>
 							<td>{{svg (Iif .IsRestricted "octicon-check" "octicon-x")}}</td>
 							<td>{{svg (Iif (index $.UsersTwoFaStatus .ID) "octicon-check" "octicon-x")}}</td>
-							<td>{{DateTime "short" .CreatedUnix}}</td>
+							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							{{if .LastLoginUnix}}
-								<td>{{DateTime "short" .LastLoginUnix}}</td>
+								<td>{{DateUtils.AbsoluteShort .LastLoginUnix}}</td>
 							{{else}}
 								<td><span>{{ctx.Locale.Tr "admin.users.never_login"}}</span></td>
 							{{end}}

@@ -14,7 +14,7 @@
 		{{$commitLink:= printf "%s/commit/%s" $.comment.Issue.PullRequest.BaseRepo.Link (PathEscape .ID.String)}}
 
 		<span class="tw-flex-1 tw-font-mono gt-ellipsis" title="{{.Summary}}">
-			{{- RenderCommitMessageLinkSubject $.root.Context .Message $commitLink ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx) -}}
+			{{- ctx.RenderUtils.RenderCommitMessageLinkSubject .Message $commitLink ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx) -}}
 		</span>
 
 		{{if IsMultilineCommitMessage .Message}}
@@ -48,7 +48,7 @@
 	</div>
 	{{if IsMultilineCommitMessage .Message}}
 	<pre class="commit-body tw-ml-[33px] tw-hidden" data-singular-commit-body-for="{{$tag}}">
-		{{- RenderCommitBody $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx) -}}
+		{{- ctx.RenderUtils.RenderCommitBody .Message ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx) -}}
 	</pre>
 	{{end}}
 {{end}}
