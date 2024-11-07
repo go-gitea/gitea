@@ -60,8 +60,6 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		subQuery := builder.Select("id").From("conversation").Where(repoCond)
 
 		cond = builder.Or(
-			db.BuildCaseInsensitiveLike("conversation.name", options.Keyword),
-			db.BuildCaseInsensitiveLike("conversation.content", options.Keyword),
 			builder.In("conversation.id", builder.Select("id").
 				From("comment").
 				Where(builder.And(
