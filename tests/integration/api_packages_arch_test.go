@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	arch_model "code.gitea.io/gitea/modules/packages/arch"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
@@ -133,10 +134,7 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 	})
 
 	for _, group := range []string{"", "arch", "arch/os", "x86_64"} {
-		groupURL := rootURL
-		if group != "" {
-			groupURL = groupURL + "/" + group
-		}
+		groupURL := rootURL + util.Iif(group == "", "", "/"+group)
 		t.Run(fmt.Sprintf("Upload[%s]", group), func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
@@ -314,7 +312,9 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 				MakeRequest(t, req, http.StatusNoContent)
 			})
 		}
+		require.False(t, t.Failed())
 	}
+
 	t.Run("Concurrent Upload", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		var wg sync.WaitGroup
