@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -22,11 +21,6 @@ import (
 	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 	arch_service "code.gitea.io/gitea/services/packages/arch"
-)
-
-var (
-	archPkgOrSig = regexp.MustCompile(`^.*\.pkg\.tar\.\w+(\.sig)*$`)
-	archDBOrSig  = regexp.MustCompile(`^.*.db(\.tar\.gz)*(\.sig)*$`)
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -53,7 +47,7 @@ func refreshLocker(ctx *context.Context, group string) (globallock.ReleaseFunc, 
 }
 
 func PushPackage(ctx *context.Context) {
-	group := ctx.PathParam("group")
+	group := ctx.PathParam("*")
 	releaser, err := refreshLocker(ctx, group)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -175,13 +169,18 @@ func PushPackage(ctx *context.Context) {
 }
 
 func GetPackageOrDB(ctx *context.Context) {
-	var (
-		file  = ctx.PathParam("file")
-		group = ctx.PathParam("group")
-		arch  = ctx.PathParam("arch")
-	)
+	pathFields := strings.Split(strings.Trim(ctx.PathParam("*"), "/"), "/")
+	pathFieldsLen := len(pathFields)
+	if pathFieldsLen < 2 {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
 
-	if archPkgOrSig.MatchString(file) {
+	group := strings.Join(pathFields[:pathFieldsLen-2], "/")
+	arch := pathFields[pathFieldsLen-2]
+	file := pathFields[pathFieldsLen-1]
+
+	if arch_module.GlobalVar().ArchPkgOrSig.MatchString(file) {
 		pkg, u, pf, err := arch_service.GetPackageFile(ctx, group, file, ctx.Package.Owner.ID)
 		if err != nil {
 			if errors.Is(err, util.ErrNotExist) {
@@ -195,7 +194,7 @@ func GetPackageOrDB(ctx *context.Context) {
 		return
 	}
 
-	if archDBOrSig.MatchString(file) {
+	if arch_module.GlobalVar().ArchDBOrSig.MatchString(file) {
 		pkg, u, pf, err := arch_service.GetPackageDBFile(ctx, group, arch, ctx.Package.Owner.ID,
 			strings.HasSuffix(file, ".sig"))
 		if err != nil {
@@ -215,12 +214,18 @@ func GetPackageOrDB(ctx *context.Context) {
 }
 
 func RemovePackage(ctx *context.Context) {
-	var (
-		group   = ctx.PathParam("group")
-		pkg     = ctx.PathParam("package")
-		ver     = ctx.PathParam("version")
-		pkgArch = ctx.PathParam("arch")
-	)
+	pathFields := strings.Split(strings.Trim(ctx.PathParam("*"), "/"), "/")
+	pathFieldsLen := len(pathFields)
+	if pathFieldsLen < 3 {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+
+	group := strings.Join(pathFields[:pathFieldsLen-3], "/")
+	pkg := pathFields[pathFieldsLen-3]
+	ver := pathFields[pathFieldsLen-2]
+	pkgArch := pathFields[pathFieldsLen-1]
+
 	releaser, err := refreshLocker(ctx, group)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)

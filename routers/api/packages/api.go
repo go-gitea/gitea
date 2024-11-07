@@ -137,66 +137,10 @@ func CommonRoutes() *web.Router {
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/arch", func() {
-			r.Group("/repository.key", func() {
-				r.Head("", arch.GetRepositoryKey)
-				r.Get("", arch.GetRepositoryKey)
-			})
-
-			r.Methods("HEAD,GET,PUT,DELETE", "*", func(ctx *context.Context) {
-				pathGroups := strings.Split(strings.Trim(ctx.PathParam("*"), "/"), "/")
-				groupLen := len(pathGroups)
-				isGetHead := ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET"
-				isPut := ctx.Req.Method == "PUT"
-				isDelete := ctx.Req.Method == "DELETE"
-				if isGetHead {
-					if groupLen < 2 {
-						ctx.Status(http.StatusNotFound)
-						return
-					}
-					if groupLen == 2 {
-						ctx.SetPathParam("group", "")
-						ctx.SetPathParam("arch", pathGroups[0])
-						ctx.SetPathParam("file", pathGroups[1])
-					} else {
-						ctx.SetPathParam("group", strings.Join(pathGroups[:groupLen-2], "/"))
-						ctx.SetPathParam("arch", pathGroups[groupLen-2])
-						ctx.SetPathParam("file", pathGroups[groupLen-1])
-					}
-					arch.GetPackageOrDB(ctx)
-					return
-				} else if isPut {
-					ctx.SetPathParam("group", strings.Join(pathGroups, "/"))
-					reqPackageAccess(perm.AccessModeWrite)(ctx)
-					if ctx.Written() {
-						return
-					}
-					arch.PushPackage(ctx)
-					return
-				} else if isDelete {
-					if groupLen < 3 {
-						ctx.Status(http.StatusBadRequest)
-						return
-					}
-					if groupLen == 3 {
-						ctx.SetPathParam("group", "")
-						ctx.SetPathParam("package", pathGroups[0])
-						ctx.SetPathParam("version", pathGroups[1])
-						ctx.SetPathParam("arch", pathGroups[2])
-					} else {
-						ctx.SetPathParam("group", strings.Join(pathGroups[:groupLen-3], "/"))
-						ctx.SetPathParam("package", pathGroups[groupLen-3])
-						ctx.SetPathParam("version", pathGroups[groupLen-2])
-						ctx.SetPathParam("arch", pathGroups[groupLen-1])
-					}
-					reqPackageAccess(perm.AccessModeWrite)(ctx)
-					if ctx.Written() {
-						return
-					}
-					arch.RemovePackage(ctx)
-					return
-				}
-				ctx.Status(http.StatusNotFound)
-			})
+			r.Methods("HEAD,GET", "/repository.key", arch.GetRepositoryKey)
+			r.Methods("HEAD,GET", "*", arch.GetPackageOrDB)
+			r.Methods("PUT", "*", reqPackageAccess(perm.AccessModeWrite), arch.PushPackage)
+			r.Methods("DELETE", "*", reqPackageAccess(perm.AccessModeWrite), arch.RemovePackage)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
 			r.Group("/api/v1/crates", func() {

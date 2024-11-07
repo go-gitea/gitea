@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/util"
@@ -36,14 +37,32 @@ const (
 	RepositoryVersion = "_repository"
 )
 
-var (
-	reName   = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$`)
-	reVer    = regexp.MustCompile(`^[a-zA-Z0-9:_.+]+-+[0-9]+$`)
-	reOptDep = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+([<>]?=?([0-9]+:)?[a-zA-Z0-9@._+-]+)?(:.*)?$`)
-	rePkgVer = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+([<>]?=?([0-9]+:)?[a-zA-Z0-9@._+-]+)?$`)
+type GlobalVarType struct {
+	reName   *regexp.Regexp
+	reVer    *regexp.Regexp
+	reOptDep *regexp.Regexp
+	rePkgVer *regexp.Regexp
 
-	maxMagicLength = 0
-	magics         = map[string]struct {
+	maxMagicLength int
+	magics         map[string]struct {
+		magic    []byte
+		archiver func() archiver.Reader
+	}
+
+	ArchPkgOrSig *regexp.Regexp
+	ArchDBOrSig  *regexp.Regexp
+}
+
+var GlobalVar = sync.OnceValue[*GlobalVarType](func() *GlobalVarType {
+	v := GlobalVarType{
+		reName:       regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$`),
+		reVer:        regexp.MustCompile(`^[a-zA-Z0-9:_.+]+-+[0-9]+$`),
+		reOptDep:     regexp.MustCompile(`^[a-zA-Z0-9@._+-]+([<>]?=?([0-9]+:)?[a-zA-Z0-9@._+-]+)?(:.*)?$`),
+		rePkgVer:     regexp.MustCompile(`^[a-zA-Z0-9@._+-]+([<>]?=?([0-9]+:)?[a-zA-Z0-9@._+-]+)?$`),
+		ArchPkgOrSig: regexp.MustCompile(`^.*\.pkg\.tar\.\w+(\.sig)*$`),
+		ArchDBOrSig:  regexp.MustCompile(`^.*.db(\.tar\.gz)*(\.sig)*$`),
+	}
+	v.magics = map[string]struct {
 		magic    []byte
 		archiver func() archiver.Reader
 	}{
@@ -66,15 +85,11 @@ var (
 			},
 		},
 	}
-)
-
-func init() {
-	for _, i := range magics {
-		if nLen := len(i.magic); nLen > maxMagicLength {
-			maxMagicLength = nLen
-		}
+	for _, i := range v.magics {
+		v.maxMagicLength = max(v.maxMagicLength, len(i.magic))
 	}
-}
+	return &v
+})
 
 type Package struct {
 	Name            string `json:"name"`
@@ -124,7 +139,7 @@ func ParsePackage(r *packages.HashedBuffer) (*Package, error) {
 		return nil, err
 	}
 
-	header := make([]byte, maxMagicLength)
+	header := make([]byte, GlobalVar().maxMagicLength)
 	_, err = r.Read(header)
 	if err != nil {
 		return nil, err
@@ -136,7 +151,7 @@ func ParsePackage(r *packages.HashedBuffer) (*Package, error) {
 
 	var tarball archiver.Reader
 	var tarballType string
-	for tarType, info := range magics {
+	for tarType, info := range GlobalVar().magics {
 		if bytes.Equal(header[:len(info.magic)], info.magic) {
 			tarballType = tarType
 			tarball = info.archiver()
@@ -272,6 +287,8 @@ func ParsePackageInfo(compressType string, r io.Reader) (*Package, error) {
 
 // ValidatePackageSpec Arch package validation according to PKGBUILD specification.
 func ValidatePackageSpec(p *Package) error {
+	gv := GlobalVar()
+	reName, reVer, reOptDep, rePkgVer := gv.reName, gv.reVer, gv.reOptDep, gv.rePkgVer
 	if !reName.MatchString(p.Name) {
 		return util.NewInvalidArgumentErrorf("invalid package name")
 	}
