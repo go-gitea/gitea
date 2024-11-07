@@ -98,6 +98,7 @@ func GetConversationStats(ctx context.Context, opts *ConversationsOptions) (*Con
 		}
 		accum.YourRepositoriesCount += stats.YourRepositoriesCount
 		accum.CreateCount += stats.CreateCount
+		accum.OpenCount += stats.OpenCount
 		accum.LockedCount += stats.LockedCount
 		i = chunk
 	}

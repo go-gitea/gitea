@@ -141,7 +141,7 @@ func TestCorrectConversationStats(t *testing.T) {
 	}
 	wg.Wait()
 
-	// Now we will get all conversationID's that match the "Bugs are nasty" query.
+	// Now we will get all conversationID's that match the repo id query.
 	conversations, err := conversations_model.Conversations(context.TODO(), &conversations_model.ConversationsOptions{
 		Paginator: &db.ListOptions{
 			PageSize: conversationAmount,
