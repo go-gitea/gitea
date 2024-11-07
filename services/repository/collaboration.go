@@ -18,6 +18,11 @@ import (
 )
 
 func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User, mode perm.AccessMode) error {
+	// only allow valid access modes, read, write and admin
+	if mode < perm.AccessModeRead || mode > perm.AccessModeAdmin {
+		return perm.ErrInvalidAccessMode
+	}
+
 	if err := repo.LoadOwner(ctx); err != nil {
 		return err
 	}
