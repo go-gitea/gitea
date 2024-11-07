@@ -124,8 +124,8 @@ type ConversationComment struct {
 	Content        string `xorm:"LONGTEXT"`
 	ContentVersion int    `xorm:"NOT NULL DEFAULT 0"`
 
-	ConversationID int64 `xorm:"INDEX"`
-	Conversation   *Conversation
+	ConversationID int64         `xorm:"INDEX"`
+	Conversation   *Conversation `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`

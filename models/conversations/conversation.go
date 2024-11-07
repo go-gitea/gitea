@@ -94,6 +94,9 @@ var ErrConversationAlreadyChanged = util.NewInvalidArgumentErrorf("the conversat
 
 type ConversationType int
 
+// CommentTypeUndefined is used to search for comments of any type
+const ConversationTypeUndefined CommentType = -1
+
 const (
 	ConversationTypeCommit ConversationType = iota
 )
