@@ -47,7 +47,7 @@ func refreshLocker(ctx *context.Context, group string) (globallock.ReleaseFunc, 
 }
 
 func PushPackage(ctx *context.Context) {
-	group := ctx.PathParam("*")
+	group := strings.Trim(ctx.PathParam("*"), "/")
 	releaser, err := refreshLocker(ctx, group)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
