@@ -61,7 +61,7 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 		cond = builder.Or(
 			builder.In("conversation.id", builder.Select("conversation_id").
-				From("comment").
+				From("conversation_comment").
 				Where(builder.And(
 					builder.Eq{"type": conversation_model.CommentTypeComment},
 					builder.In("conversation_id", subQuery),
