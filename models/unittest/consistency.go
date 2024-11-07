@@ -183,7 +183,7 @@ func init() {
 		conversation := reflectionWrap(bean)
 		typeComment := modelsCommentTypeComment
 		actual := GetCountByCond(t, "conversation_comment", builder.Eq{"`type`": typeComment, "conversation_id": conversation.int("ID")})
-		assert.EqualValues(t, conversation.int("NumComments"), actual, "Unexpected number of comments for issue id: %d", conversation.int("ID"))
+		assert.EqualValues(t, conversation.int("NumComments"), actual, "Unexpected number of comments for conversation id: %d", conversation.int("ID"))
 	}
 
 	consistencyCheckMap["user"] = checkForUserConsistency
