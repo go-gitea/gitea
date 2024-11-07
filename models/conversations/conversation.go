@@ -112,7 +112,7 @@ type Conversation struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	LockedUnix  timeutil.TimeStamp `xorm:"INDEX"`
 
-	IsLocked bool `xorm:"-"`
+	IsLocked bool `xorm:"INDEX"`
 
 	Comments CommentList `xorm:"-"`
 
