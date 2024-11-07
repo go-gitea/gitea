@@ -116,7 +116,9 @@ func TestRender_CrossReferences(t *testing.T) {
 			Metas: localMetas,
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+		actual := strings.TrimSpace(buffer)
+		actual = strings.ReplaceAll(actual, ` data-markdown-generated-content=""`, "")
+		assert.Equal(t, strings.TrimSpace(expected), actual)
 	}
 
 	test(
@@ -156,7 +158,9 @@ func TestRender_links(t *testing.T) {
 			},
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+		actual := strings.TrimSpace(buffer)
+		actual = strings.ReplaceAll(actual, ` data-markdown-generated-content=""`, "")
+		assert.Equal(t, strings.TrimSpace(expected), actual)
 	}
 
 	oldCustomURLSchemes := setting.Markdown.CustomURLSchemes
@@ -267,7 +271,9 @@ func TestRender_email(t *testing.T) {
 			},
 		}, input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res))
+		actual := strings.TrimSpace(res)
+		actual = strings.ReplaceAll(actual, ` data-markdown-generated-content=""`, "")
+		assert.Equal(t, strings.TrimSpace(expected), actual)
 	}
 	// Text that should be turned into email link
 
@@ -616,7 +622,9 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 			Metas: localMetas,
 		}, strings.NewReader(input), &res)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res.String()))
+		actual := strings.TrimSpace(res.String())
+		actual = strings.ReplaceAll(actual, ` data-markdown-generated-content=""`, "")
+		assert.Equal(t, strings.TrimSpace(expected), actual)
 	}
 
 	// Issue index shouldn't be post processing in a document.

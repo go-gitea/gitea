@@ -33,11 +33,9 @@ func numericIssueLink(baseURL, class string, index int, marker string) string {
 
 // link an HTML link
 func link(href, class, contents string) string {
-	if class != "" {
-		class = " class=\"" + class + "\""
-	}
-
-	return fmt.Sprintf("<a href=\"%s\"%s>%s</a>", href, class, contents)
+	extra := ` data-markdown-generated-content=""`
+	extra += util.Iif(class != "", ` class="`+class+`"`, "")
+	return fmt.Sprintf(`<a href="%s"%s>%s</a>`, href, extra, contents)
 }
 
 var numericMetas = map[string]string{
@@ -353,7 +351,9 @@ func TestRender_FullIssueURLs(t *testing.T) {
 			Metas: localMetas,
 		}, []processor{fullIssuePatternProcessor}, strings.NewReader(input), &result)
 		assert.NoError(t, err)
-		assert.Equal(t, expected, result.String())
+		actual := result.String()
+		actual = strings.ReplaceAll(actual, ` data-markdown-generated-content=""`, "")
+		assert.Equal(t, expected, actual)
 	}
 	test("Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6",
 		"Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6")
