@@ -12,7 +12,6 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -123,11 +122,11 @@ func IsCollaborator(ctx *context.APIContext) {
 	}
 }
 
-// AddCollaborator add a collaborator to a repository
-func AddCollaborator(ctx *context.APIContext) {
+// AddOrUpdateCollaborator add or update a collaborator to a repository
+func AddOrUpdateCollaborator(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/collaborators/{collaborator} repository repoAddCollaborator
 	// ---
-	// summary: Add a collaborator to a repository
+	// summary: Add or Update a collaborator to a repository
 	// produces:
 	// - application/json
 	// parameters:
@@ -177,20 +176,18 @@ func AddCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_module.AddCollaborator(ctx, ctx.Repo.Repository, collaborator); err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Error(http.StatusForbidden, "AddCollaborator", err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "AddCollaborator", err)
-		}
-		return
+	p := perm.AccessModeWrite
+	if form.Permission != nil {
+		p = perm.ParseAccessMode(*form.Permission)
 	}
 
-	if form.Permission != nil {
-		if err := repo_model.ChangeCollaborationAccessMode(ctx, ctx.Repo.Repository, collaborator.ID, perm.ParseAccessMode(*form.Permission)); err != nil {
-			ctx.Error(http.StatusInternalServerError, "ChangeCollaborationAccessMode", err)
-			return
+	if err := repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, collaborator, p); err != nil {
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "AddOrUpdateCollaborator", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "AddOrUpdateCollaborator", err)
 		}
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)
