@@ -112,13 +112,13 @@ func getConversationStatsChunk(ctx context.Context, opts *ConversationsOptions, 
 
 	var err error
 	stats.OpenCount, err = applyConversationsOptions(sess, opts, conversationIDs).
-		And("conversation.is_closed = ?", false).
+		And("conversation.is_locked = ?", false).
 		Count(new(Conversation))
 	if err != nil {
 		return stats, err
 	}
 	stats.LockedCount, err = applyConversationsOptions(sess, opts, conversationIDs).
-		And("conversation.is_closed = ?", true).
+		And("conversation.is_locked = ?", true).
 		Count(new(Conversation))
 	return stats, err
 }
