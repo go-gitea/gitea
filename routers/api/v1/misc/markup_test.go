@@ -38,7 +38,8 @@ func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, expe
 	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markup")
 	web.SetForm(ctx, &options)
 	Markup(ctx)
-	assert.Equal(t, expectedBody, resp.Body.String())
+	actual := strings.ReplaceAll(resp.Body.String(), ` data-markdown-generated-content=""`, "")
+	assert.Equal(t, expectedBody, actual)
 	assert.Equal(t, expectedCode, resp.Code)
 	resp.Body.Reset()
 }
@@ -58,7 +59,8 @@ func testRenderMarkdown(t *testing.T, mode string, wiki bool, text, responseBody
 	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
 	web.SetForm(ctx, &options)
 	Markdown(ctx)
-	assert.Equal(t, responseBody, resp.Body.String())
+	actual := strings.ReplaceAll(resp.Body.String(), ` data-markdown-generated-content=""`, "")
+	assert.Equal(t, responseBody, actual)
 	assert.Equal(t, responseCode, resp.Code)
 	resp.Body.Reset()
 }

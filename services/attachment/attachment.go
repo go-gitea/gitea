@@ -50,3 +50,12 @@ func UploadAttachment(ctx context.Context, file io.Reader, allowedTypes string, 
 
 	return NewAttachment(ctx, attach, io.MultiReader(bytes.NewReader(buf), file), fileSize)
 }
+
+// UpdateAttachment updates an attachment, verifying that its name is among the allowed types.
+func UpdateAttachment(ctx context.Context, allowedTypes string, attach *repo_model.Attachment) error {
+	if err := upload.Verify(nil, attach.Name, allowedTypes); err != nil {
+		return err
+	}
+
+	return repo_model.UpdateAttachment(ctx, attach)
+}
