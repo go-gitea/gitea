@@ -19,13 +19,28 @@ import (
 func GetWorkflowBadge(ctx *context.Context) {
 	workflowFile := ctx.PathParam("workflow_name")
 	branch := ctx.Req.URL.Query().Get("branch")
-	if branch == "" {
+	tag := ctx.Req.URL.Query().Get("tag")
+	useLatestTag := ctx.Req.URL.Query().Has("latest_tag")
+	if branch == "" && tag == "" && !useLatestTag {
 		branch = ctx.Repo.Repository.DefaultBranch
 	}
-	branchRef := fmt.Sprintf("refs/heads/%s", branch)
+	ref := fmt.Sprintf("refs/heads/%s", branch)
+	if branch == "" && tag != "" {
+		if useLatestTag {
+			tags, _, err := ctx.Repo.GitRepo.GetTagInfos(0, 1)
+			if err != nil {
+				ctx.ServerError("GetTagInfos", err)
+				return
+			}
+			if len(tags) != 0 {
+				tag = tags[0].Name
+			}
+		}
+		ref = fmt.Sprintf("refs/tags/%s", tag)
+	}
 	event := ctx.Req.URL.Query().Get("event")
 
-	badge, err := getWorkflowBadge(ctx, workflowFile, branchRef, event)
+	badge, err := getWorkflowBadge(ctx, workflowFile, ref, event)
 	if err != nil {
 		ctx.ServerError("GetWorkflowBadge", err)
 		return
@@ -36,11 +51,11 @@ func GetWorkflowBadge(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, "shared/actions/runner_badge")
 }
 
-func getWorkflowBadge(ctx *context.Context, workflowFile, branchName, event string) (badge.Badge, error) {
+func getWorkflowBadge(ctx *context.Context, workflowFile, ref, event string) (badge.Badge, error) {
 	extension := filepath.Ext(workflowFile)
 	workflowName := strings.TrimSuffix(workflowFile, extension)
 
-	run, err := actions_model.GetWorkflowLatestRun(ctx, ctx.Repo.Repository.ID, workflowFile, branchName, event)
+	run, err := actions_model.GetWorkflowLatestRun(ctx, ctx.Repo.Repository.ID, workflowFile, ref, event)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			return badge.GenerateBadge(workflowName, "no status", badge.DefaultColor), nil

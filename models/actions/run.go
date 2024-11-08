@@ -374,10 +374,10 @@ func GetLatestRun(ctx context.Context, repoID int64) (*ActionRun, error) {
 	return run, nil
 }
 
-func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, branch, event string) (*ActionRun, error) {
+func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, ref, event string) (*ActionRun, error) {
 	var run ActionRun
-	q := db.GetEngine(ctx).Where("repo_id=?", repoID).
-		And("ref = ?", branch).
+	q := db.GetEngine(ctx).Where("repo_id = ?", repoID).
+		And("ref = ?", ref).
 		And("workflow_id = ?", workflowFile)
 	if event != "" {
 		q.And("event = ?", event)
@@ -386,7 +386,7 @@ func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, branc
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, util.NewNotExistErrorf("run with repo_id %d, ref %s, workflow_id %s", repoID, branch, workflowFile)
+		return nil, util.NewNotExistErrorf("run with repo_id %d, ref %s, workflow_id %s", repoID, ref, workflowFile)
 	}
 	return &run, nil
 }
