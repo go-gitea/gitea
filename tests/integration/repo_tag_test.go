@@ -143,7 +143,7 @@ func TestRepushTag(t *testing.T) {
 		_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "--tags", "v2.0").RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 		// create a release for the tag
-		createdRelease := createNewReleaseUsingAPI(t, token, owner, repo, "v2.0", "", "Release of v2.0", "desc")
+		createdRelease := createNewReleaseUsingAPI(t, session, token, owner, repo, "v2.0", "", "Release of v2.0", "desc")
 		assert.False(t, createdRelease.IsDraft)
 		// delete the tag
 		_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "--delete", "v2.0").RunStdString(&git.RunOpts{Dir: dstPath})
