@@ -18,11 +18,11 @@
 			<span class="text" data-tooltip-content="{{if .Issue.IsPull}}{{ctx.Locale.Tr "repo.issues.dependency.pr_close_blocks"}}{{else}}{{ctx.Locale.Tr "repo.issues.dependency.issue_close_blocks"}}{{end}}">
 				<strong>{{ctx.Locale.Tr "repo.issues.dependency.blocks_short"}}</strong>
 			</span>
-			<div class="ui relaxed divided list">
+			<div class="ui divided list">
 				{{range .BlockingDependencies}}
 					<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} tw-flex tw-items-center tw-justify-between">
 						<div class="item-left tw-flex tw-justify-center tw-flex-col tw-flex-1 gt-ellipsis">
-							<a class="title muted" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
+							<a class="muted gt-ellipsis" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
 								#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
 							</a>
 							<div class="text small gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">
@@ -50,11 +50,11 @@
 			<span class="text" data-tooltip-content="{{if .Issue.IsPull}}{{ctx.Locale.Tr "repo.issues.dependency.pr_closing_blockedby"}}{{else}}{{ctx.Locale.Tr "repo.issues.dependency.issue_closing_blockedby"}}{{end}}">
 				<strong>{{ctx.Locale.Tr "repo.issues.dependency.blocked_by_short"}}</strong>
 			</span>
-			<div class="ui relaxed divided list">
+			<div class="ui divided list">
 				{{range .BlockedByDependencies}}
 					<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} tw-flex tw-items-center tw-justify-between">
 						<div class="item-left tw-flex tw-justify-center tw-flex-col tw-flex-1 gt-ellipsis">
-							<a class="title muted" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
+							<a class="muted gt-ellipsis" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
 								#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
 							</a>
 							<div class="text small gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">
@@ -76,7 +76,7 @@
 							<div class="item-left tw-flex tw-justify-center tw-flex-col tw-flex-1 gt-ellipsis">
 								<div class="gt-ellipsis">
 									<span data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.no_permission.can_remove"}}">{{svg "octicon-lock" 16}}</span>
-									<span class="title" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
+									<span class="gt-ellipsis" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
 										#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
 									</span>
 								</div>
