@@ -50,6 +50,14 @@
   width: 300px;
 }
 
+.issue-sidebar-combo .ui.dropdown .item:not(.checked) svg.octicon-check {
+  visibility: hidden;
+}
+.issue-sidebar-combo .ui.dropdown .menu > .item > img,
+.issue-sidebar-combo .ui.dropdown .menu > .item > svg {
+  margin: 0;
+}
+
 .issue-content-right .dropdown > .menu {
   max-width: 270px;
   min-width: 0;

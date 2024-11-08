@@ -789,6 +789,7 @@ func CompareDiff(ctx *context.Context) {
 		if !nothingToCompare {
 			// Setup information for new form.
 			RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
+			RetrieveRepoReviewers(ctx, ctx.Repo.Repository, nil, true)
 			if ctx.Written() {
 				return
 			}

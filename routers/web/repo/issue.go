@@ -557,7 +557,7 @@ func renderMilestones(ctx *context.Context) {
 }
 
 // RetrieveRepoMilestonesAndAssignees find all the milestones, assignees, and reviewers of a repository
-func RetrieveRepoMilestonesAssigneesAndReviewers(ctx *context.Context, repo *repo_model.Repository) {
+func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
 	ctx.Data["OpenMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		RepoID:   repo.ID,
@@ -584,8 +584,6 @@ func RetrieveRepoMilestonesAssigneesAndReviewers(ctx *context.Context, repo *rep
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	handleTeamMentions(ctx)
-
-	retrieveReviewers(ctx)
 }
 
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
@@ -656,34 +654,66 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 
 // repoReviewerSelection items to bee shown
 type repoReviewerSelection struct {
-	IsTeam    bool
-	Team      *organization.Team
-	User      *user_model.User
-	Review    *issues_model.Review
-	CanChange bool
-	Checked   bool
-	ItemID    int64
+	IsTeam         bool
+	Team           *organization.Team
+	User           *user_model.User
+	Review         *issues_model.Review
+	CanBeDismissed bool
+	CanChange      bool
+	Requested      bool
+	ItemID         int64
+}
+
+type issueSidebarReviewersData struct {
+	Repository           *repo_model.Repository
+	RepoOwnerName        string
+	RepoLink             string
+	IssueID              int64
+	CanChooseReviewer    bool
+	OriginalReviews      issues_model.ReviewList
+	TeamReviewers        []*repoReviewerSelection
+	Reviewers            []*repoReviewerSelection
+	CurrentPullReviewers []*repoReviewerSelection
 }
 
 // RetrieveRepoReviewers find all reviewers of a repository
 func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, issue *issues_model.Issue, canChooseReviewer bool) {
-	ctx.Data["CanChooseReviewer"] = canChooseReviewer
+	data := &issueSidebarReviewersData{}
+	data.RepoLink = ctx.Repo.RepoLink
+	data.Repository = repo
+	data.RepoOwnerName = repo.OwnerName
+	data.CanChooseReviewer = canChooseReviewer
 
-	originalAuthorReviews, err := issues_model.GetReviewersFromOriginalAuthorsByIssueID(ctx, issue.ID)
-	if err != nil {
-		ctx.ServerError("GetReviewersFromOriginalAuthorsByIssueID", err)
-		return
-	}
-	ctx.Data["OriginalReviews"] = originalAuthorReviews
+	var posterID int64
+	var isClosed bool
+	var reviews issues_model.ReviewList
 
-	reviews, err := issues_model.GetReviewsByIssueID(ctx, issue.ID)
-	if err != nil {
-		ctx.ServerError("GetReviewersByIssueID", err)
-		return
-	}
+	if issue == nil {
+		posterID = ctx.Doer.ID
+	} else {
+		posterID = issue.PosterID
+		if issue.OriginalAuthorID > 0 {
+			posterID = 0 // for migrated PRs, no poster ID
+		}
 
-	if len(reviews) == 0 && !canChooseReviewer {
-		return
+		data.IssueID = issue.ID
+		isClosed = issue.IsClosed || issue.PullRequest.HasMerged
+
+		originalAuthorReviews, err := issues_model.GetReviewersFromOriginalAuthorsByIssueID(ctx, issue.ID)
+		if err != nil {
+			ctx.ServerError("GetReviewersFromOriginalAuthorsByIssueID", err)
+			return
+		}
+		data.OriginalReviews = originalAuthorReviews
+
+		reviews, err = issues_model.GetReviewsByIssueID(ctx, issue.ID)
+		if err != nil {
+			ctx.ServerError("GetReviewersByIssueID", err)
+			return
+		}
+		if len(reviews) == 0 && !canChooseReviewer {
+			return
+		}
 	}
 
 	var (
@@ -695,11 +725,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 	)
 
 	if canChooseReviewer {
-		posterID := issue.PosterID
-		if issue.OriginalAuthorID > 0 {
-			posterID = 0
-		}
-
+		var err error
 		reviewers, err = repo_model.GetReviewers(ctx, repo, ctx.Doer.ID, posterID)
 		if err != nil {
 			ctx.ServerError("GetReviewers", err)
@@ -725,9 +751,9 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 
 	for _, review := range reviews {
 		tmp := &repoReviewerSelection{
-			Checked: review.Type == issues_model.ReviewTypeRequest,
-			Review:  review,
-			ItemID:  review.ReviewerID,
+			Requested: review.Type == issues_model.ReviewTypeRequest,
+			Review:    review,
+			ItemID:    review.ReviewerID,
 		}
 		if review.ReviewerTeamID > 0 {
 			tmp.IsTeam = true
@@ -758,7 +784,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 		currentPullReviewers := make([]*repoReviewerSelection, 0, len(pullReviews))
 		for _, item := range pullReviews {
 			if item.Review.ReviewerID > 0 {
-				if err = item.Review.LoadReviewer(ctx); err != nil {
+				if err := item.Review.LoadReviewer(ctx); err != nil {
 					if user_model.IsErrUserNotExist(err) {
 						continue
 					}
@@ -767,7 +793,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 				}
 				item.User = item.Review.Reviewer
 			} else if item.Review.ReviewerTeamID > 0 {
-				if err = item.Review.LoadReviewerTeam(ctx); err != nil {
+				if err := item.Review.LoadReviewerTeam(ctx); err != nil {
 					if organization.IsErrTeamNotExist(err) {
 						continue
 					}
@@ -778,10 +804,11 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			} else {
 				continue
 			}
-
+			item.CanBeDismissed = ctx.Repo.Permission.IsAdmin() && !isClosed &&
+				(item.Review.Type == issues_model.ReviewTypeApprove || item.Review.Type == issues_model.ReviewTypeReject)
 			currentPullReviewers = append(currentPullReviewers, item)
 		}
-		ctx.Data["PullReviewers"] = currentPullReviewers
+		data.CurrentPullReviewers = currentPullReviewers
 	}
 
 	if canChooseReviewer && reviewersResult != nil {
@@ -809,7 +836,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			})
 		}
 
-		ctx.Data["Reviewers"] = reviewersResult
+		data.Reviewers = reviewersResult
 	}
 
 	if canChooseReviewer && teamReviewersResult != nil {
@@ -837,8 +864,10 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			})
 		}
 
-		ctx.Data["TeamReviewers"] = teamReviewersResult
+		data.TeamReviewers = teamReviewersResult
 	}
+
+	ctx.Data["IssueSidebarReviewersData"] = data
 }
 
 // RetrieveRepoMetas find all the meta information of a repository
@@ -863,7 +892,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 		labels = append(labels, orgLabels...)
 	}
 
-	RetrieveRepoMilestonesAssigneesAndReviewers(ctx, repo)
+	RetrieveRepoMilestonesAndAssignees(ctx, repo)
 	if ctx.Written() {
 		return nil
 	}
@@ -882,46 +911,6 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, isPull)
 
 	return labels
-}
-
-func retrieveReviewers(ctx *context.Context) {
-	// Get reviewer info for pr
-	var (
-		reviewers       []*user_model.User
-		teamReviewers   []*organization.Team
-		reviewersResult []*repoReviewerSelection
-	)
-	reviewers, err := repo_model.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer.ID, ctx.Doer.ID)
-	if err != nil {
-		ctx.ServerError("GetReviewers", err)
-		return
-	}
-
-	teamReviewers, err = repo_service.GetReviewerTeams(ctx, ctx.Repo.Repository)
-	if err != nil {
-		ctx.ServerError("GetReviewerTeams", err)
-		return
-	}
-
-	for _, user := range reviewers {
-		reviewersResult = append(reviewersResult, &repoReviewerSelection{
-			IsTeam:    false,
-			CanChange: true,
-			User:      user,
-			ItemID:    user.ID,
-		})
-	}
-
-	// negative reviewIDs represent team requests
-	for _, team := range teamReviewers {
-		reviewersResult = append(reviewersResult, &repoReviewerSelection{
-			IsTeam:    true,
-			CanChange: true,
-			Team:      team,
-			ItemID:    -team.ID,
-		})
-	}
-	ctx.Data["Reviewers"] = reviewersResult
 }
 
 // Tries to load and set an issue template. The first return value indicates if a template was loaded.
@@ -1625,7 +1614,7 @@ func ViewIssue(ctx *context.Context) {
 
 	// Check milestone and assignee.
 	if ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
-		RetrieveRepoMilestonesAssigneesAndReviewers(ctx, repo)
+		RetrieveRepoMilestonesAndAssignees(ctx, repo)
 		retrieveProjects(ctx, repo)
 
 		if ctx.Written() {

@@ -277,6 +277,9 @@ func teamReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doe
 
 // CanDoerChangeReviewRequests returns if the doer can add/remove review requests of a PR
 func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue) bool {
+	if repo.IsArchived {
+		return false
+	}
 	// The poster of the PR can change the reviewers
 	if doer.ID == issue.PosterID {
 		return true
