@@ -61,7 +61,8 @@ export async function renderMermaid() {
         iframe.style.height = `${iframe.contentWindow.document.body.clientHeight}px`;
       };
 
-      // update height when element becomes visible, for example when the diagram is inside a details+summary block
+      // update height when element's visibility state changes, for example when the diagram is inside
+      // a <details> + <summary> block and the <details> block becomes visible upon user interaction
       (new IntersectionObserver(() => {
         updateIframeHeight();
       }, {root: document.documentElement})).observe(iframe);
