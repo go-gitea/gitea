@@ -8,7 +8,6 @@ import {parseIssuePageInfo, toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
-import {updateIssuesMeta} from './repo-common.ts';
 
 const {appSubUrl} = window.config;
 
