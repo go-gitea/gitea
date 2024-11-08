@@ -179,11 +179,9 @@ export function initGlobalTooltips() {
 }
 
 export function showTemporaryTooltip(target: Element, content: Content) {
-  // if the target is inside a dropdown, don't show the tooltip because when the dropdown
-  // closes, the tippy would be pushed unsightly to the top-left of the screen like seen
-  // on the issue comment menu.
-  if (target.closest('.ui.dropdown > .menu')) return;
-
+  // if the target is inside a dropdown, the menu will be hidden soon
+  // so display the tooltip on the dropdown instead
+  target = target.closest('.ui.dropdown') || target;
   const tippy = target._tippy ?? attachTooltip(target, content);
   tippy.setContent(content);
   if (!tippy.state.isShown) tippy.show();
