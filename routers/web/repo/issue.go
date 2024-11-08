@@ -1159,7 +1159,11 @@ func DeleteIssue(ctx *context.Context) {
 }
 
 // ValidateRepoMetas check and returns repository's meta information
-func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull bool) ([]int64, []int64, []int64, int64, int64) {
+func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull bool) (ret struct {
+	LabelIDs, AssigneeIDs, ReviewerIDs []int64
+	MilestoneID, ProjectID             int64
+},
+) {
 	var (
 		repo = ctx.Repo.Repository
 		err  error
@@ -1167,7 +1171,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 
 	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository, isPull)
 	if ctx.Written() {
-		return nil, nil, nil, 0, 0
+		return ret
 	}
 
 	var labelIDs []int64
@@ -1176,7 +1180,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	if len(form.LabelIDs) > 0 {
 		labelIDs, err = base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
 		if err != nil {
-			return nil, nil, nil, 0, 0
+			return ret
 		}
 		labelIDMark := make(container.Set[int64])
 		labelIDMark.AddMultiple(labelIDs...)
@@ -1199,11 +1203,11 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
-			return nil, nil, nil, 0, 0
+			return ret
 		}
 		if milestone.RepoID != repo.ID {
 			ctx.ServerError("GetMilestoneByID", err)
-			return nil, nil, nil, 0, 0
+			return ret
 		}
 		ctx.Data["Milestone"] = milestone
 		ctx.Data["milestone_id"] = milestoneID
@@ -1213,11 +1217,11 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		p, err := project_model.GetProjectByID(ctx, form.ProjectID)
 		if err != nil {
 			ctx.ServerError("GetProjectByID", err)
-			return nil, nil, nil, 0, 0
+			return ret
 		}
 		if p.RepoID != ctx.Repo.Repository.ID && p.OwnerID != ctx.Repo.Repository.OwnerID {
 			ctx.NotFound("", nil)
-			return nil, nil, nil, 0, 0
+			return ret
 		}
 
 		ctx.Data["Project"] = p
@@ -1229,7 +1233,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	if len(form.AssigneeIDs) > 0 {
 		assigneeIDs, err = base.StringsToInt64s(strings.Split(form.AssigneeIDs, ","))
 		if err != nil {
-			return nil, nil, nil, 0, 0
+			return ret
 		}
 
 		// Check if the passed assignees actually exists and is assignable
@@ -1237,18 +1241,18 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 			assignee, err := user_model.GetUserByID(ctx, aID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
-				return nil, nil, nil, 0, 0
+				return ret
 			}
 
 			valid, err := access_model.CanBeAssigned(ctx, assignee, repo, isPull)
 			if err != nil {
 				ctx.ServerError("CanBeAssigned", err)
-				return nil, nil, nil, 0, 0
+				return ret
 			}
 
 			if !valid {
 				ctx.ServerError("canBeAssigned", repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
-				return nil, nil, nil, 0, 0
+				return ret
 			}
 		}
 	}
@@ -1263,7 +1267,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	if isPull && len(form.ReviewerIDs) > 0 {
 		reviewerIDs, err = base.StringsToInt64s(strings.Split(form.ReviewerIDs, ","))
 		if err != nil {
-			return nil, nil, nil, 0, 0
+			return ret
 		}
 
 		// Check if the passed reviewers (user/team) actually exist
@@ -1273,7 +1277,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 				_, err := organization.GetTeamByID(ctx, -rID)
 				if err != nil {
 					ctx.ServerError("GetTeamByID", err)
-					return nil, nil, nil, 0, 0
+					return ret
 				}
 				continue
 			}
@@ -1281,12 +1285,13 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 			_, err := user_model.GetUserByID(ctx, rID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
-				return nil, nil, nil, 0, 0
+				return ret
 			}
 		}
 	}
 
-	return labelIDs, assigneeIDs, reviewerIDs, milestoneID, form.ProjectID
+	ret.LabelIDs, ret.AssigneeIDs, ret.ReviewerIDs, ret.MilestoneID, ret.ProjectID = labelIDs, assigneeIDs, reviewerIDs, milestoneID, form.ProjectID
+	return ret
 }
 
 // NewIssuePost response for creating new issue
@@ -1304,10 +1309,12 @@ func NewIssuePost(ctx *context.Context) {
 		attachments []string
 	)
 
-	labelIDs, assigneeIDs, _, milestoneID, projectID := ValidateRepoMetas(ctx, *form, false)
+	validateRet := ValidateRepoMetas(ctx, *form, false)
 	if ctx.Written() {
 		return
 	}
+
+	labelIDs, assigneeIDs, milestoneID, projectID := validateRet.LabelIDs, validateRet.AssigneeIDs, validateRet.MilestoneID, validateRet.ProjectID
 
 	if projectID > 0 {
 		if !ctx.Repo.CanRead(unit.TypeProjects) {

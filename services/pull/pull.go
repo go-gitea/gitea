@@ -42,8 +42,19 @@ func getPullWorkingLockKey(prID int64) string {
 	return fmt.Sprintf("pull_working_%d", prID)
 }
 
+type NewPullRequestOptions struct {
+	Repo            *repo_model.Repository
+	Issue           *issues_model.Issue
+	LabelIDs        []int64
+	AttachmentUUIDs []string
+	PullRequest     *issues_model.PullRequest
+	AssigneeIDs     []int64
+	ReviewerIDs     []int64
+}
+
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, pr *issues_model.PullRequest, assigneeIDs, reviewerIDs []int64) error {
+func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
+	repo, issue, labelIDs, uuids, pr, assigneeIDs, reviewerIDs := opts.Repo, opts.Issue, opts.LabelIDs, opts.AttachmentUUIDs, opts.PullRequest, opts.AssigneeIDs, opts.ReviewerIDs
 	if err := issue.LoadPoster(ctx); err != nil {
 		return err
 	}
