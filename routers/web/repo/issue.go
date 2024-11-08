@@ -1443,11 +1443,11 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	if issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {
-		ctx.Data["IssueType"] = "pulls"
+		ctx.Data["IssueDependencySearchType"] = "pulls"
 	} else if !issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests) {
-		ctx.Data["IssueType"] = "issues"
+		ctx.Data["IssueDependencySearchType"] = "issues"
 	} else {
-		ctx.Data["IssueType"] = "all"
+		ctx.Data["IssueDependencySearchType"] = "all"
 	}
 
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
