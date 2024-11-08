@@ -1160,8 +1160,11 @@ func DeleteIssue(ctx *context.Context) {
 
 // ValidateRepoMetas check and returns repository's meta information
 func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull bool) (ret struct {
-	LabelIDs, AssigneeIDs, ReviewerIDs []int64
-	MilestoneID, ProjectID             int64
+	LabelIDs, AssigneeIDs  []int64
+	MilestoneID, ProjectID int64
+
+	Reviewers     []*user_model.User
+	TeamReviewers []*organization.Team
 },
 ) {
 	var (
@@ -1263,34 +1266,37 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	}
 
 	// Check reviewers
-	var reviewerIDs []int64
+	var reviewers []*user_model.User
+	var teamReviewers []*organization.Team
 	if isPull && len(form.ReviewerIDs) > 0 {
-		reviewerIDs, err = base.StringsToInt64s(strings.Split(form.ReviewerIDs, ","))
+		reviewerIDs, err := base.StringsToInt64s(strings.Split(form.ReviewerIDs, ","))
 		if err != nil {
 			return ret
 		}
-
 		// Check if the passed reviewers (user/team) actually exist
 		for _, rID := range reviewerIDs {
 			// negative reviewIDs represent team requests
 			if rID < 0 {
-				_, err := organization.GetTeamByID(ctx, -rID)
+				teamReviewer, err := organization.GetTeamByID(ctx, -rID)
 				if err != nil {
 					ctx.ServerError("GetTeamByID", err)
 					return ret
 				}
+				teamReviewers = append(teamReviewers, teamReviewer)
 				continue
 			}
 
-			_, err := user_model.GetUserByID(ctx, rID)
+			reviewer, err := user_model.GetUserByID(ctx, rID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
 				return ret
 			}
+			reviewers = append(reviewers, reviewer)
 		}
 	}
 
-	ret.LabelIDs, ret.AssigneeIDs, ret.ReviewerIDs, ret.MilestoneID, ret.ProjectID = labelIDs, assigneeIDs, reviewerIDs, milestoneID, form.ProjectID
+	ret.LabelIDs, ret.AssigneeIDs, ret.MilestoneID, ret.ProjectID = labelIDs, assigneeIDs, milestoneID, form.ProjectID
+	ret.Reviewers, ret.TeamReviewers = reviewers, teamReviewers
 	return ret
 }
 
@@ -2556,7 +2562,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			err = issue_service.IsValidTeamReviewRequest(ctx, team, ctx.Doer, action == "attach", issue)
+			_, err = issue_service.TeamReviewRequest(ctx, issue, ctx.Doer, team, action == "attach")
 			if err != nil {
 				if issues_model.IsErrNotValidReviewRequest(err) {
 					log.Warn(
@@ -2567,12 +2573,6 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 					ctx.Status(http.StatusForbidden)
 					return
 				}
-				ctx.ServerError("IsValidTeamReviewRequest", err)
-				return
-			}
-
-			_, err = issue_service.TeamReviewRequest(ctx, issue, ctx.Doer, team, action == "attach")
-			if err != nil {
 				ctx.ServerError("TeamReviewRequest", err)
 				return
 			}
@@ -2594,7 +2594,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			return
 		}
 
-		err = issue_service.IsValidReviewRequest(ctx, reviewer, ctx.Doer, action == "attach", issue, nil)
+		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, &ctx.Repo.Permission, reviewer, action == "attach")
 		if err != nil {
 			if issues_model.IsErrNotValidReviewRequest(err) {
 				log.Warn(
@@ -2605,12 +2605,6 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				ctx.Status(http.StatusForbidden)
 				return
 			}
-			ctx.ServerError("isValidReviewRequest", err)
-			return
-		}
-
-		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, reviewer, action == "attach")
-		if err != nil {
 			if issues_model.IsErrReviewRequestOnClosedPR(err) {
 				ctx.Status(http.StatusForbidden)
 				return

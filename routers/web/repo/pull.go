@@ -1274,7 +1274,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
-	labelIDs, assigneeIDs, reviewerIDs, milestoneID, projectID := validateRet.LabelIDs, validateRet.AssigneeIDs, validateRet.ReviewerIDs, validateRet.MilestoneID, validateRet.ProjectID
+	labelIDs, assigneeIDs, milestoneID, projectID := validateRet.LabelIDs, validateRet.AssigneeIDs, validateRet.MilestoneID, validateRet.ProjectID
 
 	if setting.Attachment.Enabled {
 		attachments = form.Files
@@ -1327,7 +1327,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		AttachmentUUIDs: attachments,
 		PullRequest:     pullRequest,
 		AssigneeIDs:     assigneeIDs,
-		ReviewerIDs:     reviewerIDs,
+		Reviewers:       validateRet.Reviewers,
+		TeamReviewers:   validateRet.TeamReviewers,
 	}
 	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 		switch {

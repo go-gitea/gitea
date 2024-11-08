@@ -49,12 +49,13 @@ type NewPullRequestOptions struct {
 	AttachmentUUIDs []string
 	PullRequest     *issues_model.PullRequest
 	AssigneeIDs     []int64
-	ReviewerIDs     []int64
+	Reviewers       []*user_model.User
+	TeamReviewers   []*organization.Team
 }
 
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
-	repo, issue, labelIDs, uuids, pr, assigneeIDs, reviewerIDs := opts.Repo, opts.Issue, opts.LabelIDs, opts.AttachmentUUIDs, opts.PullRequest, opts.AssigneeIDs, opts.ReviewerIDs
+	repo, issue, labelIDs, uuids, pr, assigneeIDs := opts.Repo, opts.Issue, opts.LabelIDs, opts.AttachmentUUIDs, opts.PullRequest, opts.AssigneeIDs
 	if err := issue.LoadPoster(ctx); err != nil {
 		return err
 	}
@@ -209,39 +210,17 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
 	}
-
-	for _, reviewerID := range reviewerIDs {
-		// negative reviewIDs represent team requests
-		if reviewerID < 0 {
-			team, err := organization.GetTeamByID(ctx, -reviewerID)
-			if err != nil {
-				return err
-			}
-			err = issue_service.IsValidTeamReviewRequest(ctx, team, issue.Poster, true, issue)
-			if err != nil {
-				return err
-			}
-			_, err = issue_service.TeamReviewRequest(ctx, issue, issue.Poster, team, true)
-			if err != nil {
-				return err
-			}
-			continue
-		}
-
-		reviewer, err := user_model.GetUserByID(ctx, reviewerID)
-		if err != nil {
-			return err
-		}
-		permDoer, err := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
-		if err != nil {
-			return err
-		}
-		err = issue_service.IsValidReviewRequest(ctx, reviewer, issue.Poster, true, issue, &permDoer)
-		if err != nil {
+	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
+	for _, reviewer := range opts.Reviewers {
+		if _, err = issue_service.ReviewRequest(ctx, pr.Issue, issue.Poster, &permDoer, reviewer, true); err != nil {
 			return err
 		}
 	}
-
+	for _, teamReviewer := range opts.TeamReviewers {
+		if _, err = issue_service.TeamReviewRequest(ctx, pr.Issue, issue.Poster, teamReviewer, true); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

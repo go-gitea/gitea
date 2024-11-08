@@ -16,7 +16,6 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -554,44 +553,6 @@ func CreatePullRequest(ctx *context.APIContext) {
 			return
 		}
 	}
-	// handle reviewers
-	var reviewerIDs []int64
-
-	for _, r := range form.Reviewers {
-		var reviewer *user_model.User
-		if strings.Contains(r, "@") {
-			reviewer, err = user_model.GetUserByEmail(ctx, r)
-		} else {
-			reviewer, err = user_model.GetUserByName(ctx, r)
-		}
-
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				ctx.NotFound("UserNotExist", fmt.Sprintf("User with id '%s' not exist", r))
-				return
-			}
-			ctx.Error(http.StatusInternalServerError, "GetUser", err)
-			return
-		}
-		reviewerIDs = append(reviewerIDs, reviewer.ID)
-	}
-
-	// handle teams as reviewers
-	if ctx.Repo.Repository.Owner.IsOrganization() && len(form.TeamReviewers) > 0 {
-		for _, t := range form.TeamReviewers {
-			var teamReviewer *organization.Team
-			teamReviewer, err = organization.GetTeam(ctx, ctx.Repo.Owner.ID, t)
-			if err != nil {
-				if organization.IsErrTeamNotExist(err) {
-					ctx.NotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", t))
-					return
-				}
-				ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
-				return
-			}
-			reviewerIDs = append(reviewerIDs, -teamReviewer.ID)
-		}
-	}
 
 	prOpts := &pull_service.NewPullRequestOptions{
 		Repo:        repo,
@@ -599,8 +560,13 @@ func CreatePullRequest(ctx *context.APIContext) {
 		LabelIDs:    labelIDs,
 		PullRequest: pr,
 		AssigneeIDs: assigneeIDs,
-		ReviewerIDs: reviewerIDs,
 	}
+
+	prOpts.Reviewers, prOpts.TeamReviewers = parseReviewersByNames(ctx, form.Reviewers, form.TeamReviewers)
+	if ctx.Written() {
+		return
+	}
+
 	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
