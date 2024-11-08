@@ -70,23 +70,6 @@
   }
 }
 
-.repository .issue-content-right .ui.list .dependency {
-  padding: 0;
-  white-space: nowrap;
-}
-
-.repository .issue-content-right .ui.list .title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.repository .issue-content-right #deadlineForm input {
-  width: 12.8rem;
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
-  border-right: 0;
-  white-space: nowrap;
-}
-
 .repository .issue-content-right .filter.menu {
   max-height: 500px;
   overflow-x: auto;
