@@ -62,7 +62,8 @@ export async function renderMermaid() {
       };
 
       // update height when element's visibility state changes, for example when the diagram is inside
-      // a <details> + <summary> block and the <details> block becomes visible upon user interaction
+      // a <details> + <summary> block and the <details> block becomes visible upon user interaction, it
+      // would initially set a incorrect height and the correct height is set during this callback.
       (new IntersectionObserver(() => {
         updateIframeHeight();
       }, {root: document.documentElement})).observe(iframe);
