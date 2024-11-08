@@ -18,8 +18,9 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/automerge"
+	"code.gitea.io/gitea/services/notify"
 )
 
 func getCacheKey(repoID int64, brancheName string) string {
@@ -103,6 +104,8 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 		return err
 	}
 
+	notify.CreateCommitStatus(ctx, repo, repo_module.CommitToPushCommit(commit), creator, status)
+
 	defaultBranchCommit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
 	if err != nil {
 		return fmt.Errorf("GetBranchCommit[%s]: %w", repo.DefaultBranch, err)
@@ -111,12 +114,6 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	if commit.ID.String() == defaultBranchCommit.ID.String() { // since one commit status updated, the combined commit status should be invalid
 		if err := deleteCommitStatusCache(repo.ID, repo.DefaultBranch); err != nil {
 			log.Error("deleteCommitStatusCache[%d:%s] failed: %v", repo.ID, repo.DefaultBranch, err)
-		}
-	}
-
-	if status.State.IsSuccess() {
-		if err := automerge.StartPRCheckAndAutoMergeBySHA(ctx, sha, repo); err != nil {
-			return fmt.Errorf("MergeScheduledPullRequest[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, creator.ID, sha, err)
 		}
 	}
 

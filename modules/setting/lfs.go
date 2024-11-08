@@ -28,7 +28,8 @@ var LFS = struct {
 
 // LFSClient represents configuration for Gitea's LFS clients, for example: mirroring upstream Git LFS
 var LFSClient = struct {
-	BatchSize int `ini:"BATCH_SIZE"`
+	BatchSize                 int `ini:"BATCH_SIZE"`
+	BatchOperationConcurrency int `ini:"BATCH_OPERATION_CONCURRENCY"`
 }{}
 
 func loadLFSFrom(rootCfg ConfigProvider) error {
@@ -64,6 +65,11 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 
 	if LFSClient.BatchSize < 1 {
 		LFSClient.BatchSize = 20
+	}
+
+	if LFSClient.BatchOperationConcurrency < 1 {
+		// match the default git-lfs's `lfs.concurrenttransfers` https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-config.adoc#upload-and-download-transfer-settings
+		LFSClient.BatchOperationConcurrency = 8
 	}
 
 	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(24 * time.Hour)

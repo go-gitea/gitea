@@ -18,15 +18,15 @@
 						<input type="hidden" name="template-file" value="{{.TemplateFile}}">
 						{{range .Fields}}
 							{{if eq .Type "input"}}
-								{{template "repo/issue/fields/input" dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/input" "item" .}}
 							{{else if eq .Type "markdown"}}
-								{{template "repo/issue/fields/markdown" dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/markdown" "item" .}}
 							{{else if eq .Type "textarea"}}
-								{{template "repo/issue/fields/textarea" dict "Context" $.Context "item" . "root" $}}
+								{{template "repo/issue/fields/textarea" "item" . "root" $}}
 							{{else if eq .Type "dropdown"}}
-								{{template "repo/issue/fields/dropdown" dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/dropdown" "item" .}}
 							{{else if eq .Type "checkboxes"}}
-								{{template "repo/issue/fields/checkboxes" dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/checkboxes" "item" .}}
 							{{end}}
 						{{end}}
 					{{else}}

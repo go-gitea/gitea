@@ -8,7 +8,7 @@
 					</div>
 				</div>
 			</th>
-			<th class="text grey right age">{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{TimeSince .LatestCommit.Committer.When ctx.Locale}}{{end}}{{end}}</th>
+			<th class="text grey right age">{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{DateUtils.TimeSince .LatestCommit.Committer.When}}{{end}}{{end}}</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -57,13 +57,13 @@
 					<span class="truncate">
 						{{if $commit}}
 							{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
-							{{RenderCommitMessageLinkSubject $.Context $commit.Message $commitLink ($.Repository.ComposeMetas ctx)}}
+							{{ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.Message $commitLink ($.Repository.ComposeMetas ctx)}}
 						{{else}}
 							<div class="ui active tiny slow centered inline"></div>
 						{{end}}
 					</span>
 				</td>
-				<td class="text right age three wide">{{if $commit}}{{TimeSince $commit.Committer.When ctx.Locale}}{{end}}</td>
+				<td class="text right age three wide">{{if $commit}}{{DateUtils.TimeSince $commit.Committer.When}}{{end}}</td>
 			</tr>
 		{{end}}
 	</tbody>
