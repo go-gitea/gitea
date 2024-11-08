@@ -1,7 +1,7 @@
 {{$data := .IssueSidebarReviewersData}}
 {{$hasCandidates := or $data.Reviewers $data.TeamReviewers}}
 <div class="issue-sidebar-combo" data-sidebar-combo-for="reviewers"
-		 {{if $data.IssueID}}data-update-url="{{$data.RepoLink}}/issues/request_review?issue_ids={{$data.IssueID}}"{{end}}
+		{{if $data.IssueID}}data-update-url="{{$data.RepoLink}}/issues/request_review?issue_ids={{$data.IssueID}}"{{end}}
 >
 	<input type="hidden" class="combo-value" name="reviewer_ids">{{/* match CreateIssueForm */}}
 	<div class="ui dropdown custom {{if or (not $hasCandidates) (not $data.CanChooseReviewer)}}disabled{{end}}">
@@ -53,7 +53,7 @@
 				<div class="flex-text-inline">
 					{{if .CanBeDismissed}}
 						<a href="#" class="ui muted icon show-modal" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dismiss_review"}}"
-							 data-modal="#issue-sidebar-dismiss-review-modal" data-modal-reviewer-id="{{.Review.ID}}">
+							data-modal="#issue-sidebar-dismiss-review-modal" data-modal-reviewer-id="{{.Review.ID}}">
 							{{svg "octicon-x" 20}}
 						</a>
 					{{end}}
@@ -63,14 +63,14 @@
 					{{if and .CanChange $data.CanChooseReviewer}}
 						{{if .Requested}}
 							<a href="#" class="ui muted icon link-action"
-								 data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review"}}"
-								 data-url="{{$data.RepoLink}}/issues/request_review?action=detach&issue_ids={{$data.IssueID}}&id={{.ItemID}}">
+								data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review"}}"
+								data-url="{{$data.RepoLink}}/issues/request_review?action=detach&issue_ids={{$data.IssueID}}&id={{.ItemID}}">
 								{{svg "octicon-trash"}}
 							</a>
 						{{else}}
 							<a href="#" class="ui muted icon link-action"
-								 data-tooltip-content="{{ctx.Locale.Tr "repo.issues.re_request_review"}}"
-								 data-url="{{$data.RepoLink}}/issues/request_review?action=attach&issue_ids={{$data.IssueID}}&id={{.ItemID}}">
+								data-tooltip-content="{{ctx.Locale.Tr "repo.issues.re_request_review"}}"
+								data-url="{{$data.RepoLink}}/issues/request_review?action=attach&issue_ids={{$data.IssueID}}&id={{.ItemID}}">
 								{{svg "octicon-sync"}}
 							</a>
 						{{end}}
