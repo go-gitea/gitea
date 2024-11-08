@@ -71,6 +71,7 @@ func renderMarkdown(ctx *context.Context, act *activities_model.Action, content 
 
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
 func feedActionsToFeedItems(ctx *context.Context, actions activities_model.ActionList) (items []*feeds.Item, err error) {
+	renderUtils := templates.NewRenderUtils(ctx)
 	for _, act := range actions {
 		act.LoadActUser(ctx)
 
@@ -215,7 +216,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 					desc += fmt.Sprintf("<a href=\"%s\">%s</a>\n%s",
 						html.EscapeString(fmt.Sprintf("%s/commit/%s", act.GetRepoAbsoluteLink(ctx), commit.Sha1)),
 						commit.Sha1,
-						templates.RenderCommitMessage(ctx, commit.Message, nil),
+						renderUtils.RenderCommitMessage(commit.Message, nil),
 					)
 				}
 

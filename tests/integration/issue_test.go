@@ -657,26 +657,21 @@ func TestUpdateIssueDeadline(t *testing.T) {
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
 	assert.NoError(t, issueBefore.LoadAttributes(db.DefaultContext))
-	assert.Equal(t, int64(1019307200), int64(issueBefore.DeadlineUnix))
+	assert.Equal(t, "2002-04-20", issueBefore.DeadlineUnix.FormatDate())
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 
 	session := loginUser(t, owner.Name)
+	urlStr := fmt.Sprintf("%s/%s/issues/%d/deadline?_csrf=%s", owner.Name, repoBefore.Name, issueBefore.Index, GetUserCSRFToken(t, session))
 
-	issueURL := fmt.Sprintf("%s/%s/issues/%d", owner.Name, repoBefore.Name, issueBefore.Index)
-	req := NewRequest(t, "GET", issueURL)
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
+	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{"deadline": "2022-04-06"})
+	session.MakeRequest(t, req, http.StatusOK)
+	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
+	assert.EqualValues(t, "2022-04-06", issueAfter.DeadlineUnix.FormatDate())
 
-	urlStr := issueURL + "/deadline?_csrf=" + htmlDoc.GetCSRF()
-	req = NewRequestWithJSON(t, "POST", urlStr, map[string]string{
-		"due_date": "2022-04-06T00:00:00.000Z",
-	})
-
-	resp = session.MakeRequest(t, req, http.StatusCreated)
-	var apiIssue api.IssueDeadline
-	DecodeJSON(t, resp, &apiIssue)
-
-	assert.EqualValues(t, "2022-04-06", apiIssue.Deadline.Format("2006-01-02"))
+	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{"deadline": ""})
+	session.MakeRequest(t, req, http.StatusOK)
+	issueAfter = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
+	assert.True(t, issueAfter.DeadlineUnix.IsZero())
 }
 
 func TestIssueReferenceURL(t *testing.T) {

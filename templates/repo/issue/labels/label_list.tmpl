@@ -30,8 +30,8 @@
 		{{range .Labels}}
 		<li class="item">
 			<div class="label-title">
-				{{RenderLabel $.Context ctx.Locale .}}
-				{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
+				{{ctx.RenderUtils.RenderLabel .}}
+				{{if .Description}}<br><small class="desc">{{.Description | ctx.RenderUtils.RenderEmoji}}</small>{{end}}
 			</div>
 			<div class="label-issues">
 				{{if $.PageIsOrgSettingsLabels}}
@@ -70,8 +70,8 @@
 			{{range .OrgLabels}}
 			<li class="item org-label">
 				<div class="label-title">
-					{{RenderLabel $.Context ctx.Locale .}}
-					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
+					{{ctx.RenderUtils.RenderLabel .}}
+					{{if .Description}}<br><small class="desc">{{.Description | ctx.RenderUtils.RenderEmoji}}</small>{{end}}
 				</div>
 				<div class="label-issues">
 					<a class="open-issues" {{if .IsArchived}}data-is-archived{{end}} href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues.label_open_issues" .NumOpenRepoIssues}}</a>
