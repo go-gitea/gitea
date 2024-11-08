@@ -4,7 +4,7 @@ import {createTippy, showTemporaryTooltip} from '../modules/tippy.ts';
 import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {toAbsoluteUrl} from '../utils.ts';
+import {parseIssuePageInfo, toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
@@ -57,13 +57,11 @@ function excludeLabel(item) {
 }
 
 export function initRepoIssueSidebarList() {
-  const repolink = $('#repolink').val();
-  const repoId = $('#repoId').val();
+  const issuePageInfo = parseIssuePageInfo();
   const crossRepoSearch = $('#crossRepoSearch').val();
-  const tp = $('#type').val();
-  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&type=${tp}`;
+  let issueSearchUrl = `${issuePageInfo.repoLink}/issues/search?q={query}&type=${issuePageInfo.issueDependencySearchType}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
+    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({
