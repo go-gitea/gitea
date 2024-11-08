@@ -561,7 +561,6 @@ func CreatePullRequest(ctx *context.APIContext) {
 		PullRequest: pr,
 		AssigneeIDs: assigneeIDs,
 	}
-
 	prOpts.Reviewers, prOpts.TeamReviewers = parseReviewersByNames(ctx, form.Reviewers, form.TeamReviewers)
 	if ctx.Written() {
 		return
