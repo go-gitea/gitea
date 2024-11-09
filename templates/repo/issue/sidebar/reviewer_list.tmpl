@@ -37,7 +37,7 @@
 		</div>
 	</div>
 
-	<div class="ui list flex-items-block">
+	<div class="ui relaxed list flex-items-block tw-my-4">
 		<span class="item empty-list {{if or $data.OriginalReviews $data.CurrentPullReviewers}}tw-hidden{{end}}">
 			{{ctx.Locale.Tr "repo.issues.new.no_reviewers"}}
 		</span>
@@ -81,7 +81,7 @@
 				</div>
 			</div>
 		{{end}}
-		{{range .OriginalReviews}}
+		{{range $data.OriginalReviews}}
 			<div class="item">
 				<div class="flex-text-inline tw-flex-1">
 					{{$originalURLHostname := $data.Repository.GetOriginalURLHostname}}
@@ -112,8 +112,8 @@
 				{{ctx.RootData.CsrfTokenHtml}}
 				<input type="hidden" class="reviewer-id" name="review_id">
 				<div class="field">
-					<label for="message">{{ctx.Locale.Tr "action.review_dismissed_reason"}}</label>
-					<input id="message" name="message">
+					<label for="issue-sidebar-dismiss-review-message">{{ctx.Locale.Tr "action.review_dismissed_reason"}}</label>
+					<input id="issue-sidebar-dismiss-review-message" name="message">
 				</div>
 				<div class="text right actions">
 					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>

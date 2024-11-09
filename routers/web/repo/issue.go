@@ -556,7 +556,7 @@ func renderMilestones(ctx *context.Context) {
 	ctx.Data["ClosedMilestones"] = closedMilestones
 }
 
-// RetrieveRepoMilestonesAndAssignees find all the milestones, assignees, and reviewers of a repository
+// RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
 func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
 	ctx.Data["OpenMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
@@ -676,7 +676,7 @@ type issueSidebarReviewersData struct {
 	CurrentPullReviewers []*repoReviewerSelection
 }
 
-// RetrieveRepoReviewers find all reviewers of a repository
+// RetrieveRepoReviewers find all reviewers of a repository. If issue is nil, it means the doer is creating a new PR.
 func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, issue *issues_model.Issue, canChooseReviewer bool) {
 	data := &issueSidebarReviewersData{}
 	data.RepoLink = ctx.Repo.RepoLink

@@ -80,9 +80,9 @@ export function initIssueSidebarComboList(container: HTMLElement) {
     async onHide() {
       const changedValues = collectCheckedValues(elDropdown);
       if (updateUrl) {
-        await updateToBackend(changedValues);
+        await updateToBackend(changedValues); // send requests to backend and reload the page
       } else {
-        syncList(changedValues);
+        syncList(changedValues); // only update the list in the sidebar
       }
     },
   });
