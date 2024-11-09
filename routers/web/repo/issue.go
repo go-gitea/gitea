@@ -17,7 +17,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
@@ -45,9 +44,9 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/templates/vars"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/utils"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
@@ -655,34 +654,66 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 
 // repoReviewerSelection items to bee shown
 type repoReviewerSelection struct {
-	IsTeam    bool
-	Team      *organization.Team
-	User      *user_model.User
-	Review    *issues_model.Review
-	CanChange bool
-	Checked   bool
-	ItemID    int64
+	IsTeam         bool
+	Team           *organization.Team
+	User           *user_model.User
+	Review         *issues_model.Review
+	CanBeDismissed bool
+	CanChange      bool
+	Requested      bool
+	ItemID         int64
 }
 
-// RetrieveRepoReviewers find all reviewers of a repository
+type issueSidebarReviewersData struct {
+	Repository           *repo_model.Repository
+	RepoOwnerName        string
+	RepoLink             string
+	IssueID              int64
+	CanChooseReviewer    bool
+	OriginalReviews      issues_model.ReviewList
+	TeamReviewers        []*repoReviewerSelection
+	Reviewers            []*repoReviewerSelection
+	CurrentPullReviewers []*repoReviewerSelection
+}
+
+// RetrieveRepoReviewers find all reviewers of a repository. If issue is nil, it means the doer is creating a new PR.
 func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, issue *issues_model.Issue, canChooseReviewer bool) {
-	ctx.Data["CanChooseReviewer"] = canChooseReviewer
+	data := &issueSidebarReviewersData{}
+	data.RepoLink = ctx.Repo.RepoLink
+	data.Repository = repo
+	data.RepoOwnerName = repo.OwnerName
+	data.CanChooseReviewer = canChooseReviewer
 
-	originalAuthorReviews, err := issues_model.GetReviewersFromOriginalAuthorsByIssueID(ctx, issue.ID)
-	if err != nil {
-		ctx.ServerError("GetReviewersFromOriginalAuthorsByIssueID", err)
-		return
-	}
-	ctx.Data["OriginalReviews"] = originalAuthorReviews
+	var posterID int64
+	var isClosed bool
+	var reviews issues_model.ReviewList
 
-	reviews, err := issues_model.GetReviewsByIssueID(ctx, issue.ID)
-	if err != nil {
-		ctx.ServerError("GetReviewersByIssueID", err)
-		return
-	}
+	if issue == nil {
+		posterID = ctx.Doer.ID
+	} else {
+		posterID = issue.PosterID
+		if issue.OriginalAuthorID > 0 {
+			posterID = 0 // for migrated PRs, no poster ID
+		}
 
-	if len(reviews) == 0 && !canChooseReviewer {
-		return
+		data.IssueID = issue.ID
+		isClosed = issue.IsClosed || issue.PullRequest.HasMerged
+
+		originalAuthorReviews, err := issues_model.GetReviewersFromOriginalAuthorsByIssueID(ctx, issue.ID)
+		if err != nil {
+			ctx.ServerError("GetReviewersFromOriginalAuthorsByIssueID", err)
+			return
+		}
+		data.OriginalReviews = originalAuthorReviews
+
+		reviews, err = issues_model.GetReviewsByIssueID(ctx, issue.ID)
+		if err != nil {
+			ctx.ServerError("GetReviewersByIssueID", err)
+			return
+		}
+		if len(reviews) == 0 && !canChooseReviewer {
+			return
+		}
 	}
 
 	var (
@@ -694,11 +725,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 	)
 
 	if canChooseReviewer {
-		posterID := issue.PosterID
-		if issue.OriginalAuthorID > 0 {
-			posterID = 0
-		}
-
+		var err error
 		reviewers, err = repo_model.GetReviewers(ctx, repo, ctx.Doer.ID, posterID)
 		if err != nil {
 			ctx.ServerError("GetReviewers", err)
@@ -724,9 +751,9 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 
 	for _, review := range reviews {
 		tmp := &repoReviewerSelection{
-			Checked: review.Type == issues_model.ReviewTypeRequest,
-			Review:  review,
-			ItemID:  review.ReviewerID,
+			Requested: review.Type == issues_model.ReviewTypeRequest,
+			Review:    review,
+			ItemID:    review.ReviewerID,
 		}
 		if review.ReviewerTeamID > 0 {
 			tmp.IsTeam = true
@@ -757,7 +784,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 		currentPullReviewers := make([]*repoReviewerSelection, 0, len(pullReviews))
 		for _, item := range pullReviews {
 			if item.Review.ReviewerID > 0 {
-				if err = item.Review.LoadReviewer(ctx); err != nil {
+				if err := item.Review.LoadReviewer(ctx); err != nil {
 					if user_model.IsErrUserNotExist(err) {
 						continue
 					}
@@ -766,7 +793,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 				}
 				item.User = item.Review.Reviewer
 			} else if item.Review.ReviewerTeamID > 0 {
-				if err = item.Review.LoadReviewerTeam(ctx); err != nil {
+				if err := item.Review.LoadReviewerTeam(ctx); err != nil {
 					if organization.IsErrTeamNotExist(err) {
 						continue
 					}
@@ -777,10 +804,11 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			} else {
 				continue
 			}
-
+			item.CanBeDismissed = ctx.Repo.Permission.IsAdmin() && !isClosed &&
+				(item.Review.Type == issues_model.ReviewTypeApprove || item.Review.Type == issues_model.ReviewTypeReject)
 			currentPullReviewers = append(currentPullReviewers, item)
 		}
-		ctx.Data["PullReviewers"] = currentPullReviewers
+		data.CurrentPullReviewers = currentPullReviewers
 	}
 
 	if canChooseReviewer && reviewersResult != nil {
@@ -808,7 +836,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			})
 		}
 
-		ctx.Data["Reviewers"] = reviewersResult
+		data.Reviewers = reviewersResult
 	}
 
 	if canChooseReviewer && teamReviewersResult != nil {
@@ -836,8 +864,10 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			})
 		}
 
-		ctx.Data["TeamReviewers"] = teamReviewersResult
+		data.TeamReviewers = teamReviewersResult
 	}
+
+	ctx.Data["IssueSidebarReviewersData"] = data
 }
 
 // RetrieveRepoMetas find all the meta information of a repository
@@ -1118,7 +1148,14 @@ func DeleteIssue(ctx *context.Context) {
 }
 
 // ValidateRepoMetas check and returns repository's meta information
-func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull bool) ([]int64, []int64, int64, int64) {
+func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull bool) (ret struct {
+	LabelIDs, AssigneeIDs  []int64
+	MilestoneID, ProjectID int64
+
+	Reviewers     []*user_model.User
+	TeamReviewers []*organization.Team
+},
+) {
 	var (
 		repo = ctx.Repo.Repository
 		err  error
@@ -1126,7 +1163,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 
 	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository, isPull)
 	if ctx.Written() {
-		return nil, nil, 0, 0
+		return ret
 	}
 
 	var labelIDs []int64
@@ -1135,7 +1172,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	if len(form.LabelIDs) > 0 {
 		labelIDs, err = base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
 		if err != nil {
-			return nil, nil, 0, 0
+			return ret
 		}
 		labelIDMark := make(container.Set[int64])
 		labelIDMark.AddMultiple(labelIDs...)
@@ -1158,11 +1195,11 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
-			return nil, nil, 0, 0
+			return ret
 		}
 		if milestone.RepoID != repo.ID {
 			ctx.ServerError("GetMilestoneByID", err)
-			return nil, nil, 0, 0
+			return ret
 		}
 		ctx.Data["Milestone"] = milestone
 		ctx.Data["milestone_id"] = milestoneID
@@ -1172,11 +1209,11 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		p, err := project_model.GetProjectByID(ctx, form.ProjectID)
 		if err != nil {
 			ctx.ServerError("GetProjectByID", err)
-			return nil, nil, 0, 0
+			return ret
 		}
 		if p.RepoID != ctx.Repo.Repository.ID && p.OwnerID != ctx.Repo.Repository.OwnerID {
 			ctx.NotFound("", nil)
-			return nil, nil, 0, 0
+			return ret
 		}
 
 		ctx.Data["Project"] = p
@@ -1188,7 +1225,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	if len(form.AssigneeIDs) > 0 {
 		assigneeIDs, err = base.StringsToInt64s(strings.Split(form.AssigneeIDs, ","))
 		if err != nil {
-			return nil, nil, 0, 0
+			return ret
 		}
 
 		// Check if the passed assignees actually exists and is assignable
@@ -1196,18 +1233,18 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 			assignee, err := user_model.GetUserByID(ctx, aID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
-				return nil, nil, 0, 0
+				return ret
 			}
 
 			valid, err := access_model.CanBeAssigned(ctx, assignee, repo, isPull)
 			if err != nil {
 				ctx.ServerError("CanBeAssigned", err)
-				return nil, nil, 0, 0
+				return ret
 			}
 
 			if !valid {
 				ctx.ServerError("canBeAssigned", repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
-				return nil, nil, 0, 0
+				return ret
 			}
 		}
 	}
@@ -1217,7 +1254,39 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		assigneeIDs = append(assigneeIDs, form.AssigneeID)
 	}
 
-	return labelIDs, assigneeIDs, milestoneID, form.ProjectID
+	// Check reviewers
+	var reviewers []*user_model.User
+	var teamReviewers []*organization.Team
+	if isPull && len(form.ReviewerIDs) > 0 {
+		reviewerIDs, err := base.StringsToInt64s(strings.Split(form.ReviewerIDs, ","))
+		if err != nil {
+			return ret
+		}
+		// Check if the passed reviewers (user/team) actually exist
+		for _, rID := range reviewerIDs {
+			// negative reviewIDs represent team requests
+			if rID < 0 {
+				teamReviewer, err := organization.GetTeamByID(ctx, -rID)
+				if err != nil {
+					ctx.ServerError("GetTeamByID", err)
+					return ret
+				}
+				teamReviewers = append(teamReviewers, teamReviewer)
+				continue
+			}
+
+			reviewer, err := user_model.GetUserByID(ctx, rID)
+			if err != nil {
+				ctx.ServerError("GetUserByID", err)
+				return ret
+			}
+			reviewers = append(reviewers, reviewer)
+		}
+	}
+
+	ret.LabelIDs, ret.AssigneeIDs, ret.MilestoneID, ret.ProjectID = labelIDs, assigneeIDs, milestoneID, form.ProjectID
+	ret.Reviewers, ret.TeamReviewers = reviewers, teamReviewers
+	return ret
 }
 
 // NewIssuePost response for creating new issue
@@ -1235,10 +1304,12 @@ func NewIssuePost(ctx *context.Context) {
 		attachments []string
 	)
 
-	labelIDs, assigneeIDs, milestoneID, projectID := ValidateRepoMetas(ctx, *form, false)
+	validateRet := ValidateRepoMetas(ctx, *form, false)
 	if ctx.Written() {
 		return
 	}
+
+	labelIDs, assigneeIDs, milestoneID, projectID := validateRet.LabelIDs, validateRet.AssigneeIDs, validateRet.MilestoneID, validateRet.ProjectID
 
 	if projectID > 0 {
 		if !ctx.Repo.CanRead(unit.TypeProjects) {
@@ -1444,11 +1515,11 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	if issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {
-		ctx.Data["IssueType"] = "pulls"
+		ctx.Data["IssueDependencySearchType"] = "pulls"
 	} else if !issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests) {
-		ctx.Data["IssueType"] = "issues"
+		ctx.Data["IssueDependencySearchType"] = "issues"
 	} else {
-		ctx.Data["IssueType"] = "all"
+		ctx.Data["IssueDependencySearchType"] = "all"
 	}
 
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
@@ -2215,7 +2286,7 @@ func GetIssueInfo(ctx *context.Context) {
 
 	ctx.JSON(http.StatusOK, map[string]any{
 		"convertedIssue": convert.ToIssue(ctx, ctx.Doer, issue),
-		"renderedLabels": templates.RenderLabels(ctx, ctx.Locale, issue.Labels, ctx.Repo.RepoLink, issue),
+		"renderedLabels": templates.NewRenderUtils(ctx).RenderLabels(issue.Labels, ctx.Repo.RepoLink, issue),
 	})
 }
 
@@ -2329,7 +2400,6 @@ func UpdateIssueContent(ctx *context.Context) {
 
 // UpdateIssueDeadline updates an issue deadline
 func UpdateIssueDeadline(ctx *context.Context) {
-	form := web.GetForm(ctx).(*api.EditDeadlineOption)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
@@ -2345,20 +2415,13 @@ func UpdateIssueDeadline(ctx *context.Context) {
 		return
 	}
 
-	var deadlineUnix timeutil.TimeStamp
-	var deadline time.Time
-	if form.Deadline != nil && !form.Deadline.IsZero() {
-		deadline = time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-			23, 59, 59, 0, time.Local)
-		deadlineUnix = timeutil.TimeStamp(deadline.Unix())
-	}
-
+	deadlineUnix, _ := common.ParseDeadlineDateToEndOfDay(ctx.FormString("deadline"))
 	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: &deadline})
+	ctx.JSONRedirect("")
 }
 
 // UpdateIssueMilestone change issue's milestone
@@ -2488,7 +2551,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			err = issue_service.IsValidTeamReviewRequest(ctx, team, ctx.Doer, action == "attach", issue)
+			_, err = issue_service.TeamReviewRequest(ctx, issue, ctx.Doer, team, action == "attach")
 			if err != nil {
 				if issues_model.IsErrNotValidReviewRequest(err) {
 					log.Warn(
@@ -2499,12 +2562,6 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 					ctx.Status(http.StatusForbidden)
 					return
 				}
-				ctx.ServerError("IsValidTeamReviewRequest", err)
-				return
-			}
-
-			_, err = issue_service.TeamReviewRequest(ctx, issue, ctx.Doer, team, action == "attach")
-			if err != nil {
 				ctx.ServerError("TeamReviewRequest", err)
 				return
 			}
@@ -2526,7 +2583,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			return
 		}
 
-		err = issue_service.IsValidReviewRequest(ctx, reviewer, ctx.Doer, action == "attach", issue, nil)
+		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, &ctx.Repo.Permission, reviewer, action == "attach")
 		if err != nil {
 			if issues_model.IsErrNotValidReviewRequest(err) {
 				log.Warn(
@@ -2537,12 +2594,6 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				ctx.Status(http.StatusForbidden)
 				return
 			}
-			ctx.ServerError("isValidReviewRequest", err)
-			return
-		}
-
-		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, reviewer, action == "attach")
-		if err != nil {
 			if issues_model.IsErrReviewRequestOnClosedPR(err) {
 				ctx.Status(http.StatusForbidden)
 				return

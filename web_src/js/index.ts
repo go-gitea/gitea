@@ -25,7 +25,6 @@ import {initPdfViewer} from './render/pdf.ts';
 
 import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
 import {
-  initRepoIssueDue,
   initRepoIssueReferenceRepositorySearch,
   initRepoIssueTimeTracking,
   initRepoIssueWipTitle,
@@ -43,11 +42,6 @@ import {initSshKeyFormParser} from './features/sshkey-helper.ts';
 import {initUserSettings} from './features/user-settings.ts';
 import {initRepoActivityTopAuthorsChart, initRepoArchiveLinks} from './features/repo-common.ts';
 import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
-import {
-  initRepoSettingGitHook,
-  initRepoSettingsCollaboration,
-  initRepoSettingSearchTeamBox,
-} from './features/repo-settings.ts';
 import {initRepoDiffView} from './features/repo-diff.ts';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.ts';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
@@ -59,7 +53,7 @@ import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
 import {initCommonOrganization} from './features/common-organization.ts';
 import {initRepoWikiForm} from './features/repo-wiki.ts';
-import {initRepoCommentForm, initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
+import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCopyContent} from './features/copycontent.ts';
 import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
@@ -180,14 +174,12 @@ onDomReady(() => {
     initRepoArchiveLinks,
     initRepoBranchButton,
     initRepoCodeView,
-    initRepoCommentForm,
     initBranchSelectorTabs,
     initRepoEllipsisButton,
     initRepoDiffCommitBranchesAndTags,
     initRepoEditor,
     initRepoGraphGit,
     initRepoIssueContentHistory,
-    initRepoIssueDue,
     initRepoIssueList,
     initRepoIssueSidebarList,
     initArchivedLabelHandler,
@@ -202,9 +194,6 @@ onDomReady(() => {
     initRepoPullRequestReview,
     initRepoRelease,
     initRepoReleaseNew,
-    initRepoSettingGitHook,
-    initRepoSettingSearchTeamBox,
-    initRepoSettingsCollaboration,
     initRepoTemplateSearch,
     initRepoTopicBar,
     initRepoWikiForm,
