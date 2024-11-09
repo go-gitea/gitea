@@ -246,7 +246,7 @@ func (s *Service) UpdateLog(
 	task, err := actions_model.GetTaskByID(ctx, req.Msg.TaskId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get task: %v", err)
-	} else if runner.RunnerID != task.RunnerID {
+	} else if runner.ID != task.RunnerID {
 		return nil, status.Errorf(codes.Internal, "invalid runner for task")
 	}
 	ack := task.LogLength
