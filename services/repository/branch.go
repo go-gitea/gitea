@@ -14,7 +14,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
@@ -29,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	notify_service "code.gitea.io/gitea/services/notify"
+	pull_service "code.gitea.io/gitea/services/pull"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"xorm.io/builder"
@@ -460,12 +463,22 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 
 // enmuerates all branch related errors
 var (
-	ErrBranchIsDefault = errors.New("branch is default")
+	ErrBranchIsDefault    = errors.New("branch is default")
+	ErrInsufficientAccess = errors.New("insufficient access")
 )
 
 // DeleteBranch delete branch
 func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
-	err := repo.MustNotBeArchived()
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+	if err != nil {
+		return err
+	}
+
+	if !perm.CanWrite(unit.TypeCode) {
+		return ErrInsufficientAccess
+	}
+
+	err = repo.MustNotBeArchived()
 	if err != nil {
 		return err
 	}
@@ -523,6 +536,23 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 			RepoName:     repo.Name,
 		}); err != nil {
 		log.Error("Update: %v", err)
+	}
+
+	return nil
+}
+
+func DeletePullRequestHeadBranch(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, headGitRepo *git.Repository) error {
+	if err := pull_service.RetargetChildrenOnMerge(ctx, doer, pr); err != nil {
+		return err
+	}
+
+	if err := DeleteBranch(ctx, doer, pr.HeadRepo, headGitRepo, pr.HeadBranch); err != nil {
+		return err
+	}
+
+	if err := issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.IssueID, pr.HeadBranch); err != nil {
+		// Do not fail here as branch has already been deleted
+		log.Error("AddDeletePRBranchComment: %v", err)
 	}
 
 	return nil

@@ -15,7 +15,6 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -307,16 +306,8 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 	}
 
 	if pr.Flow == issues_model.PullRequestFlowGithub && scheduledPRM.DeleteBranchAfterMerge {
-		perm, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
-		if err != nil {
-			log.Error("GetUserRepoPermission %-v: %v", pr.HeadRepo, err)
-			return
-		}
-
-		if perm.CanWrite(unit.TypeCode) { // default branch and branch protection will be checked in DeleteBranch
-			if err := repo_service.DeleteBranch(ctx, doer, pr.HeadRepo, headGitRepo, pr.HeadBranch); err != nil {
-				log.Error("deleteBranch after automerge for pull[%d] failed: %v", pr.ID, err)
-			}
+		if err := repo_service.DeletePullRequestHeadBranch(ctx, pr, doer, headGitRepo); err != nil {
+			log.Error("DeletePullRequestHeadBranch: %v", err)
 		}
 	}
 }
