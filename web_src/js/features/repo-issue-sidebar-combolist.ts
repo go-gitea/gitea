@@ -1,6 +1,6 @@
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {POST} from '../modules/fetch.ts';
-import {queryElemChildren, toggleElem} from '../utils/dom.ts';
+import {queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
 
 // if there are draft comments, confirm before reloading, to avoid losing comments
 export function issueSidebarReloadConfirmDraftComment() {
@@ -27,8 +27,6 @@ function collectCheckedValues(elDropdown: HTMLElement) {
 }
 
 export function initIssueSidebarComboList(container: HTMLElement) {
-  if (!container) return;
-
   const updateUrl = container.getAttribute('data-update-url');
   const elDropdown = container.querySelector<HTMLElement>(':scope > .ui.dropdown');
   const elList = container.querySelector<HTMLElement>(':scope > .ui.list');
@@ -39,8 +37,27 @@ export function initIssueSidebarComboList(container: HTMLElement) {
     const elItem = (e.target as HTMLElement).closest('.item');
     if (!elItem) return;
     e.preventDefault();
-    if (elItem.getAttribute('data-can-change') !== 'true') return;
-    elItem.classList.toggle('checked');
+    if (elItem.hasAttribute('data-can-change') && elItem.getAttribute('data-can-change') !== 'true') return;
+
+    if (elItem.matches('.clear-selection')) {
+      queryElems(elDropdown, '.menu > .item', (el) => el.classList.remove('checked'));
+      elComboValue.value = '';
+      return;
+    }
+
+    const scope = elItem.getAttribute('data-scope');
+    if (scope) {
+      // scoped items could only be checked one at a time
+      const elSelected = elDropdown.querySelector<HTMLElement>(`.menu > .item.checked[data-scope="${CSS.escape(scope)}"]`);
+      if (elSelected === elItem) {
+        elItem.classList.toggle('checked');
+      } else {
+        queryElems(elDropdown, `.menu > .item[data-scope="${CSS.escape(scope)}"]`, (el) => el.classList.remove('checked'));
+        elItem.classList.toggle('checked', true);
+      }
+    } else {
+      elItem.classList.toggle('checked');
+    }
     elComboValue.value = collectCheckedValues(elDropdown).join(',');
   });
 
@@ -65,16 +82,16 @@ export function initIssueSidebarComboList(container: HTMLElement) {
     const elEmptyTip = elList.querySelector('.item.empty-list');
     queryElemChildren(elList, '.item:not(.empty-list)', (el) => el.remove());
     for (const value of changedValues) {
-      const el = elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${value}"]`);
+      const el = elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${CSS.escape(value)}"]`);
       const listItem = el.cloneNode(true) as HTMLElement;
-      listItem.querySelector('svg.octicon-check')?.remove();
+      queryElems(listItem, '.item-check-mark, .item-secondary-info', (el) => el.remove());
       elList.append(listItem);
     }
     const hasItems = Boolean(elList.querySelector('.item:not(.empty-list)'));
     toggleElem(elEmptyTip, !hasItems);
   };
 
-  fomanticQuery(elDropdown).dropdown({
+  fomanticQuery(elDropdown).dropdown('setting', {
     action: 'nothing', // do not hide the menu if user presses Enter
     fullTextSearch: 'exact',
     async onHide() {
