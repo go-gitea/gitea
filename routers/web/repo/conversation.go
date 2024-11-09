@@ -23,7 +23,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	conversation_indexer "code.gitea.io/gitea/modules/indexer/conversations"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -411,67 +410,6 @@ func GetConversationInfo(ctx *context.Context) {
 	})
 }
 
-// SearchConversations searches for conversations across the repositories that the user has access to
-func SearchConversations(ctx *context.Context) {
-	before, since, err := context.GetQueryBeforeSince(ctx.Base)
-	if err != nil {
-		ctx.Error(http.StatusUnprocessableEntity, err.Error())
-		return
-	}
-
-	repoIDs, allPublic := GetUserAccessibleRepo(ctx)
-
-	keyword := ctx.FormTrim("q")
-	if strings.IndexByte(keyword, 0) >= 0 {
-		keyword = ""
-	}
-
-	// this api is also used in UI,
-	// so the default limit is set to fit UI needs
-	limit := ctx.FormInt("limit")
-	if limit == 0 {
-		limit = setting.UI.ConversationPagingNum
-	} else if limit > setting.API.MaxResponseItems {
-		limit = setting.API.MaxResponseItems
-	}
-
-	searchOpt := &conversation_indexer.SearchOptions{
-		Paginator: &db.ListOptions{
-			Page:     ctx.FormInt("page"),
-			PageSize: limit,
-		},
-		Keyword:   keyword,
-		RepoIDs:   repoIDs,
-		AllPublic: allPublic,
-		SortBy:    conversation_indexer.SortByCreatedDesc,
-	}
-
-	if since != 0 {
-		searchOpt.UpdatedAfterUnix = optional.Some(since)
-	}
-	if before != 0 {
-		searchOpt.UpdatedBeforeUnix = optional.Some(before)
-	}
-
-	// FIXME: It's unsupported to sort by priority repo when searching by indexer,
-	//        it's indeed an regression, but I think it is worth to support filtering by indexer first.
-	_ = ctx.FormInt64("priority_repo_id")
-
-	ids, total, err := conversation_indexer.SearchConversations(ctx, searchOpt)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SearchConversations", err.Error())
-		return
-	}
-	conversations, err := conversations_model.GetConversationsByIDs(ctx, ids, true)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindConversationsByIDs", err.Error())
-		return
-	}
-
-	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToConversationList(ctx, ctx.Doer, conversations))
-}
-
 func GetUserAccessibleRepo(ctx *context.Context) ([]int64, bool) {
 	var (
 		repoIDs   []int64
@@ -538,50 +476,6 @@ func GetUserAccessibleRepo(ctx *context.Context) ([]int64, bool) {
 		repoIDs = []int64{0}
 	}
 	return repoIDs, allPublic
-}
-
-// ListConversations list the conversations of a repository
-func ListConversations(ctx *context.Context) {
-	before, since, err := context.GetQueryBeforeSince(ctx.Base)
-	if err != nil {
-		ctx.Error(http.StatusUnprocessableEntity, err.Error())
-		return
-	}
-
-	keyword := ctx.FormTrim("q")
-	if strings.IndexByte(keyword, 0) >= 0 {
-		keyword = ""
-	}
-
-	searchOpt := &conversation_indexer.SearchOptions{
-		Paginator: &db.ListOptions{
-			Page:     ctx.FormInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
-		},
-		Keyword: keyword,
-		RepoIDs: []int64{ctx.Repo.Repository.ID},
-		SortBy:  conversation_indexer.SortByCreatedDesc,
-	}
-	if since != 0 {
-		searchOpt.UpdatedAfterUnix = optional.Some(since)
-	}
-	if before != 0 {
-		searchOpt.UpdatedBeforeUnix = optional.Some(before)
-	}
-
-	ids, total, err := conversation_indexer.SearchConversations(ctx, searchOpt)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SearchConversations", err.Error())
-		return
-	}
-	conversations, err := conversations_model.GetConversationsByIDs(ctx, ids, true)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindConversationsByIDs", err.Error())
-		return
-	}
-
-	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToConversationList(ctx, ctx.Doer, conversations))
 }
 
 func BatchDeleteConversations(ctx *context.Context) {
