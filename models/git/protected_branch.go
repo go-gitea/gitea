@@ -420,9 +420,8 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 			// as it's a new rule and if priority was not set, we need to calc it.
 			if protectBranch.Priority == 0 {
 				var lowestPrio int64
-				if _, err := db.GetEngine(ctx).Table(protectBranch).
-					Select("MAX(priority)").
-					Where("repo_id = ?", protectBranch.RepoID).
+				// because of mssql we can not use builder or save xorm syntax, so raw sql it is
+				if _, err := db.GetEngine(ctx).SQL(`SELECT MAX(priority) FROM protected_branch WHERE repo_id = ?`, protectBranch.RepoID).
 					Get(&lowestPrio); err != nil {
 					return err
 				}
