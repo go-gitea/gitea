@@ -50,6 +50,15 @@
   width: 300px;
 }
 
+.issue-sidebar-combo .ui.dropdown .item:not(.checked) svg.octicon-check {
+  visibility: hidden;
+}
+/* ideally, we should move these styles to ".ui.dropdown .menu.flex-items-menu > .item ...", could be done later */
+.issue-sidebar-combo .ui.dropdown .menu > .item > img,
+.issue-sidebar-combo .ui.dropdown .menu > .item > svg {
+  margin: 0;
+}
+
 .issue-content-right .dropdown > .menu {
   max-width: 270px;
   min-width: 0;
@@ -60,23 +69,6 @@
   .issue-content-right {
     width: 100%;
   }
-}
-
-.repository .issue-content-right .ui.list .dependency {
-  padding: 0;
-  white-space: nowrap;
-}
-
-.repository .issue-content-right .ui.list .title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.repository .issue-content-right #deadlineForm input {
-  width: 12.8rem;
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
-  border-right: 0;
-  white-space: nowrap;
 }
 
 .repository .issue-content-right .filter.menu {

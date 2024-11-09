@@ -611,6 +611,8 @@ func PrepareCompareDiff(
 		maxLines, maxFiles = -1, -1
 	}
 
+	fileOnly := ctx.FormBool("file-only")
+
 	diff, err := gitdiff.GetDiff(ctx, ci.HeadGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     beforeCommitID,
@@ -621,6 +623,7 @@ func PrepareCompareDiff(
 			MaxFiles:           maxFiles,
 			WhitespaceBehavior: whitespaceBehavior,
 			DirectComparison:   ci.DirectComparison,
+			FileOnly:           fileOnly,
 		}, ctx.FormStrings("files")...)
 	if err != nil {
 		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
@@ -786,6 +789,10 @@ func CompareDiff(ctx *context.Context) {
 		if !nothingToCompare {
 			// Setup information for new form.
 			RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
+			if ctx.Written() {
+				return
+			}
+			RetrieveRepoReviewers(ctx, ctx.Repo.Repository, nil, true)
 			if ctx.Written() {
 				return
 			}

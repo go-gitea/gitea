@@ -5147,7 +5147,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Add a collaborator to a repository",
+        "summary": "Add or Update a collaborator to a repository",
         "operationId": "repoAddCollaborator",
         "parameters": [
           {
@@ -7758,6 +7758,9 @@
           "404": {
             "$ref": "#/responses/error"
           },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
           "423": {
             "$ref": "#/responses/repoArchivedError"
           }
@@ -8379,6 +8382,9 @@
           },
           "404": {
             "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           },
           "423": {
             "$ref": "#/responses/repoArchivedError"
@@ -10779,14 +10785,14 @@
           },
           {
             "type": "string",
-            "description": "filepath of the file to get",
+            "description": "path of the file to get, it should be \"{ref}/{filepath}\". If there is no ref could be inferred, it will be treated as the default branch",
             "name": "filepath",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch",
             "name": "ref",
             "in": "query"
           }
@@ -12870,14 +12876,14 @@
           },
           {
             "type": "string",
-            "description": "filepath of the file to get",
+            "description": "path of the file to get, it should be \"{ref}/{filepath}\". If there is no ref could be inferred, it will be treated as the default branch",
             "name": "filepath",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch",
             "name": "ref",
             "in": "query"
           }
@@ -13526,6 +13532,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -20147,6 +20156,20 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Milestone"
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Reviewers"
+        },
+        "team_reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "TeamReviewers"
         },
         "title": {
           "type": "string",

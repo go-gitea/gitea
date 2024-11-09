@@ -1,0 +1,23 @@
+<div class="divider"></div>
+<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
+	<a class="text muted flex-text-block">
+		<strong>{{ctx.Locale.Tr "repo.issues.new.milestone"}}</strong>
+		{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
+			{{svg "octicon-gear" 16 "tw-ml-1"}}
+		{{end}}
+	</a>
+	<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/milestone">
+		{{template "repo/issue/milestone/select_menu" .}}
+	</div>
+</div>
+<div class="ui select-milestone list">
+	<span class="no-select item {{if .Issue.Milestone}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_milestone"}}</span>
+	<div class="selected">
+		{{if .Issue.Milestone}}
+			<a class="item muted sidebar-item-link" href="{{.RepoLink}}/milestone/{{.Issue.Milestone.ID}}">
+				{{svg "octicon-milestone" 18 "tw-mr-2"}}
+				{{.Issue.Milestone.Name}}
+			</a>
+		{{end}}
+	</div>
+</div>
