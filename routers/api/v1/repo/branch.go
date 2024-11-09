@@ -1092,7 +1092,7 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 
 // UpdateBranchProtectionPriories updates the priorities of branch protections for a repo
 func UpdateBranchProtectionPriories(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/branch_protections/priority/move repository repoUpdateBranchProtectionPriories
+	// swagger:operation POST /repos/{owner}/{repo}/branch_protections/priority repository repoUpdateBranchProtectionPriories
 	// ---
 	// summary: Update the priorities of branch protections for a repository.
 	// consumes:
