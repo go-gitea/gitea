@@ -1,0 +1,77 @@
+import {beforeEach, describe, expect, test, vi} from 'vitest';
+import {initRepoBranchesSettings} from './repo-settings-branches.ts';
+import {POST} from '../modules/fetch.ts';
+import {createSortable} from '../modules/sortable.ts';
+
+vi.mock('../modules/fetch.ts', () => ({
+  POST: vi.fn(),
+}));
+
+vi.mock('../modules/sortable.ts', () => ({
+  createSortable: vi.fn(),
+}));
+
+describe('Repository Branch Settings', () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <div id="protected-branches-list" data-priority-url="some/repo/branches/priority">
+        <div class="item" data-id="1">
+          <div class="flex-item">
+            <div class="drag-handle"></div>
+          </div>
+        </div>
+        <div class="item" data-id="2">
+          <div class="flex-item">
+            <div class="drag-handle"></div>
+          </div>
+        </div>
+        <div class="item" data-id="3">
+          <div class="flex-item">
+            <div class="drag-handle"></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    vi.clearAllMocks();
+  });
+
+  test('should initialize sortable for protected branches list', () => {
+    initRepoBranchesSettings();
+
+    expect(createSortable).toHaveBeenCalledWith(
+      document.querySelector('#protected-branches-list'),
+      expect.objectContaining({
+        handle: '.drag-handle',
+        animation: 150,
+      }),
+    );
+  });
+
+  test('should not initialize if protected branches list is not present', () => {
+    document.body.innerHTML = '';
+
+    initRepoBranchesSettings();
+
+    expect(createSortable).not.toHaveBeenCalled();
+  });
+
+  test('should post new order after sorting', async () => {
+    vi.mocked(POST).mockResolvedValue({ok: true} as Response);
+
+    // Mock createSortable to capture and execute the onEnd callback
+    vi.mocked(createSortable).mockImplementation((_el, options) => {
+      options.onEnd();
+      return {destroy: vi.fn()};
+    });
+
+    initRepoBranchesSettings();
+
+    expect(POST).toHaveBeenCalledWith(
+      'some/repo/branches/priority',
+      expect.objectContaining({
+        data: {ids: [1, 2, 3]},
+      }),
+    );
+  });
+});
