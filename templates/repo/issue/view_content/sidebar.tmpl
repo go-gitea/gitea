@@ -2,7 +2,7 @@
 	{{template "repo/issue/branch_selector_field" $}}
 
 	{{if .Issue.IsPull}}
-		{{template "repo/issue/sidebar/reviewer_list" $}}
+		{{template "repo/issue/sidebar/reviewer_list" dict "IssueSidebarReviewersData" $.IssueSidebarReviewersData}}
 		{{template "repo/issue/sidebar/wip_switch" $}}
 		<div class="divider"></div>
 	{{end}}
