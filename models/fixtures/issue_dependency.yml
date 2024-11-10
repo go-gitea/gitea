@@ -1,0 +1,17 @@
+-
+  id: 1
+  user_id: 40
+  issue_id: 21
+  dependency_id: 20
+
+-
+  id: 2
+  user_id: 40
+  issue_id: 21
+  dependency_id: 22
+
+-
+  id: 3
+  user_id: 40
+  issue_id: 20
+  dependency_id: 22

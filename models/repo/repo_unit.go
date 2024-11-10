@@ -120,6 +120,7 @@ func (cfg *IssuesConfig) ToDB() ([]byte, error) {
 // PullRequestsConfig describes pull requests config
 type PullRequestsConfig struct {
 	IgnoreWhitespaceConflicts     bool
+	ShowDependencies              bool
 	AllowMerge                    bool
 	AllowRebase                   bool
 	AllowRebaseMerge              bool
