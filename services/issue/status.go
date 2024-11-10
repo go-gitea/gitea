@@ -6,6 +6,7 @@ package issue
 import (
 	"context"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -14,19 +15,30 @@ import (
 
 // CloseIssue close and issue.
 func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string) error {
-	comment, err := issues_model.CloseIssue(ctx, issue, doer)
+	dbCtx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	comment, err := issues_model.CloseIssue(dbCtx, issue, doer)
 	if err != nil {
 		if issues_model.IsErrDependenciesLeft(err) {
-			if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {
+			if err := issues_model.FinishIssueStopwatchIfPossible(dbCtx, doer, issue); err != nil {
 				log.Error("Unable to stop stopwatch for issue[%d]#%d: %v", issue.ID, issue.Index, err)
 			}
 		}
 		return err
 	}
 
-	if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {
+	if err := issues_model.FinishIssueStopwatchIfPossible(dbCtx, doer, issue); err != nil {
 		return err
 	}
+
+	if err := committer.Commit(); err != nil {
+		return err
+	}
+	committer.Close()
 
 	notify_service.IssueChangeStatus(ctx, doer, commitID, issue, comment, true)
 

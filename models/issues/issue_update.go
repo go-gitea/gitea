@@ -139,7 +139,20 @@ func ReopenIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Com
 		return nil, err
 	}
 
-	return changeIssueStatus(ctx, issue, doer, false, false)
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+
+	comment, err := changeIssueStatus(ctx, issue, doer, false, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := committer.Commit(); err != nil {
+		return nil, err
+	}
+	return comment, nil
 }
 
 // ChangeIssueTitle changes the title of this issue, as the given user.
