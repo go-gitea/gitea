@@ -1,7 +1,7 @@
 A sidebar combo (dropdown+list) is like this:
 
 ```html
-<div class="issue-sidebar-combo" data-update-url="...">
+<div class="issue-sidebar-combo" data-selection-mode="..." data-update-url="...">
   <input class="combo-value" name="..." type="hidden" value="...">
   <div class="ui dropdown">
     <div class="menu">
@@ -25,3 +25,7 @@ If there is `data-update-url`, it also calls backend to attach/detach the change
 Also, the changed items will be syncronized to the `ui list` items.
 
 The items with the same data-scope only allow one selected at a time.
+
+The dropdown selection could work in 2 modes:
+* single: only one item could be selected, it updates immediately when the item is selected.
+* multiple: multiple items could be selected, it defers the update until the dropdown is hidden.

@@ -2453,12 +2453,6 @@ tbody.commit-list {
   margin-top: 1em;
 }
 
-.sidebar-item-link {
-  display: inline-flex;
-  align-items: center;
-  overflow-wrap: anywhere;
-}
-
 .diff-file-header {
   padding: 5px 8px !important;
   box-shadow: 0 -1px 0 1px var(--color-body); /* prevent borders being visible behind top corners when sticky and scrolled */
