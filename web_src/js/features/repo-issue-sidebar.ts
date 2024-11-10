@@ -3,7 +3,7 @@ import {POST} from '../modules/fetch.ts';
 import {updateIssuesMeta} from './repo-common.ts';
 import {svg} from '../svg.ts';
 import {htmlEscape} from 'escape-goat';
-import {toggleElem} from '../utils/dom.ts';
+import {queryElems, toggleElem} from '../utils/dom.ts';
 import {initIssueSidebarComboList, issueSidebarReloadConfirmDraftComment} from './repo-issue-sidebar-combolist.ts';
 
 function initBranchSelector() {
@@ -28,7 +28,7 @@ function initBranchSelector() {
     } else {
       // for new issue, only update UI&form, do not send request/reload
       const selectedHiddenSelector = this.getAttribute('data-id-selector');
-      document.querySelector(selectedHiddenSelector).value = selectedValue;
+      document.querySelector<HTMLInputElement>(selectedHiddenSelector).value = selectedValue;
       elSelectBranch.querySelector('.text-branch-name').textContent = selectedText;
     }
   });
@@ -53,7 +53,7 @@ function initListSubmits(selector, outerSelector) {
         for (const [elementId, item] of itemEntries) {
           await updateIssuesMeta(
             item['update-url'],
-            item.action,
+            item['action'],
             item['issue-id'],
             elementId,
           );
@@ -80,14 +80,14 @@ function initListSubmits(selector, outerSelector) {
       if (scope) {
         // Enable only clicked item for scoped labels
         if (this.getAttribute('data-scope') !== scope) {
-          return true;
+          return;
         }
         if (this !== clickedItem && !this.classList.contains('checked')) {
-          return true;
+          return;
         }
       } else if (this !== clickedItem) {
         // Toggle for other labels
-        return true;
+        return;
       }
 
       if (this.classList.contains('checked')) {
@@ -258,13 +258,13 @@ export function initRepoIssueSidebar() {
   initRepoIssueDue();
 
   // TODO: refactor the legacy initListSubmits&selectItem to initIssueSidebarComboList
-  initListSubmits('select-label', 'labels');
   initListSubmits('select-assignees', 'assignees');
   initListSubmits('select-assignees-modify', 'assignees');
-  selectItem('.select-project', '#project_id');
-  selectItem('.select-milestone', '#milestone_id');
   selectItem('.select-assignee', '#assignee_id');
 
-  // init the combo list: a dropdown for selecting reviewers, and a list for showing selected reviewers and related actions
-  initIssueSidebarComboList(document.querySelector('.issue-sidebar-combo[data-sidebar-combo-for="reviewers"]'));
+  selectItem('.select-project', '#project_id');
+  selectItem('.select-milestone', '#milestone_id');
+
+  // init the combo list: a dropdown for selecting items, and a list for showing selected items and related actions
+  queryElems<HTMLElement>(document, '.issue-sidebar-combo', (el) => initIssueSidebarComboList(el));
 }
