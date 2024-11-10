@@ -3,7 +3,7 @@ import type {Promisable} from 'type-fest';
 import type $ from 'jquery';
 
 type ElementArg = Element | string | NodeListOf<Element> | Array<Element> | ReturnType<typeof $>;
-type ElementsCallback = (el: Element) => Promisable<any>;
+type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
 type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Array
 
@@ -58,7 +58,7 @@ export function isElemHidden(el: ElementArg) {
   return res[0];
 }
 
-function applyElemsCallback<T extends Element>(elems: ArrayLikeIterable<T>, fn?: ElementsCallback): ArrayLikeIterable<T> {
+function applyElemsCallback<T extends Element>(elems: ArrayLikeIterable<T>, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
   if (fn) {
     for (const el of elems) {
       fn(el);
@@ -67,7 +67,7 @@ function applyElemsCallback<T extends Element>(elems: ArrayLikeIterable<T>, fn?:
   return elems;
 }
 
-export function queryElemSiblings<T extends Element>(el: Element, selector = '*', fn?: ElementsCallback): ArrayLikeIterable<T> {
+export function queryElemSiblings<T extends Element>(el: Element, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
   const elems = Array.from(el.parentNode.children) as T[];
   return applyElemsCallback<T>(elems.filter((child: Element) => {
     return child !== el && child.matches(selector);
@@ -75,13 +75,13 @@ export function queryElemSiblings<T extends Element>(el: Element, selector = '*'
 }
 
 // it works like jQuery.children: only the direct children are selected
-export function queryElemChildren<T extends Element>(parent: Element | ParentNode, selector = '*', fn?: ElementsCallback): ArrayLikeIterable<T> {
+export function queryElemChildren<T extends Element>(parent: Element | ParentNode, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
   return applyElemsCallback<T>(parent.querySelectorAll(`:scope > ${selector}`), fn);
 }
 
 // it works like parent.querySelectorAll: all descendants are selected
 // in the future, all "queryElems(document, ...)" should be refactored to use a more specific parent
-export function queryElems<T extends Element>(parent: Element | ParentNode, selector: string, fn?: ElementsCallback): ArrayLikeIterable<T> {
+export function queryElems<T extends Element>(parent: Element | ParentNode, selector: string, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
   return applyElemsCallback<T>(parent.querySelectorAll(selector), fn);
 }
 

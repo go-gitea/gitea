@@ -1,11 +1,9 @@
-{{$data := .IssueSidebarReviewersData}}
+{{$data := .}}
 {{$hasCandidates := or $data.Reviewers $data.TeamReviewers}}
-<div class="issue-sidebar-combo" data-sidebar-combo-for="reviewers"
-		{{if $data.IssueID}}data-update-url="{{$data.RepoLink}}/issues/request_review?issue_ids={{$data.IssueID}}"{{end}}
->
+<div class="issue-sidebar-combo" {{if $data.IssueID}}data-update-url="{{$data.RepoLink}}/issues/request_review?issue_ids={{$data.IssueID}}"{{end}}>
 	<input type="hidden" class="combo-value" name="reviewer_ids">{{/* match CreateIssueForm */}}
-	<div class="ui dropdown custom {{if or (not $hasCandidates) (not $data.CanChooseReviewer)}}disabled{{end}}">
-		<a class="muted text">
+	<div class="ui dropdown {{if or (not $hasCandidates) (not $data.CanChooseReviewer)}}disabled{{end}}">
+		<a class="text muted">
 			<strong>{{ctx.Locale.Tr "repo.issues.review.reviewers"}}</strong> {{if and $data.CanChooseReviewer}}{{svg "octicon-gear"}}{{end}}
 		</a>
 		<div class="menu flex-items-menu">
@@ -19,7 +17,8 @@
 				{{if .User}}
 					<a class="item muted {{if .Requested}}checked{{end}}" href="{{.User.HomeLink}}" data-value="{{.ItemID}}" data-can-change="{{.CanChange}}"
 						{{if not .CanChange}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-						{{svg "octicon-check"}} {{ctx.AvatarUtils.Avatar .User 20}} {{template "repo/search_name" .User}}
+						<span class="item-check-mark">{{svg "octicon-check"}}</span>
+						{{ctx.AvatarUtils.Avatar .User 20}} {{template "repo/search_name" .User}}
 					</a>
 				{{end}}
 			{{end}}
@@ -29,7 +28,8 @@
 					{{if .Team}}
 						<a class="item muted {{if .Requested}}checked{{end}}" href="#" data-value="{{.ItemID}}" data-can-change="{{.CanChange}}"
 							{{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-							{{svg "octicon-check"}} {{svg "octicon-people" 20}} {{$data.RepoOwnerName}}/{{.Team.Name}}
+							<span class="item-check-mark">{{svg "octicon-check"}}</span>
+							{{svg "octicon-people" 20}} {{$data.RepoOwnerName}}/{{.Team.Name}}
 						</a>
 					{{end}}
 				{{end}}
