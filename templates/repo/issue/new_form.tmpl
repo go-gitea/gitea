@@ -49,7 +49,7 @@
 	<div class="issue-content-right ui segment">
 		{{template "repo/issue/branch_selector_field" $}}
 		{{if .PageIsComparePull}}
-			{{template "repo/issue/sidebar/reviewer_list" dict "IssueSidebarReviewersData" $.IssueSidebarReviewersData}}
+			{{template "repo/issue/sidebar/reviewer_list" $.IssueSidebarReviewersData}}
 			<div class="divider"></div>
 		{{end}}
 

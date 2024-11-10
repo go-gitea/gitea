@@ -881,7 +881,7 @@ type issueSidebarLabelsData struct {
 	SelectedLabelIDs string
 }
 
-func findSelectedIDs[KeyType, ItemType comparable](
+func makeSelectedStringIDs[KeyType, ItemType comparable](
 	allLabels []*issues_model.Label, candidateKey func(candidate *issues_model.Label) KeyType,
 	selectedItems []ItemType, selectedKey func(selected ItemType) KeyType,
 ) string {
@@ -902,29 +902,23 @@ func findSelectedIDs[KeyType, ItemType comparable](
 }
 
 func (d *issueSidebarLabelsData) SetSelectedLabels(labels []*issues_model.Label) {
-	d.SelectedLabelIDs = findSelectedIDs(
-		d.AllLabels,
-		func(label *issues_model.Label) int64 { return label.ID },
-		labels,
-		func(label *issues_model.Label) int64 { return label.ID },
+	d.SelectedLabelIDs = makeSelectedStringIDs(
+		d.AllLabels, func(label *issues_model.Label) int64 { return label.ID },
+		labels, func(label *issues_model.Label) int64 { return label.ID },
 	)
 }
 
 func (d *issueSidebarLabelsData) SetSelectedLabelNames(labelNames []string) {
-	d.SelectedLabelIDs = findSelectedIDs(
-		d.AllLabels,
-		func(label *issues_model.Label) string { return strings.ToLower(label.Name) },
-		labelNames,
-		strings.ToLower,
+	d.SelectedLabelIDs = makeSelectedStringIDs(
+		d.AllLabels, func(label *issues_model.Label) string { return strings.ToLower(label.Name) },
+		labelNames, strings.ToLower,
 	)
 }
 
 func (d *issueSidebarLabelsData) SetSelectedLabelIDs(labelIDs []int64) {
-	d.SelectedLabelIDs = findSelectedIDs(
-		d.AllLabels,
-		func(label *issues_model.Label) int64 { return label.ID },
-		labelIDs,
-		func(labelID int64) int64 { return labelID },
+	d.SelectedLabelIDs = makeSelectedStringIDs(
+		d.AllLabels, func(label *issues_model.Label) int64 { return label.ID },
+		labelIDs, func(labelID int64) int64 { return labelID },
 	)
 }
 

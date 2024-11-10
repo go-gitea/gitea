@@ -31,7 +31,7 @@ export function initIssueSidebarComboList(container: HTMLElement) {
   const elDropdown = container.querySelector<HTMLElement>(':scope > .ui.dropdown');
   const elList = container.querySelector<HTMLElement>(':scope > .ui.list');
   const elComboValue = container.querySelector<HTMLInputElement>(':scope > .combo-value');
-  const initialValues = collectCheckedValues(elDropdown);
+  let initialValues = collectCheckedValues(elDropdown);
 
   elDropdown.addEventListener('click', (e) => {
     const elItem = (e.target as HTMLElement).closest('.item');
@@ -78,7 +78,7 @@ export function initIssueSidebarComboList(container: HTMLElement) {
     if (changed) issueSidebarReloadConfirmDraftComment();
   };
 
-  const syncList = (changedValues) => {
+  const syncUiList = (changedValues) => {
     const elEmptyTip = elList.querySelector('.item.empty-list');
     queryElemChildren(elList, '.item:not(.empty-list)', (el) => el.remove());
     for (const value of changedValues) {
@@ -95,12 +95,11 @@ export function initIssueSidebarComboList(container: HTMLElement) {
     action: 'nothing', // do not hide the menu if user presses Enter
     fullTextSearch: 'exact',
     async onHide() {
+      // TODO: support "Esc" to cancel the selection. Use partial page loading to avoid losing inputs.
       const changedValues = collectCheckedValues(elDropdown);
-      if (updateUrl) {
-        await updateToBackend(changedValues); // send requests to backend and reload the page
-      } else {
-        syncList(changedValues); // only update the list in the sidebar
-      }
+      syncUiList(changedValues);
+      if (updateUrl) await updateToBackend(changedValues);
+      initialValues = changedValues;
     },
   });
 }
