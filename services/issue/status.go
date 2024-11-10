@@ -12,14 +12,11 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
-// ChangeStatus changes issue status to open or closed.
-// closed means the target status
-// Fix me: you should check whether the current issue status is same to the target status before call this function
-// as in function changeIssueStatus we will return WasClosedError, even the issue status and target status are both open
-func ChangeStatus(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string, closed bool) error {
-	comment, err := issues_model.ChangeIssueStatus(ctx, issue, doer, closed)
+// CloseIssue close and issue.
+func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string) error {
+	comment, err := issues_model.ChangeIssueStatus(ctx, issue, doer, true)
 	if err != nil {
-		if issues_model.IsErrDependenciesLeft(err) && closed {
+		if issues_model.IsErrDependenciesLeft(err) {
 			if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {
 				log.Error("Unable to stop stopwatch for issue[%d]#%d: %v", issue.ID, issue.Index, err)
 			}
@@ -27,13 +24,28 @@ func ChangeStatus(ctx context.Context, issue *issues_model.Issue, doer *user_mod
 		return err
 	}
 
-	if closed {
-		if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {
-			return err
-		}
+	if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {
+		return err
 	}
 
-	notify_service.IssueChangeStatus(ctx, doer, commitID, issue, comment, closed)
+	notify_service.IssueChangeStatus(ctx, doer, commitID, issue, comment, true)
+
+	return nil
+}
+
+// ReopenIssue reopen an issue.
+// FIXME: If some issues dependent this one are closed, should we also reopen them?
+func ReopenIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string) error {
+	comment, err := issues_model.ChangeIssueStatus(ctx, issue, doer, false)
+	if err != nil {
+		return err
+	}
+
+	if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {
+		return err
+	}
+
+	notify_service.IssueChangeStatus(ctx, doer, commitID, issue, comment, false)
 
 	return nil
 }

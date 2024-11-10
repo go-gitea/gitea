@@ -753,24 +753,29 @@ func EditPullRequest(ctx *context.APIContext) {
 			return
 		}
 
-		var isClosed bool
+		var closeOrReopen bool
 		switch state := api.StateType(*form.State); state {
 		case api.StateOpen:
-			isClosed = false
+			closeOrReopen = false
 		case api.StateClosed:
-			isClosed = true
+			closeOrReopen = true
 		default:
 			ctx.Error(http.StatusPreconditionFailed, "UnknownPRStateError", fmt.Sprintf("unknown state: %s", state))
 			return
 		}
 
-		if issue.IsClosed != isClosed {
-			if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, "", isClosed); err != nil {
+		if closeOrReopen && !issue.IsClosed {
+			if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
 					ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
 					return
 				}
-				ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
+				ctx.Error(http.StatusInternalServerError, "CloseIssue", err)
+				return
+			}
+		} else if !closeOrReopen && issue.IsClosed {
+			if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
+				ctx.Error(http.StatusInternalServerError, "ReopenIssue", err)
 				return
 			}
 		}
