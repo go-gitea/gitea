@@ -658,22 +658,19 @@ func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int6
 	return nil
 }
 
-// CloseBranchPulls close all the pull requests who's head branch is the branch
-func CloseBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch string) error {
+// ClosePullsCausedByBranchDeleted close all the pull requests who's head branch is the branch
+// Or who's base branch is the branch if setting.Repository.PullRequest.RetargetChildrenOnMerge is true
+func ClosePullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User, repoID int64, branch string) error {
+	// branch as head branch
 	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repoID, branch)
 	if err != nil {
 		return err
 	}
 
-	if !setting.Repository.PullRequest.RetargetChildrenOnMerge {
-		prs2, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
-		if err != nil {
-			return err
-		}
-		prs = append(prs, prs2...)
-	}
-
 	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+		return err
+	}
+	if err := issues_model.PullRequestList(prs).LoadRepositories(ctx); err != nil {
 		return err
 	}
 
@@ -682,11 +679,44 @@ func CloseBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, 
 		if err = issue_service.ChangeStatus(ctx, pr.Issue, doer, "", true); err != nil && !issues_model.IsErrPullWasClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
 			errs = append(errs, err)
 		}
+		if err == nil {
+			if err := issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
+				log.Error("AddDeletePRBranchComment: %v", err)
+				errs = append(errs, err)
+			}
+		}
 	}
-	if len(errs) > 0 {
+
+	if setting.Repository.PullRequest.RetargetChildrenOnMerge {
 		return errs
 	}
-	return nil
+
+	// branch as base branch
+	prs, err = issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
+	if err != nil {
+		return err
+	}
+
+	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+		return err
+	}
+	if err := issues_model.PullRequestList(prs).LoadRepositories(ctx); err != nil {
+		return err
+	}
+
+	errs = nil
+	for _, pr := range prs {
+		if err = issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.Issue.ID, pr.BaseBranch); err != nil {
+			log.Error("AddDeletePRBranchComment: %v", err)
+			errs = append(errs, err)
+		}
+		if err == nil {
+			if err = issue_service.ChangeStatus(ctx, pr.Issue, doer, "", true); err != nil && !issues_model.IsErrPullWasClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
+				errs = append(errs, err)
+			}
+		}
+	}
+	return errs
 }
 
 // CloseRepoBranchesPulls close all pull requests which head branches are in the given repository, but only whose base repo is not in the given repository
