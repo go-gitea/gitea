@@ -1,10 +1,12 @@
-{{$data := .}}
-{{$canChange := and ctx.RootData.HasIssuesOrPullsWritePermission (not $data.Repository.IsArchived)}}
-<div class="issue-sidebar-combo" {{if $data.IssueID}}data-update-url="{{$data.RepoLink}}/issues/labels?issue_ids={{$data.IssueID}}"{{end}}>
+{{$pageMeta := .}}
+{{$data := .LabelsData}}
+<div class="issue-sidebar-combo" data-selection-mode="multiple" data-update-algo="diff"
+		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/labels?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
+>
 	<input class="combo-value" name="label_ids" type="hidden" value="{{$data.SelectedLabelIDs}}">
-	<div class="ui dropdown {{if not $canChange}}disabled{{end}}">
+	<div class="ui dropdown {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
 		<a class="text muted">
-			<strong>{{ctx.Locale.Tr "repo.issues.new.labels"}}</strong> {{if $canChange}}{{svg "octicon-gear"}}{{end}}
+			<strong>{{ctx.Locale.Tr "repo.issues.new.labels"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
 		</a>
 		<div class="menu">
 			{{if not $data.AllLabels}}
@@ -16,7 +18,7 @@
 				</div>
 				<a class="item clear-selection" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
 				{{$previousExclusiveScope := "_no_scope"}}
-				{{range .RepoLabels}}
+				{{range $data.RepoLabels}}
 					{{$exclusiveScope := .ExclusiveScope}}
 					{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
 						<div class="divider"></div>
@@ -26,7 +28,7 @@
 				{{end}}
 				<div class="divider"></div>
 				{{$previousExclusiveScope = "_no_scope"}}
-				{{range .OrgLabels}}
+				{{range $data.OrgLabels}}
 					{{$exclusiveScope := .ExclusiveScope}}
 					{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
 						<div class="divider"></div>
@@ -42,7 +44,7 @@
 		<span class="item empty-list {{if $data.SelectedLabelIDs}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_label"}}</span>
 		{{range $data.AllLabels}}
 			{{if .IsChecked}}
-				<a class="item" href="{{$data.RepoLink}}/{{if $data.IsPullRequest}}pulls{{else}}issues{{end}}?labels={{.ID}}">
+				<a class="item" href="{{$pageMeta.RepoLink}}/{{if $pageMeta.IsPullRequest}}pulls{{else}}issues{{end}}?labels={{.ID}}">
 					{{- ctx.RenderUtils.RenderLabel . -}}
 				</a>
 			{{end}}
