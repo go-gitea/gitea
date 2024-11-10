@@ -129,18 +129,18 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <a href="/mention-user" class="mention">@mention-user</a> test
 <a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
   space`
-
-	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitBody(testInput(), testMetas))
+	actual := strings.ReplaceAll(string(newTestRenderUtils().RenderCommitBody(testInput(), testMetas)), ` data-markdown-generated-content=""`, "")
+	assert.EqualValues(t, expected, actual)
 }
 
 func TestRenderCommitMessage(t *testing.T) {
-	expected := `space <a href="/mention-user" class="mention">@mention-user</a>  `
+	expected := `space <a href="/mention-user" data-markdown-generated-content="" class="mention">@mention-user</a>  `
 
 	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessage(testInput(), testMetas))
 }
 
 func TestRenderCommitMessageLinkSubject(t *testing.T) {
-	expected := `<a href="https://example.com/link" class="default-link muted">space </a><a href="/mention-user" class="mention">@mention-user</a>`
+	expected := `<a href="https://example.com/link" class="default-link muted">space </a><a href="/mention-user" data-markdown-generated-content="" class="mention">@mention-user</a>`
 
 	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", testMetas))
 }
@@ -168,7 +168,8 @@ mail@domain.com
   space<SPACE><SPACE>
 `
 	expected = strings.ReplaceAll(expected, "<SPACE>", " ")
-	assert.EqualValues(t, expected, newTestRenderUtils().RenderIssueTitle(testInput(), testMetas))
+	actual := strings.ReplaceAll(string(newTestRenderUtils().RenderIssueTitle(testInput(), testMetas)), ` data-markdown-generated-content=""`, "")
+	assert.EqualValues(t, expected, actual)
 }
 
 func TestRenderMarkdownToHtml(t *testing.T) {
@@ -193,7 +194,8 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 #123
 space</p>
 `
-	assert.Equal(t, expected, string(newTestRenderUtils().MarkdownToHtml(testInput())))
+	actual := strings.ReplaceAll(string(newTestRenderUtils().MarkdownToHtml(testInput())), ` data-markdown-generated-content=""`, "")
+	assert.Equal(t, expected, actual)
 }
 
 func TestRenderLabels(t *testing.T) {
@@ -211,5 +213,5 @@ func TestRenderLabels(t *testing.T) {
 
 func TestUserMention(t *testing.T) {
 	rendered := newTestRenderUtils().MarkdownToHtml("@no-such-user @mention-user @mention-user")
-	assert.EqualValues(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
+	assert.EqualValues(t, `<p>@no-such-user <a href="/mention-user" data-markdown-generated-content="" rel="nofollow">@mention-user</a> <a href="/mention-user" data-markdown-generated-content="" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
 }

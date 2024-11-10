@@ -31,7 +31,7 @@ async function onDownloadArchive(e) {
 }
 
 export function initRepoArchiveLinks() {
-  queryElems('a.archive-link[href]', (el) => el.addEventListener('click', onDownloadArchive));
+  queryElems(document, 'a.archive-link[href]', (el) => el.addEventListener('click', onDownloadArchive));
 }
 
 export function initRepoActivityTopAuthorsChart() {

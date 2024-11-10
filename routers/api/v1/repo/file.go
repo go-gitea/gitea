@@ -56,12 +56,12 @@ func GetRawFile(ctx *context.APIContext) {
 	//   required: true
 	// - name: filepath
 	//   in: path
-	//   description: filepath of the file to get
+	//   description: path of the file to get, it should be "{ref}/{filepath}". If there is no ref could be inferred, it will be treated as the default branch
 	//   type: string
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch"
 	//   type: string
 	//   required: false
 	// responses:
@@ -109,12 +109,12 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	//   required: true
 	// - name: filepath
 	//   in: path
-	//   description: filepath of the file to get
+	//   description: path of the file to get, it should be "{ref}/{filepath}". If there is no ref could be inferred, it will be treated as the default branch
 	//   type: string
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch"
 	//   type: string
 	//   required: false
 	// responses:

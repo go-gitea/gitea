@@ -3,9 +3,9 @@ import type {Promisable} from 'type-fest';
 import type $ from 'jquery';
 
 type ElementArg = Element | string | NodeListOf<Element> | Array<Element> | ReturnType<typeof $>;
-type ElementsCallback = (el: Element) => Promisable<any>;
+type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
-type IterableElements = NodeListOf<Element> | Array<Element>;
+type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Array
 
 function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]) {
   if (typeof el === 'string' || el instanceof String) {
@@ -15,7 +15,7 @@ function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: a
     func(el, ...args);
   } else if (el.length !== undefined) {
     // this works for: NodeList, HTMLCollection, Array, jQuery
-    for (const e of (el as IterableElements)) {
+    for (const e of (el as ArrayLikeIterable<Element>)) {
       func(e, ...args);
     }
   } else {
@@ -58,7 +58,7 @@ export function isElemHidden(el: ElementArg) {
   return res[0];
 }
 
-function applyElemsCallback(elems: IterableElements, fn?: ElementsCallback) {
+function applyElemsCallback<T extends Element>(elems: ArrayLikeIterable<T>, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
   if (fn) {
     for (const el of elems) {
       fn(el);
@@ -67,19 +67,22 @@ function applyElemsCallback(elems: IterableElements, fn?: ElementsCallback) {
   return elems;
 }
 
-export function queryElemSiblings(el: Element, selector = '*', fn?: ElementsCallback) {
-  return applyElemsCallback(Array.from(el.parentNode.children).filter((child: Element) => {
+export function queryElemSiblings<T extends Element>(el: Element, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
+  const elems = Array.from(el.parentNode.children) as T[];
+  return applyElemsCallback<T>(elems.filter((child: Element) => {
     return child !== el && child.matches(selector);
   }), fn);
 }
 
 // it works like jQuery.children: only the direct children are selected
-export function queryElemChildren(parent: Element | ParentNode, selector = '*', fn?: ElementsCallback) {
-  return applyElemsCallback(parent.querySelectorAll(`:scope > ${selector}`), fn);
+export function queryElemChildren<T extends Element>(parent: Element | ParentNode, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
+  return applyElemsCallback<T>(parent.querySelectorAll(`:scope > ${selector}`), fn);
 }
 
-export function queryElems(selector: string, fn?: ElementsCallback) {
-  return applyElemsCallback(document.querySelectorAll(selector), fn);
+// it works like parent.querySelectorAll: all descendants are selected
+// in the future, all "queryElems(document, ...)" should be refactored to use a more specific parent
+export function queryElems<T extends Element>(parent: Element | ParentNode, selector: string, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
+  return applyElemsCallback<T>(parent.querySelectorAll(selector), fn);
 }
 
 export function onDomReady(cb: () => Promisable<void>) {
@@ -92,7 +95,7 @@ export function onDomReady(cb: () => Promisable<void>) {
 
 // checks whether an element is owned by the current document, and whether it is a document fragment or element node
 // if it is, it means it is a "normal" element managed by us, which can be modified safely.
-export function isDocumentFragmentOrElementNode(el: Element | Node) {
+export function isDocumentFragmentOrElementNode(el: Node) {
   try {
     return el.ownerDocument === document && el.nodeType === Node.ELEMENT_NODE || el.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
   } catch {
@@ -269,8 +272,8 @@ export function initSubmitEventPolyfill() {
  */
 export function isElemVisible(element: HTMLElement): boolean {
   if (!element) return false;
-
-  return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+  // checking element.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
+  return Boolean((element.offsetWidth || element.offsetHeight || element.getClientRects().length) && element.style.display !== 'none');
 }
 
 // replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this
@@ -329,4 +332,11 @@ export function animateOnce(el: Element, animationClassName: string): Promise<vo
     }, {once: true});
     el.classList.add(animationClassName);
   });
+}
+
+export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, selector: string): T | null {
+  const elems = parent.querySelectorAll<HTMLElement>(selector);
+  const candidates = Array.from(elems).filter(isElemVisible);
+  if (candidates.length > 1) throw new Error(`Expected exactly one visible element matching selector "${selector}", but found ${candidates.length}`);
+  return candidates.length ? candidates[0] as T : null;
 }

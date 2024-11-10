@@ -4,11 +4,10 @@ import {createTippy, showTemporaryTooltip} from '../modules/tippy.ts';
 import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {toAbsoluteUrl} from '../utils.ts';
+import {parseIssuePageInfo, toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
-import {updateIssuesMeta} from './repo-common.ts';
 
 const {appSubUrl} = window.config;
 
@@ -43,52 +42,6 @@ export function initRepoIssueTimeTracking() {
   });
 }
 
-async function updateDeadline(deadlineString) {
-  hideElem('#deadline-err-invalid-date');
-  document.querySelector('#deadline-loader')?.classList.add('is-loading');
-
-  let realDeadline = null;
-  if (deadlineString !== '') {
-    const newDate = Date.parse(deadlineString);
-
-    if (Number.isNaN(newDate)) {
-      document.querySelector('#deadline-loader')?.classList.remove('is-loading');
-      showElem('#deadline-err-invalid-date');
-      return false;
-    }
-    realDeadline = new Date(newDate);
-  }
-
-  try {
-    const response = await POST(document.querySelector('#update-issue-deadline-form').getAttribute('action'), {
-      data: {due_date: realDeadline},
-    });
-
-    if (response.ok) {
-      window.location.reload();
-    } else {
-      throw new Error('Invalid response');
-    }
-  } catch (error) {
-    console.error(error);
-    document.querySelector('#deadline-loader').classList.remove('is-loading');
-    showElem('#deadline-err-invalid-date');
-  }
-}
-
-export function initRepoIssueDue() {
-  $(document).on('click', '.issue-due-edit', () => {
-    toggleElem('#deadlineForm');
-  });
-  $(document).on('click', '.issue-due-remove', () => {
-    updateDeadline('');
-  });
-  $(document).on('submit', '.issue-due-form', () => {
-    updateDeadline($('#deadlineDate').val());
-    return false;
-  });
-}
-
 /**
  * @param {HTMLElement} item
  */
@@ -103,13 +56,11 @@ function excludeLabel(item) {
 }
 
 export function initRepoIssueSidebarList() {
-  const repolink = $('#repolink').val();
-  const repoId = $('#repoId').val();
+  const issuePageInfo = parseIssuePageInfo();
   const crossRepoSearch = $('#crossRepoSearch').val();
-  const tp = $('#type').val();
-  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&type=${tp}`;
+  let issueSearchUrl = `${issuePageInfo.repoLink}/issues/search?q={query}&type=${issuePageInfo.issueDependencySearchType}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
+    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({
@@ -147,6 +98,7 @@ export function initRepoIssueSidebarList() {
     });
   });
 
+  // FIXME: it is wrong place to init ".ui.dropdown.label-filter"
   $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
     if (e.altKey && e.key === 'Enter') {
       const selectedItem = document.querySelector('.menu .ui.dropdown.label-filter .menu .item.selected');
@@ -155,7 +107,6 @@ export function initRepoIssueSidebarList() {
       }
     }
   });
-  $('.ui.dropdown.label-filter, .ui.dropdown.select-label').dropdown('setting', {'hideDividers': 'empty'}).dropdown('refreshItems');
 }
 
 export function initRepoIssueCommentDelete() {
@@ -373,17 +324,6 @@ export function initRepoIssueWipTitle() {
 
 export function initRepoIssueComments() {
   if (!$('.repository.view.issue .timeline').length) return;
-
-  $('.re-request-review').on('click', async function (e) {
-    e.preventDefault();
-    const url = this.getAttribute('data-update-url');
-    const issueId = this.getAttribute('data-issue-id');
-    const id = this.getAttribute('data-id');
-    const isChecked = this.classList.contains('checked');
-
-    await updateIssuesMeta(url, isChecked ? 'detach' : 'attach', issueId, id);
-    window.location.reload();
-  });
 
   document.addEventListener('click', (e) => {
     const urlTarget = document.querySelector(':target');
@@ -709,19 +649,6 @@ function initIssueTemplateCommentEditors($commentForm) {
 
   for (const el of $comboFields) {
     initCombo(el);
-  }
-}
-
-// This function used to show and hide archived label on issue/pr
-//  page in the sidebar where we select the labels
-//  If we have any archived label tagged to issue and pr. We will show that
-//  archived label with checked classed otherwise we will hide it
-//  with the help of this function.
-//  This function runs globally.
-export function initArchivedLabelHandler() {
-  if (!document.querySelector('.archived-label-hint')) return;
-  for (const label of document.querySelectorAll('[data-is-archived]')) {
-    toggleElem(label, label.classList.contains('checked'));
   }
 }
 
