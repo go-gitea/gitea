@@ -2,16 +2,19 @@
 	{{template "repo/issue/branch_selector_field" $}}
 
 	{{if .Issue.IsPull}}
-		{{template "repo/issue/sidebar/reviewer_list" $.IssueSidebarReviewersData}}
+		{{template "repo/issue/sidebar/reviewer_list" $.IssuePageMetaData}}
 		{{template "repo/issue/sidebar/wip_switch" $}}
 		<div class="divider"></div>
 	{{end}}
 
-	{{template "repo/issue/sidebar/label_list" $.IssueSidebarLabelsData}}
+	{{template "repo/issue/sidebar/label_list" $.IssuePageMetaData}}
 
-	{{template "repo/issue/sidebar/milestone_list" $}}
-	{{template "repo/issue/sidebar/project_list" $}}
-	{{template "repo/issue/sidebar/assignee_list" $}}
+	{{template "repo/issue/sidebar/milestone_list" $.IssuePageMetaData}}
+	{{if .IsProjectsEnabled}}
+		{{template "repo/issue/sidebar/project_list" $.IssuePageMetaData}}
+	{{end}}
+	{{template "repo/issue/sidebar/assignee_list" $.IssuePageMetaData}}
+
 	{{template "repo/issue/sidebar/participant_list" $}}
 	{{template "repo/issue/sidebar/watch_notification" $}}
 	{{template "repo/issue/sidebar/stopwatch_timetracker" $}}
