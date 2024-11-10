@@ -631,7 +631,7 @@ func (errs errlist) Error() string {
 
 // RetargetBranchPulls change target branch for all pull requests whose base branch is the branch
 // Both branch and targetBranch must be in the same repo (for security reasons)
-func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch string, targetBranch string) error {
+func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch, targetBranch string) error {
 	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
 	if err != nil {
 		return err
