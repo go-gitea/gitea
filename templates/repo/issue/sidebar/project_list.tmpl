@@ -1,53 +1,49 @@
-{{if .IsProjectsEnabled}}
-	<div class="divider"></div>
-
-	<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
-		<a class="text muted flex-text-block">
-			<strong>{{ctx.Locale.Tr "repo.issues.new.projects"}}</strong>
-			{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-				{{svg "octicon-gear" 16 "tw-ml-1"}}
-			{{end}}
+{{$pageMeta := .}}
+{{$data := .ProjectsData}}
+{{$issueProject := NIL}}{{if and $pageMeta.Issue $pageMeta.Issue.Project}}{{$issueProject = $pageMeta.Issue.Project}}{{end}}
+<div class="divider"></div>
+<div class="issue-sidebar-combo" data-selection-mode="single" data-update-algo="all"
+		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/projects?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
+>
+	<input class="combo-value" name="project_id" type="hidden" value="{{$data.SelectedProjectID}}">
+	<div class="ui dropdown {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
+		<a class="text muted">
+			<strong>{{ctx.Locale.Tr "repo.issues.new.projects"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
 		</a>
-		<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
-			{{if or .OpenProjects .ClosedProjects}}
+		<div class="menu">
+			{{if or $data.OpenProjects $data.ClosedProjects}}
 			<div class="ui icon search input">
 				<i class="icon">{{svg "octicon-search" 16}}</i>
 				<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_projects"}}">
 			</div>
 			{{end}}
-			<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
-			{{if .OpenProjects}}
+			<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
+			{{if $data.OpenProjects}}
 				<div class="divider"></div>
-				<div class="header">
-					{{ctx.Locale.Tr "repo.issues.new.open_projects"}}
-				</div>
-				{{range .OpenProjects}}
-					<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
-						{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
+				<div class="header">{{ctx.Locale.Tr "repo.issues.new.open_projects"}}</div>
+				{{range $data.OpenProjects}}
+					<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
+						{{svg .IconName 18}} {{.Title}}
 					</a>
 				{{end}}
 			{{end}}
-			{{if .ClosedProjects}}
+			{{if $data.ClosedProjects}}
 				<div class="divider"></div>
-				<div class="header">
-					{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}
-				</div>
-				{{range .ClosedProjects}}
-					<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
-						{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
+				<div class="header">{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}</div>
+				{{range $data.ClosedProjects}}
+					<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
+						{{svg .IconName 18}} {{.Title}}
 					</a>
 				{{end}}
 			{{end}}
 		</div>
 	</div>
-	<div class="ui select-project list">
-		<span class="no-select item {{if .Issue.Project}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
-		<div class="selected">
-			{{if .Issue.Project}}
-				<a class="item muted sidebar-item-link" href="{{.Issue.Project.Link ctx}}">
-					{{svg .Issue.Project.IconName 18 "tw-mr-2"}}{{.Issue.Project.Title}}
-				</a>
-			{{end}}
-		</div>
+	<div class="ui list">
+		<span class="item empty-list {{if $issueProject}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
+		{{if $issueProject}}
+			<a class="item muted" href="{{$issueProject.Link ctx}}">
+				{{svg $issueProject.IconName 18}} {{$issueProject.Title}}
+			</a>
+		{{end}}
 	</div>
-{{end}}
+</div>
