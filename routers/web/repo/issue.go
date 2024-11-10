@@ -3166,7 +3166,7 @@ func NewComment(ctx *context.Context) {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
 				closeOrReopen := form.Status == "close"
-				if closeOrReopen {
+				if closeOrReopen && !issue.IsClosed {
 					if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 						log.Error("CloseIssue: %v", err)
 						if issues_model.IsErrDependenciesLeft(err) {
@@ -3184,7 +3184,7 @@ func NewComment(ctx *context.Context) {
 						}
 						log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 					}
-				} else {
+				} else if !closeOrReopen && issue.IsClosed {
 					if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
 						log.Error("ReopenIssue: %v", err)
 					}

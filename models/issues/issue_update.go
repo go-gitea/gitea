@@ -118,8 +118,8 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 	})
 }
 
-// ChangeIssueStatus changes issue status to open or closed.
-func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed bool) (*Comment, error) {
+// CloseIssue changes issue status to closed.
+func CloseIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
@@ -127,7 +127,19 @@ func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 		return nil, err
 	}
 
-	return changeIssueStatus(ctx, issue, doer, isClosed, false)
+	return changeIssueStatus(ctx, issue, doer, true, false)
+}
+
+// ChangeIssueStatus changes issue status to open or closed.
+func ReopenIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {
+	if err := issue.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+	if err := issue.LoadPoster(ctx); err != nil {
+		return nil, err
+	}
+
+	return changeIssueStatus(ctx, issue, doer, false, false)
 }
 
 // ChangeIssueTitle changes the title of this issue, as the given user.

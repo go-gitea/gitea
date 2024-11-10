@@ -14,7 +14,7 @@ import (
 
 // CloseIssue close and issue.
 func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string) error {
-	comment, err := issues_model.ChangeIssueStatus(ctx, issue, doer, true)
+	comment, err := issues_model.CloseIssue(ctx, issue, doer)
 	if err != nil {
 		if issues_model.IsErrDependenciesLeft(err) {
 			if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {
@@ -36,12 +36,8 @@ func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model
 // ReopenIssue reopen an issue.
 // FIXME: If some issues dependent this one are closed, should we also reopen them?
 func ReopenIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string) error {
-	comment, err := issues_model.ChangeIssueStatus(ctx, issue, doer, false)
+	comment, err := issues_model.ReopenIssue(ctx, issue, doer)
 	if err != nil {
-		return err
-	}
-
-	if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {
 		return err
 	}
 
