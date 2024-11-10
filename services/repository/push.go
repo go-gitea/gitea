@@ -278,7 +278,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				if setting.Repository.PullRequest.RetargetChildrenOnMerge {
 					if err := pull_service.RetargetBranchPulls(ctx, pusher, repo.ID, branch, repo.DefaultBranch); err != nil {
-						return err
+						log.Error("retargetBranchPulls failed: %v", err)
 					}
 				}
 
