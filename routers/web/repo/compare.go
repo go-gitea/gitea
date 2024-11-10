@@ -788,13 +788,13 @@ func CompareDiff(ctx *context.Context) {
 
 		if !nothingToCompare {
 			// Setup information for new form.
-			RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
+			pageMetaData := retrieveRepoIssueMetaData(ctx, ctx.Repo.Repository, nil, true)
 			if ctx.Written() {
 				return
 			}
-			RetrieveRepoReviewers(ctx, ctx.Repo.Repository, nil, true)
-			if ctx.Written() {
-				return
+			_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates, pageMetaData)
+			if len(templateErrs) > 0 {
+				ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
 			}
 		}
 	}
@@ -808,11 +808,6 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + separator + base.ShortSha(afterCommitID)
 
 	ctx.Data["IsDiffCompare"] = true
-	_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
-
-	if len(templateErrs) > 0 {
-		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
-	}
 
 	if content, ok := ctx.Data["content"].(string); ok && content != "" {
 		// If a template content is set, prepend the "content". In this case that's only
