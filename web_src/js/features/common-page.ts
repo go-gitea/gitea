@@ -1,6 +1,7 @@
-import $ from 'jquery';
 import {GET} from '../modules/fetch.ts';
 import {showGlobalErrorMessage} from '../bootstrap.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {queryElems} from '../utils/dom.ts';
 
 const {appUrl} = window.config;
 
@@ -17,27 +18,27 @@ export function initHeadNavbarContentToggle() {
 }
 
 export function initFootLanguageMenu() {
-  async function linkLanguageAction() {
-    const $this = $(this);
-    await GET($this.data('url'));
+  document.querySelector('.ui.dropdown .menu.language-menu')?.addEventListener('click', async (e) => {
+    const item = (e.target as HTMLElement).closest('.item');
+    if (!item) return;
+    e.preventDefault();
+    await GET(item.getAttribute('data-url'));
     window.location.reload();
-  }
-
-  $('.language-menu a[lang]').on('click', linkLanguageAction);
+  });
 }
 
 export function initGlobalDropdown() {
   // Semantic UI modules.
-  const $uiDropdowns = $('.ui.dropdown');
+  const $uiDropdowns = fomanticQuery('.ui.dropdown');
 
   // do not init "custom" dropdowns, "custom" dropdowns are managed by their own code.
-  $uiDropdowns.filter(':not(.custom)').dropdown();
+  $uiDropdowns.filter(':not(.custom)').dropdown({hideDividers: 'empty'});
 
   // The "jump" means this dropdown is mainly used for "menu" purpose,
   // clicking an item will jump to somewhere else or trigger an action/function.
   // When a dropdown is used for non-refresh actions with tippy,
   // it must have this "jump" class to hide the tippy when dropdown is closed.
-  $uiDropdowns.filter('.jump').dropdown({
+  $uiDropdowns.filter('.jump').dropdown('setting', {
     action: 'hide',
     onShow() {
       // hide associated tooltip while dropdown is open
@@ -46,14 +47,14 @@ export function initGlobalDropdown() {
     },
     onHide() {
       this._tippy?.enable();
+      // eslint-disable-next-line unicorn/no-this-assignment
+      const elDropdown = this;
 
       // hide all tippy elements of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
       setTimeout(() => {
-        const $dropdown = $(this);
+        const $dropdown = fomanticQuery(elDropdown);
         if ($dropdown.dropdown('is hidden')) {
-          $(this).find('.menu > .item').each((_, item) => {
-            item._tippy?.hide();
-          });
+          queryElems(elDropdown, '.menu > .item', (el) => el._tippy?.hide());
         }
       }, 2000);
     },
@@ -71,7 +72,7 @@ export function initGlobalDropdown() {
 }
 
 export function initGlobalTabularMenu() {
-  $('.ui.menu.tabular:not(.custom) .item').tab({autoTabActivation: false});
+  fomanticQuery('.ui.menu.tabular:not(.custom) .item').tab({autoTabActivation: false});
 }
 
 /**

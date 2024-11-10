@@ -57,10 +57,21 @@ export async function renderMermaid() {
       btn.setAttribute('data-clipboard-text', source);
       mermaidBlock.append(btn);
 
+      const updateIframeHeight = () => {
+        iframe.style.height = `${iframe.contentWindow.document.body.clientHeight}px`;
+      };
+
+      // update height when element's visibility state changes, for example when the diagram is inside
+      // a <details> + <summary> block and the <details> block becomes visible upon user interaction, it
+      // would initially set a incorrect height and the correct height is set during this callback.
+      (new IntersectionObserver(() => {
+        updateIframeHeight();
+      }, {root: document.documentElement})).observe(iframe);
+
       iframe.addEventListener('load', () => {
         pre.replaceWith(mermaidBlock);
         mermaidBlock.classList.remove('tw-hidden');
-        iframe.style.height = `${iframe.contentWindow.document.body.clientHeight}px`;
+        updateIframeHeight();
         setTimeout(() => { // avoid flash of iframe background
           mermaidBlock.classList.remove('is-loading');
           iframe.classList.remove('tw-invisible');

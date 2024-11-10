@@ -32,7 +32,7 @@
 								<div class="download tw-flex tw-items-center">
 									{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 										{{if .CreatedUnix}}
-											<span class="tw-mr-2">{{svg "octicon-clock" 16 "tw-mr-1"}}{{TimeSinceUnix .CreatedUnix ctx.Locale}}</span>
+											<span class="tw-mr-2">{{svg "octicon-clock" 16 "tw-mr-1"}}{{DateUtils.TimeSince .CreatedUnix}}</span>
 										{{end}}
 
 										<a class="tw-mr-2 tw-font-mono muted" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "tw-mr-1"}}{{ShortSha .Sha1}}</a>
