@@ -17,7 +17,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
@@ -45,9 +44,9 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/templates/vars"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/utils"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
@@ -432,7 +431,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		return 0
 	}
 
-	retrieveProjects(ctx, repo)
+	retrieveProjectsForIssueList(ctx, repo)
 	if ctx.Written() {
 		return
 	}
@@ -557,37 +556,147 @@ func renderMilestones(ctx *context.Context) {
 	ctx.Data["ClosedMilestones"] = closedMilestones
 }
 
-// RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
-func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.Repository) {
+type issueSidebarMilestoneData struct {
+	SelectedMilestoneID int64
+	OpenMilestones      []*issues_model.Milestone
+	ClosedMilestones    []*issues_model.Milestone
+}
+
+type issueSidebarAssigneesData struct {
+	SelectedAssigneeIDs string
+	CandidateAssignees  []*user_model.User
+}
+
+type IssuePageMetaData struct {
+	RepoLink             string
+	Repository           *repo_model.Repository
+	Issue                *issues_model.Issue
+	IsPullRequest        bool
+	CanModifyIssueOrPull bool
+
+	ReviewersData  *issueSidebarReviewersData
+	LabelsData     *issueSidebarLabelsData
+	MilestonesData *issueSidebarMilestoneData
+	ProjectsData   *issueSidebarProjectsData
+	AssigneesData  *issueSidebarAssigneesData
+}
+
+func retrieveRepoIssueMetaData(ctx *context.Context, repo *repo_model.Repository, issue *issues_model.Issue, isPull bool) *IssuePageMetaData {
+	data := &IssuePageMetaData{
+		RepoLink:      ctx.Repo.RepoLink,
+		Repository:    repo,
+		Issue:         issue,
+		IsPullRequest: isPull,
+
+		ReviewersData:  &issueSidebarReviewersData{},
+		LabelsData:     &issueSidebarLabelsData{},
+		MilestonesData: &issueSidebarMilestoneData{},
+		ProjectsData:   &issueSidebarProjectsData{},
+		AssigneesData:  &issueSidebarAssigneesData{},
+	}
+	ctx.Data["IssuePageMetaData"] = data
+
+	if isPull {
+		data.retrieveReviewersData(ctx)
+		if ctx.Written() {
+			return data
+		}
+	}
+	data.retrieveLabelsData(ctx)
+	if ctx.Written() {
+		return data
+	}
+
+	data.CanModifyIssueOrPull = ctx.Repo.CanWriteIssuesOrPulls(isPull) && !ctx.Repo.Repository.IsArchived
+	if !data.CanModifyIssueOrPull {
+		return data
+	}
+
+	data.retrieveAssigneesDataForIssueWriter(ctx)
+	if ctx.Written() {
+		return data
+	}
+
+	data.retrieveMilestonesDataForIssueWriter(ctx)
+	if ctx.Written() {
+		return data
+	}
+
+	data.retrieveProjectsDataForIssueWriter(ctx)
+	if ctx.Written() {
+		return data
+	}
+
+	PrepareBranchList(ctx)
+	if ctx.Written() {
+		return data
+	}
+
+	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, isPull)
+	return data
+}
+
+func (d *IssuePageMetaData) retrieveMilestonesDataForIssueWriter(ctx *context.Context) {
 	var err error
-	ctx.Data["OpenMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
-		RepoID:   repo.ID,
+	if d.Issue != nil {
+		d.MilestonesData.SelectedMilestoneID = d.Issue.MilestoneID
+	}
+	d.MilestonesData.OpenMilestones, err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+		RepoID:   d.Repository.ID,
 		IsClosed: optional.Some(false),
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
-	ctx.Data["ClosedMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
-		RepoID:   repo.ID,
+	d.MilestonesData.ClosedMilestones, err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+		RepoID:   d.Repository.ID,
 		IsClosed: optional.Some(true),
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
+}
 
-	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, repo)
+func (d *IssuePageMetaData) retrieveAssigneesDataForIssueWriter(ctx *context.Context) {
+	var err error
+	d.AssigneesData.CandidateAssignees, err = repo_model.GetRepoAssignees(ctx, d.Repository)
 	if err != nil {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
-
+	d.AssigneesData.CandidateAssignees = shared_user.MakeSelfOnTop(ctx.Doer, d.AssigneesData.CandidateAssignees)
+	if d.Issue != nil {
+		_ = d.Issue.LoadAssignees(ctx)
+		ids := make([]string, 0, len(d.Issue.Assignees))
+		for _, a := range d.Issue.Assignees {
+			ids = append(ids, strconv.FormatInt(a.ID, 10))
+		}
+		d.AssigneesData.SelectedAssigneeIDs = strings.Join(ids, ",")
+	}
+	// FIXME: this is a tricky part which writes ctx.Data["Mentionable*"]
 	handleTeamMentions(ctx)
 }
 
-func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
+func retrieveProjectsForIssueList(ctx *context.Context, repo *repo_model.Repository) {
+	ctx.Data["OpenProjects"], ctx.Data["ClosedProjects"] = retrieveProjectsInternal(ctx, repo)
+}
+
+type issueSidebarProjectsData struct {
+	SelectedProjectID int64
+	OpenProjects      []*project_model.Project
+	ClosedProjects    []*project_model.Project
+}
+
+func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Context) {
+	if d.Issue != nil && d.Issue.Project != nil {
+		d.ProjectsData.SelectedProjectID = d.Issue.Project.ID
+	}
+	d.ProjectsData.OpenProjects, d.ProjectsData.ClosedProjects = retrieveProjectsInternal(ctx, ctx.Repo.Repository)
+}
+
+func retrieveProjectsInternal(ctx *context.Context, repo *repo_model.Repository) (open, closed []*project_model.Project) {
 	// Distinguish whether the owner of the repository
 	// is an individual or an organization
 	repoOwnerType := project_model.TypeIndividual
@@ -610,7 +719,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		})
 		if err != nil {
 			ctx.ServerError("GetProjects", err)
-			return
+			return nil, nil
 		}
 		closedProjects, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
 			ListOptions: db.ListOptionsAll,
@@ -620,7 +729,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		})
 		if err != nil {
 			ctx.ServerError("GetProjects", err)
-			return
+			return nil, nil
 		}
 	}
 
@@ -633,7 +742,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		})
 		if err != nil {
 			ctx.ServerError("GetProjects", err)
-			return
+			return nil, nil
 		}
 		openProjects = append(openProjects, openProjects2...)
 		closedProjects2, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
@@ -644,45 +753,74 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		})
 		if err != nil {
 			ctx.ServerError("GetProjects", err)
-			return
+			return nil, nil
 		}
 		closedProjects = append(closedProjects, closedProjects2...)
 	}
-
-	ctx.Data["OpenProjects"] = openProjects
-	ctx.Data["ClosedProjects"] = closedProjects
+	return openProjects, closedProjects
 }
 
 // repoReviewerSelection items to bee shown
 type repoReviewerSelection struct {
-	IsTeam    bool
-	Team      *organization.Team
-	User      *user_model.User
-	Review    *issues_model.Review
-	CanChange bool
-	Checked   bool
-	ItemID    int64
+	IsTeam         bool
+	Team           *organization.Team
+	User           *user_model.User
+	Review         *issues_model.Review
+	CanBeDismissed bool
+	CanChange      bool
+	Requested      bool
+	ItemID         int64
 }
 
-// RetrieveRepoReviewers find all reviewers of a repository
-func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, issue *issues_model.Issue, canChooseReviewer bool) {
-	ctx.Data["CanChooseReviewer"] = canChooseReviewer
+type issueSidebarReviewersData struct {
+	CanChooseReviewer    bool
+	OriginalReviews      issues_model.ReviewList
+	TeamReviewers        []*repoReviewerSelection
+	Reviewers            []*repoReviewerSelection
+	CurrentPullReviewers []*repoReviewerSelection
+}
 
-	originalAuthorReviews, err := issues_model.GetReviewersFromOriginalAuthorsByIssueID(ctx, issue.ID)
-	if err != nil {
-		ctx.ServerError("GetReviewersFromOriginalAuthorsByIssueID", err)
-		return
+// RetrieveRepoReviewers find all reviewers of a repository. If issue is nil, it means the doer is creating a new PR.
+func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
+	data := d.ReviewersData
+	repo := d.Repository
+	if ctx.Doer != nil && ctx.IsSigned {
+		if d.Issue == nil {
+			data.CanChooseReviewer = true
+		} else {
+			data.CanChooseReviewer = issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, d.Issue)
+		}
 	}
-	ctx.Data["OriginalReviews"] = originalAuthorReviews
 
-	reviews, err := issues_model.GetReviewsByIssueID(ctx, issue.ID)
-	if err != nil {
-		ctx.ServerError("GetReviewersByIssueID", err)
-		return
-	}
+	var posterID int64
+	var isClosed bool
+	var reviews issues_model.ReviewList
 
-	if len(reviews) == 0 && !canChooseReviewer {
-		return
+	if d.Issue == nil {
+		posterID = ctx.Doer.ID
+	} else {
+		posterID = d.Issue.PosterID
+		if d.Issue.OriginalAuthorID > 0 {
+			posterID = 0 // for migrated PRs, no poster ID
+		}
+
+		isClosed = d.Issue.IsClosed || d.Issue.PullRequest.HasMerged
+
+		originalAuthorReviews, err := issues_model.GetReviewersFromOriginalAuthorsByIssueID(ctx, d.Issue.ID)
+		if err != nil {
+			ctx.ServerError("GetReviewersFromOriginalAuthorsByIssueID", err)
+			return
+		}
+		data.OriginalReviews = originalAuthorReviews
+
+		reviews, err = issues_model.GetReviewsByIssueID(ctx, d.Issue.ID)
+		if err != nil {
+			ctx.ServerError("GetReviewersByIssueID", err)
+			return
+		}
+		if len(reviews) == 0 && !data.CanChooseReviewer {
+			return
+		}
 	}
 
 	var (
@@ -693,12 +831,8 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 		reviewers           []*user_model.User
 	)
 
-	if canChooseReviewer {
-		posterID := issue.PosterID
-		if issue.OriginalAuthorID > 0 {
-			posterID = 0
-		}
-
+	if data.CanChooseReviewer {
+		var err error
 		reviewers, err = repo_model.GetReviewers(ctx, repo, ctx.Doer.ID, posterID)
 		if err != nil {
 			ctx.ServerError("GetReviewers", err)
@@ -724,16 +858,16 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 
 	for _, review := range reviews {
 		tmp := &repoReviewerSelection{
-			Checked: review.Type == issues_model.ReviewTypeRequest,
-			Review:  review,
-			ItemID:  review.ReviewerID,
+			Requested: review.Type == issues_model.ReviewTypeRequest,
+			Review:    review,
+			ItemID:    review.ReviewerID,
 		}
 		if review.ReviewerTeamID > 0 {
 			tmp.IsTeam = true
 			tmp.ItemID = -review.ReviewerTeamID
 		}
 
-		if canChooseReviewer {
+		if data.CanChooseReviewer {
 			// Users who can choose reviewers can also remove review requests
 			tmp.CanChange = true
 		} else if ctx.Doer != nil && ctx.Doer.ID == review.ReviewerID && review.Type == issues_model.ReviewTypeRequest {
@@ -743,7 +877,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 
 		pullReviews = append(pullReviews, tmp)
 
-		if canChooseReviewer {
+		if data.CanChooseReviewer {
 			if tmp.IsTeam {
 				teamReviewersResult = append(teamReviewersResult, tmp)
 			} else {
@@ -757,7 +891,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 		currentPullReviewers := make([]*repoReviewerSelection, 0, len(pullReviews))
 		for _, item := range pullReviews {
 			if item.Review.ReviewerID > 0 {
-				if err = item.Review.LoadReviewer(ctx); err != nil {
+				if err := item.Review.LoadReviewer(ctx); err != nil {
 					if user_model.IsErrUserNotExist(err) {
 						continue
 					}
@@ -766,7 +900,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 				}
 				item.User = item.Review.Reviewer
 			} else if item.Review.ReviewerTeamID > 0 {
-				if err = item.Review.LoadReviewerTeam(ctx); err != nil {
+				if err := item.Review.LoadReviewerTeam(ctx); err != nil {
 					if organization.IsErrTeamNotExist(err) {
 						continue
 					}
@@ -777,13 +911,14 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			} else {
 				continue
 			}
-
+			item.CanBeDismissed = ctx.Repo.Permission.IsAdmin() && !isClosed &&
+				(item.Review.Type == issues_model.ReviewTypeApprove || item.Review.Type == issues_model.ReviewTypeReject)
 			currentPullReviewers = append(currentPullReviewers, item)
 		}
-		ctx.Data["PullReviewers"] = currentPullReviewers
+		data.CurrentPullReviewers = currentPullReviewers
 	}
 
-	if canChooseReviewer && reviewersResult != nil {
+	if data.CanChooseReviewer && reviewersResult != nil {
 		preadded := len(reviewersResult)
 		for _, reviewer := range reviewers {
 			found := false
@@ -808,10 +943,10 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			})
 		}
 
-		ctx.Data["Reviewers"] = reviewersResult
+		data.Reviewers = reviewersResult
 	}
 
-	if canChooseReviewer && teamReviewersResult != nil {
+	if data.CanChooseReviewer && teamReviewersResult != nil {
 		preadded := len(teamReviewersResult)
 		for _, team := range teamReviewers {
 			found := false
@@ -836,55 +971,82 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			})
 		}
 
-		ctx.Data["TeamReviewers"] = teamReviewersResult
+		data.TeamReviewers = teamReviewersResult
 	}
 }
 
-// RetrieveRepoMetas find all the meta information of a repository
-func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull bool) []*issues_model.Label {
-	if !ctx.Repo.CanWriteIssuesOrPulls(isPull) {
-		return nil
+type issueSidebarLabelsData struct {
+	AllLabels        []*issues_model.Label
+	RepoLabels       []*issues_model.Label
+	OrgLabels        []*issues_model.Label
+	SelectedLabelIDs string
+}
+
+func makeSelectedStringIDs[KeyType, ItemType comparable](
+	allLabels []*issues_model.Label, candidateKey func(candidate *issues_model.Label) KeyType,
+	selectedItems []ItemType, selectedKey func(selected ItemType) KeyType,
+) string {
+	selectedIDSet := make(container.Set[string])
+	allLabelMap := map[KeyType]*issues_model.Label{}
+	for _, label := range allLabels {
+		allLabelMap[candidateKey(label)] = label
 	}
+	for _, item := range selectedItems {
+		if label, ok := allLabelMap[selectedKey(item)]; ok {
+			label.IsChecked = true
+			selectedIDSet.Add(strconv.FormatInt(label.ID, 10))
+		}
+	}
+	ids := selectedIDSet.Values()
+	sort.Strings(ids)
+	return strings.Join(ids, ",")
+}
+
+func (d *issueSidebarLabelsData) SetSelectedLabels(labels []*issues_model.Label) {
+	d.SelectedLabelIDs = makeSelectedStringIDs(
+		d.AllLabels, func(label *issues_model.Label) int64 { return label.ID },
+		labels, func(label *issues_model.Label) int64 { return label.ID },
+	)
+}
+
+func (d *issueSidebarLabelsData) SetSelectedLabelNames(labelNames []string) {
+	d.SelectedLabelIDs = makeSelectedStringIDs(
+		d.AllLabels, func(label *issues_model.Label) string { return strings.ToLower(label.Name) },
+		labelNames, strings.ToLower,
+	)
+}
+
+func (d *issueSidebarLabelsData) SetSelectedLabelIDs(labelIDs []int64) {
+	d.SelectedLabelIDs = makeSelectedStringIDs(
+		d.AllLabels, func(label *issues_model.Label) int64 { return label.ID },
+		labelIDs, func(labelID int64) int64 { return labelID },
+	)
+}
+
+func (d *IssuePageMetaData) retrieveLabelsData(ctx *context.Context) {
+	repo := d.Repository
+	labelsData := d.LabelsData
 
 	labels, err := issues_model.GetLabelsByRepoID(ctx, repo.ID, "", db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLabelsByRepoID", err)
-		return nil
+		return
 	}
-	ctx.Data["Labels"] = labels
+	labelsData.RepoLabels = labels
+
 	if repo.Owner.IsOrganization() {
 		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
 		if err != nil {
-			return nil
+			return
 		}
-
-		ctx.Data["OrgLabels"] = orgLabels
-		labels = append(labels, orgLabels...)
+		labelsData.OrgLabels = orgLabels
 	}
-
-	RetrieveRepoMilestonesAndAssignees(ctx, repo)
-	if ctx.Written() {
-		return nil
-	}
-
-	retrieveProjects(ctx, repo)
-	if ctx.Written() {
-		return nil
-	}
-
-	PrepareBranchList(ctx)
-	if ctx.Written() {
-		return nil
-	}
-
-	// Contains true if the user can create issue dependencies
-	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, isPull)
-
-	return labels
+	labelsData.AllLabels = append(labelsData.AllLabels, labelsData.RepoLabels...)
+	labelsData.AllLabels = append(labelsData.AllLabels, labelsData.OrgLabels...)
 }
 
 // Tries to load and set an issue template. The first return value indicates if a template was loaded.
-func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string) (bool, map[string]error) {
+func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string, metaData *IssuePageMetaData) (bool, map[string]error) {
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
 		return false, nil
@@ -921,43 +1083,21 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 			ctx.Data["Fields"] = template.Fields
 			ctx.Data["TemplateFile"] = template.FileName
 		}
-		labelIDs := make([]string, 0, len(template.Labels))
-		if repoLabels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{}); err == nil {
-			ctx.Data["Labels"] = repoLabels
-			if ctx.Repo.Owner.IsOrganization() {
-				if orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{}); err == nil {
-					ctx.Data["OrgLabels"] = orgLabels
-					repoLabels = append(repoLabels, orgLabels...)
-				}
-			}
 
-			for _, metaLabel := range template.Labels {
-				for _, repoLabel := range repoLabels {
-					if strings.EqualFold(repoLabel.Name, metaLabel) {
-						repoLabel.IsChecked = true
-						labelIDs = append(labelIDs, strconv.FormatInt(repoLabel.ID, 10))
-						break
-					}
-				}
-			}
-		}
-		selectedAssigneeIDs := make([]int64, 0, len(template.Assignees))
+		metaData.LabelsData.SetSelectedLabelNames(template.Labels)
+
 		selectedAssigneeIDStrings := make([]string, 0, len(template.Assignees))
-		if userIDs, err := user_model.GetUserIDsByNames(ctx, template.Assignees, false); err == nil {
+		if userIDs, err := user_model.GetUserIDsByNames(ctx, template.Assignees, true); err == nil {
 			for _, userID := range userIDs {
-				selectedAssigneeIDs = append(selectedAssigneeIDs, userID)
 				selectedAssigneeIDStrings = append(selectedAssigneeIDStrings, strconv.FormatInt(userID, 10))
 			}
 		}
+		metaData.AssigneesData.SelectedAssigneeIDs = strings.Join(selectedAssigneeIDStrings, ",")
 
 		if template.Ref != "" && !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
 			template.Ref = git.BranchPrefix + template.Ref
 		}
-		ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
-		ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
-		ctx.Data["HasSelectedAssignee"] = len(selectedAssigneeIDs) > 0
-		ctx.Data["assignee_ids"] = strings.Join(selectedAssigneeIDStrings, ",")
-		ctx.Data["SelectedAssigneeIDs"] = selectedAssigneeIDs
+
 		ctx.Data["Reference"] = template.Ref
 		ctx.Data["RefEndName"] = git.RefName(template.Ref).ShortName()
 		return true, templateErrs
@@ -984,35 +1124,18 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
-	milestoneID := ctx.FormInt64("milestone")
-	if milestoneID > 0 {
-		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
-		if err != nil {
-			log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
-		} else {
-			ctx.Data["milestone_id"] = milestoneID
-			ctx.Data["Milestone"] = milestone
-		}
+	pageMetaData := retrieveRepoIssueMetaData(ctx, ctx.Repo.Repository, nil, false)
+	if ctx.Written() {
+		return
 	}
 
-	projectID := ctx.FormInt64("project")
-	if projectID > 0 && isProjectsEnabled {
-		project, err := project_model.GetProjectByID(ctx, projectID)
-		if err != nil {
-			log.Error("GetProjectByID: %d: %v", projectID, err)
-		} else if project.RepoID != ctx.Repo.Repository.ID {
-			log.Error("GetProjectByID: %d: %v", projectID, fmt.Errorf("project[%d] not in repo [%d]", project.ID, ctx.Repo.Repository.ID))
-		} else {
-			ctx.Data["project_id"] = projectID
-			ctx.Data["Project"] = project
-		}
-
+	pageMetaData.MilestonesData.SelectedMilestoneID = ctx.FormInt64("milestone")
+	pageMetaData.ProjectsData.SelectedProjectID = ctx.FormInt64("project")
+	if pageMetaData.ProjectsData.SelectedProjectID > 0 {
 		if len(ctx.Req.URL.Query().Get("project")) > 0 {
 			ctx.Data["redirect_after_creation"] = "project"
 		}
 	}
-
-	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
 
 	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
@@ -1022,7 +1145,7 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["Tags"] = tags
 
 	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
-	templateLoaded, errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
+	templateLoaded, errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates, pageMetaData)
 	for k, v := range errs {
 		ret.TemplateErrors[k] = v
 	}
@@ -1117,107 +1240,95 @@ func DeleteIssue(ctx *context.Context) {
 	ctx.Redirect(fmt.Sprintf("%s/issues", ctx.Repo.Repository.Link()), http.StatusSeeOther)
 }
 
-// ValidateRepoMetas check and returns repository's meta information
-func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull bool) ([]int64, []int64, int64, int64) {
-	var (
-		repo = ctx.Repo.Repository
-		err  error
-	)
+func toSet[ItemType any, KeyType comparable](slice []ItemType, keyFunc func(ItemType) KeyType) container.Set[KeyType] {
+	s := make(container.Set[KeyType])
+	for _, item := range slice {
+		s.Add(keyFunc(item))
+	}
+	return s
+}
 
-	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository, isPull)
+// ValidateRepoMetasForNewIssue check and returns repository's meta information
+func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueForm, isPull bool) (ret struct {
+	LabelIDs, AssigneeIDs  []int64
+	MilestoneID, ProjectID int64
+
+	Reviewers     []*user_model.User
+	TeamReviewers []*organization.Team
+},
+) {
+	pageMetaData := retrieveRepoIssueMetaData(ctx, ctx.Repo.Repository, nil, isPull)
 	if ctx.Written() {
-		return nil, nil, 0, 0
+		return ret
 	}
 
-	var labelIDs []int64
-	hasSelected := false
-	// Check labels.
-	if len(form.LabelIDs) > 0 {
-		labelIDs, err = base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
-		if err != nil {
-			return nil, nil, 0, 0
-		}
-		labelIDMark := make(container.Set[int64])
-		labelIDMark.AddMultiple(labelIDs...)
+	inputLabelIDs, _ := base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
+	candidateLabels := toSet(pageMetaData.LabelsData.AllLabels, func(label *issues_model.Label) int64 { return label.ID })
+	if len(inputLabelIDs) > 0 && !candidateLabels.Contains(inputLabelIDs...) {
+		ctx.NotFound("", nil)
+		return ret
+	}
+	pageMetaData.LabelsData.SetSelectedLabelIDs(inputLabelIDs)
 
-		for i := range labels {
-			if labelIDMark.Contains(labels[i].ID) {
-				labels[i].IsChecked = true
-				hasSelected = true
+	allMilestones := append(slices.Clone(pageMetaData.MilestonesData.OpenMilestones), pageMetaData.MilestonesData.ClosedMilestones...)
+	candidateMilestones := toSet(allMilestones, func(milestone *issues_model.Milestone) int64 { return milestone.ID })
+	if form.MilestoneID > 0 && !candidateMilestones.Contains(form.MilestoneID) {
+		ctx.NotFound("", nil)
+		return ret
+	}
+	pageMetaData.MilestonesData.SelectedMilestoneID = form.MilestoneID
+
+	allProjects := append(slices.Clone(pageMetaData.ProjectsData.OpenProjects), pageMetaData.ProjectsData.ClosedProjects...)
+	candidateProjects := toSet(allProjects, func(project *project_model.Project) int64 { return project.ID })
+	if form.ProjectID > 0 && !candidateProjects.Contains(form.ProjectID) {
+		ctx.NotFound("", nil)
+		return ret
+	}
+	pageMetaData.ProjectsData.SelectedProjectID = form.ProjectID
+
+	candidateAssignees := toSet(pageMetaData.AssigneesData.CandidateAssignees, func(user *user_model.User) int64 { return user.ID })
+	inputAssigneeIDs, _ := base.StringsToInt64s(strings.Split(form.AssigneeIDs, ","))
+	if len(inputAssigneeIDs) > 0 && !candidateAssignees.Contains(inputAssigneeIDs...) {
+		ctx.NotFound("", nil)
+		return ret
+	}
+	pageMetaData.AssigneesData.SelectedAssigneeIDs = form.AssigneeIDs
+
+	// Check if the passed reviewers (user/team) actually exist
+	var reviewers []*user_model.User
+	var teamReviewers []*organization.Team
+	reviewerIDs, _ := base.StringsToInt64s(strings.Split(form.ReviewerIDs, ","))
+	if isPull && len(reviewerIDs) > 0 {
+		userReviewersMap := map[int64]*user_model.User{}
+		teamReviewersMap := map[int64]*organization.Team{}
+		for _, r := range pageMetaData.ReviewersData.Reviewers {
+			userReviewersMap[r.User.ID] = r.User
+		}
+		for _, r := range pageMetaData.ReviewersData.TeamReviewers {
+			teamReviewersMap[r.Team.ID] = r.Team
+		}
+		for _, rID := range reviewerIDs {
+			if rID < 0 { // negative reviewIDs represent team requests
+				team, ok := teamReviewersMap[-rID]
+				if !ok {
+					ctx.NotFound("", nil)
+					return ret
+				}
+				teamReviewers = append(teamReviewers, team)
+			} else {
+				user, ok := userReviewersMap[rID]
+				if !ok {
+					ctx.NotFound("", nil)
+					return ret
+				}
+				reviewers = append(reviewers, user)
 			}
 		}
 	}
 
-	ctx.Data["Labels"] = labels
-	ctx.Data["HasSelectedLabel"] = hasSelected
-	ctx.Data["label_ids"] = form.LabelIDs
-
-	// Check milestone.
-	milestoneID := form.MilestoneID
-	if milestoneID > 0 {
-		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
-		if err != nil {
-			ctx.ServerError("GetMilestoneByID", err)
-			return nil, nil, 0, 0
-		}
-		if milestone.RepoID != repo.ID {
-			ctx.ServerError("GetMilestoneByID", err)
-			return nil, nil, 0, 0
-		}
-		ctx.Data["Milestone"] = milestone
-		ctx.Data["milestone_id"] = milestoneID
-	}
-
-	if form.ProjectID > 0 {
-		p, err := project_model.GetProjectByID(ctx, form.ProjectID)
-		if err != nil {
-			ctx.ServerError("GetProjectByID", err)
-			return nil, nil, 0, 0
-		}
-		if p.RepoID != ctx.Repo.Repository.ID && p.OwnerID != ctx.Repo.Repository.OwnerID {
-			ctx.NotFound("", nil)
-			return nil, nil, 0, 0
-		}
-
-		ctx.Data["Project"] = p
-		ctx.Data["project_id"] = form.ProjectID
-	}
-
-	// Check assignees
-	var assigneeIDs []int64
-	if len(form.AssigneeIDs) > 0 {
-		assigneeIDs, err = base.StringsToInt64s(strings.Split(form.AssigneeIDs, ","))
-		if err != nil {
-			return nil, nil, 0, 0
-		}
-
-		// Check if the passed assignees actually exists and is assignable
-		for _, aID := range assigneeIDs {
-			assignee, err := user_model.GetUserByID(ctx, aID)
-			if err != nil {
-				ctx.ServerError("GetUserByID", err)
-				return nil, nil, 0, 0
-			}
-
-			valid, err := access_model.CanBeAssigned(ctx, assignee, repo, isPull)
-			if err != nil {
-				ctx.ServerError("CanBeAssigned", err)
-				return nil, nil, 0, 0
-			}
-
-			if !valid {
-				ctx.ServerError("canBeAssigned", repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
-				return nil, nil, 0, 0
-			}
-		}
-	}
-
-	// Keep the old assignee id thingy for compatibility reasons
-	if form.AssigneeID > 0 {
-		assigneeIDs = append(assigneeIDs, form.AssigneeID)
-	}
-
-	return labelIDs, assigneeIDs, milestoneID, form.ProjectID
+	ret.LabelIDs, ret.AssigneeIDs, ret.MilestoneID, ret.ProjectID = inputLabelIDs, inputAssigneeIDs, form.MilestoneID, form.ProjectID
+	ret.Reviewers, ret.TeamReviewers = reviewers, teamReviewers
+	return ret
 }
 
 // NewIssuePost response for creating new issue
@@ -1235,10 +1346,12 @@ func NewIssuePost(ctx *context.Context) {
 		attachments []string
 	)
 
-	labelIDs, assigneeIDs, milestoneID, projectID := ValidateRepoMetas(ctx, *form, false)
+	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, false)
 	if ctx.Written() {
 		return
 	}
+
+	labelIDs, assigneeIDs, milestoneID, projectID := validateRet.LabelIDs, validateRet.AssigneeIDs, validateRet.MilestoneID, validateRet.ProjectID
 
 	if projectID > 0 {
 		if !ctx.Repo.CanRead(unit.TypeProjects) {
@@ -1444,11 +1557,11 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	if issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {
-		ctx.Data["IssueType"] = "pulls"
+		ctx.Data["IssueDependencySearchType"] = "pulls"
 	} else if !issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests) {
-		ctx.Data["IssueType"] = "issues"
+		ctx.Data["IssueDependencySearchType"] = "issues"
 	} else {
-		ctx.Data["IssueType"] = "all"
+		ctx.Data["IssueDependencySearchType"] = "all"
 	}
 
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
@@ -1508,60 +1621,11 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 
-	// Metas.
-	// Check labels.
-	labelIDMark := make(container.Set[int64])
-	for _, label := range issue.Labels {
-		labelIDMark.Add(label.ID)
-	}
-	labels, err := issues_model.GetLabelsByRepoID(ctx, repo.ID, "", db.ListOptions{})
-	if err != nil {
-		ctx.ServerError("GetLabelsByRepoID", err)
+	pageMetaData := retrieveRepoIssueMetaData(ctx, repo, issue, issue.IsPull)
+	if ctx.Written() {
 		return
 	}
-	ctx.Data["Labels"] = labels
-
-	if repo.Owner.IsOrganization() {
-		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
-		if err != nil {
-			ctx.ServerError("GetLabelsByOrgID", err)
-			return
-		}
-		ctx.Data["OrgLabels"] = orgLabels
-
-		labels = append(labels, orgLabels...)
-	}
-
-	hasSelected := false
-	for i := range labels {
-		if labelIDMark.Contains(labels[i].ID) {
-			labels[i].IsChecked = true
-			hasSelected = true
-		}
-	}
-	ctx.Data["HasSelectedLabel"] = hasSelected
-
-	// Check milestone and assignee.
-	if ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
-		RetrieveRepoMilestonesAndAssignees(ctx, repo)
-		retrieveProjects(ctx, repo)
-
-		if ctx.Written() {
-			return
-		}
-	}
-
-	if issue.IsPull {
-		canChooseReviewer := false
-		if ctx.Doer != nil && ctx.IsSigned {
-			canChooseReviewer = issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, issue)
-		}
-
-		RetrieveRepoReviewers(ctx, repo, issue, canChooseReviewer)
-		if ctx.Written() {
-			return
-		}
-	}
+	pageMetaData.LabelsData.SetSelectedLabels(issue.Labels)
 
 	if ctx.IsSigned {
 		// Update issue-user.
@@ -2215,7 +2279,7 @@ func GetIssueInfo(ctx *context.Context) {
 
 	ctx.JSON(http.StatusOK, map[string]any{
 		"convertedIssue": convert.ToIssue(ctx, ctx.Doer, issue),
-		"renderedLabels": templates.RenderLabels(ctx, ctx.Locale, issue.Labels, ctx.Repo.RepoLink, issue),
+		"renderedLabels": templates.NewRenderUtils(ctx).RenderLabels(issue.Labels, ctx.Repo.RepoLink, issue),
 	})
 }
 
@@ -2329,7 +2393,6 @@ func UpdateIssueContent(ctx *context.Context) {
 
 // UpdateIssueDeadline updates an issue deadline
 func UpdateIssueDeadline(ctx *context.Context) {
-	form := web.GetForm(ctx).(*api.EditDeadlineOption)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
@@ -2345,20 +2408,13 @@ func UpdateIssueDeadline(ctx *context.Context) {
 		return
 	}
 
-	var deadlineUnix timeutil.TimeStamp
-	var deadline time.Time
-	if form.Deadline != nil && !form.Deadline.IsZero() {
-		deadline = time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-			23, 59, 59, 0, time.Local)
-		deadlineUnix = timeutil.TimeStamp(deadline.Unix())
-	}
-
+	deadlineUnix, _ := common.ParseDeadlineDateToEndOfDay(ctx.FormString("deadline"))
 	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: &deadline})
+	ctx.JSONRedirect("")
 }
 
 // UpdateIssueMilestone change issue's milestone
@@ -2488,7 +2544,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			err = issue_service.IsValidTeamReviewRequest(ctx, team, ctx.Doer, action == "attach", issue)
+			_, err = issue_service.TeamReviewRequest(ctx, issue, ctx.Doer, team, action == "attach")
 			if err != nil {
 				if issues_model.IsErrNotValidReviewRequest(err) {
 					log.Warn(
@@ -2499,12 +2555,6 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 					ctx.Status(http.StatusForbidden)
 					return
 				}
-				ctx.ServerError("IsValidTeamReviewRequest", err)
-				return
-			}
-
-			_, err = issue_service.TeamReviewRequest(ctx, issue, ctx.Doer, team, action == "attach")
-			if err != nil {
 				ctx.ServerError("TeamReviewRequest", err)
 				return
 			}
@@ -2526,7 +2576,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			return
 		}
 
-		err = issue_service.IsValidReviewRequest(ctx, reviewer, ctx.Doer, action == "attach", issue, nil)
+		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, &ctx.Repo.Permission, reviewer, action == "attach")
 		if err != nil {
 			if issues_model.IsErrNotValidReviewRequest(err) {
 				log.Warn(
@@ -2537,12 +2587,6 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				ctx.Status(http.StatusForbidden)
 				return
 			}
-			ctx.ServerError("isValidReviewRequest", err)
-			return
-		}
-
-		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, reviewer, action == "attach")
-		if err != nil {
 			if issues_model.IsErrReviewRequestOnClosedPR(err) {
 				ctx.Status(http.StatusForbidden)
 				return

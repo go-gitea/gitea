@@ -11,7 +11,7 @@ type TippyOpts = {
 const visibleInstances = new Set<Instance>();
 const arrowSvg = `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
 
-export function createTippy(target: Element, opts: TippyOpts = {}) {
+export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
   const {onHide, onShow, onDestroy, role, theme, arrow, ...other} = opts;
@@ -179,11 +179,9 @@ export function initGlobalTooltips() {
 }
 
 export function showTemporaryTooltip(target: Element, content: Content) {
-  // if the target is inside a dropdown, don't show the tooltip because when the dropdown
-  // closes, the tippy would be pushed unsightly to the top-left of the screen like seen
-  // on the issue comment menu.
-  if (target.closest('.ui.dropdown > .menu')) return;
-
+  // if the target is inside a dropdown, the menu will be hidden soon
+  // so display the tooltip on the dropdown instead
+  target = target.closest('.ui.dropdown') || target;
   const tippy = target._tippy ?? attachTooltip(target, content);
   tippy.setContent(content);
   if (!tippy.state.isShown) tippy.show();

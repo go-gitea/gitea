@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type Repository interface {
@@ -59,15 +60,11 @@ func repositoryFromContext(ctx context.Context, repo Repository) *git.Repository
 	return nil
 }
 
-type nopCloser func()
-
-func (nopCloser) Close() error { return nil }
-
 // RepositoryFromContextOrOpen attempts to get the repository from the context or just opens it
 func RepositoryFromContextOrOpen(ctx context.Context, repo Repository) (*git.Repository, io.Closer, error) {
 	gitRepo := repositoryFromContext(ctx, repo)
 	if gitRepo != nil {
-		return gitRepo, nopCloser(nil), nil
+		return gitRepo, util.NopCloser{}, nil
 	}
 
 	gitRepo, err := OpenRepository(ctx, repo)
@@ -95,7 +92,7 @@ func repositoryFromContextPath(ctx context.Context, path string) *git.Repository
 func RepositoryFromContextOrOpenPath(ctx context.Context, path string) (*git.Repository, io.Closer, error) {
 	gitRepo := repositoryFromContextPath(ctx, path)
 	if gitRepo != nil {
-		return gitRepo, nopCloser(nil), nil
+		return gitRepo, util.NopCloser{}, nil
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, path)
