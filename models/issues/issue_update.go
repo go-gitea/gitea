@@ -127,7 +127,20 @@ func CloseIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comm
 		return nil, err
 	}
 
-	return changeIssueStatus(ctx, issue, doer, true, false)
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+
+	comment, err := changeIssueStatus(ctx, issue, doer, true, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := committer.Commit(); err != nil {
+		return nil, err
+	}
+	return comment, nil
 }
 
 // ChangeIssueStatus changes issue status to open or closed.
