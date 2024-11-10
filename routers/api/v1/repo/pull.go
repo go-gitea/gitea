@@ -554,7 +554,19 @@ func CreatePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if err := pull_service.NewPullRequest(ctx, repo, prIssue, labelIDs, []string{}, pr, assigneeIDs); err != nil {
+	prOpts := &pull_service.NewPullRequestOptions{
+		Repo:        repo,
+		Issue:       prIssue,
+		LabelIDs:    labelIDs,
+		PullRequest: pr,
+		AssigneeIDs: assigneeIDs,
+	}
+	prOpts.Reviewers, prOpts.TeamReviewers = parseReviewersByNames(ctx, form.Reviewers, form.TeamReviewers)
+	if ctx.Written() {
+		return
+	}
+
+	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
 		} else if errors.Is(err, user_model.ErrBlockedUser) {

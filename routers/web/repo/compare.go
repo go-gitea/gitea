@@ -792,6 +792,10 @@ func CompareDiff(ctx *context.Context) {
 			if ctx.Written() {
 				return
 			}
+			RetrieveRepoReviewers(ctx, ctx.Repo.Repository, nil, true)
+			if ctx.Written() {
+				return
+			}
 		}
 	}
 	beforeCommitID := ctx.Data["BeforeCommitID"].(string)
