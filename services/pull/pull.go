@@ -629,6 +629,8 @@ func (errs errlist) Error() string {
 	return ""
 }
 
+var _ error = &errlist{}
+
 // RetargetBranchPulls change target branch for all pull requests whose base branch is the branch
 // Both branch and targetBranch must be in the same repo (for security reasons)
 func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch, targetBranch string) error {
@@ -716,7 +718,10 @@ func ClosePullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User,
 			}
 		}
 	}
-	return errs
+	if len(errs) > 0 {
+		return errs
+	}
+	return nil
 }
 
 // CloseRepoBranchesPulls close all pull requests which head branches are in the given repository, but only whose base repo is not in the given repository
