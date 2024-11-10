@@ -8,7 +8,6 @@ import {parseIssuePageInfo, toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
-import {updateIssuesMeta} from './repo-common.ts';
 
 const {appSubUrl} = window.config;
 
@@ -99,6 +98,7 @@ export function initRepoIssueSidebarList() {
     });
   });
 
+  // FIXME: it is wrong place to init ".ui.dropdown.label-filter"
   $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
     if (e.altKey && e.key === 'Enter') {
       const selectedItem = document.querySelector('.menu .ui.dropdown.label-filter .menu .item.selected');
@@ -107,7 +107,6 @@ export function initRepoIssueSidebarList() {
       }
     }
   });
-  $('.ui.dropdown.label-filter, .ui.dropdown.select-label').dropdown('setting', {'hideDividers': 'empty'}).dropdown('refreshItems');
 }
 
 export function initRepoIssueCommentDelete() {
@@ -325,17 +324,6 @@ export function initRepoIssueWipTitle() {
 
 export function initRepoIssueComments() {
   if (!$('.repository.view.issue .timeline').length) return;
-
-  $('.re-request-review').on('click', async function (e) {
-    e.preventDefault();
-    const url = this.getAttribute('data-update-url');
-    const issueId = this.getAttribute('data-issue-id');
-    const id = this.getAttribute('data-id');
-    const isChecked = this.classList.contains('checked');
-
-    await updateIssuesMeta(url, isChecked ? 'detach' : 'attach', issueId, id);
-    window.location.reload();
-  });
 
   document.addEventListener('click', (e) => {
     const urlTarget = document.querySelector(':target');
@@ -661,19 +649,6 @@ function initIssueTemplateCommentEditors($commentForm) {
 
   for (const el of $comboFields) {
     initCombo(el);
-  }
-}
-
-// This function used to show and hide archived label on issue/pr
-//  page in the sidebar where we select the labels
-//  If we have any archived label tagged to issue and pr. We will show that
-//  archived label with checked classed otherwise we will hide it
-//  with the help of this function.
-//  This function runs globally.
-export function initArchivedLabelHandler() {
-  if (!document.querySelector('.archived-label-hint')) return;
-  for (const label of document.querySelectorAll('[data-is-archived]')) {
-    toggleElem(label, label.classList.contains('checked'));
   }
 }
 
