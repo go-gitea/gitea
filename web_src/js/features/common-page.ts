@@ -32,13 +32,13 @@ export function initGlobalDropdown() {
   const $uiDropdowns = fomanticQuery('.ui.dropdown');
 
   // do not init "custom" dropdowns, "custom" dropdowns are managed by their own code.
-  $uiDropdowns.filter(':not(.custom)').dropdown();
+  $uiDropdowns.filter(':not(.custom)').dropdown({hideDividers: 'empty'});
 
   // The "jump" means this dropdown is mainly used for "menu" purpose,
   // clicking an item will jump to somewhere else or trigger an action/function.
   // When a dropdown is used for non-refresh actions with tippy,
   // it must have this "jump" class to hide the tippy when dropdown is closed.
-  $uiDropdowns.filter('.jump').dropdown({
+  $uiDropdowns.filter('.jump').dropdown('setting', {
     action: 'hide',
     onShow() {
       // hide associated tooltip while dropdown is open
