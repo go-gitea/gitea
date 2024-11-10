@@ -133,11 +133,6 @@ func DeleteBranch(ctx *context.APIContext) {
 
 	branchName := ctx.PathParam("*")
 
-	if ctx.Repo.Repository.IsEmpty {
-		ctx.Error(http.StatusForbidden, "", "Git Repository is empty.")
-		return
-	}
-
 	// check whether branches of this repository has been synced
 	totalNumOfBranches, err := db.Count[git_model.Branch](ctx, git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
@@ -155,12 +150,7 @@ func DeleteBranch(ctx *context.APIContext) {
 		}
 	}
 
-	if ctx.Repo.Repository.IsMirror {
-		ctx.Error(http.StatusForbidden, "IsMirrored", fmt.Errorf("can not delete branch of an mirror repository"))
-		return
-	}
-
-	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
+	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName, nil); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
 			ctx.NotFound(err)

@@ -606,17 +606,9 @@ func (errs errlist) Error() string {
 	return ""
 }
 
-// RetargetChildrenOnMerge retarget children pull requests on merge if possible
-func RetargetChildrenOnMerge(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) error {
-	if setting.Repository.PullRequest.RetargetChildrenOnMerge && pr.BaseRepoID == pr.HeadRepoID {
-		return RetargetBranchPulls(ctx, doer, pr.HeadRepoID, pr.HeadBranch, pr.BaseBranch)
-	}
-	return nil
-}
-
 // RetargetBranchPulls change target branch for all pull requests whose base branch is the branch
 // Both branch and targetBranch must be in the same repo (for security reasons)
-func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch, targetBranch string) error {
+func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch string, targetBranch string) error {
 	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
 	if err != nil {
 		return err
@@ -650,12 +642,14 @@ func CloseBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, 
 		return err
 	}
 
-	prs2, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
-	if err != nil {
-		return err
+	if !setting.Repository.PullRequest.RetargetChildrenOnMerge {
+		prs2, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
+		if err != nil {
+			return err
+		}
+		prs = append(prs, prs2...)
 	}
 
-	prs = append(prs, prs2...)
 	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
 		return err
 	}

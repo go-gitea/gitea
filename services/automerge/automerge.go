@@ -306,7 +306,7 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 	}
 
 	if pr.Flow == issues_model.PullRequestFlowGithub && scheduledPRM.DeleteBranchAfterMerge {
-		if err := repo_service.DeletePullRequestHeadBranch(ctx, pr, doer, headGitRepo); err != nil {
+		if err := repo_service.DeleteBranch(ctx, doer, pr.HeadRepo, headGitRepo, pr.HeadBranch, pr); err != nil {
 			log.Error("DeletePullRequestHeadBranch: %v", err)
 		}
 	}

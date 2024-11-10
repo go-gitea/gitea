@@ -31,7 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	notify_service "code.gitea.io/gitea/services/notify"
-	pull_service "code.gitea.io/gitea/services/pull"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"xorm.io/builder"
@@ -468,7 +467,7 @@ var (
 )
 
 // DeleteBranch delete branch
-func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
+func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string, pr *issues_model.PullRequest) error {
 	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
 	if err != nil {
 		return err
@@ -515,6 +514,12 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 			}
 		}
 
+		if pr != nil {
+			if err := issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
+				return fmt.Errorf("DeleteBranch: %v", err)
+			}
+		}
+
 		return gitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
 			Force: true,
 		})
@@ -536,23 +541,6 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 			RepoName:     repo.Name,
 		}); err != nil {
 		log.Error("Update: %v", err)
-	}
-
-	return nil
-}
-
-func DeletePullRequestHeadBranch(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, headGitRepo *git.Repository) error {
-	if err := pull_service.RetargetChildrenOnMerge(ctx, doer, pr); err != nil {
-		return err
-	}
-
-	if err := DeleteBranch(ctx, doer, pr.HeadRepo, headGitRepo, pr.HeadBranch); err != nil {
-		return err
-	}
-
-	if err := issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.IssueID, pr.HeadBranch); err != nil {
-		// Do not fail here as branch has already been deleted
-		log.Error("AddDeletePRBranchComment: %v", err)
 	}
 
 	return nil
