@@ -18,15 +18,15 @@
 						<input type="hidden" name="template-file" value="{{.TemplateFile}}">
 						{{range .Fields}}
 							{{if eq .Type "input"}}
-								{{template "repo/issue/fields/input" "item" .}}
+								{{template "repo/issue/fields/input" dict "item" .}}
 							{{else if eq .Type "markdown"}}
-								{{template "repo/issue/fields/markdown" "item" .}}
+								{{template "repo/issue/fields/markdown" dict "item" .}}
 							{{else if eq .Type "textarea"}}
-								{{template "repo/issue/fields/textarea" "item" . "root" $}}
+								{{template "repo/issue/fields/textarea" dict "item" . "root" $}}
 							{{else if eq .Type "dropdown"}}
-								{{template "repo/issue/fields/dropdown" "item" .}}
+								{{template "repo/issue/fields/dropdown" dict "item" .}}
 							{{else if eq .Type "checkboxes"}}
-								{{template "repo/issue/fields/checkboxes" "item" .}}
+								{{template "repo/issue/fields/checkboxes" dict "item" .}}
 							{{end}}
 						{{end}}
 					{{else}}
@@ -47,11 +47,13 @@
 	</div>
 
 	<div class="issue-content-right ui segment">
-		{{template "repo/issue/branch_selector_field" .}}
+		{{template "repo/issue/branch_selector_field" $}}
+		{{if .PageIsComparePull}}
+			{{template "repo/issue/sidebar/reviewer_list" $.IssueSidebarReviewersData}}
+			<div class="divider"></div>
+		{{end}}
 
-		<input id="label_ids" name="label_ids" type="hidden" value="{{.label_ids}}">
-		{{template "repo/issue/labels/labels_selector_field" .}}
-		{{template "repo/issue/labels/labels_sidebar" dict "root" $}}
+		{{template "repo/issue/sidebar/label_list" $.IssueSidebarLabelsData}}
 
 		<div class="divider"></div>
 

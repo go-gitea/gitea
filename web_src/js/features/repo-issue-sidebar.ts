@@ -3,27 +3,8 @@ import {POST} from '../modules/fetch.ts';
 import {updateIssuesMeta} from './repo-common.ts';
 import {svg} from '../svg.ts';
 import {htmlEscape} from 'escape-goat';
-import {toggleElem} from '../utils/dom.ts';
-
-// if there are draft comments, confirm before reloading, to avoid losing comments
-function reloadConfirmDraftComment() {
-  const commentTextareas = [
-    document.querySelector('.edit-content-zone:not(.tw-hidden) textarea'),
-    document.querySelector('#comment-form textarea'),
-  ];
-  for (const textarea of commentTextareas) {
-    // Most users won't feel too sad if they lose a comment with 10 chars, they can re-type these in seconds.
-    // But if they have typed more (like 50) chars and the comment is lost, they will be very unhappy.
-    if (textarea && textarea.value.trim().length > 10) {
-      textarea.parentElement.scrollIntoView();
-      if (!window.confirm('Page will be reloaded, but there are draft comments. Continuing to reload will discard the comments. Continue?')) {
-        return;
-      }
-      break;
-    }
-  }
-  window.location.reload();
-}
+import {queryElems, toggleElem} from '../utils/dom.ts';
+import {initIssueSidebarComboList, issueSidebarReloadConfirmDraftComment} from './repo-issue-sidebar-combolist.ts';
 
 function initBranchSelector() {
   const elSelectBranch = document.querySelector('.ui.dropdown.select-branch');
@@ -47,7 +28,7 @@ function initBranchSelector() {
     } else {
       // for new issue, only update UI&form, do not send request/reload
       const selectedHiddenSelector = this.getAttribute('data-id-selector');
-      document.querySelector(selectedHiddenSelector).value = selectedValue;
+      document.querySelector<HTMLInputElement>(selectedHiddenSelector).value = selectedValue;
       elSelectBranch.querySelector('.text-branch-name').textContent = selectedText;
     }
   });
@@ -72,13 +53,13 @@ function initListSubmits(selector, outerSelector) {
         for (const [elementId, item] of itemEntries) {
           await updateIssuesMeta(
             item['update-url'],
-            item.action,
+            item['action'],
             item['issue-id'],
             elementId,
           );
         }
         if (itemEntries.length) {
-          reloadConfirmDraftComment();
+          issueSidebarReloadConfirmDraftComment();
         }
       }
     },
@@ -99,14 +80,14 @@ function initListSubmits(selector, outerSelector) {
       if (scope) {
         // Enable only clicked item for scoped labels
         if (this.getAttribute('data-scope') !== scope) {
-          return true;
+          return;
         }
         if (this !== clickedItem && !this.classList.contains('checked')) {
-          return true;
+          return;
         }
       } else if (this !== clickedItem) {
         // Toggle for other labels
-        return true;
+        return;
       }
 
       if (this.classList.contains('checked')) {
@@ -142,7 +123,7 @@ function initListSubmits(selector, outerSelector) {
 
     // TODO: Which thing should be done for choosing review requests
     // to make chosen items be shown on time here?
-    if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
+    if (selector === 'select-assignees-modify') {
       return false;
     }
 
@@ -173,7 +154,7 @@ function initListSubmits(selector, outerSelector) {
           $listMenu.data('issue-id'),
           '',
         );
-        reloadConfirmDraftComment();
+        issueSidebarReloadConfirmDraftComment();
       })();
     }
 
@@ -182,7 +163,7 @@ function initListSubmits(selector, outerSelector) {
       $(this).find('.octicon-check').addClass('tw-invisible');
     });
 
-    if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
+    if (selector === 'select-assignees-modify') {
       return false;
     }
 
@@ -213,7 +194,7 @@ function selectItem(select_id, input_id) {
           $menu.data('issue-id'),
           $(this).data('id'),
         );
-        reloadConfirmDraftComment();
+        issueSidebarReloadConfirmDraftComment();
       })();
     }
 
@@ -249,7 +230,7 @@ function selectItem(select_id, input_id) {
           $menu.data('issue-id'),
           $(this).data('id'),
         );
-        reloadConfirmDraftComment();
+        issueSidebarReloadConfirmDraftComment();
       })();
     }
 
@@ -276,14 +257,14 @@ export function initRepoIssueSidebar() {
   initBranchSelector();
   initRepoIssueDue();
 
-  // Init labels and assignees
-  initListSubmits('select-label', 'labels');
+  // TODO: refactor the legacy initListSubmits&selectItem to initIssueSidebarComboList
   initListSubmits('select-assignees', 'assignees');
   initListSubmits('select-assignees-modify', 'assignees');
-  initListSubmits('select-reviewers-modify', 'assignees');
+  selectItem('.select-assignee', '#assignee_id');
 
-  // Milestone, Assignee, Project
   selectItem('.select-project', '#project_id');
   selectItem('.select-milestone', '#milestone_id');
-  selectItem('.select-assignee', '#assignee_id');
+
+  // init the combo list: a dropdown for selecting items, and a list for showing selected items and related actions
+  queryElems<HTMLElement>(document, '.issue-sidebar-combo', (el) => initIssueSidebarComboList(el));
 }
