@@ -1,5 +1,6 @@
 {{$file := .file}}
 {{$blobExcerptRepoLink := or ctx.RootData.CommitRepoLink ctx.RootData.RepoLink}}
+{{$issueIndex := or ctx.RootData.IssueIndex $.root.IssueIndex}}
 <colgroup>
 	<col width="50">
 	<col width="50">
@@ -24,17 +25,17 @@
 							</div>
 							<div class="code-expander-buttons" data-expand-direction="{{$expandDirection}}">
 								{{if or (eq $expandDirection 3) (eq $expandDirection 5)}}
-									<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=unified&direction=down&wiki={{$.root.PageIsWiki}}&pull={{$.root.PageIsPullFiles}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}&file_name={{$section.FileName}}">
+									<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=unified&direction=down&wiki={{$.root.PageIsWiki}}&pull={{$.root.PageIsPullFiles}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}&issue_index={{$issueIndex}}">
 										{{svg "octicon-fold-down"}}
 									</button>
 								{{end}}
 								{{if or (eq $expandDirection 3) (eq $expandDirection 4)}}
-									<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=unified&direction=up&wiki={{$.root.PageIsWiki}}&pull={{$.root.PageIsPullFiles}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}&file_name={{$section.FileName}}">
+									<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=unified&direction=up&wiki={{$.root.PageIsWiki}}&pull={{$.root.PageIsPullFiles}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}&issue_index={{$issueIndex}}">
 										{{svg "octicon-fold-up"}}
 									</button>
 								{{end}}
 								{{if eq $expandDirection 2}}
-									<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=unified&direction=&wiki={{$.root.PageIsWiki}}&pull={{$.root.PageIsPullFiles}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}&file_name={{$section.FileName}}">
+									<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=unified&direction=&wiki={{$.root.PageIsWiki}}&pull={{$.root.PageIsPullFiles}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}&issue_index={{$issueIndex}}">
 										{{svg "octicon-fold"}}
 									</button>
 								{{end}}

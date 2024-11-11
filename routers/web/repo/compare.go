@@ -865,7 +865,6 @@ func ExcerptBlob(ctx *context.Context) {
 	direction := ctx.FormString("direction")
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
-	fileName := ctx.FormString("file_name")
 	if ctx.FormBool("pull") {
 		ctx.Data["PageIsPullFiles"] = true
 	}
@@ -879,17 +878,6 @@ func ExcerptBlob(ctx *context.Context) {
 		}
 		defer gitRepo.Close()
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, int64(2))
-	if err != nil {
-		ctx.ServerError("GetIssueByIndex", err)
-		return
-	}
-	allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, false)
-	if err != nil {
-		ctx.ServerError("FetchCodeComments", err)
-		return
-	}
-	lineCommits := allComments[fileName]
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
@@ -955,45 +943,59 @@ func ExcerptBlob(ctx *context.Context) {
 			section.Lines = append(section.Lines, lineSection)
 		}
 	}
-	for _, line := range section.Lines {
-		if line.SectionInfo != nil {
-			start := int64(line.SectionInfo.LastRightIdx + 1)
-			end := int64(line.SectionInfo.RightIdx - 1)
-			for start <= end {
-				if _, ok := lineCommits[start]; ok {
-					if !line.SectionInfo.HasComments {
-						line.SectionInfo.HasComments = true
-						break
+	issueIndex := ctx.FormInt64("issue_index")
+	if ctx.FormBool("pull") && issueIndex > 0 {
+		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
+		if issue == nil {
+			ctx.ServerError("GetIssueByIndex", err)
+			return
+		}
+		allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, false)
+		if err != nil {
+			ctx.ServerError("FetchCodeComments", err)
+			return
+		}
+		lineCommits := allComments[filePath]
+		for _, line := range section.Lines {
+			if line.SectionInfo != nil {
+				start := int64(line.SectionInfo.LastRightIdx + 1)
+				end := int64(line.SectionInfo.RightIdx - 1)
+				for start <= end {
+					if _, ok := lineCommits[start]; ok {
+						if !line.SectionInfo.HasComments {
+							line.SectionInfo.HasComments = true
+							break
+						}
 					}
+					start++
 				}
-				start++
 			}
-		}
-		if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
-			line.Comments = append(line.Comments, comments...)
-		}
-		if comments, ok := lineCommits[int64(line.RightIdx)]; ok {
-			line.Comments = append(line.Comments, comments...)
-		}
+			if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
+				line.Comments = append(line.Comments, comments...)
+			}
+			if comments, ok := lineCommits[int64(line.RightIdx)]; ok {
+				line.Comments = append(line.Comments, comments...)
+			}
 
-		sort.SliceStable(line.Comments, func(i, j int) bool {
-			return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
-		})
-	}
-	for _, line := range section.Lines {
-		for _, comment := range line.Comments {
-			if err := comment.LoadAttachments(ctx); err != nil {
-				ctx.ServerError("LoadAttachments", err)
-				return
+			sort.SliceStable(line.Comments, func(i, j int) bool {
+				return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+			})
+		}
+		for _, line := range section.Lines {
+			for _, comment := range line.Comments {
+				if err := comment.LoadAttachments(ctx); err != nil {
+					ctx.ServerError("LoadAttachments", err)
+					return
+				}
 			}
 		}
+		ctx.Data["Issue"] = issue
+		ctx.Data["IssueIndex"] = issue.Index
 	}
 	ctx.Data["section"] = section
 	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
 	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Anchor"] = anchor
-	ctx.Data["Issue"] = issue
-	ctx.Data["issue"] = issue.Index
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
