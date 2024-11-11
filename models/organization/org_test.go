@@ -4,6 +4,7 @@
 package organization_test
 
 import (
+	"slices"
 	"sort"
 	"testing"
 
@@ -179,6 +180,82 @@ func TestIsPublicMembership(t *testing.T) {
 	test(6, 5, true)
 	test(6, 4, false)
 	test(unittest.NonexistentID, unittest.NonexistentID, false)
+}
+
+func TestRestrictedUserOrgMembers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	restrictedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+		ID:           29,
+		IsRestricted: true,
+	})
+	if !assert.True(t, restrictedUser.IsRestricted) {
+		return // ensure fixtures return restricted user
+	}
+
+	testCases := []struct {
+		name         string
+		opts         *organization.FindOrgMembersOpts
+		expectedUIDs []int64
+		expectedLen  int
+	}{
+		{
+			name: "restricted user sees public members and teammates",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:        17, // org17 where user29 is in team9
+				Doer:         restrictedUser,
+				IsDoerMember: true,
+			},
+			expectedUIDs: []int64{2, 15, 29}, // Public members (2) + teammates in team9 (15, 20, 29)
+			expectedLen:  3,
+		},
+		{
+			name: "restricted user sees only public members when not member",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID: 3, // org3 where user29 is not a member
+				Doer:  restrictedUser,
+			},
+			expectedUIDs: []int64{2, 28}, // Only public members
+			expectedLen:  2,
+		},
+		{
+			name: "non logged in only shows public members",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID: 3,
+			},
+			expectedUIDs: []int64{2, 28}, // Only public members
+			expectedLen:  2,
+		},
+		{
+			name: "non restricted user sees all members",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:        17,
+				Doer:         unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15}),
+				IsDoerMember: true,
+			},
+			expectedUIDs: []int64{2, 15, 18, 29}, // All members
+			expectedLen:  3,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			count, err := organization.CountOrgMembers(db.DefaultContext, tc.opts)
+			assert.NoError(t, err)
+			assert.Equal(t, int64(tc.expectedLen), count)
+
+			members, err := organization.GetOrgUsersByOrgID(db.DefaultContext, tc.opts)
+			assert.NoError(t, err)
+			assert.Len(t, members, tc.expectedLen)
+
+			memberUIDs := make([]int64, 0, len(members))
+			for _, member := range members {
+				memberUIDs = append(memberUIDs, member.UID)
+			}
+			slices.Sort(memberUIDs)
+			assert.EqualValues(t, tc.expectedUIDs, memberUIDs)
+		})
+	}
 }
 
 func TestFindOrgs(t *testing.T) {

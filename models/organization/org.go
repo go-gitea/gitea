@@ -214,7 +214,10 @@ func (opts FindOrgMembersOpts) applyTeamMatesOnlyFilter(sess *xorm.Session) {
 			Where(builder.In("team_user.team_id", getUserTeamIDsQueryBuilder(opts.OrgID, opts.Doer.ID))).
 			And(builder.Eq{"team_user.org_id": opts.OrgID})
 
-		sess.And("is_public = ?", true).Or(sess.In("org_user.uid", teamMates))
+		sess.And(
+			builder.In("org_user.uid", teamMates).
+				Or(builder.Eq{"org_user.is_public": true}),
+		)
 	}
 }
 
