@@ -1163,7 +1163,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/issues/posters", repo.IssuePosters) // it can't use {type:issues|pulls} because it would conflict with other routes like "/pulls/{index}"
 		m.Get("/pulls/posters", repo.PullPosters)
 		m.Get("/comments/{id}/attachments", repo.GetCommentAttachments)
-		m.Get("/labels", repo.RetrieveLabels, repo.Labels)
+		m.Get("/labels", repo.RetrieveLabelsForList, repo.Labels)
 		m.Get("/milestones", repo.Milestones)
 		m.Get("/milestone/{id}", context.RepoRef(), repo.MilestoneIssuesAndPulls)
 		m.Group("/{type:issues|pulls}", func() {

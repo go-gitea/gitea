@@ -1388,6 +1388,7 @@ table th[data-sortt-desc] .svg {
   align-items: stretch;
 }
 
+.ui.list.flex-items-block > .item,
 .flex-items-block > .item,
 .flex-text-block {
   display: flex;
