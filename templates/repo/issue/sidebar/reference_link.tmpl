@@ -1,0 +1,8 @@
+<div class="divider"></div>
+<div class="ui equal width compact grid">
+	{{$issueReferenceLink := printf "%s#%d" .Issue.Repo.FullName .Issue.Index}}
+	<div class="row tw-items-center" data-tooltip-content="{{$issueReferenceLink}}">
+		<span class="text column truncate">{{ctx.Locale.Tr "repo.issues.reference_link" $issueReferenceLink}}</span>
+		<button class="ui two wide button column tw-p-2" data-clipboard-text="{{$issueReferenceLink}}">{{svg "octicon-copy" 14}}</button>
+	</div>
+</div>

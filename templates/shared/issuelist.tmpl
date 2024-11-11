@@ -13,7 +13,7 @@
 			<div class="flex-item-main">
 				<div class="flex-item-header">
 					<div class="flex-item-title">
-						<a class="tw-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji $.Context .Title | RenderCodeBlock}}</a>
+						<a class="tw-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{ctx.RenderUtils.RenderEmoji .Title | RenderCodeBlock}}</a>
 						{{if .IsPull}}
 							{{if (index $.CommitStatuses .PullRequest.ID)}}
 								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID)}}
@@ -21,7 +21,7 @@
 						{{end}}
 						<span class="labels-list tw-ml-1">
 							{{range .Labels}}
-								<a href="?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{RenderLabel $.Context ctx.Locale .}}</a>
+								<a href="?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.RenderUtils.RenderLabel .}}</a>
 							{{end}}
 						</span>
 					</div>
@@ -60,7 +60,7 @@
 							#{{.Index}}
 						{{end}}
 					</a>
-					{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
+					{{$timeStr := DateUtils.TimeSince .GetLastEventTimestamp}}
 					{{if .OriginalAuthor}}
 						{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor}}
 					{{else if gt .Poster.ID 0}}
@@ -117,7 +117,7 @@
 						<span class="due-date flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
 							<span{{if .IsOverdue}} class="text red"{{end}}>
 								{{svg "octicon-calendar" 14}}
-								{{DateTime "short" (.DeadlineUnix.FormatDate)}}
+								{{DateUtils.AbsoluteShort .DeadlineUnix}}
 							</span>
 						</span>
 					{{end}}

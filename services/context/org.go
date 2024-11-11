@@ -26,7 +26,6 @@ type Organization struct {
 	Organization     *organization.Organization
 	OrgLink          string
 	CanCreateOrgRepo bool
-	PublicMemberOnly bool // Only display public members
 
 	Team  *organization.Team
 	Teams []*organization.Team
@@ -176,10 +175,10 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Data["OrgLink"] = ctx.Org.OrgLink
 
 	// Member
-	ctx.Org.PublicMemberOnly = ctx.Doer == nil || !ctx.Org.IsMember && !ctx.Doer.IsAdmin
 	opts := &organization.FindOrgMembersOpts{
-		OrgID:      org.ID,
-		PublicOnly: ctx.Org.PublicMemberOnly,
+		Doer:         ctx.Doer,
+		OrgID:        org.ID,
+		IsDoerMember: ctx.Org.IsMember,
 	}
 	ctx.Data["NumMembers"], err = organization.CountOrgMembers(ctx, opts)
 	if err != nil {

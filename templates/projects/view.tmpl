@@ -49,7 +49,7 @@
 											{{svg "octicon-check"}}
 										{{end}}
 									{{end}}
-									{{RenderLabel $.Context ctx.Locale .}}
+									{{ctx.RenderUtils.RenderLabel .}}
 									<p class="tw-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
 								</a>
 							{{end}}
