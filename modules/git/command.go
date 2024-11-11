@@ -269,8 +269,43 @@ func CommonCmdServEnvs() []string {
 
 var ErrBrokenCommand = errors.New("git command is broken")
 
-// Run runs the command with the RunOpts
 func (c *Command) Run(opts *RunOpts) error {
+	// Check if there is some dangling locks older than the given threshold
+	if err := ForciblyUnlockRepositoryIfNeeded(c.parentContext, opts.Dir); err != nil {
+		log.Error("Error while trying to unlock repository: %v", err)
+		return err
+	}
+	// Execute the git command
+	if err := c.doRun(opts); err != nil {
+		unlockUponCrashing(c.parentContext, err, opts.Dir)
+		return err
+	}
+	return nil
+}
+
+func unlockUponCrashing(ctx context.Context, originalError error, repoDir string) {
+	if hasGitProcessCrashed(originalError) {
+		log.Warn("The git process has crashed. Attempting to forcbily unlock the underlying repo at %s", repoDir)
+		if err := ForciblyUnlockRepository(ctx, repoDir); err != nil {
+			log.Error("Error while trying to unlock repository at %v", err)
+		}
+	}
+}
+
+func hasGitProcessCrashed(err error) bool {
+	if exitError, ok := err.(*exec.ExitError); ok {
+		if runtime.GOOS == "windows" {
+			log.Warn("Cannot realiably detected if the git process has crashed in windows. Assuming it hasn't [exitCode: %s, pid: %s]", exitError.ExitCode(), exitError.Pid())
+			return false
+		}
+		return exitError.ExitCode() > 128
+	}
+	log.Debug("The given error is not an ExitError [err: %v]. Assuming it the git process hasn't crashed", err)
+	return false
+}
+
+// Run runs the command with the RunOpts
+func (c *Command) doRun(opts *RunOpts) error {
 	if len(c.brokenArgs) != 0 {
 		log.Error("git command is broken: %s, broken args: %s", c.String(), strings.Join(c.brokenArgs, " "))
 		return ErrBrokenCommand
