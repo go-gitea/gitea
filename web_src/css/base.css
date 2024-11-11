@@ -1141,6 +1141,13 @@ overflow-menu .ui.label {
   font-family: var(--fonts-regular);
 }
 
+.lines-comment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1px;
+}
+
 .lines-commit .blame-info .blame-data .blame-message {
   flex-grow: 2;
   overflow: hidden;

@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -39,6 +40,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/gitdiff"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -864,6 +866,14 @@ func ExcerptBlob(ctx *context.Context) {
 	direction := ctx.FormString("direction")
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
+	lastRightCommentIdx := ctx.FormInt("last_left_comment_idx")
+	rightCommentIdx := ctx.FormInt("left_comment_idx")
+	fileName := ctx.FormString("file_name")
+
+	if ctx.FormBool("pull") {
+		ctx.Data["PageIsPullFiles"] = true
+	}
+
 	if ctx.FormBool("wiki") {
 		var err error
 		gitRepo, err = gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
@@ -873,6 +883,17 @@ func ExcerptBlob(ctx *context.Context) {
 		}
 		defer gitRepo.Close()
 	}
+
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, int64(2))
+
+	if err != nil {
+		ctx.ServerError("GetIssueByIndex", err)
+		return
+	}
+
+	allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, false)
+	lineCommits := allComments[fileName]
+
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
@@ -882,15 +903,16 @@ func ExcerptBlob(ctx *context.Context) {
 	section := &gitdiff.DiffSection{
 		FileName: filePath,
 		Name:     filePath,
+		Lines:    []*gitdiff.DiffLine{},
 	}
 	if direction == "up" && (idxLeft-lastLeft) > chunkSize {
 		idxLeft -= chunkSize
 		idxRight -= chunkSize
 		leftHunkSize += chunkSize
 		rightHunkSize += chunkSize
-		section.Lines, err = getExcerptLines(commit, filePath, idxLeft-1, idxRight-1, chunkSize)
+		section.Lines, err = getExcerptLines(commit, filePath, idxLeft-1, idxRight-1, chunkSize, lastRightCommentIdx, rightCommentIdx)
 	} else if direction == "down" && (idxLeft-lastLeft) > chunkSize {
-		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, chunkSize)
+		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, chunkSize, lastRightCommentIdx, rightCommentIdx)
 		lastLeft += chunkSize
 		lastRight += chunkSize
 	} else {
@@ -898,7 +920,7 @@ func ExcerptBlob(ctx *context.Context) {
 		if direction == "down" {
 			offset = 0
 		}
-		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, idxRight-lastRight+offset)
+		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, idxRight-lastRight+offset, lastRightCommentIdx, rightCommentIdx)
 		leftHunkSize = 0
 		rightHunkSize = 0
 		idxLeft = lastLeft
@@ -918,14 +940,18 @@ func ExcerptBlob(ctx *context.Context) {
 			Type:    gitdiff.DiffLineSection,
 			Content: lineText,
 			SectionInfo: &gitdiff.DiffLineSectionInfo{
-				Path:          filePath,
-				LastLeftIdx:   lastLeft,
-				LastRightIdx:  lastRight,
-				LeftIdx:       idxLeft,
-				RightIdx:      idxRight,
-				LeftHunkSize:  leftHunkSize,
-				RightHunkSize: rightHunkSize,
+				Path:                filePath,
+				LastLeftIdx:         lastLeft,
+				LastRightIdx:        lastRight,
+				LeftIdx:             idxLeft,
+				RightIdx:            idxRight,
+				LeftHunkSize:        leftHunkSize,
+				RightHunkSize:       rightHunkSize,
+				HasComments:         false,
+				LastRightCommentIdx: 0,
+				RightCommentIdx:     0,
 			},
+			Comments: nil,
 		}
 		if direction == "up" {
 			section.Lines = append([]*gitdiff.DiffLine{lineSection}, section.Lines...)
@@ -933,14 +959,74 @@ func ExcerptBlob(ctx *context.Context) {
 			section.Lines = append(section.Lines, lineSection)
 		}
 	}
+
+	for _, line := range section.Lines {
+		if line.SectionInfo != nil {
+			//for now considerign only right side.
+			start := int64(line.SectionInfo.LastRightIdx + 1)
+			end := int64(line.SectionInfo.RightIdx - 1)
+
+			//to check section has comments or not.
+			//1.  we can use binary search
+			//2. we can LastRightCommentIdx, RightCommentIdx, LastLeftCommentIdx, LeftCommentIdx(little complex but fast)
+			//3. for demo using linear search
+			for start <= end {
+				if _, ok := lineCommits[start]; ok {
+					if !line.SectionInfo.HasComments {
+						// line.SectionInfo.LastRightCommentIdx = int(start)
+						// line.SectionInfo.RightCommentIdx = int(start)
+						line.SectionInfo.HasComments = true
+						break
+					}
+
+				}
+				start += 1
+			}
+
+		}
+		if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
+			line.Comments = append(line.Comments, comments...)
+		}
+		if comments, ok := lineCommits[int64(line.RightIdx)]; ok {
+			line.Comments = append(line.Comments, comments...)
+		}
+
+		sort.SliceStable(line.Comments, func(i, j int) bool {
+			return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+		})
+	}
+
+	for _, line := range section.Lines {
+		for _, comment := range line.Comments {
+			if err := comment.LoadAttachments(ctx); err != nil {
+				ctx.ServerError("LoadAttachments", err)
+				return
+			}
+		}
+	}
+
 	ctx.Data["section"] = section
 	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
 	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Anchor"] = anchor
+	ctx.Data["Issue"] = issue
+	ctx.Data["issue"] = issue.Index
+	ctx.Data["SignedUserID"] = ctx.Data["SignedUserID"]
+	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+	}
+
+	if ctx.Data["SignedUserID"] == nil {
+		ctx.Data["SignedUserID"] = ctx.Doer.ID
+	}
+	ctx.Data["SignedUser"] = ctx.Doer
+	ctx.Data["IsSigned"] = ctx.Doer != nil
+	ctx.Data["Repository"] = ctx.Repo.Repository
+	ctx.Data["Permission"] = &ctx.Repo.Permission
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)
 }
 
-func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chunkSize int) ([]*gitdiff.DiffLine, error) {
+func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chunkSize, lastRightCommentIdx, rightCommentIdx int) ([]*gitdiff.DiffLine, error) {
 	blob, err := commit.Tree.GetBlobByPath(filePath)
 	if err != nil {
 		return nil, err
@@ -965,7 +1051,12 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 			RightIdx: line + 1,
 			Type:     gitdiff.DiffLinePlain,
 			Content:  " " + lineText,
+			Comments: []*issues_model.Comment{},
 		}
+		// if diffLine.SectionInfo != nil {
+		// 	diffLine.SectionInfo.LastRightCommentIdx = lastRightCommentIdx
+		// 	diffLine.SectionInfo.RightCommentIdx = rightCommentIdx
+		// }
 		diffLines = append(diffLines, diffLine)
 	}
 	if err = scanner.Err(); err != nil {

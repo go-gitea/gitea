@@ -86,13 +86,16 @@ type DiffLine struct {
 
 // DiffLineSectionInfo represents diff line section meta data
 type DiffLineSectionInfo struct {
-	Path          string
-	LastLeftIdx   int
-	LastRightIdx  int
-	LeftIdx       int
-	RightIdx      int
-	LeftHunkSize  int
-	RightHunkSize int
+	Path                string
+	LastLeftIdx         int
+	LastRightIdx        int
+	LeftIdx             int
+	RightIdx            int
+	LeftHunkSize        int
+	RightHunkSize       int
+	HasComments         bool
+	LastRightCommentIdx int
+	RightCommentIdx     int
 }
 
 // BlobExcerptChunkSize represent max lines of excerpt
@@ -118,7 +121,7 @@ func (d *DiffLine) GetHTMLDiffLineType() string {
 
 // CanComment returns whether a line can get commented
 func (d *DiffLine) CanComment() bool {
-	return len(d.Comments) == 0 && d.Type != DiffLineSection
+	return len(d.Comments) == 0
 }
 
 // GetCommentSide returns the comment side of the first comment, if not set returns empty string
@@ -143,10 +146,12 @@ func (d *DiffLine) GetBlobExcerptQuery() string {
 		"last_left=%d&last_right=%d&"+
 			"left=%d&right=%d&"+
 			"left_hunk_size=%d&right_hunk_size=%d&"+
+			"last_rightt_comment_idx=%d&right_comment_idx=%d&"+
 			"path=%s",
 		d.SectionInfo.LastLeftIdx, d.SectionInfo.LastRightIdx,
 		d.SectionInfo.LeftIdx, d.SectionInfo.RightIdx,
 		d.SectionInfo.LeftHunkSize, d.SectionInfo.RightHunkSize,
+		d.SectionInfo.LastRightCommentIdx, d.SectionInfo.RightCommentIdx,
 		url.QueryEscape(d.SectionInfo.Path))
 	return query
 }
@@ -170,13 +175,16 @@ func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int
 	leftLine, leftHunk, rightLine, righHunk := git.ParseDiffHunkString(line)
 
 	return &DiffLineSectionInfo{
-		Path:          treePath,
-		LastLeftIdx:   lastLeftIdx,
-		LastRightIdx:  lastRightIdx,
-		LeftIdx:       leftLine,
-		RightIdx:      rightLine,
-		LeftHunkSize:  leftHunk,
-		RightHunkSize: righHunk,
+		Path:                treePath,
+		LastLeftIdx:         lastLeftIdx,
+		LastRightIdx:        lastRightIdx,
+		LeftIdx:             leftLine,
+		RightIdx:            rightLine,
+		LeftHunkSize:        leftHunk,
+		RightHunkSize:       righHunk,
+		HasComments:         false,
+		LastRightCommentIdx: 0,
+		RightCommentIdx:     0,
 	}
 }
 
@@ -396,11 +404,14 @@ func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommit, ri
 		Type:    DiffLineSection,
 		Content: " ",
 		SectionInfo: &DiffLineSectionInfo{
-			Path:         diffFile.Name,
-			LastLeftIdx:  lastLine.LeftIdx,
-			LastRightIdx: lastLine.RightIdx,
-			LeftIdx:      leftLineCount,
-			RightIdx:     rightLineCount,
+			Path:                diffFile.Name,
+			LastLeftIdx:         lastLine.LeftIdx,
+			LastRightIdx:        lastLine.RightIdx,
+			LeftIdx:             leftLineCount,
+			RightIdx:            rightLineCount,
+			HasComments:         false,
+			LastRightCommentIdx: 0,
+			RightCommentIdx:     0,
 		},
 	}
 	tailSection := &DiffSection{FileName: diffFile.Name, Lines: []*DiffLine{tailDiffLine}}
@@ -458,16 +469,38 @@ type Diff struct {
 	NumViewedFiles               int // user-specific
 }
 
+// function (section *DiffSection) GetType() int {
+
 // LoadComments loads comments into each line
 func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, currentUser *user_model.User, showOutdatedComments bool) error {
 	allComments, err := issues_model.FetchCodeComments(ctx, issue, currentUser, showOutdatedComments)
 	if err != nil {
 		return err
 	}
+
 	for _, file := range diff.Files {
 		if lineCommits, ok := allComments[file.Name]; ok {
 			for _, section := range file.Sections {
 				for _, line := range section.Lines {
+					if line.SectionInfo != nil {
+						start := int64(line.SectionInfo.LastRightIdx + 1)
+						end := int64(line.SectionInfo.RightIdx - 1)
+
+						for start <= end {
+							if _, ok := lineCommits[start]; ok {
+								if line.SectionInfo.LastRightCommentIdx == 0 {
+									// line.SectionInfo.LastRightCommentIdx = int(start)
+									// line.SectionInfo.RightCommentIdx = int(start)
+									line.SectionInfo.HasComments = true
+
+									break
+								}
+
+							}
+							start += 1
+
+						}
+					}
 					if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
 						line.Comments = append(line.Comments, comments...)
 					}
