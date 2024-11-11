@@ -197,7 +197,6 @@ func TestRestrictedUserOrgMembers(t *testing.T) {
 		name         string
 		opts         *organization.FindOrgMembersOpts
 		expectedUIDs []int64
-		expectedLen  int
 	}{
 		{
 			name: "restricted user sees public members and teammates",
@@ -206,8 +205,7 @@ func TestRestrictedUserOrgMembers(t *testing.T) {
 				Doer:         restrictedUser,
 				IsDoerMember: true,
 			},
-			expectedUIDs: []int64{2, 15, 29}, // Public members (2) + teammates in team9 (15, 20, 29)
-			expectedLen:  3,
+			expectedUIDs: []int64{2, 15, 29}, // Public members (2) + teammates in team9 (15, 29) // note: user 20 is team_user but not org_user
 		},
 		{
 			name: "restricted user sees only public members when not member",
@@ -216,7 +214,6 @@ func TestRestrictedUserOrgMembers(t *testing.T) {
 				Doer:  restrictedUser,
 			},
 			expectedUIDs: []int64{2, 28}, // Only public members
-			expectedLen:  2,
 		},
 		{
 			name: "non logged in only shows public members",
@@ -224,7 +221,6 @@ func TestRestrictedUserOrgMembers(t *testing.T) {
 				OrgID: 3,
 			},
 			expectedUIDs: []int64{2, 28}, // Only public members
-			expectedLen:  2,
 		},
 		{
 			name: "non restricted user sees all members",
@@ -234,7 +230,6 @@ func TestRestrictedUserOrgMembers(t *testing.T) {
 				IsDoerMember: true,
 			},
 			expectedUIDs: []int64{2, 15, 18, 29}, // All members
-			expectedLen:  3,
 		},
 	}
 
@@ -242,12 +237,10 @@ func TestRestrictedUserOrgMembers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			count, err := organization.CountOrgMembers(db.DefaultContext, tc.opts)
 			assert.NoError(t, err)
-			assert.Equal(t, int64(tc.expectedLen), count)
+			assert.Equal(t, len(tc.expectedUIDs), count)
 
 			members, err := organization.GetOrgUsersByOrgID(db.DefaultContext, tc.opts)
 			assert.NoError(t, err)
-			assert.Len(t, members, tc.expectedLen)
-
 			memberUIDs := make([]int64, 0, len(members))
 			for _, member := range members {
 				memberUIDs = append(memberUIDs, member.UID)
