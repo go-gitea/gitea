@@ -414,34 +414,32 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	}
 	protectBranch.ApprovalsWhitelistTeamIDs = whitelist
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		// Looks like it's a new rule
-		if protectBranch.ID == 0 {
-			// as it's a new rule and if priority was not set, we need to calc it.
-			if protectBranch.Priority == 0 {
-				var lowestPrio int64
-				// because of mssql we can not use builder or save xorm syntax, so raw sql it is
-				if _, err := db.GetEngine(ctx).SQL(`SELECT MAX(priority) FROM protected_branch WHERE repo_id = ?`, protectBranch.RepoID).
-					Get(&lowestPrio); err != nil {
-					return err
-				}
-				log.Trace("Create new ProtectedBranch at repo[%d] and detect current lowest priority '%d'", protectBranch.RepoID, lowestPrio)
-				protectBranch.Priority = lowestPrio + 1
+	// Looks like it's a new rule
+	if protectBranch.ID == 0 {
+		// as it's a new rule and if priority was not set, we need to calc it.
+		if protectBranch.Priority == 0 {
+			var lowestPrio int64
+			// because of mssql we can not use builder or save xorm syntax, so raw sql it is
+			if _, err := db.GetEngine(ctx).SQL(`SELECT MAX(priority) FROM protected_branch WHERE repo_id = ?`, protectBranch.RepoID).
+				Get(&lowestPrio); err != nil {
+				return err
 			}
-
-			if _, err = db.GetEngine(ctx).Insert(protectBranch); err != nil {
-				return fmt.Errorf("Insert: %v", err)
-			}
-			return nil
+			log.Trace("Create new ProtectedBranch at repo[%d] and detect current lowest priority '%d'", protectBranch.RepoID, lowestPrio)
+			protectBranch.Priority = lowestPrio + 1
 		}
 
-		// update the rule
-		if _, err = db.GetEngine(ctx).ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
-			return fmt.Errorf("Update: %v", err)
+		if _, err = db.GetEngine(ctx).Insert(protectBranch); err != nil {
+			return fmt.Errorf("Insert: %v", err)
 		}
-
 		return nil
-	})
+	}
+
+	// update the rule
+	if _, err = db.GetEngine(ctx).ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
+		return fmt.Errorf("Update: %v", err)
+	}
+
+	return nil
 }
 
 func UpdateProtectBranchPriorities(ctx context.Context, repo *repo_model.Repository, ids []int64) error {
