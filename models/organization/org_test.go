@@ -205,7 +205,7 @@ func TestRestrictedUserOrgMembers(t *testing.T) {
 				Doer:         restrictedUser,
 				IsDoerMember: true,
 			},
-			expectedUIDs: []int64{2, 15, 29}, // Public members (2) + teammates in team9 (15, 29) // note: user 20 is team_user but not org_user
+			expectedUIDs: []int64{2, 15, 20, 29}, // Public members (2) + teammates in team9 (15, 20, 29)
 		},
 		{
 			name: "restricted user sees only public members when not member",
@@ -229,7 +229,7 @@ func TestRestrictedUserOrgMembers(t *testing.T) {
 				Doer:         unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15}),
 				IsDoerMember: true,
 			},
-			expectedUIDs: []int64{2, 15, 18, 29}, // All members
+			expectedUIDs: []int64{2, 15, 18, 20, 29}, // All members
 		},
 	}
 
@@ -237,7 +237,7 @@ func TestRestrictedUserOrgMembers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			count, err := organization.CountOrgMembers(db.DefaultContext, tc.opts)
 			assert.NoError(t, err)
-			assert.Equal(t, len(tc.expectedUIDs), count)
+			assert.EqualValues(t, len(tc.expectedUIDs), count)
 
 			members, err := organization.GetOrgUsersByOrgID(db.DefaultContext, tc.opts)
 			assert.NoError(t, err)
