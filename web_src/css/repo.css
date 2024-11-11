@@ -50,7 +50,7 @@
   width: 300px;
 }
 
-.issue-sidebar-combo .ui.dropdown .item:not(.checked) svg.octicon-check {
+.issue-sidebar-combo .ui.dropdown .item:not(.checked) .item-check-mark {
   visibility: hidden;
 }
 /* ideally, we should move these styles to ".ui.dropdown .menu.flex-items-menu > .item ...", could be done later */
@@ -62,6 +62,8 @@
 .issue-content-right .dropdown > .menu {
   max-width: 270px;
   min-width: 0;
+  max-height: 500px;
+  overflow-x: auto;
 }
 
 @media (max-width: 767.98px) {
@@ -108,10 +110,6 @@
   min-width: max-content;
   right: unset;
   left: 0;
-}
-
-.repository .select-label .desc {
-  padding-left: 23px;
 }
 
 /* For the secondary pointing menu, respect its own border-bottom */
@@ -2453,12 +2451,6 @@ tbody.commit-list {
 
 .title_wip_desc {
   margin-top: 1em;
-}
-
-.sidebar-item-link {
-  display: inline-flex;
-  align-items: center;
-  overflow-wrap: anywhere;
 }
 
 .diff-file-header {

@@ -141,8 +141,9 @@ func (org *Organization) LoadTeams(ctx context.Context) ([]*Team, error) {
 }
 
 // GetMembers returns all members of organization.
-func (org *Organization) GetMembers(ctx context.Context) (user_model.UserList, map[int64]bool, error) {
+func (org *Organization) GetMembers(ctx context.Context, doer *user_model.User) (user_model.UserList, map[int64]bool, error) {
 	return FindOrgMembers(ctx, &FindOrgMembersOpts{
+		Doer:  doer,
 		OrgID: org.ID,
 	})
 }
@@ -195,16 +196,22 @@ func (org *Organization) CanCreateRepo() bool {
 // FindOrgMembersOpts represensts find org members conditions
 type FindOrgMembersOpts struct {
 	db.ListOptions
-	OrgID      int64
-	PublicOnly bool
+	Doer         *user_model.User
+	IsDoerMember bool
+	OrgID        int64
+}
+
+func (opts FindOrgMembersOpts) PublicOnly() bool {
+	return opts.Doer == nil || !(opts.IsDoerMember || opts.Doer.IsAdmin)
 }
 
 // CountOrgMembers counts the organization's members
 func CountOrgMembers(ctx context.Context, opts *FindOrgMembersOpts) (int64, error) {
 	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
-	if opts.PublicOnly {
+	if opts.PublicOnly() {
 		sess.And("is_public = ?", true)
 	}
+
 	return sess.Count(new(OrgUser))
 }
 
@@ -525,9 +532,10 @@ func GetOrgsCanCreateRepoByUserID(ctx context.Context, userID int64) ([]*Organiz
 // GetOrgUsersByOrgID returns all organization-user relations by organization ID.
 func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
 	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
-	if opts.PublicOnly {
+	if opts.PublicOnly() {
 		sess.And("is_public = ?", true)
 	}
+
 	if opts.ListOptions.PageSize > 0 {
 		sess = db.SetSessionPagination(sess, opts)
 

@@ -1,9 +1,9 @@
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {POST} from '../modules/fetch.ts';
-import {queryElemChildren, toggleElem} from '../utils/dom.ts';
+import {queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
 
 // if there are draft comments, confirm before reloading, to avoid losing comments
-export function issueSidebarReloadConfirmDraftComment() {
+function issueSidebarReloadConfirmDraftComment() {
   const commentTextareas = [
     document.querySelector<HTMLTextAreaElement>('.edit-content-zone:not(.tw-hidden) textarea'),
     document.querySelector<HTMLTextAreaElement>('#comment-form textarea'),
@@ -22,68 +22,138 @@ export function issueSidebarReloadConfirmDraftComment() {
   window.location.reload();
 }
 
-function collectCheckedValues(elDropdown: HTMLElement) {
-  return Array.from(elDropdown.querySelectorAll('.menu > .item.checked'), (el) => el.getAttribute('data-value'));
-}
+class IssueSidebarComboList {
+  updateUrl: string;
+  updateAlgo: string;
+  selectionMode: string;
+  elDropdown: HTMLElement;
+  elList: HTMLElement;
+  elComboValue: HTMLInputElement;
+  initialValues: string[];
 
-export function initIssueSidebarComboList(container: HTMLElement) {
-  if (!container) return;
+  constructor(private container: HTMLElement) {
+    this.updateUrl = this.container.getAttribute('data-update-url');
+    this.updateAlgo = container.getAttribute('data-update-algo');
+    this.selectionMode = container.getAttribute('data-selection-mode');
+    if (!['single', 'multiple'].includes(this.selectionMode)) throw new Error(`Invalid data-update-on: ${this.selectionMode}`);
+    if (!['diff', 'all'].includes(this.updateAlgo)) throw new Error(`Invalid data-update-algo: ${this.updateAlgo}`);
+    this.elDropdown = container.querySelector<HTMLElement>(':scope > .ui.dropdown');
+    this.elList = container.querySelector<HTMLElement>(':scope > .ui.list');
+    this.elComboValue = container.querySelector<HTMLInputElement>(':scope > .combo-value');
+  }
 
-  const updateUrl = container.getAttribute('data-update-url');
-  const elDropdown = container.querySelector<HTMLElement>(':scope > .ui.dropdown');
-  const elList = container.querySelector<HTMLElement>(':scope > .ui.list');
-  const elComboValue = container.querySelector<HTMLInputElement>(':scope > .combo-value');
-  const initialValues = collectCheckedValues(elDropdown);
+  collectCheckedValues() {
+    return Array.from(this.elDropdown.querySelectorAll('.menu > .item.checked'), (el) => el.getAttribute('data-value'));
+  }
 
-  elDropdown.addEventListener('click', (e) => {
+  updateUiList(changedValues) {
+    const elEmptyTip = this.elList.querySelector('.item.empty-list');
+    queryElemChildren(this.elList, '.item:not(.empty-list)', (el) => el.remove());
+    for (const value of changedValues) {
+      const el = this.elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${CSS.escape(value)}"]`);
+      if (!el) continue;
+      const listItem = el.cloneNode(true) as HTMLElement;
+      queryElems(listItem, '.item-check-mark, .item-secondary-info', (el) => el.remove());
+      this.elList.append(listItem);
+    }
+    const hasItems = Boolean(this.elList.querySelector('.item:not(.empty-list)'));
+    toggleElem(elEmptyTip, !hasItems);
+  }
+
+  async updateToBackend(changedValues) {
+    if (this.updateAlgo === 'diff') {
+      for (const value of this.initialValues) {
+        if (!changedValues.includes(value)) {
+          await POST(this.updateUrl, {data: new URLSearchParams({action: 'detach', id: value})});
+        }
+      }
+      for (const value of changedValues) {
+        if (!this.initialValues.includes(value)) {
+          await POST(this.updateUrl, {data: new URLSearchParams({action: 'attach', id: value})});
+        }
+      }
+    } else {
+      await POST(this.updateUrl, {data: new URLSearchParams({id: changedValues.join(',')})});
+    }
+    issueSidebarReloadConfirmDraftComment();
+  }
+
+  async doUpdate() {
+    const changedValues = this.collectCheckedValues();
+    if (this.initialValues.join(',') === changedValues.join(',')) return;
+    this.updateUiList(changedValues);
+    if (this.updateUrl) await this.updateToBackend(changedValues);
+    this.initialValues = changedValues;
+  }
+
+  async onChange() {
+    if (this.selectionMode === 'single') {
+      await this.doUpdate();
+      fomanticQuery(this.elDropdown).dropdown('hide');
+    }
+  }
+
+  async onItemClick(e) {
     const elItem = (e.target as HTMLElement).closest('.item');
     if (!elItem) return;
     e.preventDefault();
-    if (elItem.getAttribute('data-can-change') !== 'true') return;
-    elItem.classList.toggle('checked');
-    elComboValue.value = collectCheckedValues(elDropdown).join(',');
-  });
+    if (elItem.hasAttribute('data-can-change') && elItem.getAttribute('data-can-change') !== 'true') return;
 
-  const updateToBackend = async (changedValues) => {
-    let changed = false;
-    for (const value of initialValues) {
-      if (!changedValues.includes(value)) {
-        await POST(updateUrl, {data: new URLSearchParams({action: 'detach', id: value})});
-        changed = true;
-      }
+    if (elItem.matches('.clear-selection')) {
+      queryElems(this.elDropdown, '.menu > .item', (el) => el.classList.remove('checked'));
+      this.elComboValue.value = '';
+      this.onChange();
+      return;
     }
-    for (const value of changedValues) {
-      if (!initialValues.includes(value)) {
-        await POST(updateUrl, {data: new URLSearchParams({action: 'attach', id: value})});
-        changed = true;
-      }
-    }
-    if (changed) issueSidebarReloadConfirmDraftComment();
-  };
 
-  const syncList = (changedValues) => {
-    const elEmptyTip = elList.querySelector('.item.empty-list');
-    queryElemChildren(elList, '.item:not(.empty-list)', (el) => el.remove());
-    for (const value of changedValues) {
-      const el = elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${value}"]`);
-      const listItem = el.cloneNode(true) as HTMLElement;
-      listItem.querySelector('svg.octicon-check')?.remove();
-      elList.append(listItem);
-    }
-    const hasItems = Boolean(elList.querySelector('.item:not(.empty-list)'));
-    toggleElem(elEmptyTip, !hasItems);
-  };
-
-  fomanticQuery(elDropdown).dropdown({
-    action: 'nothing', // do not hide the menu if user presses Enter
-    fullTextSearch: 'exact',
-    async onHide() {
-      const changedValues = collectCheckedValues(elDropdown);
-      if (updateUrl) {
-        await updateToBackend(changedValues); // send requests to backend and reload the page
+    const scope = elItem.getAttribute('data-scope');
+    if (scope) {
+      // scoped items could only be checked one at a time
+      const elSelected = this.elDropdown.querySelector<HTMLElement>(`.menu > .item.checked[data-scope="${CSS.escape(scope)}"]`);
+      if (elSelected === elItem) {
+        elItem.classList.toggle('checked');
       } else {
-        syncList(changedValues); // only update the list in the sidebar
+        queryElems(this.elDropdown, `.menu > .item[data-scope="${CSS.escape(scope)}"]`, (el) => el.classList.remove('checked'));
+        elItem.classList.toggle('checked', true);
       }
-    },
-  });
+    } else {
+      if (this.selectionMode === 'multiple') {
+        elItem.classList.toggle('checked');
+      } else {
+        queryElems(this.elDropdown, `.menu > .item.checked`, (el) => el.classList.remove('checked'));
+        elItem.classList.toggle('checked', true);
+      }
+    }
+    this.elComboValue.value = this.collectCheckedValues().join(',');
+    this.onChange();
+  }
+
+  async onHide() {
+    if (this.selectionMode === 'multiple') this.doUpdate();
+  }
+
+  init() {
+    // init the checked items from initial value
+    if (this.elComboValue.value && this.elComboValue.value !== '0' && !queryElems(this.elDropdown, `.menu > .item.checked`).length) {
+      const values = this.elComboValue.value.split(',');
+      for (const value of values) {
+        const elItem = this.elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${CSS.escape(value)}"]`);
+        elItem?.classList.add('checked');
+      }
+      this.updateUiList(values);
+    }
+    this.initialValues = this.collectCheckedValues();
+
+    this.elDropdown.addEventListener('click', (e) => this.onItemClick(e));
+
+    fomanticQuery(this.elDropdown).dropdown('setting', {
+      action: 'nothing', // do not hide the menu if user presses Enter
+      fullTextSearch: 'exact',
+      onHide: () => this.onHide(),
+    });
+  }
+}
+
+export function initIssueSidebarComboList(container: HTMLElement) {
+  new IssueSidebarComboList(container).init();
 }

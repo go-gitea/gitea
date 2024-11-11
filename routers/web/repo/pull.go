@@ -1269,7 +1269,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
-	validateRet := ValidateRepoMetas(ctx, *form, true)
+	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, true)
 	if ctx.Written() {
 		return
 	}
