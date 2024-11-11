@@ -573,7 +573,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	team := ctx.Org.Team
-	teamRepos, err := organization.GetTeamRepositories(ctx, &organization.SearchTeamRepoOptions{
+	teamRepos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		TeamID:      team.ID,
 	})
