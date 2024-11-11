@@ -15,7 +15,7 @@ export function initRepoBranchesSettings() {
       }).filter((id) => !Number.isNaN(id));
 
       try {
-        await POST(protectedBranchesList.getAttribute('data-priority-url'), {
+        await POST(protectedBranchesList.getAttribute('data-update-priority-url'), {
           data: {
             ids: newOrder,
           },

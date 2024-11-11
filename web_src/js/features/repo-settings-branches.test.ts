@@ -14,7 +14,7 @@ vi.mock('../modules/sortable.ts', () => ({
 describe('Repository Branch Settings', () => {
   beforeEach(() => {
     document.body.innerHTML = `
-      <div id="protected-branches-list" data-priority-url="some/repo/branches/priority">
+      <div id="protected-branches-list" data-update-priority-url="some/repo/branches/priority">
         <div class="item" data-id="1">
           <div class="flex-item">
             <div class="drag-handle"></div>
