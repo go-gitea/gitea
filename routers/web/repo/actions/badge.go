@@ -21,22 +21,25 @@ func GetWorkflowBadge(ctx *context.Context) {
 	branch := ctx.Req.URL.Query().Get("branch")
 	tag := ctx.Req.URL.Query().Get("tag")
 	useLatestTag := ctx.Req.URL.Query().Has("latest_tag")
-	if branch == "" && tag == "" && !useLatestTag {
-		branch = ctx.Repo.Repository.DefaultBranch
-	}
-	ref := fmt.Sprintf("refs/heads/%s", branch)
-	if branch == "" && tag != "" {
-		if useLatestTag {
-			tags, _, err := ctx.Repo.GitRepo.GetTagInfos(0, 1)
-			if err != nil {
-				ctx.ServerError("GetTagInfos", err)
-				return
-			}
-			if len(tags) != 0 {
-				tag = tags[0].Name
-			}
+	var ref string
+	switch {
+	case useLatestTag:
+		tags, _, err := ctx.Repo.GitRepo.GetTagInfos(0, 1)
+		if err != nil {
+			ctx.ServerError("GetTagInfos", err)
+			return
+		}
+		if len(tags) != 0 {
+			tag = tags[0].Name
 		}
 		ref = fmt.Sprintf("refs/tags/%s", tag)
+	case tag != "":
+		ref = fmt.Sprintf("refs/tags/%s", tag)
+	case branch != "":
+		ref = fmt.Sprintf("refs/heads/%s", branch)
+	default:
+		branch = ctx.Repo.Repository.DefaultBranch
+		ref = fmt.Sprintf("refs/heads/%s", branch)
 	}
 	event := ctx.Req.URL.Query().Get("event")
 
