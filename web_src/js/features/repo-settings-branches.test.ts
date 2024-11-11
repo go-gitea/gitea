@@ -15,17 +15,17 @@ describe('Repository Branch Settings', () => {
   beforeEach(() => {
     document.body.innerHTML = `
       <div id="protected-branches-list" data-update-priority-url="some/repo/branches/priority">
-        <div class="item" data-id="1">
+        <div data-id="1">
           <div class="flex-item">
             <div class="drag-handle"></div>
           </div>
         </div>
-        <div class="item" data-id="2">
+        <div data-id="2">
           <div class="flex-item">
             <div class="drag-handle"></div>
           </div>
         </div>
-        <div class="item" data-id="3">
+        <div data-id="3">
           <div class="flex-item">
             <div class="drag-handle"></div>
           </div>
