@@ -80,6 +80,27 @@ var (
 		TypePullRequests,
 	}
 
+	// DefaultMirrorRepoUnits contains the default unit types for mirrors
+	DefaultMirrorRepoUnits = []Type{
+		TypeCode,
+		TypeIssues,
+		TypeReleases,
+		TypeWiki,
+		TypeProjects,
+		TypePackages,
+	}
+
+	// DefaultTemplateRepoUnits contains the default unit types for templates
+	DefaultTemplateRepoUnits = []Type{
+		TypeCode,
+		TypeIssues,
+		TypePullRequests,
+		TypeReleases,
+		TypeWiki,
+		TypeProjects,
+		TypePackages,
+	}
+
 	// NotAllowedDefaultRepoUnits contains units that can't be default
 	NotAllowedDefaultRepoUnits = []Type{
 		TypeExternalWiki,
@@ -147,6 +168,7 @@ func LoadUnitConfig() error {
 	if len(DefaultRepoUnits) == 0 {
 		return errors.New("no default repository units found")
 	}
+	// default fork repo units
 	setDefaultForkRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultForkRepoUnits...)
 	if len(invalidKeys) > 0 {
 		log.Warn("Invalid keys in default fork repo units: %s", strings.Join(invalidKeys, ", "))
@@ -154,6 +176,24 @@ func LoadUnitConfig() error {
 	DefaultForkRepoUnits = validateDefaultRepoUnits(DefaultForkRepoUnits, setDefaultForkRepoUnits)
 	if len(DefaultForkRepoUnits) == 0 {
 		return errors.New("no default fork repository units found")
+	}
+	// default mirror repo units
+	setDefaultMirrorRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultMirrorRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in default mirror repo units: %s", strings.Join(invalidKeys, ", "))
+	}
+	DefaultMirrorRepoUnits = validateDefaultRepoUnits(DefaultMirrorRepoUnits, setDefaultMirrorRepoUnits)
+	if len(DefaultMirrorRepoUnits) == 0 {
+		return errors.New("no default mirror repository units found")
+	}
+	// default template repo units
+	setDefaultTemplateRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultTemplateRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in default template repo units: %s", strings.Join(invalidKeys, ", "))
+	}
+	DefaultTemplateRepoUnits = validateDefaultRepoUnits(DefaultTemplateRepoUnits, setDefaultTemplateRepoUnits)
+	if len(DefaultTemplateRepoUnits) == 0 {
+		return errors.New("no default template repository units found")
 	}
 	return nil
 }
