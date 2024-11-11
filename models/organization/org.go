@@ -206,6 +206,7 @@ func (opts FindOrgMembersOpts) PublicOnly() bool {
 	return opts.Doer == nil || !(opts.IsDoerMember || opts.Doer.IsAdmin)
 }
 
+// applyTeamMatesOnlyFilter make sure restricted users only see public team members and there own team mates
 func (opts FindOrgMembersOpts) applyTeamMatesOnlyFilter(sess *xorm.Session) {
 	if opts.Doer != nil && opts.IsDoerMember && opts.Doer.IsRestricted {
 		teamMates := builder.Select("DISTINCT team_user.uid").
@@ -213,7 +214,7 @@ func (opts FindOrgMembersOpts) applyTeamMatesOnlyFilter(sess *xorm.Session) {
 			Where(builder.In("team_user.team_id", getUserTeamIDsQueryBuilder(opts.OrgID, opts.Doer.ID))).
 			And(builder.Eq{"team_user.org_id": opts.OrgID})
 
-		sess.In("org_user.uid", teamMates)
+		sess.And("is_public = ?", true).Or(sess.In("org_user.uid", teamMates))
 	}
 }
 
@@ -221,9 +222,10 @@ func (opts FindOrgMembersOpts) applyTeamMatesOnlyFilter(sess *xorm.Session) {
 func CountOrgMembers(ctx context.Context, opts *FindOrgMembersOpts) (int64, error) {
 	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly() {
-		sess.And("is_public = ?", true)
+		sess = sess.And("is_public = ?", true)
+	} else {
+		opts.applyTeamMatesOnlyFilter(sess)
 	}
-	opts.applyTeamMatesOnlyFilter(sess)
 
 	return sess.Count(new(OrgUser))
 }
@@ -546,9 +548,10 @@ func GetOrgsCanCreateRepoByUserID(ctx context.Context, userID int64) ([]*Organiz
 func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
 	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly() {
-		sess.And("is_public = ?", true)
+		sess = sess.And("is_public = ?", true)
+	} else {
+		opts.applyTeamMatesOnlyFilter(sess)
 	}
-	opts.applyTeamMatesOnlyFilter(sess)
 
 	if opts.ListOptions.PageSize > 0 {
 		sess = db.SetSessionPagination(sess, opts)
