@@ -1,5 +1,6 @@
 import {createSortable} from '../modules/sortable.ts';
 import {POST} from '../modules/fetch.ts';
+import {showErrorToast} from '../modules/toast.ts';
 
 export function initRepoBranchesSettings() {
   const protectedBranchesList = document.querySelector('#protected-branches-list');
@@ -21,7 +22,8 @@ export function initRepoBranchesSettings() {
           },
         });
       } catch (err) {
-        console.error('Failed to update branch protection rule priority:', err);
+        const errorMessage = String(err);
+        showErrorToast(`Failed to update branch protection rule priority:, error: ${errorMessage}`);
       }
     },
   });
