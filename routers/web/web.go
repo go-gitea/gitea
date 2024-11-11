@@ -1513,7 +1513,6 @@ func registerRoutes(m *web.Router) {
 			// FIXME: refactor this function, use separate routes for wiki/code
 			if ctx.FormBool("pull") {
 				ctx.Data["PageIsPullFiles"] = true
-
 			}
 
 			if ctx.FormBool("wiki") {

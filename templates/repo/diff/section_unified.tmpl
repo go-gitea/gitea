@@ -27,19 +27,16 @@
 								<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=unified&direction=down&wiki={{$.root.PageIsWiki}}&pull={{$.root.PageIsPullFiles}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}&file_name={{$section.FileName}}">
 									{{svg "octicon-fold-down"}}
 								</button>
-								test down
 							{{end}}
 							{{if or (eq $expandDirection 3) (eq $expandDirection 4)}}
 								<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=unified&direction=up&wiki={{$.root.PageIsWiki}}&pull={{$.root.PageIsPullFiles}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}&file_name={{$section.FileName}}">
 									{{svg "octicon-fold-up"}}
 								</button>
-								test up
 							{{end}}
 							{{if eq $expandDirection 2}}
 								<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=unified&direction=&wiki={{$.root.PageIsWiki}}&pull={{$.root.PageIsPullFiles}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}&file_name={{$section.FileName}}">
 									{{svg "octicon-fold"}}
 								</button>
-								test fold
 							{{end}}
 						</div>
 						</div>

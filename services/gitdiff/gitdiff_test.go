@@ -615,7 +615,7 @@ func TestDiff_LoadCommentsWithOutdated(t *testing.T) {
 }
 
 func TestDiffLine_CanComment(t *testing.T) {
-	assert.False(t, (&DiffLine{Type: DiffLineSection}).CanComment())
+	assert.True(t, (&DiffLine{Type: DiffLineSection}).CanComment())
 	assert.False(t, (&DiffLine{Type: DiffLineAdd, Comments: []*issues_model.Comment{{Content: "bla"}}}).CanComment())
 	assert.True(t, (&DiffLine{Type: DiffLineAdd}).CanComment())
 	assert.True(t, (&DiffLine{Type: DiffLineDel}).CanComment())

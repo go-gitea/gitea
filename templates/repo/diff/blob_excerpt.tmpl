@@ -91,19 +91,16 @@
 						<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=unified&direction=down&wiki={{$.PageIsWiki}}&pull={{$.PageIsPullFiles}}&anchor={{$.Anchor}}&file_name={{$.section.FileName}}">
 							{{svg "octicon-fold-down"}}
 						</button>
-						test else down blob {{$line.SectionInfo.HasComments}}
 					{{end}}
 					{{if or (eq $expandDirection 3) (eq $expandDirection 4)}}
 						<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=unified&direction=up&wiki={{$.PageIsWiki}}&pull={{$.PageIsPullFiles}}&anchor={{$.Anchor}}&file_name={{$.section.FileName}}">
 							{{svg "octicon-fold-up"}}
 						</button>
-						test else up  blob
 					{{end}}
 					{{if eq $expandDirection 2}}
 						<button class="code-expander-button" hx-target="closest tr" hx-get="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=unified&direction=&wiki={{$.PageIsWiki}}&pull={{$.PageIsPullFiles}}&anchor={{$.Anchor}}&file_name={{$.section.FileName}}">
 							{{svg "octicon-fold"}}
 						</button>
-						test else both  blob
 					{{end}}
 				</div>
 			 </div>	

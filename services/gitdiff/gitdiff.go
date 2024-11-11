@@ -485,20 +485,14 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 					if line.SectionInfo != nil {
 						start := int64(line.SectionInfo.LastRightIdx + 1)
 						end := int64(line.SectionInfo.RightIdx - 1)
-
 						for start <= end {
 							if _, ok := lineCommits[start]; ok {
-								if line.SectionInfo.LastRightCommentIdx == 0 {
-									// line.SectionInfo.LastRightCommentIdx = int(start)
-									// line.SectionInfo.RightCommentIdx = int(start)
+								if !line.SectionInfo.HasComments {
 									line.SectionInfo.HasComments = true
-
 									break
 								}
-
 							}
-							start += 1
-
+							start++
 						}
 					}
 					if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
