@@ -49,7 +49,7 @@ function prepareProcessors(ctx:ProcessorContext): Processors {
     BLOCKQUOTE(el: HTMLElement) {
       el.textContent = `${el.textContent.replace(/^/mg, '> ')}\n`;
     },
-    OL(el: HTMLOListElement) {
+    OL(el: HTMLElement) {
       const preNewLine = ctx.listNestingLevel ? '\n' : '';
       el.textContent = `${preNewLine}${el.textContent}\n`;
     },
