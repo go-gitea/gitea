@@ -10,6 +10,8 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // Manager is a manager for the queues created by "CreateXxxQueue" functions, these queues are called "managed queues".
@@ -77,14 +79,14 @@ func (m *Manager) ManagedQueues() map[int64]ManagedWorkerPoolQueue {
 // FlushAll tries to make all managed queues process all items synchronously, until timeout or the queue is empty.
 // It is for testing purpose only. It's not designed to be used in a cluster.
 func (m *Manager) FlushAll(ctx context.Context, timeout time.Duration) error {
-	var finalErr error
+	g := errgroup.Group{}
 	qs := m.ManagedQueues()
 	for _, q := range qs {
-		if err := q.FlushWithContext(ctx, timeout); err != nil {
-			finalErr = err // TODO: in Go 1.20: errors.Join
-		}
+		g.Go(func() error {
+			return q.FlushWithContext(ctx, timeout)
+		})
 	}
-	return finalErr
+	return g.Wait()
 }
 
 // CreateSimpleQueue creates a simple queue from global setting config provider by name
