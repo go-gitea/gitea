@@ -8,9 +8,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-
-	"xorm.io/builder"
 )
 
 // TeamRepo represents an team-repository relation.
@@ -29,29 +26,6 @@ func HasTeamRepo(ctx context.Context, orgID, teamID, repoID int64) bool {
 		And("repo_id=?", repoID).
 		Get(new(TeamRepo))
 	return has
-}
-
-type SearchTeamRepoOptions struct {
-	db.ListOptions
-	TeamID int64
-}
-
-// GetRepositories returns paginated repositories in team of organization.
-func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) (repo_model.RepositoryList, error) {
-	sess := db.GetEngine(ctx)
-	if opts.TeamID > 0 {
-		sess = sess.In("id",
-			builder.Select("repo_id").
-				From("team_repo").
-				Where(builder.Eq{"team_id": opts.TeamID}),
-		)
-	}
-	if opts.PageSize > 0 {
-		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-	var repos []*repo_model.Repository
-	return repos, sess.OrderBy("repository.name").
-		Find(&repos)
 }
 
 // AddTeamRepo adds a repo for an organization's team
