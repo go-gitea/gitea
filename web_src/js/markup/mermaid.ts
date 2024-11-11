@@ -10,7 +10,7 @@ body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}
 blockquote, dd, dl, figure, h1, h2, h3, h4, h5, h6, hr, p, pre {margin: 0}`;
 
-export async function renderMermaid() {
+export async function renderMermaid(): Promise<void> {
   const els = document.querySelectorAll('.markup code.language-mermaid');
   if (!els.length) return;
 

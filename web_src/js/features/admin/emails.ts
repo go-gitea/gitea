@@ -1,7 +1,7 @@
 import $ from 'jquery';
 
-export function initAdminEmails() {
-  function linkEmailAction(e) {
+export function initAdminEmails(): void {
+  $('.link-email-action').on('click', (e) => {
     const $this = $(this);
     $('#form-uid').val($this.data('uid'));
     $('#form-email').val($this.data('email'));
@@ -9,6 +9,5 @@ export function initAdminEmails() {
     $('#form-activate').val($this.data('activate'));
     $('#change-email-modal').modal('show');
     e.preventDefault();
-  }
-  $('.link-email-action').on('click', linkEmailAction);
+  });
 }
