@@ -197,17 +197,17 @@ func (org *Organization) CanCreateRepo() bool {
 // FindOrgMembersOpts represensts find org members conditions
 type FindOrgMembersOpts struct {
 	db.ListOptions
-	Doer     *user_model.User
-	IsMember bool
-	OrgID    int64
+	Doer         *user_model.User
+	IsDoerMember bool
+	OrgID        int64
 }
 
 func (opts FindOrgMembersOpts) PublicOnly() bool {
-	return opts.Doer == nil || !(opts.IsMember || opts.Doer.IsAdmin)
+	return opts.Doer == nil || !(opts.IsDoerMember || opts.Doer.IsAdmin)
 }
 
 func (opts FindOrgMembersOpts) applyTeamMatesOnlyFilter(sess *xorm.Session) {
-	if opts.Doer != nil && opts.IsMember && opts.Doer.IsRestricted {
+	if opts.Doer != nil && opts.IsDoerMember && opts.Doer.IsRestricted {
 		teamMates := builder.Select("DISTINCT team_user.uid").
 			From("team_user").
 			Where(builder.In("team_user.team_id", getUserTeamIDsQueryBuilder(opts.OrgID, opts.Doer.ID))).

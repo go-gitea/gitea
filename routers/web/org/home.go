@@ -95,10 +95,10 @@ func home(ctx *context.Context, viewRepositories bool) {
 	}
 
 	opts := &organization.FindOrgMembersOpts{
-		Doer:        ctx.Doer,
-		OrgID:       org.ID,
-		IsMember:    ctx.Org.IsMember,
-		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
+		Doer:         ctx.Doer,
+		OrgID:        org.ID,
+		IsDoerMember: ctx.Org.IsMember,
+		ListOptions:  db.ListOptions{Page: 1, PageSize: 25},
 	}
 
 	members, _, err := organization.FindOrgMembers(ctx, opts)
