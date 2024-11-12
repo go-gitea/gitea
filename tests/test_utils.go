@@ -9,7 +9,6 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 
@@ -53,7 +52,7 @@ func InitTest(requireGitea bool) {
 		if setting.IsWindows {
 			giteaBinary += ".exe"
 		}
-		setting.AppPath = path.Join(giteaRoot, giteaBinary)
+		setting.AppPath = filepath.Join(giteaRoot, giteaBinary)
 		if _, err := os.Stat(setting.AppPath); err != nil {
 			exitf("Could not find gitea binary at %s", setting.AppPath)
 		}
@@ -70,7 +69,7 @@ func InitTest(requireGitea bool) {
 			exitf(`sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify`)
 		}
 	}
-	if !path.IsAbs(giteaConf) {
+	if !filepath.IsAbs(giteaConf) {
 		setting.CustomConf = filepath.Join(giteaRoot, giteaConf)
 	} else {
 		setting.CustomConf = giteaConf
@@ -192,20 +191,14 @@ func PrepareAttachmentsStorage(t testing.TB) {
 	}))
 }
 
-func PrepareTestEnv(t testing.TB, skip ...int) func() {
-	t.Helper()
-	ourSkip := 1
-	if len(skip) > 0 {
-		ourSkip += skip[0]
+func PrepareGitRepoDirectory(t testing.TB) {
+	if !assert.NotEmpty(t, setting.RepoRootPath) {
+		return
 	}
-	deferFn := PrintCurrentTest(t, ourSkip)
 
-	// load database fixtures
-	assert.NoError(t, unittest.LoadFixtures())
-
-	// load git repo fixtures
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.CopyDir(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
@@ -226,9 +219,25 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "pull"), 0o755)
 		}
 	}
+}
 
+func PrepareArtifactsStorage(t testing.TB) {
+	// prepare actions artifacts directory and files
+	assert.NoError(t, storage.Clean(storage.ActionsArtifacts))
+
+	s, err := storage.NewStorage(setting.LocalStorageType, &setting.Storage{
+		Path: filepath.Join(filepath.Dir(setting.AppPath), "tests", "testdata", "data", "artifacts"),
+	})
+	assert.NoError(t, err)
+	assert.NoError(t, s.IterateObjects("", func(p string, obj storage.Object) error {
+		_, err = storage.Copy(storage.ActionsArtifacts, p, s, p)
+		return err
+	}))
+}
+
+func PrepareLFSStorage(t testing.TB) {
 	// load LFS object fixtures
-	// (LFS storage can be on any of several backends, including remote servers, so we init it with the storage API)
+	// (LFS storage can be on any of several backends, including remote servers, so init it with the storage API)
 	lfsFixtures, err := storage.NewStorage(setting.LocalStorageType, &setting.Storage{
 		Path: filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-lfs-meta"),
 	})
@@ -238,7 +247,9 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 		_, err := storage.Copy(storage.LFS, path, lfsFixtures, path)
 		return err
 	}))
+}
 
+func PrepareCleanPackageData(t testing.TB) {
 	// clear all package data
 	assert.NoError(t, db.TruncateBeans(db.DefaultContext,
 		&packages_model.Package{},
@@ -250,17 +261,25 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 		&packages_model.PackageCleanupRule{},
 	))
 	assert.NoError(t, storage.Clean(storage.Packages))
+}
 
+func PrepareTestEnv(t testing.TB, skip ...int) func() {
+	t.Helper()
+	deferFn := PrintCurrentTest(t, util.OptionalArg(skip)+1)
+
+	// load database fixtures
+	assert.NoError(t, unittest.LoadFixtures())
+
+	// do not add more Prepare* functions here, only call necessary ones in the related test functions
+	PrepareGitRepoDirectory(t)
+	PrepareLFSStorage(t)
+	PrepareCleanPackageData(t)
 	return deferFn
 }
 
 func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	t.Helper()
-	actualSkip := 1
-	if len(skip) > 0 {
-		actualSkip = skip[0] + 1
-	}
-	return testlogger.PrintCurrentTest(t, actualSkip)
+	return testlogger.PrintCurrentTest(t, util.OptionalArg(skip)+1)
 }
 
 // Printf takes a format and args and prints the string to os.Stdout

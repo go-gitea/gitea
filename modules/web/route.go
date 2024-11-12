@@ -6,6 +6,7 @@ package web
 import (
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -82,15 +83,23 @@ func (r *Router) getPattern(pattern string) string {
 	return strings.TrimSuffix(newPattern, "/")
 }
 
+func isNilOrFuncNil(v any) bool {
+	if v == nil {
+		return true
+	}
+	r := reflect.ValueOf(v)
+	return r.Kind() == reflect.Func && r.IsNil()
+}
+
 func (r *Router) wrapMiddlewareAndHandler(h []any) ([]func(http.Handler) http.Handler, http.HandlerFunc) {
 	handlerProviders := make([]func(http.Handler) http.Handler, 0, len(r.curMiddlewares)+len(h)+1)
 	for _, m := range r.curMiddlewares {
-		if m != nil {
+		if !isNilOrFuncNil(m) {
 			handlerProviders = append(handlerProviders, toHandlerProvider(m))
 		}
 	}
 	for _, m := range h {
-		if h != nil {
+		if !isNilOrFuncNil(m) {
 			handlerProviders = append(handlerProviders, toHandlerProvider(m))
 		}
 	}
