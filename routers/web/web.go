@@ -44,7 +44,6 @@ import (
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/lfs"
 
 	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
@@ -1598,23 +1597,8 @@ func registerRoutes(m *web.Router) {
 		m.Post("/action/{action}", reqSignIn, repo.Action)
 	}, ignSignIn, context.RepoAssignment, context.RepoRef())
 
+	common.AddOwnerRepoGitLFSRoutes(m, ignSignInAndCsrf, lfsServerEnabled)
 	m.Group("/{username}/{reponame}", func() {
-		m.Group("/info/lfs", func() {
-			m.Post("/objects/batch", lfs.CheckAcceptMediaType, lfs.BatchHandler)
-			m.Put("/objects/{oid}/{size}", lfs.UploadHandler)
-			m.Get("/objects/{oid}/{filename}", lfs.DownloadHandler)
-			m.Get("/objects/{oid}", lfs.DownloadHandler)
-			m.Post("/verify", lfs.CheckAcceptMediaType, lfs.VerifyHandler)
-			m.Group("/locks", func() {
-				m.Get("/", lfs.GetListLockHandler)
-				m.Post("/", lfs.PostLockHandler)
-				m.Post("/verify", lfs.VerifyLockHandler)
-				m.Post("/{lid}/unlock", lfs.UnLockHandler)
-			}, lfs.CheckAcceptMediaType)
-			m.Any("/*", func(ctx *context.Context) {
-				ctx.NotFound("", nil)
-			})
-		}, ignSignInAndCsrf, lfsServerEnabled)
 		gitHTTPRouters(m)
 	})
 	// end "/{username}/{reponame}.git": git support
