@@ -21,17 +21,17 @@ import (
 var _ transfer.LockBackend = &giteaLockBackend{}
 
 type giteaLockBackend struct {
-	ctx    context.Context
-	g      *GiteaBackend
-	server *url.URL
-	token  string
-	itoken string
-	logger transfer.Logger
+	ctx          context.Context
+	g            *GiteaBackend
+	server       *url.URL
+	authToken    string
+	internalAuth string
+	logger       transfer.Logger
 }
 
 func newGiteaLockBackend(g *GiteaBackend) transfer.LockBackend {
 	server := g.server.JoinPath("locks")
-	return &giteaLockBackend{ctx: g.ctx, g: g, server: server, token: g.token, itoken: g.itoken, logger: g.logger}
+	return &giteaLockBackend{ctx: g.ctx, g: g, server: server, authToken: g.authToken, internalAuth: g.internalAuth, logger: g.logger}
 }
 
 // Create implements transfer.LockBackend
@@ -45,10 +45,10 @@ func (g *giteaLockBackend) Create(path, refname string) (transfer.Lock, error) {
 	}
 	url := g.server.String()
 	headers := map[string]string{
-		headerAuthorisation: g.itoken,
-		headerAuthX:         g.token,
-		headerAccept:        mimeGitLFS,
-		headerContentType:   mimeGitLFS,
+		headerAuthorization:     g.authToken,
+		headerGiteaInternalAuth: g.internalAuth,
+		headerAccept:            mimeGitLFS,
+		headerContentType:       mimeGitLFS,
 	}
 	req := newInternalRequest(g.ctx, url, http.MethodPost, headers, bodyBytes)
 	resp, err := req.Response()
@@ -97,10 +97,10 @@ func (g *giteaLockBackend) Unlock(lock transfer.Lock) error {
 	}
 	url := g.server.JoinPath(lock.ID(), "unlock").String()
 	headers := map[string]string{
-		headerAuthorisation: g.itoken,
-		headerAuthX:         g.token,
-		headerAccept:        mimeGitLFS,
-		headerContentType:   mimeGitLFS,
+		headerAuthorization:     g.authToken,
+		headerGiteaInternalAuth: g.internalAuth,
+		headerAccept:            mimeGitLFS,
+		headerContentType:       mimeGitLFS,
 	}
 	req := newInternalRequest(g.ctx, url, http.MethodPost, headers, bodyBytes)
 	resp, err := req.Response()
@@ -180,10 +180,10 @@ func (g *giteaLockBackend) queryLocks(v url.Values) ([]transfer.Lock, string, er
 	urlq.RawQuery = v.Encode()
 	url := urlq.String()
 	headers := map[string]string{
-		headerAuthorisation: g.itoken,
-		headerAuthX:         g.token,
-		headerAccept:        mimeGitLFS,
-		headerContentType:   mimeGitLFS,
+		headerAuthorization:     g.authToken,
+		headerGiteaInternalAuth: g.internalAuth,
+		headerAccept:            mimeGitLFS,
+		headerContentType:       mimeGitLFS,
 	}
 	req := newInternalRequest(g.ctx, url, http.MethodGet, headers, nil)
 	resp, err := req.Response()
