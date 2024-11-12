@@ -1,12 +1,12 @@
 import {displayError} from './common.ts';
 
-function targetElement(el) {
+function targetElement(el: Element) {
   // The target element is either the current element if it has the
   // `is-loading` class or the pre that contains it
   return el.classList.contains('is-loading') ? el : el.closest('pre');
 }
 
-export async function renderMath() {
+export async function renderMath(): void {
   const els = document.querySelectorAll('.markup code.language-math');
   if (!els.length) return;
 
