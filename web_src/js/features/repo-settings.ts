@@ -8,7 +8,7 @@ const {appSubUrl, csrfToken} = window.config;
 
 function initRepoSettingsCollaboration() {
   // Change collaborator access mode
-  for (const dropdownEl of queryElems('.page-content.repository .ui.dropdown.access-mode')) {
+  for (const dropdownEl of queryElems(document, '.page-content.repository .ui.dropdown.access-mode')) {
     const textEl = dropdownEl.querySelector(':scope > .text');
     $(dropdownEl).dropdown({
       async action(text, value) {

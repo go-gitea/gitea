@@ -10,7 +10,7 @@ body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}
 blockquote, dd, dl, figure, h1, h2, h3, h4, h5, h6, hr, p, pre {margin: 0}`;
 
-export async function renderMermaid() {
+export async function renderMermaid(): Promise<void> {
   const els = document.querySelectorAll('.markup code.language-mermaid');
   if (!els.length) return;
 
@@ -57,10 +57,21 @@ export async function renderMermaid() {
       btn.setAttribute('data-clipboard-text', source);
       mermaidBlock.append(btn);
 
+      const updateIframeHeight = () => {
+        iframe.style.height = `${iframe.contentWindow.document.body.clientHeight}px`;
+      };
+
+      // update height when element's visibility state changes, for example when the diagram is inside
+      // a <details> + <summary> block and the <details> block becomes visible upon user interaction, it
+      // would initially set a incorrect height and the correct height is set during this callback.
+      (new IntersectionObserver(() => {
+        updateIframeHeight();
+      }, {root: document.documentElement})).observe(iframe);
+
       iframe.addEventListener('load', () => {
         pre.replaceWith(mermaidBlock);
         mermaidBlock.classList.remove('tw-hidden');
-        iframe.style.height = `${iframe.contentWindow.document.body.clientHeight}px`;
+        updateIframeHeight();
         setTimeout(() => { // avoid flash of iframe background
           mermaidBlock.classList.remove('is-loading');
           iframe.classList.remove('tw-invisible');

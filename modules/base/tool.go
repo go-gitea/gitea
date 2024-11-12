@@ -147,6 +147,9 @@ func StringsToInt64s(strs []string) ([]int64, error) {
 	}
 	ints := make([]int64, 0, len(strs))
 	for _, s := range strs {
+		if s == "" {
+			continue
+		}
 		n, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
 			return nil, err

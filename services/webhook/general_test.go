@@ -68,7 +68,7 @@ func pushTestPayload() *api.PushPayload {
 }
 
 func pushTestMultilineCommitMessagePayload() *api.PushPayload {
-	return pushTestPayloadWithCommitMessage("This is a commit summary ⚠️⚠️⚠️⚠️ containing 你好 ⚠️⚠️️\n\nThis is the message body.")
+	return pushTestPayloadWithCommitMessage("chore: This is a commit summary\n\nThis is a commit description.")
 }
 
 func pushTestPayloadWithCommitMessage(message string) *api.PushPayload {

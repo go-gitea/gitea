@@ -1,11 +1,4 @@
 <div class="issue-content">
-	<!-- I know, there is probably a better way to do this (moved from sidebar.tmpl, original author: 6543 @ 2021-02-28) -->
-	<!-- Agree, there should be a better way, eg: introduce window.config.pageData (original author: wxiaoguang @ 2021-09-05) -->
-	<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
-	<input type="hidden" id="repoId" value="{{.Repository.ID}}">
-	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}">
-	<input type="hidden" id="type" value="{{.IssueType}}">
-
 	{{$createdStr:= DateUtils.TimeSince .Issue.CreatedUnix}}
 	<div class="issue-content-left comment-list prevent-before-timeline">
 		<div class="ui timeline">
@@ -48,7 +41,7 @@
 							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 							{{end}}
-							{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
+							{{template "repo/issue/view_content/context_menu" dict "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
 						</div>
 					</div>
 					<div class="ui attached segment comment-body" role="article">

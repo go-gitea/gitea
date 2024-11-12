@@ -152,6 +152,7 @@ func TestStringsToInt64s(t *testing.T) {
 	}
 	testSuccess(nil, nil)
 	testSuccess([]string{}, []int64{})
+	testSuccess([]string{""}, []int64{})
 	testSuccess([]string{"-1234"}, []int64{-1234})
 	testSuccess([]string{"1", "4", "16", "64", "256"}, []int64{1, 4, 16, 64, 256})
 
