@@ -26,13 +26,16 @@ var (
 )
 
 // CheckOAuthAccessToken returns uid of user from oauth token
-// + non default openid scopes requested
-func CheckOAuthAccessToken(ctx context.Context, accessToken string) (int64, auth_model.AccessTokenScope) {
-	var accessTokenScope auth_model.AccessTokenScope
-	// JWT tokens require a "."
+func CheckOAuthAccessToken(ctx context.Context, accessToken string) int64 {
+	if !setting.OAuth2.Enabled {
+		return 0
+	}
+
+	// JWT tokens require a ".", if the token isn't like that, return early
 	if !strings.Contains(accessToken, ".") {
 		return 0, accessTokenScope
 	}
+
 	token, err := oauth2_provider.ParseToken(accessToken, oauth2_provider.DefaultSigningKey)
 	if err != nil {
 		log.Trace("oauth2.ParseToken: %v", err)
