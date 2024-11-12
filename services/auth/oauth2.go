@@ -27,6 +27,9 @@ var (
 
 // CheckOAuthAccessToken returns uid of user from oauth token
 func CheckOAuthAccessToken(ctx context.Context, accessToken string) int64 {
+	if !setting.OAuth2.Enabled {
+		return 0
+	}
 	// JWT tokens require a "."
 	if !strings.Contains(accessToken, ".") {
 		return 0
