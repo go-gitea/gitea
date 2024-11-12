@@ -112,7 +112,10 @@ func GetUserOrgsList(ctx context.Context, user *user_model.User) ([]*MinimalOrg,
 		Select("team.org_id, COUNT(DISTINCT(team_repo.repo_id)) as repo_count").
 		Table("team").
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
-		Where(builder.In("`team`.`org_id`", queryUserOrgIDs(user.ID, true))).
+		Where(builder.In("`team`.`id`",
+			builder.Select("team_id").From("team_user").
+				Where(builder.Eq{"uid": user.ID}),
+		)).
 		GroupBy("team.org_id").Find(&orgCounts); err != nil {
 		return nil, err
 	}
