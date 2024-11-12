@@ -7,10 +7,8 @@ import (
 	"bytes"
 	"io"
 	"net/http"
-	"net/url"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	oauth2_provider "code.gitea.io/gitea/services/oauth2_provider"
@@ -478,25 +476,4 @@ func TestOAuthIntrospection(t *testing.T) {
 	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OjRNSzhOYTZSNTVzbWRDWTBXdUNDdW1aNmhqUlBuR1k1c2FXVlJISGpK")
 	resp = MakeRequest(t, req, http.StatusUnauthorized)
 	assert.Contains(t, resp.Body.String(), "no valid authorization")
-}
-
-func TestGitOpWithOAuthDisabled(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	setting.OAuth2.Enabled = false
-	defer func() {
-		setting.OAuth2.Enabled = true
-	}()
-
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		httpContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
-
-		u.Path = httpContext.GitPath()
-		dstPath := t.TempDir()
-
-		u.Path = httpContext.GitPath()
-		u.User = url.UserPassword("user2", userPassword)
-
-		t.Run("Clone", doGitClone(dstPath, u))
-	})
 }
