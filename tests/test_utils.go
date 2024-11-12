@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 
@@ -195,7 +196,7 @@ func PrepareGitRepoDirectory(t testing.TB) {
 	if !assert.NotEmpty(t, setting.RepoRootPath) {
 		return
 	}
-  assert.NoError(t, unittest.SyncDirs(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.SyncDirs(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
