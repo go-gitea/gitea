@@ -9,7 +9,6 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 
@@ -53,7 +52,7 @@ func InitTest(requireGitea bool) {
 		if setting.IsWindows {
 			giteaBinary += ".exe"
 		}
-		setting.AppPath = path.Join(giteaRoot, giteaBinary)
+		setting.AppPath = filepath.Join(giteaRoot, giteaBinary)
 		if _, err := os.Stat(setting.AppPath); err != nil {
 			exitf("Could not find gitea binary at %s", setting.AppPath)
 		}
@@ -70,7 +69,7 @@ func InitTest(requireGitea bool) {
 			exitf(`sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify`)
 		}
 	}
-	if !path.IsAbs(giteaConf) {
+	if !filepath.IsAbs(giteaConf) {
 		setting.CustomConf = filepath.Join(giteaRoot, giteaConf)
 	} else {
 		setting.CustomConf = giteaConf
@@ -193,8 +192,12 @@ func PrepareAttachmentsStorage(t testing.TB) {
 }
 
 func PrepareGitRepoDirectory(t testing.TB) {
+	if !assert.NotEmpty(t, setting.RepoRootPath) {
+		return
+	}
+
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.CopyDir(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {

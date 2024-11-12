@@ -136,8 +136,16 @@ func parsePackage(r io.Reader) (*Package, error) {
 
 	dependencies := make([]*Dependency, 0, len(meta.Deps))
 	for _, dep := range meta.Deps {
+		// https://doc.rust-lang.org/cargo/reference/registry-web-api.html#publish
+		// It is a string of the new package name if the dependency is renamed, otherwise empty
+		name := dep.ExplicitNameInToml
+		pkg := &dep.Name
+		if name == "" {
+			name = dep.Name
+			pkg = nil
+		}
 		dependencies = append(dependencies, &Dependency{
-			Name:            dep.Name,
+			Name:            name,
 			Req:             dep.VersionReq,
 			Features:        dep.Features,
 			Optional:        dep.Optional,
@@ -145,6 +153,7 @@ func parsePackage(r io.Reader) (*Package, error) {
 			Target:          dep.Target,
 			Kind:            dep.Kind,
 			Registry:        dep.Registry,
+			Package:         pkg,
 		})
 	}
 
