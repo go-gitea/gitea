@@ -5,6 +5,7 @@
 package private
 
 import (
+	"crypto/subtle"
 	"net/http"
 	"strings"
 
@@ -14,28 +15,30 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/lfs"
 
 	"gitea.com/go-chi/binding"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 )
 
-// CheckInternalToken check internal token is set
-func CheckInternalToken(next http.Handler) http.Handler {
+const RouterMockPointInternalLFS = "internal-lfs"
+
+func authInternal(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		tokens := req.Header.Get("Authorization")
-		fields := strings.SplitN(tokens, " ", 2)
 		if setting.InternalToken == "" {
 			log.Warn(`The INTERNAL_TOKEN setting is missing from the configuration file: %q, internal API can't work.`, setting.CustomConf)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
-		if len(fields) != 2 || fields[0] != "Bearer" || fields[1] != setting.InternalToken {
+
+		tokens := req.Header.Get("X-Gitea-Internal-Auth") // TODO: use something like JWT or HMAC to avoid passing the token in the clear
+		after, found := strings.CutPrefix(tokens, "Bearer ")
+		authSucceeded := found && subtle.ConstantTimeCompare([]byte(after), []byte(setting.InternalToken)) == 1
+		if !authSucceeded {
 			log.Debug("Forbidden attempt to access internal url: Authorization header: %s", tokens)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-		} else {
-			next.ServeHTTP(w, req)
+			return
 		}
+		next.ServeHTTP(w, req)
 	})
 }
 
@@ -48,20 +51,12 @@ func bind[T any](_ T) any {
 	}
 }
 
-// SwapAuthToken swaps Authorization header with X-Auth header
-func swapAuthToken(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		req.Header.Set("Authorization", req.Header.Get("X-Auth"))
-		next.ServeHTTP(w, req)
-	})
-}
-
 // Routes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func Routes() *web.Router {
 	r := web.NewRouter()
 	r.Use(context.PrivateContexter())
-	r.Use(CheckInternalToken)
+	r.Use(authInternal)
 	// Log the real ip address of the request from SSH is really helpful for diagnosing sometimes.
 	// Since internal API will be sent only from Gitea sub commands and it's under control (checked by InternalToken), we can trust the headers.
 	r.Use(chi_middleware.RealIP)
@@ -90,25 +85,13 @@ func Routes() *web.Router {
 	r.Post("/restore_repo", RestoreRepo)
 	r.Post("/actions/generate_actions_runner_token", GenerateActionsRunnerToken)
 
-	r.Group("/repo/{username}/{reponame}", func() {
-		r.Group("/info/lfs", func() {
-			r.Post("/objects/batch", lfs.CheckAcceptMediaType, lfs.BatchHandler)
-			r.Put("/objects/{oid}/{size}", lfs.UploadHandler)
-			r.Get("/objects/{oid}/{filename}", lfs.DownloadHandler)
-			r.Get("/objects/{oid}", lfs.DownloadHandler)
-			r.Post("/verify", lfs.CheckAcceptMediaType, lfs.VerifyHandler)
-			r.Group("/locks", func() {
-				r.Get("/", lfs.GetListLockHandler)
-				r.Post("/", lfs.PostLockHandler)
-				r.Post("/verify", lfs.VerifyLockHandler)
-				r.Post("/{lid}/unlock", lfs.UnLockHandler)
-			}, lfs.CheckAcceptMediaType)
-			r.Any("/*", func(ctx *context.Context) {
-				ctx.NotFound("", nil)
-			})
-		}, swapAuthToken)
-	}, common.Sessioner(), context.Contexter())
-	// end "/repo/{username}/{reponame}": git (LFS) API mirror
+	r.Group("/repo", func() {
+		// FIXME: it is not right to use context.Contexter here because all routes here should use PrivateContext
+		common.AddOwnerRepoGitLFSRoutes(r, func(ctx *context.PrivateContext) {
+			webContext := &context.Context{Base: ctx.Base}
+			ctx.AppendContextValue(context.WebContextKey, webContext)
+		}, web.RouterMockPoint(RouterMockPointInternalLFS))
+	})
 
 	return r
 }

@@ -33,12 +33,12 @@ var _ transfer.Backend = &GiteaBackend{}
 
 // GiteaBackend is an adapter between git-lfs-transfer library and Gitea's internal LFS API
 type GiteaBackend struct {
-	ctx    context.Context
-	server *url.URL
-	op     string
-	token  string
-	itoken string
-	logger transfer.Logger
+	ctx          context.Context
+	server       *url.URL
+	op           string
+	authToken    string
+	internalAuth string
+	logger       transfer.Logger
 }
 
 func New(ctx context.Context, repo, op, token string, logger transfer.Logger) (transfer.Backend, error) {
@@ -48,7 +48,7 @@ func New(ctx context.Context, repo, op, token string, logger transfer.Logger) (t
 		return nil, err
 	}
 	server = server.JoinPath("api/internal/repo", repo, "info/lfs")
-	return &GiteaBackend{ctx: ctx, server: server, op: op, token: token, itoken: fmt.Sprintf("Bearer %s", setting.InternalToken), logger: logger}, nil
+	return &GiteaBackend{ctx: ctx, server: server, op: op, authToken: token, internalAuth: fmt.Sprintf("Bearer %s", setting.InternalToken), logger: logger}, nil
 }
 
 // Batch implements transfer.Backend
@@ -73,10 +73,10 @@ func (g *GiteaBackend) Batch(_ string, pointers []transfer.BatchItem, args trans
 	}
 	url := g.server.JoinPath("objects/batch").String()
 	headers := map[string]string{
-		headerAuthorisation: g.itoken,
-		headerAuthX:         g.token,
-		headerAccept:        mimeGitLFS,
-		headerContentType:   mimeGitLFS,
+		headerAuthorization:     g.authToken,
+		headerGiteaInternalAuth: g.internalAuth,
+		headerAccept:            mimeGitLFS,
+		headerContentType:       mimeGitLFS,
 	}
 	req := newInternalRequest(g.ctx, url, http.MethodPost, headers, bodyBytes)
 	resp, err := req.Response()
@@ -119,7 +119,7 @@ func (g *GiteaBackend) Batch(_ string, pointers []transfer.BatchItem, args trans
 				}
 				idMapStr := base64.StdEncoding.EncodeToString(idMapBytes)
 				item.Args[argID] = idMapStr
-				if authHeader, ok := action.Header[headerAuthorisation]; ok {
+				if authHeader, ok := action.Header[headerAuthorization]; ok {
 					authHeaderB64 := base64.StdEncoding.EncodeToString([]byte(authHeader))
 					item.Args[argToken] = authHeaderB64
 				}
@@ -142,7 +142,7 @@ func (g *GiteaBackend) Batch(_ string, pointers []transfer.BatchItem, args trans
 				}
 				idMapStr := base64.StdEncoding.EncodeToString(idMapBytes)
 				item.Args[argID] = idMapStr
-				if authHeader, ok := action.Header[headerAuthorisation]; ok {
+				if authHeader, ok := action.Header[headerAuthorization]; ok {
 					authHeaderB64 := base64.StdEncoding.EncodeToString([]byte(authHeader))
 					item.Args[argToken] = authHeaderB64
 				}
@@ -183,9 +183,9 @@ func (g *GiteaBackend) Download(oid string, args transfer.Args) (io.ReadCloser, 
 	}
 	url := action.Href
 	headers := map[string]string{
-		headerAuthorisation: g.itoken,
-		headerAuthX:         g.token,
-		headerAccept:        mimeOctetStream,
+		headerAuthorization:     g.authToken,
+		headerGiteaInternalAuth: g.internalAuth,
+		headerAccept:            mimeOctetStream,
 	}
 	req := newInternalRequest(g.ctx, url, http.MethodGet, headers, nil)
 	resp, err := req.Response()
@@ -229,10 +229,10 @@ func (g *GiteaBackend) Upload(oid string, size int64, r io.Reader, args transfer
 	}
 	url := action.Href
 	headers := map[string]string{
-		headerAuthorisation: g.itoken,
-		headerAuthX:         g.token,
-		headerContentType:   mimeOctetStream,
-		headerContentLength: strconv.FormatInt(size, 10),
+		headerAuthorization:     g.authToken,
+		headerGiteaInternalAuth: g.internalAuth,
+		headerContentType:       mimeOctetStream,
+		headerContentLength:     strconv.FormatInt(size, 10),
 	}
 	reqBytes, err := io.ReadAll(r)
 	if err != nil {
@@ -279,10 +279,10 @@ func (g *GiteaBackend) Verify(oid string, size int64, args transfer.Args) (trans
 	}
 	url := action.Href
 	headers := map[string]string{
-		headerAuthorisation: g.itoken,
-		headerAuthX:         g.token,
-		headerAccept:        mimeGitLFS,
-		headerContentType:   mimeGitLFS,
+		headerAuthorization:     g.authToken,
+		headerGiteaInternalAuth: g.internalAuth,
+		headerAccept:            mimeGitLFS,
+		headerContentType:       mimeGitLFS,
 	}
 	req := newInternalRequest(g.ctx, url, http.MethodPost, headers, bodyBytes)
 	resp, err := req.Response()
