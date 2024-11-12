@@ -1,15 +1,15 @@
-@keyframes passing-through {
+@keyframes dz-passing-through {
   0% { opacity: 0; transform: translateY(40px); }
   30%, 70% { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-40px); }
 }
 
-@keyframes slide-in {
+@keyframes dz-slide-in {
   0% { opacity: 0; transform: translateY(40px); }
   30% { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes pulse {
+@keyframes dz-pulse {
   0% { transform: scale(1); }
   10% { transform: scale(1.1); }
   20% { transform: scale(1); }
@@ -152,12 +152,12 @@
 }
 
 .dropzone .dz-preview.dz-success .dz-success-mark {
-  animation: passing-through 3s cubic-bezier(0.77, 0, 0.175, 1);
+  animation: dz-passing-through 3s cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 .dropzone .dz-preview.dz-error .dz-error-mark {
   opacity: 1;
-  animation: slide-in 3s cubic-bezier(0.77, 0, 0.175, 1);
+  animation: dz-slide-in 3s cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 .dropzone .dz-preview .dz-success-mark,
@@ -193,7 +193,7 @@
 }
 
 .dropzone .dz-preview:not(.dz-processing) .dz-progress {
-  animation: pulse 6s ease infinite;
+  animation: dz-pulse 6s ease infinite;
 }
 
 .dropzone .dz-preview .dz-progress {
