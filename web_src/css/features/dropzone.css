@@ -202,7 +202,7 @@
   pointer-events: none;
   position: absolute;
   height: 20px;
-  top: 50%;
+  top: 7em; /* by default the progress-bar was vertically centered (top: 50%), it's better to put it after the "details (size, filename)", then the layout from top to bottom is: size, filename, progress */
   margin-top: -10px;
   left: 15%;
   right: 15%;
@@ -299,10 +299,4 @@
   width: 120px !important;
   object-fit: contain !important;
   margin-bottom: 0 !important;
-}
-
-.ui .field .dropzone .dz-preview .dz-progress {
-  /* by default the progress-bar is vertically centered (top: 50%), it's better to put it after the "details (size, filename)",
-  then the layout from top to bottom is: size, filename, progress */
-  top: 7em;
 }
