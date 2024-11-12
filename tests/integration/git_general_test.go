@@ -4,8 +4,6 @@
 package integration
 
 import (
-	"bytes"
-	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -26,27 +24,25 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	gitea_context "code.gitea.io/gitea/services/context"
-	files_service "code.gitea.io/gitea/services/repository/files"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	littleSize = 1024              // 1ko
-	bigSize    = 128 * 1024 * 1024 // 128Mo
+	littleSize = 1024              // 1K
+	bigSize    = 128 * 1024 * 1024 // 128M
 )
 
-func TestGit(t *testing.T) {
-	onGiteaRun(t, testGit)
+func TestGitGeneral(t *testing.T) {
+	onGiteaRun(t, testGitGeneral)
 }
 
-func testGit(t *testing.T, u *url.URL) {
+func testGitGeneral(t *testing.T, u *url.URL) {
 	username := "user2"
 	baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
@@ -77,10 +73,10 @@ func testGit(t *testing.T, u *url.URL) {
 
 		t.Run("Partial Clone", doPartialGitClone(dstPath2, u))
 
-		little, big := standardCommitAndPushTest(t, dstPath)
-		littleLFS, bigLFS := lfsCommitAndPushTest(t, dstPath)
-		rawTest(t, &httpContext, little, big, littleLFS, bigLFS)
-		mediaTest(t, &httpContext, little, big, littleLFS, bigLFS)
+		pushedFilesStandard := standardCommitAndPushTest(t, dstPath, littleSize, bigSize)
+		pushedFilesLFS := lfsCommitAndPushTest(t, dstPath, littleSize, bigSize)
+		rawTest(t, &httpContext, pushedFilesStandard[0], pushedFilesStandard[1], pushedFilesLFS[0], pushedFilesLFS[1])
+		mediaTest(t, &httpContext, pushedFilesStandard[0], pushedFilesStandard[1], pushedFilesLFS[0], pushedFilesLFS[1])
 
 		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "test/head"))
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
@@ -89,8 +85,8 @@ func testGit(t *testing.T, u *url.URL) {
 		t.Run("MergeFork", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			t.Run("CreatePRAndMerge", doMergeFork(httpContext, forkedUserCtx, "master", httpContext.Username+":master"))
-			rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
-			mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
+			rawTest(t, &forkedUserCtx, pushedFilesStandard[0], pushedFilesStandard[1], pushedFilesLFS[0], pushedFilesLFS[1])
+			mediaTest(t, &forkedUserCtx, pushedFilesStandard[0], pushedFilesStandard[1], pushedFilesLFS[0], pushedFilesLFS[1])
 		})
 
 		t.Run("PushCreate", doPushCreate(httpContext, u))
@@ -118,18 +114,18 @@ func testGit(t *testing.T, u *url.URL) {
 
 			t.Run("Clone", doGitClone(dstPath, sshURL))
 
-			little, big := standardCommitAndPushTest(t, dstPath)
-			littleLFS, bigLFS := lfsCommitAndPushTest(t, dstPath)
-			rawTest(t, &sshContext, little, big, littleLFS, bigLFS)
-			mediaTest(t, &sshContext, little, big, littleLFS, bigLFS)
+			pushedFilesStandard := standardCommitAndPushTest(t, dstPath, littleSize, bigSize)
+			pushedFilesLFS := lfsCommitAndPushTest(t, dstPath, littleSize, bigSize)
+			rawTest(t, &sshContext, pushedFilesStandard[0], pushedFilesStandard[1], pushedFilesLFS[0], pushedFilesLFS[1])
+			mediaTest(t, &sshContext, pushedFilesStandard[0], pushedFilesStandard[1], pushedFilesLFS[0], pushedFilesLFS[1])
 
 			t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &sshContext, "test/head2"))
 			t.Run("BranchProtectMerge", doBranchProtectPRMerge(&sshContext, dstPath))
 			t.Run("MergeFork", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 				t.Run("CreatePRAndMerge", doMergeFork(sshContext, forkedUserCtx, "master", sshContext.Username+":master"))
-				rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
-				mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
+				rawTest(t, &forkedUserCtx, pushedFilesStandard[0], pushedFilesStandard[1], pushedFilesLFS[0], pushedFilesLFS[1])
+				mediaTest(t, &forkedUserCtx, pushedFilesStandard[0], pushedFilesStandard[1], pushedFilesLFS[0], pushedFilesLFS[1])
 			})
 
 			t.Run("PushCreate", doPushCreate(sshContext, sshURL))
@@ -142,16 +138,16 @@ func ensureAnonymousClone(t *testing.T, u *url.URL) {
 	t.Run("CloneAnonymous", doGitClone(dstLocalPath, u))
 }
 
-func standardCommitAndPushTest(t *testing.T, dstPath string) (little, big string) {
-	t.Run("Standard", func(t *testing.T) {
+func standardCommitAndPushTest(t *testing.T, dstPath string, sizes ...int) (pushedFiles []string) {
+	t.Run("CommitAndPushStandard", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		little, big = commitAndPushTest(t, dstPath, "data-file-")
+		pushedFiles = commitAndPushTest(t, dstPath, "data-file-", sizes...)
 	})
-	return little, big
+	return pushedFiles
 }
 
-func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS string) {
-	t.Run("LFS", func(t *testing.T) {
+func lfsCommitAndPushTest(t *testing.T, dstPath string, sizes ...int) (pushedFiles []string) {
+	t.Run("CommitAndPushLFS", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		prefix := "lfs-data-file-"
 		err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("install").Run(&git.RunOpts{Dir: dstPath})
@@ -176,33 +172,23 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 		})
 		assert.NoError(t, err)
 
-		littleLFS, bigLFS = commitAndPushTest(t, dstPath, prefix)
-
+		pushedFiles = commitAndPushTest(t, dstPath, prefix, sizes...)
 		t.Run("Locks", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			lockTest(t, dstPath)
 		})
 	})
-	return littleLFS, bigLFS
+	return pushedFiles
 }
 
-func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string) {
-	t.Run("PushCommit", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-		t.Run("Little", func(t *testing.T) {
+func commitAndPushTest(t *testing.T, dstPath, prefix string, sizes ...int) (pushedFiles []string) {
+	for _, size := range sizes {
+		t.Run("PushCommit Size-"+strconv.Itoa(size), func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			little = doCommitAndPush(t, littleSize, dstPath, prefix)
+			pushedFiles = append(pushedFiles, doCommitAndPush(t, size, dstPath, prefix))
 		})
-		t.Run("Big", func(t *testing.T) {
-			if testing.Short() {
-				t.Skip("Skipping test in short mode.")
-				return
-			}
-			defer tests.PrintCurrentTest(t)()
-			big = doCommitAndPush(t, bigSize, dstPath, prefix)
-		})
-	})
-	return little, big
+	}
+	return pushedFiles
 }
 
 func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS string) {
@@ -902,101 +888,4 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 		t.Run("Merge", doAPIMergePullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index))
 		t.Run("CheckoutMasterAgain", doGitCheckoutBranch(dstPath, "master"))
 	}
-}
-
-func TestDataAsync_Issue29101(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-		resp, err := files_service.ChangeRepoFiles(db.DefaultContext, repo, user, &files_service.ChangeRepoFilesOptions{
-			Files: []*files_service.ChangeRepoFile{
-				{
-					Operation:     "create",
-					TreePath:      "test.txt",
-					ContentReader: bytes.NewReader(make([]byte, 10000)),
-				},
-			},
-			OldBranch: repo.DefaultBranch,
-			NewBranch: repo.DefaultBranch,
-		})
-		assert.NoError(t, err)
-
-		sha := resp.Commit.SHA
-
-		gitRepo, err := gitrepo.OpenRepository(db.DefaultContext, repo)
-		assert.NoError(t, err)
-
-		commit, err := gitRepo.GetCommit(sha)
-		assert.NoError(t, err)
-
-		entry, err := commit.GetTreeEntryByPath("test.txt")
-		assert.NoError(t, err)
-
-		b := entry.Blob()
-
-		r, err := b.DataAsync()
-		assert.NoError(t, err)
-		defer r.Close()
-
-		r2, err := b.DataAsync()
-		assert.NoError(t, err)
-		defer r2.Close()
-	})
-}
-
-func TestAgitPullPush(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-
-		u.Path = baseAPITestContext.GitPath()
-		u.User = url.UserPassword("user2", userPassword)
-
-		dstPath := t.TempDir()
-		doGitClone(dstPath, u)(t)
-
-		gitRepo, err := git.OpenRepository(context.Background(), dstPath)
-		assert.NoError(t, err)
-		defer gitRepo.Close()
-
-		doGitCreateBranch(dstPath, "test-agit-push")
-
-		// commit 1
-		_, err = generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
-		assert.NoError(t, err)
-
-		// push to create an agit pull request
-		err = git.NewCommand(git.DefaultContext, "push", "origin",
-			"-o", "title=test-title", "-o", "description=test-description",
-			"HEAD:refs/for/master/test-agit-push",
-		).Run(&git.RunOpts{Dir: dstPath})
-		assert.NoError(t, err)
-
-		// check pull request exist
-		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Flow: issues_model.PullRequestFlowAGit, HeadBranch: "user2/test-agit-push"})
-		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
-		assert.Equal(t, "test-title", pr.Issue.Title)
-		assert.Equal(t, "test-description", pr.Issue.Content)
-
-		// commit 2
-		_, err = generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-2-")
-		assert.NoError(t, err)
-
-		// push 2
-		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push").Run(&git.RunOpts{Dir: dstPath})
-		assert.NoError(t, err)
-
-		// reset to first commit
-		err = git.NewCommand(git.DefaultContext, "reset", "--hard", "HEAD~1").Run(&git.RunOpts{Dir: dstPath})
-		assert.NoError(t, err)
-
-		// test force push without confirm
-		_, stderr, err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push").RunStdString(&git.RunOpts{Dir: dstPath})
-		assert.Error(t, err)
-		assert.Contains(t, stderr, "[remote rejected] HEAD -> refs/for/master/test-agit-push (request `force-push` push option)")
-
-		// test force push with confirm
-		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push", "-o", "force-push").Run(&git.RunOpts{Dir: dstPath})
-		assert.NoError(t, err)
-	})
 }
