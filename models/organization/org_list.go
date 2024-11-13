@@ -107,17 +107,21 @@ func GetUserOrgsList(ctx context.Context, user *user_model.User) ([]*MinimalOrg,
 		OrgID     int64
 		RepoCount int
 	}
-	// FIXME: This doesn't counting those public repos in the organization that the user has access to
 	var orgCounts []orgCount
 	if err := db.GetEngine(ctx).
-		Select("team.org_id, COUNT(DISTINCT(team_repo.repo_id)) as repo_count").
-		Table("team").
-		Join("INNER", "team_repo", "team_repo.team_id = team.id").
-		Where(builder.In("`team`.`id`",
-			builder.Select("team_id").From("team_user").
-				Where(builder.Eq{"uid": user.ID}),
+		Select("owner_id AS org_id, COUNT(DISTINCT(repository.id)) as repo_count").
+		Table("repository").
+		Join("INNER", "org_user", "owner_id = org_user.org_id").
+		Where("org_user.uid = ?", user.ID).
+		And(builder.Or(
+			builder.Eq{"repository.is_private": false},
+			builder.In("repository.id", builder.Select("repo_id").From("team_repo").
+				InnerJoin("team_user", "team_user.team_id = team_repo.team_id").
+				Where(builder.Eq{"team_user.uid": user.ID})),
+			builder.In("repository.id", builder.Select("repo_id").From("collaboration").
+				Where(builder.Eq{"user_id": user.ID})),
 		)).
-		GroupBy("team.org_id").Find(&orgCounts); err != nil {
+		GroupBy("owner_id").Find(&orgCounts); err != nil {
 		return nil, err
 	}
 

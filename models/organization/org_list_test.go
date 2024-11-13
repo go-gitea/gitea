@@ -56,6 +56,7 @@ func TestGetUserOrgsList(t *testing.T) {
 	assert.NoError(t, err)
 	if assert.Len(t, orgs, 1) {
 		assert.EqualValues(t, 3, orgs[0].ID)
-		assert.EqualValues(t, 3, orgs[0].NumRepos)
+		// repo_id: 3 is in the team, 32 is public, 5 is private with no team
+		assert.EqualValues(t, 2, orgs[0].NumRepos)
 	}
 }
