@@ -30,6 +30,10 @@ type contextValuePair struct {
 	valueFn func() any
 }
 
+type BaseContextKeyType struct{}
+
+var BaseContextKey BaseContextKeyType
+
 type Base struct {
 	originCtx     context.Context
 	contextValues []contextValuePair
@@ -315,6 +319,7 @@ func NewBaseContext(resp http.ResponseWriter, req *http.Request) (b *Base, close
 		Data:      middleware.GetContextData(req.Context()),
 	}
 	b.Req = b.Req.WithContext(b)
+	b.AppendContextValue(BaseContextKey, b)
 	b.AppendContextValue(translation.ContextKey, b.Locale)
 	b.AppendContextValue(httplib.RequestContextKey, b.Req)
 	return b, b.cleanUp

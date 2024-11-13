@@ -1,5 +1,5 @@
 {{$label := .Label}}
-<a class="item {{if $label.IsChecked}}checked{{else if $label.IsArchived}}tw-hidden{{end}}" href="#"
+<a class="item muted {{if $label.IsChecked}}checked{{else if $label.IsArchived}}tw-hidden{{end}}" href="#"
 	data-scope="{{$label.ExclusiveScope}}" data-value="{{$label.ID}}" {{if $label.IsArchived}}data-is-archived{{end}}
 >
 	<span class="item-check-mark">{{svg (Iif $label.ExclusiveScope "octicon-dot-fill" "octicon-check")}}</span>

@@ -451,7 +451,6 @@ type CreateIssueForm struct {
 	Ref                 string `form:"ref"`
 	MilestoneID         int64
 	ProjectID           int64
-	AssigneeID          int64
 	Content             string
 	Files               []string
 	AllowMaintainerEdit bool

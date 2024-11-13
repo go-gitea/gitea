@@ -1,46 +1,35 @@
+{{$pageMeta := .}}
+{{$data := .AssigneesData}}
+{{$issueAssignees := NIL}}{{if $pageMeta.Issue}}{{$issueAssignees = $pageMeta.Issue.Assignees}}{{end}}
 <div class="divider"></div>
-<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
-<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
-	<a class="text muted flex-text-block">
-		<strong>{{ctx.Locale.Tr "repo.issues.new.assignees"}}</strong>
-		{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-			{{svg "octicon-gear" 16 "tw-ml-1"}}
-		{{end}}
-	</a>
-	<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
-		<div class="ui icon search input">
-			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignees"}}">
-		</div>
-		<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
-		{{range .Assignees}}
-
-			{{$AssigneeID := .ID}}
-			<a class="item{{range $.Issue.Assignees}}{{if eq .ID $AssigneeID}} checked{{end}}{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
-				{{$checked := false}}
-				{{range $.Issue.Assignees}}
-					{{if eq .ID $AssigneeID}}
-						{{$checked = true}}
-					{{end}}
-				{{end}}
-				<span class="octicon-check {{if not $checked}}tw-invisible{{end}}">{{svg "octicon-check"}}</span>
-				<span class="text">
-					{{ctx.AvatarUtils.Avatar . 20 "tw-mr-2"}}{{template "repo/search_name" .}}
-				</span>
-			</a>
-		{{end}}
-	</div>
-</div>
-<div class="ui assignees list">
-	<span class="no-select item {{if .Issue.Assignees}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}</span>
-	<div class="selected">
-		{{range .Issue.Assignees}}
-			<div class="item">
-				<a class="muted sidebar-item-link" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?assignee={{.ID}}">
-					{{ctx.AvatarUtils.Avatar . 28 "tw-mr-2"}}
-					{{.GetDisplayName}}
-				</a>
+<div class="issue-sidebar-combo" data-selection-mode="multiple" data-update-algo="diff"
+		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/assignee?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
+>
+	<input class="combo-value" name="assignee_ids" type="hidden" value="{{$data.SelectedAssigneeIDs}}">
+	<div class="ui dropdown {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
+		<a class="text muted">
+			<strong>{{ctx.Locale.Tr "repo.issues.new.assignees"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
+		</a>
+		<div class="menu">
+			<div class="ui icon search input">
+				<i class="icon">{{svg "octicon-search" 16}}</i>
+				<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignees"}}">
 			</div>
+			<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
+			{{range $data.CandidateAssignees}}
+				<a class="item muted" href="#" data-value="{{.ID}}">
+					<span class="item-check-mark">{{svg "octicon-check"}}</span>
+					{{ctx.AvatarUtils.Avatar . 20}} {{template "repo/search_name" .}}
+				</a>
+			{{end}}
+		</div>
+	</div>
+	<div class="ui list tw-flex tw-flex-row tw-gap-2">
+		<span class="item empty-list {{if $issueAssignees}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}</span>
+		{{range $issueAssignees}}
+			<a class="item muted" href="{{$pageMeta.RepoLink}}/{{if $pageMeta.IsPullRequest}}pulls{{else}}issues{{end}}?assignee={{.ID}}">
+					{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
+			</a>
 		{{end}}
 	</div>
 </div>

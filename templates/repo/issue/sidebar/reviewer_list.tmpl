@@ -1,10 +1,14 @@
-{{$data := .}}
+{{$pageMeta := .}}
+{{$data := .ReviewersData}}
+{{$repoOwnerName := $pageMeta.Repository.OwnerName}}
 {{$hasCandidates := or $data.Reviewers $data.TeamReviewers}}
-<div class="issue-sidebar-combo" {{if $data.IssueID}}data-update-url="{{$data.RepoLink}}/issues/request_review?issue_ids={{$data.IssueID}}"{{end}}>
+<div class="issue-sidebar-combo" data-selection-mode="multiple" data-update-algo="diff"
+		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/request_review?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
+>
 	<input type="hidden" class="combo-value" name="reviewer_ids">{{/* match CreateIssueForm */}}
 	<div class="ui dropdown {{if or (not $hasCandidates) (not $data.CanChooseReviewer)}}disabled{{end}}">
 		<a class="text muted">
-			<strong>{{ctx.Locale.Tr "repo.issues.review.reviewers"}}</strong> {{if and $data.CanChooseReviewer}}{{svg "octicon-gear"}}{{end}}
+			<strong>{{ctx.Locale.Tr "repo.issues.review.reviewers"}}</strong> {{if $data.CanChooseReviewer}}{{svg "octicon-gear"}}{{end}}
 		</a>
 		<div class="menu flex-items-menu">
 			{{if $hasCandidates}}
@@ -29,7 +33,7 @@
 						<a class="item muted {{if .Requested}}checked{{end}}" href="#" data-value="{{.ItemID}}" data-can-change="{{.CanChange}}"
 							{{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 							<span class="item-check-mark">{{svg "octicon-check"}}</span>
-							{{svg "octicon-people" 20}} {{$data.RepoOwnerName}}/{{.Team.Name}}
+							{{svg "octicon-people" 20}} {{$repoOwnerName}}/{{.Team.Name}}
 						</a>
 					{{end}}
 				{{end}}
@@ -47,7 +51,7 @@
 					{{if .User}}
 						<a class="muted flex-text-inline" href="{{.User.HomeLink}}">{{ctx.AvatarUtils.Avatar .User 20}} {{.User.GetDisplayName}}</a>
 					{{else if .Team}}
-						{{svg "octicon-people" 20}} {{$data.RepoOwnerName}}/{{.Team.Name}}
+						{{svg "octicon-people" 20}} {{$repoOwnerName}}/{{.Team.Name}}
 					{{end}}
 				</div>
 				<div class="flex-text-inline">
@@ -64,13 +68,13 @@
 						{{if .Requested}}
 							<a href="#" class="ui muted icon link-action"
 								data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review"}}"
-								data-url="{{$data.RepoLink}}/issues/request_review?action=detach&issue_ids={{$data.IssueID}}&id={{.ItemID}}">
+								data-url="{{$pageMeta.RepoLink}}/issues/request_review?action=detach&issue_ids={{$pageMeta.Issue.ID}}&id={{.ItemID}}">
 								{{svg "octicon-trash"}}
 							</a>
 						{{else}}
 							<a href="#" class="ui muted icon link-action"
 								data-tooltip-content="{{ctx.Locale.Tr "repo.issues.re_request_review"}}"
-								data-url="{{$data.RepoLink}}/issues/request_review?action=attach&issue_ids={{$data.IssueID}}&id={{.ItemID}}">
+								data-url="{{$pageMeta.RepoLink}}/issues/request_review?action=attach&issue_ids={{$pageMeta.Issue.ID}}&id={{.ItemID}}">
 								{{svg "octicon-sync"}}
 							</a>
 						{{end}}
@@ -84,8 +88,8 @@
 		{{range $data.OriginalReviews}}
 			<div class="item">
 				<div class="flex-text-inline tw-flex-1">
-					{{$originalURLHostname := $data.Repository.GetOriginalURLHostname}}
-					{{$originalURL := $data.Repository.OriginalURL}}
+					{{$originalURLHostname := $pageMeta.Repository.GetOriginalURLHostname}}
+					{{$originalURL := $pageMeta.Repository.OriginalURL}}
 					<a class="muted flex-text-inline" href="{{$originalURL}}" data-tooltip-content="{{ctx.Locale.Tr "repo.migrated_from_fake" $originalURLHostname}}">
 						{{svg (MigrationIcon $originalURLHostname) 20}} {{.OriginalAuthor}}
 					</a>
@@ -108,7 +112,7 @@
 			<div class="ui warning message">
 				{{ctx.Locale.Tr "repo.issues.dismiss_review_warning"}}
 			</div>
-			<form class="ui form" action="{{$data.RepoLink}}/issues/dismiss_review" method="post">
+			<form class="ui form" action="{{$pageMeta.RepoLink}}/issues/dismiss_review" method="post">
 				{{ctx.RootData.CsrfTokenHtml}}
 				<input type="hidden" class="reviewer-id" name="review_id">
 				<div class="field">

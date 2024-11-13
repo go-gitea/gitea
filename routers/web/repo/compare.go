@@ -788,19 +788,11 @@ func CompareDiff(ctx *context.Context) {
 
 		if !nothingToCompare {
 			// Setup information for new form.
-			retrieveRepoMetasForIssueWriter(ctx, ctx.Repo.Repository, true)
+			pageMetaData := retrieveRepoIssueMetaData(ctx, ctx.Repo.Repository, nil, true)
 			if ctx.Written() {
 				return
 			}
-			labelsData := retrieveRepoLabels(ctx, ctx.Repo.Repository, 0, true)
-			if ctx.Written() {
-				return
-			}
-			RetrieveRepoReviewers(ctx, ctx.Repo.Repository, nil, true)
-			if ctx.Written() {
-				return
-			}
-			_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates, labelsData)
+			_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates, pageMetaData)
 			if len(templateErrs) > 0 {
 				ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
 			}

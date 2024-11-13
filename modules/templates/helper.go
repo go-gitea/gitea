@@ -31,6 +31,7 @@ func NewFuncMap() template.FuncMap {
 		"ctx": func() any { return nil }, // template context function
 
 		"DumpVar": dumpVar,
+		"NIL":     func() any { return nil },
 
 		// -----------------------------------------------------------------
 		// html/template related functions
