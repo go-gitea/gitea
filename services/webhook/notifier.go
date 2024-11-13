@@ -6,6 +6,7 @@ package webhook
 import (
 	"context"
 
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
@@ -857,6 +858,36 @@ func (m *webhookNotifier) SyncPushCommits(ctx context.Context, pusher *user_mode
 		Pusher:       apiPusher,
 		Sender:       apiPusher,
 	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func (m *webhookNotifier) CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit *repository.PushCommit, sender *user_model.User, status *git_model.CommitStatus) {
+	apiSender := convert.ToUser(ctx, sender, nil)
+	apiCommit, err := repository.ToAPIPayloadCommit(ctx, map[string]*user_model.User{}, repo.RepoPath(), repo.HTMLURL(), commit)
+	if err != nil {
+		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
+		return
+	}
+
+	payload := api.CommitStatusPayload{
+		Context:     status.Context,
+		CreatedAt:   status.CreatedUnix.AsTime().UTC(),
+		Description: status.Description,
+		ID:          status.ID,
+		SHA:         commit.Sha1,
+		State:       status.State.String(),
+		TargetURL:   status.TargetURL,
+
+		Commit: apiCommit,
+		Repo:   convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
+		Sender: apiSender,
+	}
+	if !status.UpdatedUnix.IsZero() {
+		t := status.UpdatedUnix.AsTime().UTC()
+		payload.UpdatedAt = &t
+	}
+	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventStatus, &payload); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
 }

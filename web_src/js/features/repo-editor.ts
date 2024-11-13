@@ -45,17 +45,17 @@ export function initRepoEditor() {
   const dropzoneUpload = document.querySelector('.page-content.repository.editor.upload .dropzone');
   if (dropzoneUpload) initDropzone(dropzoneUpload);
 
-  const editArea = document.querySelector('.page-content.repository.editor textarea#edit_area');
+  const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
   if (!editArea) return;
 
-  for (const el of queryElems('.js-quick-pull-choice-option')) {
+  for (const el of queryElems<HTMLInputElement>(document, '.js-quick-pull-choice-option')) {
     el.addEventListener('input', () => {
       if (el.value === 'commit-to-new-branch') {
         showElem('.quick-pull-branch-name');
-        document.querySelector('.quick-pull-branch-name input').required = true;
+        document.querySelector<HTMLInputElement>('.quick-pull-branch-name input').required = true;
       } else {
         hideElem('.quick-pull-branch-name');
-        document.querySelector('.quick-pull-branch-name input').required = false;
+        document.querySelector<HTMLInputElement>('.quick-pull-branch-name input').required = false;
       }
       document.querySelector('#commit-button').textContent = el.getAttribute('data-button-text');
     });
@@ -71,13 +71,13 @@ export function initRepoEditor() {
     if (filenameInput.value) {
       parts.push(filenameInput.value);
     }
-    document.querySelector('#tree_path').value = parts.join('/');
+    document.querySelector<HTMLInputElement>('#tree_path').value = parts.join('/');
   }
   filenameInput.addEventListener('input', function () {
     const parts = filenameInput.value.split('/');
     const links = Array.from(document.querySelectorAll('.breadcrumb span.section'));
     const dividers = Array.from(document.querySelectorAll('.breadcrumb .breadcrumb-divider'));
-    let warningDiv = document.querySelector('.ui.warning.message.flash-message.flash-warning.space-related');
+    let warningDiv = document.querySelector<HTMLDivElement>('.ui.warning.message.flash-message.flash-warning.space-related');
     let containSpace = false;
     if (parts.length > 1) {
       for (let i = 0; i < parts.length; ++i) {
@@ -110,14 +110,14 @@ export function initRepoEditor() {
           filenameInput.value = value;
         }
         this.setSelectionRange(0, 0);
-        containSpace |= (trimValue !== value && trimValue !== '');
+        containSpace = containSpace || (trimValue !== value && trimValue !== '');
       }
     }
-    containSpace |= Array.from(links).some((link) => {
+    containSpace = containSpace || Array.from(links).some((link) => {
       const value = link.querySelector('a').textContent;
       return value.trim() !== value;
     });
-    containSpace |= parts[parts.length - 1].trim() !== parts[parts.length - 1];
+    containSpace = containSpace || parts[parts.length - 1].trim() !== parts[parts.length - 1];
     if (containSpace) {
       if (!warningDiv) {
         warningDiv = document.createElement('div');
@@ -135,8 +135,8 @@ export function initRepoEditor() {
     joinTreePath();
   });
   filenameInput.addEventListener('keydown', function (e) {
-    const sections = queryElems('.breadcrumb span.section');
-    const dividers = queryElems('.breadcrumb .breadcrumb-divider');
+    const sections = queryElems(document, '.breadcrumb span.section');
+    const dividers = queryElems(document, '.breadcrumb .breadcrumb-divider');
     // Jump back to last directory once the filename is empty
     if (e.code === 'Backspace' && filenameInput.selectionStart === 0 && sections.length > 0) {
       e.preventDefault();
@@ -159,7 +159,7 @@ export function initRepoEditor() {
 
     // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
     // to enable or disable the commit button
-    const commitButton = document.querySelector('#commit-button');
+    const commitButton = document.querySelector<HTMLButtonElement>('#commit-button');
     const $editForm = $('.ui.edit.form');
     const dirtyFileClass = 'dirty-file';
 

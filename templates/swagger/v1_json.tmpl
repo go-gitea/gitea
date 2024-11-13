@@ -5095,7 +5095,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Add a collaborator to a repository",
+        "summary": "Add or Update a collaborator to a repository",
         "operationId": "repoAddCollaborator",
         "parameters": [
           {
@@ -20094,6 +20094,20 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Milestone"
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Reviewers"
+        },
+        "team_reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "TeamReviewers"
         },
         "title": {
           "type": "string",

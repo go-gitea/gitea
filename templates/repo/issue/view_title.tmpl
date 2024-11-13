@@ -3,6 +3,12 @@
 		{{template "base/alert" .}}
 	</div>
 {{end}}
+<div class="tw-hidden" id="issue-page-info"
+	data-issue-index="{{$.Issue.Index}}"
+	data-issue-dependency-search-type="{{$.IssueDependencySearchType}}"
+	data-issue-repo-link="{{$.RepoLink}}"
+	data-issue-repo-id="{{$.Repository.ID}}"
+></div>
 <div class="issue-title-header">
 	{{$canEditIssueTitle := and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 	<div class="issue-title" id="issue-title-display">

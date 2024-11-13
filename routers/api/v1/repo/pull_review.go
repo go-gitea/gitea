@@ -656,6 +656,47 @@ func DeleteReviewRequests(ctx *context.APIContext) {
 	apiReviewRequest(ctx, *opts, false)
 }
 
+func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerNames []string) (reviewers []*user_model.User, teamReviewers []*organization.Team) {
+	var err error
+	for _, r := range reviewerNames {
+		var reviewer *user_model.User
+		if strings.Contains(r, "@") {
+			reviewer, err = user_model.GetUserByEmail(ctx, r)
+		} else {
+			reviewer, err = user_model.GetUserByName(ctx, r)
+		}
+
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.NotFound("UserNotExist", fmt.Sprintf("User '%s' not exist", r))
+				return nil, nil
+			}
+			ctx.Error(http.StatusInternalServerError, "GetUser", err)
+			return nil, nil
+		}
+
+		reviewers = append(reviewers, reviewer)
+	}
+
+	if ctx.Repo.Repository.Owner.IsOrganization() && len(teamReviewerNames) > 0 {
+		for _, t := range teamReviewerNames {
+			var teamReviewer *organization.Team
+			teamReviewer, err = organization.GetTeam(ctx, ctx.Repo.Owner.ID, t)
+			if err != nil {
+				if organization.IsErrTeamNotExist(err) {
+					ctx.NotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", t))
+					return nil, nil
+				}
+				ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
+				return nil, nil
+			}
+
+			teamReviewers = append(teamReviewers, teamReviewer)
+		}
+	}
+	return reviewers, teamReviewers
+}
+
 func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions, isAdd bool) {
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
@@ -672,42 +713,15 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		return
 	}
 
-	reviewers := make([]*user_model.User, 0, len(opts.Reviewers))
-
 	permDoer, err := access_model.GetUserRepoPermission(ctx, pr.Issue.Repo, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return
 	}
 
-	for _, r := range opts.Reviewers {
-		var reviewer *user_model.User
-		if strings.Contains(r, "@") {
-			reviewer, err = user_model.GetUserByEmail(ctx, r)
-		} else {
-			reviewer, err = user_model.GetUserByName(ctx, r)
-		}
-
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				ctx.NotFound("UserNotExist", fmt.Sprintf("User '%s' not exist", r))
-				return
-			}
-			ctx.Error(http.StatusInternalServerError, "GetUser", err)
-			return
-		}
-
-		err = issue_service.IsValidReviewRequest(ctx, reviewer, ctx.Doer, isAdd, pr.Issue, &permDoer)
-		if err != nil {
-			if issues_model.IsErrNotValidReviewRequest(err) {
-				ctx.Error(http.StatusUnprocessableEntity, "NotValidReviewRequest", err)
-				return
-			}
-			ctx.Error(http.StatusInternalServerError, "IsValidReviewRequest", err)
-			return
-		}
-
-		reviewers = append(reviewers, reviewer)
+	reviewers, teamReviewers := parseReviewersByNames(ctx, opts.Reviewers, opts.TeamReviewers)
+	if ctx.Written() {
+		return
 	}
 
 	var reviews []*issues_model.Review
@@ -716,10 +730,14 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 	}
 
 	for _, reviewer := range reviewers {
-		comment, err := issue_service.ReviewRequest(ctx, pr.Issue, ctx.Doer, reviewer, isAdd)
+		comment, err := issue_service.ReviewRequest(ctx, pr.Issue, ctx.Doer, &permDoer, reviewer, isAdd)
 		if err != nil {
 			if issues_model.IsErrReviewRequestOnClosedPR(err) {
 				ctx.Error(http.StatusForbidden, "", err)
+				return
+			}
+			if issues_model.IsErrNotValidReviewRequest(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "", err)
 				return
 			}
 			ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
@@ -736,35 +754,17 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 	}
 
 	if ctx.Repo.Repository.Owner.IsOrganization() && len(opts.TeamReviewers) > 0 {
-		teamReviewers := make([]*organization.Team, 0, len(opts.TeamReviewers))
-		for _, t := range opts.TeamReviewers {
-			var teamReviewer *organization.Team
-			teamReviewer, err = organization.GetTeam(ctx, ctx.Repo.Owner.ID, t)
-			if err != nil {
-				if organization.IsErrTeamNotExist(err) {
-					ctx.NotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", t))
-					return
-				}
-				ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
-				return
-			}
-
-			err = issue_service.IsValidTeamReviewRequest(ctx, teamReviewer, ctx.Doer, isAdd, pr.Issue)
-			if err != nil {
-				if issues_model.IsErrNotValidReviewRequest(err) {
-					ctx.Error(http.StatusUnprocessableEntity, "NotValidReviewRequest", err)
-					return
-				}
-				ctx.Error(http.StatusInternalServerError, "IsValidTeamReviewRequest", err)
-				return
-			}
-
-			teamReviewers = append(teamReviewers, teamReviewer)
-		}
-
 		for _, teamReviewer := range teamReviewers {
 			comment, err := issue_service.TeamReviewRequest(ctx, pr.Issue, ctx.Doer, teamReviewer, isAdd)
 			if err != nil {
+				if issues_model.IsErrReviewRequestOnClosedPR(err) {
+					ctx.Error(http.StatusForbidden, "", err)
+					return
+				}
+				if issues_model.IsErrNotValidReviewRequest(err) {
+					ctx.Error(http.StatusUnprocessableEntity, "", err)
+					return
+				}
 				ctx.ServerError("TeamReviewRequest", err)
 				return
 			}

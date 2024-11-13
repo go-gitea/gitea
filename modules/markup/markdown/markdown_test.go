@@ -311,7 +311,8 @@ func TestTotal_RenderWiki(t *testing.T) {
 			IsWiki: true,
 		}, sameCases[i])
 		assert.NoError(t, err)
-		assert.Equal(t, template.HTML(answers[i]), line)
+		actual := strings.ReplaceAll(string(line), ` data-markdown-generated-content=""`, "")
+		assert.Equal(t, answers[i], actual)
 	}
 
 	testCases := []string{
@@ -336,7 +337,8 @@ func TestTotal_RenderWiki(t *testing.T) {
 			IsWiki: true,
 		}, testCases[i])
 		assert.NoError(t, err)
-		assert.Equal(t, template.HTML(testCases[i+1]), line)
+		actual := strings.ReplaceAll(string(line), ` data-markdown-generated-content=""`, "")
+		assert.EqualValues(t, testCases[i+1], actual)
 	}
 }
 
@@ -356,7 +358,8 @@ func TestTotal_RenderString(t *testing.T) {
 			Metas: localMetas,
 		}, sameCases[i])
 		assert.NoError(t, err)
-		assert.Equal(t, template.HTML(answers[i]), line)
+		actual := strings.ReplaceAll(string(line), ` data-markdown-generated-content=""`, "")
+		assert.Equal(t, answers[i], actual)
 	}
 
 	testCases := []string{}
@@ -996,7 +999,8 @@ space</p>
 	for i, c := range cases {
 		result, err := markdown.RenderString(&markup.RenderContext{Ctx: context.Background(), Links: c.Links, IsWiki: c.IsWiki}, input)
 		assert.NoError(t, err, "Unexpected error in testcase: %v", i)
-		assert.Equal(t, c.Expected, string(result), "Unexpected result in testcase %v", i)
+		actual := strings.ReplaceAll(string(result), ` data-markdown-generated-content=""`, "")
+		assert.Equal(t, c.Expected, actual, "Unexpected result in testcase %v", i)
 	}
 }
 
