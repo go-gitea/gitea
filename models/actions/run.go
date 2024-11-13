@@ -401,6 +401,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 	if len(cols) > 0 {
 		sess.Cols(cols...)
 	}
+	run.Title, _ = util.SplitStringAtByteN(run.Title, 255)
 	affected, err := sess.Update(run)
 	if err != nil {
 		return err

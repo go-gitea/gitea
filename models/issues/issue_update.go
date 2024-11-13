@@ -139,6 +139,7 @@ func ChangeIssueTitle(ctx context.Context, issue *Issue, doer *user_model.User, 
 	}
 	defer committer.Close()
 
+	issue.Title, _ = util.SplitStringAtByteN(issue.Title, 255)
 	if err = UpdateIssueCols(ctx, issue, "name"); err != nil {
 		return fmt.Errorf("updateIssueCols: %w", err)
 	}

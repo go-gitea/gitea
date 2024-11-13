@@ -311,6 +311,7 @@ func UpdateProject(ctx context.Context, p *Project) error {
 		p.CardType = CardTypeTextOnly
 	}
 
+	p.Title, _ = util.SplitStringAtByteN(p.Title, 255)
 	_, err := db.GetEngine(ctx).ID(p.ID).Cols(
 		"title",
 		"description",
