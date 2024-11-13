@@ -72,7 +72,12 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			g.transformList(ctx, v, rc)
 		case *ast.Text:
 			if v.SoftLineBreak() && !v.HardLineBreak() {
-				if ctx.Metas["mode"] != "document" {
+				// TODO: this was a quite unclear part
+				// many places render non-comment contents with no mode=document, then these contents also use comment's hard line break setting
+				// especially in many tests.
+				if ctx.UseHardLineBreak.Has() {
+					v.SetHardLineBreak(ctx.UseHardLineBreak.Value())
+				} else if ctx.ContentMode == markup.RenderContentAsComment {
 					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInComments)
 				} else {
 					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInDocuments)

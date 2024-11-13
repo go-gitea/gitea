@@ -5,16 +5,15 @@ package markup
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/url"
-	"path/filepath"
 	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -29,15 +28,32 @@ const (
 	RenderMetaAsTable   RenderMetaMode = "table"
 )
 
+type RenderContentMode string
+
+const (
+	RenderContentAsDefault RenderContentMode = "" // empty means "default", no special handling, maybe just a simple "document"
+	RenderContentAsComment RenderContentMode = "comment"
+	RenderContentAsTitle   RenderContentMode = "title"
+	RenderContentAsWiki    RenderContentMode = "wiki"
+)
+
 // RenderContext represents a render context
 type RenderContext struct {
-	Ctx              context.Context
-	RelativePath     string // relative path from tree root of the branch
-	Type             string
-	IsWiki           bool
-	Links            Links
-	Metas            map[string]string // user, repo, mode(comment/document)
-	DefaultLink      string
+	Ctx          context.Context
+	RelativePath string // relative path from tree root of the branch
+
+	// eg: "orgmode", "asciicast", "console"
+	// for file mode, it could be left as empty, and will be detected by file extension in RelativePath
+	MarkupType string
+
+	// what the content will be used for: eg: for comment or for wiki? or just render a file?
+	ContentMode RenderContentMode
+
+	UseHardLineBreak optional.Option[bool]
+
+	Links            Links             // special link references for rendering, especially when there is a branch/tree path
+	Metas            map[string]string // user&repo, format&style&regexp (for external issue pattern), teams&org (for mention), BranchNameSubURL(for iframe&asciicast)
+	DefaultLink      string            // TODO: need to figure out
 	GitRepo          *git.Repository
 	Repo             gitrepo.Repository
 	ShaExistCache    map[string]bool
@@ -77,12 +93,29 @@ func (ctx *RenderContext) AddCancel(fn func()) {
 
 // Render renders markup file to HTML with all specific handling stuff.
 func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	if ctx.Type != "" {
-		return renderByType(ctx, input, output)
-	} else if ctx.RelativePath != "" {
-		return renderFile(ctx, input, output)
+	if ctx.MarkupType == "" && ctx.RelativePath != "" {
+		ctx.MarkupType = DetectMarkupTypeByFileName(ctx.RelativePath)
+		if ctx.MarkupType == "" {
+			return util.NewInvalidArgumentErrorf("unsupported file to render: %q", ctx.RelativePath)
+		}
 	}
-	return errors.New("render options both filename and type missing")
+
+	renderer := renderers[ctx.MarkupType]
+	if renderer == nil {
+		return util.NewInvalidArgumentErrorf("unsupported markup type: %q", ctx.MarkupType)
+	}
+
+	if ctx.RelativePath != "" {
+		if externalRender, ok := renderer.(ExternalRenderer); ok && externalRender.DisplayInIFrame() {
+			if !ctx.InStandalonePage {
+				// for an external render, it could only output its content in a standalone page
+				// otherwise, a <iframe> should be outputted to embed the external rendered page
+				return renderIFrame(ctx, output)
+			}
+		}
+	}
+
+	return render(ctx, renderer, input, output)
 }
 
 // RenderString renders Markup string to HTML with all specific handling stuff and return string
@@ -168,42 +201,6 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 
 	wg.Wait()
 	return err
-}
-
-func renderByType(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	if renderer, ok := renderers[ctx.Type]; ok {
-		return render(ctx, renderer, input, output)
-	}
-	return fmt.Errorf("unsupported render type: %s", ctx.Type)
-}
-
-// ErrUnsupportedRenderExtension represents the error when extension doesn't supported to render
-type ErrUnsupportedRenderExtension struct {
-	Extension string
-}
-
-func IsErrUnsupportedRenderExtension(err error) bool {
-	_, ok := err.(ErrUnsupportedRenderExtension)
-	return ok
-}
-
-func (err ErrUnsupportedRenderExtension) Error() string {
-	return fmt.Sprintf("Unsupported render extension: %s", err.Extension)
-}
-
-func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	extension := strings.ToLower(filepath.Ext(ctx.RelativePath))
-	if renderer, ok := extRenderers[extension]; ok {
-		if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {
-			if !ctx.InStandalonePage {
-				// for an external render, it could only output its content in a standalone page
-				// otherwise, a <iframe> should be outputted to embed the external rendered page
-				return renderIFrame(ctx, output)
-			}
-		}
-		return render(ctx, renderer, input, output)
-	}
-	return ErrUnsupportedRenderExtension{extension}
 }
 
 // Init initializes the render global variables

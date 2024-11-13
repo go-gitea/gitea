@@ -158,8 +158,8 @@ Here are some links to the most important topics. You can find the full list of 
 <a href="http://localhost:3000/gogits/gogs/media/branch/main/path/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/gogits/gogs/media/branch/main/path/image.png" alt="Image"/></a></p>
 `, http.StatusOK)
 
-	testRenderMarkup(t, "file", true, "path/test.unknown", "## Test", "Unsupported render extension: .unknown\n", http.StatusUnprocessableEntity)
-	testRenderMarkup(t, "unknown", true, "", "## Test", "Unknown mode: unknown\n", http.StatusUnprocessableEntity)
+	testRenderMarkup(t, "file", false, "path/test.unknown", "## Test", "unsupported file to render: \"path/test.unknown\"\n", http.StatusUnprocessableEntity)
+	testRenderMarkup(t, "unknown", false, "", "## Test", "Unknown mode: unknown\n", http.StatusUnprocessableEntity)
 }
 
 var simpleCases = []string{

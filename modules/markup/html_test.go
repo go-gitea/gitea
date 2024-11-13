@@ -302,10 +302,10 @@ func TestRender_email(t *testing.T) {
 	j.doe@example.com;
 	j.doe@example.com?
 	j.doe@example.com!`,
-		`<p><a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>,<br/>
-<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>.<br/>
-<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>;<br/>
-<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>?<br/>
+		`<p><a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>,
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>.
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>;
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>?
 <a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>!</p>`)
 
 	// Test that should *not* be turned into email links
@@ -418,8 +418,8 @@ func TestRender_ShortLinks(t *testing.T) {
 			Links: markup.Links{
 				Base: markup.TestRepoURL,
 			},
-			Metas:  localMetas,
-			IsWiki: true,
+			Metas:       localMetas,
+			ContentMode: markup.RenderContentAsWiki,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
@@ -531,10 +531,10 @@ func TestRender_ShortLinks(t *testing.T) {
 func TestRender_RelativeMedias(t *testing.T) {
 	render := func(input string, isWiki bool, links markup.Links) string {
 		buffer, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:    git.DefaultContext,
-			Links:  links,
-			Metas:  localMetas,
-			IsWiki: isWiki,
+			Ctx:         git.DefaultContext,
+			Links:       links,
+			Metas:       localMetas,
+			ContentMode: util.Iif(isWiki, markup.RenderContentAsWiki, markup.RenderContentAsComment),
 		}, input)
 		assert.NoError(t, err)
 		return strings.TrimSpace(string(buffer))
@@ -608,7 +608,6 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 	localMetas := map[string]string{
 		"user": "go-gitea",
 		"repo": "gitea",
-		"mode": "document",
 	}
 
 	test := func(input, expected string) {

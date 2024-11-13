@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/util"
@@ -74,7 +75,7 @@ func TestRender_StandardLinks(t *testing.T) {
 			Links: markup.Links{
 				Base: FullURL,
 			},
-			IsWiki: true,
+			ContentMode: markup.RenderContentAsWiki,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
@@ -306,9 +307,10 @@ func TestTotal_RenderWiki(t *testing.T) {
 			Links: markup.Links{
 				Base: FullURL,
 			},
-			Repo:   newMockRepo(testRepoOwnerName, testRepoName),
-			Metas:  localMetas,
-			IsWiki: true,
+			Repo:             newMockRepo(testRepoOwnerName, testRepoName),
+			Metas:            localMetas,
+			ContentMode:      markup.RenderContentAsWiki,
+			UseHardLineBreak: optional.Some(true),
 		}, sameCases[i])
 		assert.NoError(t, err)
 		actual := strings.ReplaceAll(string(line), ` data-markdown-generated-content=""`, "")
@@ -334,7 +336,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 			Links: markup.Links{
 				Base: FullURL,
 			},
-			IsWiki: true,
+			ContentMode: markup.RenderContentAsWiki,
 		}, testCases[i])
 		assert.NoError(t, err)
 		actual := strings.ReplaceAll(string(line), ` data-markdown-generated-content=""`, "")
@@ -354,8 +356,9 @@ func TestTotal_RenderString(t *testing.T) {
 				Base:       FullURL,
 				BranchPath: "master",
 			},
-			Repo:  newMockRepo(testRepoOwnerName, testRepoName),
-			Metas: localMetas,
+			Repo:             newMockRepo(testRepoOwnerName, testRepoName),
+			Metas:            localMetas,
+			UseHardLineBreak: optional.Some(true),
 		}, sameCases[i])
 		assert.NoError(t, err)
 		actual := strings.ReplaceAll(string(line), ` data-markdown-generated-content=""`, "")
@@ -428,7 +431,7 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 	expected := `<p><a href="/image1" target="_blank" rel="nofollow noopener"><img src="/image1" alt="image1"></a><br>
 <a href="/image2" target="_blank" rel="nofollow noopener"><img src="/image2" alt="image2"></a></p>
 `
-	res, err := markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, testcase)
+	res, err := markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext, UseHardLineBreak: optional.Some(true)}, testcase)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, res)
 }
@@ -997,7 +1000,12 @@ space</p>
 	}
 
 	for i, c := range cases {
-		result, err := markdown.RenderString(&markup.RenderContext{Ctx: context.Background(), Links: c.Links, IsWiki: c.IsWiki}, input)
+		result, err := markdown.RenderString(&markup.RenderContext{
+			Ctx:              context.Background(),
+			Links:            c.Links,
+			ContentMode:      util.Iif(c.IsWiki, markup.RenderContentAsWiki, markup.RenderContentAsDefault),
+			UseHardLineBreak: optional.Some(true),
+		}, input)
 		assert.NoError(t, err, "Unexpected error in testcase: %v", i)
 		actual := strings.ReplaceAll(string(result), ` data-markdown-generated-content=""`, "")
 		assert.Equal(t, c.Expected, actual, "Unexpected result in testcase %v", i)

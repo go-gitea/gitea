@@ -94,8 +94,9 @@ func (ut *RenderUtils) RenderCommitBody(msg string, metas map[string]string) tem
 	}
 
 	renderedMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
-		Ctx:   ut.ctx,
-		Metas: metas,
+		Ctx:         ut.ctx,
+		Metas:       metas,
+		ContentMode: markup.RenderContentAsComment,
 	}, template.HTMLEscapeString(msgLine))
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
@@ -116,8 +117,9 @@ func renderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 // RenderIssueTitle renders issue/pull title with defined post processors
 func (ut *RenderUtils) RenderIssueTitle(text string, metas map[string]string) template.HTML {
 	renderedText, err := markup.RenderIssueTitle(&markup.RenderContext{
-		Ctx:   ut.ctx,
-		Metas: metas,
+		Ctx:         ut.ctx,
+		ContentMode: markup.RenderContentAsTitle,
+		Metas:       metas,
 	}, template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("RenderIssueTitle: %v", err)
