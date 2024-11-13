@@ -22,6 +22,11 @@ func Activity(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.activity")
 	ctx.Data["PageIsActivity"] = true
 
+	if !ctx.Repo.CanReadAny(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases) {
+		ctx.Redirect(ctx.Repo.RepoLink + "/activity/contributors")
+		return
+	}
+
 	ctx.Data["PageIsPulse"] = true
 
 	ctx.Data["Period"] = ctx.PathParam("period")

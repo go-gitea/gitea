@@ -1456,13 +1456,13 @@ func registerRoutes(m *web.Router) {
 		m.Group("/code-frequency", func() {
 			m.Get("", repo.CodeFrequency)
 			m.Get("/data", repo.CodeFrequencyData)
-		})
+		}, reqRepoCodeReader)
 		m.Group("/recent-commits", func() {
 			m.Get("", repo.RecentCommits)
 			m.Get("/data", repo.RecentCommitsData)
-		})
+		}, reqRepoCodeReader)
 	},
-		ignSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases),
+		ignSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases, unit.TypeCode),
 		context.RepoRef(), repo.MustBeNotEmpty,
 	)
 	// end "/{username}/{reponame}/activity"
