@@ -37,6 +37,13 @@ export type IssuePathInfo = {
   indexString?: string,
 }
 
+export type IssuePageInfo = {
+  repoLink: string,
+  repoId: number,
+  issueNumber: number,
+  issueDependencySearchType: string,
+}
+
 export type Issue = {
   id: number;
   number: number;

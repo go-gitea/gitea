@@ -1,7 +1,7 @@
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 
-const preventListener = (e) => e.preventDefault();
+const preventListener = (e: Event) => e.preventDefault();
 
 /**
  * Attaches `input` handlers to markdown rendered tasklist checkboxes in comments.
@@ -10,10 +10,10 @@ const preventListener = (e) => e.preventDefault();
  * is set accordingly and sent to the server. On success it updates the raw-content on
  * error it resets the checkbox to its original value.
  */
-export function initMarkupTasklist() {
+export function initMarkupTasklist(): void {
   for (const el of document.querySelectorAll(`.markup[data-can-edit=true]`) || []) {
     const container = el.parentNode;
-    const checkboxes = el.querySelectorAll(`.task-list-item input[type=checkbox]`);
+    const checkboxes = el.querySelectorAll<HTMLInputElement>(`.task-list-item input[type=checkbox]`);
 
     for (const checkbox of checkboxes) {
       if (checkbox.hasAttribute('data-editable')) {
@@ -52,7 +52,7 @@ export function initMarkupTasklist() {
         }
 
         try {
-          const editContentZone = container.querySelector('.edit-content-zone');
+          const editContentZone = container.querySelector<HTMLDivElement>('.edit-content-zone');
           const updateUrl = editContentZone.getAttribute('data-update-url');
           const context = editContentZone.getAttribute('data-context');
           const contentVersion = editContentZone.getAttribute('data-content-version');
