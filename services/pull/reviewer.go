@@ -5,7 +5,6 @@ package pull
 
 import (
 	"context"
-	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -53,14 +52,6 @@ func GetReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 			return nil, err
 		}
 		uniqueUserIDs.AddMultiple(additionalUserIDs...)
-
-		if repo.Owner.Visibility.IsLimited() && doerID == 0 {
-			return nil, fmt.Errorf("permission denied")
-		}
-
-		if (repo.IsPrivate || repo.Owner.Visibility.IsPrivate()) && !uniqueUserIDs.Contains(doerID) {
-			return nil, fmt.Errorf("permission denied")
-		}
 	} else {
 		userIDs := make([]int64, 0, 10)
 		if err := e.Table("access").
@@ -70,9 +61,6 @@ func GetReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 			return nil, err
 		}
 		uniqueUserIDs.AddMultiple(userIDs...)
-		if repo.IsPrivate && !uniqueUserIDs.Contains(doerID) && doerID != repo.OwnerID {
-			return nil, fmt.Errorf("permission denied")
-		}
 	}
 
 	uniqueUserIDs.Remove(posterID) // posterID should not be in the list of reviewers

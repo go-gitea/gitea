@@ -186,7 +186,7 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 		if d.Issue == nil {
 			data.CanChooseReviewer = true
 		} else {
-			data.CanChooseReviewer = issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, d.Issue)
+			data.CanChooseReviewer = issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, d.Issue.PosterID)
 		}
 	}
 
