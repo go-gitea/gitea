@@ -56,7 +56,6 @@ func renderMarkdown(ctx *context.Context, act *activities_model.Action, content 
 		Links: markup.Links{
 			Base: act.GetRepoLink(ctx),
 		},
-		Type: markdown.MarkupName,
 		Metas: map[string]string{
 			"user": act.GetRepoUserName(ctx),
 			"repo": act.GetRepoName(ctx),
