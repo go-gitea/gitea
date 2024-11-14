@@ -59,7 +59,6 @@ func Sync(srcPath, destPath string) error {
 }
 
 // SyncDirs synchronizes files recursively from source to target directory.
-//
 // It returns error when error occurs in underlying functions.
 func SyncDirs(srcPath, destPath string) error {
 	err := os.MkdirAll(destPath, os.ModePerm)
@@ -68,17 +67,16 @@ func SyncDirs(srcPath, destPath string) error {
 	}
 
 	// find and delete all untracked files
-	files, err := util.StatDir(destPath, true)
+	destFiles, err := util.StatDir(destPath, true)
 	if err != nil {
 		return err
 	}
-
-	for _, file := range files {
-		destFilePath := filepath.Join(destPath, file)
-		if _, err = os.Stat(filepath.Join(srcPath, file)); err != nil {
+	for _, destFile := range destFiles {
+		destFilePath := filepath.Join(destPath, destFile)
+		if _, err = os.Stat(filepath.Join(srcPath, destFile)); err != nil {
 			if os.IsNotExist(err) {
-				// TODO: why delete? it should happen because the file list is just queried above, why not exist?
-				if err := os.RemoveAll(destFilePath); err != nil {
+				// if src file does not exist, remove dest file
+				if err = os.RemoveAll(destFilePath); err != nil {
 					return err
 				}
 			} else {
@@ -87,18 +85,18 @@ func SyncDirs(srcPath, destPath string) error {
 		}
 	}
 
-	// Gather directory info.
-	files, err = util.StatDir(srcPath, true)
+	// sync src files to dest
+	srcFiles, err := util.StatDir(srcPath, true)
 	if err != nil {
 		return err
 	}
-
-	for _, file := range files {
-		destFilePath := filepath.Join(destPath, file)
-		if strings.HasSuffix(file, "/") {
+	for _, srcFile := range srcFiles {
+		destFilePath := filepath.Join(destPath, srcFile)
+		// util.StatDir appends a slash to the directory name
+		if strings.HasSuffix(srcFile, "/") {
 			err = os.MkdirAll(destFilePath, os.ModePerm)
 		} else {
-			err = Sync(filepath.Join(srcPath, file), destFilePath)
+			err = Sync(filepath.Join(srcPath, srcFile), destFilePath)
 		}
 		if err != nil {
 			return err
