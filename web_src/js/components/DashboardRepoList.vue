@@ -1,8 +1,8 @@
 <script lang="ts">
 import {createApp, nextTick} from 'vue';
-import $ from 'jquery';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
@@ -102,7 +102,7 @@ const sfc = {
   mounted() {
     const el = document.querySelector('#dashboard-repo-list');
     this.changeReposFilter(this.reposFilter);
-    $(el).find('.dropdown').dropdown();
+    fomanticQuery(el.querySelector('.ui.dropdown')).dropdown();
     nextTick(() => {
       this.$refs.search.focus();
     });
