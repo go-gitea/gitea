@@ -13,7 +13,6 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -37,6 +36,18 @@ const (
 	RenderContentAsWiki    RenderContentMode = "wiki"
 )
 
+var RenderBehaviorForTesting struct {
+	// Markdown line break rendering has 2 behaviors: keep soft ("\n" for comments) or use hard (replace "\n" with "<br>" for non-comments)
+	// In history, there was a mess:
+	// * The behavior was controlled by `Metas["mode"] != "document",
+	// * However, many places render the content without setting "mode" in Metas, all these places used comment line break setting incorrectly
+	ForceHardLineBreak bool
+
+	// Gitea will emit some internal attributes for various purposes, these attributes don't affect rendering.
+	// But there are too many hard-coded test cases, to avoid changing all of them again and again, we can disable emitting these internal attributes.
+	DisableInternalAttributes bool
+}
+
 // RenderContext represents a render context
 type RenderContext struct {
 	Ctx          context.Context
@@ -48,8 +59,6 @@ type RenderContext struct {
 
 	// what the content will be used for: eg: for comment or for wiki? or just render a file?
 	ContentMode RenderContentMode
-
-	UseHardLineBreak optional.Option[bool]
 
 	Links            Links             // special link references for rendering, especially when there is a branch/tree path
 	Metas            map[string]string // user&repo, format&style&regexp (for external issue pattern), teams&org (for mention), BranchNameSubURL(for iframe&asciicast)

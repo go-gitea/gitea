@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	testModule "code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -341,7 +342,7 @@ func TestRender_AutoLink(t *testing.T) {
 
 func TestRender_FullIssueURLs(t *testing.T) {
 	setting.AppURL = TestAppURL
-
+	defer testModule.MockVariableValue(&RenderBehaviorForTesting.DisableInternalAttributes, true)()
 	test := func(input, expected string) {
 		var result strings.Builder
 		err := postProcess(&RenderContext{
@@ -352,9 +353,7 @@ func TestRender_FullIssueURLs(t *testing.T) {
 			Metas: localMetas,
 		}, []processor{fullIssuePatternProcessor}, strings.NewReader(input), &result)
 		assert.NoError(t, err)
-		actual := result.String()
-		actual = strings.ReplaceAll(actual, ` data-markdown-generated-content=""`, "")
-		assert.Equal(t, expected, actual)
+		assert.Equal(t, expected, result.String())
 	}
 	test("Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6",
 		"Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6")
