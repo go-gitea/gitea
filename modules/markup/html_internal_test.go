@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	testModule "code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -123,8 +124,9 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNil, &RenderContext{
-			Ctx:   git.DefaultContext,
-			Metas: localMetas,
+			Ctx:         git.DefaultContext,
+			Metas:       localMetas,
+			ContentMode: RenderContentAsComment,
 		})
 
 		class := "ref-issue"
@@ -137,8 +139,9 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 		}
 		expectedNum := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNum, &RenderContext{
-			Ctx:   git.DefaultContext,
-			Metas: numericMetas,
+			Ctx:         git.DefaultContext,
+			Metas:       numericMetas,
+			ContentMode: RenderContentAsComment,
 		})
 	}
 
@@ -266,7 +269,6 @@ func TestRender_IssueIndexPattern_Document(t *testing.T) {
 		"user":   "someUser",
 		"repo":   "someRepo",
 		"style":  IssueNameStyleNumeric,
-		"mode":   "document",
 	}
 
 	testRenderIssueIndexPattern(t, "#1", "#1", &RenderContext{
@@ -316,8 +318,8 @@ func TestRender_AutoLink(t *testing.T) {
 			Links: Links{
 				Base: TestRepoURL,
 			},
-			Metas:  localMetas,
-			IsWiki: true,
+			Metas:       localMetas,
+			ContentMode: RenderContentAsWiki,
 		}, strings.NewReader(input), &buffer)
 		assert.Equal(t, err, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer.String()))
@@ -340,7 +342,7 @@ func TestRender_AutoLink(t *testing.T) {
 
 func TestRender_FullIssueURLs(t *testing.T) {
 	setting.AppURL = TestAppURL
-
+	defer testModule.MockVariableValue(&RenderBehaviorForTesting.DisableInternalAttributes, true)()
 	test := func(input, expected string) {
 		var result strings.Builder
 		err := postProcess(&RenderContext{
@@ -351,9 +353,7 @@ func TestRender_FullIssueURLs(t *testing.T) {
 			Metas: localMetas,
 		}, []processor{fullIssuePatternProcessor}, strings.NewReader(input), &result)
 		assert.NoError(t, err)
-		actual := result.String()
-		actual = strings.ReplaceAll(actual, ` data-markdown-generated-content=""`, "")
-		assert.Equal(t, expected, actual)
+		assert.Equal(t, expected, result.String())
 	}
 	test("Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6",
 		"Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6")
