@@ -56,16 +56,12 @@
 			{{if .Issue.IsPull}}
 				{{$headHref := .HeadTarget}}
 				{{if .HeadBranchLink}}
-					{{if .HeadBranchNotExist}}
-						{{$headHref = HTMLFormat `<span class="tw-line-through" data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "form.target_branch_not_exist") $headHref}}
-					{{else}}
-						{{$headHref = HTMLFormat `<a href="%s">%s</a> <button class="btn interact-fg" data-tooltip-content="%s" data-clipboard-text="%s">%s</button>` .HeadBranchLink $headHref (ctx.Locale.Tr "copy_branch") .HeadTarget (svg "octicon-copy" 14)}}
-					{{end}}
+					{{$headHref = HTMLFormat `<a href="%s">%s</a> <button class="btn interact-fg" data-tooltip-content="%s" data-clipboard-text="%s">%s</button>` .HeadBranchLink $headHref (ctx.Locale.Tr "copy_branch") .HeadTarget (svg "octicon-copy" 14)}}
 				{{else}}
 					{{if .Issue.PullRequest.IsAgitFlow}}
 						{{$headHref = HTMLFormat `%s <a href="%s" target="_blank"><span class="ui label basic tiny" data-tooltip-content="%s">AGit</span></a>` $headHref "https://docs.gitea.com/usage/agit" (ctx.Locale.Tr "repo.pull.agit_documentation")}}
 					{{else}}
-						{{$headHref = HTMLFormat `<span data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "form.target_branch_not_exist") $headHref}}
+						{{$headHref = HTMLFormat `<span class="tw-line-through" data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "form.target_branch_not_exist") $headHref}}
 					{{end}}
 				{{end}}
 				{{$baseHref := .BaseTarget}}
