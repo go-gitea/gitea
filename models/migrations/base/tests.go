@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -35,7 +34,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, fu
 	ourSkip := 2
 	ourSkip += skip
 	deferFn := testlogger.PrintCurrentTest(t, ourSkip)
-	assert.NoError(t, unittest.SyncDirs(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
@@ -122,7 +121,7 @@ func MainTest(m *testing.M) {
 	if runtime.GOOS == "windows" {
 		giteaBinary += ".exe"
 	}
-	setting.AppPath = path.Join(giteaRoot, giteaBinary)
+	setting.AppPath = filepath.Join(giteaRoot, giteaBinary)
 	if _, err := os.Stat(setting.AppPath); err != nil {
 		fmt.Printf("Could not find gitea binary at %s\n", setting.AppPath)
 		os.Exit(1)
@@ -130,12 +129,12 @@ func MainTest(m *testing.M) {
 
 	giteaConf := os.Getenv("GITEA_CONF")
 	if giteaConf == "" {
-		giteaConf = path.Join(filepath.Dir(setting.AppPath), "tests/sqlite.ini")
+		giteaConf = filepath.Join(filepath.Dir(setting.AppPath), "tests/sqlite.ini")
 		fmt.Printf("Environment variable $GITEA_CONF not set - defaulting to %s\n", giteaConf)
 	}
 
-	if !path.IsAbs(giteaConf) {
-		setting.CustomConf = path.Join(giteaRoot, giteaConf)
+	if !filepath.IsAbs(giteaConf) {
+		setting.CustomConf = filepath.Join(giteaRoot, giteaConf)
 	} else {
 		setting.CustomConf = giteaConf
 	}

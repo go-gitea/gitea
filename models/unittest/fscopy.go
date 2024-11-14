@@ -4,9 +4,8 @@
 package unittest
 
 import (
-	"io"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/util"
@@ -31,27 +30,7 @@ func Copy(src, dest string) error {
 		return os.Symlink(target, dest)
 	}
 
-	sr, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer sr.Close()
-
-	dw, err := os.Create(dest)
-	if err != nil {
-		return err
-	}
-	defer dw.Close()
-
-	if _, err = io.Copy(dw, sr); err != nil {
-		return err
-	}
-
-	// Set back file information.
-	if err = os.Chtimes(dest, si.ModTime(), si.ModTime()); err != nil {
-		return err
-	}
-	return os.Chmod(dest, si.Mode())
+	return util.CopyFile(src, dest)
 }
 
 // Sync synchronizes the two files. This is skipped if both files
@@ -89,18 +68,17 @@ func SyncDirs(srcPath, destPath string) error {
 	}
 
 	// find and delete all untracked files
-	infos, err := util.StatDir(destPath, true)
+	files, err := util.StatDir(destPath, true)
 	if err != nil {
 		return err
 	}
 
-	for _, info := range infos {
-		curPath := path.Join(destPath, info)
-
-		if _, err := os.Stat(path.Join(srcPath, info)); err != nil {
+	for _, file := range files {
+		destFilePath := filepath.Join(destPath, file)
+		if _, err = os.Stat(filepath.Join(srcPath, file)); err != nil {
 			if os.IsNotExist(err) {
-				// Delete
-				if err := os.RemoveAll(curPath); err != nil {
+				// TODO: why delete? it should happen because the file list is just queried above, why not exist?
+				if err := os.RemoveAll(destFilePath); err != nil {
 					return err
 				}
 			} else {
@@ -110,17 +88,17 @@ func SyncDirs(srcPath, destPath string) error {
 	}
 
 	// Gather directory info.
-	infos, err = util.StatDir(srcPath, true)
+	files, err = util.StatDir(srcPath, true)
 	if err != nil {
 		return err
 	}
 
-	for _, info := range infos {
-		curPath := path.Join(destPath, info)
-		if strings.HasSuffix(info, "/") {
-			err = os.MkdirAll(curPath, os.ModePerm)
+	for _, file := range files {
+		destFilePath := filepath.Join(destPath, file)
+		if strings.HasSuffix(file, "/") {
+			err = os.MkdirAll(destFilePath, os.ModePerm)
 		} else {
-			err = Sync(path.Join(srcPath, info), curPath)
+			err = Sync(filepath.Join(srcPath, file), destFilePath)
 		}
 		if err != nil {
 			return err
