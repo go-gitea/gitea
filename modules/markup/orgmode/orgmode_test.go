@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +27,7 @@ func TestRender_StandardLinks(t *testing.T) {
 				Base:       "/relative-path",
 				BranchPath: "branch/main",
 			},
-			IsWiki: isWiki,
+			ContentMode: util.Iif(isWiki, markup.RenderContentAsWiki, markup.RenderContentAsDefault),
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
