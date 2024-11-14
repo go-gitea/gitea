@@ -29,6 +29,7 @@
 					<p id="signed-user-email">{{.SignedUser.Email}}</p>
 				</div>
 				<div class="field {{if .Err_Description}}error{{end}}">
+					{{/* it is rendered as markdown, but the length is limited, so at the moment we do not use the markdown editor here */}}
 					<label for="description">{{ctx.Locale.Tr "user.user_bio"}}</label>
 					<textarea id="description" name="description" rows="2" placeholder="{{ctx.Locale.Tr "settings.biography_placeholder"}}" maxlength="255">{{.SignedUser.Description}}</textarea>
 				</div>

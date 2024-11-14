@@ -11,10 +11,9 @@
 		<input type="hidden" name="diff_base_cid">
 
 		{{template "shared/combomarkdowneditor" (dict
-			"MarkdownPreviewUrl" (print $.root.Repository.Link "/markup")
-			"MarkdownPreviewContext" $.root.RepoLink
-			"TextareaName" "content"
-			"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
+			"CustomInit" true
+			"MarkdownPreviewInRepo" $.root.Repository "MarkdownPreviewMode" "comment"
+			"TextareaName" "content" "TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
 			"DropzoneParentContainer" "form"
 			"DisableAutosize" "true"
 		)}}
@@ -26,7 +25,6 @@
 		{{end}}
 
 		<div class="field footer tw-mx-2">
-			<span class="markup-info">{{svg "octicon-markdown"}} {{ctx.Locale.Tr "repo.diff.comment.markdown_info"}}</span>
 			<div class="tw-text-right">
 				{{if $.reply}}
 					<button class="ui submit primary tiny button btn-reply" type="submit">{{ctx.Locale.Tr "repo.diff.comment.reply"}}</button>

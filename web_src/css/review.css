@@ -123,13 +123,6 @@
   padding: 10px 0;
 }
 
-.comment-code-cloud .footer .markup-info {
-  display: inline-block;
-  margin: 5px 0;
-  font-size: 12px;
-  color: var(--color-text-light);
-}
-
 .comment-code-cloud .footer .ui.right.floated {
   padding-top: 6px;
 }
