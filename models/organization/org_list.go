@@ -125,7 +125,7 @@ func GetUserOrgsList(ctx context.Context, user *user_model.User) ([]*MinimalOrg,
 		return nil, err
 	}
 
-	orgCountMap := make(map[int64]int)
+	orgCountMap := make(map[int64]int, len(orgCounts))
 	for _, orgCount := range orgCounts {
 		orgCountMap[orgCount.OrgID] = orgCount.RepoCount
 	}
