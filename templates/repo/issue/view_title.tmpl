@@ -72,7 +72,6 @@
 						{{$baseHref = HTMLFormat `<a href="%s">%s</a>` .BaseBranchLink $baseHref}}
 					{{end}}
 				{{end}}
-				
 				{{if .Issue.PullRequest.HasMerged}}
 					{{$mergedStr:= DateUtils.TimeSince .Issue.PullRequest.MergedUnix}}
 					{{if .Issue.OriginalAuthor}}
