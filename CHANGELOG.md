@@ -4,6 +4,36 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.22.4](https://github.com/go-gitea/gitea/releases/tag/1.22.4) - 2024-11-14
+
+* SECURITY
+  * Refactor internal routers (partial backport, auth token const time comparing) (#32473) (#32479)
+* BUGFIXES
+  * Fix `missing signature key` error when pulling Docker images with `SERVE_DIRECT` enabled (#32365) (#32397)
+  * Fix the permission check for user search API and limit the number of returned users for `/user/search` (#32310)
+  * Fix SearchIssues swagger docs (#32208) (#32298)
+  * Fix dropdown content overflow (#31610) (#32250)
+  * Fix nil panic if repo doesn't exist (#32501) (#32502)
+  * Disable Oauth check if oauth disabled (#32368) (#32480)
+  * Respect renamed dependencies of Cargo registry (#32430) (#32478)
+  * Fix mermaid diagram height when initially hidden (#32457) (#32464)
+  * Fix broken releases when re-pushing tags (#32435) (#32449)
+  * Only provide the commit summary for Discord webhook push events (#32432) (#32447)
+  * Only query team tables if repository is under org when getting assignees (#32414) (#32426)
+  * Fix created_unix for mirroring (#32342) (#32406)
+  * Respect UI.ExploreDefaultSort setting again (#32357) (#32385)
+  * Fix broken image when editing comment with non-image attachments (#32319) (#32345)
+  * Fix disable 2fa bug (#32320) (#32330)
+  * Always update expiration time when creating an artifact (#32281) (#32285)
+  * Fix null errors on conversation holder (#32258) (#32266) (#32282)
+  * Only rename a user when they should receive a different name (#32247) (#32249)
+  * Fix checkbox bug on private/archive filter (#32236) (#32240)
+  * Add a doctor check to disable the "Actions" unit for mirrors (#32424) (#32497)
+  * Quick fix milestone deadline 9999 (#32423)
+  * Make `show stats` work when only one file changed (#32244) (#32268)
+  * Make `owner/repo/pulls` handlers use "PR reader" permission (#32254) (#32265)
+  * Update scheduled tasks even if changes are pushed by "ActionsUser" (#32246) (#32252)
+
 ## [1.22.3](https://github.com/go-gitea/gitea/releases/tag/1.22.3) - 2024-10-08
 
 * SECURITY
