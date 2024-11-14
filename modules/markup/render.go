@@ -37,7 +37,9 @@ const (
 )
 
 var RenderBehaviorForTesting struct {
-	// Markdown line break rendering has 2 behaviors: keep soft ("\n" for comments) or use hard (replace "\n" with "<br>" for non-comments)
+	// Markdown line break rendering has 2 default behaviors:
+	// * Use hard: replace "\n" with "<br>" for comments, setting.Markdown.EnableHardLineBreakInComments=true
+	// * Keep soft: "\n" for non-comments (a.k.a. documents), setting.Markdown.EnableHardLineBreakInDocuments=false
 	// In history, there was a mess:
 	// * The behavior was controlled by `Metas["mode"] != "document",
 	// * However, many places render the content without setting "mode" in Metas, all these places used comment line break setting incorrectly
@@ -117,7 +119,7 @@ func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	if ctx.RelativePath != "" {
 		if externalRender, ok := renderer.(ExternalRenderer); ok && externalRender.DisplayInIFrame() {
 			if !ctx.InStandalonePage {
-				// for an external render, it could only output its content in a standalone page
+				// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
 				// otherwise, a <iframe> should be outputted to embed the external rendered page
 				return renderIFrame(ctx, output)
 			}
