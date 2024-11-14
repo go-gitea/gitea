@@ -195,3 +195,7 @@ export function initAreYouSure($) {
     });
   };
 }
+
+export function applyAreYouSure(selector: string) {
+  $(selector).areYouSure();
+}
