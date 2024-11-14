@@ -22,7 +22,7 @@
             gzip
 
             # frontend
-            nodejs_20
+            nodejs_22
 
             # linting
             python312

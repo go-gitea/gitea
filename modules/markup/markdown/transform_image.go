@@ -21,7 +21,7 @@ func (g *ASTTransformer) transformImage(ctx *markup.RenderContext, v *ast.Image)
 	// Check if the destination is a real link
 	if len(v.Destination) > 0 && !markup.IsFullURLBytes(v.Destination) {
 		v.Destination = []byte(giteautil.URLJoin(
-			ctx.Links.ResolveMediaLink(ctx.IsWiki),
+			ctx.Links.ResolveMediaLink(ctx.ContentMode == markup.RenderContentAsWiki),
 			strings.TrimLeft(string(v.Destination), "/"),
 		))
 	}

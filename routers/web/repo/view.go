@@ -312,6 +312,7 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 
 		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 			Ctx:          ctx,
+			MarkupType:   markupType,
 			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.Name()), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
 			Links: markup.Links{
 				Base:       ctx.Repo.RepoLink,
@@ -502,28 +503,20 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 		ctx.Data["ReadmeExist"] = readmeExist
 
 		markupType := markup.DetectMarkupTypeByFileName(blob.Name())
-		// If the markup is detected by custom markup renderer it should not be reset later on
-		// to not pass it down to the render context.
-		detected := false
 		if markupType == "" {
-			detected = true
 			markupType = markup.DetectRendererType(blob.Name(), bytes.NewReader(buf))
 		}
 		if markupType != "" {
 			ctx.Data["HasSourceRenderedToggle"] = true
 		}
-
 		if markupType != "" && !shouldRenderSource {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			if !detected {
-				markupType = ""
-			}
 			metas := ctx.Repo.Repository.ComposeDocumentMetas(ctx)
 			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 				Ctx:          ctx,
-				Type:         markupType,
+				MarkupType:   markupType,
 				RelativePath: ctx.Repo.TreePath,
 				Links: markup.Links{
 					Base:       ctx.Repo.RepoLink,
@@ -615,6 +608,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["MarkupType"] = markupType
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 				Ctx:          ctx,
+				MarkupType:   markupType,
 				RelativePath: ctx.Repo.TreePath,
 				Links: markup.Links{
 					Base:       ctx.Repo.RepoLink,
