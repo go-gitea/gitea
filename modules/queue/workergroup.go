@@ -210,9 +210,9 @@ func (q *WorkerPoolQueue[T]) doFlush(wg *workerGroup[T], flush flushType) {
 		wg.batchBuffer = nil
 		for {
 			select {
-			case _ = <-wg.popItemChan:
-			case _ = <-wg.popItemErr:
-			case _ = <-q.batchChan:
+			case <-wg.popItemChan:
+			case <-wg.popItemErr:
+			case <-q.batchChan:
 			case <-q.ctxRun.Done():
 				return
 			default:
