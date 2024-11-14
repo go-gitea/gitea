@@ -1,13 +1,12 @@
-import $ from 'jquery';
-import {initAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {applyAreYouSure, initAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.ts';
 
 export function initGlobalFormDirtyLeaveConfirm() {
   initAreYouSure(window.jQuery);
   // Warn users that try to leave a page after entering data into a form.
   // Except on sign-in pages, and for forms marked as 'ignore-dirty'.
-  if (!$('.user.signin').length) {
-    $('form:not(.ignore-dirty)').areYouSure();
+  if (!document.querySelector('.page-content.user.signin')) {
+    applyAreYouSure('form:not(.ignore-dirty)');
   }
 }
 

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/stretchr/testify/assert"
@@ -72,6 +73,7 @@ func newTestRenderUtils() *RenderUtils {
 }
 
 func TestRenderCommitBody(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
 	type args struct {
 		msg   string
 		metas map[string]string
@@ -129,23 +131,21 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <a href="/mention-user" class="mention">@mention-user</a> test
 <a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
   space`
-	actual := strings.ReplaceAll(string(newTestRenderUtils().RenderCommitBody(testInput(), testMetas)), ` data-markdown-generated-content=""`, "")
-	assert.EqualValues(t, expected, actual)
+	assert.EqualValues(t, expected, string(newTestRenderUtils().RenderCommitBody(testInput(), testMetas)))
 }
 
 func TestRenderCommitMessage(t *testing.T) {
 	expected := `space <a href="/mention-user" data-markdown-generated-content="" class="mention">@mention-user</a>  `
-
 	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessage(testInput(), testMetas))
 }
 
 func TestRenderCommitMessageLinkSubject(t *testing.T) {
 	expected := `<a href="https://example.com/link" class="default-link muted">space </a><a href="/mention-user" data-markdown-generated-content="" class="mention">@mention-user</a>`
-
 	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", testMetas))
 }
 
 func TestRenderIssueTitle(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
 	expected := `  space @mention-user<SPACE><SPACE>
 /just/a/path.bin
 https://example.com/file.bin
@@ -168,11 +168,11 @@ mail@domain.com
   space<SPACE><SPACE>
 `
 	expected = strings.ReplaceAll(expected, "<SPACE>", " ")
-	actual := strings.ReplaceAll(string(newTestRenderUtils().RenderIssueTitle(testInput(), testMetas)), ` data-markdown-generated-content=""`, "")
-	assert.EqualValues(t, expected, actual)
+	assert.EqualValues(t, expected, string(newTestRenderUtils().RenderIssueTitle(testInput(), testMetas)))
 }
 
 func TestRenderMarkdownToHtml(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
 	expected := `<p>space <a href="/mention-user" rel="nofollow">@mention-user</a><br/>
 /just/a/path.bin
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a>
@@ -194,8 +194,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 #123
 space</p>
 `
-	actual := strings.ReplaceAll(string(newTestRenderUtils().MarkdownToHtml(testInput())), ` data-markdown-generated-content=""`, "")
-	assert.Equal(t, expected, actual)
+	assert.Equal(t, expected, string(newTestRenderUtils().MarkdownToHtml(testInput())))
 }
 
 func TestRenderLabels(t *testing.T) {

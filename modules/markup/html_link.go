@@ -20,7 +20,7 @@ func ResolveLink(ctx *RenderContext, link, userContentAnchorPrefix string) (resu
 	isAnchorFragment := link != "" && link[0] == '#'
 	if !isAnchorFragment && !IsFullURLString(link) {
 		linkBase := ctx.Links.Base
-		if ctx.IsWiki {
+		if ctx.ContentMode == RenderContentAsWiki {
 			// no need to check if the link should be resolved as a wiki link or a wiki raw link
 			// just use wiki link here and it will be redirected to a wiki raw link if necessary
 			linkBase = ctx.Links.WikiLink()
@@ -147,7 +147,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 		}
 		if image {
 			if !absoluteLink {
-				link = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsWiki), link)
+				link = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.ContentMode == RenderContentAsWiki), link)
 			}
 			title := props["title"]
 			if title == "" {

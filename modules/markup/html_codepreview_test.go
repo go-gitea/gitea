@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -23,8 +24,8 @@ func TestRenderCodePreview(t *testing.T) {
 	})
 	test := func(input, expected string) {
 		buffer, err := markup.RenderString(&markup.RenderContext{
-			Ctx:  git.DefaultContext,
-			Type: "markdown",
+			Ctx:        git.DefaultContext,
+			MarkupType: markdown.MarkupName,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
