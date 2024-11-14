@@ -9,10 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
-	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -406,33 +404,6 @@ func GetOrgByName(ctx context.Context, name string) (*Organization, error) {
 	return u, nil
 }
 
-// DeleteOrganization deletes models associated to an organization.
-func DeleteOrganization(ctx context.Context, org *Organization) error {
-	if org.Type != user_model.UserTypeOrganization {
-		return fmt.Errorf("%s is a user not an organization", org.Name)
-	}
-
-	if err := db.DeleteBeans(ctx,
-		&Team{OrgID: org.ID},
-		&OrgUser{OrgID: org.ID},
-		&TeamUser{OrgID: org.ID},
-		&TeamUnit{OrgID: org.ID},
-		&TeamInvite{OrgID: org.ID},
-		&secret_model.Secret{OwnerID: org.ID},
-		&user_model.Blocking{BlockerID: org.ID},
-		&actions_model.ActionRunner{OwnerID: org.ID},
-		&actions_model.ActionRunnerToken{OwnerID: org.ID},
-	); err != nil {
-		return fmt.Errorf("DeleteBeans: %w", err)
-	}
-
-	if _, err := db.GetEngine(ctx).ID(org.ID).Delete(new(user_model.User)); err != nil {
-		return fmt.Errorf("Delete: %w", err)
-	}
-
-	return nil
-}
-
 // GetOrgUserMaxAuthorizeLevel returns highest authorize level of user in an organization
 func (org *Organization) GetOrgUserMaxAuthorizeLevel(ctx context.Context, uid int64) (perm.AccessMode, error) {
 	var authorize perm.AccessMode
@@ -603,7 +574,9 @@ func RemoveOrgRepo(ctx context.Context, orgID, repoID int64) error {
 	return err
 }
 
-func (org *Organization) getUserTeams(ctx context.Context, userID int64, cols ...string) ([]*Team, error) {
+// GetUserTeams returns all teams that belong to user,
+// and that the user has joined.
+func (org *Organization) GetUserTeams(ctx context.Context, userID int64, cols ...string) ([]*Team, error) {
 	teams := make([]*Team, 0, org.NumTeams)
 	return teams, db.GetEngine(ctx).
 		Where("`team_user`.org_id = ?", org.ID).
@@ -615,7 +588,8 @@ func (org *Organization) getUserTeams(ctx context.Context, userID int64, cols ..
 		Find(&teams)
 }
 
-func (org *Organization) getUserTeamIDs(ctx context.Context, userID int64) ([]int64, error) {
+// GetUserTeamIDs returns of all team IDs of the organization that user is member of.
+func (org *Organization) GetUserTeamIDs(ctx context.Context, userID int64) ([]int64, error) {
 	teamIDs := make([]int64, 0, org.NumTeams)
 	return teamIDs, db.GetEngine(ctx).
 		Table("team").
@@ -638,15 +612,4 @@ func getUserTeamIDsQueryBuilder(orgID, userID int64) *builder.Builder {
 // TeamsWithAccessToRepo returns all teams that have given access level to the repository.
 func (org *Organization) TeamsWithAccessToRepo(ctx context.Context, repoID int64, mode perm.AccessMode) ([]*Team, error) {
 	return GetTeamsWithAccessToRepo(ctx, org.ID, repoID, mode)
-}
-
-// GetUserTeamIDs returns of all team IDs of the organization that user is member of.
-func (org *Organization) GetUserTeamIDs(ctx context.Context, userID int64) ([]int64, error) {
-	return org.getUserTeamIDs(ctx, userID)
-}
-
-// GetUserTeams returns all teams that belong to user,
-// and that the user has joined.
-func (org *Organization) GetUserTeams(ctx context.Context, userID int64) ([]*Team, error) {
-	return org.getUserTeams(ctx, userID)
 }

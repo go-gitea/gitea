@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repository
+package repository_test
 
 import (
 	"fmt"
@@ -11,9 +11,12 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
+	org_service "code.gitea.io/gitea/services/org"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -23,12 +26,15 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 
 	testTeamRepositories := func(teamID int64, repoIDs []int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, team.LoadRepositories(db.DefaultContext), "%s: GetRepositories", team.Name)
-		assert.Len(t, team.Repos, team.NumRepos, "%s: len repo", team.Name)
-		assert.Len(t, team.Repos, len(repoIDs), "%s: repo count", team.Name)
+		repos, err := repo_model.GetTeamRepositories(db.DefaultContext, &repo_model.SearchTeamRepoOptions{
+			TeamID: team.ID,
+		})
+		assert.NoError(t, err, "%s: GetRepositories", team.Name)
+		assert.Len(t, repos, team.NumRepos, "%s: len repo", team.Name)
+		assert.Len(t, repos, len(repoIDs), "%s: repo count", team.Name)
 		for i, rid := range repoIDs {
 			if rid > 0 {
-				assert.True(t, HasRepository(db.DefaultContext, team, rid), "%s: HasRepository(%d) %d", rid, i)
+				assert.True(t, repo_service.HasRepository(db.DefaultContext, team, rid), "%s: HasRepository(%d) %d", rid, i)
 			}
 		}
 	}
@@ -54,7 +60,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Create repos.
 	repoIDs := make([]int64, 0)
 	for i := 0; i < 3; i++ {
-		r, err := CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
+		r, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), repo_service.CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
 		assert.NoError(t, err, "CreateRepository %d", i)
 		if r != nil {
 			repoIDs = append(repoIDs, r.ID)
@@ -116,7 +122,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Create repo and check teams repositories.
-	r, err := CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), CreateRepoOptions{Name: "repo-last"})
+	r, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), repo_service.CreateRepoOptions{Name: "repo-last"})
 	assert.NoError(t, err, "CreateRepository last")
 	if r != nil {
 		repoIDs = append(repoIDs, r.ID)
@@ -129,7 +135,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Remove repo and check teams repositories.
-	assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, repoIDs[0]), "DeleteRepository")
+	assert.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, repoIDs[0]), "DeleteRepository")
 	teamRepos[0] = repoIDs[1:]
 	teamRepos[1] = repoIDs[1:]
 	teamRepos[3] = repoIDs[1:3]
@@ -141,8 +147,8 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Wipe created items.
 	for i, rid := range repoIDs {
 		if i > 0 { // first repo already deleted.
-			assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, rid), "DeleteRepository %d", i)
+			assert.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, rid), "DeleteRepository %d", i)
 		}
 	}
-	assert.NoError(t, organization.DeleteOrganization(db.DefaultContext, org), "DeleteOrganization")
+	assert.NoError(t, org_service.DeleteOrganization(db.DefaultContext, org, false), "DeleteOrganization")
 }

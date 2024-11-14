@@ -78,7 +78,7 @@ func AccessibleReposEnv(ctx context.Context, org *org_model.Organization, userID
 		user = u
 	}
 
-	teamIDs, err := org.getUserTeamIDs(ctx, userID)
+	teamIDs, err := org.GetUserTeamIDs(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (env *accessibleReposEnv) CountRepos() (int64, error) {
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
 		Distinct("`repository`.id").
-		Count(&repo_model.Repository{})
+		Count(&Repository{})
 	if err != nil {
 		return 0, fmt.Errorf("count user repositories in organization: %w", err)
 	}
@@ -152,13 +152,13 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 		Find(&repoIDs)
 }
 
-func (env *accessibleReposEnv) Repos(page, pageSize int) (repo_model.RepositoryList, error) {
+func (env *accessibleReposEnv) Repos(page, pageSize int) (RepositoryList, error) {
 	repoIDs, err := env.RepoIDs(page, pageSize)
 	if err != nil {
 		return nil, fmt.Errorf("GetUserRepositoryIDs: %w", err)
 	}
 
-	repos := make([]*repo_model.Repository, 0, len(repoIDs))
+	repos := make([]*Repository, 0, len(repoIDs))
 	if len(repoIDs) == 0 {
 		return repos, nil
 	}
@@ -181,13 +181,13 @@ func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 		Find(&repoIDs)
 }
 
-func (env *accessibleReposEnv) MirrorRepos() (repo_model.RepositoryList, error) {
+func (env *accessibleReposEnv) MirrorRepos() (RepositoryList, error) {
 	repoIDs, err := env.MirrorRepoIDs()
 	if err != nil {
 		return nil, fmt.Errorf("MirrorRepoIDs: %w", err)
 	}
 
-	repos := make([]*repo_model.Repository, 0, len(repoIDs))
+	repos := make([]*Repository, 0, len(repoIDs))
 	if len(repoIDs) == 0 {
 		return repos, nil
 	}
