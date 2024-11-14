@@ -26,7 +26,6 @@ async function initRepoWikiFormEditor() {
       formData.append('mode', editor.previewMode);
       formData.append('context', editor.previewContext);
       formData.append('text', newContent);
-      formData.append('wiki', editor.previewWiki);
       try {
         const response = await POST(editor.previewUrl, {data: formData});
         const data = await response.text();
@@ -51,8 +50,7 @@ async function initRepoWikiFormEditor() {
     // And another benefit is that we only need to write the style once for both editors.
     // TODO: Move height style to CSS after EasyMDE removal.
     editorHeights: {minHeight: '300px', height: 'calc(100vh - 600px)'},
-    previewMode: 'gfm',
-    previewWiki: true,
+    previewMode: 'wiki',
     easyMDEOptions: {
       previewRender: (_content, previewTarget) => previewTarget.innerHTML, // disable builtin preview render
       toolbar: ['bold', 'italic', 'strikethrough', '|',

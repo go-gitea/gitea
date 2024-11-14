@@ -623,7 +623,7 @@
   num_stars: 0
   num_repos: 2
   num_teams: 3
-  num_members: 4
+  num_members: 5
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""

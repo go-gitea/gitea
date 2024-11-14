@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	testModule "code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -104,7 +105,7 @@ func TestRender_Commits(t *testing.T) {
 
 func TestRender_CrossReferences(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
-
+	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
 	test := func(input, expected string) {
 		buffer, err := markup.RenderString(&markup.RenderContext{
 			Ctx:          git.DefaultContext,
@@ -146,7 +147,7 @@ func TestRender_CrossReferences(t *testing.T) {
 
 func TestRender_links(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
-
+	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
 	test := func(input, expected string) {
 		buffer, err := markup.RenderString(&markup.RenderContext{
 			Ctx:          git.DefaultContext,
@@ -257,7 +258,7 @@ func TestRender_links(t *testing.T) {
 
 func TestRender_email(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
-
+	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
 	test := func(input, expected string) {
 		res, err := markup.RenderString(&markup.RenderContext{
 			Ctx:          git.DefaultContext,
@@ -296,10 +297,10 @@ func TestRender_email(t *testing.T) {
 	j.doe@example.com;
 	j.doe@example.com?
 	j.doe@example.com!`,
-		`<p><a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>,<br/>
-<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>.<br/>
-<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>;<br/>
-<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>?<br/>
+		`<p><a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>,
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>.
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>;
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>?
 <a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>!</p>`)
 
 	// Test that should *not* be turned into email links
@@ -412,8 +413,8 @@ func TestRender_ShortLinks(t *testing.T) {
 			Links: markup.Links{
 				Base: markup.TestRepoURL,
 			},
-			Metas:  localMetas,
-			IsWiki: true,
+			Metas:       localMetas,
+			ContentMode: markup.RenderContentAsWiki,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
@@ -525,10 +526,10 @@ func TestRender_ShortLinks(t *testing.T) {
 func TestRender_RelativeMedias(t *testing.T) {
 	render := func(input string, isWiki bool, links markup.Links) string {
 		buffer, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:    git.DefaultContext,
-			Links:  links,
-			Metas:  localMetas,
-			IsWiki: isWiki,
+			Ctx:         git.DefaultContext,
+			Links:       links,
+			Metas:       localMetas,
+			ContentMode: util.Iif(isWiki, markup.RenderContentAsWiki, markup.RenderContentAsComment),
 		}, input)
 		assert.NoError(t, err)
 		return strings.TrimSpace(string(buffer))
@@ -598,12 +599,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 func TestPostProcess_RenderDocument(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 	setting.StaticURLPrefix = markup.TestAppURL // can't run standalone
-
-	localMetas := map[string]string{
-		"user": "go-gitea",
-		"repo": "gitea",
-		"mode": "document",
-	}
+	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
 
 	test := func(input, expected string) {
 		var res strings.Builder
@@ -613,7 +609,7 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 				AbsolutePrefix: true,
 				Base:           "https://example.com",
 			},
-			Metas: localMetas,
+			Metas: map[string]string{"user": "go-gitea", "repo": "gitea"},
 		}, strings.NewReader(input), &res)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res.String()))
