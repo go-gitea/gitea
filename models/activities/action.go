@@ -251,6 +251,9 @@ func (a *Action) GetActDisplayNameTitle(ctx context.Context) string {
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName(ctx context.Context) string {
 	a.loadRepo(ctx)
+	if a.Repo == nil {
+		return "(non-existing-repo)"
+	}
 	return a.Repo.OwnerName
 }
 
@@ -263,6 +266,9 @@ func (a *Action) ShortRepoUserName(ctx context.Context) string {
 // GetRepoName returns the name of the action repository.
 func (a *Action) GetRepoName(ctx context.Context) string {
 	a.loadRepo(ctx)
+	if a.Repo == nil {
+		return "(non-existing-repo)"
+	}
 	return a.Repo.Name
 }
 
