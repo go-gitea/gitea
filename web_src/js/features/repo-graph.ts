@@ -1,6 +1,6 @@
-import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 export function initRepoGraphGit() {
   const graphContainer = document.querySelector('#git-graph-container');
@@ -83,8 +83,8 @@ export function initRepoGraphGit() {
   }
 
   const flowSelectRefsDropdown = document.querySelector('#flow-select-refs-dropdown');
-  $(flowSelectRefsDropdown).dropdown('set selected', dropdownSelected);
-  $(flowSelectRefsDropdown).dropdown({
+  fomanticQuery(flowSelectRefsDropdown).dropdown('set selected', dropdownSelected);
+  fomanticQuery(flowSelectRefsDropdown).dropdown({
     clearable: true,
     fullTextSeach: 'exact',
     onRemove(toRemove) {
