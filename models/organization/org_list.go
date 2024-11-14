@@ -49,7 +49,7 @@ func (opts FindOrgOptions) ToConds() builder.Cond {
 }
 
 func (opts FindOrgOptions) ToOrders() string {
-	return "`user`.name ASC"
+	return "`user`.lower_name ASC"
 }
 
 // GetOrgsCanCreateRepoByUserID returns a list of organizations where given user ID
