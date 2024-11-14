@@ -400,8 +400,9 @@ func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest
 	}
 	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		if !assert.EqualValues(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String()) {
+		if expectedStatus != recorder.Code {
 			logUnexpectedResponse(t, recorder)
+			require.Equal(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String())
 		}
 	}
 	return recorder

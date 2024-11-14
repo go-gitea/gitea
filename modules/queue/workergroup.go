@@ -197,14 +197,29 @@ func (q *WorkerPoolQueue[T]) doFlush(wg *workerGroup[T], flush flushType) {
 	defer log.Debug("Queue %q finishes flushing", q.GetName())
 
 	// stop all workers, and prepare a new worker context to start new workers
-
 	wg.ctxWorkerCancel()
 	wg.wg.Wait()
 
 	defer func() {
-		close(flush)
+		close(flush.c)
 		wg.doPrepareWorkerContext()
 	}()
+
+	if flush.timeout < 0 {
+		// discard everything
+		wg.batchBuffer = nil
+		for {
+			select {
+			case <-wg.popItemChan:
+			case <-wg.popItemErr:
+			case <-q.batchChan:
+			case <-q.ctxRun.Done():
+				return
+			default:
+				return
+			}
+		}
+	}
 
 	// drain the batch channel first
 loop:
