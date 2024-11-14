@@ -31,6 +31,8 @@ func GetWorkflowBadge(ctx *context.Context) {
 		}
 		if len(tags) != 0 {
 			tag = tags[0].Name
+		} else {
+			tag = "" // return empty result on no tag
 		}
 		ref = fmt.Sprintf("refs/tags/%s", tag)
 	case tag != "":
