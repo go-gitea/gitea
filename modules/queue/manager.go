@@ -5,13 +5,12 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"golang.org/x/sync/errgroup"
 )
 
 // Manager is a manager for the queues created by "CreateXxxQueue" functions, these queues are called "managed queues".
@@ -34,6 +33,7 @@ type ManagedWorkerPoolQueue interface {
 
 	// FlushWithContext tries to make the handler process all items in the queue synchronously.
 	// It is for testing purpose only. It's not designed to be used in a cluster.
+	// Negative timeout means discarding all items in the queue.
 	FlushWithContext(ctx context.Context, timeout time.Duration) error
 
 	// RemoveAllItems removes all items in the base queue (on-the-fly items are not affected)
@@ -78,15 +78,16 @@ func (m *Manager) ManagedQueues() map[int64]ManagedWorkerPoolQueue {
 
 // FlushAll tries to make all managed queues process all items synchronously, until timeout or the queue is empty.
 // It is for testing purpose only. It's not designed to be used in a cluster.
+// Negative timeout means discarding all items in the queue.
 func (m *Manager) FlushAll(ctx context.Context, timeout time.Duration) error {
-	g := errgroup.Group{}
+	var finalErrors []error
 	qs := m.ManagedQueues()
 	for _, q := range qs {
-		g.Go(func() error {
-			return q.FlushWithContext(ctx, timeout)
-		})
+		if err := q.FlushWithContext(ctx, timeout); err != nil {
+			finalErrors = append(finalErrors, err)
+		}
 	}
-	return g.Wait()
+	return errors.Join(finalErrors...)
 }
 
 // CreateSimpleQueue creates a simple queue from global setting config provider by name
