@@ -91,7 +91,7 @@ type userInfoResponse struct {
 // InfoOAuth manages request for userinfo endpoint
 func InfoOAuth(ctx *context.Context) {
 	if ctx.Doer == nil || ctx.Data["AuthedMethod"] != (&auth_service.OAuth2{}).Name() {
-		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
+		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm="Gitea OAuth2"`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}
@@ -136,7 +136,7 @@ func IntrospectOAuth(ctx *context.Context) {
 		clientIDValid = err == nil && app.ValidateClientSecret([]byte(clientSecret))
 	}
 	if !clientIDValid {
-		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm=""`)
+		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea OAuth2"`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}
