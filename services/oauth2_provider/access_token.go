@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	auth "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -220,8 +221,11 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 
 // returns a list of "org" and "org:team" strings,
 // that the given user is a part of.
-func GetOAuthGroupsForUser(ctx context.Context, user *user_model.User, onlyPublicGroups bool) ([]string, error) {
-	orgs, err := org_model.GetUserOrgsList(ctx, user)
+func GetOAuthGroupsForUser(ctx context.Context, user *user_model.User) ([]string, error) {
+	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
+		UserID:         user.ID,
+		IncludePrivate: true,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("GetUserOrgList: %w", err)
 	}
