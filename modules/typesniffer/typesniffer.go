@@ -83,6 +83,7 @@ func (ct SniffedType) GetMimeType() string {
 	return strings.SplitN(ct.contentType, ";", 2)[0]
 }
 
+// https://en.wikipedia.org/wiki/ISO_base_media_file_format#File_type_box
 func detectFileTypeBox(data []byte) (brands []string, found bool) {
 	if len(data) < 12 {
 		return nil, false
