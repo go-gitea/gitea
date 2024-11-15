@@ -32,8 +32,9 @@ type WorkerPoolQueue[T any] struct {
 	baseConfig    *BaseConfig
 	baseQueue     baseQueue
 
-	batchChan chan []T
-	flushChan chan flushType
+	batchChan  chan []T
+	flushChan  chan flushType
+	isFlushing atomic.Bool
 
 	batchLength     int
 	workerNum       int
