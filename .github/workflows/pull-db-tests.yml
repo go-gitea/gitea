@@ -154,12 +154,15 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
+        # the bitnami mysql image has more options than the official one, it's easier to customize
         image: bitnami/mysql:8.0
         env:
           ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
         ports:
           - "3306:3306"
+        options: >-
+          --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
         image: elasticsearch:7.5.0
         env:
