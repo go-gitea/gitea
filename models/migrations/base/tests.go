@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/testlogger"
 
@@ -91,12 +90,11 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, fu
 }
 
 func MainTest(m *testing.M) {
-	log.RegisterEventWriter("test", testlogger.NewTestLoggerWriter)
+	testlogger.Init()
 
 	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
-		fmt.Println("Environment variable $GITEA_ROOT not set")
-		os.Exit(1)
+		testlogger.Fatalf("Environment variable $GITEA_ROOT not set\n")
 	}
 	giteaBinary := "gitea"
 	if runtime.GOOS == "windows" {
@@ -104,8 +102,7 @@ func MainTest(m *testing.M) {
 	}
 	setting.AppPath = filepath.Join(giteaRoot, giteaBinary)
 	if _, err := os.Stat(setting.AppPath); err != nil {
-		fmt.Printf("Could not find gitea binary at %s\n", setting.AppPath)
-		os.Exit(1)
+		testlogger.Fatalf("Could not find gitea binary at %s\n", setting.AppPath)
 	}
 
 	giteaConf := os.Getenv("GITEA_CONF")
@@ -122,8 +119,7 @@ func MainTest(m *testing.M) {
 
 	tmpDataPath, err := os.MkdirTemp("", "data")
 	if err != nil {
-		fmt.Printf("Unable to create temporary data path %v\n", err)
-		os.Exit(1)
+		testlogger.Fatalf("Unable to create temporary data path %v\n", err)
 	}
 
 	setting.CustomPath = filepath.Join(setting.AppWorkPath, "custom")
@@ -131,8 +127,7 @@ func MainTest(m *testing.M) {
 
 	unittest.InitSettings()
 	if err = git.InitFull(context.Background()); err != nil {
-		fmt.Printf("Unable to InitFull: %v\n", err)
-		os.Exit(1)
+		testlogger.Fatalf("Unable to InitFull: %v\n", err)
 	}
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()
