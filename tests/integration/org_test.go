@@ -204,9 +204,7 @@ func TestTeamSearch(t *testing.T) {
 	var results TeamSearchResults
 
 	session := loginUser(t, user.Name)
-	csrf := GetCSRF(t, session, "/"+org.Name)
 	req := NewRequestf(t, "GET", "/org/%s/teams/-/search?q=%s", org.Name, "_team")
-	req.Header.Add("X-Csrf-Token", csrf)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &results)
 	assert.NotEmpty(t, results.Data)
@@ -217,8 +215,6 @@ func TestTeamSearch(t *testing.T) {
 	// no access if not organization member
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	session = loginUser(t, user5.Name)
-	csrf = GetCSRF(t, session, "/"+org.Name)
 	req = NewRequestf(t, "GET", "/org/%s/teams/-/search?q=%s", org.Name, "team")
-	req.Header.Add("X-Csrf-Token", csrf)
 	session.MakeRequest(t, req, http.StatusNotFound)
 }

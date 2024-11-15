@@ -134,7 +134,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}()
 
 	err = db.WithTx(ctx, func(txCtx context.Context) error {
-		if err = repo_module.CreateRepositoryByExample(txCtx, doer, owner, repo, false, true); err != nil {
+		if err = CreateRepositoryByExample(txCtx, doer, owner, repo, false, true); err != nil {
 			return err
 		}
 
@@ -197,6 +197,9 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 	if err := repo_model.CopyLanguageStat(ctx, opts.BaseRepo, repo); err != nil {
 		log.Error("Copy language stat from oldRepo failed: %v", err)
+	}
+	if err := repo_model.CopyLicense(ctx, opts.BaseRepo, repo); err != nil {
+		return nil, err
 	}
 
 	gitRepo, err := gitrepo.OpenRepository(ctx, repo)

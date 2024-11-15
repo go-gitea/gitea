@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import {initCompReactionSelector} from './comp/ReactionSelector.ts';
 import {initRepoIssueContentHistory} from './repo-issue-content.ts';
-import {initDiffFileTree} from './repo-diff-filetree.ts';
+import {initDiffFileTree, initDiffFileList} from './repo-diff-filetree.ts';
 import {initDiffCommitSelect} from './repo-diff-commitselect.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.ts';
@@ -216,6 +216,7 @@ export function initRepoDiffView() {
   initRepoDiffConversationForm();
   if (!$('#diff-file-list').length) return;
   initDiffFileTree();
+  initDiffFileList();
   initDiffCommitSelect();
   initRepoDiffShowMore();
   initRepoDiffReviewButton();

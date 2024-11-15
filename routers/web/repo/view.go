@@ -8,6 +8,7 @@ import (
 	"bytes"
 	gocontext "context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"html/template"
 	"image"
@@ -50,6 +51,7 @@ import (
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
+	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/nektos/act/pkg/model"
@@ -141,7 +143,6 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, try
 				// this should be impossible; if subTreeEntry exists so should this.
 				continue
 			}
-			var err error
 			childEntries, err := subTree.ListEntries()
 			if err != nil {
 				return "", nil, err
@@ -311,6 +312,7 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 
 		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 			Ctx:          ctx,
+			MarkupType:   markupType,
 			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.Name()), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
 			Links: markup.Links{
 				Base:       ctx.Repo.RepoLink,
@@ -501,28 +503,20 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 		ctx.Data["ReadmeExist"] = readmeExist
 
 		markupType := markup.DetectMarkupTypeByFileName(blob.Name())
-		// If the markup is detected by custom markup renderer it should not be reset later on
-		// to not pass it down to the render context.
-		detected := false
 		if markupType == "" {
-			detected = true
 			markupType = markup.DetectRendererType(blob.Name(), bytes.NewReader(buf))
 		}
 		if markupType != "" {
 			ctx.Data["HasSourceRenderedToggle"] = true
 		}
-
 		if markupType != "" && !shouldRenderSource {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			if !detected {
-				markupType = ""
-			}
 			metas := ctx.Repo.Repository.ComposeDocumentMetas(ctx)
 			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 				Ctx:          ctx,
-				Type:         markupType,
+				MarkupType:   markupType,
 				RelativePath: ctx.Repo.TreePath,
 				Links: markup.Links{
 					Base:       ctx.Repo.RepoLink,
@@ -614,6 +608,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["MarkupType"] = markupType
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 				Ctx:          ctx,
+				MarkupType:   markupType,
 				RelativePath: ctx.Repo.TreePath,
 				Links: markup.Links{
 					Base:       ctx.Repo.RepoLink,
@@ -739,7 +734,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		}
 	}
 
-	ctx.NotFound("Home", fmt.Errorf(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
+	ctx.NotFound("Home", errors.New(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
 }
 
 func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
@@ -1076,6 +1071,7 @@ func renderHomeCode(ctx *context.Context) {
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
+	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
 	ctx.HTML(http.StatusOK, tplRepoHome)
 }
 

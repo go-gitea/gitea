@@ -554,7 +554,7 @@ func SubmitInstall(ctx *context.Context) {
 			IsActive:     optional.Some(true),
 		}
 
-		if err = user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
+		if err = user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 			if !user_model.IsErrUserAlreadyExist(err) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true

@@ -30,7 +30,7 @@
 			<progress class="milestone-progress-big" value="{{.Milestone.Completeness}}" max="100"></progress>
 			<div class="tw-flex tw-gap-4">
 				<div classs="tw-flex tw-items-center">
-					{{$closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix ctx.Locale}}
+					{{$closedDate:= DateUtils.TimeSince .Milestone.ClosedDateUnix}}
 					{{if .IsClosed}}
 						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
 					{{else}}
@@ -38,7 +38,7 @@
 						{{if .Milestone.DeadlineString}}
 							<span{{if .IsOverdue}} class="text red"{{end}}>
 								{{svg "octicon-calendar"}}
-								{{DateTime "short" .Milestone.DeadlineString}}
+								{{DateUtils.AbsoluteShort (.Milestone.DeadlineString|DateUtils.ParseLegacy)}}
 							</span>
 						{{else}}
 							{{svg "octicon-calendar"}}

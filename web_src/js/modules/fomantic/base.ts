@@ -1,3 +1,4 @@
+import $ from 'jquery';
 let ariaIdCounter = 0;
 
 export function generateAriaId() {
@@ -16,3 +17,6 @@ export function linkLabelAndInput(label, input) {
     label.setAttribute('for', id);
   }
 }
+
+// eslint-disable-next-line no-jquery/variable-pattern
+export const fomanticQuery = $;

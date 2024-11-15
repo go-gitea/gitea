@@ -19,7 +19,7 @@
 		{{end}}
 		<div class="ui top attached header clearing segment tw-relative commit-header {{$class}}">
 			<div class="tw-flex tw-mb-4 tw-gap-1">
-				<h3 class="tw-mb-0 tw-flex-1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message ($.Repository.ComposeMetas ctx)}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses}}</h3>
+				<h3 class="tw-mb-0 tw-flex-1"><span class="commit-summary" title="{{.Commit.Summary}}">{{ctx.RenderUtils.RenderCommitMessage .Commit.Message ($.Repository.ComposeMetas ctx)}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses}}</h3>
 				{{if not $.PageIsWiki}}
 					<div class="commit-header-buttons">
 						<a class="ui primary tiny button" href="{{.SourcePath}}">
@@ -135,7 +135,7 @@
 				{{end}}
 			</div>
 			{{if IsMultilineCommitMessage .Commit.Message}}
-				<pre class="commit-body">{{RenderCommitBody $.Context .Commit.Message ($.Repository.ComposeMetas ctx)}}</pre>
+				<pre class="commit-body">{{ctx.RenderUtils.RenderCommitBody .Commit.Message ($.Repository.ComposeMetas ctx)}}</pre>
 			{{end}}
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
@@ -152,7 +152,7 @@
 						{{ctx.AvatarUtils.AvatarByEmail .Commit.Author.Email .Commit.Author.Email 28 "tw-mr-2"}}
 						<strong>{{.Commit.Author.Name}}</strong>
 					{{end}}
-					<span class="text grey tw-ml-2" id="authored-time">{{TimeSince .Commit.Author.When ctx.Locale}}</span>
+					<span class="text grey tw-ml-2" id="authored-time">{{DateUtils.TimeSince .Commit.Author.When}}</span>
 					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
 						<span class="text grey tw-mx-2">{{ctx.Locale.Tr "repo.diff.committed_by"}}</span>
 						{{if ne .Verification.CommittingUser.ID 0}}
@@ -273,7 +273,7 @@
 				{{else}}
 					<strong>{{.NoteCommit.Author.Name}}</strong>
 				{{end}}
-				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When ctx.Locale}}</span>
+				<span class="text grey" id="note-authored-time">{{DateUtils.TimeSince .NoteCommit.Author.When}}</span>
 			</div>
 			<div class="ui bottom attached info segment git-notes">
 				<pre class="commit-body">{{.NoteRendered | SanitizeHTML}}</pre>

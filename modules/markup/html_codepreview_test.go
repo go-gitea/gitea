@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -23,12 +24,12 @@ func TestRenderCodePreview(t *testing.T) {
 	})
 	test := func(input, expected string) {
 		buffer, err := markup.RenderString(&markup.RenderContext{
-			Ctx:  git.DefaultContext,
-			Type: "markdown",
+			Ctx:        git.DefaultContext,
+			MarkupType: markdown.MarkupName,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 	test("http://localhost:3000/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20", "<p><div>code preview</div></p>")
-	test("http://other/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20", `<p><a href="http://other/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20" rel="nofollow">http://other/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20</a></p>`)
+	test("http://other/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20", `<p><a href="http://other/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20" data-markdown-generated-content="" rel="nofollow">http://other/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20</a></p>`)
 }

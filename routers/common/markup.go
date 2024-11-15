@@ -5,21 +5,22 @@
 package common
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"path"
 	"strings"
 
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
 // RenderMarkup renders markup text for the /markup and /markdown endpoints
-func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPathContext, filePath string, wiki bool) {
+func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPathContext, filePath string) {
 	// urlPathContext format is "/subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}/{file/dir}"
 	// filePath is the path of the file to render if the end user is trying to preview a repo file (mode == "file")
 	// filePath will be used as RenderContext.RelativePath
@@ -27,32 +28,33 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPa
 	// for example, when previewing file "/gitea/owner/repo/src/branch/features/feat-123/doc/CHANGE.md", then filePath is "doc/CHANGE.md"
 	// and the urlPathContext is "/gitea/owner/repo/src/branch/features/feat-123/doc"
 
-	var markupType, relativePath string
-
-	links := markup.Links{AbsolutePrefix: true}
+	renderCtx := &markup.RenderContext{
+		Ctx:        ctx,
+		Links:      markup.Links{AbsolutePrefix: true},
+		MarkupType: markdown.MarkupName,
+	}
 	if urlPathContext != "" {
-		links.Base = fmt.Sprintf("%s%s", httplib.GuessCurrentHostURL(ctx), urlPathContext)
+		renderCtx.Links.Base = fmt.Sprintf("%s%s", httplib.GuessCurrentHostURL(ctx), urlPathContext)
 	}
 
-	switch mode {
-	case "markdown":
-		// Raw markdown
-		if err := markdown.RenderRaw(&markup.RenderContext{
-			Ctx:   ctx,
-			Links: links,
-		}, strings.NewReader(text), ctx.Resp); err != nil {
+	if mode == "" || mode == "markdown" {
+		// raw markdown doesn't need any special handling
+		if err := markdown.RenderRaw(renderCtx, strings.NewReader(text), ctx.Resp); err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 		}
 		return
+	}
+	switch mode {
+	case "gfm": // legacy mode, do nothing
 	case "comment":
-		// Issue & comment content
-		markupType = markdown.MarkupName
-	case "gfm":
-		// GitHub Flavored Markdown
-		markupType = markdown.MarkupName
+		renderCtx.ContentMode = markup.RenderContentAsComment
+	case "wiki":
+		renderCtx.ContentMode = markup.RenderContentAsWiki
 	case "file":
-		markupType = "" // render the repo file content by its extension
-		relativePath = filePath
+		// render the repo file content by its extension
+		renderCtx.MarkupType = ""
+		renderCtx.RelativePath = filePath
+		renderCtx.InStandalonePage = true
 	default:
 		ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Unknown mode: %s", mode))
 		return
@@ -67,33 +69,19 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPa
 		refPath := strings.Join(fields[3:], "/")           // it is "branch/features/feat-12/doc"
 		refPath = strings.TrimSuffix(refPath, "/"+fileDir) // now we get the correct branch path: "branch/features/feat-12"
 
-		links = markup.Links{AbsolutePrefix: true, Base: absoluteBasePrefix, BranchPath: refPath, TreePath: fileDir}
+		renderCtx.Links = markup.Links{AbsolutePrefix: true, Base: absoluteBasePrefix, BranchPath: refPath, TreePath: fileDir}
 	}
 
-	meta := map[string]string{}
-	var repoCtx *repo_model.Repository
 	if repo != nil && repo.Repository != nil {
-		repoCtx = repo.Repository
-		if mode == "comment" {
-			meta = repo.Repository.ComposeMetas(ctx)
+		renderCtx.Repo = repo.Repository
+		if renderCtx.ContentMode == markup.RenderContentAsComment {
+			renderCtx.Metas = repo.Repository.ComposeMetas(ctx)
 		} else {
-			meta = repo.Repository.ComposeDocumentMetas(ctx)
+			renderCtx.Metas = repo.Repository.ComposeDocumentMetas(ctx)
 		}
 	}
-	if mode != "comment" {
-		meta["mode"] = "document"
-	}
-
-	if err := markup.Render(&markup.RenderContext{
-		Ctx:          ctx,
-		Repo:         repoCtx,
-		Links:        links,
-		Metas:        meta,
-		IsWiki:       wiki,
-		Type:         markupType,
-		RelativePath: relativePath,
-	}, strings.NewReader(text), ctx.Resp); err != nil {
-		if markup.IsErrUnsupportedRenderExtension(err) {
+	if err := markup.Render(renderCtx, strings.NewReader(text), ctx.Resp); err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.Error(http.StatusInternalServerError, err.Error())

@@ -1,5 +1,5 @@
-import $ from 'jquery';
 import {getCurrentLocale} from '../utils.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {pageData} = window.config;
 
@@ -71,6 +71,6 @@ export async function initCitationFileCopyContent() {
       dropdownBtn.classList.remove('is-loading');
     }
 
-    $('#cite-repo-modal').modal('show');
+    fomanticQuery('#cite-repo-modal').modal('show');
   });
 }

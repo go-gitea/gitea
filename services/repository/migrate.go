@@ -172,6 +172,11 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				return repo, fmt.Errorf("StoreMissingLfsObjectsInRepository: %w", err)
 			}
 		}
+
+		// Update repo license
+		if err := AddRepoToLicenseUpdaterQueue(&LicenseUpdaterOptions{RepoID: repo.ID}); err != nil {
+			log.Error("Failed to add repo to license updater queue: %v", err)
+		}
 	}
 
 	ctx, committer, err := db.TxContext(ctx)

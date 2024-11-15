@@ -21,7 +21,7 @@
 						<td>{{.ID}}</td>
 						<td>{{ctx.Locale.Tr .TrStr}}</td>
 						<td class="view-detail auto-ellipsis tw-w-4/5"><span class="notice-description">{{.Description}}</span></td>
-						<td nowrap>{{DateTime "short" .CreatedUnix}}</td>
+						<td nowrap>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 						<td class="view-detail"><a href="#">{{svg "octicon-note" 16}}</a></td>
 					</tr>
 				{{end}}
@@ -31,7 +31,7 @@
 						<tr>
 							<th></th>
 							<th colspan="5">
-								<form class="tw-float-right" method="post" action="{{AppSubUrl}}/admin/notices/empty">
+								<form class="tw-float-right" method="post" action="{{AppSubUrl}}/-/admin/notices/empty">
 									{{.CsrfTokenHtml}}
 									<button type="submit" class="ui red small button">{{ctx.Locale.Tr "admin.notices.delete_all"}}</button>
 								</form>
