@@ -102,5 +102,5 @@ may not be appropriate.
 You can set the following environment variables:
 
 ```bash
-GITEA_TEST_SLOW_RUN="10s" GITEA_TEST_SLOW_FLUSH="5s" make test-sqlite
+GITEA_TEST_SLOW_RUN="10s" GITEA_TEST_SLOW_FLUSH="1s" make test-sqlite
 ```

@@ -22,7 +22,7 @@ var (
 	prefix        string
 	TestTimeout   = 10 * time.Minute
 	TestSlowRun   = 10 * time.Second
-	TestSlowFlush = 5 * time.Second
+	TestSlowFlush = 1 * time.Second
 )
 
 var WriterCloser = &testLoggerWriterCloser{}
