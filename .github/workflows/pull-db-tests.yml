@@ -154,10 +154,18 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:8.0
+        # official mysql image doesn't support MYSQL_EXTRA_FLAGS
+        image: bitnami/mysql:8.0
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
+          # https://dev.mysql.com/doc/refman/8.0/en/optimizing-innodb-diskio.html
+          MYSQL_EXTRA_FLAGS: >
+            --disable-log-bin
+            --innodb-buffer-pool-size=1G
+            --innodb-doublewrite=off
+            --innodb-flush-log-at-trx-commit=0
+            --innodb-flush-method=nosync
         ports:
           - "3306:3306"
       elasticsearch:

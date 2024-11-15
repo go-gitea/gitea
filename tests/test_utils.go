@@ -29,17 +29,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func exitf(format string, args ...any) {
-	fmt.Printf(format+"\n", args...)
-	os.Exit(1)
-}
-
 func InitTest(requireGitea bool) {
-	log.RegisterEventWriter("test", testlogger.NewTestLoggerWriter)
+	testlogger.Init()
 
 	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
-		exitf("Environment variable $GITEA_ROOT not set")
+		testlogger.Fatalf("Environment variable $GITEA_ROOT not set\n")
 	}
 
 	// TODO: Speedup tests that rely on the event source ticker, confirm whether there is any bug or failure.
@@ -54,7 +49,7 @@ func InitTest(requireGitea bool) {
 		}
 		setting.AppPath = filepath.Join(giteaRoot, giteaBinary)
 		if _, err := os.Stat(setting.AppPath); err != nil {
-			exitf("Could not find gitea binary at %s", setting.AppPath)
+			testlogger.Fatalf("Could not find gitea binary at %s\n", setting.AppPath)
 		}
 	}
 	giteaConf := os.Getenv("GITEA_CONF")
@@ -66,7 +61,7 @@ func InitTest(requireGitea bool) {
 		_ = os.Setenv("GITEA_CONF", giteaConf)
 		fmt.Printf("Environment variable $GITEA_CONF not set, use default: %s\n", giteaConf)
 		if !setting.EnableSQLite3 {
-			exitf(`sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify`)
+			testlogger.Fatalf(`sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify` + "\n")
 		}
 	}
 	if !filepath.IsAbs(giteaConf) {
@@ -85,7 +80,7 @@ func InitTest(requireGitea bool) {
 
 	setting.LoadDBSetting()
 	if err := storage.Init(); err != nil {
-		exitf("Init storage failed: %v", err)
+		testlogger.Fatalf("Init storage failed: %v\n", err)
 	}
 
 	switch {
@@ -257,9 +252,4 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	t.Helper()
 	return testlogger.PrintCurrentTest(t, util.OptionalArg(skip)+1)
-}
-
-// Printf takes a format and args and prints the string to os.Stdout
-func Printf(format string, args ...any) {
-	testlogger.Printf(format, args...)
 }
