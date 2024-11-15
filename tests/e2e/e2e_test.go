@@ -17,15 +17,20 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/tests"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var testE2eWebRoutes *web.Router
@@ -99,6 +104,22 @@ func TestE2e(t *testing.T) {
 		t.Run(testname, func(t *testing.T) {
 			// Default 2 minute timeout
 			onGiteaRun(t, func(*testing.T, *url.URL) {
+				err := db.Iterate(context.Background(), nil, func(ctx context.Context, user *user_model.User) error {
+					if user.Avatar == "" {
+						return nil
+					}
+					avatar, err := os.Open(filepath.Join(filepath.Dir(setting.AppPath), "tests/integration/avatar.png"))
+					if err != nil {
+						return err
+					}
+					defer avatar.Close()
+
+					_, err = storage.Avatars.Save(user.Avatar, avatar, -1)
+					return err
+				})
+
+				assert.NoError(t, err)
+
 				cmd := exec.Command(runArgs[0], runArgs...)
 				cmd.Env = os.Environ()
 				cmd.Env = append(cmd.Env, fmt.Sprintf("GITEA_URL=%s", setting.AppURL))
@@ -107,7 +128,7 @@ func TestE2e(t *testing.T) {
 				cmd.Stdout = &stdout
 				cmd.Stderr = &stderr
 
-				err := cmd.Run()
+				err = cmd.Run()
 				if err != nil {
 					// Currently colored output is conflicting. Using Printf until that is resolved.
 					fmt.Printf("%v", stdout.String())

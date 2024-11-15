@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -104,6 +105,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 
 func TestPushCommits_AvatarLink(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	system_model.SetSettings(db.DefaultContext, map[string]string{setting.Config().Picture.DisableGravatar.DynKey(): "defer"})
 
 	pushCommits := NewPushCommits()
 	pushCommits.Commits = []*PushCommit{

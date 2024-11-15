@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
@@ -18,6 +19,8 @@ import (
 
 func TestRepository_ContributorsGraph(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	system_model.SetSettings(db.DefaultContext, map[string]string{setting.Config().Picture.DisableGravatar.DynKey(): "defer"})
+
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	assert.NoError(t, repo.LoadOwner(db.DefaultContext))
 	mockCache, err := cache.NewStringCache(setting.Cache{})
