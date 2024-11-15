@@ -197,7 +197,8 @@ jobs:
       - name: run migration tests
         run: make test-mysql-migration
       - name: run tests
-        run: make integration-test-coverage
+        # run: make integration-test-coverage (at the moment, no coverage is really handled)
+        run: make test-mysql
         env:
           TAGS: bindata
           RACE_ENABLED: true
