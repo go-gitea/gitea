@@ -249,10 +249,8 @@ func RenderIssueTitle(
 	ctx *RenderContext,
 	title string,
 ) (string, error) {
+	// do not render other issue/commit links in an issue's title - which in most cases is already a link.
 	return renderProcessString(ctx, []processor{
-		issueIndexPatternProcessor,
-		commitCrossReferencePatternProcessor,
-		hashCurrentPatternProcessor,
 		emojiShortCodeProcessor,
 		emojiProcessor,
 	}, title)

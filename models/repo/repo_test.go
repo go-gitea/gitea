@@ -99,7 +99,7 @@ func TestMetas(t *testing.T) {
 
 	testSuccess := func(expectedStyle string) {
 		repo.Units = []*repo_model.RepoUnit{&externalTracker}
-		repo.RenderingMetas = nil
+		repo.commonRenderingMetas = nil
 		metas := repo.ComposeMetas(db.DefaultContext)
 		assert.Equal(t, expectedStyle, metas["style"])
 		assert.Equal(t, "testRepo", metas["repo"])

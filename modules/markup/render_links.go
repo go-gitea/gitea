@@ -10,7 +10,7 @@ import (
 
 type Links struct {
 	AbsolutePrefix bool   // add absolute URL prefix to auto-resolved links like "#issue", but not for pre-provided links and medias
-	Base           string // base prefix for pre-provided links and medias (images, videos)
+	Base           string // base prefix for pre-provided links and medias (images, videos), usually it is the path to the repo
 	BranchPath     string // actually it is the ref path, eg: "branch/features/feat-12", "tag/v1.0"
 	TreePath       string // the dir of the file, eg: "doc" if the file "doc/CHANGE.md" is being rendered
 }

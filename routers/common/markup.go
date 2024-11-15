@@ -45,16 +45,7 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPa
 		return
 	}
 	switch mode {
-	case "gfm": // legacy mode, do nothing
-	case "comment":
-		renderCtx.ContentMode = markup.RenderContentAsComment
-	case "wiki":
-		renderCtx.ContentMode = markup.RenderContentAsWiki
-	case "file":
-		// render the repo file content by its extension
-		renderCtx.MarkupType = ""
-		renderCtx.RelativePath = filePath
-		renderCtx.InStandalonePage = true
+	case "gfm", "comment", "wiki", "file":
 	default:
 		ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Unknown mode: %s", mode))
 		return
@@ -74,10 +65,15 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPa
 
 	if repo != nil && repo.Repository != nil {
 		renderCtx.Repo = repo.Repository
-		if renderCtx.ContentMode == markup.RenderContentAsComment {
-			renderCtx.Metas = repo.Repository.ComposeMetas(ctx)
-		} else {
+		if mode == "file" {
+			renderCtx.MarkupType = ""
+			renderCtx.RelativePath = filePath
+			renderCtx.InStandalonePage = true
 			renderCtx.Metas = repo.Repository.ComposeDocumentMetas(ctx)
+		} else if mode == "wiki" {
+			renderCtx.Metas = repo.Repository.ComposeWikiMetas(ctx)
+		} else if mode == "comment" {
+			renderCtx.Metas = repo.Repository.ComposeMetas(ctx)
 		}
 	}
 	if err := markup.Render(renderCtx, strings.NewReader(text), ctx.Resp); err != nil {

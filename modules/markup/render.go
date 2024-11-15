@@ -27,15 +27,6 @@ const (
 	RenderMetaAsTable   RenderMetaMode = "table"
 )
 
-type RenderContentMode string
-
-const (
-	RenderContentAsDefault RenderContentMode = "" // empty means "default", no special handling, maybe just a simple "document"
-	RenderContentAsComment RenderContentMode = "comment"
-	RenderContentAsTitle   RenderContentMode = "title"
-	RenderContentAsWiki    RenderContentMode = "wiki"
-)
-
 var RenderBehaviorForTesting struct {
 	// Markdown line break rendering has 2 default behaviors:
 	// * Use hard: replace "\n" with "<br>" for comments, setting.Markdown.EnableHardLineBreakInComments=true
@@ -59,12 +50,13 @@ type RenderContext struct {
 	// for file mode, it could be left as empty, and will be detected by file extension in RelativePath
 	MarkupType string
 
-	// what the content will be used for: eg: for comment or for wiki? or just render a file?
-	ContentMode RenderContentMode
+	Links Links // special link references for rendering, especially when there is a branch/tree path
 
-	Links            Links             // special link references for rendering, especially when there is a branch/tree path
-	Metas            map[string]string // user&repo, format&style&regexp (for external issue pattern), teams&org (for mention), BranchNameSubURL(for iframe&asciicast)
-	DefaultLink      string            // TODO: need to figure out
+	// user&repo, format&style&regexp (for external issue pattern), teams&org (for mention), BranchNameSubURL(for iframe&asciicast)
+	// markdownLineBreakStyle(comment or document)
+	Metas map[string]string
+
+	DefaultLink      string // TODO: need to figure out
 	GitRepo          *git.Repository
 	Repo             gitrepo.Repository
 	ShaExistCache    map[string]bool
@@ -100,6 +92,9 @@ func (ctx *RenderContext) AddCancel(fn func()) {
 		defer oldCancelFn()
 		fn()
 	}
+}
+func (ctx *RenderContext) IsContentModeWiki() bool {
+	return ctx.Metas != nil && ctx.Metas["renderContentMode"] == "wiki"
 }
 
 // Render renders markup file to HTML with all specific handling stuff.

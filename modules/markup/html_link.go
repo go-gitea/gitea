@@ -20,9 +20,9 @@ func ResolveLink(ctx *RenderContext, link, userContentAnchorPrefix string) (resu
 	isAnchorFragment := link != "" && link[0] == '#'
 	if !isAnchorFragment && !IsFullURLString(link) {
 		linkBase := ctx.Links.Base
-		if ctx.ContentMode == RenderContentAsWiki {
+		if ctx.IsContentModeWiki() {
 			// no need to check if the link should be resolved as a wiki link or a wiki raw link
-			// just use wiki link here and it will be redirected to a wiki raw link if necessary
+			// just use wiki link here, and it will be redirected to a wiki raw link if necessary
 			linkBase = ctx.Links.WikiLink()
 		} else if ctx.Links.BranchPath != "" || ctx.Links.TreePath != "" {
 			// if there is no BranchPath, then the link will be something like "/owner/repo/src/{the-file-path}"
@@ -147,7 +147,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 		}
 		if image {
 			if !absoluteLink {
-				link = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.ContentMode == RenderContentAsWiki), link)
+				link = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsContentModeWiki()), link)
 			}
 			title := props["title"]
 			if title == "" {

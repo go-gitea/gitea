@@ -67,8 +67,10 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		return
 	}
 
-	// crossLinkOnly if not comment and not wiki
-	crossLinkOnly := ctx.ContentMode != RenderContentAsTitle && ctx.ContentMode != RenderContentAsComment && ctx.ContentMode != RenderContentAsWiki
+	// crossLinkOnly: do not parse "#123", only parse "owner/repo#123"
+	// if there is no repo in the context, then the "#123" format can't be parsed
+	// old logic: crossLinkOnly := ctx.Metas["mode"] == "document" && !ctx.IsWiki
+	crossLinkOnly := ctx.Metas["markdownAllowShortIssuePattern"] != "true"
 
 	var (
 		found bool

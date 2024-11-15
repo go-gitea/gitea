@@ -37,6 +37,12 @@ var localMetas = map[string]string{
 	"repo": testRepoName,
 }
 
+var localWikiMetas = map[string]string{
+	"user":              testRepoOwnerName,
+	"repo":              testRepoName,
+	"renderContentMode": "wiki",
+}
+
 type mockRepo struct {
 	OwnerName string
 	RepoName  string
@@ -75,7 +81,7 @@ func TestRender_StandardLinks(t *testing.T) {
 			Links: markup.Links{
 				Base: FullURL,
 			},
-			ContentMode: markup.RenderContentAsWiki,
+			Metas: localWikiMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
@@ -307,9 +313,8 @@ func TestTotal_RenderWiki(t *testing.T) {
 			Links: markup.Links{
 				Base: FullURL,
 			},
-			Repo:        newMockRepo(testRepoOwnerName, testRepoName),
-			Metas:       localMetas,
-			ContentMode: markup.RenderContentAsWiki,
+			Repo:  newMockRepo(testRepoOwnerName, testRepoName),
+			Metas: localWikiMetas,
 		}, sameCases[i])
 		assert.NoError(t, err)
 		assert.Equal(t, answers[i], string(line))
@@ -334,7 +339,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 			Links: markup.Links{
 				Base: FullURL,
 			},
-			ContentMode: markup.RenderContentAsWiki,
+			Metas: localWikiMetas,
 		}, testCases[i])
 		assert.NoError(t, err)
 		assert.EqualValues(t, testCases[i+1], string(line))
@@ -999,9 +1004,9 @@ space</p>
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
 	for i, c := range cases {
 		result, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:         context.Background(),
-			Links:       c.Links,
-			ContentMode: util.Iif(c.IsWiki, markup.RenderContentAsWiki, markup.RenderContentAsDefault),
+			Ctx:   context.Background(),
+			Links: c.Links,
+			Metas: util.Iif(c.IsWiki, localWikiMetas, localMetas),
 		}, input)
 		assert.NoError(t, err, "Unexpected error in testcase: %v", i)
 		assert.Equal(t, c.Expected, string(result), "Unexpected result in testcase %v", i)
