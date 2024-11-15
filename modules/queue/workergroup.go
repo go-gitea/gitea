@@ -23,7 +23,7 @@ var (
 )
 
 func init() {
-	unhandledItemRequeueDuration.Store(int64(5 * time.Second))
+	unhandledItemRequeueDuration.Store(int64(time.Second))
 }
 
 // workerGroup is a group of workers to work with a WorkerPoolQueue

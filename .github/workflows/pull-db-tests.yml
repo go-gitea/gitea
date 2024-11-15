@@ -160,13 +160,7 @@ jobs:
           ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
           # https://dev.mysql.com/doc/refman/8.0/en/optimizing-innodb-diskio.html
-          MYSQL_EXTRA_FLAGS: >
-            --disable-log-bin
-            --innodb-buffer-pool-size=2G
-            --innodb-doublewrite=off
-            --innodb-flush-log-at-trx-commit=0
-            --innodb-flush-method=nosync
-            --innodb-fsync-threshold=100000
+          MYSQL_EXTRA_FLAGS: --disable-log-bin --innodb-buffer-pool-size=2G --innodb-adaptive-flushing=OFF --innodb-log-buffer-size=128M --innodb-flush-log-at-trx-commit=0 --innodb-flush-log-at-timeout=10 --innodb-flush-method=nosync --innodb-fsync-threshold=1000000
         ports:
           - "3306:3306"
       elasticsearch:
