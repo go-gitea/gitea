@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/routers/web/org"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
+	feed_service "code.gitea.io/gitea/services/feed"
 )
 
 const (
@@ -167,7 +168,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	case "activity":
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
-		items, count, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
+		items, count, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
 			IncludePrivate:  showPrivate,
