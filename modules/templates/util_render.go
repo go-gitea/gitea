@@ -210,7 +210,7 @@ func reactionToEmoji(reaction string) template.HTML {
 func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:revive
 	output, err := markdown.RenderString(&markup.RenderContext{
 		Ctx:   ut.ctx,
-		Metas: map[string]string{"mode": "document"},
+		Metas: markup.ComposeSimpleDocumentMetas(),
 	}, input)
 	if err != nil {
 		log.Error("RenderString: %v", err)

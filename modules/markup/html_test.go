@@ -30,7 +30,7 @@ var (
 	localWikiMetas = map[string]string{
 		"user":              testRepoOwnerName,
 		"repo":              testRepoName,
-		"renderContentMode": "wiki",
+		"markupContentMode": "wiki",
 	}
 )
 
@@ -532,7 +532,7 @@ func TestRender_RelativeMedias(t *testing.T) {
 		buffer, err := markdown.RenderString(&markup.RenderContext{
 			Ctx:   git.DefaultContext,
 			Links: links,
-			Metas: util.Iif(isWiki, localMetas, localWikiMetas),
+			Metas: util.Iif(isWiki, localWikiMetas, localMetas),
 		}, input)
 		assert.NoError(t, err)
 		return strings.TrimSpace(string(buffer))

@@ -40,17 +40,19 @@ func link(href, class, contents string) string {
 }
 
 var numericMetas = map[string]string{
-	"format": "https://someurl.com/{user}/{repo}/{index}",
-	"user":   "someUser",
-	"repo":   "someRepo",
-	"style":  IssueNameStyleNumeric,
+	"format":                       "https://someurl.com/{user}/{repo}/{index}",
+	"user":                         "someUser",
+	"repo":                         "someRepo",
+	"style":                        IssueNameStyleNumeric,
+	"markupAllowShortIssuePattern": "true",
 }
 
 var alphanumericMetas = map[string]string{
-	"format": "https://someurl.com/{user}/{repo}/{index}",
-	"user":   "someUser",
-	"repo":   "someRepo",
-	"style":  IssueNameStyleAlphanumeric,
+	"format":                       "https://someurl.com/{user}/{repo}/{index}",
+	"user":                         "someUser",
+	"repo":                         "someRepo",
+	"style":                        IssueNameStyleAlphanumeric,
+	"markupAllowShortIssuePattern": "true",
 }
 
 var regexpMetas = map[string]string{
@@ -62,14 +64,15 @@ var regexpMetas = map[string]string{
 
 // these values should match the TestOrgRepo const above
 var localMetas = map[string]string{
-	"user": "test-owner",
-	"repo": "test-repo",
+	"user":                         "test-owner",
+	"repo":                         "test-repo",
+	"markupAllowShortIssuePattern": "true",
 }
 
 var localWikiMetas = map[string]string{
 	"user":              "test-owner",
 	"repo":              "test-repo",
-	"renderContentMode": "wiki",
+	"markupContentMode": "wiki",
 }
 
 func TestRender_IssueIndexPattern(t *testing.T) {

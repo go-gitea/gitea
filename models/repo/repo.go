@@ -517,7 +517,7 @@ func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]strin
 func (repo *Repository) ComposeMetas(ctx context.Context) map[string]string {
 	metas := maps.Clone(repo.composeCommonMetas(ctx))
 	metas["markdownLineBreakStyle"] = "comment"
-	metas["markdownAllowShortIssuePattern"] = "true"
+	metas["markupAllowShortIssuePattern"] = "true"
 	return metas
 }
 
@@ -526,7 +526,7 @@ func (repo *Repository) ComposeWikiMetas(ctx context.Context) map[string]string 
 	// does wiki need the "teams" and "org" from common metas?
 	metas := maps.Clone(repo.composeCommonMetas(ctx))
 	metas["markdownLineBreakStyle"] = "document"
-	metas["markdownAllowShortIssuePattern"] = "true"
+	metas["markupAllowShortIssuePattern"] = "true"
 	return metas
 }
 

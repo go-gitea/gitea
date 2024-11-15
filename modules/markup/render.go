@@ -52,8 +52,10 @@ type RenderContext struct {
 
 	Links Links // special link references for rendering, especially when there is a branch/tree path
 
-	// user&repo, format&style&regexp (for external issue pattern), teams&org (for mention), BranchNameSubURL(for iframe&asciicast)
-	// markdownLineBreakStyle(comment or document)
+	// user&repo, format&style&regexp (for external issue pattern), teams&org (for mention)
+	// BranchNameSubURL (for iframe&asciicast)
+	// markupAllowShortIssuePattern, markupContentMode (wiki)
+	// markdownLineBreakStyle (comment, document)
 	Metas map[string]string
 
 	DefaultLink      string // TODO: need to figure out
@@ -93,8 +95,9 @@ func (ctx *RenderContext) AddCancel(fn func()) {
 		fn()
 	}
 }
-func (ctx *RenderContext) IsContentModeWiki() bool {
-	return ctx.Metas != nil && ctx.Metas["renderContentMode"] == "wiki"
+
+func (ctx *RenderContext) IsMarkupContentWiki() bool {
+	return ctx.Metas != nil && ctx.Metas["markupContentMode"] == "wiki"
 }
 
 // Render renders markup file to HTML with all specific handling stuff.
@@ -226,4 +229,8 @@ func Init(ph *ProcessorHelper) {
 			extRenderers[strings.ToLower(ext)] = renderer
 		}
 	}
+}
+
+func ComposeSimpleDocumentMetas() map[string]string {
+	return map[string]string{"markdownLineBreakStyle": "document"}
 }

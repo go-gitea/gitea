@@ -45,7 +45,16 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPa
 		return
 	}
 	switch mode {
-	case "gfm", "comment", "wiki", "file":
+	case "gfm": // legacy mode, do nothing
+	case "comment":
+		renderCtx.Metas = map[string]string{"markdownLineBreakStyle": "comment"}
+	case "wiki":
+		renderCtx.Metas = map[string]string{"markdownLineBreakStyle": "document", "markupContentMode": "wiki"}
+	case "file":
+		renderCtx.Metas = map[string]string{"markdownLineBreakStyle": "document"}
+		renderCtx.MarkupType = ""
+		renderCtx.RelativePath = filePath
+		renderCtx.InStandalonePage = true
 	default:
 		ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Unknown mode: %s", mode))
 		return
@@ -66,9 +75,6 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPa
 	if repo != nil && repo.Repository != nil {
 		renderCtx.Repo = repo.Repository
 		if mode == "file" {
-			renderCtx.MarkupType = ""
-			renderCtx.RelativePath = filePath
-			renderCtx.InStandalonePage = true
 			renderCtx.Metas = repo.Repository.ComposeDocumentMetas(ctx)
 		} else if mode == "wiki" {
 			renderCtx.Metas = repo.Repository.ComposeWikiMetas(ctx)
