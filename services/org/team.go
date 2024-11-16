@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -370,12 +369,12 @@ func removeTeamMember(ctx context.Context, team *organization.Team, user *user_m
 		}
 
 		// Remove watches from now unaccessible
-		if err := models.ReconsiderWatches(ctx, repo, user); err != nil {
+		if err := repo_service.ReconsiderWatches(ctx, repo, user); err != nil {
 			return err
 		}
 
 		// Remove issue assignments from now unaccessible
-		if err := models.ReconsiderRepoIssuesAssignee(ctx, repo, user); err != nil {
+		if err := repo_service.ReconsiderRepoIssuesAssignee(ctx, repo, user); err != nil {
 			return err
 		}
 	}
