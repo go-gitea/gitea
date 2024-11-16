@@ -140,7 +140,7 @@ func TestRenderCommitMessage(t *testing.T) {
 }
 
 func TestRenderCommitMessageLinkSubject(t *testing.T) {
-	expected := `<a href="https://example.com/link" class="default-link muted">space </a><a href="/mention-user" data-markdown-generated-content="" class="mention">@mention-user</a>`
+	expected := `<a href="https://example.com/link" class="muted">space </a><a href="/mention-user" data-markdown-generated-content="" class="mention">@mention-user</a>`
 	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", testMetas))
 }
 

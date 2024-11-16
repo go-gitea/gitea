@@ -200,25 +200,6 @@ func linkProcessor(ctx *RenderContext, node *html.Node) {
 	}
 }
 
-func genDefaultLinkProcessor(defaultLink string) processor {
-	return func(ctx *RenderContext, node *html.Node) {
-		ch := &html.Node{
-			Parent: node,
-			Type:   html.TextNode,
-			Data:   node.Data,
-		}
-
-		node.Type = html.ElementNode
-		node.Data = "a"
-		node.DataAtom = atom.A
-		node.Attr = []html.Attribute{
-			{Key: "href", Val: defaultLink},
-			{Key: "class", Val: "default-link muted"},
-		}
-		node.FirstChild, node.LastChild = ch, ch
-	}
-}
-
 // descriptionLinkProcessor creates links for DescriptionHTML
 func descriptionLinkProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling

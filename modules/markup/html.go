@@ -5,6 +5,8 @@ package markup
 
 import (
 	"bytes"
+	"fmt"
+	"html/template"
 	"io"
 	"regexp"
 	"strings"
@@ -196,13 +198,6 @@ func RenderCommitMessage(
 	content string,
 ) (string, error) {
 	procs := commitMessageProcessors
-	if ctx.DefaultLink != "" {
-		// we don't have to fear data races, because being
-		// commitMessageProcessors of fixed len and cap, every time we append
-		// something to it the slice is realloc+copied, so append always
-		// generates the slice ex-novo.
-		procs = append(procs, genDefaultLinkProcessor(ctx.DefaultLink))
-	}
 	return renderProcessString(ctx, procs, content)
 }
 
@@ -230,17 +225,17 @@ var emojiProcessors = []processor{
 // which changes every text node into a link to the passed default link.
 func RenderCommitMessageSubject(
 	ctx *RenderContext,
-	content string,
+	defaultLink, content string,
 ) (string, error) {
 	procs := commitMessageSubjectProcessors
-	if ctx.DefaultLink != "" {
-		// we don't have to fear data races, because being
-		// commitMessageSubjectProcessors of fixed len and cap, every time we
-		// append something to it the slice is realloc+copied, so append always
-		// generates the slice ex-novo.
-		procs = append(procs, genDefaultLinkProcessor(ctx.DefaultLink))
+	rendered, err := renderProcessString(ctx, procs, content)
+	if err != nil {
+		return "", err
 	}
-	return renderProcessString(ctx, procs, content)
+	if defaultLink != "" {
+		rendered = fmt.Sprintf(`<a href="%s" class="muted">%s</a>`, template.HTMLEscapeString(defaultLink), rendered)
+	}
+	return rendered, nil
 }
 
 // RenderIssueTitle to process title on individual issue/pull page

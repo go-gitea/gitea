@@ -58,7 +58,6 @@ type RenderContext struct {
 	// markdownLineBreakStyle (comment, document)
 	Metas map[string]string
 
-	DefaultLink      string // TODO: need to figure out
 	GitRepo          *git.Repository
 	Repo             gitrepo.Repository
 	ShaExistCache    map[string]bool

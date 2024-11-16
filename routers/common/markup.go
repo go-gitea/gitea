@@ -51,6 +51,7 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPa
 	case "wiki":
 		renderCtx.Metas = map[string]string{"markdownLineBreakStyle": "document", "markupContentMode": "wiki"}
 	case "file":
+		// render the repo file content by its extension
 		renderCtx.Metas = map[string]string{"markdownLineBreakStyle": "document"}
 		renderCtx.MarkupType = ""
 		renderCtx.RelativePath = filePath
