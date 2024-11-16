@@ -54,7 +54,7 @@ func createCodeLink(href, content, class string) *html.Node {
 }
 
 func anyHashPatternExtract(s string) (ret anyHashPatternResult, ok bool) {
-	m := anyHashPattern.FindStringSubmatchIndex(s)
+	m := globalVars().anyHashPattern.FindStringSubmatchIndex(s)
 	if m == nil {
 		return ret, false
 	}
@@ -120,7 +120,7 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 			node = node.NextSibling
 			continue
 		}
-		m := comparePattern.FindStringSubmatchIndex(node.Data)
+		m := globalVars().comparePattern.FindStringSubmatchIndex(node.Data)
 		if m == nil || slices.Contains(m[:8], -1) { // ensure that every group (m[0]...m[7]) has a match
 			node = node.NextSibling
 			continue
@@ -173,7 +173,7 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		ctx.ShaExistCache = make(map[string]bool)
 	}
 	for node != nil && node != next && start < len(node.Data) {
-		m := hashCurrentPattern.FindStringSubmatchIndex(node.Data[start:])
+		m := globalVars().hashCurrentPattern.FindStringSubmatchIndex(node.Data[start:])
 		if m == nil {
 			return
 		}
