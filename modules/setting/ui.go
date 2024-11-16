@@ -28,6 +28,7 @@ var UI = struct {
 	DefaultShowFullName     bool
 	DefaultTheme            string
 	Themes                  []string
+	FileIconTheme           string
 	Reactions               []string
 	ReactionsLookup         container.Set[string] `ini:"-"`
 	CustomEmojis            []string

@@ -60,16 +60,26 @@ func MockIcon(icon string) func() {
 func RenderHTML(icon string, others ...any) template.HTML {
 	size, class := gitea_html.ParseSizeAndClass(defaultSize, "", others...)
 	if svgStr, ok := svgIcons[icon]; ok {
-		// the code is somewhat hacky, but it just works, because the SVG contents are all normalized
-		if size != defaultSize {
-			svgStr = strings.Replace(svgStr, fmt.Sprintf(`width="%d"`, defaultSize), fmt.Sprintf(`width="%d"`, size), 1)
-			svgStr = strings.Replace(svgStr, fmt.Sprintf(`height="%d"`, defaultSize), fmt.Sprintf(`height="%d"`, size), 1)
-		}
-		if class != "" {
-			svgStr = strings.Replace(svgStr, `class="`, fmt.Sprintf(`class="%s `, class), 1)
-		}
-		return template.HTML(svgStr)
+		return RenderHTMLFromString(svgStr, size, class)
 	}
+
 	// during test (or something wrong happens), there is no SVG loaded, so use a dummy span to tell that the icon is missing
 	return template.HTML(fmt.Sprintf("<span>%s(%d/%s)</span>", template.HTMLEscapeString(icon), size, template.HTMLEscapeString(class)))
+}
+
+// RenderHTMLFromString renders icons from a string - arguments SVG string (string), size (int), class (string)
+func RenderHTMLFromString(svgStr string, others ...any) template.HTML {
+	svgStr = string(Normalize([]byte(svgStr), defaultSize))
+
+	size, class := gitea_html.ParseSizeAndClass(defaultSize, "", others...)
+
+	// the code is somewhat hacky, but it just works, because the SVG contents are all normalized
+	if size != defaultSize {
+		svgStr = strings.Replace(svgStr, fmt.Sprintf(`width="%d"`, defaultSize), fmt.Sprintf(`width="%d"`, size), 1)
+		svgStr = strings.Replace(svgStr, fmt.Sprintf(`height="%d"`, defaultSize), fmt.Sprintf(`height="%d"`, size), 1)
+	}
+	if class != "" {
+		svgStr = strings.Replace(svgStr, `class="`, fmt.Sprintf(`class="%s `, class), 1)
+	}
+	return template.HTML(svgStr)
 }
