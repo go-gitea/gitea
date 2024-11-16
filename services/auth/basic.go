@@ -42,6 +42,10 @@ func (b *Basic) Name() string {
 	return BasicMethodName
 }
 
+func (b *Basic) Match(req *http.Request) bool {
+	return true
+}
+
 // Verify extracts and validates Basic data (username and password/token) from the
 // "Authorization" header of the request and returns the corresponding user object for that
 // name/token on successful validation.

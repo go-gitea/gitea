@@ -131,6 +131,10 @@ func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store Dat
 	return t.UID
 }
 
+func (o *OAuth2) Match(req *http.Request) bool {
+	return true
+}
+
 // Verify extracts the user ID from the OAuth token in the query parameters
 // or the "Authorization" header and returns the corresponding user object for that ID.
 // If verification is successful returns an existing user object.

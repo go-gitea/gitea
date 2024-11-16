@@ -21,6 +21,10 @@ func (a *Auth) Name() string {
 	return "nuget"
 }
 
+func (a *Auth) Match(req *http.Request) bool {
+	return true
+}
+
 // https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#request-parameters
 func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataStore, sess auth.SessionStore) (*user_model.User, error) {
 	token, err := auth_model.GetAccessTokenBySHA(req.Context(), req.Header.Get("X-NuGet-ApiKey"))

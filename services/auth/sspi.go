@@ -54,6 +54,10 @@ func (s *SSPI) Name() string {
 	return "sspi"
 }
 
+func (s *SSPI) Match(req *http.Request) bool {
+	return true
+}
+
 // Verify uses SSPI (Windows implementation of SPNEGO) to authenticate the request.
 // If authentication is successful, returns the corresponding user object.
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP

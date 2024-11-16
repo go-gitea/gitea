@@ -52,6 +52,10 @@ func (a *Auth) Name() string {
 	return "chef"
 }
 
+func (a *Auth) Match(req *http.Request) bool {
+	return true
+}
+
 // Verify extracts the user from the signed request
 // If the request is signed with the user private key the user is verified.
 func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataStore, sess auth.SessionStore) (*user_model.User, error) {
