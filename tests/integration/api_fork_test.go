@@ -13,7 +13,6 @@ import (
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -32,7 +31,7 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 	user1Sess := loginUser(t, "user1")
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
 	limitedOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
-	assert.EqualValues(t, structs.VisibleTypeLimited, limitedOrg.Visibility)
+	assert.EqualValues(t, api.VisibleTypeLimited, limitedOrg.Visibility)
 
 	ownerTeam1, err := org_model.OrgFromUser(limitedOrg).GetOwnerTeam(db.DefaultContext)
 	assert.NoError(t, err)
@@ -54,7 +53,7 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user4"})
 
 	privateOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
-	assert.EqualValues(t, structs.VisibleTypePrivate, privateOrg.Visibility)
+	assert.EqualValues(t, api.VisibleTypePrivate, privateOrg.Visibility)
 
 	ownerTeam2, err := org_model.OrgFromUser(privateOrg).GetOwnerTeam(db.DefaultContext)
 	assert.NoError(t, err)
@@ -72,7 +71,7 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 	}).AddTokenAuth(user4Token)
 	MakeRequest(t, req, http.StatusAccepted)
 
-	t.Run("Anomynous", func(t *testing.T) {
+	t.Run("Anonymous", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks")

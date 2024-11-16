@@ -113,7 +113,7 @@ func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 
 		testRepoFork(t, user4Sess, "user2", "repo1", privateOrg.Name, "repo1", "")
 
-		t.Run("Anomynous", func(t *testing.T) {
+		t.Run("Anonymous", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", "/user2/repo1/forks")
