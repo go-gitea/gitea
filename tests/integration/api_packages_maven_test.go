@@ -285,3 +285,35 @@ func TestPackageMavenConcurrent(t *testing.T) {
 		wg.Wait()
 	})
 }
+
+func TestPackageMavenConcurrent(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	groupID := "com.gitea"
+	artifactID := "test-project"
+	packageVersion := "1.0.1"
+
+	root := fmt.Sprintf("/api/packages/%s/maven/%s/%s", user.Name, strings.ReplaceAll(groupID, ".", "/"), artifactID)
+
+	putFile := func(t *testing.T, path, content string, expectedStatus int) {
+		req := NewRequestWithBody(t, "PUT", root+path, strings.NewReader(content)).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, expectedStatus)
+	}
+
+	t.Run("Concurrent Upload", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		var wg sync.WaitGroup
+		for i := 0; i < 10; i++ {
+			wg.Add(1)
+			go func() {
+				putFile(t, fmt.Sprintf("/%s/%s.jar", packageVersion, strconv.Itoa(i)), "test", http.StatusCreated)
+				wg.Done()
+			}()
+		}
+		wg.Wait()
+	})
+}
