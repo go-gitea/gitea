@@ -163,6 +163,67 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 	return committer.Commit()
 }
 
+// DeleteTeam deletes given team.
+// It's caller's responsibility to assign organization ID.
+func DeleteTeam(ctx context.Context, t *organization.Team) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := t.LoadRepositories(ctx); err != nil {
+		return err
+	}
+
+	if err := t.LoadMembers(ctx); err != nil {
+		return err
+	}
+
+	// update branch protections
+	{
+		protections := make([]*git_model.ProtectedBranch, 0, 10)
+		err := db.GetEngine(ctx).In("repo_id",
+			builder.Select("id").From("repository").Where(builder.Eq{"owner_id": t.OrgID})).
+			Find(&protections)
+		if err != nil {
+			return fmt.Errorf("findProtectedBranches: %w", err)
+		}
+		for _, p := range protections {
+			if err := git_model.RemoveTeamIDFromProtectedBranch(ctx, p, t.ID); err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := repo_service.RemoveAllRepositoriesFromTeam(ctx, t); err != nil {
+		return err
+	}
+
+	if err := db.DeleteBeans(ctx,
+		&organization.Team{ID: t.ID},
+		&organization.TeamUser{OrgID: t.OrgID, TeamID: t.ID},
+		&organization.TeamUnit{TeamID: t.ID},
+		&organization.TeamInvite{TeamID: t.ID},
+		&issues_model.Review{Type: issues_model.ReviewTypeRequest, ReviewerTeamID: t.ID}, // batch delete the binding relationship between team and PR (request review from team)
+	); err != nil {
+		return err
+	}
+
+	for _, tm := range t.Members {
+		if err := removeInvalidOrgUser(ctx, t.OrgID, tm); err != nil {
+			return err
+		}
+	}
+
+	// Update organization number of teams.
+	if _, err := db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
 // AddTeamMember adds new membership of given team to given organization,
 // the user will have membership to given organization automatically when needed.
 func AddTeamMember(ctx context.Context, team *organization.Team, user *user_model.User) error {
@@ -257,80 +318,6 @@ func AddTeamMember(ctx context.Context, team *organization.Team, user *user_mode
 	return nil
 }
 
-// DeleteTeam deletes given team.
-// It's caller's responsibility to assign organization ID.
-func DeleteTeam(ctx context.Context, t *organization.Team) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := t.LoadRepositories(ctx); err != nil {
-		return err
-	}
-
-	if err := t.LoadMembers(ctx); err != nil {
-		return err
-	}
-
-	// update branch protections
-	{
-		protections := make([]*git_model.ProtectedBranch, 0, 10)
-		err := db.GetEngine(ctx).In("repo_id",
-			builder.Select("id").From("repository").Where(builder.Eq{"owner_id": t.OrgID})).
-			Find(&protections)
-		if err != nil {
-			return fmt.Errorf("findProtectedBranches: %w", err)
-		}
-		for _, p := range protections {
-			if err := git_model.RemoveTeamIDFromProtectedBranch(ctx, p, t.ID); err != nil {
-				return err
-			}
-		}
-	}
-
-	if err := repo_service.RemoveAllRepositoriesFromTeam(ctx, t); err != nil {
-		return err
-	}
-
-	if err := db.DeleteBeans(ctx,
-		&organization.Team{ID: t.ID},
-		&organization.TeamUser{OrgID: t.OrgID, TeamID: t.ID},
-		&organization.TeamUnit{TeamID: t.ID},
-		&organization.TeamInvite{TeamID: t.ID},
-		&issues_model.Review{Type: issues_model.ReviewTypeRequest, ReviewerTeamID: t.ID}, // batch delete the binding relationship between team and PR (request review from team)
-	); err != nil {
-		return err
-	}
-
-	for _, tm := range t.Members {
-		if err := removeInvalidOrgUser(ctx, t.OrgID, tm); err != nil {
-			return err
-		}
-	}
-
-	// Update organization number of teams.
-	if _, err := db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
-// RemoveTeamMember removes member from given team of given organization.
-func RemoveTeamMember(ctx context.Context, team *organization.Team, user *user_model.User) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	if err := removeTeamMember(ctx, team, user); err != nil {
-		return err
-	}
-	return committer.Commit()
-}
-
 func removeTeamMember(ctx context.Context, team *organization.Team, user *user_model.User) error {
 	e := db.GetEngine(ctx)
 	isMember, err := organization.IsTeamMember(ctx, team.OrgID, team.ID, user.ID)
@@ -398,4 +385,17 @@ func removeInvalidOrgUser(ctx context.Context, orgID int64, user *user_model.Use
 		return RemoveOrgUser(ctx, org, user)
 	}
 	return nil
+}
+
+// RemoveTeamMember removes member from given team of given organization.
+func RemoveTeamMember(ctx context.Context, team *organization.Team, user *user_model.User) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	if err := removeTeamMember(ctx, team, user); err != nil {
+		return err
+	}
+	return committer.Commit()
 }
