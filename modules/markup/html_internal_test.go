@@ -269,7 +269,30 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 	})
 }
 
-func TestRender_IssueIndexPattern_Document(t *testing.T) {
+func TestRender_IssueIndexPattern_NoShortPattern(t *testing.T) {
+	setting.AppURL = TestAppURL
+	metas := map[string]string{
+		"format": "https://someurl.com/{user}/{repo}/{index}",
+		"user":   "someUser",
+		"repo":   "someRepo",
+		"style":  IssueNameStyleNumeric,
+	}
+
+	testRenderIssueIndexPattern(t, "#1", "#1", &RenderContext{
+		Ctx:   git.DefaultContext,
+		Metas: metas,
+	})
+	testRenderIssueIndexPattern(t, "#1312", "#1312", &RenderContext{
+		Ctx:   git.DefaultContext,
+		Metas: metas,
+	})
+	testRenderIssueIndexPattern(t, "!1", "!1", &RenderContext{
+		Ctx:   git.DefaultContext,
+		Metas: metas,
+	})
+}
+
+func TestRender_RenderIssueTitle(t *testing.T) {
 	setting.AppURL = TestAppURL
 	metas := map[string]string{
 		"format": "https://someurl.com/{user}/{repo}/{index}",
