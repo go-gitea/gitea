@@ -7,11 +7,11 @@ import (
 	"bytes"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/markup/common"
-	"code.gitea.io/gitea/modules/setting"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -25,7 +25,27 @@ const (
 	IssueNameStyleRegexp       = "regexp"
 )
 
-var (
+// CSS class for action keywords (e.g. "closes: #1")
+const keywordClass = "issue-keyword"
+
+type globalVarsType struct {
+	hashCurrentPattern      *regexp.Regexp
+	shortLinkPattern        *regexp.Regexp
+	anyHashPattern          *regexp.Regexp
+	comparePattern          *regexp.Regexp
+	fullURLPattern          *regexp.Regexp
+	emailRegex              *regexp.Regexp
+	blackfridayExtRegex     *regexp.Regexp
+	emojiShortCodeRegex     *regexp.Regexp
+	issueFullPattern        *regexp.Regexp
+	filesChangedFullPattern *regexp.Regexp
+
+	tagCleaner *regexp.Regexp
+	nulCleaner *strings.Replacer
+}
+
+var globalVars = sync.OnceValue[*globalVarsType](func() *globalVarsType {
+	v := &globalVarsType{}
 	// NOTE: All below regex matching do not perform any extra validation.
 	// Thus a link is produced even if the linked entity does not exist.
 	// While fast, this is also incorrect and lead to false positives.
@@ -36,77 +56,54 @@ var (
 	// hashCurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
 	// Although SHA1 hashes are 40 chars long, SHA256 are 64, the regex matches the hash from 7 to 64 chars in length
 	// so that abbreviated hash links can be used as well. This matches git and GitHub usability.
-	hashCurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,64})(?:\s|$|\)|\]|[.,:](\s|$))`)
+	v.hashCurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,64})(?:\s|$|\)|\]|[.,:](\s|$))`)
 
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
-	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
+	v.shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
 	// anyHashPattern splits url containing SHA into parts
-	anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})(/[-+~%./\w]+)?(\?[-+~%.\w&=]+)?(#[-+~%.\w]+)?`)
+	v.anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})(/[-+~%./\w]+)?(\?[-+~%.\w&=]+)?(#[-+~%.\w]+)?`)
 
 	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
-	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
+	v.comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	// fullURLPattern matches full URL like "mailto:...", "https://..." and "ssh+git://..."
-	fullURLPattern = regexp.MustCompile(`^[a-z][-+\w]+:`)
+	v.fullURLPattern = regexp.MustCompile(`^[a-z][-+\w]+:`)
 
 	// emailRegex is definitely not perfect with edge cases,
 	// it is still accepted by the CommonMark specification, as well as the HTML5 spec:
 	//   http://spec.commonmark.org/0.28/#email-address
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
-	emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)(?:\\s|$|\\)|\\]|;|,|\\?|!|\\.(\\s|$))")
+	v.emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)(?:\\s|$|\\)|\\]|;|,|\\?|!|\\.(\\s|$))")
 
 	// blackfridayExtRegex is for blackfriday extensions create IDs like fn:user-content-footnote
-	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
+	v.blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 
 	// emojiShortCodeRegex find emoji by alias like :smile:
-	emojiShortCodeRegex = regexp.MustCompile(`:[-+\w]+:`)
-)
+	v.emojiShortCodeRegex = regexp.MustCompile(`:[-+\w]+:`)
 
-// CSS class for action keywords (e.g. "closes: #1")
-const keywordClass = "issue-keyword"
+	// example: https://domain/org/repo/pulls/27#hash
+	v.issueFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
+
+	// example: https://domain/org/repo/pulls/27/files#hash
+	v.filesChangedFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
+
+	v.tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL]\b)|(/?[hH][eE][aA][dD]\b))`)
+	v.nulCleaner = strings.NewReplacer("\000", "")
+	return v
+})
 
 // IsFullURLBytes reports whether link fits valid format.
 func IsFullURLBytes(link []byte) bool {
-	return fullURLPattern.Match(link)
+	return globalVars().fullURLPattern.Match(link)
 }
 
 func IsFullURLString(link string) bool {
-	return fullURLPattern.MatchString(link)
+	return globalVars().fullURLPattern.MatchString(link)
 }
 
 func IsNonEmptyRelativePath(link string) bool {
 	return link != "" && !IsFullURLString(link) && link[0] != '/' && link[0] != '?' && link[0] != '#'
-}
-
-// regexp for full links to issues/pulls
-var issueFullPattern *regexp.Regexp
-
-// Once for to prevent races
-var issueFullPatternOnce sync.Once
-
-// regexp for full links to hash comment in pull request files changed tab
-var filesChangedFullPattern *regexp.Regexp
-
-// Once for to prevent races
-var filesChangedFullPatternOnce sync.Once
-
-func getIssueFullPattern() *regexp.Regexp {
-	issueFullPatternOnce.Do(func() {
-		// example: https://domain/org/repo/pulls/27#hash
-		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-			`[\w_.-]+/[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
-	})
-	return issueFullPattern
-}
-
-func getFilesChangedFullPattern() *regexp.Regexp {
-	filesChangedFullPatternOnce.Do(func() {
-		// example: https://domain/org/repo/pulls/27/files#hash
-		filesChangedFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-			`[\w_.-]+/[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
-	})
-	return filesChangedFullPattern
 }
 
 // CustomLinkURLSchemes allows for additional schemes to be detected when parsing links within text
@@ -197,13 +194,6 @@ func RenderCommitMessage(
 	content string,
 ) (string, error) {
 	procs := commitMessageProcessors
-	if ctx.DefaultLink != "" {
-		// we don't have to fear data races, because being
-		// commitMessageProcessors of fixed len and cap, every time we append
-		// something to it the slice is realloc+copied, so append always
-		// generates the slice ex-novo.
-		procs = append(procs, genDefaultLinkProcessor(ctx.DefaultLink))
-	}
 	return renderProcessString(ctx, procs, content)
 }
 
@@ -231,16 +221,17 @@ var emojiProcessors = []processor{
 // which changes every text node into a link to the passed default link.
 func RenderCommitMessageSubject(
 	ctx *RenderContext,
-	content string,
+	defaultLink, content string,
 ) (string, error) {
-	procs := commitMessageSubjectProcessors
-	if ctx.DefaultLink != "" {
-		// we don't have to fear data races, because being
-		// commitMessageSubjectProcessors of fixed len and cap, every time we
-		// append something to it the slice is realloc+copied, so append always
-		// generates the slice ex-novo.
-		procs = append(procs, genDefaultLinkProcessor(ctx.DefaultLink))
-	}
+	procs := slices.Clone(commitMessageSubjectProcessors)
+	procs = append(procs, func(ctx *RenderContext, node *html.Node) {
+		ch := &html.Node{Parent: node, Type: html.TextNode, Data: node.Data}
+		node.Type = html.ElementNode
+		node.Data = "a"
+		node.DataAtom = atom.A
+		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}, {Key: "class", Val: "muted"}}
+		node.FirstChild, node.LastChild = ch, ch
+	})
 	return renderProcessString(ctx, procs, content)
 }
 
@@ -249,10 +240,8 @@ func RenderIssueTitle(
 	ctx *RenderContext,
 	title string,
 ) (string, error) {
+	// do not render other issue/commit links in an issue's title - which in most cases is already a link.
 	return renderProcessString(ctx, []processor{
-		issueIndexPatternProcessor,
-		commitCrossReferencePatternProcessor,
-		hashCurrentPatternProcessor,
 		emojiShortCodeProcessor,
 		emojiProcessor,
 	}, title)
@@ -288,11 +277,6 @@ func RenderEmoji(
 	return renderProcessString(ctx, emojiProcessors, content)
 }
 
-var (
-	tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL]\b)|(/?[hH][eE][aA][dD]\b))`)
-	nulCleaner = strings.NewReplacer("\000", "")
-)
-
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
 	defer ctx.Cancel()
 	// FIXME: don't read all content to memory
@@ -306,7 +290,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 		// prepend "<html><body>"
 		strings.NewReader("<html><body>"),
 		// Strip out nuls - they're always invalid
-		bytes.NewReader(tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1"))),
+		bytes.NewReader(globalVars().tagCleaner.ReplaceAll([]byte(globalVars().nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1"))),
 		// close the tags
 		strings.NewReader("</body></html>"),
 	))
@@ -353,7 +337,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 	// Add user-content- to IDs and "#" links if they don't already have them
 	for idx, attr := range node.Attr {
 		val := strings.TrimPrefix(attr.Val, "#")
-		notHasPrefix := !(strings.HasPrefix(val, "user-content-") || blackfridayExtRegex.MatchString(val))
+		notHasPrefix := !(strings.HasPrefix(val, "user-content-") || globalVars().blackfridayExtRegex.MatchString(val))
 
 		if attr.Key == "id" && notHasPrefix {
 			node.Attr[idx].Val = "user-content-" + attr.Val

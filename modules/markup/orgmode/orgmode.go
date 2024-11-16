@@ -144,15 +144,14 @@ func (r *Writer) resolveLink(kind, link string) string {
 		}
 
 		base := r.Ctx.Links.Base
-		isWiki := r.Ctx.ContentMode == markup.RenderContentAsWiki
-		if isWiki {
+		if r.Ctx.IsMarkupContentWiki() {
 			base = r.Ctx.Links.WikiLink()
 		} else if r.Ctx.Links.HasBranchInfo() {
 			base = r.Ctx.Links.SrcLink()
 		}
 
 		if kind == "image" || kind == "video" {
-			base = r.Ctx.Links.ResolveMediaLink(isWiki)
+			base = r.Ctx.Links.ResolveMediaLink(r.Ctx.IsMarkupContentWiki())
 		}
 
 		link = util.URLJoin(base, link)
