@@ -1051,3 +1051,17 @@ func TestAttention(t *testing.T) {
 	// legacy GitHub style
 	test(`> **warning**`, renderAttention("warning", "octicon-alert")+"\n</blockquote>")
 }
+
+func BenchmarkSpecializedMarkdown(b *testing.B) {
+	// 187785	      5990 ns/op
+	for i := 0; i < b.N; i++ {
+		markdown.SpecializedMarkdown(nil)
+	}
+}
+
+func BenchmarkMarkdownRender(b *testing.B) {
+	// 24698	     48585 ns/op
+	for i := 0; i < b.N; i++ {
+		markdown.RenderString(&markup.RenderContext{Ctx: context.Background()}, "https://example.com\n- a\n- b\n")
+	}
+}

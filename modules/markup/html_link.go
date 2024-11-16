@@ -195,7 +195,7 @@ func linkProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		uri := node.Data[m[0]:m[1]]
-		replaceContent(node, m[0], m[1], createLink(uri, uri, "link"))
+		replaceContent(node, m[0], m[1], createLink(ctx, uri, uri, "" /*link*/))
 		node = node.NextSibling.NextSibling
 	}
 }
