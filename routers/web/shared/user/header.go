@@ -50,7 +50,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	ctx.Data["OpenIDs"] = openIDs
 	if len(ctx.ContextUser.Description) != 0 {
 		content, err := markdown.RenderString(&markup.RenderContext{
-			Metas: map[string]string{"mode": "document"},
+			Metas: markup.ComposeSimpleDocumentMetas(),
 			Ctx:   ctx,
 		}, ctx.ContextUser.Description)
 		if err != nil {

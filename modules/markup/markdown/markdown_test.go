@@ -37,6 +37,12 @@ var localMetas = map[string]string{
 	"repo": testRepoName,
 }
 
+var localWikiMetas = map[string]string{
+	"user":              testRepoOwnerName,
+	"repo":              testRepoName,
+	"markupContentMode": "wiki",
+}
+
 type mockRepo struct {
 	OwnerName string
 	RepoName  string
@@ -75,7 +81,7 @@ func TestRender_StandardLinks(t *testing.T) {
 			Links: markup.Links{
 				Base: FullURL,
 			},
-			ContentMode: markup.RenderContentAsWiki,
+			Metas: localWikiMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
@@ -307,9 +313,8 @@ func TestTotal_RenderWiki(t *testing.T) {
 			Links: markup.Links{
 				Base: FullURL,
 			},
-			Repo:        newMockRepo(testRepoOwnerName, testRepoName),
-			Metas:       localMetas,
-			ContentMode: markup.RenderContentAsWiki,
+			Repo:  newMockRepo(testRepoOwnerName, testRepoName),
+			Metas: localWikiMetas,
 		}, sameCases[i])
 		assert.NoError(t, err)
 		assert.Equal(t, answers[i], string(line))
@@ -334,7 +339,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 			Links: markup.Links{
 				Base: FullURL,
 			},
-			ContentMode: markup.RenderContentAsWiki,
+			Metas: localWikiMetas,
 		}, testCases[i])
 		assert.NoError(t, err)
 		assert.EqualValues(t, testCases[i+1], string(line))
@@ -657,9 +662,9 @@ mail@domain.com
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/image.jpg" rel="nofollow"><img src="/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 <span class="emoji" aria-label="thumbs up">👍</span><br/>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
@@ -684,9 +689,9 @@ space</p>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/wiki/raw/image.jpg" rel="nofollow"><img src="/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 <span class="emoji" aria-label="thumbs up">👍</span><br/>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
@@ -713,9 +718,9 @@ space</p>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="https://gitea.io/image.jpg" rel="nofollow"><img src="https://gitea.io/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 <span class="emoji" aria-label="thumbs up">👍</span><br/>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
@@ -742,9 +747,9 @@ space</p>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="https://gitea.io/wiki/raw/image.jpg" rel="nofollow"><img src="https://gitea.io/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 <span class="emoji" aria-label="thumbs up">👍</span><br/>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
@@ -771,9 +776,9 @@ space</p>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/relative/path/image.jpg" rel="nofollow"><img src="/relative/path/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 <span class="emoji" aria-label="thumbs up">👍</span><br/>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
@@ -800,9 +805,9 @@ space</p>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" rel="nofollow"><img src="/relative/path/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 <span class="emoji" aria-label="thumbs up">👍</span><br/>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
@@ -830,9 +835,9 @@ space</p>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/user/repo/media/branch/main/image.jpg" rel="nofollow"><img src="/user/repo/media/branch/main/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 <span class="emoji" aria-label="thumbs up">👍</span><br/>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
@@ -860,9 +865,9 @@ space</p>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" rel="nofollow"><img src="/relative/path/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 <span class="emoji" aria-label="thumbs up">👍</span><br/>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
@@ -890,9 +895,9 @@ space</p>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/user/repo/image.jpg" rel="nofollow"><img src="/user/repo/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 <span class="emoji" aria-label="thumbs up">👍</span><br/>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
@@ -920,9 +925,9 @@ space</p>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" rel="nofollow"><img src="/relative/path/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 <span class="emoji" aria-label="thumbs up">👍</span><br/>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
@@ -951,9 +956,9 @@ space</p>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/user/repo/media/branch/main/sub/folder/image.jpg" rel="nofollow"><img src="/user/repo/media/branch/main/sub/folder/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 <span class="emoji" aria-label="thumbs up">👍</span><br/>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
@@ -982,9 +987,9 @@ space</p>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" rel="nofollow"><img src="/relative/path/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 <span class="emoji" aria-label="thumbs up">👍</span><br/>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
@@ -999,9 +1004,9 @@ space</p>
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
 	for i, c := range cases {
 		result, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:         context.Background(),
-			Links:       c.Links,
-			ContentMode: util.Iif(c.IsWiki, markup.RenderContentAsWiki, markup.RenderContentAsDefault),
+			Ctx:   context.Background(),
+			Links: c.Links,
+			Metas: util.Iif(c.IsWiki, map[string]string{"markupContentMode": "wiki"}, map[string]string{}),
 		}, input)
 		assert.NoError(t, err, "Unexpected error in testcase: %v", i)
 		assert.Equal(t, c.Expected, string(result), "Unexpected result in testcase %v", i)

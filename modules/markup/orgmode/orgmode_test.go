@@ -27,7 +27,7 @@ func TestRender_StandardLinks(t *testing.T) {
 				Base:       "/relative-path",
 				BranchPath: "branch/main",
 			},
-			ContentMode: util.Iif(isWiki, markup.RenderContentAsWiki, markup.RenderContentAsDefault),
+			Metas: map[string]string{"markupContentMode": util.Iif(isWiki, "wiki", "")},
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
