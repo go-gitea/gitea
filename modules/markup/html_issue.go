@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/regexplru"
@@ -35,6 +36,9 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		link := node.Data[m[0]:m[1]]
+		if !httplib.IsCurrentGiteaSiteURL(ctx.Ctx, link) {
+			return
+		}
 		text := "#" + node.Data[m[2]:m[3]]
 		// if m[4] and m[5] is not -1, then link is to a comment
 		// indicate that in the text by appending (comment)

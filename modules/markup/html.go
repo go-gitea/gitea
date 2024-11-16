@@ -5,15 +5,13 @@ package markup
 
 import (
 	"bytes"
-	"fmt"
-	"html/template"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/markup/common"
-	"code.gitea.io/gitea/modules/setting"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -85,12 +83,10 @@ var globalVars = sync.OnceValue[*globalVarsType](func() *globalVarsType {
 	v.emojiShortCodeRegex = regexp.MustCompile(`:[-+\w]+:`)
 
 	// example: https://domain/org/repo/pulls/27#hash
-	v.issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-		`[\w_.-]+/[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
+	v.issueFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
 
 	// example: https://domain/org/repo/pulls/27/files#hash
-	v.filesChangedFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-		`[\w_.-]+/[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
+	v.filesChangedFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
 
 	v.tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL]\b)|(/?[hH][eE][aA][dD]\b))`)
 	v.nulCleaner = strings.NewReplacer("\000", "")
@@ -227,15 +223,16 @@ func RenderCommitMessageSubject(
 	ctx *RenderContext,
 	defaultLink, content string,
 ) (string, error) {
-	procs := commitMessageSubjectProcessors
-	rendered, err := renderProcessString(ctx, procs, content)
-	if err != nil {
-		return "", err
-	}
-	if defaultLink != "" {
-		rendered = fmt.Sprintf(`<a href="%s" class="muted">%s</a>`, template.HTMLEscapeString(defaultLink), rendered)
-	}
-	return rendered, nil
+	procs := slices.Clone(commitMessageSubjectProcessors)
+	procs = append(procs, func(ctx *RenderContext, node *html.Node) {
+		ch := &html.Node{Parent: node, Type: html.TextNode, Data: node.Data}
+		node.Type = html.ElementNode
+		node.Data = "a"
+		node.DataAtom = atom.A
+		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}, {Key: "class", Val: "muted"}}
+		node.FirstChild, node.LastChild = ch, ch
+	})
+	return renderProcessString(ctx, procs, content)
 }
 
 // RenderIssueTitle to process title on individual issue/pull page
