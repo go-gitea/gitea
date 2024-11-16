@@ -23,12 +23,12 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 	}
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
+		m := globalVars().issueFullPattern.FindStringSubmatchIndex(node.Data)
 		if m == nil {
 			return
 		}
 
-		mDiffView := getFilesChangedFullPattern().FindStringSubmatchIndex(node.Data)
+		mDiffView := globalVars().filesChangedFullPattern.FindStringSubmatchIndex(node.Data)
 		// leave it as it is if the link is from "Files Changed" tab in PR Diff View https://domain/org/repo/pulls/27/files
 		if mDiffView != nil {
 			return

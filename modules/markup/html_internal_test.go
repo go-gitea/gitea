@@ -413,10 +413,10 @@ func TestRegExp_sha1CurrentPattern(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		assert.True(t, hashCurrentPattern.MatchString(testCase))
+		assert.True(t, globalVars().hashCurrentPattern.MatchString(testCase))
 	}
 	for _, testCase := range falseTestCases {
-		assert.False(t, hashCurrentPattern.MatchString(testCase))
+		assert.False(t, globalVars().hashCurrentPattern.MatchString(testCase))
 	}
 }
 
@@ -496,9 +496,9 @@ func TestRegExp_shortLinkPattern(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		assert.True(t, shortLinkPattern.MatchString(testCase))
+		assert.True(t, globalVars().shortLinkPattern.MatchString(testCase))
 	}
 	for _, testCase := range falseTestCases {
-		assert.False(t, shortLinkPattern.MatchString(testCase))
+		assert.False(t, globalVars().shortLinkPattern.MatchString(testCase))
 	}
 }

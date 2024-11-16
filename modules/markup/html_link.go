@@ -40,7 +40,7 @@ func ResolveLink(ctx *RenderContext, link, userContentAnchorPrefix string) (resu
 func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := shortLinkPattern.FindStringSubmatchIndex(node.Data)
+		m := globalVars().shortLinkPattern.FindStringSubmatchIndex(node.Data)
 		if m == nil {
 			return
 		}

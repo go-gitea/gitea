@@ -9,7 +9,7 @@ import "golang.org/x/net/html"
 func emailAddressProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := emailRegex.FindStringSubmatchIndex(node.Data)
+		m := globalVars().emailRegex.FindStringSubmatchIndex(node.Data)
 		if m == nil {
 			return
 		}
