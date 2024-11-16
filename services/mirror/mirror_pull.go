@@ -307,7 +307,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	output := stderrBuilder.String()
 
 	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
-		log.Error("SyncMirrors: WriteCommitGraph [repo: %-v]: %v", m.Repo, err)
+		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
 	}
 
 	gitRepo, err := gitrepo.OpenRepository(ctx, m.Repo)
