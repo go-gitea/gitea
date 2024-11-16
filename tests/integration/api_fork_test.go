@@ -31,48 +31,34 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 
 	user1Sess := loginUser(t, "user1")
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
+
+	// fork into a limited org
 	limitedOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
 	assert.EqualValues(t, structs.VisibleTypeLimited, limitedOrg.Visibility)
-
 	ownerTeam1, err := org_model.OrgFromUser(limitedOrg).GetOwnerTeam(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.NoError(t, models.AddTeamMember(db.DefaultContext, ownerTeam1, user1))
-	defer func() {
-		models.RemoveTeamMember(db.DefaultContext, ownerTeam1, user1)
-	}()
-
-	user1Token := getTokenForLoggedInUser(t, user1Sess,
-		auth_model.AccessTokenScopeWriteRepository,
-		auth_model.AccessTokenScopeWriteOrganization)
-
+	user1Token := getTokenForLoggedInUser(t, user1Sess, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{
 		Organization: &limitedOrg.Name,
 	}).AddTokenAuth(user1Token)
 	MakeRequest(t, req, http.StatusAccepted)
 
+	// fork into a private org
 	user4Sess := loginUser(t, "user4")
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user4"})
-
 	privateOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
 	assert.EqualValues(t, structs.VisibleTypePrivate, privateOrg.Visibility)
-
 	ownerTeam2, err := org_model.OrgFromUser(privateOrg).GetOwnerTeam(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.NoError(t, models.AddTeamMember(db.DefaultContext, ownerTeam2, user4))
-	defer func() {
-		models.RemoveTeamMember(db.DefaultContext, ownerTeam2, user4)
-	}()
-
-	user4Token := getTokenForLoggedInUser(t, user4Sess,
-		auth_model.AccessTokenScopeWriteRepository,
-		auth_model.AccessTokenScopeWriteOrganization)
-
+	user4Token := getTokenForLoggedInUser(t, user4Sess, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
 	req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{
 		Organization: &privateOrg.Name,
 	}).AddTokenAuth(user4Token)
 	MakeRequest(t, req, http.StatusAccepted)
 
-	t.Run("Anomynous", func(t *testing.T) {
+	t.Run("Anonymous", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks")
@@ -98,9 +84,6 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 		assert.EqualValues(t, "1", resp.Header().Get("X-Total-Count"))
 
 		assert.NoError(t, models.AddTeamMember(db.DefaultContext, ownerTeam2, user1))
-		defer func() {
-			models.RemoveTeamMember(db.DefaultContext, ownerTeam2, user1)
-		}()
 
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks").AddTokenAuth(user1Token)
 		resp = MakeRequest(t, req, http.StatusOK)

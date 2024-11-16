@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -81,62 +80,49 @@ func TestRepoForkToOrg(t *testing.T) {
 }
 
 func TestForkListLimitedAndPrivateRepos(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
 	forkItemSelector := ".tw-flex.tw-items-center.tw-py-2"
 
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user1Sess := loginUser(t, "user1")
-		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
-		limitedOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
-		assert.EqualValues(t, structs.VisibleTypeLimited, limitedOrg.Visibility)
+	user1Sess := loginUser(t, "user1")
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
 
-		ownerTeam1, err := org_model.OrgFromUser(limitedOrg).GetOwnerTeam(db.DefaultContext)
-		assert.NoError(t, err)
-		assert.NoError(t, models.AddTeamMember(db.DefaultContext, ownerTeam1, user1))
-		defer func() {
-			models.RemoveTeamMember(db.DefaultContext, ownerTeam1, user1)
-		}()
+	// fork to a limited org
+	limitedOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
+	assert.EqualValues(t, structs.VisibleTypeLimited, limitedOrg.Visibility)
+	ownerTeam1, err := org_model.OrgFromUser(limitedOrg).GetOwnerTeam(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.NoError(t, models.AddTeamMember(db.DefaultContext, ownerTeam1, user1))
+	testRepoFork(t, user1Sess, "user2", "repo1", limitedOrg.Name, "repo1", "")
 
-		testRepoFork(t, user1Sess, "user2", "repo1", limitedOrg.Name, "repo1", "")
+	// fork to a private org
+	user4Sess := loginUser(t, "user4")
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user4"})
+	privateOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
+	assert.EqualValues(t, structs.VisibleTypePrivate, privateOrg.Visibility)
+	ownerTeam2, err := org_model.OrgFromUser(privateOrg).GetOwnerTeam(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.NoError(t, models.AddTeamMember(db.DefaultContext, ownerTeam2, user4))
+	testRepoFork(t, user4Sess, "user2", "repo1", privateOrg.Name, "repo1", "")
 
-		user4Sess := loginUser(t, "user4")
-		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user4"})
+	t.Run("Anonymous", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequest(t, "GET", "/user2/repo1/forks")
+		resp := MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.EqualValues(t, 0, htmlDoc.Find(forkItemSelector).Length())
+	})
 
-		privateOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
-		assert.EqualValues(t, structs.VisibleTypePrivate, privateOrg.Visibility)
+	t.Run("Logged in", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-		ownerTeam2, err := org_model.OrgFromUser(privateOrg).GetOwnerTeam(db.DefaultContext)
-		assert.NoError(t, err)
-		assert.NoError(t, models.AddTeamMember(db.DefaultContext, ownerTeam2, user4))
-		defer func() {
-			models.RemoveTeamMember(db.DefaultContext, ownerTeam2, user4)
-		}()
+		req := NewRequest(t, "GET", "/user2/repo1/forks")
+		resp := user1Sess.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.EqualValues(t, 1, htmlDoc.Find(forkItemSelector).Length())
 
-		testRepoFork(t, user4Sess, "user2", "repo1", privateOrg.Name, "repo1", "")
-
-		t.Run("Anomynous", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET", "/user2/repo1/forks")
-			resp := MakeRequest(t, req, http.StatusOK)
-			htmlDoc := NewHTMLParser(t, resp.Body)
-			assert.EqualValues(t, 0, htmlDoc.Find(forkItemSelector).Length())
-		})
-
-		t.Run("Logged in", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET", "/user2/repo1/forks")
-			resp := user1Sess.MakeRequest(t, req, http.StatusOK)
-			htmlDoc := NewHTMLParser(t, resp.Body)
-			assert.EqualValues(t, 1, htmlDoc.Find(forkItemSelector).Length())
-
-			assert.NoError(t, models.AddTeamMember(db.DefaultContext, ownerTeam2, user1))
-			defer func() {
-				models.RemoveTeamMember(db.DefaultContext, ownerTeam2, user1)
-			}()
-			resp = user1Sess.MakeRequest(t, req, http.StatusOK)
-			htmlDoc = NewHTMLParser(t, resp.Body)
-			assert.EqualValues(t, 2, htmlDoc.Find(forkItemSelector).Length())
-		})
+		assert.NoError(t, models.AddTeamMember(db.DefaultContext, ownerTeam2, user1))
+		resp = user1Sess.MakeRequest(t, req, http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		assert.EqualValues(t, 2, htmlDoc.Find(forkItemSelector).Length())
 	})
 }
