@@ -10,6 +10,7 @@
 		const sshBtn = document.getElementById('repo-clone-ssh');
 		const value = localStorage.getItem('repo-clone-protocol') || 'https';
 		const isSSH = value === 'ssh' && sshBtn || value !== 'ssh' && !httpsBtn;
+		const methodDesc = document.getElementById("repo-clone-method-description");
 
 		if (httpsBtn) {
 			httpsBtn.textContent = window.origin.split(':')[0].toUpperCase();
@@ -23,6 +24,10 @@
 
 		const btn = isSSH ? sshBtn : httpsBtn;
 		if (!btn) return;
+
+		if (methodDesc) {
+			methodDesc.innerText = btn.dataset.description;
+		}
 
 		// NOTE: Keep this function in sync with the one in the js folder
 		function toOriginUrl(urlStr) {
