@@ -129,6 +129,7 @@
   owner_name: org3
   lower_name: repo5
   name: repo5
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
