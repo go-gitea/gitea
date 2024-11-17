@@ -46,9 +46,7 @@ func showUserFeed(ctx *context.Context, formatType string) {
 		Links: markup.Links{
 			Base: ctx.ContextUser.HTMLURL(),
 		},
-		Metas: map[string]string{
-			"user": ctx.ContextUser.GetDisplayName(),
-		},
+		Metas: markup.ComposeSimpleDocumentMetas(),
 	}, ctx.ContextUser.Description)
 	if err != nil {
 		ctx.ServerError("RenderString", err)

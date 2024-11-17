@@ -4,9 +4,10 @@
 package integration
 
 import (
-	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"io"
+	mathRand "math/rand/v2"
 	"net/http"
 	"net/url"
 	"os"
@@ -34,8 +35,8 @@ import (
 )
 
 const (
-	littleSize = 1024              // 1K
-	bigSize    = 128 * 1024 * 1024 // 128M
+	testFileSizeSmall = 10
+	testFileSizeLarge = 10 * 1024 * 1024 // 10M
 )
 
 func TestGitGeneral(t *testing.T) {
@@ -73,8 +74,8 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 
 		t.Run("Partial Clone", doPartialGitClone(dstPath2, u))
 
-		pushedFilesStandard := standardCommitAndPushTest(t, dstPath, littleSize, bigSize)
-		pushedFilesLFS := lfsCommitAndPushTest(t, dstPath, littleSize, bigSize)
+		pushedFilesStandard := standardCommitAndPushTest(t, dstPath, testFileSizeSmall, testFileSizeLarge)
+		pushedFilesLFS := lfsCommitAndPushTest(t, dstPath, testFileSizeSmall, testFileSizeLarge)
 		rawTest(t, &httpContext, pushedFilesStandard[0], pushedFilesStandard[1], pushedFilesLFS[0], pushedFilesLFS[1])
 		mediaTest(t, &httpContext, pushedFilesStandard[0], pushedFilesStandard[1], pushedFilesLFS[0], pushedFilesLFS[1])
 
@@ -114,8 +115,8 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 
 			t.Run("Clone", doGitClone(dstPath, sshURL))
 
-			pushedFilesStandard := standardCommitAndPushTest(t, dstPath, littleSize, bigSize)
-			pushedFilesLFS := lfsCommitAndPushTest(t, dstPath, littleSize, bigSize)
+			pushedFilesStandard := standardCommitAndPushTest(t, dstPath, testFileSizeSmall, testFileSizeLarge)
+			pushedFilesLFS := lfsCommitAndPushTest(t, dstPath, testFileSizeSmall, testFileSizeLarge)
 			rawTest(t, &sshContext, pushedFilesStandard[0], pushedFilesStandard[1], pushedFilesLFS[0], pushedFilesLFS[1])
 			mediaTest(t, &sshContext, pushedFilesStandard[0], pushedFilesStandard[1], pushedFilesLFS[0], pushedFilesLFS[1])
 
@@ -202,14 +203,14 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 		// Request raw paths
 		req := NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", little))
 		resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-		assert.Equal(t, littleSize, resp.Length)
+		assert.Equal(t, testFileSizeSmall, resp.Length)
 
 		if setting.LFS.StartServer {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", littleLFS))
 			resp := session.MakeRequest(t, req, http.StatusOK)
-			assert.NotEqual(t, littleSize, resp.Body.Len())
+			assert.NotEqual(t, testFileSizeSmall, resp.Body.Len())
 			assert.LessOrEqual(t, resp.Body.Len(), 1024)
-			if resp.Body.Len() != littleSize && resp.Body.Len() <= 1024 {
+			if resp.Body.Len() != testFileSizeSmall && resp.Body.Len() <= 1024 {
 				assert.Contains(t, resp.Body.String(), lfs.MetaFileIdentifier)
 			}
 		}
@@ -217,13 +218,13 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 		if !testing.Short() {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", big))
 			resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, resp.Length)
+			assert.Equal(t, testFileSizeLarge, resp.Length)
 
 			if setting.LFS.StartServer {
 				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", bigLFS))
 				resp := session.MakeRequest(t, req, http.StatusOK)
-				assert.NotEqual(t, bigSize, resp.Body.Len())
-				if resp.Body.Len() != bigSize && resp.Body.Len() <= 1024 {
+				assert.NotEqual(t, testFileSizeLarge, resp.Body.Len())
+				if resp.Body.Len() != testFileSizeLarge && resp.Body.Len() <= 1024 {
 					assert.Contains(t, resp.Body.String(), lfs.MetaFileIdentifier)
 				}
 			}
@@ -243,21 +244,21 @@ func mediaTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS
 		// Request media paths
 		req := NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", little))
 		resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-		assert.Equal(t, littleSize, resp.Length)
+		assert.Equal(t, testFileSizeSmall, resp.Length)
 
 		req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", littleLFS))
 		resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-		assert.Equal(t, littleSize, resp.Length)
+		assert.Equal(t, testFileSizeSmall, resp.Length)
 
 		if !testing.Short() {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", big))
 			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, resp.Length)
+			assert.Equal(t, testFileSizeLarge, resp.Length)
 
 			if setting.LFS.StartServer {
 				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", bigLFS))
 				resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-				assert.Equal(t, bigSize, resp.Length)
+				assert.Equal(t, testFileSizeLarge, resp.Length)
 			}
 		}
 	})
@@ -287,35 +288,19 @@ func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 }
 
 func generateCommitWithNewData(size int, repoPath, email, fullName, prefix string) (string, error) {
-	// Generate random file
-	bufSize := 4 * 1024
-	if bufSize > size {
-		bufSize = size
-	}
-
-	buffer := make([]byte, bufSize)
-
 	tmpFile, err := os.CreateTemp(repoPath, prefix)
 	if err != nil {
 		return "", err
 	}
 	defer tmpFile.Close()
-	written := 0
-	for written < size {
-		n := size - written
-		if n > bufSize {
-			n = bufSize
-		}
-		_, err := rand.Read(buffer[:n])
-		if err != nil {
-			return "", err
-		}
-		n, err = tmpFile.Write(buffer[:n])
-		if err != nil {
-			return "", err
-		}
-		written += n
+
+	var seed [32]byte
+	rander := mathRand.NewChaCha8(seed) // for testing only, no need to seed
+	_, err = io.CopyN(tmpFile, rander, int64(size))
+	if err != nil {
+		return "", err
 	}
+	_ = tmpFile.Close()
 
 	// Commit
 	// Now here we should explicitly allow lfs filters to run
@@ -355,7 +340,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 
 		// Try to push without permissions, which should fail
 		t.Run("TryPushWithoutPermissions", func(t *testing.T) {
-			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+			_, err := generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-")
 			assert.NoError(t, err)
 			doGitPushTestRepositoryFail(dstPath, "origin", "protected")
 		})
@@ -367,7 +352,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 
 		// Normal push should work
 		t.Run("NormalPushWithPermissions", func(t *testing.T) {
-			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+			_, err := generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-")
 			assert.NoError(t, err)
 			doGitPushTestRepository(dstPath, "origin", "protected")
 		})
@@ -376,7 +361,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		t.Run("ForcePushWithoutForcePermissions", func(t *testing.T) {
 			t.Run("CreateDivergentHistory", func(t *testing.T) {
 				git.NewCommand(git.DefaultContext, "reset", "--hard", "HEAD~1").Run(&git.RunOpts{Dir: dstPath})
-				_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-new")
+				_, err := generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-new")
 				assert.NoError(t, err)
 			})
 			doGitPushTestRepositoryFail(dstPath, "-f", "origin", "protected")
@@ -411,7 +396,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 			assert.NoError(t, err)
 		})
 		t.Run("GenerateCommit", func(t *testing.T) {
-			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+			_, err := generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-")
 			assert.NoError(t, err)
 		})
 		t.Run("PushToUnprotectedBranch", doGitPushTestRepository(dstPath, "origin", "protected:unprotected-2"))
@@ -426,7 +411,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 
 		t.Run("ProtectProtectedBranchUnprotectedFilePaths", doProtectBranch(ctx, "protected", "", "", "unprotected-file-*"))
 		t.Run("GenerateCommit", func(t *testing.T) {
-			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "unprotected-file-")
+			_, err := generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "unprotected-file-")
 			assert.NoError(t, err)
 		})
 		t.Run("PushUnprotectedFilesToProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected"))
@@ -436,7 +421,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		t.Run("CheckoutMaster", doGitCheckoutBranch(dstPath, "master"))
 		t.Run("CreateBranchForced", doGitCreateBranch(dstPath, "toforce"))
 		t.Run("GenerateCommit", func(t *testing.T) {
-			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+			_, err := generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-")
 			assert.NoError(t, err)
 		})
 		t.Run("FailToForcePushToProtectedBranch", doGitPushTestRepositoryFail(dstPath, "-f", "origin", "toforce:protected"))
@@ -649,7 +634,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		t.Run("CheckoutProtected", doGitCheckoutBranch(dstPath, "protected"))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
 		t.Run("GenerateCommit", func(t *testing.T) {
-			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+			_, err := generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-")
 			assert.NoError(t, err)
 		})
 		t.Run("PushToUnprotectedBranch", doGitPushTestRepository(dstPath, "origin", "protected:unprotected3"))
