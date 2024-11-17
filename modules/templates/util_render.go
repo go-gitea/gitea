@@ -62,19 +62,18 @@ func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, me
 	}
 	msgLine = strings.TrimRightFunc(msgLine, unicode.IsSpace)
 	if len(msgLine) == 0 {
-		return template.HTML("")
+		return ""
 	}
 
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
 	renderedMessage, err := markup.RenderCommitMessageSubject(&markup.RenderContext{
-		Ctx:         ut.ctx,
-		DefaultLink: urlDefault,
-		Metas:       metas,
-	}, template.HTMLEscapeString(msgLine))
+		Ctx:   ut.ctx,
+		Metas: metas,
+	}, urlDefault, template.HTMLEscapeString(msgLine))
 	if err != nil {
 		log.Error("RenderCommitMessageSubject: %v", err)
-		return template.HTML("")
+		return ""
 	}
 	return renderCodeBlock(template.HTML(renderedMessage))
 }
@@ -210,7 +209,7 @@ func reactionToEmoji(reaction string) template.HTML {
 func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:revive
 	output, err := markdown.RenderString(&markup.RenderContext{
 		Ctx:   ut.ctx,
-		Metas: map[string]string{"mode": "document"},
+		Metas: markup.ComposeSimpleDocumentMetas(),
 	}, input)
 	if err != nil {
 		log.Error("RenderString: %v", err)

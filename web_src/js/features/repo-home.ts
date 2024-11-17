@@ -1,8 +1,8 @@
-import $ from 'jquery';
 import {stripTags} from '../utils.ts';
 import {hideElem, queryElemChildren, showElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl} = window.config;
 
@@ -73,7 +73,7 @@ export function initRepoTopicBar() {
     }
   });
 
-  $(topicDropdown).dropdown({
+  fomanticQuery(topicDropdown).dropdown({
     allowAdditions: true,
     forceSelection: false,
     fullTextSearch: 'exact',
@@ -136,7 +136,7 @@ export function initRepoTopicBar() {
     onLabelCreate(value) {
       value = value.toLowerCase().trim();
       this.attr('data-value', value).contents().first().replaceWith(value);
-      return $(this);
+      return fomanticQuery(this);
     },
     onAdd(addedValue, _addedText, $addedChoice) {
       addedValue = addedValue.toLowerCase().trim();

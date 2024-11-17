@@ -46,7 +46,7 @@ func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 		w.Header().Add(gzhttp.HeaderNoCompression, "1")
 	}
 
-	contentType := typesniffer.ApplicationOctetStream
+	contentType := typesniffer.MimeTypeApplicationOctetStream
 	if opts.ContentType != "" {
 		if opts.ContentTypeCharset != "" {
 			contentType = opts.ContentType + "; charset=" + strings.ToLower(opts.ContentTypeCharset)
@@ -107,7 +107,7 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, filePath stri
 		} else if isPlain {
 			opts.ContentType = "text/plain"
 		} else {
-			opts.ContentType = typesniffer.ApplicationOctetStream
+			opts.ContentType = typesniffer.MimeTypeApplicationOctetStream
 		}
 	}
 
