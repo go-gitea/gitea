@@ -208,7 +208,8 @@ func TestAPIRenameBranch(t *testing.T) {
 
 func testAPIRenameBranch(t *testing.T, ownerName, repoName, from, to string, expectedHTTPStatus int) {
 	token := getUserToken(t, ownerName, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, "POST", "api/v1/repos/"+ownerName+"/"+repoName+"/branches/"+from+"/rename", &api.RenameBranchRepoOption{
+	req := NewRequestWithJSON(t, "POST", "api/v1/repos/"+ownerName+"/"+repoName+"/branches/rename", &api.RenameBranchRepoOption{
+		OldName: from,
 		NewName: to,
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, expectedHTTPStatus)

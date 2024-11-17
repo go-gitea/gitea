@@ -388,7 +388,7 @@ func ListBranches(ctx *context.APIContext) {
 
 // RenameBranch renames a repository's branch.
 func RenameBranch(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/branches/{name}/rename repository repoRenameBranch
+	// swagger:operation POST /repos/{owner}/{repo}/branches/rename repository repoRenameBranch
 	// ---
 	// summary: Rename a branch
 	// consumes:
@@ -404,11 +404,6 @@ func RenameBranch(ctx *context.APIContext) {
 	// - name: repo
 	//   in: path
 	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: name
-	//   in: path
-	//   description: original name of the branch
 	//   type: string
 	//   required: true
 	// - name: body
@@ -438,7 +433,7 @@ func RenameBranch(ctx *context.APIContext) {
 		return
 	}
 
-	msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, ctx.Repo.GitRepo, ctx.PathParam("name"), opt.NewName)
+	msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, ctx.Repo.GitRepo, opt.OldName, opt.NewName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "RenameBranch", err)
 		return
