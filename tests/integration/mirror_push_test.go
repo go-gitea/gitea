@@ -141,13 +141,6 @@ func TestRepoSettingPushMirror(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	defer func() {
-		// avoid dirty mirror data once test failure
-		repo_model.DeletePushMirrors(db.DefaultContext, repo_model.PushMirrorOptions{
-			RepoID: repo2.ID,
-		})
-	}()
-
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		t.Run("Push Mirror Add", func(t *testing.T) {
 			req = NewRequestWithValues(t, "POST", repoPrefix+"/settings", map[string]string{

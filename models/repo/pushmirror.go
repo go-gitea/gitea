@@ -122,6 +122,17 @@ func GetPushMirrorsByRepoID(ctx context.Context, repoID int64, listOptions db.Li
 	})
 }
 
+func GetPushMirrorByIDAndRepoID(ctx context.Context, id, repoID int64) (*PushMirror, error) {
+	var pushMirror PushMirror
+	has, err := db.GetEngine(ctx).Where("id = ?", id).And("repo_id = ?", repoID).Get(&pushMirror)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrPushMirrorNotExist
+	}
+	return &pushMirror, nil
+}
+
 func GetPushMirrorByID(ctx context.Context, id int64) (*PushMirror, error) {
 	mirror, has, err := db.GetByID[PushMirror](ctx, id)
 	if err != nil {

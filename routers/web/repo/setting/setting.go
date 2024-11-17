@@ -1000,14 +1000,14 @@ func selectPushMirrorByForm(ctx *context.Context, form *forms.RepoSettingForm, r
 		return nil, err
 	}
 
-	pushMirror, err := repo_model.GetPushMirrorByID(ctx, id)
+	pushMirror, err := repo_model.GetPushMirrorByIDAndRepoID(ctx, id, repo.ID)
 	if err != nil {
+		if err == repo_model.ErrPushMirrorNotExist {
+			return nil, fmt.Errorf("PushMirror[%v] not associated to repository %v", id, repo)
+		}
 		return nil, err
 	}
 
-	if pushMirror.RepoID != repo.ID {
-		return nil, fmt.Errorf("PushMirror[%v] not associated to repository %v", id, repo)
-	}
 	pushMirror.Repo = repo
 	return pushMirror, nil
 }
