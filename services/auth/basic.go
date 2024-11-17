@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
@@ -27,7 +26,6 @@ var (
 // BasicMethodName is the constant name of the basic authentication method
 const (
 	BasicMethodName       = "basic"
-	AccessTokenMethodName = "access_token"
 	OAuth2TokenMethodName = "oauth2_token"
 	ActionTokenMethodName = "action_token"
 )
@@ -94,29 +92,6 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		store.GetData()["LoginMethod"] = OAuth2TokenMethodName
 		store.GetData()["IsApiToken"] = true
 		return u, nil
-	}
-
-	// check personal access token
-	token, err := auth_model.GetAccessTokenBySHA(req.Context(), authToken)
-	if err == nil {
-		log.Trace("Basic Authorization: Valid AccessToken for user[%d]", uid)
-		u, err := user_model.GetUserByID(req.Context(), token.UID)
-		if err != nil {
-			log.Error("GetUserByID:  %v", err)
-			return nil, err
-		}
-
-		token.UpdatedUnix = timeutil.TimeStampNow()
-		if err = auth_model.UpdateAccessToken(req.Context(), token); err != nil {
-			log.Error("UpdateAccessToken:  %v", err)
-		}
-
-		store.GetData()["LoginMethod"] = AccessTokenMethodName
-		store.GetData()["IsApiToken"] = true
-		store.GetData()["ApiTokenScope"] = token.Scope
-		return u, nil
-	} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
-		log.Error("GetAccessTokenBySha: %v", err)
 	}
 
 	// check task token

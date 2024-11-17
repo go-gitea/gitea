@@ -131,8 +131,17 @@ func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store Dat
 	return t.UID
 }
 
+// Match returns true if the request matched OAuth2 requirements
+// TODO: remove path check once AccessToken will not be a global middleware but only
+// for specific routes
 func (o *OAuth2) Match(req *http.Request) bool {
-	return true
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) &&
+		!isGitRawOrAttachPath(req) && !isArchivePath(req) {
+		return false
+	}
+
+	_, ok := parseToken(req)
+	return ok
 }
 
 // Verify extracts the user ID from the OAuth token in the query parameters
