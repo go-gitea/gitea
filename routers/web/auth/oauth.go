@@ -122,6 +122,8 @@ func SignInOAuthCallback(ctx *context.Context) {
 		}
 		if err, ok := err.(*go_oauth2.RetrieveError); ok {
 			ctx.Flash.Error("OAuth2 RetrieveError: "+err.Error(), true)
+			ctx.Redirect(setting.AppSubURL + "/user/login")
+			return
 		}
 		ctx.ServerError("UserSignIn", err)
 		return

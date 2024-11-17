@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	testModule "code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -39,17 +40,19 @@ func link(href, class, contents string) string {
 }
 
 var numericMetas = map[string]string{
-	"format": "https://someurl.com/{user}/{repo}/{index}",
-	"user":   "someUser",
-	"repo":   "someRepo",
-	"style":  IssueNameStyleNumeric,
+	"format":                       "https://someurl.com/{user}/{repo}/{index}",
+	"user":                         "someUser",
+	"repo":                         "someRepo",
+	"style":                        IssueNameStyleNumeric,
+	"markupAllowShortIssuePattern": "true",
 }
 
 var alphanumericMetas = map[string]string{
-	"format": "https://someurl.com/{user}/{repo}/{index}",
-	"user":   "someUser",
-	"repo":   "someRepo",
-	"style":  IssueNameStyleAlphanumeric,
+	"format":                       "https://someurl.com/{user}/{repo}/{index}",
+	"user":                         "someUser",
+	"repo":                         "someRepo",
+	"style":                        IssueNameStyleAlphanumeric,
+	"markupAllowShortIssuePattern": "true",
 }
 
 var regexpMetas = map[string]string{
@@ -61,8 +64,15 @@ var regexpMetas = map[string]string{
 
 // these values should match the TestOrgRepo const above
 var localMetas = map[string]string{
-	"user": "test-owner",
-	"repo": "test-repo",
+	"user":                         "test-owner",
+	"repo":                         "test-repo",
+	"markupAllowShortIssuePattern": "true",
+}
+
+var localWikiMetas = map[string]string{
+	"user":              "test-owner",
+	"repo":              "test-repo",
+	"markupContentMode": "wiki",
 }
 
 func TestRender_IssueIndexPattern(t *testing.T) {
@@ -259,14 +269,13 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 	})
 }
 
-func TestRender_IssueIndexPattern_Document(t *testing.T) {
+func TestRender_IssueIndexPattern_NoShortPattern(t *testing.T) {
 	setting.AppURL = TestAppURL
 	metas := map[string]string{
 		"format": "https://someurl.com/{user}/{repo}/{index}",
 		"user":   "someUser",
 		"repo":   "someRepo",
 		"style":  IssueNameStyleNumeric,
-		"mode":   "document",
 	}
 
 	testRenderIssueIndexPattern(t, "#1", "#1", &RenderContext{
@@ -281,6 +290,22 @@ func TestRender_IssueIndexPattern_Document(t *testing.T) {
 		Ctx:   git.DefaultContext,
 		Metas: metas,
 	})
+}
+
+func TestRender_RenderIssueTitle(t *testing.T) {
+	setting.AppURL = TestAppURL
+	metas := map[string]string{
+		"format": "https://someurl.com/{user}/{repo}/{index}",
+		"user":   "someUser",
+		"repo":   "someRepo",
+		"style":  IssueNameStyleNumeric,
+	}
+	actual, err := RenderIssueTitle(&RenderContext{
+		Ctx:   git.DefaultContext,
+		Metas: metas,
+	}, "#1")
+	assert.NoError(t, err)
+	assert.Equal(t, "#1", actual)
 }
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *RenderContext) {
@@ -316,8 +341,7 @@ func TestRender_AutoLink(t *testing.T) {
 			Links: Links{
 				Base: TestRepoURL,
 			},
-			Metas:  localMetas,
-			IsWiki: true,
+			Metas: localWikiMetas,
 		}, strings.NewReader(input), &buffer)
 		assert.Equal(t, err, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer.String()))
@@ -340,7 +364,7 @@ func TestRender_AutoLink(t *testing.T) {
 
 func TestRender_FullIssueURLs(t *testing.T) {
 	setting.AppURL = TestAppURL
-
+	defer testModule.MockVariableValue(&RenderBehaviorForTesting.DisableInternalAttributes, true)()
 	test := func(input, expected string) {
 		var result strings.Builder
 		err := postProcess(&RenderContext{
@@ -351,9 +375,7 @@ func TestRender_FullIssueURLs(t *testing.T) {
 			Metas: localMetas,
 		}, []processor{fullIssuePatternProcessor}, strings.NewReader(input), &result)
 		assert.NoError(t, err)
-		actual := result.String()
-		actual = strings.ReplaceAll(actual, ` data-markdown-generated-content=""`, "")
-		assert.Equal(t, expected, actual)
+		assert.Equal(t, expected, result.String())
 	}
 	test("Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6",
 		"Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6")
@@ -391,10 +413,10 @@ func TestRegExp_sha1CurrentPattern(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		assert.True(t, hashCurrentPattern.MatchString(testCase))
+		assert.True(t, globalVars().hashCurrentPattern.MatchString(testCase))
 	}
 	for _, testCase := range falseTestCases {
-		assert.False(t, hashCurrentPattern.MatchString(testCase))
+		assert.False(t, globalVars().hashCurrentPattern.MatchString(testCase))
 	}
 }
 
@@ -474,9 +496,9 @@ func TestRegExp_shortLinkPattern(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		assert.True(t, shortLinkPattern.MatchString(testCase))
+		assert.True(t, globalVars().shortLinkPattern.MatchString(testCase))
 	}
 	for _, testCase := range falseTestCases {
-		assert.False(t, shortLinkPattern.MatchString(testCase))
+		assert.False(t, globalVars().shortLinkPattern.MatchString(testCase))
 	}
 }
