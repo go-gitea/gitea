@@ -20,7 +20,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
@@ -28,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
@@ -90,27 +88,6 @@ func TestMain(m *testing.M) {
 	tests.InitTest(true)
 	testWebRoutes = routers.NormalRoutes()
 
-	// integration test settings...
-	if setting.CfgProvider != nil {
-		testingCfg := setting.CfgProvider.Section("integration-tests")
-		testlogger.SlowTest = testingCfg.Key("SLOW_TEST").MustDuration(testlogger.SlowTest)
-		testlogger.SlowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(testlogger.SlowFlush)
-	}
-
-	if os.Getenv("GITEA_SLOW_TEST_TIME") != "" {
-		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_TEST_TIME"))
-		if err == nil {
-			testlogger.SlowTest = duration
-		}
-	}
-
-	if os.Getenv("GITEA_SLOW_FLUSH_TIME") != "" {
-		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_FLUSH_TIME"))
-		if err == nil {
-			testlogger.SlowFlush = duration
-		}
-	}
-
 	os.Unsetenv("GIT_AUTHOR_NAME")
 	os.Unsetenv("GIT_AUTHOR_EMAIL")
 	os.Unsetenv("GIT_AUTHOR_DATE")
@@ -131,8 +108,6 @@ func TestMain(m *testing.M) {
 	// FIXME: the console logger is deleted by mistake, so if there is any `log.Fatal`, developers won't see any error message.
 	// Instead, "No tests were found",  last nonsense log is "According to the configuration, subsequent logs will not be printed to the console"
 	exitCode := m.Run()
-
-	testlogger.WriterCloser.Reset()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("util.RemoveAll: %v\n", err)

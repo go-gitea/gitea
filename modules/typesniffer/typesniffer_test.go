@@ -134,3 +134,33 @@ func TestDetectContentTypeOgg(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, st.IsVideo())
 }
+
+func TestDetectFileTypeBox(t *testing.T) {
+	_, found := detectFileTypeBox([]byte("\x00\x00\xff\xffftypAAAA...."))
+	assert.False(t, found)
+
+	brands, found := detectFileTypeBox([]byte("\x00\x00\x00\x0cftypAAAA"))
+	assert.True(t, found)
+	assert.Equal(t, []string{"AAAA"}, brands)
+
+	brands, found = detectFileTypeBox([]byte("\x00\x00\x00\x10ftypAAAA....BBBB"))
+	assert.True(t, found)
+	assert.Equal(t, []string{"AAAA"}, brands)
+
+	brands, found = detectFileTypeBox([]byte("\x00\x00\x00\x14ftypAAAA....BBBB"))
+	assert.True(t, found)
+	assert.Equal(t, []string{"AAAA", "BBBB"}, brands)
+
+	_, found = detectFileTypeBox([]byte("\x00\x00\x00\x14ftypAAAA....BBB"))
+	assert.False(t, found)
+
+	brands, found = detectFileTypeBox([]byte("\x00\x00\x00\x13ftypAAAA....BBB"))
+	assert.True(t, found)
+	assert.Equal(t, []string{"AAAA"}, brands)
+}
+
+func TestDetectContentTypeAvif(t *testing.T) {
+	buf := []byte("\x00\x00\x00\x20ftypavif.......................")
+	st := DetectContentType(buf)
+	assert.Equal(t, MimeTypeImageAvif, st.contentType)
+}

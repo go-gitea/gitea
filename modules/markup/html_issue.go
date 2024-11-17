@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/regexplru"
@@ -23,18 +24,21 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 	}
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
+		m := globalVars().issueFullPattern.FindStringSubmatchIndex(node.Data)
 		if m == nil {
 			return
 		}
 
-		mDiffView := getFilesChangedFullPattern().FindStringSubmatchIndex(node.Data)
+		mDiffView := globalVars().filesChangedFullPattern.FindStringSubmatchIndex(node.Data)
 		// leave it as it is if the link is from "Files Changed" tab in PR Diff View https://domain/org/repo/pulls/27/files
 		if mDiffView != nil {
 			return
 		}
 
 		link := node.Data[m[0]:m[1]]
+		if !httplib.IsCurrentGiteaSiteURL(ctx.Ctx, link) {
+			return
+		}
 		text := "#" + node.Data[m[2]:m[3]]
 		// if m[4] and m[5] is not -1, then link is to a comment
 		// indicate that in the text by appending (comment)
@@ -67,8 +71,10 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		return
 	}
 
-	// crossLinkOnly if not comment and not wiki
-	crossLinkOnly := ctx.ContentMode != RenderContentAsTitle && ctx.ContentMode != RenderContentAsComment && ctx.ContentMode != RenderContentAsWiki
+	// crossLinkOnly: do not parse "#123", only parse "owner/repo#123"
+	// if there is no repo in the context, then the "#123" format can't be parsed
+	// old logic: crossLinkOnly := ctx.Metas["mode"] == "document" && !ctx.IsWiki
+	crossLinkOnly := ctx.Metas["markupAllowShortIssuePattern"] != "true"
 
 	var (
 		found bool
