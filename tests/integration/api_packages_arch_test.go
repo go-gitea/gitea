@@ -35,7 +35,7 @@ func TestPackageArch(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	unpack := func(s string) []byte {
-		data, _ := base64.StdEncoding.DecodeString(strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(s), "\n", ""), "\r", ""))
+		data, _ := base64.StdEncoding.DecodeString(s)
 		return data
 	}
 	rootURL := fmt.Sprintf("/api/packages/%s/arch", user.Name)

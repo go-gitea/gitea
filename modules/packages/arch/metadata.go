@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
@@ -282,7 +283,13 @@ func ParsePackageInfo(compressType string, r io.Reader) (*Package, error) {
 		}
 	}
 
-	return p, errors.Join(scanner.Err(), ValidatePackageSpec(p))
+	validateErr := ValidatePackageSpec(p)
+	if validateErr != nil {
+		// Do not the validation err as fatal error, otherwise if the spec changes we must keep this in sync.
+		// It is the responsibility of the client to check these when installing a package but for the registry it's less relevant.
+		log.Error("Error validating arch package spec: %v", validateErr)
+	}
+	return p, scanner.Err()
 }
 
 // ValidatePackageSpec Arch package validation according to PKGBUILD specification.
