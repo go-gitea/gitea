@@ -171,7 +171,8 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 	finalProcessor := ctx.RenderInternal.Init(output)
 	defer finalProcessor.Close()
 
-	// input -> pw1 -> pr1 -> renderer -> pw2 -> pr2 -> SanitizeReader -> finalProcessor -> output
+	// input -> (pw1=pr1) -> renderer -> (pw2=pr2) -> SanitizeReader -> finalProcessor -> output
+	// no sanitizer: input -> (pw1=pr1) -> renderer -> pw2(finalProcessor) -> output
 	pr1, pw1, close1 := pipes()
 	defer close1()
 
