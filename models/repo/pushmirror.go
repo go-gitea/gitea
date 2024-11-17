@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -96,26 +97,47 @@ func DeletePushMirrors(ctx context.Context, opts PushMirrorOptions) error {
 	return util.NewInvalidArgumentErrorf("repoID required and must be set")
 }
 
+type findPushMirrorOptions struct {
+	db.ListOptions
+	RepoID       int64
+	SyncOnCommit optional.Option[bool]
+}
+
+func (opts findPushMirrorOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.SyncOnCommit.Has() {
+		cond = cond.And(builder.Eq{"sync_on_commit": opts.SyncOnCommit.Value()})
+	}
+	return cond
+}
+
 // GetPushMirrorsByRepoID returns push-mirror information of a repository.
 func GetPushMirrorsByRepoID(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*PushMirror, int64, error) {
-	sess := db.GetEngine(ctx).Where("repo_id = ?", repoID)
-	if listOptions.Page != 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
-		mirrors := make([]*PushMirror, 0, listOptions.PageSize)
-		count, err := sess.FindAndCount(&mirrors)
-		return mirrors, count, err
+	return db.FindAndCount[PushMirror](ctx, findPushMirrorOptions{
+		ListOptions: listOptions,
+		RepoID:      repoID,
+	})
+}
+
+func GetPushMirrorByID(ctx context.Context, id int64) (*PushMirror, error) {
+	mirror, has, err := db.GetByID[PushMirror](ctx, id)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrPushMirrorNotExist
 	}
-	mirrors := make([]*PushMirror, 0, 10)
-	count, err := sess.FindAndCount(&mirrors)
-	return mirrors, count, err
+	return mirror, nil
 }
 
 // GetPushMirrorsSyncedOnCommit returns push-mirrors for this repo that should be updated by new commits
 func GetPushMirrorsSyncedOnCommit(ctx context.Context, repoID int64) ([]*PushMirror, error) {
-	mirrors := make([]*PushMirror, 0, 10)
-	return mirrors, db.GetEngine(ctx).
-		Where("repo_id = ? AND sync_on_commit = ?", repoID, true).
-		Find(&mirrors)
+	return db.Find[PushMirror](ctx, findPushMirrorOptions{
+		RepoID:       repoID,
+		SyncOnCommit: optional.Some(true),
+	})
 }
 
 // PushMirrorsIterate iterates all push-mirror repositories.

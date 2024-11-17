@@ -317,15 +317,13 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		id, err := strconv.ParseInt(form.PushMirrorID, 10, 64)
+		m, err := selectPushMirrorByForm(ctx, form, repo)
 		if err != nil {
-			ctx.ServerError("UpdatePushMirrorIntervalPushMirrorID", err)
+			ctx.NotFound("", nil)
 			return
 		}
-		m := &repo_model.PushMirror{
-			ID:       id,
-			Interval: interval,
-		}
+
+		m.Interval = interval
 		if err := repo_model.UpdatePushMirrorInterval(ctx, m); err != nil {
 			ctx.ServerError("UpdatePushMirrorInterval", err)
 			return
@@ -1002,17 +1000,14 @@ func selectPushMirrorByForm(ctx *context.Context, form *forms.RepoSettingForm, r
 		return nil, err
 	}
 
-	pushMirrors, _, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, db.ListOptions{})
+	pushMirror, err := repo_model.GetPushMirrorByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, m := range pushMirrors {
-		if m.ID == id {
-			m.Repo = repo
-			return m, nil
-		}
+	if pushMirror.RepoID != repo.ID {
+		return nil, fmt.Errorf("PushMirror[%v] not associated to repository %v", id, repo)
 	}
-
-	return nil, fmt.Errorf("PushMirror[%v] not associated to repository %v", id, repo)
+	pushMirror.Repo = repo
+	return pushMirror, nil
 }
