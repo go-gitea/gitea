@@ -597,7 +597,6 @@ func TestGetInactiveUsers(t *testing.T) {
 	users, err := user_model.GetInactiveUsers(db.DefaultContext, 0)
 	assert.NoError(t, err)
 	assert.Len(t, users, 1)
-	fmt.Println("ddd", time.Now().Unix())
 	interval := time.Now().Unix() - 1730468968 + 3600*24
 	users, err = user_model.GetInactiveUsers(db.DefaultContext, time.Duration(interval*int64(time.Second)))
 	assert.NoError(t, err)

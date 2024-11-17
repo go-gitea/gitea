@@ -885,7 +885,7 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 
 // GetInactiveUsers gets all inactive users
 func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, error) {
-	var cond builder.Cond = builder.And(
+	cond := builder.And(
 		builder.Eq{"is_active": false},
 		builder.Or( // only plain user
 			builder.Eq{"`type`": UserTypeIndividual},
