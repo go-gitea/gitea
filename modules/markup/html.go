@@ -130,7 +130,7 @@ func CustomLinkURLSchemes(schemes []string) {
 		}
 		withAuth = append(withAuth, s)
 	}
-	common.LinkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
+	common.GlobalVars().LinkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
 }
 
 type postProcessError struct {

@@ -148,7 +148,7 @@ func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 }
 
 // render calls goldmark render to convert Markdown to HTML
-// NOTE: The output of this method MUST get sanitized!!!
+// NOTE: The output of this method MUST get sanitized separately!!!
 func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	converter := SpecializedMarkdown(ctx)
 	lw := &limitWriter{
@@ -164,7 +164,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 		}
 
 		log.Warn("Unable to render markdown due to panic in goldmark: %v", err)
-		if !setting.IsProd && !setting.IsInTesting {
+		if (!setting.IsProd && !setting.IsInTesting) || log.IsDebug() {
 			log.Error("Panic in markdown: %v\n%s", err, log.Stack(2))
 		}
 	}()

@@ -1053,15 +1053,15 @@ func TestAttention(t *testing.T) {
 }
 
 func BenchmarkSpecializedMarkdown(b *testing.B) {
-	// 187785	      5990 ns/op
+	// 240856	      4719 ns/op
 	for i := 0; i < b.N; i++ {
-		markdown.SpecializedMarkdown(nil)
+		markdown.SpecializedMarkdown(&markup.RenderContext{})
 	}
 }
 
 func BenchmarkMarkdownRender(b *testing.B) {
-	// 24698	     48585 ns/op
+	// 23202	     50840 ns/op
 	for i := 0; i < b.N; i++ {
-		markdown.RenderString(&markup.RenderContext{Ctx: context.Background()}, "https://example.com\n- a\n- b\n")
+		_, _ = markdown.RenderString(&markup.RenderContext{Ctx: context.Background()}, "https://example.com\n- a\n- b\n")
 	}
 }

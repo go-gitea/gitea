@@ -189,7 +189,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 func linkProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := common.LinkRegex.FindStringIndex(node.Data)
+		m := common.GlobalVars().LinkRegex.FindStringIndex(node.Data)
 		if m == nil {
 			return
 		}
@@ -204,7 +204,7 @@ func linkProcessor(ctx *RenderContext, node *html.Node) {
 func descriptionLinkProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := common.LinkRegex.FindStringIndex(node.Data)
+		m := common.GlobalVars().LinkRegex.FindStringIndex(node.Data)
 		if m == nil {
 			return
 		}
