@@ -201,14 +201,15 @@ func GetOAuthGroupsForUser(ctx context.Context, user *user_model.User) ([]string
 		return nil, fmt.Errorf("GetUserOrgList: %w", err)
 	}
 
+	orgTeams, err := org_model.OrgList(orgs).LoadTeams(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("LoadTeams: %w", err)
+	}
+
 	var groups []string
 	for _, org := range orgs {
 		groups = append(groups, org.Name)
-		teams, err := org.LoadTeams(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("LoadTeams: %w", err)
-		}
-		for _, team := range teams {
+		for _, team := range orgTeams[org.ID] {
 			if team.IsMember(ctx, user.ID) {
 				groups = append(groups, org.Name+":"+team.LowerName)
 			}
