@@ -130,11 +130,11 @@ func TestRepoSettingPushMirror(t *testing.T) {
 	repoPrefix := "/user2/repo2"
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 
-	defer test.MockVariableValue(&setting.Migrations.AllowedDomains, "127.0.0.1")()
-	assert.NoError(t, migrations.Init())
 	defer func() {
 		migrations.Init()
 	}()
+	defer test.MockVariableValue(&setting.Migrations.AllowedDomains, "127.0.0.1")()
+	assert.NoError(t, migrations.Init())
 
 	// visit repository setting page
 	req := NewRequest(t, "GET", repoPrefix+"/settings")
