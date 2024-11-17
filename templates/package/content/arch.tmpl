@@ -13,8 +13,7 @@ pacman-key --lsign-key '{{$.SignMail}}'</code></pre>
 		<div class="field">
 			<label>{{svg "octicon-gear"}} {{ctx.Locale.Tr "packages.arch.pacman.conf"}}</label>
 			<div class="markup">
-				<pre
-					class="code-block"><code>
+				<pre class="code-block"><code>
 {{- if gt (len $.Groups) 1 -}}
 # {{ctx.Locale.Tr "packages.arch.pacman.repo.multi" $.PackageDescriptor.Package.LowerName}}
 
@@ -139,5 +138,4 @@ Server = <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.
 		</tbody>
 	</table>
 </div>
-
 {{end}}
