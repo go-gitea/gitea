@@ -410,6 +410,7 @@ func UpdateBranch(ctx *context.APIContext) {
 	//   in: path
 	//   description: name of the branch
 	//   type: string
+	//   required: true
 	// - name: body
 	//   in: body
 	//   schema:
@@ -460,6 +461,12 @@ func UpdateBranch(ctx *context.APIContext) {
 
 	branch, err := ctx.Repo.GitRepo.GetBranch(branchName)
 	if err != nil {
+		if git.IsErrBranchNotExist(err) {
+			// This could occur if the client passes a non-existent branch and we
+			// skip executing the branch that contains the RenameBranch() call.
+			ctx.NotFound(err)
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "GetBranch", err)
 		return
 	}

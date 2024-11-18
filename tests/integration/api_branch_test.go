@@ -219,6 +219,9 @@ func TestAPIUpdateBranch(t *testing.T) {
 			branchWasUnchanged := slices.ContainsFunc(branches, func(b *git_model.Branch) bool { return b.Name == "master" })
 			assert.True(t, branchWasUnchanged, "master branch shouldn't have been renamed")
 		})
+		t.Run("UpdateBranchWithNonExistentBranchAndNewNameIsTheEmptyString", func(t *testing.T) {
+			testAPIUpdateBranch(t, "user2", "repo1", "i-dont-exist", "", http.StatusNotFound)
+		})
 		t.Run("RenameBranchNormalScenario", func(t *testing.T) {
 			resp := testAPIUpdateBranch(t, "user2", "repo1", "branch2", "new-branch-name", http.StatusOK)
 			var branch api.Branch
