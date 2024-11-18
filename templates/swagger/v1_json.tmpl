@@ -4957,58 +4957,6 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/branches/rename": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Rename a branch",
-        "operationId": "repoRenameBranch",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/RenameBranchRepoOption"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "$ref": "#/responses/Branch"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          }
-        }
-      }
-    },
     "/repos/{owner}/{repo}/branches/{branch}": {
       "get": {
         "produces": [
@@ -5095,6 +5043,62 @@
           },
           "423": {
             "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update a branch",
+        "operationId": "repoUpdateBranch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the branch",
+            "name": "branch",
+            "in": "path"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateBranchRepoOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Branch"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -24124,29 +24128,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "RenameBranchRepoOption": {
-      "description": "RenameBranchOption options when rename a branch in a repository",
-      "type": "object",
-      "required": [
-        "old_name",
-        "new_name"
-      ],
-      "properties": {
-        "new_name": {
-          "description": "New branch name",
-          "type": "string",
-          "uniqueItems": true,
-          "x-go-name": "NewName"
-        },
-        "old_name": {
-          "description": "Old branch name",
-          "type": "string",
-          "uniqueItems": true,
-          "x-go-name": "OldName"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "RenameUserOption": {
       "description": "RenameUserOption options when renaming a user",
       "type": "object",
@@ -25039,6 +25020,19 @@
             "format": "int64"
           },
           "x-go-name": "IDs"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpdateBranchRepoOption": {
+      "description": "UpdateBranchRepoOption options when updating a branch in a repository",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "New branch name",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

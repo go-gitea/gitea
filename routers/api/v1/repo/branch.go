@@ -386,11 +386,11 @@ func ListBranches(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiBranches)
 }
 
-// RenameBranch renames a repository's branch.
-func RenameBranch(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/branches/rename repository repoRenameBranch
+// UpdateBranch renames a repository's branch.
+func UpdateBranch(ctx *context.APIContext) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/branches/{branch} repository repoUpdateBranch
 	// ---
-	// summary: Rename a branch
+	// summary: Update a branch
 	// consumes:
 	// - application/json
 	// produces:
@@ -406,12 +406,16 @@ func RenameBranch(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: branch
+	//   in: path
+	//   description: name of the branch
+	//   type: string
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/RenameBranchRepoOption"
+	//     "$ref": "#/definitions/UpdateBranchRepoOption"
 	// responses:
-	//   "201":
+	//   "200":
 	//     "$ref": "#/responses/Branch"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
@@ -420,7 +424,9 @@ func RenameBranch(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opt := web.GetForm(ctx).(*api.RenameBranchRepoOption)
+	opt := web.GetForm(ctx).(*api.UpdateBranchRepoOption)
+
+	oldName := ctx.PathParam("*")
 	repo := ctx.Repo.Repository
 
 	if repo.IsEmpty {
@@ -433,17 +439,26 @@ func RenameBranch(ctx *context.APIContext) {
 		return
 	}
 
-	msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, ctx.Repo.GitRepo, opt.OldName, opt.NewName)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "RenameBranch", err)
-		return
-	}
-	if msg != "" {
-		ctx.Error(http.StatusUnprocessableEntity, "", msg)
-		return
+	branchName := opt.Name
+	if branchName != "" {
+		msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, ctx.Repo.GitRepo, oldName, branchName)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "RenameBranch", err)
+			return
+		}
+		if msg == "target_exist" {
+			ctx.Error(http.StatusUnprocessableEntity, "", "Cannot rename a branch using the same name or rename to a branch that already exists.")
+			return
+		}
+		if msg == "from_not_exist" {
+			ctx.Error(http.StatusUnprocessableEntity, "", "Branch doesn't exist.")
+			return
+		}
+	} else {
+		branchName = oldName
 	}
 
-	branch, err := ctx.Repo.GitRepo.GetBranch(opt.NewName)
+	branch, err := ctx.Repo.GitRepo.GetBranch(branchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranch", err)
 		return
@@ -461,13 +476,13 @@ func RenameBranch(ctx *context.APIContext) {
 		return
 	}
 
-	br, err := convert.ToBranch(ctx, repo, opt.NewName, commit, pb, ctx.Doer, ctx.Repo.IsAdmin())
+	br, err := convert.ToBranch(ctx, repo, branch.Name, commit, pb, ctx.Doer, ctx.Repo.IsAdmin())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, br)
+	ctx.JSON(http.StatusOK, br)
 }
 
 // GetBranchProtection gets a branch protection

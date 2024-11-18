@@ -5,7 +5,9 @@ package integration
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
+	"slices"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -186,33 +188,52 @@ func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBran
 	return resp.Result().StatusCode == status
 }
 
-func TestAPIRenameBranch(t *testing.T) {
+func TestAPIUpdateBranch(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
-		t.Run("RenameBranchWithEmptyRepo", func(t *testing.T) {
-			testAPIRenameBranch(t, "user10", "repo6", "master", "test", http.StatusNotFound)
+		t.Run("UpdateBranchWithEmptyRepo", func(t *testing.T) {
+			testAPIUpdateBranch(t, "user10", "repo6", "master", "test", http.StatusNotFound)
 		})
-		t.Run("RenameBranchWithSameBranchNames", func(t *testing.T) {
-			testAPIRenameBranch(t, "user2", "repo1", "master", "master", http.StatusUnprocessableEntity)
+		t.Run("UpdateBranchWithSameBranchNames", func(t *testing.T) {
+			resp := testAPIUpdateBranch(t, "user2", "repo1", "master", "master", http.StatusUnprocessableEntity)
+			assert.Contains(t, resp.Body.String(), "Cannot rename a branch using the same name or rename to a branch that already exists.")
 		})
-		t.Run("RenameBranchWithBranchThatAlreadyExists", func(t *testing.T) {
-			testAPIRenameBranch(t, "user2", "repo1", "master", "branch2", http.StatusUnprocessableEntity)
+		t.Run("UpdateBranchThatAlreadyExists", func(t *testing.T) {
+			resp := testAPIUpdateBranch(t, "user2", "repo1", "master", "branch2", http.StatusUnprocessableEntity)
+			assert.Contains(t, resp.Body.String(), "Cannot rename a branch using the same name or rename to a branch that already exists.")
 		})
-		t.Run("RenameBranchWithNonExistentBranch", func(t *testing.T) {
-			testAPIRenameBranch(t, "user2", "repo1", "i-dont-exist", "branch2", http.StatusUnprocessableEntity)
+		t.Run("UpdateBranchWithNonExistentBranch", func(t *testing.T) {
+			resp := testAPIUpdateBranch(t, "user2", "repo1", "i-dont-exist", "new-branch-name", http.StatusUnprocessableEntity)
+			assert.Contains(t, resp.Body.String(), "Branch doesn't exist.")
+		})
+		t.Run("UpdateBranchWithEmptyStringAsNewName", func(t *testing.T) {
+			resp := testAPIUpdateBranch(t, "user13", "repo11", "master", "", http.StatusOK)
+			var branch api.Branch
+			DecodeJSON(t, resp, &branch)
+			assert.EqualValues(t, "master", branch.Name)
+
+			// Make sure the branch name did not change in the db.
+			branches, err := db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+				RepoID: 11,
+			})
+			assert.NoError(t, err)
+			branchWasUnchanged := slices.ContainsFunc(branches, func(b *git_model.Branch) bool { return b.Name == "master" })
+			assert.True(t, branchWasUnchanged, "master branch shouldn't have been renamed")
 		})
 		t.Run("RenameBranchNormalScenario", func(t *testing.T) {
-			testAPIRenameBranch(t, "user2", "repo1", "branch2", "new-branch-name", http.StatusCreated)
+			resp := testAPIUpdateBranch(t, "user2", "repo1", "branch2", "new-branch-name", http.StatusOK)
+			var branch api.Branch
+			DecodeJSON(t, resp, &branch)
+			assert.EqualValues(t, "new-branch-name", branch.Name)
 		})
 	})
 }
 
-func testAPIRenameBranch(t *testing.T, ownerName, repoName, from, to string, expectedHTTPStatus int) {
+func testAPIUpdateBranch(t *testing.T, ownerName, repoName, from, to string, expectedHTTPStatus int) *httptest.ResponseRecorder {
 	token := getUserToken(t, ownerName, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, "POST", "api/v1/repos/"+ownerName+"/"+repoName+"/branches/rename", &api.RenameBranchRepoOption{
-		OldName: from,
-		NewName: to,
+	req := NewRequestWithJSON(t, "PATCH", "api/v1/repos/"+ownerName+"/"+repoName+"/branches/"+from, &api.UpdateBranchRepoOption{
+		Name: to,
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, expectedHTTPStatus)
+	return MakeRequest(t, req, expectedHTTPStatus)
 }
 
 func TestAPIBranchProtection(t *testing.T) {
