@@ -47,10 +47,11 @@ mail@domain.com
 }
 
 var testMetas = map[string]string{
-	"user":     "user13",
-	"repo":     "repo11",
-	"repoPath": "../../tests/gitea-repositories-meta/user13/repo11.git/",
-	"mode":     "comment",
+	"user":                         "user13",
+	"repo":                         "repo11",
+	"repoPath":                     "../../tests/gitea-repositories-meta/user13/repo11.git/",
+	"markdownLineBreakStyle":       "comment",
+	"markupAllowShortIssuePattern": "true",
 }
 
 func TestMain(m *testing.M) {
@@ -75,8 +76,7 @@ func newTestRenderUtils() *RenderUtils {
 func TestRenderCommitBody(t *testing.T) {
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
 	type args struct {
-		msg   string
-		metas map[string]string
+		msg string
 	}
 	tests := []struct {
 		name string
@@ -108,7 +108,7 @@ func TestRenderCommitBody(t *testing.T) {
 	ut := newTestRenderUtils()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, ut.RenderCommitBody(tt.args.msg, tt.args.metas), "RenderCommitBody(%v, %v)", tt.args.msg, tt.args.metas)
+			assert.Equalf(t, tt.want, ut.RenderCommitBody(tt.args.msg, nil), "RenderCommitBody(%v, %v)", tt.args.msg, nil)
 		})
 	}
 
@@ -140,7 +140,7 @@ func TestRenderCommitMessage(t *testing.T) {
 }
 
 func TestRenderCommitMessageLinkSubject(t *testing.T) {
-	expected := `<a href="https://example.com/link" class="default-link muted">space </a><a href="/mention-user" data-markdown-generated-content="" class="mention">@mention-user</a>`
+	expected := `<a href="https://example.com/link" class="muted">space </a><a href="/mention-user" data-markdown-generated-content="" class="mention">@mention-user</a>`
 	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", testMetas))
 }
 
@@ -164,11 +164,11 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" aria-label="thumbs up">👍</span>
 mail@domain.com
 @mention-user test
-<a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
+#123
   space<SPACE><SPACE>
 `
 	expected = strings.ReplaceAll(expected, "<SPACE>", " ")
-	assert.EqualValues(t, expected, string(newTestRenderUtils().RenderIssueTitle(testInput(), testMetas)))
+	assert.EqualValues(t, expected, string(newTestRenderUtils().RenderIssueTitle(testInput(), nil)))
 }
 
 func TestRenderMarkdownToHtml(t *testing.T) {

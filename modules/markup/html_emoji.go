@@ -62,7 +62,7 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 	start := 0
 	next := node.NextSibling
 	for node != nil && node != next && start < len(node.Data) {
-		m := emojiShortCodeRegex.FindStringSubmatchIndex(node.Data[start:])
+		m := globalVars().emojiShortCodeRegex.FindStringSubmatchIndex(node.Data[start:])
 		if m == nil {
 			return
 		}
