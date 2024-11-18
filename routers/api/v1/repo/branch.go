@@ -452,7 +452,7 @@ func UpdateBranch(ctx *context.APIContext) {
 			return
 		}
 		if msg == "from_not_exist" {
-			ctx.Error(http.StatusUnprocessableEntity, "", "Branch doesn't exist.")
+			ctx.Error(http.StatusNotFound, "", "Branch doesn't exist.")
 			return
 		}
 	} else {
@@ -464,7 +464,7 @@ func UpdateBranch(ctx *context.APIContext) {
 		if git.IsErrBranchNotExist(err) {
 			// This could occur if the client passes a non-existent branch and we
 			// skip executing the branch that contains the RenameBranch() call.
-			ctx.NotFound(err)
+			ctx.Error(http.StatusNotFound, "", "Branch doesn't exist.")
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "GetBranch", err)

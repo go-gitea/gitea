@@ -202,7 +202,7 @@ func TestAPIUpdateBranch(t *testing.T) {
 			assert.Contains(t, resp.Body.String(), "Cannot rename a branch using the same name or rename to a branch that already exists.")
 		})
 		t.Run("UpdateBranchWithNonExistentBranch", func(t *testing.T) {
-			resp := testAPIUpdateBranch(t, "user2", "repo1", "i-dont-exist", "new-branch-name", http.StatusUnprocessableEntity)
+			resp := testAPIUpdateBranch(t, "user2", "repo1", "i-dont-exist", "new-branch-name", http.StatusNotFound)
 			assert.Contains(t, resp.Body.String(), "Branch doesn't exist.")
 		})
 		t.Run("UpdateBranchWithEmptyStringAsNewName", func(t *testing.T) {
