@@ -16,9 +16,6 @@ import (
 	"xorm.io/builder"
 )
 
-// ErrPushMirrorNotExist mirror does not exist error
-var ErrPushMirrorNotExist = util.NewNotExistErrorf("PushMirror does not exist")
-
 // PushMirror represents mirror information of a repository.
 type PushMirror struct {
 	ID            int64       `xorm:"pk autoincr"`
@@ -122,25 +119,13 @@ func GetPushMirrorsByRepoID(ctx context.Context, repoID int64, listOptions db.Li
 	})
 }
 
-func GetPushMirrorByIDAndRepoID(ctx context.Context, id, repoID int64) (*PushMirror, error) {
+func GetPushMirrorByIDAndRepoID(ctx context.Context, id, repoID int64) (*PushMirror, bool, error) {
 	var pushMirror PushMirror
 	has, err := db.GetEngine(ctx).Where("id = ?", id).And("repo_id = ?", repoID).Get(&pushMirror)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrPushMirrorNotExist
+	if !has || err != nil {
+		return nil, has, err
 	}
-	return &pushMirror, nil
-}
-
-func GetPushMirrorByID(ctx context.Context, id int64) (*PushMirror, error) {
-	mirror, has, err := db.GetByID[PushMirror](ctx, id)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrPushMirrorNotExist
-	}
-	return mirror, nil
+	return &pushMirror, true, nil
 }
 
 // GetPushMirrorsSyncedOnCommit returns push-mirrors for this repo that should be updated by new commits
