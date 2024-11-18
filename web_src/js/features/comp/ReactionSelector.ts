@@ -1,5 +1,5 @@
-import $ from 'jquery';
 import {POST} from '../../modules/fetch.ts';
+import {fomanticQuery} from '../../modules/fomantic/base.ts';
 
 export function initCompReactionSelector() {
   for (const container of document.querySelectorAll('.issue-content, .diff-file-body')) {
@@ -29,7 +29,7 @@ export function initCompReactionSelector() {
       if (data.html) {
         commentContainer.insertAdjacentHTML('beforeend', data.html);
         const bottomReactionsDropdowns = commentContainer.querySelectorAll('.bottom-reactions .dropdown.select-reaction');
-        $(bottomReactionsDropdowns).dropdown(); // re-init the dropdown
+        fomanticQuery(bottomReactionsDropdowns).dropdown(); // re-init the dropdown
       }
     });
   }

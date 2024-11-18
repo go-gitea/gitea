@@ -9,14 +9,15 @@ import (
 	"io"
 	"net/url"
 	"strings"
-	"sync"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/markup/internal"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/yuin/goldmark/ast"
+	"golang.org/x/sync/errgroup"
 )
 
 type RenderMetaMode string
@@ -25,15 +26,6 @@ const (
 	RenderMetaAsDetails RenderMetaMode = "details" // default
 	RenderMetaAsNone    RenderMetaMode = "none"
 	RenderMetaAsTable   RenderMetaMode = "table"
-)
-
-type RenderContentMode string
-
-const (
-	RenderContentAsDefault RenderContentMode = "" // empty means "default", no special handling, maybe just a simple "document"
-	RenderContentAsComment RenderContentMode = "comment"
-	RenderContentAsTitle   RenderContentMode = "title"
-	RenderContentAsWiki    RenderContentMode = "wiki"
 )
 
 var RenderBehaviorForTesting struct {
@@ -59,12 +51,14 @@ type RenderContext struct {
 	// for file mode, it could be left as empty, and will be detected by file extension in RelativePath
 	MarkupType string
 
-	// what the content will be used for: eg: for comment or for wiki? or just render a file?
-	ContentMode RenderContentMode
+	Links Links // special link references for rendering, especially when there is a branch/tree path
 
-	Links            Links             // special link references for rendering, especially when there is a branch/tree path
-	Metas            map[string]string // user&repo, format&style&regexp (for external issue pattern), teams&org (for mention), BranchNameSubURL(for iframe&asciicast)
-	DefaultLink      string            // TODO: need to figure out
+	// user&repo, format&style&regexp (for external issue pattern), teams&org (for mention)
+	// BranchNameSubURL (for iframe&asciicast)
+	// markupAllowShortIssuePattern, markupContentMode (wiki)
+	// markdownLineBreakStyle (comment, document)
+	Metas map[string]string
+
 	GitRepo          *git.Repository
 	Repo             gitrepo.Repository
 	ShaExistCache    map[string]bool
@@ -72,6 +66,8 @@ type RenderContext struct {
 	SidebarTocNode   ast.Node
 	RenderMetaAs     RenderMetaMode
 	InStandalonePage bool // used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
+
+	RenderInternal internal.RenderInternal
 }
 
 // Cancel runs any cleanup functions that have been registered for this Ctx
@@ -100,6 +96,10 @@ func (ctx *RenderContext) AddCancel(fn func()) {
 		defer oldCancelFn()
 		fn()
 	}
+}
+
+func (ctx *RenderContext) IsMarkupContentWiki() bool {
+	return ctx.Metas != nil && ctx.Metas["markupContentMode"] == "wiki"
 }
 
 // Render renders markup file to HTML with all specific handling stuff.
@@ -159,59 +159,53 @@ sandbox="allow-scripts"
 	return err
 }
 
-func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
-	var wg sync.WaitGroup
-	var err error
+func pipes() (io.ReadCloser, io.WriteCloser, func()) {
 	pr, pw := io.Pipe()
-	defer func() {
+	return pr, pw, func() {
 		_ = pr.Close()
 		_ = pw.Close()
-	}()
+	}
+}
 
-	var pr2 io.ReadCloser
-	var pw2 io.WriteCloser
+func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
+	finalProcessor := ctx.RenderInternal.Init(output)
+	defer finalProcessor.Close()
 
-	var sanitizerDisabled bool
-	if r, ok := renderer.(ExternalRenderer); ok {
-		sanitizerDisabled = r.SanitizerDisabled()
+	// input -> (pw1=pr1) -> renderer -> (pw2=pr2) -> SanitizeReader -> finalProcessor -> output
+	// no sanitizer: input -> (pw1=pr1) -> renderer -> pw2(finalProcessor) -> output
+	pr1, pw1, close1 := pipes()
+	defer close1()
+
+	eg, _ := errgroup.WithContext(ctx.Ctx)
+	var pw2 io.WriteCloser = util.NopCloser{Writer: finalProcessor}
+
+	if r, ok := renderer.(ExternalRenderer); !ok || !r.SanitizerDisabled() {
+		var pr2 io.ReadCloser
+		var close2 func()
+		pr2, pw2, close2 = pipes()
+		defer close2()
+		eg.Go(func() error {
+			defer pr2.Close()
+			return SanitizeReader(pr2, renderer.Name(), finalProcessor)
+		})
 	}
 
-	if !sanitizerDisabled {
-		pr2, pw2 = io.Pipe()
-		defer func() {
-			_ = pr2.Close()
-			_ = pw2.Close()
-		}()
-
-		wg.Add(1)
-		go func() {
-			err = SanitizeReader(pr2, renderer.Name(), output)
-			_ = pr2.Close()
-			wg.Done()
-		}()
-	} else {
-		pw2 = util.NopCloser{Writer: output}
-	}
-
-	wg.Add(1)
-	go func() {
+	eg.Go(func() (err error) {
 		if r, ok := renderer.(PostProcessRenderer); ok && r.NeedPostProcess() {
-			err = PostProcess(ctx, pr, pw2)
+			err = PostProcess(ctx, pr1, pw2)
 		} else {
-			_, err = io.Copy(pw2, pr)
+			_, err = io.Copy(pw2, pr1)
 		}
-		_ = pr.Close()
-		_ = pw2.Close()
-		wg.Done()
-	}()
+		_, _ = pr1.Close(), pw2.Close()
+		return err
+	})
 
-	if err1 := renderer.Render(ctx, input, pw); err1 != nil {
-		return err1
+	if err := renderer.Render(ctx, input, pw1); err != nil {
+		return err
 	}
-	_ = pw.Close()
+	_ = pw1.Close()
 
-	wg.Wait()
-	return err
+	return eg.Wait()
 }
 
 // Init initializes the render global variables
@@ -231,4 +225,8 @@ func Init(ph *ProcessorHelper) {
 			extRenderers[strings.ToLower(ext)] = renderer
 		}
 	}
+}
+
+func ComposeSimpleDocumentMetas() map[string]string {
+	return map[string]string{"markdownLineBreakStyle": "document"}
 }

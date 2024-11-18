@@ -1,7 +1,7 @@
-import $ from 'jquery';
 import {svg} from '../../svg.ts';
 import {htmlEscape} from 'escape-goat';
 import {createElementFromHTML} from '../../utils/dom.ts';
+import {fomanticQuery} from '../../modules/fomantic/base.ts';
 
 const {i18n} = window.config;
 
@@ -17,7 +17,7 @@ export function confirmModal(content, {confirmButtonColor = 'primary'} = {}) {
       </div>
     `);
     document.body.append(modal);
-    const $modal = $(modal);
+    const $modal = fomanticQuery(modal);
     $modal.modal({
       onApprove() {
         resolve(true);
