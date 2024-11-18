@@ -5,6 +5,7 @@ package httplib
 
 import (
 	"context"
+	"crypto/tls"
 	"net/http"
 	"testing"
 
@@ -37,6 +38,33 @@ func TestIsRelativeURL(t *testing.T) {
 	for _, s := range abs {
 		assert.False(t, IsRelativeURL(s), "abs = %q", s)
 	}
+}
+
+func TestGuessCurrentHostURL(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "http://cfg-host/sub/")()
+	defer test.MockVariableValue(&setting.LocalURL, "http://localhost:3000/sub/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+
+	ctx := context.Background()
+	assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
+
+	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
+		Host: "localhost:3000",
+	})
+	assert.Equal(t, "http://localhost:3000", GuessCurrentHostURL(ctx))
+
+	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
+		Host: "localhost:3000",
+		TLS:  &tls.ConnectionState{},
+	})
+	assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
+
+	defer test.MockVariableValue(&setting.LocalURL, "https://localhost/sub/")()
+	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
+		Host: "localhost",
+		TLS:  &tls.ConnectionState{},
+	})
+	assert.Equal(t, "https://localhost", GuessCurrentHostURL(ctx))
 }
 
 func TestMakeAbsoluteURL(t *testing.T) {
