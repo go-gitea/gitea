@@ -221,10 +221,10 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 
 // returns a list of "org" and "org:team" strings,
 // that the given user is a part of.
-func GetOAuthGroupsForUser(ctx context.Context, user *user_model.User) ([]string, error) {
+func GetOAuthGroupsForUser(ctx context.Context, user *user_model.User, onlyPublicGroups bool) ([]string, error) {
 	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
 		UserID:         user.ID,
-		IncludePrivate: true,
+		IncludePrivate: !onlyPublicGroups,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("GetUserOrgList: %w", err)
@@ -232,18 +232,6 @@ func GetOAuthGroupsForUser(ctx context.Context, user *user_model.User) ([]string
 
 	var groups []string
 	for _, org := range orgs {
-		// process additional scopes only if enabled in settings
-		// this could be removed once additional scopes get accepted
-		if setting.OAuth2.EnableAdditionalGrantScopes {
-			if onlyPublicGroups {
-				if public, err := org_model.IsPublicMembership(ctx, org.ID, user.ID); err == nil {
-					if !public || !org.Visibility.IsPublic() {
-						continue
-					}
-				}
-			}
-		}
-
 		groups = append(groups, org.Name)
 		teams, err := org.LoadTeams(ctx)
 		if err != nil {

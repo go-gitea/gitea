@@ -104,7 +104,8 @@ func InfoOAuth(ctx *context.Context) {
 		Picture:           ctx.Doer.AvatarLink(ctx),
 	}
 
-	onlyPublicGroups := ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private"))
+	form := web.GetForm(ctx).(*forms.AuthorizationForm)
+	onlyPublicGroups, _ := oauth2_provider.GrantAdditionalScopes(form.Scope).PublicOnly()
 	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer, onlyPublicGroups)
 	if err != nil {
 		ctx.ServerError("Oauth groups for user", err)
