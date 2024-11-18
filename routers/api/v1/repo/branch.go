@@ -386,7 +386,7 @@ func ListBranches(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiBranches)
 }
 
-// UpdateBranch renames a repository's branch.
+// UpdateBranch updates a repository's branch.
 func UpdateBranch(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/branches/{branch} repository repoUpdateBranch
 	// ---
