@@ -6,7 +6,6 @@ package markup
 import (
 	"html/template"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -15,9 +14,6 @@ import (
 
 	"golang.org/x/net/html"
 )
-
-// codePreviewPattern matches "http://domain/.../{owner}/{repo}/src/commit/{commit}/{filepath}#L10-L20"
-var codePreviewPattern = regexp.MustCompile(`https?://\S+/([^\s/]+)/([^\s/]+)/src/commit/([0-9a-f]{7,64})(/\S+)#(L\d+(-L\d+)?)`)
 
 type RenderCodePreviewOptions struct {
 	FullURL   string
@@ -30,7 +26,7 @@ type RenderCodePreviewOptions struct {
 }
 
 func renderCodeBlock(ctx *RenderContext, node *html.Node) (urlPosStart, urlPosStop int, htm template.HTML, err error) {
-	m := codePreviewPattern.FindStringSubmatchIndex(node.Data)
+	m := globalVars().codePreviewPattern.FindStringSubmatchIndex(node.Data)
 	if m == nil {
 		return 0, 0, "", nil
 	}
@@ -66,8 +62,8 @@ func codePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
 			node = node.NextSibling
 			continue
 		}
-		urlPosStart, urlPosEnd, h, err := renderCodeBlock(ctx, node)
-		if err != nil || h == "" {
+		urlPosStart, urlPosEnd, renderedCodeBlock, err := renderCodeBlock(ctx, node)
+		if err != nil || renderedCodeBlock == "" {
 			if err != nil {
 				log.Error("Unable to render code preview: %v", err)
 			}
@@ -84,7 +80,8 @@ func codePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
 		//    then it is resolved as: "<p>{TextBefore}</p><div NewNode/><p>{TextAfter}</p>",
 		//    so unless it could correctly replace the parent "p/li" node, it is very difficult to eliminate the "TextBefore" empty node.
 		node.Data = textBefore
-		node.Parent.InsertBefore(&html.Node{Type: html.RawNode, Data: string(h)}, next)
+		renderedCodeNode := &html.Node{Type: html.RawNode, Data: string(ctx.RenderInternal.ProtectSafeAttrs(renderedCodeBlock))}
+		node.Parent.InsertBefore(renderedCodeNode, next)
 		if textAfter != "" {
 			node.Parent.InsertBefore(&html.Node{Type: html.TextNode, Data: textAfter}, next)
 		}
