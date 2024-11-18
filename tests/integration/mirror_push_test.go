@@ -82,7 +82,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 }
 
 func testCreatePushMirror(t *testing.T, session *TestSession, owner, repo, address, username, password, interval string) {
-	csrf := GetCSRF(t, session, fmt.Sprintf("/%s/%s/settings", url.PathEscape(username), url.PathEscape(repo)))
+	csrf := GetCSRF(t, session, fmt.Sprintf("/%s/%s/settings", url.PathEscape(owner), url.PathEscape(repo)))
 	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings", url.PathEscape(owner), url.PathEscape(repo)), map[string]string{
 		"_csrf":                csrf,
 		"action":               "push-mirror-add",
