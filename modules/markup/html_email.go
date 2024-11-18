@@ -15,7 +15,7 @@ func emailAddressProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		mail := node.Data[m[2]:m[3]]
-		replaceContent(node, m[2], m[3], createLink("mailto:"+mail, mail, "mailto"))
+		replaceContent(node, m[2], m[3], createLink(ctx, "mailto:"+mail, mail, "" /*mailto*/))
 		node = node.NextSibling.NextSibling
 	}
 }
