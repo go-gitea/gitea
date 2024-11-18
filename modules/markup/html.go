@@ -25,9 +25,6 @@ const (
 	IssueNameStyleRegexp       = "regexp"
 )
 
-// CSS class for action keywords (e.g. "closes: #1")
-const keywordClass = "issue-keyword"
-
 type globalVarsType struct {
 	hashCurrentPattern      *regexp.Regexp
 	shortLinkPattern        *regexp.Regexp
@@ -39,6 +36,7 @@ type globalVarsType struct {
 	emojiShortCodeRegex     *regexp.Regexp
 	issueFullPattern        *regexp.Regexp
 	filesChangedFullPattern *regexp.Regexp
+	codePreviewPattern      *regexp.Regexp
 
 	tagCleaner *regexp.Regexp
 	nulCleaner *strings.Replacer
@@ -88,6 +86,9 @@ var globalVars = sync.OnceValue[*globalVarsType](func() *globalVarsType {
 	// example: https://domain/org/repo/pulls/27/files#hash
 	v.filesChangedFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
 
+	// codePreviewPattern matches "http://domain/.../{owner}/{repo}/src/commit/{commit}/{filepath}#L10-L20"
+	v.codePreviewPattern = regexp.MustCompile(`https?://\S+/([^\s/]+)/([^\s/]+)/src/commit/([0-9a-f]{7,64})(/\S+)#(L\d+(-L\d+)?)`)
+
 	v.tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL]\b)|(/?[hH][eE][aA][dD]\b))`)
 	v.nulCleaner = strings.NewReplacer("\000", "")
 	return v
@@ -129,7 +130,7 @@ func CustomLinkURLSchemes(schemes []string) {
 		}
 		withAuth = append(withAuth, s)
 	}
-	common.LinkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
+	common.GlobalVars().LinkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
 }
 
 type postProcessError struct {
@@ -164,11 +165,7 @@ var defaultProcessors = []processor{
 // emails with HTML links, parsing shortlinks in the format of [[Link]], like
 // MediaWiki, linking issues in the format #ID, and mentions in the format
 // @user, and others.
-func PostProcess(
-	ctx *RenderContext,
-	input io.Reader,
-	output io.Writer,
-) error {
+func PostProcess(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	return postProcess(ctx, defaultProcessors, input, output)
 }
 
@@ -189,10 +186,7 @@ var commitMessageProcessors = []processor{
 // RenderCommitMessage will use the same logic as PostProcess, but will disable
 // the shortLinkProcessor and will add a defaultLinkProcessor if defaultLink is
 // set, which changes every text node into a link to the passed default link.
-func RenderCommitMessage(
-	ctx *RenderContext,
-	content string,
-) (string, error) {
+func RenderCommitMessage(ctx *RenderContext, content string) (string, error) {
 	procs := commitMessageProcessors
 	return renderProcessString(ctx, procs, content)
 }
@@ -219,10 +213,7 @@ var emojiProcessors = []processor{
 // RenderCommitMessage, but will disable the shortLinkProcessor and
 // emailAddressProcessor, will add a defaultLinkProcessor if defaultLink is set,
 // which changes every text node into a link to the passed default link.
-func RenderCommitMessageSubject(
-	ctx *RenderContext,
-	defaultLink, content string,
-) (string, error) {
+func RenderCommitMessageSubject(ctx *RenderContext, defaultLink, content string) (string, error) {
 	procs := slices.Clone(commitMessageSubjectProcessors)
 	procs = append(procs, func(ctx *RenderContext, node *html.Node) {
 		ch := &html.Node{Parent: node, Type: html.TextNode, Data: node.Data}
@@ -236,10 +227,7 @@ func RenderCommitMessageSubject(
 }
 
 // RenderIssueTitle to process title on individual issue/pull page
-func RenderIssueTitle(
-	ctx *RenderContext,
-	title string,
-) (string, error) {
+func RenderIssueTitle(ctx *RenderContext, title string) (string, error) {
 	// do not render other issue/commit links in an issue's title - which in most cases is already a link.
 	return renderProcessString(ctx, []processor{
 		emojiShortCodeProcessor,
@@ -257,10 +245,7 @@ func renderProcessString(ctx *RenderContext, procs []processor, content string) 
 
 // RenderDescriptionHTML will use similar logic as PostProcess, but will
 // use a single special linkProcessor.
-func RenderDescriptionHTML(
-	ctx *RenderContext,
-	content string,
-) (string, error) {
+func RenderDescriptionHTML(ctx *RenderContext, content string) (string, error) {
 	return renderProcessString(ctx, []processor{
 		descriptionLinkProcessor,
 		emojiShortCodeProcessor,
@@ -270,10 +255,7 @@ func RenderDescriptionHTML(
 
 // RenderEmoji for when we want to just process emoji and shortcodes
 // in various places it isn't already run through the normal markdown processor
-func RenderEmoji(
-	ctx *RenderContext,
-	content string,
-) (string, error) {
+func RenderEmoji(ctx *RenderContext, content string) (string, error) {
 	return renderProcessString(ctx, emojiProcessors, content)
 }
 
@@ -333,6 +315,17 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	return nil
 }
 
+func isEmojiNode(node *html.Node) bool {
+	if node.Type == html.ElementNode && node.Data == atom.Span.String() {
+		for _, attr := range node.Attr {
+			if (attr.Key == "class" || attr.Key == "data-attr-class") && strings.Contains(attr.Val, "emoji") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Node {
 	// Add user-content- to IDs and "#" links if they don't already have them
 	for idx, attr := range node.Attr {
@@ -346,47 +339,27 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 		if attr.Key == "href" && strings.HasPrefix(attr.Val, "#") && notHasPrefix {
 			node.Attr[idx].Val = "#user-content-" + val
 		}
-
-		if attr.Key == "class" && attr.Val == "emoji" {
-			procs = nil
-		}
 	}
 
 	switch node.Type {
 	case html.TextNode:
-		processTextNodes(ctx, procs, node)
+		for _, proc := range procs {
+			proc(ctx, node) // it might add siblings
+		}
+
 	case html.ElementNode:
-		if node.Data == "code" || node.Data == "pre" {
-			// ignore code and pre nodes
+		if isEmojiNode(node) {
+			// TextNode emoji will be converted to `<span class="emoji">`, then the next iteration will visit the "span"
+			// if we don't stop it, it will go into the TextNode again and create an infinite recursion
 			return node.NextSibling
+		} else if node.Data == "code" || node.Data == "pre" {
+			return node.NextSibling // ignore code and pre nodes
 		} else if node.Data == "img" {
 			return visitNodeImg(ctx, node)
 		} else if node.Data == "video" {
 			return visitNodeVideo(ctx, node)
 		} else if node.Data == "a" {
-			// Restrict text in links to emojis
-			procs = emojiProcessors
-		} else if node.Data == "i" {
-			for _, attr := range node.Attr {
-				if attr.Key != "class" {
-					continue
-				}
-				classes := strings.Split(attr.Val, " ")
-				for i, class := range classes {
-					if class == "icon" {
-						classes[0], classes[i] = classes[i], classes[0]
-						attr.Val = strings.Join(classes, " ")
-
-						// Remove all children of icons
-						child := node.FirstChild
-						for child != nil {
-							node.RemoveChild(child)
-							child = node.FirstChild
-						}
-						break
-					}
-				}
-			}
+			procs = emojiProcessors // Restrict text in links to emojis
 		}
 		for n := node.FirstChild; n != nil; {
 			n = visitNode(ctx, procs, n)
@@ -396,22 +369,17 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 	return node.NextSibling
 }
 
-// processTextNodes runs the passed node through various processors, in order to handle
-// all kinds of special links handled by the post-processing.
-func processTextNodes(ctx *RenderContext, procs []processor, node *html.Node) {
-	for _, p := range procs {
-		p(ctx, node)
-	}
-}
-
 // createKeyword() renders a highlighted version of an action keyword
-func createKeyword(content string) *html.Node {
+func createKeyword(ctx *RenderContext, content string) *html.Node {
+	// CSS class for action keywords (e.g. "closes: #1")
+	const keywordClass = "issue-keyword"
+
 	span := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Span.String(),
 		Attr: []html.Attribute{},
 	}
-	span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: keywordClass})
+	span.Attr = append(span.Attr, ctx.RenderInternal.NodeSafeAttr("class", keywordClass))
 
 	text := &html.Node{
 		Type: html.TextNode,
@@ -422,7 +390,7 @@ func createKeyword(content string) *html.Node {
 	return span
 }
 
-func createLink(href, content, class string) *html.Node {
+func createLink(ctx *RenderContext, href, content, class string) *html.Node {
 	a := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.A.String(),
@@ -432,7 +400,7 @@ func createLink(href, content, class string) *html.Node {
 		a.Attr = append(a.Attr, html.Attribute{Key: "data-markdown-generated-content"})
 	}
 	if class != "" {
-		a.Attr = append(a.Attr, html.Attribute{Key: "class", Val: class})
+		a.Attr = append(a.Attr, ctx.RenderInternal.NodeSafeAttr("class", class))
 	}
 
 	text := &html.Node{

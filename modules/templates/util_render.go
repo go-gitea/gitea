@@ -16,6 +16,7 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/emoji"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -140,7 +141,7 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 
 	if labelScope == "" {
 		// Regular label
-		return HTMLFormat(`<div class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s">%s</div>`,
+		return htmlutil.HTMLFormat(`<div class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s">%s</div>`,
 			extraCSSClasses, textColor, label.Color, descriptionText, ut.RenderEmoji(label.Name))
 	}
 
@@ -174,7 +175,7 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 	itemColor := "#" + hex.EncodeToString(itemBytes)
 	scopeColor := "#" + hex.EncodeToString(scopeBytes)
 
-	return HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
+	return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
 		`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
 		`<div class="ui label scope-right" style="color: %s !important; background-color: %s !important">%s</div>`+
 		`</span>`,
