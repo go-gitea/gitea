@@ -39,7 +39,7 @@ const (
 // SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{
-		{Element: "div", AllowAttr: "class", Regexp: regexp.MustCompile(playerClassName)},
+		{Element: "div", AllowAttr: "class", Regexp: regexp.MustCompile("^" + playerClassName + "$")},
 		{Element: "div", AllowAttr: playerSrcAttr},
 	}
 }
