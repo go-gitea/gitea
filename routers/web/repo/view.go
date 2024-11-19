@@ -1128,7 +1128,13 @@ func Watchers(ctx *context.Context) {
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.watchers")
 	ctx.Data["PageIsWatchers"] = true
 
-	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, func(opts db.ListOptions) ([]*user_model.User, error) {
+	numWatchers, err := repo_model.CountRepoWatchers(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("CountRepoWatchers", err)
+		return
+	}
+
+	RenderUserCards(ctx, int(numWatchers), func(opts db.ListOptions) ([]*user_model.User, error) {
 		return repo_model.GetRepoWatchers(ctx, ctx.Repo.Repository.ID, opts)
 	}, tplWatchers)
 }

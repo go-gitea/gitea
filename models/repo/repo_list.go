@@ -146,6 +146,38 @@ func (repos RepositoryList) LoadLanguageStats(ctx context.Context) error {
 	return nil
 }
 
+func (repos RepositoryList) LoadNumWatchers(ctx context.Context) error {
+	if len(repos) == 0 {
+		return nil
+	}
+
+	type results struct {
+		RepoID      int64
+		NumWatchers int64
+	}
+	// Load watchers.
+	watches := make([]results, 0, len(repos))
+	if err := db.GetEngine(ctx).
+		Select("repo_id, COUNT(*) as num_watchers").
+		Table("watch").
+		In("repo_id", repos.IDs()).
+		And("`mode` <> ?", WatchModeDont).
+		GroupBy("repo_id").
+		Find(&watches); err != nil {
+		return fmt.Errorf("find watchers: %w", err)
+	}
+
+	watchesMap := make(map[int64]int, len(repos))
+	for _, watch := range watches {
+		watchesMap[watch.RepoID] = int(watch.NumWatchers)
+	}
+
+	for i := range repos {
+		repos[i].NumWatches = watchesMap[repos[i].ID]
+	}
+	return nil
+}
+
 // LoadAttributes loads the attributes for the given RepositoryList
 func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 	if err := repos.LoadOwners(ctx); err != nil {

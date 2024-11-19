@@ -355,15 +355,20 @@ func Action(ctx *context.Context) {
 	switch ctx.PathParam(":action") {
 	case "watch", "unwatch", "star", "unstar":
 		// we have to reload the repository because NumStars or NumWatching (used in the templates) has just changed
-		ctx.Data["Repository"], err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.Name)
+		ctx.Repo.Repository, err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.Name)
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam(":action")), err)
 			return
 		}
+		ctx.Data["Repository"] = ctx.Repo.Repository
 	}
 
 	switch ctx.PathParam(":action") {
 	case "watch", "unwatch":
+		if err := ctx.Repo.Repository.LoadNumWatchers(ctx); err != nil {
+			ctx.ServerError("LoadNumWatchers", err)
+			return
+		}
 		ctx.HTML(http.StatusOK, tplWatchUnwatch)
 		return
 	case "star", "unstar":

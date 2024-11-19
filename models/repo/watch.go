@@ -75,13 +75,6 @@ func watchRepoMode(ctx context.Context, watch Watch, mode WatchMode) (err error)
 
 	hadrec := watch.Mode != WatchModeNone
 	needsrec := mode != WatchModeNone
-	repodiff := 0
-
-	if IsWatchMode(mode) && !IsWatchMode(watch.Mode) {
-		repodiff = 1
-	} else if !IsWatchMode(mode) && IsWatchMode(watch.Mode) {
-		repodiff = -1
-	}
 
 	watch.Mode = mode
 
@@ -97,9 +90,6 @@ func watchRepoMode(ctx context.Context, watch Watch, mode WatchMode) (err error)
 		}
 	} else if _, err = db.DeleteByID[Watch](ctx, watch.ID); err != nil {
 		return err
-	}
-	if repodiff != 0 {
-		_, err = db.GetEngine(ctx).Exec("UPDATE `repository` SET num_watches = num_watches + ? WHERE id = ?", repodiff, watch.RepoID)
 	}
 	return err
 }
@@ -160,6 +150,12 @@ func GetRepoWatchers(ctx context.Context, repoID int64, opts db.ListOptions) ([]
 
 	users := make([]*user_model.User, 0, 8)
 	return users, sess.Find(&users)
+}
+
+func CountRepoWatchers(ctx context.Context, repoID int64) (int64, error) {
+	return db.GetEngine(ctx).Where("repo_id=?", repoID).
+		And("mode<>?", WatchModeDont).
+		Count(new(Watch))
 }
 
 // WatchIfAuto subscribes to repo if AutoWatchOnChanges is set

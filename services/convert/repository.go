@@ -177,6 +177,13 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 
 	repoLicenses, err := repo_model.GetRepoLicenses(ctx, repo)
 	if err != nil {
+		log.Error("GetRepoLicenses: %v", err)
+		return nil
+	}
+
+	numWatchers, err := repo_model.CountRepoWatchers(ctx, repo.ID)
+	if err != nil {
+		log.Error("CountRepoWatchers: %v", err)
 		return nil
 	}
 
@@ -206,7 +213,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		LanguagesURL:                  repoAPIURL + "/languages",
 		Stars:                         repo.NumStars,
 		Forks:                         repo.NumForks,
-		Watchers:                      repo.NumWatches,
+		Watchers:                      int(numWatchers),
 		OpenIssues:                    repo.NumOpenIssues,
 		OpenPulls:                     repo.NumOpenPulls,
 		Releases:                      int(numReleases),

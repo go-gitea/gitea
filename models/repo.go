@@ -59,10 +59,6 @@ func StatsCorrectSQL(ctx context.Context, sql string, id int64) error {
 	return err
 }
 
-func repoStatsCorrectNumWatches(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "UPDATE `repository` SET num_watches=(SELECT COUNT(*) FROM `watch` WHERE repo_id=? AND mode<>2) WHERE id=?", id)
-}
-
 func repoStatsCorrectNumStars(ctx context.Context, id int64) error {
 	return StatsCorrectSQL(ctx, "UPDATE `repository` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE repo_id=?) WHERE id=?", id)
 }
@@ -139,12 +135,6 @@ func CheckRepoStats(ctx context.Context) error {
 	log.Trace("Doing: CheckRepoStats")
 
 	checkers := []*repoChecker{
-		// Repository.NumWatches
-		{
-			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_watches!=(SELECT COUNT(*) FROM `watch` WHERE repo_id=repo.id AND mode<>2)"),
-			repoStatsCorrectNumWatches,
-			"repository count 'num_watches'",
-		},
 		// Repository.NumStars
 		{
 			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_stars!=(SELECT COUNT(*) FROM `star` WHERE repo_id=repo.id)"),
@@ -259,7 +249,6 @@ func UpdateRepoStats(ctx context.Context, id int64) error {
 	var err error
 
 	for _, f := range []func(ctx context.Context, id int64) error{
-		repoStatsCorrectNumWatches,
 		repoStatsCorrectNumStars,
 		repoStatsCorrectNumIssues,
 		repoStatsCorrectNumPulls,

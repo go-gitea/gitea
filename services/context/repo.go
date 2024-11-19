@@ -399,6 +399,11 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
+	if err = repo.LoadNumWatchers(ctx); err != nil {
+		ctx.ServerError("LoadNumWatchers", err)
+		return
+	}
+
 	ctx.Repo.Repository = repo
 	ctx.Data["PushMirrors"] = pushMirrors
 	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
