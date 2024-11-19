@@ -126,7 +126,7 @@ func TestSearchUsers(t *testing.T) {
 
 	// test orgs
 	testOrgSuccess := func(opts user_model.SearchUserOptions, expectedOrgIDs []int64) {
-		opts.Type = user_model.UserTypeOrganization
+		opts.Types = []user_model.UserType{user_model.UserTypeOrganization}
 		testSuccess(opts, expectedOrgIDs)
 	}
 
@@ -150,7 +150,7 @@ func TestSearchUsers(t *testing.T) {
 
 	// test users
 	testUserSuccess := func(opts user_model.SearchUserOptions, expectedUserIDs []int64) {
-		opts.Type = user_model.UserTypeIndividual
+		opts.Types = []user_model.UserType{user_model.UserTypeIndividual}
 		testSuccess(opts, expectedUserIDs)
 	}
 
