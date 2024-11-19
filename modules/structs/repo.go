@@ -283,8 +283,9 @@ type CreateBranchRepoOption struct {
 type UpdateBranchRepoOption struct {
 	// New branch name
 	//
+	// required: true
 	// unique: true
-	Name string `json:"name" binding:"GitRefName;MaxSize(100)"`
+	Name string `json:"name" binding:"Required;GitRefName;MaxSize(100)"`
 }
 
 // TransferRepoOption options when transfer a repository's ownership

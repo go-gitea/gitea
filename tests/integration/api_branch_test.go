@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"slices"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -204,23 +203,6 @@ func TestAPIUpdateBranch(t *testing.T) {
 		t.Run("UpdateBranchWithNonExistentBranch", func(t *testing.T) {
 			resp := testAPIUpdateBranch(t, "user2", "repo1", "i-dont-exist", "new-branch-name", http.StatusNotFound)
 			assert.Contains(t, resp.Body.String(), "Branch doesn't exist.")
-		})
-		t.Run("UpdateBranchWithEmptyStringAsNewName", func(t *testing.T) {
-			resp := testAPIUpdateBranch(t, "user13", "repo11", "master", "", http.StatusOK)
-			var branch api.Branch
-			DecodeJSON(t, resp, &branch)
-			assert.EqualValues(t, "master", branch.Name)
-
-			// Make sure the branch name did not change in the db.
-			branches, err := db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
-				RepoID: 11,
-			})
-			assert.NoError(t, err)
-			branchWasUnchanged := slices.ContainsFunc(branches, func(b *git_model.Branch) bool { return b.Name == "master" })
-			assert.True(t, branchWasUnchanged, "master branch shouldn't have been renamed")
-		})
-		t.Run("UpdateBranchWithNonExistentBranchAndNewNameIsTheEmptyString", func(t *testing.T) {
-			testAPIUpdateBranch(t, "user2", "repo1", "i-dont-exist", "", http.StatusNotFound)
 		})
 		t.Run("RenameBranchNormalScenario", func(t *testing.T) {
 			resp := testAPIUpdateBranch(t, "user2", "repo1", "branch2", "new-branch-name", http.StatusOK)

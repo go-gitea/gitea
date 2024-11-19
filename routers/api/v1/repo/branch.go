@@ -440,33 +440,22 @@ func UpdateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchName := opt.Name
-	if branchName != "" {
-		msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, ctx.Repo.GitRepo, oldName, branchName)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "RenameBranch", err)
-			return
-		}
-		if msg == "target_exist" {
-			ctx.Error(http.StatusUnprocessableEntity, "", "Cannot rename a branch using the same name or rename to a branch that already exists.")
-			return
-		}
-		if msg == "from_not_exist" {
-			ctx.Error(http.StatusNotFound, "", "Branch doesn't exist.")
-			return
-		}
-	} else {
-		branchName = oldName
+	msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, ctx.Repo.GitRepo, oldName, opt.Name)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "RenameBranch", err)
+		return
+	}
+	if msg == "target_exist" {
+		ctx.Error(http.StatusUnprocessableEntity, "", "Cannot rename a branch using the same name or rename to a branch that already exists.")
+		return
+	}
+	if msg == "from_not_exist" {
+		ctx.Error(http.StatusNotFound, "", "Branch doesn't exist.")
+		return
 	}
 
-	branch, err := ctx.Repo.GitRepo.GetBranch(branchName)
+	branch, err := ctx.Repo.GitRepo.GetBranch(opt.Name)
 	if err != nil {
-		if git.IsErrBranchNotExist(err) {
-			// This could occur if the client passes a non-existent branch and we
-			// skip executing the branch that contains the RenameBranch() call.
-			ctx.Error(http.StatusNotFound, "", "Branch doesn't exist.")
-			return
-		}
 		ctx.Error(http.StatusInternalServerError, "GetBranch", err)
 		return
 	}
@@ -485,7 +474,7 @@ func UpdateBranch(ctx *context.APIContext) {
 
 	br, err := convert.ToBranch(ctx, repo, branch.Name, commit, pb, ctx.Doer, ctx.Repo.IsAdmin())
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
+		ctx.Error(http.StatusInternalServerError, "ToBranch", err)
 		return
 	}
 
