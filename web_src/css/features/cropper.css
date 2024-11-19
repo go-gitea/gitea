@@ -1,0 +1,22 @@
+@import "cropperjs/dist/cropper.css";
+
+.cropper {
+  display: flex;
+  column-gap: 10px;
+}
+
+.hidden {
+  display: none;
+}
+
+.editor {
+  flex: 1;
+}
+
+#result {
+  overflow: hidden;
+  width: 256px;
+  height: 256px;
+  max-width: 256px;
+  max-height: 256px;
+}

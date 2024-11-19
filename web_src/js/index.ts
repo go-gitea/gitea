@@ -49,6 +49,7 @@ import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.ts';
 import {initRepoEditor} from './features/repo-editor.ts';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
 import {initInstall} from './features/install.ts';
+import {initCompCropper} from './features/comp/Cropper.ts';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
 import {initCommonOrganization} from './features/common-organization.ts';
@@ -137,6 +138,7 @@ onDomReady(() => {
 
     initCompSearchUserBox,
     initCompWebHookEditor,
+    initCompCropper,
 
     initInstall,
 

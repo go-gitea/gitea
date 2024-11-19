@@ -127,6 +127,21 @@
 					<input id="new-avatar" name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
 
+				<div class="inline field cropper hidden" id="cropper">
+					<div class="preview">
+						<h3>预览</h3>
+						<div>
+							<img id="result">
+						</div>
+					</div>
+					<div class="editor">
+						<h3>编辑</h3>
+						<div>
+							<img id="image">
+						</div>
+					</div>
+				</div>
+
 				<div class="field">
 					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_avatar"}}</button>
 					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{ctx.Locale.Tr "settings.delete_current_avatar"}}</button>
