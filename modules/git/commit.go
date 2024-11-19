@@ -17,6 +17,8 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/go-git/go-git/v5/config"
 )
 
 // Commit represents a git commit.
@@ -371,37 +373,32 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 		return nil, err
 	}
 
-	rd, err := entry.Blob().DataAsync()
+	content, err := entry.Blob().GetBlobContent(10 * 1024)
 	if err != nil {
 		return nil, err
 	}
 
-	defer rd.Close()
-	scanner := bufio.NewScanner(rd)
-	c.submoduleCache = newObjectCache()
-	var ismodule bool
-	var path string
-	for scanner.Scan() {
-		if strings.HasPrefix(scanner.Text(), "[submodule") {
-			ismodule = true
-			continue
-		}
-		if ismodule {
-			fields := strings.Split(scanner.Text(), "=")
-			k := strings.TrimSpace(fields[0])
-			if k == "path" {
-				path = strings.TrimSpace(fields[1])
-			} else if k == "url" {
-				c.submoduleCache.Set(path, &SubModule{path, strings.TrimSpace(fields[1])})
-				ismodule = false
-			}
-		}
+	c.submoduleCache, err = parseSubmoduleContent([]byte(content))
+	if err != nil {
+		return nil, err
 	}
-	if err = scanner.Err(); err != nil {
-		return nil, fmt.Errorf("GetSubModules scan: %w", err)
+	return c.submoduleCache, nil
+}
+
+func parseSubmoduleContent(bs []byte) (*ObjectCache, error) {
+	cfg := config.NewModules()
+	if err := cfg.Unmarshal(bs); err != nil {
+		return nil, err
+	}
+	submoduleCache := newObjectCache()
+	if len(cfg.Submodules) == 0 {
+		return nil, fmt.Errorf("no submodules found")
+	}
+	for _, subModule := range cfg.Submodules {
+		submoduleCache.Set(subModule.Path, subModule.URL)
 	}
 
-	return c.submoduleCache, nil
+	return submoduleCache, nil
 }
 
 // GetSubModule get the sub module according entryname

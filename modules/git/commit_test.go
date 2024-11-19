@@ -135,7 +135,7 @@ author KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 committer KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 encoding ISO-8859-1
 gpgsig -----BEGIN PGP SIGNATURE-----
- 
+
  iQGzBAABCgAdFiEE9HRrbqvYxPT8PXbefPSEkrowAa8FAmYGg7IACgkQfPSEkrow
  Aa9olwv+P0HhtCM6CRvlUmPaqswRsDPNR4i66xyXGiSxdI9V5oJL7HLiQIM7KrFR
  gizKa2COiGtugv8fE+TKqXKaJx6uJUJEjaBd8E9Af9PrAzjWj+A84lU6/PgPS8hq
@@ -361,4 +361,34 @@ func Test_GetCommitBranchStart(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, startCommitID)
 	assert.EqualValues(t, "9c9aef8dd84e02bc7ec12641deb4c930a7c30185", startCommitID)
+}
+
+func Test_parseSubmoduleContent(t *testing.T) {
+	submoduleFiles := []struct {
+		fileContent  string
+		expectedPath string
+		expectedURL  string
+	}{
+		{
+			fileContent: `[submodule "jakarta-servlet"]
+url = ../../ALP-pool/jakarta-servlet
+path = jakarta-servlet`,
+			expectedPath: "jakarta-servlet",
+			expectedURL:  "../../ALP-pool/jakarta-servlet",
+		},
+		{
+			fileContent: `[submodule "jakarta-servlet"]
+path = jakarta-servlet
+url = ../../ALP-pool/jakarta-servlet`,
+			expectedPath: "jakarta-servlet",
+			expectedURL:  "../../ALP-pool/jakarta-servlet",
+		},
+	}
+	for _, kase := range submoduleFiles {
+		submodule, err := parseSubmoduleContent([]byte(kase.fileContent))
+		assert.NoError(t, err)
+		v, ok := submodule.Get(kase.expectedPath)
+		assert.True(t, ok)
+		assert.Equal(t, kase.expectedURL, v)
+	}
 }
