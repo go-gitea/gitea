@@ -1,7 +1,14 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository watchers">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="no-loading-indicator tw-hidden"></div>
+	<div
+		hx-trigger="refreshCards from:body"
+		hx-indicator=".no-loading-indicator"
+		hx-swap="innerHTML"
+		hx-get="{{$.Link}}/cards"
+		class="ui container"
+	>
 		{{template "repo/user_cards" .}}
 	</div>
 </div>

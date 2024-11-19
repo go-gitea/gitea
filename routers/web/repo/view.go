@@ -65,6 +65,7 @@ const (
 	tplRepoHome     base.TplName = "repo/home"
 	tplRepoViewList base.TplName = "repo/view_list"
 	tplWatchers     base.TplName = "repo/watchers"
+	tplCards        base.TplName = "repo/user_cards"
 	tplForks        base.TplName = "repo/forks"
 	tplMigrating    base.TplName = "repo/migrate/migrating"
 )
@@ -1122,25 +1123,42 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOp
 	ctx.HTML(http.StatusOK, tpl)
 }
 
+func renderUserList(ctx *context.Context, pageType string, total int, getter func(opts db.ListOptions) ([]*user_model.User, error), tpl base.TplName) {
+	ctx.Data["Title"] = ctx.Tr(pageType)
+	ctx.Data["CardsTitle"] = ctx.Tr(pageType)
+	RenderUserCards(ctx, total, getter, tpl)
+}
+
 // Watchers render repository's watch users
 func Watchers(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.watchers")
-	ctx.Data["CardsTitle"] = ctx.Tr("repo.watchers")
-	ctx.Data["PageIsWatchers"] = true
+	renderUserList(ctx, "repo.watchers", ctx.Repo.Repository.NumWatches,
+		func(opts db.ListOptions) ([]*user_model.User, error) {
+			return repo_model.GetRepoWatchers(ctx, ctx.Repo.Repository.ID, opts)
+		}, tplWatchers)
+}
 
-	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, func(opts db.ListOptions) ([]*user_model.User, error) {
-		return repo_model.GetRepoWatchers(ctx, ctx.Repo.Repository.ID, opts)
-	}, tplWatchers)
+// WatchersCards renders a repository's watchers user cards
+func WatchersCards(ctx *context.Context) {
+	renderUserList(ctx, "repo.watchers", ctx.Repo.Repository.NumWatches,
+		func(opts db.ListOptions) ([]*user_model.User, error) {
+			return repo_model.GetRepoWatchers(ctx, ctx.Repo.Repository.ID, opts)
+		}, tplCards)
 }
 
 // Stars render repository's starred users
 func Stars(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.stargazers")
-	ctx.Data["CardsTitle"] = ctx.Tr("repo.stargazers")
-	ctx.Data["PageIsStargazers"] = true
-	RenderUserCards(ctx, ctx.Repo.Repository.NumStars, func(opts db.ListOptions) ([]*user_model.User, error) {
-		return repo_model.GetStargazers(ctx, ctx.Repo.Repository, opts)
-	}, tplWatchers)
+	renderUserList(ctx, "repo.stargazers", ctx.Repo.Repository.NumStars,
+		func(opts db.ListOptions) ([]*user_model.User, error) {
+			return repo_model.GetStargazers(ctx, ctx.Repo.Repository, opts)
+		}, tplWatchers)
+}
+
+// StarsCards renders a repository's stargazers user cards
+func StarsCards(ctx *context.Context) {
+	renderUserList(ctx, "repo.stargazers", ctx.Repo.Repository.NumStars,
+		func(opts db.ListOptions) ([]*user_model.User, error) {
+			return repo_model.GetStargazers(ctx, ctx.Repo.Repository, opts)
+		}, tplCards)
 }
 
 // Forks render repository's forked users
