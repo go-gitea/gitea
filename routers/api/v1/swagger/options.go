@@ -205,4 +205,22 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	UpdateVariableOption api.UpdateVariableOption
+
+	// in:body
+	CreateProjectOption api.CreateProjectOption
+
+	// in:body
+	CreateProjectColumnOption api.CreateProjectColumnOption
+
+	// in:body
+	EditProjectColumnOption api.EditProjectColumnOption
+
+	// in:body
+	MovedColumnsOption api.MovedColumnsOption
+
+	// in:body
+	MovedIssuesOption api.MovedIssuesOption
+
+	// in:body
+	UpdateIssuesOption api.UpdateIssuesOption
 }
