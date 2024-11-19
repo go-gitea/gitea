@@ -6,7 +6,6 @@ package auth
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -17,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/oauth2_provider"
@@ -55,6 +53,18 @@ func CheckOAuthAccessToken(ctx context.Context, accessToken string) int64 {
 		return 0
 	}
 	return grant.UserID
+}
+
+// CheckTaskID verifies that the TaskID corresponds to a running task
+func CheckTaskID(ctx context.Context, taskID int64) bool {
+	// Verify the task exists
+	task, err := actions_model.GetTaskByID(ctx, taskID)
+	if err != nil {
+		return false
+	}
+
+	// Verify that it's running
+	return task.Status == actions_model.StatusRunning
 }
 
 // OAuth2 implements the Auth interface and authenticates requests
@@ -100,6 +110,16 @@ func parseToken(req *http.Request) (string, bool) {
 func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store DataStore) int64 {
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
+		// First attempt to decode an actions JWT, returning the actions user
+		if taskID, err := actions.TokenToTaskID(tokenSHA); err == nil {
+			if CheckTaskID(ctx, taskID) {
+				store.GetData()["IsActionsToken"] = true
+				store.GetData()["ActionsTaskID"] = taskID
+				return user_model.ActionsUserID
+			}
+		}
+
+		// Otherwise, check if this is an OAuth access token
 		uid := CheckOAuthAccessToken(ctx, tokenSHA)
 		if uid != 0 {
 			store.GetData()["IsApiToken"] = true
@@ -134,40 +154,6 @@ func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store Dat
 	return t.UID
 }
 
-// parseActionJWT identifies actions runner JWTs that look like an
-// OAuth token, but needs to be parsed by its code
-func parseActionsJWT(req *http.Request, store DataStore) (*user_model.User, error) {
-	taskID, err := actions.ParseAuthorizationToken(req)
-	if err != nil || taskID == 0 {
-		return nil, nil
-	}
-
-	// Verify the task exists
-	task, err := actions_model.GetTaskByID(req.Context(), taskID)
-	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
-	// Verify that it's running
-	if task.Status != actions_model.StatusRunning {
-		return nil, nil
-	}
-
-	store.GetData()["IsActionsToken"] = true
-	store.GetData()["ActionsTaskID"] = taskID
-
-	user, err := user_model.GetPossibleUserByID(req.Context(), user_model.ActionsUserID)
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
-
 // Verify extracts the user ID from the OAuth token in the query parameters
 // or the "Authorization" header and returns the corresponding user object for that ID.
 // If verification is successful returns an existing user object.
@@ -177,15 +163,6 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) &&
 		!isGitRawOrAttachPath(req) && !isArchivePath(req) {
 		return nil, nil
-	}
-
-	user, err := parseActionsJWT(req, store)
-	if err != nil {
-		return nil, err
-	}
-
-	if user != nil {
-		return user, nil
 	}
 
 	token, ok := parseToken(req)
@@ -200,7 +177,7 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 	}
 	log.Trace("OAuth2 Authorization: Found token for user[%d]", id)
 
-	user, err = user_model.GetPossibleUserByID(req.Context(), id)
+	user, err := user_model.GetPossibleUserByID(req.Context(), id)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
