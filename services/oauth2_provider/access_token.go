@@ -88,6 +88,8 @@ func GrantAdditionalScopes(grantScopes string) auth.AccessTokenScope {
 		}
 	}
 
+	// since version 1.22, access tokens grant full access to the API
+	// with this access is reduced only if additional scopes are provided
 	accessTokenScope := auth.AccessTokenScope(strings.Join(tokenScopes, ","))
 	if accessTokenWithAdditionalScopes, err := accessTokenScope.Normalize(); err == nil && len(tokenScopes) > 0 {
 		return accessTokenWithAdditionalScopes
