@@ -352,7 +352,10 @@ func Action(ctx *context.Context) {
 		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	}
 
-	// if we have user cards on the page we should refresh them
+	// we send the HX-Trigger header to trigger the refreshCards event, when the frontend receives a request with this header
+	// htmx triggers all elements that have the attribute hx-trigger="refreshCards from:body". This attribute is usually placed
+	// on containers that show a list of either stargazers or watchers. For a demonstration of the effects see the pull
+	// request description of https://github.com/go-gitea/gitea/pull/32570.
 	ctx.RespHeader().Add("HX-Trigger", "refreshCards")
 
 	switch ctx.PathParam(":action") {

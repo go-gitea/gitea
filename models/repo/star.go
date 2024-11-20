@@ -76,8 +76,8 @@ func IsStaring(ctx context.Context, userID, repoID int64) bool {
 }
 
 // GetStargazers returns the users that starred the repo.
-func GetStargazers(ctx context.Context, repo *Repository, opts db.ListOptions) ([]*user_model.User, error) {
-	sess := db.GetEngine(ctx).Where("star.repo_id = ?", repo.ID).
+func GetStargazers(ctx context.Context, repoID int64, opts db.ListOptions) ([]*user_model.User, error) {
+	sess := db.GetEngine(ctx).Where("star.repo_id = ?", repoID).
 		Join("LEFT", "star", "`user`.id = star.uid")
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
