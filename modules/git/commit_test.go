@@ -365,30 +365,45 @@ func Test_GetCommitBranchStart(t *testing.T) {
 
 func Test_parseSubmoduleContent(t *testing.T) {
 	submoduleFiles := []struct {
-		fileContent  string
-		expectedPath string
-		expectedURL  string
+		fileContent    string
+		expectedPath   string
+		expectedURL    string
+		expectedBranch string
 	}{
 		{
 			fileContent: `[submodule "jakarta-servlet"]
 url = ../../ALP-pool/jakarta-servlet
 path = jakarta-servlet`,
-			expectedPath: "jakarta-servlet",
-			expectedURL:  "../../ALP-pool/jakarta-servlet",
+			expectedPath:   "jakarta-servlet",
+			expectedURL:    "../../ALP-pool/jakarta-servlet",
+			expectedBranch: "",
 		},
 		{
 			fileContent: `[submodule "jakarta-servlet"]
 path = jakarta-servlet
 url = ../../ALP-pool/jakarta-servlet`,
-			expectedPath: "jakarta-servlet",
-			expectedURL:  "../../ALP-pool/jakarta-servlet",
+			expectedPath:   "jakarta-servlet",
+			expectedURL:    "../../ALP-pool/jakarta-servlet",
+			expectedBranch: "",
+		},
+		{
+			fileContent: `[submodule "jakarta-servlet"]
+path = jakarta-servlet
+url = ../../ALP-pool/jakarta-servlet
+branch = stable`,
+			expectedPath:   "jakarta-servlet",
+			expectedURL:    "../../ALP-pool/jakarta-servlet",
+			expectedBranch: "stable",
 		},
 	}
 	for _, kase := range submoduleFiles {
-		submodule, err := parseSubmoduleContent([]byte(kase.fileContent))
+		submodule, err := parseSubmoduleContent(strings.NewReader(kase.fileContent))
 		assert.NoError(t, err)
 		v, ok := submodule.Get(kase.expectedPath)
 		assert.True(t, ok)
-		assert.Equal(t, kase.expectedURL, v)
+		subModule := v.(*SubModule)
+		assert.Equal(t, kase.expectedPath, subModule.Path)
+		assert.Equal(t, kase.expectedURL, subModule.URL)
+		assert.Equal(t, kase.expectedBranch, subModule.Branch)
 	}
 }

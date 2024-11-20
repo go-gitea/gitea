@@ -5,7 +5,9 @@
 package git
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"path"
@@ -17,8 +19,72 @@ var scpSyntax = regexp.MustCompile(`^([a-zA-Z0-9_]+@)?([a-zA-Z0-9._-]+):(.*)$`)
 
 // SubModule submodule is a reference on git repository
 type SubModule struct {
-	Name string
-	URL  string
+	Path   string
+	URL    string
+	Branch string
+}
+
+// parseSubmoduleContent this is not a complete parse for gitmodules file, it only
+// parses the url and path of submodules
+func parseSubmoduleContent(r io.Reader) (*ObjectCache, error) {
+	var path, url, branch string
+	var state int // 0: find section, 1: find path and url
+	subModules := newObjectCache()
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		// Skip empty lines and comments
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
+			continue
+		}
+
+		// Section header [section]
+		if strings.HasPrefix(line, "[submodule") && strings.HasSuffix(line, "]") {
+			subModules.Set(path, &SubModule{
+				Path:   path,
+				URL:    url,
+				Branch: branch,
+			})
+			state = 1
+			path = ""
+			url = ""
+			branch = ""
+			continue
+		}
+
+		if state != 1 {
+			continue
+		}
+
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		switch key {
+		case "path":
+			path = value
+		case "url":
+			url = value
+		case "branch":
+			branch = value
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading file: %w", err)
+	}
+	if path != "" && url != "" {
+		subModules.Set(path, &SubModule{
+			Path:   path,
+			URL:    url,
+			Branch: branch,
+		})
+	}
+
+	return subModules, nil
 }
 
 // SubModuleFile represents a file with submodule type.

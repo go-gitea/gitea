@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"os/exec"
 	"strconv"
@@ -17,8 +16,6 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/go-git/go-git/v5/config"
 )
 
 // Commit represents a git commit.
@@ -373,32 +370,18 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 		return nil, err
 	}
 
-	content, err := entry.Blob().GetBlobContent(10 * 1024)
+	rd, err := entry.Blob().DataAsync()
 	if err != nil {
 		return nil, err
 	}
+	defer rd.Close()
 
-	c.submoduleCache, err = parseSubmoduleContent([]byte(content))
+	r := io.LimitReader(rd, 100*1024) // limit to 100KB
+	c.submoduleCache, err = parseSubmoduleContent(r)
 	if err != nil {
 		return nil, err
 	}
 	return c.submoduleCache, nil
-}
-
-func parseSubmoduleContent(bs []byte) (*ObjectCache, error) {
-	cfg := config.NewModules()
-	if err := cfg.Unmarshal(bs); err != nil {
-		return nil, err
-	}
-	submoduleCache := newObjectCache()
-	if len(cfg.Submodules) == 0 {
-		return nil, fmt.Errorf("no submodules found")
-	}
-	for _, subModule := range cfg.Submodules {
-		submoduleCache.Set(subModule.Path, subModule.URL)
-	}
-
-	return submoduleCache, nil
 }
 
 // GetSubModule get the sub module according entryname
