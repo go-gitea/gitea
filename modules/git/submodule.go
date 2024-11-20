@@ -41,11 +41,13 @@ func parseSubmoduleContent(r io.Reader) (*ObjectCache, error) {
 
 		// Section header [section]
 		if strings.HasPrefix(line, "[submodule") && strings.HasSuffix(line, "]") {
-			subModules.Set(path, &SubModule{
-				Path:   path,
-				URL:    url,
-				Branch: branch,
-			})
+			if path != "" && url != "" {
+				subModules.Set(path, &SubModule{
+					Path:   path,
+					URL:    url,
+					Branch: branch,
+				})
+			}
 			state = 1
 			path = ""
 			url = ""
