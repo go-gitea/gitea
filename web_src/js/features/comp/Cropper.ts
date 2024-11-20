@@ -26,7 +26,7 @@ export function initCompCropper() {
         autoCrop: false,
         crop() {
           const canvas = cropper.getCroppedCanvas();
-          result.src = canvas.toDataURL();  //The default format type is image/png.
+          result.src = canvas.toDataURL();
           canvas.toBlob((blob) => {
             const file = new File([blob], filename, {type: 'image/png', lastModified: Date.now()});
             const container = new DataTransfer();
