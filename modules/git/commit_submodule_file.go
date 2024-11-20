@@ -5,9 +5,7 @@
 package git
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"net"
 	"net/url"
 	"path"
@@ -17,90 +15,15 @@ import (
 
 var scpSyntax = regexp.MustCompile(`^([a-zA-Z0-9_]+@)?([a-zA-Z0-9._-]+):(.*)$`)
 
-// SubModule submodule is a reference on git repository
-type SubModule struct {
-	Path   string
-	URL    string
-	Branch string
-}
-
-// parseSubmoduleContent this is not a complete parse for gitmodules file, it only
-// parses the url and path of submodules
-func parseSubmoduleContent(r io.Reader) (*ObjectCache, error) {
-	var path, url, branch string
-	var state int // 0: find section, 1: find path and url
-	subModules := newObjectCache()
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-
-		// Skip empty lines and comments
-		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
-			continue
-		}
-
-		// Section header [section]
-		if strings.HasPrefix(line, "[submodule") && strings.HasSuffix(line, "]") {
-			if path != "" && url != "" {
-				subModules.Set(path, &SubModule{
-					Path:   path,
-					URL:    url,
-					Branch: branch,
-				})
-			}
-			state = 1
-			path = ""
-			url = ""
-			branch = ""
-			continue
-		}
-
-		if state != 1 {
-			continue
-		}
-
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		key := strings.TrimSpace(parts[0])
-		value := strings.TrimSpace(parts[1])
-		switch key {
-		case "path":
-			path = value
-		case "url":
-			url = value
-		case "branch":
-			branch = value
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error reading file: %w", err)
-	}
-	if path != "" && url != "" {
-		subModules.Set(path, &SubModule{
-			Path:   path,
-			URL:    url,
-			Branch: branch,
-		})
-	}
-
-	return subModules, nil
-}
-
-// SubModuleFile represents a file with submodule type.
-type SubModuleFile struct {
-	*Commit
-
+// CommitSubModuleFile represents a file with submodule type.
+type CommitSubModuleFile struct {
 	refURL string
 	refID  string
 }
 
-// NewSubModuleFile create a new submodule file
-func NewSubModuleFile(c *Commit, refURL, refID string) *SubModuleFile {
-	return &SubModuleFile{
-		Commit: c,
+// NewCommitSubModuleFile create a new submodule file
+func NewCommitSubModuleFile(refURL, refID string) *CommitSubModuleFile {
+	return &CommitSubModuleFile{
 		refURL: refURL,
 		refID:  refID,
 	}
@@ -177,11 +100,12 @@ func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
 }
 
 // RefURL guesses and returns reference URL.
-func (sf *SubModuleFile) RefURL(urlPrefix, repoFullName, sshDomain string) string {
+// FIXME: template passes AppURL as urlPrefix, it needs to figure out the correct approach (no hard-coded AppURL anymore)
+func (sf *CommitSubModuleFile) RefURL(urlPrefix, repoFullName, sshDomain string) string {
 	return getRefURL(sf.refURL, urlPrefix, repoFullName, sshDomain)
 }
 
 // RefID returns reference ID.
-func (sf *SubModuleFile) RefID() string {
+func (sf *CommitSubModuleFile) RefID() string {
 	return sf.refID
 }

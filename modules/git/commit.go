@@ -28,7 +28,7 @@ type Commit struct {
 	Signature     *CommitSignature
 
 	Parents        []ObjectID // ID strings
-	submoduleCache *ObjectCache
+	submoduleCache *ObjectCache[*SubModule]
 }
 
 // CommitSignature represents a git commit signature part.
@@ -354,50 +354,6 @@ func (c *Commit) GetFileContent(filename string, limit int) (string, error) {
 		return "", err
 	}
 	return string(bytes), nil
-}
-
-// GetSubModules get all the sub modules of current revision git tree
-func (c *Commit) GetSubModules() (*ObjectCache, error) {
-	if c.submoduleCache != nil {
-		return c.submoduleCache, nil
-	}
-
-	entry, err := c.GetTreeEntryByPath(".gitmodules")
-	if err != nil {
-		if _, ok := err.(ErrNotExist); ok {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	rd, err := entry.Blob().DataAsync()
-	if err != nil {
-		return nil, err
-	}
-	defer rd.Close()
-
-	r := io.LimitReader(rd, 100*1024) // limit to 100KB
-	c.submoduleCache, err = parseSubmoduleContent(r)
-	if err != nil {
-		return nil, err
-	}
-	return c.submoduleCache, nil
-}
-
-// GetSubModule get the sub module according entryname
-func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
-	modules, err := c.GetSubModules()
-	if err != nil {
-		return nil, err
-	}
-
-	if modules != nil {
-		module, has := modules.Get(entryname)
-		if has {
-			return module.(*SubModule), nil
-		}
-	}
-	return nil, nil
 }
 
 // GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')

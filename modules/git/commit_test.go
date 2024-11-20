@@ -135,7 +135,7 @@ author KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 committer KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 encoding ISO-8859-1
 gpgsig -----BEGIN PGP SIGNATURE-----
- 
+<SPACE>
  iQGzBAABCgAdFiEE9HRrbqvYxPT8PXbefPSEkrowAa8FAmYGg7IACgkQfPSEkrow
  Aa9olwv+P0HhtCM6CRvlUmPaqswRsDPNR4i66xyXGiSxdI9V5oJL7HLiQIM7KrFR
  gizKa2COiGtugv8fE+TKqXKaJx6uJUJEjaBd8E9Af9PrAzjWj+A84lU6/PgPS8hq
@@ -150,7 +150,7 @@ gpgsig -----BEGIN PGP SIGNATURE-----
  -----END PGP SIGNATURE-----
 
 ISO-8859-1`
-
+	commitString = strings.ReplaceAll(commitString, "<SPACE>", " ")
 	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
 	gitRepo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
@@ -361,49 +361,4 @@ func Test_GetCommitBranchStart(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, startCommitID)
 	assert.EqualValues(t, "9c9aef8dd84e02bc7ec12641deb4c930a7c30185", startCommitID)
-}
-
-func Test_parseSubmoduleContent(t *testing.T) {
-	submoduleFiles := []struct {
-		fileContent    string
-		expectedPath   string
-		expectedURL    string
-		expectedBranch string
-	}{
-		{
-			fileContent: `[submodule "jakarta-servlet"]
-url = ../../ALP-pool/jakarta-servlet
-path = jakarta-servlet`,
-			expectedPath:   "jakarta-servlet",
-			expectedURL:    "../../ALP-pool/jakarta-servlet",
-			expectedBranch: "",
-		},
-		{
-			fileContent: `[submodule "jakarta-servlet"]
-path = jakarta-servlet
-url = ../../ALP-pool/jakarta-servlet`,
-			expectedPath:   "jakarta-servlet",
-			expectedURL:    "../../ALP-pool/jakarta-servlet",
-			expectedBranch: "",
-		},
-		{
-			fileContent: `[submodule "jakarta-servlet"]
-path = jakarta-servlet
-url = ../../ALP-pool/jakarta-servlet
-branch = stable`,
-			expectedPath:   "jakarta-servlet",
-			expectedURL:    "../../ALP-pool/jakarta-servlet",
-			expectedBranch: "stable",
-		},
-	}
-	for _, kase := range submoduleFiles {
-		submodule, err := parseSubmoduleContent(strings.NewReader(kase.fileContent))
-		assert.NoError(t, err)
-		v, ok := submodule.Get(kase.expectedPath)
-		assert.True(t, ok)
-		subModule := v.(*SubModule)
-		assert.Equal(t, kase.expectedPath, subModule.Path)
-		assert.Equal(t, kase.expectedURL, subModule.URL)
-		assert.Equal(t, kase.expectedBranch, subModule.Branch)
-	}
 }
