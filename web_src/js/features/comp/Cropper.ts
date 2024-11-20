@@ -1,33 +1,40 @@
 import Cropper from 'cropperjs';
+import {showElem} from '../../utils/dom.ts';
 
 export function initCompCropper() {
-  if (!document.querySelector('#cropper')) {
+  const cropperContainer = document.querySelector('#cropper-panel');
+  if (!cropperContainer) {
     return;
   }
 
   let filename;
-  const image = document.querySelector('#image');
-  const result = document.querySelector('#result');
+  let cropper;
+  const source = document.querySelector('#cropper-source');
+  const result = document.querySelector('#cropper-result');
   const input = document.querySelector('#new-avatar');
 
   const done = function (url) {
-    image.src = url;
+    source.src = url;
 
-    const cropper = new Cropper(image, {
-      aspectRatio: 1,
-      viewMode: 1,
-      crop() {
-        const canvas = cropper.getCroppedCanvas();
-        result.src = canvas.toDataURL();
-        canvas.toBlob((blob) => {
-          const file = new File([blob], filename, {type: 'image/jpeg', lastModified: Date.now()});
-          const container = new DataTransfer();
-          container.items.add(file);
-          input.files = container.files;
-        });
-      },
-    });
-    document.querySelector('#cropper').classList.remove('hidden');
+    if (cropper) {
+      cropper.replace(url);
+    } else {
+      cropper = new Cropper(source, {
+        aspectRatio: 1,
+        viewMode: 1,
+        crop() {
+          const canvas = cropper.getCroppedCanvas();
+          result.src = canvas.toDataURL();
+          canvas.toBlob((blob) => {
+            const file = new File([blob], filename, {type: 'image/jpeg', lastModified: Date.now()});
+            const container = new DataTransfer();
+            container.items.add(file);
+            input.files = container.files;
+          });
+        },
+      });
+    }
+    showElem(cropperContainer);
   };
 
   input.addEventListener('change', (e) => {
