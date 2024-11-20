@@ -111,6 +111,9 @@ func InfoOAuth(ctx *context.Context) {
 			accessTokenScope, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, auths[1])
 		}
 	}
+
+	// since version 1.22 does not verify if groups should be public-only,
+	// onlyPublicGroups will be set only if 'public-only' is included in a valid scope
 	onlyPublicGroups, _ := accessTokenScope.PublicOnly()
 	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer, onlyPublicGroups)
 	if err != nil {

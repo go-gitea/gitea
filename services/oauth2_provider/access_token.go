@@ -188,6 +188,9 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 		}
 		if grant.ScopeContains("groups") {
 			accessTokenScope := GrantAdditionalScopes(grant.Scope)
+
+			// since version 1.22 does not verify if groups should be public-only,
+			// onlyPublicGroups will be set only if 'public-only' is included in a valid scope
 			onlyPublicGroups, _ := accessTokenScope.PublicOnly()
 
 			groups, err := GetOAuthGroupsForUser(ctx, user, onlyPublicGroups)
