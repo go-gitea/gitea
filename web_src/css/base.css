@@ -462,6 +462,7 @@ img.ui.avatar,
 .ui.avatar img,
 .ui.avatar svg {
   border-radius: var(--border-radius);
+  border-color: var(--color-secondary);
   object-fit: contain;
   aspect-ratio: 1;
 }

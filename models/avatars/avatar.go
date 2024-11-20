@@ -24,7 +24,7 @@ import (
 
 const (
 	// DefaultAvatarClass is the default class of a rendered avatar
-	DefaultAvatarClass = "ui avatar tw-align-middle"
+	DefaultAvatarClass = "ui avatar border tw-align-middle"
 	// DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
 	DefaultAvatarPixelSize = 28
 )
