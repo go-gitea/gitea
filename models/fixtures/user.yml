@@ -23,7 +23,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar1
+  avatar: ""
   avatar_email: user1@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -60,7 +60,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar2
+  avatar: ""
   avatar_email: user2@example.com
   use_custom_avatar: false
   num_followers: 2
@@ -97,7 +97,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar3
+  avatar: ""
   avatar_email: org3@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -134,7 +134,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar4
+  avatar: ""
   avatar_email: user4@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -171,7 +171,7 @@
   allow_import_local: false
   allow_create_organization: false
   prohibit_login: false
-  avatar: avatar5
+  avatar: ""
   avatar_email: user5@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -208,7 +208,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar6
+  avatar: ""
   avatar_email: org6@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -245,7 +245,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar7
+  avatar: ""
   avatar_email: org7@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -282,7 +282,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar8
+  avatar: ""
   avatar_email: user8@example.com
   use_custom_avatar: false
   num_followers: 1
@@ -319,7 +319,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar9
+  avatar: ""
   avatar_email: user9@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -356,7 +356,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar10
+  avatar: ""
   avatar_email: user10@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -393,7 +393,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar11
+  avatar: ""
   avatar_email: user11@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -430,7 +430,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar12
+  avatar: ""
   avatar_email: user12@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -467,7 +467,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar13
+  avatar: ""
   avatar_email: user13@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -504,7 +504,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar14
+  avatar: ""
   avatar_email: user13@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -541,7 +541,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar15
+  avatar: ""
   avatar_email: user15@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -578,7 +578,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar16
+  avatar: ""
   avatar_email: user16@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -615,7 +615,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar17
+  avatar: ""
   avatar_email: org17@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -652,7 +652,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar18
+  avatar: ""
   avatar_email: user18@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -689,7 +689,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar19
+  avatar: ""
   avatar_email: org19@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -726,7 +726,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar20
+  avatar: ""
   avatar_email: user20@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -763,7 +763,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar21
+  avatar: ""
   avatar_email: user21@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -800,7 +800,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar22
+  avatar: ""
   avatar_email: limited_org@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -837,7 +837,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar23
+  avatar: ""
   avatar_email: privated_org@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -874,7 +874,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar24
+  avatar: ""
   avatar_email: user24@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -911,7 +911,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar25
+  avatar: ""
   avatar_email: org25@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -948,7 +948,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar26
+  avatar: ""
   avatar_email: org26@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -985,7 +985,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar27
+  avatar: ""
   avatar_email: user27@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -1022,7 +1022,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar28
+  avatar: ""
   avatar_email: user28@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -1059,7 +1059,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar29
+  avatar: ""
   avatar_email: user29@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -1096,7 +1096,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar29
+  avatar: ""
   avatar_email: user30@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -1133,7 +1133,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar31
+  avatar: ""
   avatar_email: user31@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -1170,7 +1170,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar32
+  avatar: ""
   avatar_email: user30@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -1207,7 +1207,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar33
+  avatar: ""
   avatar_email: user33@example.com
   use_custom_avatar: false
   num_followers: 1
@@ -1245,7 +1245,7 @@
   allow_import_local: false
   allow_create_organization: false
   prohibit_login: false
-  avatar: avatar34
+  avatar: ""
   avatar_email: user34@example.com
   use_custom_avatar: true
   num_followers: 0
@@ -1282,7 +1282,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar35
+  avatar: ""
   avatar_email: private_org35@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -1319,7 +1319,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar22
+  avatar: ""
   avatar_email: abcde@gitea.com
   use_custom_avatar: false
   num_followers: 0
@@ -1356,7 +1356,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: true
-  avatar: avatar29
+  avatar: ""
   avatar_email: user37@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -1393,7 +1393,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar38
+  avatar: ""
   avatar_email: user38@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -1430,7 +1430,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar39
+  avatar: ""
   avatar_email: user39@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -1467,7 +1467,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar40
+  avatar: ""
   avatar_email: user40@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -1504,7 +1504,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar41
+  avatar: ""
   avatar_email: org41@example.com
   use_custom_avatar: false
   num_followers: 0
@@ -1541,7 +1541,7 @@
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
-  avatar: avatar42
+  avatar: ""
   avatar_email: org42@example.com
   use_custom_avatar: false
   num_followers: 0
