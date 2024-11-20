@@ -10,12 +10,12 @@ import (
 	"html/template"
 	"net/url"
 	"reflect"
-	"slices"
 	"strings"
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -39,7 +39,7 @@ func NewFuncMap() template.FuncMap {
 		"Iif":          iif,
 		"Eval":         evalTokens,
 		"SafeHTML":     safeHTML,
-		"HTMLFormat":   HTMLFormat,
+		"HTMLFormat":   htmlutil.HTMLFormat,
 		"HTMLEscape":   htmlEscape,
 		"QueryEscape":  queryEscape,
 		"JSEscape":     jsEscapeSafe,
@@ -182,23 +182,6 @@ func NewFuncMap() template.FuncMap {
 		"RenderCommitMessageLinkSubject": renderCommitMessageLinkSubjectLegacy,
 		"RenderCommitBody":               renderCommitBodyLegacy,
 	}
-}
-
-func HTMLFormat(s string, rawArgs ...any) template.HTML {
-	args := slices.Clone(rawArgs)
-	for i, v := range args {
-		switch v := v.(type) {
-		case nil, bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, template.HTML:
-			// for most basic types (including template.HTML which is safe), just do nothing and use it
-		case string:
-			args[i] = template.HTMLEscapeString(v)
-		case fmt.Stringer:
-			args[i] = template.HTMLEscapeString(v.String())
-		default:
-			args[i] = template.HTMLEscapeString(fmt.Sprint(v))
-		}
-	}
-	return template.HTML(fmt.Sprintf(s, args...))
 }
 
 // safeHTML render raw as HTML

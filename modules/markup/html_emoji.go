@@ -13,15 +13,13 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-func createEmoji(content, class, name string) *html.Node {
+func createEmoji(ctx *RenderContext, content, name string) *html.Node {
 	span := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Span.String(),
 		Attr: []html.Attribute{},
 	}
-	if class != "" {
-		span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: class})
-	}
+	span.Attr = append(span.Attr, ctx.RenderInternal.NodeSafeAttr("class", "emoji"))
 	if name != "" {
 		span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: name})
 	}
@@ -35,13 +33,13 @@ func createEmoji(content, class, name string) *html.Node {
 	return span
 }
 
-func createCustomEmoji(alias string) *html.Node {
+func createCustomEmoji(ctx *RenderContext, alias string) *html.Node {
 	span := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Span.String(),
 		Attr: []html.Attribute{},
 	}
-	span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: "emoji"})
+	span.Attr = append(span.Attr, ctx.RenderInternal.NodeSafeAttr("class", "emoji"))
 	span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: alias})
 
 	img := &html.Node{
@@ -77,7 +75,7 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 		if converted == nil {
 			// check if this is a custom reaction
 			if _, exist := setting.UI.CustomEmojisMap[alias]; exist {
-				replaceContent(node, m[0], m[1], createCustomEmoji(alias))
+				replaceContent(node, m[0], m[1], createCustomEmoji(ctx, alias))
 				node = node.NextSibling.NextSibling
 				start = 0
 				continue
@@ -85,7 +83,7 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 			continue
 		}
 
-		replaceContent(node, m[0], m[1], createEmoji(converted.Emoji, "emoji", converted.Description))
+		replaceContent(node, m[0], m[1], createEmoji(ctx, converted.Emoji, converted.Description))
 		node = node.NextSibling.NextSibling
 		start = 0
 	}
@@ -107,7 +105,7 @@ func emojiProcessor(ctx *RenderContext, node *html.Node) {
 		start = m[1]
 		val := emoji.FromCode(codepoint)
 		if val != nil {
-			replaceContent(node, m[0], m[1], createEmoji(codepoint, "emoji", val.Description))
+			replaceContent(node, m[0], m[1], createEmoji(ctx, codepoint, val.Description))
 			node = node.NextSibling.NextSibling
 			start = 0
 		}
