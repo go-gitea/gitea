@@ -81,7 +81,7 @@ func ParseFileName(uri string) (ext string, tp git.ArchiveType, err error) {
 	default:
 		return "", 0, ErrUnknownArchiveFormat{RequestFormat: uri}
 	}
-	return
+	return ext, tp, nil
 }
 
 // NewRequest creates an archival request, based on the URI.  The
