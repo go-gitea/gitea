@@ -25,7 +25,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user1@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -62,6 +62,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user2@example.com
+  # cause a random avatar to be generated when referenced for test purposes
   use_custom_avatar: false
   num_followers: 2
   num_following: 1
@@ -99,7 +100,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: org3@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -136,7 +137,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user4@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 1
   num_stars: 0
@@ -173,7 +174,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user5@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -210,7 +211,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: org6@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -247,7 +248,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: org7@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -284,7 +285,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user8@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 1
   num_following: 1
   num_stars: 0
@@ -321,7 +322,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user9@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -358,7 +359,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user10@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 2
@@ -395,7 +396,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user11@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -432,7 +433,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user12@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -469,7 +470,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user13@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -506,7 +507,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user13@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -543,7 +544,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user15@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -580,7 +581,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user16@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -617,7 +618,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: org17@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -654,7 +655,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user18@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -691,7 +692,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: org19@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -728,7 +729,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user20@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -765,7 +766,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user21@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -802,7 +803,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: limited_org@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -839,7 +840,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: privated_org@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -876,7 +877,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user24@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -913,7 +914,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: org25@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -950,7 +951,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: org26@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -987,7 +988,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user27@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -1024,7 +1025,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user28@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -1061,7 +1062,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user29@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -1098,7 +1099,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user30@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -1135,7 +1136,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user31@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 1
   num_stars: 0
@@ -1172,7 +1173,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user30@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -1209,7 +1210,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user33@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 1
   num_following: 0
   num_stars: 0
@@ -1284,7 +1285,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: private_org35@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -1321,7 +1322,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: abcde@gitea.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -1358,7 +1359,7 @@
   prohibit_login: true
   avatar: ""
   avatar_email: user37@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -1395,7 +1396,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user38@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -1432,7 +1433,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user39@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -1469,7 +1470,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: user40@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -1506,7 +1507,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: org41@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
@@ -1543,7 +1544,7 @@
   prohibit_login: false
   avatar: ""
   avatar_email: org42@example.com
-  use_custom_avatar: false
+  use_custom_avatar: true
   num_followers: 0
   num_following: 0
   num_stars: 0
