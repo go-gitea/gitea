@@ -33,7 +33,7 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		if ok && strings.Contains(mention, "/") {
 			mentionOrgAndTeam := strings.Split(mention, "/")
 			if mentionOrgAndTeam[0][1:] == ctx.Metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
-				replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(ctx.Links.Prefix(), "org", ctx.Metas["org"], "teams", mentionOrgAndTeam[1]), mention, "mention"))
+				replaceContent(node, loc.Start, loc.End, createLink(ctx, util.URLJoin(ctx.Links.Prefix(), "org", ctx.Metas["org"], "teams", mentionOrgAndTeam[1]), mention, "" /*mention*/))
 				node = node.NextSibling.NextSibling
 				start = 0
 				continue
@@ -44,7 +44,7 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		mentionedUsername := mention[1:]
 
 		if DefaultProcessorHelper.IsUsernameMentionable != nil && DefaultProcessorHelper.IsUsernameMentionable(ctx.Ctx, mentionedUsername) {
-			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(ctx.Links.Prefix(), mentionedUsername), mention, "mention"))
+			replaceContent(node, loc.Start, loc.End, createLink(ctx, util.URLJoin(ctx.Links.Prefix(), mentionedUsername), mention, "" /*mention*/))
 			node = node.NextSibling.NextSibling
 			start = 0
 		} else {
