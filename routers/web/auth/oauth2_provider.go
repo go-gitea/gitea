@@ -104,7 +104,15 @@ func InfoOAuth(ctx *context.Context) {
 		Picture:           ctx.Doer.AvatarLink(ctx),
 	}
 
-	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer)
+	var accessTokenScope auth.AccessTokenScope
+	if auHead := ctx.Req.Header.Get("Authorization"); auHead != "" {
+		auths := strings.Fields(auHead)
+		if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
+			accessTokenScope, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, auths[1])
+		}
+	}
+	onlyPublicGroups, _ := accessTokenScope.PublicOnly()
+	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer, onlyPublicGroups)
 	if err != nil {
 		ctx.ServerError("Oauth groups for user", err)
 		return
@@ -303,6 +311,9 @@ func AuthorizeOAuth(ctx *context.Context) {
 		ctx.Redirect(redirect.String())
 		return
 	}
+
+	// check if additional scopes
+	ctx.Data["AdditionalScopes"] = oauth2_provider.GrantAdditionalScopes(form.Scope) != auth.AccessTokenScopeAll
 
 	// show authorize page to grant access
 	ctx.Data["Application"] = app
