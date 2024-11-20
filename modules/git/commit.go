@@ -379,23 +379,30 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 	defer rd.Close()
 	scanner := bufio.NewScanner(rd)
 	c.submoduleCache = newObjectCache()
-	var ismodule bool
-	var path string
+	var subModule *SubModule
 	for scanner.Scan() {
-		if strings.HasPrefix(scanner.Text(), "[submodule") {
-			ismodule = true
+		if strings.HasPrefix(scanner.Text(), "[") {
+			if subModule != nil {
+				c.submoduleCache.Set(subModule.Name, subModule)
+				subModule = nil
+			}
+			if strings.HasPrefix(scanner.Text(), "[submodule") {
+				subModule = &SubModule{}
+			}
 			continue
 		}
-		if ismodule {
+		if subModule != nil {
 			fields := strings.Split(scanner.Text(), "=")
 			k := strings.TrimSpace(fields[0])
 			if k == "path" {
-				path = strings.TrimSpace(fields[1])
+				subModule.Name = strings.TrimSpace(fields[1])
 			} else if k == "url" {
-				c.submoduleCache.Set(path, &SubModule{path, strings.TrimSpace(fields[1])})
-				ismodule = false
+				subModule.URL = strings.TrimSpace(fields[1])
 			}
 		}
+	}
+	if subModule != nil {
+		c.submoduleCache.Set(subModule.Name, subModule)
 	}
 	if err = scanner.Err(); err != nil {
 		return nil, fmt.Errorf("GetSubModules scan: %w", err)
