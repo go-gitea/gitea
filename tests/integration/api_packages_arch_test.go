@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"strings"
 	"sync"
 	"testing"
@@ -40,8 +41,9 @@ func TestPackageArch(t *testing.T) {
 	}
 	rootURL := fmt.Sprintf("/api/packages/%s/arch", user.Name)
 
+	// TODO: in the future, these test packages should be build on the fly
 	pkgs := map[string][]byte{
-		// pkgname = test, arch = any
+		// the zst test packages with different arch: pkgname = test
 		"any": unpack(`
 KLUv/QBYXRMABmOHSbCWag6dY6d8VNtVR3rpBnWdBbkDAxM38Dj3XG3FK01TCKlWtMV9QpskYdsm
 e6fh5gWqM8edeurYNESoIUz/RmtyQy68HVrBj1p+AIoAYABFSJh4jcDyWNQgHIKIuNgIll64S4oY
@@ -83,8 +85,10 @@ I2dkIEMjxsSOiAlJjH4HIwbTjayZJidXVxKQYH2gICOCBhK7KqMlLZ4gMCU1BapYlsTAXnywepyy
 jMBmtEhxyCnCZdUAwYKxAxeRFVk4TCL0aYgWjt3kHTg9SjVStppI2YCSWshUEFGdmJmyCVGpnqIU
 KNlA0hEjIOACGSLqYpXAD5SSNVT2MJRJwREAF4FRHPBlCJMSNwFguGAWDJBg+KIArkIJGNtCydUL
 TuN1oBh/+zKkEblAsgjGqVgUwKLP+UOMOGCpAhICtg6ncFJH`),
-		// pkgname = test2, arch = any
-		"otherXZ": unpack(`
+
+		// another package to test different compression: pkgname = test2, arch = any
+		// for example: archlinuxarm uses xz
+		"test2.xz": unpack(`
 /Td6WFoAAATm1rRGBMCyBIAYIQEWAAAAAAAAABaHRszgC/8CKl0AFxNGhTWwfXmuDQEJlHgNLrkq
 VxpJY6d9iRTt6gB4uCj0481rnYfXaUADHzOFuF3490RPrM6juPXrknqtVyuWJ5efW19BgwctN6xk
 UiXiZaXVAWVWJWy2XHJiyYCMWBfIjUfo1ccOgwolwgFHJ64ZJjbayA3k6lYPcImuAqYL5NEVHpwl
@@ -97,7 +101,7 @@ MZDP1PBie6GqDV2GuPz+0XXmul/ds+XysG19HIkKbJ+cQKp5o7Y0tI7EHM8GhwMl7MjgpQGj5nuv
 J/QqTPWE0nJf1PW/J9yFQVR1Xo0TJyiX8/ObwmbqUPpxRGjKlYRBvn0jbTdUAENBSn+QVcASRGFE
 SB9OM2B8Bg4jR/oojs8Beoq7zbIblgAAAACfRtXvhmznOgABzgSAGAAAKklb4rHEZ/sCAAAAAARZ
 Wg==`),
-		"otherZST": unpack(`
+		"test2.zst": unpack(`
 KLUv/QRYbRMABuOHS9BSNQdQ56F+xNFoV3CijY54JYt3VqV1iUU3xmj00y2pyBOCuokbhDYpvNsj
 ZJeCxqH+nQFpMf4Wa92okaZoF4eH6HsXXCBo+qy3Fn4AigBgAEaYrLCQEuAom6YbHyuKZAFYksqi
 sSOFiRs0WDmlACk0CnpnaAeKiCS3BlwVkViJEbDS43lFNbLkZEmGhc305Nn4AMLGiUkBDiMTG5Vz
@@ -110,7 +114,7 @@ Y9bYrCTHtwdfPPPOYiU5fvB5FssfNN2V5EIPfg9LnM+JhtVEO8+FZw5LXA068YNPhimu9sHPQiWv
 qc6fE9BTnxIe/LTKatab+WYu7T74uWNRxJW5W5Ux0bDLuG1ioCwjg4DvGgBcgB8cUDHJ1RQ89neE
 wvjbNUMiIZdo5hbHgEpANwMkDnL0Jr7kVFg+0pZKjBkmklNgBH1YI8dQOAAKbr6EF5wYM80KWnAd
 nYARrByncQ==`),
-		"otherGZ": unpack(`
+		"test2.gz": unpack(`
 H4sIAAAAAAAAA9PzDQlydWWgKTAwMDAzMVEA0UCAThsYGBuZKRiamBmbm5qZGJqbKBgYGpobGzMo
 GNDWWRBQWlySWAR0SlF+fgk+dYTk0T03RIB8NweEwVx71tDviIFA60O75Rtc5s+9YbxteUHzhUWi
 HBkWDcbGcUqCukrLGi4Lv8jIqNsbXhueXW8uzTe79Lr9/TVbnl69c3wR652f21+7rnU5kmjTc/38
@@ -137,7 +141,7 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 
 	for _, group := range []string{"", "arch", "arch/os", "x86_64"} {
 		groupURL := rootURL + util.Iif(group == "", "", "/"+group)
-		t.Run(fmt.Sprintf("Upload[%s]", group), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Upload[group:%s]", group), func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequestWithBody(t, "PUT", groupURL, bytes.NewReader(pkgs["any"]))
@@ -190,7 +194,7 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 			MakeRequest(t, req, http.StatusConflict)
 		})
 
-		t.Run(fmt.Sprintf("Download[%s]", group), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Download[group:%s]", group), func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			req := NewRequest(t, "GET", groupURL+"/x86_64/test-1.0.0-1-x86_64.pkg.tar.zst")
 			resp := MakeRequest(t, req, http.StatusOK)
@@ -205,7 +209,7 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 			MakeRequest(t, req, http.StatusNotFound)
 		})
 
-		t.Run(fmt.Sprintf("SignVerify[%s]", group), func(t *testing.T) {
+		t.Run(fmt.Sprintf("SignVerify[group:%s]", group), func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			req := NewRequest(t, "GET", rootURL+"/repository.key")
 			respPub := MakeRequest(t, req, http.StatusOK)
@@ -221,7 +225,7 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 			}
 		})
 
-		t.Run(fmt.Sprintf("RepositoryDB[%s]", group), func(t *testing.T) {
+		t.Run(fmt.Sprintf("RepositoryDB[group:%s]", group), func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			req := NewRequest(t, "GET", rootURL+"/repository.key")
 			respPub := MakeRequest(t, req, http.StatusOK)
@@ -252,10 +256,10 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 			}
 		})
 
-		t.Run(fmt.Sprintf("Delete[%s]", group), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Delete[group:%s]", group), func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			// test data
-			req := NewRequestWithBody(t, "PUT", groupURL, bytes.NewReader(pkgs["otherXZ"])).
+			req := NewRequestWithBody(t, "PUT", groupURL, bytes.NewReader(pkgs["test2.xz"])).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
@@ -294,20 +298,17 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 			MakeRequest(t, req, http.StatusNotFound)
 		})
 
-		for tp, key := range map[string]string{
-			"GZ":  "otherGZ",
-			"XZ":  "otherXZ",
-			"ZST": "otherZST",
-		} {
-			t.Run(fmt.Sprintf("Upload%s[%s]", tp, group), func(t *testing.T) {
+		for _, pkgFileName := range []string{"test2.gz", "test2.xz", "test2.zst"} {
+			pkgExtName := path.Ext(pkgFileName)
+			t.Run(fmt.Sprintf("Upload[group:%s,ext:%s]", group, pkgExtName), func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
-				req := NewRequestWithBody(t, "PUT", groupURL, bytes.NewReader(pkgs[key])).
+				req := NewRequestWithBody(t, "PUT", groupURL, bytes.NewReader(pkgs[pkgFileName])).
 					AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusCreated)
 
-				req = NewRequest(t, "GET", groupURL+"/x86_64/test2-1.0.0-1-any.pkg.tar."+strings.ToLower(tp))
+				req = NewRequest(t, "GET", groupURL+"/x86_64/test2-1.0.0-1-any.pkg.tar"+pkgExtName)
 				resp := MakeRequest(t, req, http.StatusOK)
-				require.Equal(t, pkgs[key], resp.Body.Bytes())
+				require.Equal(t, pkgs[pkgFileName], resp.Body.Bytes())
 
 				req = NewRequestWithBody(t, "DELETE", groupURL+"/test2/1.0.0-1/any", nil).
 					AddBasicAuth(user.Name)
@@ -352,7 +353,7 @@ HMhNSS1IzUsBcpJAPFAwwUXSM0u4BjoaR8EoGAWjgGQAAILFeyQADAAA
 		require.NoError(t, err)
 		require.Len(t, files, 1) // only one package: "test"
 
-		req = NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgs["otherXZ"])).AddBasicAuth(user.Name)
+		req = NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgs["test2.xz"])).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
 		req = NewRequest(t, "GET", rootURL+"/x86_64/base.db")
