@@ -55,8 +55,8 @@ func CheckOAuthAccessToken(ctx context.Context, accessToken string) int64 {
 	return grant.UserID
 }
 
-// CheckTaskID verifies that the TaskID corresponds to a running task
-func CheckTaskID(ctx context.Context, taskID int64) bool {
+// CheckTaskIsRunning verifies that the TaskID corresponds to a running task
+func CheckTaskIsRunning(ctx context.Context, taskID int64) bool {
 	// Verify the task exists
 	task, err := actions_model.GetTaskByID(ctx, taskID)
 	if err != nil {
@@ -112,7 +112,7 @@ func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store Dat
 	if strings.Contains(tokenSHA, ".") {
 		// First attempt to decode an actions JWT, returning the actions user
 		if taskID, err := actions.TokenToTaskID(tokenSHA); err == nil {
-			if CheckTaskID(ctx, taskID) {
+			if CheckTaskIsRunning(ctx, taskID) {
 				store.GetData()["IsActionsToken"] = true
 				store.GetData()["ActionsTaskID"] = taskID
 				return user_model.ActionsUserID

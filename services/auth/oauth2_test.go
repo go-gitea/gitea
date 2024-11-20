@@ -33,7 +33,7 @@ func TestUserIDFromToken(t *testing.T) {
 	})
 }
 
-func TestCheckTaskID(t *testing.T) {
+func TestCheckTaskIsRunning(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	cases := map[string]struct {
@@ -48,7 +48,7 @@ func TestCheckTaskID(t *testing.T) {
 	for name := range cases {
 		c := cases[name]
 		t.Run(name, func(t *testing.T) {
-			actual := CheckTaskID(context.Background(), c.TaskID)
+			actual := CheckTaskIsRunning(context.Background(), c.TaskID)
 			assert.Equal(t, c.Expected, actual)
 		})
 	}
