@@ -38,10 +38,7 @@ func (ut *RenderUtils) RenderCommitMessage(msg string, metas map[string]string) 
 	cleanMsg := template.HTMLEscapeString(msg)
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
-		Ctx:   ut.ctx,
-		Metas: metas,
-	}, cleanMsg)
+	fullMessage, err := markup.RenderCommitMessage(markup.NewRenderContext(ut.ctx).WithMetas(metas), cleanMsg)
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
@@ -68,10 +65,7 @@ func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, me
 
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	renderedMessage, err := markup.RenderCommitMessageSubject(&markup.RenderContext{
-		Ctx:   ut.ctx,
-		Metas: metas,
-	}, urlDefault, template.HTMLEscapeString(msgLine))
+	renderedMessage, err := markup.RenderCommitMessageSubject(markup.NewRenderContext(ut.ctx).WithMetas(metas), urlDefault, template.HTMLEscapeString(msgLine))
 	if err != nil {
 		log.Error("RenderCommitMessageSubject: %v", err)
 		return ""
@@ -93,10 +87,7 @@ func (ut *RenderUtils) RenderCommitBody(msg string, metas map[string]string) tem
 		return ""
 	}
 
-	renderedMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
-		Ctx:   ut.ctx,
-		Metas: metas,
-	}, template.HTMLEscapeString(msgLine))
+	renderedMessage, err := markup.RenderCommitMessage(markup.NewRenderContext(ut.ctx).WithMetas(metas), template.HTMLEscapeString(msgLine))
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
@@ -115,10 +106,7 @@ func renderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 
 // RenderIssueTitle renders issue/pull title with defined post processors
 func (ut *RenderUtils) RenderIssueTitle(text string, metas map[string]string) template.HTML {
-	renderedText, err := markup.RenderIssueTitle(&markup.RenderContext{
-		Ctx:   ut.ctx,
-		Metas: metas,
-	}, template.HTMLEscapeString(text))
+	renderedText, err := markup.RenderIssueTitle(markup.NewRenderContext(ut.ctx).WithMetas(metas), template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("RenderIssueTitle: %v", err)
 		return ""
@@ -186,7 +174,7 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 
 // RenderEmoji renders html text with emoji post processors
 func (ut *RenderUtils) RenderEmoji(text string) template.HTML {
-	renderedText, err := markup.RenderEmoji(&markup.RenderContext{Ctx: ut.ctx}, template.HTMLEscapeString(text))
+	renderedText, err := markup.RenderEmoji(markup.NewRenderContext(ut.ctx), template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("RenderEmoji: %v", err)
 		return ""
@@ -208,10 +196,7 @@ func reactionToEmoji(reaction string) template.HTML {
 }
 
 func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:revive
-	output, err := markdown.RenderString(&markup.RenderContext{
-		Ctx:   ut.ctx,
-		Metas: markup.ComposeSimpleDocumentMetas(),
-	}, input)
+	output, err := markdown.RenderString(markup.NewRenderContext(ut.ctx).WithMetas(markup.ComposeSimpleDocumentMetas()), input)
 	if err != nil {
 		log.Error("RenderString: %v", err)
 	}
