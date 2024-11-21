@@ -17,7 +17,7 @@
 					<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_reviewers"}}">
 				</div>
 			{{end}}
-			<div class="scrolling menu">
+			<div class="scrolling menu flex-items-menu">
 				{{range $data.Reviewers}}
 					{{if .User}}
 						<a class="item muted {{if .Requested}}checked{{end}}" href="{{.User.HomeLink}}" data-value="{{.ItemID}}" data-can-change="{{.CanChange}}"
