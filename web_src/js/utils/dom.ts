@@ -301,7 +301,7 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
 }
 
 // Warning: Do not enter any unsanitized variables here
-export function createElementFromHTML(htmlString: string): HTMLElement {
+export function createElementFromHTML<T = HTMLElement>(htmlString: string): T {
   htmlString = htmlString.trim();
   // some tags like "tr" are special, it must use a correct parent container to create
   if (htmlString.startsWith('<tr')) {
