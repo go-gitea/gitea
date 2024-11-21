@@ -39,7 +39,7 @@ export function initCompCropper() {
     showElem(cropperContainer);
   };
 
-  input.addEventListener('change', (e) => {
+  input.addEventListener('change', (e: Event & {target: HTMLInputElement}) => {
     const files = e.target.files;
 
     let reader;
