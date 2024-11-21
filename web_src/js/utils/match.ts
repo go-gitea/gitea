@@ -1,6 +1,6 @@
 import emojis from '../../../assets/emoji.json';
 import {GET} from '../modules/fetch.ts';
-import type {Issue} from '../features/issue.ts';
+import type {Issue} from '../types.ts';
 
 const maxMatches = 6;
 
