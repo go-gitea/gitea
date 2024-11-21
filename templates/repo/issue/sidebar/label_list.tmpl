@@ -17,25 +17,27 @@
 					<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_labels"}}">
 				</div>
 				<a class="item clear-selection" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
-				{{$previousExclusiveScope := "_no_scope"}}
-				{{range $data.RepoLabels}}
-					{{$exclusiveScope := .ExclusiveScope}}
-					{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-						<div class="divider"></div>
+				<div class="scrolling menu">
+					{{$previousExclusiveScope := "_no_scope"}}
+					{{range $data.RepoLabels}}
+						{{$exclusiveScope := .ExclusiveScope}}
+						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+							<div class="divider"></div>
+						{{end}}
+						{{$previousExclusiveScope = $exclusiveScope}}
+						{{template "repo/issue/sidebar/label_list_item" dict "Label" .}}
 					{{end}}
-					{{$previousExclusiveScope = $exclusiveScope}}
-					{{template "repo/issue/sidebar/label_list_item" dict "Label" .}}
-				{{end}}
-				<div class="divider"></div>
-				{{$previousExclusiveScope = "_no_scope"}}
-				{{range $data.OrgLabels}}
-					{{$exclusiveScope := .ExclusiveScope}}
-					{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-						<div class="divider"></div>
+					{{if and $data.RepoLabels $data.OrgLabels}}<div class="divider"></div>{{end}}
+					{{$previousExclusiveScope = "_no_scope"}}
+					{{range $data.OrgLabels}}
+						{{$exclusiveScope := .ExclusiveScope}}
+						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+							<div class="divider"></div>
+						{{end}}
+						{{$previousExclusiveScope = $exclusiveScope}}
+						{{template "repo/issue/sidebar/label_list_item" dict "Label" .}}
 					{{end}}
-					{{$previousExclusiveScope = $exclusiveScope}}
-					{{template "repo/issue/sidebar/label_list_item" dict "Label" .}}
-				{{end}}
+				</div>
 			{{end}}
 		</div>
 	</div>

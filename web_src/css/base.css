@@ -1397,6 +1397,10 @@ table th[data-sortt-desc] .svg {
   gap: .5rem;
   min-width: 0;
 }
+.ui.dropdown .menu.flex-items-menu > .item img,
+.ui.dropdown .menu.flex-items-menu > .item svg {
+  margin: 0; /* use gap, but not margin */
+}
 
 .ui.dropdown.ellipsis-items-nowrap > .text {
   overflow: hidden;
