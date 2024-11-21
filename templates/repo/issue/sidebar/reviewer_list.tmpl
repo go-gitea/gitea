@@ -17,27 +17,29 @@
 					<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_reviewers"}}">
 				</div>
 			{{end}}
-			{{range $data.Reviewers}}
-				{{if .User}}
-					<a class="item muted {{if .Requested}}checked{{end}}" href="{{.User.HomeLink}}" data-value="{{.ItemID}}" data-can-change="{{.CanChange}}"
-						{{if not .CanChange}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-						<span class="item-check-mark">{{svg "octicon-check"}}</span>
-						{{ctx.AvatarUtils.Avatar .User 20}} {{template "repo/search_name" .User}}
-					</a>
-				{{end}}
-			{{end}}
-			{{if $data.TeamReviewers}}
-				{{if $data.Reviewers}}<div class="divider"></div>{{end}}
-				{{range $data.TeamReviewers}}
-					{{if .Team}}
-						<a class="item muted {{if .Requested}}checked{{end}}" href="#" data-value="{{.ItemID}}" data-can-change="{{.CanChange}}"
-							{{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+			<div class="scrolling menu flex-items-menu">
+				{{range $data.Reviewers}}
+					{{if .User}}
+						<a class="item muted {{if .Requested}}checked{{end}}" href="{{.User.HomeLink}}" data-value="{{.ItemID}}" data-can-change="{{.CanChange}}"
+							{{if not .CanChange}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 							<span class="item-check-mark">{{svg "octicon-check"}}</span>
-							{{svg "octicon-people" 20}} {{$repoOwnerName}}/{{.Team.Name}}
+							{{ctx.AvatarUtils.Avatar .User 20}} {{template "repo/search_name" .User}}
 						</a>
 					{{end}}
 				{{end}}
-			{{end}}
+				{{if $data.TeamReviewers}}
+					{{if $data.Reviewers}}<div class="divider"></div>{{end}}
+					{{range $data.TeamReviewers}}
+						{{if .Team}}
+							<a class="item muted {{if .Requested}}checked{{end}}" href="#" data-value="{{.ItemID}}" data-can-change="{{.CanChange}}"
+								{{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+								<span class="item-check-mark">{{svg "octicon-check"}}</span>
+								{{svg "octicon-people" 20}} {{$repoOwnerName}}/{{.Team.Name}}
+							</a>
+						{{end}}
+					{{end}}
+				{{end}}
+			</div>
 		</div>
 	</div>
 
