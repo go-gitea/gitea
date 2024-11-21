@@ -61,5 +61,5 @@ interface Window {
   grecaptcha: any,
   turnstile: any,
   hcaptcha: any,
-  codeEditors:  any[],
+  codeEditors: any[],
 }

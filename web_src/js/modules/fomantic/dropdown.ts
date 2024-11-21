@@ -98,7 +98,7 @@ function delegateOne($dropdown: any) {
 
   const oldSet = dropdownCall('internal', 'set');
   const oldSetDirection = oldSet.direction;
-  oldSet.direction = function($menu: JQuery) {
+  oldSet.direction = function($menu: any) {
     oldSetDirection.call(this, $menu);
     const classNames = dropdownCall('setting', 'className');
     $menu = $menu || $dropdown.find('> .menu');
