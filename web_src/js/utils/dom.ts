@@ -302,8 +302,15 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
 
 // Warning: Do not enter any unsanitized variables here
 export function createElementFromHTML(htmlString: string): HTMLElement {
+  htmlString = htmlString.trim();
+  // some tags like "tr" are special, it must use a correct parent container to create
+  if (htmlString.startsWith('<tr')) {
+    const container = document.createElement('table');
+    container.innerHTML = htmlString;
+    return container.querySelector('tr') as HTMLElement;
+  }
   const div = document.createElement('div');
-  div.innerHTML = htmlString.trim();
+  div.innerHTML = htmlString;
   return div.firstChild as HTMLElement;
 }
 
@@ -339,4 +346,12 @@ export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, s
   const candidates = Array.from(elems).filter(isElemVisible);
   if (candidates.length > 1) throw new Error(`Expected exactly one visible element matching selector "${selector}", but found ${candidates.length}`);
   return candidates.length ? candidates[0] as T : null;
+}
+
+export function addElemsEventListener<T extends HTMLElement>(parent: Node, type: string, selector: string, listener: (elem: T, e: Event) => void | Promise<any>, options?: boolean | AddEventListenerOptions) {
+  parent.addEventListener(type, (e: Event) => {
+    const elem = (e.target as HTMLElement).closest(selector);
+    if (!elem) return;
+    listener(elem as T, e);
+  }, options);
 }
