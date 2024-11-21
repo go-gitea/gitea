@@ -130,7 +130,7 @@
 								</div>
 								<span class="file tw-flex tw-items-center tw-font-mono tw-flex-1"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}</a>
 									{{if .IsLFSFile}} ({{ctx.Locale.Tr "repo.stored_lfs"}}){{end}}
-									<button class="btn interact-fg tw-p-2" data-clipboard-text="{{$file.Name}}">{{svg "octicon-copy" 14}}</button>
+									<button class="btn interact-fg tw-p-2" data-clipboard-text="{{$file.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_path"}}">{{svg "octicon-copy" 14}}</button>
 									{{if $file.IsGenerated}}
 										<span class="ui label">{{ctx.Locale.Tr "repo.diff.generated"}}</span>
 									{{end}}

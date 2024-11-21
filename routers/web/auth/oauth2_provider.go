@@ -98,7 +98,7 @@ func InfoOAuth(ctx *context.Context) {
 
 	response := &userInfoResponse{
 		Sub:               fmt.Sprint(ctx.Doer.ID),
-		Name:              ctx.Doer.FullName,
+		Name:              ctx.Doer.DisplayName(),
 		PreferredUsername: ctx.Doer.Name,
 		Email:             ctx.Doer.Email,
 		Picture:           ctx.Doer.AvatarLink(ctx),

@@ -6,8 +6,7 @@ package console
 import (
 	"bytes"
 	"io"
-	"path/filepath"
-	"regexp"
+	"path"
 
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
@@ -36,7 +35,7 @@ func (Renderer) Extensions() []string {
 // SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{
-		{Element: "span", AllowAttr: "class", Regexp: regexp.MustCompile(`^term-((fg[ix]?|bg)\d+|container)$`)},
+		{Element: "span", AllowAttr: "class", Regexp: `^term-((fg[ix]?|bg)\d+|container)$`},
 	}
 }
 
@@ -46,7 +45,7 @@ func (Renderer) CanRender(filename string, input io.Reader) bool {
 	if err != nil {
 		return false
 	}
-	if enry.GetLanguage(filepath.Base(filename), buf) != enry.OtherLanguage {
+	if enry.GetLanguage(path.Base(filename), buf) != enry.OtherLanguage {
 		return false
 	}
 	return bytes.ContainsRune(buf, '\x1b')
