@@ -377,31 +377,43 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 	}
 
 	defer rd.Close()
+	return configParseSubModules(rd)
+}
+
+func configParseSubModules(rd io.Reader) (*ObjectCache, error) {
 	scanner := bufio.NewScanner(rd)
-	c.submoduleCache = newObjectCache()
-	var ismodule bool
-	var path string
+	submoduleCache := newObjectCache()
+	var subModule *SubModule
 	for scanner.Scan() {
-		if strings.HasPrefix(scanner.Text(), "[submodule") {
-			ismodule = true
+		line := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix(line, "[") {
+			if subModule != nil {
+				submoduleCache.Set(subModule.Name, subModule)
+				subModule = nil
+			}
+			if strings.HasPrefix(line, "[submodule") {
+				subModule = &SubModule{}
+			}
 			continue
 		}
-		if ismodule {
-			fields := strings.Split(scanner.Text(), "=")
+		if subModule != nil {
+			fields := strings.Split(line, "=")
 			k := strings.TrimSpace(fields[0])
 			if k == "path" {
-				path = strings.TrimSpace(fields[1])
+				subModule.Name = strings.TrimSpace(fields[1])
 			} else if k == "url" {
-				c.submoduleCache.Set(path, &SubModule{path, strings.TrimSpace(fields[1])})
-				ismodule = false
+				subModule.URL = strings.TrimSpace(fields[1])
 			}
 		}
 	}
-	if err = scanner.Err(); err != nil {
+	if subModule != nil {
+		submoduleCache.Set(subModule.Name, subModule)
+	}
+	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("GetSubModules scan: %w", err)
 	}
 
-	return c.submoduleCache, nil
+	return submoduleCache, nil
 }
 
 // GetSubModule get the sub module according entryname
