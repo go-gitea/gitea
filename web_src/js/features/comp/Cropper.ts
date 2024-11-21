@@ -13,7 +13,7 @@ export function initCompCropper() {
   const result = document.querySelector('#cropper-result');
   const input = document.querySelector('#new-avatar');
 
-  const done = function (url) {
+  const done = function (url: string): void {
     source.src = url;
     result.src = url;
 
