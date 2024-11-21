@@ -301,13 +301,13 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
 }
 
 // Warning: Do not enter any unsanitized variables here
-export function createElementFromHTML<T = HTMLElement>(htmlString: string): T {
+export function createElementFromHTML<T extends HTMLElement>(htmlString: string): T {
   htmlString = htmlString.trim();
   // some tags like "tr" are special, it must use a correct parent container to create
   if (htmlString.startsWith('<tr')) {
     const container = document.createElement('table');
     container.innerHTML = htmlString;
-    return container.querySelector('tr') as T;
+    return container.querySelector<T>('tr');
   }
   const div = document.createElement('div');
   div.innerHTML = htmlString;
