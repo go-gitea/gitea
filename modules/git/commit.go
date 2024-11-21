@@ -377,13 +377,17 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 	}
 
 	defer rd.Close()
+	return configParseSubModules(rd)
+}
+
+func configParseSubModules(rd io.Reader) (*ObjectCache, error) {
 	scanner := bufio.NewScanner(rd)
-	c.submoduleCache = newObjectCache()
+	submoduleCache := newObjectCache()
 	var subModule *SubModule
 	for scanner.Scan() {
 		if strings.HasPrefix(scanner.Text(), "[") {
 			if subModule != nil {
-				c.submoduleCache.Set(subModule.Name, subModule)
+				submoduleCache.Set(subModule.Name, subModule)
 				subModule = nil
 			}
 			if strings.HasPrefix(scanner.Text(), "[submodule") {
@@ -402,13 +406,13 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 		}
 	}
 	if subModule != nil {
-		c.submoduleCache.Set(subModule.Name, subModule)
+		submoduleCache.Set(subModule.Name, subModule)
 	}
-	if err = scanner.Err(); err != nil {
+	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("GetSubModules scan: %w", err)
 	}
 
-	return c.submoduleCache, nil
+	return submoduleCache, nil
 }
 
 // GetSubModule get the sub module according entryname
