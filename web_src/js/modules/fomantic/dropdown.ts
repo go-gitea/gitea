@@ -75,7 +75,7 @@ function delegateOne($dropdown: any) {
   // the "template" functions are used for dynamic creation (eg: AJAX)
   const dropdownTemplates = {...dropdownCall('setting', 'templates'), t: performance.now()};
   const dropdownTemplatesMenuOld = dropdownTemplates.menu;
-  dropdownTemplates.menu = function(response: any, fields: any, preserveHTML: any, className: string) {
+  dropdownTemplates.menu = function(response: any, fields: any, preserveHTML: any, className: Record<string, string>) {
     // when the dropdown menu items are loaded from AJAX requests, the items are created dynamically
     const menuItems = dropdownTemplatesMenuOld(response, fields, preserveHTML, className);
     const div = document.createElement('div');
