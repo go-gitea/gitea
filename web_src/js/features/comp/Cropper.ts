@@ -44,7 +44,7 @@ export function initCompCropper() {
 
     let reader;
     let file;
-    if (files && files.length > 0) {
+    if (files?.length > 0) {
       file = files[0];
       filename = file.name;
       if (URL) {
