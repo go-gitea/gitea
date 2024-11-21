@@ -53,11 +53,6 @@
 .issue-sidebar-combo .ui.dropdown .item:not(.checked) .item-check-mark {
   visibility: hidden;
 }
-/* ideally, we should move these styles to ".ui.dropdown .menu.flex-items-menu > .item ...", could be done later */
-.issue-sidebar-combo .ui.dropdown .menu > .item > img,
-.issue-sidebar-combo .ui.dropdown .menu > .item > svg {
-  margin: 0;
-}
 
 .issue-content-right .dropdown > .menu {
   max-width: 270px;
@@ -77,11 +72,6 @@
   .issue-content-right {
     width: 100%;
   }
-}
-
-.repository .issue-content-right .filter.menu {
-  max-height: 500px;
-  overflow-x: auto;
 }
 
 .repository .filter.menu.labels .label-filter .menu .info {
