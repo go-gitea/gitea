@@ -80,12 +80,12 @@ func (err errCallback) Error() string {
 }
 
 type userInfoResponse struct {
-	Sub      string   `json:"sub"`
-	Name     string   `json:"name"`
-	Username string   `json:"preferred_username"`
-	Email    string   `json:"email"`
-	Picture  string   `json:"picture"`
-	Groups   []string `json:"groups"`
+	Sub               string   `json:"sub"`
+	Name              string   `json:"name"`
+	PreferredUsername string   `json:"preferred_username"`
+	Email             string   `json:"email"`
+	Picture           string   `json:"picture"`
+	Groups            []string `json:"groups"`
 }
 
 // InfoOAuth manages request for userinfo endpoint
@@ -97,11 +97,11 @@ func InfoOAuth(ctx *context.Context) {
 	}
 
 	response := &userInfoResponse{
-		Sub:      fmt.Sprint(ctx.Doer.ID),
-		Name:     ctx.Doer.FullName,
-		Username: ctx.Doer.Name,
-		Email:    ctx.Doer.Email,
-		Picture:  ctx.Doer.AvatarLink(ctx),
+		Sub:               fmt.Sprint(ctx.Doer.ID),
+		Name:              ctx.Doer.DisplayName(),
+		PreferredUsername: ctx.Doer.Name,
+		Email:             ctx.Doer.Email,
+		Picture:           ctx.Doer.AvatarLink(ctx),
 	}
 
 	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer)

@@ -61,12 +61,16 @@
 					{{if .Issue.PullRequest.IsAgitFlow}}
 						{{$headHref = HTMLFormat `%s <a href="%s" target="_blank"><span class="ui label basic tiny" data-tooltip-content="%s">AGit</span></a>` $headHref "https://docs.gitea.com/usage/agit" (ctx.Locale.Tr "repo.pull.agit_documentation")}}
 					{{else}}
-						{{$headHref = HTMLFormat `<span data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "form.target_branch_not_exist") $headHref}}
+						{{$headHref = HTMLFormat `<span class="tw-line-through" data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "form.target_branch_not_exist") $headHref}}
 					{{end}}
 				{{end}}
 				{{$baseHref := .BaseTarget}}
 				{{if .BaseBranchLink}}
-					{{$baseHref = HTMLFormat `<a href="%s">%s</a>` .BaseBranchLink $baseHref}}
+					{{if .BaseBranchNotExist}}
+						{{$baseHref = HTMLFormat `<span class="tw-line-through" data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "form.target_branch_not_exist") $baseHref}}
+					{{else}}
+						{{$baseHref = HTMLFormat `<a href="%s">%s</a>` .BaseBranchLink $baseHref}}
+					{{end}}
 				{{end}}
 				{{if .Issue.PullRequest.HasMerged}}
 					{{$mergedStr:= DateUtils.TimeSince .Issue.PullRequest.MergedUnix}}
