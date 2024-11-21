@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/oauth2_provider"
 )
 
@@ -54,6 +55,18 @@ func GetOAuthAccessTokenScopeAndUserID(ctx context.Context, accessToken string) 
 	}
 	accessTokenScope = oauth2_provider.GrantAdditionalScopes(grant.Scope)
 	return accessTokenScope, grant.UserID
+}
+
+// CheckTaskIsRunning verifies that the TaskID corresponds to a running task
+func CheckTaskIsRunning(ctx context.Context, taskID int64) bool {
+	// Verify the task exists
+	task, err := actions_model.GetTaskByID(ctx, taskID)
+	if err != nil {
+		return false
+	}
+
+	// Verify that it's running
+	return task.Status == actions_model.StatusRunning
 }
 
 // OAuth2 implements the Auth interface and authenticates requests
@@ -99,8 +112,17 @@ func parseToken(req *http.Request) (string, bool) {
 func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store DataStore) int64 {
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
-		accessTokenScope, uid := GetOAuthAccessTokenScopeAndUserID(ctx, tokenSHA)
+		// First attempt to decode an actions JWT, returning the actions user
+		if taskID, err := actions.TokenToTaskID(tokenSHA); err == nil {
+			if CheckTaskIsRunning(ctx, taskID) {
+				store.GetData()["IsActionsToken"] = true
+				store.GetData()["ActionsTaskID"] = taskID
+				return user_model.ActionsUserID
+			}
+		}
 
+		// Otherwise, check if this is an OAuth access token
+    accessTokenScope, uid := GetOAuthAccessTokenScopeAndUserID(ctx, tokenSHA)
 		if uid != 0 {
 			store.GetData()["IsApiToken"] = true
 			store.GetData()["ApiTokenScope"] = accessTokenScope
