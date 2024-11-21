@@ -1,0 +1,28 @@
+From 4c24231b259c420267fd543f55bd3c1124f6f2fb Mon Sep 17 00:00:00 2001
+From: Brecht Van Lommel <brecht@blender.org>
+Date: Fri, 10 May 2024 14:58:32 +0200
+Subject: [PATCH] BLENDER: Add docs explaining merge strategy
+
+---
+ BLENDER_README.md | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+ create mode 100644 BLENDER_README.md
+
+diff --git a/BLENDER_README.md b/BLENDER_README.md
+new file mode 100644
+index 0000000000000..f5bd495d5e96d
+--- /dev/null
++++ b/BLENDER_README.md
+@@ -0,0 +1,12 @@
++# Blender Merges
++
++Currently the process for merging upstream changes is to rebase, and keep
++Blender modifications on top. This keeps a clear overview of the modifications
++that were made.
++
++When merging a major new release, cherry-pick all the Blender commits on
++top of it. A simple `git rebase` will not work because the release and main
++branches diverge.
++
++First do changes in `blender-merged-develop`, and deploy on uatest. Then apply
++the changes in `blender-merged` and deploy in production.

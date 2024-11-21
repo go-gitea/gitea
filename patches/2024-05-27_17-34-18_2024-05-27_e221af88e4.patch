@@ -1,0 +1,608 @@
+From e221af88e4355ede72e0cb3cd4bd55e17af8e062 Mon Sep 17 00:00:00 2001
+From: metiftikci <metiftikci@hotmail.com>
+Date: Mon, 27 May 2024 18:34:18 +0300
+Subject: [PATCH] BLENDER: Prevent simultaneous editing of comments and issues
+
+This backports upstream 31053. This commit can be removed when
+upgrading to the next Gitea function that contains this.
+---
+ models/issues/comment.go                      | 13 +++-
+ models/issues/issue.go                        |  3 +
+ models/issues/issue_update.go                 | 11 +++-
+ models/migrations/migrations.go               |  9 ++-
+ models/migrations/v1_23/v299.go               | 18 +++++
+ options/locale/locale_en-US.ini               |  4 ++
+ routers/api/v1/repo/issue.go                  |  7 +-
+ routers/api/v1/repo/issue_attachment.go       |  2 +-
+ routers/api/v1/repo/issue_comment.go          |  2 +-
+ .../api/v1/repo/issue_comment_attachment.go   |  2 +-
+ routers/api/v1/repo/pull.go                   |  7 +-
+ routers/web/repo/issue.go                     | 23 +++++--
+ services/issue/comments.go                    |  4 +-
+ services/issue/content.go                     |  4 +-
+ templates/repo/diff/comments.tmpl             |  2 +-
+ templates/repo/issue/view_content.tmpl        |  2 +-
+ .../repo/issue/view_content/comments.tmpl     |  4 +-
+ .../repo/issue/view_content/conversation.tmpl |  2 +-
+ tests/integration/issue_test.go               | 66 +++++++++++++++++++
+ web_src/js/features/repo-issue-edit.js        |  7 ++
+ web_src/js/markup/tasklist.js                 | 12 +++-
+ 21 files changed, 176 insertions(+), 28 deletions(-)
+ create mode 100644 models/migrations/v1_23/v299.go
+
+diff --git a/models/issues/comment.go b/models/issues/comment.go
+index 353163ebd6f99..584142d98c7f0 100644
+--- a/models/issues/comment.go
++++ b/models/issues/comment.go
+@@ -52,6 +52,8 @@ func (err ErrCommentNotExist) Unwrap() error {
+ 	return util.ErrNotExist
+ }
+
++var ErrCommentAlreadyChanged = util.NewInvalidArgumentErrorf("the comment is already changed")
++
+ // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
+ type CommentType int
+
+@@ -262,6 +264,7 @@ type Comment struct {
+ 	Line            int64 // - previous line / + proposed line
+ 	TreePath        string
+ 	Content         string        `xorm:"LONGTEXT"`
++	ContentVersion  int           `xorm:"NOT NULL DEFAULT 0"`
+ 	RenderedContent template.HTML `xorm:"-"`
+
+ 	// Path represents the 4 lines of code cemented by this comment
+@@ -1111,7 +1114,7 @@ func UpdateCommentInvalidate(ctx context.Context, c *Comment) error {
+ }
+
+ // UpdateComment updates information of comment.
+-func UpdateComment(ctx context.Context, c *Comment, doer *user_model.User) error {
++func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *user_model.User) error {
+ 	ctx, committer, err := db.TxContext(ctx)
+ 	if err != nil {
+ 		return err
+@@ -1119,9 +1122,15 @@ func UpdateComment(ctx context.Context, c *Comment, doer *user_model.User) error
+ 	defer committer.Close()
+ 	sess := db.GetEngine(ctx)
+
+-	if _, err := sess.ID(c.ID).AllCols().Update(c); err != nil {
++	c.ContentVersion = contentVersion + 1
++
++	affected, err := sess.ID(c.ID).AllCols().Where("content_version = ?", contentVersion).Update(c)
++	if err != nil {
+ 		return err
+ 	}
++	if affected == 0 {
++		return ErrCommentAlreadyChanged
++	}
+ 	if err := c.LoadIssue(ctx); err != nil {
+ 		return err
+ 	}
+diff --git a/models/issues/issue.go b/models/issues/issue.go
+index 87c1c86eb15be..aad855522d164 100644
+--- a/models/issues/issue.go
++++ b/models/issues/issue.go
+@@ -94,6 +94,8 @@ func (err ErrIssueWasClosed) Error() string {
+ 	return fmt.Sprintf("Issue [%d] %d was already closed", err.ID, err.Index)
+ }
+
++var ErrIssueAlreadyChanged = util.NewInvalidArgumentErrorf("the issue is already changed")
++
+ // Issue represents an issue or pull request of repository.
+ type Issue struct {
+ 	ID               int64                  `xorm:"pk autoincr"`
+@@ -107,6 +109,7 @@ type Issue struct {
+ 	Title            string                 `xorm:"name"`
+ 	Content          string                 `xorm:"LONGTEXT"`
+ 	RenderedContent  template.HTML          `xorm:"-"`
++	ContentVersion   int                    `xorm:"NOT NULL DEFAULT 0"`
+ 	Labels           []*Label               `xorm:"-"`
+ 	MilestoneID      int64                  `xorm:"INDEX"`
+ 	Milestone        *Milestone             `xorm:"-"`
+diff --git a/models/issues/issue_update.go b/models/issues/issue_update.go
+index 147b7eb3b91b0..31d76be5e0aea 100644
+--- a/models/issues/issue_update.go
++++ b/models/issues/issue_update.go
+@@ -235,7 +235,7 @@ func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string)
+ }
+
+ // ChangeIssueContent changes issue content, as the given user.
+-func ChangeIssueContent(ctx context.Context, issue *Issue, doer *user_model.User, content string) (err error) {
++func ChangeIssueContent(ctx context.Context, issue *Issue, doer *user_model.User, content string, contentVersion int) (err error) {
+ 	ctx, committer, err := db.TxContext(ctx)
+ 	if err != nil {
+ 		return err
+@@ -254,9 +254,14 @@ func ChangeIssueContent(ctx context.Context, issue *Issue, doer *user_model.User
+ 	}
+
+ 	issue.Content = content
++	issue.ContentVersion = contentVersion + 1
+
+-	if err = UpdateIssueCols(ctx, issue, "content"); err != nil {
+-		return fmt.Errorf("UpdateIssueCols: %w", err)
++	affected, err := db.GetEngine(ctx).ID(issue.ID).Cols("content", "content_version").Where("content_version = ?", contentVersion).Update(issue)
++	if err != nil {
++		return err
++	}
++	if affected == 0 {
++		return ErrIssueAlreadyChanged
+ 	}
+
+ 	if err = SaveIssueContentHistory(ctx, doer.ID, issue.ID, 0,
+diff --git a/models/migrations/migrations.go b/models/migrations/migrations.go
+index 4501585250597..658bdfc897c24 100644
+--- a/models/migrations/migrations.go
++++ b/models/migrations/migrations.go
+@@ -21,6 +21,7 @@ import (
+ 	"code.gitea.io/gitea/models/migrations/v1_20"
+ 	"code.gitea.io/gitea/models/migrations/v1_21"
+ 	"code.gitea.io/gitea/models/migrations/v1_22"
++	"code.gitea.io/gitea/models/migrations/v1_23"
+ 	"code.gitea.io/gitea/models/migrations/v1_6"
+ 	"code.gitea.io/gitea/models/migrations/v1_7"
+ 	"code.gitea.io/gitea/models/migrations/v1_8"
+@@ -70,6 +71,12 @@ type Version struct {
+ // Use noopMigration when there is a migration that has been no-oped
+ var noopMigration = func(_ *xorm.Engine) error { return nil }
+
++// BLENDER: hack to backport feature without going to 1.23 table
++func BLENDER_v122_migration(x *xorm.Engine) error {
++  v1_22.DropWronglyCreatedTable(x)
++  return v1_23.AddContentVersionToIssueAndComment(x)
++}
++
+ // This is a sequence of migrations. Add new migrations to the bottom of the list.
+ // If you want to "retire" a migration, remove it from the top of the list and
+ // update minDBVersion accordingly
+@@ -584,7 +591,7 @@ var migrations = []Migration{
+ 	// v297 -> v298
+ 	NewMigration("Add everyone_access_mode for repo_unit", v1_22.AddRepoUnitEveryoneAccessMode),
+ 	// v298 -> v299
+-	NewMigration("Drop wrongly created table o_auth2_application", v1_22.DropWronglyCreatedTable),
++	NewMigration("Drop wrongly created table o_auth2_application", BLENDER_v122_migration),
+
+ 	// Gitea 1.22.0-rc1 ends at 299
+ }
+diff --git a/models/migrations/v1_23/v299.go b/models/migrations/v1_23/v299.go
+new file mode 100644
+index 0000000000000..f6db960c3b41b
+--- /dev/null
++++ b/models/migrations/v1_23/v299.go
+@@ -0,0 +1,18 @@
++// Copyright 2024 The Gitea Authors. All rights reserved.
++// SPDX-License-Identifier: MIT
++
++package v1_23 //nolint
++
++import "xorm.io/xorm"
++
++func AddContentVersionToIssueAndComment(x *xorm.Engine) error {
++	type Issue struct {
++		ContentVersion int `xorm:"NOT NULL DEFAULT 0"`
++	}
++
++	type Comment struct {
++		ContentVersion int `xorm:"NOT NULL DEFAULT 0"`
++	}
++
++	return x.Sync(new(Comment), new(Issue))
++}
+diff --git a/options/locale/locale_en-US.ini b/options/locale/locale_en-US.ini
+index 0c3bd1bf669ae..87215bcf09c96 100644
+--- a/options/locale/locale_en-US.ini
++++ b/options/locale/locale_en-US.ini
+@@ -1443,6 +1443,7 @@ issues.new.clear_assignees = Clear assignees
+ issues.new.no_assignees = No Assignees
+ issues.new.no_reviewers = No reviewers
+ issues.new.blocked_user = Cannot create issue because you are blocked by the repository owner.
++issues.edit.already_changed = Unable to save changes to the issue. It appears the content has already been changed by another user. Please refresh the page and try editing again to avoid overwriting their changes
+ issues.edit.blocked_user = Cannot edit content because you are blocked by the poster or repository owner.
+ issues.choose.get_started = Get Started
+ issues.choose.open_external_link = Open
+@@ -1758,6 +1759,7 @@ compare.compare_head = compare
+ pulls.desc = Enable pull requests and code reviews.
+ pulls.new = New Pull Request
+ pulls.new.blocked_user = Cannot create pull request because you are blocked by the repository owner.
++pulls.edit.already_changed = Unable to save changes to the pull request. It appears the content has already been changed by another user. Please refresh the page and try editing again to avoid overwriting their changes
+ pulls.view = View Pull Request
+ pulls.compare_changes = New Pull Request
+ pulls.allow_edits_from_maintainers = Allow edits from maintainers
+@@ -1903,6 +1905,8 @@ pulls.recently_pushed_new_branches = You pushed on branch <strong>%[1]s</strong>
+
+ pull.deleted_branch = (deleted):%s
+
++comments.edit.already_changed = Unable to save changes to the comment. It appears the content has already been changed by another user. Please refresh the page and try editing again to avoid overwriting their changes
++
+ milestones.new = New Milestone
+ milestones.closed = Closed %s
+ milestones.update_ago = Updated %s
+diff --git a/routers/api/v1/repo/issue.go b/routers/api/v1/repo/issue.go
+index b91fbc33bfc5f..ddfc36f17dffb 100644
+--- a/routers/api/v1/repo/issue.go
++++ b/routers/api/v1/repo/issue.go
+@@ -810,8 +810,13 @@ func EditIssue(ctx *context.APIContext) {
+ 		}
+ 	}
+ 	if form.Body != nil {
+-		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body)
++		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, issue.ContentVersion)
+ 		if err != nil {
++			if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
++				ctx.Error(http.StatusBadRequest, "ChangeContent", err)
++				return
++			}
++
+ 			ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
+ 			return
+ 		}
+diff --git a/routers/api/v1/repo/issue_attachment.go b/routers/api/v1/repo/issue_attachment.go
+index f5a28e6fa6bb1..ef846a43a346e 100644
+--- a/routers/api/v1/repo/issue_attachment.go
++++ b/routers/api/v1/repo/issue_attachment.go
+@@ -198,7 +198,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
+
+ 	issue.Attachments = append(issue.Attachments, attachment)
+
+-	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, issue.Content); err != nil {
++	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, issue.Content, issue.ContentVersion); err != nil {
+ 		ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
+ 		return
+ 	}
+diff --git a/routers/api/v1/repo/issue_comment.go b/routers/api/v1/repo/issue_comment.go
+index 070571ba62e72..910cc1ce7456b 100644
+--- a/routers/api/v1/repo/issue_comment.go
++++ b/routers/api/v1/repo/issue_comment.go
+@@ -611,7 +611,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption)
+
+ 	oldContent := comment.Content
+ 	comment.Content = form.Body
+-	if err := issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
++	if err := issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, oldContent); err != nil {
+ 		if errors.Is(err, user_model.ErrBlockedUser) {
+ 			ctx.Error(http.StatusForbidden, "UpdateComment", err)
+ 		} else {
+diff --git a/routers/api/v1/repo/issue_comment_attachment.go b/routers/api/v1/repo/issue_comment_attachment.go
+index 77aa7f0400499..1ec758ec2ce8f 100644
+--- a/routers/api/v1/repo/issue_comment_attachment.go
++++ b/routers/api/v1/repo/issue_comment_attachment.go
+@@ -210,7 +210,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
+ 		return
+ 	}
+
+-	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, comment.Content); err != nil {
++	if err = issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, comment.Content); err != nil {
+ 		if errors.Is(err, user_model.ErrBlockedUser) {
+ 			ctx.Error(http.StatusForbidden, "UpdateComment", err)
+ 		} else {
+diff --git a/routers/api/v1/repo/pull.go b/routers/api/v1/repo/pull.go
+index 38a32a73c78e7..a9aa5c4d8efde 100644
+--- a/routers/api/v1/repo/pull.go
++++ b/routers/api/v1/repo/pull.go
+@@ -610,8 +610,13 @@ func EditPullRequest(ctx *context.APIContext) {
+ 		}
+ 	}
+ 	if form.Body != nil {
+-		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body)
++		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, issue.ContentVersion)
+ 		if err != nil {
++			if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
++				ctx.Error(http.StatusBadRequest, "ChangeContent", err)
++				return
++			}
++
+ 			ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
+ 			return
+ 		}
+diff --git a/routers/web/repo/issue.go b/routers/web/repo/issue.go
+index e72861d9a7d88..a3757507f7809 100644
+--- a/routers/web/repo/issue.go
++++ b/routers/web/repo/issue.go
+@@ -2254,9 +2254,15 @@ func UpdateIssueContent(ctx *context.Context) {
+ 		return
+ 	}
+
+-	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, ctx.Req.FormValue("content")); err != nil {
++	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, ctx.Req.FormValue("content"), ctx.FormInt("content_version")); err != nil {
+ 		if errors.Is(err, user_model.ErrBlockedUser) {
+ 			ctx.JSONError(ctx.Tr("repo.issues.edit.blocked_user"))
++		} else if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
++			if issue.IsPull {
++				ctx.JSONError(ctx.Tr("repo.pulls.edit.already_changed"))
++			} else {
++				ctx.JSONError(ctx.Tr("repo.issues.edit.already_changed"))
++			}
+ 		} else {
+ 			ctx.ServerError("ChangeContent", err)
+ 		}
+@@ -2285,8 +2291,9 @@ func UpdateIssueContent(ctx *context.Context) {
+ 	}
+
+ 	ctx.JSON(http.StatusOK, map[string]any{
+-		"content":     content,
+-		"attachments": attachmentsHTML(ctx, issue.Attachments, issue.Content),
++		"content":        content,
++		"contentVersion": issue.ContentVersion,
++		"attachments":    attachmentsHTML(ctx, issue.Attachments, issue.Content),
+ 	})
+ }
+
+@@ -3160,12 +3167,15 @@ func UpdateCommentContent(ctx *context.Context) {
+
+ 	oldContent := comment.Content
+ 	newContent := ctx.FormString("content")
++	contentVersion := ctx.FormInt("content_version")
+
+ 	// allow to save empty content
+ 	comment.Content = newContent
+-	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
++	if err = issue_service.UpdateComment(ctx, comment, contentVersion, ctx.Doer, oldContent); err != nil {
+ 		if errors.Is(err, user_model.ErrBlockedUser) {
+ 			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
++		} else if errors.Is(err, issues_model.ErrCommentAlreadyChanged) {
++			ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
+ 		} else {
+ 			ctx.ServerError("UpdateComment", err)
+ 		}
+@@ -3205,8 +3215,9 @@ func UpdateCommentContent(ctx *context.Context) {
+ 	}
+
+ 	ctx.JSON(http.StatusOK, map[string]any{
+-		"content":     renderedContent,
+-		"attachments": attachmentsHTML(ctx, comment.Attachments, comment.Content),
++		"content":        renderedContent,
++		"contentVersion": comment.ContentVersion,
++		"attachments":    attachmentsHTML(ctx, comment.Attachments, comment.Content),
+ 	})
+ }
+
+diff --git a/services/issue/comments.go b/services/issue/comments.go
+index d68623aff6833..33b5702a00c4d 100644
+--- a/services/issue/comments.go
++++ b/services/issue/comments.go
+@@ -82,7 +82,7 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
+ }
+
+ // UpdateComment updates information of comment.
+-func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_model.User, oldContent string) error {
++func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion int, doer *user_model.User, oldContent string) error {
+ 	if err := c.LoadIssue(ctx); err != nil {
+ 		return err
+ 	}
+@@ -110,7 +110,7 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_mode
+ 		}
+ 	}
+
+-	if err := issues_model.UpdateComment(ctx, c, doer); err != nil {
++	if err := issues_model.UpdateComment(ctx, c, contentVersion, doer); err != nil {
+ 		return err
+ 	}
+
+diff --git a/services/issue/content.go b/services/issue/content.go
+index 2f9bee806a9b1..6894182909275 100644
+--- a/services/issue/content.go
++++ b/services/issue/content.go
+@@ -13,7 +13,7 @@ import (
+ )
+
+ // ChangeContent changes issue content, as the given user.
+-func ChangeContent(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, content string) error {
++func ChangeContent(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, content string, contentVersion int) error {
+ 	if err := issue.LoadRepo(ctx); err != nil {
+ 		return err
+ 	}
+@@ -26,7 +26,7 @@ func ChangeContent(ctx context.Context, issue *issues_model.Issue, doer *user_mo
+
+ 	oldContent := issue.Content
+
+-	if err := issues_model.ChangeIssueContent(ctx, issue, doer, content); err != nil {
++	if err := issues_model.ChangeIssueContent(ctx, issue, doer, content, contentVersion); err != nil {
+ 		return err
+ 	}
+
+diff --git a/templates/repo/diff/comments.tmpl b/templates/repo/diff/comments.tmpl
+index c7f4337182415..90d6a511bfab6 100644
+--- a/templates/repo/diff/comments.tmpl
++++ b/templates/repo/diff/comments.tmpl
+@@ -61,7 +61,7 @@
+ 			{{end}}
+ 			</div>
+ 			<div id="issuecomment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
+-			<div class="edit-content-zone tw-hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{$.root.RepoLink}}/comments/{{.ID}}/attachments"></div>
++			<div class="edit-content-zone tw-hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{$.root.RepoLink}}/comments/{{.ID}}/attachments"></div>
+ 			{{if .Attachments}}
+ 				{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
+ 			{{end}}
+diff --git a/templates/repo/issue/view_content.tmpl b/templates/repo/issue/view_content.tmpl
+index d40134ed08598..3088c605104f1 100644
+--- a/templates/repo/issue/view_content.tmpl
++++ b/templates/repo/issue/view_content.tmpl
+@@ -60,7 +60,7 @@
+ 							{{end}}
+ 						</div>
+ 						<div id="issue-{{.Issue.ID}}-raw" class="raw-content tw-hidden">{{.Issue.Content}}</div>
+-						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
++						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-content-version="{{.Issue.ContentVersion}}" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
+ 						{{if .Issue.Attachments}}
+ 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Issue.Attachments "RenderedContent" .Issue.RenderedContent}}
+ 						{{end}}
+diff --git a/templates/repo/issue/view_content/comments.tmpl b/templates/repo/issue/view_content/comments.tmpl
+index acc04e4c61514..3da2f3815ee3f 100644
+--- a/templates/repo/issue/view_content/comments.tmpl
++++ b/templates/repo/issue/view_content/comments.tmpl
+@@ -67,7 +67,7 @@
+ 							{{end}}
+ 						</div>
+ 						<div id="issuecomment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
+-						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
++						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+ 						{{if .Attachments}}
+ 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
+ 						{{end}}
+@@ -441,7 +441,7 @@
+ 								{{end}}
+ 							</div>
+ 							<div id="issuecomment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
+-							<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
++							<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+ 							{{if .Attachments}}
+ 								{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
+ 							{{end}}
+diff --git a/templates/repo/issue/view_content/conversation.tmpl b/templates/repo/issue/view_content/conversation.tmpl
+index ac32a2db5d2a2..43ec9d75c4176 100644
+--- a/templates/repo/issue/view_content/conversation.tmpl
++++ b/templates/repo/issue/view_content/conversation.tmpl
+@@ -96,7 +96,7 @@
+ 								{{end}}
+ 								</div>
+ 								<div id="issuecomment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
+-								<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
++								<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+ 								{{if .Attachments}}
+ 									{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
+ 								{{end}}
+diff --git a/tests/integration/issue_test.go b/tests/integration/issue_test.go
+index d74516d110a61..308b82d4b950b 100644
+--- a/tests/integration/issue_test.go
++++ b/tests/integration/issue_test.go
+@@ -191,6 +191,34 @@ func TestNewIssue(t *testing.T) {
+ 	testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+ }
+
++func TestEditIssue(t *testing.T) {
++	defer tests.PrepareTestEnv(t)()
++	session := loginUser(t, "user2")
++	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
++
++	req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
++		"_csrf":   GetCSRF(t, session, issueURL),
++		"content": "modified content",
++		"context": fmt.Sprintf("/%s/%s", "user2", "repo1"),
++	})
++	session.MakeRequest(t, req, http.StatusOK)
++
++	req = NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
++		"_csrf":   GetCSRF(t, session, issueURL),
++		"content": "modified content",
++		"context": fmt.Sprintf("/%s/%s", "user2", "repo1"),
++	})
++	session.MakeRequest(t, req, http.StatusBadRequest)
++
++	req = NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
++		"_csrf":           GetCSRF(t, session, issueURL),
++		"content":         "modified content",
++		"content_version": "1",
++		"context":         fmt.Sprintf("/%s/%s", "user2", "repo1"),
++	})
++	session.MakeRequest(t, req, http.StatusOK)
++}
++
+ func TestIssueCommentClose(t *testing.T) {
+ 	defer tests.PrepareTestEnv(t)()
+ 	session := loginUser(t, "user2")
+@@ -257,6 +285,44 @@ func TestIssueCommentUpdate(t *testing.T) {
+ 	assert.Equal(t, modifiedContent, comment.Content)
+ }
+
++func TestIssueCommentUpdateSimultaneously(t *testing.T) {
++	defer tests.PrepareTestEnv(t)()
++	session := loginUser(t, "user2")
++	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
++	comment1 := "Test comment 1"
++	commentID := testIssueAddComment(t, session, issueURL, comment1, "")
++
++	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: commentID})
++	assert.Equal(t, comment1, comment.Content)
++
++	modifiedContent := comment.Content + "MODIFIED"
++
++	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
++		"_csrf":   GetCSRF(t, session, issueURL),
++		"content": modifiedContent,
++	})
++	session.MakeRequest(t, req, http.StatusOK)
++
++	modifiedContent = comment.Content + "2"
++
++	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
++		"_csrf":   GetCSRF(t, session, issueURL),
++		"content": modifiedContent,
++	})
++	session.MakeRequest(t, req, http.StatusBadRequest)
++
++	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
++		"_csrf":           GetCSRF(t, session, issueURL),
++		"content":         modifiedContent,
++		"content_version": "1",
++	})
++	session.MakeRequest(t, req, http.StatusOK)
++
++	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: commentID})
++	assert.Equal(t, modifiedContent, comment.Content)
++	assert.Equal(t, 2, comment.ContentVersion)
++}
++
+ func TestIssueReaction(t *testing.T) {
+ 	defer tests.PrepareTestEnv(t)()
+ 	session := loginUser(t, "user2")
+diff --git a/web_src/js/features/repo-issue-edit.js b/web_src/js/features/repo-issue-edit.js
+index e633b42fdf82a..5a79ea330dd5d 100644
+--- a/web_src/js/features/repo-issue-edit.js
++++ b/web_src/js/features/repo-issue-edit.js
+@@ -3,6 +3,7 @@ import {handleReply} from './repo-issue.js';
+ import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
+ import {createDropzone} from './dropzone.js';
+ import {GET, POST} from '../modules/fetch.js';
++import {showErrorToast} from '../modules/toast.js';
+ import {hideElem, showElem} from '../utils/dom.js';
+ import {attachRefIssueContextPopup} from './contextpopup.js';
+ import {initCommentContent, initMarkupContent} from '../markup/content.js';
+@@ -124,11 +125,17 @@ async function onEditContent(event) {
+       const params = new URLSearchParams({
+         content: comboMarkdownEditor.value(),
+         context: editContentZone.getAttribute('data-context'),
++        content_version: editContentZone.getAttribute('data-content-version'),
+       });
+       for (const fileInput of dropzoneInst?.element.querySelectorAll('.files [name=files]')) params.append('files[]', fileInput.value);
+
+       const response = await POST(editContentZone.getAttribute('data-update-url'), {data: params});
+       const data = await response.json();
++      if (response.status === 400) {
++        showErrorToast(data.errorMessage);
++        return;
++      }
++      editContentZone.setAttribute('data-content-version', data.contentVersion);
+       if (!data.content) {
+         renderContent.innerHTML = document.getElementById('no-content').innerHTML;
+         rawContent.textContent = '';
+diff --git a/web_src/js/markup/tasklist.js b/web_src/js/markup/tasklist.js
+index 00076bce58915..a40b5e4abd37c 100644
+--- a/web_src/js/markup/tasklist.js
++++ b/web_src/js/markup/tasklist.js
+@@ -1,4 +1,5 @@
+ import {POST} from '../modules/fetch.js';
++import {showErrorToast} from '../modules/toast.js';
+
+ const preventListener = (e) => e.preventDefault();
+
+@@ -54,13 +55,20 @@ export function initMarkupTasklist() {
+           const editContentZone = container.querySelector('.edit-content-zone');
+           const updateUrl = editContentZone.getAttribute('data-update-url');
+           const context = editContentZone.getAttribute('data-context');
++          const contentVersion = editContentZone.getAttribute('data-content-version');
+
+           const requestBody = new FormData();
+           requestBody.append('ignore_attachments', 'true');
+           requestBody.append('content', newContent);
+           requestBody.append('context', context);
+-          await POST(updateUrl, {data: requestBody});
+-
++          requestBody.append('content_version', contentVersion);
++          const response = await POST(updateUrl, {data: requestBody});
++          const data = await response.json();
++          if (response.status === 400) {
++            showErrorToast(data.errorMessage);
++            return;
++          }
++          editContentZone.setAttribute('data-content-version', data.contentVersion);
+           rawContent.textContent = newContent;
+         } catch (err) {
+           checkbox.checked = !checkbox.checked;

@@ -1,0 +1,71 @@
+From 62e70696f452132e8b04479005f915bb8585cd4d Mon Sep 17 00:00:00 2001
+From: Brecht Van Lommel <brecht@blender.org>
+Date: Fri, 10 May 2024 14:09:11 +0200
+Subject: [PATCH] BLENDER: Prefer creating PR for base, disable editing default
+ branch in fork
+
+To make online editing a bit more fool proof.
+---
+ routers/web/repo/editor.go             | 7 ++++---
+ templates/repo/editor/commit_form.tmpl | 2 ++
+ 2 files changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/routers/web/repo/editor.go b/routers/web/repo/editor.go
+index 4ff86b5a6647b..ad22657c4f9c2 100644
+--- a/routers/web/repo/editor.go
++++ b/routers/web/repo/editor.go
+@@ -53,6 +53,7 @@ func renderCommitRights(ctx *context.Context) bool {
+ 	}
+ 	ctx.Data["CanCommitToBranch"] = canCommitToBranch
+ 	ctx.Data["CanCreatePullRequest"] = ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) || canCreateBasePullRequest(ctx)
++	ctx.Data["IsForkDefaultBranch"] = canCreateBasePullRequest(ctx) && ctx.Repo.BranchName == ctx.Repo.Repository.BaseRepo.DefaultBranch
+
+ 	return canCommitToBranch.CanCommitToBranch
+ }
+@@ -184,7 +185,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
+ 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+ 	ctx.Data["commit_summary"] = ""
+ 	ctx.Data["commit_message"] = ""
+-	if canCommit {
++	if canCommit && !canCreateBasePullRequest(ctx) {
+ 		ctx.Data["commit_choice"] = frmCommitChoiceDirect
+ 	} else {
+ 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
+@@ -443,7 +444,7 @@ func DeleteFile(ctx *context.Context) {
+ 	ctx.Data["commit_summary"] = ""
+ 	ctx.Data["commit_message"] = ""
+ 	ctx.Data["last_commit"] = ctx.Repo.CommitID
+-	if canCommit {
++	if canCommit && !canCreateBasePullRequest(ctx) {
+ 		ctx.Data["commit_choice"] = frmCommitChoiceDirect
+ 	} else {
+ 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
+@@ -608,7 +609,7 @@ func UploadFile(ctx *context.Context) {
+ 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+ 	ctx.Data["commit_summary"] = ""
+ 	ctx.Data["commit_message"] = ""
+-	if canCommit {
++	if canCommit && !canCreateBasePullRequest(ctx) {
+ 		ctx.Data["commit_choice"] = frmCommitChoiceDirect
+ 	} else {
+ 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
+diff --git a/templates/repo/editor/commit_form.tmpl b/templates/repo/editor/commit_form.tmpl
+index 21ef63288fd84..958e012bc4ebb 100644
+--- a/templates/repo/editor/commit_form.tmpl
++++ b/templates/repo/editor/commit_form.tmpl
+@@ -21,6 +21,7 @@
+ 			</div>
+ 		</div>
+ 		<div class="quick-pull-choice js-quick-pull-choice">
++			{{if not .IsForkDefaultBranch}}
+ 			<div class="field">
+ 				<div class="ui radio checkbox {{if not .CanCommitToBranch.CanCommitToBranch}}disabled{{end}}">
+ 					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" button_text="{{ctx.Locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "direct"}}checked{{end}}>
+@@ -39,6 +40,7 @@
+ 					</label>
+ 				</div>
+ 			</div>
++			{{end}}
+ 			{{if and (not .Repository.IsEmpty) (not .IsEditingFileOnly)}}
+ 				<div class="field">
+ 					<div class="ui radio checkbox">

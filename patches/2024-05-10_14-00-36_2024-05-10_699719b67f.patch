@@ -1,0 +1,182 @@
+From 699719b67f1c5abd397dfd12cab84ce4b6d3a760 Mon Sep 17 00:00:00 2001
+From: Brecht Van Lommel <brecht@blender.org>
+Date: Fri, 10 May 2024 14:00:36 +0200
+Subject: [PATCH] BLENDER: Projects: button to show/hide issue details and
+ closed issue
+
+Both are off by default. This is implemented fully on the frontend, so
+all issues and their details are still always loaded.
+---
+ templates/projects/view.tmpl      | 43 ++++++++++++++++++++++++++++++-
+ templates/repo/issue/card.tmpl    | 25 ++++++++++--------
+ web_src/css/features/projects.css |  2 +-
+ web_src/css/repo/issue-card.css   |  2 ++
+ 4 files changed, 59 insertions(+), 13 deletions(-)
+
+diff --git a/templates/projects/view.tmpl b/templates/projects/view.tmpl
+index 6d331caba7ebf..72c91a87680a1 100644
+--- a/templates/projects/view.tmpl
++++ b/templates/projects/view.tmpl
+@@ -3,6 +3,16 @@
+ <div class="ui container tw-max-w-full">
+ 	<div class="tw-flex tw-justify-between tw-items-center tw-mb-4 tw-gap-3">
+ 		<h2 class="tw-mb-0 tw-flex-1 tw-break-anywhere">{{.Project.Title}}</h2>
++			<div class="ui compact mini menu" style="margin-left: auto; margin-right: 1em;">
++				<button class="item btn" onclick="clickDetailsView()">
++					<span class="issue-card-details">Show Details</span>
++					<span class="issue-card-details tw-hidden">Hide Details</span>
++				</button>
++				<button class="item btn" onclick="clickClosedView()">
++					<span class="issue-card-closed">Show Closed</span>
++					<span class="issue-card-closed tw-hidden">Hide Closed</span>
++				</button>
++			</div>
+ 		{{if $canWriteProject}}
+ 			<div class="ui compact mini menu">
+ 				<a class="item" href="{{.Link}}/edit?redirect=project">
+@@ -152,7 +162,7 @@
+ 				<div class="divider"{{if .Color}} style="color: {{ContrastColor .Color}} !important"{{end}}></div>
+ 				<div class="ui cards" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
+ 					{{range (index $.IssuesMap .ID)}}
+-						<div class="issue-card gt-word-break {{if $canWriteProject}}tw-cursor-grab{{end}}" data-issue="{{.ID}}">
++						<div class="issue-card gt-word-break {{if $canWriteProject}}gt-cursor-grab{{end}} {{if .IsClosed}}issue-card-closed tw-hidden{{end}}" data-issue="{{.ID}}">
+ 							{{template "repo/issue/card" (dict "Issue" . "Page" $)}}
+ 						</div>
+ 					{{end}}
+@@ -162,6 +172,37 @@
+ 	</div>
+ </div>
+
++<script>
++	keyDetails = 'project-show-issue-details:{{.Repository.FullName | JSEscape}}:{{.Project.ID}}';
++	keyClosed = 'project-show-issue-closed:{{.Repository.FullName | JSEscape}}:{{.Project.ID}}';
++
++	function toggleDetailsView() {
++		for (const elem of document.querySelectorAll('.issue-card-details')) {
++			elem.classList.toggle('tw-hidden');
++		}
++	}
++	function clickDetailsView() {
++		localStorage.setItem(keyDetails, (localStorage.getItem(keyDetails) === 'true') ? 'false' : 'true');
++		toggleDetailsView();
++	}
++	if (localStorage.getItem(keyDetails) === 'true') {
++		toggleDetailsView();
++	}
++
++	function toggleClosedView() {
++		for (const elem of document.querySelectorAll('.issue-card-closed')) {
++			elem.classList.toggle('tw-hidden');
++		}
++	}
++	function clickClosedView() {
++		localStorage.setItem(keyClosed, (localStorage.getItem(keyClosed) === 'true') ? 'false' : 'true');
++		toggleClosedView();
++	}
++	if (localStorage.getItem(keyClosed) === 'true') {
++		toggleClosedView();
++	}
++</script>
++
+ {{if .CanWriteProjects}}
+ 	<div class="ui g-modal-confirm delete modal">
+ 		<div class="header">
+diff --git a/templates/repo/issue/card.tmpl b/templates/repo/issue/card.tmpl
+index 4c22c283291cf..c25f1bf4ae0fb 100644
+--- a/templates/repo/issue/card.tmpl
++++ b/templates/repo/issue/card.tmpl
+@@ -10,6 +10,14 @@
+ 		{{end}}
+ 	{{end}}
+ 	<div class="content tw-w-full">
++		<!-- BLENDER: Assignees here for more compact display -->
++		{{if .Assignees}}
++		<div class="issue-card-assignees">
++			{{range .Assignees}}
++				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28 "mini gt-mr-3"}}</a>
++			{{end}}
++		</div>
++		{{end}}
+ 		<div class="tw-flex tw-items-start tw-gap-[5px]">
+ 			<div class="issue-card-icon">
+ 				{{template "shared/issueicon" .}}
+@@ -22,7 +30,7 @@
+ 			{{end}}
+ 		</div>
+ 		<div class="meta">
+-			<span class="text light grey muted-links">
++			<span class="text light grey muted-links issue-card-details tw-hidden">
+ 				{{if not $.Page.Repository}}{{.Repo.FullName}}{{end}}#{{.Index}}
+ 				{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
+ 				{{if .OriginalAuthor}}
+@@ -35,7 +43,7 @@
+ 			</span>
+ 		</div>
+ 		{{if .MilestoneID}}
+-		<div class="meta tw-my-1">
++		<div class="meta tw-my-1 issue-card-details tw-hidden">
+ 			<a class="milestone" href="{{.Repo.Link}}/milestone/{{.MilestoneID}}">
+ 				{{svg "octicon-milestone" 16 "tw-mr-1 tw-align-middle"}}
+ 				<span class="tw-align-middle">{{.Milestone.Name}}</span>
+@@ -44,7 +52,7 @@
+ 		{{end}}
+ 		{{if $.Page.LinkedPRs}}
+ 		{{range index $.Page.LinkedPRs .ID}}
+-		<div class="meta tw-my-1">
++		<div class="meta tw-my-1 issue-card-details tw-hidden">
+ 			<a href="{{$.Issue.Repo.Link}}/pulls/{{.Index}}">
+ 				<span class="tw-m-0 text {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "tw-mr-1 tw-align-middle"}}</span>
+ 				<span class="tw-align-middle">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
+@@ -54,25 +62,20 @@
+ 		{{end}}
+ 		{{$tasks := .GetTasks}}
+ 		{{if gt $tasks 0}}
+-			<div class="meta tw-my-1">
++			<div class="meta tw-my-1 issue-card-details tw-hidden">
+ 				{{svg "octicon-checklist" 16 "tw-mr-1 tw-align-middle"}}
+ 				<span class="tw-align-middle">{{.GetTasksDone}} / {{$tasks}}</span>
+ 			</div>
+ 		{{end}}
+ 	</div>
+
+-	{{if or .Labels .Assignees}}
++	{{if or .Labels}}
+ 	<div class="issue-card-bottom">
+-		<div class="labels-list">
++		<div class="labels-list issue-card-details tw-hidden">
+ 			{{range .Labels}}
+ 				<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{RenderLabel ctx ctx.Locale .}}</a>
+ 			{{end}}
+ 		</div>
+-		<div class="issue-card-assignees">
+-			{{range .Assignees}}
+-				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28}}</a>
+-			{{end}}
+-		</div>
+ 	</div>
+ 	{{end}}
+ {{end}}
+diff --git a/web_src/css/features/projects.css b/web_src/css/features/projects.css
+index 74e8222a342ad..0107246fe3c31 100644
+--- a/web_src/css/features/projects.css
++++ b/web_src/css/features/projects.css
+@@ -13,7 +13,7 @@
+   margin: 0 0.5rem !important;
+   padding: 0.5rem !important;
+   width: 320px;
+-  height: calc(100vh - 450px);
++  height: calc(100vh - 225px);
+   min-height: 60vh;
+   flex: 0 0 auto;
+   overflow: visible;
+diff --git a/web_src/css/repo/issue-card.css b/web_src/css/repo/issue-card.css
+index 390bfb6a01419..23cae2c395e90 100644
+--- a/web_src/css/repo/issue-card.css
++++ b/web_src/css/repo/issue-card.css
+@@ -37,4 +37,6 @@
+   gap: 0.25em;
+   justify-content: end;
+   flex-wrap: wrap;
++  float: right;
++  margin-left: 0.5em;
+ }

@@ -1,0 +1,61 @@
+From 180c3c85b7620722e108dbfe3ef64370a50c4c5d Mon Sep 17 00:00:00 2001
+From: Brecht Van Lommel <brecht@blender.org>
+Date: Fri, 10 May 2024 13:56:36 +0200
+Subject: [PATCH] BLENDER: Disable slow assignees filter list on issues page
+
+---
+ routers/web/repo/issue.go             | 15 +++++++++------
+ templates/repo/issue/filter_list.tmpl |  6 ++++++
+ 2 files changed, 15 insertions(+), 6 deletions(-)
+
+diff --git a/routers/web/repo/issue.go b/routers/web/repo/issue.go
+index bbc25ec8be915..e72861d9a7d88 100644
+--- a/routers/web/repo/issue.go
++++ b/routers/web/repo/issue.go
+@@ -349,13 +349,16 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
+ 	ctx.Data["CommitLastStatus"] = lastStatus
+ 	ctx.Data["CommitStatuses"] = commitStatuses
+
++	// Disabled by Sybren (2023-01-24) to speed up rendering of the issues page.
++	// See https://github.com/go-gitea/gitea/issues/22586 for more info.
++	//
+ 	// Get assignees.
+-	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, repo)
+-	if err != nil {
+-		ctx.ServerError("GetRepoAssignees", err)
+-		return
+-	}
+-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
++	// assigneeUsers, err := repo_model.GetRepoAssignees(ctx, repo)
++	// if err != nil {
++	// 	ctx.ServerError("GetRepoAssignees", err)
++	// 	return
++	// }
++	// ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
+
+ 	handleTeamMentions(ctx)
+ 	if ctx.Written() {
+diff --git a/templates/repo/issue/filter_list.tmpl b/templates/repo/issue/filter_list.tmpl
+index c6de4977dc5dd..cba0dd1d97a0a 100644
+--- a/templates/repo/issue/filter_list.tmpl
++++ b/templates/repo/issue/filter_list.tmpl
+@@ -145,6 +145,10 @@
+ 	</div>
+ </div>
+
++{{- /*
++BLENDER: disabled by Sybren to speed up page rendering of the issue page
++See https://github.com/go-gitea/gitea/issues/22586
++
+ <!-- Assignee -->
+ <div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
+ 	<span class="text">
+@@ -167,6 +171,8 @@
+ 	</div>
+ </div>
+
++*/ -}}
++
+ {{if .IsSigned}}
+ 	<!-- Type -->
+ 	<div class="ui dropdown type jump item">

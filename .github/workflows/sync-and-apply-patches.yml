@@ -1,0 +1,147 @@
+name: Sync, Tag, Build and Publish Docker Image
+run-name: Patch and build ${{ github.event_name == 'schedule' && 'latest upstream tag' || inputs.tag }}
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Daily at midnight
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Specify a tag (optional)'
+        required: false
+        default: ''
+
+jobs:
+  sync-and-patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      tag: ${{ steps.determine-tag.outputs.tag }}
+    steps:
+      # Step to checkout the 'ci' branch with patches
+      - name: Checkout ci branch
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ci
+          fetch-depth: 0
+
+      # Step to back up patches
+      - name: Backup patches
+        run: |
+          mkdir -p $HOME/patches-backup
+          cp patches/*.patch $HOME/patches-backup/
+
+      # Step to check out the repository's default branch
+      - name: Checkout default branch
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          fetch-depth: 0
+
+      # Step to set up Git
+      - name: Set up Git
+        run: |
+          git config --global user.name 'Bart van der Braak'
+          git config --global user.email 'bartvdbraak@users.noreply.github.com'
+
+      # Step to add upstream and fetch tags
+      - name: Add upstream and fetch tags
+        run: |
+          git remote add upstream ${{ env.UPSTREAM }}
+          # Prune tags from the fork to prevent conflicts
+          git tag -l | xargs -n 1 git tag -d
+          git fetch upstream --tags
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPSTREAM: https://github.com/go-gitea/gitea.git
+
+      # Step to find the tag to use (input or latest)
+      - name: Determine tag
+        id: determine-tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "Using manually specified tag: ${{ github.event.inputs.tag }}"
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "Finding the latest stable tag..."
+            latest_tag=$(git tag -l "v*" --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+            echo "Latest stable tag: $latest_tag"
+            echo "tag=$latest_tag" >> $GITHUB_OUTPUT
+          fi
+
+      # Step to create a branch from the determined tag
+      - name: Create branch from determined tag
+        run: |
+          git checkout -b apply-patches-${{ steps.determine-tag.outputs.tag }} ${{ steps.determine-tag.outputs.tag }}
+
+      # Step to apply patches and push partial progress if any apply
+      - name: Apply patches and handle partial progress
+        id: apply_patches
+        run: |
+          successful_patches=()
+          failed_patches=()
+
+          for patch in $HOME/patches-backup/*.patch; do
+            echo "Applying $patch..."
+            if git am --3way "$patch"; then
+              echo "Successfully applied $patch"
+              successful_patches+=("$(basename "$patch")")
+            else
+              echo "Failed to apply patch: $patch"
+              git am --abort
+              failed_patches+=("$(basename "$patch")")
+              break # Stop further patch application
+            fi
+          done
+
+          echo "successful_patches=${successful_patches[@]}" >> $GITHUB_ENV
+          echo "failed_patches=${failed_patches[@]}" >> $GITHUB_ENV
+
+          # Push the branch even if only some patches were applied
+          git push -f https://github.com/${{ github.repository }}.git HEAD
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      # Step to create a tag on the last commit of the patch branch
+      - name: Create a tag on the last commit
+        run: |
+          git tag -d "${{ steps.determine-tag.outputs.tag }}" || echo "Tag does not exist locally, skipping delete."
+          git tag -a "${{ steps.determine-tag.outputs.tag }}" -m "Tagging version ${{ steps.determine-tag.outputs.tag }} after applying patches"
+          git push origin "${{ steps.determine-tag.outputs.tag }}"
+
+  build:
+    runs-on: ubuntu-latest
+    needs: sync-and-patch
+
+    permissions:
+      contents: read  # Read access to repository contents (required to access Dockerfile)
+      packages: write  # Write access to GHCR (required to publish Docker images)
+      id-token: write  # Needed for GHCR authentication
+
+    steps:
+      # Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Log in to GitHub Container Registry
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Checkout the specific tag
+      - name: Checkout tag
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.sync-and-patch.outputs.tag }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ needs.sync-and-patch.outputs.tag }}

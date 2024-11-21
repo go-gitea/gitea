@@ -1,0 +1,34 @@
+From 33d5661e2c5f2376aa6d238e4c4baec44c5b8088 Mon Sep 17 00:00:00 2001
+From: Brecht Van Lommel <brecht@blender.org>
+Date: Fri, 10 May 2024 14:05:47 +0200
+Subject: [PATCH] BLENDER: Allow non-local users to be renamed
+
+For Blender ID hook to do this.
+---
+ services/user/user.go | 13 +++++++------
+ 1 file changed, 7 insertions(+), 6 deletions(-)
+
+diff --git a/services/user/user.go b/services/user/user.go
+index 2287e36c716ac..fba53b37a655d 100644
+--- a/services/user/user.go
++++ b/services/user/user.go
+@@ -33,12 +33,13 @@ import (
+ // RenameUser renames a user
+ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
+ 	// Non-local users are not allowed to change their username.
+-	if !u.IsOrganization() && !u.IsLocal() {
+-		return user_model.ErrUserIsNotLocal{
+-			UID:  u.ID,
+-			Name: u.Name,
+-		}
+-	}
++	// BLENDER: allow renaming local users.
++	//if !u.IsOrganization() && !u.IsLocal() {
++	//	return user_model.ErrUserIsNotLocal{
++	//		UID:  u.ID,
++	//		Name: u.Name,
++	//	}
++	//}
+
+ 	if newUserName == u.Name {
+ 		return nil

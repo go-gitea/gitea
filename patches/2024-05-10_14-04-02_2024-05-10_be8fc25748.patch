@@ -1,0 +1,32 @@
+From be8fc25748b2acc4b007fbf7b3c7257580fb97a0 Mon Sep 17 00:00:00 2001
+From: Brecht Van Lommel <brecht@blender.org>
+Date: Fri, 10 May 2024 14:04:02 +0200
+Subject: [PATCH] BLENDER: Remember login for OAuth / Blender ID
+
+Otherwise for some browsers, users have to login again for every session.
+---
+ routers/web/auth/oauth.go | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/routers/web/auth/oauth.go b/routers/web/auth/oauth.go
+index b337b6b156959..1ee1d0c067b66 100644
+--- a/routers/web/auth/oauth.go
++++ b/routers/web/auth/oauth.go
+@@ -1159,6 +1159,17 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
+ 			return
+ 		}
+
++		// BLENDER: remember login for Blender ID.
++		// A proper OAuth implementation would check how long the access token is
++		// valid depending on the provider, but since this is only for Blender ID
++		// we can just set days in the Gitea config.
++		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
++		if err != nil {
++			ctx.ServerError("CreateAuthTokenForUserID", err)
++			return
++		}
++		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
++
+ 		// Clear whatever CSRF cookie has right now, force to generate a new one
+ 		ctx.Csrf.DeleteCookie(ctx)
+

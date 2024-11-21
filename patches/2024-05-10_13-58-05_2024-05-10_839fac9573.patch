@@ -1,0 +1,150 @@
+From 839fac9573c5bad19f0c835e30aec157d751738d Mon Sep 17 00:00:00 2001
+From: Brecht Van Lommel <brecht@blender.org>
+Date: Fri, 10 May 2024 13:58:05 +0200
+Subject: [PATCH] BLENDER: Support both exclusive and non-exclusive scope for
+ labels
+
+---
+ models/issues/label.go                             | 13 +++++++++----
+ modules/templates/util_render.go                   |  2 +-
+ templates/repo/issue/filter_actions.tmpl           | 10 +++++-----
+ templates/repo/issue/filter_list.tmpl              | 10 +++++-----
+ .../repo/issue/labels/labels_selector_field.tmpl   | 14 ++++++++------
+ 5 files changed, 28 insertions(+), 21 deletions(-)
+
+diff --git a/models/issues/label.go b/models/issues/label.go
+index 2397a29e357ef..db725ce976761 100644
+--- a/models/issues/label.go
++++ b/models/issues/label.go
+@@ -177,10 +177,7 @@ func (l *Label) BelongsToRepo() bool {
+ }
+
+ // Return scope substring of label name, or empty string if none exists
+-func (l *Label) ExclusiveScope() string {
+-	if !l.Exclusive {
+-		return ""
+-	}
++func (l *Label) Scope() string {
+ 	lastIndex := strings.LastIndex(l.Name, "/")
+ 	if lastIndex == -1 || lastIndex == 0 || lastIndex == len(l.Name)-1 {
+ 		return ""
+@@ -188,6 +185,14 @@ func (l *Label) ExclusiveScope() string {
+ 	return l.Name[:lastIndex]
+ }
+
++// Return scope for exclusive labels, or empty string if none exists
++func (l *Label) ExclusiveScope() string {
++	if !l.Exclusive {
++		return ""
++	}
++	return l.Scope()
++}
++
+ // NewLabel creates a new label
+ func NewLabel(ctx context.Context, l *Label) error {
+ 	color, err := label.NormalizeColor(l.Color)
+diff --git a/modules/templates/util_render.go b/modules/templates/util_render.go
+index b15de6521df68..a3de55d13f0cb 100644
+--- a/modules/templates/util_render.go
++++ b/modules/templates/util_render.go
+@@ -123,7 +123,7 @@ func RenderIssueTitle(ctx context.Context, text string, metas map[string]string)
+ func RenderLabel(ctx context.Context, locale translation.Locale, label *issues_model.Label) template.HTML {
+ 	var extraCSSClasses string
+ 	textColor := util.ContrastColor(label.Color)
+-	labelScope := label.ExclusiveScope()
++	labelScope := label.Scope()
+ 	descriptionText := emoji.ReplaceAliases(label.Description)
+
+ 	if label.IsArchived() {
+diff --git a/templates/repo/issue/filter_actions.tmpl b/templates/repo/issue/filter_actions.tmpl
+index f23ca36d78c8b..80d70c84faafd 100644
+--- a/templates/repo/issue/filter_actions.tmpl
++++ b/templates/repo/issue/filter_actions.tmpl
+@@ -22,15 +22,15 @@
+ 				<div class="item issue-action" data-action="clear" data-url="{{$.RepoLink}}/issues/labels">
+ 					{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}
+ 				</div>
+-				{{$previousExclusiveScope := "_no_scope"}}
++				{{$previousScope := "_no_scope"}}
+ 				{{range .Labels}}
+-					{{$exclusiveScope := .ExclusiveScope}}
+-					{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
++					{{$scope := .Scope}}
++					{{if and (ne $previousScope "_no_scope") (ne $previousScope $scope)}}
+ 						<div class="divider"></div>
+ 					{{end}}
+-					{{$previousExclusiveScope = $exclusiveScope}}
++					{{$previousScope = $scope}}
+ 					<div class="item issue-action tw-flex tw-justify-between" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
+-						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context ctx.Locale .}}
++						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{if .ExclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context ctx.Locale .}}
+ 						{{template "repo/issue/labels/label_archived" .}}
+ 					</div>
+ 				{{end}}
+diff --git a/templates/repo/issue/filter_list.tmpl b/templates/repo/issue/filter_list.tmpl
+index cba0dd1d97a0a..1ff090d45e1ef 100644
+--- a/templates/repo/issue/filter_list.tmpl
++++ b/templates/repo/issue/filter_list.tmpl
+@@ -25,18 +25,18 @@
+ 		<div class="divider"></div>
+ 		<a class="{{if .AllLabels}}active selected {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_label_no_select"}}</a>
+ 		<a class="{{if .NoLabel}}active selected {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels=0&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
+-		{{$previousExclusiveScope := "_no_scope"}}
++		{{$previousScope := "_no_scope"}}
+ 		{{range .Labels}}
+-			{{$exclusiveScope := .ExclusiveScope}}
+-			{{if and (ne $previousExclusiveScope $exclusiveScope)}}
++			{{$scope := .Scope}}
++			{{if and (ne $previousScope $scope)}}
+ 				<div class="divider"></div>
+ 			{{end}}
+-			{{$previousExclusiveScope = $exclusiveScope}}
++			{{$previousScope = $scope}}
+ 			<a class="item label-filter-item tw-flex tw-items-center" {{if .IsArchived}}data-is-archived{{end}} href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}" data-label-id="{{.ID}}">
+ 				{{if .IsExcluded}}
+ 					{{svg "octicon-circle-slash"}}
+ 				{{else if .IsSelected}}
+-					{{if $exclusiveScope}}
++					{{if .ExclusiveScope}}
+ 						{{svg "octicon-dot-fill"}}
+ 					{{else}}
+ 						{{svg "octicon-check"}}
+diff --git a/templates/repo/issue/labels/labels_selector_field.tmpl b/templates/repo/issue/labels/labels_selector_field.tmpl
+index e5f15caca5a6f..78fb0f636d151 100644
+--- a/templates/repo/issue/labels/labels_selector_field.tmpl
++++ b/templates/repo/issue/labels/labels_selector_field.tmpl
+@@ -14,26 +14,28 @@
+ 		{{end}}
+ 		<a class="no-select item" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
+ 		{{if or .Labels .OrgLabels}}
+-			{{$previousExclusiveScope := "_no_scope"}}
++			{{$previousScope := "_no_scope"}}
+ 			{{range .Labels}}
++				{{$scope := .Scope}}
+ 				{{$exclusiveScope := .ExclusiveScope}}
+-				{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
++				{{if and (ne $previousScope "_no_scope") (ne $previousScope $scope)}}
+ 					<div class="divider"></div>
+ 				{{end}}
+-				{{$previousExclusiveScope = $exclusiveScope}}
++				{{$previousScope = $scope}}
+ 				<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" {{if .IsArchived}}data-is-archived{{end}} data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}tw-invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel $.Context ctx.Locale .}}
+ 					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
+ 					<p class="archived-label-hint">{{template "repo/issue/labels/label_archived" .}}</p>
+ 				</a>
+ 			{{end}}
+ 			<div class="divider"></div>
+-			{{$previousExclusiveScope = "_no_scope"}}
++			{{$previousScope = "_no_scope"}}
+ 			{{range .OrgLabels}}
++				{{$scope := .Scope}}
+ 				{{$exclusiveScope := .ExclusiveScope}}
+-				{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
++				{{if and (ne $previousScope "_no_scope") (ne $previousScope $scope)}}
+ 					<div class="divider"></div>
+ 				{{end}}
+-				{{$previousExclusiveScope = $exclusiveScope}}
++				{{$previousScope = $scope}}
+ 				<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" {{if .IsArchived}}data-is-archived{{end}} data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}tw-invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel $.Context ctx.Locale .}}
+ 					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
+ 					<p class="archived-label-hint">{{template "repo/issue/labels/label_archived" .}}</p>

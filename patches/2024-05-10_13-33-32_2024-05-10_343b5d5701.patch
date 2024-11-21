@@ -1,0 +1,67 @@
+From 343b5d5701076992bf2bf7f8d5160e387eb2f5c3 Mon Sep 17 00:00:00 2001
+From: Brecht Van Lommel <brecht@blender.org>
+Date: Fri, 10 May 2024 13:33:32 +0200
+Subject: [PATCH] BLENDER: Don't allow assigning large teams as reviewers
+
+To avoid accidentally spamming hundreds of people.
+---
+ models/organization/team.go   | 16 ++++++++++++++++
+ routers/web/repo/issue.go     |  4 ++--
+ services/repository/review.go |  2 +-
+ 3 files changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/models/organization/team.go b/models/organization/team.go
+index fb7f0c04939e6..be56a0428ec83 100644
+--- a/models/organization/team.go
++++ b/models/organization/team.go
+@@ -272,3 +272,19 @@ func IncrTeamRepoNum(ctx context.Context, teamID int64) error {
+ 	_, err := db.GetEngine(ctx).Incr("num_repos").ID(teamID).Update(new(Team))
+ 	return err
+ }
++
++// Avoid notifying large teams accidentally
++func FilterLargeTeams(teams []*Team, err error) ([]*Team, error) {
++	if err != nil {
++		return nil, err
++	}
++
++	var smallTeams []*Team
++	for _, team := range teams {
++		if team.NumMembers <= 10 {
++			smallTeams = append(smallTeams, team)
++		}
++	}
++
++	return smallTeams, nil
++}
+diff --git a/routers/web/repo/issue.go b/routers/web/repo/issue.go
+index cb233b787a690..bbc25ec8be915 100644
+--- a/routers/web/repo/issue.go
++++ b/routers/web/repo/issue.go
+@@ -3673,13 +3673,13 @@ func handleTeamMentions(ctx *context.Context) {
+ 	}
+
+ 	if isAdmin {
+-		teams, err = org.LoadTeams(ctx)
++		teams, err = organization.FilterLargeTeams(org.LoadTeams(ctx))
+ 		if err != nil {
+ 			ctx.ServerError("LoadTeams", err)
+ 			return
+ 		}
+ 	} else {
+-		teams, err = org.GetUserTeams(ctx, ctx.Doer.ID)
++		teams, err = organization.FilterLargeTeams(org.GetUserTeams(ctx, ctx.Doer.ID))
+ 		if err != nil {
+ 			ctx.ServerError("GetUserTeams", err)
+ 			return
+diff --git a/services/repository/review.go b/services/repository/review.go
+index 40513e6bc67ba..f85424d60efa8 100644
+--- a/services/repository/review.go
++++ b/services/repository/review.go
+@@ -20,5 +20,5 @@ func GetReviewerTeams(ctx context.Context, repo *repo_model.Repository) ([]*orga
+ 		return nil, nil
+ 	}
+
+-	return organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead)
++	return organization.FilterLargeTeams(organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead))
+ }

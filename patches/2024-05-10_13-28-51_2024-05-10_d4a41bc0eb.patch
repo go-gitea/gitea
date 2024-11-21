@@ -1,0 +1,593 @@
+From d4a41bc0ebbb015e97e076e6040a3349ee0dab33 Mon Sep 17 00:00:00 2001
+From: Brecht Van Lommel <brecht@blender.org>
+Date: Fri, 10 May 2024 13:28:51 +0200
+Subject: [PATCH] BLENDER: Blender ID goth provider
+
+Provider authored by Matti Ranta and Arnd Marijnissen.
+---
+ go.mod                                        |   1 +
+ go.sum                                        |   2 +
+ public/assets/img/blenderid.png               |   0
+ .../auth/source/oauth2/blenderid/blenderid.go | 181 ++++++++++++++++++
+ .../source/oauth2/blenderid/blenderid_test.go |  70 +++++++
+ .../oauth2/blenderid/gitealize_usernames.go   |  65 +++++++
+ .../blenderid/gitealize_usernames_test.go     |  43 +++++
+ .../auth/source/oauth2/blenderid/session.go   |  66 +++++++
+ .../source/oauth2/blenderid/session_test.go   |  51 +++++
+ .../auth/source/oauth2/providers_custom.go    |  11 ++
+ 10 files changed, 490 insertions(+)
+ create mode 100644 public/assets/img/blenderid.png
+ create mode 100644 services/auth/source/oauth2/blenderid/blenderid.go
+ create mode 100644 services/auth/source/oauth2/blenderid/blenderid_test.go
+ create mode 100644 services/auth/source/oauth2/blenderid/gitealize_usernames.go
+ create mode 100644 services/auth/source/oauth2/blenderid/gitealize_usernames_test.go
+ create mode 100644 services/auth/source/oauth2/blenderid/session.go
+ create mode 100644 services/auth/source/oauth2/blenderid/session_test.go
+
+diff --git a/go.mod b/go.mod
+index 8752e6d196a8b..0bfd9342c7fe8 100644
+--- a/go.mod
++++ b/go.mod
+@@ -235,6 +235,7 @@ require (
+ 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
+ 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+ 	github.com/modern-go/reflect2 v1.0.2 // indirect
++	github.com/mozillazg/go-unidecode v0.2.0 // indirect
+ 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
+ 	github.com/mschoch/smat v0.2.0 // indirect
+ 	github.com/nwaples/rardecode v1.1.3 // indirect
+diff --git a/go.sum b/go.sum
+index 6a3e6dc7f645c..d59c282ce0411 100644
+--- a/go.sum
++++ b/go.sum
+@@ -586,6 +586,8 @@ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJ
+ github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=
+ github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
+ github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe/go.mod h1:wL8QJuTMNUDYhXwkmfOly8iTdp5TEcJFWZD2D7SIkUc=
++github.com/mozillazg/go-unidecode v0.2.0 h1:vFGEzAH9KSwyWmXCOblazEWDh7fOkpmy/Z4ArmamSUc=
++github.com/mozillazg/go-unidecode v0.2.0/go.mod h1:zB48+/Z5toiRolOZy9ksLryJ976VIwmDmpQ2quyt1aA=
+ github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 h1:j2kD3MT1z4PXCiUllUJF9mWUESr9TWKS7iEKsQ/IipM=
+ github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450/go.mod h1:skjdDftzkFALcuGzYSklqYd8gvat6F1gZJ4YPVbkZpM=
+ github.com/mschoch/smat v0.0.0-20160514031455-90eadee771ae/go.mod h1:qAyveg+e4CE+eKJXWVjKXM4ck2QobLqTDytGJbLLhJg=
+diff --git a/public/assets/img/blenderid.png b/public/assets/img/blenderid.png
+new file mode 100644
+index 0000000000000..e69de29bb2d1d
+diff --git a/services/auth/source/oauth2/blenderid/blenderid.go b/services/auth/source/oauth2/blenderid/blenderid.go
+new file mode 100644
+index 0000000000000..671e5e4f541a5
+--- /dev/null
++++ b/services/auth/source/oauth2/blenderid/blenderid.go
+@@ -0,0 +1,181 @@
++// Copyright 2023 The Gitea Authors. All rights reserved.
++// SPDX-License-Identifier: MIT
++// Package blenderid implements the OAuth2 protocol for authenticating users through Blender ID
++// This package can be used as a reference implementation of an OAuth2 provider for Goth.
++package blenderid
++
++// Allow "encoding/json" import.
++import (
++	"bytes"
++	"encoding/json" //nolint:depguard
++	"errors"
++	"fmt"
++	"io"
++	"net/http"
++	"strconv"
++
++	"github.com/markbates/goth"
++	"golang.org/x/oauth2"
++)
++
++// These vars define the default Authentication, Token, and Profile URLS for Blender ID
++//
++// Examples:
++//
++//	blenderid.AuthURL = "https://id.blender.org/oauth/authorize
++//	blenderid.TokenURL = "https://id.blender.org/oauth/token
++//	blenderid.ProfileURL = "https://id.blender.org/api/me
++var (
++	AuthURL    = "https://id.blender.org/oauth/authorize"
++	TokenURL   = "https://id.blender.org/oauth/token"
++	ProfileURL = "https://id.blender.org/api/me"
++)
++
++// Provider is the implementation of `goth.Provider` for accessing Blender ID
++type Provider struct {
++	ClientKey    string
++	Secret       string
++	CallbackURL  string
++	HTTPClient   *http.Client
++	config       *oauth2.Config
++	providerName string
++	profileURL   string
++}
++
++// New creates a new Blender ID provider and sets up important connection details.
++// You should always call `blenderid.New` to get a new provider.  Never try to
++// create one manually.
++func New(clientKey, secret, callbackURL string, scopes ...string) *Provider {
++	return NewCustomisedURL(clientKey, secret, callbackURL, AuthURL, TokenURL, ProfileURL, scopes...)
++}
++
++// NewCustomisedURL is similar to New(...) but can be used to set custom URLs to connect to
++func NewCustomisedURL(clientKey, secret, callbackURL, authURL, tokenURL, profileURL string, scopes ...string) *Provider {
++	p := &Provider{
++		ClientKey:    clientKey,
++		Secret:       secret,
++		CallbackURL:  callbackURL,
++		providerName: "blenderid",
++		profileURL:   profileURL,
++	}
++	p.config = newConfig(p, authURL, tokenURL, scopes)
++	return p
++}
++
++// Name is the name used to retrieve this provider later.
++func (p *Provider) Name() string {
++	return p.providerName
++}
++
++// SetName is to update the name of the provider (needed in case of multiple providers of 1 type)
++func (p *Provider) SetName(name string) {
++	p.providerName = name
++}
++
++func (p *Provider) Client() *http.Client {
++	return goth.HTTPClientWithFallBack(p.HTTPClient)
++}
++
++// Debug is a no-op for the blenderid package.
++func (p *Provider) Debug(debug bool) {}
++
++// BeginAuth asks Blender ID for an authentication end-point.
++func (p *Provider) BeginAuth(state string) (goth.Session, error) {
++	return &Session{
++		AuthURL: p.config.AuthCodeURL(state),
++	}, nil
++}
++
++// FetchUser will go to Blender ID and access basic information about the user.
++func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
++	sess := session.(*Session)
++	user := goth.User{
++		AccessToken:  sess.AccessToken,
++		Provider:     p.Name(),
++		RefreshToken: sess.RefreshToken,
++		ExpiresAt:    sess.ExpiresAt,
++	}
++
++	if user.AccessToken == "" {
++		// data is not yet retrieved since accessToken is still empty
++		return user, fmt.Errorf("%s cannot get user information without accessToken", p.providerName)
++	}
++
++	req, err := http.NewRequest("GET", p.profileURL, nil)
++	if err != nil {
++		return user, err
++	}
++
++	req.Header.Add("Authorization", "Bearer "+sess.AccessToken)
++	response, err := p.Client().Do(req)
++	if err != nil {
++		return user, err
++	}
++	if response.StatusCode != http.StatusOK {
++		return user, fmt.Errorf("Blender ID responded with a %d trying to fetch user information", response.StatusCode)
++	}
++
++	bits, err := io.ReadAll(response.Body)
++	if err != nil {
++		return user, err
++	}
++
++	err = json.NewDecoder(bytes.NewReader(bits)).Decode(&user.RawData)
++	if err != nil {
++		return user, err
++	}
++
++	err = userFromReader(bytes.NewReader(bits), &user)
++	if err != nil {
++		return user, err
++	}
++
++	return user, err
++}
++
++func newConfig(provider *Provider, authURL, tokenURL string, scopes []string) *oauth2.Config {
++	c := &oauth2.Config{
++		ClientID:     provider.ClientKey,
++		ClientSecret: provider.Secret,
++		RedirectURL:  provider.CallbackURL,
++		Endpoint: oauth2.Endpoint{
++			AuthURL:  authURL,
++			TokenURL: tokenURL,
++		},
++		Scopes: []string{},
++	}
++
++	if len(scopes) > 0 {
++		c.Scopes = append(c.Scopes, scopes...)
++	}
++	return c
++}
++
++func userFromReader(r io.Reader, user *goth.User) error {
++	u := struct {
++		Name     string `json:"full_name"`
++		Email    string `json:"email"`
++		NickName string `json:"nickname"`
++		ID       int    `json:"id"`
++	}{}
++	err := json.NewDecoder(r).Decode(&u)
++	if err != nil {
++		return err
++	}
++	user.Email = u.Email
++	user.Name = u.Name
++	user.NickName = gitealizeUsername(u.NickName)
++	user.UserID = strconv.Itoa(u.ID)
++	user.AvatarURL = fmt.Sprintf("https://id.blender.org/api/user/%s/avatar", user.UserID)
++	return nil
++}
++
++// RefreshTokenAvailable refresh token is not provided by Blender ID
++func (p *Provider) RefreshTokenAvailable() bool {
++	return true
++}
++
++// RefreshToken refresh token is not provided by Blender ID
++func (p *Provider) RefreshToken(refreshToken string) (*oauth2.Token, error) {
++	return nil, errors.New("Refresh token is not provided by Blender ID")
++}
+diff --git a/services/auth/source/oauth2/blenderid/blenderid_test.go b/services/auth/source/oauth2/blenderid/blenderid_test.go
+new file mode 100644
+index 0000000000000..2bf4c443d86ff
+--- /dev/null
++++ b/services/auth/source/oauth2/blenderid/blenderid_test.go
+@@ -0,0 +1,70 @@
++// Copyright 2023 The Gitea Authors. All rights reserved.
++// SPDX-License-Identifier: MIT
++package blenderid_test
++
++import (
++	"os"
++	"testing"
++
++	"code.gitea.io/gitea/services/auth/source/oauth2/blenderid"
++
++	"github.com/markbates/goth"
++	"github.com/stretchr/testify/assert"
++)
++
++func Test_New(t *testing.T) {
++	t.Parallel()
++	a := assert.New(t)
++	p := provider()
++
++	a.Equal(p.ClientKey, os.Getenv("BLENDERID_KEY"))
++	a.Equal(p.Secret, os.Getenv("BLENDERID_SECRET"))
++	a.Equal(p.CallbackURL, "/foo")
++}
++
++func Test_NewCustomisedURL(t *testing.T) {
++	t.Parallel()
++	a := assert.New(t)
++	p := urlCustomisedURLProvider()
++	session, err := p.BeginAuth("test_state")
++	s := session.(*blenderid.Session)
++	a.NoError(err)
++	a.Contains(s.AuthURL, "http://authURL")
++}
++
++func Test_Implements_Provider(t *testing.T) {
++	t.Parallel()
++	a := assert.New(t)
++	a.Implements((*goth.Provider)(nil), provider())
++}
++
++func Test_BeginAuth(t *testing.T) {
++	t.Parallel()
++	a := assert.New(t)
++	p := provider()
++	session, err := p.BeginAuth("test_state")
++	s := session.(*blenderid.Session)
++	a.NoError(err)
++	a.Contains(s.AuthURL, "id.blender.org/oauth/authorize")
++}
++
++func Test_SessionFromJSON(t *testing.T) {
++	t.Parallel()
++	a := assert.New(t)
++
++	p := provider()
++	session, err := p.UnmarshalSession(`{"AuthURL":"https://id.blender.org/oauth/authorize","AccessToken":"1234567890"}`)
++	a.NoError(err)
++
++	s := session.(*blenderid.Session)
++	a.Equal(s.AuthURL, "https://id.blender.org/oauth/authorize")
++	a.Equal(s.AccessToken, "1234567890")
++}
++
++func provider() *blenderid.Provider {
++	return blenderid.New(os.Getenv("BLENDERID_KEY"), os.Getenv("BLENDERID_SECRET"), "/foo")
++}
++
++func urlCustomisedURLProvider() *blenderid.Provider {
++	return blenderid.NewCustomisedURL(os.Getenv("BLENDERID_KEY"), os.Getenv("BLENDERID_SECRET"), "/foo", "http://authURL", "http://tokenURL", "http://profileURL")
++}
+diff --git a/services/auth/source/oauth2/blenderid/gitealize_usernames.go b/services/auth/source/oauth2/blenderid/gitealize_usernames.go
+new file mode 100644
+index 0000000000000..880516c8e28f1
+--- /dev/null
++++ b/services/auth/source/oauth2/blenderid/gitealize_usernames.go
+@@ -0,0 +1,65 @@
++// Copyright 2023 The Gitea Authors. All rights reserved.
++// SPDX-License-Identifier: MIT
++package blenderid
++
++import (
++	"regexp"
++	"strings"
++
++	"code.gitea.io/gitea/models/user"
++
++	"github.com/mozillazg/go-unidecode"
++)
++
++var (
++	reInvalidCharsPattern = regexp.MustCompile(`[^\da-zA-Z.\w-]+`)
++
++	// Consecutive non-alphanumeric at start:
++	reConsPrefix = regexp.MustCompile(`^[._-]+`)
++	reConsSuffix = regexp.MustCompile(`[._-]+$`)
++	reConsInfix  = regexp.MustCompile(`[._-]{2,}`)
++)
++
++// gitealizeUsername turns a valid Blender ID nickname into a valid Gitea username.
++func gitealizeUsername(bidNickname string) string {
++	// Remove accents and other non-ASCIIness.
++	asciiUsername := unidecode.Unidecode(bidNickname)
++	asciiUsername = strings.TrimSpace(asciiUsername)
++	asciiUsername = strings.ReplaceAll(asciiUsername, " ", "_")
++
++	err := user.IsUsableUsername(asciiUsername)
++	if err == nil && len(asciiUsername) <= 40 {
++		return asciiUsername
++	}
++
++	newUsername := asciiUsername
++	newUsername = reInvalidCharsPattern.ReplaceAllString(newUsername, "_")
++	newUsername = reConsPrefix.ReplaceAllString(newUsername, "")
++	newUsername = reConsSuffix.ReplaceAllString(newUsername, "")
++	newUsername = reConsInfix.ReplaceAllStringFunc(
++		newUsername,
++		func(match string) string {
++			firstRune := []rune(match)[0]
++			return string(firstRune)
++		})
++
++	if newUsername == "" {
++		// Everything was stripped and nothing was left. Better to keep as-is and
++		// just let Gitea bork on it.
++		return asciiUsername
++	}
++
++	// This includes a test for reserved names, which are easily circumvented by
++	// appending another character.
++	if user.IsUsableUsername(newUsername) != nil {
++		if len(newUsername) > 39 {
++			return newUsername[:39] + "2"
++		}
++		return newUsername + "2"
++	}
++
++	if len(newUsername) > 40 {
++		return newUsername[:40]
++	}
++	return newUsername
++}
+diff --git a/services/auth/source/oauth2/blenderid/gitealize_usernames_test.go b/services/auth/source/oauth2/blenderid/gitealize_usernames_test.go
+new file mode 100644
+index 0000000000000..7d633198e8886
+--- /dev/null
++++ b/services/auth/source/oauth2/blenderid/gitealize_usernames_test.go
+@@ -0,0 +1,43 @@
++// Copyright 2023 The Gitea Authors. All rights reserved.
++// SPDX-License-Identifier: MIT
++package blenderid
++
++import "testing"
++
++func Test_gitealizeUsername(t *testing.T) {
++	tests := []struct {
++		name        string
++		bidNickname string
++		want        string
++	}{
++		{"empty", "", ""},
++		{"underscore", "_", "_"},
++		{"reserved-name", "ghost", "ghost2"}, // Reserved name in Gitea.
++		{"short", "x", "x"},
++		{"simple", "simple", "simple"},
++		{"start-bad", "____startbad", "startbad"},
++		{"end-bad", "endbad___", "endbad"},
++		{"mid-bad-1", "mid__bad", "mid_bad"},
++		{"mid-bad-2", "user_.-name", "user_name"},
++		{"plus-mid-single", "RT2+356", "RT2_356"},
++		{"plus-mid-many", "RT2+++356", "RT2_356"},
++		{"plus-end", "RT2356+", "RT2356"},
++		{
++			"too-long", // # Max username length is 40:
++			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++		},
++		{"accented-latin", "Ümlaut-Đenja", "Umlaut-Denja"},
++		{"thai", "แบบไทย", "aebbaithy"},
++		{"mandarin", "普通话", "Pu_Tong_Hua"},
++		{"cyrillic", "ћирилица", "tshirilitsa"},
++		{"all-bad", "------", "------"},
++	}
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			if got := gitealizeUsername(tt.bidNickname); got != tt.want {
++				t.Errorf("gitealizeUsername() = %v, want %v", got, tt.want)
++			}
++		})
++	}
++}
+diff --git a/services/auth/source/oauth2/blenderid/session.go b/services/auth/source/oauth2/blenderid/session.go
+new file mode 100644
+index 0000000000000..52a2d2174584c
+--- /dev/null
++++ b/services/auth/source/oauth2/blenderid/session.go
+@@ -0,0 +1,66 @@
++// Copyright 2023 The Gitea Authors. All rights reserved.
++// SPDX-License-Identifier: MIT
++package blenderid
++
++// Allow "encoding/json" import.
++import (
++	"encoding/json" //nolint:depguard
++	"errors"
++	"strings"
++	"time"
++
++	"github.com/markbates/goth"
++)
++
++// Session stores data during the auth process with Blender ID
++type Session struct {
++	AuthURL      string
++	AccessToken  string
++	RefreshToken string
++	ExpiresAt    time.Time
++}
++
++var _ goth.Session = &Session{}
++
++// GetAuthURL will return the URL set by calling the `BeginAuth` function on the Blender ID provider.
++func (s Session) GetAuthURL() (string, error) {
++	if s.AuthURL == "" {
++		return "", errors.New(goth.NoAuthUrlErrorMessage)
++	}
++	return s.AuthURL, nil
++}
++
++// Authorize the session with Blender ID and return the access token to be stored for future use.
++func (s *Session) Authorize(provider goth.Provider, params goth.Params) (string, error) {
++	p := provider.(*Provider)
++	token, err := p.config.Exchange(goth.ContextForClient(p.Client()), params.Get("code"))
++	if err != nil {
++		return "", err
++	}
++
++	if !token.Valid() {
++		return "", errors.New("Invalid token received from provider")
++	}
++
++	s.AccessToken = token.AccessToken
++	s.RefreshToken = token.RefreshToken
++	s.ExpiresAt = token.Expiry
++	return token.AccessToken, err
++}
++
++// Marshal the session into a string
++func (s Session) Marshal() string {
++	b, _ := json.Marshal(s)
++	return string(b)
++}
++
++func (s Session) String() string {
++	return s.Marshal()
++}
++
++// UnmarshalSession wil unmarshal a JSON string into a session.
++func (p *Provider) UnmarshalSession(data string) (goth.Session, error) {
++	s := &Session{}
++	err := json.NewDecoder(strings.NewReader(data)).Decode(s)
++	return s, err
++}
+diff --git a/services/auth/source/oauth2/blenderid/session_test.go b/services/auth/source/oauth2/blenderid/session_test.go
+new file mode 100644
+index 0000000000000..ab7fb974a5772
+--- /dev/null
++++ b/services/auth/source/oauth2/blenderid/session_test.go
+@@ -0,0 +1,51 @@
++// Copyright 2023 The Gitea Authors. All rights reserved.
++// SPDX-License-Identifier: MIT
++package blenderid_test
++
++import (
++	"testing"
++
++	"code.gitea.io/gitea/services/auth/source/oauth2/blenderid"
++
++	"github.com/markbates/goth"
++	"github.com/stretchr/testify/assert"
++)
++
++func Test_Implements_Session(t *testing.T) {
++	t.Parallel()
++	a := assert.New(t)
++	s := &blenderid.Session{}
++
++	a.Implements((*goth.Session)(nil), s)
++}
++
++func Test_GetAuthURL(t *testing.T) {
++	t.Parallel()
++	a := assert.New(t)
++	s := &blenderid.Session{}
++
++	_, err := s.GetAuthURL()
++	a.Error(err)
++
++	s.AuthURL = "/foo"
++
++	url, _ := s.GetAuthURL()
++	a.Equal(url, "/foo")
++}
++
++func Test_ToJSON(t *testing.T) {
++	t.Parallel()
++	a := assert.New(t)
++	s := &blenderid.Session{}
++
++	data := s.Marshal()
++	a.Equal(data, `{"AuthURL":"","AccessToken":"","RefreshToken":"","ExpiresAt":"0001-01-01T00:00:00Z"}`)
++}
++
++func Test_String(t *testing.T) {
++	t.Parallel()
++	a := assert.New(t)
++	s := &blenderid.Session{}
++
++	a.Equal(s.String(), s.Marshal())
++}
+diff --git a/services/auth/source/oauth2/providers_custom.go b/services/auth/source/oauth2/providers_custom.go
+index 65cf538ad7386..f6f49ada048aa 100644
+--- a/services/auth/source/oauth2/providers_custom.go
++++ b/services/auth/source/oauth2/providers_custom.go
+@@ -5,6 +5,7 @@ package oauth2
+
+ import (
+ 	"code.gitea.io/gitea/modules/setting"
++	"code.gitea.io/gitea/services/auth/source/oauth2/blenderid"
+
+ 	"github.com/markbates/goth"
+ 	"github.com/markbates/goth/providers/azureadv2"
+@@ -120,4 +121,14 @@ func init() {
+ 			}), nil
+ 		},
+ 	))
++
++	RegisterGothProvider(NewCustomProvider(
++		"blenderid", "Blender ID", &CustomURLSettings{
++			TokenURL:   requiredAttribute(blenderid.TokenURL),
++			AuthURL:    requiredAttribute(blenderid.AuthURL),
++			ProfileURL: requiredAttribute(blenderid.ProfileURL),
++		},
++		func(clientID, secret, callbackURL string, custom *CustomURLMapping, scopes []string) (goth.Provider, error) {
++			return blenderid.NewCustomisedURL(clientID, secret, callbackURL, custom.AuthURL, custom.TokenURL, custom.ProfileURL, scopes...), nil
++		}))
+ }
