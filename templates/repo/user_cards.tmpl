@@ -9,7 +9,7 @@ At the moment, no JS initialization would re-trigger (fortunately there is no JS
 		 hx-trigger="refreshUserCards from:body"
 		 hx-indicator=".no-loading-indicator"
 		 hx-get="{{$.Link}}"
-		 hx-swap="innerHTML" hx-select=".user-cards"
+		 hx-swap="outerHTML" hx-select=".user-cards"
 >
 	{{if .CardsTitle}}
 	<h2 class="ui dividing header">
