@@ -88,6 +88,10 @@ func ParseFileName(uri string) (ext string, tp git.ArchiveType, err error) {
 // resulting ArchiveRequest is suitable for being passed to Await()
 // if it's determined that the request still needs to be satisfied.
 func NewRequest(repoID int64, repo *git.Repository, refName string, fileType git.ArchiveType) (*ArchiveRequest, error) {
+	if fileType < git.ZIP || fileType > git.BUNDLE {
+		return nil, ErrUnknownArchiveFormat{RequestFormat: fileType.String()}
+	}
+
 	r := &ArchiveRequest{
 		RepoID:  repoID,
 		refName: refName,
