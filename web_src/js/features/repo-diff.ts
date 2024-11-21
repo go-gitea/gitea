@@ -13,7 +13,8 @@ import {
   hideElem,
   showElem,
   animateOnce,
-  addElemsEventListener, createElementFromHTML,
+  addElemsEventListener,
+  createElementFromHTML,
 } from '../utils/dom.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
