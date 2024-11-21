@@ -29,7 +29,7 @@
 		<div class="file-header-left tw-flex tw-items-center tw-py-2 tw-pr-4">
 			{{if .ReadmeInList}}
 				{{svg "octicon-book" 16 "tw-mr-2"}}
-				<strong><a class="default-link muted" href="#readme">{{.FileName}}</a></strong>
+				<strong><a class="muted" href="#readme">{{.FileName}}</a></strong>
 			{{else}}
 				{{template "repo/file_info" .}}
 			{{end}}
