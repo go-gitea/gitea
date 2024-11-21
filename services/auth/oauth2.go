@@ -122,7 +122,7 @@ func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store Dat
 		}
 
 		// Otherwise, check if this is an OAuth access token
-    accessTokenScope, uid := GetOAuthAccessTokenScopeAndUserID(ctx, tokenSHA)
+		accessTokenScope, uid := GetOAuthAccessTokenScopeAndUserID(ctx, tokenSHA)
 		if uid != 0 {
 			store.GetData()["IsApiToken"] = true
 			store.GetData()["ApiTokenScope"] = accessTokenScope
