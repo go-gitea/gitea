@@ -231,7 +231,8 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.delete_branch_at" .OldRef $createdStr}}
+					{{$oldRef := HTMLFormat `<span class="tw-line-through">%s</span>` .OldRef}}
+					{{ctx.Locale.Tr "repo.issues.delete_branch_at" $oldRef $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 12}}
