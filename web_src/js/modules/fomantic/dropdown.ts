@@ -261,7 +261,7 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
       deferredRefreshAriaActiveItem(100);
     }, 0);
   }, true);
-  dropdown.addEventListener('click', (e: Event) => {
+  dropdown.addEventListener('click', (e: MouseEvent) => {
     if (isMenuVisible() &&
       ignoreClickPreVisible !== 2 && // dropdown is switch from invisible to visible
       ignoreClickPreEvents === 2 // the click event is related to mousedown+focus
