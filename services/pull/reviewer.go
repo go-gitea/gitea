@@ -52,15 +52,6 @@ func GetReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 			return nil, err
 		}
 		uniqueUserIDs.AddMultiple(additionalUserIDs...)
-	} else {
-		userIDs := make([]int64, 0, 10)
-		if err := e.Table("access").
-			Where("repo_id = ? AND mode >= ?", repo.ID, perm.AccessModeRead).
-			Select("user_id").
-			Find(&userIDs); err != nil {
-			return nil, err
-		}
-		uniqueUserIDs.AddMultiple(userIDs...)
 	}
 
 	uniqueUserIDs.Remove(posterID) // posterID should not be in the list of reviewers
@@ -76,6 +67,8 @@ func GetReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 			return nil, err
 		}
 	}
+
+	// add owner after all users are loaded because we can avoid load owner twice
 	if repo.OwnerID != posterID && !repo.Owner.IsOrganization() && !uniqueUserIDs.Contains(repo.OwnerID) {
 		users = append(users, repo.Owner)
 	}
