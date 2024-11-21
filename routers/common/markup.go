@@ -47,11 +47,12 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPa
 	switch mode {
 	case "gfm": // legacy mode, do nothing
 	case "comment":
-		renderCtx.ContentMode = markup.RenderContentAsComment
+		renderCtx.Metas = map[string]string{"markdownLineBreakStyle": "comment"}
 	case "wiki":
-		renderCtx.ContentMode = markup.RenderContentAsWiki
+		renderCtx.Metas = map[string]string{"markdownLineBreakStyle": "document", "markupContentMode": "wiki"}
 	case "file":
 		// render the repo file content by its extension
+		renderCtx.Metas = map[string]string{"markdownLineBreakStyle": "document"}
 		renderCtx.MarkupType = ""
 		renderCtx.RelativePath = filePath
 		renderCtx.InStandalonePage = true
@@ -74,10 +75,12 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPa
 
 	if repo != nil && repo.Repository != nil {
 		renderCtx.Repo = repo.Repository
-		if renderCtx.ContentMode == markup.RenderContentAsComment {
-			renderCtx.Metas = repo.Repository.ComposeMetas(ctx)
-		} else {
+		if mode == "file" {
 			renderCtx.Metas = repo.Repository.ComposeDocumentMetas(ctx)
+		} else if mode == "wiki" {
+			renderCtx.Metas = repo.Repository.ComposeWikiMetas(ctx)
+		} else if mode == "comment" {
+			renderCtx.Metas = repo.Repository.ComposeMetas(ctx)
 		}
 	}
 	if err := markup.Render(renderCtx, strings.NewReader(text), ctx.Resp); err != nil {

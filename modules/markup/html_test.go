@@ -27,6 +27,11 @@ var (
 		"user": testRepoOwnerName,
 		"repo": testRepoName,
 	}
+	localWikiMetas = map[string]string{
+		"user":              testRepoOwnerName,
+		"repo":              testRepoName,
+		"markupContentMode": "wiki",
+	}
 )
 
 type mockRepo struct {
@@ -413,8 +418,7 @@ func TestRender_ShortLinks(t *testing.T) {
 			Links: markup.Links{
 				Base: markup.TestRepoURL,
 			},
-			Metas:       localMetas,
-			ContentMode: markup.RenderContentAsWiki,
+			Metas: localWikiMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
@@ -526,10 +530,9 @@ func TestRender_ShortLinks(t *testing.T) {
 func TestRender_RelativeMedias(t *testing.T) {
 	render := func(input string, isWiki bool, links markup.Links) string {
 		buffer, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:         git.DefaultContext,
-			Links:       links,
-			Metas:       localMetas,
-			ContentMode: util.Iif(isWiki, markup.RenderContentAsWiki, markup.RenderContentAsComment),
+			Ctx:   git.DefaultContext,
+			Links: links,
+			Metas: util.Iif(isWiki, localWikiMetas, localMetas),
 		}, input)
 		assert.NoError(t, err)
 		return strings.TrimSpace(string(buffer))

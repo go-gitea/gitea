@@ -66,6 +66,12 @@
   overflow-x: auto;
 }
 
+.issue-content-right .dropdown > .menu .item-secondary-info small {
+  display: block;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
 @media (max-width: 767.98px) {
   .issue-content-left,
   .issue-content-right {
