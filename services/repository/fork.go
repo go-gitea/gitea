@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -20,6 +21,8 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
+
+	"xorm.io/builder"
 )
 
 // ErrForkAlreadyExist represents a "ForkAlreadyExist" kind of error.
@@ -246,4 +249,25 @@ func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Reposit
 	})
 
 	return err
+}
+
+type findForksOptions struct {
+	db.ListOptions
+	RepoID int64
+	Doer   *user_model.User
+}
+
+func (opts findForksOptions) ToConds() builder.Cond {
+	return builder.Eq{"fork_id": opts.RepoID}.And(
+		repo_model.AccessibleRepositoryCondition(opts.Doer, unit.TypeInvalid),
+	)
+}
+
+// FindForks returns all the forks of the repository
+func FindForks(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, listOptions db.ListOptions) ([]*repo_model.Repository, int64, error) {
+	return db.FindAndCount[repo_model.Repository](ctx, findForksOptions{
+		ListOptions: listOptions,
+		RepoID:      repo.ID,
+		Doer:        doer,
+	})
 }

@@ -11,10 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-/*
-IssueTemplate is a legacy to keep the unit tests working.
-Copied from structs.IssueTemplate, the original type has been changed a lot to support yaml template.
-*/
+// IssueTemplate is a legacy to keep the unit tests working.
+// Copied from structs.IssueTemplate, the original type has been changed a lot to support yaml template.
 type IssueTemplate struct {
 	Name   string   `json:"name" yaml:"name"`
 	Title  string   `json:"title" yaml:"title"`
