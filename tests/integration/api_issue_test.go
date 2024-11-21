@@ -157,6 +157,7 @@ func TestAPICreateIssueParallel(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func(parentT *testing.T, i int) {
+			defer wg.Done()
 			parentT.Run(fmt.Sprintf("ParallelCreateIssue_%d", i), func(t *testing.T) {
 				newTitle := title + strconv.Itoa(i)
 				newBody := body + strconv.Itoa(i)
@@ -177,8 +178,6 @@ func TestAPICreateIssueParallel(t *testing.T) {
 					Content:    newBody,
 					Title:      newTitle,
 				})
-
-				wg.Done()
 			})
 		}(t, i)
 	}
