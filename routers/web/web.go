@@ -1599,9 +1599,7 @@ func registerRoutes(m *web.Router) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/stars", repo.Stars)
-		m.Get("/stars/cards", repo.StarsCards)
 		m.Get("/watchers", repo.Watchers)
-		m.Get("/watchers/cards", repo.WatchersCards)
 		m.Get("/search", reqRepoCodeReader, repo.Search)
 		m.Post("/action/{action}", reqSignIn, repo.Action)
 	}, optSignIn, context.RepoAssignment, context.RepoRef())

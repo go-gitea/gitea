@@ -1,18 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository watchers">
 	{{template "repo/header" .}}
-	<div class="no-loading-indicator tw-hidden"></div>
-	<!-- this element reloads its content with htmx as soon as a response from the backend
-		includes the header "HX-Trigger: refreshCards". This usually happens when a user
-		watched/unwatched/starred/unstarred and we want their user card to appear/disappear.
-		To test go to the watchers page and click the watch button. The user cards should reload. -->
-	<div
-		hx-trigger="refreshCards from:body"
-		hx-indicator=".no-loading-indicator"
-		hx-swap="innerHTML"
-		hx-get="{{$.Link}}/cards"
-		class="ui container"
-	>
+	<div class="ui container">
 		{{template "repo/user_cards" .}}
 	</div>
 </div>

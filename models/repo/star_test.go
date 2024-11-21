@@ -39,7 +39,7 @@ func TestRepository_GetStargazers(t *testing.T) {
 	// repo with stargazers
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	gazers, err := repo_model.GetStargazers(db.DefaultContext, repo.ID, db.ListOptions{Page: 0})
+	gazers, err := repo_model.GetStargazers(db.DefaultContext, repo, db.ListOptions{Page: 0})
 	assert.NoError(t, err)
 	if assert.Len(t, gazers, 1) {
 		assert.Equal(t, int64(2), gazers[0].ID)
@@ -50,7 +50,7 @@ func TestRepository_GetStargazers2(t *testing.T) {
 	// repo with stargazers
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	gazers, err := repo_model.GetStargazers(db.DefaultContext, repo.ID, db.ListOptions{Page: 0})
+	gazers, err := repo_model.GetStargazers(db.DefaultContext, repo, db.ListOptions{Page: 0})
 	assert.NoError(t, err)
 	assert.Len(t, gazers, 0)
 }
@@ -69,7 +69,7 @@ func TestClearRepoStars(t *testing.T) {
 	assert.NoError(t, repo_model.ClearRepoStars(db.DefaultContext, repo.ID))
 	unittest.AssertNotExistsBean(t, &repo_model.Star{UID: user.ID, RepoID: repo.ID})
 
-	gazers, err := repo_model.GetStargazers(db.DefaultContext, repo.ID, db.ListOptions{Page: 0})
+	gazers, err := repo_model.GetStargazers(db.DefaultContext, repo, db.ListOptions{Page: 0})
 	assert.NoError(t, err)
 	assert.Len(t, gazers, 0)
 }
