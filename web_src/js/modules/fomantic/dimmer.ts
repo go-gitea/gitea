@@ -3,7 +3,7 @@ import {queryElemChildren} from '../../utils/dom.ts';
 
 export function initFomanticDimmer() {
   // stand-in for removed dimmer module
-  $.fn.dimmer = function (arg0: string, arg1: () => void) {
+  $.fn.dimmer = function (arg0: any, arg1: () => void) {
     if (arg0 === 'add content') {
       const $el = arg1;
       const existingDimmer = document.querySelector('body > .ui.dimmer');
