@@ -1151,25 +1151,24 @@ func Forks(ctx *context.Context) {
 	if page <= 0 {
 		page = 1
 	}
+	pageSize := setting.ItemsPerPage
 
-	pager := context.NewPagination(ctx.Repo.Repository.NumForks, setting.ItemsPerPage, page, 5)
-	ctx.Data["Page"] = pager
-
-	forks, err := repo_model.GetForks(ctx, ctx.Repo.Repository, db.ListOptions{
-		Page:     pager.Paginater.Current(),
-		PageSize: setting.ItemsPerPage,
+	forks, total, err := repo_service.FindForks(ctx, ctx.Repo.Repository, ctx.Doer, db.ListOptions{
+		Page:     page,
+		PageSize: pageSize,
 	})
 	if err != nil {
-		ctx.ServerError("GetForks", err)
+		ctx.ServerError("FindForks", err)
 		return
 	}
 
-	for _, fork := range forks {
-		if err = fork.LoadOwner(ctx); err != nil {
-			ctx.ServerError("LoadOwner", err)
-			return
-		}
+	if err := repo_model.RepositoryList(forks).LoadOwners(ctx); err != nil {
+		ctx.ServerError("LoadAttributes", err)
+		return
 	}
+
+	pager := context.NewPagination(int(total), pageSize, page, 5)
+	ctx.Data["Page"] = pager
 
 	ctx.Data["Forks"] = forks
 
