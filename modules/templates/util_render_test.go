@@ -113,34 +113,34 @@ func TestRenderCommitBody(t *testing.T) {
 	}
 
 	expected := `/just/a/path.bin
-<a href="https://example.com/file.bin" class="link">https://example.com/file.bin</a>
+<a href="https://example.com/file.bin">https://example.com/file.bin</a>
 [local link](file.bin)
-[remote link](<a href="https://example.com" class="link">https://example.com</a>)
+[remote link](<a href="https://example.com">https://example.com</a>)
 [[local link|file.bin]]
-[[remote link|<a href="https://example.com" class="link">https://example.com</a>]]
+[[remote link|<a href="https://example.com">https://example.com</a>]]
 ![local image](image.jpg)
-![remote image](<a href="https://example.com/image.jpg" class="link">https://example.com/image.jpg</a>)
+![remote image](<a href="https://example.com/image.jpg">https://example.com/image.jpg</a>)
 [[local image|image.jpg]]
-[[remote link|<a href="https://example.com/image.jpg" class="link">https://example.com/image.jpg</a>]]
+[[remote link|<a href="https://example.com/image.jpg">https://example.com/image.jpg</a>]]
 <a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" class="compare"><code class="nohighlight">88fc37a3c0...12fc37a3c0 (hash)</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
 <a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" class="commit"><code class="nohighlight">88fc37a3c0</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" aria-label="thumbs up">👍</span>
-<a href="mailto:mail@domain.com" class="mailto">mail@domain.com</a>
-<a href="/mention-user" class="mention">@mention-user</a> test
+<a href="mailto:mail@domain.com">mail@domain.com</a>
+<a href="/mention-user">@mention-user</a> test
 <a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
   space`
 	assert.EqualValues(t, expected, string(newTestRenderUtils().RenderCommitBody(testInput(), testMetas)))
 }
 
 func TestRenderCommitMessage(t *testing.T) {
-	expected := `space <a href="/mention-user" data-markdown-generated-content="" class="mention">@mention-user</a>  `
+	expected := `space <a href="/mention-user" data-markdown-generated-content="">@mention-user</a>  `
 	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessage(testInput(), testMetas))
 }
 
 func TestRenderCommitMessageLinkSubject(t *testing.T) {
-	expected := `<a href="https://example.com/link" class="muted">space </a><a href="/mention-user" data-markdown-generated-content="" class="mention">@mention-user</a>`
+	expected := `<a href="https://example.com/link" class="muted">space </a><a href="/mention-user" data-markdown-generated-content="">@mention-user</a>`
 	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", testMetas))
 }
 
