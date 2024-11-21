@@ -10,8 +10,10 @@ import (
 	"io"
 	"testing"
 
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/zstd"
+
 	"github.com/blakesmith/ar"
-	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/assert"
 	"github.com/ulikunitz/xz"
 )
@@ -76,7 +78,7 @@ func TestParsePackage(t *testing.T) {
 			{
 				Extension: "",
 				WriterFactory: func(w io.Writer) io.WriteCloser {
-					return nopCloser{w}
+					return util.NopCloser{Writer: w}
 				},
 			},
 			{
@@ -126,14 +128,6 @@ func TestParsePackage(t *testing.T) {
 			})
 		}
 	})
-}
-
-type nopCloser struct {
-	io.Writer
-}
-
-func (nopCloser) Close() error {
-	return nil
 }
 
 func TestParseControlFile(t *testing.T) {

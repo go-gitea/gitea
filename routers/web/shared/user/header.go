@@ -50,7 +50,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	ctx.Data["OpenIDs"] = openIDs
 	if len(ctx.ContextUser.Description) != 0 {
 		content, err := markdown.RenderString(&markup.RenderContext{
-			Metas: map[string]string{"mode": "document"},
+			Metas: markup.ComposeSimpleDocumentMetas(),
 			Ctx:   ctx,
 		}, ctx.ContextUser.Description)
 		if err != nil {
@@ -159,6 +159,18 @@ func LoadHeaderCount(ctx *context.Context) error {
 		return err
 	}
 	ctx.Data["ProjectCount"] = projectCount
+
+	return nil
+}
+
+func RenderOrgHeader(ctx *context.Context) error {
+	if err := LoadHeaderCount(ctx); err != nil {
+		return err
+	}
+
+	_, _, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx, ctx.Doer)
+	defer profileClose()
+	ctx.Data["HasProfileReadme"] = profileReadmeBlob != nil
 
 	return nil
 }

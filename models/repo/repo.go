@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"maps"
 	"net"
 	"net/url"
 	"path/filepath"
@@ -18,6 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/optional"
@@ -164,10 +166,10 @@ type Repository struct {
 
 	Status RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
-	RenderingMetas         map[string]string `xorm:"-"`
-	DocumentRenderingMetas map[string]string `xorm:"-"`
-	Units                  []*RepoUnit       `xorm:"-"`
-	PrimaryLanguage        *LanguageStat     `xorm:"-"`
+	commonRenderingMetas map[string]string `xorm:"-"`
+
+	Units           []*RepoUnit   `xorm:"-"`
+	PrimaryLanguage *LanguageStat `xorm:"-"`
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
@@ -321,8 +323,12 @@ func (repo *Repository) FullName() string {
 }
 
 // HTMLURL returns the repository HTML URL
-func (repo *Repository) HTMLURL() string {
-	return setting.AppURL + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
+func (repo *Repository) HTMLURL(ctxs ...context.Context) string {
+	ctx := context.TODO()
+	if len(ctxs) > 0 {
+		ctx = ctxs[0]
+	}
+	return httplib.MakeAbsoluteURL(ctx, repo.Link())
 }
 
 // CommitLink make link to by commit full ID
@@ -468,13 +474,11 @@ func (repo *Repository) MustOwner(ctx context.Context) *user_model.User {
 	return repo.Owner
 }
 
-// ComposeMetas composes a map of metas for properly rendering issue links and external issue trackers.
-func (repo *Repository) ComposeMetas(ctx context.Context) map[string]string {
-	if len(repo.RenderingMetas) == 0 {
+func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]string {
+	if len(repo.commonRenderingMetas) == 0 {
 		metas := map[string]string{
 			"user": repo.OwnerName,
 			"repo": repo.Name,
-			"mode": "comment",
 		}
 
 		unit, err := repo.GetUnit(ctx, unit.TypeExternalTracker)
@@ -504,22 +508,34 @@ func (repo *Repository) ComposeMetas(ctx context.Context) map[string]string {
 			metas["org"] = strings.ToLower(repo.OwnerName)
 		}
 
-		repo.RenderingMetas = metas
+		repo.commonRenderingMetas = metas
 	}
-	return repo.RenderingMetas
+	return repo.commonRenderingMetas
 }
 
-// ComposeDocumentMetas composes a map of metas for properly rendering documents
+// ComposeMetas composes a map of metas for properly rendering comments or comment-like contents (commit message)
+func (repo *Repository) ComposeMetas(ctx context.Context) map[string]string {
+	metas := maps.Clone(repo.composeCommonMetas(ctx))
+	metas["markdownLineBreakStyle"] = "comment"
+	metas["markupAllowShortIssuePattern"] = "true"
+	return metas
+}
+
+// ComposeWikiMetas composes a map of metas for properly rendering wikis
+func (repo *Repository) ComposeWikiMetas(ctx context.Context) map[string]string {
+	// does wiki need the "teams" and "org" from common metas?
+	metas := maps.Clone(repo.composeCommonMetas(ctx))
+	metas["markdownLineBreakStyle"] = "document"
+	metas["markupAllowShortIssuePattern"] = "true"
+	return metas
+}
+
+// ComposeDocumentMetas composes a map of metas for properly rendering documents (repo files)
 func (repo *Repository) ComposeDocumentMetas(ctx context.Context) map[string]string {
-	if len(repo.DocumentRenderingMetas) == 0 {
-		metas := map[string]string{}
-		for k, v := range repo.ComposeMetas(ctx) {
-			metas[k] = v
-		}
-		metas["mode"] = "document"
-		repo.DocumentRenderingMetas = metas
-	}
-	return repo.DocumentRenderingMetas
+	// does document(file) need the "teams" and "org" from common metas?
+	metas := maps.Clone(repo.composeCommonMetas(ctx))
+	metas["markdownLineBreakStyle"] = "document"
+	return metas
 }
 
 // GetBaseRepo populates repo.BaseRepo for a fork repository and
@@ -740,17 +756,18 @@ func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string
 
 // GetRepositoryByName returns the repository by given name under user if exists.
 func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repository, error) {
-	repo := &Repository{
-		OwnerID:   ownerID,
-		LowerName: strings.ToLower(name),
-	}
-	has, err := db.GetEngine(ctx).Get(repo)
+	var repo Repository
+	has, err := db.GetEngine(ctx).
+		Where("`owner_id`=?", ownerID).
+		And("`lower_name`=?", strings.ToLower(name)).
+		NoAutoCondition().
+		Get(&repo)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrRepoNotExist{0, ownerID, "", name}
 	}
-	return repo, err
+	return &repo, err
 }
 
 // getRepositoryURLPathSegments returns segments (owner, reponame) extracted from a url

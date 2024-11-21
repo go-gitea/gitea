@@ -1,68 +1,62 @@
-<script>
-import VueBarGraph from 'vue-bar-graph';
-import {createApp} from 'vue';
+<script lang="ts" setup>
+import {VueBarGraph} from 'vue-bar-graph';
+import {computed, onMounted, ref} from 'vue';
 
-const sfc = {
-  components: {VueBarGraph},
-  data: () => ({
-    colors: {
-      barColor: 'green',
-      textColor: 'black',
-      textAltColor: 'white',
-    },
+const colors = ref({
+  barColor: 'green',
+  textColor: 'black',
+  textAltColor: 'white',
+});
 
-    // possible keys:
-    // * avatar_link: (...)
-    // * commits: (...)
-    // * home_link: (...)
-    // * login: (...)
-    // * name: (...)
-    activityTopAuthors: window.config.pageData.repoActivityTopAuthors || [],
-  }),
-  computed: {
-    graphPoints() {
-      return this.activityTopAuthors.map((item) => {
-        return {
-          value: item.commits,
-          label: item.name,
-        };
-      });
-    },
-    graphAuthors() {
-      return this.activityTopAuthors.map((item, idx) => {
-        return {
-          position: idx + 1,
-          ...item,
-        };
-      });
-    },
-    graphWidth() {
-      return this.activityTopAuthors.length * 40;
-    },
-  },
-  mounted() {
-    const refStyle = window.getComputedStyle(this.$refs.style);
-    const refAltStyle = window.getComputedStyle(this.$refs.altStyle);
+// possible keys:
+// * avatar_link: (...)
+// * commits: (...)
+// * home_link: (...)
+// * login: (...)
+// * name: (...)
+const activityTopAuthors = window.config.pageData.repoActivityTopAuthors || [];
 
-    this.colors.barColor = refStyle.backgroundColor;
-    this.colors.textColor = refStyle.color;
-    this.colors.textAltColor = refAltStyle.color;
-  },
-};
+const graphPoints = computed(() => {
+  return activityTopAuthors.map((item) => {
+    return {
+      value: item.commits,
+      label: item.name,
+    };
+  });
+});
 
-export function initRepoActivityTopAuthorsChart() {
-  const el = document.querySelector('#repo-activity-top-authors-chart');
-  if (el) {
-    createApp(sfc).mount(el);
-  }
-}
+const graphAuthors = computed(() => {
+  return activityTopAuthors.map((item, idx) => {
+    return {
+      position: idx + 1,
+      ...item,
+    };
+  });
+});
 
-export default sfc; // activate the IDE's Vue plugin
+const graphWidth = computed(() => {
+  return activityTopAuthors.length * 40;
+});
+
+const styleElement = ref<HTMLElement | null>(null);
+const altStyleElement = ref<HTMLElement | null>(null);
+
+onMounted(() => {
+  const refStyle = window.getComputedStyle(styleElement.value);
+  const refAltStyle = window.getComputedStyle(altStyleElement.value);
+
+  colors.value = {
+    barColor: refStyle.backgroundColor,
+    textColor: refStyle.color,
+    textAltColor: refAltStyle.color,
+  };
+});
 </script>
+
 <template>
   <div>
-    <div class="activity-bar-graph" ref="style" style="width: 0; height: 0;"/>
-    <div class="activity-bar-graph-alt" ref="altStyle" style="width: 0; height: 0;"/>
+    <div class="activity-bar-graph" ref="styleElement" style="width: 0; height: 0;"/>
+    <div class="activity-bar-graph-alt" ref="altStyleElement" style="width: 0; height: 0;"/>
     <vue-bar-graph
       :points="graphPoints"
       :show-x-axis="true"

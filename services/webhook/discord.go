@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
@@ -100,6 +101,11 @@ var (
 	redColor         = color("ff3232")
 )
 
+type discordConvertor struct {
+	Username  string
+	AvatarURL string
+}
+
 // Create implements PayloadConvertor Create method
 func (d discordConvertor) Create(p *api.CreatePayload) (DiscordPayload, error) {
 	// created tag/branch
@@ -149,8 +155,14 @@ func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 	var text string
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
-		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL,
-			strings.TrimRight(commit.Message, "\r\n"), commit.Author.Name)
+		// limit the commit message display to just the summary, otherwise it would be hard to read
+		message := strings.TrimRight(strings.SplitN(commit.Message, "\n", 2)[0], "\r")
+
+		// a limit of 50 is set because GitHub does the same
+		if utf8.RuneCountInString(message) > 50 {
+			message = fmt.Sprintf("%.47s...", message)
+		}
+		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL, message, commit.Author.Name)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
 			text += "\n"
@@ -162,9 +174,9 @@ func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 
 // Issue implements PayloadConvertor Issue method
 func (d discordConvertor) Issue(p *api.IssuePayload) (DiscordPayload, error) {
-	title, _, text, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
+	title, _, extraMarkdown, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
 
-	return d.createPayload(p.Sender, title, text, p.Issue.HTMLURL, color), nil
+	return d.createPayload(p.Sender, title, extraMarkdown, p.Issue.HTMLURL, color), nil
 }
 
 // IssueComment implements PayloadConvertor IssueComment method
@@ -176,9 +188,9 @@ func (d discordConvertor) IssueComment(p *api.IssueCommentPayload) (DiscordPaylo
 
 // PullRequest implements PayloadConvertor PullRequest method
 func (d discordConvertor) PullRequest(p *api.PullRequestPayload) (DiscordPayload, error) {
-	title, _, text, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
+	title, _, extraMarkdown, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
-	return d.createPayload(p.Sender, title, text, p.PullRequest.HTMLURL, color), nil
+	return d.createPayload(p.Sender, title, extraMarkdown, p.PullRequest.HTMLURL, color), nil
 }
 
 // Review implements PayloadConvertor Review method
@@ -253,23 +265,16 @@ func (d discordConvertor) Package(p *api.PackagePayload) (DiscordPayload, error)
 	return d.createPayload(p.Sender, text, "", p.Package.HTMLURL, color), nil
 }
 
-type discordConvertor struct {
-	Username  string
-	AvatarURL string
-}
-
-var _ payloadConvertor[DiscordPayload] = discordConvertor{}
-
 func newDiscordRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &DiscordMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
 		return nil, nil, fmt.Errorf("newDiscordRequest meta json: %w", err)
 	}
-	sc := discordConvertor{
+	var pc payloadConvertor[DiscordPayload] = discordConvertor{
 		Username:  meta.Username,
 		AvatarURL: meta.IconURL,
 	}
-	return newJSONRequest(sc, w, t, true)
+	return newJSONRequest(pc, w, t, true)
 }
 
 func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, error) {

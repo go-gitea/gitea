@@ -62,7 +62,7 @@ func TestRetrieveLabels(t *testing.T) {
 		contexttest.LoadUser(t, ctx, 2)
 		contexttest.LoadRepo(t, ctx, testCase.RepoID)
 		ctx.Req.Form.Set("sort", testCase.Sort)
-		RetrieveLabels(ctx)
+		RetrieveLabelsForList(ctx)
 		assert.False(t, ctx.Written())
 		labels, ok := ctx.Data["Labels"].([]*issues_model.Label)
 		assert.True(t, ok)

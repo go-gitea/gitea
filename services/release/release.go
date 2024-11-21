@@ -65,7 +65,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 
 			commit, err := gitRepo.GetCommit(rel.Target)
 			if err != nil {
-				return false, fmt.Errorf("createTag::GetCommit[%v]: %w", rel.Target, err)
+				return false, err
 			}
 
 			if len(msg) > 0 {
@@ -142,6 +142,7 @@ func CreateRelease(gitRepo *git.Repository, rel *repo_model.Release, attachmentU
 		return err
 	}
 
+	rel.Title, _ = util.SplitStringAtByteN(rel.Title, 255)
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 	if err = db.Insert(gitRepo.Ctx, rel); err != nil {
 		return err

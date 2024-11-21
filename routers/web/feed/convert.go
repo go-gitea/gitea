@@ -56,8 +56,7 @@ func renderMarkdown(ctx *context.Context, act *activities_model.Action, content 
 		Links: markup.Links{
 			Base: act.GetRepoLink(ctx),
 		},
-		Type: markdown.MarkupName,
-		Metas: map[string]string{
+		Metas: map[string]string{ // FIXME: not right here, it should use issue to compose the metas
 			"user": act.GetRepoUserName(ctx),
 			"repo": act.GetRepoName(ctx),
 		},
@@ -71,6 +70,7 @@ func renderMarkdown(ctx *context.Context, act *activities_model.Action, content 
 
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
 func feedActionsToFeedItems(ctx *context.Context, actions activities_model.ActionList) (items []*feeds.Item, err error) {
+	renderUtils := templates.NewRenderUtils(ctx)
 	for _, act := range actions {
 		act.LoadActUser(ctx)
 
@@ -83,7 +83,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 		link := &feeds.Link{Href: act.GetCommentHTMLURL(ctx)}
 
 		// title
-		title = act.ActUser.DisplayName() + " "
+		title = act.ActUser.GetDisplayName() + " "
 		var titleExtra template.HTML
 		switch act.OpType {
 		case activities_model.ActionCreateRepo:
@@ -215,7 +215,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 					desc += fmt.Sprintf("<a href=\"%s\">%s</a>\n%s",
 						html.EscapeString(fmt.Sprintf("%s/commit/%s", act.GetRepoAbsoluteLink(ctx), commit.Sha1)),
 						commit.Sha1,
-						templates.RenderCommitMessage(ctx, commit.Message, nil),
+						renderUtils.RenderCommitMessage(commit.Message, nil),
 					)
 				}
 
@@ -252,7 +252,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			Description: desc,
 			IsPermaLink: "false",
 			Author: &feeds.Author{
-				Name:  act.ActUser.DisplayName(),
+				Name:  act.ActUser.GetDisplayName(),
 				Email: act.ActUser.GetEmail(),
 			},
 			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(act.ID, 10), link.Href),
@@ -313,7 +313,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 			Link:    link,
 			Created: rel.CreatedUnix.AsTime(),
 			Author: &feeds.Author{
-				Name:  rel.Publisher.DisplayName(),
+				Name:  rel.Publisher.GetDisplayName(),
 				Email: rel.Publisher.GetEmail(),
 			},
 			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(rel.ID, 10), link.Href),

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +34,8 @@ func TestAction_GetRepoLink(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	comment := unittest.AssertExistsAndLoadBean(t, &issue_model.Comment{ID: 2})
 	action := &activities_model.Action{RepoID: repo.ID, CommentID: comment.ID}
-	setting.AppSubURL = "/suburl"
+	defer test.MockVariableValue(&setting.AppURL, "https://try.gitea.io/suburl/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/suburl")()
 	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
 	assert.Equal(t, expected, action.GetRepoLink(db.DefaultContext))
 	assert.Equal(t, repo.HTMLURL(), action.GetRepoAbsoluteLink(db.DefaultContext))
@@ -226,6 +228,8 @@ func TestNotifyWatchers(t *testing.T) {
 }
 
 func TestGetFeedsCorrupted(t *testing.T) {
+	// Now we will not check for corrupted data in the feeds
+	// users should run doctor to fix their data
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
@@ -239,8 +243,8 @@ func TestGetFeedsCorrupted(t *testing.T) {
 		IncludePrivate: true,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, actions, 0)
-	assert.Equal(t, int64(0), count)
+	assert.Len(t, actions, 1)
+	assert.Equal(t, int64(1), count)
 }
 
 func TestConsistencyUpdateAction(t *testing.T) {

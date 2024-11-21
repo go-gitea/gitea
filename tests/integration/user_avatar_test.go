@@ -37,7 +37,7 @@ func TestUserAvatar(t *testing.T) {
 		}
 
 		session := loginUser(t, "user2")
-		csrf := GetCSRF(t, session, "/user/settings")
+		csrf := GetUserCSRFToken(t, session)
 
 		imgData := &bytes.Buffer{}
 

@@ -14,4 +14,8 @@ const (
 	UserActivityPubPrivPem = "activitypub.priv_pem"
 	// UserActivityPubPubPem is user's public key
 	UserActivityPubPubPem = "activitypub.pub_pem"
+	// SignupIP is the IP address that the user signed up with
+	SignupIP = "signup.ip"
+	// SignupUserAgent is the user agent that the user signed up with
+	SignupUserAgent = "signup.user_agent"
 )

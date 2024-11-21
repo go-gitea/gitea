@@ -1,5 +1,5 @@
-<script>
-import {SvgIcon} from '../svg.js';
+<script lang="ts">
+import {SvgIcon} from '../svg.ts';
 import {
   Chart,
   Title,
@@ -10,18 +10,18 @@ import {
   LineElement,
   Filler,
 } from 'chart.js';
-import {GET} from '../modules/fetch.js';
+import {GET} from '../modules/fetch.ts';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import {Line as ChartLine} from 'vue-chartjs';
 import {
   startDaysBetween,
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
-} from '../utils/time.js';
-import {chartJsColors} from '../utils/color.js';
-import {sleep} from '../utils.js';
+} from '../utils/time.ts';
+import {chartJsColors} from '../utils/color.ts';
+import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
-import $ from 'jquery';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const customEventListener = {
   id: 'customEventListener',
@@ -77,7 +77,7 @@ export default {
   mounted() {
     this.fetchGraphData();
 
-    $('#repo-contributors').dropdown({
+    fomanticQuery('#repo-contributors').dropdown({
       onChange: (val) => {
         this.xAxisMin = this.xAxisStart;
         this.xAxisMax = this.xAxisEnd;

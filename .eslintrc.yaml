@@ -27,7 +27,6 @@ plugins:
   - "@stylistic/eslint-plugin-js"
   - "@typescript-eslint/eslint-plugin"
   - eslint-plugin-array-func
-  - eslint-plugin-deprecation
   - eslint-plugin-github
   - eslint-plugin-i
   - eslint-plugin-no-jquery
@@ -47,7 +46,6 @@ overrides:
   - files: ["web_src/**/*"]
     globals:
       __webpack_public_path__: true
-      htmx: true
       process: false # https://github.com/webpack/webpack/issues/15833
   - files: ["web_src/**/*", "docs/**/*"]
     env:
@@ -61,7 +59,15 @@ overrides:
   - files: ["*.config.*"]
     rules:
       i/no-unused-modules: [0]
-  - files: ["**/*.test.*", "web_src/js/test/setup.js"]
+  - files: ["**/*.d.ts"]
+    rules:
+      i/no-unused-modules: [0]
+      "@typescript-eslint/consistent-type-definitions": [0]
+      "@typescript-eslint/consistent-type-imports": [0]
+  - files: ["web_src/js/types.ts"]
+    rules:
+      i/no-unused-modules: [0]
+  - files: ["**/*.test.*", "web_src/js/test/setup.ts"]
     env:
       vitest-globals/env: true
     rules:
@@ -114,7 +120,7 @@ overrides:
       vitest/valid-describe-callback: [2]
       vitest/valid-expect: [2]
       vitest/valid-title: [2]
-  - files: ["web_src/js/modules/fetch.js", "web_src/js/standalone/**/*"]
+  - files: ["web_src/js/modules/fetch.ts", "web_src/js/standalone/**/*"]
     rules:
       no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression]
   - files: ["**/*.vue"]
@@ -217,7 +223,6 @@ rules:
   "@typescript-eslint/await-thenable": [2]
   "@typescript-eslint/ban-ts-comment": [2, {'ts-expect-error': false, 'ts-ignore': true, 'ts-nocheck': false, 'ts-check': false}]
   "@typescript-eslint/ban-tslint-comment": [0]
-  "@typescript-eslint/ban-types": [2, {extendDefaults: true, types: {Function: false}}]
   "@typescript-eslint/class-literal-property-style": [0]
   "@typescript-eslint/class-methods-use-this": [0]
   "@typescript-eslint/consistent-generic-constructors": [0]
@@ -242,12 +247,14 @@ rules:
   "@typescript-eslint/no-base-to-string": [0]
   "@typescript-eslint/no-confusing-non-null-assertion": [2]
   "@typescript-eslint/no-confusing-void-expression": [0]
+  "@typescript-eslint/no-deprecated": [2]
   "@typescript-eslint/no-dupe-class-members": [0]
   "@typescript-eslint/no-duplicate-enum-values": [2]
   "@typescript-eslint/no-duplicate-type-constituents": [2, {ignoreUnions: true}]
   "@typescript-eslint/no-dynamic-delete": [0]
   "@typescript-eslint/no-empty-function": [0]
   "@typescript-eslint/no-empty-interface": [0]
+  "@typescript-eslint/no-empty-object-type": [2]
   "@typescript-eslint/no-explicit-any": [0]
   "@typescript-eslint/no-extra-non-null-assertion": [2]
   "@typescript-eslint/no-extraneous-class": [0]
@@ -259,7 +266,7 @@ rules:
   "@typescript-eslint/no-invalid-this": [0]
   "@typescript-eslint/no-invalid-void-type": [0]
   "@typescript-eslint/no-loop-func": [0]
-  "@typescript-eslint/no-loss-of-precision": [2]
+  "@typescript-eslint/no-loss-of-precision": [0]
   "@typescript-eslint/no-magic-numbers": [0]
   "@typescript-eslint/no-meaningless-void-operator": [0]
   "@typescript-eslint/no-misused-new": [2]
@@ -271,8 +278,9 @@ rules:
   "@typescript-eslint/no-non-null-assertion": [0]
   "@typescript-eslint/no-redeclare": [0]
   "@typescript-eslint/no-redundant-type-constituents": [2]
-  "@typescript-eslint/no-require-imports": [0]
+  "@typescript-eslint/no-require-imports": [2]
   "@typescript-eslint/no-restricted-imports": [0]
+  "@typescript-eslint/no-restricted-types": [0]
   "@typescript-eslint/no-shadow": [0]
   "@typescript-eslint/no-this-alias": [0] # handled by unicorn/no-this-assignment
   "@typescript-eslint/no-unnecessary-boolean-literal-compare": [0]
@@ -287,6 +295,7 @@ rules:
   "@typescript-eslint/no-unsafe-call": [0]
   "@typescript-eslint/no-unsafe-declaration-merging": [2]
   "@typescript-eslint/no-unsafe-enum-comparison": [2]
+  "@typescript-eslint/no-unsafe-function-type": [2]
   "@typescript-eslint/no-unsafe-member-access": [0]
   "@typescript-eslint/no-unsafe-return": [0]
   "@typescript-eslint/no-unsafe-unary-minus": [2]
@@ -295,7 +304,7 @@ rules:
   "@typescript-eslint/no-use-before-define": [0]
   "@typescript-eslint/no-useless-constructor": [0]
   "@typescript-eslint/no-useless-empty-export": [0]
-  "@typescript-eslint/no-var-requires": [2]
+  "@typescript-eslint/no-wrapper-object-types": [2]
   "@typescript-eslint/non-nullable-type-assertion-style": [0]
   "@typescript-eslint/only-throw-error": [2]
   "@typescript-eslint/parameter-properties": [0]
@@ -327,7 +336,7 @@ rules:
   "@typescript-eslint/switch-exhaustiveness-check": [0]
   "@typescript-eslint/triple-slash-reference": [2]
   "@typescript-eslint/typedef": [0]
-  "@typescript-eslint/unbound-method": [2]
+  "@typescript-eslint/unbound-method": [0] # too many false-positives
   "@typescript-eslint/unified-signatures": [2]
   accessor-pairs: [2]
   array-callback-return: [2, {checkForEach: true}]
@@ -350,7 +359,6 @@ rules:
   default-case-last: [2]
   default-case: [0]
   default-param-last: [0]
-  deprecation/deprecation: [2]
   dot-notation: [0]
   eqeqeq: [2]
   for-direction: [2]
@@ -467,7 +475,7 @@ rules:
   no-dupe-else-if: [2]
   no-dupe-keys: [2]
   no-duplicate-case: [2]
-  no-duplicate-imports: [2]
+  no-duplicate-imports: [0]
   no-else-return: [2]
   no-empty-character-class: [2]
   no-empty-function: [0]
@@ -505,7 +513,7 @@ rules:
   no-jquery/no-box-model: [2]
   no-jquery/no-browser: [2]
   no-jquery/no-camel-case: [2]
-  no-jquery/no-class-state: [0]
+  no-jquery/no-class-state: [2]
   no-jquery/no-class: [0]
   no-jquery/no-clone: [2]
   no-jquery/no-closest: [0]
@@ -561,7 +569,7 @@ rules:
   no-jquery/no-param: [2]
   no-jquery/no-parent: [0]
   no-jquery/no-parents: [2]
-  no-jquery/no-parse-html-literal: [0]
+  no-jquery/no-parse-html-literal: [2]
   no-jquery/no-parse-html: [2]
   no-jquery/no-parse-json: [2]
   no-jquery/no-parse-xml: [2]
@@ -592,7 +600,7 @@ rules:
   no-lone-blocks: [2]
   no-lonely-if: [0]
   no-loop-func: [0]
-  no-loss-of-precision: [0] # handled by @typescript-eslint/no-loss-of-precision
+  no-loss-of-precision: [2]
   no-magic-numbers: [0]
   no-misleading-character-class: [2]
   no-multi-assign: [0]
@@ -619,7 +627,7 @@ rules:
   no-restricted-exports: [0]
   no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, location, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, self, status, statusbar, stop, toolbar, top, __dirname, __filename]
   no-restricted-imports: [0]
-  no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression, {selector: "CallExpression[callee.name='fetch']", message: "use modules/fetch.js instead"}]
+  no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression, {selector: "CallExpression[callee.name='fetch']", message: "use modules/fetch.ts instead"}]
   no-return-assign: [0]
   no-script-url: [2]
   no-self-assign: [2, {props: true}]
@@ -634,7 +642,7 @@ rules:
   no-this-before-super: [2]
   no-throw-literal: [2]
   no-undef-init: [2]
-  no-undef: [2, {typeof: true}]
+  no-undef: [2, {typeof: true}] # TODO: disable this rule after tsc passes
   no-undefined: [0]
   no-underscore-dangle: [0]
   no-unexpected-multiline: [2]
@@ -807,6 +815,7 @@ rules:
   unicorn/catch-error-name: [0]
   unicorn/consistent-destructuring: [2]
   unicorn/consistent-empty-array-spread: [2]
+  unicorn/consistent-existence-index-check: [0]
   unicorn/consistent-function-scoping: [2]
   unicorn/custom-error-definition: [0]
   unicorn/empty-brace-spaces: [2]
@@ -836,6 +845,7 @@ rules:
   unicorn/no-invalid-fetch-options: [2]
   unicorn/no-invalid-remove-event-listener: [2]
   unicorn/no-keyword-prefix: [0]
+  unicorn/no-length-as-slice-end: [2]
   unicorn/no-lonely-if: [2]
   unicorn/no-magic-array-flat-depth: [0]
   unicorn/no-negated-condition: [0]
@@ -882,10 +892,12 @@ rules:
   unicorn/prefer-dom-node-text-content: [2]
   unicorn/prefer-event-target: [2]
   unicorn/prefer-export-from: [0]
+  unicorn/prefer-global-this: [0]
   unicorn/prefer-includes: [2]
   unicorn/prefer-json-parse-buffer: [0]
   unicorn/prefer-keyboard-event-key: [2]
   unicorn/prefer-logical-operator-over-ternary: [2]
+  unicorn/prefer-math-min-max: [2]
   unicorn/prefer-math-trunc: [2]
   unicorn/prefer-modern-dom-apis: [0]
   unicorn/prefer-modern-math-apis: [2]

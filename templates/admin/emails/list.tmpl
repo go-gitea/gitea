@@ -38,6 +38,7 @@
 						</th>
 						<th>{{ctx.Locale.Tr "admin.emails.primary"}}</th>
 						<th>{{ctx.Locale.Tr "admin.emails.activated"}}</th>
+						<th></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -59,6 +60,11 @@
 									{{svg (Iif .IsActivated "octicon-check" "octicon-x")}}
 								{{end}}
 							</td>
+							<td>
+								<div class="tw-flex tw-gap-2">
+									<a class="delete-button" href="" data-url="{{$.Link}}/delete" data-id="{{.ID}}" data-data-uid="{{.UID}}">{{svg "octicon-trash"}}</a>
+								</div>
+							</td>
 						</tr>
 					{{end}}
 				</tbody>
@@ -74,7 +80,7 @@
 			<div class="content">
 				<p class="center">{{ctx.Locale.Tr "admin.emails.change_email_text"}}</p>
 
-				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/admin/emails/activate" method="post">
+				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/-/admin/emails/activate" method="post">
 					{{$.CsrfTokenHtml}}
 
 					<input type="hidden" id="query-sort" name="sort" value="{{.SortType}}">
@@ -95,4 +101,16 @@
 		</div>
 
 	</div>
+
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
+		{{svg "octicon-trash"}}
+		{{ctx.Locale.Tr "admin.emails.delete"}}
+	</div>
+	<div class="content">
+		{{ctx.Locale.Tr "admin.emails.delete_desc"}}
+	</div>
+	{{template "base/modal_actions_confirm" .}}
+</div>
+
 {{template "admin/layout_footer" .}}

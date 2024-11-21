@@ -89,7 +89,7 @@ func TestListUnadoptedRepositories_ListOptions(t *testing.T) {
 
 func TestAdoptRepository(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	assert.NoError(t, unittest.CopyDir(filepath.Join(setting.RepoRootPath, "user2", "repo1.git"), filepath.Join(setting.RepoRootPath, "user2", "test-adopt.git")))
+	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.RepoRootPath, "user2", "repo1.git"), filepath.Join(setting.RepoRootPath, "user2", "test-adopt.git")))
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	_, err := AdoptRepository(db.DefaultContext, user2, user2, CreateRepoOptions{Name: "test-adopt"})
 	assert.NoError(t, err)

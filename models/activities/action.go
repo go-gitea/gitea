@@ -171,7 +171,10 @@ func (a *Action) TableIndices() []*schemas.Index {
 	cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
 	cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
 
-	indices := []*schemas.Index{actUserIndex, repoIndex, cudIndex}
+	cuIndex := schemas.NewIndex("c_u", schemas.IndexType)
+	cuIndex.AddColumn("user_id", "is_deleted")
+
+	indices := []*schemas.Index{actUserIndex, repoIndex, cudIndex, cuIndex}
 
 	return indices
 }
@@ -248,6 +251,9 @@ func (a *Action) GetActDisplayNameTitle(ctx context.Context) string {
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName(ctx context.Context) string {
 	a.loadRepo(ctx)
+	if a.Repo == nil {
+		return "(non-existing-repo)"
+	}
 	return a.Repo.OwnerName
 }
 
@@ -260,6 +266,9 @@ func (a *Action) ShortRepoUserName(ctx context.Context) string {
 // GetRepoName returns the name of the action repository.
 func (a *Action) GetRepoName(ctx context.Context) string {
 	a.loadRepo(ctx)
+	if a.Repo == nil {
+		return "(non-existing-repo)"
+	}
 	return a.Repo.Name
 }
 
@@ -450,17 +459,38 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		return nil, 0, err
 	}
 
-	sess := db.GetEngine(ctx).Where(cond).
-		Select("`action`.*"). // this line will avoid select other joined table's columns
-		Join("INNER", "repository", "`repository`.id = `action`.repo_id")
-
-	opts.SetDefaultValues()
-	sess = db.SetSessionPagination(sess, &opts)
-
 	actions := make([]*Action, 0, opts.PageSize)
-	count, err := sess.Desc("`action`.created_unix").FindAndCount(&actions)
-	if err != nil {
-		return nil, 0, fmt.Errorf("FindAndCount: %w", err)
+	var count int64
+	opts.SetDefaultValues()
+
+	if opts.Page < 10 { // TODO: why it's 10 but other values? It's an experience value.
+		sess := db.GetEngine(ctx).Where(cond)
+		sess = db.SetSessionPagination(sess, &opts)
+
+		count, err = sess.Desc("`action`.created_unix").FindAndCount(&actions)
+		if err != nil {
+			return nil, 0, fmt.Errorf("FindAndCount: %w", err)
+		}
+	} else {
+		// First, only query which IDs are necessary, and only then query all actions to speed up the overall query
+		sess := db.GetEngine(ctx).Where(cond).Select("`action`.id")
+		sess = db.SetSessionPagination(sess, &opts)
+
+		actionIDs := make([]int64, 0, opts.PageSize)
+		if err := sess.Table("action").Desc("`action`.created_unix").Find(&actionIDs); err != nil {
+			return nil, 0, fmt.Errorf("Find(actionsIDs): %w", err)
+		}
+
+		count, err = db.GetEngine(ctx).Where(cond).
+			Table("action").
+			Cols("`action`.id").Count()
+		if err != nil {
+			return nil, 0, fmt.Errorf("Count: %w", err)
+		}
+
+		if err := db.GetEngine(ctx).In("`action`.id", actionIDs).Desc("`action`.created_unix").Find(&actions); err != nil {
+			return nil, 0, fmt.Errorf("Find: %w", err)
+		}
 	}
 
 	if err := ActionList(actions).LoadAttributes(ctx); err != nil {

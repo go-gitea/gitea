@@ -41,6 +41,9 @@ func TestBasicAuthDecode(t *testing.T) {
 
 	_, _, err = BasicAuthDecode("invalid")
 	assert.Error(t, err)
+
+	_, _, err = BasicAuthDecode("YWxpY2U=") // "alice", no colon
+	assert.Error(t, err)
 }
 
 func TestVerifyTimeLimitCode(t *testing.T) {
@@ -149,6 +152,7 @@ func TestStringsToInt64s(t *testing.T) {
 	}
 	testSuccess(nil, nil)
 	testSuccess([]string{}, []int64{})
+	testSuccess([]string{""}, []int64{})
 	testSuccess([]string{"-1234"}, []int64{-1234})
 	testSuccess([]string{"1", "4", "16", "64", "256"}, []int64{1, 4, 16, 64, 256})
 
