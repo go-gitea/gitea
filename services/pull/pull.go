@@ -235,6 +235,9 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
 	}
 	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
+	if err != nil {
+		return err
+	}
 	for _, reviewer := range opts.Reviewers {
 		if _, err = issue_service.ReviewRequest(ctx, pr.Issue, issue.Poster, &permDoer, reviewer, true); err != nil {
 			return err

@@ -182,22 +182,22 @@ func AddDeletePRBranchComment(ctx context.Context, doer *user_model.User, repo *
 
 // UpdateIssueAttachments update attachments by UUIDs for the issue
 func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
+	if len(uuids) == 0 {
+		return nil
 	}
-	defer committer.Close()
-	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
-	if err != nil {
-		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
-	}
-	for i := 0; i < len(attachments); i++ {
-		attachments[i].IssueID = issueID
-		if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
-			return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
+		if err != nil {
+			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 		}
-	}
-	return committer.Commit()
+		for i := 0; i < len(attachments); i++ {
+			attachments[i].IssueID = issueID
+			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
+				return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
+			}
+		}
+		return nil
+	})
 }
 
 // NewIssueOptions represents the options of a new issue.
@@ -293,19 +293,6 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 		return err
 	}
 
-	if len(opts.Attachments) > 0 {
-		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
-		if err != nil {
-			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)
-		}
-
-		for i := 0; i < len(attachments); i++ {
-			attachments[i].IssueID = opts.Issue.ID
-			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
-				return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
-			}
-		}
-	}
 	if err = opts.Issue.LoadAttributes(ctx); err != nil {
 		return err
 	}
