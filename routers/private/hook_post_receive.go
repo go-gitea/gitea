@@ -208,7 +208,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			return
 		}
 
-		cols := make([]string, 0, len(opts.GitPushOptions))
+		cols := make([]string, 0, 2)
 
 		if isPrivate.Has() {
 			repo.IsPrivate = isPrivate.Value()

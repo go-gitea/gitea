@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -77,6 +78,7 @@ func changeIssueTitle(ctx context.Context, issue *issues_model.Issue, doer *user
 	}
 	defer committer.Close()
 
+	issue.Title, _ = util.SplitStringAtByteN(issue.Title, 255)
 	if err = issues_model.UpdateIssueCols(ctx, issue, "name"); err != nil {
 		return fmt.Errorf("updateIssueCols: %w", err)
 	}

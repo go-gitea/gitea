@@ -1,12 +1,13 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {createTippy, showTemporaryTooltip} from '../modules/tippy.ts';
-import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, createElementFromHTML, hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
-import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {toAbsoluteUrl} from '../utils.ts';
+import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
+import {parseIssuePageInfo, toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
+import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 
 const {appSubUrl} = window.config;
 
@@ -41,52 +42,6 @@ export function initRepoIssueTimeTracking() {
   });
 }
 
-async function updateDeadline(deadlineString) {
-  hideElem('#deadline-err-invalid-date');
-  document.querySelector('#deadline-loader')?.classList.add('is-loading');
-
-  let realDeadline = null;
-  if (deadlineString !== '') {
-    const newDate = Date.parse(deadlineString);
-
-    if (Number.isNaN(newDate)) {
-      document.querySelector('#deadline-loader')?.classList.remove('is-loading');
-      showElem('#deadline-err-invalid-date');
-      return false;
-    }
-    realDeadline = new Date(newDate);
-  }
-
-  try {
-    const response = await POST(document.querySelector('#update-issue-deadline-form').getAttribute('action'), {
-      data: {due_date: realDeadline},
-    });
-
-    if (response.ok) {
-      window.location.reload();
-    } else {
-      throw new Error('Invalid response');
-    }
-  } catch (error) {
-    console.error(error);
-    document.querySelector('#deadline-loader').classList.remove('is-loading');
-    showElem('#deadline-err-invalid-date');
-  }
-}
-
-export function initRepoIssueDue() {
-  $(document).on('click', '.issue-due-edit', () => {
-    toggleElem('#deadlineForm');
-  });
-  $(document).on('click', '.issue-due-remove', () => {
-    updateDeadline('');
-  });
-  $(document).on('submit', '.issue-due-form', () => {
-    updateDeadline($('#deadlineDate').val());
-    return false;
-  });
-}
-
 /**
  * @param {HTMLElement} item
  */
@@ -97,17 +52,15 @@ function excludeLabel(item) {
   const regStr = `labels=((?:-?[0-9]+%2c)*)(${id})((?:%2c-?[0-9]+)*)&`;
   const newStr = 'labels=$1-$2$3&';
 
-  window.location = href.replace(new RegExp(regStr), newStr);
+  window.location.assign(href.replace(new RegExp(regStr), newStr));
 }
 
 export function initRepoIssueSidebarList() {
-  const repolink = $('#repolink').val();
-  const repoId = $('#repoId').val();
+  const issuePageInfo = parseIssuePageInfo();
   const crossRepoSearch = $('#crossRepoSearch').val();
-  const tp = $('#type').val();
-  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&type=${tp}`;
+  let issueSearchUrl = `${issuePageInfo.repoLink}/issues/search?q={query}&type=${issuePageInfo.issueDependencySearchType}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
+    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({
@@ -145,6 +98,7 @@ export function initRepoIssueSidebarList() {
     });
   });
 
+  // FIXME: it is wrong place to init ".ui.dropdown.label-filter"
   $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
     if (e.altKey && e.key === 'Enter') {
       const selectedItem = document.querySelector('.menu .ui.dropdown.label-filter .menu .item.selected');
@@ -153,7 +107,6 @@ export function initRepoIssueSidebarList() {
       }
     }
   });
-  $('.ui.dropdown.label-filter, .ui.dropdown.select-label').dropdown('setting', {'hideDividers': 'empty'}).dropdown('refreshItems');
 }
 
 export function initRepoIssueCommentDelete() {
@@ -187,14 +140,17 @@ export function initRepoIssueCommentDelete() {
           const path = conversationHolder.getAttribute('data-path');
           const side = conversationHolder.getAttribute('data-side');
           const idx = conversationHolder.getAttribute('data-idx');
-          const lineType = conversationHolder.closest('tr').getAttribute('data-line-type');
+          const lineType = conversationHolder.closest('tr')?.getAttribute('data-line-type');
 
-          if (lineType === 'same') {
-            document.querySelector(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).classList.remove('tw-invisible');
-          } else {
-            document.querySelector(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).classList.remove('tw-invisible');
+          // the conversation holder could appear either on the "Conversation" page, or the "Files Changed" page
+          // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment"
+          if (lineType) {
+            if (lineType === 'same') {
+              document.querySelector(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).classList.remove('tw-invisible');
+            } else {
+              document.querySelector(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).classList.remove('tw-invisible');
+            }
           }
-
           conversationHolder.remove();
         }
 
@@ -366,30 +322,8 @@ export function initRepoIssueWipTitle() {
   });
 }
 
-export async function updateIssuesMeta(url, action, issue_ids, id) {
-  try {
-    const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
-    if (!response.ok) {
-      throw new Error('Failed to update issues meta');
-    }
-  } catch (error) {
-    console.error(error);
-  }
-}
-
 export function initRepoIssueComments() {
   if (!$('.repository.view.issue .timeline').length) return;
-
-  $('.re-request-review').on('click', async function (e) {
-    e.preventDefault();
-    const url = this.getAttribute('data-update-url');
-    const issueId = this.getAttribute('data-issue-id');
-    const id = this.getAttribute('data-id');
-    const isChecked = this.classList.contains('checked');
-
-    await updateIssuesMeta(url, isChecked ? 'detach' : 'attach', issueId, id);
-    window.location.reload();
-  });
 
   document.addEventListener('click', (e) => {
     const urlTarget = document.querySelector(':target');
@@ -480,9 +414,9 @@ export function initRepoPullRequestReview() {
     await handleReply(this);
   });
 
-  const $reviewBox = $('.review-box-panel');
-  if ($reviewBox.length === 1) {
-    const _promise = initComboMarkdownEditor($reviewBox.find('.combo-markdown-editor'));
+  const elReviewBox = document.querySelector('.review-box-panel');
+  if (elReviewBox) {
+    initComboMarkdownEditor(elReviewBox.querySelector('.combo-markdown-editor'));
   }
 
   // The following part is only for diff views
@@ -509,21 +443,19 @@ export function initRepoPullRequestReview() {
     });
   }
 
-  $(document).on('click', '.add-code-comment', async function (e) {
-    if (e.target.classList.contains('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
+  addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
     e.preventDefault();
 
-    const isSplit = this.closest('.code-diff')?.classList.contains('code-diff-split');
-    const side = this.getAttribute('data-side');
-    const idx = this.getAttribute('data-idx');
-    const path = this.closest('[data-path]')?.getAttribute('data-path');
-    const tr = this.closest('tr');
+    const isSplit = el.closest('.code-diff')?.classList.contains('code-diff-split');
+    const side = el.getAttribute('data-side');
+    const idx = el.getAttribute('data-idx');
+    const path = el.closest('[data-path]')?.getAttribute('data-path');
+    const tr = el.closest('tr');
     const lineType = tr.getAttribute('data-line-type');
 
-    const ntr = tr.nextElementSibling;
-    let $ntr = $(ntr);
+    let ntr = tr.nextElementSibling;
     if (!ntr?.classList.contains('add-comment')) {
-      $ntr = $(`
+      ntr = createElementFromHTML(`
         <tr class="add-comment" data-line-type="${lineType}">
           ${isSplit ? `
             <td class="add-comment-left" colspan="4"></td>
@@ -532,24 +464,18 @@ export function initRepoPullRequestReview() {
             <td class="add-comment-left add-comment-right" colspan="5"></td>
           `}
         </tr>`);
-      $(tr).after($ntr);
+      tr.after(ntr);
     }
-
-    const $td = $ntr.find(`.add-comment-${side}`);
-    const $commentCloud = $td.find('.comment-code-cloud');
-    if (!$commentCloud.length && !$ntr.find('button[name="pending_review"]').length) {
-      try {
-        const response = await GET(this.closest('[data-new-comment-url]')?.getAttribute('data-new-comment-url'));
-        const html = await response.text();
-        $td.html(html);
-        $td.find("input[name='line']").val(idx);
-        $td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
-        $td.find("input[name='path']").val(path);
-        const editor = await initComboMarkdownEditor($td.find('.combo-markdown-editor'));
-        editor.focus();
-      } catch (error) {
-        console.error(error);
-      }
+    const td = ntr.querySelector(`.add-comment-${side}`);
+    const commentCloud = td.querySelector('.comment-code-cloud');
+    if (!commentCloud && !ntr.querySelector('button[name="pending_review"]')) {
+      const response = await GET(el.closest('[data-new-comment-url]')?.getAttribute('data-new-comment-url'));
+      td.innerHTML = await response.text();
+      td.querySelector<HTMLInputElement>("input[name='line']").value = idx;
+      td.querySelector<HTMLInputElement>("input[name='side']").value = (side === 'left' ? 'previous' : 'proposed');
+      td.querySelector<HTMLInputElement>("input[name='path']").value = path;
+      const editor = await initComboMarkdownEditor(td.querySelector<HTMLElement>('.combo-markdown-editor'));
+      editor.focus();
     }
   });
 }
@@ -662,41 +588,40 @@ export function initRepoIssueBranchSelect() {
   });
 }
 
-export async function initSingleCommentEditor($commentForm) {
+async function initSingleCommentEditor($commentForm) {
   // pages:
   // * normal new issue/pr page: no status-button, no comment-button (there is only a normal submit button which can submit empty content)
   // * issue/pr view page: with comment form, has status-button and comment-button
-  const opts = {};
-  const statusButton = document.querySelector('#status-button');
-  const commentButton = document.querySelector('#comment-button');
-  opts.onContentChanged = (editor) => {
-    const editorText = editor.value().trim();
+  const editor = await initComboMarkdownEditor($commentForm[0].querySelector('.combo-markdown-editor'));
+  const statusButton = document.querySelector<HTMLButtonElement>('#status-button');
+  const commentButton = document.querySelector<HTMLButtonElement>('#comment-button');
+  const syncUiState = () => {
+    const editorText = editor.value().trim(), isUploading = editor.isUploading();
     if (statusButton) {
       statusButton.textContent = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
+      statusButton.disabled = isUploading;
     }
     if (commentButton) {
-      commentButton.disabled = !editorText;
+      commentButton.disabled = !editorText || isUploading;
     }
   };
-  const editor = await initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
-  opts.onContentChanged(editor); // sync state of buttons with the initial content
+  editor.container.addEventListener(ComboMarkdownEditor.EventUploadStateChanged, syncUiState);
+  editor.container.addEventListener(ComboMarkdownEditor.EventEditorContentChanged, syncUiState);
+  syncUiState();
 }
 
-export function initIssueTemplateCommentEditors($commentForm) {
+function initIssueTemplateCommentEditors($commentForm) {
   // pages:
   // * new issue with issue template
   const $comboFields = $commentForm.find('.combo-editor-dropzone');
 
-  const initCombo = async ($combo) => {
-    const $dropzoneContainer = $combo.find('.form-field-dropzone');
-    const $formField = $combo.find('.form-field-real');
-    const $markdownEditor = $combo.find('.combo-markdown-editor');
+  const initCombo = async (elCombo) => {
+    const $formField = $(elCombo.querySelector('.form-field-real'));
+    const dropzoneContainer = elCombo.querySelector('.form-field-dropzone');
+    const markdownEditor = elCombo.querySelector('.combo-markdown-editor');
 
-    const editor = await initComboMarkdownEditor($markdownEditor, {
-      onContentChanged: (editor) => {
-        $formField.val(editor.value());
-      },
-    });
+    const editor = await initComboMarkdownEditor(markdownEditor);
+    editor.container.addEventListener(ComboMarkdownEditor.EventEditorContentChanged, () => $formField.val(editor.value()));
 
     $formField.on('focus', async () => {
       // deactivate all markdown editors
@@ -706,8 +631,8 @@ export function initIssueTemplateCommentEditors($commentForm) {
 
       // activate this markdown editor
       hideElem($formField);
-      showElem($markdownEditor);
-      showElem($dropzoneContainer);
+      showElem(markdownEditor);
+      showElem(dropzoneContainer);
 
       await editor.switchToUserPreference();
       editor.focus();
@@ -715,19 +640,21 @@ export function initIssueTemplateCommentEditors($commentForm) {
   };
 
   for (const el of $comboFields) {
-    initCombo($(el));
+    initCombo(el);
   }
 }
 
-// This function used to show and hide archived label on issue/pr
-//  page in the sidebar where we select the labels
-//  If we have any archived label tagged to issue and pr. We will show that
-//  archived label with checked classed otherwise we will hide it
-//  with the help of this function.
-//  This function runs globally.
-export function initArchivedLabelHandler() {
-  if (!document.querySelector('.archived-label-hint')) return;
-  for (const label of document.querySelectorAll('[data-is-archived]')) {
-    toggleElem(label, label.classList.contains('checked'));
+export function initRepoCommentFormAndSidebar() {
+  const $commentForm = $('.comment.form');
+  if (!$commentForm.length) return;
+
+  if ($commentForm.find('.field.combo-editor-dropzone').length) {
+    // at the moment, if a form has multiple combo-markdown-editors, it must be an issue template form
+    initIssueTemplateCommentEditors($commentForm);
+  } else if ($commentForm.find('.combo-markdown-editor').length) {
+    // it's quite unclear about the "comment form" elements, sometimes it's for issue comment, sometimes it's for file editor/uploader message
+    initSingleCommentEditor($commentForm);
   }
+
+  initRepoIssueSidebar();
 }

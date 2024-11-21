@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"html"
 	"io"
-	"regexp"
 	"strconv"
 
 	"code.gitea.io/gitea/modules/csv"
@@ -37,9 +36,9 @@ func (Renderer) Extensions() []string {
 // SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{
-		{Element: "table", AllowAttr: "class", Regexp: regexp.MustCompile(`data-table`)},
-		{Element: "th", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
-		{Element: "td", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
+		{Element: "table", AllowAttr: "class", Regexp: `^data-table$`},
+		{Element: "th", AllowAttr: "class", Regexp: `^line-num$`},
+		{Element: "td", AllowAttr: "class", Regexp: `^line-num$`},
 	}
 }
 
@@ -51,13 +50,13 @@ func writeField(w io.Writer, element, class, field string) error {
 		return err
 	}
 	if len(class) > 0 {
-		if _, err := io.WriteString(w, " class=\""); err != nil {
+		if _, err := io.WriteString(w, ` class="`); err != nil {
 			return err
 		}
 		if _, err := io.WriteString(w, class); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, "\""); err != nil {
+		if _, err := io.WriteString(w, `"`); err != nil {
 			return err
 		}
 	}

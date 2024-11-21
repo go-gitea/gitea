@@ -3,7 +3,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.users.user_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/users/new">{{ctx.Locale.Tr "admin.users.new_account"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/-/admin/users/new">{{ctx.Locale.Tr "admin.users.new_account"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached segment">
@@ -96,9 +96,9 @@
 							<td>{{svg (Iif .IsActive "octicon-check" "octicon-x")}}</td>
 							<td>{{svg (Iif .IsRestricted "octicon-check" "octicon-x")}}</td>
 							<td>{{svg (Iif (index $.UsersTwoFaStatus .ID) "octicon-check" "octicon-x")}}</td>
-							<td>{{DateTime "short" .CreatedUnix}}</td>
+							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							{{if .LastLoginUnix}}
-								<td>{{DateTime "short" .LastLoginUnix}}</td>
+								<td>{{DateUtils.AbsoluteShort .LastLoginUnix}}</td>
 							{{else}}
 								<td><span>{{ctx.Locale.Tr "admin.users.never_login"}}</span></td>
 							{{end}}

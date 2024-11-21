@@ -242,6 +242,7 @@ func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 }
 
 // NewProject creates a new Project
+// The title will be cut off at 255 characters if it's longer than 255 characters.
 func NewProject(ctx context.Context, p *Project) error {
 	if !IsTemplateTypeValid(p.TemplateType) {
 		p.TemplateType = TemplateTypeNone
@@ -254,6 +255,8 @@ func NewProject(ctx context.Context, p *Project) error {
 	if !IsTypeValid(p.Type) {
 		return util.NewInvalidArgumentErrorf("project type is not valid")
 	}
+
+	p.Title, _ = util.SplitStringAtByteN(p.Title, 255)
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if err := db.Insert(ctx, p); err != nil {
@@ -308,6 +311,7 @@ func UpdateProject(ctx context.Context, p *Project) error {
 		p.CardType = CardTypeTextOnly
 	}
 
+	p.Title, _ = util.SplitStringAtByteN(p.Title, 255)
 	_, err := db.GetEngine(ctx).ID(p.ID).Cols(
 		"title",
 		"description",
