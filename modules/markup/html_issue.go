@@ -57,10 +57,10 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		matchRepo := linkParts[len(linkParts)-3]
 
 		if matchOrg == ctx.Metas["user"] && matchRepo == ctx.Metas["repo"] {
-			replaceContent(node, m[0], m[1], createLink(link, text, "ref-issue"))
+			replaceContent(node, m[0], m[1], createLink(ctx, link, text, "ref-issue"))
 		} else {
 			text = matchOrg + "/" + matchRepo + text
-			replaceContent(node, m[0], m[1], createLink(link, text, "ref-issue"))
+			replaceContent(node, m[0], m[1], createLink(ctx, link, text, "ref-issue"))
 		}
 		node = node.NextSibling.NextSibling
 	}
@@ -129,16 +129,16 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 				log.Error("unable to expand template vars for ref %s, err: %v", ref.Issue, err)
 			}
 
-			link = createLink(res, reftext, "ref-issue ref-external-issue")
+			link = createLink(ctx, res, reftext, "ref-issue ref-external-issue")
 		} else {
 			// Path determines the type of link that will be rendered. It's unknown at this point whether
 			// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
 			// Gitea will redirect on click as appropriate.
 			issuePath := util.Iif(ref.IsPull, "pulls", "issues")
 			if ref.Owner == "" {
-				link = createLink(util.URLJoin(ctx.Links.Prefix(), ctx.Metas["user"], ctx.Metas["repo"], issuePath, ref.Issue), reftext, "ref-issue")
+				link = createLink(ctx, util.URLJoin(ctx.Links.Prefix(), ctx.Metas["user"], ctx.Metas["repo"], issuePath, ref.Issue), reftext, "ref-issue")
 			} else {
-				link = createLink(util.URLJoin(ctx.Links.Prefix(), ref.Owner, ref.Name, issuePath, ref.Issue), reftext, "ref-issue")
+				link = createLink(ctx, util.URLJoin(ctx.Links.Prefix(), ref.Owner, ref.Name, issuePath, ref.Issue), reftext, "ref-issue")
 			}
 		}
 
@@ -151,7 +151,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		// Decorate action keywords if actionable
 		var keyword *html.Node
 		if references.IsXrefActionable(ref, hasExtTrackFormat) {
-			keyword = createKeyword(node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
+			keyword = createKeyword(ctx, node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
 		} else {
 			keyword = &html.Node{
 				Type: html.TextNode,
@@ -177,7 +177,7 @@ func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		reftext := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
-		link := createLink(util.URLJoin(ctx.Links.Prefix(), ref.Owner, ref.Name, "commit", ref.CommitSha), reftext, "commit")
+		link := createLink(ctx, util.URLJoin(ctx.Links.Prefix(), ref.Owner, ref.Name, "commit", ref.CommitSha), reftext, "commit")
 
 		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
 		node = node.NextSibling.NextSibling

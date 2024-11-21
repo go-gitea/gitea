@@ -3,7 +3,7 @@ import {POST} from '../modules/fetch.ts';
 import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {showErrorToast} from '../modules/toast.ts';
 
-export function initGlobalButtonClickOnEnter() {
+export function initGlobalButtonClickOnEnter(): void {
   $(document).on('keypress', 'div.ui.button,span.ui.button', (e) => {
     if (e.code === ' ' || e.code === 'Enter') {
       $(e.target).trigger('click');
@@ -12,13 +12,13 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
-export function initGlobalDeleteButton() {
+export function initGlobalDeleteButton(): void {
   // ".delete-button" shows a confirmation modal defined by `data-modal-id` attribute.
   // Some model/form elements will be filled by `data-id` / `data-name` / `data-data-xxx` attributes.
   // If there is a form defined by `data-form`, then the form will be submitted as-is (without any modification).
   // If there is no form, then the data will be posted to `data-url`.
   // TODO: it's not encouraged to use this method. `show-modal` does far better than this.
-  for (const btn of document.querySelectorAll('.delete-button')) {
+  for (const btn of document.querySelectorAll<HTMLElement>('.delete-button')) {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
 
@@ -46,7 +46,7 @@ export function initGlobalDeleteButton() {
           // if `data-type="form"` exists, then submit the form by the selector provided by `data-form="..."`
           if (btn.getAttribute('data-type') === 'form') {
             const formSelector = btn.getAttribute('data-form');
-            const form = document.querySelector(formSelector);
+            const form = document.querySelector<HTMLFormElement>(formSelector);
             if (!form) throw new Error(`no form named ${formSelector} found`);
             form.submit();
           }
@@ -73,7 +73,7 @@ export function initGlobalDeleteButton() {
   }
 }
 
-export function initGlobalButtons() {
+export function initGlobalButtons(): void {
   // There are many "cancel button" elements in modal dialogs, Fomantic UI expects they are button-like elements but never submit a form.
   // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
   // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
