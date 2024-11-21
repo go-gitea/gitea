@@ -39,7 +39,7 @@ function initRepoDiffFileViewToggle() {
 function initRepoDiffConversationForm() {
   addElemsEventListener<HTMLFormElement>(document, 'submit', '.conversation-holder form', async (form, e) => {
     e.preventDefault();
-    const textArea = form.querySelector('textarea');
+    const textArea = form.querySelector<HTMLTextAreaElement>('textarea');
     if (!validateTextareaNonEmpty(textArea)) return;
     if (form.classList.contains('is-loading')) return;
 
