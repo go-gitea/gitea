@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {createTippy, showTemporaryTooltip} from '../modules/tippy.ts';
-import {addElemsEventListener, createElementFromHTML, hideElem, showElem, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, createElementFromHTML, hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {parseIssuePageInfo, toAbsoluteUrl} from '../utils.ts';
@@ -443,7 +443,7 @@ export function initRepoPullRequestReview() {
     });
   }
 
-  addElemsEventListener(document, 'click', '.add-code-comment', async (el, e) => {
+  addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
     e.preventDefault();
 
     const isSplit = el.closest('.code-diff')?.classList.contains('code-diff-split');

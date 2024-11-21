@@ -13,7 +13,7 @@ import {
   hideElem,
   showElem,
   animateOnce,
-  addElemsEventListener,
+  addDelegatedEventListener,
   createElementFromHTML,
 } from '../utils/dom.ts';
 import {POST, GET} from '../modules/fetch.ts';
@@ -37,7 +37,7 @@ function initRepoDiffFileViewToggle() {
 }
 
 function initRepoDiffConversationForm() {
-  addElemsEventListener<HTMLFormElement>(document, 'submit', '.conversation-holder form', async (form, e) => {
+  addDelegatedEventListener<HTMLFormElement>(document, 'submit', '.conversation-holder form', async (form, e) => {
     e.preventDefault();
     const textArea = form.querySelector<HTMLTextAreaElement>('textarea');
     if (!validateTextareaNonEmpty(textArea)) return;

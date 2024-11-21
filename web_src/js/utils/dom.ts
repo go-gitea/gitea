@@ -307,11 +307,11 @@ export function createElementFromHTML<T = HTMLElement>(htmlString: string): T {
   if (htmlString.startsWith('<tr')) {
     const container = document.createElement('table');
     container.innerHTML = htmlString;
-    return container.querySelector('tr') as HTMLElement;
+    return container.querySelector('tr') as T;
   }
   const div = document.createElement('div');
   div.innerHTML = htmlString;
-  return div.firstChild as HTMLElement;
+  return div.firstChild as T;
 }
 
 export function createElementFromAttrs(tagName: string, attrs: Record<string, any>, ...children: (Node|string)[]): HTMLElement {
@@ -348,7 +348,7 @@ export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, s
   return candidates.length ? candidates[0] as T : null;
 }
 
-export function addElemsEventListener<T extends HTMLElement>(parent: Node, type: string, selector: string, listener: (elem: T, e: Event) => void | Promise<any>, options?: boolean | AddEventListenerOptions) {
+export function addDelegatedEventListener<T extends HTMLElement>(parent: Node, type: string, selector: string, listener: (elem: T, e: Event) => void | Promise<any>, options?: boolean | AddEventListenerOptions) {
   parent.addEventListener(type, (e: Event) => {
     const elem = (e.target as HTMLElement).closest(selector);
     if (!elem) return;
