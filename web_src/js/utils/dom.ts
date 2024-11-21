@@ -301,10 +301,17 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
 }
 
 // Warning: Do not enter any unsanitized variables here
-export function createElementFromHTML(htmlString: string): HTMLElement {
+export function createElementFromHTML<T extends HTMLElement>(htmlString: string): T {
+  htmlString = htmlString.trim();
+  // some tags like "tr" are special, it must use a correct parent container to create
+  if (htmlString.startsWith('<tr')) {
+    const container = document.createElement('table');
+    container.innerHTML = htmlString;
+    return container.querySelector<T>('tr');
+  }
   const div = document.createElement('div');
-  div.innerHTML = htmlString.trim();
-  return div.firstChild as HTMLElement;
+  div.innerHTML = htmlString;
+  return div.firstChild as T;
 }
 
 export function createElementFromAttrs(tagName: string, attrs: Record<string, any>, ...children: (Node|string)[]): HTMLElement {
@@ -339,4 +346,12 @@ export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, s
   const candidates = Array.from(elems).filter(isElemVisible);
   if (candidates.length > 1) throw new Error(`Expected exactly one visible element matching selector "${selector}", but found ${candidates.length}`);
   return candidates.length ? candidates[0] as T : null;
+}
+
+export function addDelegatedEventListener<T extends HTMLElement>(parent: Node, type: string, selector: string, listener: (elem: T, e: Event) => void | Promise<any>, options?: boolean | AddEventListenerOptions) {
+  parent.addEventListener(type, (e: Event) => {
+    const elem = (e.target as HTMLElement).closest(selector);
+    if (!elem) return;
+    listener(elem as T, e);
+  }, options);
 }
