@@ -106,6 +106,7 @@
 							<span class="breadcrumb-divider">/</span>
 							{{- if eq $i $l -}}
 								<span class="active section" title="{{$v}}">{{$v}}</span>
+								<button class="btn interact-fg tw-mx-1" data-clipboard-text="{{$.TreePath}}" data-tooltip-content="{{ctx.Locale.Tr "copy_path"}}">{{svg "octicon-copy" 14}}</button>
 							{{- else -}}
 								{{$p := index $.Paths $i}}<span class="section"><a href="{{$.BranchLink}}/{{PathEscapeSegments $p}}" title="{{$v}}">{{$v}}</a></span>
 							{{- end -}}
