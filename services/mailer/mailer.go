@@ -382,7 +382,7 @@ func (s *dummySender) Send(from string, to []string, msg io.WriterTo) error {
 	if _, err := msg.WriteTo(&buf); err != nil {
 		return err
 	}
-	log.Info("Mail From: %s To: %v Body: %s", from, to, buf.String())
+	log.Debug("Mail From: %s To: %v Body: %s", from, to, buf.String())
 	return nil
 }
 

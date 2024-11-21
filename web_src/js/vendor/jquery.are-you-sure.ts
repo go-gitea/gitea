@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Fork of the upstream module. The only changes are:
 // * use export to make it work with ES6 modules.
 // * the addition of `const` to make it strict mode compatible.
@@ -193,4 +194,8 @@ export function initAreYouSure($) {
       initForm($form);
     });
   };
+}
+
+export function applyAreYouSure(selector: string) {
+  $(selector).areYouSure();
 }

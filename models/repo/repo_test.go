@@ -1,13 +1,12 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repo_test
+package repo
 
 import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -20,18 +19,18 @@ import (
 )
 
 var (
-	countRepospts        = repo_model.CountRepositoryOptions{OwnerID: 10}
-	countReposptsPublic  = repo_model.CountRepositoryOptions{OwnerID: 10, Private: optional.Some(false)}
-	countReposptsPrivate = repo_model.CountRepositoryOptions{OwnerID: 10, Private: optional.Some(true)}
+	countRepospts        = CountRepositoryOptions{OwnerID: 10}
+	countReposptsPublic  = CountRepositoryOptions{OwnerID: 10, Private: optional.Some(false)}
+	countReposptsPrivate = CountRepositoryOptions{OwnerID: 10, Private: optional.Some(true)}
 )
 
 func TestGetRepositoryCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	ctx := db.DefaultContext
-	count, err1 := repo_model.CountRepositories(ctx, countRepospts)
-	privateCount, err2 := repo_model.CountRepositories(ctx, countReposptsPrivate)
-	publicCount, err3 := repo_model.CountRepositories(ctx, countReposptsPublic)
+	count, err1 := CountRepositories(ctx, countRepospts)
+	privateCount, err2 := CountRepositories(ctx, countReposptsPrivate)
+	publicCount, err3 := CountRepositories(ctx, countReposptsPublic)
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 	assert.NoError(t, err3)
@@ -42,7 +41,7 @@ func TestGetRepositoryCount(t *testing.T) {
 func TestGetPublicRepositoryCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	count, err := repo_model.CountRepositories(db.DefaultContext, countReposptsPublic)
+	count, err := CountRepositories(db.DefaultContext, countReposptsPublic)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), count)
 }
@@ -50,14 +49,14 @@ func TestGetPublicRepositoryCount(t *testing.T) {
 func TestGetPrivateRepositoryCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	count, err := repo_model.CountRepositories(db.DefaultContext, countReposptsPrivate)
+	count, err := CountRepositories(db.DefaultContext, countReposptsPrivate)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 }
 
 func TestRepoAPIURL(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 10})
 
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user12/repo10", repo.APIURL())
 }
@@ -65,22 +64,22 @@ func TestRepoAPIURL(t *testing.T) {
 func TestWatchRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, user, repo, true))
-	unittest.AssertExistsAndLoadBean(t, &repo_model.Watch{RepoID: repo.ID, UserID: user.ID})
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
+	assert.NoError(t, WatchRepo(db.DefaultContext, user, repo, true))
+	unittest.AssertExistsAndLoadBean(t, &Watch{RepoID: repo.ID, UserID: user.ID})
+	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})
 
-	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, user, repo, false))
-	unittest.AssertNotExistsBean(t, &repo_model.Watch{RepoID: repo.ID, UserID: user.ID})
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
+	assert.NoError(t, WatchRepo(db.DefaultContext, user, repo, false))
+	unittest.AssertNotExistsBean(t, &Watch{RepoID: repo.ID, UserID: user.ID})
+	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})
 }
 
 func TestMetas(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := &repo_model.Repository{Name: "testRepo"}
+	repo := &Repository{Name: "testRepo"}
 	repo.Owner = &user_model.User{Name: "testOwner"}
 	repo.OwnerName = repo.Owner.Name
 
@@ -90,16 +89,16 @@ func TestMetas(t *testing.T) {
 	assert.Equal(t, "testRepo", metas["repo"])
 	assert.Equal(t, "testOwner", metas["user"])
 
-	externalTracker := repo_model.RepoUnit{
+	externalTracker := RepoUnit{
 		Type: unit.TypeExternalTracker,
-		Config: &repo_model.ExternalTrackerConfig{
+		Config: &ExternalTrackerConfig{
 			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
 		},
 	}
 
 	testSuccess := func(expectedStyle string) {
-		repo.Units = []*repo_model.RepoUnit{&externalTracker}
-		repo.RenderingMetas = nil
+		repo.Units = []*RepoUnit{&externalTracker}
+		repo.commonRenderingMetas = nil
 		metas := repo.ComposeMetas(db.DefaultContext)
 		assert.Equal(t, expectedStyle, metas["style"])
 		assert.Equal(t, "testRepo", metas["repo"])
@@ -118,7 +117,7 @@ func TestMetas(t *testing.T) {
 	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleRegexp
 	testSuccess(markup.IssueNameStyleRegexp)
 
-	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 3)
+	repo, err := GetRepositoryByID(db.DefaultContext, 3)
 	assert.NoError(t, err)
 
 	metas = repo.ComposeMetas(db.DefaultContext)
@@ -132,7 +131,7 @@ func TestGetRepositoryByURL(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	t.Run("InvalidPath", func(t *testing.T) {
-		repo, err := repo_model.GetRepositoryByURL(db.DefaultContext, "something")
+		repo, err := GetRepositoryByURL(db.DefaultContext, "something")
 
 		assert.Nil(t, repo)
 		assert.Error(t, err)
@@ -140,7 +139,7 @@ func TestGetRepositoryByURL(t *testing.T) {
 
 	t.Run("ValidHttpURL", func(t *testing.T) {
 		test := func(t *testing.T, url string) {
-			repo, err := repo_model.GetRepositoryByURL(db.DefaultContext, url)
+			repo, err := GetRepositoryByURL(db.DefaultContext, url)
 
 			assert.NotNil(t, repo)
 			assert.NoError(t, err)
@@ -155,7 +154,7 @@ func TestGetRepositoryByURL(t *testing.T) {
 
 	t.Run("ValidGitSshURL", func(t *testing.T) {
 		test := func(t *testing.T, url string) {
-			repo, err := repo_model.GetRepositoryByURL(db.DefaultContext, url)
+			repo, err := GetRepositoryByURL(db.DefaultContext, url)
 
 			assert.NotNil(t, repo)
 			assert.NoError(t, err)
@@ -173,7 +172,7 @@ func TestGetRepositoryByURL(t *testing.T) {
 
 	t.Run("ValidImplicitSshURL", func(t *testing.T) {
 		test := func(t *testing.T, url string) {
-			repo, err := repo_model.GetRepositoryByURL(db.DefaultContext, url)
+			repo, err := GetRepositoryByURL(db.DefaultContext, url)
 
 			assert.NotNil(t, repo)
 			assert.NoError(t, err)
@@ -200,21 +199,21 @@ func TestComposeSSHCloneURL(t *testing.T) {
 	setting.SSH.Domain = "domain"
 	setting.SSH.Port = 22
 	setting.Repository.UseCompatSSHURI = false
-	assert.Equal(t, "git@domain:user/repo.git", repo_model.ComposeSSHCloneURL("user", "repo"))
+	assert.Equal(t, "git@domain:user/repo.git", ComposeSSHCloneURL("user", "repo"))
 	setting.Repository.UseCompatSSHURI = true
-	assert.Equal(t, "ssh://git@domain/user/repo.git", repo_model.ComposeSSHCloneURL("user", "repo"))
+	assert.Equal(t, "ssh://git@domain/user/repo.git", ComposeSSHCloneURL("user", "repo"))
 	// test SSH_DOMAIN while use non-standard SSH port
 	setting.SSH.Port = 123
 	setting.Repository.UseCompatSSHURI = false
-	assert.Equal(t, "ssh://git@domain:123/user/repo.git", repo_model.ComposeSSHCloneURL("user", "repo"))
+	assert.Equal(t, "ssh://git@domain:123/user/repo.git", ComposeSSHCloneURL("user", "repo"))
 	setting.Repository.UseCompatSSHURI = true
-	assert.Equal(t, "ssh://git@domain:123/user/repo.git", repo_model.ComposeSSHCloneURL("user", "repo"))
+	assert.Equal(t, "ssh://git@domain:123/user/repo.git", ComposeSSHCloneURL("user", "repo"))
 
 	// test IPv6 SSH_DOMAIN
 	setting.Repository.UseCompatSSHURI = false
 	setting.SSH.Domain = "::1"
 	setting.SSH.Port = 22
-	assert.Equal(t, "git@[::1]:user/repo.git", repo_model.ComposeSSHCloneURL("user", "repo"))
+	assert.Equal(t, "git@[::1]:user/repo.git", ComposeSSHCloneURL("user", "repo"))
 	setting.SSH.Port = 123
-	assert.Equal(t, "ssh://git@[::1]:123/user/repo.git", repo_model.ComposeSSHCloneURL("user", "repo"))
+	assert.Equal(t, "ssh://git@[::1]:123/user/repo.git", ComposeSSHCloneURL("user", "repo"))
 }

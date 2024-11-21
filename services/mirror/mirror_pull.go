@@ -613,14 +613,8 @@ func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, re
 		}
 		// Update the git repository default branch
 		if err := gitrepo.SetDefaultBranch(ctx, m.Repo, m.Repo.DefaultBranch); err != nil {
-			if !git.IsErrUnsupportedVersion(err) {
-				log.Error("Failed to update default branch of underlying git repository %-v. Error: %v", m.Repo, err)
-				desc := fmt.Sprintf("Failed to update default branch of underlying git repository '%s': %v", m.Repo.RepoPath(), err)
-				if err = system_model.CreateRepositoryNotice(desc); err != nil {
-					log.Error("CreateRepositoryNotice: %v", err)
-				}
-				return false
-			}
+			log.Error("Failed to update default branch of underlying git repository %-v. Error: %v", m.Repo, err)
+			return false
 		}
 		m.Repo.IsEmpty = false
 		// Update the is empty and default_branch columns

@@ -98,7 +98,7 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 		return false, err
 	}
 
-	ctx.Csrf.DeleteCookie(ctx)
+	ctx.Csrf.PrepareForSessionUser(ctx)
 	return true, nil
 }
 
@@ -359,8 +359,8 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
 	}
 
-	// Clear whatever CSRF cookie has right now, force to generate a new one
-	ctx.Csrf.DeleteCookie(ctx)
+	// force to generate a new CSRF token
+	ctx.Csrf.PrepareForSessionUser(ctx)
 
 	// Register last login
 	if err := user_service.UpdateUser(ctx, u, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
@@ -803,6 +803,8 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		ctx.ServerError("ActivateUserEmail", err)
 		return
 	}
+
+	ctx.Csrf.PrepareForSessionUser(ctx)
 
 	if err := resetLocale(ctx, user); err != nil {
 		ctx.ServerError("resetLocale", err)

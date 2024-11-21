@@ -52,7 +52,7 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a href="{{.HomeLink}}">{{.Name}}</a>
+								<a href="{{.HomeLink}}">{{if and DefaultShowFullName .FullName}}{{.FullName}} ({{.Name}}){{else}}{{.Name}}{{end}}</a>
 								{{if .Visibility.IsPrivate}}
 									<span class="text gold">{{svg "octicon-lock"}}</span>
 								{{end}}
@@ -63,7 +63,7 @@
 							<td>{{.NumTeams}}</td>
 							<td>{{.NumMembers}}</td>
 							<td>{{.NumRepos}}</td>
-							<td>{{DateTime "short" .CreatedUnix}}</td>
+							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							<td><a href="{{.OrganisationLink}}/settings" data-tooltip-content="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}

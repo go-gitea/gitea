@@ -80,28 +80,28 @@ func (err errCallback) Error() string {
 }
 
 type userInfoResponse struct {
-	Sub      string   `json:"sub"`
-	Name     string   `json:"name"`
-	Username string   `json:"preferred_username"`
-	Email    string   `json:"email"`
-	Picture  string   `json:"picture"`
-	Groups   []string `json:"groups"`
+	Sub               string   `json:"sub"`
+	Name              string   `json:"name"`
+	PreferredUsername string   `json:"preferred_username"`
+	Email             string   `json:"email"`
+	Picture           string   `json:"picture"`
+	Groups            []string `json:"groups"`
 }
 
 // InfoOAuth manages request for userinfo endpoint
 func InfoOAuth(ctx *context.Context) {
 	if ctx.Doer == nil || ctx.Data["AuthedMethod"] != (&auth_service.OAuth2{}).Name() {
-		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
+		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm="Gitea OAuth2"`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}
 
 	response := &userInfoResponse{
-		Sub:      fmt.Sprint(ctx.Doer.ID),
-		Name:     ctx.Doer.FullName,
-		Username: ctx.Doer.Name,
-		Email:    ctx.Doer.Email,
-		Picture:  ctx.Doer.AvatarLink(ctx),
+		Sub:               fmt.Sprint(ctx.Doer.ID),
+		Name:              ctx.Doer.DisplayName(),
+		PreferredUsername: ctx.Doer.Name,
+		Email:             ctx.Doer.Email,
+		Picture:           ctx.Doer.AvatarLink(ctx),
 	}
 
 	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer)
@@ -136,7 +136,7 @@ func IntrospectOAuth(ctx *context.Context) {
 		clientIDValid = err == nil && app.ValidateClientSecret([]byte(clientSecret))
 	}
 	if !clientIDValid {
-		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm=""`)
+		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea OAuth2"`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}

@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -141,6 +142,15 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	if skipper, ok := source.Cfg.(LocalTwoFASkipper); !ok || !skipper.IsSkipLocalTwoFA() {
+		// Check if the user has webAuthn registration
+		hasWebAuthn, err := auth_model.HasWebAuthnRegistrationsByUID(req.Context(), u.ID)
+		if err != nil {
+			return nil, err
+		}
+		if hasWebAuthn {
+			return nil, errors.New("Basic authorization is not allowed while webAuthn enrolled")
+		}
+
 		if err := validateTOTP(req, u); err != nil {
 			return nil, err
 		}

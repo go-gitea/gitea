@@ -80,7 +80,7 @@
 			<div class="content">
 				<p class="center">{{ctx.Locale.Tr "admin.emails.change_email_text"}}</p>
 
-				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/admin/emails/activate" method="post">
+				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/-/admin/emails/activate" method="post">
 					{{$.CsrfTokenHtml}}
 
 					<input type="hidden" id="query-sort" name="sort" value="{{.SortType}}">
