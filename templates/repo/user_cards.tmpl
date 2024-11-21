@@ -8,7 +8,7 @@ At the moment, no JS initialization would re-trigger (fortunately there is no JS
 <div class="user-cards"
 		 hx-trigger="refreshUserCards from:body"
 		 hx-indicator=".no-loading-indicator"
-		 hx-get="{{$.Link}}"
+		 hx-get="{{$.CurrentURL}}"
 		 hx-swap="outerHTML" hx-select=".user-cards"
 >
 	{{if .CardsTitle}}
