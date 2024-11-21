@@ -385,18 +385,19 @@ func configParseSubModules(rd io.Reader) (*ObjectCache, error) {
 	submoduleCache := newObjectCache()
 	var subModule *SubModule
 	for scanner.Scan() {
-		if strings.HasPrefix(scanner.Text(), "[") {
+		line := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix(line, "[") {
 			if subModule != nil {
 				submoduleCache.Set(subModule.Name, subModule)
 				subModule = nil
 			}
-			if strings.HasPrefix(scanner.Text(), "[submodule") {
+			if strings.HasPrefix(line, "[submodule") {
 				subModule = &SubModule{}
 			}
 			continue
 		}
 		if subModule != nil {
-			fields := strings.Split(scanner.Text(), "=")
+			fields := strings.Split(line, "=")
 			k := strings.TrimSpace(fields[0])
 			if k == "path" {
 				subModule.Name = strings.TrimSpace(fields[1])
