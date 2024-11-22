@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/url"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -42,16 +43,16 @@ var RenderBehaviorForTesting struct {
 	DisableInternalAttributes bool
 }
 
-// RenderContext represents a render context
-type RenderContext struct {
-	Ctx          context.Context
-	RelativePath string // relative path from tree root of the branch
+type RenderOptions struct {
+	// relative path from tree root of the branch
+	RelativePath string
 
 	// eg: "orgmode", "asciicast", "console"
 	// for file mode, it could be left as empty, and will be detected by file extension in RelativePath
 	MarkupType string
 
-	Links Links // special link references for rendering, especially when there is a branch/tree path
+	// special link references for rendering, especially when there is a branch/tree path
+	Links Links
 
 	// user&repo, format&style&regexp (for external issue pattern), teams&org (for mention)
 	// BranchNameSubURL (for iframe&asciicast)
@@ -59,15 +60,83 @@ type RenderContext struct {
 	// markdownLineBreakStyle (comment, document)
 	Metas map[string]string
 
-	GitRepo          *git.Repository
-	Repo             gitrepo.Repository
-	ShaExistCache    map[string]bool
-	cancelFn         func()
-	SidebarTocNode   ast.Node
-	RenderMetaAs     RenderMetaMode
-	InStandalonePage bool // used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
+	// used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
+	InStandalonePage bool
+}
 
+type RenderHelper struct {
+	gitRepo       *git.Repository
+	repoFacade    gitrepo.Repository
+	shaExistCache map[string]bool
+	cancelFn      func()
+}
+
+// RenderContext represents a render context
+type RenderContext struct {
+	ctx context.Context
+
+	SidebarTocNode ast.Node
+
+	RenderHelper   RenderHelper
+	RenderOptions  RenderOptions
 	RenderInternal internal.RenderInternal
+}
+
+func (ctx *RenderContext) Deadline() (deadline time.Time, ok bool) {
+	return ctx.ctx.Deadline()
+}
+
+func (ctx *RenderContext) Done() <-chan struct{} {
+	return ctx.ctx.Done()
+}
+
+func (ctx *RenderContext) Err() error {
+	return ctx.ctx.Err()
+}
+
+func (ctx *RenderContext) Value(key any) any {
+	return ctx.ctx.Value(key)
+}
+
+var _ context.Context = (*RenderContext)(nil)
+
+func NewRenderContext(ctx context.Context) *RenderContext {
+	return &RenderContext{ctx: ctx}
+}
+
+func (ctx *RenderContext) WithMarkupType(typ string) *RenderContext {
+	ctx.RenderOptions.MarkupType = typ
+	return ctx
+}
+
+func (ctx *RenderContext) WithRelativePath(path string) *RenderContext {
+	ctx.RenderOptions.RelativePath = path
+	return ctx
+}
+
+func (ctx *RenderContext) WithLinks(links Links) *RenderContext {
+	ctx.RenderOptions.Links = links
+	return ctx
+}
+
+func (ctx *RenderContext) WithMetas(metas map[string]string) *RenderContext {
+	ctx.RenderOptions.Metas = metas
+	return ctx
+}
+
+func (ctx *RenderContext) WithInStandalonePage(v bool) *RenderContext {
+	ctx.RenderOptions.InStandalonePage = v
+	return ctx
+}
+
+func (ctx *RenderContext) WithGitRepo(r *git.Repository) *RenderContext {
+	ctx.RenderHelper.gitRepo = r
+	return ctx
+}
+
+func (ctx *RenderContext) WithRepoFacade(r gitrepo.Repository) *RenderContext {
+	ctx.RenderHelper.repoFacade = r
+	return ctx
 }
 
 // Cancel runs any cleanup functions that have been registered for this Ctx
@@ -75,11 +144,11 @@ func (ctx *RenderContext) Cancel() {
 	if ctx == nil {
 		return
 	}
-	ctx.ShaExistCache = map[string]bool{}
-	if ctx.cancelFn == nil {
+	ctx.RenderHelper.shaExistCache = map[string]bool{}
+	if ctx.RenderHelper.cancelFn == nil {
 		return
 	}
-	ctx.cancelFn()
+	ctx.RenderHelper.cancelFn()
 }
 
 // AddCancel adds the provided fn as a Cleanup for this Ctx
@@ -87,38 +156,38 @@ func (ctx *RenderContext) AddCancel(fn func()) {
 	if ctx == nil {
 		return
 	}
-	oldCancelFn := ctx.cancelFn
+	oldCancelFn := ctx.RenderHelper.cancelFn
 	if oldCancelFn == nil {
-		ctx.cancelFn = fn
+		ctx.RenderHelper.cancelFn = fn
 		return
 	}
-	ctx.cancelFn = func() {
+	ctx.RenderHelper.cancelFn = func() {
 		defer oldCancelFn()
 		fn()
 	}
 }
 
 func (ctx *RenderContext) IsMarkupContentWiki() bool {
-	return ctx.Metas != nil && ctx.Metas["markupContentMode"] == "wiki"
+	return ctx.RenderOptions.Metas != nil && ctx.RenderOptions.Metas["markupContentMode"] == "wiki"
 }
 
 // Render renders markup file to HTML with all specific handling stuff.
 func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	if ctx.MarkupType == "" && ctx.RelativePath != "" {
-		ctx.MarkupType = DetectMarkupTypeByFileName(ctx.RelativePath)
-		if ctx.MarkupType == "" {
-			return util.NewInvalidArgumentErrorf("unsupported file to render: %q", ctx.RelativePath)
+	if ctx.RenderOptions.MarkupType == "" && ctx.RenderOptions.RelativePath != "" {
+		ctx.RenderOptions.MarkupType = DetectMarkupTypeByFileName(ctx.RenderOptions.RelativePath)
+		if ctx.RenderOptions.MarkupType == "" {
+			return util.NewInvalidArgumentErrorf("unsupported file to render: %q", ctx.RenderOptions.RelativePath)
 		}
 	}
 
-	renderer := renderers[ctx.MarkupType]
+	renderer := renderers[ctx.RenderOptions.MarkupType]
 	if renderer == nil {
-		return util.NewInvalidArgumentErrorf("unsupported markup type: %q", ctx.MarkupType)
+		return util.NewInvalidArgumentErrorf("unsupported markup type: %q", ctx.RenderOptions.MarkupType)
 	}
 
-	if ctx.RelativePath != "" {
+	if ctx.RenderOptions.RelativePath != "" {
 		if externalRender, ok := renderer.(ExternalRenderer); ok && externalRender.DisplayInIFrame() {
-			if !ctx.InStandalonePage {
+			if !ctx.RenderOptions.InStandalonePage {
 				// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
 				// otherwise, a <iframe> should be outputted to embed the external rendered page
 				return renderIFrame(ctx, output)
@@ -151,10 +220,10 @@ width="100%%" height="0" scrolling="no" frameborder="0" style="overflow: hidden"
 sandbox="allow-scripts"
 ></iframe>`,
 		setting.AppSubURL,
-		url.PathEscape(ctx.Metas["user"]),
-		url.PathEscape(ctx.Metas["repo"]),
-		ctx.Metas["BranchNameSubURL"],
-		url.PathEscape(ctx.RelativePath),
+		url.PathEscape(ctx.RenderOptions.Metas["user"]),
+		url.PathEscape(ctx.RenderOptions.Metas["repo"]),
+		ctx.RenderOptions.Metas["BranchNameSubURL"],
+		url.PathEscape(ctx.RenderOptions.RelativePath),
 	))
 	return err
 }
@@ -176,7 +245,7 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 	pr1, pw1, close1 := pipes()
 	defer close1()
 
-	eg, _ := errgroup.WithContext(ctx.Ctx)
+	eg, _ := errgroup.WithContext(ctx)
 	var pw2 io.WriteCloser = util.NopCloser{Writer: finalProcessor}
 
 	if r, ok := renderer.(ExternalRenderer); !ok || !r.SanitizerDisabled() {
@@ -229,4 +298,28 @@ func Init(ph *ProcessorHelper) {
 
 func ComposeSimpleDocumentMetas() map[string]string {
 	return map[string]string{"markdownLineBreakStyle": "document"}
+}
+
+// NewTestRenderContext is a helper function to create a RenderContext for testing purpose
+// It accepts string (RelativePath), Links, map[string]string (Metas), gitrepo.Repository
+func NewTestRenderContext(a ...any) *RenderContext {
+	if !setting.IsInTesting {
+		panic("NewTestRenderContext should only be used in testing")
+	}
+	ctx := NewRenderContext(context.Background())
+	for _, v := range a {
+		switch v := v.(type) {
+		case string:
+			ctx = ctx.WithRelativePath(v)
+		case Links:
+			ctx = ctx.WithLinks(v)
+		case map[string]string:
+			ctx = ctx.WithMetas(v)
+		case gitrepo.Repository:
+			ctx = ctx.WithRepoFacade(v)
+		default:
+			panic(fmt.Sprintf("unknown type %T", v))
+		}
+	}
+	return ctx
 }
