@@ -16,12 +16,14 @@
 				<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignees"}}">
 			</div>
 			<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
-			{{range $data.CandidateAssignees}}
-				<a class="item muted" href="#" data-value="{{.ID}}">
-					<span class="item-check-mark">{{svg "octicon-check"}}</span>
-					{{ctx.AvatarUtils.Avatar . 20}} {{template "repo/search_name" .}}
-				</a>
-			{{end}}
+			<div class="scrolling menu">
+				{{range $data.CandidateAssignees}}
+					<a class="item muted" href="#" data-value="{{.ID}}">
+						<span class="item-check-mark">{{svg "octicon-check"}}</span>
+						{{ctx.AvatarUtils.Avatar . 20}} {{template "repo/search_name" .}}
+					</a>
+				{{end}}
+			</div>
 		</div>
 	</div>
 	<div class="ui list tw-flex tw-flex-row tw-gap-2">

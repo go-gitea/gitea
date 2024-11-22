@@ -79,15 +79,12 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 	for _, m := range miles {
-		m.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Links: markup.Links{
-				Base: ctx.Repo.RepoLink,
-			},
-			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo: ctx.Repo.GitRepo,
-			Repo:    ctx.Repo.Repository,
-			Ctx:     ctx,
-		}, m.Content)
+		m.RenderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
+			WithLinks(markup.Links{Base: ctx.Repo.RepoLink}).
+			WithMetas(ctx.Repo.Repository.ComposeMetas(ctx)).
+			WithGitRepo(ctx.Repo.GitRepo).
+			WithRepoFacade(ctx.Repo.Repository),
+			m.Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return
@@ -268,15 +265,12 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 		return
 	}
 
-	milestone.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		Links: markup.Links{
-			Base: ctx.Repo.RepoLink,
-		},
-		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo: ctx.Repo.GitRepo,
-		Repo:    ctx.Repo.Repository,
-		Ctx:     ctx,
-	}, milestone.Content)
+	milestone.RenderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
+		WithLinks(markup.Links{Base: ctx.Repo.RepoLink}).
+		WithMetas(ctx.Repo.Repository.ComposeMetas(ctx)).
+		WithGitRepo(ctx.Repo.GitRepo).
+		WithRepoFacade(ctx.Repo.Repository),
+		milestone.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return

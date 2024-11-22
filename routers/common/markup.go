@@ -28,13 +28,12 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPa
 	// for example, when previewing file "/gitea/owner/repo/src/branch/features/feat-123/doc/CHANGE.md", then filePath is "doc/CHANGE.md"
 	// and the urlPathContext is "/gitea/owner/repo/src/branch/features/feat-123/doc"
 
-	renderCtx := &markup.RenderContext{
-		Ctx:        ctx,
-		Links:      markup.Links{AbsolutePrefix: true},
-		MarkupType: markdown.MarkupName,
-	}
+	renderCtx := markup.NewRenderContext(ctx).
+		WithLinks(markup.Links{AbsolutePrefix: true}).
+		WithMarkupType(markdown.MarkupName)
+
 	if urlPathContext != "" {
-		renderCtx.Links.Base = fmt.Sprintf("%s%s", httplib.GuessCurrentHostURL(ctx), urlPathContext)
+		renderCtx.RenderOptions.Links.Base = fmt.Sprintf("%s%s", httplib.GuessCurrentHostURL(ctx), urlPathContext)
 	}
 
 	if mode == "" || mode == "markdown" {
@@ -47,15 +46,14 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPa
 	switch mode {
 	case "gfm": // legacy mode, do nothing
 	case "comment":
-		renderCtx.Metas = map[string]string{"markdownLineBreakStyle": "comment"}
+		renderCtx = renderCtx.WithMetas(map[string]string{"markdownLineBreakStyle": "comment"})
 	case "wiki":
-		renderCtx.Metas = map[string]string{"markdownLineBreakStyle": "document", "markupContentMode": "wiki"}
+		renderCtx = renderCtx.WithMetas(map[string]string{"markdownLineBreakStyle": "document", "markupContentMode": "wiki"})
 	case "file":
 		// render the repo file content by its extension
-		renderCtx.Metas = map[string]string{"markdownLineBreakStyle": "document"}
-		renderCtx.MarkupType = ""
-		renderCtx.RelativePath = filePath
-		renderCtx.InStandalonePage = true
+		renderCtx = renderCtx.WithMetas(map[string]string{"markdownLineBreakStyle": "document"}).
+			WithMarkupType("").
+			WithRelativePath(filePath)
 	default:
 		ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Unknown mode: %s", mode))
 		return
@@ -70,17 +68,17 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPa
 		refPath := strings.Join(fields[3:], "/")           // it is "branch/features/feat-12/doc"
 		refPath = strings.TrimSuffix(refPath, "/"+fileDir) // now we get the correct branch path: "branch/features/feat-12"
 
-		renderCtx.Links = markup.Links{AbsolutePrefix: true, Base: absoluteBasePrefix, BranchPath: refPath, TreePath: fileDir}
+		renderCtx = renderCtx.WithLinks(markup.Links{AbsolutePrefix: true, Base: absoluteBasePrefix, BranchPath: refPath, TreePath: fileDir})
 	}
 
 	if repo != nil && repo.Repository != nil {
-		renderCtx.Repo = repo.Repository
+		renderCtx = renderCtx.WithRepoFacade(repo.Repository)
 		if mode == "file" {
-			renderCtx.Metas = repo.Repository.ComposeDocumentMetas(ctx)
+			renderCtx = renderCtx.WithMetas(repo.Repository.ComposeDocumentMetas(ctx))
 		} else if mode == "wiki" {
-			renderCtx.Metas = repo.Repository.ComposeWikiMetas(ctx)
+			renderCtx = renderCtx.WithMetas(repo.Repository.ComposeWikiMetas(ctx))
 		} else if mode == "comment" {
-			renderCtx.Metas = repo.Repository.ComposeMetas(ctx)
+			renderCtx = renderCtx.WithMetas(repo.Repository.ComposeMetas(ctx))
 		}
 	}
 	if err := markup.Render(renderCtx, strings.NewReader(text), ctx.Resp); err != nil {
