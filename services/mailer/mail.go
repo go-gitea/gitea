@@ -219,15 +219,11 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	}
 
 	// This is the body of the new issue or comment, not the mail body
-	body, err := markdown.RenderString(&markup.RenderContext{
-		Ctx:  ctx,
-		Repo: ctx.Issue.Repo,
-		Links: markup.Links{
-			AbsolutePrefix: true,
-			Base:           ctx.Issue.Repo.HTMLURL(),
-		},
-		Metas: ctx.Issue.Repo.ComposeMetas(ctx),
-	}, ctx.Content)
+	body, err := markdown.RenderString(markup.NewRenderContext(ctx).
+		WithRepoFacade(ctx.Issue.Repo).
+		WithLinks(markup.Links{AbsolutePrefix: true, Base: ctx.Issue.Repo.HTMLURL()}).
+		WithMetas(ctx.Issue.Repo.ComposeMetas(ctx)),
+		ctx.Content)
 	if err != nil {
 		return nil, err
 	}

@@ -257,14 +257,11 @@ func Milestones(ctx *context.Context) {
 			continue
 		}
 
-		milestones[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Links: markup.Links{
-				Base: milestones[i].Repo.Link(),
-			},
-			Metas: milestones[i].Repo.ComposeMetas(ctx),
-			Ctx:   ctx,
-			Repo:  milestones[i].Repo,
-		}, milestones[i].Content)
+		milestones[i].RenderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
+			WithLinks(markup.Links{Base: milestones[i].Repo.Link()}).
+			WithMetas(milestones[i].Repo.ComposeMetas(ctx)).
+			WithRepoFacade(milestones[i].Repo),
+			milestones[i].Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return

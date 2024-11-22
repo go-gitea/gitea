@@ -56,14 +56,11 @@ func mailNewRelease(ctx context.Context, lang string, tos []*user_model.User, re
 	locale := translation.NewLocale(lang)
 
 	var err error
-	rel.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
-		Ctx:  ctx,
-		Repo: rel.Repo,
-		Links: markup.Links{
-			Base: rel.Repo.HTMLURL(),
-		},
-		Metas: rel.Repo.ComposeMetas(ctx),
-	}, rel.Note)
+	rel.RenderedNote, err = markdown.RenderString(markup.NewRenderContext(ctx).
+		WithRepoFacade(rel.Repo).
+		WithLinks(markup.Links{Base: rel.Repo.HTMLURL()}).
+		WithMetas(rel.Repo.ComposeMetas(ctx)),
+		rel.Note)
 	if err != nil {
 		log.Error("markdown.RenderString(%d): %v", rel.RepoID, err)
 		return
