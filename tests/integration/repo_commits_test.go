@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -223,14 +222,14 @@ func Test_GetLatestCommitStatusForPairs(t *testing.T) {
 	assert.Len(t, repoStatuses[repo1.ID], 3)
 
 	assert.EqualValues(t, 5, repoStatuses[repo1.ID][0].Index)
-	assert.EqualValues(t, structs.CommitStatusError, repoStatuses[repo1.ID][0].State)
+	assert.EqualValues(t, api.CommitStatusError, repoStatuses[repo1.ID][0].State)
 	assert.EqualValues(t, "deploy/awesomeness", repoStatuses[repo1.ID][0].Context)
 	assert.EqualValues(t, "https://example.com/builds/", repoStatuses[repo1.ID][0].TargetURL)
 	assert.EqualValues(t, "My awesome deploy service", repoStatuses[repo1.ID][0].Description)
 	assert.EqualValues(t, "ae9547713a6665fc4261d0756904932085a41cf2", repoStatuses[repo1.ID][0].ContextHash)
 
 	assert.EqualValues(t, 4, repoStatuses[repo1.ID][1].Index)
-	assert.EqualValues(t, structs.CommitStatusFailure, repoStatuses[repo1.ID][1].State)
+	assert.EqualValues(t, api.CommitStatusFailure, repoStatuses[repo1.ID][1].State)
 	assert.EqualValues(t, "ci/awesomeness", repoStatuses[repo1.ID][1].Context)
 	assert.EqualValues(t, "https://example.com/builds/", repoStatuses[repo1.ID][1].TargetURL)
 	assert.EqualValues(t, "My awesome CI-service", repoStatuses[repo1.ID][1].Description)
@@ -238,7 +237,7 @@ func Test_GetLatestCommitStatusForPairs(t *testing.T) {
 
 	assert.EqualValues(t, 3, repoStatuses[repo1.ID][2].Index)
 	// warning + success = success
-	assert.EqualValues(t, structs.CommitStatusSuccess, repoStatuses[repo1.ID][2].State)
+	assert.EqualValues(t, api.CommitStatusSuccess, repoStatuses[repo1.ID][2].State)
 	assert.EqualValues(t, "cov/awesomeness", repoStatuses[repo1.ID][2].Context)
 	assert.EqualValues(t, "https://example.com/converage/", repoStatuses[repo1.ID][2].TargetURL)
 	assert.EqualValues(t, "My awesome Coverage service", repoStatuses[repo1.ID][2].Description)
@@ -258,14 +257,14 @@ func Test_GetLatestCommitStatusForRepoCommitIDs(t *testing.T) {
 	assert.Len(t, repoStatuses[commitID], 3)
 
 	assert.EqualValues(t, 5, repoStatuses[commitID][0].Index)
-	assert.EqualValues(t, structs.CommitStatusError, repoStatuses[commitID][0].State)
+	assert.EqualValues(t, api.CommitStatusError, repoStatuses[commitID][0].State)
 	assert.EqualValues(t, "deploy/awesomeness", repoStatuses[commitID][0].Context)
 	assert.EqualValues(t, "https://example.com/builds/", repoStatuses[commitID][0].TargetURL)
 	assert.EqualValues(t, "My awesome deploy service", repoStatuses[commitID][0].Description)
 	assert.EqualValues(t, "ae9547713a6665fc4261d0756904932085a41cf2", repoStatuses[commitID][0].ContextHash)
 
 	assert.EqualValues(t, 4, repoStatuses[commitID][1].Index)
-	assert.EqualValues(t, structs.CommitStatusFailure, repoStatuses[commitID][1].State)
+	assert.EqualValues(t, api.CommitStatusFailure, repoStatuses[commitID][1].State)
 	assert.EqualValues(t, "ci/awesomeness", repoStatuses[commitID][1].Context)
 	assert.EqualValues(t, "https://example.com/builds/", repoStatuses[commitID][1].TargetURL)
 	assert.EqualValues(t, "My awesome CI-service", repoStatuses[commitID][1].Description)
@@ -273,7 +272,7 @@ func Test_GetLatestCommitStatusForRepoCommitIDs(t *testing.T) {
 
 	assert.EqualValues(t, 3, repoStatuses[commitID][2].Index)
 	// warning + success = success
-	assert.EqualValues(t, structs.CommitStatusSuccess, repoStatuses[commitID][2].State)
+	assert.EqualValues(t, api.CommitStatusSuccess, repoStatuses[commitID][2].State)
 	assert.EqualValues(t, "cov/awesomeness", repoStatuses[commitID][2].Context)
 	assert.EqualValues(t, "https://example.com/converage/", repoStatuses[commitID][2].TargetURL)
 	assert.EqualValues(t, "My awesome Coverage service", repoStatuses[commitID][2].Description)
