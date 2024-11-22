@@ -246,10 +246,9 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 			log.Error("failed to GetBlobContent: %v", err)
 		} else {
-			if profileContent, err := markdown.RenderString(&markup.RenderContext{
-				Ctx:     ctx,
-				GitRepo: profileGitRepo,
-				Links: markup.Links{
+			if profileContent, err := markdown.RenderString(markup.NewRenderContext(ctx).
+				WithGitRepo(profileGitRepo).
+				WithLinks(markup.Links{
 					// Give the repo link to the markdown render for the full link of media element.
 					// the media link usually be like /[user]/[repoName]/media/branch/[branchName],
 					// 	Eg. /Tom/.profile/media/branch/main
@@ -257,8 +256,8 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 					//	https://docs.gitea.com/usage/profile-readme
 					Base:       profileDbRepo.Link(),
 					BranchPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
-				},
-			}, bytes); err != nil {
+				}),
+				bytes); err != nil {
 				log.Error("failed to RenderString: %v", err)
 			} else {
 				ctx.Data["ProfileReadme"] = profileContent

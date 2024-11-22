@@ -84,7 +84,7 @@ func anyHashPatternExtract(s string) (ret anyHashPatternResult, ok bool) {
 
 // fullHashPatternProcessor renders SHA containing URLs
 func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.Metas == nil {
+	if ctx.RenderOptions.Metas == nil {
 		return
 	}
 	nodeStop := node.NextSibling
@@ -111,7 +111,7 @@ func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 }
 
 func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.Metas == nil {
+	if ctx.RenderOptions.Metas == nil {
 		return
 	}
 	nodeStop := node.NextSibling
@@ -163,14 +163,14 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 // hashCurrentPatternProcessor renders SHA1 strings to corresponding links that
 // are assumed to be in the same repository.
 func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.Metas == nil || ctx.Metas["user"] == "" || ctx.Metas["repo"] == "" || (ctx.Repo == nil && ctx.GitRepo == nil) {
+	if ctx.RenderOptions.Metas == nil || ctx.RenderOptions.Metas["user"] == "" || ctx.RenderOptions.Metas["repo"] == "" || (ctx.RenderHelper.repoFacade == nil && ctx.RenderHelper.gitRepo == nil) {
 		return
 	}
 
 	start := 0
 	next := node.NextSibling
-	if ctx.ShaExistCache == nil {
-		ctx.ShaExistCache = make(map[string]bool)
+	if ctx.RenderHelper.shaExistCache == nil {
+		ctx.RenderHelper.shaExistCache = make(map[string]bool)
 	}
 	for node != nil && node != next && start < len(node.Data) {
 		m := globalVars().hashCurrentPattern.FindStringSubmatchIndex(node.Data[start:])
@@ -191,25 +191,25 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		// a commit in the repository before making it a link.
 
 		// check cache first
-		exist, inCache := ctx.ShaExistCache[hash]
+		exist, inCache := ctx.RenderHelper.shaExistCache[hash]
 		if !inCache {
-			if ctx.GitRepo == nil {
+			if ctx.RenderHelper.gitRepo == nil {
 				var err error
 				var closer io.Closer
-				ctx.GitRepo, closer, err = gitrepo.RepositoryFromContextOrOpen(ctx.Ctx, ctx.Repo)
+				ctx.RenderHelper.gitRepo, closer, err = gitrepo.RepositoryFromContextOrOpen(ctx, ctx.RenderHelper.repoFacade)
 				if err != nil {
-					log.Error("unable to open repository: %s Error: %v", gitrepo.RepoGitURL(ctx.Repo), err)
+					log.Error("unable to open repository: %s Error: %v", gitrepo.RepoGitURL(ctx.RenderHelper.repoFacade), err)
 					return
 				}
 				ctx.AddCancel(func() {
 					_ = closer.Close()
-					ctx.GitRepo = nil
+					ctx.RenderHelper.gitRepo = nil
 				})
 			}
 
 			// Don't use IsObjectExist since it doesn't support short hashs with gogit edition.
-			exist = ctx.GitRepo.IsReferenceExist(hash)
-			ctx.ShaExistCache[hash] = exist
+			exist = ctx.RenderHelper.gitRepo.IsReferenceExist(hash)
+			ctx.RenderHelper.shaExistCache[hash] = exist
 		}
 
 		if !exist {
@@ -217,7 +217,7 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 			continue
 		}
 
-		link := util.URLJoin(ctx.Links.Prefix(), ctx.Metas["user"], ctx.Metas["repo"], "commit", hash)
+		link := util.URLJoin(ctx.RenderOptions.Links.Prefix(), ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], "commit", hash)
 		replaceContent(node, m[2], m[3], createCodeLink(link, base.ShortSha(hash), "commit"))
 		start = 0
 		node = node.NextSibling.NextSibling
