@@ -38,7 +38,7 @@ func renderCodeBlock(ctx *RenderContext, node *html.Node) (urlPosStart, urlPosSt
 		CommitID:  node.Data[m[6]:m[7]],
 		FilePath:  node.Data[m[8]:m[9]],
 	}
-	if !httplib.IsCurrentGiteaSiteURL(ctx.Ctx, opts.FullURL) {
+	if !httplib.IsCurrentGiteaSiteURL(ctx, opts.FullURL) {
 		return 0, 0, "", nil
 	}
 	u, err := url.Parse(opts.FilePath)
@@ -51,7 +51,7 @@ func renderCodeBlock(ctx *RenderContext, node *html.Node) (urlPosStart, urlPosSt
 	lineStart, _ := strconv.Atoi(strings.TrimPrefix(lineStartStr, "L"))
 	lineStop, _ := strconv.Atoi(strings.TrimPrefix(lineStopStr, "L"))
 	opts.LineStart, opts.LineStop = lineStart, lineStop
-	h, err := DefaultProcessorHelper.RenderRepoFileCodePreview(ctx.Ctx, opts)
+	h, err := DefaultProcessorHelper.RenderRepoFileCodePreview(ctx, opts)
 	return m[0], m[1], h, err
 }
 

@@ -17,7 +17,7 @@ func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 		}
 
 		if IsNonEmptyRelativePath(attr.Val) {
-			attr.Val = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsMarkupContentWiki()), attr.Val)
+			attr.Val = util.URLJoin(ctx.RenderOptions.Links.ResolveMediaLink(ctx.IsMarkupContentWiki()), attr.Val)
 
 			// By default, the "<img>" tag should also be clickable,
 			// because frontend use `<img>` to paste the re-scaled image into the markdown,
@@ -53,7 +53,7 @@ func visitNodeVideo(ctx *RenderContext, node *html.Node) (next *html.Node) {
 			continue
 		}
 		if IsNonEmptyRelativePath(attr.Val) {
-			attr.Val = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsMarkupContentWiki()), attr.Val)
+			attr.Val = util.URLJoin(ctx.RenderOptions.Links.ResolveMediaLink(ctx.IsMarkupContentWiki()), attr.Val)
 		}
 		attr.Val = camoHandleLink(attr.Val)
 		node.Attr[i] = attr

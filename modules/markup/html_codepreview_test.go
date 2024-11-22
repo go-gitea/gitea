@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 
@@ -23,10 +22,7 @@ func TestRenderCodePreview(t *testing.T) {
 		},
 	})
 	test := func(input, expected string) {
-		buffer, err := markup.RenderString(&markup.RenderContext{
-			Ctx:        git.DefaultContext,
-			MarkupType: markdown.MarkupName,
-		}, input)
+		buffer, err := markup.RenderString(markup.NewRenderContext(context.Background()).WithMarkupType(markdown.MarkupName), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}

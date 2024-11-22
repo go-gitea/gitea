@@ -143,15 +143,15 @@ func (r *Writer) resolveLink(kind, link string) string {
 			kind = org.RegularLink{URL: link}.Kind()
 		}
 
-		base := r.Ctx.Links.Base
+		base := r.Ctx.RenderOptions.Links.Base
 		if r.Ctx.IsMarkupContentWiki() {
-			base = r.Ctx.Links.WikiLink()
-		} else if r.Ctx.Links.HasBranchInfo() {
-			base = r.Ctx.Links.SrcLink()
+			base = r.Ctx.RenderOptions.Links.WikiLink()
+		} else if r.Ctx.RenderOptions.Links.HasBranchInfo() {
+			base = r.Ctx.RenderOptions.Links.SrcLink()
 		}
 
 		if kind == "image" || kind == "video" {
-			base = r.Ctx.Links.ResolveMediaLink(r.Ctx.IsMarkupContentWiki())
+			base = r.Ctx.RenderOptions.Links.ResolveMediaLink(r.Ctx.IsMarkupContentWiki())
 		}
 
 		link = util.URLJoin(base, link)
