@@ -56,7 +56,6 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
-	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -693,13 +692,13 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			posterID = 0
 		}
 
-		reviewers, err = repo_model.GetReviewers(ctx, repo, ctx.Doer.ID, posterID)
+		reviewers, err = pull_service.GetReviewers(ctx, repo, ctx.Doer.ID, posterID)
 		if err != nil {
 			ctx.ServerError("GetReviewers", err)
 			return
 		}
 
-		teamReviewers, err = repo_service.GetReviewerTeams(ctx, repo)
+		teamReviewers, err = pull_service.GetReviewerTeams(ctx, repo)
 		if err != nil {
 			ctx.ServerError("GetReviewerTeams", err)
 			return
@@ -1536,7 +1535,7 @@ func ViewIssue(ctx *context.Context) {
 	if issue.IsPull {
 		canChooseReviewer := false
 		if ctx.Doer != nil && ctx.IsSigned {
-			canChooseReviewer = issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, issue)
+			canChooseReviewer = issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, issue.PosterID)
 		}
 
 		RetrieveRepoReviewers(ctx, repo, issue, canChooseReviewer)
