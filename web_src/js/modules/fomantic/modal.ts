@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import type {FomanticInitFunction} from '../../types.ts';
 
 const fomanticModalFn = $.fn.modal;
 
@@ -6,12 +7,12 @@ const fomanticModalFn = $.fn.modal;
 export function initAriaModalPatch() {
   if ($.fn.modal === ariaModalFn) throw new Error('initAriaModalPatch could only be called once');
   $.fn.modal = ariaModalFn;
-  ariaModalFn.settings = fomanticModalFn.settings;
+  (ariaModalFn as FomanticInitFunction).settings = fomanticModalFn.settings;
 }
 
 // the patched `$.fn.modal` modal function
 // * it does the one-time attaching on the first call
-function ariaModalFn(...args) {
+function ariaModalFn(...args: Parameters<FomanticInitFunction>) {
   const ret = fomanticModalFn.apply(this, args);
   if (args[0] === 'show' || args[0]?.autoShow) {
     for (const el of this) {
