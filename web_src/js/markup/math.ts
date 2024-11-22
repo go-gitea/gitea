@@ -6,7 +6,7 @@ function targetElement(el: Element) {
   return el.classList.contains('is-loading') ? el : el.closest('pre');
 }
 
-export async function renderMath(): void {
+export async function renderMath(): Promise<void> {
   const els = document.querySelectorAll('.markup code.language-math');
   if (!els.length) return;
 
