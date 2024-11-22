@@ -122,6 +122,8 @@ func SignInOAuthCallback(ctx *context.Context) {
 		}
 		if err, ok := err.(*go_oauth2.RetrieveError); ok {
 			ctx.Flash.Error("OAuth2 RetrieveError: "+err.Error(), true)
+			ctx.Redirect(setting.AppSubURL + "/user/login")
+			return
 		}
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -358,8 +360,8 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			return
 		}
 
-		// Clear whatever CSRF cookie has right now, force to generate a new one
-		ctx.Csrf.DeleteCookie(ctx)
+		// force to generate a new CSRF token
+		ctx.Csrf.PrepareForSessionUser(ctx)
 
 		if err := resetLocale(ctx, u); err != nil {
 			ctx.ServerError("resetLocale", err)

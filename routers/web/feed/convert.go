@@ -51,17 +51,14 @@ func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
 // renderMarkdown creates a minimal markdown render context from an action.
 // If rendering fails, the original markdown text is returned
 func renderMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
-	markdownCtx := &markup.RenderContext{
-		Ctx: ctx,
-		Links: markup.Links{
+	markdownCtx := markup.NewRenderContext(ctx).
+		WithLinks(markup.Links{
 			Base: act.GetRepoLink(ctx),
-		},
-		Type: markdown.MarkupName,
-		Metas: map[string]string{
+		}).
+		WithMetas(map[string]string{ // FIXME: not right here, it should use issue to compose the metas
 			"user": act.GetRepoUserName(ctx),
 			"repo": act.GetRepoName(ctx),
-		},
-	}
+		})
 	markdown, err := markdown.RenderString(markdownCtx, content)
 	if err != nil {
 		return templates.SanitizeHTML(content) // old code did so: use SanitizeHTML to render in tmpl
@@ -71,6 +68,7 @@ func renderMarkdown(ctx *context.Context, act *activities_model.Action, content 
 
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
 func feedActionsToFeedItems(ctx *context.Context, actions activities_model.ActionList) (items []*feeds.Item, err error) {
+	renderUtils := templates.NewRenderUtils(ctx)
 	for _, act := range actions {
 		act.LoadActUser(ctx)
 
@@ -215,7 +213,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 					desc += fmt.Sprintf("<a href=\"%s\">%s</a>\n%s",
 						html.EscapeString(fmt.Sprintf("%s/commit/%s", act.GetRepoAbsoluteLink(ctx), commit.Sha1)),
 						commit.Sha1,
-						templates.RenderCommitMessage(ctx, commit.Message, nil),
+						renderUtils.RenderCommitMessage(commit.Message, nil),
 					)
 				}
 
@@ -296,14 +294,13 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 		}
 
 		link := &feeds.Link{Href: rel.HTMLURL()}
-		content, err = markdown.RenderString(&markup.RenderContext{
-			Ctx:  ctx,
-			Repo: rel.Repo,
-			Links: markup.Links{
+		content, err = markdown.RenderString(markup.NewRenderContext(ctx).
+			WithRepoFacade(rel.Repo).
+			WithLinks(markup.Links{
 				Base: rel.Repo.Link(),
-			},
-			Metas: rel.Repo.ComposeMetas(ctx),
-		}, rel.Note)
+			}).
+			WithMetas(rel.Repo.ComposeMetas(ctx)),
+			rel.Note)
 		if err != nil {
 			return nil, err
 		}

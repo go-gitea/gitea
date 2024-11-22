@@ -143,7 +143,6 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, try
 				// this should be impossible; if subTreeEntry exists so should this.
 				continue
 			}
-			var err error
 			childEntries, err := subTree.ListEntries()
 			if err != nil {
 				return "", nil, err
@@ -311,17 +310,17 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 		ctx.Data["IsMarkup"] = true
 		ctx.Data["MarkupType"] = markupType
 
-		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
-			Ctx:          ctx,
-			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.Name()), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
-			Links: markup.Links{
+		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, markup.NewRenderContext(ctx).
+			WithMarkupType(markupType).
+			WithRelativePath(path.Join(ctx.Repo.TreePath, readmeFile.Name())). // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
+			WithLinks(markup.Links{
 				Base:       ctx.Repo.RepoLink,
 				BranchPath: ctx.Repo.BranchNameSubURL(),
 				TreePath:   path.Join(ctx.Repo.TreePath, subfolder),
-			},
-			Metas:   ctx.Repo.Repository.ComposeDocumentMetas(ctx),
-			GitRepo: ctx.Repo.GitRepo,
-		}, rd)
+			}).
+			WithMetas(ctx.Repo.Repository.ComposeDocumentMetas(ctx)).
+			WithGitRepo(ctx.Repo.GitRepo),
+			rd)
 		if err != nil {
 			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.Name(), ctx.Repo.Repository, err)
 			delete(ctx.Data, "IsMarkup")
@@ -503,37 +502,28 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 		ctx.Data["ReadmeExist"] = readmeExist
 
 		markupType := markup.DetectMarkupTypeByFileName(blob.Name())
-		// If the markup is detected by custom markup renderer it should not be reset later on
-		// to not pass it down to the render context.
-		detected := false
 		if markupType == "" {
-			detected = true
 			markupType = markup.DetectRendererType(blob.Name(), bytes.NewReader(buf))
 		}
 		if markupType != "" {
 			ctx.Data["HasSourceRenderedToggle"] = true
 		}
-
 		if markupType != "" && !shouldRenderSource {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			if !detected {
-				markupType = ""
-			}
 			metas := ctx.Repo.Repository.ComposeDocumentMetas(ctx)
 			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
-				Ctx:          ctx,
-				Type:         markupType,
-				RelativePath: ctx.Repo.TreePath,
-				Links: markup.Links{
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, markup.NewRenderContext(ctx).
+				WithMarkupType(markupType).
+				WithRelativePath(ctx.Repo.TreePath).
+				WithLinks(markup.Links{
 					Base:       ctx.Repo.RepoLink,
 					BranchPath: ctx.Repo.BranchNameSubURL(),
 					TreePath:   path.Dir(ctx.Repo.TreePath),
-				},
-				Metas:   metas,
-				GitRepo: ctx.Repo.GitRepo,
-			}, rd)
+				}).
+				WithMetas(metas).
+				WithGitRepo(ctx.Repo.GitRepo),
+				rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
@@ -614,17 +604,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			rd := io.MultiReader(bytes.NewReader(buf), dataRc)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
-				Ctx:          ctx,
-				RelativePath: ctx.Repo.TreePath,
-				Links: markup.Links{
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, markup.NewRenderContext(ctx).
+				WithMarkupType(markupType).
+				WithRelativePath(ctx.Repo.TreePath).
+				WithLinks(markup.Links{
 					Base:       ctx.Repo.RepoLink,
 					BranchPath: ctx.Repo.BranchNameSubURL(),
 					TreePath:   path.Dir(ctx.Repo.TreePath),
-				},
-				Metas:   ctx.Repo.Repository.ComposeDocumentMetas(ctx),
-				GitRepo: ctx.Repo.GitRepo,
-			}, rd)
+				}).
+				WithMetas(ctx.Repo.Repository.ComposeDocumentMetas(ctx)).
+				WithGitRepo(ctx.Repo.GitRepo),
+				rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
@@ -1158,25 +1148,24 @@ func Forks(ctx *context.Context) {
 	if page <= 0 {
 		page = 1
 	}
+	pageSize := setting.ItemsPerPage
 
-	pager := context.NewPagination(ctx.Repo.Repository.NumForks, setting.ItemsPerPage, page, 5)
-	ctx.Data["Page"] = pager
-
-	forks, err := repo_model.GetForks(ctx, ctx.Repo.Repository, db.ListOptions{
-		Page:     pager.Paginater.Current(),
-		PageSize: setting.ItemsPerPage,
+	forks, total, err := repo_service.FindForks(ctx, ctx.Repo.Repository, ctx.Doer, db.ListOptions{
+		Page:     page,
+		PageSize: pageSize,
 	})
 	if err != nil {
-		ctx.ServerError("GetForks", err)
+		ctx.ServerError("FindForks", err)
 		return
 	}
 
-	for _, fork := range forks {
-		if err = fork.LoadOwner(ctx); err != nil {
-			ctx.ServerError("LoadOwner", err)
-			return
-		}
+	if err := repo_model.RepositoryList(forks).LoadOwners(ctx); err != nil {
+		ctx.ServerError("LoadAttributes", err)
+		return
 	}
+
+	pager := context.NewPagination(int(total), pageSize, page, 5)
+	ctx.Data["Page"] = pager
 
 	ctx.Data["Forks"] = forks
 

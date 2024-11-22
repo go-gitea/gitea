@@ -276,7 +276,6 @@ func ViewPost(ctx *context_module.Context) {
 			if validCursor {
 				length := step.LogLength - cursor.Cursor
 				offset := task.LogIndexes[index]
-				var err error
 				logRows, err := actions.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
 				if err != nil {
 					ctx.Error(http.StatusInternalServerError, err.Error())
@@ -664,7 +663,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	if len(artifacts) == 1 && artifacts[0].ArtifactName+".zip" == artifacts[0].ArtifactPath && artifacts[0].ContentEncoding == "application/zip" {
 		art := artifacts[0]
 		if setting.Actions.ArtifactStorage.ServeDirect() {
-			u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath)
+			u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, nil)
 			if u != nil && err == nil {
 				ctx.Redirect(u.String())
 				return

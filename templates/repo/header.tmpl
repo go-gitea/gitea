@@ -121,7 +121,7 @@
 			<div class="fork-flag">
 				{{ctx.Locale.Tr "repo.mirror_from"}}
 				<a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a>
-				{{if $.PullMirror.UpdatedUnix}}{{ctx.Locale.Tr "repo.mirror_sync"}} {{TimeSinceUnix $.PullMirror.UpdatedUnix ctx.Locale}}{{end}}
+				{{if $.PullMirror.UpdatedUnix}}{{ctx.Locale.Tr "repo.mirror_sync"}} {{DateUtils.TimeSince $.PullMirror.UpdatedUnix}}{{end}}
 			</div>
 		{{end}}
 		{{if .IsFork}}<div class="fork-flag">{{ctx.Locale.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{.BaseRepo.FullName}}</a></div>{{end}}
@@ -177,7 +177,7 @@
 						</a>
 					{{end}}
 
-					{{$projectsUnit := .Repository.MustGetUnit $.Context ctx.Consts.RepoUnitTypeProjects}}
+					{{$projectsUnit := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeProjects}}
 					{{if and (not ctx.Consts.RepoUnitTypeProjects.UnitGlobalDisabled) (.Permission.CanRead ctx.Consts.RepoUnitTypeProjects) ($projectsUnit.ProjectsConfig.IsProjectsAllowed "repo")}}
 						<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active {{end}}item">
 							{{svg "octicon-project"}} {{ctx.Locale.Tr "repo.projects"}}
@@ -203,7 +203,7 @@
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeExternalWiki}}
-						<a class="item" href="{{(.Repository.MustGetUnit $.Context ctx.Consts.RepoUnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank" rel="noopener noreferrer">
+						<a class="item" href="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank" rel="noopener noreferrer">
 							{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.wiki"}}
 						</a>
 					{{end}}

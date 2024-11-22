@@ -133,11 +133,6 @@ func DeleteBranch(ctx *context.APIContext) {
 
 	branchName := ctx.PathParam("*")
 
-	if ctx.Repo.Repository.IsEmpty {
-		ctx.Error(http.StatusForbidden, "", "Git Repository is empty.")
-		return
-	}
-
 	// check whether branches of this repository has been synced
 	totalNumOfBranches, err := db.Count[git_model.Branch](ctx, git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
@@ -642,6 +637,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ProtectedFilePatterns:         form.ProtectedFilePatterns,
 		UnprotectedFilePatterns:       form.UnprotectedFilePatterns,
 		BlockOnOutdatedBranch:         form.BlockOnOutdatedBranch,
+		BlockAdminMergeOverride:       form.BlockAdminMergeOverride,
 	}
 
 	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
@@ -850,6 +846,10 @@ func EditBranchProtection(ctx *context.APIContext) {
 
 	if form.BlockOnOutdatedBranch != nil {
 		protectBranch.BlockOnOutdatedBranch = *form.BlockOnOutdatedBranch
+	}
+
+	if form.BlockAdminMergeOverride != nil {
+		protectBranch.BlockAdminMergeOverride = *form.BlockAdminMergeOverride
 	}
 
 	var whitelistUsers, forcePushAllowlistUsers, mergeWhitelistUsers, approvalsWhitelistUsers []int64

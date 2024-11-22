@@ -95,10 +95,12 @@ func home(ctx *context.Context, viewRepositories bool) {
 	}
 
 	opts := &organization.FindOrgMembersOpts{
-		OrgID:       org.ID,
-		PublicOnly:  ctx.Org.PublicMemberOnly,
-		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
+		Doer:         ctx.Doer,
+		OrgID:        org.ID,
+		IsDoerMember: ctx.Org.IsMember,
+		ListOptions:  db.ListOptions{Page: 1, PageSize: 25},
 	}
+
 	members, _, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)
@@ -178,17 +180,16 @@ func prepareOrgProfileReadme(ctx *context.Context, viewRepositories bool) bool {
 	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 		log.Error("failed to GetBlobContent: %v", err)
 	} else {
-		if profileContent, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:     ctx,
-			GitRepo: profileGitRepo,
-			Links: markup.Links{
+		if profileContent, err := markdown.RenderString(markup.NewRenderContext(ctx).
+			WithGitRepo(profileGitRepo).
+			WithLinks(markup.Links{
 				// Pass repo link to markdown render for the full link of media elements.
 				// The profile of default branch would be shown.
 				Base:       profileDbRepo.Link(),
 				BranchPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
-			},
-			Metas: map[string]string{"mode": "document"},
-		}, bytes); err != nil {
+			}).
+			WithMetas(markup.ComposeSimpleDocumentMetas()),
+			bytes); err != nil {
 			log.Error("failed to RenderString: %v", err)
 		} else {
 			ctx.Data["ProfileReadme"] = profileContent

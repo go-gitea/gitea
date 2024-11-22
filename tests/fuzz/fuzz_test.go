@@ -14,27 +14,22 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-var renderContext = markup.RenderContext{
-	Ctx: context.Background(),
-	Links: markup.Links{
-		Base: "https://example.com/go-gitea/gitea",
-	},
-	Metas: map[string]string{
-		"user": "go-gitea",
-		"repo": "gitea",
-	},
+func newFuzzRenderContext() *markup.RenderContext {
+	return markup.NewRenderContext(context.Background()).
+		WithLinks(markup.Links{Base: "https://example.com/go-gitea/gitea"}).
+		WithMetas(map[string]string{"user": "go-gitea", "repo": "gitea"})
 }
 
 func FuzzMarkdownRenderRaw(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		setting.AppURL = "http://localhost:3000/"
-		markdown.RenderRaw(&renderContext, bytes.NewReader(data), io.Discard)
+		markdown.RenderRaw(newFuzzRenderContext(), bytes.NewReader(data), io.Discard)
 	})
 }
 
 func FuzzMarkupPostProcess(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		setting.AppURL = "http://localhost:3000/"
-		markup.PostProcess(&renderContext, bytes.NewReader(data), io.Discard)
+		markup.PostProcess(newFuzzRenderContext(), bytes.NewReader(data), io.Discard)
 	})
 }

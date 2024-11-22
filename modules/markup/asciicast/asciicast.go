@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"regexp"
 
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
@@ -38,27 +37,17 @@ const (
 
 // SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
-	return []setting.MarkupSanitizerRule{
-		{Element: "div", AllowAttr: "class", Regexp: regexp.MustCompile(playerClassName)},
-		{Element: "div", AllowAttr: playerSrcAttr},
-	}
+	return []setting.MarkupSanitizerRule{{Element: "div", AllowAttr: playerSrcAttr}}
 }
 
 // Render implements markup.Renderer
 func (Renderer) Render(ctx *markup.RenderContext, _ io.Reader, output io.Writer) error {
 	rawURL := fmt.Sprintf("%s/%s/%s/raw/%s/%s",
 		setting.AppSubURL,
-		url.PathEscape(ctx.Metas["user"]),
-		url.PathEscape(ctx.Metas["repo"]),
-		ctx.Metas["BranchNameSubURL"],
-		url.PathEscape(ctx.RelativePath),
+		url.PathEscape(ctx.RenderOptions.Metas["user"]),
+		url.PathEscape(ctx.RenderOptions.Metas["repo"]),
+		ctx.RenderOptions.Metas["BranchNameSubURL"],
+		url.PathEscape(ctx.RenderOptions.RelativePath),
 	)
-
-	_, err := io.WriteString(output, fmt.Sprintf(
-		`<div class="%s" %s="%s"></div>`,
-		playerClassName,
-		playerSrcAttr,
-		rawURL,
-	))
-	return err
+	return ctx.RenderInternal.FormatWithSafeAttrs(output, `<div class="%s" %s="%s"></div>`, playerClassName, playerSrcAttr, rawURL)
 }

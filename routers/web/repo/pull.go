@@ -166,7 +166,7 @@ func setMergeTarget(ctx *context.Context, pull *issues_model.PullRequest) {
 	ctx.Data["BaseTarget"] = pull.BaseBranch
 	headBranchLink := ""
 	if pull.Flow == issues_model.PullRequestFlowGithub {
-		b, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, pull.HeadBranch)
+		b, err := git_model.GetBranch(ctx, pull.HeadRepoID, pull.HeadBranch)
 		switch {
 		case err == nil:
 			if !b.IsDeleted {
@@ -348,6 +348,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	}
 
 	if !baseGitRepo.IsBranchExist(pull.BaseBranch) {
+		ctx.Data["BaseBranchNotExist"] = true
 		ctx.Data["IsPullRequestBroken"] = true
 		ctx.Data["BaseTarget"] = pull.BaseBranch
 		ctx.Data["HeadTarget"] = pull.HeadBranch
@@ -395,12 +396,12 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	var headBranchSha string
 	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
-		headGitRepo, err := gitrepo.OpenRepository(ctx, pull.HeadRepo)
+		headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pull.HeadRepo)
 		if err != nil {
-			ctx.ServerError("OpenRepository", err)
+			ctx.ServerError("RepositoryFromContextOrOpen", err)
 			return nil
 		}
-		defer headGitRepo.Close()
+		defer closer.Close()
 
 		if pull.Flow == issues_model.PullRequestFlowGithub {
 			headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
@@ -747,6 +748,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:           maxFiles,
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+		FileOnly:           fileOnly,
 	}
 
 	if !willShowSpecifiedCommit {
@@ -887,8 +889,6 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		}
 
 		if pull.HeadRepo != nil {
-			ctx.Data["SourcePath"] = pull.HeadRepo.Link() + "/src/commit/" + endCommitID
-
 			if !pull.HasMerged && ctx.Doer != nil {
 				perm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 				if err != nil {
@@ -1270,10 +1270,12 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
-	labelIDs, assigneeIDs, milestoneID, projectID := ValidateRepoMetas(ctx, *form, true)
+	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, true)
 	if ctx.Written() {
 		return
 	}
+
+	labelIDs, assigneeIDs, milestoneID, projectID := validateRet.LabelIDs, validateRet.AssigneeIDs, validateRet.MilestoneID, validateRet.ProjectID
 
 	if setting.Attachment.Enabled {
 		attachments = form.Files
@@ -1319,8 +1321,17 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
-
-	if err := pull_service.NewPullRequest(ctx, repo, pullIssue, labelIDs, attachments, pullRequest, assigneeIDs); err != nil {
+	prOpts := &pull_service.NewPullRequestOptions{
+		Repo:            repo,
+		Issue:           pullIssue,
+		LabelIDs:        labelIDs,
+		AttachmentUUIDs: attachments,
+		PullRequest:     pullRequest,
+		AssigneeIDs:     assigneeIDs,
+		Reviewers:       validateRet.Reviewers,
+		TeamReviewers:   validateRet.TeamReviewers,
+	}
+	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 		switch {
 		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())

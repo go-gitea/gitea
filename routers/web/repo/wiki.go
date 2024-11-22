@@ -288,14 +288,9 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		footerContent = data
 	}
 
-	rctx := &markup.RenderContext{
-		Ctx:   ctx,
-		Metas: ctx.Repo.Repository.ComposeDocumentMetas(ctx),
-		Links: markup.Links{
-			Base: ctx.Repo.RepoLink,
-		},
-		IsWiki: true,
-	}
+	rctx := markup.NewRenderContext(ctx).
+		WithMetas(ctx.Repo.Repository.ComposeWikiMetas(ctx)).
+		WithLinks(markup.Links{Base: ctx.Repo.RepoLink})
 	buf := &strings.Builder{}
 
 	renderFn := func(data []byte) (escaped *charset.EscapeStatus, output string, err error) {
@@ -327,7 +322,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 
 	if rctx.SidebarTocNode != nil {
 		sb := &strings.Builder{}
-		err = markdown.SpecializedMarkdown().Renderer().Render(sb, nil, rctx.SidebarTocNode)
+		err = markdown.SpecializedMarkdown(rctx).Renderer().Render(sb, nil, rctx.SidebarTocNode)
 		if err != nil {
 			log.Error("Failed to render wiki sidebar TOC: %v", err)
 		} else {

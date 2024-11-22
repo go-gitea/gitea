@@ -386,7 +386,7 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 	return a.createAuthSource(ctx, authSource)
 }
 
-// updateLdapBindDn updates a new LDAP (simple auth) authentication source.
+// updateLdapSimpleAuth updates a new LDAP (simple auth) authentication source.
 func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()

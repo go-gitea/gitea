@@ -520,7 +520,8 @@ func TestConflictChecking(t *testing.T) {
 			BaseRepo:   baseRepo,
 			Type:       issues_model.PullRequestGitea,
 		}
-		err = pull.NewPullRequest(git.DefaultContext, baseRepo, pullIssue, nil, nil, pullRequest, nil)
+		prOpts := &pull.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
+		err = pull.NewPullRequest(git.DefaultContext, prOpts)
 		assert.NoError(t, err)
 
 		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"})
@@ -588,7 +589,8 @@ func TestPullDontRetargetChildOnWrongRepo(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		targetBranch := htmlDoc.doc.Find("#branch_target>a").Text()
+		// the branch has been deleted, so there is no a html tag instead of span
+		targetBranch := htmlDoc.doc.Find("#branch_target>span").Text()
 		prStatus := strings.TrimSpace(htmlDoc.doc.Find(".issue-title-meta>.issue-state-label").Text())
 
 		assert.EqualValues(t, "base-pr", targetBranch)
@@ -694,7 +696,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		})
 
 		// add protected branch for commit status
-		csrf := GetCSRF(t, session, "/user2/repo1/settings/branches")
+		csrf := GetUserCSRFToken(t, session)
 		// Change master branch to protected
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
 			"_csrf":                 csrf,
@@ -777,7 +779,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		})
 
 		// add protected branch for commit status
-		csrf := GetCSRF(t, session, "/user2/repo1/settings/branches")
+		csrf := GetUserCSRFToken(t, session)
 		// Change master branch to protected
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
 			"_csrf":                 csrf,
@@ -905,7 +907,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 
 		session := loginUser(t, "user1")
 		// add protected branch for commit status
-		csrf := GetCSRF(t, session, "/user2/repo1/settings/branches")
+		csrf := GetUserCSRFToken(t, session)
 		// Change master branch to protected
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
 			"_csrf":                 csrf,
@@ -974,5 +976,52 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		assert.NotEmpty(t, pr.MergedCommitID)
 
 		unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
+	})
+}
+
+func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		// create a pull request
+		session := loginUser(t, "user1")
+		forkedName := "repo1-1"
+		testRepoFork(t, session, "user2", "repo1", "user1", forkedName, "")
+		defer testDeleteRepository(t, session, "user1", forkedName)
+
+		testEditFile(t, session, "user1", forkedName, "master", "README.md", "Hello, World (Edited)\n")
+		testPullCreate(t, session, "user1", forkedName, false, "master", "master", "Indexer notifier test pull")
+
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: forkedName})
+		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			BaseRepoID: baseRepo.ID,
+			BaseBranch: "master",
+			HeadRepoID: forkedRepo.ID,
+			HeadBranch: "master",
+		})
+
+		// add protected branch for commit status
+		csrf := GetUserCSRFToken(t, session)
+		// Change master branch to protected
+		pbCreateReq := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
+			"_csrf":                      csrf,
+			"rule_name":                  "master",
+			"enable_push":                "true",
+			"enable_status_check":        "true",
+			"status_check_contexts":      "gitea/actions",
+			"block_admin_merge_override": "true",
+		})
+		session.MakeRequest(t, pbCreateReq, http.StatusSeeOther)
+
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		mergeReq := NewRequestWithValues(t, "POST", "/api/v1/repos/user2/repo1/pulls/6/merge", map[string]string{
+			"_csrf":                     csrf,
+			"head_commit_id":            "",
+			"merge_when_checks_succeed": "false",
+			"force_merge":               "true",
+			"do":                        "rebase",
+		}).AddTokenAuth(token)
+
+		session.MakeRequest(t, mergeReq, http.StatusMethodNotAllowed)
 	})
 }

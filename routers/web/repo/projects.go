@@ -92,15 +92,12 @@ func Projects(ctx *context.Context) {
 	}
 
 	for i := range projects {
-		projects[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Links: markup.Links{
-				Base: ctx.Repo.RepoLink,
-			},
-			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo: ctx.Repo.GitRepo,
-			Repo:    ctx.Repo.Repository,
-			Ctx:     ctx,
-		}, projects[i].Description)
+		projects[i].RenderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
+			WithLinks(markup.Links{Base: ctx.Repo.RepoLink}).
+			WithMetas(ctx.Repo.Repository.ComposeMetas(ctx)).
+			WithGitRepo(ctx.Repo.GitRepo).
+			WithRepoFacade(ctx.Repo.Repository),
+			projects[i].Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return
@@ -425,15 +422,12 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["AssigneeID"] = assigneeID
 
-	project.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		Links: markup.Links{
-			Base: ctx.Repo.RepoLink,
-		},
-		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo: ctx.Repo.GitRepo,
-		Repo:    ctx.Repo.Repository,
-		Ctx:     ctx,
-	}, project.Description)
+	project.RenderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
+		WithLinks(markup.Links{Base: ctx.Repo.RepoLink}).
+		WithMetas(ctx.Repo.Repository.ComposeMetas(ctx)).
+		WithGitRepo(ctx.Repo.GitRepo).
+		WithRepoFacade(ctx.Repo.Repository),
+		project.Description)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return
