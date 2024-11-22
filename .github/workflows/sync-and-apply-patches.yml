@@ -143,5 +143,6 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
+          file: Dockerfile.rootless
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ needs.sync-and-patch.outputs.tag }}
