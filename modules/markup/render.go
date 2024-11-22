@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/markup/internal"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -38,12 +36,14 @@ var RenderBehaviorForTesting struct {
 	// * However, many places render the content without setting "mode" in Metas, all these places used comment line break setting incorrectly
 	ForceHardLineBreak bool
 
-	// Gitea will emit some internal attributes for various purposes, these attributes don't affect rendering.
+	// Gitea will emit some additional attributes for various purposes, these attributes don't affect rendering.
 	// But there are too many hard-coded test cases, to avoid changing all of them again and again, we can disable emitting these internal attributes.
-	DisableInternalAttributes bool
+	DisableAdditionalAttributes bool
 }
 
 type RenderOptions struct {
+	UseAbsoluteLink bool
+
 	// relative path from tree root of the branch
 	RelativePath string
 
@@ -51,24 +51,14 @@ type RenderOptions struct {
 	// for file mode, it could be left as empty, and will be detected by file extension in RelativePath
 	MarkupType string
 
-	// special link references for rendering, especially when there is a branch/tree path
-	Links Links
-
 	// user&repo, format&style&regexp (for external issue pattern), teams&org (for mention)
 	// BranchNameSubURL (for iframe&asciicast)
-	// markupAllowShortIssuePattern, markupContentMode (wiki)
+	// markupAllowShortIssuePattern
 	// markdownLineBreakStyle (comment, document)
 	Metas map[string]string
 
 	// used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
 	InStandalonePage bool
-}
-
-type RenderHelper struct {
-	gitRepo       *git.Repository
-	repoFacade    gitrepo.Repository
-	shaExistCache map[string]bool
-	cancelFn      func()
 }
 
 // RenderContext represents a render context
@@ -101,7 +91,7 @@ func (ctx *RenderContext) Value(key any) any {
 var _ context.Context = (*RenderContext)(nil)
 
 func NewRenderContext(ctx context.Context) *RenderContext {
-	return &RenderContext{ctx: ctx}
+	return &RenderContext{ctx: ctx, RenderHelper: &SimpleRenderHelper{}}
 }
 
 func (ctx *RenderContext) WithMarkupType(typ string) *RenderContext {
@@ -111,11 +101,6 @@ func (ctx *RenderContext) WithMarkupType(typ string) *RenderContext {
 
 func (ctx *RenderContext) WithRelativePath(path string) *RenderContext {
 	ctx.RenderOptions.RelativePath = path
-	return ctx
-}
-
-func (ctx *RenderContext) WithLinks(links Links) *RenderContext {
-	ctx.RenderOptions.Links = links
 	return ctx
 }
 
@@ -129,46 +114,14 @@ func (ctx *RenderContext) WithInStandalonePage(v bool) *RenderContext {
 	return ctx
 }
 
-func (ctx *RenderContext) WithGitRepo(r *git.Repository) *RenderContext {
-	ctx.RenderHelper.gitRepo = r
+func (ctx *RenderContext) WithUseAbsoluteLink(v bool) *RenderContext {
+	ctx.RenderOptions.UseAbsoluteLink = v
 	return ctx
 }
 
-func (ctx *RenderContext) WithRepoFacade(r gitrepo.Repository) *RenderContext {
-	ctx.RenderHelper.repoFacade = r
+func (ctx *RenderContext) WithHelper(helper RenderHelper) *RenderContext {
+	ctx.RenderHelper = helper
 	return ctx
-}
-
-// Cancel runs any cleanup functions that have been registered for this Ctx
-func (ctx *RenderContext) Cancel() {
-	if ctx == nil {
-		return
-	}
-	ctx.RenderHelper.shaExistCache = map[string]bool{}
-	if ctx.RenderHelper.cancelFn == nil {
-		return
-	}
-	ctx.RenderHelper.cancelFn()
-}
-
-// AddCancel adds the provided fn as a Cleanup for this Ctx
-func (ctx *RenderContext) AddCancel(fn func()) {
-	if ctx == nil {
-		return
-	}
-	oldCancelFn := ctx.RenderHelper.cancelFn
-	if oldCancelFn == nil {
-		ctx.RenderHelper.cancelFn = fn
-		return
-	}
-	ctx.RenderHelper.cancelFn = func() {
-		defer oldCancelFn()
-		fn()
-	}
-}
-
-func (ctx *RenderContext) IsMarkupContentWiki() bool {
-	return ctx.RenderOptions.Metas != nil && ctx.RenderOptions.Metas["markupContentMode"] == "wiki"
 }
 
 // Render renders markup file to HTML with all specific handling stuff.
@@ -237,6 +190,10 @@ func pipes() (io.ReadCloser, io.WriteCloser, func()) {
 }
 
 func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
+	if ctx.RenderHelper != nil {
+		defer ctx.RenderHelper.CleanUp()
+	}
+
 	finalProcessor := ctx.RenderInternal.Init(output)
 	defer finalProcessor.Close()
 
@@ -278,11 +235,8 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 }
 
 // Init initializes the render global variables
-func Init(ph *ProcessorHelper) {
-	if ph != nil {
-		DefaultProcessorHelper = *ph
-	}
-
+func Init(renderHelpFuncs *RenderHelperFuncs) {
+	DefaultRenderHelperFuncs = renderHelpFuncs
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 	}
@@ -300,23 +254,38 @@ func ComposeSimpleDocumentMetas() map[string]string {
 	return map[string]string{"markdownLineBreakStyle": "document"}
 }
 
+type TestRenderHelper struct {
+	ctx      *RenderContext
+	BaseLink string
+}
+
+func (r *TestRenderHelper) CleanUp() {}
+
+func (r *TestRenderHelper) IsCommitIDExisting(commitID string) bool {
+	return strings.HasPrefix(commitID, "65f1bf2") //|| strings.HasPrefix(commitID, "88fc37a")
+}
+
+func (r *TestRenderHelper) ResolveLink(link string, likeType LinkType) string {
+	return r.ctx.ResolveLinkRelative(r.BaseLink, "", link)
+}
+
+var _ RenderHelper = (*TestRenderHelper)(nil)
+
 // NewTestRenderContext is a helper function to create a RenderContext for testing purpose
-// It accepts string (RelativePath), Links, map[string]string (Metas), gitrepo.Repository
-func NewTestRenderContext(a ...any) *RenderContext {
+// It accepts string (BaseLink), map[string]string (Metas)
+func NewTestRenderContext(baseLinkOrMetas ...any) *RenderContext {
 	if !setting.IsInTesting {
 		panic("NewTestRenderContext should only be used in testing")
 	}
-	ctx := NewRenderContext(context.Background())
-	for _, v := range a {
+	helper := &TestRenderHelper{}
+	ctx := NewRenderContext(context.Background()).WithHelper(helper)
+	helper.ctx = ctx
+	for _, v := range baseLinkOrMetas {
 		switch v := v.(type) {
 		case string:
-			ctx = ctx.WithRelativePath(v)
-		case Links:
-			ctx = ctx.WithLinks(v)
+			helper.BaseLink = v
 		case map[string]string:
 			ctx = ctx.WithMetas(v)
-		case gitrepo.Repository:
-			ctx = ctx.WithRepoFacade(v)
 		default:
 			panic(fmt.Sprintf("unknown type %T", v))
 		}

@@ -59,7 +59,7 @@ func TestMain(m *testing.M) {
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
-	markup.Init(&markup.ProcessorHelper{
+	markup.Init(&markup.RenderHelperFuncs{
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
 			return username == "mention-user"
 		},
@@ -74,7 +74,7 @@ func newTestRenderUtils() *RenderUtils {
 }
 
 func TestRenderCommitBody(t *testing.T) {
-	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	type args struct {
 		msg string
 	}
@@ -145,7 +145,7 @@ func TestRenderCommitMessageLinkSubject(t *testing.T) {
 }
 
 func TestRenderIssueTitle(t *testing.T) {
-	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	expected := `  space @mention-user<SPACE><SPACE>
 /just/a/path.bin
 https://example.com/file.bin
@@ -172,7 +172,7 @@ mail@domain.com
 }
 
 func TestRenderMarkdownToHtml(t *testing.T) {
-	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	expected := `<p>space <a href="/mention-user" rel="nofollow">@mention-user</a><br/>
 /just/a/path.bin
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a>
@@ -211,6 +211,7 @@ func TestRenderLabels(t *testing.T) {
 }
 
 func TestUserMention(t *testing.T) {
+	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
 	rendered := newTestRenderUtils().MarkdownToHtml("@no-such-user @mention-user @mention-user")
-	assert.EqualValues(t, `<p>@no-such-user <a href="/mention-user" data-markdown-generated-content="" rel="nofollow">@mention-user</a> <a href="/mention-user" data-markdown-generated-content="" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
+	assert.EqualValues(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
 }

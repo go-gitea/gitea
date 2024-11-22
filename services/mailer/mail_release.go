@@ -7,11 +7,11 @@ import (
 	"bytes"
 	"context"
 
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
@@ -56,10 +56,8 @@ func mailNewRelease(ctx context.Context, lang string, tos []*user_model.User, re
 	locale := translation.NewLocale(lang)
 
 	var err error
-	rel.RenderedNote, err = markdown.RenderString(markup.NewRenderContext(ctx).
-		WithRepoFacade(rel.Repo).
-		WithLinks(markup.Links{Base: rel.Repo.HTMLURL()}).
-		WithMetas(rel.Repo.ComposeMetas(ctx)),
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, rel.Repo).WithUseAbsoluteLink(true)
+	rel.RenderedNote, err = markdown.RenderString(rctx,
 		rel.Note)
 	if err != nil {
 		log.Error("markdown.RenderString(%d): %v", rel.RepoID, err)
