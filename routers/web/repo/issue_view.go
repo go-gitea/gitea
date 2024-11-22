@@ -359,15 +359,12 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IssueWatch"] = iw
-	issue.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		Links: markup.Links{
-			Base: ctx.Repo.RepoLink,
-		},
-		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo: ctx.Repo.GitRepo,
-		Repo:    ctx.Repo.Repository,
-		Ctx:     ctx,
-	}, issue.Content)
+	issue.RenderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
+		WithLinks(markup.Links{Base: ctx.Repo.RepoLink}).
+		WithMetas(ctx.Repo.Repository.ComposeMetas(ctx)).
+		WithGitRepo(ctx.Repo.GitRepo).
+		WithRepoFacade(ctx.Repo.Repository),
+		issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return
@@ -467,15 +464,14 @@ func ViewIssue(ctx *context.Context) {
 		comment.Issue = issue
 
 		if comment.Type == issues_model.CommentTypeComment || comment.Type == issues_model.CommentTypeReview {
-			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-				Links: markup.Links{
+			comment.RenderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
+				WithLinks(markup.Links{
 					Base: ctx.Repo.RepoLink,
-				},
-				Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-				GitRepo: ctx.Repo.GitRepo,
-				Repo:    ctx.Repo.Repository,
-				Ctx:     ctx,
-			}, comment.Content)
+				}).
+				WithMetas(ctx.Repo.Repository.ComposeMetas(ctx)).
+				WithGitRepo(ctx.Repo.GitRepo).
+				WithRepoFacade(ctx.Repo.Repository),
+				comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
 				return
@@ -550,15 +546,12 @@ func ViewIssue(ctx *context.Context) {
 				}
 			}
 		} else if comment.Type.HasContentSupport() {
-			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-				Links: markup.Links{
-					Base: ctx.Repo.RepoLink,
-				},
-				Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-				GitRepo: ctx.Repo.GitRepo,
-				Repo:    ctx.Repo.Repository,
-				Ctx:     ctx,
-			}, comment.Content)
+			comment.RenderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
+				WithLinks(markup.Links{Base: ctx.Repo.RepoLink}).
+				WithMetas(ctx.Repo.Repository.ComposeMetas(ctx)).
+				WithGitRepo(ctx.Repo.GitRepo).
+				WithRepoFacade(ctx.Repo.Repository),
+				comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
 				return

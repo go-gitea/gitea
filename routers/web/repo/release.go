@@ -114,15 +114,12 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 			cacheUsers[r.PublisherID] = r.Publisher
 		}
 
-		r.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
-			Links: markup.Links{
-				Base: ctx.Repo.RepoLink,
-			},
-			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo: ctx.Repo.GitRepo,
-			Repo:    ctx.Repo.Repository,
-			Ctx:     ctx,
-		}, r.Note)
+		r.RenderedNote, err = markdown.RenderString(markup.NewRenderContext(ctx).
+			WithLinks(markup.Links{Base: ctx.Repo.RepoLink}).
+			WithMetas(ctx.Repo.Repository.ComposeMetas(ctx)).
+			WithGitRepo(ctx.Repo.GitRepo).
+			WithRepoFacade(ctx.Repo.Repository),
+			r.Note)
 		if err != nil {
 			return nil, err
 		}
