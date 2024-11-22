@@ -9,7 +9,7 @@ import (
 	"path"
 	"strings"
 
-	gitea_html "code.gitea.io/gitea/modules/html"
+	gitea_html "code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 )

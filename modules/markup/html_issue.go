@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/regexplru"
@@ -23,18 +24,21 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 	}
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
+		m := globalVars().issueFullPattern.FindStringSubmatchIndex(node.Data)
 		if m == nil {
 			return
 		}
 
-		mDiffView := getFilesChangedFullPattern().FindStringSubmatchIndex(node.Data)
+		mDiffView := globalVars().filesChangedFullPattern.FindStringSubmatchIndex(node.Data)
 		// leave it as it is if the link is from "Files Changed" tab in PR Diff View https://domain/org/repo/pulls/27/files
 		if mDiffView != nil {
 			return
 		}
 
 		link := node.Data[m[0]:m[1]]
+		if !httplib.IsCurrentGiteaSiteURL(ctx.Ctx, link) {
+			return
+		}
 		text := "#" + node.Data[m[2]:m[3]]
 		// if m[4] and m[5] is not -1, then link is to a comment
 		// indicate that in the text by appending (comment)
@@ -53,10 +57,10 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		matchRepo := linkParts[len(linkParts)-3]
 
 		if matchOrg == ctx.Metas["user"] && matchRepo == ctx.Metas["repo"] {
-			replaceContent(node, m[0], m[1], createLink(link, text, "ref-issue"))
+			replaceContent(node, m[0], m[1], createLink(ctx, link, text, "ref-issue"))
 		} else {
 			text = matchOrg + "/" + matchRepo + text
-			replaceContent(node, m[0], m[1], createLink(link, text, "ref-issue"))
+			replaceContent(node, m[0], m[1], createLink(ctx, link, text, "ref-issue"))
 		}
 		node = node.NextSibling.NextSibling
 	}
@@ -67,9 +71,10 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		return
 	}
 
-	// FIXME: the use of "mode" is quite dirty and hacky, for example: what is a "document"? how should it be rendered?
-	// The "mode" approach should be refactored to some other more clear&reliable way.
-	crossLinkOnly := ctx.Metas["mode"] == "document" && !ctx.IsWiki
+	// crossLinkOnly: do not parse "#123", only parse "owner/repo#123"
+	// if there is no repo in the context, then the "#123" format can't be parsed
+	// old logic: crossLinkOnly := ctx.Metas["mode"] == "document" && !ctx.IsWiki
+	crossLinkOnly := ctx.Metas["markupAllowShortIssuePattern"] != "true"
 
 	var (
 		found bool
@@ -124,16 +129,16 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 				log.Error("unable to expand template vars for ref %s, err: %v", ref.Issue, err)
 			}
 
-			link = createLink(res, reftext, "ref-issue ref-external-issue")
+			link = createLink(ctx, res, reftext, "ref-issue ref-external-issue")
 		} else {
 			// Path determines the type of link that will be rendered. It's unknown at this point whether
 			// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
 			// Gitea will redirect on click as appropriate.
 			issuePath := util.Iif(ref.IsPull, "pulls", "issues")
 			if ref.Owner == "" {
-				link = createLink(util.URLJoin(ctx.Links.Prefix(), ctx.Metas["user"], ctx.Metas["repo"], issuePath, ref.Issue), reftext, "ref-issue")
+				link = createLink(ctx, util.URLJoin(ctx.Links.Prefix(), ctx.Metas["user"], ctx.Metas["repo"], issuePath, ref.Issue), reftext, "ref-issue")
 			} else {
-				link = createLink(util.URLJoin(ctx.Links.Prefix(), ref.Owner, ref.Name, issuePath, ref.Issue), reftext, "ref-issue")
+				link = createLink(ctx, util.URLJoin(ctx.Links.Prefix(), ref.Owner, ref.Name, issuePath, ref.Issue), reftext, "ref-issue")
 			}
 		}
 
@@ -146,7 +151,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		// Decorate action keywords if actionable
 		var keyword *html.Node
 		if references.IsXrefActionable(ref, hasExtTrackFormat) {
-			keyword = createKeyword(node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
+			keyword = createKeyword(ctx, node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
 		} else {
 			keyword = &html.Node{
 				Type: html.TextNode,
@@ -172,7 +177,7 @@ func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		reftext := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
-		link := createLink(util.URLJoin(ctx.Links.Prefix(), ref.Owner, ref.Name, "commit", ref.CommitSha), reftext, "commit")
+		link := createLink(ctx, util.URLJoin(ctx.Links.Prefix(), ref.Owner, ref.Name, "commit", ref.CommitSha), reftext, "commit")
 
 		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
 		node = node.NextSibling.NextSibling

@@ -122,7 +122,7 @@ type RepoSettingForm struct {
 	MirrorPassword         string
 	LFS                    bool   `form:"mirror_lfs"`
 	LFSEndpoint            string `form:"mirror_lfs_endpoint"`
-	PushMirrorID           string
+	PushMirrorID           int64
 	PushMirrorAddress      string
 	PushMirrorUsername     string
 	PushMirrorPassword     string
@@ -451,7 +451,6 @@ type CreateIssueForm struct {
 	Ref                 string `form:"ref"`
 	MilestoneID         int64
 	ProjectID           int64
-	AssigneeID          int64
 	Content             string
 	Files               []string
 	AllowMaintainerEdit bool

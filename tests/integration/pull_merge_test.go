@@ -589,7 +589,8 @@ func TestPullDontRetargetChildOnWrongRepo(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		targetBranch := htmlDoc.doc.Find("#branch_target>a").Text()
+		// the branch has been deleted, so there is no a html tag instead of span
+		targetBranch := htmlDoc.doc.Find("#branch_target>span").Text()
 		prStatus := strings.TrimSpace(htmlDoc.doc.Find(".issue-title-meta>.issue-state-label").Text())
 
 		assert.EqualValues(t, "base-pr", targetBranch)

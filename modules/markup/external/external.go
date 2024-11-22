@@ -102,7 +102,7 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 
 		_, err = io.Copy(f, input)
 		if err != nil {
-			f.Close()
+			_ = f.Close()
 			return fmt.Errorf("%s write data to temp file when rendering %s failed: %w", p.Name(), p.Command, err)
 		}
 
@@ -113,10 +113,9 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		args = append(args, f.Name())
 	}
 
-	if ctx == nil || ctx.Ctx == nil {
-		if ctx == nil {
-			log.Warn("RenderContext not provided defaulting to empty ctx")
-			ctx = &markup.RenderContext{}
+	if ctx.Ctx == nil {
+		if !setting.IsProd || setting.IsInTesting {
+			panic("RenderContext did not provide context")
 		}
 		log.Warn("RenderContext did not provide context, defaulting to Shutdown context")
 		ctx.Ctx = graceful.GetManager().ShutdownContext()
