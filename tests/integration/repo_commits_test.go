@@ -12,8 +12,13 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -202,4 +207,75 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 	// Check that the data-tippy="commit-statuses" (for trigger) and commit-status (svg) are present
 	sel := doc.doc.Find("#commits-table tbody tr td.message [data-tippy=\"commit-statuses\"] .commit-status")
 	assert.Equal(t, 1, sel.Length())
+}
+
+// Test_GetLatestCommitStatusForPairs tests GetLatestCommitStatusForPairs with multiple databases in integration tests
+// But unit tests in CI will only test with sqlite
+func Test_GetLatestCommitStatusForPairs(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repoStatuses, err := git_model.GetLatestCommitStatusForPairs(db.DefaultContext, []git_model.RepoSHA{
+		{RepoID: repo1.ID, SHA: "1234123412341234123412341234123412341234"},
+	})
+	assert.NoError(t, err)
+	assert.Len(t, repoStatuses, 1)
+	assert.Len(t, repoStatuses[repo1.ID], 3)
+
+	assert.EqualValues(t, 5, repoStatuses[repo1.ID][0].Index)
+	assert.EqualValues(t, structs.CommitStatusError, repoStatuses[repo1.ID][0].State)
+	assert.EqualValues(t, "deploy/awesomeness", repoStatuses[repo1.ID][0].Context)
+	assert.EqualValues(t, "https://example.com/builds/", repoStatuses[repo1.ID][0].TargetURL)
+	assert.EqualValues(t, "My awesome deploy service", repoStatuses[repo1.ID][0].Description)
+	assert.EqualValues(t, "ae9547713a6665fc4261d0756904932085a41cf2", repoStatuses[repo1.ID][0].ContextHash)
+
+	assert.EqualValues(t, 4, repoStatuses[repo1.ID][1].Index)
+	assert.EqualValues(t, structs.CommitStatusFailure, repoStatuses[repo1.ID][1].State)
+	assert.EqualValues(t, "ci/awesomeness", repoStatuses[repo1.ID][1].Context)
+	assert.EqualValues(t, "https://example.com/builds/", repoStatuses[repo1.ID][1].TargetURL)
+	assert.EqualValues(t, "My awesome CI-service", repoStatuses[repo1.ID][1].Description)
+	assert.EqualValues(t, "c65f4d64a3b14a3eced0c9b36799e66e1bd5ced7", repoStatuses[repo1.ID][1].ContextHash)
+
+	assert.EqualValues(t, 3, repoStatuses[repo1.ID][2].Index)
+	// warning + success = success
+	assert.EqualValues(t, structs.CommitStatusSuccess, repoStatuses[repo1.ID][2].State)
+	assert.EqualValues(t, "cov/awesomeness", repoStatuses[repo1.ID][2].Context)
+	assert.EqualValues(t, "https://example.com/converage/", repoStatuses[repo1.ID][2].TargetURL)
+	assert.EqualValues(t, "My awesome Coverage service", repoStatuses[repo1.ID][2].Description)
+	assert.EqualValues(t, "3929ac7bccd3fa1bf9b38ddedb77973b1b9a8cfe", repoStatuses[repo1.ID][2].ContextHash)
+}
+
+func Test_GetLatestCommitStatusForRepoCommitIDs(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	commitID := "1234123412341234123412341234123412341234"
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repoStatuses, err := git_model.GetLatestCommitStatusForRepoCommitIDs(db.DefaultContext, repo1.ID, []string{
+		commitID,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, repoStatuses, 1)
+	assert.Len(t, repoStatuses[commitID], 3)
+
+	assert.EqualValues(t, 5, repoStatuses[commitID][0].Index)
+	assert.EqualValues(t, structs.CommitStatusError, repoStatuses[commitID][0].State)
+	assert.EqualValues(t, "deploy/awesomeness", repoStatuses[commitID][0].Context)
+	assert.EqualValues(t, "https://example.com/builds/", repoStatuses[commitID][0].TargetURL)
+	assert.EqualValues(t, "My awesome deploy service", repoStatuses[commitID][0].Description)
+	assert.EqualValues(t, "ae9547713a6665fc4261d0756904932085a41cf2", repoStatuses[commitID][0].ContextHash)
+
+	assert.EqualValues(t, 4, repoStatuses[commitID][1].Index)
+	assert.EqualValues(t, structs.CommitStatusFailure, repoStatuses[commitID][1].State)
+	assert.EqualValues(t, "ci/awesomeness", repoStatuses[commitID][1].Context)
+	assert.EqualValues(t, "https://example.com/builds/", repoStatuses[commitID][1].TargetURL)
+	assert.EqualValues(t, "My awesome CI-service", repoStatuses[commitID][1].Description)
+	assert.EqualValues(t, "c65f4d64a3b14a3eced0c9b36799e66e1bd5ced7", repoStatuses[commitID][1].ContextHash)
+
+	assert.EqualValues(t, 3, repoStatuses[commitID][2].Index)
+	// warning + success = success
+	assert.EqualValues(t, structs.CommitStatusSuccess, repoStatuses[commitID][2].State)
+	assert.EqualValues(t, "cov/awesomeness", repoStatuses[commitID][2].Context)
+	assert.EqualValues(t, "https://example.com/converage/", repoStatuses[commitID][2].TargetURL)
+	assert.EqualValues(t, "My awesome Coverage service", repoStatuses[commitID][2].Description)
+	assert.EqualValues(t, "3929ac7bccd3fa1bf9b38ddedb77973b1b9a8cfe", repoStatuses[commitID][2].ContextHash)
 }
