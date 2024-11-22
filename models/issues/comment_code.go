@@ -112,14 +112,12 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		}
 
 		var err error
-		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Ctx:  ctx,
-			Repo: issue.Repo,
-			Links: markup.Links{
-				Base: issue.Repo.Link(),
-			},
-			Metas: issue.Repo.ComposeMetas(ctx),
-		}, comment.Content); err != nil {
+		rctx := markup.NewRenderContext(ctx).
+			WithRepoFacade(issue.Repo).
+			WithLinks(markup.Links{Base: issue.Repo.Link()}).
+			WithMetas(issue.Repo.ComposeMetas(ctx))
+		if comment.RenderedContent, err = markdown.RenderString(rctx,
+			comment.Content); err != nil {
 			return nil, err
 		}
 	}

@@ -41,13 +41,10 @@ func showUserFeed(ctx *context.Context, formatType string) {
 		return
 	}
 
-	ctxUserDescription, err := markdown.RenderString(&markup.RenderContext{
-		Ctx: ctx,
-		Links: markup.Links{
-			Base: ctx.ContextUser.HTMLURL(),
-		},
-		Metas: markup.ComposeSimpleDocumentMetas(),
-	}, ctx.ContextUser.Description)
+	ctxUserDescription, err := markdown.RenderString(markup.NewRenderContext(ctx).
+		WithLinks(markup.Links{Base: ctx.ContextUser.HTMLURL()}).
+		WithMetas(markup.ComposeSimpleDocumentMetas()),
+		ctx.ContextUser.Description)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return
