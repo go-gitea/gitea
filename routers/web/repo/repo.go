@@ -353,7 +353,7 @@ func Action(ctx *context.Context) {
 	}
 
 	// see the `hx-trigger="refreshUserCards ..."` comments in tmpl
-	ctx.RespHeader().Add("HX-Trigger", "refreshUserCards")
+	ctx.RespHeader().Add("hx-trigger", "refreshUserCards")
 
 	switch ctx.PathParam(":action") {
 	case "watch", "unwatch", "star", "unstar":
