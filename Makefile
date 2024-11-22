@@ -170,6 +170,7 @@ SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl \| JSEscape}}/api/v1"|"basePa
 SWAGGER_EXCLUDE := code.gitea.io/sdk
 SWAGGER_NEWLINE_COMMAND := -e '$$a\'
 
+TEST_SQLITE_PATH ?= :memory:
 TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
 TEST_MYSQL_USERNAME ?= root
@@ -532,7 +533,8 @@ $(GO_LICENSE_FILE): go.mod go.sum
 	@rm -rf $(GO_LICENSE_TMP_DIR)
 
 generate-ini-sqlite:
-	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
+	sed -e 's|{{TEST_SQLITE_PATH}}|${TEST_SQLITE_PATH}|g' \
+		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
 		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
 		-e 's|{{TEST_TYPE}}|$(or $(TEST_TYPE),integration)|g' \
 			tests/sqlite.ini.tmpl > tests/sqlite.ini

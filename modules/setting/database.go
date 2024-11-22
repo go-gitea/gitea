@@ -119,8 +119,10 @@ func DBConnStr() (string, error) {
 		if !EnableSQLite3 {
 			return "", errors.New("this Gitea binary was not built with SQLite3 support")
 		}
-		if err := os.MkdirAll(filepath.Dir(Database.Path), os.ModePerm); err != nil {
-			return "", fmt.Errorf("Failed to create directories: %w", err)
+		if Database.Path != ":memory:" && Database.Path != "" && Database.Path[0] != '/' {
+			if err := os.MkdirAll(filepath.Dir(Database.Path), os.ModePerm); err != nil {
+				return "", fmt.Errorf("Failed to create directories: %w", err)
+			}
 		}
 		journalMode := ""
 		if Database.SQLiteJournalMode != "" {
