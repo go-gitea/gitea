@@ -336,6 +336,8 @@ replace github.com/charmbracelet/git-lfs-transfer => gitea.com/gitea/git-lfs-tra
 // TODO: This could be removed after https://github.com/mholt/archiver/pull/396 merged
 replace github.com/mholt/archiver/v3 => github.com/anchore/archiver/v3 v3.5.2
 
+replace github.com/go-webauthn/webauthn => github.com/go-webauthn/webauthn v0.10.2
+
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 
 exclude github.com/gofrs/uuid v4.0.0+incompatible
