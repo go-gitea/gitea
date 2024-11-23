@@ -4,12 +4,10 @@
 package markdown_test
 
 import (
-	"context"
 	"html/template"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -67,22 +65,11 @@ func TestRender_StandardLinks(t *testing.T) {
 	setting.AppURL = AppURL
 
 	test := func(input, expected, expectedWiki string) {
-		buffer, err := markdown.RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-			Links: markup.Links{
-				Base: FullURL,
-			},
-		}, input)
+		buffer, err := markdown.RenderString(markup.NewTestRenderContext(markup.Links{Base: FullURL}), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 
-		buffer, err = markdown.RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-			Links: markup.Links{
-				Base: FullURL,
-			},
-			Metas: localWikiMetas,
-		}, input)
+		buffer, err = markdown.RenderString(markup.NewTestRenderContext(markup.Links{Base: FullURL}, localWikiMetas), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
 	}
@@ -101,12 +88,7 @@ func TestRender_Images(t *testing.T) {
 	setting.AppURL = AppURL
 
 	test := func(input, expected string) {
-		buffer, err := markdown.RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-			Links: markup.Links{
-				Base: FullURL,
-			},
-		}, input)
+		buffer, err := markdown.RenderString(markup.NewTestRenderContext(markup.Links{Base: FullURL}), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
@@ -308,14 +290,11 @@ func TestTotal_RenderWiki(t *testing.T) {
 	setting.AppURL = AppURL
 	answers := testAnswers(util.URLJoin(FullURL, "wiki"), util.URLJoin(FullURL, "wiki", "raw"))
 	for i := 0; i < len(sameCases); i++ {
-		line, err := markdown.RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-			Links: markup.Links{
-				Base: FullURL,
-			},
-			Repo:  newMockRepo(testRepoOwnerName, testRepoName),
-			Metas: localWikiMetas,
-		}, sameCases[i])
+		line, err := markdown.RenderString(markup.NewTestRenderContext(
+			markup.Links{Base: FullURL},
+			newMockRepo(testRepoOwnerName, testRepoName),
+			localWikiMetas,
+		), sameCases[i])
 		assert.NoError(t, err)
 		assert.Equal(t, answers[i], string(line))
 	}
@@ -334,13 +313,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 	}
 
 	for i := 0; i < len(testCases); i += 2 {
-		line, err := markdown.RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-			Links: markup.Links{
-				Base: FullURL,
-			},
-			Metas: localWikiMetas,
-		}, testCases[i])
+		line, err := markdown.RenderString(markup.NewTestRenderContext(markup.Links{Base: FullURL}, localWikiMetas), testCases[i])
 		assert.NoError(t, err)
 		assert.EqualValues(t, testCases[i+1], string(line))
 	}
@@ -352,15 +325,14 @@ func TestTotal_RenderString(t *testing.T) {
 	setting.AppURL = AppURL
 	answers := testAnswers(util.URLJoin(FullURL, "src", "master"), util.URLJoin(FullURL, "media", "master"))
 	for i := 0; i < len(sameCases); i++ {
-		line, err := markdown.RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-			Links: markup.Links{
+		line, err := markdown.RenderString(markup.NewTestRenderContext(
+			markup.Links{
 				Base:       FullURL,
 				BranchPath: "master",
 			},
-			Repo:  newMockRepo(testRepoOwnerName, testRepoName),
-			Metas: localMetas,
-		}, sameCases[i])
+			newMockRepo(testRepoOwnerName, testRepoName),
+			localMetas,
+		), sameCases[i])
 		assert.NoError(t, err)
 		assert.Equal(t, answers[i], string(line))
 	}
@@ -368,12 +340,7 @@ func TestTotal_RenderString(t *testing.T) {
 	testCases := []string{}
 
 	for i := 0; i < len(testCases); i += 2 {
-		line, err := markdown.RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-			Links: markup.Links{
-				Base: FullURL,
-			},
-		}, testCases[i])
+		line, err := markdown.RenderString(markup.NewTestRenderContext(markup.Links{Base: FullURL}), testCases[i])
 		assert.NoError(t, err)
 		assert.Equal(t, template.HTML(testCases[i+1]), line)
 	}
@@ -381,17 +348,17 @@ func TestTotal_RenderString(t *testing.T) {
 
 func TestRender_RenderParagraphs(t *testing.T) {
 	test := func(t *testing.T, str string, cnt int) {
-		res, err := markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, str)
+		res, err := markdown.RenderRawString(markup.NewTestRenderContext(), str)
 		assert.NoError(t, err)
 		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for unix should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
 		mac := strings.ReplaceAll(str, "\n", "\r")
-		res, err = markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, mac)
+		res, err = markdown.RenderRawString(markup.NewTestRenderContext(), mac)
 		assert.NoError(t, err)
 		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for mac should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
 		dos := strings.ReplaceAll(str, "\n", "\r\n")
-		res, err = markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, dos)
+		res, err = markdown.RenderRawString(markup.NewTestRenderContext(), dos)
 		assert.NoError(t, err)
 		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for windows should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 	}
@@ -419,7 +386,7 @@ func TestMarkdownRenderRaw(t *testing.T) {
 
 	for _, testcase := range testcases {
 		log.Info("Test markdown render error with fuzzy data: %x, the following errors can be recovered", testcase)
-		_, err := markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, string(testcase))
+		_, err := markdown.RenderRawString(markup.NewTestRenderContext(), string(testcase))
 		assert.NoError(t, err)
 	}
 }
@@ -432,7 +399,7 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 <a href="/image2" target="_blank" rel="nofollow noopener"><img src="/image2" alt="image2"></a></p>
 `
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.ForceHardLineBreak, true)()
-	res, err := markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, testcase)
+	res, err := markdown.RenderRawString(markup.NewTestRenderContext(), testcase)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, res)
 }
@@ -441,7 +408,7 @@ func TestRenderEmojiInLinks_Issue12331(t *testing.T) {
 	testcase := `[Link with emoji :moon: in text](https://gitea.io)`
 	expected := `<p><a href="https://gitea.io" rel="nofollow">Link with emoji <span class="emoji" aria-label="waxing gibbous moon">🌔</span> in text</a></p>
 `
-	res, err := markdown.RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, testcase)
+	res, err := markdown.RenderString(markup.NewTestRenderContext(), testcase)
 	assert.NoError(t, err)
 	assert.Equal(t, template.HTML(expected), res)
 }
@@ -479,7 +446,7 @@ func TestColorPreview(t *testing.T) {
 	}
 
 	for _, test := range positiveTests {
-		res, err := markdown.RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
+		res, err := markdown.RenderString(markup.NewTestRenderContext(), test.testcase)
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
 		assert.Equal(t, template.HTML(test.expected), res, "Unexpected result in testcase %q", test.testcase)
 	}
@@ -498,7 +465,7 @@ func TestColorPreview(t *testing.T) {
 	}
 
 	for _, test := range negativeTests {
-		res, err := markdown.RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test)
+		res, err := markdown.RenderString(markup.NewTestRenderContext(), test)
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test)
 		assert.NotContains(t, res, `<span class="color-preview" style="background-color: `, "Unexpected result in testcase %q", test)
 	}
@@ -573,7 +540,7 @@ func TestMathBlock(t *testing.T) {
 	}
 
 	for _, test := range testcases {
-		res, err := markdown.RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
+		res, err := markdown.RenderString(markup.NewTestRenderContext(), test.testcase)
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
 		assert.Equal(t, template.HTML(test.expected), res, "Unexpected result in testcase %q", test.testcase)
 	}
@@ -610,7 +577,7 @@ foo: bar
 	}
 
 	for _, test := range testcases {
-		res, err := markdown.RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
+		res, err := markdown.RenderString(markup.NewTestRenderContext(), test.testcase)
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
 		assert.Equal(t, template.HTML(test.expected), res, "Unexpected result in testcase %q", test.testcase)
 	}
@@ -1003,11 +970,7 @@ space</p>
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.ForceHardLineBreak, true)()
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
 	for i, c := range cases {
-		result, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:   context.Background(),
-			Links: c.Links,
-			Metas: util.Iif(c.IsWiki, map[string]string{"markupContentMode": "wiki"}, map[string]string{}),
-		}, input)
+		result, err := markdown.RenderString(markup.NewTestRenderContext(c.Links, util.Iif(c.IsWiki, map[string]string{"markupContentMode": "wiki"}, map[string]string{})), input)
 		assert.NoError(t, err, "Unexpected error in testcase: %v", i)
 		assert.Equal(t, c.Expected, string(result), "Unexpected result in testcase %v", i)
 	}
@@ -1029,7 +992,7 @@ func TestAttention(t *testing.T) {
 	}
 
 	test := func(input, expected string) {
-		result, err := markdown.RenderString(&markup.RenderContext{Ctx: context.Background()}, input)
+		result, err := markdown.RenderString(markup.NewTestRenderContext(), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(result)))
 	}
@@ -1062,6 +1025,6 @@ func BenchmarkSpecializedMarkdown(b *testing.B) {
 func BenchmarkMarkdownRender(b *testing.B) {
 	// 23202	     50840 ns/op
 	for i := 0; i < b.N; i++ {
-		_, _ = markdown.RenderString(&markup.RenderContext{Ctx: context.Background()}, "https://example.com\n- a\n- b\n")
+		_, _ = markdown.RenderString(markup.NewTestRenderContext(), "https://example.com\n- a\n- b\n")
 	}
 }
