@@ -102,6 +102,9 @@ func (list WebAuthnCredentialList) ToCredentials() []webauthn.Credential {
 				SignCount:    cred.SignCount,
 				CloneWarning: cred.CloneWarning,
 			},
+			Flags: webauthn.CredentialFlags{
+				BackupEligible: true,
+			},
 		})
 	}
 	return creds
