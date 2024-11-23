@@ -19,7 +19,7 @@ import (
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
-	repo_service "code.gitea.io/gitea/services/repository"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 type issueSidebarMilestoneData struct {
@@ -186,7 +186,7 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 		if d.Issue == nil {
 			data.CanChooseReviewer = true
 		} else {
-			data.CanChooseReviewer = issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, d.Issue)
+			data.CanChooseReviewer = issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, d.Issue.PosterID)
 		}
 	}
 
@@ -231,13 +231,13 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 
 	if data.CanChooseReviewer {
 		var err error
-		reviewers, err = repo_model.GetReviewers(ctx, repo, ctx.Doer.ID, posterID)
+		reviewers, err = pull_service.GetReviewers(ctx, repo, ctx.Doer.ID, posterID)
 		if err != nil {
 			ctx.ServerError("GetReviewers", err)
 			return
 		}
 
-		teamReviewers, err = repo_service.GetReviewerTeams(ctx, repo)
+		teamReviewers, err = pull_service.GetReviewerTeams(ctx, repo)
 		if err != nil {
 			ctx.ServerError("GetReviewerTeams", err)
 			return
