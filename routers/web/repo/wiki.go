@@ -288,13 +288,9 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		footerContent = data
 	}
 
-	rctx := &markup.RenderContext{
-		Ctx:   ctx,
-		Metas: ctx.Repo.Repository.ComposeWikiMetas(ctx),
-		Links: markup.Links{
-			Base: ctx.Repo.RepoLink,
-		},
-	}
+	rctx := markup.NewRenderContext(ctx).
+		WithMetas(ctx.Repo.Repository.ComposeWikiMetas(ctx)).
+		WithLinks(markup.Links{Base: ctx.Repo.RepoLink})
 	buf := &strings.Builder{}
 
 	renderFn := func(data []byte) (escaped *charset.EscapeStatus, output string, err error) {

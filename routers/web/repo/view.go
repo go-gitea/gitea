@@ -310,18 +310,17 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 		ctx.Data["IsMarkup"] = true
 		ctx.Data["MarkupType"] = markupType
 
-		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
-			Ctx:          ctx,
-			MarkupType:   markupType,
-			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.Name()), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
-			Links: markup.Links{
+		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, markup.NewRenderContext(ctx).
+			WithMarkupType(markupType).
+			WithRelativePath(path.Join(ctx.Repo.TreePath, readmeFile.Name())). // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
+			WithLinks(markup.Links{
 				Base:       ctx.Repo.RepoLink,
 				BranchPath: ctx.Repo.BranchNameSubURL(),
 				TreePath:   path.Join(ctx.Repo.TreePath, subfolder),
-			},
-			Metas:   ctx.Repo.Repository.ComposeDocumentMetas(ctx),
-			GitRepo: ctx.Repo.GitRepo,
-		}, rd)
+			}).
+			WithMetas(ctx.Repo.Repository.ComposeDocumentMetas(ctx)).
+			WithGitRepo(ctx.Repo.GitRepo),
+			rd)
 		if err != nil {
 			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.Name(), ctx.Repo.Repository, err)
 			delete(ctx.Data, "IsMarkup")
@@ -514,18 +513,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["MarkupType"] = markupType
 			metas := ctx.Repo.Repository.ComposeDocumentMetas(ctx)
 			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
-				Ctx:          ctx,
-				MarkupType:   markupType,
-				RelativePath: ctx.Repo.TreePath,
-				Links: markup.Links{
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, markup.NewRenderContext(ctx).
+				WithMarkupType(markupType).
+				WithRelativePath(ctx.Repo.TreePath).
+				WithLinks(markup.Links{
 					Base:       ctx.Repo.RepoLink,
 					BranchPath: ctx.Repo.BranchNameSubURL(),
 					TreePath:   path.Dir(ctx.Repo.TreePath),
-				},
-				Metas:   metas,
-				GitRepo: ctx.Repo.GitRepo,
-			}, rd)
+				}).
+				WithMetas(metas).
+				WithGitRepo(ctx.Repo.GitRepo),
+				rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
@@ -606,18 +604,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			rd := io.MultiReader(bytes.NewReader(buf), dataRc)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
-				Ctx:          ctx,
-				MarkupType:   markupType,
-				RelativePath: ctx.Repo.TreePath,
-				Links: markup.Links{
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, markup.NewRenderContext(ctx).
+				WithMarkupType(markupType).
+				WithRelativePath(ctx.Repo.TreePath).
+				WithLinks(markup.Links{
 					Base:       ctx.Repo.RepoLink,
 					BranchPath: ctx.Repo.BranchNameSubURL(),
 					TreePath:   path.Dir(ctx.Repo.TreePath),
-				},
-				Metas:   ctx.Repo.Repository.ComposeDocumentMetas(ctx),
-				GitRepo: ctx.Repo.GitRepo,
-			}, rd)
+				}).
+				WithMetas(ctx.Repo.Repository.ComposeDocumentMetas(ctx)).
+				WithGitRepo(ctx.Repo.GitRepo),
+				rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
@@ -1126,8 +1123,6 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOp
 func Watchers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.watchers")
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.watchers")
-	ctx.Data["PageIsWatchers"] = true
-
 	numWatchers, err := repo_model.CountRepoWatchers(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("CountRepoWatchers", err)
@@ -1143,7 +1138,6 @@ func Watchers(ctx *context.Context) {
 func Stars(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.stargazers")
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.stargazers")
-	ctx.Data["PageIsStargazers"] = true
 	RenderUserCards(ctx, ctx.Repo.Repository.NumStars, func(opts db.ListOptions) ([]*user_model.User, error) {
 		return repo_model.GetStargazers(ctx, ctx.Repo.Repository, opts)
 	}, tplWatchers)

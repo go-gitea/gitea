@@ -56,18 +56,17 @@ func RenderFile(ctx *context.Context) {
 		return
 	}
 
-	err = markup.Render(&markup.RenderContext{
-		Ctx:          ctx,
-		RelativePath: ctx.Repo.TreePath,
-		Links: markup.Links{
+	err = markup.Render(markup.NewRenderContext(ctx).
+		WithRelativePath(ctx.Repo.TreePath).
+		WithLinks(markup.Links{
 			Base:       ctx.Repo.RepoLink,
 			BranchPath: ctx.Repo.BranchNameSubURL(),
 			TreePath:   path.Dir(ctx.Repo.TreePath),
-		},
-		Metas:            ctx.Repo.Repository.ComposeDocumentMetas(ctx),
-		GitRepo:          ctx.Repo.GitRepo,
-		InStandalonePage: true,
-	}, rd, ctx.Resp)
+		}).
+		WithMetas(ctx.Repo.Repository.ComposeDocumentMetas(ctx)).
+		WithGitRepo(ctx.Repo.GitRepo).
+		WithInStandalonePage(true),
+		rd, ctx.Resp)
 	if err != nil {
 		log.Error("Failed to render file %q: %v", ctx.Repo.TreePath, err)
 		http.Error(ctx.Resp, "Failed to render file", http.StatusInternalServerError)

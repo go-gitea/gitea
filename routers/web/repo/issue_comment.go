@@ -267,15 +267,12 @@ func UpdateCommentContent(ctx *context.Context) {
 
 	var renderedContent template.HTML
 	if comment.Content != "" {
-		renderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Links: markup.Links{
-				Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-			},
-			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo: ctx.Repo.GitRepo,
-			Repo:    ctx.Repo.Repository,
-			Ctx:     ctx,
-		}, comment.Content)
+		renderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
+			WithLinks(markup.Links{Base: ctx.FormString("context")}).
+			WithMetas(ctx.Repo.Repository.ComposeMetas(ctx)).
+			WithGitRepo(ctx.Repo.GitRepo).
+			WithRepoFacade(ctx.Repo.Repository),
+			comment.Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return
