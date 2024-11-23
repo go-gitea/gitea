@@ -352,6 +352,9 @@ func Action(ctx *context.Context) {
 		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	}
 
+	// see the `hx-trigger="refreshUserCards ..."` comments in tmpl
+	ctx.RespHeader().Add("hx-trigger", "refreshUserCards")
+
 	switch ctx.PathParam(":action") {
 	case "watch", "unwatch", "star", "unstar":
 		// we have to reload the repository because NumStars or NumWatching (used in the templates) has just changed
