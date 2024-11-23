@@ -3,13 +3,17 @@ run-name: Patch and build ${{ github.event_name == 'schedule' && 'latest upstrea
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Daily at midnight
+    - cron: '0 0 * * 0' # Weekly at midnight
   workflow_dispatch:
     inputs:
       tag:
         description: 'Specify a tag (optional)'
         required: false
         default: ''
+      force:
+        description: 'Force push branch and tag'
+        required: false
+        default: 'false'
 
 jobs:
   sync-and-patch:
@@ -101,7 +105,7 @@ jobs:
           echo "failed_patches=${failed_patches[@]}" >> $GITHUB_ENV
 
           # Push the branch even if only some patches were applied
-          git push -f https://github.com/${{ github.repository }}.git HEAD
+          git push https://github.com/${{ github.repository }}.git HEAD ${{ inputs.force == 'true' && '--force' }}
         env:
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
 
@@ -110,7 +114,7 @@ jobs:
         run: |
           git tag -d "${{ steps.determine-tag.outputs.tag }}" || echo "Tag does not exist locally, skipping delete."
           git tag -a "${{ steps.determine-tag.outputs.tag }}" -m "Tagging version ${{ steps.determine-tag.outputs.tag }} after applying patches"
-          git push origin "${{ steps.determine-tag.outputs.tag }}"
+          git push origin "${{ steps.determine-tag.outputs.tag }}" ${{ inputs.force == 'true' && '--force' }}
 
   build:
     runs-on: ubuntu-latest
