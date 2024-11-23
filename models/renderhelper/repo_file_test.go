@@ -35,9 +35,8 @@ func TestRepoFile(t *testing.T) {
 	})
 
 	t.Run("AbsoluteAndRelative", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(context.Background(), repo1, RepoFileOptions{
-			CurrentRefPath: "branch/main",
-		}).WithMarkupType(markdown.MarkupName)
+		rctx := NewRenderContextRepoFile(context.Background(), repo1, RepoFileOptions{CurrentRefPath: "branch/main"}).
+			WithMarkupType(markdown.MarkupName)
 		rendered, err := markup.RenderString(rctx, `
 [/test](/test)
 [./test](./test)
@@ -64,5 +63,21 @@ func TestRepoFile(t *testing.T) {
 		assert.Equal(t, `<p><a href="/user2/repo1/src/commit/1234/test" rel="nofollow">/test</a>
 <a href="/user2/repo1/media/commit/1234/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/commit/1234/image" alt="/image"/></a></p>
 `, rendered)
+	})
+
+	t.Run("WithCurrentRefPathByTag", func(t *testing.T) {
+		rctx := NewRenderContextRepoFile(context.Background(), repo1, RepoFileOptions{
+			CurrentRefPath:  "/commit/1234",
+			CurrentTreePath: "my-dir",
+		}).
+			WithMarkupType(markdown.MarkupName)
+		rendered, err := markup.RenderString(rctx, `
+<img src="LINK">
+<video src="LINK">
+`)
+		assert.NoError(t, err)
+		assert.Equal(t, `<a href="/user2/repo1/media/commit/1234/my-dir/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/commit/1234/my-dir/LINK"/></a>
+<video src="/user2/repo1/media/commit/1234/my-dir/LINK">
+</video>`, rendered)
 	})
 }
