@@ -588,3 +588,17 @@ func TestDisabledUserFeatures(t *testing.T) {
 		assert.True(t, user_model.IsFeatureDisabledWithLoginType(user, f))
 	}
 }
+
+func TestGetInactiveUsers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// all inactive users
+	// user1's createdunix is 1730468968
+	users, err := user_model.GetInactiveUsers(db.DefaultContext, 0)
+	assert.NoError(t, err)
+	assert.Len(t, users, 1)
+	interval := time.Now().Unix() - 1730468968 + 3600*24
+	users, err = user_model.GetInactiveUsers(db.DefaultContext, time.Duration(interval*int64(time.Second)))
+	assert.NoError(t, err)
+	assert.Len(t, users, 0)
+}

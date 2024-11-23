@@ -7,29 +7,19 @@ import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {submitEventSubmitter, queryElemSiblings, hideElem, showElem, animateOnce} from '../utils/dom.ts';
+import {
+  submitEventSubmitter,
+  queryElemSiblings,
+  hideElem,
+  showElem,
+  animateOnce,
+  addDelegatedEventListener,
+  createElementFromHTML,
+} from '../utils/dom.ts';
 import {POST, GET} from '../modules/fetch.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {pageData, i18n} = window.config;
-
-function initRepoDiffReviewButton() {
-  const reviewBox = document.querySelector('#review-box');
-  if (!reviewBox) return;
-
-  const counter = reviewBox.querySelector('.review-comments-counter');
-  if (!counter) return;
-
-  $(document).on('click', 'button[name="pending_review"]', (e) => {
-    const $form = $(e.target).closest('form');
-    // Watch for the form's submit event.
-    $form.on('submit', () => {
-      const num = parseInt(counter.getAttribute('data-pending-comment-number')) + 1 || 1;
-      counter.setAttribute('data-pending-comment-number', num);
-      counter.textContent = num;
-      animateOnce(reviewBox, 'pulse-1p5-200');
-    });
-  });
-}
 
 function initRepoDiffFileViewToggle() {
   $('.file-view-toggle').on('click', function () {
@@ -47,19 +37,15 @@ function initRepoDiffFileViewToggle() {
 }
 
 function initRepoDiffConversationForm() {
-  $(document).on('submit', '.conversation-holder form', async (e) => {
+  addDelegatedEventListener<HTMLFormElement>(document, 'submit', '.conversation-holder form', async (form, e) => {
     e.preventDefault();
+    const textArea = form.querySelector<HTMLTextAreaElement>('textarea');
+    if (!validateTextareaNonEmpty(textArea)) return;
+    if (form.classList.contains('is-loading')) return;
 
-    const $form = $(e.target);
-    const textArea = e.target.querySelector('textarea');
-    if (!validateTextareaNonEmpty(textArea)) {
-      return;
-    }
-
-    if (e.target.classList.contains('is-loading')) return;
     try {
-      e.target.classList.add('is-loading');
-      const formData = new FormData($form[0]);
+      form.classList.add('is-loading');
+      const formData = new FormData(form);
 
       // if the form is submitted by a button, append the button's name and value to the form data
       const submitter = submitEventSubmitter(e);
@@ -68,26 +54,42 @@ function initRepoDiffConversationForm() {
         formData.append(submitter.name, submitter.value);
       }
 
-      const response = await POST(e.target.getAttribute('action'), {data: formData});
-      const $newConversationHolder = $(await response.text());
-      const {path, side, idx} = $newConversationHolder.data();
+      const trLineType = form.closest('tr').getAttribute('data-line-type');
+      const response = await POST(form.getAttribute('action'), {data: formData});
+      const newConversationHolder = createElementFromHTML(await response.text());
+      const path = newConversationHolder.getAttribute('data-path');
+      const side = newConversationHolder.getAttribute('data-side');
+      const idx = newConversationHolder.getAttribute('data-idx');
 
-      $form.closest('.conversation-holder').replaceWith($newConversationHolder);
+      form.closest('.conversation-holder').replaceWith(newConversationHolder);
+      form = null; // prevent further usage of the form because it should have been replaced
+
       let selector;
-      if ($form.closest('tr').data('line-type') === 'same') {
+      if (trLineType === 'same') {
         selector = `[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`;
       } else {
         selector = `[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`;
       }
       for (const el of document.querySelectorAll(selector)) {
-        el.classList.add('tw-invisible');
+        el.classList.add('tw-invisible'); // TODO need to figure out why
       }
-      $newConversationHolder.find('.dropdown').dropdown();
+      fomanticQuery(newConversationHolder.querySelectorAll('.ui.dropdown')).dropdown();
+
+      // the default behavior is to add a pending review, so if no submitter, it also means "pending_review"
+      if (!submitter || submitter?.matches('button[name="pending_review"]')) {
+        const reviewBox = document.querySelector('#review-box');
+        const counter = reviewBox?.querySelector('.review-comments-counter');
+        if (!counter) return;
+        const num = parseInt(counter.getAttribute('data-pending-comment-number')) + 1 || 1;
+        counter.setAttribute('data-pending-comment-number', String(num));
+        counter.textContent = String(num);
+        animateOnce(reviewBox, 'pulse-1p5-200');
+      }
     } catch (error) {
       console.error('Error:', error);
       showErrorToast(i18n.network_error);
     } finally {
-      e.target.classList.remove('is-loading');
+      form?.classList.remove('is-loading');
     }
   });
 
@@ -219,7 +221,6 @@ export function initRepoDiffView() {
   initDiffFileList();
   initDiffCommitSelect();
   initRepoDiffShowMore();
-  initRepoDiffReviewButton();
   initRepoDiffFileViewToggle();
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();

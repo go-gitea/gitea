@@ -19,15 +19,15 @@ import (
 func ResolveLink(ctx *RenderContext, link, userContentAnchorPrefix string) (result string, resolved bool) {
 	isAnchorFragment := link != "" && link[0] == '#'
 	if !isAnchorFragment && !IsFullURLString(link) {
-		linkBase := ctx.Links.Base
+		linkBase := ctx.RenderOptions.Links.Base
 		if ctx.IsMarkupContentWiki() {
 			// no need to check if the link should be resolved as a wiki link or a wiki raw link
 			// just use wiki link here, and it will be redirected to a wiki raw link if necessary
-			linkBase = ctx.Links.WikiLink()
-		} else if ctx.Links.BranchPath != "" || ctx.Links.TreePath != "" {
+			linkBase = ctx.RenderOptions.Links.WikiLink()
+		} else if ctx.RenderOptions.Links.BranchPath != "" || ctx.RenderOptions.Links.TreePath != "" {
 			// if there is no BranchPath, then the link will be something like "/owner/repo/src/{the-file-path}"
 			// and then this link will be handled by the "legacy-ref" code and be redirected to the default branch like "/owner/repo/src/branch/main/{the-file-path}"
-			linkBase = ctx.Links.SrcLink()
+			linkBase = ctx.RenderOptions.Links.SrcLink()
 		}
 		link, resolved = util.URLJoin(linkBase, link), true
 	}
@@ -147,7 +147,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 		}
 		if image {
 			if !absoluteLink {
-				link = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsMarkupContentWiki()), link)
+				link = util.URLJoin(ctx.RenderOptions.Links.ResolveMediaLink(ctx.IsMarkupContentWiki()), link)
 			}
 			title := props["title"]
 			if title == "" {
@@ -189,13 +189,13 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 func linkProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := common.LinkRegex.FindStringIndex(node.Data)
+		m := common.GlobalVars().LinkRegex.FindStringIndex(node.Data)
 		if m == nil {
 			return
 		}
 
 		uri := node.Data[m[0]:m[1]]
-		replaceContent(node, m[0], m[1], createLink(uri, uri, "link"))
+		replaceContent(node, m[0], m[1], createLink(ctx, uri, uri, "" /*link*/))
 		node = node.NextSibling.NextSibling
 	}
 }
@@ -204,7 +204,7 @@ func linkProcessor(ctx *RenderContext, node *html.Node) {
 func descriptionLinkProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := common.LinkRegex.FindStringIndex(node.Data)
+		m := common.GlobalVars().LinkRegex.FindStringIndex(node.Data)
 		if m == nil {
 			return
 		}

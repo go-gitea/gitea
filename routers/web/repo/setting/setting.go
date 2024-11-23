@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -290,8 +289,8 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		m, err := selectPushMirrorByForm(ctx, form, repo)
-		if err != nil {
+		m, _, _ := repo_model.GetPushMirrorByIDAndRepoID(ctx, form.PushMirrorID, repo.ID)
+		if m == nil {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -317,15 +316,13 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		id, err := strconv.ParseInt(form.PushMirrorID, 10, 64)
-		if err != nil {
-			ctx.ServerError("UpdatePushMirrorIntervalPushMirrorID", err)
+		m, _, _ := repo_model.GetPushMirrorByIDAndRepoID(ctx, form.PushMirrorID, repo.ID)
+		if m == nil {
+			ctx.NotFound("", nil)
 			return
 		}
-		m := &repo_model.PushMirror{
-			ID:       id,
-			Interval: interval,
-		}
+
+		m.Interval = interval
 		if err := repo_model.UpdatePushMirrorInterval(ctx, m); err != nil {
 			ctx.ServerError("UpdatePushMirrorInterval", err)
 			return
@@ -334,7 +331,10 @@ func SettingsPost(ctx *context.Context) {
 		// If we observed its implementation in the context of `push-mirror-sync` where it
 		// is evident that pushing to the queue is necessary for updates.
 		// So, there are updates within the given interval, it is necessary to update the queue accordingly.
-		mirror_service.AddPushMirrorToQueue(m.ID)
+		if !ctx.FormBool("push_mirror_defer_sync") {
+			// push_mirror_defer_sync is mainly for testing purpose, we do not really want to sync the push mirror immediately
+			mirror_service.AddPushMirrorToQueue(m.ID)
+		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
 
@@ -348,18 +348,18 @@ func SettingsPost(ctx *context.Context) {
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
 
-		m, err := selectPushMirrorByForm(ctx, form, repo)
-		if err != nil {
+		m, _, _ := repo_model.GetPushMirrorByIDAndRepoID(ctx, form.PushMirrorID, repo.ID)
+		if m == nil {
 			ctx.NotFound("", nil)
 			return
 		}
 
-		if err = mirror_service.RemovePushMirrorRemote(ctx, m); err != nil {
+		if err := mirror_service.RemovePushMirrorRemote(ctx, m); err != nil {
 			ctx.ServerError("RemovePushMirrorRemote", err)
 			return
 		}
 
-		if err = repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
+		if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
 			ctx.ServerError("DeletePushMirrorByID", err)
 			return
 		}
@@ -994,25 +994,4 @@ func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.R
 		return
 	}
 	ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, form)
-}
-
-func selectPushMirrorByForm(ctx *context.Context, form *forms.RepoSettingForm, repo *repo_model.Repository) (*repo_model.PushMirror, error) {
-	id, err := strconv.ParseInt(form.PushMirrorID, 10, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	pushMirrors, _, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, db.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	for _, m := range pushMirrors {
-		if m.ID == id {
-			m.Repo = repo
-			return m, nil
-		}
-	}
-
-	return nil, fmt.Errorf("PushMirror[%v] not associated to repository %v", id, repo)
 }
