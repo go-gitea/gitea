@@ -50,4 +50,16 @@ func TestRepoWiki(t *testing.T) {
 <a href="/user2/repo1/wiki/raw/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/image" alt="./image"/></a></p>
 `, rendered)
 	})
+
+	t.Run("PathInTag", func(t *testing.T) {
+		rctx := NewRenderContextRepoWiki(context.Background(), repo1).WithMarkupType(markdown.MarkupName)
+		rendered, err := markup.RenderString(rctx, `
+<img src="LINK">
+<video src="LINK">
+`)
+		assert.NoError(t, err)
+		assert.Equal(t, `<a href="/user2/repo1/wiki/raw/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/LINK"/></a>
+<video src="/user2/repo1/wiki/raw/LINK">
+</video>`, rendered)
+	})
 }
