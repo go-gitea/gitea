@@ -6,10 +6,10 @@
 			{{$.CsrfTokenHtml}}
 			<button class="fluid ui button {{if not $.NewPinAllowed}}disabled{{end}}">
 				{{if not .Issue.IsPinned}}
-					{{svg "octicon-pin" 16 "tw-mr-2"}}
+					{{svg "octicon-pin"}}
 					{{ctx.Locale.Tr "pin"}}
 				{{else}}
-					{{svg "octicon-pin-slash" 16 "tw-mr-2"}}
+					{{svg "octicon-pin-slash"}}
 					{{ctx.Locale.Tr "unpin"}}
 				{{end}}
 			</button>

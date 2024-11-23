@@ -12,7 +12,6 @@ import (
 	"runtime"
 	"strings"
 
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/process"
@@ -80,8 +79,8 @@ func envMark(envName string) string {
 func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	var (
 		command = strings.NewReplacer(
-			envMark("GITEA_PREFIX_SRC"), ctx.Links.SrcLink(),
-			envMark("GITEA_PREFIX_RAW"), ctx.Links.RawLink(),
+			envMark("GITEA_PREFIX_SRC"), ctx.RenderOptions.Links.SrcLink(),
+			envMark("GITEA_PREFIX_RAW"), ctx.RenderOptions.Links.RawLink(),
 		).Replace(p.Command)
 		commands = strings.Fields(command)
 		args     = commands[1:]
@@ -113,22 +112,14 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		args = append(args, f.Name())
 	}
 
-	if ctx.Ctx == nil {
-		if !setting.IsProd || setting.IsInTesting {
-			panic("RenderContext did not provide context")
-		}
-		log.Warn("RenderContext did not provide context, defaulting to Shutdown context")
-		ctx.Ctx = graceful.GetManager().ShutdownContext()
-	}
-
-	processCtx, _, finished := process.GetManager().AddContext(ctx.Ctx, fmt.Sprintf("Render [%s] for %s", commands[0], ctx.Links.SrcLink()))
+	processCtx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Render [%s] for %s", commands[0], ctx.RenderOptions.Links.SrcLink()))
 	defer finished()
 
 	cmd := exec.CommandContext(processCtx, commands[0], args...)
 	cmd.Env = append(
 		os.Environ(),
-		"GITEA_PREFIX_SRC="+ctx.Links.SrcLink(),
-		"GITEA_PREFIX_RAW="+ctx.Links.RawLink(),
+		"GITEA_PREFIX_SRC="+ctx.RenderOptions.Links.SrcLink(),
+		"GITEA_PREFIX_RAW="+ctx.RenderOptions.Links.RawLink(),
 	)
 	if !p.IsInputFile {
 		cmd.Stdin = input

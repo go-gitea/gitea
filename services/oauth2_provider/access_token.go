@@ -6,6 +6,8 @@ package oauth2_provider //nolint
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 
 	auth "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -67,6 +69,32 @@ type AccessTokenResponse struct {
 	ExpiresIn    int64     `json:"expires_in"`
 	RefreshToken string    `json:"refresh_token"`
 	IDToken      string    `json:"id_token,omitempty"`
+}
+
+// GrantAdditionalScopes returns valid scopes coming from grant
+func GrantAdditionalScopes(grantScopes string) auth.AccessTokenScope {
+	// scopes_supported from templates/user/auth/oidc_wellknown.tmpl
+	scopesSupported := []string{
+		"openid",
+		"profile",
+		"email",
+		"groups",
+	}
+
+	var tokenScopes []string
+	for _, tokenScope := range strings.Split(grantScopes, " ") {
+		if slices.Index(scopesSupported, tokenScope) == -1 {
+			tokenScopes = append(tokenScopes, tokenScope)
+		}
+	}
+
+	// since version 1.22, access tokens grant full access to the API
+	// with this access is reduced only if additional scopes are provided
+	accessTokenScope := auth.AccessTokenScope(strings.Join(tokenScopes, ","))
+	if accessTokenWithAdditionalScopes, err := accessTokenScope.Normalize(); err == nil && len(tokenScopes) > 0 {
+		return accessTokenWithAdditionalScopes
+	}
+	return auth.AccessTokenScopeAll
 }
 
 func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, serverKey, clientKey JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
@@ -161,7 +189,13 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 			idToken.EmailVerified = user.IsActive
 		}
 		if grant.ScopeContains("groups") {
-			groups, err := GetOAuthGroupsForUser(ctx, user)
+			accessTokenScope := GrantAdditionalScopes(grant.Scope)
+
+			// since version 1.22 does not verify if groups should be public-only,
+			// onlyPublicGroups will be set only if 'public-only' is included in a valid scope
+			onlyPublicGroups, _ := accessTokenScope.PublicOnly()
+
+			groups, err := GetOAuthGroupsForUser(ctx, user, onlyPublicGroups)
 			if err != nil {
 				log.Error("Error getting groups: %v", err)
 				return nil, &AccessTokenError{
@@ -192,10 +226,10 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 
 // returns a list of "org" and "org:team" strings,
 // that the given user is a part of.
-func GetOAuthGroupsForUser(ctx context.Context, user *user_model.User) ([]string, error) {
+func GetOAuthGroupsForUser(ctx context.Context, user *user_model.User, onlyPublicGroups bool) ([]string, error) {
 	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
 		UserID:         user.ID,
-		IncludePrivate: true,
+		IncludePrivate: !onlyPublicGroups,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("GetUserOrgList: %w", err)

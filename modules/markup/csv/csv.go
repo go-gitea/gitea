@@ -133,10 +133,10 @@ func (r Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.W
 	// Check if maxRows or maxSize is reached, and if true, warn.
 	if (row >= maxRows && maxRows != 0) || (rd.InputOffset() >= maxSize && maxSize != 0) {
 		warn := `<table class="data-table"><tr><td>`
-		rawLink := ` <a href="` + ctx.Links.RawLink() + `/` + util.PathEscapeSegments(ctx.RelativePath) + `">`
+		rawLink := ` <a href="` + ctx.RenderOptions.Links.RawLink() + `/` + util.PathEscapeSegments(ctx.RenderOptions.RelativePath) + `">`
 
 		// Try to get the user translation
-		if locale, ok := ctx.Ctx.Value(translation.ContextKey).(translation.Locale); ok {
+		if locale, ok := ctx.Value(translation.ContextKey).(translation.Locale); ok {
 			warn += locale.TrString("repo.file_too_large")
 			rawLink += locale.TrString("repo.file_view_raw")
 		} else {
