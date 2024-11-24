@@ -31,6 +31,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issue_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -310,17 +311,14 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 		ctx.Data["IsMarkup"] = true
 		ctx.Data["MarkupType"] = markupType
 
-		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, markup.NewRenderContext(ctx).
+		rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
+			CurrentRefPath:  ctx.Repo.BranchNameSubURL(),
+			CurrentTreePath: path.Join(ctx.Repo.TreePath, subfolder),
+		}).
 			WithMarkupType(markupType).
-			WithRelativePath(path.Join(ctx.Repo.TreePath, readmeFile.Name())). // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
-			WithLinks(markup.Links{
-				Base:       ctx.Repo.RepoLink,
-				BranchPath: ctx.Repo.BranchNameSubURL(),
-				TreePath:   path.Join(ctx.Repo.TreePath, subfolder),
-			}).
-			WithMetas(ctx.Repo.Repository.ComposeDocumentMetas(ctx)).
-			WithGitRepo(ctx.Repo.GitRepo),
-			rd)
+			WithRelativePath(path.Join(ctx.Repo.TreePath, subfolder, readmeFile.Name())) // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
+
+		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, rctx, rd)
 		if err != nil {
 			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.Name(), ctx.Repo.Repository, err)
 			delete(ctx.Data, "IsMarkup")
@@ -513,17 +511,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["MarkupType"] = markupType
 			metas := ctx.Repo.Repository.ComposeDocumentMetas(ctx)
 			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, markup.NewRenderContext(ctx).
+			rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
+				CurrentRefPath:  ctx.Repo.BranchNameSubURL(),
+				CurrentTreePath: path.Dir(ctx.Repo.TreePath),
+			}).
 				WithMarkupType(markupType).
 				WithRelativePath(ctx.Repo.TreePath).
-				WithLinks(markup.Links{
-					Base:       ctx.Repo.RepoLink,
-					BranchPath: ctx.Repo.BranchNameSubURL(),
-					TreePath:   path.Dir(ctx.Repo.TreePath),
-				}).
-				WithMetas(metas).
-				WithGitRepo(ctx.Repo.GitRepo),
-				rd)
+				WithMetas(metas)
+
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, rctx, rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
@@ -604,17 +600,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			rd := io.MultiReader(bytes.NewReader(buf), dataRc)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, markup.NewRenderContext(ctx).
+
+			rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
+				CurrentRefPath:  ctx.Repo.BranchNameSubURL(),
+				CurrentTreePath: path.Dir(ctx.Repo.TreePath),
+			}).
 				WithMarkupType(markupType).
-				WithRelativePath(ctx.Repo.TreePath).
-				WithLinks(markup.Links{
-					Base:       ctx.Repo.RepoLink,
-					BranchPath: ctx.Repo.BranchNameSubURL(),
-					TreePath:   path.Dir(ctx.Repo.TreePath),
-				}).
-				WithMetas(ctx.Repo.Repository.ComposeDocumentMetas(ctx)).
-				WithGitRepo(ctx.Repo.GitRepo),
-				rd)
+				WithRelativePath(ctx.Repo.TreePath)
+
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, rctx, rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
