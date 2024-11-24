@@ -4,54 +4,38 @@
 package markup
 
 import (
+	"os"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
-const AppURL = "http://localhost:3000/"
+func TestMain(m *testing.M) {
+	setting.AppURL = "http://localhost:3000/"
+	setting.IsInTesting = true
+	os.Exit(m.Run())
+}
 
 func TestRender_StandardLinks(t *testing.T) {
-	setting.AppURL = AppURL
-
-	test := func(input, expected string, isWiki bool) {
-		buffer, err := RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-			Links: markup.Links{
-				Base:       "/relative-path",
-				BranchPath: "branch/main",
-			},
-			Metas: map[string]string{"markupContentMode": util.Iif(isWiki, "wiki", "")},
-		}, input)
+	test := func(input, expected string) {
+		buffer, err := RenderString(markup.NewTestRenderContext("/relative-path/media/branch/main/"), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	test("[[https://google.com/]]",
-		`<p><a href="https://google.com/">https://google.com/</a></p>`, false)
-	test("[[WikiPage][The WikiPage Desc]]",
-		`<p><a href="/relative-path/wiki/WikiPage">The WikiPage Desc</a></p>`, true)
+		`<p><a href="https://google.com/">https://google.com/</a></p>`)
 	test("[[ImageLink.svg][The Image Desc]]",
-		`<p><a href="/relative-path/media/branch/main/ImageLink.svg">The Image Desc</a></p>`, false)
+		`<p><a href="/relative-path/media/branch/main/ImageLink.svg">The Image Desc</a></p>`)
 }
 
 func TestRender_InternalLinks(t *testing.T) {
-	setting.AppURL = AppURL
-
 	test := func(input, expected string) {
-		buffer, err := RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-			Links: markup.Links{
-				Base:       "/relative-path",
-				BranchPath: "branch/main",
-			},
-		}, input)
+		buffer, err := RenderString(markup.NewTestRenderContext("/relative-path/src/branch/main"), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
@@ -67,15 +51,8 @@ func TestRender_InternalLinks(t *testing.T) {
 }
 
 func TestRender_Media(t *testing.T) {
-	setting.AppURL = AppURL
-
 	test := func(input, expected string) {
-		buffer, err := RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-			Links: markup.Links{
-				Base: "./relative-path",
-			},
-		}, input)
+		buffer, err := RenderString(markup.NewTestRenderContext("./relative-path"), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
@@ -113,12 +90,8 @@ func TestRender_Media(t *testing.T) {
 }
 
 func TestRender_Source(t *testing.T) {
-	setting.AppURL = AppURL
-
 	test := func(input, expected string) {
-		buffer, err := RenderString(&markup.RenderContext{
-			Ctx: git.DefaultContext,
-		}, input)
+		buffer, err := RenderString(markup.NewTestRenderContext(), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
