@@ -468,7 +468,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 					})
 					return
 				}
-				ctx.ServerError("ChangeStatus", err)
+				ctx.ServerError("CloseIssue", err)
 				return
 			}
 		} else if !closeOrReopen && issue.IsClosed {
