@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"github.com/go-webauthn/webauthn/protocol"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 )
@@ -50,6 +51,7 @@ type WebAuthnCredential struct {
 	PublicKey       []byte
 	AttestationType string
 	AAGUID          []byte
+	Flags           protocol.AuthenticatorFlags
 	SignCount       uint32 `xorm:"BIGINT"`
 	CloneWarning    bool
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
@@ -103,7 +105,10 @@ func (list WebAuthnCredentialList) ToCredentials() []webauthn.Credential {
 				CloneWarning: cred.CloneWarning,
 			},
 			Flags: webauthn.CredentialFlags{
-				BackupEligible: true,
+				UserPresent:    cred.Flags.HasUserPresent(),
+				UserVerified:   cred.Flags.HasUserVerified(),
+				BackupEligible: cred.Flags.HasBackupEligible(),
+				BackupState:    cred.Flags.HasBackupState(),
 			},
 		})
 	}
@@ -161,6 +166,19 @@ func GetWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID []b
 
 // CreateCredential will create a new WebAuthnCredential from the given Credential
 func CreateCredential(ctx context.Context, userID int64, name string, cred *webauthn.Credential) (*WebAuthnCredential, error) {
+	var flags protocol.AuthenticatorFlags
+	if cred.Flags.UserPresent {
+		flags |= protocol.FlagUserPresent
+	}
+	if cred.Flags.UserVerified {
+		flags |= protocol.FlagUserVerified
+	}
+	if cred.Flags.BackupEligible {
+		flags |= protocol.FlagBackupEligible
+	}
+	if cred.Flags.BackupState {
+		flags |= protocol.FlagBackupState
+	}
 	c := &WebAuthnCredential{
 		UserID:          userID,
 		Name:            name,
@@ -168,6 +186,7 @@ func CreateCredential(ctx context.Context, userID int64, name string, cred *weba
 		PublicKey:       cred.PublicKey,
 		AttestationType: cred.AttestationType,
 		AAGUID:          cred.Authenticator.AAGUID,
+		Flags:           flags,
 		SignCount:       cred.Authenticator.SignCount,
 		CloneWarning:    false,
 	}
