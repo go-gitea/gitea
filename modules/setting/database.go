@@ -126,7 +126,7 @@ func DBConnStr() (string, error) {
 		if Database.SQLiteJournalMode != "" {
 			journalMode = "&_journal_mode=" + Database.SQLiteJournalMode
 		}
-		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate%s",
+		connStr = fmt.Sprintf("file:%s?mode=rwc&_busy_timeout=%d&_txlock=immediate%s",
 			Database.Path, Database.Timeout, journalMode)
 	default:
 		return "", fmt.Errorf("unknown database type: %s", Database.Type)
