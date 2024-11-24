@@ -99,7 +99,7 @@ func DeletePushMirrors(ctx context.Context, opts PushMirrorOptions) error {
 // GetPushMirrorsByRepoID returns push-mirror information of a repository.
 func GetPushMirrorsByRepoID(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*PushMirror, int64, error) {
 	sess := db.GetEngine(ctx).Where("repo_id = ?", repoID)
-	if listOptions.Page != 0 {
+	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 		mirrors := make([]*PushMirror, 0, listOptions.PageSize)
 		count, err := sess.FindAndCount(&mirrors)
