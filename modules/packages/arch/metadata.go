@@ -6,6 +6,8 @@ package arch
 import (
 	"archive/tar"
 	"bufio"
+	"bytes"
+	"compress/gzip"
 	"io"
 	"regexp"
 	"strconv"
@@ -15,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/klauspost/compress/zstd"
+	"github.com/ulikunitz/xz"
 )
 
 const (
@@ -34,6 +37,7 @@ const (
 
 var (
 	ErrMissingPKGINFOFile  = util.NewInvalidArgumentErrorf(".PKGINFO file is missing")
+	ErrUnsupportedFormat   = util.NewInvalidArgumentErrorf("unsupported package container format")
 	ErrInvalidName         = util.NewInvalidArgumentErrorf("package name is invalid")
 	ErrInvalidVersion      = util.NewInvalidArgumentErrorf("package version is invalid")
 	ErrInvalidArchitecture = util.NewInvalidArgumentErrorf("package architecture is invalid")
@@ -44,10 +48,11 @@ var (
 )
 
 type Package struct {
-	Name            string `json:"name"`
-	Version         string `json:"version"`
-	VersionMetadata VersionMetadata
-	FileMetadata    FileMetadata
+	Name                     string
+	Version                  string
+	VersionMetadata          VersionMetadata
+	FileMetadata             FileMetadata
+	FileCompressionExtension string
 }
 
 type VersionMetadata struct {
@@ -75,16 +80,50 @@ type FileMetadata struct {
 
 // ParsePackage parses an Arch package file
 func ParsePackage(r io.Reader) (*Package, error) {
-	zr, err := zstd.NewReader(r)
+	header := make([]byte, 10)
+	n, err := util.ReadAtMost(r, header)
 	if err != nil {
 		return nil, err
 	}
-	defer zr.Close()
+
+	r = io.MultiReader(bytes.NewReader(header[:n]), r)
+
+	var inner io.Reader
+	var compressionType string
+	if bytes.HasPrefix(header, []byte{0x28, 0xB5, 0x2F, 0xFD}) { // zst
+		zr, err := zstd.NewReader(r)
+		if err != nil {
+			return nil, err
+		}
+		defer zr.Close()
+
+		inner = zr
+		compressionType = "zst"
+	} else if bytes.HasPrefix(header, []byte{0xFD, 0x37, 0x7A, 0x58, 0x5A}) { // xz
+		xzr, err := xz.NewReader(r)
+		if err != nil {
+			return nil, err
+		}
+
+		inner = xzr
+		compressionType = "xz"
+	} else if bytes.HasPrefix(header, []byte{0x1F, 0x8B}) { // gz
+		gzr, err := gzip.NewReader(r)
+		if err != nil {
+			return nil, err
+		}
+		defer gzr.Close()
+
+		inner = gzr
+		compressionType = "gz"
+	} else {
+		return nil, ErrUnsupportedFormat
+	}
 
 	var p *Package
 	files := make([]string, 0, 10)
 
-	tr := tar.NewReader(zr)
+	tr := tar.NewReader(inner)
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
@@ -114,6 +153,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	}
 
 	p.FileMetadata.Files = files
+	p.FileCompressionExtension = compressionType
 
 	return p, nil
 }

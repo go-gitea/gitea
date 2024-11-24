@@ -135,6 +135,12 @@ func ExecuteCleanupRules(outerCtx context.Context) error {
 					return fmt.Errorf("CleanupRule [%d]: rpm.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
 				}
 			case packages_model.TypeArch:
+				release, err := arch_service.AquireRegistryLock(ctx, pcr.OwnerID)
+				if err != nil {
+					return err
+				}
+				defer release()
+
 				if err := arch_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
 					return fmt.Errorf("CleanupRule [%d]: arch.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
 				}

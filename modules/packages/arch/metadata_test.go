@@ -6,11 +6,13 @@ package arch
 import (
 	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"io"
 	"testing"
 
 	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/assert"
+	"github.com/ulikunitz/xz"
 )
 
 const (
@@ -46,10 +48,18 @@ backup = usr/bin/paket1`)
 }
 
 func TestParsePackage(t *testing.T) {
-	createPackage := func(files map[string][]byte) io.Reader {
+	createPackage := func(compression string, files map[string][]byte) io.Reader {
 		var buf bytes.Buffer
-		zw, _ := zstd.NewWriter(&buf)
-		tw := tar.NewWriter(zw)
+		var cw io.WriteCloser
+		switch compression {
+		case "zst":
+			cw, _ = zstd.NewWriter(&buf)
+		case "xz":
+			cw, _ = xz.NewWriter(&buf)
+		case "gz":
+			cw = gzip.NewWriter(&buf)
+		}
+		tw := tar.NewWriter(cw)
 
 		for name, content := range files {
 			hdr := &tar.Header{
@@ -62,39 +72,43 @@ func TestParsePackage(t *testing.T) {
 		}
 
 		tw.Close()
-		zw.Close()
+		cw.Close()
 
 		return &buf
 	}
 
-	t.Run("MissingPKGINFOFile", func(t *testing.T) {
-		data := createPackage(map[string][]byte{"dummy.txt": {}})
+	for _, c := range []string{"gz", "xz", "zst"} {
+		t.Run(c, func(t *testing.T) {
+			t.Run("MissingPKGINFOFile", func(t *testing.T) {
+				data := createPackage(c, map[string][]byte{"dummy.txt": {}})
 
-		pp, err := ParsePackage(data)
-		assert.Nil(t, pp)
-		assert.ErrorIs(t, err, ErrMissingPKGINFOFile)
-	})
+				pp, err := ParsePackage(data)
+				assert.Nil(t, pp)
+				assert.ErrorIs(t, err, ErrMissingPKGINFOFile)
+			})
 
-	t.Run("InvalidPKGINFOFile", func(t *testing.T) {
-		data := createPackage(map[string][]byte{".PKGINFO": {}})
+			t.Run("InvalidPKGINFOFile", func(t *testing.T) {
+				data := createPackage(c, map[string][]byte{".PKGINFO": {}})
 
-		pp, err := ParsePackage(data)
-		assert.Nil(t, pp)
-		assert.ErrorIs(t, err, ErrInvalidName)
-	})
+				pp, err := ParsePackage(data)
+				assert.Nil(t, pp)
+				assert.ErrorIs(t, err, ErrInvalidName)
+			})
 
-	t.Run("Valid", func(t *testing.T) {
-		data := createPackage(map[string][]byte{
-			".PKGINFO":        createPKGINFOContent(packageName, packageVersion),
-			"/test/dummy.txt": {},
+			t.Run("Valid", func(t *testing.T) {
+				data := createPackage(c, map[string][]byte{
+					".PKGINFO":        createPKGINFOContent(packageName, packageVersion),
+					"/test/dummy.txt": {},
+				})
+
+				p, err := ParsePackage(data)
+				assert.NoError(t, err)
+				assert.NotNil(t, p)
+
+				assert.ElementsMatch(t, []string{"/test/dummy.txt"}, p.FileMetadata.Files)
+			})
 		})
-
-		p, err := ParsePackage(data)
-		assert.NoError(t, err)
-		assert.NotNil(t, p)
-
-		assert.ElementsMatch(t, []string{"/test/dummy.txt"}, p.FileMetadata.Files)
-	})
+	}
 }
 
 func TestParsePackageInfo(t *testing.T) {

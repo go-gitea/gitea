@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-gear"}} {{ctx.Locale.Tr "packages.arch.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>[{{.PackageDescriptor.Owner.LowerName}}]
+				<div class="markup"><pre class="code-block"><code>[{{.PackageDescriptor.Owner.LowerName}}.{{.PackageRegistryHost}}]
 SigLevel = Optional TrustAll
 Server = <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/arch/$repo/$arch"></origin-url></code></pre></div>
 			</div>

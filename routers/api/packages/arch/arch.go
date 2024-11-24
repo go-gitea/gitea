@@ -42,7 +42,7 @@ func GetRepositoryKey(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
-	repository := strings.TrimSpace(ctx.Params("repository"))
+	repository := strings.TrimSpace(ctx.PathParam("repository"))
 	if repository == "" {
 		apiError(ctx, http.StatusBadRequest, "invalid repository")
 		return
@@ -96,6 +96,32 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
+	release, err := arch_service.AquireRegistryLock(ctx, ctx.Package.Owner.ID)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer release()
+
+	// Search for duplicates with different file compression
+	has, err := packages_model.HasFiles(ctx, &packages_model.PackageFileSearchOptions{
+		OwnerID:     ctx.Package.Owner.ID,
+		PackageType: packages_model.TypeArch,
+		Query:       fmt.Sprintf("%s-%s-%s.pkg.tar.%%", pck.Name, pck.Version, pck.FileMetadata.Architecture),
+		Properties: map[string]string{
+			arch_module.PropertyRepository:   repository,
+			arch_module.PropertyArchitecture: pck.FileMetadata.Architecture,
+		},
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if has {
+		apiError(ctx, http.StatusConflict, packages_model.ErrDuplicatePackageFile)
+		return
+	}
+
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -110,7 +136,7 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     fmt.Sprintf("%s-%s-%s.pck.tar.zst", pck.Name, pck.Version, pck.FileMetadata.Architecture),
+				Filename:     fmt.Sprintf("%s-%s-%s.pkg.tar.%s", pck.Name, pck.Version, pck.FileMetadata.Architecture, pck.FileCompressionExtension),
 				CompositeKey: fmt.Sprintf("%s|%s", repository, pck.FileMetadata.Architecture),
 			},
 			Creator: ctx.Doer,
@@ -144,10 +170,10 @@ func UploadPackageFile(ctx *context.Context) {
 	ctx.Status(http.StatusCreated)
 }
 
-func DownloadPackageOrRepositoryFile(ctx *context.Context) {
-	repository := ctx.Params("repository")
-	architecture := ctx.Params("architecture")
-	filename := ctx.Params("filename")
+func GetPackageOrRepositoryFile(ctx *context.Context) {
+	repository := ctx.PathParam("repository")
+	architecture := ctx.PathParam("architecture")
+	filename := ctx.PathParam("filename")
 	filenameOrig := filename
 
 	isSignature := strings.HasSuffix(filename, ".sig")
@@ -231,12 +257,19 @@ func DownloadPackageOrRepositoryFile(ctx *context.Context) {
 }
 
 func DeletePackageFile(ctx *context.Context) {
-	repository, architecture := ctx.Params("repository"), ctx.Params("architecture")
+	repository, architecture := ctx.PathParam("repository"), ctx.PathParam("architecture")
+
+	release, err := arch_service.AquireRegistryLock(ctx, ctx.Package.Owner.ID)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer release()
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:      ctx.Package.Owner.ID,
 		PackageType:  packages_model.TypeArch,
-		Query:        ctx.Params("filename"),
+		Query:        ctx.PathParam("filename"),
 		CompositeKey: fmt.Sprintf("%s|%s", repository, architecture),
 	})
 	if err != nil {

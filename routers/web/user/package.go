@@ -179,13 +179,13 @@ func ViewPackageVersion(ctx *context.Context) {
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
 
+	registryHostURL, err := url.Parse(httplib.GuessCurrentHostURL(ctx))
+	if err != nil {
+		registryHostURL, _ = url.Parse(setting.AppURL)
+	}
+	ctx.Data["PackageRegistryHost"] = registryHostURL.Host
+
 	switch pd.Package.Type {
-	case packages_model.TypeContainer:
-		registryAppURL, err := url.Parse(httplib.GuessCurrentAppURL(ctx))
-		if err != nil {
-			registryAppURL, _ = url.Parse(setting.AppURL)
-		}
-		ctx.Data["RegistryHost"] = registryAppURL.Host
 	case packages_model.TypeAlpine:
 		branches := make(container.Set[string])
 		repositories := make(container.Set[string])
@@ -267,7 +267,6 @@ func ViewPackageVersion(ctx *context.Context) {
 	var (
 		total int64
 		pvs   []*packages_model.PackageVersion
-		err   error
 	)
 	switch pd.Package.Type {
 	case packages_model.TypeContainer:

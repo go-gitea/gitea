@@ -137,15 +137,47 @@ func CommonRoutes() *web.Router {
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/arch", func() {
-			r.Get("/key", arch.GetRepositoryKey)
-			r.Group("/{repository}", func() {
-				r.Put("", reqPackageAccess(perm.AccessModeWrite), arch.UploadPackageFile)
-				r.Group("/{architecture}/{filename}", func() {
-					r.Get("", arch.DownloadPackageOrRepositoryFile)
-					r.Delete("", reqPackageAccess(perm.AccessModeWrite), arch.DeletePackageFile)
-				})
+			r.Methods("HEAD,GET", "/repository.key", arch.GetRepositoryKey)
+
+			r.Methods("HEAD,GET,PUT,DELETE", "*", func(ctx *context.Context) {
+				path := strings.Trim(ctx.PathParam("*"), "/")
+
+				if ctx.Req.Method == "PUT" {
+					reqPackageAccess(perm.AccessModeWrite)(ctx)
+					if ctx.Written() {
+						return
+					}
+					ctx.SetPathParam("repository", path)
+					arch.UploadPackageFile(ctx)
+					return
+				}
+
+				pathFields := strings.Split(path, "/")
+				pathFieldsLen := len(pathFields)
+
+				if pathFieldsLen >= 2 {
+					ctx.SetPathParam("repository", strings.Join(pathFields[:pathFieldsLen-2], "/"))
+					ctx.SetPathParam("architecture", pathFields[pathFieldsLen-2])
+					ctx.SetPathParam("filename", pathFields[pathFieldsLen-1])
+
+					if ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET" {
+						arch.GetPackageOrRepositoryFile(ctx)
+						return
+					}
+
+					if ctx.Req.Method == "DELETE" {
+						reqPackageAccess(perm.AccessModeWrite)(ctx)
+						if ctx.Written() {
+							return
+						}
+						arch.DeletePackageFile(ctx)
+						return
+					}
+				}
+
+				ctx.Status(http.StatusNotFound)
 			})
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
 			r.Group("/api/v1/crates", func() {
 				r.Get("", cargo.SearchPackages)

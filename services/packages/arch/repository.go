@@ -19,6 +19,7 @@ import (
 	arch_model "code.gitea.io/gitea/models/packages/arch"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
@@ -33,6 +34,10 @@ import (
 const (
 	IndexArchiveFilename = "packages.db"
 )
+
+func AquireRegistryLock(ctx context.Context, ownerID int64) (globallock.ReleaseFunc, error) {
+	return globallock.Lock(ctx, fmt.Sprintf("packages_arch_%d", ownerID))
+}
 
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
 // The Arch registry needs multiple index files which are stored in this package.
@@ -192,7 +197,7 @@ func searchPackageFiles(ctx context.Context, ownerID int64, repository, architec
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:     ownerID,
 		PackageType: packages_model.TypeArch,
-		Query:       "%.pck.tar.zst",
+		Query:       "%.pkg.tar.%",
 		Properties: map[string]string{
 			arch_module.PropertyRepository:   repository,
 			arch_module.PropertyArchitecture: architecture,
@@ -335,47 +340,52 @@ type entryOptions struct {
 	Signature       string
 }
 
+type keyValue struct {
+	Key   string
+	Value string
+}
+
 func writeFiles(tw *tar.Writer, opts *entryOptions) error {
-	return writeFields(tw, fmt.Sprintf("%s-%s/files", opts.Package.Name, opts.Version.Version), map[string]string{
-		"FILES": strings.Join(opts.FileMetadata.Files, "\n"),
+	return writeFields(tw, fmt.Sprintf("%s-%s/files", opts.Package.Name, opts.Version.Version), []keyValue{
+		{"FILES", strings.Join(opts.FileMetadata.Files, "\n")},
 	})
 }
 
 // https://gitlab.archlinux.org/pacman/pacman/-/blob/master/lib/libalpm/be_sync.c#L562
 func writeDescription(tw *tar.Writer, opts *entryOptions) error {
-	return writeFields(tw, fmt.Sprintf("%s-%s/desc", opts.Package.Name, opts.Version.Version), map[string]string{
-		"FILENAME":     opts.File.Name,
-		"MD5SUM":       opts.Blob.HashMD5,
-		"SHA256SUM":    opts.Blob.HashSHA256,
-		"PGPSIG":       opts.Signature,
-		"CSIZE":        fmt.Sprintf("%d", opts.Blob.Size),
-		"ISIZE":        fmt.Sprintf("%d", opts.FileMetadata.InstalledSize),
-		"NAME":         opts.Package.Name,
-		"BASE":         opts.FileMetadata.Base,
-		"ARCH":         opts.FileMetadata.Architecture,
-		"VERSION":      opts.Version.Version,
-		"DESC":         opts.VersionMetadata.Description,
-		"URL":          opts.VersionMetadata.ProjectURL,
-		"LICENSE":      strings.Join(opts.VersionMetadata.Licenses, "\n"),
-		"GROUPS":       strings.Join(opts.FileMetadata.Groups, "\n"),
-		"BUILDDATE":    fmt.Sprintf("%d", opts.FileMetadata.BuildDate),
-		"PACKAGER":     opts.FileMetadata.Packager,
-		"PROVIDES":     strings.Join(opts.FileMetadata.Provides, "\n"),
-		"DEPENDS":      strings.Join(opts.FileMetadata.Depends, "\n"),
-		"OPTDEPENDS":   strings.Join(opts.FileMetadata.OptDepends, "\n"),
-		"MAKEDEPENDS":  strings.Join(opts.FileMetadata.MakeDepends, "\n"),
-		"CHECKDEPENDS": strings.Join(opts.FileMetadata.CheckDepends, "\n"),
-		"XDATA":        strings.Join(opts.FileMetadata.XData, "\n"),
+	return writeFields(tw, fmt.Sprintf("%s-%s/desc", opts.Package.Name, opts.Version.Version), []keyValue{
+		{"FILENAME", opts.File.Name},
+		{"MD5SUM", opts.Blob.HashMD5},
+		{"SHA256SUM", opts.Blob.HashSHA256},
+		{"PGPSIG", opts.Signature},
+		{"CSIZE", fmt.Sprintf("%d", opts.Blob.Size)},
+		{"ISIZE", fmt.Sprintf("%d", opts.FileMetadata.InstalledSize)},
+		{"NAME", opts.Package.Name},
+		{"BASE", opts.FileMetadata.Base},
+		{"ARCH", opts.FileMetadata.Architecture},
+		{"VERSION", opts.Version.Version},
+		{"DESC", opts.VersionMetadata.Description},
+		{"URL", opts.VersionMetadata.ProjectURL},
+		{"LICENSE", strings.Join(opts.VersionMetadata.Licenses, "\n")},
+		{"GROUPS", strings.Join(opts.FileMetadata.Groups, "\n")},
+		{"BUILDDATE", fmt.Sprintf("%d", opts.FileMetadata.BuildDate)},
+		{"PACKAGER", opts.FileMetadata.Packager},
+		{"PROVIDES", strings.Join(opts.FileMetadata.Provides, "\n")},
+		{"DEPENDS", strings.Join(opts.FileMetadata.Depends, "\n")},
+		{"OPTDEPENDS", strings.Join(opts.FileMetadata.OptDepends, "\n")},
+		{"MAKEDEPENDS", strings.Join(opts.FileMetadata.MakeDepends, "\n")},
+		{"CHECKDEPENDS", strings.Join(opts.FileMetadata.CheckDepends, "\n")},
+		{"XDATA", strings.Join(opts.FileMetadata.XData, "\n")},
 	})
 }
 
-func writeFields(tw *tar.Writer, filename string, fields map[string]string) error {
+func writeFields(tw *tar.Writer, filename string, fields []keyValue) error {
 	buf := &bytes.Buffer{}
-	for key, value := range fields {
-		if value == "" {
+	for _, kv := range fields {
+		if kv.Value == "" {
 			continue
 		}
-		fmt.Fprintf(buf, "%%%s%%\n%s\n\n", key, value)
+		fmt.Fprintf(buf, "%%%s%%\n%s\n\n", kv.Key, kv.Value)
 	}
 
 	if err := tw.WriteHeader(&tar.Header{
