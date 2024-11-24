@@ -85,13 +85,13 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/markbates/goth v1.80.0
 	github.com/mattn/go-isatty v0.0.20
-	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/meilisearch/meilisearch-go v0.29.1-0.20241106140435-0bf60fad690a
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/microsoft/go-mssqldb v1.7.2
 	github.com/minio/minio-go/v7 v7.0.80
 	github.com/msteinert/pam v1.2.0
+	github.com/ncruces/go-sqlite3 v0.20.2
 	github.com/nektos/act v0.2.63
 	github.com/niklasfasching/go-org v1.7.0
 	github.com/olivere/elastic/v7 v7.0.32
@@ -249,6 +249,7 @@ require (
 	github.com/markbates/going v1.0.3 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
+	github.com/mattn/go-sqlite3 v1.14.24 // indirect
 	github.com/mholt/acmez/v2 v2.0.3 // indirect
 	github.com/miekg/dns v1.1.62 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
@@ -260,6 +261,7 @@ require (
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/nwaples/rardecode v1.1.3 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
@@ -289,6 +291,7 @@ require (
 	github.com/spf13/viper v1.19.0 // indirect
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/tetratelabs/wazero v1.8.1 // indirect
 	github.com/toqueteos/webbrowser v1.2.0 // indirect
 	github.com/unknwon/com v1.0.1 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
