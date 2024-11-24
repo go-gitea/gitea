@@ -1,7 +1,7 @@
 import {createTippy} from '../modules/tippy.ts';
 
 export async function initColorPickers() {
-  const els = document.querySelectorAll('.js-color-picker-input');
+  const els = document.querySelectorAll<HTMLElement>('.js-color-picker-input');
   if (!els.length) return;
 
   await Promise.all([
@@ -14,15 +14,15 @@ export async function initColorPickers() {
   }
 }
 
-function updateSquare(el, newValue) {
+function updateSquare(el: HTMLElement, newValue: string): void {
   el.style.color = /#[0-9a-f]{6}/i.test(newValue) ? newValue : 'transparent';
 }
 
-function updatePicker(el, newValue) {
+function updatePicker(el: HTMLElement, newValue: string): void {
   el.setAttribute('color', newValue);
 }
 
-function initPicker(el) {
+function initPicker(el: HTMLElement): void {
   const input = el.querySelector('input');
 
   const square = document.createElement('div');
@@ -37,7 +37,7 @@ function initPicker(el) {
     updateSquare(square, e.detail.value);
   });
 
-  input.addEventListener('input', (e) => {
+  input.addEventListener('input', (e: Event & {target: HTMLInputElement}) => {
     updateSquare(square, e.target.value);
     updatePicker(picker, e.target.value);
   });
@@ -56,7 +56,7 @@ function initPicker(el) {
 
   // init precolors
   for (const colorEl of el.querySelectorAll('.precolors .color')) {
-    colorEl.addEventListener('click', (e) => {
+    colorEl.addEventListener('click', (e: MouseEvent & {target: HTMLAnchorElement}) => {
       const newValue = e.target.getAttribute('data-color-hex');
       input.value = newValue;
       input.dispatchEvent(new Event('input', {bubbles: true}));

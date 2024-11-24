@@ -15,24 +15,15 @@ import (
 
 var scpSyntax = regexp.MustCompile(`^([a-zA-Z0-9_]+@)?([a-zA-Z0-9._-]+):(.*)$`)
 
-// SubModule submodule is a reference on git repository
-type SubModule struct {
-	Name string
-	URL  string
-}
-
-// SubModuleFile represents a file with submodule type.
-type SubModuleFile struct {
-	*Commit
-
+// CommitSubModuleFile represents a file with submodule type.
+type CommitSubModuleFile struct {
 	refURL string
 	refID  string
 }
 
-// NewSubModuleFile create a new submodule file
-func NewSubModuleFile(c *Commit, refURL, refID string) *SubModuleFile {
-	return &SubModuleFile{
-		Commit: c,
+// NewCommitSubModuleFile create a new submodule file
+func NewCommitSubModuleFile(refURL, refID string) *CommitSubModuleFile {
+	return &CommitSubModuleFile{
 		refURL: refURL,
 		refID:  refID,
 	}
@@ -109,11 +100,12 @@ func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
 }
 
 // RefURL guesses and returns reference URL.
-func (sf *SubModuleFile) RefURL(urlPrefix, repoFullName, sshDomain string) string {
+// FIXME: template passes AppURL as urlPrefix, it needs to figure out the correct approach (no hard-coded AppURL anymore)
+func (sf *CommitSubModuleFile) RefURL(urlPrefix, repoFullName, sshDomain string) string {
 	return getRefURL(sf.refURL, urlPrefix, repoFullName, sshDomain)
 }
 
 // RefID returns reference ID.
-func (sf *SubModuleFile) RefID() string {
+func (sf *CommitSubModuleFile) RefID() string {
 	return sf.refID
 }

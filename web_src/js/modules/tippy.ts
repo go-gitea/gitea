@@ -1,7 +1,7 @@
 import tippy, {followCursor} from 'tippy.js';
 import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
 import {formatDatetime} from '../utils/time.ts';
-import type {Content, Instance, Props} from 'tippy.js';
+import type {Content, Instance, Placement, Props} from 'tippy.js';
 
 type TippyOpts = {
   role?: string,
@@ -16,6 +16,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // because we should use our own wrapper functions to handle them, do not let the user override them
   const {onHide, onShow, onDestroy, role, theme, arrow, ...other} = opts;
 
+  // @ts-expect-error: wrong type derived by typescript
   const instance: Instance = tippy(target, {
     appendTo: document.body,
     animation: false,
@@ -65,7 +66,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
  *
  * Note: "tooltip" doesn't equal to "tippy". "tooltip" means a auto-popup content, it just uses tippy as the implementation.
  */
-function attachTooltip(target: Element, content: Content = null) {
+function attachTooltip(target: Element, content: Content = null): Instance {
   switchTitleToTooltip(target);
 
   content = content ?? target.getAttribute('data-tooltip-content');
@@ -77,16 +78,16 @@ function attachTooltip(target: Element, content: Content = null) {
   const hasClipboardTarget = target.hasAttribute('data-clipboard-target');
   const hideOnClick = !hasClipboardTarget;
 
-  const props = {
+  const props: TippyOpts = {
     content,
     delay: 100,
     role: 'tooltip',
     theme: 'tooltip',
     hideOnClick,
-    placement: target.getAttribute('data-tooltip-placement') || 'top-start',
-    followCursor: target.getAttribute('data-tooltip-follow-cursor') || false,
+    placement: target.getAttribute('data-tooltip-placement') as Placement || 'top-start',
+    followCursor: target.getAttribute('data-tooltip-follow-cursor') as Props['followCursor'] || false,
     ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),
-  } as TippyOpts;
+  };
 
   if (!target._tippy) {
     createTippy(target, props);
@@ -96,7 +97,7 @@ function attachTooltip(target: Element, content: Content = null) {
   return target._tippy;
 }
 
-function switchTitleToTooltip(target: Element) {
+function switchTitleToTooltip(target: Element): void {
   let title = target.getAttribute('title');
   if (title) {
     // apply custom formatting to relative-time's tooltips
@@ -121,14 +122,14 @@ function switchTitleToTooltip(target: Element) {
  * Some browsers like PaleMoon don't support "addEventListener('mouseenter', capture)"
  * The tippy by default uses "mouseenter" event to show, so we use "mouseover" event to switch to tippy
  */
-function lazyTooltipOnMouseHover(e: MouseEvent) {
+function lazyTooltipOnMouseHover(e: MouseEvent): void {
   e.target.removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
   attachTooltip(this);
 }
 
 // Activate the tooltip for current element.
 // If the element has no aria-label, use the tooltip content as aria-label.
-function attachLazyTooltip(el: Element) {
+function attachLazyTooltip(el: Element): void {
   el.addEventListener('mouseover', lazyTooltipOnMouseHover, {capture: true});
 
   // meanwhile, if the element has no aria-label, use the tooltip content as aria-label
@@ -141,13 +142,13 @@ function attachLazyTooltip(el: Element) {
 }
 
 // Activate the tooltip for all children elements.
-function attachChildrenLazyTooltip(target: Element) {
+function attachChildrenLazyTooltip(target: Element): void {
   for (const el of target.querySelectorAll<Element>('[data-tooltip-content]')) {
     attachLazyTooltip(el);
   }
 }
 
-export function initGlobalTooltips() {
+export function initGlobalTooltips(): void {
   // use MutationObserver to detect new "data-tooltip-content" elements added to the DOM, or attributes changed
   const observerConnect = (observer: MutationObserver) => observer.observe(document, {
     subtree: true,
@@ -178,7 +179,7 @@ export function initGlobalTooltips() {
   attachChildrenLazyTooltip(document.documentElement);
 }
 
-export function showTemporaryTooltip(target: Element, content: Content) {
+export function showTemporaryTooltip(target: Element, content: Content): void {
   // if the target is inside a dropdown, the menu will be hidden soon
   // so display the tooltip on the dropdown instead
   target = target.closest('.ui.dropdown') || target;

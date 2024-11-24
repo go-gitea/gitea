@@ -2,6 +2,7 @@ import {createElementFromAttrs, createElementFromHTML, querySingleVisibleElem} f
 
 test('createElementFromHTML', () => {
   expect(createElementFromHTML('<a>foo<span>bar</span></a>').outerHTML).toEqual('<a>foo<span>bar</span></a>');
+  expect(createElementFromHTML('<tr data-x="1"><td>foo</td></tr>').outerHTML).toEqual('<tr data-x="1"><td>foo</td></tr>');
 });
 
 test('createElementFromAttrs', () => {
