@@ -8,13 +8,18 @@ import (
 	"xorm.io/xorm"
 )
 
+type WebAuthnCredential struct {
+	Flags protocol.AuthenticatorFlags
+}
+
+func (cred WebAuthnCredential) TableName() string {
+	return "webauthn_credential"
+}
+
 func AddFlagsOnWebAuthnCredential(x *xorm.Engine) error {
-	type WebAuthnCredential struct {
-		Flags protocol.AuthenticatorFlags
-	}
 	if err := x.Sync(new(WebAuthnCredential)); err != nil {
 		return err
 	}
-	_, err := x.Exec("UPDATE webauthn_credential SET flags = 29")
+	_, err := x.Exec("UPDATE webauthn_credential SET flags = 29 WHERE id > 0")
 	return err
 }
