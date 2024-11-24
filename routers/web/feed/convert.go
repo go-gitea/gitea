@@ -13,8 +13,8 @@ import (
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -48,22 +48,18 @@ func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
 	return act.GetRepoAbsoluteLink(ctx) + "/releases/tag/" + util.PathEscapeSegments(act.GetBranch())
 }
 
-// renderMarkdown creates a minimal markdown render context from an action.
-// If rendering fails, the original markdown text is returned
-func renderMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
-	markdownCtx := markup.NewRenderContext(ctx).
-		WithLinks(markup.Links{
-			Base: act.GetRepoLink(ctx),
-		}).
-		WithMetas(map[string]string{ // FIXME: not right here, it should use issue to compose the metas
-			"user": act.GetRepoUserName(ctx),
-			"repo": act.GetRepoName(ctx),
-		})
-	markdown, err := markdown.RenderString(markdownCtx, content)
-	if err != nil {
-		return templates.SanitizeHTML(content) // old code did so: use SanitizeHTML to render in tmpl
+// renderCommentMarkdown renders the comment markdown to html
+func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
+	act.LoadRepo(ctx)
+	if act.Repo == nil {
+		return ""
 	}
-	return markdown
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, act.Repo).WithUseAbsoluteLink(true)
+	rendered, err := markdown.RenderString(rctx, content)
+	if err != nil {
+		return ""
+	}
+	return rendered
 }
 
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
@@ -225,12 +221,12 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 
 			case activities_model.ActionCreateIssue, activities_model.ActionCreatePullRequest:
 				desc = strings.Join(act.GetIssueInfos(), "#")
-				content = renderMarkdown(ctx, act, act.GetIssueContent(ctx))
+				content = renderCommentMarkdown(ctx, act, act.GetIssueContent(ctx))
 			case activities_model.ActionCommentIssue, activities_model.ActionApprovePullRequest, activities_model.ActionRejectPullRequest, activities_model.ActionCommentPull:
 				desc = act.GetIssueTitle(ctx)
 				comment := act.GetIssueInfos()[1]
 				if len(comment) != 0 {
-					desc += "\n\n" + string(renderMarkdown(ctx, act, comment))
+					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, comment))
 				}
 			case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 				desc = act.GetIssueInfos()[1]
@@ -294,12 +290,8 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 		}
 
 		link := &feeds.Link{Href: rel.HTMLURL()}
-		content, err = markdown.RenderString(markup.NewRenderContext(ctx).
-			WithRepoFacade(rel.Repo).
-			WithLinks(markup.Links{
-				Base: rel.Repo.Link(),
-			}).
-			WithMetas(rel.Repo.ComposeMetas(ctx)),
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, rel.Repo).WithUseAbsoluteLink(true)
+		content, err = markdown.RenderString(rctx,
 			rel.Note)
 		if err != nil {
 			return nil, err

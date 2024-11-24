@@ -20,6 +20,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -27,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -257,11 +257,8 @@ func Milestones(ctx *context.Context) {
 			continue
 		}
 
-		milestones[i].RenderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
-			WithLinks(markup.Links{Base: milestones[i].Repo.Link()}).
-			WithMetas(milestones[i].Repo.ComposeMetas(ctx)).
-			WithRepoFacade(milestones[i].Repo),
-			milestones[i].Content)
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, milestones[i].Repo)
+		milestones[i].RenderedContent, err = markdown.RenderString(rctx, milestones[i].Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return

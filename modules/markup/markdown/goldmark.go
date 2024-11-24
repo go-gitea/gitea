@@ -37,8 +37,8 @@ func NewASTTransformer(renderInternal *internal.RenderInternal) *ASTTransformer 
 }
 
 func (g *ASTTransformer) applyElementDir(n ast.Node) {
-	if markup.DefaultProcessorHelper.ElementDir != "" {
-		n.SetAttributeString("dir", []byte(markup.DefaultProcessorHelper.ElementDir))
+	if !markup.RenderBehaviorForTesting.DisableAdditionalAttributes {
+		n.SetAttributeString("dir", "auto")
 	}
 }
 

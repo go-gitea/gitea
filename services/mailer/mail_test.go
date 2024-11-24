@@ -70,7 +70,7 @@ func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Re
 func TestComposeIssueCommentMessage(t *testing.T) {
 	doer, _, issue, comment := prepareMailerTest(t)
 
-	markup.Init(&markup.ProcessorHelper{
+	markup.Init(&markup.RenderHelperFuncs{
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
 			return username == doer.Name
 		},
