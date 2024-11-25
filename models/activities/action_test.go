@@ -256,7 +256,7 @@ func TestConsistencyUpdateAction(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
 		ID: int64(id),
 	})
-	_, err := db.GetEngine(db.DefaultContext).Exec(`UPDATE action SET created_unix = "" WHERE id = ?`, id)
+	_, err := db.GetEngine(db.DefaultContext).Exec(`UPDATE action SET created_unix = '' WHERE id = ?`, id)
 	assert.NoError(t, err)
 	actions := make([]*activities_model.Action, 0, 1)
 	//
