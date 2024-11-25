@@ -280,6 +280,8 @@ func TestUserSettingsApplications(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	t.Run("Applications", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
 		session := loginUser(t, "user2")
 		req := NewRequest(t, "GET", "/user/settings/applications")
 		resp := session.MakeRequest(t, req, http.StatusOK)
@@ -289,9 +291,13 @@ func TestUserSettingsApplications(t *testing.T) {
 	})
 
 	t.Run("OAuth2", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
 		session := loginUser(t, "user2")
 
 		t.Run("OAuth2ApplicationShow", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
 			req := NewRequest(t, "GET", "/user/settings/applications/oauth2/2")
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			doc := NewHTMLParser(t, resp.Body)
@@ -300,11 +306,15 @@ func TestUserSettingsApplications(t *testing.T) {
 		})
 
 		t.Run("OAuthApplicationsEdit", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
 			req := NewRequest(t, "GET", "/user/settings/applications/oauth2/2")
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			doc := NewHTMLParser(t, resp.Body)
 
 			t.Run("Invalid URL", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
 				req := NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/2", map[string]string{
 					"_csrf":               doc.GetCSRF(),
 					"application_name":    "Test native app",
@@ -319,6 +329,8 @@ func TestUserSettingsApplications(t *testing.T) {
 			})
 
 			t.Run("OK", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
 				req := NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/2", map[string]string{
 					"_csrf":               doc.GetCSRF(),
 					"application_name":    "Test native app",
