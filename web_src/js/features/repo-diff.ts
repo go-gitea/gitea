@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {createTippy} from '../modules/tippy.ts';
 import {initCompReactionSelector} from './comp/ReactionSelector.ts';
 import {initRepoIssueContentHistory} from './repo-issue-content.ts';
 import {initDiffFileTree, initDiffFileList} from './repo-diff-filetree.ts';
@@ -224,4 +225,24 @@ export function initRepoDiffView() {
   initRepoDiffFileViewToggle();
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();
+}
+
+export function initRepoDiffFileMenu() {
+  let tippyIndex = 0;
+  $('.js-btn-diff-file-menu').each(function () {
+    tippyIndex++;
+    this.setAttribute('data-diff-file-menu-tippy-target-id', tippyIndex);
+    const $menu = $(this).find('.tippy-target');
+    if ($menu.length < 1) return;
+    $menu[0].setAttribute('data-diff-file-menu-tippy-id', tippyIndex);
+    createTippy(this, {
+      content: $menu[0],
+      role: 'menu',
+      theme: 'menu',
+      trigger: 'click',
+      placement: 'bottom',
+      interactive: true,
+      hideOnClick: true,
+    });
+  });
 }

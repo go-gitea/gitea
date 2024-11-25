@@ -164,12 +164,12 @@
 										<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off"{{if $file.IsViewed}} checked{{end}}> {{ctx.Locale.Tr "repo.pulls.has_viewed_file"}}
 									</label>
 								{{end}}
-								<div class="ui dropdown basic">
+								<div class="ui tiny js-btn-diff-file-menu">
 									{{svg "octicon-kebab-horizontal" 18 "icon tw-mx-2"}}
-									<div class="ui menu">
+									<div class="tippy-target">
 										{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
-											<button class="unescape-button item">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-											<button class="escape-button tw-hidden item">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+											<a class="unescape-button item">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</a>
+											<a class="escape-button tw-hidden item">{{ctx.Locale.Tr "repo.escape_control_characters"}}</a>
 										{{end}}
 										{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 											{{if $file.IsDeleted}}

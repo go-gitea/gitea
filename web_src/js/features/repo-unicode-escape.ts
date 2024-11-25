@@ -7,8 +7,15 @@ export function initUnicodeEscapeButton() {
 
     e.preventDefault();
 
-    const fileContent = btn.closest('.file-content, .non-diff-file-content');
+    let fileContent = btn.closest('.file-content, .non-diff-file-content');
+    if (!fileContent) {
+      const tippyTarget = btn.closest('.tippy-target');
+      if (tippyTarget) {
+        fileContent = document.querySelectorAll(`[data-diff-file-menu-tippy-target-id="${tippyTarget.getAttribute('data-diff-file-menu-tippy-id')}"]`)[0].closest('.file-content, .non-diff-file-content');
+      }
+    }
     const fileView = fileContent?.querySelectorAll('.file-code, .file-view');
+    if (!fileView) return;
     if (btn.matches('.escape-button')) {
       for (const el of fileView) el.classList.add('unicode-escaped');
       hideElem(btn);
