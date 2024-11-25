@@ -9,10 +9,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 
@@ -51,7 +52,7 @@ type WebAuthnCredential struct {
 	PublicKey       []byte
 	AttestationType string
 	AAGUID          []byte
-	Flags           protocol.AuthenticatorFlags
+	CredentialFlags string `xorm:"TEXT DEFAULT ''"`
 	SignCount       uint32 `xorm:"BIGINT"`
 	CloneWarning    bool
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
@@ -95,6 +96,14 @@ type WebAuthnCredentialList []*WebAuthnCredential
 func (list WebAuthnCredentialList) ToCredentials() []webauthn.Credential {
 	creds := make([]webauthn.Credential, 0, len(list))
 	for _, cred := range list {
+		var flags webauthn.CredentialFlags
+		if cred.CredentialFlags != "" {
+			err := json.Unmarshal([]byte(cred.CredentialFlags), &flags)
+			if err != nil {
+				log.Error("Failed to unmarshal CredentialFlags, webauthn credential id:%d, err:%v", cred.ID, err)
+				continue
+			}
+		}
 		creds = append(creds, webauthn.Credential{
 			ID:              cred.CredentialID,
 			PublicKey:       cred.PublicKey,
@@ -104,12 +113,7 @@ func (list WebAuthnCredentialList) ToCredentials() []webauthn.Credential {
 				SignCount:    cred.SignCount,
 				CloneWarning: cred.CloneWarning,
 			},
-			Flags: webauthn.CredentialFlags{
-				UserPresent:    cred.Flags.HasUserPresent(),
-				UserVerified:   cred.Flags.HasUserVerified(),
-				BackupEligible: cred.Flags.HasBackupEligible(),
-				BackupState:    cred.Flags.HasBackupState(),
-			},
+			Flags: flags,
 		})
 	}
 	return creds
@@ -166,18 +170,9 @@ func GetWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID []b
 
 // CreateCredential will create a new WebAuthnCredential from the given Credential
 func CreateCredential(ctx context.Context, userID int64, name string, cred *webauthn.Credential) (*WebAuthnCredential, error) {
-	var flags protocol.AuthenticatorFlags
-	if cred.Flags.UserPresent {
-		flags |= protocol.FlagUserPresent
-	}
-	if cred.Flags.UserVerified {
-		flags |= protocol.FlagUserVerified
-	}
-	if cred.Flags.BackupEligible {
-		flags |= protocol.FlagBackupEligible
-	}
-	if cred.Flags.BackupState {
-		flags |= protocol.FlagBackupState
+	flagsJSON, err := json.Marshal(cred.Flags)
+	if err != nil {
+		return nil, err
 	}
 	c := &WebAuthnCredential{
 		UserID:          userID,
@@ -186,7 +181,7 @@ func CreateCredential(ctx context.Context, userID int64, name string, cred *weba
 		PublicKey:       cred.PublicKey,
 		AttestationType: cred.AttestationType,
 		AAGUID:          cred.Authenticator.AAGUID,
-		Flags:           flags,
+		CredentialFlags: string(flagsJSON),
 		SignCount:       cred.Authenticator.SignCount,
 		CloneWarning:    false,
 	}
