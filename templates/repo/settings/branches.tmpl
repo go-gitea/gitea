@@ -39,22 +39,20 @@
 			<div class="ui attached segment">
 				<div class="flex-list" id="protected-branches-list" data-update-priority-url="{{$.Repository.Link}}/settings/branches/priority">
 					{{range .ProtectedBranches}}
-						<div data-id="{{.ID}}">
-							<div class="flex-item tw-items-center">
-								<div class="drag-handle tw-cursor-grab">
-									{{svg "octicon-grabber" 16}}
+					  <div class="flex-item tw-items-center item" data-id="{{.ID}}" >
+							<div class="drag-handle tw-cursor-grab">
+								{{svg "octicon-grabber" 16}}
+							</div>
+							<div class="flex-item-main">
+								<div class="flex-item-title">
+									<div class="ui basic primary label">{{.RuleName}}</div>
 								</div>
-								<div class="flex-item-main">
-									<div class="flex-item-title">
-										<div class="ui basic primary label">{{.RuleName}}</div>
-									</div>
-								</div>
-								<div class="flex-item-trailing">
-									<a class="rm ui tiny button" href="{{$.Repository.Link}}/settings/branches/edit?rule_name={{.RuleName}}">{{ctx.Locale.Tr "repo.settings.edit_protected_branch"}}</a>
-									<button class="ui red tiny button delete-button" data-url="{{$.Repository.Link}}/settings/branches/{{.ID}}/delete" data-id="{{.ID}}">
-										{{ctx.Locale.Tr "repo.settings.protected_branch.delete_rule"}}
-									</button>
-								</div>
+							</div>
+							<div class="flex-item-trailing">
+								<a class="rm ui tiny button" href="{{$.Repository.Link}}/settings/branches/edit?rule_name={{.RuleName}}">{{ctx.Locale.Tr "repo.settings.edit_protected_branch"}}</a>
+								<button class="ui red tiny button delete-button" data-url="{{$.Repository.Link}}/settings/branches/{{.ID}}/delete" data-id="{{.ID}}">
+									{{ctx.Locale.Tr "repo.settings.protected_branch.delete_rule"}}
+								</button>
 							</div>
 						</div>
 					{{else}}
