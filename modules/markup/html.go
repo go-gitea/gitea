@@ -260,7 +260,6 @@ func RenderEmoji(ctx *RenderContext, content string) (string, error) {
 }
 
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
-	defer ctx.Cancel()
 	// FIXME: don't read all content to memory
 	rawHTML, err := io.ReadAll(input)
 	if err != nil {
@@ -396,7 +395,7 @@ func createLink(ctx *RenderContext, href, content, class string) *html.Node {
 		Data: atom.A.String(),
 		Attr: []html.Attribute{{Key: "href", Val: href}},
 	}
-	if !RenderBehaviorForTesting.DisableInternalAttributes {
+	if !RenderBehaviorForTesting.DisableAdditionalAttributes {
 		a.Attr = append(a.Attr, html.Attribute{Key: "data-markdown-generated-content"})
 	}
 	if class != "" {
