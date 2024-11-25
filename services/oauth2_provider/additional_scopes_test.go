@@ -24,7 +24,7 @@ func TestGrantAdditionalScopes(t *testing.T) {
 		{"read:user write:issue public-only", "public-only,write:issue,read:user"},
 		{"openid profile email read:user", "read:user"},
 
-		// TODO: would we always treat invalid scopes as "all"?
+		// TODO: at the moment invalid tokens are treated as "all" to avoid breaking 1.22 behavior (more details are in GrantAdditionalScopes)
 		{"read:invalid_scope", "all"},
 		{"read:invalid_scope,write:scope_invalid,just-plain-wrong", "all"},
 	}

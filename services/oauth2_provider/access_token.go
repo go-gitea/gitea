@@ -83,17 +83,21 @@ func GrantAdditionalScopes(grantScopes string) auth.AccessTokenScope {
 
 	var accessScopes []string // the scopes for access control, but not for general information
 	for _, scope := range strings.Split(grantScopes, " ") {
-		if !slices.Contains(generalScopesSupported, scope) {
+		if scope != "" && !slices.Contains(generalScopesSupported, scope) {
 			accessScopes = append(accessScopes, scope)
 		}
 	}
 
 	// since version 1.22, access tokens grant full access to the API
 	// with this access is reduced only if additional scopes are provided
-	// TODO: if there are invalid access scopes, then it is treated as "all", but would we really always treat invalid scopes as "all"?
-	accessTokenScope := auth.AccessTokenScope(strings.Join(accessScopes, ","))
-	if normalizedAccessTokenScope, err := accessTokenScope.Normalize(); err == nil && normalizedAccessTokenScope != "" {
-		return normalizedAccessTokenScope
+	if len(accessScopes) > 0 {
+		accessTokenScope := auth.AccessTokenScope(strings.Join(accessScopes, ","))
+		if normalizedAccessTokenScope, err := accessTokenScope.Normalize(); err == nil {
+			return normalizedAccessTokenScope
+		}
+		// TODO: if there are invalid access scopes (err != nil),
+		// then it is treated as "all", maybe in the future we should make it stricter to return an error
+		// at the moment, to avoid breaking 1.22 behavior, invalid tokens are also treated as "all"
 	}
 	// fallback, empty access scope is treated as "all" access
 	return auth.AccessTokenScopeAll
