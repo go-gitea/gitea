@@ -52,7 +52,7 @@ type WebAuthnCredential struct {
 	PublicKey       []byte
 	AttestationType string
 	AAGUID          []byte
-	CredentialFlags string `xorm:"TEXT DEFAULT ''"`
+	CredentialFlags string `xorm:"TEXT"`
 	SignCount       uint32 `xorm:"BIGINT"`
 	CloneWarning    bool
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`

@@ -11,7 +11,7 @@ import (
 )
 
 type WebAuthnCredential310 struct {
-	CredentialFlags string `xorm:"TEXT DEFAULT ''"`
+	CredentialFlags string `xorm:"TEXT"`
 }
 
 func (cred WebAuthnCredential310) TableName() string {
