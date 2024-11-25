@@ -24955,15 +24955,15 @@
     },
     "UpdateBranchProtectionPriories": {
       "description": "UpdateBranchProtectionPriories a list to update the branch protection rule priorities",
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
             "type": "integer",
-            "format": "int64",
-            "x-go-name": "ID"
-          }
+            "format": "int64"
+          },
+          "x-go-name": "IDs"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
