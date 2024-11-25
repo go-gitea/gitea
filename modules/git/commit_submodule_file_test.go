@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetRefURL(t *testing.T) {
+func TestCommitSubModuleFileGetRefURL(t *testing.T) {
 	kases := []struct {
 		refURL     string
 		prefixURL  string

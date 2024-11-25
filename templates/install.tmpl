@@ -338,7 +338,9 @@
 
 					<div class="inline field">
 						<div class="right-content">
-							{{ctx.Locale.Tr "install.config_write_file_prompt"}} <span class="ui label">{{.CustomConfFile}}</span> <button class="btn interact-fg" data-clipboard-text="{{.CustomConfFile}}">{{svg "octicon-copy" 14}}</button>
+							{{$copyBtn := svg "octicon-copy" 14}}
+							{{$filePath := HTMLFormat `<span class="ui label">%s</span> <button class="btn interact-fg" data-clipboard-text="%s">%s</button>` .CustomConfFile .CustomConfFile $copyBtn}}
+							{{ctx.Locale.Tr "install.config_write_file_prompt" $filePath}}
 						</div>
 						<div class="tw-mt-4 tw-mb-2 tw-text-center">
 							<button class="ui primary button">{{ctx.Locale.Tr "install.install_btn_confirm"}}</button>

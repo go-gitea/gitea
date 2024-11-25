@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import type {FomanticInitFunction} from '../../types.ts';
 
 export function initFomanticApiPatch() {
   //
@@ -15,7 +16,7 @@ export function initFomanticApiPatch() {
   //
   const patchKey = '_giteaFomanticApiPatch';
   const oldApi = $.api;
-  $.api = $.fn.api = function(...args) {
+  $.api = $.fn.api = function(...args: Parameters<FomanticInitFunction>) {
     const apiCall = oldApi.bind(this);
     const ret = oldApi.apply(this, args);
 
@@ -23,7 +24,7 @@ export function initFomanticApiPatch() {
       const internalGet = apiCall('internal', 'get');
       if (!internalGet.urlEncodedValue[patchKey]) {
         const oldUrlEncodedValue = internalGet.urlEncodedValue;
-        internalGet.urlEncodedValue = function (value) {
+        internalGet.urlEncodedValue = function (value: any) {
           try {
             return oldUrlEncodedValue(value);
           } catch {
