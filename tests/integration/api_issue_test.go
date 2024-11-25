@@ -145,7 +145,7 @@ func TestAPICreateIssue(t *testing.T) {
 func TestAPICreateIssueParallel(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	// FIXME: There seems to be a bug in go-sqlite, when doing concurrent writes to the same database,
+	// FIXME: There seems to be a bug in github.com/mattn/go-sqlite3 with sqlite_unlock_notify, when doing concurrent writes to the same database,
 	// some requests may get stuck in "go-sqlite3.(*SQLiteRows).Next", "go-sqlite3.(*SQLiteStmt).exec" and "go-sqlite3.unlock_notify_wait",
 	// because the "unlock_notify_wait" never returns and the internal lock never gets releases.
 	//
