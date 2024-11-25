@@ -5,20 +5,18 @@ package markup
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/url"
-	"path/filepath"
 	"strings"
-	"sync"
+	"time"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/markup/internal"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/yuin/goldmark/ast"
+	"golang.org/x/sync/errgroup"
 )
 
 type RenderMetaMode string
@@ -29,60 +27,128 @@ const (
 	RenderMetaAsTable   RenderMetaMode = "table"
 )
 
+var RenderBehaviorForTesting struct {
+	// Markdown line break rendering has 2 default behaviors:
+	// * Use hard: replace "\n" with "<br>" for comments, setting.Markdown.EnableHardLineBreakInComments=true
+	// * Keep soft: "\n" for non-comments (a.k.a. documents), setting.Markdown.EnableHardLineBreakInDocuments=false
+	// In history, there was a mess:
+	// * The behavior was controlled by `Metas["mode"] != "document",
+	// * However, many places render the content without setting "mode" in Metas, all these places used comment line break setting incorrectly
+	ForceHardLineBreak bool
+
+	// Gitea will emit some additional attributes for various purposes, these attributes don't affect rendering.
+	// But there are too many hard-coded test cases, to avoid changing all of them again and again, we can disable emitting these internal attributes.
+	DisableAdditionalAttributes bool
+}
+
+type RenderOptions struct {
+	UseAbsoluteLink bool
+
+	// relative path from tree root of the branch
+	RelativePath string
+
+	// eg: "orgmode", "asciicast", "console"
+	// for file mode, it could be left as empty, and will be detected by file extension in RelativePath
+	MarkupType string
+
+	// user&repo, format&style&regexp (for external issue pattern), teams&org (for mention)
+	// BranchNameSubURL (for iframe&asciicast)
+	// markupAllowShortIssuePattern
+	// markdownLineBreakStyle (comment, document)
+	Metas map[string]string
+
+	// used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
+	InStandalonePage bool
+}
+
 // RenderContext represents a render context
 type RenderContext struct {
-	Ctx              context.Context
-	RelativePath     string // relative path from tree root of the branch
-	Type             string
-	IsWiki           bool
-	Links            Links
-	Metas            map[string]string // user, repo, mode(comment/document)
-	DefaultLink      string
-	GitRepo          *git.Repository
-	Repo             gitrepo.Repository
-	ShaExistCache    map[string]bool
-	cancelFn         func()
-	SidebarTocNode   ast.Node
-	RenderMetaAs     RenderMetaMode
-	InStandalonePage bool // used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
+	ctx context.Context
+
+	SidebarTocNode ast.Node
+
+	RenderHelper   RenderHelper
+	RenderOptions  RenderOptions
+	RenderInternal internal.RenderInternal
 }
 
-// Cancel runs any cleanup functions that have been registered for this Ctx
-func (ctx *RenderContext) Cancel() {
-	if ctx == nil {
-		return
-	}
-	ctx.ShaExistCache = map[string]bool{}
-	if ctx.cancelFn == nil {
-		return
-	}
-	ctx.cancelFn()
+func (ctx *RenderContext) Deadline() (deadline time.Time, ok bool) {
+	return ctx.ctx.Deadline()
 }
 
-// AddCancel adds the provided fn as a Cleanup for this Ctx
-func (ctx *RenderContext) AddCancel(fn func()) {
-	if ctx == nil {
-		return
-	}
-	oldCancelFn := ctx.cancelFn
-	if oldCancelFn == nil {
-		ctx.cancelFn = fn
-		return
-	}
-	ctx.cancelFn = func() {
-		defer oldCancelFn()
-		fn()
-	}
+func (ctx *RenderContext) Done() <-chan struct{} {
+	return ctx.ctx.Done()
+}
+
+func (ctx *RenderContext) Err() error {
+	return ctx.ctx.Err()
+}
+
+func (ctx *RenderContext) Value(key any) any {
+	return ctx.ctx.Value(key)
+}
+
+var _ context.Context = (*RenderContext)(nil)
+
+func NewRenderContext(ctx context.Context) *RenderContext {
+	return &RenderContext{ctx: ctx, RenderHelper: &SimpleRenderHelper{}}
+}
+
+func (ctx *RenderContext) WithMarkupType(typ string) *RenderContext {
+	ctx.RenderOptions.MarkupType = typ
+	return ctx
+}
+
+func (ctx *RenderContext) WithRelativePath(path string) *RenderContext {
+	ctx.RenderOptions.RelativePath = path
+	return ctx
+}
+
+func (ctx *RenderContext) WithMetas(metas map[string]string) *RenderContext {
+	ctx.RenderOptions.Metas = metas
+	return ctx
+}
+
+func (ctx *RenderContext) WithInStandalonePage(v bool) *RenderContext {
+	ctx.RenderOptions.InStandalonePage = v
+	return ctx
+}
+
+func (ctx *RenderContext) WithUseAbsoluteLink(v bool) *RenderContext {
+	ctx.RenderOptions.UseAbsoluteLink = v
+	return ctx
+}
+
+func (ctx *RenderContext) WithHelper(helper RenderHelper) *RenderContext {
+	ctx.RenderHelper = helper
+	return ctx
 }
 
 // Render renders markup file to HTML with all specific handling stuff.
 func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	if ctx.Type != "" {
-		return renderByType(ctx, input, output)
-	} else if ctx.RelativePath != "" {
-		return renderFile(ctx, input, output)
+	if ctx.RenderOptions.MarkupType == "" && ctx.RenderOptions.RelativePath != "" {
+		ctx.RenderOptions.MarkupType = DetectMarkupTypeByFileName(ctx.RenderOptions.RelativePath)
+		if ctx.RenderOptions.MarkupType == "" {
+			return util.NewInvalidArgumentErrorf("unsupported file to render: %q", ctx.RenderOptions.RelativePath)
+		}
 	}
-	return errors.New("render options both filename and type missing")
+
+	renderer := renderers[ctx.RenderOptions.MarkupType]
+	if renderer == nil {
+		return util.NewInvalidArgumentErrorf("unsupported markup type: %q", ctx.RenderOptions.MarkupType)
+	}
+
+	if ctx.RenderOptions.RelativePath != "" {
+		if externalRender, ok := renderer.(ExternalRenderer); ok && externalRender.DisplayInIFrame() {
+			if !ctx.RenderOptions.InStandalonePage {
+				// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
+				// otherwise, a <iframe> should be outputted to embed the external rendered page
+				return renderIFrame(ctx, output)
+			}
+		}
+	}
+
+	return render(ctx, renderer, input, output)
 }
 
 // RenderString renders Markup string to HTML with all specific handling stuff and return string
@@ -107,111 +173,70 @@ width="100%%" height="0" scrolling="no" frameborder="0" style="overflow: hidden"
 sandbox="allow-scripts"
 ></iframe>`,
 		setting.AppSubURL,
-		url.PathEscape(ctx.Metas["user"]),
-		url.PathEscape(ctx.Metas["repo"]),
-		ctx.Metas["BranchNameSubURL"],
-		url.PathEscape(ctx.RelativePath),
+		url.PathEscape(ctx.RenderOptions.Metas["user"]),
+		url.PathEscape(ctx.RenderOptions.Metas["repo"]),
+		ctx.RenderOptions.Metas["BranchNameSubURL"],
+		url.PathEscape(ctx.RenderOptions.RelativePath),
 	))
 	return err
 }
 
-func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
-	var wg sync.WaitGroup
-	var err error
+func pipes() (io.ReadCloser, io.WriteCloser, func()) {
 	pr, pw := io.Pipe()
-	defer func() {
+	return pr, pw, func() {
 		_ = pr.Close()
 		_ = pw.Close()
-	}()
+	}
+}
 
-	var pr2 io.ReadCloser
-	var pw2 io.WriteCloser
-
-	var sanitizerDisabled bool
-	if r, ok := renderer.(ExternalRenderer); ok {
-		sanitizerDisabled = r.SanitizerDisabled()
+func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
+	if ctx.RenderHelper != nil {
+		defer ctx.RenderHelper.CleanUp()
 	}
 
-	if !sanitizerDisabled {
-		pr2, pw2 = io.Pipe()
-		defer func() {
-			_ = pr2.Close()
-			_ = pw2.Close()
-		}()
+	finalProcessor := ctx.RenderInternal.Init(output)
+	defer finalProcessor.Close()
 
-		wg.Add(1)
-		go func() {
-			err = SanitizeReader(pr2, renderer.Name(), output)
-			_ = pr2.Close()
-			wg.Done()
-		}()
-	} else {
-		pw2 = util.NopCloser{Writer: output}
+	// input -> (pw1=pr1) -> renderer -> (pw2=pr2) -> SanitizeReader -> finalProcessor -> output
+	// no sanitizer: input -> (pw1=pr1) -> renderer -> pw2(finalProcessor) -> output
+	pr1, pw1, close1 := pipes()
+	defer close1()
+
+	eg, _ := errgroup.WithContext(ctx)
+	var pw2 io.WriteCloser = util.NopCloser{Writer: finalProcessor}
+
+	if r, ok := renderer.(ExternalRenderer); !ok || !r.SanitizerDisabled() {
+		var pr2 io.ReadCloser
+		var close2 func()
+		pr2, pw2, close2 = pipes()
+		defer close2()
+		eg.Go(func() error {
+			defer pr2.Close()
+			return SanitizeReader(pr2, renderer.Name(), finalProcessor)
+		})
 	}
 
-	wg.Add(1)
-	go func() {
+	eg.Go(func() (err error) {
 		if r, ok := renderer.(PostProcessRenderer); ok && r.NeedPostProcess() {
-			err = PostProcess(ctx, pr, pw2)
+			err = PostProcess(ctx, pr1, pw2)
 		} else {
-			_, err = io.Copy(pw2, pr)
+			_, err = io.Copy(pw2, pr1)
 		}
-		_ = pr.Close()
-		_ = pw2.Close()
-		wg.Done()
-	}()
+		_, _ = pr1.Close(), pw2.Close()
+		return err
+	})
 
-	if err1 := renderer.Render(ctx, input, pw); err1 != nil {
-		return err1
+	if err := renderer.Render(ctx, input, pw1); err != nil {
+		return err
 	}
-	_ = pw.Close()
+	_ = pw1.Close()
 
-	wg.Wait()
-	return err
-}
-
-func renderByType(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	if renderer, ok := renderers[ctx.Type]; ok {
-		return render(ctx, renderer, input, output)
-	}
-	return fmt.Errorf("unsupported render type: %s", ctx.Type)
-}
-
-// ErrUnsupportedRenderExtension represents the error when extension doesn't supported to render
-type ErrUnsupportedRenderExtension struct {
-	Extension string
-}
-
-func IsErrUnsupportedRenderExtension(err error) bool {
-	_, ok := err.(ErrUnsupportedRenderExtension)
-	return ok
-}
-
-func (err ErrUnsupportedRenderExtension) Error() string {
-	return fmt.Sprintf("Unsupported render extension: %s", err.Extension)
-}
-
-func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	extension := strings.ToLower(filepath.Ext(ctx.RelativePath))
-	if renderer, ok := extRenderers[extension]; ok {
-		if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {
-			if !ctx.InStandalonePage {
-				// for an external render, it could only output its content in a standalone page
-				// otherwise, a <iframe> should be outputted to embed the external rendered page
-				return renderIFrame(ctx, output)
-			}
-		}
-		return render(ctx, renderer, input, output)
-	}
-	return ErrUnsupportedRenderExtension{extension}
+	return eg.Wait()
 }
 
 // Init initializes the render global variables
-func Init(ph *ProcessorHelper) {
-	if ph != nil {
-		DefaultProcessorHelper = *ph
-	}
-
+func Init(renderHelpFuncs *RenderHelperFuncs) {
+	DefaultRenderHelperFuncs = renderHelpFuncs
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 	}
@@ -223,4 +248,47 @@ func Init(ph *ProcessorHelper) {
 			extRenderers[strings.ToLower(ext)] = renderer
 		}
 	}
+}
+
+func ComposeSimpleDocumentMetas() map[string]string {
+	return map[string]string{"markdownLineBreakStyle": "document"}
+}
+
+type TestRenderHelper struct {
+	ctx      *RenderContext
+	BaseLink string
+}
+
+func (r *TestRenderHelper) CleanUp() {}
+
+func (r *TestRenderHelper) IsCommitIDExisting(commitID string) bool {
+	return strings.HasPrefix(commitID, "65f1bf2") //|| strings.HasPrefix(commitID, "88fc37a")
+}
+
+func (r *TestRenderHelper) ResolveLink(link string, likeType LinkType) string {
+	return r.ctx.ResolveLinkRelative(r.BaseLink, "", link)
+}
+
+var _ RenderHelper = (*TestRenderHelper)(nil)
+
+// NewTestRenderContext is a helper function to create a RenderContext for testing purpose
+// It accepts string (BaseLink), map[string]string (Metas)
+func NewTestRenderContext(baseLinkOrMetas ...any) *RenderContext {
+	if !setting.IsInTesting {
+		panic("NewTestRenderContext should only be used in testing")
+	}
+	helper := &TestRenderHelper{}
+	ctx := NewRenderContext(context.Background()).WithHelper(helper)
+	helper.ctx = ctx
+	for _, v := range baseLinkOrMetas {
+		switch v := v.(type) {
+		case string:
+			helper.BaseLink = v
+		case map[string]string:
+			ctx = ctx.WithMetas(v)
+		default:
+			panic(fmt.Sprintf("unknown type %T", v))
+		}
+	}
+	return ctx
 }

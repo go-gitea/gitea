@@ -209,8 +209,6 @@ func checkRecentlyPushedNewBranches(t *testing.T, session *TestSession, repoPath
 }
 
 func TestRecentlyPushedNewBranches(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user1Session := loginUser(t, "user1")
 		user2Session := loginUser(t, "user2")

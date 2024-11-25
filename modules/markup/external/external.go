@@ -12,7 +12,6 @@ import (
 	"runtime"
 	"strings"
 
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/process"
@@ -80,8 +79,8 @@ func envMark(envName string) string {
 func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	var (
 		command = strings.NewReplacer(
-			envMark("GITEA_PREFIX_SRC"), ctx.Links.SrcLink(),
-			envMark("GITEA_PREFIX_RAW"), ctx.Links.RawLink(),
+			envMark("GITEA_PREFIX_SRC"), ctx.RenderHelper.ResolveLink("", markup.LinkTypeDefault),
+			envMark("GITEA_PREFIX_RAW"), ctx.RenderHelper.ResolveLink("", markup.LinkTypeRaw),
 		).Replace(p.Command)
 		commands = strings.Fields(command)
 		args     = commands[1:]
@@ -102,7 +101,7 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 
 		_, err = io.Copy(f, input)
 		if err != nil {
-			f.Close()
+			_ = f.Close()
 			return fmt.Errorf("%s write data to temp file when rendering %s failed: %w", p.Name(), p.Command, err)
 		}
 
@@ -113,23 +112,14 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		args = append(args, f.Name())
 	}
 
-	if ctx == nil || ctx.Ctx == nil {
-		if ctx == nil {
-			log.Warn("RenderContext not provided defaulting to empty ctx")
-			ctx = &markup.RenderContext{}
-		}
-		log.Warn("RenderContext did not provide context, defaulting to Shutdown context")
-		ctx.Ctx = graceful.GetManager().ShutdownContext()
-	}
-
-	processCtx, _, finished := process.GetManager().AddContext(ctx.Ctx, fmt.Sprintf("Render [%s] for %s", commands[0], ctx.Links.SrcLink()))
+	processCtx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Render [%s] for %s", commands[0], ctx.RenderHelper.ResolveLink("", markup.LinkTypeDefault)))
 	defer finished()
 
 	cmd := exec.CommandContext(processCtx, commands[0], args...)
 	cmd.Env = append(
 		os.Environ(),
-		"GITEA_PREFIX_SRC="+ctx.Links.SrcLink(),
-		"GITEA_PREFIX_RAW="+ctx.Links.RawLink(),
+		"GITEA_PREFIX_SRC="+ctx.RenderHelper.ResolveLink("", markup.LinkTypeDefault),
+		"GITEA_PREFIX_RAW="+ctx.RenderHelper.ResolveLink("", markup.LinkTypeRaw),
 	)
 	if !p.IsInputFile {
 		cmd.Stdin = input
