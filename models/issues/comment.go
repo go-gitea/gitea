@@ -1108,7 +1108,7 @@ func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, 
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
 
-	if opts.Page != 0 {
+	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, opts)
 	}
 

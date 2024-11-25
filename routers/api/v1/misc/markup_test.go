@@ -25,7 +25,7 @@ const AppURL = "http://localhost:3000/"
 
 func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, expectedBody string, expectedCode int) {
 	setting.AppURL = AppURL
-	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	context := "/gogits/gogs"
 	if !wiki {
 		context += path.Join("/src/branch/main", path.Dir(filePath))
@@ -46,7 +46,7 @@ func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, expe
 }
 
 func testRenderMarkdown(t *testing.T, mode string, wiki bool, text, responseBody string, responseCode int) {
-	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableInternalAttributes, true)()
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	setting.AppURL = AppURL
 	context := "/gogits/gogs"
 	if !wiki {
@@ -67,7 +67,7 @@ func testRenderMarkdown(t *testing.T, mode string, wiki bool, text, responseBody
 }
 
 func TestAPI_RenderGFM(t *testing.T) {
-	markup.Init(&markup.ProcessorHelper{
+	markup.Init(&markup.RenderHelperFuncs{
 		IsUsernameMentionable: func(ctx go_context.Context, username string) bool {
 			return username == "r-lyeh"
 		},
@@ -182,6 +182,7 @@ var simpleCases = []string{
 
 func TestAPI_RenderSimple(t *testing.T) {
 	setting.AppURL = AppURL
+	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
 	options := api.MarkdownOption{
 		Mode:    "markdown",
 		Text:    "",
@@ -199,6 +200,7 @@ func TestAPI_RenderSimple(t *testing.T) {
 
 func TestAPI_RenderRaw(t *testing.T) {
 	setting.AppURL = AppURL
+	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
 	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
 	for i := 0; i < len(simpleCases); i += 2 {
 		ctx.Req.Body = io.NopCloser(strings.NewReader(simpleCases[i]))

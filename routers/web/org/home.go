@@ -11,10 +11,10 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -180,16 +180,10 @@ func prepareOrgProfileReadme(ctx *context.Context, viewRepositories bool) bool {
 	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 		log.Error("failed to GetBlobContent: %v", err)
 	} else {
-		if profileContent, err := markdown.RenderString(markup.NewRenderContext(ctx).
-			WithGitRepo(profileGitRepo).
-			WithLinks(markup.Links{
-				// Pass repo link to markdown render for the full link of media elements.
-				// The profile of default branch would be shown.
-				Base:       profileDbRepo.Link(),
-				BranchPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
-			}).
-			WithMetas(markup.ComposeSimpleDocumentMetas()),
-			bytes); err != nil {
+		rctx := renderhelper.NewRenderContextRepoFile(ctx, profileDbRepo, renderhelper.RepoFileOptions{
+			CurrentRefPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
+		})
+		if profileContent, err := markdown.RenderString(rctx, bytes); err != nil {
 			log.Error("failed to RenderString: %v", err)
 		} else {
 			ctx.Data["ProfileReadme"] = profileContent

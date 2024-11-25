@@ -4,13 +4,10 @@
 package markup
 
 import (
-	"io"
 	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/net/html"
@@ -163,15 +160,12 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 // hashCurrentPatternProcessor renders SHA1 strings to corresponding links that
 // are assumed to be in the same repository.
 func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.RenderOptions.Metas == nil || ctx.RenderOptions.Metas["user"] == "" || ctx.RenderOptions.Metas["repo"] == "" || (ctx.RenderHelper.repoFacade == nil && ctx.RenderHelper.gitRepo == nil) {
+	if ctx.RenderOptions.Metas == nil || ctx.RenderOptions.Metas["user"] == "" || ctx.RenderOptions.Metas["repo"] == "" || ctx.RenderHelper == nil {
 		return
 	}
 
 	start := 0
 	next := node.NextSibling
-	if ctx.RenderHelper.shaExistCache == nil {
-		ctx.RenderHelper.shaExistCache = make(map[string]bool)
-	}
 	for node != nil && node != next && start < len(node.Data) {
 		m := globalVars().hashCurrentPattern.FindStringSubmatchIndex(node.Data[start:])
 		if m == nil {
@@ -189,35 +183,12 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		// as used by git and github for linking and thus we have to do similar.
 		// Because of this, we check to make sure that a matched hash is actually
 		// a commit in the repository before making it a link.
-
-		// check cache first
-		exist, inCache := ctx.RenderHelper.shaExistCache[hash]
-		if !inCache {
-			if ctx.RenderHelper.gitRepo == nil {
-				var err error
-				var closer io.Closer
-				ctx.RenderHelper.gitRepo, closer, err = gitrepo.RepositoryFromContextOrOpen(ctx, ctx.RenderHelper.repoFacade)
-				if err != nil {
-					log.Error("unable to open repository: %s Error: %v", gitrepo.RepoGitURL(ctx.RenderHelper.repoFacade), err)
-					return
-				}
-				ctx.AddCancel(func() {
-					_ = closer.Close()
-					ctx.RenderHelper.gitRepo = nil
-				})
-			}
-
-			// Don't use IsObjectExist since it doesn't support short hashs with gogit edition.
-			exist = ctx.RenderHelper.gitRepo.IsReferenceExist(hash)
-			ctx.RenderHelper.shaExistCache[hash] = exist
-		}
-
-		if !exist {
+		if !ctx.RenderHelper.IsCommitIDExisting(hash) {
 			start = m[3]
 			continue
 		}
 
-		link := util.URLJoin(ctx.RenderOptions.Links.Prefix(), ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], "commit", hash)
+		link := ctx.RenderHelper.ResolveLink(util.URLJoin(ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], "commit", hash), LinkTypeApp)
 		replaceContent(node, m[2], m[3], createCodeLink(link, base.ShortSha(hash), "commit"))
 		start = 0
 		node = node.NextSibling.NextSibling

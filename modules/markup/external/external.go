@@ -79,8 +79,8 @@ func envMark(envName string) string {
 func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	var (
 		command = strings.NewReplacer(
-			envMark("GITEA_PREFIX_SRC"), ctx.RenderOptions.Links.SrcLink(),
-			envMark("GITEA_PREFIX_RAW"), ctx.RenderOptions.Links.RawLink(),
+			envMark("GITEA_PREFIX_SRC"), ctx.RenderHelper.ResolveLink("", markup.LinkTypeDefault),
+			envMark("GITEA_PREFIX_RAW"), ctx.RenderHelper.ResolveLink("", markup.LinkTypeRaw),
 		).Replace(p.Command)
 		commands = strings.Fields(command)
 		args     = commands[1:]
@@ -112,14 +112,14 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		args = append(args, f.Name())
 	}
 
-	processCtx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Render [%s] for %s", commands[0], ctx.RenderOptions.Links.SrcLink()))
+	processCtx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Render [%s] for %s", commands[0], ctx.RenderHelper.ResolveLink("", markup.LinkTypeDefault)))
 	defer finished()
 
 	cmd := exec.CommandContext(processCtx, commands[0], args...)
 	cmd.Env = append(
 		os.Environ(),
-		"GITEA_PREFIX_SRC="+ctx.RenderOptions.Links.SrcLink(),
-		"GITEA_PREFIX_RAW="+ctx.RenderOptions.Links.RawLink(),
+		"GITEA_PREFIX_SRC="+ctx.RenderHelper.ResolveLink("", markup.LinkTypeDefault),
+		"GITEA_PREFIX_RAW="+ctx.RenderHelper.ResolveLink("", markup.LinkTypeRaw),
 	)
 	if !p.IsInputFile {
 		cmd.Stdin = input

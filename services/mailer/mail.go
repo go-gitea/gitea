@@ -18,12 +18,12 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -219,10 +219,8 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	}
 
 	// This is the body of the new issue or comment, not the mail body
-	body, err := markdown.RenderString(markup.NewRenderContext(ctx).
-		WithRepoFacade(ctx.Issue.Repo).
-		WithLinks(markup.Links{AbsolutePrefix: true, Base: ctx.Issue.Repo.HTMLURL()}).
-		WithMetas(ctx.Issue.Repo.ComposeMetas(ctx)),
+	rctx := renderhelper.NewRenderContextRepoComment(ctx.Context, ctx.Issue.Repo).WithUseAbsoluteLink(true)
+	body, err := markdown.RenderString(rctx,
 		ctx.Content)
 	if err != nil {
 		return nil, err
