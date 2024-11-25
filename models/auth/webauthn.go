@@ -197,13 +197,3 @@ func DeleteCredential(ctx context.Context, id, userID int64) (bool, error) {
 	had, err := db.GetEngine(ctx).ID(id).Where("user_id = ?", userID).Delete(&WebAuthnCredential{})
 	return had > 0, err
 }
-
-// WebAuthnCredentials implements the webauthn.User interface
-func WebAuthnCredentials(ctx context.Context, userID int64) ([]webauthn.Credential, error) {
-	dbCreds, err := GetWebAuthnCredentialsByUID(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	return dbCreds.ToCredentials(), nil
-}
