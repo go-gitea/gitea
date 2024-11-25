@@ -7,10 +7,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.22.4](https://github.com/go-gitea/gitea/releases/tag/1.22.4) - 2024-11-14
 
 * SECURITY
+  * Fix basic auth with webauthn (#32531) (#32536)
   * Refactor internal routers (partial backport, auth token const time comparing) (#32473) (#32479)
 * PERFORMANCE
   * Remove transaction for archive download (#32186) (#32520)
 * BUGFIXES
+  * Fix `missing signature key` error when pulling Docker images with `SERVE_DIRECT` enabled (#32365) (#32397)
   * Fix get reviewers fails when selecting user without pull request permissions unit (#32415) (#32616)
   * Fix adding index files to tmp directory (#32360) (#32593)
   * Fix PR creation on forked repositories via API (#31863) (#32591)
@@ -32,7 +34,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix the permission check for user search API and limit the number of returned users for `/user/search` (#32310)
   * Fix SearchIssues swagger docs (#32208) (#32298)
   * Fix dropdown content overflow (#31610) (#32250)
-  * Fix nil panic if repo doesn't exist (#32501) (#32502)
   * Disable Oauth check if oauth disabled (#32368) (#32480)
   * Respect renamed dependencies of Cargo registry (#32430) (#32478)
   * Fix mermaid diagram height when initially hidden (#32457) (#32464)
@@ -56,6 +57,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Remove unnecessary code: `GetPushMirrorsByRepoID` called on all repo pages (#32560) (#32567)
   * Improve some sanitizer rules (#32534)
   * Update nix development environment vor v1.22.x (#32495)
+  * Add warn log when deleting inactive users (#32318) (#32321)
+  * Update github.com/go-enry/go-enry to v2.9.1 (#32295) (#32296)
+  * Warn users when they try to use a non-root-url to sign in/up (#32272) (#32273)
 
 ## [1.22.3](https://github.com/go-gitea/gitea/releases/tag/1.22.3) - 2024-10-08
 
