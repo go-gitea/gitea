@@ -8,6 +8,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 * SECURITY
   * Refactor internal routers (partial backport, auth token const time comparing) (#32473) (#32479)
+* PERFORMANCE
+  * Remove transaction for archive download (#32186) (#32520)
 * BUGFIXES
   * Fix get reviewers fails when selecting user without pull request permissions unit (#32415) (#32616)
   * Fix adding index files to tmp directory (#32360) (#32593)
