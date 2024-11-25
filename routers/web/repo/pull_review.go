@@ -365,6 +365,10 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			ctx.Status(http.StatusForbidden)
 			return
 		}
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			ctx.ServerError("issue.LoadPullRequest", err)
+			return
+		}
 		if reviewID < 0 {
 			// negative reviewIDs represent team requests
 			if err := issue.Repo.LoadOwner(ctx); err != nil {
@@ -395,7 +399,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			_, err = issue_service.TeamReviewRequest(ctx, issue, ctx.Doer, team, action == "attach")
+			_, err = issue_service.TeamReviewRequest(ctx, issue.PullRequest, ctx.Doer, team, action == "attach")
 			if err != nil {
 				if issues_model.IsErrNotValidReviewRequest(err) {
 					log.Warn(
@@ -427,7 +431,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			return
 		}
 
-		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, &ctx.Repo.Permission, reviewer, action == "attach")
+		_, err = issue_service.ReviewRequest(ctx, issue.PullRequest, ctx.Doer, &ctx.Repo.Permission, reviewer, action == "attach")
 		if err != nil {
 			if issues_model.IsErrNotValidReviewRequest(err) {
 				log.Warn(

@@ -611,7 +611,79 @@ func CreateReviewRequests(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	opts := web.GetForm(ctx).(*api.PullReviewRequestOptions)
-	apiReviewRequest(ctx, *opts, true)
+
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	if err != nil {
+		if issues_model.IsErrPullRequestNotExist(err) {
+			ctx.NotFound("GetPullRequestByIndex", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
+		}
+		return
+	}
+
+	allowedUsers, err := pull_service.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer.ID, pr.Issue.PosterID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetReviewers", err)
+		return
+	}
+	filteredUsers := make([]*user_model.User, 0, len(opts.Reviewers))
+	for _, reviewer := range opts.Reviewers {
+		for _, allowedUser := range allowedUsers {
+			if allowedUser.Name == reviewer || allowedUser.Email == reviewer {
+				filteredUsers = append(filteredUsers, allowedUser)
+				break
+			}
+		}
+	}
+
+	filteredTeams := make([]*organization.Team, 0, len(opts.TeamReviewers))
+	if ctx.Repo.Repository.Owner.IsOrganization() && len(opts.TeamReviewers) > 0 {
+		allowedTeams, err := pull_service.GetReviewerTeams(ctx, ctx.Repo.Repository)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetReviewers", err)
+			return
+		}
+		for _, teamReviewer := range opts.TeamReviewers {
+			for _, allowedTeam := range allowedTeams {
+				if allowedTeam.Name == teamReviewer {
+					filteredTeams = append(filteredTeams, allowedTeam)
+					break
+				}
+			}
+		}
+	}
+	comments, err := issue_service.ReviewRequests(ctx, pr, ctx.Doer, filteredUsers, filteredTeams)
+	if err != nil {
+		if issues_model.IsErrReviewRequestOnClosedPR(err) {
+			ctx.Error(http.StatusForbidden, "", err)
+			return
+		}
+		if issues_model.IsErrNotValidReviewRequest(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "ReviewRequests", err)
+		return
+	}
+
+	reviews := make([]*issues_model.Review, 0, len(filteredUsers))
+	for _, comment := range comments {
+		if comment != nil {
+			if err = comment.LoadReview(ctx); err != nil {
+				ctx.ServerError("ReviewRequest", err)
+				return
+			}
+			reviews = append(reviews, comment.Review)
+		}
+	}
+
+	apiReviews, err := convert.ToPullReviewList(ctx, reviews, ctx.Doer)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "convertToPullReviewList", err)
+		return
+	}
+	ctx.JSON(http.StatusCreated, apiReviews)
 }
 
 // DeleteReviewRequests delete review requests to an pull request
@@ -730,7 +802,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 	}
 
 	for _, reviewer := range reviewers {
-		comment, err := issue_service.ReviewRequest(ctx, pr.Issue, ctx.Doer, &permDoer, reviewer, isAdd)
+		comment, err := issue_service.ReviewRequest(ctx, pr, ctx.Doer, &permDoer, reviewer, isAdd)
 		if err != nil {
 			if issues_model.IsErrReviewRequestOnClosedPR(err) {
 				ctx.Error(http.StatusForbidden, "", err)
@@ -755,7 +827,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 
 	if ctx.Repo.Repository.Owner.IsOrganization() && len(opts.TeamReviewers) > 0 {
 		for _, teamReviewer := range teamReviewers {
-			comment, err := issue_service.TeamReviewRequest(ctx, pr.Issue, ctx.Doer, teamReviewer, isAdd)
+			comment, err := issue_service.TeamReviewRequest(ctx, pr, ctx.Doer, teamReviewer, isAdd)
 			if err != nil {
 				if issues_model.IsErrReviewRequestOnClosedPR(err) {
 					ctx.Error(http.StatusForbidden, "", err)

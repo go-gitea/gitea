@@ -213,12 +213,12 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}
 	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
 	for _, reviewer := range opts.Reviewers {
-		if _, err = issue_service.ReviewRequest(ctx, pr.Issue, issue.Poster, &permDoer, reviewer, true); err != nil {
+		if _, err = issue_service.ReviewRequest(ctx, pr, issue.Poster, &permDoer, reviewer, true); err != nil {
 			return err
 		}
 	}
 	for _, teamReviewer := range opts.TeamReviewers {
-		if _, err = issue_service.TeamReviewRequest(ctx, pr.Issue, issue.Poster, teamReviewer, true); err != nil {
+		if _, err = issue_service.TeamReviewRequest(ctx, pr, issue.Poster, teamReviewer, true); err != nil {
 			return err
 		}
 	}

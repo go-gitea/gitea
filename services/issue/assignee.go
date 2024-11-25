@@ -8,6 +8,7 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -61,16 +62,16 @@ func ToggleAssigneeWithNotify(ctx context.Context, issue *issues_model.Issue, do
 }
 
 // ReviewRequest add or remove a review request from a user for this PR, and make comment for it.
-func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, permDoer *access_model.Permission, reviewer *user_model.User, isAdd bool) (comment *issues_model.Comment, err error) {
-	err = isValidReviewRequest(ctx, reviewer, doer, isAdd, issue, permDoer)
+func ReviewRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, permDoer *access_model.Permission, reviewer *user_model.User, isAdd bool) (comment *issues_model.Comment, err error) {
+	err = isValidReviewRequest(ctx, reviewer, doer, isAdd, pr.Issue, permDoer)
 	if err != nil {
 		return nil, err
 	}
 
 	if isAdd {
-		comment, err = issues_model.AddReviewRequest(ctx, issue, reviewer, doer)
+		comment, err = issues_model.AddReviewRequest(ctx, pr.Issue, reviewer, doer)
 	} else {
-		comment, err = issues_model.RemoveReviewRequest(ctx, issue, reviewer, doer)
+		comment, err = issues_model.RemoveReviewRequest(ctx, pr.Issue, reviewer, doer)
 	}
 
 	if err != nil {
@@ -78,10 +79,30 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 	}
 
 	if comment != nil {
-		notify_service.PullRequestReviewRequest(ctx, doer, issue, reviewer, isAdd, comment)
+		notify_service.PullRequestReviewRequest(ctx, doer, pr.Issue, reviewer, isAdd, comment)
 	}
 
 	return comment, err
+}
+
+func ReviewRequests(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, reviewers []*user_model.User, reviewTeams []*org_model.Team) (comments []*issues_model.Comment, err error) {
+	for _, reviewer := range reviewers {
+		comment, err := ReviewRequest(ctx, pr, doer, nil, reviewer, true)
+		if err != nil {
+			return nil, err
+		}
+		comments = append(comments, comment)
+	}
+
+	for _, reviewTeam := range reviewTeams {
+		comment, err := TeamReviewRequest(ctx, pr, doer, reviewTeam, true)
+		if err != nil {
+			return nil, err
+		}
+		comments = append(comments, comment)
+	}
+
+	return comments, nil
 }
 
 // isValidReviewRequest Check permission for ReviewRequest
@@ -216,15 +237,15 @@ func isValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, 
 }
 
 // TeamReviewRequest add or remove a review request from a team for this PR, and make comment for it.
-func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewer *organization.Team, isAdd bool) (comment *issues_model.Comment, err error) {
-	err = isValidTeamReviewRequest(ctx, reviewer, doer, isAdd, issue)
+func TeamReviewRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, reviewer *organization.Team, isAdd bool) (comment *issues_model.Comment, err error) {
+	err = isValidTeamReviewRequest(ctx, reviewer, doer, isAdd, pr.Issue)
 	if err != nil {
 		return nil, err
 	}
 	if isAdd {
-		comment, err = issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer)
+		comment, err = issues_model.AddTeamReviewRequest(ctx, pr.Issue, reviewer, doer)
 	} else {
-		comment, err = issues_model.RemoveTeamReviewRequest(ctx, issue, reviewer, doer)
+		comment, err = issues_model.RemoveTeamReviewRequest(ctx, pr.Issue, reviewer, doer)
 	}
 
 	if err != nil {
@@ -235,7 +256,7 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 		return nil, nil
 	}
 
-	return comment, teamReviewRequestNotify(ctx, issue, doer, reviewer, isAdd, comment)
+	return comment, teamReviewRequestNotify(ctx, pr.Issue, doer, reviewer, isAdd, comment)
 }
 
 func ReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewNotifiers []*ReviewRequestNotifier) {
