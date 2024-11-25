@@ -1,5 +1,4 @@
 import $ from 'jquery';
-import {createTippy} from '../modules/tippy.ts';
 import {initCompReactionSelector} from './comp/ReactionSelector.ts';
 import {initRepoIssueContentHistory} from './repo-issue-content.ts';
 import {initDiffFileTree, initDiffFileList} from './repo-diff-filetree.ts';
@@ -19,6 +18,7 @@ import {
 } from '../utils/dom.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {createTippy} from '../modules/tippy.ts';
 
 const {pageData, i18n} = window.config;
 
@@ -141,12 +141,22 @@ export function initRepoDiffConversationNav() {
   });
 }
 
+function initDiffHeaderPopup() {
+  for (const btn of document.querySelectorAll('.diff-header-popup-btn:not([data-header-popup-initialized])')) {
+    btn.setAttribute('data-header-popup-initialized', '');
+    const popup = btn.nextElementSibling;
+    if (!popup?.matches('.tippy-target')) throw new Error('Popup element not found');
+    createTippy(btn, {content: popup, theme: 'menu', placement: 'bottom', trigger: 'click', interactive: true, hideOnClick: true});
+  }
+}
+
 // Will be called when the show more (files) button has been pressed
 function onShowMoreFiles() {
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor();
   countAndUpdateViewedFiles();
   initImageDiff();
+  initDiffHeaderPopup();
 }
 
 export async function loadMoreFiles(url) {
@@ -222,27 +232,8 @@ export function initRepoDiffView() {
   initDiffFileList();
   initDiffCommitSelect();
   initRepoDiffShowMore();
+  initDiffHeaderPopup();
   initRepoDiffFileViewToggle();
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();
-}
-
-export function initRepoDiffFileMenu() {
-  let tippyIndex = 0;
-  $('.js-btn-diff-file-menu').each(function () {
-    tippyIndex++;
-    this.setAttribute('data-diff-file-menu-tippy-target-id', tippyIndex);
-    const $menu = $(this).find('.tippy-target');
-    if ($menu.length < 1) return;
-    $menu[0].setAttribute('data-diff-file-menu-tippy-id', tippyIndex);
-    createTippy(this, {
-      content: $menu[0],
-      role: 'menu',
-      theme: 'menu',
-      trigger: 'click',
-      placement: 'bottom',
-      interactive: true,
-      hideOnClick: true,
-    });
-  });
 }
