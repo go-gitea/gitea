@@ -10,16 +10,16 @@ import (
 	"xorm.io/xorm"
 )
 
-type WebAuthnCredential struct {
+type WebAuthnCredential310 struct {
 	CredentialFlags string `xorm:"TEXT DEFAULT ''"`
 }
 
-func (cred WebAuthnCredential) TableName() string {
+func (cred WebAuthnCredential310) TableName() string {
 	return "webauthn_credential"
 }
 
 func AddFlagsOnWebAuthnCredential(x *xorm.Engine) error {
-	if err := x.Sync(new(WebAuthnCredential)); err != nil {
+	if err := x.Sync(new(WebAuthnCredential310)); err != nil {
 		return err
 	}
 
