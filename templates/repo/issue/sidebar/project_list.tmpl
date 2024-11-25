@@ -18,24 +18,25 @@
 			</div>
 			{{end}}
 			<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
-			{{if $data.OpenProjects}}
-				<div class="divider"></div>
-				<div class="header">{{ctx.Locale.Tr "repo.issues.new.open_projects"}}</div>
-				{{range $data.OpenProjects}}
-					<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
-						{{svg .IconName 18}} {{.Title}}
-					</a>
+			<div class="scrolling menu">
+				{{if $data.OpenProjects}}
+					<div class="header">{{ctx.Locale.Tr "repo.issues.new.open_projects"}}</div>
+					{{range $data.OpenProjects}}
+						<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
+							{{svg .IconName 18}} {{.Title}}
+						</a>
+					{{end}}
 				{{end}}
-			{{end}}
-			{{if $data.ClosedProjects}}
-				<div class="divider"></div>
-				<div class="header">{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}</div>
-				{{range $data.ClosedProjects}}
-					<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
-						{{svg .IconName 18}} {{.Title}}
-					</a>
+				{{if and $data.OpenProjects $data.ClosedProjects}}<div class="divider"></div>{{end}}
+				{{if $data.ClosedProjects}}
+					<div class="header">{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}</div>
+					{{range $data.ClosedProjects}}
+						<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
+							{{svg .IconName 18}} {{.Title}}
+						</a>
+					{{end}}
 				{{end}}
-			{{end}}
+			</div>
 		</div>
 	</div>
 	<div class="ui list">

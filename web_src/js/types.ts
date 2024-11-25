@@ -54,3 +54,8 @@ export type Issue = {
     merged: boolean;
   };
 };
+
+export type FomanticInitFunction = {
+  settings?: Record<string, any>,
+  (...args: any[]): any,
+}

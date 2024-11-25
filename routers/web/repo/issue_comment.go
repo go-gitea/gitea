@@ -10,10 +10,10 @@ import (
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/renderhelper"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -267,15 +267,8 @@ func UpdateCommentContent(ctx *context.Context) {
 
 	var renderedContent template.HTML
 	if comment.Content != "" {
-		renderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Links: markup.Links{
-				Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-			},
-			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo: ctx.Repo.GitRepo,
-			Repo:    ctx.Repo.Repository,
-			Ctx:     ctx,
-		}, comment.Content)
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+		renderedContent, err = markdown.RenderString(rctx, comment.Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return
