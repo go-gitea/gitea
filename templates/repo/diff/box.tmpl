@@ -164,7 +164,7 @@
 										<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off"{{if $file.IsViewed}} checked{{end}}> {{ctx.Locale.Tr "repo.pulls.has_viewed_file"}}
 									</label>
 								{{end}}
-								<button class="btn diff-header-popup-btn tw-mr-2">{{svg "octicon-kebab-horizontal" 18}}</button>
+								<button class="btn diff-header-popup-btn tw-p-1">{{svg "octicon-kebab-horizontal" 18}}</button>
 								<div class="tippy-target">
 									{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
 										<button class="unescape-button item" data-file-content-elem-id="diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
