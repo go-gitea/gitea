@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
@@ -142,19 +141,11 @@ func (r *Writer) resolveLink(kind, link string) string {
 			// so we need to try to guess the link kind again here
 			kind = org.RegularLink{URL: link}.Kind()
 		}
-
-		base := r.Ctx.RenderOptions.Links.Base
-		if r.Ctx.IsMarkupContentWiki() {
-			base = r.Ctx.RenderOptions.Links.WikiLink()
-		} else if r.Ctx.RenderOptions.Links.HasBranchInfo() {
-			base = r.Ctx.RenderOptions.Links.SrcLink()
-		}
-
 		if kind == "image" || kind == "video" {
-			base = r.Ctx.RenderOptions.Links.ResolveMediaLink(r.Ctx.IsMarkupContentWiki())
+			link = r.Ctx.RenderHelper.ResolveLink(link, markup.LinkTypeMedia)
+		} else {
+			link = r.Ctx.RenderHelper.ResolveLink(link, markup.LinkTypeDefault)
 		}
-
-		link = util.URLJoin(base, link)
 	}
 	return link
 }

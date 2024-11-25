@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path"
 
+	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -56,17 +57,12 @@ func RenderFile(ctx *context.Context) {
 		return
 	}
 
-	err = markup.Render(markup.NewRenderContext(ctx).
-		WithRelativePath(ctx.Repo.TreePath).
-		WithLinks(markup.Links{
-			Base:       ctx.Repo.RepoLink,
-			BranchPath: ctx.Repo.BranchNameSubURL(),
-			TreePath:   path.Dir(ctx.Repo.TreePath),
-		}).
-		WithMetas(ctx.Repo.Repository.ComposeDocumentMetas(ctx)).
-		WithGitRepo(ctx.Repo.GitRepo).
-		WithInStandalonePage(true),
-		rd, ctx.Resp)
+	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
+		CurrentRefPath:  ctx.Repo.BranchNameSubURL(),
+		CurrentTreePath: path.Dir(ctx.Repo.TreePath),
+	}).WithRelativePath(ctx.Repo.TreePath).WithInStandalonePage(true)
+
+	err = markup.Render(rctx, rd, ctx.Resp)
 	if err != nil {
 		log.Error("Failed to render file %q: %v", ctx.Repo.TreePath, err)
 		http.Error(ctx.Resp, "Failed to render file", http.StatusInternalServerError)

@@ -13,11 +13,11 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -92,12 +92,8 @@ func Projects(ctx *context.Context) {
 	}
 
 	for i := range projects {
-		projects[i].RenderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
-			WithLinks(markup.Links{Base: ctx.Repo.RepoLink}).
-			WithMetas(ctx.Repo.Repository.ComposeMetas(ctx)).
-			WithGitRepo(ctx.Repo.GitRepo).
-			WithRepoFacade(ctx.Repo.Repository),
-			projects[i].Description)
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, repo)
+		projects[i].RenderedContent, err = markdown.RenderString(rctx, projects[i].Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return
@@ -422,12 +418,8 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["AssigneeID"] = assigneeID
 
-	project.RenderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
-		WithLinks(markup.Links{Base: ctx.Repo.RepoLink}).
-		WithMetas(ctx.Repo.Repository.ComposeMetas(ctx)).
-		WithGitRepo(ctx.Repo.GitRepo).
-		WithRepoFacade(ctx.Repo.Repository),
-		project.Description)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+	project.RenderedContent, err = markdown.RenderString(rctx, project.Description)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return

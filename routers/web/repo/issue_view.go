@@ -19,6 +19,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	pull_model "code.gitea.io/gitea/models/pull"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -359,12 +360,8 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IssueWatch"] = iw
-	issue.RenderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
-		WithLinks(markup.Links{Base: ctx.Repo.RepoLink}).
-		WithMetas(ctx.Repo.Repository.ComposeMetas(ctx)).
-		WithGitRepo(ctx.Repo.GitRepo).
-		WithRepoFacade(ctx.Repo.Repository),
-		issue.Content)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+	issue.RenderedContent, err = markdown.RenderString(rctx, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return
@@ -464,14 +461,8 @@ func ViewIssue(ctx *context.Context) {
 		comment.Issue = issue
 
 		if comment.Type == issues_model.CommentTypeComment || comment.Type == issues_model.CommentTypeReview {
-			comment.RenderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
-				WithLinks(markup.Links{
-					Base: ctx.Repo.RepoLink,
-				}).
-				WithMetas(ctx.Repo.Repository.ComposeMetas(ctx)).
-				WithGitRepo(ctx.Repo.GitRepo).
-				WithRepoFacade(ctx.Repo.Repository),
-				comment.Content)
+			rctx = renderhelper.NewRenderContextRepoComment(ctx, repo)
+			comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
 				return
@@ -546,12 +537,8 @@ func ViewIssue(ctx *context.Context) {
 				}
 			}
 		} else if comment.Type.HasContentSupport() {
-			comment.RenderedContent, err = markdown.RenderString(markup.NewRenderContext(ctx).
-				WithLinks(markup.Links{Base: ctx.Repo.RepoLink}).
-				WithMetas(ctx.Repo.Repository.ComposeMetas(ctx)).
-				WithGitRepo(ctx.Repo.GitRepo).
-				WithRepoFacade(ctx.Repo.Repository),
-				comment.Content)
+			rctx = renderhelper.NewRenderContextRepoComment(ctx, repo)
+			comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
 				return
