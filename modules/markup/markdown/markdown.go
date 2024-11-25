@@ -182,7 +182,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	bufWithMetadataLength := len(buf)
 
 	rc := &RenderConfig{
-		Meta: renderMetaModeFromString(string(ctx.RenderMetaAs)),
+		Meta: markup.RenderMetaAsDetails,
 		Icon: "table",
 		Lang: "",
 	}
@@ -241,7 +241,7 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 
 // Render renders Markdown to HTML with all specific handling stuff.
 func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
-	ctx.MarkupType = MarkupName
+	ctx.RenderOptions.MarkupType = MarkupName
 	return markup.Render(ctx, input, output)
 }
 
