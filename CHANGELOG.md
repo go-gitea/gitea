@@ -50,6 +50,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Make `show stats` work when only one file changed (#32244) (#32268)
   * Make `owner/repo/pulls` handlers use "PR reader" permission (#32254) (#32265)
   * Update scheduled tasks even if changes are pushed by "ActionsUser" (#32246) (#32252)
+* MISC
+  * Remove unnecessary code: `GetPushMirrorsByRepoID` called on all repo pages (#32560) (#32567)
+  * Improve some sanitizer rules (#32534)
+  * Update nix development environment vor v1.22.x (#32495)
 
 ## [1.22.3](https://github.com/go-gitea/gitea/releases/tag/1.22.3) - 2024-10-08
 
