@@ -74,26 +74,28 @@ type AccessTokenResponse struct {
 // GrantAdditionalScopes returns valid scopes coming from grant
 func GrantAdditionalScopes(grantScopes string) auth.AccessTokenScope {
 	// scopes_supported from templates/user/auth/oidc_wellknown.tmpl
-	scopesSupported := []string{
+	generalScopesSupported := []string{
 		"openid",
 		"profile",
 		"email",
 		"groups",
 	}
 
-	var tokenScopes []string
-	for _, tokenScope := range strings.Split(grantScopes, " ") {
-		if slices.Index(scopesSupported, tokenScope) == -1 {
-			tokenScopes = append(tokenScopes, tokenScope)
+	var accessScopes []string // the scopes for access control, but not for general information
+	for _, scope := range strings.Split(grantScopes, " ") {
+		if !slices.Contains(generalScopesSupported, scope) {
+			accessScopes = append(accessScopes, scope)
 		}
 	}
 
 	// since version 1.22, access tokens grant full access to the API
 	// with this access is reduced only if additional scopes are provided
-	accessTokenScope := auth.AccessTokenScope(strings.Join(tokenScopes, ","))
-	if accessTokenWithAdditionalScopes, err := accessTokenScope.Normalize(); err == nil && len(tokenScopes) > 0 {
-		return accessTokenWithAdditionalScopes
+	// TODO: if there are invalid access scopes, then it is treated as "all", but would we really always treat invalid scopes as "all"?
+	accessTokenScope := auth.AccessTokenScope(strings.Join(accessScopes, ","))
+	if normalizedAccessTokenScope, err := accessTokenScope.Normalize(); err == nil && normalizedAccessTokenScope != "" {
+		return normalizedAccessTokenScope
 	}
+	// fallback, empty access scope is treated as "all" access
 	return auth.AccessTokenScopeAll
 }
 
