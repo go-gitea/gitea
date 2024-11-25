@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 
 	"xorm.io/builder"
 )
@@ -80,6 +81,19 @@ func GetTeamsWithAccessToRepo(ctx context.Context, orgID, repoID int64, mode per
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		And("team_repo.org_id = ?", orgID).
 		And("team_repo.repo_id = ?", repoID).
+		OrderBy("name").
+		Find(&teams)
+}
+
+// GetTeamsWithAccessToRepoUnit returns all teams in an organization that have given access level to the repository special unit.
+func GetTeamsWithAccessToRepoUnit(ctx context.Context, orgID, repoID int64, mode perm.AccessMode, unitType unit.Type) ([]*Team, error) {
+	teams := make([]*Team, 0, 5)
+	return teams, db.GetEngine(ctx).Where("team_unit.access_mode >= ?", mode).
+		Join("INNER", "team_repo", "team_repo.team_id = team.id").
+		Join("INNER", "team_unit", "team_unit.team_id = team.id").
+		And("team_repo.org_id = ?", orgID).
+		And("team_repo.repo_id = ?", repoID).
+		And("team_unit.type = ?", unitType).
 		OrderBy("name").
 		Find(&teams)
 }

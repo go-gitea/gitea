@@ -135,7 +135,7 @@ author KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 committer KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 encoding ISO-8859-1
 gpgsig -----BEGIN PGP SIGNATURE-----
- 
+<SPACE>
  iQGzBAABCgAdFiEE9HRrbqvYxPT8PXbefPSEkrowAa8FAmYGg7IACgkQfPSEkrow
  Aa9olwv+P0HhtCM6CRvlUmPaqswRsDPNR4i66xyXGiSxdI9V5oJL7HLiQIM7KrFR
  gizKa2COiGtugv8fE+TKqXKaJx6uJUJEjaBd8E9Af9PrAzjWj+A84lU6/PgPS8hq
@@ -150,7 +150,7 @@ gpgsig -----BEGIN PGP SIGNATURE-----
  -----END PGP SIGNATURE-----
 
 ISO-8859-1`
-
+	commitString = strings.ReplaceAll(commitString, "<SPACE>", " ")
 	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
 	gitRepo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
@@ -361,4 +361,42 @@ func Test_GetCommitBranchStart(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, startCommitID)
 	assert.EqualValues(t, "9c9aef8dd84e02bc7ec12641deb4c930a7c30185", startCommitID)
+}
+
+func TestConfigSubModule(t *testing.T) {
+	input := `
+[core]
+path = test
+
+[submodule "submodule1"]
+	path = path1
+	url =	https://gitea.io/foo/foo
+	#branch = b1
+
+[other1]
+branch = master
+
+[submodule "submodule2"]
+	path = path2
+	url =	https://gitea.io/bar/bar
+	branch = b2
+
+[other2]
+branch = main
+
+[submodule "submodule3"]
+	path = path3
+	url =	https://gitea.io/xxx/xxx
+`
+
+	subModules, err := configParseSubModules(strings.NewReader(input))
+	assert.NoError(t, err)
+	assert.Len(t, subModules.cache, 3)
+
+	sm1, _ := subModules.Get("path1")
+	assert.Equal(t, &SubModule{Name: "path1", URL: "https://gitea.io/foo/foo"}, sm1)
+	sm2, _ := subModules.Get("path2")
+	assert.Equal(t, &SubModule{Name: "path2", URL: "https://gitea.io/bar/bar"}, sm2)
+	sm3, _ := subModules.Get("path3")
+	assert.Equal(t, &SubModule{Name: "path3", URL: "https://gitea.io/xxx/xxx"}, sm3)
 }

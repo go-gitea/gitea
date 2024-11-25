@@ -37,9 +37,9 @@ func (Renderer) Extensions() []string {
 // SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{
-		{Element: "table", AllowAttr: "class", Regexp: regexp.MustCompile(`data-table`)},
-		{Element: "th", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
-		{Element: "td", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
+		{Element: "table", AllowAttr: "class", Regexp: regexp.MustCompile(`^data-table$`)},
+		{Element: "th", AllowAttr: "class", Regexp: regexp.MustCompile(`^line-num$`)},
+		{Element: "td", AllowAttr: "class", Regexp: regexp.MustCompile(`^line-num$`)},
 	}
 }
 

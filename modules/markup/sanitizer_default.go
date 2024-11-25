@@ -67,10 +67,10 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	}
 
 	// Allow classes for anchors
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`ref-issue( ref-external-issue)?`)).OnElements("a")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^ref-issue( ref-external-issue)?$`)).OnElements("a")
 
 	// Allow classes for task lists
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`task-list-item`)).OnElements("li")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^task-list-item$`)).OnElements("li")
 
 	// Allow classes for org mode list item status.
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(unchecked|checked|indeterminate)$`)).OnElements("li")
@@ -79,7 +79,7 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^icon(\s+[\p{L}\p{N}_-]+)+$`)).OnElements("i")
 
 	// Allow classes for emojis
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`emoji`)).OnElements("img")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^emoji$`)).OnElements("img")
 
 	// Allow icons, emojis, chroma syntax and keyword markup on span
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(emoji)|(language-math display)|(language-math inline))$|^([a-z][a-z0-9]{0,2})$|^` + keywordClass + `$`)).OnElements("span")

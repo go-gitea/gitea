@@ -52,7 +52,7 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a href="{{.HomeLink}}">{{.Name}}</a>
+								<a href="{{.HomeLink}}">{{if and DefaultShowFullName .FullName}}{{.FullName}} ({{.Name}}){{else}}{{.Name}}{{end}}</a>
 								{{if .Visibility.IsPrivate}}
 									<span class="text gold">{{svg "octicon-lock"}}</span>
 								{{end}}
