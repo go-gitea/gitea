@@ -7,7 +7,7 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/services/context"
 
@@ -41,9 +41,8 @@ func showUserFeed(ctx *context.Context, formatType string) {
 		return
 	}
 
-	ctxUserDescription, err := markdown.RenderString(markup.NewRenderContext(ctx).
-		WithLinks(markup.Links{Base: ctx.ContextUser.HTMLURL()}).
-		WithMetas(markup.ComposeSimpleDocumentMetas()),
+	rctx := renderhelper.NewRenderContextSimpleDocument(ctx, ctx.ContextUser.HTMLURL())
+	ctxUserDescription, err := markdown.RenderString(rctx,
 		ctx.ContextUser.Description)
 	if err != nil {
 		ctx.ServerError("RenderString", err)

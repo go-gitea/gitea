@@ -5,7 +5,6 @@ package fuzz
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"testing"
 
@@ -15,9 +14,7 @@ import (
 )
 
 func newFuzzRenderContext() *markup.RenderContext {
-	return markup.NewRenderContext(context.Background()).
-		WithLinks(markup.Links{Base: "https://example.com/go-gitea/gitea"}).
-		WithMetas(map[string]string{"user": "go-gitea", "repo": "gitea"})
+	return markup.NewTestRenderContext("https://example.com/go-gitea/gitea", map[string]string{"user": "go-gitea", "repo": "gitea"})
 }
 
 func FuzzMarkdownRenderRaw(f *testing.F) {

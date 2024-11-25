@@ -4,7 +4,6 @@
 package markup
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -34,8 +33,7 @@ func numericIssueLink(baseURL, class string, index int, marker string) string {
 
 // link an HTML link
 func link(href, class, contents string) string {
-	extra := ` data-markdown-generated-content=""`
-	extra += util.Iif(class != "", ` class="`+class+`"`, "")
+	extra := util.Iif(class != "", ` class="`+class+`"`, "")
 	return fmt.Sprintf(`<a href="%s"%s>%s</a>`, href, extra, contents)
 }
 
@@ -69,22 +67,11 @@ var localMetas = map[string]string{
 	"markupAllowShortIssuePattern": "true",
 }
 
-var localWikiMetas = map[string]string{
-	"user":              "test-owner",
-	"repo":              "test-repo",
-	"markupContentMode": "wiki",
-}
-
 func TestRender_IssueIndexPattern(t *testing.T) {
 	// numeric: render inputs without valid mentions
 	test := func(s string) {
-		testRenderIssueIndexPattern(t, s, s, &RenderContext{
-			ctx: context.Background(),
-		})
-		testRenderIssueIndexPattern(t, s, s, &RenderContext{
-			ctx:           context.Background(),
-			RenderOptions: RenderOptions{Metas: numericMetas},
-		})
+		testRenderIssueIndexPattern(t, s, s, NewTestRenderContext())
+		testRenderIssueIndexPattern(t, s, s, NewTestRenderContext(numericMetas))
 	}
 
 	// should not render anything when there are no mentions
@@ -132,10 +119,7 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 			links[i] = numericIssueLink(util.URLJoin(TestRepoURL, path), "ref-issue", index, marker)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expectedNil, &RenderContext{
-			ctx:           context.Background(),
-			RenderOptions: RenderOptions{Metas: localMetas},
-		})
+		testRenderIssueIndexPattern(t, s, expectedNil, NewTestRenderContext(TestAppURL, localMetas))
 
 		class := "ref-issue"
 		if isExternal {
@@ -146,10 +130,7 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 			links[i] = numericIssueLink(prefix, class, index, marker)
 		}
 		expectedNum := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expectedNum, &RenderContext{
-			ctx:           context.Background(),
-			RenderOptions: RenderOptions{Metas: numericMetas},
-		})
+		testRenderIssueIndexPattern(t, s, expectedNum, NewTestRenderContext(TestAppURL, numericMetas))
 	}
 
 	// should render freestanding mentions
@@ -183,10 +164,7 @@ func TestRender_IssueIndexPattern3(t *testing.T) {
 
 	// alphanumeric: render inputs without valid mentions
 	test := func(s string) {
-		testRenderIssueIndexPattern(t, s, s, &RenderContext{
-			ctx:           context.Background(),
-			RenderOptions: RenderOptions{Metas: alphanumericMetas},
-		})
+		testRenderIssueIndexPattern(t, s, s, NewTestRenderContext(alphanumericMetas))
 	}
 	test("")
 	test("this is a test")
@@ -216,10 +194,7 @@ func TestRender_IssueIndexPattern4(t *testing.T) {
 			links[i] = externalIssueLink("https://someurl.com/someUser/someRepo/", "ref-issue ref-external-issue", name)
 		}
 		expected := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expected, &RenderContext{
-			ctx:           context.Background(),
-			RenderOptions: RenderOptions{Metas: alphanumericMetas},
-		})
+		testRenderIssueIndexPattern(t, s, expected, NewTestRenderContext(alphanumericMetas))
 	}
 	test("OTT-1234 test", "%s test", "OTT-1234")
 	test("test T-12 issue", "test %s issue", "T-12")
@@ -239,10 +214,7 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 		}
 
 		expected := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expected, &RenderContext{
-			ctx:           context.Background(),
-			RenderOptions: RenderOptions{Metas: metas},
-		})
+		testRenderIssueIndexPattern(t, s, expected, NewTestRenderContext(metas))
 	}
 
 	test("abc ISSUE-123 def", "abc %s def",
@@ -263,10 +235,7 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 		[]string{"ISSUE-123"},
 	)
 
-	testRenderIssueIndexPattern(t, "will not match", "will not match", &RenderContext{
-		ctx:           context.Background(),
-		RenderOptions: RenderOptions{Metas: regexpMetas},
-	})
+	testRenderIssueIndexPattern(t, "will not match", "will not match", NewTestRenderContext(regexpMetas))
 }
 
 func TestRender_IssueIndexPattern_NoShortPattern(t *testing.T) {
@@ -278,18 +247,9 @@ func TestRender_IssueIndexPattern_NoShortPattern(t *testing.T) {
 		"style":  IssueNameStyleNumeric,
 	}
 
-	testRenderIssueIndexPattern(t, "#1", "#1", &RenderContext{
-		ctx:           context.Background(),
-		RenderOptions: RenderOptions{Metas: metas},
-	})
-	testRenderIssueIndexPattern(t, "#1312", "#1312", &RenderContext{
-		ctx:           context.Background(),
-		RenderOptions: RenderOptions{Metas: metas},
-	})
-	testRenderIssueIndexPattern(t, "!1", "!1", &RenderContext{
-		ctx:           context.Background(),
-		RenderOptions: RenderOptions{Metas: metas},
-	})
+	testRenderIssueIndexPattern(t, "#1", "#1", NewTestRenderContext(metas))
+	testRenderIssueIndexPattern(t, "#1312", "#1312", NewTestRenderContext(metas))
+	testRenderIssueIndexPattern(t, "!1", "!1", NewTestRenderContext(metas))
 }
 
 func TestRender_RenderIssueTitle(t *testing.T) {
@@ -300,20 +260,12 @@ func TestRender_RenderIssueTitle(t *testing.T) {
 		"repo":   "someRepo",
 		"style":  IssueNameStyleNumeric,
 	}
-	actual, err := RenderIssueTitle(&RenderContext{
-		ctx:           context.Background(),
-		RenderOptions: RenderOptions{Metas: metas},
-	}, "#1")
+	actual, err := RenderIssueTitle(NewTestRenderContext(metas), "#1")
 	assert.NoError(t, err)
 	assert.Equal(t, "#1", actual)
 }
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *RenderContext) {
-	ctx.RenderOptions.Links.AbsolutePrefix = true
-	if ctx.RenderOptions.Links.Base == "" {
-		ctx.RenderOptions.Links.Base = TestRepoURL
-	}
-
 	var buf strings.Builder
 	err := postProcess(ctx, []processor{issueIndexPatternProcessor}, strings.NewReader(input), &buf)
 	assert.NoError(t, err)
@@ -325,20 +277,12 @@ func TestRender_AutoLink(t *testing.T) {
 
 	test := func(input, expected string) {
 		var buffer strings.Builder
-		err := PostProcess(&RenderContext{
-			ctx: context.Background(),
-
-			RenderOptions: RenderOptions{Metas: localMetas, Links: Links{Base: TestRepoURL}},
-		}, strings.NewReader(input), &buffer)
+		err := PostProcess(NewTestRenderContext(localMetas), strings.NewReader(input), &buffer)
 		assert.Equal(t, err, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer.String()))
 
 		buffer.Reset()
-		err = PostProcess(&RenderContext{
-			ctx: context.Background(),
-
-			RenderOptions: RenderOptions{Metas: localWikiMetas, Links: Links{Base: TestRepoURL}},
-		}, strings.NewReader(input), &buffer)
+		err = PostProcess(NewTestRenderContext(localMetas), strings.NewReader(input), &buffer)
 		assert.Equal(t, err, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer.String()))
 	}
@@ -360,14 +304,10 @@ func TestRender_AutoLink(t *testing.T) {
 
 func TestRender_FullIssueURLs(t *testing.T) {
 	setting.AppURL = TestAppURL
-	defer testModule.MockVariableValue(&RenderBehaviorForTesting.DisableInternalAttributes, true)()
+	defer testModule.MockVariableValue(&RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
 		var result strings.Builder
-		err := postProcess(&RenderContext{
-			ctx: context.Background(),
-
-			RenderOptions: RenderOptions{Metas: localMetas, Links: Links{Base: TestRepoURL}},
-		}, []processor{fullIssuePatternProcessor}, strings.NewReader(input), &result)
+		err := postProcess(NewTestRenderContext(localMetas), []processor{fullIssuePatternProcessor}, strings.NewReader(input), &result)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, result.String())
 	}

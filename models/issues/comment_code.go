@@ -7,8 +7,8 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/renderhelper"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 
 	"xorm.io/builder"
@@ -112,12 +112,8 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		}
 
 		var err error
-		rctx := markup.NewRenderContext(ctx).
-			WithRepoFacade(issue.Repo).
-			WithLinks(markup.Links{Base: issue.Repo.Link()}).
-			WithMetas(issue.Repo.ComposeMetas(ctx))
-		if comment.RenderedContent, err = markdown.RenderString(rctx,
-			comment.Content); err != nil {
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo)
+		if comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content); err != nil {
 			return nil, err
 		}
 	}
