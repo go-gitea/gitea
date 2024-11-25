@@ -301,7 +301,13 @@ func GetArchive(ctx *context.APIContext) {
 
 func archiveDownload(ctx *context.APIContext) {
 	uri := ctx.PathParam("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
+	ext, tp, err := archiver_service.ParseFileName(uri)
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, "ParseFileName", err)
+		return
+	}
+
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, strings.TrimSuffix(uri, ext), tp)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.Error(http.StatusBadRequest, "unknown archive format", err)
@@ -327,9 +333,12 @@ func download(ctx *context.APIContext, archiveName string, archiver *repo_model.
 
 	// Add nix format link header so tarballs lock correctly:
 	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
-	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.tar.gz?rev=%s>; rel="immutable"`,
+	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.%s?rev=%s>; rel="immutable"`,
 		ctx.Repo.Repository.APIURL(),
-		archiver.CommitID, archiver.CommitID))
+		archiver.CommitID,
+		archiver.Type.String(),
+		archiver.CommitID,
+	))
 
 	rPath := archiver.RelativePath()
 	if setting.RepoArchive.Storage.ServeDirect() {

@@ -406,7 +406,7 @@ func TestDeleteIssueLabel(t *testing.T) {
 			PosterID: doerID,
 			IssueID:  issueID,
 			LabelID:  labelID,
-		}, `content=""`)
+		}, `content=''`)
 		label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: labelID})
 		assert.EqualValues(t, expectedNumIssues, label.NumIssues)
 		assert.EqualValues(t, expectedNumClosedIssues, label.NumClosedIssues)

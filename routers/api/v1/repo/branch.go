@@ -133,11 +133,6 @@ func DeleteBranch(ctx *context.APIContext) {
 
 	branchName := ctx.PathParam("*")
 
-	if ctx.Repo.Repository.IsEmpty {
-		ctx.Error(http.StatusForbidden, "", "Git Repository is empty.")
-		return
-	}
-
 	// check whether branches of this repository has been synced
 	totalNumOfBranches, err := db.Count[git_model.Branch](ctx, git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,

@@ -21,7 +21,7 @@ const baseOptions = {
   automaticLayout: true,
 };
 
-function getEditorconfig(input) {
+function getEditorconfig(input: HTMLInputElement) {
   try {
     return JSON.parse(input.getAttribute('data-editorconfig'));
   } catch {
@@ -58,7 +58,7 @@ function exportEditor(editor) {
   if (!window.codeEditors.includes(editor)) window.codeEditors.push(editor);
 }
 
-export async function createMonaco(textarea, filename, editorOpts) {
+export async function createMonaco(textarea: HTMLTextAreaElement, filename: string, editorOpts: Record<string, any>) {
   const monaco = await import(/* webpackChunkName: "monaco" */'monaco-editor');
 
   initLanguages(monaco);
@@ -72,7 +72,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
   // https://github.com/microsoft/monaco-editor/issues/2427
   // also, monaco can only parse 6-digit hex colors, so we convert the colors to that format
   const styles = window.getComputedStyle(document.documentElement);
-  const getColor = (name) => tinycolor(styles.getPropertyValue(name).trim()).toString('hex6');
+  const getColor = (name: string) => tinycolor(styles.getPropertyValue(name).trim()).toString('hex6');
 
   monaco.editor.defineTheme('gitea', {
     base: isDarkTheme() ? 'vs-dark' : 'vs',
@@ -127,13 +127,13 @@ export async function createMonaco(textarea, filename, editorOpts) {
   return {monaco, editor};
 }
 
-function getFileBasedOptions(filename, lineWrapExts) {
+function getFileBasedOptions(filename: string, lineWrapExts: string[]) {
   return {
     wordWrap: (lineWrapExts || []).includes(extname(filename)) ? 'on' : 'off',
   };
 }
 
-function togglePreviewDisplay(previewable) {
+function togglePreviewDisplay(previewable: boolean) {
   const previewTab = document.querySelector('a[data-tab="preview"]');
   if (!previewTab) return;
 
@@ -152,7 +152,7 @@ function togglePreviewDisplay(previewable) {
   }
 }
 
-export async function createCodeEditor(textarea, filenameInput) {
+export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameInput: HTMLInputElement) {
   const filename = basename(filenameInput.value);
   const previewableExts = new Set((textarea.getAttribute('data-previewable-extensions') || '').split(','));
   const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
@@ -177,10 +177,10 @@ export async function createCodeEditor(textarea, filenameInput) {
   return editor;
 }
 
-function getEditorConfigOptions(ec) {
+function getEditorConfigOptions(ec: Record<string, any>): Record<string, any> {
   if (!isObject(ec)) return {};
 
-  const opts = {};
+  const opts: Record<string, any> = {};
   opts.detectIndentation = !('indent_style' in ec) || !('indent_size' in ec);
   if ('indent_size' in ec) opts.indentSize = Number(ec.indent_size);
   if ('tab_width' in ec) opts.tabSize = Number(ec.tab_width) || opts.indentSize;

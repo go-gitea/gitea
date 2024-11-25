@@ -4,11 +4,15 @@
 package markup_test
 
 import (
+	"os"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m)
+	setting.IsInTesting = true
+	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
+	os.Exit(m.Run())
 }

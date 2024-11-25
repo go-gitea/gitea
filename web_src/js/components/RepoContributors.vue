@@ -21,7 +21,7 @@ import {
 import {chartJsColors} from '../utils/color.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
-import $ from 'jquery';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const customEventListener = {
   id: 'customEventListener',
@@ -77,7 +77,7 @@ export default {
   mounted() {
     this.fetchGraphData();
 
-    $('#repo-contributors').dropdown({
+    fomanticQuery('#repo-contributors').dropdown({
       onChange: (val) => {
         this.xAxisMin = this.xAxisStart;
         this.xAxisMax = this.xAxisEnd;

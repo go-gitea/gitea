@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/stretchr/testify/assert"
@@ -46,10 +47,11 @@ mail@domain.com
 }
 
 var testMetas = map[string]string{
-	"user":     "user13",
-	"repo":     "repo11",
-	"repoPath": "../../tests/gitea-repositories-meta/user13/repo11.git/",
-	"mode":     "comment",
+	"user":                         "user13",
+	"repo":                         "repo11",
+	"repoPath":                     "../../tests/gitea-repositories-meta/user13/repo11.git/",
+	"markdownLineBreakStyle":       "comment",
+	"markupAllowShortIssuePattern": "true",
 }
 
 func TestMain(m *testing.M) {
@@ -57,7 +59,7 @@ func TestMain(m *testing.M) {
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
-	markup.Init(&markup.ProcessorHelper{
+	markup.Init(&markup.RenderHelperFuncs{
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
 			return username == "mention-user"
 		},
@@ -72,9 +74,9 @@ func newTestRenderUtils() *RenderUtils {
 }
 
 func TestRenderCommitBody(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	type args struct {
-		msg   string
-		metas map[string]string
+		msg string
 	}
 	tests := []struct {
 		name string
@@ -106,46 +108,44 @@ func TestRenderCommitBody(t *testing.T) {
 	ut := newTestRenderUtils()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, ut.RenderCommitBody(tt.args.msg, tt.args.metas), "RenderCommitBody(%v, %v)", tt.args.msg, tt.args.metas)
+			assert.Equalf(t, tt.want, ut.RenderCommitBody(tt.args.msg, nil), "RenderCommitBody(%v, %v)", tt.args.msg, nil)
 		})
 	}
 
 	expected := `/just/a/path.bin
-<a href="https://example.com/file.bin" class="link">https://example.com/file.bin</a>
+<a href="https://example.com/file.bin">https://example.com/file.bin</a>
 [local link](file.bin)
-[remote link](<a href="https://example.com" class="link">https://example.com</a>)
+[remote link](<a href="https://example.com">https://example.com</a>)
 [[local link|file.bin]]
-[[remote link|<a href="https://example.com" class="link">https://example.com</a>]]
+[[remote link|<a href="https://example.com">https://example.com</a>]]
 ![local image](image.jpg)
-![remote image](<a href="https://example.com/image.jpg" class="link">https://example.com/image.jpg</a>)
+![remote image](<a href="https://example.com/image.jpg">https://example.com/image.jpg</a>)
 [[local image|image.jpg]]
-[[remote link|<a href="https://example.com/image.jpg" class="link">https://example.com/image.jpg</a>]]
+[[remote link|<a href="https://example.com/image.jpg">https://example.com/image.jpg</a>]]
 <a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" class="compare"><code class="nohighlight">88fc37a3c0...12fc37a3c0 (hash)</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
 <a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" class="commit"><code class="nohighlight">88fc37a3c0</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" aria-label="thumbs up">👍</span>
-<a href="mailto:mail@domain.com" class="mailto">mail@domain.com</a>
-<a href="/mention-user" class="mention">@mention-user</a> test
+<a href="mailto:mail@domain.com">mail@domain.com</a>
+<a href="/mention-user">@mention-user</a> test
 <a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
   space`
-	actual := strings.ReplaceAll(string(newTestRenderUtils().RenderCommitBody(testInput(), testMetas)), ` data-markdown-generated-content=""`, "")
-	assert.EqualValues(t, expected, actual)
+	assert.EqualValues(t, expected, string(newTestRenderUtils().RenderCommitBody(testInput(), testMetas)))
 }
 
 func TestRenderCommitMessage(t *testing.T) {
-	expected := `space <a href="/mention-user" data-markdown-generated-content="" class="mention">@mention-user</a>  `
-
+	expected := `space <a href="/mention-user" data-markdown-generated-content="">@mention-user</a>  `
 	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessage(testInput(), testMetas))
 }
 
 func TestRenderCommitMessageLinkSubject(t *testing.T) {
-	expected := `<a href="https://example.com/link" class="default-link muted">space </a><a href="/mention-user" data-markdown-generated-content="" class="mention">@mention-user</a>`
-
+	expected := `<a href="https://example.com/link" class="muted">space </a><a href="/mention-user" data-markdown-generated-content="">@mention-user</a>`
 	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", testMetas))
 }
 
 func TestRenderIssueTitle(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	expected := `  space @mention-user<SPACE><SPACE>
 /just/a/path.bin
 https://example.com/file.bin
@@ -164,15 +164,15 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" aria-label="thumbs up">👍</span>
 mail@domain.com
 @mention-user test
-<a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
+#123
   space<SPACE><SPACE>
 `
 	expected = strings.ReplaceAll(expected, "<SPACE>", " ")
-	actual := strings.ReplaceAll(string(newTestRenderUtils().RenderIssueTitle(testInput(), testMetas)), ` data-markdown-generated-content=""`, "")
-	assert.EqualValues(t, expected, actual)
+	assert.EqualValues(t, expected, string(newTestRenderUtils().RenderIssueTitle(testInput(), nil)))
 }
 
 func TestRenderMarkdownToHtml(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	expected := `<p>space <a href="/mention-user" rel="nofollow">@mention-user</a><br/>
 /just/a/path.bin
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a>
@@ -194,8 +194,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 #123
 space</p>
 `
-	actual := strings.ReplaceAll(string(newTestRenderUtils().MarkdownToHtml(testInput())), ` data-markdown-generated-content=""`, "")
-	assert.Equal(t, expected, actual)
+	assert.Equal(t, expected, string(newTestRenderUtils().MarkdownToHtml(testInput())))
 }
 
 func TestRenderLabels(t *testing.T) {
@@ -212,6 +211,7 @@ func TestRenderLabels(t *testing.T) {
 }
 
 func TestUserMention(t *testing.T) {
+	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
 	rendered := newTestRenderUtils().MarkdownToHtml("@no-such-user @mention-user @mention-user")
-	assert.EqualValues(t, `<p>@no-such-user <a href="/mention-user" data-markdown-generated-content="" rel="nofollow">@mention-user</a> <a href="/mention-user" data-markdown-generated-content="" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
+	assert.EqualValues(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
 }

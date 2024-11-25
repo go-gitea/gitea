@@ -4,6 +4,7 @@
 package organization_test
 
 import (
+	"slices"
 	"sort"
 	"testing"
 
@@ -128,15 +129,6 @@ func TestGetOrgByName(t *testing.T) {
 	assert.True(t, organization.IsErrOrgNotExist(err))
 }
 
-func TestCountOrganizations(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	expected, err := db.GetEngine(db.DefaultContext).Where("type=?", user_model.UserTypeOrganization).Count(&organization.Organization{})
-	assert.NoError(t, err)
-	cnt, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{IncludePrivate: true})
-	assert.NoError(t, err)
-	assert.Equal(t, expected, cnt)
-}
-
 func TestIsOrganizationOwner(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(orgID, userID int64, expected bool) {
@@ -181,31 +173,73 @@ func TestIsPublicMembership(t *testing.T) {
 	test(unittest.NonexistentID, unittest.NonexistentID, false)
 }
 
-func TestFindOrgs(t *testing.T) {
+func TestRestrictedUserOrgMembers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	orgs, err := db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
-		UserID:         4,
-		IncludePrivate: true,
+	restrictedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+		ID:           29,
+		IsRestricted: true,
 	})
-	assert.NoError(t, err)
-	if assert.Len(t, orgs, 1) {
-		assert.EqualValues(t, 3, orgs[0].ID)
+	if !assert.True(t, restrictedUser.IsRestricted) {
+		return // ensure fixtures return restricted user
 	}
 
-	orgs, err = db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
-		UserID:         4,
-		IncludePrivate: false,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, orgs, 0)
+	testCases := []struct {
+		name         string
+		opts         *organization.FindOrgMembersOpts
+		expectedUIDs []int64
+	}{
+		{
+			name: "restricted user sees public members and teammates",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:        17, // org17 where user29 is in team9
+				Doer:         restrictedUser,
+				IsDoerMember: true,
+			},
+			expectedUIDs: []int64{2, 15, 20, 29}, // Public members (2) + teammates in team9 (15, 20, 29)
+		},
+		{
+			name: "restricted user sees only public members when not member",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID: 3, // org3 where user29 is not a member
+				Doer:  restrictedUser,
+			},
+			expectedUIDs: []int64{2, 28}, // Only public members
+		},
+		{
+			name: "non logged in only shows public members",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID: 3,
+			},
+			expectedUIDs: []int64{2, 28}, // Only public members
+		},
+		{
+			name: "non restricted user sees all members",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:        17,
+				Doer:         unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15}),
+				IsDoerMember: true,
+			},
+			expectedUIDs: []int64{2, 15, 18, 20, 29}, // All members
+		},
+	}
 
-	total, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
-		UserID:         4,
-		IncludePrivate: true,
-	})
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, total)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			count, err := organization.CountOrgMembers(db.DefaultContext, tc.opts)
+			assert.NoError(t, err)
+			assert.EqualValues(t, len(tc.expectedUIDs), count)
+
+			members, err := organization.GetOrgUsersByOrgID(db.DefaultContext, tc.opts)
+			assert.NoError(t, err)
+			memberUIDs := make([]int64, 0, len(members))
+			for _, member := range members {
+				memberUIDs = append(memberUIDs, member.UID)
+			}
+			slices.Sort(memberUIDs)
+			assert.EqualValues(t, tc.expectedUIDs, memberUIDs)
+		})
+	}
 }
 
 func TestGetOrgUsersByOrgID(t *testing.T) {

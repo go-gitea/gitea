@@ -470,6 +470,19 @@ MINIO_BASE_PATH = /prefix
 	cfg, err = NewConfigProviderFromData(`
 [storage]
 STORAGE_TYPE = minio
+MINIO_IAM_ENDPOINT = 127.0.0.1
+MINIO_USE_SSL = true
+MINIO_BASE_PATH = /prefix
+`)
+	assert.NoError(t, err)
+	assert.NoError(t, loadRepoArchiveFrom(cfg))
+	assert.EqualValues(t, "127.0.0.1", RepoArchive.Storage.MinioConfig.IamEndpoint)
+	assert.EqualValues(t, true, RepoArchive.Storage.MinioConfig.UseSSL)
+	assert.EqualValues(t, "/prefix/repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+
+	cfg, err = NewConfigProviderFromData(`
+[storage]
+STORAGE_TYPE = minio
 MINIO_ACCESS_KEY_ID = my_access_key
 MINIO_SECRET_ACCESS_KEY = my_secret_key
 MINIO_USE_SSL = true

@@ -21,8 +21,7 @@ import (
 	_ "code.gitea.io/gitea/models/activities"
 
 	"github.com/stretchr/testify/assert"
-
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/stretchr/testify/require"
 )
 
 type codeSearchResult struct {
@@ -284,14 +283,10 @@ func TestBleveIndexAndSearch(t *testing.T) {
 	dir := t.TempDir()
 
 	idx := bleve.NewIndexer(dir)
-	_, err := idx.Init(context.Background())
-	if err != nil {
-		if idx != nil {
-			idx.Close()
-		}
-		assert.FailNow(t, "Unable to create bleve indexer Error: %v", err)
-	}
 	defer idx.Close()
+
+	_, err := idx.Init(context.Background())
+	require.NoError(t, err)
 
 	testIndexer("beleve", t, idx)
 }

@@ -9,7 +9,6 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 
@@ -30,17 +29,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func exitf(format string, args ...any) {
-	fmt.Printf(format+"\n", args...)
-	os.Exit(1)
-}
-
 func InitTest(requireGitea bool) {
-	log.RegisterEventWriter("test", testlogger.NewTestLoggerWriter)
+	testlogger.Init()
 
 	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
-		exitf("Environment variable $GITEA_ROOT not set")
+		testlogger.Fatalf("Environment variable $GITEA_ROOT not set\n")
 	}
 
 	// TODO: Speedup tests that rely on the event source ticker, confirm whether there is any bug or failure.
@@ -53,9 +47,9 @@ func InitTest(requireGitea bool) {
 		if setting.IsWindows {
 			giteaBinary += ".exe"
 		}
-		setting.AppPath = path.Join(giteaRoot, giteaBinary)
+		setting.AppPath = filepath.Join(giteaRoot, giteaBinary)
 		if _, err := os.Stat(setting.AppPath); err != nil {
-			exitf("Could not find gitea binary at %s", setting.AppPath)
+			testlogger.Fatalf("Could not find gitea binary at %s\n", setting.AppPath)
 		}
 	}
 	giteaConf := os.Getenv("GITEA_CONF")
@@ -67,10 +61,10 @@ func InitTest(requireGitea bool) {
 		_ = os.Setenv("GITEA_CONF", giteaConf)
 		fmt.Printf("Environment variable $GITEA_CONF not set, use default: %s\n", giteaConf)
 		if !setting.EnableSQLite3 {
-			exitf(`sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify`)
+			testlogger.Fatalf(`sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify` + "\n")
 		}
 	}
-	if !path.IsAbs(giteaConf) {
+	if !filepath.IsAbs(giteaConf) {
 		setting.CustomConf = filepath.Join(giteaRoot, giteaConf)
 	} else {
 		setting.CustomConf = giteaConf
@@ -86,7 +80,7 @@ func InitTest(requireGitea bool) {
 
 	setting.LoadDBSetting()
 	if err := storage.Init(); err != nil {
-		exitf("Init storage failed: %v", err)
+		testlogger.Fatalf("Init storage failed: %v\n", err)
 	}
 
 	switch {
@@ -193,29 +187,10 @@ func PrepareAttachmentsStorage(t testing.TB) {
 }
 
 func PrepareGitRepoDirectory(t testing.TB) {
-	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
-
-	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
-	if err != nil {
-		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+	if !assert.NotEmpty(t, setting.RepoRootPath) {
+		return
 	}
-	for _, ownerDir := range ownerDirs {
-		if !ownerDir.Type().IsDir() {
-			continue
-		}
-		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
-		if err != nil {
-			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
-		}
-		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "pull"), 0o755)
-		}
-	}
+	assert.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 }
 
 func PrepareArtifactsStorage(t testing.TB) {
@@ -277,9 +252,4 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	t.Helper()
 	return testlogger.PrintCurrentTest(t, util.OptionalArg(skip)+1)
-}
-
-// Printf takes a format and args and prints the string to os.Stdout
-func Printf(format string, args ...any) {
-	testlogger.Printf(format, args...)
 }

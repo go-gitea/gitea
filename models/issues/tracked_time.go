@@ -139,7 +139,7 @@ func (opts *FindTrackedTimesOptions) toSession(e db.Engine) db.Engine {
 
 	sess = sess.Where(opts.ToConds())
 
-	if opts.Page != 0 {
+	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, opts)
 	}
 

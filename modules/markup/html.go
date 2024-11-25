@@ -7,11 +7,11 @@ import (
 	"bytes"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/markup/common"
-	"code.gitea.io/gitea/modules/setting"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -25,7 +25,25 @@ const (
 	IssueNameStyleRegexp       = "regexp"
 )
 
-var (
+type globalVarsType struct {
+	hashCurrentPattern      *regexp.Regexp
+	shortLinkPattern        *regexp.Regexp
+	anyHashPattern          *regexp.Regexp
+	comparePattern          *regexp.Regexp
+	fullURLPattern          *regexp.Regexp
+	emailRegex              *regexp.Regexp
+	blackfridayExtRegex     *regexp.Regexp
+	emojiShortCodeRegex     *regexp.Regexp
+	issueFullPattern        *regexp.Regexp
+	filesChangedFullPattern *regexp.Regexp
+	codePreviewPattern      *regexp.Regexp
+
+	tagCleaner *regexp.Regexp
+	nulCleaner *strings.Replacer
+}
+
+var globalVars = sync.OnceValue[*globalVarsType](func() *globalVarsType {
+	v := &globalVarsType{}
 	// NOTE: All below regex matching do not perform any extra validation.
 	// Thus a link is produced even if the linked entity does not exist.
 	// While fast, this is also incorrect and lead to false positives.
@@ -36,77 +54,57 @@ var (
 	// hashCurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
 	// Although SHA1 hashes are 40 chars long, SHA256 are 64, the regex matches the hash from 7 to 64 chars in length
 	// so that abbreviated hash links can be used as well. This matches git and GitHub usability.
-	hashCurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,64})(?:\s|$|\)|\]|[.,:](\s|$))`)
+	v.hashCurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,64})(?:\s|$|\)|\]|[.,:](\s|$))`)
 
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
-	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
+	v.shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
 	// anyHashPattern splits url containing SHA into parts
-	anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})(/[-+~%./\w]+)?(\?[-+~%.\w&=]+)?(#[-+~%.\w]+)?`)
+	v.anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})(/[-+~%./\w]+)?(\?[-+~%.\w&=]+)?(#[-+~%.\w]+)?`)
 
 	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
-	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
+	v.comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	// fullURLPattern matches full URL like "mailto:...", "https://..." and "ssh+git://..."
-	fullURLPattern = regexp.MustCompile(`^[a-z][-+\w]+:`)
+	v.fullURLPattern = regexp.MustCompile(`^[a-z][-+\w]+:`)
 
 	// emailRegex is definitely not perfect with edge cases,
 	// it is still accepted by the CommonMark specification, as well as the HTML5 spec:
 	//   http://spec.commonmark.org/0.28/#email-address
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
-	emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)(?:\\s|$|\\)|\\]|;|,|\\?|!|\\.(\\s|$))")
+	v.emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)(?:\\s|$|\\)|\\]|;|,|\\?|!|\\.(\\s|$))")
 
 	// blackfridayExtRegex is for blackfriday extensions create IDs like fn:user-content-footnote
-	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
+	v.blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 
 	// emojiShortCodeRegex find emoji by alias like :smile:
-	emojiShortCodeRegex = regexp.MustCompile(`:[-+\w]+:`)
-)
+	v.emojiShortCodeRegex = regexp.MustCompile(`:[-+\w]+:`)
 
-// CSS class for action keywords (e.g. "closes: #1")
-const keywordClass = "issue-keyword"
+	// example: https://domain/org/repo/pulls/27#hash
+	v.issueFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
+
+	// example: https://domain/org/repo/pulls/27/files#hash
+	v.filesChangedFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
+
+	// codePreviewPattern matches "http://domain/.../{owner}/{repo}/src/commit/{commit}/{filepath}#L10-L20"
+	v.codePreviewPattern = regexp.MustCompile(`https?://\S+/([^\s/]+)/([^\s/]+)/src/commit/([0-9a-f]{7,64})(/\S+)#(L\d+(-L\d+)?)`)
+
+	v.tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL]\b)|(/?[hH][eE][aA][dD]\b))`)
+	v.nulCleaner = strings.NewReplacer("\000", "")
+	return v
+})
 
 // IsFullURLBytes reports whether link fits valid format.
 func IsFullURLBytes(link []byte) bool {
-	return fullURLPattern.Match(link)
+	return globalVars().fullURLPattern.Match(link)
 }
 
 func IsFullURLString(link string) bool {
-	return fullURLPattern.MatchString(link)
+	return globalVars().fullURLPattern.MatchString(link)
 }
 
 func IsNonEmptyRelativePath(link string) bool {
 	return link != "" && !IsFullURLString(link) && link[0] != '/' && link[0] != '?' && link[0] != '#'
-}
-
-// regexp for full links to issues/pulls
-var issueFullPattern *regexp.Regexp
-
-// Once for to prevent races
-var issueFullPatternOnce sync.Once
-
-// regexp for full links to hash comment in pull request files changed tab
-var filesChangedFullPattern *regexp.Regexp
-
-// Once for to prevent races
-var filesChangedFullPatternOnce sync.Once
-
-func getIssueFullPattern() *regexp.Regexp {
-	issueFullPatternOnce.Do(func() {
-		// example: https://domain/org/repo/pulls/27#hash
-		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-			`[\w_.-]+/[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
-	})
-	return issueFullPattern
-}
-
-func getFilesChangedFullPattern() *regexp.Regexp {
-	filesChangedFullPatternOnce.Do(func() {
-		// example: https://domain/org/repo/pulls/27/files#hash
-		filesChangedFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-			`[\w_.-]+/[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
-	})
-	return filesChangedFullPattern
 }
 
 // CustomLinkURLSchemes allows for additional schemes to be detected when parsing links within text
@@ -132,7 +130,7 @@ func CustomLinkURLSchemes(schemes []string) {
 		}
 		withAuth = append(withAuth, s)
 	}
-	common.LinkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
+	common.GlobalVars().LinkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
 }
 
 type postProcessError struct {
@@ -167,11 +165,7 @@ var defaultProcessors = []processor{
 // emails with HTML links, parsing shortlinks in the format of [[Link]], like
 // MediaWiki, linking issues in the format #ID, and mentions in the format
 // @user, and others.
-func PostProcess(
-	ctx *RenderContext,
-	input io.Reader,
-	output io.Writer,
-) error {
+func PostProcess(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	return postProcess(ctx, defaultProcessors, input, output)
 }
 
@@ -192,18 +186,8 @@ var commitMessageProcessors = []processor{
 // RenderCommitMessage will use the same logic as PostProcess, but will disable
 // the shortLinkProcessor and will add a defaultLinkProcessor if defaultLink is
 // set, which changes every text node into a link to the passed default link.
-func RenderCommitMessage(
-	ctx *RenderContext,
-	content string,
-) (string, error) {
+func RenderCommitMessage(ctx *RenderContext, content string) (string, error) {
 	procs := commitMessageProcessors
-	if ctx.DefaultLink != "" {
-		// we don't have to fear data races, because being
-		// commitMessageProcessors of fixed len and cap, every time we append
-		// something to it the slice is realloc+copied, so append always
-		// generates the slice ex-novo.
-		procs = append(procs, genDefaultLinkProcessor(ctx.DefaultLink))
-	}
 	return renderProcessString(ctx, procs, content)
 }
 
@@ -229,30 +213,23 @@ var emojiProcessors = []processor{
 // RenderCommitMessage, but will disable the shortLinkProcessor and
 // emailAddressProcessor, will add a defaultLinkProcessor if defaultLink is set,
 // which changes every text node into a link to the passed default link.
-func RenderCommitMessageSubject(
-	ctx *RenderContext,
-	content string,
-) (string, error) {
-	procs := commitMessageSubjectProcessors
-	if ctx.DefaultLink != "" {
-		// we don't have to fear data races, because being
-		// commitMessageSubjectProcessors of fixed len and cap, every time we
-		// append something to it the slice is realloc+copied, so append always
-		// generates the slice ex-novo.
-		procs = append(procs, genDefaultLinkProcessor(ctx.DefaultLink))
-	}
+func RenderCommitMessageSubject(ctx *RenderContext, defaultLink, content string) (string, error) {
+	procs := slices.Clone(commitMessageSubjectProcessors)
+	procs = append(procs, func(ctx *RenderContext, node *html.Node) {
+		ch := &html.Node{Parent: node, Type: html.TextNode, Data: node.Data}
+		node.Type = html.ElementNode
+		node.Data = "a"
+		node.DataAtom = atom.A
+		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}, {Key: "class", Val: "muted"}}
+		node.FirstChild, node.LastChild = ch, ch
+	})
 	return renderProcessString(ctx, procs, content)
 }
 
 // RenderIssueTitle to process title on individual issue/pull page
-func RenderIssueTitle(
-	ctx *RenderContext,
-	title string,
-) (string, error) {
+func RenderIssueTitle(ctx *RenderContext, title string) (string, error) {
+	// do not render other issue/commit links in an issue's title - which in most cases is already a link.
 	return renderProcessString(ctx, []processor{
-		issueIndexPatternProcessor,
-		commitCrossReferencePatternProcessor,
-		hashCurrentPatternProcessor,
 		emojiShortCodeProcessor,
 		emojiProcessor,
 	}, title)
@@ -268,10 +245,7 @@ func renderProcessString(ctx *RenderContext, procs []processor, content string) 
 
 // RenderDescriptionHTML will use similar logic as PostProcess, but will
 // use a single special linkProcessor.
-func RenderDescriptionHTML(
-	ctx *RenderContext,
-	content string,
-) (string, error) {
+func RenderDescriptionHTML(ctx *RenderContext, content string) (string, error) {
 	return renderProcessString(ctx, []processor{
 		descriptionLinkProcessor,
 		emojiShortCodeProcessor,
@@ -281,20 +255,11 @@ func RenderDescriptionHTML(
 
 // RenderEmoji for when we want to just process emoji and shortcodes
 // in various places it isn't already run through the normal markdown processor
-func RenderEmoji(
-	ctx *RenderContext,
-	content string,
-) (string, error) {
+func RenderEmoji(ctx *RenderContext, content string) (string, error) {
 	return renderProcessString(ctx, emojiProcessors, content)
 }
 
-var (
-	tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL]\b)|(/?[hH][eE][aA][dD]\b))`)
-	nulCleaner = strings.NewReplacer("\000", "")
-)
-
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
-	defer ctx.Cancel()
 	// FIXME: don't read all content to memory
 	rawHTML, err := io.ReadAll(input)
 	if err != nil {
@@ -306,7 +271,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 		// prepend "<html><body>"
 		strings.NewReader("<html><body>"),
 		// Strip out nuls - they're always invalid
-		bytes.NewReader(tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1"))),
+		bytes.NewReader(globalVars().tagCleaner.ReplaceAll([]byte(globalVars().nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1"))),
 		// close the tags
 		strings.NewReader("</body></html>"),
 	))
@@ -349,11 +314,22 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	return nil
 }
 
+func isEmojiNode(node *html.Node) bool {
+	if node.Type == html.ElementNode && node.Data == atom.Span.String() {
+		for _, attr := range node.Attr {
+			if (attr.Key == "class" || attr.Key == "data-attr-class") && strings.Contains(attr.Val, "emoji") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Node {
 	// Add user-content- to IDs and "#" links if they don't already have them
 	for idx, attr := range node.Attr {
 		val := strings.TrimPrefix(attr.Val, "#")
-		notHasPrefix := !(strings.HasPrefix(val, "user-content-") || blackfridayExtRegex.MatchString(val))
+		notHasPrefix := !(strings.HasPrefix(val, "user-content-") || globalVars().blackfridayExtRegex.MatchString(val))
 
 		if attr.Key == "id" && notHasPrefix {
 			node.Attr[idx].Val = "user-content-" + attr.Val
@@ -362,47 +338,27 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 		if attr.Key == "href" && strings.HasPrefix(attr.Val, "#") && notHasPrefix {
 			node.Attr[idx].Val = "#user-content-" + val
 		}
-
-		if attr.Key == "class" && attr.Val == "emoji" {
-			procs = nil
-		}
 	}
 
 	switch node.Type {
 	case html.TextNode:
-		processTextNodes(ctx, procs, node)
+		for _, proc := range procs {
+			proc(ctx, node) // it might add siblings
+		}
+
 	case html.ElementNode:
-		if node.Data == "code" || node.Data == "pre" {
-			// ignore code and pre nodes
+		if isEmojiNode(node) {
+			// TextNode emoji will be converted to `<span class="emoji">`, then the next iteration will visit the "span"
+			// if we don't stop it, it will go into the TextNode again and create an infinite recursion
 			return node.NextSibling
+		} else if node.Data == "code" || node.Data == "pre" {
+			return node.NextSibling // ignore code and pre nodes
 		} else if node.Data == "img" {
 			return visitNodeImg(ctx, node)
 		} else if node.Data == "video" {
 			return visitNodeVideo(ctx, node)
 		} else if node.Data == "a" {
-			// Restrict text in links to emojis
-			procs = emojiProcessors
-		} else if node.Data == "i" {
-			for _, attr := range node.Attr {
-				if attr.Key != "class" {
-					continue
-				}
-				classes := strings.Split(attr.Val, " ")
-				for i, class := range classes {
-					if class == "icon" {
-						classes[0], classes[i] = classes[i], classes[0]
-						attr.Val = strings.Join(classes, " ")
-
-						// Remove all children of icons
-						child := node.FirstChild
-						for child != nil {
-							node.RemoveChild(child)
-							child = node.FirstChild
-						}
-						break
-					}
-				}
-			}
+			procs = emojiProcessors // Restrict text in links to emojis
 		}
 		for n := node.FirstChild; n != nil; {
 			n = visitNode(ctx, procs, n)
@@ -412,22 +368,17 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 	return node.NextSibling
 }
 
-// processTextNodes runs the passed node through various processors, in order to handle
-// all kinds of special links handled by the post-processing.
-func processTextNodes(ctx *RenderContext, procs []processor, node *html.Node) {
-	for _, p := range procs {
-		p(ctx, node)
-	}
-}
-
 // createKeyword() renders a highlighted version of an action keyword
-func createKeyword(content string) *html.Node {
+func createKeyword(ctx *RenderContext, content string) *html.Node {
+	// CSS class for action keywords (e.g. "closes: #1")
+	const keywordClass = "issue-keyword"
+
 	span := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Span.String(),
 		Attr: []html.Attribute{},
 	}
-	span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: keywordClass})
+	span.Attr = append(span.Attr, ctx.RenderInternal.NodeSafeAttr("class", keywordClass))
 
 	text := &html.Node{
 		Type: html.TextNode,
@@ -438,18 +389,17 @@ func createKeyword(content string) *html.Node {
 	return span
 }
 
-func createLink(href, content, class string) *html.Node {
+func createLink(ctx *RenderContext, href, content, class string) *html.Node {
 	a := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.A.String(),
-		Attr: []html.Attribute{
-			{Key: "href", Val: href},
-			{Key: "data-markdown-generated-content"},
-		},
+		Attr: []html.Attribute{{Key: "href", Val: href}},
 	}
-
+	if !RenderBehaviorForTesting.DisableAdditionalAttributes {
+		a.Attr = append(a.Attr, html.Attribute{Key: "data-markdown-generated-content"})
+	}
 	if class != "" {
-		a.Attr = append(a.Attr, html.Attribute{Key: "class", Val: class})
+		a.Attr = append(a.Attr, ctx.RenderInternal.NodeSafeAttr("class", class))
 	}
 
 	text := &html.Node{

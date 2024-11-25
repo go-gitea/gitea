@@ -58,4 +58,8 @@ interface Window {
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
   },
   __webpack_public_path__: string;
+  grecaptcha: any,
+  turnstile: any,
+  hcaptcha: any,
+  codeEditors: any[],
 }
