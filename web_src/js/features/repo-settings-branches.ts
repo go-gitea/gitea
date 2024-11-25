@@ -9,22 +9,25 @@ export function initRepoBranchesSettings() {
   createSortable(protectedBranchesList, {
     handle: '.drag-handle',
     animation: 150,
-    onEnd: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises
-      const newOrder = Array.from(protectedBranchesList.children, (item) => {
-        const id = item.getAttribute('data-id');
-        return parseInt(id);
-      }).filter((id) => !Number.isNaN(id));
 
-      try {
-        await POST(protectedBranchesList.getAttribute('data-update-priority-url'), {
-          data: {
-            ids: newOrder,
-          },
-        });
-      } catch (err) {
-        const errorMessage = String(err);
-        showErrorToast(`Failed to update branch protection rule priority:, error: ${errorMessage}`);
-      }
+    onEnd: () => {
+      (async () => {
+        const newOrder = Array.from(protectedBranchesList.children, (item) => {
+          const id = item.getAttribute('data-id');
+          return parseInt(id);
+        }).filter((id) => !Number.isNaN(id));
+
+        try {
+          await POST(protectedBranchesList.getAttribute('data-update-priority-url'), {
+            data: {
+              ids: newOrder,
+            },
+          });
+        } catch (err) {
+          const errorMessage = String(err);
+          showErrorToast(`Failed to update branch protection rule priority:, error: ${errorMessage}`);
+        }
+      })();
     },
   });
 }
