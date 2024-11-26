@@ -229,7 +229,7 @@ export default {
       }
     },
 
-    getOptions(type: 'main' | 'contributor'): ChartOptions<'line'> {
+    getOptions(type: string): ChartOptions<'line'> {
       return {
         responsive: true,
         maintainAspectRatio: false,
