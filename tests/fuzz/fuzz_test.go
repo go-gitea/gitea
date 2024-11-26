@@ -27,6 +27,6 @@ func FuzzMarkdownRenderRaw(f *testing.F) {
 func FuzzMarkupPostProcess(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		setting.AppURL = "http://localhost:3000/"
-		markup.PostProcess(newFuzzRenderContext(), bytes.NewReader(data), io.Discard)
+		markup.PostProcessDefault(newFuzzRenderContext(), bytes.NewReader(data), io.Discard)
 	})
 }
