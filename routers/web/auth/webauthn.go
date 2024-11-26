@@ -89,7 +89,7 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 			return nil, err
 		}
 
-		return (*wa.User)(user), nil
+		return wa.NewWebAuthnUser(ctx, user), nil
 	}, *sessionData, ctx.Req)
 	if err != nil {
 		// Failed authentication attempt.
@@ -171,7 +171,8 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 		return
 	}
 
-	assertion, sessionData, err := wa.WebAuthn.BeginLogin((*wa.User)(user))
+	webAuthnUser := wa.NewWebAuthnUser(ctx, user)
+	assertion, sessionData, err := wa.WebAuthn.BeginLogin(webAuthnUser)
 	if err != nil {
 		ctx.ServerError("webauthn.BeginLogin", err)
 		return
@@ -216,7 +217,8 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}
 
 	// Validate the parsed response.
-	cred, err := wa.WebAuthn.ValidateLogin((*wa.User)(user), *sessionData, parsedResponse)
+	webAuthnUser := wa.NewWebAuthnUser(ctx, user)
+	cred, err := wa.WebAuthn.ValidateLogin(webAuthnUser, *sessionData, parsedResponse)
 	if err != nil {
 		// Failed authentication attempt.
 		log.Info("Failed authentication attempt for %s from %s: %v", user.Name, ctx.RemoteAddr(), err)

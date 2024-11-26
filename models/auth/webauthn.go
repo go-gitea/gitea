@@ -9,8 +9,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -52,7 +50,6 @@ type WebAuthnCredential struct {
 	PublicKey       []byte
 	AttestationType string
 	AAGUID          []byte
-	CredentialFlags string `xorm:"TEXT"`
 	SignCount       uint32 `xorm:"BIGINT"`
 	CloneWarning    bool
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
@@ -96,14 +93,6 @@ type WebAuthnCredentialList []*WebAuthnCredential
 func (list WebAuthnCredentialList) ToCredentials() []webauthn.Credential {
 	creds := make([]webauthn.Credential, 0, len(list))
 	for _, cred := range list {
-		var flags webauthn.CredentialFlags
-		if cred.CredentialFlags != "" {
-			err := json.Unmarshal([]byte(cred.CredentialFlags), &flags)
-			if err != nil {
-				log.Error("Failed to unmarshal CredentialFlags, webauthn credential id:%d, err:%v", cred.ID, err)
-				continue
-			}
-		}
 		creds = append(creds, webauthn.Credential{
 			ID:              cred.CredentialID,
 			PublicKey:       cred.PublicKey,
@@ -113,7 +102,6 @@ func (list WebAuthnCredentialList) ToCredentials() []webauthn.Credential {
 				SignCount:    cred.SignCount,
 				CloneWarning: cred.CloneWarning,
 			},
-			Flags: flags,
 		})
 	}
 	return creds
@@ -170,10 +158,6 @@ func GetWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID []b
 
 // CreateCredential will create a new WebAuthnCredential from the given Credential
 func CreateCredential(ctx context.Context, userID int64, name string, cred *webauthn.Credential) (*WebAuthnCredential, error) {
-	flagsJSON, err := json.Marshal(cred.Flags)
-	if err != nil {
-		return nil, err
-	}
 	c := &WebAuthnCredential{
 		UserID:          userID,
 		Name:            name,
@@ -181,7 +165,6 @@ func CreateCredential(ctx context.Context, userID int64, name string, cred *weba
 		PublicKey:       cred.PublicKey,
 		AttestationType: cred.AttestationType,
 		AAGUID:          cred.Authenticator.AAGUID,
-		CredentialFlags: string(flagsJSON),
 		SignCount:       cred.Authenticator.SignCount,
 		CloneWarning:    false,
 	}
@@ -196,4 +179,14 @@ func CreateCredential(ctx context.Context, userID int64, name string, cred *weba
 func DeleteCredential(ctx context.Context, id, userID int64) (bool, error) {
 	had, err := db.GetEngine(ctx).ID(id).Where("user_id = ?", userID).Delete(&WebAuthnCredential{})
 	return had > 0, err
+}
+
+// WebAuthnCredentials implements the webauthn.User interface
+func WebAuthnCredentials(ctx context.Context, userID int64) ([]webauthn.Credential, error) {
+	dbCreds, err := GetWebAuthnCredentialsByUID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return dbCreds.ToCredentials(), nil
 }

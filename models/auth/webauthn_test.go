@@ -58,24 +58,10 @@ func TestWebAuthnCredential_UpdateLargeCounter(t *testing.T) {
 func TestCreateCredential(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	flags := webauthn.CredentialFlags{
-		UserPresent:    true,
-		UserVerified:   true,
-		BackupEligible: true,
-		BackupState:    true,
-	}
-	res, err := auth_model.CreateCredential(db.DefaultContext, 1, "WebAuthn Created Credential", &webauthn.Credential{
-		ID:    []byte("Test"),
-		Flags: flags,
-	})
+	res, err := auth_model.CreateCredential(db.DefaultContext, 1, "WebAuthn Created Credential", &webauthn.Credential{ID: []byte("Test")})
 	assert.NoError(t, err)
 	assert.Equal(t, "WebAuthn Created Credential", res.Name)
 	assert.Equal(t, []byte("Test"), res.CredentialID)
 
-	webauthnUser1 := unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{UserID: 1})
-	assert.Equal(t, "WebAuthn Created Credential", webauthnUser1.Name)
-	assert.Equal(t, []byte("Test"), webauthnUser1.CredentialID)
-
-	credList := auth_model.WebAuthnCredentialList{webauthnUser1}.ToCredentials()
-	assert.Equal(t, flags, credList[0].Flags)
+	unittest.AssertExistsIf(t, true, &auth_model.WebAuthnCredential{Name: "WebAuthn Created Credential", UserID: 1})
 }

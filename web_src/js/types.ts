@@ -24,7 +24,7 @@ export type Config = {
 
 export type Intent = 'error' | 'warning' | 'info';
 
-export type RequestData = string | FormData | URLSearchParams;
+export type RequestData = string | FormData | URLSearchParams | Record<string, any>;
 
 export type RequestOpts = {
   data?: RequestData,
