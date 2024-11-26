@@ -12,15 +12,15 @@ export function initRepoBranchesSettings() {
 
     onEnd: () => {
       (async () => {
-        const newOrder = Array.from(protectedBranchesList.children, (item) => {
+        const itemIds = Array.from(protectedBranchesList.children, (item) => {
           const id = item.getAttribute('data-id');
           return parseInt(id);
-        }).filter((id) => !Number.isNaN(id));
+        });
 
         try {
           await POST(protectedBranchesList.getAttribute('data-update-priority-url'), {
             data: {
-              ids: newOrder,
+              ids: itemIds,
             },
           });
         } catch (err) {
