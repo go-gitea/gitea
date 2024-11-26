@@ -217,7 +217,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}
 
 	// Validate the parsed response.
-	webAuthnUser := wa.NewWebAuthnUser(ctx, user)
+	webAuthnUser := wa.NewWebAuthnUser(ctx, user, parsedResponse.Response.AuthenticatorData.Flags)
 	cred, err := wa.WebAuthn.ValidateLogin(webAuthnUser, *sessionData, parsedResponse)
 	if err != nil {
 		// Failed authentication attempt.

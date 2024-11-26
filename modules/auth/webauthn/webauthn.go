@@ -43,12 +43,14 @@ func Init() {
 type user struct {
 	ctx  context.Context
 	User *user_model.User
+
+	defaultAuthFlags protocol.AuthenticatorFlags
 }
 
 var _ webauthn.User = (*user)(nil)
 
-func NewWebAuthnUser(ctx context.Context, u *user_model.User) webauthn.User {
-	return &user{ctx: ctx, User: u}
+func NewWebAuthnUser(ctx context.Context, u *user_model.User, defaultAuthFlags ...protocol.AuthenticatorFlags) webauthn.User {
+	return &user{ctx: ctx, User: u, defaultAuthFlags: util.OptionalArg(defaultAuthFlags)}
 }
 
 // WebAuthnID implements the webauthn.User interface
@@ -74,5 +76,5 @@ func (u *user) WebAuthnCredentials() []webauthn.Credential {
 	if err != nil {
 		return nil
 	}
-	return dbCreds.ToCredentials()
+	return dbCreds.ToCredentials(u.defaultAuthFlags)
 }
