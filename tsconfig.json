@@ -15,6 +15,7 @@
     "allowSyntheticDefaultImports": true,
     "alwaysStrict": true,
     "esModuleInterop": true,
+    "incremental": false,
     "isolatedModules": true,
     "noEmit": true,
     "resolveJsonModule": true,
