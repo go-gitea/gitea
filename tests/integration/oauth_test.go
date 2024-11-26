@@ -565,7 +565,7 @@ func TestOAuth_GrantScopesReadUserFailRepos(t *testing.T) {
 
 	errorParsed := new(errorResponse)
 	require.NoError(t, json.Unmarshal(errorResp.Body.Bytes(), errorParsed))
-	assert.Contains(t, errorParsed.Message, "token does not have at least one of required scope(s): [read:repository]")
+	assert.Contains(t, errorParsed.Message, "token does not have at least one of required scope(s), required=[read:repository]")
 }
 
 func TestOAuth_GrantScopesReadRepositoryFailOrganization(t *testing.T) {
@@ -708,7 +708,7 @@ func TestOAuth_GrantScopesReadRepositoryFailOrganization(t *testing.T) {
 
 	errorParsed := new(errorResponse)
 	require.NoError(t, json.Unmarshal(errorResp.Body.Bytes(), errorParsed))
-	assert.Contains(t, errorParsed.Message, "token does not have at least one of required scope(s): [read:user read:organization]")
+	assert.Contains(t, errorParsed.Message, "token does not have at least one of required scope(s), required=[read:user read:organization]")
 }
 
 func TestOAuth_GrantScopesClaimPublicOnlyGroups(t *testing.T) {

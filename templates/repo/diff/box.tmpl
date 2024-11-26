@@ -164,24 +164,22 @@
 										<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off"{{if $file.IsViewed}} checked{{end}}> {{ctx.Locale.Tr "repo.pulls.has_viewed_file"}}
 									</label>
 								{{end}}
-								<div class="ui dropdown basic">
-									{{svg "octicon-kebab-horizontal" 18 "icon tw-mx-2"}}
-									<div class="ui menu">
-										{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
-											<button class="unescape-button item">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-											<button class="escape-button tw-hidden item">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
-										{{end}}
-										{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
-											{{if $file.IsDeleted}}
-												<a class="item" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
-											{{else}}
-												<a class="item" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
-												{{if and $.Repository.CanEnableEditor $.CanEditFile (not $file.IsLFSFile) (not $file.IsBin)}}
-													<a class="item" rel="nofollow" href="{{$.HeadRepoLink}}/_edit/{{PathEscapeSegments $.HeadBranchName}}/{{PathEscapeSegments $file.Name}}?return_uri={{print $.BackToLink "#diff-" $file.NameHash | QueryEscape}}">{{ctx.Locale.Tr "repo.editor.edit_this_file"}}</a>
-												{{end}}
+								<button class="btn diff-header-popup-btn tw-p-1">{{svg "octicon-kebab-horizontal" 18}}</button>
+								<div class="tippy-target">
+									{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
+										<button class="unescape-button item" data-file-content-elem-id="diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+										<button class="escape-button tw-hidden item" data-file-content-elem-id="diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+									{{end}}
+									{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
+										{{if $file.IsDeleted}}
+											<a class="item" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
+										{{else}}
+											<a class="item" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
+											{{if and $.Repository.CanEnableEditor $.CanEditFile (not $file.IsLFSFile) (not $file.IsBin)}}
+												<a class="item" rel="nofollow" href="{{$.HeadRepoLink}}/_edit/{{PathEscapeSegments $.HeadBranchName}}/{{PathEscapeSegments $file.Name}}?return_uri={{print $.BackToLink "#diff-" $file.NameHash | QueryEscape}}">{{ctx.Locale.Tr "repo.editor.edit_this_file"}}</a>
 											{{end}}
 										{{end}}
-									</div>
+									{{end}}
 								</div>
 							</div>
 						</h4>
