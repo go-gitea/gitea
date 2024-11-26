@@ -76,6 +76,11 @@ export function queryElemSiblings<T extends Element>(el: Element, selector = '*'
 
 // it works like jQuery.children: only the direct children are selected
 export function queryElemChildren<T extends Element>(parent: Element | ParentNode, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
+  if (window.vitest) {
+    // bypass the vitest bug: it doesn't support ":scope >"
+    const selected = Array.from<T>(parent.children as any).filter((child) => child.matches(selector));
+    return applyElemsCallback<T>(selected, fn);
+  }
   return applyElemsCallback<T>(parent.querySelectorAll(`:scope > ${selector}`), fn);
 }
 
@@ -348,7 +353,7 @@ export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, s
   return candidates.length ? candidates[0] as T : null;
 }
 
-export function addDelegatedEventListener<T extends HTMLElement>(parent: Node, type: string, selector: string, listener: (elem: T, e: Event) => void | Promise<any>, options?: boolean | AddEventListenerOptions) {
+export function addDelegatedEventListener<T extends HTMLElement, E extends Event>(parent: Node, type: string, selector: string, listener: (elem: T, e: E) => void | Promise<any>, options?: boolean | AddEventListenerOptions) {
   parent.addEventListener(type, (e: Event) => {
     const elem = (e.target as HTMLElement).closest(selector);
     if (!elem) return;
