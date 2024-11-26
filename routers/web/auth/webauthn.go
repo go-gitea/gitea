@@ -76,8 +76,17 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 	}()
 
 	// Validate the parsed response.
+
+	// ParseCredentialRequestResponse+ValidateDiscoverableLogin equals to FinishDiscoverableLogin, but we need to ParseCredentialRequestResponse first to get flags
 	var user *user_model.User
-	cred, err := wa.WebAuthn.FinishDiscoverableLogin(func(rawID, userHandle []byte) (webauthn.User, error) {
+	parsedResponse, err := protocol.ParseCredentialRequestResponse(ctx.Req)
+	if err != nil {
+		// Failed authentication attempt.
+		log.Info("Failed authentication attempt for %s from %s: %v", user.Name, ctx.RemoteAddr(), err)
+		ctx.Status(http.StatusForbidden)
+		return
+	}
+	cred, err := wa.WebAuthn.ValidateDiscoverableLogin(func(rawID, userHandle []byte) (webauthn.User, error) {
 		userID, n := binary.Varint(userHandle)
 		if n <= 0 {
 			return nil, errors.New("invalid rawID")
@@ -89,8 +98,8 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 			return nil, err
 		}
 
-		return wa.NewWebAuthnUser(ctx, user), nil
-	}, *sessionData, ctx.Req)
+		return wa.NewWebAuthnUser(ctx, user, parsedResponse.Response.AuthenticatorData.Flags), nil
+	}, *sessionData, parsedResponse)
 	if err != nil {
 		// Failed authentication attempt.
 		log.Info("Failed authentication attempt for passkey from %s: %v", ctx.RemoteAddr(), err)
