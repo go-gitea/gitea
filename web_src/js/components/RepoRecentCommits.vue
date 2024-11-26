@@ -67,7 +67,7 @@ async function fetchGraphData() {
       const start = Object.values(dayDataObj)[0].week;
       const end = firstStartDateAfterDate(new Date());
       const startDays = startDaysBetween(start, end);
-      data.value = fillEmptyStartDaysWithZeroes(startDays, dayDataObj);
+      data.value = fillEmptyStartDaysWithZeroes(startDays, dayDataObj).slice(-52);
       errorText.value = '';
     } else {
       errorText.value = response.statusText;
