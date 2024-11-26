@@ -76,6 +76,11 @@ export function queryElemSiblings<T extends Element>(el: Element, selector = '*'
 
 // it works like jQuery.children: only the direct children are selected
 export function queryElemChildren<T extends Element>(parent: Element | ParentNode, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
+  if (window.vitest) {
+    // bypass the vitest bug: it doesn't support ":scope >"
+    const selected = Array.from<T>(parent.children as any).filter((child) => child.matches(selector));
+    return applyElemsCallback<T>(selected, fn);
+  }
   return applyElemsCallback<T>(parent.querySelectorAll(`:scope > ${selector}`), fn);
 }
 
