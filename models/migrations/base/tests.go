@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/testlogger"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"xorm.io/xorm"
 )
 
@@ -33,15 +33,15 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, fu
 	ourSkip := 2
 	ourSkip += skip
 	deferFn := testlogger.PrintCurrentTest(t, ourSkip)
-	assert.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	require.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 
 	if err := deleteDB(); err != nil {
-		t.Errorf("unable to reset database: %v", err)
+		t.Fatalf("unable to reset database: %v", err)
 		return nil, deferFn
 	}
 
 	x, err := newXORMEngine()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	if x != nil {
 		oldDefer := deferFn
 		deferFn = func() {
