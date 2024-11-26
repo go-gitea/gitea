@@ -1,5 +1,4 @@
-{{template "base/head" .}}
-
+{{template "devtest/devtest-header"}}
 <ul>
 	{{range .SubNames}}
 	<li><a href="{{AppSubUrl}}/devtest/{{.}}">{{.}}</a></li>
@@ -11,5 +10,4 @@ ul {
 	line-height: 2em;
 }
 </style>
-
-{{template "base/footer" .}}
+{{template "devtest/devtest-footer"}}
