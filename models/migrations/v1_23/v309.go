@@ -74,4 +74,5 @@ func (*improveNotificationTableIndicesAction) TableIndices() []*schemas.Index {
 
 func ImproveNotificationTableIndices(x *xorm.Engine) error {
 	return x.Sync(&improveNotificationTableIndicesAction{})
+>>>>>>> origin/main
 }
