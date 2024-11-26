@@ -116,7 +116,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}
 	defer baseGitRepo.Close()
 
-	var reviewNotifiers []*issue_service.ReviewRequestNotifier
+	var reviewNotifiers []*ReviewRequestNotifier
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr); err != nil {
 			return err
@@ -176,7 +176,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		if !pr.IsWorkInProgress(ctx) {
-			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, issue, pr)
+			reviewNotifiers, err = RequestCodeOwnersReview(ctx, issue, pr)
 			if err != nil {
 				return err
 			}
@@ -191,7 +191,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}
 	baseGitRepo.Close() // close immediately to avoid notifications will open the repository again
 
-	issue_service.ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
+	ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 
 	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, issue.Poster, issue.Content)
 	if err != nil {
@@ -213,12 +213,12 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}
 	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
 	for _, reviewer := range opts.Reviewers {
-		if _, err = issue_service.ReviewRequest(ctx, pr, issue.Poster, &permDoer, reviewer, true); err != nil {
+		if _, err = ReviewRequest(ctx, pr, issue.Poster, &permDoer, reviewer, true); err != nil {
 			return err
 		}
 	}
 	for _, teamReviewer := range opts.TeamReviewers {
-		if _, err = issue_service.TeamReviewRequest(ctx, pr, issue.Poster, teamReviewer, true); err != nil {
+		if _, err = TeamReviewRequest(ctx, pr, issue.Poster, teamReviewer, true); err != nil {
 			return err
 		}
 	}
