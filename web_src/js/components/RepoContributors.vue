@@ -72,7 +72,7 @@ export default {
     totalStats: {} as Record<string, any>,
     sortedContributors: {} as Record<string, any>,
     type: 'commits',
-    contributorsStats: [] as Record<string, any>,
+    contributorsStats: {} as Record<string, any>,
     xAxisStart: null,
     xAxisEnd: null,
     xAxisMin: null,
