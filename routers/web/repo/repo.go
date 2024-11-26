@@ -464,7 +464,12 @@ func RedirectDownload(ctx *context.Context) {
 // Download an archive of a repository
 func Download(ctx *context.Context) {
 	uri := ctx.PathParam("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
+	ext, tp, err := archiver_service.ParseFileName(uri)
+	if err != nil {
+		ctx.ServerError("ParseFileName", err)
+		return
+	}
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, strings.TrimSuffix(uri, ext), tp)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.Error(http.StatusBadRequest, err.Error())
@@ -523,7 +528,12 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
 	uri := ctx.PathParam("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
+	ext, tp, err := archiver_service.ParseFileName(uri)
+	if err != nil {
+		ctx.ServerError("ParseFileName", err)
+		return
+	}
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, strings.TrimSuffix(uri, ext), tp)
 	if err != nil {
 		ctx.ServerError("archiver_service.NewRequest", err)
 		return
