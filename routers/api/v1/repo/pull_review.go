@@ -724,7 +724,7 @@ func DeleteReviewRequests(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	opts := web.GetForm(ctx).(*api.PullReviewRequestOptions)
-	apiReviewRequest(ctx, *opts, false)
+	deleteReviewRequests(ctx, *opts)
 }
 
 func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerNames []string) (reviewers []*user_model.User, teamReviewers []*organization.Team) {
@@ -768,7 +768,7 @@ func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerN
 	return reviewers, teamReviewers
 }
 
-func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions, isAdd bool) {
+func deleteReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOptions) {
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
@@ -795,13 +795,8 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		return
 	}
 
-	var reviews []*issues_model.Review
-	if isAdd {
-		reviews = make([]*issues_model.Review, 0, len(reviewers))
-	}
-
 	for _, reviewer := range reviewers {
-		comment, err := pull_service.ReviewRequest(ctx, pr, ctx.Doer, &permDoer, reviewer, isAdd)
+		_, err := pull_service.ReviewRequest(ctx, pr, ctx.Doer, &permDoer, reviewer, false)
 		if err != nil {
 			if issues_model.IsErrReviewRequestOnClosedPR(err) {
 				ctx.Error(http.StatusForbidden, "", err)
@@ -814,19 +809,11 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 			ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
 			return
 		}
-
-		if comment != nil && isAdd {
-			if err = comment.LoadReview(ctx); err != nil {
-				ctx.ServerError("ReviewRequest", err)
-				return
-			}
-			reviews = append(reviews, comment.Review)
-		}
 	}
 
 	if ctx.Repo.Repository.Owner.IsOrganization() && len(opts.TeamReviewers) > 0 {
 		for _, teamReviewer := range teamReviewers {
-			comment, err := pull_service.TeamReviewRequest(ctx, pr, ctx.Doer, teamReviewer, isAdd)
+			_, err := pull_service.TeamReviewRequest(ctx, pr, ctx.Doer, teamReviewer, false)
 			if err != nil {
 				if issues_model.IsErrReviewRequestOnClosedPR(err) {
 					ctx.Error(http.StatusForbidden, "", err)
@@ -839,28 +826,10 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 				ctx.ServerError("TeamReviewRequest", err)
 				return
 			}
-
-			if comment != nil && isAdd {
-				if err = comment.LoadReview(ctx); err != nil {
-					ctx.ServerError("ReviewRequest", err)
-					return
-				}
-				reviews = append(reviews, comment.Review)
-			}
 		}
 	}
 
-	if isAdd {
-		apiReviews, err := convert.ToPullReviewList(ctx, reviews, ctx.Doer)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "convertToPullReviewList", err)
-			return
-		}
-		ctx.JSON(http.StatusCreated, apiReviews)
-	} else {
-		ctx.Status(http.StatusNoContent)
-		return
-	}
+	ctx.Status(http.StatusNoContent)
 }
 
 // DismissPullReview dismiss a review for a pull request
