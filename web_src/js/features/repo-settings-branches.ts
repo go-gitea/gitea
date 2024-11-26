@@ -14,7 +14,7 @@ export function initRepoBranchesSettings() {
     onEnd: () => {
       (async () => {
         const itemElems = queryElemChildren(protectedBranchesList, '.item[data-id]');
-        const itemIds = Array.from(itemElems, (el) => el.getAttribute('data-id'));
+        const itemIds = Array.from(itemElems, (el) => parseInt(el.getAttribute('data-id')));
 
         try {
           await POST(protectedBranchesList.getAttribute('data-update-priority-url'), {
