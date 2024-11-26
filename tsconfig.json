@@ -15,7 +15,7 @@
     "allowSyntheticDefaultImports": true,
     "alwaysStrict": true,
     "esModuleInterop": true,
-    "incremental": false,
+    "tsBuildInfoFile": "./node_modules/.cache/tsbuild",
     "isolatedModules": true,
     "noEmit": true,
     "resolveJsonModule": true,
