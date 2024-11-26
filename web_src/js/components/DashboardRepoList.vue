@@ -3,7 +3,7 @@ import {createApp, nextTick} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {commitStatus} from '../types.ts';
+import {commitStatus} from '../data.ts';
 import type {CommitStatus} from '../types.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
