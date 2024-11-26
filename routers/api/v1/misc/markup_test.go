@@ -7,15 +7,19 @@ import (
 	go_context "context"
 	"io"
 	"net/http"
+	"os"
 	"path"
 	"strings"
 	"testing"
 
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
+	context_service "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -23,10 +27,17 @@ import (
 
 const AppURL = "http://localhost:3000/"
 
+func TestMain(m *testing.M) {
+	unittest.MainTest(m, &unittest.TestOptions{
+		FixtureFiles: []string{"repository.yml", "user.yml"},
+	})
+	os.Exit(m.Run())
+}
+
 func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, expectedBody string, expectedCode int) {
 	setting.AppURL = AppURL
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
-	context := "/gogits/gogs"
+	context := "/user2/repo1"
 	if !wiki {
 		context += path.Join("/src/branch/main", path.Dir(filePath))
 	}
@@ -38,6 +49,8 @@ func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, expe
 		FilePath: filePath,
 	}
 	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markup")
+	ctx.Repo = &context_service.Repository{}
+	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	web.SetForm(ctx, &options)
 	Markup(ctx)
 	assert.Equal(t, expectedBody, resp.Body.String())
@@ -48,7 +61,7 @@ func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, expe
 func testRenderMarkdown(t *testing.T, mode string, wiki bool, text, responseBody string, responseCode int) {
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	setting.AppURL = AppURL
-	context := "/gogits/gogs"
+	context := "/user2/repo1"
 	if !wiki {
 		context += "/src/branch/main"
 	}
@@ -67,6 +80,7 @@ func testRenderMarkdown(t *testing.T, mode string, wiki bool, text, responseBody
 }
 
 func TestAPI_RenderGFM(t *testing.T) {
+	unittest.PrepareTestEnv(t)
 	markup.Init(&markup.RenderHelperFuncs{
 		IsUsernameMentionable: func(ctx go_context.Context, username string) bool {
 			return username == "r-lyeh"
@@ -82,20 +96,20 @@ func TestAPI_RenderGFM(t *testing.T) {
 		// rendered
 		`<p>Wiki! Enjoy :)</p>
 <ul>
-<li><a href="http://localhost:3000/gogits/gogs/wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
-<li><a href="http://localhost:3000/gogits/gogs/wiki/Tips" rel="nofollow">Tips</a></li>
+<li><a href="http://localhost:3000/user2/repo1/wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
+<li><a href="http://localhost:3000/user2/repo1/wiki/Tips" rel="nofollow">Tips</a></li>
 <li>Bezier widget (by <a href="http://localhost:3000/r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">https://github.com/ocornut/imgui/issues/786</a></li>
 </ul>
 `,
 		// Guard wiki sidebar: special syntax
 		`[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]`,
 		// rendered
-		`<p><a href="http://localhost:3000/gogits/gogs/wiki/Guardfile-DSL---Configuring-Guard" rel="nofollow">Guardfile-DSL / Configuring-Guard</a></p>
+		`<p><a href="http://localhost:3000/user2/repo1/wiki/Guardfile-DSL---Configuring-Guard" rel="nofollow">Guardfile-DSL / Configuring-Guard</a></p>
 `,
 		// special syntax
 		`[[Name|Link]]`,
 		// rendered
-		`<p><a href="http://localhost:3000/gogits/gogs/wiki/Link" rel="nofollow">Name</a></p>
+		`<p><a href="http://localhost:3000/user2/repo1/wiki/Link" rel="nofollow">Name</a></p>
 `,
 		// empty
 		``,
@@ -119,8 +133,8 @@ Here are some links to the most important topics. You can find the full list of 
 <p><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
 <h2 id="user-content-quick-links">Quick Links</h2>
 <p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
-<p><a href="http://localhost:3000/gogits/gogs/wiki/Configuration" rel="nofollow">Configuration</a>
-<a href="http://localhost:3000/gogits/gogs/wiki/raw/images/icon-bug.png" rel="nofollow"><img src="http://localhost:3000/gogits/gogs/wiki/raw/images/icon-bug.png" title="icon-bug.png" alt="images/icon-bug.png"/></a></p>
+<p><a href="http://localhost:3000/user2/repo1/wiki/Configuration" rel="nofollow">Configuration</a>
+<a href="http://localhost:3000/user2/repo1/wiki/raw/images/icon-bug.png" rel="nofollow"><img src="http://localhost:3000/user2/repo1/wiki/raw/images/icon-bug.png" title="icon-bug.png" alt="images/icon-bug.png"/></a></p>
 `,
 	}
 
@@ -143,20 +157,20 @@ Here are some links to the most important topics. You can find the full list of 
 	}
 
 	input := "[Link](test.md)\n![Image](image.png)"
-	testRenderMarkdown(t, "gfm", false, input, `<p><a href="http://localhost:3000/gogits/gogs/src/branch/main/test.md" rel="nofollow">Link</a>
-<a href="http://localhost:3000/gogits/gogs/media/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/gogits/gogs/media/branch/main/image.png" alt="Image"/></a></p>
+	testRenderMarkdown(t, "gfm", false, input, `<p><a href="http://localhost:3000/user2/repo1/src/branch/main/test.md" rel="nofollow">Link</a>
+<a href="http://localhost:3000/user2/repo1/media/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/image.png" alt="Image"/></a></p>
 `, http.StatusOK)
 
-	testRenderMarkdown(t, "gfm", false, input, `<p><a href="http://localhost:3000/gogits/gogs/src/branch/main/test.md" rel="nofollow">Link</a>
-<a href="http://localhost:3000/gogits/gogs/media/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/gogits/gogs/media/branch/main/image.png" alt="Image"/></a></p>
+	testRenderMarkdown(t, "gfm", false, input, `<p><a href="http://localhost:3000/user2/repo1/src/branch/main/test.md" rel="nofollow">Link</a>
+<a href="http://localhost:3000/user2/repo1/media/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/image.png" alt="Image"/></a></p>
 `, http.StatusOK)
 
-	testRenderMarkup(t, "gfm", false, "", input, `<p><a href="http://localhost:3000/gogits/gogs/src/branch/main/test.md" rel="nofollow">Link</a>
-<a href="http://localhost:3000/gogits/gogs/media/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/gogits/gogs/media/branch/main/image.png" alt="Image"/></a></p>
+	testRenderMarkup(t, "gfm", false, "", input, `<p><a href="http://localhost:3000/user2/repo1/src/branch/main/test.md" rel="nofollow">Link</a>
+<a href="http://localhost:3000/user2/repo1/media/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/image.png" alt="Image"/></a></p>
 `, http.StatusOK)
 
-	testRenderMarkup(t, "file", false, "path/new-file.md", input, `<p><a href="http://localhost:3000/gogits/gogs/src/branch/main/path/test.md" rel="nofollow">Link</a>
-<a href="http://localhost:3000/gogits/gogs/media/branch/main/path/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/gogits/gogs/media/branch/main/path/image.png" alt="Image"/></a></p>
+	testRenderMarkup(t, "file", false, "path/new-file.md", input, `<p><a href="http://localhost:3000/user2/repo1/src/branch/main/path/test.md" rel="nofollow">Link</a>
+<a href="http://localhost:3000/user2/repo1/media/branch/main/path/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/path/image.png" alt="Image"/></a></p>
 `, http.StatusOK)
 
 	testRenderMarkup(t, "file", false, "path/test.unknown", "## Test", "unsupported file to render: \"path/test.unknown\"\n", http.StatusUnprocessableEntity)
@@ -186,7 +200,7 @@ func TestAPI_RenderSimple(t *testing.T) {
 	options := api.MarkdownOption{
 		Mode:    "markdown",
 		Text:    "",
-		Context: "/gogits/gogs",
+		Context: "/user2/repo1",
 	}
 	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
 	for i := 0; i < len(simpleCases); i += 2 {
