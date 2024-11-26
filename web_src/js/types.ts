@@ -59,3 +59,29 @@ export type FomanticInitFunction = {
   settings?: Record<string, any>,
   (...args: any[]): any,
 }
+
+export type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning';
+
+export type CommitStatusMap = {
+  [status in CommitStatus]: {
+    name: string,
+    color: string,
+  };
+};
+
+// make sure this matches templates/repo/commit_status.tmpl
+export const commitStatus: CommitStatusMap = {
+  pending: {name: 'octicon-dot-fill', color: 'yellow'},
+  success: {name: 'octicon-check', color: 'green'},
+  error: {name: 'gitea-exclamation', color: 'red'},
+  failure: {name: 'octicon-x', color: 'red'},
+  warning: {name: 'gitea-exclamation', color: 'yellow'},
+};
+
+export type ActionsStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
+
+export type ActionsStepLogLine = {
+  index: number,
+  timestamp: number,
+  message: string,
+};

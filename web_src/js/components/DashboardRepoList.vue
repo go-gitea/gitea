@@ -3,17 +3,10 @@ import {createApp, nextTick} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {commitStatus} from '../types.ts';
+import type {CommitStatus} from '../types.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
-
-// make sure this matches templates/repo/commit_status.tmpl
-const commitStatus = {
-  pending: {name: 'octicon-dot-fill', color: 'yellow'},
-  success: {name: 'octicon-check', color: 'green'},
-  error: {name: 'gitea-exclamation', color: 'red'},
-  failure: {name: 'octicon-x', color: 'red'},
-  warning: {name: 'gitea-exclamation', color: 'yellow'},
-};
 
 const sfc = {
   components: {SvgIcon},
@@ -281,18 +274,18 @@ const sfc = {
       return 'octicon-repo';
     },
 
-    statusIcon(status) {
+    statusIcon(status: CommitStatus) {
       return commitStatus[status].name;
     },
 
-    statusColor(status) {
+    statusColor(status: CommitStatus) {
       return commitStatus[status].color;
     },
 
     reposFilterKeyControl(e) {
       switch (e.key) {
         case 'Enter':
-          document.querySelector('.repo-owner-name-list li.active a')?.click();
+          document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();
           break;
         case 'ArrowUp':
           if (this.activeIndex > 0) {

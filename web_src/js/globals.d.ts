@@ -63,3 +63,7 @@ interface Window {
   hcaptcha: any,
   codeEditors: any[],
 }
+
+interface HTMLElement {
+  _jobLogTime: number,
+}

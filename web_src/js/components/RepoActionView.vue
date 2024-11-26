@@ -6,6 +6,7 @@ import {toggleElem} from '../utils/dom.ts';
 import {formatDatetime} from '../utils/time.ts';
 import {renderAnsi} from '../render/ansi.ts';
 import {GET, POST, DELETE} from '../modules/fetch.ts';
+import type {ActionsStepLogLine, ActionsStatus} from '../types.ts';
 
 const sfc = {
   name: 'RepoActionView',
@@ -113,12 +114,12 @@ const sfc = {
 
   methods: {
     // get the active container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
-    getLogsContainer(idx) {
+    getLogsContainer(idx: number) {
       const el = this.$refs.logs[idx];
       return el._stepLogsActiveContainer ?? el;
     },
     // begin a log group
-    beginLogGroup(idx) {
+    beginLogGroup(idx: number) {
       const el = this.$refs.logs[idx];
 
       const elJobLogGroup = document.createElement('div');
@@ -135,13 +136,13 @@ const sfc = {
       el._stepLogsActiveContainer = elJobLogList;
     },
     // end a log group
-    endLogGroup(idx) {
+    endLogGroup(idx: number) {
       const el = this.$refs.logs[idx];
       el._stepLogsActiveContainer = null;
     },
 
     // show/hide the step logs for a step
-    toggleStepLogs(idx) {
+    toggleStepLogs(idx: number) {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
         this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
@@ -156,7 +157,7 @@ const sfc = {
       POST(`${this.run.link}/approve`);
     },
 
-    createLogLine(line, startTime, stepIndex) {
+    createLogLine(line: ActionsStepLogLine, startTime: number, stepIndex: number) {
       const div = document.createElement('div');
       div.classList.add('job-log-line');
       div.setAttribute('id', `jobstep-${stepIndex}-${line.index}`);
@@ -164,21 +165,21 @@ const sfc = {
 
       const lineNumber = document.createElement('a');
       lineNumber.classList.add('line-num', 'muted');
-      lineNumber.textContent = line.index;
+      lineNumber.textContent = String(line.index);
       lineNumber.setAttribute('href', `#jobstep-${stepIndex}-${line.index}`);
       div.append(lineNumber);
 
       // for "Show timestamps"
       const logTimeStamp = document.createElement('span');
       logTimeStamp.className = 'log-time-stamp';
-      const date = new Date(parseFloat(line.timestamp * 1000));
+      const date = new Date(line.timestamp * 1000);
       const timeStamp = formatDatetime(date);
       logTimeStamp.textContent = timeStamp;
       toggleElem(logTimeStamp, this.timeVisible['log-time-stamp']);
       // for "Show seconds"
       const logTimeSeconds = document.createElement('span');
       logTimeSeconds.className = 'log-time-seconds';
-      const seconds = Math.floor(parseFloat(line.timestamp) - parseFloat(startTime));
+      const seconds = Math.floor(line.timestamp - startTime);
       logTimeSeconds.textContent = `${seconds}s`;
       toggleElem(logTimeSeconds, this.timeVisible['log-time-seconds']);
 
@@ -192,7 +193,7 @@ const sfc = {
       return div;
     },
 
-    appendLogs(stepIndex, logLines, startTime) {
+    appendLogs(stepIndex: number, logLines: Array<ActionsStepLogLine>, startTime: number) {
       for (const line of logLines) {
         // TODO: group support: ##[group]GroupTitle , ##[endgroup]
         const el = this.getLogsContainer(stepIndex);
@@ -205,7 +206,7 @@ const sfc = {
       return await resp.json();
     },
 
-    async deleteArtifact(name) {
+    async deleteArtifact(name: string) {
       if (!window.confirm(this.locale.confirmDeleteArtifact.replace('%s', name))) return;
       await DELETE(`${this.run.link}/artifacts/${name}`);
       await this.loadJob();
@@ -269,11 +270,11 @@ const sfc = {
       }
     },
 
-    isDone(status) {
+    isDone(status: ActionsStatus) {
       return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
     },
 
-    isExpandable(status) {
+    isExpandable(status: ActionsStatus) {
       return ['success', 'running', 'failure', 'cancelled'].includes(status);
     },
 
@@ -281,7 +282,7 @@ const sfc = {
       if (this.menuVisible) this.menuVisible = false;
     },
 
-    toggleTimeDisplay(type) {
+    toggleTimeDisplay(type: 'seconds' | 'stamp') {
       this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
       for (const el of this.$refs.steps.querySelectorAll(`.log-time-${type}`)) {
         toggleElem(el, this.timeVisible[`log-time-${type}`]);
@@ -332,7 +333,7 @@ export function initRepositoryActionView() {
 
   // TODO: the parent element's full height doesn't work well now,
   // but we can not pollute the global style at the moment, only fix the height problem for pages with this component
-  const parentFullHeight = document.querySelector('body > div.full.height');
+  const parentFullHeight = document.querySelector<HTMLDivElement>('body > div.full.height');
   if (parentFullHeight) parentFullHeight.style.paddingBottom = '0';
 
   const view = createApp(sfc, {
