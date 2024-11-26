@@ -64,6 +64,46 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		return user_model.ErrBlockedUser
 	}
 
+	// check if reviewers are valid
+	if len(opts.Reviewers) > 0 {
+		allowedUsers, err := GetReviewers(ctx, repo, pr.Issue.PosterID, pr.Issue.PosterID)
+		if err != nil {
+			return err
+		}
+		for _, reviewer := range opts.Reviewers {
+			var found bool
+			for _, allowedUser := range allowedUsers {
+				if allowedUser.ID == reviewer.ID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return issues_model.ErrNotValidReviewRequest{UserID: reviewer.ID}
+			}
+		}
+	}
+
+	// check if team reviewers are valid
+	if len(opts.TeamReviewers) > 0 {
+		allowedTeams, err := GetReviewerTeams(ctx, repo)
+		if err != nil {
+			return err
+		}
+		for _, teamReviewer := range opts.TeamReviewers {
+			var found bool
+			for _, allowedTeam := range allowedTeams {
+				if allowedTeam.ID == teamReviewer.ID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return issues_model.ErrNotValidReviewRequest{TeamID: teamReviewer.ID}
+			}
+		}
+	}
+
 	// user should be a collaborator or a member of the organization for base repo
 	canCreate := issue.Poster.IsAdmin || pr.Flow == issues_model.PullRequestFlowAGit
 	if !canCreate {
@@ -175,7 +215,32 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			return err
 		}
 
-		if !pr.IsWorkInProgress(ctx) {
+		// if there are reviewers or review teams, we don't need to request code owners review
+		if len(opts.Reviewers)+len(opts.TeamReviewers) > 0 {
+			for _, reviewer := range opts.Reviewers {
+				comment, err := issues_model.AddReviewRequest(ctx, pr.Issue, reviewer, issue.Poster)
+				if err != nil {
+					return err
+				}
+				reviewNotifiers = append(reviewNotifiers, &ReviewRequestNotifier{
+					Comment:  comment,
+					Reviewer: reviewer,
+					IsAdd:    true,
+				})
+			}
+
+			for _, teamReviewer := range opts.TeamReviewers {
+				comment, err := issues_model.AddTeamReviewRequest(ctx, pr.Issue, teamReviewer, issue.Poster)
+				if err != nil {
+					return err
+				}
+				reviewNotifiers = append(reviewNotifiers, &ReviewRequestNotifier{
+					Comment:    comment,
+					ReviewTeam: teamReviewer,
+					IsAdd:      true,
+				})
+			}
+		} else if !pr.IsWorkInProgress(ctx) {
 			reviewNotifiers, err = RequestCodeOwnersReview(ctx, issue, pr)
 			if err != nil {
 				return err
@@ -211,17 +276,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
 	}
-	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
-	for _, reviewer := range opts.Reviewers {
-		if _, err = ReviewRequest(ctx, pr, issue.Poster, &permDoer, reviewer, true); err != nil {
-			return err
-		}
-	}
-	for _, teamReviewer := range opts.TeamReviewers {
-		if _, err = TeamReviewRequest(ctx, pr, issue.Poster, teamReviewer, true); err != nil {
-			return err
-		}
-	}
+
 	return nil
 }
 
