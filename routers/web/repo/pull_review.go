@@ -398,6 +398,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
+			// TODO: Team review request should check if the team has permission to review the PR
 			_, err = pull_service.TeamReviewRequest(ctx, issue.PullRequest, ctx.Doer, team, action == "attach")
 			if err != nil {
 				if issues_model.IsErrNotValidReviewRequest(err) {
@@ -430,6 +431,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			return
 		}
 
+		// TODO: Reviewer review request should check if the user has permission to review the PR
 		_, err = pull_service.ReviewRequest(ctx, issue.PullRequest, ctx.Doer, &ctx.Repo.Permission, reviewer, action == "attach")
 		if err != nil {
 			if issues_model.IsErrNotValidReviewRequest(err) {
