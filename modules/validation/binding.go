@@ -64,7 +64,7 @@ func addValidURLListBindingRule() {
 	// URL validation rule
 	binding.AddRule(&binding.Rule{
 		IsMatch: func(rule string) bool {
-			return strings.HasPrefix(rule, "ValidUrlList")
+			return strings.EqualFold(rule, "ValidUrlList")
 		},
 		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
@@ -78,7 +78,7 @@ func addValidURLListBindingRule() {
 			for _, u := range urls {
 				if !IsValidURL(u) {
 					ok = false
-					errs.Add([]string{"RedirectURIs"}, binding.ERR_URL, u)
+					errs.Add([]string{name}, binding.ERR_URL, u)
 				}
 			}
 
@@ -91,7 +91,7 @@ func addValidURLBindingRule() {
 	// URL validation rule
 	binding.AddRule(&binding.Rule{
 		IsMatch: func(rule string) bool {
-			return strings.HasPrefix(rule, "ValidUrl")
+			return strings.EqualFold(rule, "ValidUrl")
 		},
 		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
