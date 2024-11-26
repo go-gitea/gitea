@@ -18,8 +18,8 @@ type pullNotifier struct {
 
 var _ notify_service.Notifier = &pullNotifier{}
 
-// NewNotifier create a new indexerNotifier notifier
-func NewNotifier() notify_service.Notifier {
+// newNotifier create a new indexerNotifier notifier
+func newNotifier() notify_service.Notifier {
 	return &pullNotifier{}
 }
 
