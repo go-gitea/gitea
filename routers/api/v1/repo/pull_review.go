@@ -628,11 +628,17 @@ func CreateReviewRequests(ctx *context.APIContext) {
 	}
 	filteredUsers := make([]*user_model.User, 0, len(opts.Reviewers))
 	for _, reviewer := range opts.Reviewers {
+		found := false
 		for _, allowedUser := range allowedUsers {
 			if allowedUser.Name == reviewer || allowedUser.Email == reviewer {
 				filteredUsers = append(filteredUsers, allowedUser)
+				found = true
 				break
 			}
+		}
+		if !found {
+			ctx.Error(http.StatusUnprocessableEntity, "", "")
+			return
 		}
 	}
 
@@ -644,11 +650,17 @@ func CreateReviewRequests(ctx *context.APIContext) {
 			return
 		}
 		for _, teamReviewer := range opts.TeamReviewers {
+			found := false
 			for _, allowedTeam := range allowedTeams {
 				if allowedTeam.Name == teamReviewer {
 					filteredTeams = append(filteredTeams, allowedTeam)
+					found = true
 					break
 				}
+			}
+			if !found {
+				ctx.Error(http.StatusUnprocessableEntity, "", "")
+				return
 			}
 		}
 	}
@@ -727,8 +739,7 @@ func DeleteReviewRequests(ctx *context.APIContext) {
 	deleteReviewRequests(ctx, *opts)
 }
 
-func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerNames []string) (reviewers []*user_model.User, teamReviewers []*organization.Team) {
-	var err error
+func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerNames []string) (reviewers []*user_model.User, teamReviewers []*organization.Team, err error) {
 	for _, r := range reviewerNames {
 		var reviewer *user_model.User
 		if strings.Contains(r, "@") {
@@ -736,14 +747,8 @@ func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerN
 		} else {
 			reviewer, err = user_model.GetUserByName(ctx, r)
 		}
-
 		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				ctx.NotFound("UserNotExist", fmt.Sprintf("User '%s' not exist", r))
-				return nil, nil
-			}
-			ctx.Error(http.StatusInternalServerError, "GetUser", err)
-			return nil, nil
+			return nil, nil, err
 		}
 
 		reviewers = append(reviewers, reviewer)
@@ -751,21 +756,15 @@ func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerN
 
 	if ctx.Repo.Repository.Owner.IsOrganization() && len(teamReviewerNames) > 0 {
 		for _, t := range teamReviewerNames {
-			var teamReviewer *organization.Team
-			teamReviewer, err = organization.GetTeam(ctx, ctx.Repo.Owner.ID, t)
+			teamReviewer, err := organization.GetTeam(ctx, ctx.Repo.Owner.ID, t)
 			if err != nil {
-				if organization.IsErrTeamNotExist(err) {
-					ctx.NotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", t))
-					return nil, nil
-				}
-				ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
-				return nil, nil
+				return nil, nil, err
 			}
 
 			teamReviewers = append(teamReviewers, teamReviewer)
 		}
 	}
-	return reviewers, teamReviewers
+	return reviewers, teamReviewers, nil
 }
 
 func deleteReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOptions) {
@@ -790,8 +789,16 @@ func deleteReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOpt
 		return
 	}
 
-	reviewers, teamReviewers := parseReviewersByNames(ctx, opts.Reviewers, opts.TeamReviewers)
-	if ctx.Written() {
+	reviewers, teamReviewers, err := parseReviewersByNames(ctx, opts.Reviewers, opts.TeamReviewers)
+	switch {
+	case user_model.IsErrUserNotExist(err):
+		ctx.NotFound("UserNotExist", fmt.Sprintf("User '%s' not exist", err.(user_model.ErrUserNotExist).Name))
+		return
+	case organization.IsErrTeamNotExist(err):
+		ctx.NotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", err.(organization.ErrTeamNotExist).Name))
+		return
+	case err != nil:
+		ctx.Error(http.StatusInternalServerError, "GetUser", err)
 		return
 	}
 

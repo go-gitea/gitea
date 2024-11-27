@@ -11,6 +11,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -18,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	pull_service "code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -246,6 +248,13 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user4@example.com", "user8"},
 	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	user8 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
+	repo_service.AddOrUpdateCollaborator(db.DefaultContext, repo, user8, perm.AccessModeRead)
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user8"},
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
 	// poster of pr can't be reviewer
@@ -258,7 +267,7 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
 		Reviewers: []string{"testOther"},
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// Test Remove Review Request
 	session2 := loginUser(t, "user4")

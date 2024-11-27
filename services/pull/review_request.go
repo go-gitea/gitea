@@ -212,6 +212,10 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 		}
 	}
 
+	if err := issue.LoadRepo(ctx); err != nil {
+		return err
+	}
+
 	permReviewer, err := access_model.GetUserRepoPermission(ctx, issue.Repo, reviewer)
 	if err != nil {
 		return err
