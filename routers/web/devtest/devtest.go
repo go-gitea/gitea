@@ -24,12 +24,12 @@ func List(ctx *context.Context) {
 	var subNames []string
 	for _, tmplName := range templateNames {
 		subName := strings.TrimSuffix(tmplName, ".tmpl")
-		if subName != "list" {
+		if !strings.HasPrefix(subName, "devtest-") {
 			subNames = append(subNames, subName)
 		}
 	}
 	ctx.Data["SubNames"] = subNames
-	ctx.HTML(http.StatusOK, "devtest/list")
+	ctx.HTML(http.StatusOK, "devtest/devtest-list")
 }
 
 func FetchActionTest(ctx *context.Context) {

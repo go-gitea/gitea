@@ -445,14 +445,14 @@ func Test_ParseClusterFuzz(t *testing.T) {
 	data := "<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
 
 	var res strings.Builder
-	err := markup.PostProcess(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
+	err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
 	assert.NoError(t, err)
 	assert.NotContains(t, res.String(), "<html")
 
 	data = "<!DOCTYPE html>\n<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
 
 	res.Reset()
-	err = markup.PostProcess(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
+	err = markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
 	assert.NotContains(t, res.String(), "<html")
@@ -464,7 +464,7 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 
 	test := func(input, expected string) {
 		var res strings.Builder
-		err := markup.PostProcess(markup.NewTestRenderContext(markup.TestAppURL, map[string]string{"user": "go-gitea", "repo": "gitea"}), strings.NewReader(input), &res)
+		err := markup.PostProcessDefault(markup.NewTestRenderContext(markup.TestAppURL, map[string]string{"user": "go-gitea", "repo": "gitea"}), strings.NewReader(input), &res)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res.String()))
 	}
@@ -501,7 +501,7 @@ func TestIssue16020(t *testing.T) {
 	data := `<img src="data:image/png;base64,i//V"/>`
 
 	var res strings.Builder
-	err := markup.PostProcess(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
+	err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
 	assert.NoError(t, err)
 	assert.Equal(t, data, res.String())
 }
@@ -514,7 +514,7 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var res strings.Builder
-		err := markup.PostProcess(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
+		err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
 		assert.NoError(b, err)
 	}
 }
@@ -522,7 +522,7 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 func TestFuzz(t *testing.T) {
 	s := "t/l/issues/8#/../../a"
 	renderContext := markup.NewTestRenderContext()
-	err := markup.PostProcess(renderContext, strings.NewReader(s), io.Discard)
+	err := markup.PostProcessDefault(renderContext, strings.NewReader(s), io.Discard)
 	assert.NoError(t, err)
 }
 
@@ -530,7 +530,7 @@ func TestIssue18471(t *testing.T) {
 	data := `http://domain/org/repo/compare/783b039...da951ce`
 
 	var res strings.Builder
-	err := markup.PostProcess(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
+	err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
 	assert.Equal(t, `<a href="http://domain/org/repo/compare/783b039...da951ce" class="compare"><code class="nohighlight">783b039...da951ce</code></a>`, res.String())

@@ -18,6 +18,7 @@ import {
 } from '../utils/dom.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {createTippy} from '../modules/tippy.ts';
 
 const {pageData, i18n} = window.config;
 
@@ -140,12 +141,22 @@ export function initRepoDiffConversationNav() {
   });
 }
 
+function initDiffHeaderPopup() {
+  for (const btn of document.querySelectorAll('.diff-header-popup-btn:not([data-header-popup-initialized])')) {
+    btn.setAttribute('data-header-popup-initialized', '');
+    const popup = btn.nextElementSibling;
+    if (!popup?.matches('.tippy-target')) throw new Error('Popup element not found');
+    createTippy(btn, {content: popup, theme: 'menu', placement: 'bottom', trigger: 'click', interactive: true, hideOnClick: true});
+  }
+}
+
 // Will be called when the show more (files) button has been pressed
 function onShowMoreFiles() {
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor();
   countAndUpdateViewedFiles();
   initImageDiff();
+  initDiffHeaderPopup();
 }
 
 export async function loadMoreFiles(url) {
@@ -221,6 +232,7 @@ export function initRepoDiffView() {
   initDiffFileList();
   initDiffCommitSelect();
   initRepoDiffShowMore();
+  initDiffHeaderPopup();
   initRepoDiffFileViewToggle();
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();

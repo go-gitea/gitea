@@ -16,6 +16,31 @@ import (
 	"xorm.io/builder"
 )
 
+type OrgList []*Organization
+
+func (orgs OrgList) LoadTeams(ctx context.Context) (map[int64]TeamList, error) {
+	if len(orgs) == 0 {
+		return map[int64]TeamList{}, nil
+	}
+
+	orgIDs := make([]int64, len(orgs))
+	for i, org := range orgs {
+		orgIDs[i] = org.ID
+	}
+
+	teams, err := GetTeamsByOrgIDs(ctx, orgIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	teamMap := make(map[int64]TeamList, len(orgs))
+	for _, team := range teams {
+		teamMap[team.OrgID] = append(teamMap[team.OrgID], team)
+	}
+
+	return teamMap, nil
+}
+
 // SearchOrganizationsOptions options to filter organizations
 type SearchOrganizationsOptions struct {
 	db.ListOptions
