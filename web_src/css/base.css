@@ -1148,6 +1148,10 @@ overflow-menu .ui.label {
   gap: 1px;
 }
 
+.section-comment-icon {
+  cursor: default;
+}
+
 .lines-commit .blame-info .blame-data .blame-message {
   flex-grow: 2;
   overflow: hidden;
