@@ -46,7 +46,7 @@ func addGitRefNameBindingRule() {
 	// Git refname validation rule
 	binding.AddRule(&binding.Rule{
 		IsMatch: func(rule string) bool {
-			return strings.HasPrefix(rule, "GitRefName")
+			return rule == "GitRefName"
 		},
 		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
@@ -64,7 +64,7 @@ func addValidURLListBindingRule() {
 	// URL validation rule
 	binding.AddRule(&binding.Rule{
 		IsMatch: func(rule string) bool {
-			return strings.EqualFold(rule, "ValidUrlList")
+			return rule == "ValidUrlList"
 		},
 		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
@@ -91,7 +91,7 @@ func addValidURLBindingRule() {
 	// URL validation rule
 	binding.AddRule(&binding.Rule{
 		IsMatch: func(rule string) bool {
-			return strings.EqualFold(rule, "ValidUrl")
+			return rule == "ValidUrl"
 		},
 		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
@@ -109,7 +109,7 @@ func addValidSiteURLBindingRule() {
 	// URL validation rule
 	binding.AddRule(&binding.Rule{
 		IsMatch: func(rule string) bool {
-			return strings.HasPrefix(rule, "ValidSiteUrl")
+			return rule == "ValidSiteUrl"
 		},
 		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
@@ -200,7 +200,7 @@ func addUsernamePatternRule() {
 func addValidGroupTeamMapRule() {
 	binding.AddRule(&binding.Rule{
 		IsMatch: func(rule string) bool {
-			return strings.HasPrefix(rule, "ValidGroupTeamMap")
+			return rule == "ValidGroupTeamMap"
 		},
 		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			_, err := auth.UnmarshalGroupTeamMapping(fmt.Sprintf("%v", val))
