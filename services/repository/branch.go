@@ -14,7 +14,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	perm_model "code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
@@ -462,6 +465,33 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 var (
 	ErrBranchIsDefault = errors.New("branch is default")
 )
+
+func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User) error {
+	if branchName == repo.DefaultBranch {
+		return ErrBranchIsDefault
+	}
+
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+	if err != nil {
+		return err
+	}
+	if !perm.CanWrite(unit.TypeCode) {
+		return access_model.ErrNoPermission{
+			RepoID: repo.ID,
+			Unit:   unit.TypeCode,
+			Perm:   perm_model.AccessModeWrite,
+		}
+	}
+
+	isProtected, err := git_model.IsBranchProtected(ctx, repo.ID, branchName)
+	if err != nil {
+		return err
+	}
+	if isProtected {
+		return git_model.ErrBranchIsProtected
+	}
+	return nil
+}
 
 // DeleteBranch delete branch
 func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
