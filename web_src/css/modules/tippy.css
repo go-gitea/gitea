@@ -77,8 +77,10 @@
   align-items: center;
   padding: 9px 18px;
   color: inherit;
+  background: inherit;
   text-decoration: none;
   gap: 10px;
+  width: 100%;
 }
 
 .tippy-box[data-theme="menu"] .item:hover {

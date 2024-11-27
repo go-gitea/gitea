@@ -770,7 +770,7 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID, issueIndex int64) 
 // CountActionCreatedUnixString count actions where created_unix is an empty string
 func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
 	if setting.Database.Type.IsSQLite3() {
-		return db.GetEngine(ctx).Where(`created_unix = ""`).Count(new(Action))
+		return db.GetEngine(ctx).Where(`created_unix = ''`).Count(new(Action))
 	}
 	return 0, nil
 }
@@ -778,7 +778,7 @@ func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
 // FixActionCreatedUnixString set created_unix to zero if it is an empty string
 func FixActionCreatedUnixString(ctx context.Context) (int64, error) {
 	if setting.Database.Type.IsSQLite3() {
-		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
+		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ''`)
 		if err != nil {
 			return 0, err
 		}
