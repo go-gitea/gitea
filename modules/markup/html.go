@@ -5,9 +5,9 @@ package markup
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"regexp"
-	"slices"
 	"strings"
 	"sync"
 
@@ -133,75 +133,49 @@ func CustomLinkURLSchemes(schemes []string) {
 	common.GlobalVars().LinkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
 }
 
-type postProcessError struct {
-	context string
-	err     error
-}
-
-func (p *postProcessError) Error() string {
-	return "PostProcess: " + p.context + ", " + p.err.Error()
-}
-
 type processor func(ctx *RenderContext, node *html.Node)
 
-var defaultProcessors = []processor{
-	fullIssuePatternProcessor,
-	comparePatternProcessor,
-	codePreviewPatternProcessor,
-	fullHashPatternProcessor,
-	shortLinkProcessor,
-	linkProcessor,
-	mentionProcessor,
-	issueIndexPatternProcessor,
-	commitCrossReferencePatternProcessor,
-	hashCurrentPatternProcessor,
-	emailAddressProcessor,
-	emojiProcessor,
-	emojiShortCodeProcessor,
-}
-
-// PostProcess does the final required transformations to the passed raw HTML
+// PostProcessDefault does the final required transformations to the passed raw HTML
 // data, and ensures its validity. Transformations include: replacing links and
 // emails with HTML links, parsing shortlinks in the format of [[Link]], like
 // MediaWiki, linking issues in the format #ID, and mentions in the format
 // @user, and others.
-func PostProcess(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	return postProcess(ctx, defaultProcessors, input, output)
-}
-
-var commitMessageProcessors = []processor{
-	fullIssuePatternProcessor,
-	comparePatternProcessor,
-	fullHashPatternProcessor,
-	linkProcessor,
-	mentionProcessor,
-	issueIndexPatternProcessor,
-	commitCrossReferencePatternProcessor,
-	hashCurrentPatternProcessor,
-	emailAddressProcessor,
-	emojiProcessor,
-	emojiShortCodeProcessor,
+func PostProcessDefault(ctx *RenderContext, input io.Reader, output io.Writer) error {
+	procs := []processor{
+		fullIssuePatternProcessor,
+		comparePatternProcessor,
+		codePreviewPatternProcessor,
+		fullHashPatternProcessor,
+		shortLinkProcessor,
+		linkProcessor,
+		mentionProcessor,
+		issueIndexPatternProcessor,
+		commitCrossReferencePatternProcessor,
+		hashCurrentPatternProcessor,
+		emailAddressProcessor,
+		emojiProcessor,
+		emojiShortCodeProcessor,
+	}
+	return postProcess(ctx, procs, input, output)
 }
 
 // RenderCommitMessage will use the same logic as PostProcess, but will disable
-// the shortLinkProcessor and will add a defaultLinkProcessor if defaultLink is
-// set, which changes every text node into a link to the passed default link.
+// the shortLinkProcessor.
 func RenderCommitMessage(ctx *RenderContext, content string) (string, error) {
-	procs := commitMessageProcessors
-	return renderProcessString(ctx, procs, content)
-}
-
-var commitMessageSubjectProcessors = []processor{
-	fullIssuePatternProcessor,
-	comparePatternProcessor,
-	fullHashPatternProcessor,
-	linkProcessor,
-	mentionProcessor,
-	issueIndexPatternProcessor,
-	commitCrossReferencePatternProcessor,
-	hashCurrentPatternProcessor,
-	emojiShortCodeProcessor,
-	emojiProcessor,
+	procs := []processor{
+		fullIssuePatternProcessor,
+		comparePatternProcessor,
+		fullHashPatternProcessor,
+		linkProcessor,
+		mentionProcessor,
+		issueIndexPatternProcessor,
+		commitCrossReferencePatternProcessor,
+		hashCurrentPatternProcessor,
+		emailAddressProcessor,
+		emojiProcessor,
+		emojiShortCodeProcessor,
+	}
+	return postProcessString(ctx, procs, content)
 }
 
 var emojiProcessors = []processor{
@@ -214,7 +188,18 @@ var emojiProcessors = []processor{
 // emailAddressProcessor, will add a defaultLinkProcessor if defaultLink is set,
 // which changes every text node into a link to the passed default link.
 func RenderCommitMessageSubject(ctx *RenderContext, defaultLink, content string) (string, error) {
-	procs := slices.Clone(commitMessageSubjectProcessors)
+	procs := []processor{
+		fullIssuePatternProcessor,
+		comparePatternProcessor,
+		fullHashPatternProcessor,
+		linkProcessor,
+		mentionProcessor,
+		issueIndexPatternProcessor,
+		commitCrossReferencePatternProcessor,
+		hashCurrentPatternProcessor,
+		emojiShortCodeProcessor,
+		emojiProcessor,
+	}
 	procs = append(procs, func(ctx *RenderContext, node *html.Node) {
 		ch := &html.Node{Parent: node, Type: html.TextNode, Data: node.Data}
 		node.Type = html.ElementNode
@@ -223,19 +208,19 @@ func RenderCommitMessageSubject(ctx *RenderContext, defaultLink, content string)
 		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}, {Key: "class", Val: "muted"}}
 		node.FirstChild, node.LastChild = ch, ch
 	})
-	return renderProcessString(ctx, procs, content)
+	return postProcessString(ctx, procs, content)
 }
 
 // RenderIssueTitle to process title on individual issue/pull page
 func RenderIssueTitle(ctx *RenderContext, title string) (string, error) {
 	// do not render other issue/commit links in an issue's title - which in most cases is already a link.
-	return renderProcessString(ctx, []processor{
+	return postProcessString(ctx, []processor{
 		emojiShortCodeProcessor,
 		emojiProcessor,
 	}, title)
 }
 
-func renderProcessString(ctx *RenderContext, procs []processor, content string) (string, error) {
+func postProcessString(ctx *RenderContext, procs []processor, content string) (string, error) {
 	var buf strings.Builder
 	if err := postProcess(ctx, procs, strings.NewReader(content), &buf); err != nil {
 		return "", err
@@ -246,7 +231,7 @@ func renderProcessString(ctx *RenderContext, procs []processor, content string) 
 // RenderDescriptionHTML will use similar logic as PostProcess, but will
 // use a single special linkProcessor.
 func RenderDescriptionHTML(ctx *RenderContext, content string) (string, error) {
-	return renderProcessString(ctx, []processor{
+	return postProcessString(ctx, []processor{
 		descriptionLinkProcessor,
 		emojiShortCodeProcessor,
 		emojiProcessor,
@@ -256,7 +241,7 @@ func RenderDescriptionHTML(ctx *RenderContext, content string) (string, error) {
 // RenderEmoji for when we want to just process emoji and shortcodes
 // in various places it isn't already run through the normal markdown processor
 func RenderEmoji(ctx *RenderContext, content string) (string, error) {
-	return renderProcessString(ctx, emojiProcessors, content)
+	return postProcessString(ctx, emojiProcessors, content)
 }
 
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
@@ -276,7 +261,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 		strings.NewReader("</body></html>"),
 	))
 	if err != nil {
-		return &postProcessError{"invalid HTML", err}
+		return fmt.Errorf("markup.postProcess: invalid HTML: %w", err)
 	}
 
 	if node.Type == html.DocumentNode {
@@ -308,7 +293,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	// Render everything to buf.
 	for _, node := range newNodes {
 		if err := html.Render(output, node); err != nil {
-			return &postProcessError{"error rendering processed HTML", err}
+			return fmt.Errorf("markup.postProcess: html.Render: %w", err)
 		}
 	}
 	return nil
