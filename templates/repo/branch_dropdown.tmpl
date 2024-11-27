@@ -36,6 +36,7 @@
 
 		'mode': '{{if or .root.IsViewTag .isTag}}tags{{else}}branches{{end}}',
 		'showBranchesInDropdown': {{$showBranchesInDropdown}},
+		'showAllBranchsTagsEntry': {{$.showAllBranchsTagsEntry}},
 		'searchFieldPlaceholder': '{{if $.noTag}}{{ctx.Locale.Tr "repo.pulls.filter_branch"}}{{else if $showBranchesInDropdown}}{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}{{else}}{{ctx.Locale.Tr "repo.find_tag"}}{{end}}...',
 		'branchForm': {{$.branchForm}},
 		'disableCreateBranch': {{if .disableCreateBranch}}{{.disableCreateBranch}}{{else}}{{not .root.CanCreateBranch}}{{end}},

@@ -47,7 +47,7 @@
 		{{$isHomepage := (eq $n 0)}}
 		<div class="repo-button-row" data-is-homepage="{{$isHomepage}}">
 			<div class="repo-button-row-left">
-				{{template "repo/branch_dropdown" dict "root" .}}
+				{{template "repo/branch_dropdown" dict "root" . "showAllBranchsTagsEntry" true}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					{{$cmpBranch := ""}}
 					{{if ne .Repository.ID .BaseRepo.ID}}
