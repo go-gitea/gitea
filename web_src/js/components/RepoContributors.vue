@@ -215,7 +215,7 @@ export default {
       };
     },
 
-    updateOtherCharts({chart}: {chart: Chart}, reset?: boolean) {
+    updateOtherCharts({chart}: {chart: Chart}, reset?: boolean = false) {
       const minVal = chart.options.scales.x.min;
       const maxVal = chart.options.scales.x.max;
       if (reset) {
