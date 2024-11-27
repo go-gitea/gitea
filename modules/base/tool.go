@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
@@ -129,6 +130,28 @@ func EllipsisString(str string, length int) string {
 		return str
 	}
 	return string([]rune(str)[:length-3]) + "..."
+}
+
+// EllipsisStringWholeWord returns a truncated short string with … appended if the input is larger then the limit.
+// If the input contains spaces the string is truncated at the last space before reaching the length limit.
+// If the input does not contain a space before reaching the length limit, the input is truncated in the middle of a word.
+func EllipsisStringWholeWord(str string, maxLength int) string {
+	lastSpace := -1
+	length := 0
+	for i, r := range str {
+		if unicode.IsSpace(r) {
+			lastSpace = i
+		}
+		length++
+		if length > maxLength {
+			if lastSpace != -1 {
+				return str[:lastSpace] + "…"
+			}
+			return str[:i] + "…"
+		}
+	}
+
+	return str
 }
 
 // TruncateString returns a truncated string with given limit,

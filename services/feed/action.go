@@ -13,11 +13,11 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -109,15 +109,7 @@ func (a *actionNotifier) CreateIssueComment(ctx context.Context, doer *user_mode
 		IsPrivate: issue.Repo.IsPrivate,
 	}
 
-	truncatedContent, truncatedRight := util.SplitStringAtByteN(comment.Content, 200)
-	if truncatedRight != "" {
-		// in case the content is in a Latin family language, we remove the last broken word.
-		lastSpaceIdx := strings.LastIndex(truncatedContent, " ")
-		if lastSpaceIdx != -1 && (len(truncatedContent)-lastSpaceIdx < 15) {
-			truncatedContent = truncatedContent[:lastSpaceIdx] + "…"
-		}
-	}
-	act.Content = fmt.Sprintf("%d|%s", issue.Index, truncatedContent)
+	act.Content = fmt.Sprintf("%d|%s", issue.Index, base.EllipsisStringWholeWord(comment.Content, 200))
 
 	if issue.IsPull {
 		act.OpType = activities_model.ActionCommentPull
