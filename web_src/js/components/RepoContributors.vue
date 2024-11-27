@@ -242,7 +242,7 @@ export default {
             position: 'top',
             align: 'center',
           },
-          // @ts-expect-error: bug in chartjs types
+          // @ts-expect-error: bug in chart.js types
           customEventListener: {
             chartType: type,
             instance: this,
