@@ -358,6 +358,6 @@ export function addDelegatedEventListener<T extends HTMLElement, E extends Event
   parent.addEventListener(type, (e: Event) => {
     const elem = (e.target as HTMLElement).closest(selector);
     if (!elem) return;
-    listener(elem as T, e);
+    listener(elem as T, e as E);
   }, options);
 }
