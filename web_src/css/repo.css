@@ -2851,8 +2851,11 @@ tbody.commit-list {
 }
 
 .branch-selector-dropdown .branch-tag-divider {
-  margin-top: -1px !important;
   border-top: 1px solid var(--color-secondary);
+}
+
+.branch-selector-dropdown .branch-tag-tab + .branch-tag-divider {
+  margin-top: -1px !important;
 }
 
 .branch-selector-dropdown .scrolling.menu {
