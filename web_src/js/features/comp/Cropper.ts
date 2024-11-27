@@ -8,7 +8,8 @@ type CropperOpts = {
 
 export async function initCompCropper({container, fileInput, imageSource}: CropperOpts) {
   const {default: Cropper} = await import(/* webpackChunkName: "cropperjs" */'cropperjs');
-  let currentFileName = '', currentFileLastModified = 0;
+  let currentFileName = '';
+  let currentFileLastModified = 0;
   const cropper = new Cropper(imageSource, {
     aspectRatio: 1,
     viewMode: 2,
