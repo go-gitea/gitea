@@ -127,22 +127,9 @@
 					<input id="new-avatar" name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
 
-				<div class="inline field cropper-panel tw-hidden" id="cropper-panel">
-					<div class="cropper-preview">
-						<h3>{{ctx.Locale.Tr "preview"}}</h3>
-						<div>
-							<img id="cropper-result" class="ui avatar tw-align-middle">
-						</div>
-					</div>
-					<div class="cropper-editor">
-						<div>
-							<h3>{{ctx.Locale.Tr "edit"}}</h3>
-							<span>{{ctx.Locale.Tr "settings.cropper_prompt"}}</span>
-						</div>
-						<div class="cropper-wrapper">
-							<img class="tw-hidden" id="cropper-source">
-						</div>
-					</div>
+				<div class="field tw-pl-4 cropper-panel tw-hidden">
+					<div>{{ctx.Locale.Tr "settings.cropper_prompt"}}</div>
+					<div class="cropper-wrapper"><img class="cropper-source" src alt></div>
 				</div>
 
 				<div class="field">

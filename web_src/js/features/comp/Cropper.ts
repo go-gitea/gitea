@@ -1,48 +1,39 @@
 import {showElem} from '../../utils/dom.ts';
 
-export async function initCompCropper() {
-  const cropperContainer = document.querySelector('#cropper-panel');
-  if (!cropperContainer) {
-    return;
-  }
+type CropperOpts = {
+  container: HTMLElement,
+  imageSource: HTMLImageElement,
+  fileInput: HTMLInputElement,
+}
 
+export async function initCompCropper({container, fileInput, imageSource}:CropperOpts) {
   const {default: Cropper} = await import(/* webpackChunkName: "cropperjs" */'cropperjs');
-
-  const source = document.querySelector('#cropper-source');
-  const result = document.querySelector('#cropper-result');
-  const input = document.querySelector('#new-avatar');
-
-  const done = function (url: string, filename: string): void {
-    source.src = url;
-    result.src = url;
-
-    if (input._cropper) {
-      input._cropper.replace(url);
-    } else {
-      input._cropper = new Cropper(source, {
-        aspectRatio: 1,
-        viewMode: 1,
-        autoCrop: false,
-        crop() {
-          const canvas = input._cropper.getCroppedCanvas();
-          result.src = canvas.toDataURL();
-          canvas.toBlob((blob) => {
-            const file = new File([blob], filename, {type: 'image/png', lastModified: Date.now()});
-            const container = new DataTransfer();
-            container.items.add(file);
-            input.files = container.files;
-          });
-        },
+  let currentFileName = '', currentFileLastModified = 0;
+  const cropper = new Cropper(imageSource, {
+    aspectRatio: 1,
+    viewMode: 2,
+    autoCrop: false,
+    crop() {
+      const canvas = cropper.getCroppedCanvas();
+      canvas.toBlob((blob) => {
+        const croppedFileName = currentFileName.replace(/\.[^.]{3,4}$/, '.png');
+        const croppedFile = new File([blob], croppedFileName, {type: 'image/png', lastModified: currentFileLastModified});
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(croppedFile);
+        fileInput.files = dataTransfer.files;
       });
-    }
-    showElem(cropperContainer);
-  };
+    },
+  });
 
-  input.addEventListener('change', (e: Event & {target: HTMLInputElement}) => {
+  fileInput.addEventListener('input', (e: Event & {target: HTMLInputElement}) => {
     const files = e.target.files;
-
     if (files?.length > 0) {
-      done(URL.createObjectURL(files[0]), files[0].name);
+      currentFileName = files[0].name;
+      currentFileLastModified = files[0].lastModified;
+      const fileURL = URL.createObjectURL(files[0]);
+      imageSource.src = fileURL;
+      cropper.replace(fileURL);
+      showElem(container);
     }
   });
 }
