@@ -122,6 +122,6 @@ async function linkAction(el: HTMLElement, e: Event) {
 }
 
 export function initGlobalFetchAction() {
-  addDelegatedEventListener(document, 'click', '.form-fetch-action', formFetchAction);
+  addDelegatedEventListener(document, 'submit', '.form-fetch-action', formFetchAction);
   addDelegatedEventListener(document, 'click', '.link-action', linkAction);
 }
