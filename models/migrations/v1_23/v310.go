@@ -4,13 +4,13 @@
 package v1_23 //nolint
 
 import (
-	"code.gitea.io/gitea/models/migrations/base"
-
 	"xorm.io/xorm"
 )
 
-func RemoveRepoNumWatches(x *xorm.Engine) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	return base.DropTableColumns(sess, "repository", "num_watches")
+func AddPriorityToProtectedBranch(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		Priority int64 `xorm:"NOT NULL DEFAULT 0"`
+	}
+
+	return x.Sync(new(ProtectedBranch))
 }

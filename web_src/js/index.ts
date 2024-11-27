@@ -34,7 +34,6 @@ import {
 } from './features/repo-issue.ts';
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
-import {initAdminEmails} from './features/admin/emails.ts';
 import {initAdminCommon} from './features/admin/common.ts';
 import {initRepoTemplateSearch} from './features/repo-template.ts';
 import {initRepoCodeView} from './features/repo-code.ts';
@@ -83,7 +82,6 @@ import {
   initGlobalButtonClickOnEnter,
   initGlobalButtons,
   initGlobalDeleteButton,
-  initGlobalShowModal,
 } from './features/common-button.ts';
 import {initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 
@@ -122,7 +120,6 @@ onDomReady(() => {
   callInitFunctions([
     initGlobalDropdown,
     initGlobalTabularMenu,
-    initGlobalShowModal,
     initGlobalFetchAction,
     initGlobalTooltips,
     initGlobalButtonClickOnEnter,
@@ -157,7 +154,6 @@ onDomReady(() => {
     initCopyContent,
 
     initAdminCommon,
-    initAdminEmails,
     initAdminUserListSearchForm,
     initAdminConfigs,
     initAdminSelfCheck,

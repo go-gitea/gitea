@@ -1,13 +1,13 @@
-import $ from 'jquery';
 import {POST} from '../modules/fetch.ts';
-import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
-import {showErrorToast} from '../modules/toast.ts';
+import {addDelegatedEventListener, hideElem, queryElems, showElem, toggleElem} from '../utils/dom.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {camelize} from 'vue';
 
 export function initGlobalButtonClickOnEnter(): void {
-  $(document).on('keypress', 'div.ui.button,span.ui.button', (e) => {
-    if (e.code === ' ' || e.code === 'Enter') {
-      $(e.target).trigger('click');
+  addDelegatedEventListener(document, 'keypress', 'div.ui.button, span.ui.button', (el, e: KeyboardEvent) => {
+    if (e.code === 'Space' || e.code === 'Enter') {
       e.preventDefault();
+      el.click();
     }
   });
 }
@@ -40,7 +40,7 @@ export function initGlobalDeleteButton(): void {
         }
       }
 
-      $(modal).modal({
+      fomanticQuery(modal).modal({
         closable: false,
         onApprove: async () => {
           // if `data-type="form"` exists, then submit the form by the selector provided by `data-form="..."`
@@ -73,87 +73,93 @@ export function initGlobalDeleteButton(): void {
   }
 }
 
+function onShowPanelClick(e) {
+  // a '.show-panel' element can show a panel, by `data-panel="selector"`
+  // if it has "toggle" class, it toggles the panel
+  const el = e.currentTarget;
+  e.preventDefault();
+  const sel = el.getAttribute('data-panel');
+  if (el.classList.contains('toggle')) {
+    toggleElem(sel);
+  } else {
+    showElem(sel);
+  }
+}
+
+function onHidePanelClick(e) {
+  // a `.hide-panel` element can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
+  const el = e.currentTarget;
+  e.preventDefault();
+  let sel = el.getAttribute('data-panel');
+  if (sel) {
+    hideElem(sel);
+    return;
+  }
+  sel = el.getAttribute('data-panel-closest');
+  if (sel) {
+    hideElem(el.parentNode.closest(sel));
+    return;
+  }
+  throw new Error('no panel to hide'); // should never happen, otherwise there is a bug in code
+}
+
+function onShowModalClick(e) {
+  // A ".show-modal" button will show a modal dialog defined by its "data-modal" attribute.
+  // Each "data-modal-{target}" attribute will be filled to target element's value or text-content.
+  // * First, try to query '#target'
+  // * Then, try to query '[name=target]'
+  // * Then, try to query '.target'
+  // * Then, try to query 'target' as HTML tag
+  // If there is a ".{attr}" part like "data-modal-form.action", then the form's "action" attribute will be set.
+  const el = e.currentTarget;
+  e.preventDefault();
+  const modalSelector = el.getAttribute('data-modal');
+  const elModal = document.querySelector(modalSelector);
+  if (!elModal) throw new Error('no modal for this action');
+
+  const modalAttrPrefix = 'data-modal-';
+  for (const attrib of el.attributes) {
+    if (!attrib.name.startsWith(modalAttrPrefix)) {
+      continue;
+    }
+
+    const attrTargetCombo = attrib.name.substring(modalAttrPrefix.length);
+    const [attrTargetName, attrTargetAttr] = attrTargetCombo.split('.');
+    // try to find target by: "#target" -> "[name=target]" -> ".target" -> "<target> tag"
+    const attrTarget = elModal.querySelector(`#${attrTargetName}`) ||
+      elModal.querySelector(`[name=${attrTargetName}]`) ||
+      elModal.querySelector(`.${attrTargetName}`) ||
+      elModal.querySelector(`${attrTargetName}`);
+    if (!attrTarget) {
+      if (!window.config.runModeIsProd) throw new Error(`attr target "${attrTargetCombo}" not found for modal`);
+      continue;
+    }
+
+    if (attrTargetAttr) {
+      attrTarget[camelize(attrTargetAttr)] = attrib.value;
+    } else if (attrTarget.matches('input, textarea')) {
+      attrTarget.value = attrib.value; // FIXME: add more supports like checkbox
+    } else {
+      attrTarget.textContent = attrib.value; // FIXME: it should be more strict here, only handle div/span/p
+    }
+  }
+
+  fomanticQuery(elModal).modal('setting', {
+    onApprove: () => {
+      // "form-fetch-action" can handle network errors gracefully,
+      // so keep the modal dialog to make users can re-submit the form if anything wrong happens.
+      if (elModal.querySelector('.form-fetch-action')) return false;
+    },
+  }).modal('show');
+}
+
 export function initGlobalButtons(): void {
   // There are many "cancel button" elements in modal dialogs, Fomantic UI expects they are button-like elements but never submit a form.
   // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
   // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
-  $(document).on('click', 'form button.ui.cancel.button', (e) => {
-    e.preventDefault();
-  });
+  addDelegatedEventListener(document, 'click', 'form button.ui.cancel.button', (_ /* el */, e) => e.preventDefault());
 
-  $('.show-panel').on('click', function (e) {
-    // a '.show-panel' element can show a panel, by `data-panel="selector"`
-    // if it has "toggle" class, it toggles the panel
-    e.preventDefault();
-    const sel = this.getAttribute('data-panel');
-    if (this.classList.contains('toggle')) {
-      toggleElem(sel);
-    } else {
-      showElem(sel);
-    }
-  });
-
-  $('.hide-panel').on('click', function (e) {
-    // a `.hide-panel` element can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
-    e.preventDefault();
-    let sel = this.getAttribute('data-panel');
-    if (sel) {
-      hideElem($(sel));
-      return;
-    }
-    sel = this.getAttribute('data-panel-closest');
-    if (sel) {
-      hideElem($(this).closest(sel));
-      return;
-    }
-    // should never happen, otherwise there is a bug in code
-    showErrorToast('Nothing to hide');
-  });
-}
-
-export function initGlobalShowModal() {
-  // A ".show-modal" button will show a modal dialog defined by its "data-modal" attribute.
-  // Each "data-modal-{target}" attribute will be filled to target element's value or text-content.
-  // * First, try to query '#target'
-  // * Then, try to query '.target'
-  // * Then, try to query 'target' as HTML tag
-  // If there is a ".{attr}" part like "data-modal-form.action", then the form's "action" attribute will be set.
-  $('.show-modal').on('click', function (e) {
-    e.preventDefault();
-    const modalSelector = this.getAttribute('data-modal');
-    const $modal = $(modalSelector);
-    if (!$modal.length) {
-      throw new Error('no modal for this action');
-    }
-    const modalAttrPrefix = 'data-modal-';
-    for (const attrib of this.attributes) {
-      if (!attrib.name.startsWith(modalAttrPrefix)) {
-        continue;
-      }
-
-      const attrTargetCombo = attrib.name.substring(modalAttrPrefix.length);
-      const [attrTargetName, attrTargetAttr] = attrTargetCombo.split('.');
-      // try to find target by: "#target" -> ".target" -> "target tag"
-      let $attrTarget = $modal.find(`#${attrTargetName}`);
-      if (!$attrTarget.length) $attrTarget = $modal.find(`.${attrTargetName}`);
-      if (!$attrTarget.length) $attrTarget = $modal.find(`${attrTargetName}`);
-      if (!$attrTarget.length) continue; // TODO: show errors in dev mode to remind developers that there is a bug
-
-      if (attrTargetAttr) {
-        $attrTarget[0][attrTargetAttr] = attrib.value;
-      } else if ($attrTarget[0].matches('input, textarea')) {
-        $attrTarget.val(attrib.value); // FIXME: add more supports like checkbox
-      } else {
-        $attrTarget[0].textContent = attrib.value; // FIXME: it should be more strict here, only handle div/span/p
-      }
-    }
-
-    $modal.modal('setting', {
-      onApprove: () => {
-        // "form-fetch-action" can handle network errors gracefully,
-        // so keep the modal dialog to make users can re-submit the form if anything wrong happens.
-        if ($modal.find('.form-fetch-action').length) return false;
-      },
-    }).modal('show');
-  });
+  queryElems(document, '.show-panel', (el) => el.addEventListener('click', onShowPanelClick));
+  queryElems(document, '.hide-panel', (el) => el.addEventListener('click', onHidePanelClick));
+  queryElems(document, '.show-modal', (el) => el.addEventListener('click', onShowModalClick));
 }

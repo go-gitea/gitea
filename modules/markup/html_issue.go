@@ -136,9 +136,11 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 			// Gitea will redirect on click as appropriate.
 			issuePath := util.Iif(ref.IsPull, "pulls", "issues")
 			if ref.Owner == "" {
-				link = createLink(ctx, util.URLJoin(ctx.RenderOptions.Links.Prefix(), ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], issuePath, ref.Issue), reftext, "ref-issue")
+				linkHref := ctx.RenderHelper.ResolveLink(util.URLJoin(ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], issuePath, ref.Issue), LinkTypeApp)
+				link = createLink(ctx, linkHref, reftext, "ref-issue")
 			} else {
-				link = createLink(ctx, util.URLJoin(ctx.RenderOptions.Links.Prefix(), ref.Owner, ref.Name, issuePath, ref.Issue), reftext, "ref-issue")
+				linkHref := ctx.RenderHelper.ResolveLink(util.URLJoin(ref.Owner, ref.Name, issuePath, ref.Issue), LinkTypeApp)
+				link = createLink(ctx, linkHref, reftext, "ref-issue")
 			}
 		}
 
@@ -177,7 +179,8 @@ func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		reftext := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
-		link := createLink(ctx, util.URLJoin(ctx.RenderOptions.Links.Prefix(), ref.Owner, ref.Name, "commit", ref.CommitSha), reftext, "commit")
+		linkHref := ctx.RenderHelper.ResolveLink(util.URLJoin(ref.Owner, ref.Name, "commit", ref.CommitSha), LinkTypeApp)
+		link := createLink(ctx, linkHref, reftext, "commit")
 
 		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
 		node = node.NextSibling.NextSibling
