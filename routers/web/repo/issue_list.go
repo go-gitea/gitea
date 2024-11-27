@@ -435,13 +435,8 @@ func UpdateIssueStatus(ctx *context.Context) {
 		return
 	}
 
-	var closeOrReopen bool // true: close, false: reopen
-	switch action := ctx.FormString("action"); action {
-	case "open":
-		closeOrReopen = false
-	case "close":
-		closeOrReopen = true
-	default:
+	action := ctx.FormString("action")
+	if action != "open" && action != "close" {
 		log.Warn("Unrecognized action: %s", action)
 		ctx.JSONOK()
 		return
@@ -460,7 +455,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 		if issue.IsPull && issue.PullRequest.HasMerged {
 			continue
 		}
-		if closeOrReopen && !issue.IsClosed {
+		if action == "close" && !issue.IsClosed {
 			if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
 					ctx.JSON(http.StatusPreconditionFailed, map[string]any{
@@ -471,7 +466,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 				ctx.ServerError("CloseIssue", err)
 				return
 			}
-		} else if !closeOrReopen && issue.IsClosed {
+		} else if action == "open" && issue.IsClosed {
 			if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
 				ctx.ServerError("ReopenIssue", err)
 				return
