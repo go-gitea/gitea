@@ -2,7 +2,12 @@
 
 .cropper-panel {
   display: flex;
+  flex-wrap: wrap;
   column-gap: 10px;
+}
+
+.cropper-panel h3 {
+  word-break: keep-all;
 }
 
 .cropper-panel #cropper-result {
@@ -15,6 +20,7 @@
 
 .cropper-panel .cropper-editor {
   flex: 1;
+  min-width: 300px;
   max-width: 100%;
   overflow: hidden;
 }
