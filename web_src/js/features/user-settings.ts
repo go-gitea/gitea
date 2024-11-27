@@ -1,7 +1,9 @@
 import {hideElem, showElem} from '../utils/dom.ts';
+import {initCompCropper} from './comp/Cropper.ts';
 
 export function initUserSettings() {
   if (!document.querySelectorAll('.user.settings.profile').length) return;
+  initCompCropper();
 
   const usernameInput = document.querySelector('#username');
   if (!usernameInput) return;
