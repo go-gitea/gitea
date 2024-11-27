@@ -25,7 +25,7 @@ type ErrNoPermission struct {
 }
 
 func (e ErrNoPermission) Error() string {
-	return fmt.Sprintf("no permission to access repo %d unit %s with mode %s", e.RepoID, e.Unit, e.Perm)
+	return fmt.Sprintf("no permission to access repo %d unit %s with mode %s", e.RepoID, e.Unit.LogString(), e.Perm.LogString())
 }
 
 // Permission contains all the permissions related variables to a repository for a user

@@ -500,16 +500,8 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		return err
 	}
 
-	if branchName == repo.DefaultBranch {
-		return ErrBranchIsDefault
-	}
-
-	isProtected, err := git_model.IsBranchProtected(ctx, repo.ID, branchName)
-	if err != nil {
+	if err := CanDeleteBranch(ctx, repo, branchName, doer); err != nil {
 		return err
-	}
-	if isProtected {
-		return git_model.ErrBranchIsProtected
 	}
 
 	rawBranch, err := git_model.GetBranch(ctx, repo.ID, branchName)

@@ -1058,6 +1058,8 @@ func MergePullRequest(ctx *context.APIContext) {
 	log.Trace("Pull request merged: %d", pr.ID)
 
 	if form.DeleteBranchAfterMerge && pr.Flow == issues_model.PullRequestFlowGithub {
+		// check permission even it has been checked in repo_service.DeleteBranch so that we don't need to
+		// do RetargetChildrenOnMerge
 		if err := repo_service.CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, ctx.Doer); err == nil {
 			// Don't cleanup when there are other PR's that use this branch as head branch.
 			exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)

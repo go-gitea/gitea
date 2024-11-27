@@ -1404,7 +1404,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	pr := issue.PullRequest
 
 	// Don't cleanup unmerged and unclosed PRs
-	if !pr.HasMerged && !issue.IsClosed {
+	if !pr.HasMerged && !issue.IsClosed && pr.Flow != issues_model.PullRequestFlowGithub {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}
@@ -1435,13 +1435,12 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
-		return
-	}
-	if !perm.CanWrite(unit.TypeCode) {
-		ctx.NotFound("CleanUpPullRequest", nil)
+	if err := repo_service.CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, ctx.Doer); err != nil {
+		if errors.Is(err, access_model.ErrNoPermission{}) {
+			ctx.NotFound("CleanUpPullRequest", nil)
+		} else {
+			ctx.ServerError("GetUserRepoPermission", err)
+		}
 		return
 	}
 
