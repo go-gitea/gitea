@@ -367,6 +367,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(307, "Fix milestone deadline_unix when there is no due date", v1_23.FixMilestoneNoDueDate),
 		newMigration(308, "Add index(user_id, is_deleted) for action table", v1_23.AddNewIndexForUserDashboard),
 		newMigration(309, "Improve Notification table indices", v1_23.ImproveNotificationTableIndices),
+		newMigration(310, "Add Priority to ProtectedBranch", v1_23.AddPriorityToProtectedBranch),
 	}
 	return preparedMigrations
 }

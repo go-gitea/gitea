@@ -1,11 +1,12 @@
 import {debounce} from 'throttle-debounce';
 import type {Promisable} from 'type-fest';
 import type $ from 'jquery';
+import {isInFrontendUnitTest} from './testhelper.ts';
 
-type ElementArg = Element | string | NodeListOf<Element> | Array<Element> | ReturnType<typeof $>;
+type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Array
+type ElementArg = Element | string | ArrayLikeIterable<Element> | ReturnType<typeof $>;
 type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
-type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Array
 
 function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]) {
   if (typeof el === 'string' || el instanceof String) {
@@ -76,6 +77,11 @@ export function queryElemSiblings<T extends Element>(el: Element, selector = '*'
 
 // it works like jQuery.children: only the direct children are selected
 export function queryElemChildren<T extends Element>(parent: Element | ParentNode, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
+  if (isInFrontendUnitTest()) {
+    // https://github.com/capricorn86/happy-dom/issues/1620 : ":scope" doesn't work
+    const selected = Array.from<T>(parent.children as any).filter((child) => child.matches(selector));
+    return applyElemsCallback<T>(selected, fn);
+  }
   return applyElemsCallback<T>(parent.querySelectorAll(`:scope > ${selector}`), fn);
 }
 
@@ -348,10 +354,10 @@ export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, s
   return candidates.length ? candidates[0] as T : null;
 }
 
-export function addDelegatedEventListener<T extends HTMLElement>(parent: Node, type: string, selector: string, listener: (elem: T, e: Event) => void | Promise<any>, options?: boolean | AddEventListenerOptions) {
+export function addDelegatedEventListener<T extends HTMLElement, E extends Event>(parent: Node, type: string, selector: string, listener: (elem: T, e: E) => void | Promise<any>, options?: boolean | AddEventListenerOptions) {
   parent.addEventListener(type, (e: Event) => {
     const elem = (e.target as HTMLElement).closest(selector);
     if (!elem) return;
-    listener(elem as T, e);
+    listener(elem as T, e as E);
   }, options);
 }

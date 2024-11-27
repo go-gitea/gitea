@@ -74,26 +74,32 @@ type AccessTokenResponse struct {
 // GrantAdditionalScopes returns valid scopes coming from grant
 func GrantAdditionalScopes(grantScopes string) auth.AccessTokenScope {
 	// scopes_supported from templates/user/auth/oidc_wellknown.tmpl
-	scopesSupported := []string{
+	generalScopesSupported := []string{
 		"openid",
 		"profile",
 		"email",
 		"groups",
 	}
 
-	var tokenScopes []string
-	for _, tokenScope := range strings.Split(grantScopes, " ") {
-		if slices.Index(scopesSupported, tokenScope) == -1 {
-			tokenScopes = append(tokenScopes, tokenScope)
+	var accessScopes []string // the scopes for access control, but not for general information
+	for _, scope := range strings.Split(grantScopes, " ") {
+		if scope != "" && !slices.Contains(generalScopesSupported, scope) {
+			accessScopes = append(accessScopes, scope)
 		}
 	}
 
 	// since version 1.22, access tokens grant full access to the API
 	// with this access is reduced only if additional scopes are provided
-	accessTokenScope := auth.AccessTokenScope(strings.Join(tokenScopes, ","))
-	if accessTokenWithAdditionalScopes, err := accessTokenScope.Normalize(); err == nil && len(tokenScopes) > 0 {
-		return accessTokenWithAdditionalScopes
+	if len(accessScopes) > 0 {
+		accessTokenScope := auth.AccessTokenScope(strings.Join(accessScopes, ","))
+		if normalizedAccessTokenScope, err := accessTokenScope.Normalize(); err == nil {
+			return normalizedAccessTokenScope
+		}
+		// TODO: if there are invalid access scopes (err != nil),
+		// then it is treated as "all", maybe in the future we should make it stricter to return an error
+		// at the moment, to avoid breaking 1.22 behavior, invalid tokens are also treated as "all"
 	}
+	// fallback, empty access scope is treated as "all" access
 	return auth.AccessTokenScopeAll
 }
 
@@ -235,14 +241,15 @@ func GetOAuthGroupsForUser(ctx context.Context, user *user_model.User, onlyPubli
 		return nil, fmt.Errorf("GetUserOrgList: %w", err)
 	}
 
+	orgTeams, err := org_model.OrgList(orgs).LoadTeams(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("LoadTeams: %w", err)
+	}
+
 	var groups []string
 	for _, org := range orgs {
 		groups = append(groups, org.Name)
-		teams, err := org.LoadTeams(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("LoadTeams: %w", err)
-		}
-		for _, team := range teams {
+		for _, team := range orgTeams[org.ID] {
 			if team.IsMember(ctx, user.ID) {
 				groups = append(groups, org.Name+":"+team.LowerName)
 			}
