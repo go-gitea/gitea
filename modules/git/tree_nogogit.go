@@ -6,6 +6,8 @@
 package git
 
 import (
+	"bufio"
+	"context"
 	"io"
 	"strings"
 )
@@ -91,34 +93,80 @@ func (t *Tree) ListEntries() (Entries, error) {
 
 // listEntriesRecursive returns all entries of current tree recursively including all subtrees
 // extraArgs could be "-l" to get the size, which is slower
-func (t *Tree) listEntriesRecursive(extraArgs TrustedCmdArgs) (Entries, error) {
+func (t *Tree) listEntriesRecursive(ctx context.Context, extraArgs TrustedCmdArgs) (Entries, error) {
 	if t.entriesRecursiveParsed {
 		return t.entriesRecursive, nil
 	}
 
-	stdout, _, runErr := NewCommand(t.repo.Ctx, "ls-tree", "-t", "-r").
-		AddArguments(extraArgs...).
-		AddDynamicArguments(t.ID.String()).
-		RunStdBytes(&RunOpts{Dir: t.repo.Path})
-	if runErr != nil {
-		return nil, runErr
-	}
-
-	var err error
-	t.entriesRecursive, err = parseTreeEntries(stdout, t)
-	if err == nil {
-		t.entriesRecursiveParsed = true
-	}
-
+	t.entriesRecursive = make([]*TreeEntry, 0)
+	err := t.iterateEntriesRecursive(func(entry *TreeEntry) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		t.entriesRecursive = append(t.entriesRecursive, entry)
+		return nil
+	}, extraArgs)
 	return t.entriesRecursive, err
 }
 
 // ListEntriesRecursiveFast returns all entries of current tree recursively including all subtrees, no size
-func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
-	return t.listEntriesRecursive(nil)
+func (t *Tree) ListEntriesRecursiveFast(ctx context.Context) (Entries, error) {
+	return t.listEntriesRecursive(ctx, nil)
 }
 
 // ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees, with size
-func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
-	return t.listEntriesRecursive(TrustedCmdArgs{"--long"})
+func (t *Tree) ListEntriesRecursiveWithSize(ctx context.Context) (Entries, error) {
+	return t.listEntriesRecursive(ctx, TrustedCmdArgs{"--long"})
+}
+
+// iterateEntriesRecursive returns iterate entries of current tree recursively including all subtrees
+// extraArgs could be "-l" to get the size, which is slower
+func (t *Tree) iterateEntriesRecursive(f func(entry *TreeEntry) error, extraArgs TrustedCmdArgs) error {
+	if t.entriesRecursiveParsed {
+		return nil
+	}
+
+	reader, writer := io.Pipe()
+	done := make(chan error)
+
+	go func(done chan error, writer *io.PipeWriter, reader *io.PipeReader) {
+		runErr := NewCommand(t.repo.Ctx, "ls-tree", "-t", "-r").
+			AddArguments(extraArgs...).
+			AddDynamicArguments(t.ID.String()).
+			Run(&RunOpts{
+				Dir:    t.repo.Path,
+				Stdout: writer,
+			})
+
+		_ = writer.Close()
+		_ = reader.Close()
+
+		done <- runErr
+	}(done, writer, reader)
+
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return err
+		}
+		data := scanner.Bytes()
+		if err := iterateTreeEntries(data, t, func(entry *TreeEntry) error {
+			select {
+			case runErr := <-done:
+				return runErr
+			default:
+				return f(entry)
+			}
+		}); err != nil {
+			return err
+		}
+	}
+	t.entriesRecursiveParsed = true
+	return nil
+}
+
+func (t *Tree) IterateEntriesWithSize(f func(*TreeEntry) error) error {
+	return t.iterateEntriesRecursive(f, TrustedCmdArgs{"--long"})
 }
