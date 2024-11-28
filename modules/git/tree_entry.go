@@ -8,6 +8,8 @@ import (
 	"io"
 	"sort"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // Type returns the type of the entry (commit, tree, blob)
@@ -178,4 +180,31 @@ func (tes Entries) Sort() {
 // CustomSort customizable string comparing sort entry list
 func (tes Entries) CustomSort(cmp func(s1, s2 string) bool) {
 	sort.Sort(customSortableEntries{cmp, tes})
+}
+
+// GetPathInRepo returns the relative path in the tree to this entry
+func (te *TreeEntry) GetPathInRepo() string {
+	if te == nil {
+		return ""
+	}
+
+	path := te.Name()
+	current := te.ptree
+
+	for current != nil && current.ptree != nil {
+		entries, err := current.ptree.ListEntries()
+		if err != nil {
+			log.Error("Failed to climb git tree %v", err)
+			return ""
+		}
+		for _, entry := range entries {
+			if entry.ID.String() == current.ID.String() {
+				path = entry.Name() + "/" + path
+				break
+			}
+		}
+		current = current.ptree
+	}
+
+	return path
 }
