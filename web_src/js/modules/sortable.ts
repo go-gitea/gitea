@@ -1,6 +1,6 @@
 import type {SortableOptions, SortableEvent} from 'sortablejs';
 
-export async function createSortable(el: HTMLElement, opts: {handle?: string} & SortableOptions = {}) {
+export async function createSortable(el: Element, opts: {handle?: string} & SortableOptions = {}) {
   // @ts-expect-error: wrong type derived by typescript
   const {Sortable} = await import(/* webpackChunkName: "sortablejs" */'sortablejs');
 
