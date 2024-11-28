@@ -75,7 +75,7 @@ func TestBranchRuleMatchPriority(t *testing.T) {
 	}
 }
 
-func TestBranchRuleSort(t *testing.T) {
+func TestBranchRuleSortLegacy(t *testing.T) {
 	in := []*ProtectedBranch{{
 		RuleName:    "b",
 		CreatedUnix: 1,
@@ -93,6 +93,40 @@ func TestBranchRuleSort(t *testing.T) {
 		CreatedUnix: 4,
 	}}
 	expect := []string{"c", "b", "a", "a/*", "b/*"}
+
+	pbr := ProtectedBranchRules(in)
+	pbr.sort()
+
+	var got []string
+	for i := range pbr {
+		got = append(got, pbr[i].RuleName)
+	}
+	assert.Equal(t, expect, got)
+}
+
+func TestBranchRuleSortPriority(t *testing.T) {
+	in := []*ProtectedBranch{{
+		RuleName:    "b",
+		CreatedUnix: 1,
+		Priority:    4,
+	}, {
+		RuleName:    "b/*",
+		CreatedUnix: 3,
+		Priority:    2,
+	}, {
+		RuleName:    "a/*",
+		CreatedUnix: 2,
+		Priority:    1,
+	}, {
+		RuleName:    "c",
+		CreatedUnix: 0,
+		Priority:    0,
+	}, {
+		RuleName:    "a",
+		CreatedUnix: 4,
+		Priority:    3,
+	}}
+	expect := []string{"c", "a/*", "b/*", "a", "b"}
 
 	pbr := ProtectedBranchRules(in)
 	pbr.sort()

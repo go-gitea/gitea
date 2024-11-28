@@ -3,12 +3,13 @@ import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.ts';
 import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
+import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 
 const {appSubUrl, csrfToken} = window.config;
 
 function initRepoSettingsCollaboration() {
   // Change collaborator access mode
-  for (const dropdownEl of queryElems('.page-content.repository .ui.dropdown.access-mode')) {
+  for (const dropdownEl of queryElems(document, '.page-content.repository .ui.dropdown.access-mode')) {
     const textEl = dropdownEl.querySelector(':scope > .text');
     $(dropdownEl).dropdown({
       async action(text, value) {
@@ -154,4 +155,5 @@ export function initRepoSettings() {
   initRepoSettingsCollaboration();
   initRepoSettingsSearchTeamBox();
   initRepoSettingsGitHook();
+  initRepoSettingsBranchesDrag();
 }
