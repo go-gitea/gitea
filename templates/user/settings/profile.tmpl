@@ -127,6 +127,11 @@
 					<input id="new-avatar" name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
 
+				<div class="field tw-pl-4 cropper-panel tw-hidden">
+					<div>{{ctx.Locale.Tr "settings.cropper_prompt"}}</div>
+					<div class="cropper-wrapper"><img class="cropper-source" src alt></div>
+				</div>
+
 				<div class="field">
 					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_avatar"}}</button>
 					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{ctx.Locale.Tr "settings.delete_current_avatar"}}</button>

@@ -228,6 +228,10 @@ func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) bin
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+type ProtectBranchPriorityForm struct {
+	IDs []int64
+}
+
 //  __      __      ___.   .__                   __
 // /  \    /  \ ____\_ |__ |  |__   ____   ____ |  | __
 // \   \/\/   // __ \| __ \|  |  \ /  _ \ /  _ \|  |/ /
