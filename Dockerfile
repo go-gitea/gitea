@@ -28,6 +28,9 @@ RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
 # Begin env-to-ini build
 RUN go build contrib/environment-to-ini/environment-to-ini.go
 
+# Begin ini-to-shell build
+RUN go build contrib/ini-to-shell/ini-to-shell.go
+
 # Copy local files
 COPY docker/root /tmp/local
 
@@ -38,7 +41,8 @@ RUN chmod 755 /tmp/local/usr/bin/entrypoint \
               /tmp/local/etc/s6/openssh/* \
               /tmp/local/etc/s6/.s6-svscan/* \
               /go/src/code.gitea.io/gitea/gitea \
-              /go/src/code.gitea.io/gitea/environment-to-ini
+              /go/src/code.gitea.io/gitea/environment-to-ini \
+              /go/src/code.gitea.io/gitea/ini-to-shell
 RUN chmod 644 /go/src/code.gitea.io/gitea/contrib/autocompletion/bash_autocomplete
 
 FROM docker.io/library/alpine:3.20
@@ -83,4 +87,5 @@ CMD ["/bin/s6-svscan", "/etc/s6"]
 COPY --from=build-env /tmp/local /
 COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
 COPY --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
+COPY --from=build-env /go/src/code.gitea.io/gitea/ini-to-shell /usr/local/bin/ini-to-shell
 COPY --from=build-env /go/src/code.gitea.io/gitea/contrib/autocompletion/bash_autocomplete /etc/profile.d/gitea_bash_autocomplete.sh
