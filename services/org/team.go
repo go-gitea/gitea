@@ -1,8 +1,7 @@
-// Copyright 2018 The Gitea Authors. All rights reserved.
-// Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package models
+package org
 
 import (
 	"context"
@@ -19,137 +18,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"xorm.io/builder"
 )
-
-func AddRepository(ctx context.Context, t *organization.Team, repo *repo_model.Repository) (err error) {
-	if err = organization.AddTeamRepo(ctx, t.OrgID, t.ID, repo.ID); err != nil {
-		return err
-	}
-
-	if err = organization.IncrTeamRepoNum(ctx, t.ID); err != nil {
-		return fmt.Errorf("update team: %w", err)
-	}
-
-	t.NumRepos++
-
-	if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
-		return fmt.Errorf("recalculateAccesses: %w", err)
-	}
-
-	// Make all team members watch this repo if enabled in global settings
-	if setting.Service.AutoWatchNewRepos {
-		if err = t.LoadMembers(ctx); err != nil {
-			return fmt.Errorf("getMembers: %w", err)
-		}
-		for _, u := range t.Members {
-			if err = repo_model.WatchRepo(ctx, u, repo, true); err != nil {
-				return fmt.Errorf("watchRepo: %w", err)
-			}
-		}
-	}
-
-	return nil
-}
-
-// addAllRepositories adds all repositories to the team.
-// If the team already has some repositories they will be left unchanged.
-func addAllRepositories(ctx context.Context, t *organization.Team) error {
-	orgRepos, err := organization.GetOrgRepositories(ctx, t.OrgID)
-	if err != nil {
-		return fmt.Errorf("get org repos: %w", err)
-	}
-
-	for _, repo := range orgRepos {
-		if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repo.ID) {
-			if err := AddRepository(ctx, t, repo); err != nil {
-				return fmt.Errorf("AddRepository: %w", err)
-			}
-		}
-	}
-
-	return nil
-}
-
-// AddAllRepositories adds all repositories to the team
-func AddAllRepositories(ctx context.Context, t *organization.Team) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = addAllRepositories(ctx, t); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
-// RemoveAllRepositories removes all repositories from team and recalculates access
-func RemoveAllRepositories(ctx context.Context, t *organization.Team) (err error) {
-	if t.IncludesAllRepositories {
-		return nil
-	}
-
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = removeAllRepositories(ctx, t); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
-// removeAllRepositories removes all repositories from team and recalculates access
-// Note: Shall not be called if team includes all repositories
-func removeAllRepositories(ctx context.Context, t *organization.Team) (err error) {
-	e := db.GetEngine(ctx)
-	// Delete all accesses.
-	for _, repo := range t.Repos {
-		if err := access_model.RecalculateTeamAccesses(ctx, repo, t.ID); err != nil {
-			return err
-		}
-
-		// Remove watches from all users and now unaccessible repos
-		for _, user := range t.Members {
-			has, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo)
-			if err != nil {
-				return err
-			} else if has {
-				continue
-			}
-
-			if err = repo_model.WatchRepo(ctx, user, repo, false); err != nil {
-				return err
-			}
-
-			// Remove all IssueWatches a user has subscribed to in the repositories
-			if err = issues_model.RemoveIssueWatchersByRepoID(ctx, user.ID, repo.ID); err != nil {
-				return err
-			}
-		}
-	}
-
-	// Delete team-repo
-	if _, err := e.
-		Where("team_id=?", t.ID).
-		Delete(new(organization.TeamRepo)); err != nil {
-		return err
-	}
-
-	t.NumRepos = 0
-	if _, err = e.ID(t.ID).Cols("num_repos").Update(t); err != nil {
-		return err
-	}
-
-	return nil
-}
 
 // NewTeam creates a record of new team.
 // It's caller's responsibility to assign organization ID.
@@ -204,7 +76,7 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 
 	// Add all repositories to the team if it has access to all of them.
 	if t.IncludesAllRepositories {
-		err = addAllRepositories(ctx, t)
+		err = repo_service.AddAllRepositoriesToTeam(ctx, t)
 		if err != nil {
 			return fmt.Errorf("addAllRepositories: %w", err)
 		}
@@ -282,7 +154,7 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 
 	// Add all repositories to the team if it has access to all of them.
 	if includeAllChanged && t.IncludesAllRepositories {
-		err = addAllRepositories(ctx, t)
+		err = repo_service.AddAllRepositoriesToTeam(ctx, t)
 		if err != nil {
 			return fmt.Errorf("addAllRepositories: %w", err)
 		}
@@ -324,10 +196,8 @@ func DeleteTeam(ctx context.Context, t *organization.Team) error {
 		}
 	}
 
-	if !t.IncludesAllRepositories {
-		if err := removeAllRepositories(ctx, t); err != nil {
-			return err
-		}
+	if err := repo_service.RemoveAllRepositoriesFromTeam(ctx, t); err != nil {
+		return err
 	}
 
 	if err := db.DeleteBeans(ctx,
@@ -486,12 +356,12 @@ func removeTeamMember(ctx context.Context, team *organization.Team, user *user_m
 		}
 
 		// Remove watches from now unaccessible
-		if err := ReconsiderWatches(ctx, repo, user); err != nil {
+		if err := repo_service.ReconsiderWatches(ctx, repo, user); err != nil {
 			return err
 		}
 
 		// Remove issue assignments from now unaccessible
-		if err := ReconsiderRepoIssuesAssignee(ctx, repo, user); err != nil {
+		if err := repo_service.ReconsiderRepoIssuesAssignee(ctx, repo, user); err != nil {
 			return err
 		}
 	}
@@ -528,29 +398,4 @@ func RemoveTeamMember(ctx context.Context, team *organization.Team, user *user_m
 		return err
 	}
 	return committer.Commit()
-}
-
-func ReconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Repository, user *user_model.User) error {
-	if canAssigned, err := access_model.CanBeAssigned(ctx, user, repo, true); err != nil || canAssigned {
-		return err
-	}
-
-	if _, err := db.GetEngine(ctx).Where(builder.Eq{"assignee_id": user.ID}).
-		In("issue_id", builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repo.ID})).
-		Delete(&issues_model.IssueAssignees{}); err != nil {
-		return fmt.Errorf("Could not delete assignee[%d] %w", user.ID, err)
-	}
-	return nil
-}
-
-func ReconsiderWatches(ctx context.Context, repo *repo_model.Repository, user *user_model.User) error {
-	if has, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo); err != nil || has {
-		return err
-	}
-	if err := repo_model.WatchRepo(ctx, user, repo, false); err != nil {
-		return err
-	}
-
-	// Remove all IssueWatches a user has subscribed to in the repository
-	return issues_model.RemoveIssueWatchersByRepoID(ctx, user.ID, repo.ID)
 }

@@ -1,6 +1,7 @@
 import {debounce} from 'throttle-debounce';
 import type {Promisable} from 'type-fest';
 import type $ from 'jquery';
+import {isInFrontendUnitTest} from './testhelper.ts';
 
 type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Array
 type ElementArg = Element | string | ArrayLikeIterable<Element> | ReturnType<typeof $>;
@@ -76,8 +77,8 @@ export function queryElemSiblings<T extends Element>(el: Element, selector = '*'
 
 // it works like jQuery.children: only the direct children are selected
 export function queryElemChildren<T extends Element>(parent: Element | ParentNode, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
-  if (window.vitest) {
-    // bypass the vitest bug: it doesn't support ":scope >"
+  if (isInFrontendUnitTest()) {
+    // https://github.com/capricorn86/happy-dom/issues/1620 : ":scope" doesn't work
     const selected = Array.from<T>(parent.children as any).filter((child) => child.matches(selector));
     return applyElemsCallback<T>(selected, fn);
   }
@@ -357,6 +358,6 @@ export function addDelegatedEventListener<T extends HTMLElement, E extends Event
   parent.addEventListener(type, (e: Event) => {
     const elem = (e.target as HTMLElement).closest(selector);
     if (!elem) return;
-    listener(elem as T, e);
+    listener(elem as T, e as E);
   }, options);
 }
