@@ -7,7 +7,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 const {appSubUrl} = window.config;
 
 export function initRepoTopicBar() {
-  const mgrBtns = document.querySelectorAll('#manage_topic');
+  const mgrBtns = document.querySelectorAll<HTMLButtonElement>('#manage_topic');
   if (mgrBtns.length === 0) return;
 
   for (const mgrBtn of mgrBtns) {
@@ -19,7 +19,7 @@ export function initRepoTopicBar() {
     mgrBtn.addEventListener('click', () => {
       hideElem(viewDiv);
       showElem(editDiv);
-      topicDropdown.querySelector('input.search').focus();
+      topicDropdown.querySelector<HTMLInputElement>('input.search').focus();
     });
 
     mgrBtn.parentNode.querySelector('#cancel_topic_edit').addEventListener('click', () => {
@@ -29,9 +29,9 @@ export function initRepoTopicBar() {
       mgrBtn.focus();
     });
 
-    mgrBtn.parentNode.querySelector('#save_topic').addEventListener('click', async (e) => {
+    mgrBtn.parentNode.querySelector('#save_topic').addEventListener('click', async (e: MouseEvent & {target: HTMLAnchorElement}) => {
       lastErrorToast?.hideToast();
-      const topics = editDiv.querySelector('input[name=topics]').value;
+      const topics = editDiv.querySelector<HTMLInputElement>('input[name=topics]').value;
 
       const data = new FormData();
       data.append('topics', topics);
