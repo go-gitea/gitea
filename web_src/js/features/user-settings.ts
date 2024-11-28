@@ -2,7 +2,7 @@ import {hideElem, showElem} from '../utils/dom.ts';
 import {initCompCropper} from './comp/Cropper.ts';
 
 function initUserSettingsAvatarCropper() {
-  const fileInput = document.getElementById<HTMLInputElement>('new-avatar');
+  const fileInput = document.querySelector<HTMLInputElement>('#new-avatar');
   const container = document.querySelector<HTMLElement>('.user.settings.profile .cropper-panel');
   const imageSource = container.querySelector<HTMLImageElement>('.cropper-source');
   initCompCropper({container, fileInput, imageSource});
