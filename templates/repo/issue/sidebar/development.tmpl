@@ -15,7 +15,7 @@
 			</a>
 			</span>
 			<div>
-			{{ctx.Locale.Tr "repo.issues.link.created" (DateTime "short" .PullRequest.Issue.CreatedUnix)}}
+			{{ctx.Locale.Tr "repo.issues.link.created" (DateUtils.AbsoluteShort .PullRequest.Issue.CreatedUnix)}}
 			{{if .PullRequest.HasMerged}}
 				{{ctx.Locale.Tr "repo.issues.pr.completed"}}
 				</div>
@@ -23,7 +23,7 @@
 				{{svg "octicon-git-commit" 14}} <a href="{{.PullRequest.BaseRepo.Link}}/src/commit/{{.PullRequest.MergedCommitID}}">{{.PullRequest.MergedCommitID | ShortSha}}</a>
 				</div>
 				<div>
-				{{ctx.Locale.Tr "repo.issues.link.created" (DateTime "short" .PullRequest.MergedUnix)}}
+				{{ctx.Locale.Tr "repo.issues.link.created" (DateUtils.AbsoluteShort .PullRequest.MergedUnix)}}
 			{{else if .PullRequest.ChangedProtectedFiles}}
 				{{ctx.Locale.Tr "repo.issues.pr.conflicted"}}
 			{{end}}
@@ -42,7 +42,7 @@
 					</a>
 				</div>
 			</div>
-			<div>{{ctx.Locale.Tr "repo.issues.branch.latest" (DateTime "short" .Branch.CommitTime)}}</div>
+			<div>{{ctx.Locale.Tr "repo.issues.branch.latest" (DateUtils.AbsoluteShort .Branch.CommitTime)}}</div>
 		{{end}}
 	{{end}}
 	</div>
