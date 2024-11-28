@@ -4,7 +4,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
@@ -93,7 +92,7 @@ func runIniToShell(c *cli.Context) error {
 		log.Fatal("Section '%s' does not have key '%s'", sName, kName)
 	}
 
-	fmt.Printf("%s", section.Key(kName).Value())
+	os.Stdout.Write([]byte(section.Key(kName).Value()))
 
 	return nil
 }
