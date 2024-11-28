@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -59,7 +58,7 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 	}
 
 	for _, team := range teams {
-		if err := models.AddRepository(ctx, team, newRepo); err != nil {
+		if err := addRepositoryToTeam(ctx, team, newRepo); err != nil {
 			return err
 		}
 	}
@@ -205,7 +204,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		}
 		for _, t := range teams {
 			if t.IncludesAllRepositories {
-				if err := models.AddRepository(ctx, t, repo); err != nil {
+				if err := addRepositoryToTeam(ctx, t, repo); err != nil {
 					return fmt.Errorf("AddRepository: %w", err)
 				}
 			}

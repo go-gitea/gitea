@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
-	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -205,7 +204,7 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 			ctx.Error(http.StatusUnprocessableEntity, "alreadyAdded", fmt.Errorf("team '%s' is already added to repo", team.Name))
 			return
 		}
-		err = org_service.TeamAddRepository(ctx, team, ctx.Repo.Repository)
+		err = repo_service.TeamAddRepository(ctx, team, ctx.Repo.Repository)
 	} else {
 		if !repoHasTeam {
 			ctx.Error(http.StatusUnprocessableEntity, "notAdded", fmt.Errorf("team '%s' was not added to repo", team.Name))

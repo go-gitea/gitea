@@ -60,3 +60,14 @@ func TestGetUserOrgsList(t *testing.T) {
 		assert.EqualValues(t, 2, orgs[0].NumRepos)
 	}
 }
+
+func TestLoadOrgListTeams(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	orgs, err := organization.GetUserOrgsList(db.DefaultContext, &user_model.User{ID: 4})
+	assert.NoError(t, err)
+	assert.Len(t, orgs, 1)
+	teamsMap, err := organization.OrgList(orgs).LoadTeams(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Len(t, teamsMap, 1)
+	assert.Len(t, teamsMap[3], 5)
+}
