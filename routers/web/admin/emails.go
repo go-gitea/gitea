@@ -154,7 +154,7 @@ func ActivateEmail(ctx *context.Context) {
 
 // DeleteEmail serves a POST request for delete a user's email
 func DeleteEmail(ctx *context.Context) {
-	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("Uid"))
+	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
 	if err != nil || u == nil {
 		ctx.ServerError("GetUserByID", err)
 		return

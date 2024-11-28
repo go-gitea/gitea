@@ -1,9 +1,9 @@
-import $ from 'jquery';
 import {getCurrentLocale} from '../utils.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {pageData} = window.config;
 
-async function initInputCitationValue(citationCopyApa, citationCopyBibtex) {
+async function initInputCitationValue(citationCopyApa: HTMLButtonElement, citationCopyBibtex: HTMLButtonElement) {
   const [{Cite, plugins}] = await Promise.all([
     import(/* webpackChunkName: "citation-js-core" */'@citation-js/core'),
     import(/* webpackChunkName: "citation-js-formats" */'@citation-js/plugin-software-formats'),
@@ -27,10 +27,10 @@ export async function initCitationFileCopyContent() {
 
   if (!pageData.citationFileContent) return;
 
-  const citationCopyApa = document.querySelector('#citation-copy-apa');
-  const citationCopyBibtex = document.querySelector('#citation-copy-bibtex');
-  const inputContent = document.querySelector('#citation-copy-content');
-  const modal = document.querySelector('#cite-repo-modal');
+  const citationCopyApa = document.querySelector<HTMLButtonElement>('#citation-copy-apa');
+  const citationCopyBibtex = document.querySelector<HTMLButtonElement>('#citation-copy-bibtex');
+  const inputContent = document.querySelector<HTMLInputElement>('#citation-copy-content');
+  const modal = document.querySelector<HTMLDivElement>('#cite-repo-modal');
 
   if ((!citationCopyApa && !citationCopyBibtex) || !inputContent) return;
 

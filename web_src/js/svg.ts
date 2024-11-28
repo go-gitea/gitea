@@ -34,6 +34,7 @@ import octiconGitCommit from '../../public/assets/img/svg/octicon-git-commit.svg
 import octiconGitMerge from '../../public/assets/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/assets/img/svg/octicon-git-pull-request.svg';
 import octiconGitPullRequestDraft from '../../public/assets/img/svg/octicon-git-pull-request-draft.svg';
+import octiconGrabber from '../../public/assets/img/svg/octicon-grabber.svg';
 import octiconHeading from '../../public/assets/img/svg/octicon-heading.svg';
 import octiconHorizontalRule from '../../public/assets/img/svg/octicon-horizontal-rule.svg';
 import octiconImage from '../../public/assets/img/svg/octicon-image.svg';
@@ -107,6 +108,7 @@ const svgs = {
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
   'octicon-git-pull-request-draft': octiconGitPullRequestDraft,
+  'octicon-grabber': octiconGrabber,
   'octicon-heading': octiconHeading,
   'octicon-horizontal-rule': octiconHorizontalRule,
   'octicon-image': octiconImage,
@@ -153,7 +155,7 @@ export type SvgName = keyof typeof svgs;
 //  most of the SVG icons in assets couldn't be used directly.
 
 // retrieve an HTML string for given SVG icon name, size and additional classes
-export function svg(name: SvgName, size = 16, classNames: string|string[]): string {
+export function svg(name: SvgName, size = 16, classNames?: string|string[]): string {
   const className = Array.isArray(classNames) ? classNames.join(' ') : classNames;
   if (!(name in svgs)) throw new Error(`Unknown SVG icon: ${name}`);
   if (size === 16 && !className) return svgs[name];

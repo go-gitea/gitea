@@ -149,7 +149,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			return csvReader, reader, err
 		}
 
-		baseReader, baseBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, RelativePath: diffFile.OldName}, baseBlob)
+		baseReader, baseBlobCloser, err := csvReaderFromCommit(markup.NewRenderContext(ctx).WithRelativePath(diffFile.OldName), baseBlob)
 		if baseBlobCloser != nil {
 			defer baseBlobCloser.Close()
 		}
@@ -161,7 +161,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			return CsvDiffResult{nil, "unable to load file"}
 		}
 
-		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, RelativePath: diffFile.Name}, headBlob)
+		headReader, headBlobCloser, err := csvReaderFromCommit(markup.NewRenderContext(ctx).WithRelativePath(diffFile.Name), headBlob)
 		if headBlobCloser != nil {
 			defer headBlobCloser.Close()
 		}
@@ -788,9 +788,13 @@ func CompareDiff(ctx *context.Context) {
 
 		if !nothingToCompare {
 			// Setup information for new form.
-			RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
+			pageMetaData := retrieveRepoIssueMetaData(ctx, ctx.Repo.Repository, nil, true)
 			if ctx.Written() {
 				return
+			}
+			_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates, pageMetaData)
+			if len(templateErrs) > 0 {
+				ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
 			}
 		}
 	}
@@ -804,11 +808,6 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + separator + base.ShortSha(afterCommitID)
 
 	ctx.Data["IsDiffCompare"] = true
-	_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
-
-	if len(templateErrs) > 0 {
-		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
-	}
 
 	if content, ok := ctx.Data["content"].(string); ok && content != "" {
 		// If a template content is set, prepend the "content". In this case that's only

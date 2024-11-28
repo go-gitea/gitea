@@ -200,7 +200,7 @@ func (a *Action) LoadActUser(ctx context.Context) {
 	}
 }
 
-func (a *Action) loadRepo(ctx context.Context) {
+func (a *Action) LoadRepo(ctx context.Context) {
 	if a.Repo != nil {
 		return
 	}
@@ -250,7 +250,10 @@ func (a *Action) GetActDisplayNameTitle(ctx context.Context) string {
 
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName(ctx context.Context) string {
-	a.loadRepo(ctx)
+	a.LoadRepo(ctx)
+	if a.Repo == nil {
+		return "(non-existing-repo)"
+	}
 	return a.Repo.OwnerName
 }
 
@@ -262,7 +265,10 @@ func (a *Action) ShortRepoUserName(ctx context.Context) string {
 
 // GetRepoName returns the name of the action repository.
 func (a *Action) GetRepoName(ctx context.Context) string {
-	a.loadRepo(ctx)
+	a.LoadRepo(ctx)
+	if a.Repo == nil {
+		return "(non-existing-repo)"
+	}
 	return a.Repo.Name
 }
 
@@ -638,7 +644,7 @@ func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 		}
 
 		if repoChanged {
-			act.loadRepo(ctx)
+			act.LoadRepo(ctx)
 			repo = act.Repo
 
 			// check repo owner exist.
@@ -764,7 +770,7 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID, issueIndex int64) 
 // CountActionCreatedUnixString count actions where created_unix is an empty string
 func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
 	if setting.Database.Type.IsSQLite3() {
-		return db.GetEngine(ctx).Where(`created_unix = ""`).Count(new(Action))
+		return db.GetEngine(ctx).Where(`created_unix = ''`).Count(new(Action))
 	}
 	return 0, nil
 }
@@ -772,7 +778,7 @@ func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
 // FixActionCreatedUnixString set created_unix to zero if it is an empty string
 func FixActionCreatedUnixString(ctx context.Context) (int64, error) {
 	if setting.Database.Type.IsSQLite3() {
-		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
+		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ''`)
 		if err != nil {
 			return 0, err
 		}

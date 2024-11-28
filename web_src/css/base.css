@@ -1381,6 +1381,7 @@ table th[data-sortt-desc] .svg {
   align-items: stretch;
 }
 
+.ui.list.flex-items-block > .item,
 .flex-items-block > .item,
 .flex-text-block {
   display: flex;
@@ -1395,6 +1396,10 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: .5rem;
   min-width: 0;
+}
+.ui.dropdown .menu.flex-items-menu > .item img,
+.ui.dropdown .menu.flex-items-menu > .item svg {
+  margin: 0; /* use gap, but not margin */
 }
 
 .ui.dropdown.ellipsis-items-nowrap > .text {
