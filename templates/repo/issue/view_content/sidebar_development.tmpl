@@ -83,7 +83,7 @@
 				<div class="ui fluid dropdown selection">
 					<select name="source_branch_name">
 						{{range .Branches}}
-							<option value="{{.}}"{{if eq . $.Issue.Ref}} checked{{end}}>{{.}}</option>
+							<option value="{{.}}">{{.}}</option>
 						{{end}}
 					</select>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
