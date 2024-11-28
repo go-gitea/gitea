@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -448,7 +447,7 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 		}
 		for _, t := range teams {
 			if t.IncludesAllRepositories {
-				if err := models.AddRepository(ctx, t, repo); err != nil {
+				if err := addRepositoryToTeam(ctx, t, repo); err != nil {
 					return fmt.Errorf("AddRepository: %w", err)
 				}
 			}

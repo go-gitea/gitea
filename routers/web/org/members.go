@@ -7,7 +7,6 @@ package org
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
+	org_service "code.gitea.io/gitea/services/org"
 )
 
 const (
@@ -108,14 +108,14 @@ func MembersAction(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = models.RemoveOrgUser(ctx, org, member)
+		err = org_service.RemoveOrgUser(ctx, org, member)
 		if organization.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			ctx.JSONRedirect(ctx.Org.OrgLink + "/members")
 			return
 		}
 	case "leave":
-		err = models.RemoveOrgUser(ctx, org, ctx.Doer)
+		err = org_service.RemoveOrgUser(ctx, org, ctx.Doer)
 		if err == nil {
 			ctx.Flash.Success(ctx.Tr("form.organization_leave_success", org.DisplayName()))
 			ctx.JSON(http.StatusOK, map[string]any{
