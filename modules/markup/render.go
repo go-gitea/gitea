@@ -28,14 +28,6 @@ const (
 )
 
 var RenderBehaviorForTesting struct {
-	// Markdown line break rendering has 2 default behaviors:
-	// * Use hard: replace "\n" with "<br>" for comments, setting.Markdown.EnableHardLineBreakInComments=true
-	// * Keep soft: "\n" for non-comments (a.k.a. documents), setting.Markdown.EnableHardLineBreakInDocuments=false
-	// In history, there was a mess:
-	// * The behavior was controlled by `Metas["mode"] != "document",
-	// * However, many places render the content without setting "mode" in Metas, all these places used comment line break setting incorrectly
-	ForceHardLineBreak bool
-
 	// Gitea will emit some additional attributes for various purposes, these attributes don't affect rendering.
 	// But there are too many hard-coded test cases, to avoid changing all of them again and again, we can disable emitting these internal attributes.
 	DisableAdditionalAttributes bool
@@ -218,7 +210,7 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 
 	eg.Go(func() (err error) {
 		if r, ok := renderer.(PostProcessRenderer); ok && r.NeedPostProcess() {
-			err = PostProcess(ctx, pr1, pw2)
+			err = PostProcessDefault(ctx, pr1, pw2)
 		} else {
 			_, err = io.Copy(pw2, pr1)
 		}

@@ -1081,6 +1081,7 @@ func registerRoutes(m *web.Router) {
 			m.Combo("/edit").Get(repo_setting.SettingsProtectedBranch).
 				Post(web.Bind(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
 			m.Post("/{id}/delete", repo_setting.DeleteProtectedBranchRulePost)
+			m.Post("/priority", web.Bind(forms.ProtectBranchPriorityForm{}), context.RepoMustNotBeArchived(), repo_setting.UpdateBranchProtectionPriories)
 		})
 
 		m.Group("/tags", func() {
