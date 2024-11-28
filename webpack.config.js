@@ -213,7 +213,7 @@ export default {
       __VUE_PROD_DEVTOOLS__: false, // do not enable devtools support in production
       __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false, // https://github.com/vuejs/vue-cli/pull/7443
     }),
-    // all environment variables used in bundled js via process.env must be defined here
+    // all environment variables used in bundled js via process.env must be declared here
     new EnvironmentPlugin({
       TEST: 'false',
     }),
