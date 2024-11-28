@@ -168,8 +168,8 @@ func List(ctx *context.Context) {
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
 	ctx.Data["ActionsConfig"] = actionsConfig
 
-	if len(workflowID) > 0 && ctx.Repo.IsAdmin() {
-		ctx.Data["AllowDisableOrEnableWorkflow"] = true
+	if len(workflowID) > 0 && ctx.Repo.CanWrite(unit.TypeActions) {
+		ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.IsAdmin()
 		isWorkflowDisabled := actionsConfig.IsWorkflowDisabled(workflowID)
 		ctx.Data["CurWorkflowDisabled"] = isWorkflowDisabled
 
