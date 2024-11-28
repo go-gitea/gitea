@@ -4,6 +4,7 @@
 package main
 
 import (
+	golog "log"
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
@@ -92,7 +93,9 @@ func runIniToShell(c *cli.Context) error {
 		log.Fatal("Section '%s' does not have key '%s'", sName, kName)
 	}
 
-	os.Stdout.Write([]byte(section.Key(kName).Value()))
+	golog.SetOutput(os.Stdout)
+	golog.SetFlags(golog.Flags() &^ (golog.Ldate | golog.Ltime))
+	golog.Println(section.Key(kName).Value())
 
 	return nil
 }
