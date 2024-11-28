@@ -40,6 +40,7 @@
 @import "./features/codeeditor.css";
 @import "./features/projects.css";
 @import "./features/tribute.css";
+@import "./features/cropper.css";
 @import "./features/console.css";
 
 @import "./markup/content.css";

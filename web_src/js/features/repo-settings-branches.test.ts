@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, test, vi} from 'vitest';
-import {initRepoBranchesSettings} from './repo-settings-branches.ts';
+import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {POST} from '../modules/fetch.ts';
 import {createSortable} from '../modules/sortable.ts';
 
@@ -31,7 +31,7 @@ describe('Repository Branch Settings', () => {
   });
 
   test('should initialize sortable for protected branches list', () => {
-    initRepoBranchesSettings();
+    initRepoSettingsBranchesDrag();
 
     expect(createSortable).toHaveBeenCalledWith(
       document.querySelector('#protected-branches-list'),
@@ -45,7 +45,7 @@ describe('Repository Branch Settings', () => {
   test('should not initialize if protected branches list is not present', () => {
     document.body.innerHTML = '';
 
-    initRepoBranchesSettings();
+    initRepoSettingsBranchesDrag();
 
     expect(createSortable).not.toHaveBeenCalled();
   });
@@ -59,7 +59,7 @@ describe('Repository Branch Settings', () => {
       return {destroy: vi.fn()};
     });
 
-    initRepoBranchesSettings();
+    initRepoSettingsBranchesDrag();
 
     expect(POST).toHaveBeenCalledWith(
       'some/repo/branches/priority',
