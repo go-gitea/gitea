@@ -2,8 +2,6 @@ name: Sync, Tag, Build and Publish Docker Image
 run-name: Patch and build ${{ github.event_name == 'schedule' && 'latest upstream tag' || inputs.tag }}
 
 on:
-  schedule:
-    - cron: '0 0 * * 0' # Weekly at midnight
   workflow_dispatch:
     inputs:
       tag:
@@ -147,6 +145,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
+          context: .
           file: Dockerfile.rootless
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ needs.sync-and-patch.outputs.tag }}
