@@ -1,26 +1,28 @@
 {{if not .Issue.IsPull}}
-		<div class="divider"></div>
+	<div class="divider"></div>
+
 	<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.development"}}</strong></span>
 	<div class="ui devlinks list">
 	{{if not .Issue.IsClosed}}
-	<div>
-		<a class="tw-mt-1 fluid ui show-modal" data-modal="#create_branch">{{ctx.Locale.Tr "repo.branch.new_branch"}}</a>
-	</div>
+		<div class="tw-items-center">
+			<a class="tw-mt-1 fluid ui show-modal" data-modal="#create_branch">{{ctx.Locale.Tr "repo.branch.new_branch"}}</a>
+		</div>
 	{{end}}
 	{{range .DevLinks}}
 		{{if .PullRequest}}
-			<span>{{template "shared/issueicon" .PullRequest.Issue}}
-			<a href="{{.PullRequest.Issue.Link}}" class="item">
-				{{.PullRequest.Issue.Title}}
-			</a>
-			</span>
+			<div class="tw-flex tw-items-center tw-overflow-hidden tw-max-w-full">
+				{{template "shared/issueicon" .PullRequest.Issue}}
+				<a href="{{.PullRequest.Issue.Link}}" data-tooltip-content="{{.PullRequest.Issue.Title}}" class="item tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">
+					{{.PullRequest.Issue.Title}}
+				</a>
+			</div>
 			<div>
 			{{ctx.Locale.Tr "repo.issues.link.created" (DateUtils.AbsoluteShort .PullRequest.Issue.CreatedUnix)}}
 			{{if .PullRequest.HasMerged}}
 				{{ctx.Locale.Tr "repo.issues.pr.completed"}}
 				</div>
-				<div>
-				{{svg "octicon-git-commit" 14}} <a href="{{.PullRequest.BaseRepo.Link}}/src/commit/{{.PullRequest.MergedCommitID}}">{{.PullRequest.MergedCommitID | ShortSha}}</a>
+				<div class="tw-flex tw-items-center tw-overflow-hidden tw-max-w-full">
+				{{svg "octicon-git-commit" 14}} <a href="{{.PullRequest.BaseRepo.Link}}/src/commit/{{.PullRequest.MergedCommitID}}" data-tooltip-content="{{.PullRequest.MergedCommitID}}" class="tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">{{.PullRequest.MergedCommitID | ShortSha}}</a>
 				</div>
 				<div>
 				{{ctx.Locale.Tr "repo.issues.link.created" (DateUtils.AbsoluteShort .PullRequest.MergedUnix)}}
@@ -29,14 +31,14 @@
 			{{end}}
 			</div>
 		{{else if and .Branch .DisplayBranch}}
-			<div class="tw-flex tw-justify-between">
-				<div class="tw-flex tw-left tw-items-center tw-h-full">
+			<div class="tw-flex tw-justify-between tw-items-center">
+				<div class="tw-flex tw-left tw-items-center tw-overflow-hidden tw-max-w-full">
 					{{svg "octicon-git-branch" 14}}
-					<a href="{{.Branch.Repo.Link}}/src/branch/{{.Branch.Name}}">
-						<span class="gt-ellipsis">{{.Branch.Name}}</span>
+					<a href="{{.Branch.Repo.Link}}/src/branch/{{.Branch.Name}}" data-tooltip-content="{{.Branch.Name}}" class="tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">
+						{{.Branch.Name}}
 					</a>
 				</div>
-				<div class="tw-right">
+				<div class="tw-right tw-items-center">
 					<a class="ui button mini compact basic icon" href="{{$.Issue.Repo.Link}}/compare/{{$.Issue.Repo.DefaultBranch}}...{{.Branch.Repo.FullName}}:{{.Branch.Name}}?ref_issue_index={{$.Issue.Index}}">
 					{{svg "octicon-git-pull-request"}}
 					</a>
