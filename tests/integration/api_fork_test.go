@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	org_service "code.gitea.io/gitea/services/org"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -37,7 +37,7 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 
 	ownerTeam1, err := org_model.OrgFromUser(limitedOrg).GetOwnerTeam(db.DefaultContext)
 	assert.NoError(t, err)
-	assert.NoError(t, models.AddTeamMember(db.DefaultContext, ownerTeam1, user1))
+	assert.NoError(t, org_service.AddTeamMember(db.DefaultContext, ownerTeam1, user1))
 	user1Token := getTokenForLoggedInUser(t, user1Sess, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{
 		Organization: &limitedOrg.Name,
@@ -52,7 +52,7 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 
 	ownerTeam2, err := org_model.OrgFromUser(privateOrg).GetOwnerTeam(db.DefaultContext)
 	assert.NoError(t, err)
-	assert.NoError(t, models.AddTeamMember(db.DefaultContext, ownerTeam2, user4))
+	assert.NoError(t, org_service.AddTeamMember(db.DefaultContext, ownerTeam2, user4))
 	user4Token := getTokenForLoggedInUser(t, user4Sess, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
 	req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{
 		Organization: &privateOrg.Name,
@@ -84,7 +84,7 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 		assert.Len(t, forks, 1)
 		assert.EqualValues(t, "1", resp.Header().Get("X-Total-Count"))
 
-		assert.NoError(t, models.AddTeamMember(db.DefaultContext, ownerTeam2, user1))
+		assert.NoError(t, org_service.AddTeamMember(db.DefaultContext, ownerTeam2, user1))
 
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks").AddTokenAuth(user1Token)
 		resp = MakeRequest(t, req, http.StatusOK)
