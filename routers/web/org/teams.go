@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -78,9 +77,9 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = models.AddTeamMember(ctx, ctx.Org.Team, ctx.Doer)
+		err = org_service.AddTeamMember(ctx, ctx.Org.Team, ctx.Doer)
 	case "leave":
-		err = models.RemoveTeamMember(ctx, ctx.Org.Team, ctx.Doer)
+		err = org_service.RemoveTeamMember(ctx, ctx.Org.Team, ctx.Doer)
 		if err != nil {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
@@ -107,7 +106,7 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 
-		err = models.RemoveTeamMember(ctx, ctx.Org.Team, user)
+		err = org_service.RemoveTeamMember(ctx, ctx.Org.Team, user)
 		if err != nil {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
@@ -162,7 +161,7 @@ func TeamsAction(ctx *context.Context) {
 		if ctx.Org.Team.IsMember(ctx, u.ID) {
 			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 		} else {
-			err = models.AddTeamMember(ctx, ctx.Org.Team, u)
+			err = org_service.AddTeamMember(ctx, ctx.Org.Team, u)
 		}
 
 		page = "team"
@@ -249,13 +248,13 @@ func TeamsRepoAction(ctx *context.Context) {
 			ctx.ServerError("GetRepositoryByName", err)
 			return
 		}
-		err = org_service.TeamAddRepository(ctx, ctx.Org.Team, repo)
+		err = repo_service.TeamAddRepository(ctx, ctx.Org.Team, repo)
 	case "remove":
 		err = repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, ctx.FormInt64("repoid"))
 	case "addall":
-		err = models.AddAllRepositories(ctx, ctx.Org.Team)
+		err = repo_service.AddAllRepositoriesToTeam(ctx, ctx.Org.Team)
 	case "removeall":
-		err = models.RemoveAllRepositories(ctx, ctx.Org.Team)
+		err = repo_service.RemoveAllRepositoriesFromTeam(ctx, ctx.Org.Team)
 	}
 
 	if err != nil {
@@ -358,7 +357,7 @@ func NewTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err := models.NewTeam(ctx, t); err != nil {
+	if err := org_service.NewTeam(ctx, t); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case org_model.IsErrTeamAlreadyExist(err):
@@ -536,7 +535,7 @@ func EditTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err := models.UpdateTeam(ctx, t, isAuthChanged, isIncludeAllChanged); err != nil {
+	if err := org_service.UpdateTeam(ctx, t, isAuthChanged, isIncludeAllChanged); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case org_model.IsErrTeamAlreadyExist(err):
@@ -551,7 +550,7 @@ func EditTeamPost(ctx *context.Context) {
 
 // DeleteTeam response for the delete team request
 func DeleteTeam(ctx *context.Context) {
-	if err := models.DeleteTeam(ctx, ctx.Org.Team); err != nil {
+	if err := org_service.DeleteTeam(ctx, ctx.Org.Team); err != nil {
 		ctx.Flash.Error("DeleteTeam: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("org.teams.delete_team_success"))
@@ -593,7 +592,7 @@ func TeamInvitePost(ctx *context.Context) {
 		return
 	}
 
-	if err := models.AddTeamMember(ctx, team, ctx.Doer); err != nil {
+	if err := org_service.AddTeamMember(ctx, team, ctx.Doer); err != nil {
 		ctx.ServerError("AddTeamMember", err)
 		return
 	}
