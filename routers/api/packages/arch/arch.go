@@ -43,10 +43,6 @@ func GetRepositoryKey(ctx *context.Context) {
 
 func UploadPackageFile(ctx *context.Context) {
 	repository := strings.TrimSpace(ctx.PathParam("repository"))
-	if repository == "" {
-		apiError(ctx, http.StatusBadRequest, "invalid repository")
-		return
-	}
 
 	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
@@ -256,8 +252,11 @@ func GetPackageOrRepositoryFile(ctx *context.Context) {
 	helper.ServePackageFile(ctx, s, u, pf)
 }
 
-func DeletePackageFile(ctx *context.Context) {
-	repository, architecture := ctx.PathParam("repository"), ctx.PathParam("architecture")
+func DeletePackageVersion(ctx *context.Context) {
+	repository := ctx.PathParam("repository")
+	architecture := ctx.PathParam("architecture")
+	name := ctx.PathParam("name")
+	version := ctx.PathParam("version")
 
 	release, err := arch_service.AquireRegistryLock(ctx, ctx.Package.Owner.ID)
 	if err != nil {
@@ -266,10 +265,18 @@ func DeletePackageFile(ctx *context.Context) {
 	}
 	defer release()
 
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeArch, name, version)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			apiError(ctx, http.StatusNotFound, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
-		OwnerID:      ctx.Package.Owner.ID,
-		PackageType:  packages_model.TypeArch,
-		Query:        ctx.PathParam("filename"),
+		VersionID:    pv.ID,
 		CompositeKey: fmt.Sprintf("%s|%s", repository, architecture),
 	})
 	if err != nil {

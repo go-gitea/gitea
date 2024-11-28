@@ -81,7 +81,7 @@ license = MIT`)
 	}
 
 	compressions := []string{"gz", "xz", "zst"}
-	repositories := []string{"main", "testing", "with/slash"}
+	repositories := []string{"main", "testing", "with/slash", ""}
 
 	rootURL := fmt.Sprintf("/api/packages/%s/arch", user.Name)
 
@@ -277,7 +277,7 @@ license = MIT`)
 						MakeRequest(t, req, http.StatusOK)
 					}
 
-					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/any/%s-%s-any.pkg.tar.%s", rootURL, repository, packageName+"_"+arch_module.AnyArch, packageVersion, compression)).
+					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/any/%s/%s", rootURL, repository, packageName+"_"+arch_module.AnyArch, packageVersion)).
 						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusNoContent)
 				})
@@ -285,10 +285,10 @@ license = MIT`)
 				t.Run("Delete", func(t *testing.T) {
 					defer tests.PrintCurrentTest(t)()
 
-					req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/aarch64/%s-%s-aarch64.pkg.tar.%s", rootURL, repository, packageName, packageVersion, compression))
+					req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/aarch64/%s/%s", rootURL, repository, packageName, packageVersion))
 					MakeRequest(t, req, http.StatusUnauthorized)
 
-					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/aarch64/%s-%s-aarch64.pkg.tar.%s", rootURL, repository, packageName, packageVersion, compression)).
+					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/aarch64/%s/%s", rootURL, repository, packageName, packageVersion)).
 						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusNoContent)
 

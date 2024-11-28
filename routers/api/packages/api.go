@@ -155,24 +155,25 @@ func CommonRoutes() *web.Router {
 				pathFields := strings.Split(path, "/")
 				pathFieldsLen := len(pathFields)
 
-				if pathFieldsLen >= 2 {
+				if (ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET") && pathFieldsLen >= 2 {
 					ctx.SetPathParam("repository", strings.Join(pathFields[:pathFieldsLen-2], "/"))
 					ctx.SetPathParam("architecture", pathFields[pathFieldsLen-2])
 					ctx.SetPathParam("filename", pathFields[pathFieldsLen-1])
+					arch.GetPackageOrRepositoryFile(ctx)
+					return
+				}
 
-					if ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET" {
-						arch.GetPackageOrRepositoryFile(ctx)
+				if ctx.Req.Method == "DELETE" && pathFieldsLen >= 3 {
+					reqPackageAccess(perm.AccessModeWrite)(ctx)
+					if ctx.Written() {
 						return
 					}
-
-					if ctx.Req.Method == "DELETE" {
-						reqPackageAccess(perm.AccessModeWrite)(ctx)
-						if ctx.Written() {
-							return
-						}
-						arch.DeletePackageFile(ctx)
-						return
-					}
+					ctx.SetPathParam("repository", strings.Join(pathFields[:pathFieldsLen-3], "/"))
+					ctx.SetPathParam("architecture", pathFields[pathFieldsLen-3])
+					ctx.SetPathParam("name", pathFields[pathFieldsLen-2])
+					ctx.SetPathParam("version", pathFields[pathFieldsLen-1])
+					arch.DeletePackageVersion(ctx)
+					return
 				}
 
 				ctx.Status(http.StatusNotFound)
