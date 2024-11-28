@@ -18,14 +18,19 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-type ErrNoPermission struct {
+type ErrPermissionDenied struct {
 	RepoID int64
 	Unit   unit.Type
 	Perm   perm_model.AccessMode
 }
 
-func (e ErrNoPermission) Error() string {
-	return fmt.Sprintf("no permission to access repo %d unit %s with mode %s", e.RepoID, e.Unit.LogString(), e.Perm.LogString())
+func (e ErrPermissionDenied) Error() string {
+	return fmt.Sprintf("permission denied to access repo %d unit %s with mode %s", e.RepoID, e.Unit.LogString(), e.Perm.LogString())
+}
+
+func IsErrPermissionDenied(err error) bool {
+	_, ok := err.(ErrPermissionDenied)
+	return ok
 }
 
 // Permission contains all the permissions related variables to a repository for a user
