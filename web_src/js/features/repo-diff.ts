@@ -19,6 +19,7 @@ import {
 import {POST, GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {createTippy} from '../modules/tippy.ts';
+import {initGlobalDropdown} from './common-page.ts';
 
 const {pageData, i18n} = window.config;
 
@@ -92,6 +93,13 @@ function initRepoDiffConversationForm() {
     } finally {
       form?.classList.remove('is-loading');
     }
+  });
+
+  $(document).on('click', '.pull-request-diff-comments', async (e) => {
+    e.preventDefault();
+    initGlobalDropdown();
+    // post initiation cleaning up the buttons and scripts
+    $('.pull-request-diff-comments').remove();
   });
 
   $(document).on('click', '.resolve-conversation', async function (e) {
