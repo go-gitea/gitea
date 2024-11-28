@@ -122,10 +122,10 @@
 			</div><!-- end dropdown menu create new -->
 
 			<div class="ui dropdown jump item tw-mx-0 tw-pr-2" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="text tw-flex tw-items-center">
+				{{ctx.AvatarUtils.Avatar .SignedUser 36 "not-mobile"}}
+				<span class="text tw-flex tw-items-center only-mobile">
 					{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-1"}}
 					<span class="only-mobile tw-ml-2">{{.SignedUser.Name}}</span>
-					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu">
 					<div class="ui header">

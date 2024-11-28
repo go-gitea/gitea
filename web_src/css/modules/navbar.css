@@ -39,6 +39,19 @@
   border-radius: .28571429rem;
 }
 
+@media (min-width: 768px) {
+
+  .navbar-right > .item:not(:has(.ui.avatar)) {
+    border: 1px solid;
+    border-color: var(--color-secondary);
+  }
+
+  .navbar-right > .item:has(.ui.avatar) {
+    padding: 0!important;
+  }
+
+}
+
 #navbar .item {
   min-height: 36px;
   min-width: 36px;
