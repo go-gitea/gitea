@@ -322,6 +322,16 @@ func DeleteProtectedBranchRulePost(ctx *context.Context) {
 	ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
 }
 
+func UpdateBranchProtectionPriories(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.ProtectBranchPriorityForm)
+	repo := ctx.Repo.Repository
+
+	if err := git_model.UpdateProtectBranchPriorities(ctx, repo, form.IDs); err != nil {
+		ctx.ServerError("UpdateProtectBranchPriorities", err)
+		return
+	}
+}
+
 // RenameBranchPost responses for rename a branch
 func RenameBranchPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RenameBranchForm)
