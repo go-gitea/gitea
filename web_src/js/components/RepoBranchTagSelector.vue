@@ -312,9 +312,9 @@ export default sfc; // activate IDE's Vue plugin
       <div class="message" v-if="showNoResults && !isLoading">
         {{ noResults }}
       </div>
-      <div v-if="showAllBranchsTagsEntry" class="branch-tag-divider"/>
-      <a v-if="showAllBranchsTagsEntry && mode === 'branches'" class="item" :href="repoLink + '/branches'">{{ textAllBranches }}</a>
-      <a v-if="showAllBranchsTagsEntry && mode === 'tags'" class="item" :href="repoLink + '/tags'">{{ textAllTags }}</a>
+      <div v-if="showViewAllBranchsTagsEntry" class="branch-tag-divider"/>
+      <a v-if="showViewAllBranchsTagsEntry && mode === 'branches'" class="item" :href="repoLink + '/branches'">{{ textViewAllBranches }}</a>
+      <a v-if="showViewAllBranchsTagsEntry && mode === 'tags'" class="item" :href="repoLink + '/tags'">{{ textViewAllTags }}</a>
     </div>
   </div>
 </template>
