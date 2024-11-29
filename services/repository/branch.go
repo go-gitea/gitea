@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
-	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -476,11 +475,7 @@ func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchNam
 		return err
 	}
 	if !perm.CanWrite(unit.TypeCode) {
-		return access_model.ErrPermissionDenied{
-			RepoID: repo.ID,
-			Unit:   unit.TypeCode,
-			Perm:   perm_model.AccessModeWrite,
-		}
+		return util.NewPermissionDeniedErrorf("permission denied to access repo %d unit %s", repo.ID, unit.TypeCode.LogString())
 	}
 
 	isProtected, err := git_model.IsBranchProtected(ctx, repo.ID, branchName)

@@ -1436,7 +1436,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	}
 
 	if err := repo_service.CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, ctx.Doer); err != nil {
-		if access_model.IsErrPermissionDenied(err) {
+		if errors.Is(err, util.ErrPermissionDenied) {
 			ctx.NotFound("CanDeleteBranch", nil)
 		} else {
 			ctx.ServerError("CanDeleteBranch", err)
