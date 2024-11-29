@@ -23,6 +23,7 @@ const categories = computed(() => {
     'organization',
     'package',
     'repository',
+    'commitstatus',
     'user');
   return categories;
 });
