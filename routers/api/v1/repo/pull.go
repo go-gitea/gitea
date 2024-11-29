@@ -1057,6 +1057,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 	log.Trace("Pull request merged: %d", pr.ID)
 
+	// for agit flow, we should not delete the agit reference after merge
 	if form.DeleteBranchAfterMerge && pr.Flow == issues_model.PullRequestFlowGithub {
 		// check permission even it has been checked in repo_service.DeleteBranch so that we don't need to
 		// do RetargetChildrenOnMerge

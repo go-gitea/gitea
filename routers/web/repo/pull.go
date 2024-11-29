@@ -1403,7 +1403,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 	pr := issue.PullRequest
 
-	// Don't cleanup unmerged and unclosed PRs
+	// Don't cleanup unmerged and unclosed PRs and agit PRs
 	if !pr.HasMerged && !issue.IsClosed && pr.Flow != issues_model.PullRequestFlowGithub {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
