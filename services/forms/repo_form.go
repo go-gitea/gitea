@@ -122,7 +122,7 @@ type RepoSettingForm struct {
 	MirrorPassword         string
 	LFS                    bool   `form:"mirror_lfs"`
 	LFSEndpoint            string `form:"mirror_lfs_endpoint"`
-	PushMirrorID           string
+	PushMirrorID           int64
 	PushMirrorAddress      string
 	PushMirrorUsername     string
 	PushMirrorPassword     string
@@ -226,6 +226,10 @@ type ProtectBranchForm struct {
 func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type ProtectBranchPriorityForm struct {
+	IDs []int64
 }
 
 //  __      __      ___.   .__                   __

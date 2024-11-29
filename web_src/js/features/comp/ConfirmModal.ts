@@ -5,10 +5,12 @@ import {fomanticQuery} from '../../modules/fomantic/base.ts';
 
 const {i18n} = window.config;
 
-export function confirmModal(content, {confirmButtonColor = 'primary'} = {}) {
+export function confirmModal({header = '', content = '', confirmButtonColor = 'primary'} = {}) {
   return new Promise((resolve) => {
+    const headerHtml = header ? `<div class="header">${htmlEscape(header)}</div>` : '';
     const modal = createElementFromHTML(`
       <div class="ui g-modal-confirm modal">
+        ${headerHtml}
         <div class="content">${htmlEscape(content)}</div>
         <div class="actions">
           <button class="ui cancel button">${svg('octicon-x')} ${htmlEscape(i18n.modal_cancel)}</button>

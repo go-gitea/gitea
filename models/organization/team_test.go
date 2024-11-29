@@ -197,3 +197,8 @@ func TestUsersInTeamsCount(t *testing.T) {
 	test([]int64{1, 2, 3, 4, 5}, []int64{2, 5}, 2)    // userid 2,4
 	test([]int64{1, 2, 3, 4, 5}, []int64{2, 3, 5}, 3) // userid 2,4,5
 }
+
+func TestIsUsableTeamName(t *testing.T) {
+	assert.NoError(t, organization.IsUsableTeamName("usable"))
+	assert.True(t, db.IsErrNameReserved(organization.IsUsableTeamName("new")))
+}

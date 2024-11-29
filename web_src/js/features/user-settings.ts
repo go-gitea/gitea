@@ -1,7 +1,17 @@
 import {hideElem, showElem} from '../utils/dom.ts';
+import {initCompCropper} from './comp/Cropper.ts';
+
+function initUserSettingsAvatarCropper() {
+  const fileInput = document.querySelector<HTMLInputElement>('#new-avatar');
+  const container = document.querySelector<HTMLElement>('.user.settings.profile .cropper-panel');
+  const imageSource = container.querySelector<HTMLImageElement>('.cropper-source');
+  initCompCropper({container, fileInput, imageSource});
+}
 
 export function initUserSettings() {
-  if (!document.querySelectorAll('.user.settings.profile').length) return;
+  if (!document.querySelector('.user.settings.profile')) return;
+
+  initUserSettingsAvatarCropper();
 
   const usernameInput = document.querySelector('#username');
   if (!usernameInput) return;

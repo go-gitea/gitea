@@ -348,6 +348,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	}
 
 	if !baseGitRepo.IsBranchExist(pull.BaseBranch) {
+		ctx.Data["BaseBranchNotExist"] = true
 		ctx.Data["IsPullRequestBroken"] = true
 		ctx.Data["BaseTarget"] = pull.BaseBranch
 		ctx.Data["HeadTarget"] = pull.HeadBranch

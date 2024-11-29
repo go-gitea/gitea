@@ -561,7 +561,7 @@ func registerRoutes(m *web.Router) {
 			m.Post("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
 		}, optSignInIgnoreCsrf, reqSignIn)
 
-		m.Methods("GET, OPTIONS", "/userinfo", optionsCorsHandler(), optSignInIgnoreCsrf, auth.InfoOAuth)
+		m.Methods("GET, POST, OPTIONS", "/userinfo", optionsCorsHandler(), optSignInIgnoreCsrf, auth.InfoOAuth)
 		m.Methods("POST, OPTIONS", "/access_token", optionsCorsHandler(), web.Bind(forms.AccessTokenForm{}), optSignInIgnoreCsrf, auth.AccessTokenOAuth)
 		m.Methods("GET, OPTIONS", "/keys", optionsCorsHandler(), optSignInIgnoreCsrf, auth.OIDCKeys)
 		m.Methods("POST, OPTIONS", "/introspect", optionsCorsHandler(), web.Bind(forms.IntrospectTokenForm{}), optSignInIgnoreCsrf, auth.IntrospectOAuth)
@@ -1081,6 +1081,7 @@ func registerRoutes(m *web.Router) {
 			m.Combo("/edit").Get(repo_setting.SettingsProtectedBranch).
 				Post(web.Bind(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
 			m.Post("/{id}/delete", repo_setting.DeleteProtectedBranchRulePost)
+			m.Post("/priority", web.Bind(forms.ProtectBranchPriorityForm{}), context.RepoMustNotBeArchived(), repo_setting.UpdateBranchProtectionPriories)
 		})
 
 		m.Group("/tags", func() {
@@ -1405,7 +1406,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("", actions.List)
 		m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
 		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
-		m.Post("/run", reqRepoAdmin, actions.Run)
+		m.Post("/run", reqRepoActionsWriter, actions.Run)
 
 		m.Group("/runs/{run}", func() {
 			m.Combo("").
