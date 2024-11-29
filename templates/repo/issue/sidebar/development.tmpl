@@ -12,7 +12,7 @@
 		{{if .PullRequest}}
 			<div class="tw-flex tw-items-center tw-overflow-hidden tw-max-w-full">
 				<span class="tw-mr-1">{{template "shared/issueicon" .PullRequest.Issue}}</span>
-				<a href="{{.PullRequest.Issue.Link}}" data-tooltip-content="{{.PullRequest.Issue.Title}}" class="item tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">
+				<a href="{{.PullRequest.Issue.Link}}" class="ref-issue item tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">
 					{{.PullRequest.Issue.Title}}
 				</a>
 			</div>
