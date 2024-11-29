@@ -40,7 +40,8 @@ func CreateBranchFromIssue(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewBranchForm)
 	repo := ctx.Repo.Repository
 	gitRepo := ctx.Repo.GitRepo
-	if form.RepoID > 0 {
+	// if create branch in a forked repository
+	if form.RepoID > 0 && form.RepoID != repo.ID {
 		var err error
 		repo, err = repo_model.GetRepositoryByID(ctx, form.RepoID)
 		if err != nil {

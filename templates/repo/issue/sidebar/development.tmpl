@@ -57,12 +57,12 @@
 			<form class="ui form form-fetch-action" action="{{.Issue.Link}}/create_branch"
 				method="post">
 				{{.CsrfTokenHtml}}
-				<div class="field">
+				<div class="required field">
 					<label for="new_branch_name">{{ctx.Locale.Tr "form.NewBranchName"}}</label>
-					<input name="new_branch_name" type="text">
+					<input name="new_branch_name" type="text" required>
 				</div>
 
-				<div class="field">
+				<div class="required field">
 					<label for="source_repository">{{ctx.Locale.Tr "repo.issues.create_branch_from_repository"}}</label>
 					<div class="ui fluid dropdown selection">
 						<select name="repo_id">
@@ -82,21 +82,19 @@
 					</div>
 				</div>
 
-				<div class="field">
+				<div class="required field">
 					<label for="source_branch_name">{{ctx.Locale.Tr "repo.issues.base_branch"}}</label>
-					<div class="ui fluid dropdown selection">
-						<select name="source_branch_name">
-							{{range .Branches}}
-								<option value="{{.}}">{{.}}</option>
-							{{end}}
-						</select>
+					<div class="ui selection dropdown">
+						<input type="hidden" id="source_branch_name" name="source_branch_name" value="{{.Issue.Repo.DefaultBranch}}" required>
+						<span class="text truncated-item-container" data-value="{{.Issue.Repo.DefaultBranch}}" title="{{.Issue.Repo.DefaultBranch}}">
+							<span class="truncated-item-name">{{.Issue.Repo.DefaultBranch}}</span>
+						</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-
-						<div class="default text"> </div>
-
-						<div class="menu tw-overflow-hidden tw-max-w-full">
+						<div class="menu">
 							{{range .Branches}}
-								<div data-value="{{.}}" data-tooltip-content="{{.}}" class="item tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">{{.}}</div>
+								<div class="item truncated-item-container" data-value="{{.}}" title="{{.}}">
+									<span class="truncated-item-name">{{.}}</span>
+								</div>
 							{{end}}
 						</div>
 					</div>
