@@ -94,9 +94,9 @@
 
 						<div class="default text"> </div>
 
-						<div class="menu">
+						<div class="menu tw-overflow-hidden tw-max-w-full">
 							{{range .Branches}}
-								<div class="item" data-value="{{.}}">{{.}}</div>
+								<div class="item" data-value="{{.}}" data-tooltip-content="{{.}}" class="tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">{{.}}</div>
 							{{end}}
 						</div>
 					</div>
