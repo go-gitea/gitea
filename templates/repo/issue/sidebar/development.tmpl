@@ -58,12 +58,12 @@
 				method="post">
 				{{.CsrfTokenHtml}}
 				<div class="field">
-					<label for="new_branch_name">{{ctx.Locale.Tr "repo.branch.name"}}</label>
+					<label for="new_branch_name">{{ctx.Locale.Tr "form.NewBranchName"}}</label>
 					<input name="new_branch_name" type="text">
 				</div>
 
 				<div class="field">
-					<label for="source_repository">{{ctx.Locale.Tr "repository"}}</label>
+					<label for="source_repository">{{ctx.Locale.Tr "repo.issues.create_branch_from_repository"}}</label>
 					<div class="ui fluid dropdown selection">
 						<select name="repo_id">
 							{{range .AllowedRepos}}
