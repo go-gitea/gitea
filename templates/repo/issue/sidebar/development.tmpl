@@ -11,7 +11,7 @@
 	{{range .DevLinks}}
 		{{if .PullRequest}}
 			<div class="tw-flex tw-items-center tw-overflow-hidden tw-max-w-full">
-				{{template "shared/issueicon" .PullRequest.Issue}}
+				<span class="tw-mr-1">{{template "shared/issueicon" .PullRequest.Issue}}</span>
 				<a href="{{.PullRequest.Issue.Link}}" data-tooltip-content="{{.PullRequest.Issue.Title}}" class="item tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">
 					{{.PullRequest.Issue.Title}}
 				</a>
@@ -22,7 +22,7 @@
 				{{ctx.Locale.Tr "repo.issues.pr.completed"}}
 				</div>
 				<div class="tw-flex tw-items-center tw-overflow-hidden tw-max-w-full">
-				{{svg "octicon-git-commit" 14}} <a href="{{.PullRequest.BaseRepo.Link}}/src/commit/{{.PullRequest.MergedCommitID}}" data-tooltip-content="{{.PullRequest.MergedCommitID}}" class="tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">{{.PullRequest.MergedCommitID | ShortSha}}</a>
+				{{svg "octicon-git-commit" 14 "tw-mr-1"}} <a href="{{.PullRequest.BaseRepo.Link}}/src/commit/{{.PullRequest.MergedCommitID}}" data-tooltip-content="{{.PullRequest.MergedCommitID}}" class="tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">{{.PullRequest.MergedCommitID | ShortSha}}</a>
 				</div>
 				<div>
 				{{ctx.Locale.Tr "repo.issues.link.created" (DateUtils.AbsoluteShort .PullRequest.MergedUnix)}}
@@ -33,9 +33,9 @@
 		{{else if and .Branch .DisplayBranch}}
 			<div class="tw-flex tw-justify-between tw-items-center">
 				<div class="tw-flex tw-left tw-items-center tw-overflow-hidden tw-max-w-full">
-					{{svg "octicon-git-branch" 14}}
-					<a href="{{.Branch.Repo.Link}}/src/branch/{{.Branch.Name}}" data-tooltip-content="{{.Branch.Name}}" class="tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">
-						{{.Branch.Name}}
+					{{svg "octicon-git-branch" 14 "tw-mr-1"}}
+					<a href="{{.Branch.Repo.Link}}/src/branch/{{.Branch.Name}}" data-tooltip-content="{{.BranchFullName}}" class="tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">
+						{{.BranchFullName}}
 					</a>
 				</div>
 				<div class="tw-right tw-items-center">

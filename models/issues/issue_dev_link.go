@@ -21,13 +21,13 @@ const (
 )
 
 type IssueDevLink struct {
-	ID           int64 `xorm:"pk autoincr"`
-	IssueID      int64 `xorm:"INDEX"`
-	LinkType     IssueDevLinkType
-	LinkedRepoID int64              `xorm:"INDEX"` // it can link to self repo or other repo
-	LinkIndex    string             // branch name, pull request number or commit sha
-	CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
-
+	ID            int64 `xorm:"pk autoincr"`
+	IssueID       int64 `xorm:"INDEX"`
+	LinkType      IssueDevLinkType
+	LinkedRepoID  int64                  `xorm:"INDEX"` // it can link to self repo or other repo
+	LinkIndex     string                 // branch name, pull request number or commit sha
+	CreatedUnix   timeutil.TimeStamp     `xorm:"INDEX created"`
+	Repo          *repo_model.Repository `xorm:"-"` // current repo of issue
 	LinkedRepo    *repo_model.Repository `xorm:"-"`
 	PullRequest   *PullRequest           `xorm:"-"`
 	Branch        *git_model.Branch      `xorm:"-"`
@@ -36,6 +36,13 @@ type IssueDevLink struct {
 
 func init() {
 	db.RegisterModel(new(IssueDevLink))
+}
+
+func (i *IssueDevLink) BranchFullName() string {
+	if i.Repo.ID == i.LinkedRepo.ID {
+		return i.Branch.Name
+	}
+	return i.LinkedRepo.FullName() + ":" + i.Branch.Name
 }
 
 // IssueDevLinks represents a list of issue development links

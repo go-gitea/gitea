@@ -37,6 +37,7 @@ func FindIssueDevLinksByIssue(ctx context.Context, issue *issues_model.Issue) (i
 	branchPRExists := make(container.Set[string])
 
 	for _, link := range devLinks {
+		link.Repo = issue.Repo
 		if link.LinkedRepoID == 0 {
 			link.LinkedRepoID = issue.RepoID
 		}
