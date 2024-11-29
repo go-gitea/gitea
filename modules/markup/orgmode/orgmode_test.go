@@ -58,15 +58,15 @@ func TestRender_Media(t *testing.T) {
 	}
 
 	test("[[file:../../.images/src/02/train.jpg]]",
-		`<p><img src=".images/src/02/train.jpg" alt=".images/src/02/train.jpg" /></p>`)
+		`<p><img src=".images/src/02/train.jpg" alt=".images/src/02/train.jpg"></p>`)
 	test("[[file:train.jpg]]",
-		`<p><img src="relative-path/train.jpg" alt="relative-path/train.jpg" /></p>`)
+		`<p><img src="relative-path/train.jpg" alt="relative-path/train.jpg"></p>`)
 
 	// With description.
 	test("[[https://example.com][https://example.com/example.svg]]",
-		`<p><a href="https://example.com"><img src="https://example.com/example.svg" alt="https://example.com/example.svg" /></a></p>`)
+		`<p><a href="https://example.com"><img src="https://example.com/example.svg" alt="https://example.com/example.svg"></a></p>`)
 	test("[[https://example.com][pre https://example.com/example.svg post]]",
-		`<p><a href="https://example.com">pre <img src="https://example.com/example.svg" alt="https://example.com/example.svg" /> post</a></p>`)
+		`<p><a href="https://example.com">pre <img src="https://example.com/example.svg" alt="https://example.com/example.svg"> post</a></p>`)
 	test("[[https://example.com][https://example.com/example.mp4]]",
 		`<p><a href="https://example.com"><video src="https://example.com/example.mp4">https://example.com/example.mp4</video></a></p>`)
 	test("[[https://example.com][pre https://example.com/example.mp4 post]]",
@@ -74,19 +74,19 @@ func TestRender_Media(t *testing.T) {
 
 	// Without description.
 	test("[[https://example.com/example.svg]]",
-		`<p><img src="https://example.com/example.svg" alt="https://example.com/example.svg" /></p>`)
+		`<p><img src="https://example.com/example.svg" alt="https://example.com/example.svg"></p>`)
 	test("[[https://example.com/example.mp4]]",
 		`<p><video src="https://example.com/example.mp4">https://example.com/example.mp4</video></p>`)
 
 	// test [[LINK][DESCRIPTION]] syntax with "file:" prefix
 	test(`[[https://example.com/][file:https://example.com/foo%20bar.svg]]`,
-		`<p><a href="https://example.com/"><img src="https://example.com/foo%20bar.svg" alt="https://example.com/foo%20bar.svg" /></a></p>`)
+		`<p><a href="https://example.com/"><img src="https://example.com/foo%20bar.svg" alt="https://example.com/foo%20bar.svg"></a></p>`)
 	test(`[[file:https://example.com/foo%20bar.svg][Goto Image]]`,
 		`<p><a href="https://example.com/foo%20bar.svg">Goto Image</a></p>`)
 	test(`[[file:https://example.com/link][https://example.com/image.jpg]]`,
-		`<p><a href="https://example.com/link"><img src="https://example.com/image.jpg" alt="https://example.com/image.jpg" /></a></p>`)
+		`<p><a href="https://example.com/link"><img src="https://example.com/image.jpg" alt="https://example.com/image.jpg"></a></p>`)
 	test(`[[file:https://example.com/link][file:https://example.com/image.jpg]]`,
-		`<p><a href="https://example.com/link"><img src="https://example.com/image.jpg" alt="https://example.com/image.jpg" /></a></p>`)
+		`<p><a href="https://example.com/link"><img src="https://example.com/image.jpg" alt="https://example.com/image.jpg"></a></p>`)
 }
 
 func TestRender_Source(t *testing.T) {
