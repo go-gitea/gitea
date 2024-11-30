@@ -3,6 +3,7 @@ import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.ts';
 import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
+import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -154,4 +155,5 @@ export function initRepoSettings() {
   initRepoSettingsCollaboration();
   initRepoSettingsSearchTeamBox();
   initRepoSettingsGitHook();
+  initRepoSettingsBranchesDrag();
 }
