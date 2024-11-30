@@ -4,13 +4,17 @@
 package sender
 
 import (
+	"io"
+
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"gopkg.in/gomail.v2"
+	gomail "github.com/wneessen/go-mail"
 )
 
-type Sender gomail.Sender
+type Sender interface {
+	Send(from string, to []string, msg io.WriterTo) error
+}
 
 var Send = send
 
@@ -19,9 +23,20 @@ func send(sender Sender, msgs ...*Message) error {
 		log.Error("Mailer: Send is being invoked but mail service hasn't been initialized")
 		return nil
 	}
-	goMsgs := []*gomail.Message{}
+	goMsgs := []*gomail.Msg{}
 	for _, msg := range msgs {
+		m := msg.ToMessage()
+		froms := m.GetFromString()
+		to, err := m.GetRecipients()
+		if err != nil {
+			return err
+		}
+
+		// TODO: implement sending from multiple addresses
+		if err := sender.Send(froms[0], to, m); err != nil {
+			return err
+		}
 		goMsgs = append(goMsgs, msg.ToMessage())
 	}
-	return gomail.Send(sender, goMsgs...)
+	return nil
 }
