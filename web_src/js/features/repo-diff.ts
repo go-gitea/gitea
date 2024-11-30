@@ -38,7 +38,7 @@ function initRepoDiffFileViewToggle() {
 }
 
 function initRepoDiffConversationForm() {
-  addDelegatedEventListener<HTMLFormElement>(document, 'submit', '.conversation-holder form', async (form, e) => {
+  addDelegatedEventListener<HTMLFormElement, SubmitEvent>(document, 'submit', '.conversation-holder form', async (form, e) => {
     e.preventDefault();
     const textArea = form.querySelector<HTMLTextAreaElement>('textarea');
     if (!validateTextareaNonEmpty(textArea)) return;
@@ -115,7 +115,7 @@ function initRepoDiffConversationForm() {
         const $conversation = $(data);
         $(this).closest('.conversation-holder').replaceWith($conversation);
         $conversation.find('.dropdown').dropdown();
-        initCompReactionSelector($conversation);
+        initCompReactionSelector($conversation[0]);
       } else {
         window.location.reload();
       }
