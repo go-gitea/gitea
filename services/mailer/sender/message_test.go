@@ -25,17 +25,17 @@ func TestGenerateMessageID(t *testing.T) {
 	m := NewMessageFrom("", "display-name", "from-address", "subject", "body")
 	m.Date = date
 	gm := m.ToMessage()
-	assert.Equal(t, "<autogen-946782245000-41e8fc54a8ad3a3f@localhost>", gm.GetHeader("Message-ID")[0])
+	assert.Equal(t, "<autogen-946782245000-41e8fc54a8ad3a3f@localhost>", gm.GetGenHeader("Message-ID")[0])
 
 	m = NewMessageFrom("a@b.com", "display-name", "from-address", "subject", "body")
 	m.Date = date
 	gm = m.ToMessage()
-	assert.Equal(t, "<autogen-946782245000-cc88ce3cfe9bd04f@localhost>", gm.GetHeader("Message-ID")[0])
+	assert.Equal(t, "<autogen-946782245000-cc88ce3cfe9bd04f@localhost>", gm.GetGenHeader("Message-ID")[0])
 
 	m = NewMessageFrom("a@b.com", "display-name", "from-address", "subject", "body")
 	m.SetHeader("Message-ID", "<msg-d@domain.com>")
 	gm = m.ToMessage()
-	assert.Equal(t, "<msg-d@domain.com>", gm.GetHeader("Message-ID")[0])
+	assert.Equal(t, "<msg-d@domain.com>", gm.GetGenHeader("Message-ID")[0])
 }
 
 func TestToMessage(t *testing.T) {

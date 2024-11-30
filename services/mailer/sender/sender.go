@@ -8,8 +8,6 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	gomail "github.com/wneessen/go-mail"
 )
 
 type Sender interface {
@@ -23,7 +21,6 @@ func send(sender Sender, msgs ...*Message) error {
 		log.Error("Mailer: Send is being invoked but mail service hasn't been initialized")
 		return nil
 	}
-	goMsgs := []*gomail.Msg{}
 	for _, msg := range msgs {
 		m := msg.ToMessage()
 		froms := m.GetFromString()
@@ -36,7 +33,6 @@ func send(sender Sender, msgs ...*Message) error {
 		if err := sender.Send(froms[0], to, m); err != nil {
 			return err
 		}
-		goMsgs = append(goMsgs, msg.ToMessage())
 	}
 	return nil
 }

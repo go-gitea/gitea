@@ -33,7 +33,7 @@ type Message struct {
 // ToMessage converts a Message to gomail.Message
 func (m *Message) ToMessage() *gomail.Msg {
 	msg := gomail.NewMsg()
-	msg.SetAddrHeader("From", m.FromAddress, m.FromDisplayName)
+	_ = msg.SetAddrHeader("From", m.FromAddress, m.FromDisplayName)
 	msg.SetGenHeader("To", m.To)
 	if m.ReplyTo != "" {
 		msg.SetGenHeader("Reply-To", m.ReplyTo)
