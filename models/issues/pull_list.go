@@ -287,9 +287,8 @@ func (prs PullRequestList) LoadReviews(ctx context.Context) (ReviewList, error) 
 		}).And(builder.Neq{
 		"reviewer_team_id": 0,
 	}).
-		GroupBy("issue_id, reviewer_team_id").
-		OrderBy("review.updated_unix ASC")
-	if err := db.GetEngine(ctx).In("id", subQueryTeam).Find(&teamReviewRequests); err != nil {
+		GroupBy("issue_id, reviewer_team_id")
+	if err := db.GetEngine(ctx).In("id", subQueryTeam).OrderBy("review.updated_unix ASC").Find(&teamReviewRequests); err != nil {
 		return nil, err
 	}
 
