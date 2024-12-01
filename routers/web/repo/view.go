@@ -981,7 +981,8 @@ func renderHomeCode(ctx *context.Context) {
 		return
 	}
 
-	if !shared.PrepareForRepoSubMenu(ctx) {
+	// only show licenses on repository's home page
+	if !shared.PrepareForLicenses(ctx) {
 		return
 	}
 

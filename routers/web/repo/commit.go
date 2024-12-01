@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/web/repo/shared"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -61,10 +60,6 @@ func Commits(ctx *context.Context) {
 		return
 	}
 	ctx.Data["PageIsViewCode"] = true
-
-	if !shared.PrepareForRepoSubMenu(ctx) {
-		return
-	}
 
 	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
@@ -201,10 +196,6 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 	ctx.Data["PageIsViewCode"] = true
 
-	if !shared.PrepareForRepoSubMenu(ctx) {
-		return
-	}
-
 	query := ctx.FormTrim("q")
 	if len(query) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchNameSubURL())
@@ -233,10 +224,6 @@ func SearchCommits(ctx *context.Context) {
 
 // FileHistory show a file's reversions
 func FileHistory(ctx *context.Context) {
-	if !shared.PrepareForRepoSubMenu(ctx) {
-		return
-	}
-
 	fileName := ctx.Repo.TreePath
 	if len(fileName) == 0 {
 		Commits(ctx)

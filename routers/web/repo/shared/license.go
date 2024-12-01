@@ -9,13 +9,7 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-// PrepareForRepoSubMenu will prepare all sub menus' data for some repositories pages
-// TODO: moving preparation for commits count, branches count, tags count and repository size to this function
-func PrepareForRepoSubMenu(ctx *context.Context) bool {
-	return prepareForLicenses(ctx)
-}
-
-func prepareForLicenses(ctx *context.Context) bool {
+func PrepareForLicenses(ctx *context.Context) bool {
 	repoLicenses, err := repo_model.GetRepoLicenses(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetRepoLicenses", err)
