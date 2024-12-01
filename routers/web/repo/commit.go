@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/web/repo/shared"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -61,9 +62,7 @@ func Commits(ctx *context.Context) {
 	}
 	ctx.Data["PageIsViewCode"] = true
 
-	commitsCount, err := ctx.Repo.GetCommitsCount()
-	if err != nil {
-		ctx.ServerError("GetCommitsCount", err)
+	if !shared.PrepareRepoSubMenu(ctx) {
 		return
 	}
 
@@ -97,9 +96,9 @@ func Commits(ctx *context.Context) {
 	}
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-	ctx.Data["CommitCount"] = commitsCount
+	ctx.Data["CommitCount"] = ctx.Repo.CommitsCount
 
-	pager := context.NewPagination(int(commitsCount), pageSize, page, 5)
+	pager := context.NewPagination(int(ctx.Repo.CommitsCount), pageSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCommits)
@@ -196,6 +195,10 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 	ctx.Data["PageIsViewCode"] = true
 
+	if !shared.PrepareRepoSubMenu(ctx) {
+		return
+	}
+
 	query := ctx.FormTrim("q")
 	if len(query) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchNameSubURL())
@@ -227,6 +230,10 @@ func FileHistory(ctx *context.Context) {
 	fileName := ctx.Repo.TreePath
 	if len(fileName) == 0 {
 		Commits(ctx)
+		return
+	}
+
+	if !shared.PrepareRepoSubMenu(ctx) {
 		return
 	}
 

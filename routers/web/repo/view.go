@@ -924,6 +924,7 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 
 func renderHomeCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
+	ctx.Data["PageIsRepoHome"] = true
 	ctx.Data["RepositoryUploadEnabled"] = setting.Repository.Upload.Enabled
 	prepareOpenWithEditorApps(ctx)
 
@@ -981,8 +982,7 @@ func renderHomeCode(ctx *context.Context) {
 		return
 	}
 
-	// only show licenses on repository's home page
-	if !shared.PrepareForLicenses(ctx) {
+	if !shared.PrepareRepoSubMenu(ctx) {
 		return
 	}
 

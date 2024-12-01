@@ -513,16 +513,6 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 	}
 
-	ctx.Data["NumTags"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
-		IncludeDrafts: true,
-		IncludeTags:   true,
-		HasSha1:       optional.Some(true), // only draft releases which are created with existing tags
-		RepoID:        ctx.Repo.Repository.ID,
-	})
-	if err != nil {
-		ctx.ServerError("GetReleaseCountByRepoID", err)
-		return nil
-	}
 	ctx.Data["NumReleases"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
 		IncludeDrafts: ctx.Repo.CanWrite(unit_model.TypeReleases),
@@ -1030,14 +1020,6 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 		ctx.Data["IsViewTag"] = ctx.Repo.IsViewTag
 		ctx.Data["IsViewCommit"] = ctx.Repo.IsViewCommit
 		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch()
-
-		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
-		if err != nil {
-			ctx.ServerError("GetCommitsCount", err)
-			return cancel
-		}
-		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-		ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 
 		return cancel
 	}

@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/routers/web/repo/shared"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	release_service "code.gitea.io/gitea/services/release"
@@ -45,6 +46,10 @@ func Branches(ctx *context.Context) {
 		(ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID))
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
+
+	if !shared.PrepareRepoSubMenu(ctx) {
+		return
+	}
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
