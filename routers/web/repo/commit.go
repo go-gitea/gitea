@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/web/repo/shared"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -60,6 +61,10 @@ func Commits(ctx *context.Context) {
 		return
 	}
 	ctx.Data["PageIsViewCode"] = true
+
+	if !shared.RenderRepoSubMenu(ctx) {
+		return
+	}
 
 	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
@@ -102,7 +107,6 @@ func Commits(ctx *context.Context) {
 	pager := context.NewPagination(int(commitsCount), pageSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
-	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
@@ -197,6 +201,10 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 	ctx.Data["PageIsViewCode"] = true
 
+	if !shared.RenderRepoSubMenu(ctx) {
+		return
+	}
+
 	query := ctx.FormTrim("q")
 	if len(query) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchNameSubURL())
@@ -220,12 +228,15 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["RefName"] = ctx.Repo.RefName
-	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
 // FileHistory show a file's reversions
 func FileHistory(ctx *context.Context) {
+	if !shared.RenderRepoSubMenu(ctx) {
+		return
+	}
+
 	fileName := ctx.Repo.TreePath
 	if len(fileName) == 0 {
 		Commits(ctx)
@@ -266,7 +277,6 @@ func FileHistory(ctx *context.Context) {
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
-	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 

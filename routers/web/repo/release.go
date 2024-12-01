@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/feed"
+	"code.gitea.io/gitea/routers/web/repo/shared"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
@@ -156,6 +157,12 @@ func Releases(ctx *context.Context) {
 	ctx.Data["CanCreateBranch"] = false
 	ctx.Data["HideBranchesInDropdown"] = true
 
+	if !ctx.Repo.CanRead(unit.TypeReleases) && ctx.Repo.CanRead(unit.TypeCode) {
+		if !shared.RenderRepoSubMenu(ctx) {
+			return
+		}
+	}
+
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
 		PageSize: ctx.FormInt("limit"),
@@ -206,6 +213,12 @@ func TagsList(ctx *context.Context) {
 	ctx.Data["CanCreateBranch"] = false
 	ctx.Data["HideBranchesInDropdown"] = true
 	ctx.Data["CanCreateRelease"] = ctx.Repo.CanWrite(unit.TypeReleases) && !ctx.Repo.Repository.IsArchived
+
+	if !ctx.Repo.CanRead(unit.TypeReleases) && ctx.Repo.CanRead(unit.TypeCode) {
+		if !shared.RenderRepoSubMenu(ctx) {
+			return
+		}
+	}
 
 	namePattern := ctx.FormTrim("q")
 
