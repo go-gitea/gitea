@@ -10,7 +10,7 @@ import (
 )
 
 // PrepareForRepoSubMenu will prepare all sub menus' data for some repositories pages
-// TODO: moving prepae commits count, branches count, tags count and repository size to this function
+// TODO: moving preparation for commits count, branches count, tags count and repository size to this function
 func PrepareForRepoSubMenu(ctx *context.Context) bool {
 	return prepareForLicenses(ctx)
 }
