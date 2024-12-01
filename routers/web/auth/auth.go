@@ -160,7 +160,7 @@ func CheckAutoLogin(ctx *context.Context) bool {
 	return false
 }
 
-func prepareSignPageData(ctx *context.Context) {
+func prepareSignInPageData(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["OAuth2Providers"], _ = oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	ctx.Data["Title"] = ctx.Tr("sign_in")
@@ -168,7 +168,7 @@ func prepareSignPageData(ctx *context.Context) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
 	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
-	ctx.Data["EnablePasswordLoginForm"] = setting.Service.EnablePasswordLoginForm
+	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
 		context.SetCaptchaData(ctx)
@@ -184,18 +184,18 @@ func SignIn(ctx *context.Context) {
 		RedirectAfterLogin(ctx)
 		return
 	}
-	prepareSignPageData(ctx)
+	prepareSignInPageData(ctx)
 	ctx.HTML(http.StatusOK, tplSignIn)
 }
 
 // SignInPost response for sign in request
 func SignInPost(ctx *context.Context) {
-	if !setting.Service.EnablePasswordLoginForm {
+	if !setting.Service.EnablePasswordSignInForm {
 		ctx.Error(http.StatusForbidden)
 		return
 	}
 
-	prepareSignPageData(ctx)
+	prepareSignInPageData(ctx)
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSignIn)
 		return

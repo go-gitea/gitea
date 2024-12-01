@@ -10,7 +10,7 @@
 		{{end}}
 	</h4>
 	<div class="ui attached segment">
-		{{if .EnablePasswordLoginForm}}
+		{{if .EnablePasswordSignInForm}}
 		<form class="ui form" action="{{.SignInLink}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="required field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
@@ -47,8 +47,8 @@
 				</button>
 			</div>
 		</form>
-		{{end}}{{/*if .EnablePasswordLoginForm*/}}
-		{{if and .OAuth2Providers .EnableOpenIDSignIn .EnablePasswordLoginForm}}
+		{{end}}{{/*if .EnablePasswordSignInForm*/}}
+		{{if and .OAuth2Providers .EnableOpenIDSignIn .EnablePasswordSignInForm}}
 			<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
 		{{end}}
 		{{if and .OAuth2Providers .EnableOpenIDSignIn}}

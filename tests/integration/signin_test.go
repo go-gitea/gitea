@@ -93,12 +93,12 @@ func TestSigninWithRememberMe(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
-func TestEnablePasswordLoginForm(t *testing.T) {
+func TestEnablePasswordSignInForm(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	t.Run("EnablePasswordLoginForm=false", func(t *testing.T) {
+	t.Run("EnablePasswordSignInForm=false", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		defer test.MockVariableValue(&setting.Service.EnablePasswordLoginForm, false)()
+		defer test.MockVariableValue(&setting.Service.EnablePasswordSignInForm, false)()
 
 		req := NewRequest(t, "GET", "/user/login")
 		resp := MakeRequest(t, req, http.StatusOK)
@@ -108,9 +108,9 @@ func TestEnablePasswordLoginForm(t *testing.T) {
 		MakeRequest(t, req, http.StatusForbidden)
 	})
 
-	t.Run("EnablePasswordLoginForm=true", func(t *testing.T) {
+	t.Run("EnablePasswordSignInForm=true", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		defer test.MockVariableValue(&setting.Service.EnablePasswordLoginForm, true)()
+		defer test.MockVariableValue(&setting.Service.EnablePasswordSignInForm, true)()
 
 		req := NewRequest(t, "GET", "/user/login")
 		resp := MakeRequest(t, req, http.StatusOK)
