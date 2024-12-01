@@ -981,7 +981,7 @@ func renderHomeCode(ctx *context.Context) {
 		return
 	}
 
-	if !shared.RenderRepoSubMenu(ctx) {
+	if !shared.PrepareForRepoSubMenu(ctx) {
 		return
 	}
 

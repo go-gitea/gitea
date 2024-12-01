@@ -157,8 +157,9 @@ func Releases(ctx *context.Context) {
 	ctx.Data["CanCreateBranch"] = false
 	ctx.Data["HideBranchesInDropdown"] = true
 
+	// repo/release_tag_header.tmpl will render sub menu depending on the different permission
 	if !ctx.Repo.CanRead(unit.TypeReleases) && ctx.Repo.CanRead(unit.TypeCode) {
-		if !shared.RenderRepoSubMenu(ctx) {
+		if !shared.PrepareForRepoSubMenu(ctx) {
 			return
 		}
 	}
@@ -214,8 +215,9 @@ func TagsList(ctx *context.Context) {
 	ctx.Data["HideBranchesInDropdown"] = true
 	ctx.Data["CanCreateRelease"] = ctx.Repo.CanWrite(unit.TypeReleases) && !ctx.Repo.Repository.IsArchived
 
+	// repo/release_tag_header.tmpl will render sub menu depending on the different permission
 	if !ctx.Repo.CanRead(unit.TypeReleases) && ctx.Repo.CanRead(unit.TypeCode) {
-		if !shared.RenderRepoSubMenu(ctx) {
+		if !shared.PrepareForRepoSubMenu(ctx) {
 			return
 		}
 	}

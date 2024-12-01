@@ -62,7 +62,7 @@ func Commits(ctx *context.Context) {
 	}
 	ctx.Data["PageIsViewCode"] = true
 
-	if !shared.RenderRepoSubMenu(ctx) {
+	if !shared.PrepareForRepoSubMenu(ctx) {
 		return
 	}
 
@@ -201,7 +201,7 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 	ctx.Data["PageIsViewCode"] = true
 
-	if !shared.RenderRepoSubMenu(ctx) {
+	if !shared.PrepareForRepoSubMenu(ctx) {
 		return
 	}
 
@@ -233,7 +233,7 @@ func SearchCommits(ctx *context.Context) {
 
 // FileHistory show a file's reversions
 func FileHistory(ctx *context.Context) {
-	if !shared.RenderRepoSubMenu(ctx) {
+	if !shared.PrepareForRepoSubMenu(ctx) {
 		return
 	}
 

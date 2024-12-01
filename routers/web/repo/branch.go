@@ -47,7 +47,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
-	if !shared.RenderRepoSubMenu(ctx) {
+	if !shared.PrepareForRepoSubMenu(ctx) {
 		return
 	}
 
