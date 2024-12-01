@@ -5,16 +5,22 @@ package shared
 
 import (
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/optional"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // PrepareRepoSubMenu prepares data for repository template repo/sub_menu.tmpl
 func PrepareRepoSubMenu(ctx *context.Context) bool {
+	if !prepareSubmenuBranch(ctx) {
+		return false
+	}
+
 	if !PrepareSubmenuTag(ctx) {
 		return false
 	}
@@ -41,6 +47,31 @@ func prepareSubmenuLicense(ctx *context.Context) bool {
 	}
 	ctx.Data["DetectedRepoLicenses"] = repoLicenses.StringList()
 	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
+	return true
+}
+
+func prepareSubmenuBranch(ctx *context.Context) bool {
+	branchOpts := git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: optional.Some(false),
+		ListOptions:     db.ListOptionsAll,
+	}
+	branchesTotal, err := db.Count[git_model.Branch](ctx, branchOpts)
+	if err != nil {
+		ctx.ServerError("CountBranches", err)
+		return false
+	}
+
+	// non-empty repo should have at least 1 branch, so this repository's branches haven't been synced yet
+	if branchesTotal == 0 { // fallback to do a sync immediately
+		branchesTotal, err = repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0)
+		if err != nil {
+			ctx.ServerError("SyncRepoBranches", err)
+			return false
+		}
+	}
+
+	ctx.Data["BranchesCount"] = branchesTotal
 	return true
 }
 

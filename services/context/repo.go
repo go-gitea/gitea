@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/httplib"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -636,28 +635,6 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
 		return cancel
 	}
-
-	branchOpts := git_model.FindBranchOptions{
-		RepoID:          ctx.Repo.Repository.ID,
-		IsDeletedBranch: optional.Some(false),
-		ListOptions:     db.ListOptionsAll,
-	}
-	branchesTotal, err := db.Count[git_model.Branch](ctx, branchOpts)
-	if err != nil {
-		ctx.ServerError("CountBranches", err)
-		return cancel
-	}
-
-	// non-empty repo should have at least 1 branch, so this repository's branches haven't been synced yet
-	if branchesTotal == 0 { // fallback to do a sync immediately
-		branchesTotal, err = repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0)
-		if err != nil {
-			ctx.ServerError("SyncRepoBranches", err)
-			return cancel
-		}
-	}
-
-	ctx.Data["BranchesCount"] = branchesTotal
 
 	// If no branch is set in the request URL, try to guess a default one.
 	if len(ctx.Repo.BranchName) == 0 {
