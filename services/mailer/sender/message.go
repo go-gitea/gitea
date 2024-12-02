@@ -6,6 +6,7 @@ package sender
 import (
 	"fmt"
 	"hash/fnv"
+	"net/mail"
 	"strings"
 	"time"
 
@@ -33,7 +34,8 @@ type Message struct {
 // ToMessage converts a Message to gomail.Message
 func (m *Message) ToMessage() *gomail.Msg {
 	msg := gomail.NewMsg()
-	_ = msg.SetAddrHeader("From", m.FromAddress, m.FromDisplayName)
+	addr := mail.Address{Name: m.FromDisplayName, Address: m.FromAddress}
+	_ = msg.SetAddrHeader("From", addr.String())
 	msg.SetGenHeader("To", m.To)
 	if m.ReplyTo != "" {
 		msg.SetGenHeader("Reply-To", m.ReplyTo)

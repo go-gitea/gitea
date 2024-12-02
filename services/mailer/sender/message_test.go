@@ -39,11 +39,13 @@ func TestGenerateMessageID(t *testing.T) {
 }
 
 func TestToMessage(t *testing.T) {
-	oldConf := *setting.MailService
+	oldConf := setting.MailService
 	defer func() {
-		setting.MailService = &oldConf
+		setting.MailService = oldConf
 	}()
-	setting.MailService.From = "test@gitea.com"
+	setting.MailService = &setting.Mailer{
+		From: "test@gitea.com",
+	}
 
 	m1 := Message{
 		Info:            "info",
@@ -56,7 +58,7 @@ func TestToMessage(t *testing.T) {
 
 	assertHeaders := func(t *testing.T, expected, header map[string]string) {
 		for k, v := range expected {
-			assert.Equal(t, v, header[k])
+			assert.Equal(t, v, header[k], "Header %s should be %s but got %s", k, v, header[k])
 		}
 	}
 
@@ -69,7 +71,7 @@ func TestToMessage(t *testing.T) {
 		"Date":                     "Mon, 01 Jan 0001 00:00:00 +0000",
 		"From":                     "\"Test Gitea\" <test@gitea.com>",
 		"Message-ID":               "<autogen--6795364578871-69c000786adc60dc@localhost>",
-		"Mime-Version":             "1.0",
+		"MIME-Version":             "1.0",
 		"Subject":                  "Issue X Closed",
 		"To":                       "a@b.com",
 		"X-Auto-Response-Suppress": "All",
@@ -89,7 +91,7 @@ func TestToMessage(t *testing.T) {
 		"Date":                     "Mon, 01 Jan 0001 00:00:00 +0000",
 		"From":                     "\"Test Gitea\" <test@gitea.com>",
 		"Message-ID":               "",
-		"Mime-Version":             "1.0",
+		"MIME-Version":             "1.0",
 		"Subject":                  "Issue X Closed",
 		"To":                       "a@b.com",
 		"X-Auto-Response-Suppress": "All",
