@@ -1,8 +1,8 @@
 import {POST} from '../../modules/fetch.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
 
-export function initCompReactionSelector() {
-  for (const container of document.querySelectorAll('.issue-content, .diff-file-body')) {
+export function initCompReactionSelector(parent: ParentNode = document) {
+  for (const container of parent.querySelectorAll('.issue-content, .diff-file-body')) {
     container.addEventListener('click', async (e) => {
       // there are 2 places for the "reaction" buttons, one is the top-right reaction menu, one is the bottom of the comment
       const target = e.target.closest('.comment-reaction-button');
