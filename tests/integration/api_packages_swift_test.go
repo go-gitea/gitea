@@ -51,6 +51,13 @@ func TestPackageSwift(t *testing.T) {
 		req = NewRequestWithBody(t, "POST", url, strings.NewReader("")).
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequestWithBody(t, "POST", url+"/login", strings.NewReader(""))
+		MakeRequest(t, req, http.StatusUnauthorized)
+
+		req = NewRequestWithBody(t, "POST", url+"/login", strings.NewReader("")).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusOK)
 	})
 
 	t.Run("CheckAcceptMediaType", func(t *testing.T) {

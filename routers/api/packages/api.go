@@ -610,7 +610,10 @@ func CommonRoutes() *web.Router {
 			}, reqPackageAccess(perm.AccessModeWrite))
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/swift", func() {
-			r.Post("", swift.CheckAuthenticate) // Needs to be unauthenticated.
+			r.Group("", func() { // Needs to be unauthenticated.
+				r.Post("", swift.CheckAuthenticate)
+				r.Post("/login", swift.CheckAuthenticate)
+			})
 			r.Group("", func() {
 				r.Group("/{scope}/{name}", func() {
 					r.Group("", func() {
