@@ -9,8 +9,8 @@
 				{{$branchDropdownCurrentRefType := "branch"}}
 				{{$branchDropdownCurrentRefShortName := .BranchName}}
 				{{if .IsViewTag}}
-					{{$branchDropdownCurrentRefType := "tag"}}
-					{{$branchDropdownCurrentRefShortName := .TagName}}
+					{{$branchDropdownCurrentRefType = "tag"}}
+					{{$branchDropdownCurrentRefShortName = .TagName}}
 				{{end}}
 				{{template "repo/branch_dropdown" dict
 					"Repository" .Repository
