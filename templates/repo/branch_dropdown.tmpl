@@ -10,6 +10,7 @@
 * ShowTabBranches
 * ShowTabTagsTab
 * AllowCreateNewRef
+* ShowViewAllRefsEntry
 
 Search "repo/branch_dropdown" in the template directory to find all occurrences.
 */}}
@@ -24,6 +25,8 @@ Search "repo/branch_dropdown" in the template directory to find all occurrences.
 	data-text-create-branch="{{ctx.Locale.Tr "repo.branch.create_branch"}}"
 	data-text-create-ref-from="{{ctx.Locale.Tr "repo.branch.create_from"}}"
 	data-text-no-results="{{ctx.Locale.Tr "no_results_found"}}"
+	data-text-view-all-branches="{{ctx.Locale.Tr "repo.view_all_branches"}}"
+	data-text-view-all-tags="{{ctx.Locale.Tr "repo.view_all_tags"}}"
 
 	data-current-repo-default-branch="{{.Repository.DefaultBranch}}"
 	data-current-repo-link="{{.Repository.Link}}"
@@ -37,6 +40,7 @@ Search "repo/branch_dropdown" in the template directory to find all occurrences.
 	data-show-tab-branches="{{.ShowTabBranches}}"
 	data-show-tab-tags="{{.ShowTabTags}}"
 	data-allow-create-new-ref="{{.AllowCreateNewRef}}"
+	data-show-view-all-refs-entry="{{.ShowViewAllRefsEntry}}"
 
 	data-enable-feed="{{ctx.RootData.EnableFeed}}"
 >
