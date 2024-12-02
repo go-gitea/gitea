@@ -86,6 +86,8 @@ const sfc = {
       textCreateBranch: elRoot.getAttribute('data-text-create-branch'),
       textCreateRefFrom: elRoot.getAttribute('data-text-create-ref-from'),
       textNoResults: elRoot.getAttribute('data-text-no-results'),
+      textViewAllBranches: elRoot.getAttribute('data-text-view-all-branches'),
+      textViewAllTags: elRoot.getAttribute('data-text-view-all-tags'),
 
       currentRepoDefaultBranch: elRoot.getAttribute('data-current-repo-default-branch'),
       currentRepoLink: elRoot.getAttribute('data-current-repo-link'),
@@ -99,6 +101,7 @@ const sfc = {
       showTabBranches: shouldShowTabBranches,
       showTabTags: elRoot.getAttribute('data-show-tab-tags') === 'true',
       allowCreateNewRef: elRoot.getAttribute('data-allow-create-new-ref') === 'true',
+      showViewAllRefsEntry: elRoot.getAttribute('data-show-view-all-refs-entry') === 'true',
 
       enableFeed: elRoot.getAttribute('data-enable-feed') === 'true',
     };
@@ -281,6 +284,11 @@ export default sfc; // activate IDE's Vue plugin
       <div class="message" v-if="showNoResults">
         {{ textNoResults }}
       </div>
+      <template v-if="showViewAllRefsEntry">
+        <div class="divider tw-m-0"/>
+        <a v-if="selectedTab === 'branches'" class="item" :href="currentRepoLink + '/branches'">{{ textViewAllBranches }}</a>
+        <a v-if="selectedTab === 'tags'" class="item" :href="currentRepoLink + '/tags'">{{ textViewAllTags }}</a>
+      </template>
     </div>
   </div>
 </template>

@@ -5,7 +5,7 @@
 		<div class="issue-navbar">
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) .PageIsEditMilestone}}
-				<div class="ui right floated secondary menu">
+				<div class="ui right">
 					<a class="ui primary button" href="{{$.RepoLink}}/milestones/new">{{ctx.Locale.Tr "repo.milestones.new"}}</a>
 				</div>
 			{{end}}

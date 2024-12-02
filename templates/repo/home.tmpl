@@ -50,8 +50,8 @@
 				{{$branchDropdownCurrentRefType := "branch"}}
 				{{$branchDropdownCurrentRefShortName := .BranchName}}
 				{{if .IsViewTag}}
-					{{$branchDropdownCurrentRefType := "tag"}}
-					{{$branchDropdownCurrentRefShortName := .TagName}}
+					{{$branchDropdownCurrentRefType = "tag"}}
+					{{$branchDropdownCurrentRefShortName = .TagName}}
 				{{end}}
 				{{template "repo/branch_dropdown" dict
 					"Repository" .Repository
@@ -62,6 +62,7 @@
 					"CurrentTreePath" .TreePath
 					"RefLinkTemplate" "{RepoLink}/src/{RefType}/{RefShortName}/{TreePath}"
 					"AllowCreateNewRef" .CanCreateBranch
+					"ShowViewAllRefsEntry" true
 				}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					{{$cmpBranch := ""}}
