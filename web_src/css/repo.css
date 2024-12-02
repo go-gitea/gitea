@@ -1005,7 +1005,7 @@ td .commit-summary {
 }
 
 .repository.view.issue .comment-list .code-comment .comment-content {
-  margin-left: 36px;
+  margin-left: 24px;
 }
 
 .repository.view.issue .comment-list .comment > .avatar {
