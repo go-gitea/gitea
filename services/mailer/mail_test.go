@@ -23,6 +23,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	sender_service "code.gitea.io/gitea/services/mailer/sender"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -167,7 +168,7 @@ func TestTemplateSelection(t *testing.T) {
 	template.Must(bodyTemplates.New("pull/comment").Parse("pull/comment/body"))
 	template.Must(bodyTemplates.New("issue/close").Parse("issue/close/body"))
 
-	expect := func(t *testing.T, msg *Message, expSubject, expBody string) {
+	expect := func(t *testing.T, msg *sender_service.Message, expSubject, expBody string) {
 		subject := msg.ToMessage().GetHeader("Subject")
 		msgbuf := new(bytes.Buffer)
 		_, _ = msg.ToMessage().WriteTo(msgbuf)
@@ -252,7 +253,7 @@ func TestTemplateServices(t *testing.T) {
 		"//Re: //")
 }
 
-func testComposeIssueCommentMessage(t *testing.T, ctx *mailCommentContext, recipients []*user_model.User, fromMention bool, info string) *Message {
+func testComposeIssueCommentMessage(t *testing.T, ctx *mailCommentContext, recipients []*user_model.User, fromMention bool, info string) *sender_service.Message {
 	msgs, err := composeIssueCommentMessages(ctx, "en-US", recipients, fromMention, info)
 	assert.NoError(t, err)
 	assert.Len(t, msgs, 1)
