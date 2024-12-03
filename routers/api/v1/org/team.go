@@ -578,14 +578,14 @@ func GetTeamRepos(ctx *context.APIContext) {
 		TeamID:      team.ID,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
+		ctx.Error(http.StatusInternalServerError, "GetTeamRepositories", err)
 		return
 	}
 	repos := make([]*api.Repository, len(teamRepos))
 	for i, repo := range teamRepos {
 		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
 		}
 		repos[i] = convert.ToRepo(ctx, repo, permission)

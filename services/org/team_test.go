@@ -192,7 +192,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		repos, err := repo_model.GetTeamRepositories(db.DefaultContext, &repo_model.SearchTeamRepoOptions{
 			TeamID: team.ID,
 		})
-		assert.NoError(t, err, "%s: GetRepositories", team.Name)
+		assert.NoError(t, err, "%s: GetTeamRepositories", team.Name)
 		assert.Len(t, repos, team.NumRepos, "%s: len repo", team.Name)
 		assert.Len(t, repos, len(repoIDs), "%s: repo count", team.Name)
 		for i, rid := range repoIDs {

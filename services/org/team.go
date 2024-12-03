@@ -145,7 +145,7 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 			TeamID: t.ID,
 		})
 		if err != nil {
-			return fmt.Errorf("LoadRepositories: %w", err)
+			return fmt.Errorf("GetTeamRepositories: %w", err)
 		}
 
 		for _, repo := range repos {
@@ -304,7 +304,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, user *user_mode
 			TeamID: team.ID,
 		})
 		if err != nil {
-			log.Error("team.LoadRepositories failed: %v", err)
+			log.Error("GetTeamRepositories failed: %v", err)
 		}
 
 		// FIXME: in the goroutine, it can't access the "ctx", it could only use db.DefaultContext at the moment

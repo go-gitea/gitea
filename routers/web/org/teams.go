@@ -414,7 +414,7 @@ func TeamRepositories(ctx *context.Context) {
 		TeamID: ctx.Org.Team.ID,
 	})
 	if err != nil {
-		ctx.ServerError("GetRepositories", err)
+		ctx.ServerError("GetTeamRepositories", err)
 		return
 	}
 	ctx.Data["Units"] = unit_model.Units
