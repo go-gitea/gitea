@@ -144,12 +144,12 @@ func TestActionsArtifactDownload(t *testing.T) {
 	var downloadResp downloadArtifactResponse
 	DecodeJSON(t, resp, &downloadResp)
 	assert.Len(t, downloadResp.Value, 1)
-	assert.Equal(t, "artifact-download/abc.txt", downloadResp.Value[artifactIdx].Path)
-	assert.Equal(t, "file", downloadResp.Value[artifactIdx].ItemType)
-	assert.Contains(t, downloadResp.Value[artifactIdx].ContentLocation, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
+	assert.Equal(t, "artifact-download/abc.txt", downloadResp.Value[0].Path)
+	assert.Equal(t, "file", downloadResp.Value[0].ItemType)
+	assert.Contains(t, downloadResp.Value[0].ContentLocation, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
-	idx = strings.Index(downloadResp.Value[artifactIdx].ContentLocation, "/api/actions_pipeline/_apis/pipelines/")
-	url = downloadResp.Value[artifactIdx].ContentLocation[idx:]
+	idx = strings.Index(downloadResp.Value[0].ContentLocation, "/api/actions_pipeline/_apis/pipelines/")
+	url = downloadResp.Value[0].ContentLocation[idx:]
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)
