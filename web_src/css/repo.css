@@ -2321,6 +2321,7 @@ tbody.commit-list {
   font-weight: var(--font-weight-normal);
   cursor: pointer;
   margin: 0;
+  display: inline-block !important;
 }
 
 #new-dependency-drop-list.ui.selection.dropdown {
