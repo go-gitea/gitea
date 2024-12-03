@@ -48,7 +48,8 @@
 						<div class="content">
 							<form method="post" id="add_time_manual_form" action="{{.Issue.Link}}/times/add" class="ui input fluid tw-gap-2">
 								{{$.CsrfTokenHtml}}
-								<input placeholder="{{ctx.Locale.Tr "repo.issues.add_time_estimate"}}" type="text" name="time_string" dir="auto">
+								<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
+								<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
 							</form>
 						</div>
 						<div class="actions">

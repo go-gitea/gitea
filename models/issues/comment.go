@@ -155,9 +155,9 @@ var commentStrings = []string{
 	"change_issue_ref",
 	"pull_scheduled_merge",
 	"pull_cancel_scheduled_merge",
-	"change_time_estimate",
 	"pin",
 	"unpin",
+	"change_time_estimate",
 }
 
 func (t CommentType) String() string {
