@@ -277,7 +277,7 @@ license = MIT`)
 						MakeRequest(t, req, http.StatusOK)
 					}
 
-					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/any/%s/%s", rootURL, repository, packageName+"_"+arch_module.AnyArch, packageVersion)).
+					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/%s/any", rootURL, repository, packageName+"_"+arch_module.AnyArch, packageVersion)).
 						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusNoContent)
 				})
@@ -285,10 +285,10 @@ license = MIT`)
 				t.Run("Delete", func(t *testing.T) {
 					defer tests.PrintCurrentTest(t)()
 
-					req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/aarch64/%s/%s", rootURL, repository, packageName, packageVersion))
+					req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/%s/aarch64", rootURL, repository, packageName, packageVersion))
 					MakeRequest(t, req, http.StatusUnauthorized)
 
-					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/aarch64/%s/%s", rootURL, repository, packageName, packageVersion)).
+					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/%s/aarch64", rootURL, repository, packageName, packageVersion)).
 						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusNoContent)
 

@@ -169,9 +169,9 @@ func CommonRoutes() *web.Router {
 						return
 					}
 					ctx.SetPathParam("repository", strings.Join(pathFields[:pathFieldsLen-3], "/"))
-					ctx.SetPathParam("architecture", pathFields[pathFieldsLen-3])
-					ctx.SetPathParam("name", pathFields[pathFieldsLen-2])
-					ctx.SetPathParam("version", pathFields[pathFieldsLen-1])
+					ctx.SetPathParam("name", pathFields[pathFieldsLen-3])
+					ctx.SetPathParam("version", pathFields[pathFieldsLen-2])
+					ctx.SetPathParam("architecture", pathFields[pathFieldsLen-1])
 					arch.DeletePackageVersion(ctx)
 					return
 				}
