@@ -25,8 +25,8 @@ func newOAuth2CommonHandlers(doer *user_model.User) *user_setting.OAuth2CommonHa
 	return &user_setting.OAuth2CommonHandlers{
 		Doer:               doer,
 		Owner:              nil,
-		BasePathList:       fmt.Sprintf("%s/admin/applications", setting.AppSubURL),
-		BasePathEditPrefix: fmt.Sprintf("%s/admin/applications/oauth2", setting.AppSubURL),
+		BasePathList:       fmt.Sprintf("%s/-/admin/applications", setting.AppSubURL),
+		BasePathEditPrefix: fmt.Sprintf("%s/-/admin/applications/oauth2", setting.AppSubURL),
 		TplAppEdit:         tplSettingsOauth2ApplicationEdit,
 	}
 }

@@ -69,7 +69,7 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPa
 			OwnerID:      t.OwnerID,
 			CommitSHA:    t.CommitSHA,
 			Status:       int64(ArtifactStatusUploadPending),
-			ExpiredUnix:  timeutil.TimeStamp(time.Now().Unix() + 3600*24*expiredDays),
+			ExpiredUnix:  timeutil.TimeStamp(time.Now().Unix() + timeutil.Day*expiredDays),
 		}
 		if _, err := db.GetEngine(ctx).Insert(artifact); err != nil {
 			return nil, err
@@ -78,6 +78,13 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPa
 	} else if err != nil {
 		return nil, err
 	}
+
+	if _, err := db.GetEngine(ctx).ID(artifact.ID).Cols("expired_unix").Update(&ActionArtifact{
+		ExpiredUnix: timeutil.TimeStamp(time.Now().Unix() + timeutil.Day*expiredDays),
+	}); err != nil {
+		return nil, err
+	}
+
 	return artifact, nil
 }
 

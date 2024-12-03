@@ -4,24 +4,20 @@
 package v1_23 //nolint
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func AddAuditEventTable(x *xorm.Engine) error {
-	type AuditEvent struct {
-		ID            int64  `xorm:"pk autoincr"`
-		Action        string `xorm:"INDEX NOT NULL"`
-		ActorID       int64  `xorm:"INDEX NOT NULL"`
-		ScopeType     string `xorm:"INDEX(scope) NOT NULL"`
-		ScopeID       int64  `xorm:"INDEX(scope) NOT NULL"`
-		TargetType    string `xorm:"NOT NULL"`
-		TargetID      int64  `xorm:"NOT NULL"`
-		Message       string
-		IPAddress     string
-		TimestampUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
+// CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
+type CommentMetaData struct {
+	ProjectColumnID    int64  `json:"project_column_id"`
+	ProjectColumnTitle string `json:"project_column_title"`
+	ProjectTitle       string `json:"project_title"`
+}
+
+func AddCommentMetaDataColumn(x *xorm.Engine) error {
+	type Comment struct {
+		CommentMetaData *CommentMetaData `xorm:"JSON TEXT"` // put all non-index metadata in a single field
 	}
 
-	return x.Sync(&AuditEvent{})
+	return x.Sync(new(Comment))
 }

@@ -257,6 +257,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.ProtectedFilePatterns = f.ProtectedFilePatterns
 	protectBranch.UnprotectedFilePatterns = f.UnprotectedFilePatterns
 	protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
+	protectBranch.BlockAdminMergeOverride = f.BlockAdminMergeOverride
 
 	isNewProtectedBranch := protectBranch.ID == 0
 
@@ -330,6 +331,16 @@ func DeleteProtectedBranchRulePost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success", rule.RuleName))
 	ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+}
+
+func UpdateBranchProtectionPriories(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.ProtectBranchPriorityForm)
+	repo := ctx.Repo.Repository
+
+	if err := git_model.UpdateProtectBranchPriorities(ctx, repo, form.IDs); err != nil {
+		ctx.ServerError("UpdateProtectBranchPriorities", err)
+		return
+	}
 }
 
 // RenameBranchPost responses for rename a branch

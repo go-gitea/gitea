@@ -85,7 +85,7 @@ func AccountPost(ctx *context.Context) {
 			case errors.Is(err, password.ErrComplexity):
 				ctx.Flash.Error(password.BuildComplexityError(ctx.Locale))
 			case errors.Is(err, password.ErrIsPwned):
-				ctx.Flash.Error(ctx.Tr("auth.password_pwned"))
+				ctx.Flash.Error(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"))
 			case password.IsErrIsPwnedRequest(err):
 				ctx.Flash.Error(ctx.Tr("auth.password_pwned_err"))
 			default:

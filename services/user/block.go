@@ -276,7 +276,7 @@ func removeCollaborations(ctx context.Context, repoOwner, collaborator *user_mod
 				return err
 			}
 
-			if err := repo_service.DeleteCollaboration(ctx, repo, collaborator); err != nil {
+			if err := repo_service.DeleteCollaboration(ctx, repoOwner, repo, collaborator); err != nil {
 				return err
 			}
 		}

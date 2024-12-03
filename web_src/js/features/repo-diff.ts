@@ -1,35 +1,26 @@
 import $ from 'jquery';
 import {initCompReactionSelector} from './comp/ReactionSelector.ts';
 import {initRepoIssueContentHistory} from './repo-issue-content.ts';
-import {initDiffFileTree} from './repo-diff-filetree.ts';
+import {initDiffFileTree, initDiffFileList} from './repo-diff-filetree.ts';
 import {initDiffCommitSelect} from './repo-diff-commitselect.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {submitEventSubmitter, queryElemSiblings, hideElem, showElem, animateOnce} from '../utils/dom.ts';
+import {
+  submitEventSubmitter,
+  queryElemSiblings,
+  hideElem,
+  showElem,
+  animateOnce,
+  addDelegatedEventListener,
+  createElementFromHTML,
+} from '../utils/dom.ts';
 import {POST, GET} from '../modules/fetch.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {createTippy} from '../modules/tippy.ts';
 
 const {pageData, i18n} = window.config;
-
-function initRepoDiffReviewButton() {
-  const reviewBox = document.querySelector('#review-box');
-  if (!reviewBox) return;
-
-  const counter = reviewBox.querySelector('.review-comments-counter');
-  if (!counter) return;
-
-  $(document).on('click', 'button[name="pending_review"]', (e) => {
-    const $form = $(e.target).closest('form');
-    // Watch for the form's submit event.
-    $form.on('submit', () => {
-      const num = parseInt(counter.getAttribute('data-pending-comment-number')) + 1 || 1;
-      counter.setAttribute('data-pending-comment-number', num);
-      counter.textContent = num;
-      animateOnce(reviewBox, 'pulse-1p5-200');
-    });
-  });
-}
 
 function initRepoDiffFileViewToggle() {
   $('.file-view-toggle').on('click', function () {
@@ -47,19 +38,15 @@ function initRepoDiffFileViewToggle() {
 }
 
 function initRepoDiffConversationForm() {
-  $(document).on('submit', '.conversation-holder form', async (e) => {
+  addDelegatedEventListener<HTMLFormElement, SubmitEvent>(document, 'submit', '.conversation-holder form', async (form, e) => {
     e.preventDefault();
+    const textArea = form.querySelector<HTMLTextAreaElement>('textarea');
+    if (!validateTextareaNonEmpty(textArea)) return;
+    if (form.classList.contains('is-loading')) return;
 
-    const $form = $(e.target);
-    const textArea = e.target.querySelector('textarea');
-    if (!validateTextareaNonEmpty(textArea)) {
-      return;
-    }
-
-    if (e.target.classList.contains('is-loading')) return;
     try {
-      e.target.classList.add('is-loading');
-      const formData = new FormData($form[0]);
+      form.classList.add('is-loading');
+      const formData = new FormData(form);
 
       // if the form is submitted by a button, append the button's name and value to the form data
       const submitter = submitEventSubmitter(e);
@@ -68,26 +55,48 @@ function initRepoDiffConversationForm() {
         formData.append(submitter.name, submitter.value);
       }
 
-      const response = await POST(e.target.getAttribute('action'), {data: formData});
-      const $newConversationHolder = $(await response.text());
-      const {path, side, idx} = $newConversationHolder.data();
+      // on the diff page, the form is inside a "tr" and need to get the line-type ahead
+      // but on the conversation page, there is no parent "tr"
+      const trLineType = form.closest('tr')?.getAttribute('data-line-type');
+      const response = await POST(form.getAttribute('action'), {data: formData});
+      const newConversationHolder = createElementFromHTML(await response.text());
+      const path = newConversationHolder.getAttribute('data-path');
+      const side = newConversationHolder.getAttribute('data-side');
+      const idx = newConversationHolder.getAttribute('data-idx');
 
-      $form.closest('.conversation-holder').replaceWith($newConversationHolder);
-      let selector;
-      if ($form.closest('tr').data('line-type') === 'same') {
-        selector = `[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`;
-      } else {
-        selector = `[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`;
+      form.closest('.conversation-holder').replaceWith(newConversationHolder);
+      form = null; // prevent further usage of the form because it should have been replaced
+
+      if (trLineType) {
+        // if there is a line-type for the "tr", it means the form is on the diff page
+        // then hide the "add-code-comment" [+] button for current code line by adding "tw-invisible" because the conversation has been added
+        let selector;
+        if (trLineType === 'same') {
+          selector = `[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`;
+        } else {
+          selector = `[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`;
+        }
+        for (const el of document.querySelectorAll(selector)) {
+          el.classList.add('tw-invisible');
+        }
       }
-      for (const el of document.querySelectorAll(selector)) {
-        el.classList.add('tw-invisible');
+      fomanticQuery(newConversationHolder.querySelectorAll('.ui.dropdown')).dropdown();
+
+      // the default behavior is to add a pending review, so if no submitter, it also means "pending_review"
+      if (!submitter || submitter?.matches('button[name="pending_review"]')) {
+        const reviewBox = document.querySelector('#review-box');
+        const counter = reviewBox?.querySelector('.review-comments-counter');
+        if (!counter) return;
+        const num = parseInt(counter.getAttribute('data-pending-comment-number')) + 1 || 1;
+        counter.setAttribute('data-pending-comment-number', String(num));
+        counter.textContent = String(num);
+        animateOnce(reviewBox, 'pulse-1p5-200');
       }
-      $newConversationHolder.find('.dropdown').dropdown();
     } catch (error) {
       console.error('Error:', error);
       showErrorToast(i18n.network_error);
     } finally {
-      e.target.classList.remove('is-loading');
+      form?.classList.remove('is-loading');
     }
   });
 
@@ -106,7 +115,7 @@ function initRepoDiffConversationForm() {
         const $conversation = $(data);
         $(this).closest('.conversation-holder').replaceWith($conversation);
         $conversation.find('.dropdown').dropdown();
-        initCompReactionSelector($conversation);
+        initCompReactionSelector($conversation[0]);
       } else {
         window.location.reload();
       }
@@ -138,12 +147,22 @@ export function initRepoDiffConversationNav() {
   });
 }
 
+function initDiffHeaderPopup() {
+  for (const btn of document.querySelectorAll('.diff-header-popup-btn:not([data-header-popup-initialized])')) {
+    btn.setAttribute('data-header-popup-initialized', '');
+    const popup = btn.nextElementSibling;
+    if (!popup?.matches('.tippy-target')) throw new Error('Popup element not found');
+    createTippy(btn, {content: popup, theme: 'menu', placement: 'bottom', trigger: 'click', interactive: true, hideOnClick: true});
+  }
+}
+
 // Will be called when the show more (files) button has been pressed
 function onShowMoreFiles() {
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor();
   countAndUpdateViewedFiles();
   initImageDiff();
+  initDiffHeaderPopup();
 }
 
 export async function loadMoreFiles(url) {
@@ -216,9 +235,10 @@ export function initRepoDiffView() {
   initRepoDiffConversationForm();
   if (!$('#diff-file-list').length) return;
   initDiffFileTree();
+  initDiffFileList();
   initDiffCommitSelect();
   initRepoDiffShowMore();
-  initRepoDiffReviewButton();
+  initDiffHeaderPopup();
   initRepoDiffFileViewToggle();
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();

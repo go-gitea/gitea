@@ -5,7 +5,7 @@ import {renderAsciicast} from './asciicast.ts';
 import {initMarkupTasklist} from './tasklist.ts';
 
 // code that runs for all markup content
-export function initMarkupContent() {
+export function initMarkupContent(): void {
   renderMermaid();
   renderMath();
   renderCodeCopy();
@@ -13,6 +13,6 @@ export function initMarkupContent() {
 }
 
 // code that only runs for comments
-export function initCommentContent() {
+export function initCommentContent(): void {
   initMarkupTasklist();
 }

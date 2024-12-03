@@ -54,7 +54,7 @@ type MarkupRenderer struct {
 type MarkupSanitizerRule struct {
 	Element            string
 	AllowAttr          string
-	Regexp             *regexp.Regexp
+	Regexp             string
 	AllowDataURIImages bool
 }
 
@@ -117,15 +117,24 @@ func createMarkupSanitizerRule(name string, sec ConfigSection) (MarkupSanitizerR
 
 		regexpStr := sec.Key("REGEXP").Value()
 		if regexpStr != "" {
-			// Validate when parsing the config that this is a valid regular
-			// expression. Then we can use regexp.MustCompile(...) later.
-			compiled, err := regexp.Compile(regexpStr)
+			hasPrefix := strings.HasPrefix(regexpStr, "^")
+			hasSuffix := strings.HasSuffix(regexpStr, "$")
+			if !hasPrefix || !hasSuffix {
+				log.Error("In markup.%s: REGEXP must start with ^ and end with $ to be strict", name)
+				// to avoid breaking existing user configurations and satisfy the strict requirement in addSanitizerRules
+				if !hasPrefix {
+					regexpStr = "^.*" + regexpStr
+				}
+				if !hasSuffix {
+					regexpStr += ".*$"
+				}
+			}
+			_, err := regexp.Compile(regexpStr)
 			if err != nil {
 				log.Error("In markup.%s: REGEXP (%s) failed to compile: %v", name, regexpStr, err)
 				return rule, false
 			}
-
-			rule.Regexp = compiled
+			rule.Regexp = regexpStr
 		}
 
 		ok = true

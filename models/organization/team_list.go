@@ -126,3 +126,8 @@ func GetUserRepoTeams(ctx context.Context, orgID, userID, repoID int64) (teams T
 		And("team_repo.repo_id=?", repoID).
 		Find(&teams)
 }
+
+func GetTeamsByOrgIDs(ctx context.Context, orgIDs []int64) (TeamList, error) {
+	teams := make([]*Team, 0, 10)
+	return teams, db.GetEngine(ctx).Where(builder.In("org_id", orgIDs)).Find(&teams)
+}

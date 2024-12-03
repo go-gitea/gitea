@@ -15,19 +15,19 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/audit"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
-// repoWorkingPool represents a working pool to order the parallel changes to the same repository
-// TODO: use clustered lock (unique queue? or *abuse* cache)
-var repoWorkingPool = sync.NewExclusivePool()
+func getRepoWorkingLockKey(repoID int64) string {
+	return fmt.Sprintf("repo_working_%d", repoID)
+}
 
 // TransferOwnership transfers all corresponding setting from old user to new one.
 func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
@@ -42,12 +42,17 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 
 	oldOwner := repo.Owner
 
-	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
+	releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer releaser()
+
 	if err := transferOwnership(ctx, doer, newOwner.Name, repo); err != nil {
-		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 		return err
 	}
-	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	releaser()
 
 	newRepo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
 	if err != nil {
@@ -57,7 +62,7 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 	audit.RecordRepositoryTransferFinish(ctx, doer, newRepo, oldOwner)
 
 	for _, team := range teams {
-		if err := models.AddRepository(ctx, team, newRepo); err != nil {
+		if err := addRepositoryToTeam(ctx, team, newRepo); err != nil {
 			return err
 		}
 
@@ -182,6 +187,22 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		}
 	}
 
+	// Remove project's issues that belong to old organization's projects
+	if oldOwner.IsOrganization() {
+		projects, err := project_model.GetAllProjectsIDsByOwnerIDAndType(ctx, oldOwner.ID, project_model.TypeOrganization)
+		if err != nil {
+			return fmt.Errorf("Unable to find old org projects: %w", err)
+		}
+		issues, err := issues_model.GetIssueIDsByRepoID(ctx, repo.ID)
+		if err != nil {
+			return fmt.Errorf("Unable to find repo's issues: %w", err)
+		}
+		err = project_model.DeleteAllProjectIssueByIssueIDsAndProjectIDs(ctx, issues, projects)
+		if err != nil {
+			return fmt.Errorf("Unable to delete project's issues: %w", err)
+		}
+	}
+
 	if newOwner.IsOrganization() {
 		teams, err := organization.FindOrgTeams(ctx, newOwner.ID)
 		if err != nil {
@@ -189,7 +210,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		}
 		for _, t := range teams {
 			if t.IncludesAllRepositories {
-				if err := models.AddRepository(ctx, t, repo); err != nil {
+				if err := addRepositoryToTeam(ctx, t, repo); err != nil {
 					return fmt.Errorf("AddRepository: %w", err)
 				}
 			}
@@ -348,15 +369,20 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	oldRepoName := repo.Name
 
 	// Change repository directory name. We must lock the local copy of the
-	// repo so that we can atomically rename the repo path and updates the
+	// repo so that we can automatically rename the repo path and updates the
 	// local copy's origin accordingly.
 
-	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
+	releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer releaser()
+
 	if err := changeRepositoryName(ctx, repo, newRepoName); err != nil {
-		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 		return err
 	}
-	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	releaser()
 
 	repo.Name = newRepoName
 
@@ -400,10 +426,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		return err
 	}
 	if !hasAccess {
-		if err := repo_module.AddCollaborator(ctx, repo, newOwner); err != nil {
-			return err
-		}
-		if err := repo_model.ChangeCollaborationAccessMode(ctx, repo, newOwner.ID, perm.AccessModeRead); err != nil {
+		if err := AddOrUpdateCollaborator(ctx, doer, repo, newOwner, perm.AccessModeRead); err != nil {
 			return err
 		}
 	}

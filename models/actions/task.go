@@ -341,7 +341,7 @@ func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
 // UpdateTaskByState updates the task by the state.
 // It will always update the task if the state is not final, even there is no change.
 // So it will update ActionTask.Updated to avoid the task being judged as a zombie task.
-func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionTask, error) {
+func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.TaskState) (*ActionTask, error) {
 	stepStates := map[int64]*runnerv1.StepState{}
 	for _, v := range state.Steps {
 		stepStates[v.Id] = v
@@ -360,6 +360,8 @@ func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionT
 		return nil, err
 	} else if !has {
 		return nil, util.ErrNotExist
+	} else if runnerID != task.RunnerID {
+		return nil, fmt.Errorf("invalid runner for task")
 	}
 
 	if task.Status.IsDone() {
@@ -502,7 +504,13 @@ func convertTimestamp(timestamp *timestamppb.Timestamp) timeutil.TimeStamp {
 }
 
 func logFileName(repoFullName string, taskID int64) string {
-	return fmt.Sprintf("%s/%02x/%d.log", repoFullName, taskID%256, taskID)
+	ret := fmt.Sprintf("%s/%02x/%d.log", repoFullName, taskID%256, taskID)
+
+	if setting.Actions.LogCompression.IsZstd() {
+		ret += ".zst"
+	}
+
+	return ret
 }
 
 func getTaskIDFromCache(token string) int64 {

@@ -154,12 +154,15 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:8.0
+        # the bitnami mysql image has more options than the official one, it's easier to customize
+        image: bitnami/mysql:8.0
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
         ports:
           - "3306:3306"
+        options: >-
+          --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
         image: elasticsearch:7.5.0
         env:
@@ -188,7 +191,8 @@ jobs:
       - name: run migration tests
         run: make test-mysql-migration
       - name: run tests
-        run: make integration-test-coverage
+        # run: make integration-test-coverage (at the moment, no coverage is really handled)
+        run: make test-mysql
         env:
           TAGS: bindata
           RACE_ENABLED: true
@@ -198,7 +202,9 @@ jobs:
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
-    runs-on: ubuntu-latest
+    # specifying the version of ubuntu in use as mssql fails on newer kernels
+    # pending resolution from vendor
+    runs-on: ubuntu-20.04
     services:
       mssql:
         image: mcr.microsoft.com/mssql/server:2017-latest

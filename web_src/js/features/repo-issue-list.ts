@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {updateIssuesMeta} from './repo-issue.ts';
+import {updateIssuesMeta} from './repo-common.ts';
 import {toggleElem, hideElem, isElemHidden} from '../utils/dom.ts';
 import {htmlEscape} from 'escape-goat';
 import {confirmModal} from './comp/ConfirmModal.ts';
@@ -76,7 +76,7 @@ function initRepoIssueListCheckboxes() {
     // for delete
     if (action === 'delete') {
       const confirmText = e.target.getAttribute('data-action-delete-confirm');
-      if (!await confirmModal(confirmText, {confirmButtonColor: 'red'})) {
+      if (!await confirmModal({content: confirmText, confirmButtonColor: 'red'})) {
         return;
       }
     }
@@ -196,7 +196,11 @@ async function initIssuePinSort() {
 
   createSortable(pinDiv, {
     group: 'shared',
-    onEnd: pinMoveEnd,
+    onEnd: (e) => {
+      (async () => {
+        await pinMoveEnd(e);
+      })();
+    },
   });
 }
 

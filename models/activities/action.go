@@ -171,7 +171,10 @@ func (a *Action) TableIndices() []*schemas.Index {
 	cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
 	cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
 
-	indices := []*schemas.Index{actUserIndex, repoIndex, cudIndex}
+	cuIndex := schemas.NewIndex("c_u", schemas.IndexType)
+	cuIndex.AddColumn("user_id", "is_deleted")
+
+	indices := []*schemas.Index{actUserIndex, repoIndex, cudIndex, cuIndex}
 
 	return indices
 }
@@ -197,7 +200,7 @@ func (a *Action) LoadActUser(ctx context.Context) {
 	}
 }
 
-func (a *Action) loadRepo(ctx context.Context) {
+func (a *Action) LoadRepo(ctx context.Context) {
 	if a.Repo != nil {
 		return
 	}
@@ -247,7 +250,10 @@ func (a *Action) GetActDisplayNameTitle(ctx context.Context) string {
 
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName(ctx context.Context) string {
-	a.loadRepo(ctx)
+	a.LoadRepo(ctx)
+	if a.Repo == nil {
+		return "(non-existing-repo)"
+	}
 	return a.Repo.OwnerName
 }
 
@@ -259,7 +265,10 @@ func (a *Action) ShortRepoUserName(ctx context.Context) string {
 
 // GetRepoName returns the name of the action repository.
 func (a *Action) GetRepoName(ctx context.Context) string {
-	a.loadRepo(ctx)
+	a.LoadRepo(ctx)
+	if a.Repo == nil {
+		return "(non-existing-repo)"
+	}
 	return a.Repo.Name
 }
 
@@ -439,44 +448,13 @@ type GetFeedsOptions struct {
 	Date            string                 // the day we want activity for: YYYY-MM-DD
 }
 
-// GetFeeds returns actions according to the provided options
-func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, error) {
-	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
-		return nil, 0, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
-	}
-
-	cond, err := activityQueryCondition(ctx, opts)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	sess := db.GetEngine(ctx).Where(cond).
-		Select("`action`.*"). // this line will avoid select other joined table's columns
-		Join("INNER", "repository", "`repository`.id = `action`.repo_id")
-
-	opts.SetDefaultValues()
-	sess = db.SetSessionPagination(sess, &opts)
-
-	actions := make([]*Action, 0, opts.PageSize)
-	count, err := sess.Desc("`action`.created_unix").FindAndCount(&actions)
-	if err != nil {
-		return nil, 0, fmt.Errorf("FindAndCount: %w", err)
-	}
-
-	if err := ActionList(actions).LoadAttributes(ctx); err != nil {
-		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
-	}
-
-	return actions, count, nil
-}
-
 // ActivityReadable return whether doer can read activities of user
 func ActivityReadable(user, doer *user_model.User) bool {
 	return !user.KeepActivityPrivate ||
 		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
 }
 
-func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.Cond, error) {
+func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.Cond, error) {
 	cond := builder.NewCond()
 
 	if opts.RequestedTeam != nil && opts.RequestedUser == nil {
@@ -614,7 +592,7 @@ func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 		}
 
 		if repoChanged {
-			act.loadRepo(ctx)
+			act.LoadRepo(ctx)
 			repo = act.Repo
 
 			// check repo owner exist.
@@ -740,7 +718,7 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID, issueIndex int64) 
 // CountActionCreatedUnixString count actions where created_unix is an empty string
 func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
 	if setting.Database.Type.IsSQLite3() {
-		return db.GetEngine(ctx).Where(`created_unix = ""`).Count(new(Action))
+		return db.GetEngine(ctx).Where(`created_unix = ''`).Count(new(Action))
 	}
 	return 0, nil
 }
@@ -748,7 +726,7 @@ func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
 // FixActionCreatedUnixString set created_unix to zero if it is an empty string
 func FixActionCreatedUnixString(ctx context.Context) (int64, error) {
 	if setting.Database.Type.IsSQLite3() {
-		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
+		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ''`)
 		if err != nil {
 			return 0, err
 		}

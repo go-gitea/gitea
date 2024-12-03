@@ -435,8 +435,8 @@ func RecordRepositoryWikiDelete(ctx context.Context, doer *user_model.User, repo
 	record(ctx, audit_model.RepositoryWikiDelete, doer, repo, repo, "Deleted wiki of repository %s.", repo.FullName())
 }
 
-func RecordRepositoryCollaboratorAdd(ctx context.Context, doer *user_model.User, repo *repository_model.Repository, collaborator *user_model.User) {
-	record(ctx, audit_model.RepositoryCollaboratorAdd, doer, repo, collaborator, "Added user %s as collaborator for repository %s.", collaborator.Name, repo.FullName())
+func RecordRepositoryCollaboratorAdd(ctx context.Context, doer *user_model.User, repo *repository_model.Repository, collaborator *user_model.User, accessMode perm_model.AccessMode) {
+	record(ctx, audit_model.RepositoryCollaboratorAdd, doer, repo, collaborator, "Added user %s as collaborator for repository %s with access mode %s.", collaborator.Name, repo.FullName(), accessMode.ToString())
 }
 
 func RecordRepositoryCollaboratorAccess(ctx context.Context, doer *user_model.User, repo *repository_model.Repository, collaborator *user_model.User, accessMode perm_model.AccessMode) {

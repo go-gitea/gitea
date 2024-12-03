@@ -229,8 +229,7 @@ func TestGetLabelsByOrgID(t *testing.T) {
 	testSuccess(3, "reversealphabetically", []int64{4, 3})
 	testSuccess(3, "default", []int64{3, 4})
 
-	var err error
-	_, err = issues_model.GetLabelsByOrgID(db.DefaultContext, 0, "leastissues", db.ListOptions{})
+	_, err := issues_model.GetLabelsByOrgID(db.DefaultContext, 0, "leastissues", db.ListOptions{})
 	assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
 
 	_, err = issues_model.GetLabelsByOrgID(db.DefaultContext, -1, "leastissues", db.ListOptions{})
@@ -407,7 +406,7 @@ func TestDeleteIssueLabel(t *testing.T) {
 			PosterID: doerID,
 			IssueID:  issueID,
 			LabelID:  labelID,
-		}, `content=""`)
+		}, `content=''`)
 		label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: labelID})
 		assert.EqualValues(t, expectedNumIssues, label.NumIssues)
 		assert.EqualValues(t, expectedNumClosedIssues, label.NumClosedIssues)

@@ -36,7 +36,7 @@
 								</ul>
 							</details>
 							<div class="flex-item-body">
-								<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix)}} — {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} — {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
 							</div>
 						</div>
 						<div class="flex-item-trailing">
@@ -77,13 +77,13 @@
 					<p class="activity meta">
 						<i>{{ctx.Locale.Tr "settings.access_token_desc" (HTMLFormat `href="%s/api/swagger" target="_blank"` AppSubUrl) (`href="https://docs.gitea.com/development/oauth2-provider#scopes" target="_blank"`|SafeHTML)}}</i>
 					</p>
-					<div class="scoped-access-token-mount">
-						<scoped-access-token-selector
-							:is-admin="{{if .IsAdmin}}true{{else}}false{{end}}"
-							no-access-label="{{ctx.Locale.Tr "settings.permission_no_access"}}"
-							read-label="{{ctx.Locale.Tr "settings.permission_read"}}"
-							write-label="{{ctx.Locale.Tr "settings.permission_write"}}"
-						></scoped-access-token-selector>
+					<div id="scoped-access-token-selector"
+						data-is-admin="{{if .IsAdmin}}true{{else}}false{{end}}"
+						data-no-access-label="{{ctx.Locale.Tr "settings.permission_no_access"}}"
+						data-read-label="{{ctx.Locale.Tr "settings.permission_read"}}"
+						data-write-label="{{ctx.Locale.Tr "settings.permission_write"}}"
+						data-locale-component-failed-to-load="{{ctx.Locale.Tr "graphs.component_failed_to_load"}}"
+					>
 					</div>
 				</details>
 				<button id="scoped-access-submit" class="ui primary button">

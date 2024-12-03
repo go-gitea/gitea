@@ -10,23 +10,22 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 )
 
-func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2.OIDCToken {
-	signingKey, err := oauth2.CreateJWTSigningKey("HS256", make([]byte, 32))
+func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2_provider.OIDCToken {
+	signingKey, err := oauth2_provider.CreateJWTSigningKey("HS256", make([]byte, 32))
 	assert.NoError(t, err)
 	assert.NotNil(t, signingKey)
 
-	response, terr := newAccessTokenResponse(db.DefaultContext, grant, signingKey, signingKey)
+	response, terr := oauth2_provider.NewAccessTokenResponse(db.DefaultContext, grant, signingKey, signingKey)
 	assert.Nil(t, terr)
 	assert.NotNil(t, response)
 
-	parsedToken, err := jwt.ParseWithClaims(response.IDToken, &oauth2.OIDCToken{}, func(token *jwt.Token) (any, error) {
+	parsedToken, err := jwt.ParseWithClaims(response.IDToken, &oauth2_provider.OIDCToken{}, func(token *jwt.Token) (any, error) {
 		assert.NotNil(t, token.Method)
 		assert.Equal(t, signingKey.SigningMethod().Alg(), token.Method.Alg())
 		return signingKey.VerifyKey(), nil
@@ -34,7 +33,7 @@ func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2.OIDCToke
 	assert.NoError(t, err)
 	assert.True(t, parsedToken.Valid)
 
-	oidcToken, ok := parsedToken.Claims.(*oauth2.OIDCToken)
+	oidcToken, ok := parsedToken.Claims.(*oauth2_provider.OIDCToken)
 	assert.True(t, ok)
 	assert.NotNil(t, oidcToken)
 
@@ -66,25 +65,7 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 
 	// Scopes: openid profile email
 	oidcToken = createAndParseToken(t, grants[0])
-	assert.Equal(t, user.Name, oidcToken.Name)
-	assert.Equal(t, user.Name, oidcToken.PreferredUsername)
-	assert.Equal(t, user.HTMLURL(), oidcToken.Profile)
-	assert.Equal(t, user.AvatarLink(db.DefaultContext), oidcToken.Picture)
-	assert.Equal(t, user.Website, oidcToken.Website)
-	assert.Equal(t, user.UpdatedUnix, oidcToken.UpdatedAt)
-	assert.Equal(t, user.Email, oidcToken.Email)
-	assert.Equal(t, user.IsActive, oidcToken.EmailVerified)
-
-	// set DefaultShowFullName to true
-	oldDefaultShowFullName := setting.UI.DefaultShowFullName
-	setting.UI.DefaultShowFullName = true
-	defer func() {
-		setting.UI.DefaultShowFullName = oldDefaultShowFullName
-	}()
-
-	// Scopes: openid profile email
-	oidcToken = createAndParseToken(t, grants[0])
-	assert.Equal(t, user.FullName, oidcToken.Name)
+	assert.Equal(t, user.DisplayName(), oidcToken.Name)
 	assert.Equal(t, user.Name, oidcToken.PreferredUsername)
 	assert.Equal(t, user.HTMLURL(), oidcToken.Profile)
 	assert.Equal(t, user.AvatarLink(db.DefaultContext), oidcToken.Picture)

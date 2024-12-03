@@ -14,12 +14,10 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/mailer"
-	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -101,12 +99,12 @@ func CollaborationPost(ctx *context.Context) {
 		}
 	}
 
-	if err = repo_module.AddCollaborator(ctx, ctx.Repo.Repository, u); err != nil {
+	if err = repo_service.AddOrUpdateCollaborator(ctx, ctx.Doer, ctx.Repo.Repository, u, perm.AccessModeWrite); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator.blocked_user"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		} else {
-			ctx.ServerError("AddCollaborator", err)
+			ctx.ServerError("AddOrUpdateCollaborator", err)
 		}
 		return
 	}
@@ -114,8 +112,6 @@ func CollaborationPost(ctx *context.Context) {
 	if setting.Service.EnableNotifyMail {
 		mailer.SendCollaboratorMail(u, ctx.Doer, ctx.Repo.Repository)
 	}
-
-	audit.RecordRepositoryCollaboratorAdd(ctx, ctx.Doer, ctx.Repo.Repository, u)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_collaborator_success"))
 	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
@@ -153,11 +149,9 @@ func DeleteCollaboration(ctx *context.Context) {
 			return
 		}
 	} else {
-		if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, collaborator); err != nil {
+		if err := repo_service.DeleteCollaboration(ctx, ctx.Doer, ctx.Repo.Repository, collaborator); err != nil {
 			ctx.Flash.Error("DeleteCollaboration: " + err.Error())
 		} else {
-			audit.RecordRepositoryCollaboratorRemove(ctx, ctx.Doer, ctx.Repo.Repository, collaborator)
-
 			ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
 		}
 	}
@@ -202,7 +196,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err = org_service.TeamAddRepository(ctx, ctx.Doer, team, ctx.Repo.Repository); err != nil {
+	if err = repo_service.TeamAddRepository(ctx, ctx.Doer, team, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("TeamAddRepository", err)
 		return
 	}
