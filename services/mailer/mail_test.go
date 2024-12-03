@@ -96,7 +96,7 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	replyTo := gomailMsg.GetGenHeader("Reply-To")[0]
 	subject := gomailMsg.GetGenHeader("Subject")[0]
 
-	assert.Len(t, gomailMsg.GetGenHeader("To"), 1, "exactly one recipient is expected in the To field")
+	assert.Len(t, gomailMsg.GetAddrHeader("To"), 1, "exactly one recipient is expected in the To field")
 	tokenRegex := regexp.MustCompile(`\Aincoming\+(.+)@localhost\z`)
 	assert.Regexp(t, tokenRegex, replyTo)
 	token := tokenRegex.FindAllStringSubmatch(replyTo, 1)[0][1]
@@ -139,7 +139,7 @@ func TestComposeIssueMessage(t *testing.T) {
 	assert.Len(t, msgs, 2)
 
 	gomailMsg := msgs[0].ToMessage()
-	mailto := gomailMsg.GetGenHeader("To")
+	mailto := gomailMsg.GetAddrHeader("To")
 	subject := gomailMsg.GetGenHeader("Subject")
 	messageID := gomailMsg.GetGenHeader("Message-ID")
 	inReplyTo := gomailMsg.GetGenHeader("In-Reply-To")

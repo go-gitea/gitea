@@ -147,5 +147,10 @@ func (s *SMTPSender) Send(from string, to []string, msg io.WriterTo) error {
 		return fmt.Errorf("SMTP close failed: %w", err)
 	}
 
-	return client.Quit()
+	err = client.Quit()
+	if err != nil {
+		log.Error("Quit client failed: %v", err)
+	}
+
+	return nil
 }

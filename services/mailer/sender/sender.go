@@ -23,14 +23,14 @@ func send(sender Sender, msgs ...*Message) error {
 	}
 	for _, msg := range msgs {
 		m := msg.ToMessage()
-		froms := m.GetFromString()
+		froms := m.GetFrom()
 		to, err := m.GetRecipients()
 		if err != nil {
 			return err
 		}
 
 		// TODO: implement sending from multiple addresses
-		if err := sender.Send(froms[0], to, m); err != nil {
+		if err := sender.Send(froms[0].Address, to, m); err != nil {
 			return err
 		}
 	}
