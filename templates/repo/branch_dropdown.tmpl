@@ -1,87 +1,61 @@
 {{/* Attributes:
-* root
 * ContainerClasses
-* (TODO: search "branch_dropdown" in the template directory)
+* Repository
+* CurrentRefType: eg. "branch", "tag"
+* CurrentRefShortName: eg. "master", "v1.0"
+* CurrentTreePath
+* RefLinkTemplate: redirect to the link when a branch/tag is selected
+* RefFormActionTemplate: change the parent form's action when a branch/tag is selected
+* DropdownFixedText: the text to show in the dropdown (mainly used by "release page"), if empty, the text will be the branch/tag name
+* ShowTabBranches
+* ShowTabTagsTab
+* AllowCreateNewRef
+* ShowViewAllRefsEntry
+
+Search "repo/branch_dropdown" in the template directory to find all occurrences.
 */}}
-{{$defaultSelectedRefName := $.root.BranchName}}
-{{if and .root.IsViewTag (not .noTag)}}
-	{{$defaultSelectedRefName = .root.TagName}}
-{{end}}
-{{if eq $defaultSelectedRefName ""}}
-	{{$defaultSelectedRefName = $.root.Repository.DefaultBranch}}
-{{end}}
+<div class="js-branch-tag-selector {{if .ContainerClasses}}{{.ContainerClasses}}{{end}}"
+	data-text-release-compare="{{ctx.Locale.Tr "repo.release.compare"}}"
+	data-text-branches="{{ctx.Locale.Tr "repo.branches"}}"
+	data-text-tags="{{ctx.Locale.Tr "repo.tags"}}"
+	data-text-filter-branch="{{ctx.Locale.Tr "repo.pulls.filter_branch"}}"
+	data-text-filter-tag="{{ctx.Locale.Tr "repo.find_tag"}}"
+	data-text-default-branch-label="{{ctx.Locale.Tr "repo.default_branch_label"}}"
+	data-text-create-tag="{{ctx.Locale.Tr "repo.tag.create_tag"}}"
+	data-text-create-branch="{{ctx.Locale.Tr "repo.branch.create_branch"}}"
+	data-text-create-ref-from="{{ctx.Locale.Tr "repo.branch.create_from"}}"
+	data-text-no-results="{{ctx.Locale.Tr "no_results_found"}}"
+	data-text-view-all-branches="{{ctx.Locale.Tr "repo.view_all_branches"}}"
+	data-text-view-all-tags="{{ctx.Locale.Tr "repo.view_all_tags"}}"
 
-{{$type := ""}}
-{{if and .root.IsViewTag (not .noTag)}}
-	{{$type = "tag"}}
-{{else if .root.IsViewBranch}}
-	{{$type = "branch"}}
-{{else}}
-	{{$type = "tree"}}
-{{end}}
+	data-current-repo-default-branch="{{.Repository.DefaultBranch}}"
+	data-current-repo-link="{{.Repository.Link}}"
+	data-current-tree-path="{{.CurrentTreePath}}"
+	data-current-ref-type="{{.CurrentRefType}}"
+	data-current-ref-short-name="{{.CurrentRefShortName}}"
 
-{{$showBranchesInDropdown := not .root.HideBranchesInDropdown}}
+	data-ref-link-template="{{.RefLinkTemplate}}"
+	data-ref-form-action-template="{{.RefFormActionTemplate}}"
+	data-dropdown-fixed-text="{{.DropdownFixedText}}"
+	data-show-tab-branches="{{.ShowTabBranches}}"
+	data-show-tab-tags="{{.ShowTabTags}}"
+	data-allow-create-new-ref="{{.AllowCreateNewRef}}"
+	data-show-view-all-refs-entry="{{.ShowViewAllRefsEntry}}"
 
-<script type="module">
-	const data = {
-		'textReleaseCompare': {{ctx.Locale.Tr "repo.release.compare"}},
-		'textCreateTag': {{ctx.Locale.Tr "repo.tag.create_tag"}},
-		'textCreateBranch': {{ctx.Locale.Tr "repo.branch.create_branch"}},
-		'textCreateBranchFrom': {{ctx.Locale.Tr "repo.branch.create_from"}},
-		'textBranches': {{ctx.Locale.Tr "repo.branches"}},
-		'textTags': {{ctx.Locale.Tr "repo.tags"}},
-		'textDefaultBranchLabel': {{ctx.Locale.Tr "repo.default_branch_label"}},
-
-		'mode': '{{if or .root.IsViewTag .isTag}}tags{{else}}branches{{end}}',
-		'showBranchesInDropdown': {{$showBranchesInDropdown}},
-		'searchFieldPlaceholder': '{{if $.noTag}}{{ctx.Locale.Tr "repo.pulls.filter_branch"}}{{else if $showBranchesInDropdown}}{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}{{else}}{{ctx.Locale.Tr "repo.find_tag"}}{{end}}...',
-		'branchForm': {{$.branchForm}},
-		'disableCreateBranch': {{if .disableCreateBranch}}{{.disableCreateBranch}}{{else}}{{not .root.CanCreateBranch}}{{end}},
-		'setAction': {{.setAction}},
-		'submitForm': {{.submitForm}},
-		'viewType': {{$type}},
-		'refName': {{if and .root.IsViewTag (not .noTag)}}{{.root.TagName}}{{else if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.CommitID}}{{end}},
-		'commitIdShort': {{ShortSha .root.CommitID}},
-		'tagName': {{.root.TagName}},
-		'branchName': {{.root.BranchName}},
-		'noTag': {{.noTag}},
-		'defaultSelectedRefName': {{$defaultSelectedRefName}},
-		'repoDefaultBranch': {{.root.Repository.DefaultBranch}},
-		'enableFeed': {{.root.EnableFeed}},
-		'rssURLPrefix': '{{$.root.RepoLink}}/rss/branch/',
-		'branchURLPrefix': '{{if .branchURLPrefix}}{{.branchURLPrefix}}{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/branch/{{end}}',
-		'branchURLSuffix': '{{if .branchURLSuffix}}{{.branchURLSuffix}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}',
-		'tagURLPrefix': '{{if .tagURLPrefix}}{{.tagURLPrefix}}{{else if .release}}{{$.root.RepoLink}}/compare/{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{end}}',
-		'tagURLSuffix': '{{if .tagURLSuffix}}{{.tagURLSuffix}}{{else if .release}}...{{if .release.IsDraft}}{{PathEscapeSegments .release.Target}}{{else}}{{if .release.TagName}}{{PathEscapeSegments .release.TagName}}{{else}}{{PathEscapeSegments .release.Sha1}}{{end}}{{end}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}',
-		'repoLink': {{.root.RepoLink}},
-		'treePath': {{.root.TreePath}},
-		'branchNameSubURL': {{.root.BranchNameSubURL}},
-		'noResults': {{ctx.Locale.Tr "no_results_found"}},
-	};
-	{{if .release}}
-	data.release = {
-		'tagName': {{.release.TagName}},
-	};
-	{{end}}
-	window.config.pageData.branchDropdownDataList = window.config.pageData.branchDropdownDataList || [];
-	window.config.pageData.branchDropdownDataList.push(data);
-</script>
-
-<div class="js-branch-tag-selector {{if .ContainerClasses}}{{.ContainerClasses}}{{end}}">
+	data-enable-feed="{{ctx.RootData.EnableFeed}}"
+>
 	{{/* show dummy elements before Vue componment is mounted, this code must match the code in BranchTagSelector.vue */}}
 	<div class="ui dropdown custom branch-selector-dropdown ellipsis-items-nowrap">
 		<div class="ui button branch-dropdown-button">
 			<span class="flex-text-block gt-ellipsis">
-				{{if .release}}
-					{{ctx.Locale.Tr "repo.release.compare"}}
-				{{else}}
-					{{if eq $type "tag"}}
+				{{if not .DropdownFixedText}}
+					{{if .ShowTabTags}}
 						{{svg "octicon-tag"}}
-					{{else}}
+					{{else if .ShowTabBranches}}
 						{{svg "octicon-git-branch"}}
 					{{end}}
-					<strong ref="dropdownRefName" class="tw-ml-2 tw-inline-block gt-ellipsis">{{if and .root.IsViewTag (not .noTag)}}{{.root.TagName}}{{else if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.CommitID}}{{end}}</strong>
 				{{end}}
+				<strong class="tw-ml-2 tw-inline-block gt-ellipsis">{{Iif .DropdownFixedText .SelectedRefShortName}}</strong>
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</div>

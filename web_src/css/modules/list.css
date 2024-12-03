@@ -126,12 +126,6 @@
   cursor: pointer;
 }
 
-.ui.list .list > .item [class*="right floated"],
-.ui.list > .item [class*="right floated"] {
-  float: right;
-  margin: 0 0 0 1em;
-}
-
 .ui.menu .ui.list > .item,
 .ui.menu .ui.list .list > .item {
   display: list-item;
