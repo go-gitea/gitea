@@ -7,10 +7,10 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
-	type Issue struct {
-		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
+func AddPriorityToProtectedBranch(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		Priority int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	return x.Sync(new(Issue))
+	return x.Sync(new(ProtectedBranch))
 }

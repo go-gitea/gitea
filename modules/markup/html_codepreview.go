@@ -51,7 +51,7 @@ func renderCodeBlock(ctx *RenderContext, node *html.Node) (urlPosStart, urlPosSt
 	lineStart, _ := strconv.Atoi(strings.TrimPrefix(lineStartStr, "L"))
 	lineStop, _ := strconv.Atoi(strings.TrimPrefix(lineStopStr, "L"))
 	opts.LineStart, opts.LineStop = lineStart, lineStop
-	h, err := DefaultProcessorHelper.RenderRepoFileCodePreview(ctx, opts)
+	h, err := DefaultRenderHelperFuncs.RenderRepoFileCodePreview(ctx, opts)
 	return m[0], m[1], h, err
 }
 

@@ -33,7 +33,8 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		if ok && strings.Contains(mention, "/") {
 			mentionOrgAndTeam := strings.Split(mention, "/")
 			if mentionOrgAndTeam[0][1:] == ctx.RenderOptions.Metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
-				replaceContent(node, loc.Start, loc.End, createLink(ctx, util.URLJoin(ctx.RenderOptions.Links.Prefix(), "org", ctx.RenderOptions.Metas["org"], "teams", mentionOrgAndTeam[1]), mention, "" /*mention*/))
+				link := ctx.RenderHelper.ResolveLink(util.URLJoin("org", ctx.RenderOptions.Metas["org"], "teams", mentionOrgAndTeam[1]), LinkTypeApp)
+				replaceContent(node, loc.Start, loc.End, createLink(ctx, link, mention, "" /*mention*/))
 				node = node.NextSibling.NextSibling
 				start = 0
 				continue
@@ -43,8 +44,9 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		}
 		mentionedUsername := mention[1:]
 
-		if DefaultProcessorHelper.IsUsernameMentionable != nil && DefaultProcessorHelper.IsUsernameMentionable(ctx, mentionedUsername) {
-			replaceContent(node, loc.Start, loc.End, createLink(ctx, util.URLJoin(ctx.RenderOptions.Links.Prefix(), mentionedUsername), mention, "" /*mention*/))
+		if DefaultRenderHelperFuncs != nil && DefaultRenderHelperFuncs.IsUsernameMentionable(ctx, mentionedUsername) {
+			link := ctx.RenderHelper.ResolveLink(mentionedUsername, LinkTypeApp)
+			replaceContent(node, loc.Start, loc.End, createLink(ctx, link, mention, "" /*mention*/))
 			node = node.NextSibling.NextSibling
 			start = 0
 		} else {
