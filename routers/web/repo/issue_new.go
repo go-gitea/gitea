@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -401,55 +400,4 @@ func NewIssuePost(ctx *context.Context) {
 	} else {
 		ctx.JSONRedirect(issue.Link())
 	}
-}
-
-// UpdateIssueTimeEstimate change issue's planned time
-var (
-	rTimeEstimateStr          = regexp.MustCompile(`^([\d]+w)?\s?([\d]+d)?\s?([\d]+h)?\s?([\d]+m)?$`)
-	rTimeEstimateStrHoursOnly = regexp.MustCompile(`^([\d]+)$`)
-)
-
-func UpdateIssueTimeEstimate(ctx *context.Context) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
-		ctx.Error(http.StatusForbidden)
-		return
-	}
-
-	url := issue.Link()
-
-	timeStr := ctx.FormString("time_estimate")
-
-	// Validate input
-	if !rTimeEstimateStr.MatchString(timeStr) && !rTimeEstimateStrHoursOnly.MatchString(timeStr) {
-		ctx.Flash.Error(ctx.Tr("repo.issues.time_estimate_invalid"))
-		ctx.Redirect(url, http.StatusSeeOther)
-		return
-	}
-
-	total := util.TimeEstimateFromStr(timeStr)
-
-	// User entered something wrong
-	if total == 0 && len(timeStr) != 0 {
-		ctx.Flash.Error(ctx.Tr("repo.issues.time_estimate_invalid"))
-		ctx.Redirect(url, http.StatusSeeOther)
-		return
-	}
-
-	// No time changed
-	if issue.TimeEstimate == total {
-		ctx.Redirect(url, http.StatusSeeOther)
-		return
-	}
-
-	if err := issue_service.ChangeTimeEstimate(ctx, issue, ctx.Doer, total); err != nil {
-		ctx.ServerError("ChangeTimeEstimate", err)
-		return
-	}
-
-	ctx.Redirect(url, http.StatusSeeOther)
 }

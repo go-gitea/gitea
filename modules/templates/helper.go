@@ -71,8 +71,7 @@ func NewFuncMap() template.FuncMap {
 		"CountFmt": base.FormatNumberSI,
 		"Sec2Time": util.SecToTime,
 
-		"SecToTimeExact":    util.SecToTimeExact,
-		"TimeEstimateToStr": util.TimeEstimateToStr,
+		"TimeEstimateString": util.TimeEstimateString,
 
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
