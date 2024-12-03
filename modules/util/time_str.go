@@ -19,14 +19,19 @@ type timeStrGlobalVarsType struct {
 	re *regexp.Regexp
 }
 
+// When tracking working time, only hour/minute/second units are accurate and could be used.
+// For other units like "day", it depends on "how many working hours in a day": 6 or 7 or 8?
+// So at the moment, we only support hour/minute/second units.
+// In the future, it could be some configurable options to help users
+// to convert the working time to different units.
+
 var timeStrGlobalVars = sync.OnceValue[*timeStrGlobalVarsType](func() *timeStrGlobalVarsType {
 	v := &timeStrGlobalVarsType{}
-	v.re = regexp.MustCompile(`(?i)(\d+)\s*([dhms])`)
+	v.re = regexp.MustCompile(`(?i)(\d+)\s*([hms])`)
 	v.units = []struct {
 		name string
 		num  int64
 	}{
-		{"d", 60 * 60 * 24},
 		{"h", 60 * 60},
 		{"m", 60},
 		{"s", 1},

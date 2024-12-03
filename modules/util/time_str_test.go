@@ -17,11 +17,10 @@ func TestTimeStr(t *testing.T) {
 			output int64
 			err    bool
 		}{
-			{"1d", 86400, false},
 			{"1h", 3600, false},
 			{"1m", 60, false},
 			{"1s", 1, false},
-			{"1d 1h 1m 1s", 86400 + 3600 + 60 + 1, false},
+			{"1h 1m 1s", 3600 + 60 + 1, false},
 			{"1d1x", 0, true},
 		}
 		for _, test := range tests {
@@ -41,11 +40,10 @@ func TestTimeStr(t *testing.T) {
 			input  int64
 			output string
 		}{
-			{86400, "1d"},
 			{3600, "1h"},
 			{60, "1m"},
 			{1, "1s"},
-			{86400 + 60 + 1, "1d 1m 1s"},
+			{3600 + 1, "1h 1s"},
 		}
 		for _, test := range tests {
 			t.Run(test.output, func(t *testing.T) {
