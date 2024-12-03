@@ -79,7 +79,7 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 
 		if c.Type == issues_model.CommentTypeChangeTimeEstimate {
 			timeSec, _ := util.ToInt64(c.Content)
-			c.Content = util.SecToTimeExact(timeSec, timeSec < 60)
+			c.Content = util.TimeEstimateString(timeSec)
 		}
 	}
 
