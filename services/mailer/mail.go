@@ -29,9 +29,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
+	sender_service "code.gitea.io/gitea/services/mailer/sender"
 	"code.gitea.io/gitea/services/mailer/token"
-
-	"gopkg.in/gomail.v2"
 )
 
 const (
@@ -60,7 +59,7 @@ func SendTestMail(email string) error {
 		// No mail service configured
 		return nil
 	}
-	return gomail.Send(Sender, NewMessage(email, "Gitea Test Email!", "Gitea Test Email!").ToMessage())
+	return sender_service.Send(sender, sender_service.NewMessage(email, "Gitea Test Email!", "Gitea Test Email!"))
 }
 
 // sendUserMail sends a mail to the user
@@ -82,7 +81,7 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 		return
 	}
 
-	msg := NewMessage(u.EmailTo(), subject, content.String())
+	msg := sender_service.NewMessage(u.EmailTo(), subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, %s", u.ID, info)
 
 	SendAsync(msg)
@@ -130,7 +129,7 @@ func SendActivateEmailMail(u *user_model.User, email string) {
 		return
 	}
 
-	msg := NewMessage(email, locale.TrString("mail.activate_email"), content.String())
+	msg := sender_service.NewMessage(email, locale.TrString("mail.activate_email"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, activate email", u.ID)
 
 	SendAsync(msg)
@@ -158,7 +157,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		return
 	}
 
-	msg := NewMessage(u.EmailTo(), locale.TrString("mail.register_notify", setting.AppName), content.String())
+	msg := sender_service.NewMessage(u.EmailTo(), locale.TrString("mail.register_notify", setting.AppName), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
 	SendAsync(msg)
@@ -189,13 +188,13 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 		return
 	}
 
-	msg := NewMessage(u.EmailTo(), subject, content.String())
+	msg := sender_service.NewMessage(u.EmailTo(), subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, add collaborator", u.ID)
 
 	SendAsync(msg)
 }
 
-func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipients []*user_model.User, fromMention bool, info string) ([]*Message, error) {
+func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipients []*user_model.User, fromMention bool, info string) ([]*sender_service.Message, error) {
 	var (
 		subject string
 		link    string
@@ -304,9 +303,9 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		return nil, err
 	}
 
-	msgs := make([]*Message, 0, len(recipients))
+	msgs := make([]*sender_service.Message, 0, len(recipients))
 	for _, recipient := range recipients {
-		msg := NewMessageFrom(
+		msg := sender_service.NewMessageFrom(
 			recipient.Email,
 			fromDisplayName(ctx.Doer),
 			setting.MailService.FromEmail,
