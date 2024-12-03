@@ -75,6 +75,8 @@ func CreateBranchFromIssue(ctx *context.Context) {
 		case git_model.IsErrBranchNameConflict(err):
 			e := err.(git_model.ErrBranchNameConflict)
 			ctx.JSONError(ctx.Tr("repo.branch.branch_name_conflict", form.NewBranchName, e.BranchName))
+		case git_model.IsErrBranchNotExist(err):
+			ctx.JSONError(ctx.Tr("repo.branch.branch_not_exist", form.SourceBranchName))
 		case git.IsErrPushRejected(err):
 			e := err.(*git.ErrPushRejected)
 			if len(e.Message) == 0 {
@@ -107,6 +109,6 @@ func CreateBranchFromIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("repo.issues.create_branch_from_issue_success", ctx.Repo.BranchName))
+	ctx.Flash.Success(ctx.Tr("repo.issues.create_branch_from_issue_success", form.NewBranchName))
 	ctx.JSONRedirect(issue.Link())
 }
