@@ -696,13 +696,11 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-
-					{{if .RenderedContent}}
-						{{/* compatibility with time comments made before v1.21 */}}
-						{{ctx.Locale.Tr "repo.issues.change_time_estimate_at" .RenderedContent $createdStr | SafeHTML}}
+					{{$timeStr := .Content|TimeEstimateString}}
+					{{if $timeStr}}
+						{{ctx.Locale.Tr "repo.issues.change_time_estimate_at" $timeStr $createdStr}}
 					{{else}}
-						{{$timeStr := .Content|Sec2Time}}
-						{{ctx.Locale.Tr "repo.issues.change_time_estimate_at" $timeStr $createdStr | SafeHTML}}
+						{{ctx.Locale.Tr "repo.issues.remove_time_estimate_at" $createdStr}}
 					{{end}}
 				</span>
 			</div>
