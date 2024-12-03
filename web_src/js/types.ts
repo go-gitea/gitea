@@ -59,3 +59,5 @@ export type FomanticInitFunction = {
   settings?: Record<string, any>,
   (...args: any[]): any,
 }
+
+export type GitRefType = 'branch' | 'tag';
