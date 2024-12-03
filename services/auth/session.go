@@ -24,6 +24,10 @@ func (s *Session) Name() string {
 	return "session"
 }
 
+func (s *Session) Match(req *http.Request) bool {
+	return true
+}
+
 // Verify checks if there is a user uid stored in the session and returns the user
 // object for that uid.
 // Returns nil if there is no user uid stored in the session.

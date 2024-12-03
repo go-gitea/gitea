@@ -36,6 +36,10 @@ func (h *HTTPSign) Name() string {
 	return "httpsign"
 }
 
+func (h *HTTPSign) Match(req *http.Request) bool {
+	return true
+}
+
 // Verify extracts and validates HTTPsign from the Signature header of the request and returns
 // the corresponding user object on successful validation.
 // Returns nil if header is empty or validation fails.
