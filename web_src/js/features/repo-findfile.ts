@@ -91,6 +91,7 @@ function filterRepoFiles(filter) {
       // safely escape by using textContent
       span.textContent = part;
       span.setAttribute('data-tooltip-content', span.textContent);
+      span.setAttribute('data-tooltip-placement', 'top');
       // if the target file path is "abc/xyz", to search "bx", then the matchResult is ['a', 'b', 'c/', 'x', 'yz']
       // the matchResult[odd] is matched and highlighted to red.
       if (index % 2 === 1) span.classList.add('ui', 'text', 'red');
