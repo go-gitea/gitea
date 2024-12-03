@@ -48,10 +48,11 @@
 			</div>
 		</form>
 		{{end}}{{/*if .EnablePasswordSignInForm*/}}
-		{{if and .OAuth2Providers .EnableOpenIDSignIn .EnablePasswordSignInForm}}
+		{{$showOAuth2Methods := or .OAuth2Providers .EnableOpenIDSignIn}}
+		{{if and $showOAuth2Methods .EnablePasswordSignInForm}}
 			<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
 		{{end}}
-		{{if and .OAuth2Providers .EnableOpenIDSignIn}}
+		{{if $showOAuth2Methods}}
 			{{template "user/auth/oauth_container" .}}
 		{{end}}
 	</div>
