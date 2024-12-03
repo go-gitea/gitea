@@ -36,7 +36,7 @@ func (m *Message) ToMessage() *gomail.Msg {
 	msg := gomail.NewMsg()
 	addr := mail.Address{Name: m.FromDisplayName, Address: m.FromAddress}
 	_ = msg.SetAddrHeader("From", addr.String())
-	msg.SetAddrHeader("To", m.To)
+	_ = msg.SetAddrHeader("To", m.To)
 	if m.ReplyTo != "" {
 		msg.SetGenHeader("Reply-To", m.ReplyTo)
 	}
