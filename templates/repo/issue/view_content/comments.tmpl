@@ -251,16 +251,9 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-
-					{{$timeStr := ""}}
-					{{if .RenderedContent}}
-						{{/* compatibility with time comments made before v1.21 */}}
-						{{$timeStr = .RenderedContent}}
-					{{else}}
-						{{$timeStr = .Content|Sec2Time}}
-					{{end}}
-
-					{{ctx.Locale.Tr "repo.issues.stop_tracking_history" $timeStr $createdStr | SafeHTML}}
+					{{$timeStr := .RenderedContent}} {{/* compatibility with time comments made before v1.21 */}}
+					{{if not $timeStr}}{{$timeStr = .Content|Sec2Time}}{{end}}
+					{{ctx.Locale.Tr "repo.issues.stop_tracking_history" $timeStr $createdStr}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
 			</div>
@@ -270,16 +263,9 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-
-					{{$timeStr := ""}}
-					{{if .RenderedContent}}
-						{{/* compatibility with time comments made before v1.21 */}}
-						{{$timeStr = .RenderedContent}}
-					{{else}}
-						{{$timeStr = .Content|Sec2Time}}
-					{{end}}
-
-					{{ctx.Locale.Tr "repo.issues.add_time_history" $timeStr $createdStr | SafeHTML}}
+					{{$timeStr := .RenderedContent}} {{/* compatibility with time comments made before v1.21 */}}
+					{{if not $timeStr}}{{$timeStr = .Content|Sec2Time}}{{end}}
+					{{ctx.Locale.Tr "repo.issues.add_time_history" $timeStr $createdStr}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
 			</div>
