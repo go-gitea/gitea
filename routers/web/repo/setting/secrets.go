@@ -114,6 +114,26 @@ func SecretsPost(ctx *context.Context) {
 	)
 }
 
+func SecretsEdit(ctx *context.Context) {
+	sCtx, err := getSecretsCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getSecretsCtx", err)
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.JSONError(ctx.GetErrMsg())
+		return
+	}
+
+	shared.PerformSecretsEdit(
+		ctx,
+		sCtx.OwnerID,
+		sCtx.RepoID,
+		sCtx.RedirectLink,
+	)
+}
+
 func SecretsDelete(ctx *context.Context) {
 	sCtx, err := getSecretsCtx(ctx)
 	if err != nil {
