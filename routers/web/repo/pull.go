@@ -1185,32 +1185,34 @@ func MergePullRequest(ctx *context.Context) {
 
 	log.Trace("Pull request merged: %d", pr.ID)
 
-	if form.DeleteBranchAfterMerge {
-		// Don't cleanup when other pr use this branch as head branch
-		exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
-		if err != nil {
-			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
-			return
-		}
-		if exist {
-			ctx.JSONRedirect(issue.Link())
-			return
-		}
-
-		var headRepo *git.Repository
-		if ctx.Repo != nil && ctx.Repo.Repository != nil && pr.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
-			headRepo = ctx.Repo.GitRepo
-		} else {
-			headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
-			if err != nil {
-				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.FullName()), err)
-				return
-			}
-			defer headRepo.Close()
-		}
-		deleteBranch(ctx, pr, headRepo)
+	if !form.DeleteBranchAfterMerge {
+		ctx.JSONRedirect(issue.Link())
+		return
 	}
 
+	// Don't cleanup when other pr use this branch as head branch
+	exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
+	if err != nil {
+		ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
+		return
+	}
+	if exist {
+		ctx.JSONRedirect(issue.Link())
+		return
+	}
+
+	var headRepo *git.Repository
+	if ctx.Repo != nil && ctx.Repo.Repository != nil && pr.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
+		headRepo = ctx.Repo.GitRepo
+	} else {
+		headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
+		if err != nil {
+			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.FullName()), err)
+			return
+		}
+		defer headRepo.Close()
+	}
+	deleteBranch(ctx, pr, headRepo)
 	ctx.JSONRedirect(issue.Link())
 }
 
@@ -1403,8 +1405,8 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 	pr := issue.PullRequest
 
-	// Don't cleanup unmerged and unclosed PRs
-	if !pr.HasMerged && !issue.IsClosed {
+	// Don't cleanup unmerged and unclosed PRs and agit PRs
+	if !pr.HasMerged && !issue.IsClosed && pr.Flow != issues_model.PullRequestFlowGithub {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}
@@ -1435,13 +1437,12 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
-		return
-	}
-	if !perm.CanWrite(unit.TypeCode) {
-		ctx.NotFound("CleanUpPullRequest", nil)
+	if err := repo_service.CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, ctx.Doer); err != nil {
+		if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.NotFound("CanDeleteBranch", nil)
+		} else {
+			ctx.ServerError("CanDeleteBranch", err)
+		}
 		return
 	}
 
