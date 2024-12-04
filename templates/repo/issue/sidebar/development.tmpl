@@ -10,7 +10,7 @@
 	{{end}}
 	{{range .DevLinks}}
 		{{if .PullRequest}}
-			<div class="tw-flex tw-items-center tw-overflow-hidden tw-max-w-full">
+			<div class="tw-flex tw-items-center tw-overflow-hidden tw-max-w-full tw-mt-2">
 				<span class="tw-mr-1">{{template "shared/issueicon" .PullRequest.Issue}}</span>
 				<a href="{{.PullRequest.Issue.Link}}" class="ref-issue item tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">
 					{{.PullRequest.Issue.Title}}
@@ -31,7 +31,7 @@
 			{{end}}
 			</div>
 		{{else if and .Branch .DisplayBranch}}
-			<div class="tw-flex tw-justify-between tw-items-center">
+			<div class="tw-flex tw-justify-between tw-items-center tw-mt-2">
 				<div class="tw-flex tw-left tw-items-center tw-overflow-hidden tw-max-w-full">
 					{{svg "octicon-git-branch" 14 "tw-mr-1"}}
 					<a href="{{.Branch.Repo.Link}}/src/branch/{{.Branch.Name}}" data-tooltip-content="{{.BranchFullName}}" class="tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">
@@ -84,7 +84,7 @@
 
 				<div class="required field">
 					<label for="source_branch_name">{{ctx.Locale.Tr "repo.issues.base_branch"}}</label>
-					<div class="ui selection dropdown">
+					<div class="ui selection owner dropdown">
 						<input type="hidden" id="source_branch_name" name="source_branch_name" value="{{.Issue.Repo.DefaultBranch}}" required>
 						<span class="text truncated-item-container" data-value="{{.Issue.Repo.DefaultBranch}}" title="{{.Issue.Repo.DefaultBranch}}">
 							<span class="truncated-item-name">{{.Issue.Repo.DefaultBranch}}</span>
