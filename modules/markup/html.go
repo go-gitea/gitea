@@ -159,9 +159,9 @@ func PostProcessDefault(ctx *RenderContext, input io.Reader, output io.Writer) e
 	return postProcess(ctx, procs, input, output)
 }
 
-// RenderCommitMessage will use the same logic as PostProcess, but will disable
+// PostProcessCommitMessage will use the same logic as PostProcess, but will disable
 // the shortLinkProcessor.
-func RenderCommitMessage(ctx *RenderContext, content string) (string, error) {
+func PostProcessCommitMessage(ctx *RenderContext, content string) (string, error) {
 	procs := []processor{
 		fullIssuePatternProcessor,
 		comparePatternProcessor,
@@ -183,11 +183,11 @@ var emojiProcessors = []processor{
 	emojiProcessor,
 }
 
-// RenderCommitMessageSubject will use the same logic as PostProcess and
-// RenderCommitMessage, but will disable the shortLinkProcessor and
+// PostProcessCommitMessageSubject will use the same logic as PostProcess and
+// PostProcessCommitMessage, but will disable the shortLinkProcessor and
 // emailAddressProcessor, will add a defaultLinkProcessor if defaultLink is set,
 // which changes every text node into a link to the passed default link.
-func RenderCommitMessageSubject(ctx *RenderContext, defaultLink, content string) (string, error) {
+func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink, content string) (string, error) {
 	procs := []processor{
 		fullIssuePatternProcessor,
 		comparePatternProcessor,
@@ -211,13 +211,31 @@ func RenderCommitMessageSubject(ctx *RenderContext, defaultLink, content string)
 	return postProcessString(ctx, procs, content)
 }
 
-// RenderIssueTitle to process title on individual issue/pull page
-func RenderIssueTitle(ctx *RenderContext, title string) (string, error) {
-	// do not render other issue/commit links in an issue's title - which in most cases is already a link.
+// PostProcessIssueTitle to process title on individual issue/pull page
+func PostProcessIssueTitle(ctx *RenderContext, title string) (string, error) {
 	return postProcessString(ctx, []processor{
+		issueIndexPatternProcessor,
+		commitCrossReferencePatternProcessor,
+		hashCurrentPatternProcessor,
 		emojiShortCodeProcessor,
 		emojiProcessor,
 	}, title)
+}
+
+// PostProcessDescriptionHTML will use similar logic as PostProcess, but will
+// use a single special linkProcessor.
+func PostProcessDescriptionHTML(ctx *RenderContext, content string) (string, error) {
+	return postProcessString(ctx, []processor{
+		descriptionLinkProcessor,
+		emojiShortCodeProcessor,
+		emojiProcessor,
+	}, content)
+}
+
+// PostProcessEmoji for when we want to just process emoji and shortcodes
+// in various places it isn't already run through the normal markdown processor
+func PostProcessEmoji(ctx *RenderContext, content string) (string, error) {
+	return postProcessString(ctx, emojiProcessors, content)
 }
 
 func postProcessString(ctx *RenderContext, procs []processor, content string) (string, error) {
@@ -228,23 +246,10 @@ func postProcessString(ctx *RenderContext, procs []processor, content string) (s
 	return buf.String(), nil
 }
 
-// RenderDescriptionHTML will use similar logic as PostProcess, but will
-// use a single special linkProcessor.
-func RenderDescriptionHTML(ctx *RenderContext, content string) (string, error) {
-	return postProcessString(ctx, []processor{
-		descriptionLinkProcessor,
-		emojiShortCodeProcessor,
-		emojiProcessor,
-	}, content)
-}
-
-// RenderEmoji for when we want to just process emoji and shortcodes
-// in various places it isn't already run through the normal markdown processor
-func RenderEmoji(ctx *RenderContext, content string) (string, error) {
-	return postProcessString(ctx, emojiProcessors, content)
-}
-
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
+	if !ctx.usedByRender && ctx.RenderHelper != nil {
+		defer ctx.RenderHelper.CleanUp()
+	}
 	// FIXME: don't read all content to memory
 	rawHTML, err := io.ReadAll(input)
 	if err != nil {

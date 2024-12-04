@@ -9,24 +9,24 @@
 		<input type="hidden" name="diff_start_cid">
 		<input type="hidden" name="diff_end_cid">
 		<input type="hidden" name="diff_base_cid">
-
+		<div class="field">
 		{{template "shared/combomarkdowneditor" (dict
-			"MarkdownPreviewUrl" (print $.root.Repository.Link "/markup")
-			"MarkdownPreviewContext" $.root.RepoLink
+			"CustomInit" true
+			"MarkdownPreviewInRepo" $.root.Repository
+			"MarkdownPreviewMode" "comment"
 			"TextareaName" "content"
 			"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
 			"DropzoneParentContainer" "form"
 			"DisableAutosize" "true"
 		)}}
-
+		</div>
 		{{if $.root.IsAttachmentEnabled}}
 			<div class="field">
 				{{template "repo/upload" $.root}}
 			</div>
 		{{end}}
 
-		<div class="field footer tw-mx-2">
-			<span class="markup-info">{{svg "octicon-markdown"}} {{ctx.Locale.Tr "repo.diff.comment.markdown_info"}}</span>
+		<div class="field footer">
 			<div class="tw-text-right">
 				{{if $.reply}}
 					<button class="ui submit primary tiny button btn-reply" type="submit">{{ctx.Locale.Tr "repo.diff.comment.reply"}}</button>

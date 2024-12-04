@@ -36,9 +36,14 @@
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.milestones.desc"}}</label>
-					<textarea name="content">{{.content}}</textarea>
+					{{template "shared/combomarkdowneditor" (dict
+						"MarkdownPreviewInRepo" $.Repository
+						"MarkdownPreviewMode" "comment"
+						"TextareaName" "content"
+						"TextareaContent" .content
+						"TextareaPlaceholder" (ctx.Locale.Tr "repo.milestones.desc")
+					)}}
 				</div>
-				<div class="divider"></div>
 				<div class="tw-text-right">
 					{{if .PageIsEditMilestone}}
 						<a class="ui primary basic button" href="{{.RepoLink}}/milestones">
