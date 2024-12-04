@@ -12,8 +12,10 @@
 		<div class="field">
 		{{template "shared/combomarkdowneditor" (dict
 			"CustomInit" true
-			"MarkdownPreviewInRepo" $.root.Repository "MarkdownPreviewMode" "comment"
-			"TextareaName" "content" "TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
+			"MarkdownPreviewInRepo" $.root.Repository
+			"MarkdownPreviewMode" "comment"
+			"TextareaName" "content"
+			"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
 			"DropzoneParentContainer" "form"
 			"DisableAutosize" "true"
 		)}}
