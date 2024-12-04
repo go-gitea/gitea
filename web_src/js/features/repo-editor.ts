@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {createCodeEditor} from './codeeditor.ts';
 import {hideElem, queryElems, showElem, createElementFromHTML} from '../utils/dom.ts';
@@ -6,39 +5,33 @@ import {initMarkupContent} from '../markup/content.ts';
 import {attachRefIssueContextPopup} from './contextpopup.ts';
 import {POST} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';
+import {confirmModal} from './comp/ConfirmModal.ts';
+import {applyAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
-function initEditPreviewTab($form) {
-  const $tabMenu = $form.find('.repo-editor-menu');
-  $tabMenu.find('.item').tab();
-  const $previewTab = $tabMenu.find('a[data-tab="preview"]');
-  if ($previewTab.length) {
-    $previewTab.on('click', async function () {
-      const $this = $(this);
-      let context = `${$this.data('context')}/`;
-      const mode = $this.data('markup-mode') || 'comment';
-      const $treePathEl = $form.find('input#tree_path');
-      if ($treePathEl.length > 0) {
-        context += $treePathEl.val();
-      }
-      context = context.substring(0, context.lastIndexOf('/'));
+function initEditPreviewTab(elForm: HTMLFormElement) {
+  const elTabMenu = elForm.querySelector('.repo-editor-menu');
+  fomanticQuery(elTabMenu.querySelectorAll('.item')).tab();
 
-      const formData = new FormData();
-      formData.append('mode', mode);
-      formData.append('context', context);
-      formData.append('text', $form.find('.tab[data-tab="write"] textarea').val());
-      formData.append('file_path', $treePathEl.val());
-      try {
-        const response = await POST($this.data('url'), {data: formData});
-        const data = await response.text();
-        const $previewPanel = $form.find('.tab[data-tab="preview"]');
-        if ($previewPanel.length) {
-          renderPreviewPanelContent($previewPanel, data);
-        }
-      } catch (error) {
-        console.error('Error:', error);
-      }
-    });
-  }
+  const elPreviewTab = elTabMenu.querySelector('a[data-tab="preview"]');
+  const elPreviewPanel = elForm.querySelector('.tab[data-tab="preview"]');
+  if (!elPreviewTab || !elPreviewPanel) return;
+
+  elPreviewTab.addEventListener('click', async () => {
+    const elTreePath = elForm.querySelector<HTMLInputElement>('input#tree_path');
+    const previewUrl = elPreviewTab.getAttribute('data-preview-url');
+    const previewContextRef = elPreviewTab.getAttribute('data-preview-context-ref');
+    let previewContext = `${previewContextRef}/${elTreePath.value}`;
+    previewContext = previewContext.substring(0, previewContext.lastIndexOf('/'));
+    const formData = new FormData();
+    formData.append('mode', 'file');
+    formData.append('context', previewContext);
+    formData.append('text', elForm.querySelector<HTMLTextAreaElement>('.tab[data-tab="write"] textarea').value);
+    formData.append('file_path', elTreePath.value);
+    const response = await POST(previewUrl, {data: formData});
+    const data = await response.text();
+    renderPreviewPanelContent(elPreviewPanel, data);
+  });
 }
 
 export function initRepoEditor() {
@@ -151,8 +144,8 @@ export function initRepoEditor() {
     }
   });
 
-  const $form = $('.repository.editor .edit.form');
-  initEditPreviewTab($form);
+  const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form');
+  initEditPreviewTab(elForm);
 
   (async () => {
     const editor = await createCodeEditor(editArea, filenameInput);
@@ -160,16 +153,16 @@ export function initRepoEditor() {
     // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
     // to enable or disable the commit button
     const commitButton = document.querySelector<HTMLButtonElement>('#commit-button');
-    const $editForm = $('.ui.edit.form');
     const dirtyFileClass = 'dirty-file';
 
     // Disabling the button at the start
-    if ($('input[name="page_has_posted"]').val() !== 'true') {
+    if (document.querySelector<HTMLInputElement>('input[name="page_has_posted"]').value !== 'true') {
       commitButton.disabled = true;
     }
 
     // Registering a custom listener for the file path and the file content
-    $editForm.areYouSure({
+    // FIXME: it is not quite right here (old bug), it causes double-init, the global areYouSure "dirty" class will also be added
+    applyAreYouSure(elForm, {
       silent: true,
       dirtyClass: dirtyFileClass,
       fieldSelector: ':input:not(.commit-form-wrapper :input)',
@@ -187,15 +180,17 @@ export function initRepoEditor() {
       editor.setValue(value);
     }
 
-    commitButton?.addEventListener('click', (e) => {
+    commitButton?.addEventListener('click', async (e) => {
       // A modal which asks if an empty file should be committed
       if (!editArea.value) {
-        $('#edit-empty-content-modal').modal({
-          onApprove() {
-            $('.edit.form').trigger('submit');
-          },
-        }).modal('show');
         e.preventDefault();
+        if (await confirmModal({
+          header: elForm.getAttribute('data-text-empty-confirm-header'),
+          content: elForm.getAttribute('data-text-empty-confirm-content'),
+        })) {
+          elForm.classList.remove('dirty');
+          elForm.submit();
+        }
       }
     });
   })();
