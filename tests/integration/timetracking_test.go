@@ -71,7 +71,7 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 		session.MakeRequest(t, req, http.StatusOK)
 
 		req = NewRequest(t, "GET", issueLink)
-		session.MakeRequest(t, req, http.StatusOK)
+		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 
 		events = htmlDoc.doc.Find(".event > span.text")
