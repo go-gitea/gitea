@@ -1,5 +1,4 @@
 import {hideElem, showElem} from '../utils/dom.ts';
-import {initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 
 export function initRepoRelease() {
   document.addEventListener('click', (e) => {
@@ -16,7 +15,6 @@ export function initRepoReleaseNew() {
   if (!document.querySelector('.repository.new.release')) return;
 
   initTagNameEditor();
-  initRepoReleaseEditor();
 }
 
 function initTagNameEditor() {
@@ -47,12 +45,4 @@ function initTagNameEditor() {
   tagNameInput.addEventListener('input', (e) => {
     hideTargetInput(e.target);
   });
-}
-
-function initRepoReleaseEditor() {
-  const editor = document.querySelector<HTMLElement>('.repository.new.release .combo-markdown-editor');
-  if (!editor) {
-    return;
-  }
-  initComboMarkdownEditor(editor);
 }
