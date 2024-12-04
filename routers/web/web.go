@@ -1423,7 +1423,6 @@ func registerRoutes(m *web.Router) {
 			})
 			m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 			m.Post("/approve", reqRepoActionsWriter, actions.Approve)
-			m.Get("/artifacts", actions.ArtifactsView)
 			m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
 			m.Delete("/artifacts/{artifact_name}", actions.ArtifactsDeleteView)
 			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
@@ -1625,9 +1624,12 @@ func registerRoutes(m *web.Router) {
 	}
 
 	if !setting.IsProd {
-		m.Any("/devtest", devtest.List)
-		m.Any("/devtest/fetch-action-test", devtest.FetchActionTest)
-		m.Any("/devtest/{sub}", devtest.Tmpl)
+		m.Group("/devtest", func() {
+			m.Any("", devtest.List)
+			m.Any("/fetch-action-test", devtest.FetchActionTest)
+			m.Any("/{sub}", devtest.Tmpl)
+			m.Post("/actions-mock/runs/{run}/jobs/{job}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
+		})
 	}
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
