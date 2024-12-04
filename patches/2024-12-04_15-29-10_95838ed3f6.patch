@@ -1,0 +1,31 @@
+From 95838ed3f6769a44357a3a503c57c9e3e2110227 Mon Sep 17 00:00:00 2001
+From: Bart van der Braak <bart@blender.org>
+Date: Wed, 4 Dec 2024 15:29:10 +0100
+Subject: [PATCH] BLENDER: Add Python for external renderering
+
+To be used for RestructuredText rendering using Sphinx to HTML.
+
+See: https://projects.blender.org/infrastructure/gitea-custom/src/branch/main/sphinx#deployment
+---
+ Dockerfile.rootless | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/Dockerfile.rootless b/Dockerfile.rootless
+index 736cea5d05..5d298d94c4 100644
+--- a/Dockerfile.rootless
++++ b/Dockerfile.rootless
+@@ -54,6 +54,11 @@ RUN apk --no-cache add \
+     gnupg \
+     && rm -rf /var/cache/apk/*
+ 
++# External renderers
++RUN apk --no-cache add \
++    python3-dev \
++    && rm -rf /var/cache/apk/*
++
+ RUN addgroup \
+     -S -g 1000 \
+     git && \
+-- 
+2.45.2
+
