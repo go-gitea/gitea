@@ -196,6 +196,6 @@ export function initAreYouSure($) {
   };
 }
 
-export function applyAreYouSure(selector: string) {
-  $(selector).areYouSure();
+export function applyAreYouSure(selectorOrEl: string|Element|$, opts = {}) {
+  $(selectorOrEl).areYouSure(opts);
 }

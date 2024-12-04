@@ -6,6 +6,7 @@ package sender
 import (
 	"fmt"
 	"hash/fnv"
+	"net/mail"
 	"strings"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/jaytaylor/html2text"
-	"gopkg.in/gomail.v2"
+	gomail "github.com/wneessen/go-mail"
 )
 
 // Message mail body and log info
@@ -31,45 +32,46 @@ type Message struct {
 }
 
 // ToMessage converts a Message to gomail.Message
-func (m *Message) ToMessage() *gomail.Message {
-	msg := gomail.NewMessage()
-	msg.SetAddressHeader("From", m.FromAddress, m.FromDisplayName)
-	msg.SetHeader("To", m.To)
+func (m *Message) ToMessage() *gomail.Msg {
+	msg := gomail.NewMsg()
+	addr := mail.Address{Name: m.FromDisplayName, Address: m.FromAddress}
+	_ = msg.SetAddrHeader("From", addr.String())
+	_ = msg.SetAddrHeader("To", m.To)
 	if m.ReplyTo != "" {
-		msg.SetHeader("Reply-To", m.ReplyTo)
+		msg.SetGenHeader("Reply-To", m.ReplyTo)
 	}
 	for header := range m.Headers {
-		msg.SetHeader(header, m.Headers[header]...)
+		msg.SetGenHeader(gomail.Header(header), m.Headers[header]...)
 	}
 
 	if setting.MailService.SubjectPrefix != "" {
-		msg.SetHeader("Subject", setting.MailService.SubjectPrefix+" "+m.Subject)
+		msg.SetGenHeader("Subject", setting.MailService.SubjectPrefix+" "+m.Subject)
 	} else {
-		msg.SetHeader("Subject", m.Subject)
+		msg.SetGenHeader("Subject", m.Subject)
 	}
-	msg.SetDateHeader("Date", m.Date)
-	msg.SetHeader("X-Auto-Response-Suppress", "All")
+	msg.SetDateWithValue(m.Date)
+	msg.SetGenHeader("X-Auto-Response-Suppress", "All")
 
 	plainBody, err := html2text.FromString(m.Body)
 	if err != nil || setting.MailService.SendAsPlainText {
 		if strings.Contains(base.TruncateString(m.Body, 100), "<html>") {
 			log.Warn("Mail contains HTML but configured to send as plain text.")
 		}
-		msg.SetBody("text/plain", plainBody)
+		msg.SetBodyString("text/plain", plainBody)
 	} else {
-		msg.SetBody("text/plain", plainBody)
-		msg.AddAlternative("text/html", m.Body)
+		msg.SetBodyString("text/plain", plainBody)
+		msg.AddAlternativeString("text/html", m.Body)
 	}
 
-	if len(msg.GetHeader("Message-ID")) == 0 {
-		msg.SetHeader("Message-ID", m.generateAutoMessageID())
+	if len(msg.GetGenHeader("Message-ID")) == 0 {
+		msg.SetGenHeader("Message-ID", m.generateAutoMessageID())
 	}
 
 	for k, v := range setting.MailService.OverrideHeader {
-		if len(msg.GetHeader(k)) != 0 {
+		if len(msg.GetGenHeader(gomail.Header(k))) != 0 {
 			log.Debug("Mailer override header '%s' as per config", k)
 		}
-		msg.SetHeader(k, v...)
+		msg.SetGenHeader(gomail.Header(k), v...)
 	}
 
 	return msg
