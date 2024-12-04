@@ -25,8 +25,10 @@ Template Attributes:
 {{$supportEasyMDE := or (eq $previewMode "comment") (eq $previewMode "wiki")}}
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{if .CustomInit}}custom-init{{end}} {{.ContainerClasses}}"
 		data-dropzone-parent-container="{{.DropzoneParentContainer}}"
-		data-content-mode="{{$previewMode}}" data-support-easy-mde="{{$supportEasyMDE}}"
-		data-preview-url="{{$previewUrl}}" data-preview-context="{{$previewContext}}"
+		data-content-mode="{{$previewMode}}"
+		data-support-easy-mde="{{$supportEasyMDE}}"
+		data-preview-url="{{$previewUrl}}"
+		data-preview-context="{{$previewContext}}"
 >
 	<div class="ui top tabular menu">
 		<a class="active item" data-tab-for="markdown-writer">{{template "shared/misc/tabtitle" (ctx.Locale.Tr "write")}}</a>
