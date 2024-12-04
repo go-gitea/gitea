@@ -73,7 +73,7 @@ func TestToMessage(t *testing.T) {
 		"Message-ID":               "<autogen--6795364578871-69c000786adc60dc@localhost>",
 		"MIME-Version":             "1.0",
 		"Subject":                  "Issue X Closed",
-		"To":                       "a@b.com",
+		"To":                       "<a@b.com>",
 		"X-Auto-Response-Suppress": "All",
 	}, header)
 
@@ -93,7 +93,7 @@ func TestToMessage(t *testing.T) {
 		"Message-ID":               "",
 		"MIME-Version":             "1.0",
 		"Subject":                  "Issue X Closed",
-		"To":                       "a@b.com",
+		"To":                       "<a@b.com>",
 		"X-Auto-Response-Suppress": "All",
 		"Auto-Submitted":           "auto-generated",
 	}, header)
