@@ -294,6 +294,16 @@ type Comment struct {
 	ReviewID    int64   `xorm:"index"`
 	Invalidated bool
 
+	// Store IP and UserAgent that will be temporarily stored for
+	// life of the struct so that it could potentially be used
+	// for sending to akismet or other spam detection services.
+	UserIP    string `xorm:"-"`
+	UserAgent string `xorm:"-"`
+
+	// Spam services will return a risk level. Could be used in
+	// the future to have a threshold for preventing sending emails.
+	RiskLevel int `xorm:"-"`
+
 	// Reference an issue or pull from another comment, issue or PR
 	// All information is about the origin of the reference
 	RefRepoID    int64                 `xorm:"index"` // Repo where the referencing
