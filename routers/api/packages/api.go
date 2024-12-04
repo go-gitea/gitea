@@ -610,40 +610,46 @@ func CommonRoutes() *web.Router {
 			}, reqPackageAccess(perm.AccessModeWrite))
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/swift", func() {
-			r.Group("/{scope}/{name}", func() {
-				r.Group("", func() {
-					r.Get("", swift.EnumeratePackageVersions)
-					r.Get(".json", swift.EnumeratePackageVersions)
-				}, swift.CheckAcceptMediaType(swift.AcceptJSON))
-				r.Group("/{version}", func() {
-					r.Get("/Package.swift", swift.CheckAcceptMediaType(swift.AcceptSwift), swift.DownloadManifest)
-					r.Put("", reqPackageAccess(perm.AccessModeWrite), swift.CheckAcceptMediaType(swift.AcceptJSON), swift.UploadPackageFile)
-					r.Get("", func(ctx *context.Context) {
-						// Can't use normal routes here: https://github.com/go-chi/chi/issues/781
+			r.Group("", func() { // Needs to be unauthenticated.
+				r.Post("", swift.CheckAuthenticate)
+				r.Post("/login", swift.CheckAuthenticate)
+			})
+			r.Group("", func() {
+				r.Group("/{scope}/{name}", func() {
+					r.Group("", func() {
+						r.Get("", swift.EnumeratePackageVersions)
+						r.Get(".json", swift.EnumeratePackageVersions)
+					}, swift.CheckAcceptMediaType(swift.AcceptJSON))
+					r.Group("/{version}", func() {
+						r.Get("/Package.swift", swift.CheckAcceptMediaType(swift.AcceptSwift), swift.DownloadManifest)
+						r.Put("", reqPackageAccess(perm.AccessModeWrite), swift.CheckAcceptMediaType(swift.AcceptJSON), swift.UploadPackageFile)
+						r.Get("", func(ctx *context.Context) {
+							// Can't use normal routes here: https://github.com/go-chi/chi/issues/781
 
-						version := ctx.PathParam("version")
-						if strings.HasSuffix(version, ".zip") {
-							swift.CheckAcceptMediaType(swift.AcceptZip)(ctx)
-							if ctx.Written() {
-								return
+							version := ctx.PathParam("version")
+							if strings.HasSuffix(version, ".zip") {
+								swift.CheckAcceptMediaType(swift.AcceptZip)(ctx)
+								if ctx.Written() {
+									return
+								}
+								ctx.SetPathParam("version", version[:len(version)-4])
+								swift.DownloadPackageFile(ctx)
+							} else {
+								swift.CheckAcceptMediaType(swift.AcceptJSON)(ctx)
+								if ctx.Written() {
+									return
+								}
+								if strings.HasSuffix(version, ".json") {
+									ctx.SetPathParam("version", version[:len(version)-5])
+								}
+								swift.PackageVersionMetadata(ctx)
 							}
-							ctx.SetPathParam("version", version[:len(version)-4])
-							swift.DownloadPackageFile(ctx)
-						} else {
-							swift.CheckAcceptMediaType(swift.AcceptJSON)(ctx)
-							if ctx.Written() {
-								return
-							}
-							if strings.HasSuffix(version, ".json") {
-								ctx.SetPathParam("version", version[:len(version)-5])
-							}
-							swift.PackageVersionMetadata(ctx)
-						}
+						})
 					})
 				})
-			})
-			r.Get("/identifiers", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.LookupPackageIdentifiers)
-		}, reqPackageAccess(perm.AccessModeRead))
+				r.Get("/identifiers", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.LookupPackageIdentifiers)
+			}, reqPackageAccess(perm.AccessModeRead))
+		})
 		r.Group("/vagrant", func() {
 			r.Group("/authenticate", func() {
 				r.Get("", vagrant.CheckAuthenticate)
