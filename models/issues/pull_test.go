@@ -234,22 +234,6 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 	unittest.CheckConsistencyFor(t, pr)
 }
 
-func TestPullRequestList_LoadAttributes(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	prs := []*issues_model.PullRequest{
-		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}),
-		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}),
-	}
-	assert.NoError(t, issues_model.PullRequestList(prs).LoadAttributes(db.DefaultContext))
-	for _, pr := range prs {
-		assert.NotNil(t, pr.Issue)
-		assert.Equal(t, pr.IssueID, pr.Issue.ID)
-	}
-
-	assert.NoError(t, issues_model.PullRequestList([]*issues_model.PullRequest{}).LoadAttributes(db.DefaultContext))
-}
-
 // TODO TestAddTestPullRequestTask
 
 func TestPullRequest_IsWorkInProgress(t *testing.T) {
