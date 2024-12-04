@@ -54,6 +54,11 @@ RUN apk --no-cache add \
     gnupg \
     && rm -rf /var/cache/apk/*
 
+# External renderers
+RUN apk --no-cache add \
+    python3-dev \
+    && rm -rf /var/cache/apk/*
+
 RUN addgroup \
     -S -g 1000 \
     git && \
