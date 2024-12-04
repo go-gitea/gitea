@@ -47,8 +47,8 @@
 					</button>
 				</div>
 			{{end}}
-
-			{{if and .OAuth2Providers .EnableOpenIDSignIn}}
+			{{$showOAuth2Methods := or .OAuth2Providers .EnableOpenIDSignIn}}
+			{{if $showOAuth2Methods}}
 				<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
 				{{template "user/auth/oauth_container" .}}
 			{{end}}
