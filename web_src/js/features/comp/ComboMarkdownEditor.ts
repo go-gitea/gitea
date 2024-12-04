@@ -1,6 +1,5 @@
 import '@github/markdown-toolbar-element';
 import '@github/text-expander-element';
-import $ from 'jquery';
 import {attachTribute} from '../tribute.ts';
 import {hideElem, showElem, autosize, isElemVisible} from '../../utils/dom.ts';
 import {
@@ -23,6 +22,8 @@ import {
 } from './EditorMarkdown.ts';
 import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
 import {createTippy} from '../../modules/tippy.ts';
+import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import type EasyMDE from 'easymde';
 
 let elementIdCounter = 0;
 
@@ -48,18 +49,23 @@ export function validateTextareaNonEmpty(textarea) {
   return true;
 }
 
+type ComboMarkdownEditorOptions = {
+  editorHeights?: {minHeight?: string, height?: string, maxHeight?: string},
+  easyMDEOptions?: EasyMDE.Options,
+};
+
 export class ComboMarkdownEditor {
   static EventEditorContentChanged = EventEditorContentChanged;
   static EventUploadStateChanged = EventUploadStateChanged;
 
   public container : HTMLElement;
 
-  // TODO: use correct types to replace these "any" types
-  options: any;
+  options: ComboMarkdownEditorOptions;
 
   tabEditor: HTMLElement;
   tabPreviewer: HTMLElement;
 
+  supportEasyMDE: boolean;
   easyMDE: any;
   easyMDEToolbarActions: any;
   easyMDEToolbarDefault: any;
@@ -71,11 +77,12 @@ export class ComboMarkdownEditor {
   dropzone: HTMLElement;
   attachedDropzoneInst: any;
 
+  previewMode: string;
   previewUrl: string;
   previewContext: string;
-  previewMode: string;
 
-  constructor(container, options = {}) {
+  constructor(container, options:ComboMarkdownEditorOptions = {}) {
+    if (container._giteaComboMarkdownEditor) throw new Error('ComboMarkdownEditor already initialized');
     container._giteaComboMarkdownEditor = this;
     this.options = options;
     this.container = container;
@@ -99,6 +106,10 @@ export class ComboMarkdownEditor {
   }
 
   setupContainer() {
+    this.supportEasyMDE = this.container.getAttribute('data-support-easy-mde') === 'true';
+    this.previewMode = this.container.getAttribute('data-content-mode');
+    this.previewUrl = this.container.getAttribute('data-preview-url');
+    this.previewContext = this.container.getAttribute('data-preview-context');
     initTextExpander(this.container.querySelector('text-expander'));
   }
 
@@ -137,12 +148,14 @@ export class ComboMarkdownEditor {
       monospaceButton.setAttribute('aria-checked', String(enabled));
     });
 
-    const easymdeButton = this.container.querySelector('.markdown-switch-easymde');
-    easymdeButton.addEventListener('click', async (e) => {
-      e.preventDefault();
-      this.userPreferredEditor = 'easymde';
-      await this.switchToEasyMDE();
-    });
+    if (this.supportEasyMDE) {
+      const easymdeButton = this.container.querySelector('.markdown-switch-easymde');
+      easymdeButton.addEventListener('click', async (e) => {
+        e.preventDefault();
+        this.userPreferredEditor = 'easymde';
+        await this.switchToEasyMDE();
+      });
+    }
 
     this.initMarkdownButtonTableAdd();
 
@@ -187,6 +200,7 @@ export class ComboMarkdownEditor {
 
   setupTab() {
     const tabs = this.container.querySelectorAll<HTMLElement>('.tabular.menu > .item');
+    if (!tabs.length) return;
 
     // Fomantic Tab requires the "data-tab" to be globally unique.
     // So here it uses our defined "data-tab-for" and "data-tab-panel" to generate the "data-tab" attribute for Fomantic.
@@ -207,11 +221,8 @@ export class ComboMarkdownEditor {
       });
     });
 
-    $(tabs).tab();
+    fomanticQuery(tabs).tab();
 
-    this.previewUrl = this.tabPreviewer.getAttribute('data-preview-url');
-    this.previewContext = this.tabPreviewer.getAttribute('data-preview-context');
-    this.previewMode = this.options.previewMode ?? 'comment';
     this.tabPreviewer.addEventListener('click', async () => {
       const formData = new FormData();
       formData.append('mode', this.previewMode);
@@ -219,7 +230,7 @@ export class ComboMarkdownEditor {
       formData.append('text', this.value());
       const response = await POST(this.previewUrl, {data: formData});
       const data = await response.text();
-      renderPreviewPanelContent($(panelPreviewer), data);
+      renderPreviewPanelContent(panelPreviewer, data);
     });
   }
 
@@ -284,7 +295,7 @@ export class ComboMarkdownEditor {
   }
 
   async switchToUserPreference() {
-    if (this.userPreferredEditor === 'easymde') {
+    if (this.userPreferredEditor === 'easymde' && this.supportEasyMDE) {
       await this.switchToEasyMDE();
     } else {
       this.switchToTextarea();
@@ -304,7 +315,7 @@ export class ComboMarkdownEditor {
     if (this.easyMDE) return;
     // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can not overwrite the default styles.
     const {default: EasyMDE} = await import(/* webpackChunkName: "easymde" */'easymde');
-    const easyMDEOpt = {
+    const easyMDEOpt: EasyMDE.Options = {
       autoDownloadFontAwesome: false,
       element: this.textarea,
       forceSync: true,
@@ -384,19 +395,20 @@ export class ComboMarkdownEditor {
   }
 
   get userPreferredEditor() {
-    return window.localStorage.getItem(`markdown-editor-${this.options.useScene ?? 'default'}`);
+    return window.localStorage.getItem(`markdown-editor-${this.previewMode ?? 'default'}`);
   }
   set userPreferredEditor(s) {
-    window.localStorage.setItem(`markdown-editor-${this.options.useScene ?? 'default'}`, s);
+    window.localStorage.setItem(`markdown-editor-${this.previewMode ?? 'default'}`, s);
   }
 }
 
 export function getComboMarkdownEditor(el) {
-  if (el instanceof $) el = el[0];
-  return el?._giteaComboMarkdownEditor;
+  if (!el) return null;
+  if (el.length) el = el[0];
+  return el._giteaComboMarkdownEditor;
 }
 
-export async function initComboMarkdownEditor(container: HTMLElement, options = {}) {
+export async function initComboMarkdownEditor(container: HTMLElement, options:ComboMarkdownEditorOptions = {}) {
   if (!container) {
     throw new Error('initComboMarkdownEditor: container is null');
   }
