@@ -64,16 +64,12 @@
 
 				<div class="required field">
 					<label for="source_repository">{{ctx.Locale.Tr "repo.issues.create_branch_from_repository"}}</label>
-					<div class="ui fluid dropdown selection">
-						<select name="repo_id">
-							{{range .AllowedRepos}}
-								<option value="{{.ID}}">{{.FullName}}</option>
-							{{end}}
-						</select>
+					<div class="ui selection dropdown">
+						<input type="hidden" name="repo_id" value="{{.Issue.Repo.ID}}">
+						<div class="text">
+							<strong id="repo-branch-current">{{.Issue.Repo.FullName}}</strong>
+						</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-
-						<div class="default text"> </div>
-
 						<div class="menu">
 							{{range .AllowedRepos}}
 								<div class="item" data-value="{{.ID}}">{{.FullName}}</div>
@@ -84,17 +80,15 @@
 
 				<div class="required field">
 					<label for="source_branch_name">{{ctx.Locale.Tr "repo.issues.base_branch"}}</label>
-					<div class="ui selection owner dropdown">
-						<input type="hidden" id="source_branch_name" name="source_branch_name" value="{{.Issue.Repo.DefaultBranch}}" required>
-						<span class="text truncated-item-container" data-value="{{.Issue.Repo.DefaultBranch}}" title="{{.Issue.Repo.DefaultBranch}}">
-							<span class="truncated-item-name">{{.Issue.Repo.DefaultBranch}}</span>
-						</span>
+					<div class="ui selection dropdown">
+						<input type="hidden" name="source_branch_name" value="{{.Issue.Repo.DefaultBranch}}">
+						<div class="text">
+							<strong id="repo-branch-current">{{.Issue.Repo.DefaultBranch}}</strong>
+						</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							{{range .Branches}}
-								<div class="item truncated-item-container" data-value="{{.}}" title="{{.}}">
-									<span class="truncated-item-name">{{.}}</span>
-								</div>
+								<div class="item" data-value="{{.}}">{{.}}</div>
 							{{end}}
 						</div>
 					</div>
