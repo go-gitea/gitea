@@ -624,7 +624,7 @@ func CommonRoutes() *web.Route {
 						r.Get("", func(ctx *context.Context) {
 							// Can't use normal routes here: https://github.com/go-chi/chi/issues/781
 
-							version := ctx.PathParam("version")
+							version := ctx.Params("version")
 							if strings.HasSuffix(version, ".zip") {
 								swift.CheckAcceptMediaType(swift.AcceptZip)(ctx)
 								if ctx.Written() {
