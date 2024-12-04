@@ -24,8 +24,11 @@
 			{{end}}
 			{{template "shared/combomarkdowneditor" (dict
 				"CustomInit" true
-				"MarkdownPreviewInRepo" $.Repository "MarkdownPreviewMode" "wiki"
-				"TextareaName" "content" "TextareaContent" $content "TextareaPlaceholder" (ctx.Locale.Tr "repo.wiki.page_content")
+				"MarkdownPreviewInRepo" $.Repository
+				"MarkdownPreviewMode" "wiki"
+				"TextareaName" "content"
+				"TextareaContent" $content
+				"TextareaPlaceholder" (ctx.Locale.Tr "repo.wiki.page_content")
 			)}}
 
 			<div class="field tw-mt-4">

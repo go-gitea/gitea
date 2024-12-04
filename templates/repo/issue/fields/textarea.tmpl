@@ -9,8 +9,10 @@
 		{{template "shared/combomarkdowneditor" (dict
 			"CustomInit" true
 			"ContainerClasses" "tw-hidden"
-			"MarkdownPreviewInRepo" $.root.Repository "MarkdownPreviewMode" "comment"
-			"TextareaContent" .item.Attributes.value "TextareaPlaceholder"  .item.Attributes.placeholder
+			"MarkdownPreviewInRepo" $.root.Repository
+			"MarkdownPreviewMode" "comment"
+			"TextareaContent" .item.Attributes.value
+			"TextareaPlaceholder" .item.Attributes.placeholder
 			"DropzoneParentContainer" ".combo-editor-dropzone"
 		)}}
 

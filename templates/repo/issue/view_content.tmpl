@@ -143,7 +143,8 @@
 		<div class="field">
 			{{template "shared/combomarkdowneditor" (dict
 				"CustomInit" true
-				"MarkdownPreviewInRepo" $.Repository "MarkdownPreviewMode" "comment"
+				"MarkdownPreviewInRepo" $.Repository
+				"MarkdownPreviewMode" "comment"
 				"TextareaName" "content"
 				"DropzoneParentContainer" ".ui.form"
 			)}}

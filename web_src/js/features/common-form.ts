@@ -13,15 +13,14 @@ export function initGlobalFormDirtyLeaveConfirm() {
 }
 
 export function initGlobalEnterQuickSubmit() {
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', (e: KeyboardEvent & {target: HTMLElement}) => {
     if (e.key !== 'Enter') return;
-    const target = e.target as HTMLElement;
     const hasCtrlOrMeta = ((e.ctrlKey || e.metaKey) && !e.altKey);
-    if (hasCtrlOrMeta && target.matches('textarea')) {
+    if (hasCtrlOrMeta && e.target.matches('textarea')) {
       if (handleGlobalEnterQuickSubmit(e.target)) {
         e.preventDefault();
       }
-    } else if (target.matches('input') && !target.closest('form')) {
+    } else if (e.target.matches('input') && !e.target.closest('form')) {
       // input in a normal form could handle Enter key by default, so we only handle the input outside a form
       // eslint-disable-next-line unicorn/no-lonely-if
       if (handleGlobalEnterQuickSubmit(e.target)) {
