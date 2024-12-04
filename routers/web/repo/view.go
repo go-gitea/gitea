@@ -888,6 +888,10 @@ func renderLanguageStats(ctx *context.Context) {
 }
 
 func renderLatestRelease(ctx *context.Context) {
+	if !ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypeReleases) || unit_model.TypeReleases.UnitGlobalDisabled() {
+		return
+	}
+
 	release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.ServerError("GetLatestReleaseByRepoID", err)
