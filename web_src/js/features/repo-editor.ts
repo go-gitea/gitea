@@ -201,10 +201,8 @@ export function initRepoEditor() {
   })();
 }
 
-export function renderPreviewPanelContent($previewPanel, data) {
-  $previewPanel.html(data);
+export function renderPreviewPanelContent(previewPanel: Element, content: string) {
+  previewPanel.innerHTML = content;
   initMarkupContent();
-
-  const $refIssues = $previewPanel.find('p .ref-issue');
-  attachRefIssueContextPopup($refIssues);
+  attachRefIssueContextPopup(previewPanel.querySelectorAll('p .ref-issue'));
 }

@@ -23,6 +23,7 @@
 							<input id="email" name="email" type="email" value="{{.Org.Email}}" maxlength="255">
 						</div>
 						<div class="field {{if .Err_Description}}error{{end}}">
+							{{/* it is rendered as markdown, but the length is limited, so at the moment we do not use the markdown editor here */}}
 							<label for="description">{{ctx.Locale.Tr "org.org_desc"}}</label>
 							<textarea id="description" name="description" rows="2" maxlength="255">{{.Org.Description}}</textarea>
 						</div>
