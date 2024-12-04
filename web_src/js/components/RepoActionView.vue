@@ -903,7 +903,7 @@ export function initRepositoryActionView() {
 .job-log-group-summary > .job-log-line {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: -1; /* to avoid hiding the triangle of the "details" element */
   overflow: hidden;
 }
 </style>
