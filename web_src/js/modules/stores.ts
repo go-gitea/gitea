@@ -9,3 +9,12 @@ export function diffTreeStore() {
   }
   return diffTreeStoreReactive;
 }
+
+let viewTreeStoreReactive: Reactive<Record<string, any>>;
+export function viewTreeStore() {
+  if (!viewTreeStoreReactive) {
+    viewTreeStoreReactive = reactive(window.config.pageData.viewFileInfo);
+    window.config.pageData.viewFileInfo = viewTreeStoreReactive;
+  }
+  return viewTreeStoreReactive;
+}
