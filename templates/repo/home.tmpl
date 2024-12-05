@@ -184,7 +184,7 @@
 							</div>
 						{{end}}
 
-						{{if and (.Permission.CanRead ctx.Consts.RepoUnitTypeCode) (not .IsEmptyRepo) .LanguageStats}}
+						{{if and (not .IsEmptyRepo) .LanguageStats}}
 							<div class="flex-item">
 								<div class="flex-item-main">
 									<div class="flex-item-title">
