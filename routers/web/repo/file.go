@@ -20,7 +20,6 @@ func canReadFiles(r *context.Repository) bool {
 
 // GetContents Get the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
 func GetContents(ctx *context.Context) {
-
 	if !canReadFiles(ctx.Repo) {
 		ctx.NotFound("Invalid FilePath", nil)
 		return
