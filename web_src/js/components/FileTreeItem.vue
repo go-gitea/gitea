@@ -11,7 +11,7 @@ type Item = {
 
 const props = defineProps<{
   item: Item,
-  selected: string,
+  selected?: string,
   collapsed: boolean,
   fileUrlGetter: any,
   fileClassGetter?: any,

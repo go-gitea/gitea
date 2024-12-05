@@ -1,13 +1,4 @@
 {{template "base/head" .}}
-<script id="view-data-script" type="module">
-	let viewFileInfo = window.config.pageData.viewFileInfo || {
-		files:[],
-		fileTreeIsVisible: false,
-		selectedItem: '',
-		apiBaseUrl: {{.RepoLink}},
-	};
-	window.config.pageData.viewFileInfo = viewFileInfo;
-</script>
 {{$n := len .TreeNames}}
 {{$l := Eval $n "-" 1}}
 {{$isHomepage := (eq $n 0)}}
@@ -57,7 +48,7 @@
 		{{template "repo/sub_menu" .}}
 		<div class="tree-container">
 			{{if $showTree}}
-			<div id="view-file-tree" class="file-tree tree-left tw-hidden not-mobile"></div>
+			<div id="view-file-tree" class="file-tree tree-left tw-hidden not-mobile" data-api-base-url="{{.RepoLink}}"></div>
 			{{end}}
 			<div class="tree-right">
 		<div class="repo-button-row" data-is-homepage="{{$isHomepage}}">

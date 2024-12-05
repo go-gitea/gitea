@@ -2,14 +2,10 @@
 import FileTree from './FileTree.vue';
 import {GET} from '../modules/fetch.ts';
 import {toggleElem} from '../utils/dom.ts';
-import {viewTreeStore} from '../modules/stores.ts';
-import {setFileFolding} from '../features/file-fold.ts';
 import {ref, onMounted, onUnmounted} from 'vue';
 
-const LOCAL_STORAGE_KEY = 'view_file_tree_visible';
-
-const store = viewTreeStore();
-
+const files = ref(null);
+const visible = ref(false);
 const isLoading = ref(false);
 
 onMounted(async () => {
@@ -17,42 +13,23 @@ onMounted(async () => {
   updateVisibility(false);
   document.querySelector('.view-toggle-file-tree-button').addEventListener('click', toggleVisibility);
 
-  hashChangeListener();
-  window.addEventListener('hashchange', hashChangeListener);
-
   isLoading.value = true;
-  const files = await loadChildren();
-  store.files = files;
+  const children = await loadChildren();
+  files.value = children;
   isLoading.value = false;
 });
 
 onUnmounted(() => {
   document.querySelector('.view-toggle-file-tree-button').removeEventListener('click', toggleVisibility);
-  window.removeEventListener('hashchange', hashChangeListener);
 });
 
-function hashChangeListener() {
-  store.selectedItem = window.location.hash;
-  expandSelectedFile();
-}
-
-function expandSelectedFile() {
-  // expand file if the selected file is folded
-  if (store.selectedItem) {
-    const box = document.querySelector(store.selectedItem);
-    const folded = box?.getAttribute('data-folded') === 'true';
-    if (folded) setFileFolding(box, box.querySelector('.fold-file'), false);
-  }
-}
-
 function toggleVisibility() {
-  updateVisibility(!store.fileTreeIsVisible);
+  updateVisibility(!visible.value);
 }
 
-function updateVisibility(visible) {
-  store.fileTreeIsVisible = visible;
-  localStorage.setItem(LOCAL_STORAGE_KEY, store.fileTreeIsVisible);
-  updateState(store.fileTreeIsVisible);
+function updateVisibility(_visible) {
+  visible.value = _visible;
+  updateState(visible.value);
 }
 
 function updateState(visible) {
@@ -67,7 +44,9 @@ function updateState(visible) {
 }
 
 async function loadChildren(item?) {
-  const response = await GET(`/api/v1/repos/${window.config.pageData.viewFileInfo.apiBaseUrl}/contents/${item ? item.file.path : ''}`);
+  const el = document.querySelector('#view-file-tree');
+  const apiBaseUrl = el.getAttribute('data-api-base-url');
+  const response = await GET(`/api/v1/repos/${apiBaseUrl}/contents/${item ? item.file.path : ''}`);
   const json = await response.json();
   return json.map((i) => ({
     file: i,
@@ -79,12 +58,11 @@ async function loadChildren(item?) {
 
 <template>
   <FileTree
-    v-if="store.fileTreeIsVisible"
+    v-if="visible"
     id="view-file-tree"
     :is-loading="isLoading"
-    :files="store.files"
+    :files="files"
     :collapsed="true"
-    :selected="store.selectedItem"
     :file-url-getter="item => item.file.html_url"
     :load-children="loadChildren"
   />

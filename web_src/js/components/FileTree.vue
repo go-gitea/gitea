@@ -5,7 +5,7 @@ import FileTreeItem from './FileTreeItem.vue';
 defineProps<{
   id: string,
   files: any[],
-  selected: string,
+  selected?: string,
   isLoading: boolean,
   collapsed: boolean,
   fileUrlGetter: any,
