@@ -9,7 +9,6 @@ import (
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 )
@@ -27,29 +26,6 @@ func DeleteRepoDeployKeys(ctx context.Context, doer *user_model.User, repoID int
 		}
 	}
 	return len(deployKeys), nil
-}
-
-// checkDeployPerm Check if user has access to delete this key.
-func checkDeployPerm(ctx context.Context, doer *user_model.User, repoID, keyID int64) error {
-	if doer.IsAdmin {
-		return nil
-	}
-	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryByID: %w", err)
-	}
-	has, err := access_model.IsUserRepoAdmin(ctx, repo, doer)
-	if err != nil {
-		return fmt.Errorf("IsUserRepoAdmin: %w", err)
-	} else if !has {
-		return asymkey_model.ErrKeyAccessDenied{
-			UserID: doer.ID,
-			RepoID: repoID,
-			KeyID:  keyID,
-			Note:   "deploy",
-		}
-	}
-	return nil
 }
 
 // deleteDeployKeyFromDB delete deploy keys from database
@@ -72,7 +48,8 @@ func deleteDeployKeyFromDB(ctx context.Context, key *asymkey_model.DeployKey) er
 }
 
 // DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
-func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error {
+// Permissions check should be done outside.
+func DeleteDeployKey(ctx context.Context, repo *repo_model.Repository, id int64) error {
 	dbCtx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -87,8 +64,8 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		return fmt.Errorf("GetDeployKeyByID: %w", err)
 	}
 
-	if err := checkDeployPerm(ctx, doer, key.RepoID, key.ID); err != nil {
-		return err
+	if key.RepoID != repo.ID {
+		return fmt.Errorf("deploy key %d does not belong to repository %d", id, repo.ID)
 	}
 
 	if err := deleteDeployKeyFromDB(dbCtx, key); err != nil {
