@@ -17,7 +17,7 @@
 {{$showTree := not $isHomepage}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository file list {{if .IsBlame}}blame{{end}}">
 	{{template "repo/header" .}}
-	<div class="ui container {{if .IsBlame}}fluid padded{{end}} {{if $showTree}}tree-mode-container{{end}}"">
+	<div class="ui container {{if .IsBlame}}fluid padded{{end}} {{if $showTree}}tree-mode-container{{end}}">
 		{{template "base/alert" .}}
 		{{template "repo/code/recently_pushed_new_branches" .}}
 		{{if and (not .HideRepoInfo) (not .IsBlame)}}
