@@ -46,7 +46,7 @@ function updateState(visible) {
 async function loadChildren(item?) {
   const el = document.querySelector('#view-file-tree');
   const apiBaseUrl = el.getAttribute('data-api-base-url');
-  const response = await GET(`/api/v1/repos/${apiBaseUrl}/contents/${item ? item.file.path : ''}`);
+  const response = await GET(`${apiBaseUrl}/contents/${item ? item.file.path : ''}`);
   const json = await response.json();
   return json.map((i) => ({
     file: i,
