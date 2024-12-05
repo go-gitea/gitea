@@ -240,8 +240,9 @@
 		<template id="issue-comment-editor-template">
 			<div class="ui form comment">
 				{{template "shared/combomarkdowneditor" (dict
-					"MarkdownPreviewUrl" (print $.Repository.Link "/markup")
-					"MarkdownPreviewContext" $.RepoLink
+					"CustomInit" true
+					"MarkdownPreviewInRepo" $.Repository
+					"MarkdownPreviewMode" "comment"
 					"TextareaName" "content"
 					"DropzoneParentContainer" ".ui.form"
 				)}}

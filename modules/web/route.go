@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strings"
 
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 
@@ -214,7 +215,9 @@ func (r *Router) normalizeRequestPath(resp http.ResponseWriter, req *http.Reques
 			normalizedPath = "/"
 		} else if !strings.HasPrefix(normalizedPath+"/", "/v2/") {
 			// do not respond to other requests, to simulate a real sub-path environment
-			http.Error(resp, "404 page not found, sub-path is: "+setting.AppSubURL, http.StatusNotFound)
+			resp.Header().Add("Content-Type", "text/html; charset=utf-8")
+			resp.WriteHeader(http.StatusNotFound)
+			_, _ = resp.Write([]byte(htmlutil.HTMLFormat(`404 page not found, sub-path is: <a href="%s">%s</a>`, setting.AppSubURL, setting.AppSubURL)))
 			return
 		}
 		normalized = true

@@ -38,7 +38,7 @@ function initRepoDiffFileViewToggle() {
 }
 
 function initRepoDiffConversationForm() {
-  addDelegatedEventListener<HTMLFormElement>(document, 'submit', '.conversation-holder form', async (form, e) => {
+  addDelegatedEventListener<HTMLFormElement, SubmitEvent>(document, 'submit', '.conversation-holder form', async (form, e) => {
     e.preventDefault();
     const textArea = form.querySelector<HTMLTextAreaElement>('textarea');
     if (!validateTextareaNonEmpty(textArea)) return;
@@ -55,7 +55,9 @@ function initRepoDiffConversationForm() {
         formData.append(submitter.name, submitter.value);
       }
 
-      const trLineType = form.closest('tr').getAttribute('data-line-type');
+      // on the diff page, the form is inside a "tr" and need to get the line-type ahead
+      // but on the conversation page, there is no parent "tr"
+      const trLineType = form.closest('tr')?.getAttribute('data-line-type');
       const response = await POST(form.getAttribute('action'), {data: formData});
       const newConversationHolder = createElementFromHTML(await response.text());
       const path = newConversationHolder.getAttribute('data-path');
@@ -65,14 +67,18 @@ function initRepoDiffConversationForm() {
       form.closest('.conversation-holder').replaceWith(newConversationHolder);
       form = null; // prevent further usage of the form because it should have been replaced
 
-      let selector;
-      if (trLineType === 'same') {
-        selector = `[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`;
-      } else {
-        selector = `[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`;
-      }
-      for (const el of document.querySelectorAll(selector)) {
-        el.classList.add('tw-invisible'); // TODO need to figure out why
+      if (trLineType) {
+        // if there is a line-type for the "tr", it means the form is on the diff page
+        // then hide the "add-code-comment" [+] button for current code line by adding "tw-invisible" because the conversation has been added
+        let selector;
+        if (trLineType === 'same') {
+          selector = `[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`;
+        } else {
+          selector = `[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`;
+        }
+        for (const el of document.querySelectorAll(selector)) {
+          el.classList.add('tw-invisible');
+        }
       }
       fomanticQuery(newConversationHolder.querySelectorAll('.ui.dropdown')).dropdown();
 
@@ -109,7 +115,7 @@ function initRepoDiffConversationForm() {
         const $conversation = $(data);
         $(this).closest('.conversation-holder').replaceWith($conversation);
         $conversation.find('.dropdown').dropdown();
-        initCompReactionSelector($conversation);
+        initCompReactionSelector($conversation[0]);
       } else {
         window.location.reload();
       }

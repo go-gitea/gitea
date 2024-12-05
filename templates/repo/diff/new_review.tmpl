@@ -16,8 +16,8 @@
 				</div>
 				<div class="field">
 					{{template "shared/combomarkdowneditor" (dict
-						"MarkdownPreviewUrl" (print .Repository.Link "/markup")
-						"MarkdownPreviewContext" .RepoLink
+						"MarkdownPreviewInRepo" $.Repository
+						"MarkdownPreviewMode" "comment"
 						"TextareaName" "content"
 						"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.review.placeholder")
 						"DropzoneParentContainer" "form"

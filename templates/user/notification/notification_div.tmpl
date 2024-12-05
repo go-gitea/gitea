@@ -53,7 +53,7 @@
 								<div class="notifications-bottom-row tw-text-16 tw-py-0.5">
 									<span class="issue-title tw-break-anywhere">
 										{{if .Issue}}
-											{{.Issue.Title | ctx.RenderUtils.RenderEmoji | RenderCodeBlock}}
+											{{.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}
 										{{else}}
 											{{.Repository.FullName}}
 										{{end}}

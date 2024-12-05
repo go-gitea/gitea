@@ -12,7 +12,20 @@
 						<a class="muted" href="{{if not (and $release.Sha1 ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode))}}#{{else}}{{$.RepoLink}}/src/tag/{{$release.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "tw-mr-1"}}{{$release.TagName}}</a>
 						{{if and $release.Sha1 ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 							<a class="muted tw-font-mono" href="{{$.RepoLink}}/src/commit/{{$release.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "tw-mr-1"}}{{ShortSha $release.Sha1}}</a>
-							{{template "repo/branch_dropdown" dict "root" $ "release" $release}}
+							{{$compareTarget := ""}}
+							{{if $release.IsDraft}}
+									{{$compareTarget = $release.Target}}
+							{{else if $release.TagName}}
+									{{$compareTarget = $release.TagName}}
+							{{else}}
+								{{$compareTarget = $release.Sha1}}
+							{{end}}
+							{{template "repo/branch_dropdown" dict
+								"Repository" $.Repository
+								"ShowTabTags" true
+								"DropdownFixedText" (ctx.Locale.Tr "repo.release.compare")
+								"RefLinkTemplate" (print "{RepoLink}/compare/{RefShortName}..." (PathEscapeSegments $compareTarget))
+							}}
 						{{end}}
 					</div>
 					<div class="ui segment detail">

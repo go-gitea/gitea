@@ -2,6 +2,7 @@ import {initMarkupContent} from '../markup/content.ts';
 import {validateTextareaNonEmpty, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {fomanticMobileScreen} from '../modules/fomantic.ts';
 import {POST} from '../modules/fetch.ts';
+import type {ComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 
 async function initRepoWikiFormEditor() {
   const editArea = document.querySelector<HTMLTextAreaElement>('.repository.wiki .combo-markdown-editor textarea');
@@ -9,7 +10,7 @@ async function initRepoWikiFormEditor() {
 
   const form = document.querySelector('.repository.wiki.new .ui.form');
   const editorContainer = form.querySelector<HTMLElement>('.combo-markdown-editor');
-  let editor;
+  let editor: ComboMarkdownEditor;
 
   let renderRequesting = false;
   let lastContent;
@@ -45,12 +46,10 @@ async function initRepoWikiFormEditor() {
   renderEasyMDEPreview();
 
   editor = await initComboMarkdownEditor(editorContainer, {
-    useScene: 'wiki',
     // EasyMDE has some problems of height definition, it has inline style height 300px by default, so we also use inline styles to override it.
     // And another benefit is that we only need to write the style once for both editors.
     // TODO: Move height style to CSS after EasyMDE removal.
     editorHeights: {minHeight: '300px', height: 'calc(100vh - 600px)'},
-    previewMode: 'wiki',
     easyMDEOptions: {
       previewRender: (_content, previewTarget) => previewTarget.innerHTML, // disable builtin preview render
       toolbar: ['bold', 'italic', 'strikethrough', '|',
@@ -59,7 +58,7 @@ async function initRepoWikiFormEditor() {
         'unordered-list', 'ordered-list', '|',
         'link', 'image', 'table', 'horizontal-rule', '|',
         'preview', 'fullscreen', 'side-by-side', '|', 'gitea-switch-to-textarea',
-      ],
+      ] as any, // to use custom toolbar buttons
     },
   });
 

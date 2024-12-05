@@ -142,8 +142,9 @@
 	<div class="ui form comment">
 		<div class="field">
 			{{template "shared/combomarkdowneditor" (dict
-				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
-				"MarkdownPreviewContext" .RepoLink
+				"CustomInit" true
+				"MarkdownPreviewInRepo" $.Repository
+				"MarkdownPreviewMode" "comment"
 				"TextareaName" "content"
 				"DropzoneParentContainer" ".ui.form"
 			)}}

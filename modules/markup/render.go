@@ -57,6 +57,9 @@ type RenderOptions struct {
 type RenderContext struct {
 	ctx context.Context
 
+	// the context might be used by the "render" function, but it might also be used by "postProcess" function
+	usedByRender bool
+
 	SidebarTocNode ast.Node
 
 	RenderHelper   RenderHelper
@@ -182,6 +185,7 @@ func pipes() (io.ReadCloser, io.WriteCloser, func()) {
 }
 
 func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
+	ctx.usedByRender = true
 	if ctx.RenderHelper != nil {
 		defer ctx.RenderHelper.CleanUp()
 	}

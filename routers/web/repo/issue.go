@@ -637,8 +637,12 @@ func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment,
 	return attachHTML
 }
 
-// get all teams that current user can mention
-func handleTeamMentions(ctx *context.Context) {
+// handleMentionableAssigneesAndTeams gets all teams that current user can mention, and fills the assignee users to the context data
+func handleMentionableAssigneesAndTeams(ctx *context.Context, assignees []*user_model.User) {
+	// TODO: need to figure out how many places this is really used, and rename it to "MentionableAssignees"
+	// at the moment it is used on the issue list page, for the markdown editor mention
+	ctx.Data["Assignees"] = assignees
+
 	if ctx.Doer == nil || !ctx.Repo.Owner.IsOrganization() {
 		return
 	}

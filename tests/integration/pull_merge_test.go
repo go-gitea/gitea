@@ -554,6 +554,10 @@ func TestPullRetargetChildOnBranchDelete(t *testing.T) {
 
 		testPullMerge(t, session, elemBasePR[1], elemBasePR[2], elemBasePR[4], repo_model.MergeStyleMerge, true)
 
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		branchBasePR := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo1.ID, Name: "base-pr"})
+		assert.True(t, branchBasePR.IsDeleted)
+
 		// Check child PR
 		req := NewRequest(t, "GET", test.RedirectURL(respChildPR))
 		resp := session.MakeRequest(t, req, http.StatusOK)
@@ -584,6 +588,10 @@ func TestPullDontRetargetChildOnWrongRepo(t *testing.T) {
 
 		testPullMerge(t, session, elemBasePR[1], elemBasePR[2], elemBasePR[4], repo_model.MergeStyleMerge, true)
 
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
+		branchBasePR := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo1.ID, Name: "base-pr"})
+		assert.True(t, branchBasePR.IsDeleted)
+
 		// Check child PR
 		req := NewRequest(t, "GET", test.RedirectURL(respChildPR))
 		resp := session.MakeRequest(t, req, http.StatusOK)
@@ -595,6 +603,27 @@ func TestPullDontRetargetChildOnWrongRepo(t *testing.T) {
 
 		assert.EqualValues(t, "base-pr", targetBranch)
 		assert.EqualValues(t, "Closed", prStatus)
+	})
+}
+
+func TestPullRequestMergedWithNoPermissionDeleteBranch(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user4")
+		testRepoFork(t, session, "user2", "repo1", "user4", "repo1", "")
+		testEditFileToNewBranch(t, session, "user4", "repo1", "master", "base-pr", "README.md", "Hello, World\n(Edited - TestPullDontRetargetChildOnWrongRepo - base PR)\n")
+
+		respBasePR := testPullCreate(t, session, "user4", "repo1", false, "master", "base-pr", "Base Pull Request")
+		elemBasePR := strings.Split(test.RedirectURL(respBasePR), "/")
+		assert.EqualValues(t, "pulls", elemBasePR[3])
+
+		// user2 has no permission to delete branch of repo user1/repo1
+		session2 := loginUser(t, "user2")
+		testPullMerge(t, session2, elemBasePR[1], elemBasePR[2], elemBasePR[4], repo_model.MergeStyleMerge, true)
+
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user4", Name: "repo1"})
+		branchBasePR := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo1.ID, Name: "base-pr"})
+		// branch has not been deleted
+		assert.False(t, branchBasePR.IsDeleted)
 	})
 }
 

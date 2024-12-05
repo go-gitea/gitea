@@ -125,7 +125,7 @@
 				<span class="ui green label">{{ctx.Locale.Tr "repo.activity.published_release_label"}}</span>
 				{{.TagName}}
 				{{if not .IsTag}}
-					<a class="title" href="{{$.RepoLink}}/src/{{.TagName | PathEscapeSegments}}">{{.Title | ctx.RenderUtils.RenderEmoji | RenderCodeBlock}}</a>
+					<a class="title" href="{{$.RepoLink}}/src/{{.TagName | PathEscapeSegments}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 				{{end}}
 				{{DateUtils.TimeSince .CreatedUnix}}
 			</p>
@@ -145,7 +145,7 @@
 		{{range .Activity.MergedPRs}}
 			<p class="desc">
 				<span class="ui purple label">{{ctx.Locale.Tr "repo.activity.merged_prs_label"}}</span>
-				#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | ctx.RenderUtils.RenderEmoji | RenderCodeBlock}}</a>
+				#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 				{{DateUtils.TimeSince .MergedUnix}}
 			</p>
 		{{end}}
@@ -164,7 +164,7 @@
 		{{range .Activity.OpenedPRs}}
 			<p class="desc">
 				<span class="ui green label">{{ctx.Locale.Tr "repo.activity.opened_prs_label"}}</span>
-				#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | ctx.RenderUtils.RenderEmoji | RenderCodeBlock}}</a>
+				#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 				{{DateUtils.TimeSince .Issue.CreatedUnix}}
 			</p>
 		{{end}}
@@ -183,7 +183,7 @@
 		{{range .Activity.ClosedIssues}}
 			<p class="desc">
 				<span class="ui red label">{{ctx.Locale.Tr "repo.activity.closed_issue_label"}}</span>
-				#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | ctx.RenderUtils.RenderEmoji | RenderCodeBlock}}</a>
+				#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 				{{DateUtils.TimeSince .ClosedUnix}}
 			</p>
 		{{end}}
@@ -202,7 +202,7 @@
 		{{range .Activity.OpenedIssues}}
 			<p class="desc">
 				<span class="ui green label">{{ctx.Locale.Tr "repo.activity.new_issue_label"}}</span>
-				#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | ctx.RenderUtils.RenderEmoji | RenderCodeBlock}}</a>
+				#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 				{{DateUtils.TimeSince .CreatedUnix}}
 			</p>
 		{{end}}
@@ -220,9 +220,9 @@
 				<span class="ui green label">{{ctx.Locale.Tr "repo.activity.unresolved_conv_label"}}</span>
 				#{{.Index}}
 				{{if .IsPull}}
-				<a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Title | ctx.RenderUtils.RenderEmoji | RenderCodeBlock}}</a>
+				<a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 				{{else}}
-				<a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | ctx.RenderUtils.RenderEmoji | RenderCodeBlock}}</a>
+				<a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 				{{end}}
 				{{DateUtils.TimeSince .UpdatedUnix}}
 			</p>

@@ -66,14 +66,15 @@
 										</div>
 										<div class="content">
 											<p id="cherry-pick-content" class="branch-dropdown"></p>
-											{{template "repo/branch_dropdown" dict "root" .
-												"noTag" true "disableCreateBranch" true
-												"branchForm" "branch-dropdown-form"
-												"branchURLPrefix" (printf "%s/_cherrypick/%s/" $.RepoLink .CommitID) "branchURLSuffix" ""
-												"setAction" true "submitForm" true}}
-											<form method="get" action="{{$.RepoLink}}/_cherrypick/{{.CommitID}}/{{if $.BranchName}}{{PathEscapeSegments $.BranchName}}{{else}}{{PathEscapeSegments $.Repository.DefaultBranch}}{{end}}" id="branch-dropdown-form">
-												<input type="hidden" name="ref" value="{{if $.BranchName}}{{$.BranchName}}{{else}}{{$.Repository.DefaultBranch}}{{end}}">
-												<input type="hidden" name="refType" value="branch">
+
+											<form method="get">
+												{{template "repo/branch_dropdown" dict
+													"Repository" .Repository
+													"ShowTabBranches" true
+													"CurrentRefType" "branch"
+													"CurrentRefShortName" (Iif $.BranchName $.Repository.DefaultBranch)
+													"RefFormActionTemplate" (print "{RepoLink}/_cherrypick/" .CommitID "/{RefShortName}")
+												}}
 												<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br>
 												<button type="submit" id="cherry-pick-submit" class="ui primary button"></button>
 											</form>

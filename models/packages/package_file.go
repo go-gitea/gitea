@@ -221,6 +221,11 @@ func SearchFiles(ctx context.Context, opts *PackageFileSearchOptions) ([]*Packag
 	return pfs, count, err
 }
 
+// HasFiles tests if there are files of packages matching the search options
+func HasFiles(ctx context.Context, opts *PackageFileSearchOptions) (bool, error) {
+	return db.Exist[PackageFile](ctx, opts.toConds())
+}
+
 // CalculateFileSize sums up all blob sizes matching the search options.
 // It does NOT respect the deduplication of blobs.
 func CalculateFileSize(ctx context.Context, opts *PackageFileSearchOptions) (int64, error) {

@@ -22,7 +22,7 @@
 				<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_milestone"}}</div>
 				<div class="scrolling menu">
 					{{if $data.OpenMilestones}}
-						<div class="header">{{ctx.Locale.Tr "repo.issues.new.open_milestone"}}</div>
+						<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_open"}}</div>
 						{{range $data.OpenMilestones}}
 							<a class="item muted" data-value="{{.ID}}" href="{{$pageMeta.RepoLink}}/issues?milestone={{.ID}}">
 								{{svg "octicon-milestone" 18}} {{.Name}}
@@ -31,7 +31,7 @@
 					{{end}}
 					{{if and $data.OpenMilestones $data.ClosedMilestones}}<div class="divider"></div>{{end}}
 					{{if $data.ClosedMilestones}}
-						<div class="header">{{ctx.Locale.Tr "repo.issues.new.closed_milestone"}}</div>
+						<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_closed"}}</div>
 						{{range $data.ClosedMilestones}}
 							<a class="item muted" data-value="{{.ID}}" href="{{$pageMeta.RepoLink}}/issues?milestone={{.ID}}">
 								{{svg "octicon-milestone" 18}} {{.Name}}

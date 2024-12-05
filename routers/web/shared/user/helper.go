@@ -4,19 +4,23 @@
 package user
 
 import (
-	"sort"
+	"slices"
 
 	"code.gitea.io/gitea/models/user"
 )
 
 func MakeSelfOnTop(doer *user.User, users []*user.User) []*user.User {
 	if doer != nil {
-		sort.Slice(users, func(i, j int) bool {
-			if users[i].ID == users[j].ID {
-				return false
-			}
-			return users[i].ID == doer.ID // if users[i] is self, put it before others, so less=true
+		idx := slices.IndexFunc(users, func(u *user.User) bool {
+			return u.ID == doer.ID
 		})
+		if idx > 0 {
+			newUsers := make([]*user.User, len(users))
+			newUsers[0] = users[idx]
+			copy(newUsers[1:], users[:idx])
+			copy(newUsers[idx+1:], users[idx+1:])
+			return newUsers
+		}
 	}
 	return users
 }

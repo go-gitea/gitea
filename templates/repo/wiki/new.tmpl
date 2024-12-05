@@ -23,12 +23,12 @@
 				{{$content = ctx.Locale.Tr "repo.wiki.welcome"}}
 			{{end}}
 			{{template "shared/combomarkdowneditor" (dict
-				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
-				"MarkdownPreviewContext" .RepoLink
+				"CustomInit" true
+				"MarkdownPreviewInRepo" $.Repository
+				"MarkdownPreviewMode" "wiki"
 				"TextareaName" "content"
-				"TextareaPlaceholder" (ctx.Locale.Tr "repo.wiki.page_content")
-				"TextareaAriaLabel" (ctx.Locale.Tr "repo.wiki.page_content")
 				"TextareaContent" $content
+				"TextareaPlaceholder" (ctx.Locale.Tr "repo.wiki.page_content")
 			)}}
 
 			<div class="field tw-mt-4">

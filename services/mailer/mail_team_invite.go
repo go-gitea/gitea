@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
+	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
 
 const (
@@ -67,7 +68,7 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 		return err
 	}
 
-	msg := NewMessage(invite.Email, subject, mailBody.String())
+	msg := sender_service.NewMessage(invite.Email, subject, mailBody.String())
 	msg.Info = subject
 
 	SendAsync(msg)

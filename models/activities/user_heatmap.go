@@ -47,7 +47,7 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 		groupByName = groupBy
 	}
 
-	cond, err := activityQueryCondition(ctx, GetFeedsOptions{
+	cond, err := ActivityQueryCondition(ctx, GetFeedsOptions{
 		RequestedUser:  user,
 		RequestedTeam:  team,
 		Actor:          doer,

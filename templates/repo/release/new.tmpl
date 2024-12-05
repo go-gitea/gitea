@@ -50,12 +50,11 @@
 				</div>
 				<div class="field">
 					{{template "shared/combomarkdowneditor" (dict
-						"MarkdownPreviewUrl" (print .Repository.Link "/markup")
-						"MarkdownPreviewContext" .RepoLink
+						"MarkdownPreviewInRepo" $.Repository
+						"MarkdownPreviewMode" "comment"
 						"TextareaName" "content"
 						"TextareaContent" .content
 						"TextareaPlaceholder" (ctx.Locale.Tr "repo.release.message")
-						"TextareaAriaLabel" (ctx.Locale.Tr "repo.release.message")
 						"DropzoneParentContainer" "form"
 					)}}
 				</div>

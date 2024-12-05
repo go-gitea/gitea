@@ -7,10 +7,12 @@
 			</div>
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form ignore-dirty" id="user-list-search-form">
-
+			<form class="ui form ignore-dirty flex-text-block" id="user-list-search-form">
+				<div class="tw-flex-1">
+					{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
+				</div>
 				<!-- Right Menu -->
-				<div class="ui right floated secondary filter menu">
+				<div class="ui secondary menu tw-m-0">
 					<!-- Status Filter Menu Item -->
 					<div class="ui dropdown type jump item">
 						<span class="text">{{ctx.Locale.Tr "admin.users.list_status_filter.menu_text"}}</span>
@@ -51,8 +53,6 @@
 						</div>
 					</div>
 				</div>
-
-				{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
 			</form>
 		</div>
 		<div class="ui attached table segment">

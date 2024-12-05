@@ -414,11 +414,6 @@ export function initRepoPullRequestReview() {
     await handleReply(this);
   });
 
-  const elReviewBox = document.querySelector('.review-box-panel');
-  if (elReviewBox) {
-    initComboMarkdownEditor(elReviewBox.querySelector('.combo-markdown-editor'));
-  }
-
   // The following part is only for diff views
   if (!$('.repository.pull.diff').length) return;
 

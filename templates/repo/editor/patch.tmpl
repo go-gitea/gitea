@@ -3,7 +3,10 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<form class="ui edit form" method="post" action="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}">
+		<form class="ui edit form" method="post" action="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}"
+					data-text-empty-confirm-header="{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}"
+					data-text-empty-confirm-content="{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}"
+		>
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="last_commit" value="{{.last_commit}}">
 			<input type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
@@ -32,26 +35,6 @@
 			</div>
 			{{template "repo/editor/commit_form" .}}
 		</form>
-	</div>
-
-	<div class="ui g-modal-confirm modal" id="edit-empty-content-modal">
-		<div class="header">
-			{{svg "octicon-file"}}
-			{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}
-		</div>
-		<div class="center content">
-			<p>{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}</p>
-		</div>
-		<div class="actions">
-			<button class="ui cancel button">
-				{{svg "octicon-x"}}
-				{{ctx.Locale.Tr "repo.editor.cancel"}}
-			</button>
-			<button class="ui primary ok button">
-				{{svg "fontawesome-save"}}
-				{{ctx.Locale.Tr "repo.editor.commit_changes"}}
-			</button>
-		</div>
 	</div>
 </div>
 {{template "base/footer" .}}

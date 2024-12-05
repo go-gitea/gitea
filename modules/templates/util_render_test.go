@@ -164,11 +164,11 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" aria-label="thumbs up">👍</span>
 mail@domain.com
 @mention-user test
-#123
+<a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
   space<SPACE><SPACE>
 `
 	expected = strings.ReplaceAll(expected, "<SPACE>", " ")
-	assert.EqualValues(t, expected, string(newTestRenderUtils().RenderIssueTitle(testInput(), nil)))
+	assert.EqualValues(t, expected, string(newTestRenderUtils().RenderIssueTitle(testInput(), testMetas)))
 }
 
 func TestRenderMarkdownToHtml(t *testing.T) {
