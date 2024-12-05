@@ -30,7 +30,7 @@ export async function initCitationFileCopyContent() {
   const citationCopyApa = document.querySelector<HTMLButtonElement>('#citation-copy-apa');
   const citationCopyBibtex = document.querySelector<HTMLButtonElement>('#citation-copy-bibtex');
   const inputContent = document.querySelector<HTMLInputElement>('#citation-copy-content');
-  const $modal = fomanticQuery('#cite-repo-modal');
+  const elModal = document.querySelector<HTMLElement>('#cite-repo-modal');
 
   if ((!citationCopyApa && !citationCopyBibtex) || !inputContent) return;
 
