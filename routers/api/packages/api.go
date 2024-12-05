@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/packages/alpine"
+	"code.gitea.io/gitea/routers/api/packages/arch"
 	"code.gitea.io/gitea/routers/api/packages/cargo"
 	"code.gitea.io/gitea/routers/api/packages/chef"
 	"code.gitea.io/gitea/routers/api/packages/composer"
@@ -133,6 +134,49 @@ func CommonRoutes() *web.Router {
 						r.Delete("", reqPackageAccess(perm.AccessModeWrite), alpine.DeletePackageFile)
 					})
 				})
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/arch", func() {
+			r.Methods("HEAD,GET", "/repository.key", arch.GetRepositoryKey)
+
+			r.Methods("HEAD,GET,PUT,DELETE", "*", func(ctx *context.Context) {
+				path := strings.Trim(ctx.PathParam("*"), "/")
+
+				if ctx.Req.Method == "PUT" {
+					reqPackageAccess(perm.AccessModeWrite)(ctx)
+					if ctx.Written() {
+						return
+					}
+					ctx.SetPathParam("repository", path)
+					arch.UploadPackageFile(ctx)
+					return
+				}
+
+				pathFields := strings.Split(path, "/")
+				pathFieldsLen := len(pathFields)
+
+				if (ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET") && pathFieldsLen >= 2 {
+					ctx.SetPathParam("repository", strings.Join(pathFields[:pathFieldsLen-2], "/"))
+					ctx.SetPathParam("architecture", pathFields[pathFieldsLen-2])
+					ctx.SetPathParam("filename", pathFields[pathFieldsLen-1])
+					arch.GetPackageOrRepositoryFile(ctx)
+					return
+				}
+
+				if ctx.Req.Method == "DELETE" && pathFieldsLen >= 3 {
+					reqPackageAccess(perm.AccessModeWrite)(ctx)
+					if ctx.Written() {
+						return
+					}
+					ctx.SetPathParam("repository", strings.Join(pathFields[:pathFieldsLen-3], "/"))
+					ctx.SetPathParam("name", pathFields[pathFieldsLen-3])
+					ctx.SetPathParam("version", pathFields[pathFieldsLen-2])
+					ctx.SetPathParam("architecture", pathFields[pathFieldsLen-1])
+					arch.DeletePackageVersion(ctx)
+					return
+				}
+
+				ctx.Status(http.StatusNotFound)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
