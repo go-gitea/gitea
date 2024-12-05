@@ -76,9 +76,9 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 
 	// Add all repositories to the team if it has access to all of them.
 	if t.IncludesAllRepositories {
-		err = repo_service.AddAllRepositoriesToTeam(ctx, t)
+		_, err = repo_service.AddAllRepositoriesToTeam(ctx, t)
 		if err != nil {
-			return fmt.Errorf("addAllRepositories: %w", err)
+			return fmt.Errorf("AddAllRepositoriesToTeam: %w", err)
 		}
 	}
 
@@ -154,9 +154,9 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 
 	// Add all repositories to the team if it has access to all of them.
 	if includeAllChanged && t.IncludesAllRepositories {
-		err = repo_service.AddAllRepositoriesToTeam(ctx, t)
+		_, err = repo_service.AddAllRepositoriesToTeam(ctx, t)
 		if err != nil {
-			return fmt.Errorf("addAllRepositories: %w", err)
+			return fmt.Errorf("AddAllRepositoriesToTeam: %w", err)
 		}
 	}
 

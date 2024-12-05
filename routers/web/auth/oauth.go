@@ -347,7 +347,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		// Register last login
 		opts.SetLastLogin = true
 
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(ctx, user_model.NewAuthenticationSourceUser(), u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -379,7 +379,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	}
 
 	if opts.IsActive.Has() || opts.IsAdmin.Has() || opts.IsRestricted.Has() {
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(ctx, user_model.NewAuthenticationSourceUser(), u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}

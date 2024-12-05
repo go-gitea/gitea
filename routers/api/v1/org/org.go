@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	feed_service "code.gitea.io/gitea/services/feed"
@@ -278,6 +279,8 @@ func Create(ctx *context.APIContext) {
 		return
 	}
 
+	audit.RecordUserCreate(ctx, ctx.Doer, org.AsUser())
+
 	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }
 
@@ -343,8 +346,10 @@ func Edit(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditOrgOption)
 
+	org := ctx.Org.Organization
+
 	if form.Email != "" {
-		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.Org.Organization.AsUser(), form.Email); err != nil {
+		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.Doer, org.AsUser(), form.Email); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ReplacePrimaryEmailAddress", err)
 			return
 		}
@@ -358,12 +363,12 @@ func Edit(ctx *context.APIContext) {
 		Visibility:                optional.FromNonDefault(api.VisibilityModes[form.Visibility]),
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
-	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, org.AsUser(), opts); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, ctx.Org.Organization))
+	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, org))
 }
 
 // Delete an organization
@@ -385,7 +390,7 @@ func Delete(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := org.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
+	if err := org.DeleteOrganization(ctx, ctx.Doer, ctx.Org.Organization, false); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteOrganization", err)
 		return
 	}

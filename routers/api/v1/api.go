@@ -94,6 +94,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/actions"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -122,6 +123,9 @@ func sudo() func(ctx *context.APIContext) {
 					}
 					return
 				}
+
+				audit.RecordUserImpersonation(ctx, ctx.Doer, user)
+
 				log.Trace("Sudo from (%s) to: %s", ctx.Doer.Name, user.Name)
 				ctx.Doer = user
 			} else {

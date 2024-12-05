@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/audit"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/context"
@@ -109,7 +110,7 @@ func resetLocale(ctx *context.Context, u *user_model.User) error {
 		opts := &user_service.UpdateOptions{
 			Language: optional.Some(ctx.Locale.Language()),
 		}
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(ctx, u, u, opts); err != nil {
 			return err
 		}
 	}
@@ -333,7 +334,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		opts := &user_service.UpdateOptions{
 			Language: optional.Some(ctx.Locale.Language()),
 		}
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(ctx, u, u, opts); err != nil {
 			ctx.ServerError("UpdateUser Language", fmt.Errorf("Error updating user language [user: %d, locale: %s]", u.ID, ctx.Locale.Language()))
 			return setting.AppSubURL + "/"
 		}
@@ -349,7 +350,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	ctx.Csrf.PrepareForSessionUser(ctx)
 
 	// Register last login
-	if err := user_service.UpdateUser(ctx, u, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
+	if err := user_service.UpdateUser(ctx, u, u, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return setting.AppSubURL + "/"
 	}
@@ -589,6 +590,9 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *us
 		}
 		return false
 	}
+
+	audit.RecordUserCreate(ctx, user_model.NewAuthenticationSourceUser(), u)
+
 	log.Trace("Account created: %s", u.Name)
 	return true
 }
@@ -604,7 +608,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 			IsAdmin:      optional.Some(true),
 			SetLastLogin: true,
 		}
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(ctx, u, u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return false
 		}
@@ -773,11 +777,15 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		return
 	}
 
-	if err := user_model.ActivateUserEmail(ctx, user.ID, user.Email, true); err != nil {
+	email, err := user_model.ActivateUserEmail(ctx, user.ID, user.Email, true)
+	if err != nil {
 		log.Error("Unable to activate email for user: %-v with email: %s: %v", user, user.Email, err)
 		ctx.ServerError("ActivateUserEmail", err)
 		return
 	}
+
+	audit.RecordUserActive(ctx, user, user)
+	audit.RecordUserEmailActivate(ctx, user, user, email)
 
 	log.Trace("User activated: %s", user.Name)
 
@@ -797,7 +805,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		return
 	}
 
-	if err := user_service.UpdateUser(ctx, user, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
+	if err := user_service.UpdateUser(ctx, user, user, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -818,7 +826,7 @@ func ActivateEmail(ctx *context.Context) {
 	emailStr := ctx.FormString("email")
 
 	// Verify code.
-	if email := user_model.VerifyActiveEmailCode(ctx, code, emailStr); email != nil {
+	if user, email := user_model.VerifyActiveEmailCode(ctx, code, emailStr); user != nil && email != nil {
 		if err := user_model.ActivateEmail(ctx, email); err != nil {
 			ctx.ServerError("ActivateEmail", err)
 			return
@@ -827,12 +835,10 @@ func ActivateEmail(ctx *context.Context) {
 		log.Trace("Email activated: %s", email.Email)
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 
-		if u, err := user_model.GetUserByID(ctx, email.UID); err != nil {
-			log.Warn("GetUserByID: %d", email.UID)
-		} else {
-			// Allow user to validate more emails
-			_ = ctx.Cache.Delete("MailResendLimit_" + u.LowerName)
-		}
+		// Allow user to validate more emails
+		_ = ctx.Cache.Delete("MailResendLimit_" + user.LowerName)
+
+		audit.RecordUserEmailActivate(ctx, user, user, email)
 	}
 
 	// FIXME: e-mail verification does not require the user to be logged in,

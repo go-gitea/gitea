@@ -61,7 +61,7 @@ func SetDiffViewStyle(ctx *context.Context) {
 	opts := &user_service.UpdateOptions{
 		DiffViewStyle: optional.Some(style),
 	}
-	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 	}
 }

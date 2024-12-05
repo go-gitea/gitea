@@ -34,7 +34,7 @@ func SetDefaultBranchPost(ctx *context.Context) {
 		}
 
 		branch := ctx.FormString("branch")
-		if err := repo_service.SetRepoDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, branch); err != nil {
+		if err := repo_service.SetRepoDefaultBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branch); err != nil {
 			switch {
 			case git_model.IsErrBranchNotExist(err):
 				ctx.Status(http.StatusNotFound)

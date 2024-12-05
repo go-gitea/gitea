@@ -28,6 +28,11 @@
 			{{ctx.Locale.Tr "settings.ssh_gpg_keys"}}
 		</a>
 		{{end}}
+		{{if .EnableAuditLogs}}
+		<a class="{{if .PageIsSettingsAudit}}active {{end}}item" href="{{AppSubUrl}}/user/settings/audit_logs">
+			{{ctx.Locale.Tr "admin.monitor.audit.title"}}
+		</a>
+		{{end}}
 		{{if .EnableActions}}
 		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>

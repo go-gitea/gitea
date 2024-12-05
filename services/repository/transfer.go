@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/audit"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -58,10 +59,14 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 		return err
 	}
 
+	audit.RecordRepositoryTransferFinish(ctx, doer, newRepo, oldOwner)
+
 	for _, team := range teams {
 		if err := addRepositoryToTeam(ctx, team, newRepo); err != nil {
 			return err
 		}
+
+		audit.RecordRepositoryCollaboratorTeamAdd(ctx, doer, newRepo, team)
 	}
 
 	notify_service.TransferRepository(ctx, doer, repo, oldOwner.Name)
@@ -380,6 +385,9 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	releaser()
 
 	repo.Name = newRepoName
+
+	audit.RecordRepositoryName(ctx, doer, repo, oldRepoName)
+
 	notify_service.RenameRepository(ctx, doer, repo, oldRepoName)
 
 	return nil
@@ -418,7 +426,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		return err
 	}
 	if !hasAccess {
-		if err := AddOrUpdateCollaborator(ctx, repo, newOwner, perm.AccessModeRead); err != nil {
+		if err := AddOrUpdateCollaborator(ctx, doer, repo, newOwner, perm.AccessModeRead); err != nil {
 			return err
 		}
 	}
@@ -428,6 +436,8 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	if err := models.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams); err != nil {
 		return err
 	}
+
+	audit.RecordRepositoryTransferStart(ctx, doer, repo, newOwner)
 
 	// notify users who are able to accept / reject transfer
 	notify_service.RepoPendingTransfer(ctx, doer, newOwner, repo)

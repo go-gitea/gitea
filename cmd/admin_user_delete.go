@@ -10,6 +10,7 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/services/audit"
 	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/urfave/cli/v2"
@@ -52,7 +53,9 @@ func runDeleteUser(c *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
-
+	if err := audit.Init(); err != nil {
+		return err
+	}
 	if err := storage.Init(); err != nil {
 		return err
 	}
@@ -77,5 +80,5 @@ func runDeleteUser(c *cli.Context) error {
 		return fmt.Errorf("The user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
-	return user_service.DeleteUser(ctx, user, c.Bool("purge"))
+	return user_service.DeleteUser(ctx, user_model.NewCLIUser(), user, c.Bool("purge"))
 }

@@ -78,7 +78,7 @@ func AccountPost(ctx *context.Context) {
 			Password:           optional.Some(form.Password),
 			MustChangePassword: optional.Some(false),
 		}
-		if err := user.UpdateAuth(ctx, ctx.Doer, opts); err != nil {
+		if err := user.UpdateAuth(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
 			switch {
 			case errors.Is(err, password.ErrMinLength):
 				ctx.Flash.Error(ctx.Tr("auth.password_too_short", setting.MinPasswordLength))
@@ -185,7 +185,7 @@ func EmailPost(ctx *context.Context) {
 		opts := &user.UpdateOptions{
 			EmailNotificationsPreference: optional.Some(preference),
 		}
-		if err := user.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+		if err := user.UpdateUser(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
 			log.Error("Set Email Notifications failed: %v", err)
 			ctx.ServerError("UpdateUser", err)
 			return
@@ -203,7 +203,7 @@ func EmailPost(ctx *context.Context) {
 		return
 	}
 
-	if err := user.AddEmailAddresses(ctx, ctx.Doer, []string{form.Email}); err != nil {
+	if err := user.AddEmailAddresses(ctx, ctx.Doer, ctx.Doer, []string{form.Email}); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			loadAccountData(ctx)
 
@@ -230,7 +230,6 @@ func EmailPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 	}
 
-	log.Trace("Email address added: %s", form.Email)
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
@@ -246,11 +245,10 @@ func DeleteEmail(ctx *context.Context) {
 		return
 	}
 
-	if err := user.DeleteEmailAddresses(ctx, ctx.Doer, []string{email.Email}); err != nil {
+	if err := user.DeleteEmailAddresses(ctx, ctx.Doer, ctx.Doer, []string{email.Email}); err != nil {
 		ctx.ServerError("DeleteEmailAddresses", err)
 		return
 	}
-	log.Trace("Email address deleted: %s", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.email_deletion_success"))
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/account")
@@ -299,7 +297,7 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
-	if err := user.DeleteUser(ctx, ctx.Doer, false); err != nil {
+	if err := user.DeleteUser(ctx, ctx.Doer, ctx.Doer, false); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("form.still_own_repo"))

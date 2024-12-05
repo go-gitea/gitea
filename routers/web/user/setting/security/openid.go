@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
@@ -102,6 +103,9 @@ func settingsOpenIDVerify(ctx *context.Context) {
 		ctx.ServerError("AddUserOpenID", err)
 		return
 	}
+
+	audit.RecordUserOpenIDAdd(ctx, ctx.Doer, ctx.Doer, oid)
+
 	log.Trace("Associated OpenID %s to user %s", id, ctx.Doer.Name)
 	ctx.Flash.Success(ctx.Tr("settings.add_openid_success"))
 
@@ -115,10 +119,19 @@ func DeleteOpenID(ctx *context.Context) {
 		return
 	}
 
-	if err := user_model.DeleteUserOpenID(ctx, &user_model.UserOpenID{ID: ctx.FormInt64("id"), UID: ctx.Doer.ID}); err != nil {
+	oid, err := user_model.GetUserOpenID(ctx, ctx.FormInt64("id"), ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetUserOpenID", err)
+		return
+	}
+
+	if err := user_model.DeleteUserOpenID(ctx, oid); err != nil {
 		ctx.ServerError("DeleteUserOpenID", err)
 		return
 	}
+
+	audit.RecordUserOpenIDRemove(ctx, ctx.Doer, ctx.Doer, oid)
+
 	log.Trace("OpenID address deleted: %s", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.openid_deletion_success"))

@@ -22,6 +22,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/audit"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -49,6 +50,8 @@ func CreateRepository(ctx context.Context, doer, owner *user_model.User, opts Cr
 
 	notify_service.CreateRepository(ctx, doer, owner, repo)
 
+	audit.RecordRepositoryCreate(ctx, doer, repo)
+
 	return repo, nil
 }
 
@@ -67,7 +70,13 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 		return err
 	}
 
-	return packages_model.UnlinkRepositoryFromAllPackages(ctx, repo.ID)
+	if err := packages_model.UnlinkRepositoryFromAllPackages(ctx, repo.ID); err != nil {
+		return err
+	}
+
+	audit.RecordRepositoryDelete(ctx, doer, repo)
+
+	return nil
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
@@ -129,7 +138,7 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	return committer.Commit()
 }
 
-func UpdateRepositoryVisibility(ctx context.Context, repo *repo_model.Repository, isPrivate bool) (err error) {
+func UpdateRepositoryVisibility(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, isPrivate bool) (err error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -143,15 +152,21 @@ func UpdateRepositoryVisibility(ctx context.Context, repo *repo_model.Repository
 		return fmt.Errorf("UpdateRepositoryVisibility: %w", err)
 	}
 
-	return committer.Commit()
+	if err = committer.Commit(); err != nil {
+		return err
+	}
+
+	audit.RecordRepositoryVisibility(ctx, doer, repo)
+
+	return nil
 }
 
-func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error) {
-	return UpdateRepositoryVisibility(ctx, repo, false)
+func MakeRepoPublic(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) (err error) {
+	return UpdateRepositoryVisibility(ctx, doer, repo, false)
 }
 
-func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err error) {
-	return UpdateRepositoryVisibility(ctx, repo, true)
+func MakeRepoPrivate(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) (err error) {
+	return UpdateRepositoryVisibility(ctx, doer, repo, true)
 }
 
 // LinkedRepository returns the linked repo if any

@@ -18,7 +18,9 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -403,6 +405,18 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		}, form.RedirectURI)
 		return
 	}
+
+	owner, err := user_model.GetUserByID(ctx, app.UID)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
+		handleAuthorizeError(ctx, AuthorizeError{
+			State:            form.State,
+			ErrorDescription: "cannot find user",
+			ErrorCode:        ErrorCodeServerError,
+		}, form.RedirectURI)
+		return
+	}
+
+	audit.RecordUserOAuth2ApplicationGrant(ctx, ctx.Doer, owner, app, grant)
 
 	if len(form.Nonce) > 0 {
 		err := grant.SetNonce(ctx, form.Nonce)

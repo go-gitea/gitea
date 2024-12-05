@@ -183,7 +183,7 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 		p = perm.ParseAccessMode(*form.Permission)
 	}
 
-	if err := repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, collaborator, p); err != nil {
+	if err := repo_service.AddOrUpdateCollaborator(ctx, ctx.Doer, ctx.Repo.Repository, collaborator, p); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Error(http.StatusForbidden, "AddOrUpdateCollaborator", err)
 		} else {
@@ -236,10 +236,11 @@ func DeleteCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, collaborator); err != nil {
+	if err := repo_service.DeleteCollaboration(ctx, ctx.Doer, ctx.Repo.Repository, collaborator); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteCollaboration", err)
 		return
 	}
+
 	ctx.Status(http.StatusNoContent)
 }
 

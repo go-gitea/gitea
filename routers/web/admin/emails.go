@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/user"
 )
@@ -112,26 +113,34 @@ func ActivateEmail(ctx *context.Context) {
 
 	uid := ctx.FormInt64("uid")
 	email := ctx.FormString("email")
-	primary, okp := truefalse[ctx.FormString("primary")]
 	activate, oka := truefalse[ctx.FormString("activate")]
 
-	if uid == 0 || len(email) == 0 || !okp || !oka {
+	if uid == 0 || len(email) == 0 || !oka {
 		ctx.Error(http.StatusBadRequest)
 		return
 	}
 
-	log.Info("Changing activation for User ID: %d, email: %s, primary: %v to %v", uid, email, primary, activate)
+	log.Info("Changing activation for User ID: %d, email: %s to %v", uid, email, activate)
 
-	if err := user_model.ActivateUserEmail(ctx, uid, email, activate); err != nil {
-		log.Error("ActivateUserEmail(%v,%v,%v): %v", uid, email, activate, err)
-		if user_model.IsErrEmailAlreadyUsed(err) {
-			ctx.Flash.Error(ctx.Tr("admin.emails.duplicate_active"))
-		} else {
-			ctx.Flash.Error(ctx.Tr("admin.emails.not_updated", err))
-		}
+	u, err := user_model.GetUserByID(ctx, uid)
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("admin.emails.not_updated", err))
 	} else {
-		log.Info("Activation for User ID: %d, email: %s, primary: %v changed to %v", uid, email, primary, activate)
-		ctx.Flash.Info(ctx.Tr("admin.emails.updated"))
+		if email, err := user_model.ActivateUserEmail(ctx, uid, email, activate); err != nil {
+			log.Error("ActivateUserEmail(%v,%v,%v): %v", uid, email, activate, err)
+			if user_model.IsErrEmailAlreadyUsed(err) {
+				ctx.Flash.Error(ctx.Tr("admin.emails.duplicate_active"))
+			} else {
+				ctx.Flash.Error(ctx.Tr("admin.emails.not_updated", err))
+			}
+		} else {
+			if activate {
+				audit.RecordUserEmailActivate(ctx, ctx.Doer, u, email)
+			}
+
+			log.Info("Activation for User ID: %d, email: %s changed to %v", uid, email, activate)
+			ctx.Flash.Info(ctx.Tr("admin.emails.updated"))
+		}
 	}
 
 	redirect, _ := url.Parse(setting.AppSubURL + "/-/admin/emails")
@@ -166,7 +175,7 @@ func DeleteEmail(ctx *context.Context) {
 		return
 	}
 
-	if err := user.DeleteEmailAddresses(ctx, u, []string{email.Email}); err != nil {
+	if err := user.DeleteEmailAddresses(ctx, ctx.Doer, u, []string{email.Email}); err != nil {
 		if user_model.IsErrPrimaryEmailCannotDelete(err) {
 			ctx.Flash.Error(ctx.Tr("admin.emails.delete_primary_email_error"))
 			ctx.JSONRedirect("")

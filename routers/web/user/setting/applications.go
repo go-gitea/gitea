@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
@@ -73,6 +74,8 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
+	audit.RecordUserAccessTokenAdd(ctx, ctx.Doer, ctx.Doer, t)
+
 	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
 	ctx.Flash.Info(t.Token)
 
@@ -81,9 +84,17 @@ func ApplicationsPost(ctx *context.Context) {
 
 // DeleteApplication response for delete user access token
 func DeleteApplication(ctx *context.Context) {
-	if err := auth_model.DeleteAccessTokenByID(ctx, ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
+	t, err := auth_model.GetAccessTokenByID(ctx, ctx.FormInt64("id"), ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetAccessTokenByID", err)
+		return
+	}
+
+	if err := auth_model.DeleteAccessTokenByID(ctx, t.ID, ctx.Doer.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
+		audit.RecordUserAccessTokenRemove(ctx, ctx.Doer, ctx.Doer, t)
+
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
 	}
 

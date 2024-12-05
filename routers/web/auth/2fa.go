@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
@@ -52,6 +53,13 @@ func TwoFactorPost(ctx *context.Context) {
 	}
 
 	id := idSess.(int64)
+
+	u, err := user_model.GetUserByID(ctx, id)
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
+
 	twofa, err := auth.GetTwoFactorByUID(ctx, id)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
@@ -67,11 +75,6 @@ func TwoFactorPost(ctx *context.Context) {
 
 	if ok && twofa.LastUsedPasscode != form.Passcode {
 		remember := ctx.Session.Get("twofaRemember").(bool)
-		u, err := user_model.GetUserByID(ctx, id)
-		if err != nil {
-			ctx.ServerError("UserSignIn", err)
-			return
-		}
 
 		if ctx.Session.Get("linkAccount") != nil {
 			err = externalaccount.LinkAccountFromStore(ctx, ctx.Session, u)
@@ -90,6 +93,8 @@ func TwoFactorPost(ctx *context.Context) {
 		handleSignIn(ctx, u, remember)
 		return
 	}
+
+	audit.RecordUserAuthenticationFailTwoFactor(ctx, u)
 
 	ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplTwofa, forms.TwoFactorAuthForm{})
 }

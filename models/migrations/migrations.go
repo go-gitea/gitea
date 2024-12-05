@@ -368,6 +368,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(308, "Add index(user_id, is_deleted) for action table", v1_23.AddNewIndexForUserDashboard),
 		newMigration(309, "Improve Notification table indices", v1_23.ImproveNotificationTableIndices),
 		newMigration(310, "Add Priority to ProtectedBranch", v1_23.AddPriorityToProtectedBranch),
+		newMigration(311, "Add audit_event table", v1_23.AddAuditEventTable),
 	}
 	return preparedMigrations
 }

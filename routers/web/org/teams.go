@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
@@ -78,6 +79,9 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 		err = org_service.AddTeamMember(ctx, ctx.Org.Team, ctx.Doer)
+		if err == nil {
+			audit.RecordOrganizationTeamMemberAdd(ctx, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, ctx.Doer)
+		}
 	case "leave":
 		err = org_service.RemoveTeamMember(ctx, ctx.Org.Team, ctx.Doer)
 		if err != nil {
@@ -91,6 +95,8 @@ func TeamsAction(ctx *context.Context) {
 				})
 				return
 			}
+		} else {
+			audit.RecordOrganizationTeamMemberRemove(ctx, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, ctx.Doer)
 		}
 		checkIsOrgMemberAndRedirect(ctx, ctx.Org.OrgLink+"/teams/")
 		return
@@ -118,6 +124,8 @@ func TeamsAction(ctx *context.Context) {
 				})
 				return
 			}
+		} else {
+			audit.RecordOrganizationTeamMemberRemove(ctx, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, user)
 		}
 		checkIsOrgMemberAndRedirect(ctx, ctx.Org.OrgLink+"/teams/"+url.PathEscape(ctx.Org.Team.LowerName))
 		return
@@ -162,6 +170,9 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 		} else {
 			err = org_service.AddTeamMember(ctx, ctx.Org.Team, u)
+			if err == nil {
+				audit.RecordOrganizationTeamMemberAdd(ctx, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, u)
+			}
 		}
 
 		page = "team"
@@ -232,13 +243,10 @@ func TeamsRepoAction(ctx *context.Context) {
 		return
 	}
 
-	var err error
 	action := ctx.PathParam(":action")
 	switch action {
 	case "add":
-		repoName := path.Base(ctx.FormString("repo_name"))
-		var repo *repo_model.Repository
-		repo, err = repo_model.GetRepositoryByName(ctx, ctx.Org.Organization.ID, repoName)
+		repo, err := repo_model.GetRepositoryByName(ctx, ctx.Org.Organization.ID, path.Base(ctx.FormString("repo_name")))
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
 				ctx.Flash.Error(ctx.Tr("org.teams.add_nonexistent_repo"))
@@ -248,19 +256,44 @@ func TeamsRepoAction(ctx *context.Context) {
 			ctx.ServerError("GetRepositoryByName", err)
 			return
 		}
-		err = repo_service.TeamAddRepository(ctx, ctx.Org.Team, repo)
+		if err := repo_service.TeamAddRepository(ctx, ctx.Doer, ctx.Org.Team, repo); err != nil {
+			ctx.ServerError("TeamAddRepository "+ctx.Org.Team.Name, err)
+			return
+		}
 	case "remove":
-		err = repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, ctx.FormInt64("repoid"))
+		repo, err := repo_model.GetRepositoryByID(ctx, ctx.FormInt64("repoid"))
+		if err != nil {
+			ctx.ServerError("GetRepositoryByID", err)
+			return
+		}
+		if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Doer, ctx.Org.Team, repo); err != nil {
+			ctx.ServerError("RemoveRepositoryFromTeam "+ctx.Org.Team.Name, err)
+			return
+		}
 	case "addall":
-		err = repo_service.AddAllRepositoriesToTeam(ctx, ctx.Org.Team)
-	case "removeall":
-		err = repo_service.RemoveAllRepositoriesFromTeam(ctx, ctx.Org.Team)
-	}
+		added, err := repo_service.AddAllRepositoriesToTeam(ctx, ctx.Org.Team)
+		if err != nil {
+			ctx.ServerError("AddAllRepositoriesToTeam "+ctx.Org.Team.Name, err)
+			return
+		}
 
-	if err != nil {
-		log.Error("Action(%s): '%s' %v", ctx.PathParam(":action"), ctx.Org.Team.Name, err)
-		ctx.ServerError("TeamsRepoAction", err)
-		return
+		for _, repo := range added {
+			audit.RecordRepositoryCollaboratorTeamAdd(ctx, ctx.Doer, repo, ctx.Org.Team)
+		}
+	case "removeall":
+		if err := ctx.Org.Team.LoadRepositories(ctx); err != nil {
+			ctx.ServerError("LoadRepositories "+ctx.Org.Team.Name, err)
+			return
+		}
+
+		if err := repo_service.RemoveAllRepositoriesFromTeam(ctx, ctx.Org.Team); err != nil {
+			ctx.ServerError("RemoveAllRepositoriesFromTeam "+ctx.Org.Team.Name, err)
+			return
+		}
+
+		for _, repo := range ctx.Org.Team.Repos {
+			audit.RecordRepositoryCollaboratorTeamRemove(ctx, ctx.Doer, repo, ctx.Org.Team)
+		}
 	}
 
 	if action == "addall" || action == "removeall" {
@@ -367,6 +400,9 @@ func NewTeamPost(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.RecordOrganizationTeamAdd(ctx, ctx.Doer, ctx.Org.Organization, t)
+
 	log.Trace("Team created: %s/%s", ctx.Org.Organization.Name, t.Name)
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
 }
@@ -545,6 +581,12 @@ func EditTeamPost(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.RecordOrganizationTeamUpdate(ctx, ctx.Doer, ctx.Org.Organization, t)
+	if isAuthChanged {
+		audit.RecordOrganizationTeamPermission(ctx, ctx.Doer, ctx.Org.Organization, t)
+	}
+
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
 }
 
@@ -553,6 +595,8 @@ func DeleteTeam(ctx *context.Context) {
 	if err := org_service.DeleteTeam(ctx, ctx.Org.Team); err != nil {
 		ctx.Flash.Error("DeleteTeam: " + err.Error())
 	} else {
+		audit.RecordOrganizationTeamRemove(ctx, ctx.Doer, ctx.Org.Organization, ctx.Org.Team)
+
 		ctx.Flash.Success(ctx.Tr("org.teams.delete_team_success"))
 	}
 
@@ -596,6 +640,8 @@ func TeamInvitePost(ctx *context.Context) {
 		ctx.ServerError("AddTeamMember", err)
 		return
 	}
+
+	audit.RecordOrganizationTeamMemberAdd(ctx, ctx.Doer, org, team, ctx.Doer)
 
 	if err := org_model.RemoveInviteByID(ctx, invite.ID, team.ID); err != nil {
 		log.Error("RemoveInviteByID: %v", err)

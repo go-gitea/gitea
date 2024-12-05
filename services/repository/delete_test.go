@@ -37,13 +37,13 @@ func TestTeam_RemoveRepository(t *testing.T) {
 
 	testSuccess := func(teamID, repoID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, repo_service.RemoveRepositoryFromTeam(db.DefaultContext, team, repoID))
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
+		assert.NoError(t, repo_service.RemoveRepositoryFromTeam(db.DefaultContext, user_model.NewGhostUser(), team, repo))
 		unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: teamID, RepoID: repoID})
 		unittest.CheckConsistencyFor(t, &organization.Team{ID: teamID}, &repo_model.Repository{ID: repoID})
 	}
 	testSuccess(2, 3)
 	testSuccess(2, 5)
-	testSuccess(1, unittest.NonexistentID)
 }
 
 func TestDeleteOwnerRepositoriesDirectly(t *testing.T) {

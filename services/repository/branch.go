@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/audit"
 	notify_service "code.gitea.io/gitea/services/notify"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
@@ -587,7 +588,7 @@ func AddAllRepoBranchesToSyncQueue(ctx context.Context) error {
 	return nil
 }
 
-func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, newBranchName string) error {
+func SetRepoDefaultBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, newBranchName string) error {
 	if repo.DefaultBranch == newBranchName {
 		return nil
 	}
@@ -623,6 +624,8 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 	}); err != nil {
 		return err
 	}
+
+	audit.RecordRepositoryBranchDefault(ctx, doer, repo)
 
 	if !repo.IsEmpty {
 		if err := AddRepoToLicenseUpdaterQueue(&LicenseUpdaterOptions{

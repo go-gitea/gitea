@@ -9,6 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ErrOpenIDNotExist openid is not known
@@ -38,6 +40,21 @@ func GetUserOpenIDs(ctx context.Context, uid int64) ([]*UserOpenID, error) {
 	}
 
 	return openids, nil
+}
+
+func GetUserOpenID(ctx context.Context, id, uid int64) (*UserOpenID, error) {
+	openid, has, err := db.Get[UserOpenID](ctx, builder.Eq{
+		"id":  id,
+		"uid": uid,
+	})
+
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.ErrNotExist
+	}
+
+	return openid, nil
 }
 
 // isOpenIDUsed returns true if the openid has been used.

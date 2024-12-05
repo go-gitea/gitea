@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -11,6 +12,8 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/services/audit"
 	auth_service "code.gitea.io/gitea/services/auth"
 
 	"github.com/urfave/cli/v2"
@@ -90,6 +93,26 @@ func runListAuth(c *cli.Context) error {
 	return nil
 }
 
+func createSource(ctx context.Context, source *auth_model.Source) error {
+	if err := auth_model.CreateSource(ctx, source); err != nil {
+		return err
+	}
+
+	audit.RecordSystemAuthenticationSourceAdd(ctx, user_model.NewCLIUser(), source)
+
+	return nil
+}
+
+func updateSource(ctx context.Context, source *auth_model.Source) error {
+	if err := auth_model.UpdateSource(ctx, source); err != nil {
+		return err
+	}
+
+	audit.RecordSystemAuthenticationSourceUpdate(ctx, user_model.NewCLIUser(), source)
+
+	return nil
+}
+
 func runDeleteAuth(c *cli.Context) error {
 	if !c.IsSet("id") {
 		return errors.New("--id flag is missing")
@@ -107,5 +130,5 @@ func runDeleteAuth(c *cli.Context) error {
 		return err
 	}
 
-	return auth_service.DeleteSource(ctx, source)
+	return auth_service.DeleteSource(ctx, user_model.NewCLIUser(), source)
 }
