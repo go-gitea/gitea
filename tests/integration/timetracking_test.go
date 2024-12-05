@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -17,22 +16,24 @@ import (
 
 func TestViewTimetrackingControls(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	session := loginUser(t, "user2")
-	testViewTimetrackingControls(t, session, "user2", "repo1", "1", true)
-	// user2/repo1
-}
 
-func TestNotViewTimetrackingControls(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	session := loginUser(t, "user5")
-	testViewTimetrackingControls(t, session, "user2", "repo1", "1", false)
-	// user2/repo1
-}
+	t.Run("Exist", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		session := loginUser(t, "user2")
+		testViewTimetrackingControls(t, session, "user2", "repo1", "1", true)
+	})
 
-func TestViewTimetrackingControlsDisabled(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	session := loginUser(t, "user2")
-	testViewTimetrackingControls(t, session, "org3", "repo3", "1", false)
+	t.Run("Non-exist", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		session := loginUser(t, "user5")
+		testViewTimetrackingControls(t, session, "user2", "repo1", "1", false)
+	})
+
+	t.Run("Disabled", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		session := loginUser(t, "user2")
+		testViewTimetrackingControls(t, session, "org3", "repo3", "1", false)
+	})
 }
 
 func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo, issue string, canTrackTime bool) {
@@ -41,40 +42,40 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	htmlDoc.AssertElement(t, ".timetrack .issue-start-time", canTrackTime)
-	htmlDoc.AssertElement(t, ".timetrack .issue-add-time", canTrackTime)
+	htmlDoc.AssertElement(t, ".issue-start-time", canTrackTime)
+	htmlDoc.AssertElement(t, ".issue-add-time", canTrackTime)
 
-	req = NewRequestWithValues(t, "POST", path.Join(user, repo, "issues", issue, "times", "stopwatch", "toggle"), map[string]string{
+	issueLink := path.Join(user, repo, "issues", issue)
+	req = NewRequestWithValues(t, "POST", path.Join(issueLink, "times", "stopwatch", "toggle"), map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 	})
 	if canTrackTime {
-		resp = session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 
-		req = NewRequest(t, "GET", test.RedirectURL(resp))
+		req = NewRequest(t, "GET", issueLink)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 
 		events := htmlDoc.doc.Find(".event > span.text")
 		assert.Contains(t, events.Last().Text(), "started working")
 
-		htmlDoc.AssertElement(t, ".timetrack .issue-stop-time", true)
-		htmlDoc.AssertElement(t, ".timetrack .issue-cancel-time", true)
+		htmlDoc.AssertElement(t, ".issue-stop-time", true)
+		htmlDoc.AssertElement(t, ".issue-cancel-time", true)
 
 		// Sleep for 1 second to not get wrong order for stopping timer
 		time.Sleep(time.Second)
 
-		req = NewRequestWithValues(t, "POST", path.Join(user, repo, "issues", issue, "times", "stopwatch", "toggle"), map[string]string{
+		req = NewRequestWithValues(t, "POST", path.Join(issueLink, "times", "stopwatch", "toggle"), map[string]string{
 			"_csrf": htmlDoc.GetCSRF(),
 		})
-		resp = session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 
-		req = NewRequest(t, "GET", test.RedirectURL(resp))
+		req = NewRequest(t, "GET", issueLink)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 
 		events = htmlDoc.doc.Find(".event > span.text")
-		assert.Contains(t, events.Last().Text(), "stopped working")
-		htmlDoc.AssertElement(t, ".event .detail .octicon-clock", true)
+		assert.Contains(t, events.Last().Text(), "worked for ")
 	} else {
 		session.MakeRequest(t, req, http.StatusNotFound)
 	}
