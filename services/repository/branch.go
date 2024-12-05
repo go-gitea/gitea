@@ -466,24 +466,17 @@ var (
 	ErrInsufficientAccess = errors.New("insufficient access")
 )
 
-// DeleteBranch delete branch
-func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string, pr *issues_model.PullRequest) error {
+func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User) error {
+	if branchName == repo.DefaultBranch {
+		return ErrBranchIsDefault
+	}
+
 	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
 	if err != nil {
 		return err
 	}
-
 	if !perm.CanWrite(unit.TypeCode) {
-		return ErrInsufficientAccess
-	}
-
-	err = repo.MustNotBeArchived()
-	if err != nil {
-		return err
-	}
-
-	if branchName == repo.DefaultBranch {
-		return ErrBranchIsDefault
+		return util.NewPermissionDeniedErrorf("permission denied to access repo %d unit %s", repo.ID, unit.TypeCode.LogString())
 	}
 
 	isProtected, err := git_model.IsBranchProtected(ctx, repo.ID, branchName)
@@ -492,6 +485,19 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	}
 	if isProtected {
 		return git_model.ErrBranchIsProtected
+	}
+	return nil
+}
+
+// DeleteBranch delete branch
+func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string, pr *issues_model.PullRequest) error {
+	err := repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
+	if err := CanDeleteBranch(ctx, repo, branchName, doer); err != nil {
+		return err
 	}
 
 	rawBranch, err := git_model.GetBranch(ctx, repo.ID, branchName)

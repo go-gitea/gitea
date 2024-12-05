@@ -6,7 +6,7 @@ package markup
 import (
 	"bytes"
 	"io"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -55,7 +55,7 @@ func RegisterRenderer(renderer Renderer) {
 
 // GetRendererByFileName get renderer by filename
 func GetRendererByFileName(filename string) Renderer {
-	extension := strings.ToLower(filepath.Ext(filename))
+	extension := strings.ToLower(path.Ext(filename))
 	return extRenderers[extension]
 }
 

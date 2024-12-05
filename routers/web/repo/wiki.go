@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
@@ -288,15 +289,9 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		footerContent = data
 	}
 
-	rctx := &markup.RenderContext{
-		Ctx:   ctx,
-		Metas: ctx.Repo.Repository.ComposeWikiMetas(ctx),
-		Links: markup.Links{
-			Base: ctx.Repo.RepoLink,
-		},
-	}
-	buf := &strings.Builder{}
+	rctx := renderhelper.NewRenderContextRepoWiki(ctx, ctx.Repo.Repository)
 
+	buf := &strings.Builder{}
 	renderFn := func(data []byte) (escaped *charset.EscapeStatus, output string, err error) {
 		markupRd, markupWr := io.Pipe()
 		defer markupWr.Close()

@@ -18,12 +18,12 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
@@ -366,15 +366,8 @@ func UpdateIssueContent(ctx *context.Context) {
 		}
 	}
 
-	content, err := markdown.RenderString(&markup.RenderContext{
-		Links: markup.Links{
-			Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		},
-		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo: ctx.Repo.GitRepo,
-		Repo:    ctx.Repo.Repository,
-		Ctx:     ctx,
-	}, issue.Content)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+	content, err := markdown.RenderString(rctx, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return
@@ -644,8 +637,12 @@ func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment,
 	return attachHTML
 }
 
-// get all teams that current user can mention
-func handleTeamMentions(ctx *context.Context) {
+// handleMentionableAssigneesAndTeams gets all teams that current user can mention, and fills the assignee users to the context data
+func handleMentionableAssigneesAndTeams(ctx *context.Context, assignees []*user_model.User) {
+	// TODO: need to figure out how many places this is really used, and rename it to "MentionableAssignees"
+	// at the moment it is used on the issue list page, for the markdown editor mention
+	ctx.Data["Assignees"] = assignees
+
 	if ctx.Doer == nil || !ctx.Repo.Owner.IsOrganization() {
 		return
 	}

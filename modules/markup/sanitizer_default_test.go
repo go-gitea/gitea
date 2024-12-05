@@ -19,6 +19,7 @@ func TestSanitizer(t *testing.T) {
 		// Code highlighting class
 		`<code class="random string"></code>`, `<code></code>`,
 		`<code class="language-random ui tab active menu attached animating sidebar following bar center"></code>`, `<code></code>`,
+		`<span class="k"></span><span class="nb"></span>`, `<span class="k"></span><span class="nb"></span>`,
 
 		// Input checkbox
 		`<input type="hidden">`, ``,

@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
+	arch_module "code.gitea.io/gitea/modules/packages/arch"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/setting"
@@ -178,13 +179,13 @@ func ViewPackageVersion(ctx *context.Context) {
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
 
+	registryHostURL, err := url.Parse(httplib.GuessCurrentHostURL(ctx))
+	if err != nil {
+		registryHostURL, _ = url.Parse(setting.AppURL)
+	}
+	ctx.Data["PackageRegistryHost"] = registryHostURL.Host
+
 	switch pd.Package.Type {
-	case packages_model.TypeContainer:
-		registryAppURL, err := url.Parse(httplib.GuessCurrentAppURL(ctx))
-		if err != nil {
-			registryAppURL, _ = url.Parse(setting.AppURL)
-		}
-		ctx.Data["RegistryHost"] = registryAppURL.Host
 	case packages_model.TypeAlpine:
 		branches := make(container.Set[string])
 		repositories := make(container.Set[string])
@@ -204,6 +205,23 @@ func ViewPackageVersion(ctx *context.Context) {
 		}
 
 		ctx.Data["Branches"] = util.Sorted(branches.Values())
+		ctx.Data["Repositories"] = util.Sorted(repositories.Values())
+		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
+	case packages_model.TypeArch:
+		repositories := make(container.Set[string])
+		architectures := make(container.Set[string])
+
+		for _, f := range pd.Files {
+			for _, pp := range f.Properties {
+				switch pp.Name {
+				case arch_module.PropertyRepository:
+					repositories.Add(pp.Value)
+				case arch_module.PropertyArchitecture:
+					architectures.Add(pp.Value)
+				}
+			}
+		}
+
 		ctx.Data["Repositories"] = util.Sorted(repositories.Values())
 		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
 	case packages_model.TypeDebian:
@@ -249,7 +267,6 @@ func ViewPackageVersion(ctx *context.Context) {
 	var (
 		total int64
 		pvs   []*packages_model.PackageVersion
-		err   error
 	)
 	switch pd.Package.Type {
 	case packages_model.TypeContainer:
