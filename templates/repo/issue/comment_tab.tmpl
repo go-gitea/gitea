@@ -5,11 +5,12 @@
 
 <div class="field">
 	{{template "shared/combomarkdowneditor" (dict
-		"MarkdownPreviewUrl" (print .Repository.Link "/markup")
-		"MarkdownPreviewContext" .RepoLink
+		"CustomInit" true
+		"MarkdownPreviewInRepo" $.Repository
+		"MarkdownPreviewMode" "comment"
 		"TextareaName" "content"
 		"TextareaContent" $textareaContent
-		"TextareaPlaceholder"  (ctx.Locale.Tr "repo.diff.comment.placeholder")
+		"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
 		"DropzoneParentContainer" "form, .ui.form"
 	)}}
 </div>

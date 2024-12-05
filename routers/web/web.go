@@ -485,6 +485,8 @@ func registerRoutes(m *web.Router) {
 		m.Methods("GET, HEAD", "/*", public.FileHandlerFunc())
 	}, optionsCorsHandler())
 
+	m.Post("/-/markup", reqSignIn, web.Bind(structs.MarkupOption{}), misc.Markup)
+
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
@@ -1406,7 +1408,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("", actions.List)
 		m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
 		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
-		m.Post("/run", reqRepoAdmin, actions.Run)
+		m.Post("/run", reqRepoActionsWriter, actions.Run)
 
 		m.Group("/runs/{run}", func() {
 			m.Combo("").
