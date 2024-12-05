@@ -1,8 +1,5 @@
 {{template "base/head" .}}
 <script id="view-data-script" type="module">
-	// for first time loading, the diffFileInfo is a plain object
-	// after the Vue component is mounted, the diffFileInfo is a reactive object
-	// keep in mind that this script block would be executed many times when loading more files, by "loadMoreFiles"
 	let viewFileInfo = window.config.pageData.viewFileInfo || {
 		files:[],
 		fileTreeIsVisible: false,
@@ -58,11 +55,11 @@
 			</div>
 		{{end}}
 		{{template "repo/sub_menu" .}}
-		{{if $showTree}}
 		<div class="tree-container">
+			{{if $showTree}}
 			<div id="view-file-tree" class="file-tree tree-left tw-hidden not-mobile"></div>
+			{{end}}
 			<div class="tree-right">
-		{{end}}
 		<div class="repo-button-row" data-is-homepage="{{$isHomepage}}">
 			<div class="repo-button-row-left">
 				{{if $showTree}}
@@ -202,10 +199,8 @@
 		{{else}}{{/* IsViewDirectory */}}
 			{{template "repo/view_list" .}}
 		{{end}}
-		{{if $showTree}}
 			</div>
 		</div>
-		{{end}}
 	</div>
 </div>
 {{template "base/footer" .}}
