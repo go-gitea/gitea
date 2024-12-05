@@ -646,7 +646,7 @@ func WikiPages(ctx *context.Context) {
 		return
 	}
 
-	treePath := ""
+	treePath := "" // To support list sub folders' pages in the future
 	tree, err := commit.SubTree(treePath)
 	if err != nil {
 		ctx.ServerError("SubTree", err)
