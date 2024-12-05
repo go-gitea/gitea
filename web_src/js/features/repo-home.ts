@@ -7,10 +7,12 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 const {appSubUrl} = window.config;
 
 export function initRepoTopicBar() {
-  const mgrBtns = document.querySelectorAll<HTMLButtonElement>('#manage_topic');
-  if (mgrBtns.length === 0) return;
+  const mgrBtnMobile = document.querySelector<HTMLButtonElement>('.only-mobile #manage_topic');
+  const mgrBtnDesktop = document.querySelector<HTMLButtonElement>('.not-mobile #manage_topic');
 
-  for (const mgrBtn of mgrBtns) {
+  for (const mgrBtn of [mgrBtnMobile, mgrBtnDesktop]) {
+    if (!mgrBtn) continue;
+
     const editDiv = mgrBtn.parentNode.querySelector('#topic_edit');
     const viewDiv = mgrBtn.parentNode.querySelector('#repo-topics');
     const topicDropdown = editDiv.querySelector('.ui.dropdown');

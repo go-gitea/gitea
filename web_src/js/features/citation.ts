@@ -42,34 +42,38 @@ export async function initCitationFileCopyContent() {
     citationCopyApa.classList.toggle('primary', !isBibtex);
   };
 
-  document.querySelector('#cite-repo-button')?.addEventListener('click', async () => {
-    fomanticQuery(elModal).modal('show');
-    elModal.classList.add('is-loading');
+  const citeBtnMobile = document.querySelector<HTMLButtonElement>('.only-mobile #cite-repo-button');
+  const citeBtnDesktop = document.querySelector<HTMLButtonElement>('.not-mobile #cite-repo-button');
+  for (const citeBtn of [citeBtnMobile, citeBtnDesktop]) {
+    citeBtn?.addEventListener('click', async () => {
+      fomanticQuery(elModal).modal('show');
+      elModal.classList.add('is-loading');
 
-    try {
       try {
-        await initInputCitationValue(citationCopyApa, citationCopyBibtex);
-      } catch (e) {
-        console.error(`initCitationFileCopyContent error: ${e}`, e);
-        return;
+        try {
+          await initInputCitationValue(citationCopyApa, citationCopyBibtex);
+        } catch (e) {
+          console.error(`initCitationFileCopyContent error: ${e}`, e);
+          return;
+        }
+        updateUi();
+
+        citationCopyApa.addEventListener('click', () => {
+          localStorage.setItem('citation-copy-format', 'apa');
+          updateUi();
+        });
+
+        citationCopyBibtex.addEventListener('click', () => {
+          localStorage.setItem('citation-copy-format', 'bibtex');
+          updateUi();
+        });
+
+        inputContent.addEventListener('click', () => {
+          inputContent.select();
+        });
+      } finally {
+        elModal.classList.remove('is-loading');
       }
-      updateUi();
-
-      citationCopyApa.addEventListener('click', () => {
-        localStorage.setItem('citation-copy-format', 'apa');
-        updateUi();
-      });
-
-      citationCopyBibtex.addEventListener('click', () => {
-        localStorage.setItem('citation-copy-format', 'bibtex');
-        updateUi();
-      });
-
-      inputContent.addEventListener('click', () => {
-        inputContent.select();
-      });
-    } finally {
-      elModal.classList.remove('is-loading');
-    }
-  });
+    });
+  }
 }
