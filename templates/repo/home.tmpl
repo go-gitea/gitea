@@ -6,7 +6,7 @@
 		{{template "repo/code/recently_pushed_new_branches" .}}
 
 		<div class="flex-container">
-			<div class="flex-container-main" data-home={{.IsHomePage}}>
+			<div class="flex-container-main">
 				{{if .Repository.IsArchived}}
 					<div class="ui warning message tw-text-center">
 						{{if .Repository.ArchivedUnix.IsZero}}
