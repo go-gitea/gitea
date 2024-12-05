@@ -888,7 +888,7 @@ func renderLanguageStats(ctx *context.Context) {
 }
 
 func renderLatestRelease(ctx *context.Context) {
-	if !ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypeReleases) || unit_model.TypeReleases.UnitGlobalDisabled() {
+	if !ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypeReleases) {
 		return
 	}
 
