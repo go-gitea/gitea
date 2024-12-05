@@ -10,11 +10,10 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 )
 
 // DeleteRepoDeployKeys deletes all deploy keys of a repository. permissions check should be done outside
-func DeleteRepoDeployKeys(ctx context.Context, doer *user_model.User, repoID int64) (int, error) {
+func DeleteRepoDeployKeys(ctx context.Context, repoID int64) (int, error) {
 	deployKeys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
 		return 0, fmt.Errorf("listDeployKeys: %w", err)

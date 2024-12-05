@@ -74,7 +74,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	}
 
 	// Delete Deploy Keys
-	deleted, err := asymkey_service.DeleteRepoDeployKeys(ctx, doer, repoID)
+	deleted, err := asymkey_service.DeleteRepoDeployKeys(ctx, repoID)
 	if err != nil {
 		return err
 	}
