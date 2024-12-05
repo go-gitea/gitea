@@ -44,7 +44,7 @@ export async function initCitationFileCopyContent() {
   };
 
   document.querySelector('#cite-repo-button')?.addEventListener('click', async () => {
-    $modal.modal('show');
+    fomanticQuery(elModal).modal('show');
     elModal.classList.add('is-loading');
 
     try {
