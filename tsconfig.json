@@ -27,7 +27,7 @@
     "noPropertyAccessFromIndexSignature": false,
     "exactOptionalPropertyTypes": false,
     "sourceMap": true,
-    "composite": true,
+    "composite": true, // needed for tsBuildInfoFile
     "tsBuildInfoFile": "./node_modules/.cache/tsbuild",
     "types": [
       "vitest/globals",
