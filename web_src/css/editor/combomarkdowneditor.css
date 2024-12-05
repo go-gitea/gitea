@@ -7,17 +7,25 @@
   display: flex;
   align-items: center;
   padding-bottom: 10px;
-  gap: .5rem;
   flex-wrap: wrap;
 }
 
 .combo-markdown-editor .markdown-toolbar-group {
   display: flex;
+  border-left: 1px solid var(--color-secondary);
+  padding: 0 0.5em;
 }
 
+.combo-markdown-editor .markdown-toolbar-group:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
 .combo-markdown-editor .markdown-toolbar-group:last-child {
   flex: 1;
   justify-content: flex-end;
+  border-right: none;
+  border-left: 0;
+  padding-right: 0;
 }
 
 .combo-markdown-editor .markdown-toolbar-button {
@@ -31,6 +39,24 @@
 
 .combo-markdown-editor .markdown-toolbar-button:hover {
   color: var(--color-primary);
+}
+
+.combo-markdown-editor md-header {
+  position: relative;
+}
+.combo-markdown-editor md-header::after {
+  font-size: 10px;
+  position: absolute;
+  top: 7px;
+}
+.combo-markdown-editor md-header[level="1"]::after {
+  content: "1";
+}
+.combo-markdown-editor md-header[level="2"]::after {
+  content: "2";
+}
+.combo-markdown-editor md-header[level="3"]::after {
+  content: "3";
 }
 
 .ui.form .combo-markdown-editor textarea.markdown-text-editor,
@@ -68,6 +94,11 @@
 
 .combo-markdown-editor .CodeMirror-scroll .cm-header-6 {
   font-size: 0.85em;
+}
+
+.combo-markdown-editor .ui.tab.markup[data-tab-panel="markdown-previewer"] {
+  border-bottom: 1px solid var(--color-secondary);
+  padding-bottom: 1rem;
 }
 
 text-expander {

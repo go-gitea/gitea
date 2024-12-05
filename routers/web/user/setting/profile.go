@@ -69,6 +69,11 @@ func ProfilePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateProfileForm)
 
 	if form.Name != "" {
+		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeUsername) {
+			ctx.Flash.Error(ctx.Tr("user.form.change_username_disabled"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings")
+			return
+		}
 		if err := user_service.RenameUser(ctx, ctx.Doer, form.Name); err != nil {
 			switch {
 			case user_model.IsErrUserIsNotLocal(err):
@@ -91,7 +96,6 @@ func ProfilePost(ctx *context.Context) {
 	}
 
 	opts := &user_service.UpdateOptions{
-		FullName:            optional.Some(form.FullName),
 		KeepEmailPrivate:    optional.Some(form.KeepEmailPrivate),
 		Description:         optional.Some(form.Description),
 		Website:             optional.Some(form.Website),
@@ -99,6 +103,16 @@ func ProfilePost(ctx *context.Context) {
 		Visibility:          optional.Some(form.Visibility),
 		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
 	}
+
+	if form.FullName != "" {
+		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeFullName) {
+			ctx.Flash.Error(ctx.Tr("user.form.change_full_name_disabled"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings")
+			return
+		}
+		opts.FullName = optional.Some(form.FullName)
+	}
+
 	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return

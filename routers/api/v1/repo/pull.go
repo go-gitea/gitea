@@ -52,55 +52,78 @@ func ListPullRequests(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: Owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
-	//   description: name of the repo
+	//   description: Name of the repo
 	//   type: string
 	//   required: true
 	// - name: state
 	//   in: query
-	//   description: "State of pull request: open or closed (optional)"
+	//   description: State of pull request
 	//   type: string
-	//   enum: [closed, open, all]
+	//   enum: [open, closed, all]
+	//   default: open
 	// - name: sort
 	//   in: query
-	//   description: "Type of sort"
+	//   description: Type of sort
 	//   type: string
 	//   enum: [oldest, recentupdate, leastupdate, mostcomment, leastcomment, priority]
 	// - name: milestone
 	//   in: query
-	//   description: "ID of the milestone"
+	//   description: ID of the milestone
 	//   type: integer
 	//   format: int64
 	// - name: labels
 	//   in: query
-	//   description: "Label IDs"
+	//   description: Label IDs
 	//   type: array
 	//   collectionFormat: multi
 	//   items:
 	//     type: integer
 	//     format: int64
+	// - name: poster
+	//   in: query
+	//   description: Filter by pull request author
+	//   type: string
 	// - name: page
 	//   in: query
-	//   description: page number of results to return (1-based)
+	//   description: Page number of results to return (1-based)
 	//   type: integer
+	//   minimum: 1
+	//   default: 1
 	// - name: limit
 	//   in: query
-	//   description: page size of results
+	//   description: Page size of results
 	//   type: integer
+	//   minimum: 0
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "500":
+	//     "$ref": "#/responses/error"
 
 	labelIDs, err := base.StringsToInt64s(ctx.FormStrings("labels"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "PullRequests", err)
 		return
+	}
+	var posterID int64
+	if posterStr := ctx.FormString("poster"); posterStr != "" {
+		poster, err := user_model.GetUserByName(ctx, posterStr)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.Error(http.StatusBadRequest, "Poster not found", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			}
+			return
+		}
+		posterID = poster.ID
 	}
 	listOptions := utils.GetListOptions(ctx)
 	prs, maxResults, err := issues_model.PullRequests(ctx, ctx.Repo.Repository.ID, &issues_model.PullRequestsOptions{
@@ -109,6 +132,7 @@ func ListPullRequests(ctx *context.APIContext) {
 		SortType:    ctx.FormTrim("sort"),
 		Labels:      labelIDs,
 		MilestoneID: ctx.FormInt64("milestone"),
+		PosterID:    posterID,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "PullRequests", err)
@@ -530,7 +554,19 @@ func CreatePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if err := pull_service.NewPullRequest(ctx, repo, prIssue, labelIDs, []string{}, pr, assigneeIDs); err != nil {
+	prOpts := &pull_service.NewPullRequestOptions{
+		Repo:        repo,
+		Issue:       prIssue,
+		LabelIDs:    labelIDs,
+		PullRequest: pr,
+		AssigneeIDs: assigneeIDs,
+	}
+	prOpts.Reviewers, prOpts.TeamReviewers = parseReviewersByNames(ctx, form.Reviewers, form.TeamReviewers)
+	if ctx.Written() {
+		return
+	}
+
+	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
@@ -1021,49 +1057,54 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 	log.Trace("Pull request merged: %d", pr.ID)
 
-	if form.DeleteBranchAfterMerge {
-		// Don't cleanup when there are other PR's that use this branch as head branch.
-		exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
-		if err != nil {
-			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
-			return
-		}
-		if exist {
-			ctx.Status(http.StatusOK)
-			return
-		}
-
-		var headRepo *git.Repository
-		if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
-			headRepo = ctx.Repo.GitRepo
-		} else {
-			headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
+	// for agit flow, we should not delete the agit reference after merge
+	if form.DeleteBranchAfterMerge && pr.Flow == issues_model.PullRequestFlowGithub {
+		// check permission even it has been checked in repo_service.DeleteBranch so that we don't need to
+		// do RetargetChildrenOnMerge
+		if err := repo_service.CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, ctx.Doer); err == nil {
+			// Don't cleanup when there are other PR's that use this branch as head branch.
+			exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
 			if err != nil {
-				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.FullName()), err)
+				ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
 				return
 			}
-			defer headRepo.Close()
-		}
-		if err := pull_service.RetargetChildrenOnMerge(ctx, ctx.Doer, pr); err != nil {
-			ctx.Error(http.StatusInternalServerError, "RetargetChildrenOnMerge", err)
-			return
-		}
-		if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch); err != nil {
-			switch {
-			case git.IsErrBranchNotExist(err):
-				ctx.NotFound(err)
-			case errors.Is(err, repo_service.ErrBranchIsDefault):
-				ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
-			case errors.Is(err, git_model.ErrBranchIsProtected):
-				ctx.Error(http.StatusForbidden, "IsProtectedBranch", fmt.Errorf("branch protected"))
-			default:
-				ctx.Error(http.StatusInternalServerError, "DeleteBranch", err)
+			if exist {
+				ctx.Status(http.StatusOK)
+				return
 			}
-			return
-		}
-		if err := issues_model.AddDeletePRBranchComment(ctx, ctx.Doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
-			// Do not fail here as branch has already been deleted
-			log.Error("DeleteBranch: %v", err)
+
+			var headRepo *git.Repository
+			if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
+				headRepo = ctx.Repo.GitRepo
+			} else {
+				headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
+				if err != nil {
+					ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.FullName()), err)
+					return
+				}
+				defer headRepo.Close()
+			}
+			if err := pull_service.RetargetChildrenOnMerge(ctx, ctx.Doer, pr); err != nil {
+				ctx.Error(http.StatusInternalServerError, "RetargetChildrenOnMerge", err)
+				return
+			}
+			if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch); err != nil {
+				switch {
+				case git.IsErrBranchNotExist(err):
+					ctx.NotFound(err)
+				case errors.Is(err, repo_service.ErrBranchIsDefault):
+					ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
+				case errors.Is(err, git_model.ErrBranchIsProtected):
+					ctx.Error(http.StatusForbidden, "IsProtectedBranch", fmt.Errorf("branch protected"))
+				default:
+					ctx.Error(http.StatusInternalServerError, "DeleteBranch", err)
+				}
+				return
+			}
+			if err := issues_model.AddDeletePRBranchComment(ctx, ctx.Doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
+				// Do not fail here as branch has already been deleted
+				log.Error("DeleteBranch: %v", err)
+			}
 		}
 	}
 

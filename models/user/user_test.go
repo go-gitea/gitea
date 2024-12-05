@@ -92,7 +92,10 @@ func TestSearchUsers(t *testing.T) {
 	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 4, PageSize: 2}},
 		[]int64{26, 41})
 
-	testOrgSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 5, PageSize: 2}},
+	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 5, PageSize: 2}},
+		[]int64{42})
+
+	testOrgSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 6, PageSize: 2}},
 		[]int64{})
 
 	// test users
@@ -584,4 +587,18 @@ func TestDisabledUserFeatures(t *testing.T) {
 	for _, f := range testValues.Values() {
 		assert.True(t, user_model.IsFeatureDisabledWithLoginType(user, f))
 	}
+}
+
+func TestGetInactiveUsers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// all inactive users
+	// user1's createdunix is 1730468968
+	users, err := user_model.GetInactiveUsers(db.DefaultContext, 0)
+	assert.NoError(t, err)
+	assert.Len(t, users, 1)
+	interval := time.Now().Unix() - 1730468968 + 3600*24
+	users, err = user_model.GetInactiveUsers(db.DefaultContext, time.Duration(interval*int64(time.Second)))
+	assert.NoError(t, err)
+	assert.Len(t, users, 0)
 }

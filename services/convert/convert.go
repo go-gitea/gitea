@@ -158,6 +158,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 	return &api.BranchProtection{
 		BranchName:                    branchName,
 		RuleName:                      bp.RuleName,
+		Priority:                      bp.Priority,
 		EnablePush:                    bp.CanPush,
 		EnablePushWhitelist:           bp.EnableWhitelist,
 		PushWhitelistUsernames:        pushWhitelistUsernames,
@@ -185,6 +186,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		RequireSignedCommits:          bp.RequireSignedCommits,
 		ProtectedFilePatterns:         bp.ProtectedFilePatterns,
 		UnprotectedFilePatterns:       bp.UnprotectedFilePatterns,
+		BlockAdminMergeOverride:       bp.BlockAdminMergeOverride,
 		Created:                       bp.CreatedUnix.AsTime(),
 		Updated:                       bp.UpdatedUnix.AsTime(),
 	}

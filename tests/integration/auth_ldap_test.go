@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -19,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/ldap"
+	org_service "code.gitea.io/gitea/services/org"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -156,8 +156,8 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute, groupFilter string, groupM
 		groupTeamMap = groupMapParams[1]
 	}
 	session := loginUser(t, "user1")
-	csrf := GetCSRF(t, session, "/admin/auths/new")
-	req := NewRequestWithValues(t, "POST", "/admin/auths/new", buildAuthSourceLDAPPayload(csrf, sshKeyAttribute, groupFilter, groupTeamMap, groupTeamMapRemoval))
+	csrf := GetUserCSRFToken(t, session)
+	req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", buildAuthSourceLDAPPayload(csrf, sshKeyAttribute, groupFilter, groupTeamMap, groupTeamMapRemoval))
 	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
@@ -187,7 +187,7 @@ func TestLDAPAuthChange(t *testing.T) {
 	addAuthSourceLDAP(t, "", "")
 
 	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/admin/auths")
+	req := NewRequest(t, "GET", "/-/admin/auths")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	href, exists := doc.Find("table.table td a").Attr("href")
@@ -252,14 +252,14 @@ func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	csrf := GetCSRF(t, session, "/admin/auths/new")
+	csrf := GetUserCSRFToken(t, session)
 	payload := buildAuthSourceLDAPPayload(csrf, "", "", "", "")
 	payload["attribute_username"] = ""
-	req := NewRequestWithValues(t, "POST", "/admin/auths/new", payload)
+	req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", payload)
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	for _, u := range gitLDAPUsers {
-		req := NewRequest(t, "GET", "/admin/users?q="+u.UserName)
+		req := NewRequest(t, "GET", "/-/admin/users?q="+u.UserName)
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
@@ -429,9 +429,9 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 			isMember, err := organization.IsTeamMember(db.DefaultContext, usersOrgs[0].ID, team.ID, user.ID)
 			assert.NoError(t, err)
 			assert.True(t, isMember, "Membership should be added to the right team")
-			err = models.RemoveTeamMember(db.DefaultContext, team, user)
+			err = org_service.RemoveTeamMember(db.DefaultContext, team, user)
 			assert.NoError(t, err)
-			err = models.RemoveOrgUser(db.DefaultContext, usersOrgs[0], user)
+			err = org_service.RemoveOrgUser(db.DefaultContext, usersOrgs[0], user)
 			assert.NoError(t, err)
 		} else {
 			// assert members of LDAP group "cn=admin_staff" keep initial team membership since mapped team does not exist
@@ -461,7 +461,7 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	})
 	err = organization.AddOrgUser(db.DefaultContext, org.ID, user.ID)
 	assert.NoError(t, err)
-	err = models.AddTeamMember(db.DefaultContext, team, user)
+	err = org_service.AddTeamMember(db.DefaultContext, team, user)
 	assert.NoError(t, err)
 	isMember, err := organization.IsOrganizationMember(db.DefaultContext, org.ID, user.ID)
 	assert.NoError(t, err)
@@ -487,7 +487,7 @@ func TestLDAPPreventInvalidGroupTeamMap(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	csrf := GetCSRF(t, session, "/admin/auths/new")
-	req := NewRequestWithValues(t, "POST", "/admin/auths/new", buildAuthSourceLDAPPayload(csrf, "", "", `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, "off"))
+	csrf := GetUserCSRFToken(t, session)
+	req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", buildAuthSourceLDAPPayload(csrf, "", "", `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, "off"))
 	session.MakeRequest(t, req, http.StatusOK) // StatusOK = failed, StatusSeeOther = ok
 }

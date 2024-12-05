@@ -107,7 +107,7 @@ func TestE2e(t *testing.T) {
 				cmd.Stdout = &stdout
 				cmd.Stderr = &stderr
 
-				err := cmd.Run()
+				err = cmd.Run()
 				if err != nil {
 					// Currently colored output is conflicting. Using Printf until that is resolved.
 					fmt.Printf("%v", stdout.String())

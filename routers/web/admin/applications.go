@@ -23,8 +23,8 @@ var (
 func newOAuth2CommonHandlers() *user_setting.OAuth2CommonHandlers {
 	return &user_setting.OAuth2CommonHandlers{
 		OwnerID:            0,
-		BasePathList:       fmt.Sprintf("%s/admin/applications", setting.AppSubURL),
-		BasePathEditPrefix: fmt.Sprintf("%s/admin/applications/oauth2", setting.AppSubURL),
+		BasePathList:       fmt.Sprintf("%s/-/admin/applications", setting.AppSubURL),
+		BasePathEditPrefix: fmt.Sprintf("%s/-/admin/applications/oauth2", setting.AppSubURL),
 		TplAppEdit:         tplSettingsOauth2ApplicationEdit,
 	}
 }

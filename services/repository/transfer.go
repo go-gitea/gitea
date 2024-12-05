@@ -20,7 +20,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -60,7 +59,7 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 	}
 
 	for _, team := range teams {
-		if err := models.AddRepository(ctx, team, newRepo); err != nil {
+		if err := addRepositoryToTeam(ctx, team, newRepo); err != nil {
 			return err
 		}
 	}
@@ -206,7 +205,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		}
 		for _, t := range teams {
 			if t.IncludesAllRepositories {
-				if err := models.AddRepository(ctx, t, repo); err != nil {
+				if err := addRepositoryToTeam(ctx, t, repo); err != nil {
 					return fmt.Errorf("AddRepository: %w", err)
 				}
 			}
@@ -419,10 +418,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		return err
 	}
 	if !hasAccess {
-		if err := repo_module.AddCollaborator(ctx, repo, newOwner); err != nil {
-			return err
-		}
-		if err := repo_model.ChangeCollaborationAccessMode(ctx, repo, newOwner.ID, perm.AccessModeRead); err != nil {
+		if err := AddOrUpdateCollaborator(ctx, repo, newOwner, perm.AccessModeRead); err != nil {
 			return err
 		}
 	}

@@ -3,14 +3,16 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.users.user_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/users/new">{{ctx.Locale.Tr "admin.users.new_account"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/-/admin/users/new">{{ctx.Locale.Tr "admin.users.new_account"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form ignore-dirty" id="user-list-search-form">
-
+			<form class="ui form ignore-dirty flex-text-block" id="user-list-search-form">
+				<div class="tw-flex-1">
+					{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
+				</div>
 				<!-- Right Menu -->
-				<div class="ui right floated secondary filter menu">
+				<div class="ui secondary menu tw-m-0">
 					<!-- Status Filter Menu Item -->
 					<div class="ui dropdown type jump item">
 						<span class="text">{{ctx.Locale.Tr "admin.users.list_status_filter.menu_text"}}</span>
@@ -51,8 +53,6 @@
 						</div>
 					</div>
 				</div>
-
-				{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
 			</form>
 		</div>
 		<div class="ui attached table segment">
@@ -96,9 +96,9 @@
 							<td>{{svg (Iif .IsActive "octicon-check" "octicon-x")}}</td>
 							<td>{{svg (Iif .IsRestricted "octicon-check" "octicon-x")}}</td>
 							<td>{{svg (Iif (index $.UsersTwoFaStatus .ID) "octicon-check" "octicon-x")}}</td>
-							<td>{{DateTime "short" .CreatedUnix}}</td>
+							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							{{if .LastLoginUnix}}
-								<td>{{DateTime "short" .LastLoginUnix}}</td>
+								<td>{{DateUtils.AbsoluteShort .LastLoginUnix}}</td>
 							{{else}}
 								<td><span>{{ctx.Locale.Tr "admin.users.never_login"}}</span></td>
 							{{end}}

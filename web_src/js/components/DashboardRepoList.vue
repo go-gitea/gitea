@@ -1,8 +1,8 @@
 <script lang="ts">
 import {createApp, nextTick} from 'vue';
-import $ from 'jquery';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
@@ -102,7 +102,7 @@ const sfc = {
   mounted() {
     const el = document.querySelector('#dashboard-repo-list');
     this.changeReposFilter(this.reposFilter);
-    $(el).find('.dropdown').dropdown();
+    fomanticQuery(el.querySelector('.ui.dropdown')).dropdown();
     nextTick(() => {
       this.$refs.search.focus();
     });
@@ -362,9 +362,9 @@ export default sfc; // activate the IDE's Vue plugin
             <div class="menu">
               <a class="item" @click="toggleArchivedFilter()">
                 <div class="ui checkbox" ref="checkboxArchivedFilter" :title="checkboxArchivedFilterTitle">
-                  <!--the "hidden" is necessary to make the checkbox work without Fomantic UI js,
+                  <!--the "tw-pointer-events-none" is necessary to prevent the checkbox from handling user's input,
                       otherwise if the "input" handles click event for intermediate status, it breaks the internal state-->
-                  <input type="checkbox" class="hidden" v-bind.prop="checkboxArchivedFilterProps">
+                  <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxArchivedFilterProps">
                   <label>
                     <svg-icon name="octicon-archive" :size="16" class-name="tw-mr-1"/>
                     {{ textShowArchived }}
@@ -373,7 +373,7 @@ export default sfc; // activate the IDE's Vue plugin
               </a>
               <a class="item" @click="togglePrivateFilter()">
                 <div class="ui checkbox" ref="checkboxPrivateFilter" :title="checkboxPrivateFilterTitle">
-                  <input type="checkbox" class="hidden" v-bind.prop="checkboxPrivateFilterProps">
+                  <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxPrivateFilterProps">
                   <label>
                     <svg-icon name="octicon-lock" :size="16" class-name="tw-mr-1"/>
                     {{ textShowPrivate }}
@@ -471,7 +471,7 @@ export default sfc; // activate the IDE's Vue plugin
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
-              <div class="text truncate">{{ org.name }}</div>
+              <div class="text truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
               <div><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}

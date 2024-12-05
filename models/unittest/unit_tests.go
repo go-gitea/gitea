@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"xorm.io/builder"
 )
 
@@ -64,10 +65,10 @@ func BeanExists(t assert.TestingT, bean any, conditions ...any) bool {
 }
 
 // AssertExistsAndLoadBean assert that a bean exists and load it from the test database
-func AssertExistsAndLoadBean[T any](t assert.TestingT, bean T, conditions ...any) T {
+func AssertExistsAndLoadBean[T any](t require.TestingT, bean T, conditions ...any) T {
 	exists, err := LoadBeanIfExists(bean, conditions...)
-	assert.NoError(t, err)
-	assert.True(t, exists,
+	require.NoError(t, err)
+	require.True(t, exists,
 		"Expected to find %+v (of type %T, with conditions %+v), but did not",
 		bean, bean, conditions)
 	return bean

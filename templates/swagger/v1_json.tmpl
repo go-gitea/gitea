@@ -3444,107 +3444,125 @@
         "operationId": "issueSearchIssues",
         "parameters": [
           {
+            "enum": [
+              "open",
+              "closed",
+              "all"
+            ],
             "type": "string",
-            "description": "whether issue is open or closed",
+            "default": "open",
+            "description": "State of the issue",
             "name": "state",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded",
+            "description": "Comma-separated list of label names. Fetch only issues that have any of these labels. Non existent labels are discarded.",
             "name": "labels",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "comma separated list of milestone names. Fetch only issues that have any of this milestones. Non existent are discarded",
+            "description": "Comma-separated list of milestone names. Fetch only issues that have any of these milestones. Non existent milestones are discarded.",
             "name": "milestones",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "search string",
+            "description": "Search string",
             "name": "q",
             "in": "query"
           },
           {
             "type": "integer",
             "format": "int64",
-            "description": "repository to prioritize in the results",
+            "description": "Repository ID to prioritize in the results",
             "name": "priority_repo_id",
             "in": "query"
           },
           {
+            "enum": [
+              "issues",
+              "pulls"
+            ],
             "type": "string",
-            "description": "filter by type (issues / pulls) if set",
+            "description": "Filter by issue type",
             "name": "type",
             "in": "query"
           },
           {
             "type": "string",
             "format": "date-time",
-            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "description": "Only show issues updated after the given time (RFC 3339 format)",
             "name": "since",
             "in": "query"
           },
           {
             "type": "string",
             "format": "date-time",
-            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "description": "Only show issues updated before the given time (RFC 3339 format)",
             "name": "before",
             "in": "query"
           },
           {
             "type": "boolean",
-            "description": "filter (issues / pulls) assigned to you, default is false",
+            "default": false,
+            "description": "Filter issues or pulls assigned to the authenticated user",
             "name": "assigned",
             "in": "query"
           },
           {
             "type": "boolean",
-            "description": "filter (issues / pulls) created by you, default is false",
+            "default": false,
+            "description": "Filter issues or pulls created by the authenticated user",
             "name": "created",
             "in": "query"
           },
           {
             "type": "boolean",
-            "description": "filter (issues / pulls) mentioning you, default is false",
+            "default": false,
+            "description": "Filter issues or pulls mentioning the authenticated user",
             "name": "mentioned",
             "in": "query"
           },
           {
             "type": "boolean",
-            "description": "filter pulls requesting your review, default is false",
+            "default": false,
+            "description": "Filter pull requests where the authenticated user's review was requested",
             "name": "review_requested",
             "in": "query"
           },
           {
             "type": "boolean",
-            "description": "filter pulls reviewed by you, default is false",
+            "default": false,
+            "description": "Filter pull requests reviewed by the authenticated user",
             "name": "reviewed",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter by owner",
+            "description": "Filter by repository owner",
             "name": "owner",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter by team (requires organization owner parameter to be provided)",
+            "description": "Filter by team (requires organization owner parameter)",
             "name": "team",
             "in": "query"
           },
           {
+            "minimum": 1,
             "type": "integer",
-            "description": "page number of results to return (1-based)",
+            "default": 1,
+            "description": "Page number of results to return (1-based)",
             "name": "page",
             "in": "query"
           },
           {
+            "minimum": 0,
             "type": "integer",
-            "description": "page size of results",
+            "description": "Number of items per page",
             "name": "limit",
             "in": "query"
           }
@@ -3552,6 +3570,12 @@
         "responses": {
           "200": {
             "$ref": "#/responses/IssueList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -4642,6 +4666,58 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/branch_protections/priority": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update the priorities of branch protections for a repository.",
+        "operationId": "repoUpdateBranchProtectionPriories",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateBranchProtectionPriories"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/branch_protections/{name}": {
       "get": {
         "produces": [
@@ -5071,7 +5147,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Add a collaborator to a repository",
+        "summary": "Add or Update a collaborator to a repository",
         "operationId": "repoAddCollaborator",
         "parameters": [
           {
@@ -7682,6 +7758,9 @@
           "404": {
             "$ref": "#/responses/error"
           },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
           "423": {
             "$ref": "#/responses/repoArchivedError"
           }
@@ -8303,6 +8382,9 @@
           },
           "404": {
             "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           },
           "423": {
             "$ref": "#/responses/repoArchivedError"
@@ -10703,14 +10785,14 @@
           },
           {
             "type": "string",
-            "description": "filepath of the file to get",
+            "description": "path of the file to get, it should be \"{ref}/{filepath}\". If there is no ref could be inferred, it will be treated as the default branch",
             "name": "filepath",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch",
             "name": "ref",
             "in": "query"
           }
@@ -11209,26 +11291,27 @@
         "parameters": [
           {
             "type": "string",
-            "description": "owner of the repo",
+            "description": "Owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
-            "description": "name of the repo",
+            "description": "Name of the repo",
             "name": "repo",
             "in": "path",
             "required": true
           },
           {
             "enum": [
-              "closed",
               "open",
+              "closed",
               "all"
             ],
             "type": "string",
-            "description": "State of pull request: open or closed (optional)",
+            "default": "open",
+            "description": "State of pull request",
             "name": "state",
             "in": "query"
           },
@@ -11265,14 +11348,23 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "Filter by pull request author",
+            "name": "poster",
+            "in": "query"
+          },
+          {
+            "minimum": 1,
             "type": "integer",
-            "description": "page number of results to return (1-based)",
+            "default": 1,
+            "description": "Page number of results to return (1-based)",
             "name": "page",
             "in": "query"
           },
           {
+            "minimum": 0,
             "type": "integer",
-            "description": "page size of results",
+            "description": "Page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -11283,6 +11375,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "500": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -12781,14 +12876,14 @@
           },
           {
             "type": "string",
-            "description": "filepath of the file to get",
+            "description": "path of the file to get, it should be \"{ref}/{filepath}\". If there is no ref could be inferred, it will be treated as the default branch",
             "name": "filepath",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch",
             "name": "ref",
             "in": "query"
           }
@@ -13437,6 +13532,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -18734,6 +18832,10 @@
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
         },
+        "block_admin_merge_override": {
+          "type": "boolean",
+          "x-go-name": "BlockAdminMergeOverride"
+        },
         "block_on_official_review_requests": {
           "type": "boolean",
           "x-go-name": "BlockOnOfficialReviewRequests"
@@ -18823,6 +18925,11 @@
             "type": "string"
           },
           "x-go-name": "MergeWhitelistUsernames"
+        },
+        "priority": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Priority"
         },
         "protected_file_patterns": {
           "type": "string",
@@ -19429,6 +19536,10 @@
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
         },
+        "block_admin_merge_override": {
+          "type": "boolean",
+          "x-go-name": "BlockAdminMergeOverride"
+        },
         "block_on_official_review_requests": {
           "type": "boolean",
           "x-go-name": "BlockOnOfficialReviewRequests"
@@ -19513,6 +19624,11 @@
             "type": "string"
           },
           "x-go-name": "MergeWhitelistUsernames"
+        },
+        "priority": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Priority"
         },
         "protected_file_patterns": {
           "type": "string",
@@ -20040,6 +20156,20 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Milestone"
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Reviewers"
+        },
+        "team_reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "TeamReviewers"
         },
         "title": {
           "type": "string",
@@ -20648,6 +20778,10 @@
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
         },
+        "block_admin_merge_override": {
+          "type": "boolean",
+          "x-go-name": "BlockAdminMergeOverride"
+        },
         "block_on_official_review_requests": {
           "type": "boolean",
           "x-go-name": "BlockOnOfficialReviewRequests"
@@ -20727,6 +20861,11 @@
             "type": "string"
           },
           "x-go-name": "MergeWhitelistUsernames"
+        },
+        "priority": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Priority"
         },
         "protected_file_patterns": {
           "type": "string",
@@ -22543,7 +22682,7 @@
           "type": "string"
         },
         "Mode": {
-          "description": "Mode to render (comment, gfm, markdown)\n\nin: body",
+          "description": "Mode to render (markdown, comment, wiki, file)\n\nin: body",
           "type": "string"
         },
         "Text": {
@@ -22551,7 +22690,7 @@
           "type": "string"
         },
         "Wiki": {
-          "description": "Is it a wiki page ?\n\nin: body",
+          "description": "Is it a wiki page? (use mode=wiki instead)\n\nDeprecated: true\nin: body",
           "type": "boolean"
         }
       },
@@ -22570,7 +22709,7 @@
           "type": "string"
         },
         "Mode": {
-          "description": "Mode to render (comment, gfm, markdown, file)\n\nin: body",
+          "description": "Mode to render (markdown, comment, wiki, file)\n\nin: body",
           "type": "string"
         },
         "Text": {
@@ -22578,7 +22717,7 @@
           "type": "string"
         },
         "Wiki": {
-          "description": "Is it a wiki page ?\n\nin: body",
+          "description": "Is it a wiki page? (use mode=wiki instead)\n\nDeprecated: true\nin: body",
           "type": "boolean"
         }
       },
@@ -24810,6 +24949,21 @@
             "format": "int64"
           },
           "x-go-name": "TeamIDs"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpdateBranchProtectionPriories": {
+      "description": "UpdateBranchProtectionPriories a list to update the branch protection rule priorities",
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "IDs"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

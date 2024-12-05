@@ -1,33 +1,41 @@
-<script lang="ts">
+<script lang="ts" setup>
 import {SvgIcon} from '../svg.ts';
 import {diffTreeStore} from '../modules/stores.ts';
+import {ref} from 'vue';
 
-export default {
-  components: {SvgIcon},
-  props: {
-    item: {
-      type: Object,
-      required: true,
-    },
-  },
-  data: () => ({
-    store: diffTreeStore(),
-    collapsed: false,
-  }),
-  methods: {
-    getIconForDiffType(pType) {
-      const diffTypes = {
-        1: {name: 'octicon-diff-added', classes: ['text', 'green']},
-        2: {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
-        3: {name: 'octicon-diff-removed', classes: ['text', 'red']},
-        4: {name: 'octicon-diff-renamed', classes: ['text', 'teal']},
-        5: {name: 'octicon-diff-renamed', classes: ['text', 'green']}, // there is no octicon for copied, so renamed should be ok
-      };
-      return diffTypes[pType];
-    },
-  },
+type File = {
+  Name: string;
+  NameHash: string;
+  Type: number;
+  IsViewed: boolean;
+}
+
+type Item = {
+  name: string;
+  isFile: boolean;
+  file?: File;
+  children?: Item[];
 };
+
+defineProps<{
+  item: Item,
+}>();
+
+const store = diffTreeStore();
+const collapsed = ref(false);
+
+function getIconForDiffType(pType) {
+  const diffTypes = {
+    1: {name: 'octicon-diff-added', classes: ['text', 'green']},
+    2: {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
+    3: {name: 'octicon-diff-removed', classes: ['text', 'red']},
+    4: {name: 'octicon-diff-renamed', classes: ['text', 'teal']},
+    5: {name: 'octicon-diff-renamed', classes: ['text', 'green']}, // there is no octicon for copied, so renamed should be ok
+  };
+  return diffTypes[pType];
+}
 </script>
+
 <template>
   <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
   <a
@@ -43,7 +51,7 @@ export default {
   <div v-else class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">
     <!-- directory -->
     <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
-    <SvgIcon class="text primary" name="octicon-file-directory-fill"/>
+    <SvgIcon class="text primary" :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"/>
     <span class="gt-ellipsis">{{ item.name }}</span>
   </div>
 
@@ -79,12 +87,16 @@ a, a:hover {
   color: var(--color-text-light-3);
 }
 
+.item-directory {
+  user-select: none;
+}
+
 .item-file,
 .item-directory {
   display: flex;
   align-items: center;
   gap: 0.25em;
-  padding: 3px 6px;
+  padding: 6px;
 }
 
 .item-file:hover,
