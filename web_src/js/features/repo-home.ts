@@ -29,7 +29,7 @@ export function initRepoTopicBar() {
       mgrBtn.focus();
     });
 
-    mgrBtn.parentNode.querySelector('#save_topic').addEventListener('click', async (e: MouseEvent & {target: HTMLAnchorElement}) => {
+    mgrBtn.parentNode.querySelector('#save_topic').addEventListener('click', async (e: MouseEvent & {target: HTMLButtonElement}) => {
       lastErrorToast?.hideToast();
       const topics = editDiv.querySelector<HTMLInputElement>('input[name=topics]').value;
 
