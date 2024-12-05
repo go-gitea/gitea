@@ -4,19 +4,13 @@
 package v1_23 //nolint
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func CreateTableIssueDevLink(x *xorm.Engine) error {
-	type IssueDevLink struct {
-		ID           int64 `xorm:"pk autoincr"`
-		IssueID      int64 `xorm:"INDEX"`
-		LinkType     int
-		LinkedRepoID int64              `xorm:"INDEX"` // it can link to self repo or other repo
-		LinkIndex    string             // branch name, pull request number or commit sha
-		CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
+	type Issue struct {
+		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
-	return x.Sync(new(IssueDevLink))
+
+	return x.Sync(new(Issue))
 }
