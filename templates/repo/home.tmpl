@@ -58,31 +58,28 @@
 			</div>
 		{{end}}
 		{{template "repo/sub_menu" .}}
-    {{if $showTree}}
+		{{if $showTree}}
 		<div class="tree-container">
 			<div id="view-file-tree" class="file-tree tree-left tw-hidden not-mobile"></div>
-			<script>
-				const viewTreeVisible = localStorage?.getItem('view_file_tree_visible') !== 'false';
-				if (viewTreeVisible) document.getElementById('view-file-tree').classList.remove('tw-hidden');
-			</script>
 			<div class="tree-right">
 		{{end}}
 		<div class="repo-button-row" data-is-homepage="{{$isHomepage}}">
 			<div class="repo-button-row-left">
-        {{if $showTree}}
-        <button class="view-toggle-file-tree-button not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "repo.view.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.view.hide_file_tree"}}">
-          {{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
-          {{svg "octicon-sidebar-collapse" 20 "icon tw-hidden"}}
-          {{svg "octicon-sidebar-expand" 20 "icon tw-hidden"}}
-        </button>
-        <script>
-          // Default to true if unset
-          const viewTreeBtn = document.querySelector('.view-toggle-file-tree-button');
-          const viewTreeIcon = `.octicon-sidebar-${viewTreeVisible ? 'expand' : 'collapse'}`;
-          viewTreeBtn.querySelector(viewTreeIcon).classList.remove('tw-hidden');
-          viewTreeBtn.setAttribute('data-tooltip-content', viewTreeBtn.getAttribute(viewTreeVisible ? 'data-hide-text' : 'data-show-text'));
-        </script>
-        {{end}}
+				{{if $showTree}}
+				<button class="view-toggle-file-tree-button ui compact basic button icon not-mobile" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
+					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
+					{{svg "octicon-sidebar-collapse" 20 "icon tw-hidden"}}
+					{{svg "octicon-sidebar-expand" 20 "icon tw-hidden"}}
+				</button>
+				<script>
+					// Default to false
+					const viewTreeVisible = false;
+					const viewTreeBtn = document.querySelector('.view-toggle-file-tree-button');
+					const viewTreeIcon = `.octicon-sidebar-${viewTreeVisible ? 'expand' : 'collapse'}`;
+					viewTreeBtn.querySelector(viewTreeIcon).classList.remove('tw-hidden');
+					viewTreeBtn.setAttribute('data-tooltip-content', viewTreeBtn.getAttribute(viewTreeVisible ? 'data-hide-text' : 'data-show-text'));
+				</script>
+				{{end}}
 				{{$branchDropdownCurrentRefType := "branch"}}
 				{{$branchDropdownCurrentRefShortName := .BranchName}}
 				{{if .IsViewTag}}

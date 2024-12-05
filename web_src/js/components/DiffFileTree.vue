@@ -146,11 +146,11 @@ function getIconForDiffType(pType) {
 
 <template>
   <FileTree
+    v-if="store.fileTreeIsVisible"
     id="diff-file-tree"
     :is-loading="false"
     :files="fileTree"
     :collapsed="false"
-    :visible="store.fileTreeIsVisible"
     :selected="store.selectedItem"
     :file-class-getter="(selected, item) => ({'selected': selected === '#tree-node-' + item.file.NameHash, 'viewed': item.file.IsViewed})"
     :file-url-getter="item => '#tree-node-' + item.file.NameHash"

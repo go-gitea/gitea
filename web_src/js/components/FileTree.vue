@@ -1,13 +1,10 @@
 <script lang="ts" setup>
 import {SvgIcon} from '../svg.ts';
 import FileTreeItem from './FileTreeItem.vue';
-// import {toggleElem} from '../utils/dom.ts';
-// import {setFileFolding} from '../features/file-fold.ts';
 
 defineProps<{
   id: string,
   files: any[],
-  visible: boolean,
   selected: string,
   isLoading: boolean,
   collapsed: boolean,
@@ -15,31 +12,14 @@ defineProps<{
   fileClassGetter?: any,
   loadChildren?: any
 }>();
-
-// function expandSelectedFile() {
-//   // expand file if the selected file is folded
-//   if (props.selected) {
-//     const box = document.querySelector(props.selected);
-//     const folded = box?.getAttribute('data-folded') === 'true';
-//     if (folded) setFileFolding(box, box.querySelector('.fold-file'), false);
-//   }
-// }
-
-// function toggleVisibility() {
-//   updateState(!props.visible);
-// }
-
-// function updateState(visible) {
-//   toggleElem(document.querySelector(`#${props.id}`), visible);
-// }
 </script>
 
 <template>
-  <div v-if="visible" class="file-tree-items">
-    <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
-    <SvgIcon v-if="isLoading" name="octicon-sync" class="job-status-rotate"/>
+  <div v-if="isLoading" class="file-tree-loading">
+    <SvgIcon name="octicon-sync" class="job-status-rotate"/>
+  </div>
+  <div v-else class="file-tree-items">
     <FileTreeItem
-      v-else
       v-for="item in files"
       :key="item.name"
       :item="item"
@@ -58,10 +38,15 @@ defineProps<{
 </template>
 
 <style scoped>
+.file-tree-loading {
+  margin-top: 8px;
+  text-align: center;
+}
 .file-tree-items {
   display: flex;
   flex-direction: column;
   gap: 1px;
+  margin-top: 8px;
   margin-right: .5rem;
 }
 </style>

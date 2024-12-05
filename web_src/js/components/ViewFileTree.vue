@@ -13,8 +13,8 @@ const store = viewTreeStore();
 const isLoading = ref(false);
 
 onMounted(async () => {
-  // Default to true if unset
-  updateVisibility(localStorage.getItem(LOCAL_STORAGE_KEY) !== 'false');
+  // Default to false
+  updateVisibility(false);
   document.querySelector('.view-toggle-file-tree-button').addEventListener('click', toggleVisibility);
 
   hashChangeListener();
@@ -24,8 +24,6 @@ onMounted(async () => {
   const files = await loadChildren();
   store.files = files;
   isLoading.value = false;
-
-  window.localStorage.setItem(`${LOCAL_STORAGE_KEY}-/`, files);
 });
 
 onUnmounted(() => {
@@ -81,11 +79,11 @@ async function loadChildren(item?) {
 
 <template>
   <FileTree
+    v-if="store.fileTreeIsVisible"
     id="view-file-tree"
     :is-loading="isLoading"
     :files="store.files"
     :collapsed="true"
-    :visible="store.fileTreeIsVisible"
     :selected="store.selectedItem"
     :file-url-getter="item => item.file.html_url"
     :load-children="loadChildren"
