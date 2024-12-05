@@ -55,6 +55,12 @@ func ListSubscribers(ctx *context.APIContext) {
 		users[i] = convert.ToUser(ctx, subscriber, ctx.Doer)
 	}
 
-	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumWatches))
+	total, err := repo_model.CountRepoWatchers(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CountRepoWatchers", err)
+		return
+	}
+
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, users)
 }

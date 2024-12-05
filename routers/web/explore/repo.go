@@ -50,12 +50,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		opts.PageSize = setting.UI.SitemapPagingNum
 	}
 
-	var (
-		repos   []*repo_model.Repository
-		count   int64
-		err     error
-		orderBy db.SearchOrderBy
-	)
+	var orderBy db.SearchOrderBy
 
 	sortOrder := ctx.FormString("sort")
 	if sortOrder == "" {
@@ -95,7 +90,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
-	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: opts.PageSize,
@@ -130,6 +125,11 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		if _, err := m.WriteTo(ctx.Resp); err != nil {
 			log.Error("Failed writing sitemap: %v", err)
 		}
+		return
+	}
+
+	if err := repos.LoadNumWatchers(ctx); err != nil {
+		ctx.ServerError("LoadNumWatchers", err)
 		return
 	}
 

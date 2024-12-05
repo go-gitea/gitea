@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -72,17 +71,6 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	httpTransport *http.Transport,
 ) (*repo_model.Repository, error) {
 	repoPath := repo_model.RepoPath(u.Name, opts.RepoName)
-
-	if u.IsOrganization() {
-		t, err := organization.OrgFromUser(u).GetOwnerTeam(ctx)
-		if err != nil {
-			return nil, err
-		}
-		repo.NumWatches = t.NumMembers
-	} else {
-		repo.NumWatches = 1
-	}
-
 	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
 
 	if err := util.RemoveAll(repoPath); err != nil {
