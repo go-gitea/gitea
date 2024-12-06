@@ -260,7 +260,7 @@
 					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_username"}}</dt>
 					<dd>{{.IncomingMail.Host}}</dd>
 					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_password"}}</dt>
-					<dd>{{.IncomingMail.Password}}</dd>
+					<dd>{{if ne .IncomingMail.Password ""}}******{{end}}</dd>
 					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_use_tls"}}</dt>
 					<dd>{{svg (Iif .IncomingMail.UseTLS "octicon-check" "octicon-x")}}</dd>
 					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_skip_tls_verify"}}</dt>
