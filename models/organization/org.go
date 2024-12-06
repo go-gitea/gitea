@@ -715,7 +715,7 @@ func (env *accessibleReposEnv) cond() builder.Cond {
 	if env.team != nil {
 		cond = cond.And(builder.Eq{"team_repo.team_id": env.team.ID})
 	} else {
-		if env.user == nil || !env.user.IsRestricted {
+		if env.user == nil || env.user.IsRestricted {
 			cond = cond.Or(builder.Eq{
 				"`repository`.owner_id":   env.org.ID,
 				"`repository`.is_private": false,
