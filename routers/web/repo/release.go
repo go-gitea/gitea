@@ -152,9 +152,6 @@ func Releases(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 	ctx.Data["IsViewBranch"] = false
 	ctx.Data["IsViewTag"] = true
-	// Disable the showCreateNewBranch form in the dropdown on this page.
-	ctx.Data["CanCreateBranch"] = false
-	ctx.Data["HideBranchesInDropdown"] = true
 
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
@@ -201,9 +198,6 @@ func TagsList(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.tags")
 	ctx.Data["IsViewBranch"] = false
 	ctx.Data["IsViewTag"] = true
-	// Disable the showCreateNewBranch form in the dropdown on this page.
-	ctx.Data["CanCreateBranch"] = false
-	ctx.Data["HideBranchesInDropdown"] = true
 	ctx.Data["CanCreateRelease"] = ctx.Repo.CanWrite(unit.TypeReleases) && !ctx.Repo.Repository.IsArchived
 
 	namePattern := ctx.FormTrim("q")
