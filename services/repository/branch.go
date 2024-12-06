@@ -462,8 +462,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 
 // enmuerates all branch related errors
 var (
-	ErrBranchIsDefault    = errors.New("branch is default")
-	ErrInsufficientAccess = errors.New("insufficient access")
+	ErrBranchIsDefault = errors.New("branch is default")
 )
 
 func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User) error {
