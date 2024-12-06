@@ -17,7 +17,7 @@ export const DropzoneCustomEventUploadDone = 'dropzone-custom-upload-done';
 async function createDropzone(el, opts) {
   const [{Dropzone}] = await Promise.all([
     import(/* webpackChunkName: "dropzone" */'dropzone'),
-    import(/* webpackChunkName: "dropzone" */'dropzone/dist/dropzone.css'),
+    import(/* webpackChunkName: "dropzone" */'../../css/features/dropzone.css'),
   ]);
   return new Dropzone(el, opts);
 }
