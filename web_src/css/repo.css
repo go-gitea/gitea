@@ -422,14 +422,6 @@ td .commit-summary {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-.repository.file.list .sidebar {
-  padding-left: 0;
-}
-
-.repository.file.list .sidebar .svg {
-  width: 16px;
-}
-
 .repo-editor-header {
   width: 100%;
 }
@@ -2160,10 +2152,6 @@ td .commit-summary {
 
 .repo-button-row-right {
   justify-content: flex-end;
-}
-
-.repo-button-row[data-is-homepage="false"] .repo-button-row-right {
-  flex-grow: 0;
 }
 
 @media (max-width: 1200px) {
