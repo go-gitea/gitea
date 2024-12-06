@@ -19,7 +19,7 @@
 				{{if .Repository.Website}}{{svg "octicon-link"}}<a href="{{.Repository.Website}}">{{.Repository.Website}}</a>{{end}}
 			</div>
 			<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-2 tw-my-2" id="repo-topics">
-				{{/* it should match the code in issue-home.js */}}
+				{{/* !!!! it SHOULD and MUST match the code in issue-home.js */}}
 				{{range .Topics}}<a class="repo-topic ui large label gt-ellipsis" title={{.Name}} href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
 			</div>
 			{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<button id="manage_topic" class="btn interact-fg tw-text-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
