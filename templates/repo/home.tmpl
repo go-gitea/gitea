@@ -1,7 +1,11 @@
 {{template "base/head" .}}
+{{$n := len .TreeNames}}
+{{$l := Eval $n "-" 1}}
+{{$isHomepage := (eq $n 0)}}
+{{$showTree := not $isHomepage}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository file list {{if .IsBlame}}blame{{end}}">
 	{{template "repo/header" .}}
-	<div class="ui container {{if .IsBlame}}fluid padded{{end}}">
+	<div class="ui container {{if .IsBlame}}fluid padded{{end}} {{if $showTree}}tree-mode-container{{end}}">
 		{{template "base/alert" .}}
 		{{template "repo/code/recently_pushed_new_branches" .}}
 		{{if and (not .HideRepoInfo) (not .IsBlame)}}
@@ -42,11 +46,28 @@
 			</div>
 		{{end}}
 		{{template "repo/sub_menu" .}}
-		{{$n := len .TreeNames}}
-		{{$l := Eval $n "-" 1}}
-		{{$isHomepage := (eq $n 0)}}
+		<div class="tree-container">
+			{{if $showTree}}
+			<div id="view-file-tree" class="file-tree tree-left tw-hidden not-mobile" data-api-base-url="{{.RepoLink}}"></div>
+			{{end}}
+			<div class="tree-right">
 		<div class="repo-button-row" data-is-homepage="{{$isHomepage}}">
 			<div class="repo-button-row-left">
+				{{if $showTree}}
+				<button class="view-toggle-file-tree-button ui compact basic button icon not-mobile" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
+					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
+					{{svg "octicon-sidebar-collapse" 20 "icon tw-hidden"}}
+					{{svg "octicon-sidebar-expand" 20 "icon tw-hidden"}}
+				</button>
+				<script>
+					// Default to false
+					const viewTreeVisible = false;
+					const viewTreeBtn = document.querySelector('.view-toggle-file-tree-button');
+					const viewTreeIcon = `.octicon-sidebar-${viewTreeVisible ? 'expand' : 'collapse'}`;
+					viewTreeBtn.querySelector(viewTreeIcon).classList.remove('tw-hidden');
+					viewTreeBtn.setAttribute('data-tooltip-content', viewTreeBtn.getAttribute(viewTreeVisible ? 'data-hide-text' : 'data-show-text'));
+				</script>
+				{{end}}
 				{{$branchDropdownCurrentRefType := "branch"}}
 				{{$branchDropdownCurrentRefShortName := .BranchName}}
 				{{if .IsViewTag}}
@@ -169,6 +190,8 @@
 		{{else}}{{/* IsViewDirectory */}}
 			{{template "repo/view_list" .}}
 		{{end}}
+			</div>
+		</div>
 	</div>
 </div>
 {{template "base/footer" .}}

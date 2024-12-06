@@ -2409,7 +2409,7 @@ tbody.commit-list {
   gap: 8px;
 }
 
-#diff-file-tree {
+.file-tree {
   flex: 0 0 20%;
   max-width: 380px;
   line-height: inherit;
@@ -2871,4 +2871,12 @@ tbody.commit-list {
 
 .branch-selector-dropdown .scrolling.menu .loading-indicator {
   height: 4em;
+}
+
+.tree-mode-container .tree-container {
+  display: flex;
+}
+
+.tree-mode-container .tree-right {
+  flex: 1;
 }

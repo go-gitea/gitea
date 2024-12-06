@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import DiffFileTreeItem from './DiffFileTreeItem.vue';
+import FileTree from './FileTree.vue';
+import {SvgIcon} from '../svg.ts';
 import {loadMoreFiles} from '../features/repo-diff.ts';
 import {toggleElem} from '../utils/dom.ts';
 import {diffTreeStore} from '../modules/stores.ts';
@@ -130,23 +131,37 @@ function updateState(visible) {
 function loadMoreData() {
   loadMoreFiles(store.linkLoadMore);
 }
+
+function getIconForDiffType(pType) {
+  const diffTypes = {
+    1: {name: 'octicon-diff-added', classes: ['text', 'green']},
+    2: {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
+    3: {name: 'octicon-diff-removed', classes: ['text', 'red']},
+    4: {name: 'octicon-diff-renamed', classes: ['text', 'teal']},
+    5: {name: 'octicon-diff-renamed', classes: ['text', 'green']}, // there is no octicon for copied, so renamed should be ok
+  };
+  return diffTypes[pType];
+}
 </script>
 
 <template>
-  <div v-if="store.fileTreeIsVisible" class="diff-file-tree-items">
-    <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
-    <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item"/>
-    <div v-if="store.isIncomplete" class="tw-pt-1">
-      <a :class="['ui', 'basic', 'tiny', 'button', store.isLoadingNewData ? 'disabled' : '']" @click.stop="loadMoreData">{{ store.showMoreMessage }}</a>
-    </div>
-  </div>
+  <FileTree
+    v-if="store.fileTreeIsVisible"
+    id="diff-file-tree"
+    :is-loading="false"
+    :files="fileTree"
+    :collapsed="false"
+    :selected="store.selectedItem"
+    :file-class-getter="(selected, item) => ({'selected': selected === '#tree-node-' + item.file.NameHash, 'viewed': item.file.IsViewed})"
+    :file-url-getter="item => '#tree-node-' + item.file.NameHash"
+  >
+    <template #file-item-suffix="{item: treeItem}">
+      <SvgIcon :name="getIconForDiffType(treeItem.file.Type).name" :class="getIconForDiffType(treeItem.file.Type).classes"/>
+    </template>
+    <template #footer>
+      <div v-if="store.isIncomplete" class="tw-pt-1">
+        <a :class="['ui', 'basic', 'tiny', 'button', store.isLoadingNewData ? 'disabled' : '']" @click.stop="loadMoreData">{{ store.showMoreMessage }}</a>
+      </div>
+    </template>
+  </FileTree>
 </template>
-
-<style scoped>
-.diff-file-tree-items {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  margin-right: .5rem;
-}
-</style>
