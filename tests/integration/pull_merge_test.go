@@ -586,6 +586,8 @@ func TestPullDontRetargetChildOnWrongRepo(t *testing.T) {
 		elemChildPR := strings.Split(test.RedirectURL(respChildPR), "/")
 		assert.EqualValues(t, "pulls", elemChildPR[3])
 
+		defer test.MockVariableValue(&setting.Repository.PullRequest.RetargetChildrenOnMerge, false)()
+
 		testPullMerge(t, session, elemBasePR[1], elemBasePR[2], elemBasePR[4], repo_model.MergeStyleMerge, true)
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
