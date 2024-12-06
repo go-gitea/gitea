@@ -101,6 +101,9 @@ func GetUpstreamDivergingInfo(ctx context.Context, repo *repo_model.Repository, 
 		return info, nil
 	}
 
+	// TODO: if the fork repo has new commits, this call will fail:
+	// exit status 128 - fatal: Invalid symmetric difference expression aaaaaaaaaaaa...bbbbbbbbbbbb
+	// so at the moment, we are not able to handle this case, should be improved in the future
 	diff, err := git.GetDivergingCommits(ctx, repo.BaseRepo.RepoPath(), baseBranch.CommitID, forkBranch.CommitID)
 	if err != nil {
 		return nil, err

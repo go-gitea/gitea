@@ -184,7 +184,8 @@ func prepareUpstreamDivergingInfo(ctx *context.Context) {
 	upstreamDivergingInfo, err := repo_service.GetUpstreamDivergingInfo(ctx, ctx.Repo.Repository, ctx.Repo.BranchName)
 	if err != nil {
 		if !errors.Is(err, util.ErrNotExist) && !errors.Is(err, util.ErrInvalidArgument) {
-			log.Error("GetUpstreamDivergingInfo: %v", err)
+			// TODO: if the fork repo has new commits, there will be an error, at the moment we are not able to handle it, should be improved in the future
+			log.Debug("GetUpstreamDivergingInfo: %v", err)
 		}
 		return
 	}
