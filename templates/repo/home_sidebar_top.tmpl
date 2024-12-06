@@ -50,7 +50,7 @@
 			{{end}}
 			{{if .DetectedRepoLicenses}}
 				<div class="flex-item-body">
-					<a class="tw-flex tw-items-center tw-gap-2 muted" href="{{.RepoLink}}/src/{{.Repository.DefaultBranch}}/{{PathEscapeSegments .LicenseFileName}}" data-tooltip-placement="top" data-tooltip-content="{{StringUtils.Join .DetectedRepoLicenses ", "}}">
+					<a class="tw-flex tw-items-center tw-gap-2 muted" href="{{.RepoLink}}/src/{{.Repository.DefaultBranch}}/{{PathEscapeSegments .LicenseFileName}}" title="{{StringUtils.Join .DetectedRepoLicenses ", "}}">
 						{{svg "octicon-law"}}{{if eq (len .DetectedRepoLicenses) 1}}{{index .DetectedRepoLicenses 0}}{{else}}{{ctx.Locale.Tr "repo.multiple_licenses"}}{{end}}
 					</a>
 				</div>
