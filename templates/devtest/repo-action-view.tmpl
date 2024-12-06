@@ -1,0 +1,30 @@
+{{template "base/head" .}}
+<div class="page-content">
+	<div id="repo-action-view"
+			data-run-index="1"
+			data-job-index="2"
+			data-actions-url="{{AppSubUrl}}/devtest/actions-mock"
+			data-locale-approve="approve"
+			data-locale-cancel="cancel"
+			data-locale-rerun="re-run"
+			data-locale-rerun-all="re-run all"
+			data-locale-runs-scheduled="scheduled"
+			data-locale-runs-commit="commit"
+			data-locale-runs-pushed-by="pushed by"
+			data-locale-status-unknown="unknown"
+			data-locale-status-waiting="waiting"
+			data-locale-status-running="running"
+			data-locale-status-success="success"
+			data-locale-status-failure="failure"
+			data-locale-status-cancelled="cancelled"
+			data-locale-status-skipped="skipped"
+			data-locale-status-blocked="blocked"
+			data-locale-artifacts-title="artifacts"
+			data-locale-confirm-delete-artifact="confirm delete artifact"
+			data-locale-show-timestamps="show timestamps"
+			data-locale-show-log-seconds="show log seconds"
+			data-locale-show-full-screen="show full screen"
+			data-locale-download-logs="download logs"
+	></div>
+</div>
+{{template "base/footer" .}}
