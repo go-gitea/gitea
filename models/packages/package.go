@@ -31,6 +31,7 @@ type Type string
 // List of supported packages
 const (
 	TypeAlpine    Type = "alpine"
+	TypeArch      Type = "arch"
 	TypeCargo     Type = "cargo"
 	TypeChef      Type = "chef"
 	TypeComposer  Type = "composer"
@@ -55,6 +56,7 @@ const (
 
 var TypeList = []Type{
 	TypeAlpine,
+	TypeArch,
 	TypeCargo,
 	TypeChef,
 	TypeComposer,
@@ -82,6 +84,8 @@ func (pt Type) Name() string {
 	switch pt {
 	case TypeAlpine:
 		return "Alpine"
+	case TypeArch:
+		return "Arch"
 	case TypeCargo:
 		return "Cargo"
 	case TypeChef:
@@ -131,6 +135,8 @@ func (pt Type) SVGName() string {
 	switch pt {
 	case TypeAlpine:
 		return "gitea-alpine"
+	case TypeArch:
+		return "gitea-arch"
 	case TypeCargo:
 		return "gitea-cargo"
 	case TypeChef:
