@@ -26,7 +26,6 @@ import {initPdfViewer} from './render/pdf.ts';
 import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
 import {
   initRepoIssueReferenceRepositorySearch,
-  initRepoIssueTimeTracking,
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
@@ -83,7 +82,11 @@ import {
   initGlobalButtons,
   initGlobalDeleteButton,
 } from './features/common-button.ts';
-import {initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
+import {
+  initGlobalComboMarkdownEditor,
+  initGlobalEnterQuickSubmit,
+  initGlobalFormDirtyLeaveConfirm,
+} from './features/common-form.ts';
 
 initGiteaFomantic();
 initDirAuto();
@@ -127,6 +130,7 @@ onDomReady(() => {
     initGlobalCopyToClipboardListener,
     initGlobalEnterQuickSubmit,
     initGlobalFormDirtyLeaveConfirm,
+    initGlobalComboMarkdownEditor,
     initGlobalDeleteButton,
 
     initCommonOrganization,
@@ -179,7 +183,6 @@ onDomReady(() => {
     initRepoIssueList,
     initRepoIssueSidebarList,
     initRepoIssueReferenceRepositorySearch,
-    initRepoIssueTimeTracking,
     initRepoIssueWipTitle,
     initRepoMigration,
     initRepoMigrationStatusChecker,

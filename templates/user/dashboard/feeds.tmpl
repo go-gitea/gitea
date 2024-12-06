@@ -100,11 +100,11 @@
 						<a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{ctx.Locale.Tr "action.compare_commits" $push.Len}} »</a>
 					{{end}}
 				{{else if .GetOpType.InActions "create_issue"}}
-					<span class="text truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderEmoji | RenderCodeBlock}}</span>
+					<span class="text truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "create_pull_request"}}
-					<span class="text truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderEmoji | RenderCodeBlock}}</span>
+					<span class="text truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "comment_issue" "approve_pull_request" "reject_pull_request" "comment_pull"}}
-					<a href="{{.GetCommentLink ctx}}" class="text truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderEmoji | RenderCodeBlock}}</a>
+					<a href="{{.GetCommentLink ctx}}" class="text truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 					{{$comment := index .GetIssueInfos 1}}
 					{{if $comment}}
 						<div class="markup tw-text-14">{{ctx.RenderUtils.MarkdownToHtml $comment}}</div>
@@ -112,7 +112,7 @@
 				{{else if .GetOpType.InActions "merge_pull_request"}}
 					<div class="flex-item-body text black">{{index .GetIssueInfos 1}}</div>
 				{{else if .GetOpType.InActions "close_issue" "reopen_issue" "close_pull_request" "reopen_pull_request"}}
-					<span class="text truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderEmoji | RenderCodeBlock}}</span>
+					<span class="text truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "pull_review_dismissed"}}
 				<div class="flex-item-body text black">{{ctx.Locale.Tr "action.review_dismissed_reason"}}</div>
 				<div class="flex-item-body text black">{{index .GetIssueInfos 2 | ctx.RenderUtils.RenderEmoji}}</div>
