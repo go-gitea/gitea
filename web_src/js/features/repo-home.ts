@@ -10,8 +10,8 @@ export function initRepoTopicBar() {
   const mgrBtn = document.querySelector<HTMLButtonElement>('#manage_topic');
   if (!mgrBtn) return;
 
-  const editDiv = mgrBtn.parentNode.querySelector('#topic_edit');
-  const viewDiv = mgrBtn.parentNode.querySelector('#repo-topics');
+  const editDiv = document.querySelector('#topic_edit');
+  const viewDiv = document.querySelector('#repo-topics');
   const topicDropdown = editDiv.querySelector('.ui.dropdown');
   let lastErrorToast;
 
@@ -21,14 +21,14 @@ export function initRepoTopicBar() {
     topicDropdown.querySelector<HTMLInputElement>('input.search').focus();
   });
 
-  mgrBtn.parentNode.querySelector('#cancel_topic_edit').addEventListener('click', () => {
+  document.querySelector('#cancel_topic_edit').addEventListener('click', () => {
     lastErrorToast?.hideToast();
     hideElem(editDiv);
     showElem(viewDiv);
     mgrBtn.focus();
   });
 
-  mgrBtn.parentNode.querySelector('#save_topic').addEventListener('click', async (e: MouseEvent & {target: HTMLButtonElement}) => {
+  document.querySelector('#save_topic').addEventListener('click', async (e: MouseEvent & {target: HTMLButtonElement}) => {
     lastErrorToast?.hideToast();
     const topics = editDiv.querySelector<HTMLInputElement>('input[name=topics]').value;
 
@@ -51,7 +51,7 @@ export function initRepoTopicBar() {
             link.classList.add('repo-topic', 'ui', 'large', 'label');
             link.href = `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`;
             link.textContent = topic;
-            viewDiv.append(link);
+            mgrBtn.parentNode.insertBefore(link, mgrBtn); // insert all new topics before manage button
           }
         }
         hideElem(editDiv);
