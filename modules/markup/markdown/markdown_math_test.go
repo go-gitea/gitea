@@ -68,7 +68,7 @@ func TestMathRender(t *testing.T) {
 		},
 		{
 			"$$a$$",
-			`<pre class="code-block is-loading"><code class="chroma language-math display">a</code></pre>` + nl,
+			`<code class="chroma language-math display">a</code>` + nl,
 		},
 		{
 			"$$a$$ test",
@@ -79,8 +79,12 @@ func TestMathRender(t *testing.T) {
 			`<p>test <code class="language-math display is-loading">a</code></p>` + nl,
 		},
 		{
-			"foo $x=\\$$ bar",
+			`foo $x=\$$ bar`,
 			`<p>foo <code class="language-math is-loading">x=\$</code> bar</p>` + nl,
+		},
+		{
+			`$\text{$b$}$`,
+			`<p><code class="language-math is-loading">\text{$b$}</code></p>` + nl,
 		},
 	}
 
@@ -119,7 +123,7 @@ func TestMathRenderBlockIndent(t *testing.T) {
  \]
 `,
 			`<pre class="code-block is-loading"><code class="chroma language-math display">
-\alpha
+ \alpha
 </code></pre>
 `,
 		},
@@ -131,7 +135,7 @@ func TestMathRenderBlockIndent(t *testing.T) {
   \]
 `,
 			`<pre class="code-block is-loading"><code class="chroma language-math display">
-\alpha
+  \alpha
 </code></pre>
 `,
 		},
@@ -139,7 +143,7 @@ func TestMathRenderBlockIndent(t *testing.T) {
 			"indent-0-oneline",
 			`$$ x $$
 foo`,
-			`<pre class="code-block is-loading"><code class="chroma language-math display"> x </code></pre>
+			`<code class="chroma language-math display"> x </code>
 <p>foo</p>
 `,
 		},
@@ -147,8 +151,46 @@ foo`,
 			"indent-3-oneline",
 			`   $$ x $$<SPACE>
 foo`,
-			`<pre class="code-block is-loading"><code class="chroma language-math display"> x </code></pre>
+			`<code class="chroma language-math display"> x </code>
 <p>foo</p>
+`,
+		},
+		{
+			"quote-block",
+			`
+> \[
+> a
+> \]
+> \[
+> b
+> \]
+`,
+			`<blockquote>
+<pre class="code-block is-loading"><code class="chroma language-math display">
+a
+</code></pre>
+<pre class="code-block is-loading"><code class="chroma language-math display">
+b
+</code></pre>
+</blockquote>
+`,
+		},
+		{
+			"list-block",
+			`
+1. a
+   \[
+   x
+   \]
+2. b`,
+			`<ol>
+<li>a
+<pre class="code-block is-loading"><code class="chroma language-math display">
+x
+</code></pre>
+</li>
+<li>b</li>
+</ol>
 `,
 		},
 	}
