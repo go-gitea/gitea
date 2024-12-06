@@ -631,9 +631,9 @@ func (errs errlist) Error() string {
 
 var _ error = &errlist{}
 
-// RetargetBranchPulls change target branch for all pull requests whose base branch is the branch
+// retargetBranchPulls change target branch for all pull requests whose base branch is the branch
 // Both branch and targetBranch must be in the same repo (for security reasons)
-func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch, targetBranch string) error {
+func retargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch, targetBranch string) error {
 	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
 	if err != nil {
 		return err
@@ -660,11 +660,12 @@ func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int6
 	return nil
 }
 
-// ClosePullsCausedByBranchDeleted close all the pull requests who's head branch is the branch
-// Or who's base branch is the branch if setting.Repository.PullRequest.RetargetChildrenOnMerge is true
-func ClosePullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User, repoID int64, branch string) error {
+// AdjustPullsCausedByBranchDeleted close all the pull requests who's head branch is the branch
+// Or Close all the plls who's base branch is the branch if setting.Repository.PullRequest.RetargetChildrenOnMerge is false.
+// If it's true, Retarget all these pulls to the default branch.
+func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branch string) error {
 	// branch as head branch
-	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repoID, branch)
+	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch)
 	if err != nil {
 		return err
 	}
@@ -672,6 +673,7 @@ func ClosePullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User,
 	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
 		return err
 	}
+	issues_model.PullRequestList(prs).SetHeadRepo(repo)
 	if err := issues_model.PullRequestList(prs).LoadRepositories(ctx); err != nil {
 		return err
 	}
@@ -690,11 +692,15 @@ func ClosePullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User,
 	}
 
 	if setting.Repository.PullRequest.RetargetChildrenOnMerge {
+		if err := retargetBranchPulls(ctx, doer, repo.ID, branch, repo.DefaultBranch); err != nil {
+			log.Error("retargetBranchPulls failed: %v", err)
+			errs = append(errs, err)
+		}
 		return errs
 	}
 
 	// branch as base branch
-	prs, err = issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
+	prs, err = issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repo.ID, branch)
 	if err != nil {
 		return err
 	}
@@ -702,6 +708,7 @@ func ClosePullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User,
 	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
 		return err
 	}
+	issues_model.PullRequestList(prs).SetBaseRepo(repo)
 	if err := issues_model.PullRequestList(prs).LoadRepositories(ctx); err != nil {
 		return err
 	}
