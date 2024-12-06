@@ -1,5 +1,6 @@
 .repo-home-content {
   display: grid;
+  gap: 10px;
   grid-template-columns: auto 300px;
   grid-template-rows: auto auto 1fr;
 }
@@ -22,7 +23,7 @@
 }
 
 .repo-home-foot > :first-child {
-  border-top: 1px solid var(--color-secondary); /* same to .flex-list > .flex-item + .flex-item { */
+  border-top: 1px solid var(--color-secondary); /* same to .flex-list > .flex-item + .flex-item */
 }
 
 @media (max-width: 767.98px) {
@@ -53,7 +54,7 @@
   padding: 0;
   height: 10px;
   white-space: nowrap;
-  border-radius: 0 0 3px 3px !important;
+  border-radius: 5px;
   overflow: hidden;
   width: 100%;
   margin-top: 1rem;
