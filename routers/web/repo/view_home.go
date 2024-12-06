@@ -314,7 +314,7 @@ func Home(ctx *context.Context) {
 	ctx.Data["RepositoryUploadEnabled"] = setting.Repository.Upload.Enabled // show New File / Upload File buttons
 
 	if ctx.Repo.Commit == nil || ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsBroken() {
-		// emtpy or broken repositories need to be handled differently
+		// empty or broken repositories need to be handled differently
 		handleRepoEmptyOrBroken(ctx)
 		return
 	}
