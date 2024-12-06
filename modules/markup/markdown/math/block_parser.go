@@ -54,21 +54,19 @@ func (b *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Contex
 	idx := bytes.Index(line[pos+2:], endBytes)
 	if idx >= 0 {
 		// for case $$ ... $$ any other text
-		for i := pos + idx + 4; i < len(line); i++ {
+		for i := pos + 2 + idx + 2; i < len(line); i++ {
 			if line[i] != ' ' && line[i] != '\n' {
 				return nil, parser.NoChildren
 			}
 		}
-		segment.Stop = segment.Start + idx + 2
-		reader.Advance(segment.Len() - 1)
-		segment.Start += 2
+		segment.Start += pos + 2
+		segment.Stop = segment.Start + idx
 		node.Lines().Append(segment)
 		node.Closed = true
 		return node, parser.Close | parser.NoChildren
 	}
 
-	reader.Advance(segment.Len() - 1)
-	segment.Start += 2
+	segment.Start += pos + 2
 	node.Lines().Append(segment)
 	return node, parser.NoChildren
 }
@@ -103,7 +101,6 @@ func (b *blockParser) Continue(node ast.Node, reader text.Reader, pc parser.Cont
 	pos, padding := util.IndentPosition(line, 0, block.Indent)
 	seg := text.NewSegmentPadding(segment.Start+pos, segment.Stop, padding)
 	node.Lines().Append(seg)
-	reader.AdvanceAndSetPadding(segment.Stop-segment.Start-pos-1, padding)
 	return parser.Continue | parser.NoChildren
 }
 
