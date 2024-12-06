@@ -72,7 +72,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		UpdatedAfterUnix:   options.UpdatedAfterUnix.Value(),
 		UpdatedBeforeUnix:  options.UpdatedBeforeUnix.Value(),
 		PriorityRepoID:     0,
-		IsArchived:         optional.None[bool](),
+		IsArchived:         options.IsArchived,
 		Org:                nil,
 		Team:               nil,
 		User:               nil,
