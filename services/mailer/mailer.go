@@ -48,11 +48,11 @@ func NewContext(ctx context.Context) {
 	mailQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "mail", func(items ...*sender_service.Message) []*sender_service.Message {
 		for _, msg := range items {
 			gomailMsg := msg.ToMessage()
-			log.Trace("New e-mail sending request %s: %s", gomailMsg.GetHeader("To"), msg.Info)
+			log.Trace("New e-mail sending request %s: %s", gomailMsg.GetGenHeader("To"), msg.Info)
 			if err := sender_service.Send(sender, msg); err != nil {
-				log.Error("Failed to send emails %s: %s - %v", gomailMsg.GetHeader("To"), msg.Info, err)
+				log.Error("Failed to send emails %s: %s - %v", gomailMsg.GetGenHeader("To"), msg.Info, err)
 			} else {
-				log.Trace("E-mails sent %s: %s", gomailMsg.GetHeader("To"), msg.Info)
+				log.Trace("E-mails sent %s: %s", gomailMsg.GetGenHeader("To"), msg.Info)
 			}
 		}
 		return nil

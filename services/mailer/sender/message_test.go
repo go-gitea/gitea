@@ -25,25 +25,27 @@ func TestGenerateMessageID(t *testing.T) {
 	m := NewMessageFrom("", "display-name", "from-address", "subject", "body")
 	m.Date = date
 	gm := m.ToMessage()
-	assert.Equal(t, "<autogen-946782245000-41e8fc54a8ad3a3f@localhost>", gm.GetHeader("Message-ID")[0])
+	assert.Equal(t, "<autogen-946782245000-41e8fc54a8ad3a3f@localhost>", gm.GetGenHeader("Message-ID")[0])
 
 	m = NewMessageFrom("a@b.com", "display-name", "from-address", "subject", "body")
 	m.Date = date
 	gm = m.ToMessage()
-	assert.Equal(t, "<autogen-946782245000-cc88ce3cfe9bd04f@localhost>", gm.GetHeader("Message-ID")[0])
+	assert.Equal(t, "<autogen-946782245000-cc88ce3cfe9bd04f@localhost>", gm.GetGenHeader("Message-ID")[0])
 
 	m = NewMessageFrom("a@b.com", "display-name", "from-address", "subject", "body")
 	m.SetHeader("Message-ID", "<msg-d@domain.com>")
 	gm = m.ToMessage()
-	assert.Equal(t, "<msg-d@domain.com>", gm.GetHeader("Message-ID")[0])
+	assert.Equal(t, "<msg-d@domain.com>", gm.GetGenHeader("Message-ID")[0])
 }
 
 func TestToMessage(t *testing.T) {
-	oldConf := *setting.MailService
+	oldConf := setting.MailService
 	defer func() {
-		setting.MailService = &oldConf
+		setting.MailService = oldConf
 	}()
-	setting.MailService.From = "test@gitea.com"
+	setting.MailService = &setting.Mailer{
+		From: "test@gitea.com",
+	}
 
 	m1 := Message{
 		Info:            "info",
@@ -54,18 +56,24 @@ func TestToMessage(t *testing.T) {
 		Body:            "Some Issue got closed by Y-Man",
 	}
 
+	assertHeaders := func(t *testing.T, expected, header map[string]string) {
+		for k, v := range expected {
+			assert.Equal(t, v, header[k], "Header %s should be %s but got %s", k, v, header[k])
+		}
+	}
+
 	buf := &strings.Builder{}
 	_, err := m1.ToMessage().WriteTo(buf)
 	assert.NoError(t, err)
 	header, _ := extractMailHeaderAndContent(t, buf.String())
-	assert.EqualValues(t, map[string]string{
+	assertHeaders(t, map[string]string{
 		"Content-Type":             "multipart/alternative;",
 		"Date":                     "Mon, 01 Jan 0001 00:00:00 +0000",
 		"From":                     "\"Test Gitea\" <test@gitea.com>",
 		"Message-ID":               "<autogen--6795364578871-69c000786adc60dc@localhost>",
-		"Mime-Version":             "1.0",
+		"MIME-Version":             "1.0",
 		"Subject":                  "Issue X Closed",
-		"To":                       "a@b.com",
+		"To":                       "<a@b.com>",
 		"X-Auto-Response-Suppress": "All",
 	}, header)
 
@@ -78,14 +86,14 @@ func TestToMessage(t *testing.T) {
 	_, err = m1.ToMessage().WriteTo(buf)
 	assert.NoError(t, err)
 	header, _ = extractMailHeaderAndContent(t, buf.String())
-	assert.EqualValues(t, map[string]string{
+	assertHeaders(t, map[string]string{
 		"Content-Type":             "multipart/alternative;",
 		"Date":                     "Mon, 01 Jan 0001 00:00:00 +0000",
 		"From":                     "\"Test Gitea\" <test@gitea.com>",
 		"Message-ID":               "",
-		"Mime-Version":             "1.0",
+		"MIME-Version":             "1.0",
 		"Subject":                  "Issue X Closed",
-		"To":                       "a@b.com",
+		"To":                       "<a@b.com>",
 		"X-Auto-Response-Suppress": "All",
 		"Auto-Submitted":           "auto-generated",
 	}, header)

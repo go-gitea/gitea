@@ -70,6 +70,9 @@ func NewFuncMap() template.FuncMap {
 		"FileSize": base.FileSize,
 		"CountFmt": base.FormatNumberSI,
 		"Sec2Time": util.SecToTime,
+
+		"TimeEstimateString": timeEstimateString,
+
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
@@ -280,6 +283,14 @@ func userThemeName(user *user_model.User) string {
 		return user.Theme
 	}
 	return setting.UI.DefaultTheme
+}
+
+func timeEstimateString(timeSec any) string {
+	v, _ := util.ToInt64(timeSec)
+	if v == 0 {
+		return ""
+	}
+	return util.TimeEstimateString(v)
 }
 
 func panicIfDevOrTesting() {
