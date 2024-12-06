@@ -56,6 +56,7 @@
   - [Roadmap](#roadmap)
   - [Versions](#versions)
   - [Releasing Gitea](#releasing-gitea)
+  - [Troubleshooting Issues](#troubleshooting-issues)
 
 </details>
 
@@ -604,3 +605,27 @@ be reviewed by two maintainers and must pass the automatic tests.
   - bump the version of https://dl.gitea.com/gitea/version.json
   - merge the blog post PR
   - announce the release in discord `#announcements`
+
+Here's the README content based on the screenshot, excluding the second step:
+
+---
+
+## Troubleshooting Issues 
+
+If you encounter errors during the local setup after forking the repository, such as issues with cloning or missing dependencies, here are the steps to resolve them:
+
+- **Issue:** Cloning fails with errors like `curl error: RPC failed` or `HTTP/2 stream was not closed cleanly`.
+
+- **Solution:** 
+  1. Increase the HTTP buffer size:
+     ```sh
+     git config --global http.postBuffer 524288000
+     ```
+  2. To reduce the size of data fetched during the initial clone, you can use:
+     ```sh
+     git clone --depth 1 https://github.com/<username>/gitea.git
+     ```
+
+You can replace `username/repo` with the appropriate repository information before using this content.
+
+---
