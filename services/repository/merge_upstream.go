@@ -18,6 +18,7 @@ import (
 )
 
 type UpstreamDivergingInfo struct {
+	BaseIsNewer   bool
 	CommitsBehind int
 	CommitsAhead  int
 }
@@ -106,7 +107,8 @@ func GetUpstreamDivergingInfo(ctx context.Context, repo *repo_model.Repository, 
 	// so at the moment, we are not able to handle this case, should be improved in the future
 	diff, err := git.GetDivergingCommits(ctx, repo.BaseRepo.RepoPath(), baseBranch.CommitID, forkBranch.CommitID)
 	if err != nil {
-		return nil, err
+		info.BaseIsNewer = baseBranch.UpdatedUnix > forkBranch.UpdatedUnix
+		return info, nil
 	}
 	info.CommitsBehind, info.CommitsAhead = diff.Behind, diff.Ahead
 	return info, nil
