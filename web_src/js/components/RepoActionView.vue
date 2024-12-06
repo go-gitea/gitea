@@ -1,7 +1,8 @@
 <script lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
-import {createApp} from 'vue';
+import {createApp, nextTick} from 'vue';
+import {attachRefIssueContextPopup} from '../features/contextpopup.ts';
 import {createElementFromAttrs, toggleElem} from '../utils/dom.ts';
 import {formatDatetime} from '../utils/time.ts';
 import {renderAnsi} from '../render/ansi.ts';
@@ -51,6 +52,7 @@ const sfc = {
       run: {
         link: '',
         title: '',
+        titleHTML: '',
         status: '',
         canCancel: false,
         canApprove: false,
@@ -268,6 +270,11 @@ const sfc = {
           clearInterval(this.intervalID);
           this.intervalID = null;
         }
+
+        await nextTick();
+
+        const refIssues = document.querySelectorAll('.action-info-summary-title-text .ref-issue');
+        attachRefIssueContextPopup(refIssues);
       } catch (e) {
         // avoid network error while unloading page, and ignore "abort" error
         if (e instanceof TypeError || abortController.signal.aborted) return;
@@ -383,9 +390,8 @@ export function initRepositoryActionView() {
       <div class="action-info-summary">
         <div class="action-info-summary-title">
           <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
-          <h2 class="action-info-summary-title-text">
-            {{ run.title }}
-          </h2>
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
         <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
           {{ locale.approve }}
