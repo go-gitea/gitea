@@ -123,7 +123,19 @@ func TestMathRenderBlockIndent(t *testing.T) {
  \]
 `,
 			`<pre class="code-block is-loading"><code class="chroma language-math display">
- \alpha
+\alpha
+</code></pre>
+`,
+		},
+		{
+			"indent-mismatch",
+			`
+  \[
+\alpha
+  \]
+`,
+			`<pre class="code-block is-loading"><code class="chroma language-math display">
+\alpha
 </code></pre>
 `,
 		},
@@ -135,7 +147,7 @@ func TestMathRenderBlockIndent(t *testing.T) {
   \]
 `,
 			`<pre class="code-block is-loading"><code class="chroma language-math display">
-  \alpha
+\alpha
 </code></pre>
 `,
 		},

@@ -94,7 +94,8 @@ func (b *blockParser) Continue(node ast.Node, reader text.Reader, pc parser.Cont
 			}
 		}
 	}
-	seg := text.NewSegmentPadding(segment.Start, segment.Stop, segment.Padding)
+	start := segment.Start + giteaUtil.Iif(pos > block.Indent, block.Indent, pos)
+	seg := text.NewSegmentPadding(start, segment.Stop, segment.Padding)
 	node.Lines().Append(seg)
 	return parser.Continue | parser.NoChildren
 }
