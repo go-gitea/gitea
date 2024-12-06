@@ -28,6 +28,7 @@ _testmain.go
 *.exe
 *.test
 *.prof
+*.tsbuildInfo
 
 *coverage.out
 coverage.all
