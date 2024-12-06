@@ -369,7 +369,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(309, "Improve Notification table indices", v1_23.ImproveNotificationTableIndices),
 		newMigration(310, "Add Priority to ProtectedBranch", v1_23.AddPriorityToProtectedBranch),
 		newMigration(311, "Add TimeEstimate to Issue table", v1_23.AddTimeEstimateColumnToIssueTable),
-		newMigration(310, "Add DeleteBranchAfterMerge to AutoMerge", v1_23.AddDeleteBranchAfterMergeForAutoMerge),
+		newMigration(312, "Add DeleteBranchAfterMerge to AutoMerge", v1_23.AddDeleteBranchAfterMergeForAutoMerge),
 	}
 	return preparedMigrations
 }

@@ -1084,9 +1084,13 @@ func MergePullRequest(ctx *context.APIContext) {
 				}
 				defer headRepo.Close()
 			}
-			if err := pull_service.RetargetChildrenOnMerge(ctx, ctx.Doer, pr); err != nil {
-				ctx.Error(http.StatusInternalServerError, "RetargetChildrenOnMerge", err)
-				return
+
+			// TODO: why only retarget same repository pull requests?
+			if setting.Repository.PullRequest.RetargetChildrenOnMerge && pr.BaseRepoID == pr.HeadRepoID {
+				if err := pull_service.RetargetBranchPulls(ctx, ctx.Doer, pr.HeadRepoID, pr.HeadBranch, pr.BaseBranch); err != nil {
+					ctx.Error(http.StatusInternalServerError, "RetargetBranchPulls", err)
+					return
+				}
 			}
 			if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch, pr); err != nil {
 				switch {
