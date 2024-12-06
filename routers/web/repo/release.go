@@ -31,7 +31,6 @@ import (
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/forms"
 	releaseservice "code.gitea.io/gitea/services/release"
-	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -193,9 +192,6 @@ func Releases(ctx *context.Context) {
 	pager := context.NewPagination(int(numReleases), listOptions.PageSize, listOptions.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
-
-	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
-
 	ctx.HTML(http.StatusOK, tplReleasesList)
 }
 
@@ -254,8 +250,6 @@ func TagsList(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 	ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
-	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
-
 	ctx.HTML(http.StatusOK, tplTagsList)
 }
 

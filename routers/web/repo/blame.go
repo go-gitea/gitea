@@ -114,12 +114,6 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["UsesIgnoreRevs"] = result.UsesIgnoreRevs
 	ctx.Data["FaultyIgnoreRevsFile"] = result.FaultyIgnoreRevsFile
 
-	// Get Topics of this repo
-	renderRepoTopics(ctx)
-	if ctx.Written() {
-		return
-	}
-
 	commitNames := processBlameParts(ctx, result.Parts)
 	if ctx.Written() {
 		return
