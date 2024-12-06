@@ -121,7 +121,7 @@ func (d *DiffLine) GetHTMLDiffLineType() string {
 
 // CanComment returns whether a line can get commented
 func (d *DiffLine) CanComment() bool {
-	return len(d.Comments) == 0
+	return len(d.Comments) == 0 && d.Type != DiffLineSection
 }
 
 // GetCommentSide returns the comment side of the first comment, if not set returns empty string
@@ -481,8 +481,8 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 	for _, file := range diff.Files {
 		if lineCommits, ok := allComments[file.Name]; ok {
 			for _, section := range file.Sections {
-				for _, line := range section.Lines {
-					if line.SectionInfo != nil && line.SectionInfo.RightHunkSize > 0 {
+				for index, line := range section.Lines {
+					if line.SectionInfo != nil && line.Type == 4 && !(line.SectionInfo.LastRightIdx == 0 && index+1 == len(section.Lines)) {
 						start := int64(line.SectionInfo.LastRightIdx + 1)
 						end := int64(line.SectionInfo.RightIdx - 1)
 						for start <= end {

@@ -956,8 +956,8 @@ func ExcerptBlob(ctx *context.Context) {
 			return
 		}
 		lineCommits := allComments[filePath]
-		for _, line := range section.Lines {
-			if line.SectionInfo != nil && line.SectionInfo.RightHunkSize > 0 {
+		for index, line := range section.Lines {
+			if line.SectionInfo != nil && line.Type == 4 && !(line.SectionInfo.LastRightIdx == 0 && index+1 == len(section.Lines)) {
 				start := int64(line.SectionInfo.LastRightIdx + 1)
 				end := int64(line.SectionInfo.RightIdx - 1)
 				for start <= end {
