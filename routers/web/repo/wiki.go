@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -72,6 +73,7 @@ func MustEnableWiki(ctx *context.Context) {
 // PageMeta wiki page meta information
 type PageMeta struct {
 	Name         string
+	IsDir        bool
 	SubURL       string
 	GitEntryName string
 	UpdatedUnix  timeutil.TimeStamp
@@ -190,8 +192,23 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
+	reqPath := util.PathJoinRelX(ctx.PathParamRaw("*"))
+	p, err := url.PathUnescape(reqPath)
+	if err != nil {
+		ctx.ServerError("PathUnescape", err)
+		return nil, nil
+	}
+	dirPath, pageName := path.Split(p)
+	pageName = strings.TrimSuffix(pageName, ".md")
+	treePath := wiki_service.WebDirPathToGitPath(wiki_service.WebPath(dirPath))
+	tree, err := commit.SubTree(treePath)
+	if err != nil {
+		ctx.ServerError("SubTree", err)
+		return nil, nil
+	}
+
 	// Get page list.
-	entries, err := commit.ListEntries()
+	entries, err := tree.ListEntries()
 	if err != nil {
 		if wikiRepo != nil {
 			wikiRepo.Close()
@@ -227,13 +244,12 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	ctx.Data["Pages"] = pages
 
 	// get requested page name
-	pageName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}
 
-	_, displayName := wiki_service.WebPathToUserTitle(pageName)
-	ctx.Data["PageURL"] = wiki_service.WebPathToURLPath(pageName)
+	_, displayName := wiki_service.WebPathToUserTitle(wiki_service.WebPath(pageName))
+	ctx.Data["PageURL"] = wiki_service.WebPathToURLPath(wiki_service.WebPath(pageName))
 	ctx.Data["old_title"] = displayName
 	ctx.Data["Title"] = displayName
 	ctx.Data["title"] = displayName
@@ -242,7 +258,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	isFooter := pageName == "_Footer"
 
 	// lookup filename in wiki - get gitTree entry , real filename
-	entry, pageFilename, noEntry, isRaw := wikiEntryByName(ctx, commit, pageName)
+	entry, pageFilename, noEntry, isRaw := wikiEntryByName(ctx, commit, wiki_service.WebPath(p))
 	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
 	}
@@ -647,7 +663,8 @@ func WikiPages(ctx *context.Context) {
 		return
 	}
 
-	treePath := "" // To support list sub folders' pages in the future
+	dirPath := util.PathJoinRelX(ctx.PathParamRaw("*"))
+	treePath := wiki_service.WebDirPathToGitPath(wiki_service.WebPath(dirPath))
 	tree, err := commit.SubTree(treePath)
 	if err != nil {
 		ctx.ServerError("SubTree", err)
@@ -669,22 +686,33 @@ func WikiPages(ctx *context.Context) {
 
 	pages := make([]PageMeta, 0, len(entries))
 	for _, entry := range entries {
-		if !entry.Entry.IsRegular() {
+		if !entry.Entry.IsRegular() && !entry.Entry.IsDir() {
 			continue
 		}
-		wikiName, err := wiki_service.GitPathToWebPath(entry.Entry.Name())
-		if err != nil {
-			if repo_model.IsErrWikiInvalidFileName(err) {
-				continue
+		var wikiName wiki_service.WebPath
+		if entry.Entry.IsDir() {
+			wikiName, err = wiki_service.GitDirPathToWebPath(entry.Entry.Name())
+			if err != nil {
+				ctx.ServerError("GitDirPathToWebPath", err)
+				return
 			}
-			ctx.ServerError("WikiFilenameToName", err)
-			return
+		} else {
+			wikiName, err = wiki_service.GitPathToWebPath(entry.Entry.Name())
+			if err != nil {
+				if repo_model.IsErrWikiInvalidFileName(err) {
+					continue
+				}
+				ctx.ServerError("GitPathToWebPath", err)
+				return
+			}
 		}
 		_, displayName := wiki_service.WebPathToUserTitle(wikiName)
+		urlPath := path.Join(string(dirPath), string(wikiName))
 		pages = append(pages, PageMeta{
 			Name:         displayName,
-			SubURL:       wiki_service.WebPathToURLPath(wikiName),
-			GitEntryName: entry.Entry.Name(),
+			IsDir:        entry.Entry.IsDir(),
+			SubURL:       wiki_service.WebPathToURLPath(wiki_service.WebPath(urlPath)),
+			GitEntryName: path.Join(string(dirPath), entry.Entry.Name()),
 			UpdatedUnix:  timeutil.TimeStamp(entry.Commit.Author.When.Unix()),
 		})
 	}

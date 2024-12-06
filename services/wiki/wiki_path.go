@@ -99,6 +99,10 @@ func WebPathToGitPath(s WebPath) string {
 		return util.PathJoinRelX(ret)
 	}
 
+	return WebDirPathToGitPath(s) + ".md"
+}
+
+func WebDirPathToGitPath(s WebPath) string {
 	a := strings.Split(string(s), "/")
 	for i := range a {
 		shouldAddDashMarker := hasDashMarker(a[i])
@@ -107,7 +111,7 @@ func WebPathToGitPath(s WebPath) string {
 		a[i] = strings.ReplaceAll(a[i], "%20", " ") // space is safe to be kept in git path
 		a[i] = strings.ReplaceAll(a[i], "+", " ")
 	}
-	return strings.Join(a, "/") + ".md"
+	return strings.Join(a, "/")
 }
 
 func GitPathToWebPath(s string) (wp WebPath, err error) {
@@ -115,6 +119,18 @@ func GitPathToWebPath(s string) (wp WebPath, err error) {
 		return "", repo_model.ErrWikiInvalidFileName{FileName: s}
 	}
 	s = strings.TrimSuffix(s, ".md")
+	a := strings.Split(s, "/")
+	for i := range a {
+		shouldAddDashMarker := hasDashMarker(a[i])
+		if a[i], err = unescapeSegment(a[i]); err != nil {
+			return "", err
+		}
+		a[i] = escapeSegToWeb(a[i], shouldAddDashMarker)
+	}
+	return WebPath(strings.Join(a, "/")), nil
+}
+
+func GitDirPathToWebPath(s string) (wp WebPath, err error) {
 	a := strings.Split(s, "/")
 	for i := range a {
 		shouldAddDashMarker := hasDashMarker(a[i])
