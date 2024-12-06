@@ -30,7 +30,6 @@ export async function initCitationFileCopyContent() {
   const citationCopyApa = document.querySelector<HTMLButtonElement>('#citation-copy-apa');
   const citationCopyBibtex = document.querySelector<HTMLButtonElement>('#citation-copy-bibtex');
   const inputContent = document.querySelector<HTMLInputElement>('#citation-copy-content');
-  const elModal = document.querySelector<HTMLElement>('#cite-repo-modal');
 
   if ((!citationCopyApa && !citationCopyBibtex) || !inputContent) return;
 
@@ -42,38 +41,29 @@ export async function initCitationFileCopyContent() {
     citationCopyApa.classList.toggle('primary', !isBibtex);
   };
 
-  const citeBtnMobile = document.querySelector<HTMLButtonElement>('.only-mobile #cite-repo-button');
-  const citeBtnDesktop = document.querySelector<HTMLButtonElement>('.not-mobile #cite-repo-button');
-  for (const citeBtn of [citeBtnMobile, citeBtnDesktop]) {
-    citeBtn?.addEventListener('click', async () => {
-      fomanticQuery(elModal).modal('show');
-      elModal.classList.add('is-loading');
+  document.querySelector('#cite-repo-button')?.addEventListener('click', async () => {
+    try {
+      await initInputCitationValue(citationCopyApa, citationCopyBibtex);
+    } catch (e) {
+      console.error(`initCitationFileCopyContent error: ${e}`, e);
+      return;
+    }
+    updateUi();
 
-      try {
-        try {
-          await initInputCitationValue(citationCopyApa, citationCopyBibtex);
-        } catch (e) {
-          console.error(`initCitationFileCopyContent error: ${e}`, e);
-          return;
-        }
-        updateUi();
-
-        citationCopyApa.addEventListener('click', () => {
-          localStorage.setItem('citation-copy-format', 'apa');
-          updateUi();
-        });
-
-        citationCopyBibtex.addEventListener('click', () => {
-          localStorage.setItem('citation-copy-format', 'bibtex');
-          updateUi();
-        });
-
-        inputContent.addEventListener('click', () => {
-          inputContent.select();
-        });
-      } finally {
-        elModal.classList.remove('is-loading');
-      }
+    citationCopyApa.addEventListener('click', () => {
+      localStorage.setItem('citation-copy-format', 'apa');
+      updateUi();
     });
-  }
+
+    citationCopyBibtex.addEventListener('click', () => {
+      localStorage.setItem('citation-copy-format', 'bibtex');
+      updateUi();
+    });
+
+    inputContent.addEventListener('click', () => {
+      inputContent.select();
+    });
+
+    fomanticQuery('#cite-repo-modal').modal('show');
+  });
 }

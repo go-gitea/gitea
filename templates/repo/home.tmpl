@@ -5,8 +5,8 @@
 		{{template "base/alert" .}}
 		{{template "repo/code/recently_pushed_new_branches" .}}
 
-		<div class="flex-container">
-			<div class="flex-container-main">
+		<div class="repo-home-content">
+			<div class="repo-home-main">
 				{{if .Repository.IsArchived}}
 					<div class="ui warning message tw-text-center">
 						{{if .Repository.ArchivedUnix.IsZero}}
@@ -20,14 +20,6 @@
 				{{$l := Eval $n "-" 1}}
 				{{$isHomepage := (eq $n 0)}}
 
-				{{if $isHomepage}}
-					<div class="only-mobile">
-						{{template "repo/home_search_code" .}}
-					</div>
-					<div class="flex-list only-mobile">
-						{{template "repo/home_share_sidebar" .}}
-					</div>
-				{{end}}
 				{{template "repo/sub_menu" .}}
 
 				<div class="repo-button-row" data-is-homepage="{{$isHomepage}}">
@@ -143,80 +135,12 @@
 					{{template "repo/view_list" .}}
 				{{end}}
 			</div>
-
 			{{if $isHomepage}}
-				<div class="flex-container-repo">
-					<div class="not-mobile">
-						{{template "repo/home_search_code" .}}
-					</div>
-
-					<div class="flex-list">
-						<div class="not-mobile">
-							{{template "repo/home_share_sidebar" .}}
-						</div>
-
-						{{if .LatestRelease}}
-							<div class="flex-item">
-								<div class="flex-item-main">
-									<div class="flex-item-title">
-										<a class="item muted" href="{{.Link}}/releases">
-											{{ctx.Locale.Tr "repo.releases"}}
-											<span class="ui small label">{{.NumReleases}}</span>
-										</a>
-									</div>
-									<div class="flex-item">
-										<div class="flex-item-icon">
-											{{svg "octicon-tag" 16}}
-										</div>
-										<div class="flex-item-main">
-											<div class="flex-item-header">
-												<div class="flex-item-title tw-gap-2">
-													<a class="gt-ellipsis muted" href="{{.LatestRelease.Link}}" data-tooltip-content="{{.LatestRelease.Title}}">{{.LatestRelease.Title}}</a>
-													<span class="ui basic green label tw-h-100">{{ctx.Locale.Tr "latest"}}</span>
-												</div>
-											</div>
-											<div class="flex-item-body">
-												<span class="time">{{DateUtils.TimeSince .LatestRelease.CreatedUnix}}</span>
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-						{{end}}
-
-						{{if and (not .IsEmptyRepo) .LanguageStats}}
-							<div class="flex-item">
-								<div class="flex-item-main">
-									<div class="flex-item-title">
-										{{ctx.Locale.Tr "repo.repo_lang"}}
-									</div>
-
-									<div class="flex-item-body">
-										<div class="language-stats">
-											{{range .LanguageStats}}
-												<div class="bar" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-tooltip-placement="top" data-tooltip-content={{.Language}} data-tooltip-follow-cursor="horizontal"></div>
-											{{end}}
-										</div>
-										<div class="language-stats-details">
-											{{range .LanguageStats}}
-												<div class="item">
-													<i class="color-icon" style="background-color: {{.Color}}"></i>
-													<span class="tw-font-semibold">
-														{{if eq .Language "other"}}
-															{{ctx.Locale.Tr "repo.language_other"}}
-														{{else}}
-															{{.Language}}
-														{{end}}
-													</span>
-													{{.Percentage}}%
-												</div>
-											{{end}}
-										</div>
-									</div>
-								</div>
-							</div>
-						{{end}}
-					</div>
+				<div class="flex-list repo-home-head">
+					{{template "repo/home_sidebar_head" .}}
+				</div>
+				<div class="flex-list repo-home-foot">
+					{{template "repo/home_sidebar_foot" .}}
 				</div>
 			{{end}}
 		</div>
