@@ -152,6 +152,12 @@ func Config(ctx *context.Context) {
 		ctx.Data["Mailer"] = setting.MailService
 	}
 
+	ctx.Data["IncomingMailEnabled"] = false
+	if setting.MailService != nil && setting.IncomingEmail.Enabled {
+		ctx.Data["IncomingMailEnabled"] = true
+	}
+	ctx.Data["IncomingMail"] = setting.IncomingEmail
+
 	ctx.Data["CacheAdapter"] = setting.CacheService.Adapter
 	ctx.Data["CacheInterval"] = setting.CacheService.Interval
 
