@@ -49,7 +49,7 @@ func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPSta
 	return nil
 }
 
-func testAPICreateBranchProtection(t *testing.T, branchName string, expectedHTTPStatus int) {
+func testAPICreateBranchProtection(t *testing.T, branchName string, expectedPriority, expectedHTTPStatus int) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
 		RuleName: branchName,
@@ -60,6 +60,7 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedHTTP
 		var branchProtection api.BranchProtection
 		DecodeJSON(t, resp, &branchProtection)
 		assert.EqualValues(t, branchName, branchProtection.RuleName)
+		assert.EqualValues(t, expectedPriority, branchProtection.Priority)
 	}
 }
 
@@ -189,13 +190,13 @@ func TestAPIBranchProtection(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	// Branch protection  on branch that not exist
-	testAPICreateBranchProtection(t, "master/doesnotexist", http.StatusCreated)
+	testAPICreateBranchProtection(t, "master/doesnotexist", 1, http.StatusCreated)
 	// Get branch protection on branch that exist but not branch protection
 	testAPIGetBranchProtection(t, "master", http.StatusNotFound)
 
-	testAPICreateBranchProtection(t, "master", http.StatusCreated)
+	testAPICreateBranchProtection(t, "master", 2, http.StatusCreated)
 	// Can only create once
-	testAPICreateBranchProtection(t, "master", http.StatusForbidden)
+	testAPICreateBranchProtection(t, "master", 0, http.StatusForbidden)
 
 	// Can't delete a protected branch
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)

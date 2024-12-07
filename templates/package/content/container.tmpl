@@ -5,13 +5,13 @@
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.container.pull"}}</label>
 				{{if eq .PackageDescriptor.Metadata.Type "helm"}}
-				<div class="markup"><pre class="code-block"><code>helm pull oci://{{.RegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}} --version {{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
+				<div class="markup"><pre class="code-block"><code>helm pull oci://{{.PackageRegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}} --version {{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
 				{{else}}
 					{{$separator := ":"}}
 					{{if not .PackageDescriptor.Metadata.IsTagged}}
 						{{$separator = "@"}}
 					{{end}}
-					<div class="markup"><pre class="code-block"><code>docker pull {{.RegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}}{{$separator}}{{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
+					<div class="markup"><pre class="code-block"><code>docker pull {{.PackageRegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}}{{$separator}}{{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
 				{{end}}
 			</div>
 			<div class="field">

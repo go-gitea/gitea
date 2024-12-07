@@ -390,6 +390,12 @@ func (a *actionNotifier) DeleteRef(ctx context.Context, doer *user_model.User, r
 }
 
 func (a *actionNotifier) SyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	// ignore pull sync message for pull requests refs
+	// TODO: it's better to have a UI to let users chose
+	if opts.RefFullName.IsPull() {
+		return
+	}
+
 	data, err := json.Marshal(commits)
 	if err != nil {
 		log.Error("json.Marshal: %v", err)

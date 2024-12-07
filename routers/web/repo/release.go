@@ -152,9 +152,6 @@ func Releases(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 	ctx.Data["IsViewBranch"] = false
 	ctx.Data["IsViewTag"] = true
-	// Disable the showCreateNewBranch form in the dropdown on this page.
-	ctx.Data["CanCreateBranch"] = false
-	ctx.Data["HideBranchesInDropdown"] = true
 
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
@@ -192,7 +189,6 @@ func Releases(ctx *context.Context) {
 	pager := context.NewPagination(int(numReleases), listOptions.PageSize, listOptions.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
-
 	ctx.HTML(http.StatusOK, tplReleasesList)
 }
 
@@ -202,9 +198,6 @@ func TagsList(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.tags")
 	ctx.Data["IsViewBranch"] = false
 	ctx.Data["IsViewTag"] = true
-	// Disable the showCreateNewBranch form in the dropdown on this page.
-	ctx.Data["CanCreateBranch"] = false
-	ctx.Data["HideBranchesInDropdown"] = true
 	ctx.Data["CanCreateRelease"] = ctx.Repo.CanWrite(unit.TypeReleases) && !ctx.Repo.Repository.IsArchived
 
 	namePattern := ctx.FormTrim("q")
@@ -251,7 +244,6 @@ func TagsList(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 	ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
-
 	ctx.HTML(http.StatusOK, tplTagsList)
 }
 

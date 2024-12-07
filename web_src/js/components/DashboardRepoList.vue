@@ -3,10 +3,26 @@ import {createApp, nextTick} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {commitStatus} from '../data.ts';
-import type {CommitStatus} from '../types.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
+
+type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning';
+
+type CommitStatusMap = {
+  [status in CommitStatus]: {
+    name: string,
+    color: string,
+  };
+};
+
+// make sure this matches templates/repo/commit_status.tmpl
+const commitStatus: CommitStatusMap = {
+  pending: {name: 'octicon-dot-fill', color: 'yellow'},
+  success: {name: 'octicon-check', color: 'green'},
+  error: {name: 'gitea-exclamation', color: 'red'},
+  failure: {name: 'octicon-x', color: 'red'},
+  warning: {name: 'gitea-exclamation', color: 'yellow'},
+};
 
 const sfc = {
   components: {SvgIcon},

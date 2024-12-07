@@ -60,19 +60,4 @@ export type FomanticInitFunction = {
   (...args: any[]): any,
 }
 
-export type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning';
-
-export type CommitStatusMap = {
-  [status in CommitStatus]: {
-    name: string,
-    color: string,
-  };
-};
-
-export type ActionsStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
-
-export type ActionsStepLogLine = {
-  index: number,
-  timestamp: number,
-  message: string,
-};
+export type GitRefType = 'branch' | 'tag';

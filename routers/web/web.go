@@ -485,6 +485,8 @@ func registerRoutes(m *web.Router) {
 		m.Methods("GET, HEAD", "/*", public.FileHandlerFunc())
 	}, optionsCorsHandler())
 
+	m.Post("/-/markup", reqSignIn, web.Bind(structs.MarkupOption{}), misc.Markup)
+
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
@@ -1081,6 +1083,7 @@ func registerRoutes(m *web.Router) {
 			m.Combo("/edit").Get(repo_setting.SettingsProtectedBranch).
 				Post(web.Bind(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
 			m.Post("/{id}/delete", repo_setting.DeleteProtectedBranchRulePost)
+			m.Post("/priority", web.Bind(forms.ProtectBranchPriorityForm{}), context.RepoMustNotBeArchived(), repo_setting.UpdateBranchProtectionPriories)
 		})
 
 		m.Group("/tags", func() {
@@ -1232,6 +1235,7 @@ func registerRoutes(m *web.Router) {
 						m.Post("/cancel", repo.CancelStopwatch)
 					})
 				})
+				m.Post("/time_estimate", repo.UpdateIssueTimeEstimate)
 				m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeIssueReaction)
 				m.Post("/lock", reqRepoIssuesOrPullsWriter, web.Bind(forms.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoIssuesOrPullsWriter, repo.UnlockIssue)
@@ -1316,6 +1320,7 @@ func registerRoutes(m *web.Router) {
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
 			m.Post("/rename", web.Bind(forms.RenameBranchForm{}), repo_setting.RenameBranchPost)
+			m.Post("/merge-upstream", repo.MergeUpstream)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
 
 		m.Combo("/fork").Get(repo.Fork).Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
@@ -1405,7 +1410,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("", actions.List)
 		m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
 		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
-		m.Post("/run", reqRepoAdmin, actions.Run)
+		m.Post("/run", reqRepoActionsWriter, actions.Run)
 
 		m.Group("/runs/{run}", func() {
 			m.Combo("").
@@ -1420,7 +1425,6 @@ func registerRoutes(m *web.Router) {
 			})
 			m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 			m.Post("/approve", reqRepoActionsWriter, actions.Approve)
-			m.Get("/artifacts", actions.ArtifactsView)
 			m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
 			m.Delete("/artifacts/{artifact_name}", actions.ArtifactsDeleteView)
 			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
@@ -1622,9 +1626,12 @@ func registerRoutes(m *web.Router) {
 	}
 
 	if !setting.IsProd {
-		m.Any("/devtest", devtest.List)
-		m.Any("/devtest/fetch-action-test", devtest.FetchActionTest)
-		m.Any("/devtest/{sub}", devtest.Tmpl)
+		m.Group("/devtest", func() {
+			m.Any("", devtest.List)
+			m.Any("/fetch-action-test", devtest.FetchActionTest)
+			m.Any("/{sub}", devtest.Tmpl)
+			m.Post("/actions-mock/runs/{run}/jobs/{job}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
+		})
 	}
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
