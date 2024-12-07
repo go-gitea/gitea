@@ -1,8 +1,7 @@
 <script lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
-import {createApp, nextTick} from 'vue';
-import {attachRefIssueContextPopup} from '../features/contextpopup.ts';
+import {createApp} from 'vue';
 import {createElementFromAttrs, toggleElem} from '../utils/dom.ts';
 import {formatDatetime} from '../utils/time.ts';
 import {renderAnsi} from '../render/ansi.ts';
@@ -270,11 +269,6 @@ const sfc = {
           clearInterval(this.intervalID);
           this.intervalID = null;
         }
-
-        await nextTick();
-
-        const refIssues = document.querySelectorAll('.action-info-summary-title-text .ref-issue');
-        attachRefIssueContextPopup(refIssues);
       } catch (e) {
         // avoid network error while unloading page, and ignore "abort" error
         if (e instanceof TypeError || abortController.signal.aborted) return;
