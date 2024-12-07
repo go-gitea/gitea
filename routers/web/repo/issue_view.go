@@ -341,31 +341,6 @@ func ViewIssue(ctx *context.Context) {
 
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, emoji.ReplaceAliases(issue.Title))
 
-	repo := ctx.Repo.Repository
-	if prepareIssueViewContent(ctx, issue) {
-		return
-	}
-
-	// Get more information if it's a pull request.
-	if issue.IsPull {
-		if issue.PullRequest.HasMerged {
-			ctx.Data["DisableStatusChange"] = issue.PullRequest.HasMerged
-			PrepareMergedViewPullInfo(ctx, issue)
-		} else {
-			PrepareViewPullInfo(ctx, issue)
-			ctx.Data["DisableStatusChange"] = ctx.Data["IsPullRequestBroken"] == true && issue.IsClosed
-		}
-		if ctx.Written() {
-			return
-		}
-	}
-
-	pageMetaData := retrieveRepoIssueMetaData(ctx, repo, issue, issue.IsPull)
-	if ctx.Written() {
-		return
-	}
-	pageMetaData.LabelsData.SetSelectedLabels(issue.Labels)
-
 	if ctx.IsSigned {
 		// Update issue-user.
 		if err = activities_model.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
@@ -374,7 +349,17 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 
+	pageMetaData := retrieveRepoIssueMetaData(ctx, ctx.Repo.Repository, issue, issue.IsPull)
+	if ctx.Written() {
+		return
+	}
+	pageMetaData.LabelsData.SetSelectedLabels(issue.Labels)
+
 	prepareFuncs := []func(*context.Context, *issues_model.Issue){
+		prepareIssueViewContent,
+		func(ctx *context.Context, issue *issues_model.Issue) {
+			preparePullViewPullInfo(ctx, issue)
+		},
 		prepareIssueViewCommentsAndSidebarParticipants,
 		preparePullViewReviewAndMerge,
 		prepareIssueViewSidebarWatch,
@@ -387,6 +372,15 @@ func ViewIssue(ctx *context.Context) {
 		prepareFunc(ctx, issue)
 		if ctx.Written() {
 			return
+		}
+	}
+
+	// Get more information if it's a pull request.
+	if issue.IsPull {
+		if issue.PullRequest.HasMerged {
+			ctx.Data["DisableStatusChange"] = issue.PullRequest.HasMerged
+		} else {
+			ctx.Data["DisableStatusChange"] = ctx.Data["IsPullRequestBroken"] == true && issue.IsClosed
 		}
 	}
 
@@ -931,18 +925,17 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 	}
 }
 
-func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) bool {
+func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 	var err error
 	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
 	issue.RenderedContent, err = markdown.RenderString(rctx, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
-		return true
+		return
 	}
 	if issue.ShowRole, err = roleDescriptor(ctx, issue.Repo, issue.Poster, issue, issue.HasOriginalAuthor()); err != nil {
 		ctx.ServerError("roleDescriptor", err)
-		return true
+		return
 	}
 	ctx.Data["Issue"] = issue
-	return false
 }
