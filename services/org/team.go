@@ -12,7 +12,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
-	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -101,7 +100,7 @@ type UpdateTeamOptions struct {
 	UnitPerms               map[unit_model.Type]perm.AccessMode
 }
 
-func UpdateTeam(ctx context.Context, team *org_model.Team, opts UpdateTeamOptions) error {
+func UpdateTeam(ctx context.Context, team *organization.Team, opts UpdateTeamOptions) error {
 	var changedCols []string
 
 	newAccessMode := team.AccessMode
@@ -130,9 +129,9 @@ func UpdateTeam(ctx context.Context, team *org_model.Team, opts UpdateTeamOption
 			changedCols = append(changedCols, "includes_all_repositories")
 		}
 		if len(opts.UnitPerms) > 0 {
-			units := make([]*org_model.TeamUnit, 0, len(opts.UnitPerms))
+			units := make([]*organization.TeamUnit, 0, len(opts.UnitPerms))
 			for tp, perm := range opts.UnitPerms {
-				units = append(units, &org_model.TeamUnit{
+				units = append(units, &organization.TeamUnit{
 					OrgID:      team.OrgID,
 					TeamID:     team.ID,
 					Type:       tp,
@@ -157,7 +156,7 @@ func UpdateTeam(ctx context.Context, team *org_model.Team, opts UpdateTeamOption
 		team.Description = opts.Description
 	}
 
-	return org_model.UpdateTeam(ctx, team, changedCols...)
+	return organization.UpdateTeam(ctx, team, changedCols...)
 }
 
 // UpdateTeam updates information of team.

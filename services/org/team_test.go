@@ -78,11 +78,14 @@ func TestUpdateTeam(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-	team.LowerName = "newname"
 	team.Name = "newName"
 	team.Description = strings.Repeat("A long description!", 100)
 	team.AccessMode = perm.AccessModeAdmin
-	assert.NoError(t, UpdateTeam(db.DefaultContext, team, "name", "lower_name", "description", "authorize"))
+	assert.NoError(t, UpdateTeam(db.DefaultContext, team, UpdateTeamOptions{
+		TeamName:    "name",
+		Description: "description",
+		IsAdmin:     true,
+	}))
 
 	team = unittest.AssertExistsAndLoadBean(t, &organization.Team{Name: "newName"})
 	assert.True(t, strings.HasPrefix(team.Description, "A long description!"))
@@ -101,7 +104,10 @@ func TestUpdateTeam2(t *testing.T) {
 	team.LowerName = "owners"
 	team.Name = "Owners"
 	team.Description = strings.Repeat("A long description!", 100)
-	err := UpdateTeam(db.DefaultContext, team, "name", "lower_name", "description", "authorize")
+	err := UpdateTeam(db.DefaultContext, team, UpdateTeamOptions{
+		TeamName:    "name",
+		Description: "description",
+	})
 	assert.True(t, organization.IsErrTeamAlreadyExist(err))
 
 	unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID})
@@ -277,7 +283,10 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	teams[4].IncludesAllRepositories = true
 	teamRepos[4] = repoIDs
 	for i, team := range teams {
-		assert.NoError(t, UpdateTeam(db.DefaultContext, team, false, true), "%s: UpdateTeam", team.Name)
+		assert.NoError(t, UpdateTeam(db.DefaultContext, team, UpdateTeamOptions{
+			IncludesAllRepositories: false,
+			CanCreateOrgRepo:        true,
+		}), "%s: UpdateTeam", team.Name)
 		testTeamRepositories(team.ID, teamRepos[i])
 	}
 
