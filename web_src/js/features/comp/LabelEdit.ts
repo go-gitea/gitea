@@ -47,7 +47,7 @@ export function initCompLabelEdit(pageSelector: string) {
     elModal.toggleAttribute('data-need-warn-exclusive', !elExclusiveInput.checked && numIssues > 0);
     elModal.querySelector('.header').textContent = isEdit ? elModal.getAttribute('data-text-edit-label') : elModal.getAttribute('data-text-new-label');
 
-    const repoLink = elModal.getAttribute('data-repo-link');
+    const repoLink = elModal.getAttribute('data-current-page-link');
     form.action = isEdit ? `${repoLink}/edit` : `${repoLink}/new`;
     toggleElem(elIsArchivedField, isEdit);
     syncModalUi();
