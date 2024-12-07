@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"context"
 	"testing"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -129,8 +130,8 @@ jobs:
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := newJobStatusResolver(tt.jobs)
-			assert.Equal(t, tt.want, r.Resolve())
+			r := newJobStatusResolver(tt.jobs, nil)
+			assert.Equal(t, tt.want, r.Resolve(context.Background()))
 		})
 	}
 }
