@@ -57,6 +57,12 @@ func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) er
 	return err
 }
 
+func CancelJobs(ctx context.Context, job *actions_model.ActionRunJob) error {
+	jobs, err := actions_model.CancelPreviousJobsByConcurrency(ctx, job)
+	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	return err
+}
+
 func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 	tasks, err := db.Find[actions_model.ActionTask](ctx, opts)
 	if err != nil {

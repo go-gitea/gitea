@@ -191,7 +191,10 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 
 	// find workflow from commit
-	var workflows []*jobparser.SingleWorkflow
+	var (
+		workflows        []*jobparser.SingleWorkflow
+		wfRawConcurrency *model.RawConcurrency
+	)
 	for _, entry := range entries {
 		if entry.Name() != workflowID {
 			continue
@@ -202,6 +205,10 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 			return err
 		}
 		workflows, err = jobparser.Parse(content)
+		if err != nil {
+			return err
+		}
+		wfRawConcurrency, err = jobparser.ReadWorkflowRawConcurrency(content)
 		if err != nil {
 			return err
 		}
@@ -256,19 +263,24 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		Status:            actions_model.StatusWaiting,
 	}
 
-	// cancel running jobs of the same workflow
-	if err := CancelPreviousJobs(
-		ctx,
-		run.RepoID,
-		run.Ref,
-		run.WorkflowID,
-		run.Event,
-	); err != nil {
-		log.Error("CancelRunningJobs: %v", err)
+	// cancel running jobs of the same concurrency group
+	if wfRawConcurrency != nil {
+		vars, err := actions_model.GetVariablesOfRun(ctx, run)
+		if err != nil {
+			return err
+		}
+		wfConcurrencyGroup, wfConcurrencyCancel, err := EvaluateWorkflowConcurrency(ctx, run, wfRawConcurrency, vars)
+		if err != nil {
+			return err
+		}
+		if wfConcurrencyGroup != "" {
+			run.ConcurrencyGroup = wfConcurrencyGroup
+			run.ConcurrencyCancel = wfConcurrencyCancel
+		}
 	}
 
 	// Insert the action run and its associated jobs into the database
-	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+	if err := InsertRun(ctx, run, workflows); err != nil {
 		return fmt.Errorf("InsertRun: %w", err)
 	}
 
