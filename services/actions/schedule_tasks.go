@@ -143,9 +143,23 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 	if err != nil {
 		return err
 	}
+	wfRawConcurrency, err := jobparser.ReadWorkflowRawConcurrency(cron.Content)
+	if err != nil {
+		return err
+	}
+	if wfRawConcurrency != nil {
+		wfConcurrencyGroup, wfConcurrencyCancel, err := EvaluateWorkflowConcurrency(run, wfRawConcurrency, vars)
+		if err != nil {
+			return err
+		}
+		if wfConcurrencyGroup != "" {
+			run.ConcurrencyGroup = wfConcurrencyGroup
+			run.ConcurrencyCancel = wfConcurrencyCancel
+		}
+	}
 
 	// Insert the action run and its associated jobs into the database
-	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+	if err := InsertRun(ctx, run, workflows); err != nil {
 		return err
 	}
 

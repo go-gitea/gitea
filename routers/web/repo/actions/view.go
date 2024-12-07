@@ -442,8 +442,35 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 	job.Started = 0
 	job.Stopped = 0
 
+	job.ConcurrencyGroup = ""
+	job.ConcurrencyCancel = false
+	job.IsConcurrencyEvaluated = false
+	if err := job.LoadRun(ctx); err != nil {
+		return err
+	}
+	vars, err := actions_model.GetVariablesOfRun(ctx, job.Run)
+	if err != nil {
+		return fmt.Errorf("get run %d variables: %w", job.Run.ID, err)
+	}
+	if job.RawConcurrencyGroup != "" && job.Status != actions_model.StatusBlocked {
+		var err error
+		job.ConcurrencyGroup, job.ConcurrencyCancel, err = actions_service.EvaluateJobConcurrency(job.Run, job, vars, nil)
+		if err != nil {
+			return fmt.Errorf("evaluate job concurrency: %w", err)
+		}
+		job.IsConcurrencyEvaluated = true
+		blockByConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, job)
+		if err != nil {
+			return err
+		}
+		if blockByConcurrency {
+			job.Status = actions_model.StatusBlocked
+		}
+	}
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
+		updateCols := []string{"task_id", "status", "started", "stopped", "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated"}
+		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, updateCols...)
 		return err
 	}); err != nil {
 		return err
@@ -560,7 +587,14 @@ func Approve(ctx *context_module.Context) {
 			return err
 		}
 		for _, job := range jobs {
-			if len(job.Needs) == 0 && job.Status.IsBlocked() {
+			blockJobByConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, job)
+			if err != nil {
+				if actions_model.IsErrUnevaluatedConcurrency(err) {
+					continue
+				}
+				return err
+			}
+			if len(job.Needs) == 0 && job.Status.IsBlocked() && !blockJobByConcurrency {
 				job.Status = actions_model.StatusWaiting
 				_, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
 				if err != nil {
@@ -820,7 +854,10 @@ func Run(ctx *context_module.Context) {
 	}
 
 	// find workflow from commit
-	var workflows []*jobparser.SingleWorkflow
+	var (
+		workflows        []*jobparser.SingleWorkflow
+		wfRawConcurrency *model.RawConcurrency
+	)
 	for _, entry := range entries {
 		if entry.Name() == workflowID {
 			content, err := actions.GetContentFromEntry(entry)
@@ -831,6 +868,11 @@ func Run(ctx *context_module.Context) {
 			workflows, err = jobparser.Parse(content)
 			if err != nil {
 				ctx.ServerError("workflow", err)
+				return
+			}
+			wfRawConcurrency, err = jobparser.ReadWorkflowRawConcurrency(content)
+			if err != nil {
+				ctx.ServerError("read workflow concurrency", err)
 				return
 			}
 			break
@@ -896,6 +938,22 @@ func Run(ctx *context_module.Context) {
 		EventPayload:      string(eventPayload),
 		Status:            actions_model.StatusWaiting,
 	}
+	if wfRawConcurrency != nil {
+		vars, err := actions_model.GetVariablesOfRun(ctx, run)
+		if err != nil {
+			ctx.ServerError("GetVariablesOfRun", err)
+			return
+		}
+		wfConcurrencyGroup, wfConcurrencyCancel, err := actions_service.EvaluateWorkflowConcurrency(run, wfRawConcurrency, vars)
+		if err != nil {
+			ctx.ServerError("EvaluateWorkflowConcurrency", err)
+			return
+		}
+		if wfConcurrencyGroup != "" {
+			run.ConcurrencyGroup = wfConcurrencyGroup
+			run.ConcurrencyCancel = wfConcurrencyCancel
+		}
+	}
 
 	// cancel running jobs of the same workflow
 	if err := actions_model.CancelPreviousJobs(
@@ -909,7 +967,7 @@ func Run(ctx *context_module.Context) {
 	}
 
 	// Insert the action run and its associated jobs into the database
-	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+	if err := actions_service.InsertRun(ctx, run, workflows); err != nil {
 		ctx.ServerError("workflow", err)
 		return
 	}

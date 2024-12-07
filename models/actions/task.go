@@ -320,6 +320,10 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		return nil, false, nil
 	}
 
+	if err := CancelPreviousJobsByConcurrency(ctx, job); err != nil {
+		return nil, false, err
+	}
+
 	task.Job = job
 
 	if err := committer.Commit(); err != nil {
