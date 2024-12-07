@@ -110,7 +110,14 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 		}
 	}
 
-	if err := issues_model.UpdateComment(ctx, c, contentVersion, doer); err != nil {
+	if err := issues_model.UpdateComment(ctx, c, contentVersion); err != nil {
+		return err
+	}
+
+	if err := c.LoadIssue(ctx); err != nil {
+		return err
+	}
+	if err := c.AddCrossReferences(ctx, doer, true); err != nil {
 		return err
 	}
 
