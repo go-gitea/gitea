@@ -302,7 +302,6 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 			comment.Reactions = append(comment.Reactions, react)
 		}
 	}
-	issue.Reactions = reactions
 	return nil
 }
 
