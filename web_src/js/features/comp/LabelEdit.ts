@@ -9,6 +9,7 @@ export function initCompLabelEdit(pageSelector: string) {
   const pageContent = document.querySelector<HTMLElement>(pageSelector);
   if (!pageContent) return;
 
+  // for guest view, the modal is not available, the "labels" are read-only
   const elModal = pageContent.querySelector<HTMLElement>('#issue-label-edit-modal');
   if (!elModal) return;
 
@@ -31,6 +32,7 @@ export function initCompLabelEdit(pageSelector: string) {
   };
 
   const showLabelEditModal = (btn:HTMLElement) => {
+    // the "btn" should contain the label's attributes by its `data-label-xxx` attributes
     const form = elModal.querySelector<HTMLFormElement>('form');
     elLabelId.value = btn.getAttribute('data-label-id') || '';
     elNameInput.value = btn.getAttribute('data-label-name') || '';
@@ -40,6 +42,7 @@ export function initCompLabelEdit(pageSelector: string) {
     elColorInput.value = btn.getAttribute('data-label-color') || '';
     elColorInput.dispatchEvent(new Event('input', {bubbles: true})); // trigger the color picker
 
+    // if label id exists: "edit label" mode; otherwise: "new label" mode
     const isEdit = Boolean(elLabelId.value);
 
     // if a label was not exclusive but has issues, then it should warn user if it will become exclusive
@@ -64,6 +67,7 @@ export function initCompLabelEdit(pageSelector: string) {
 
   elModal.addEventListener('input', () => syncModalUi());
 
+  // theoretically, if the modal exists, the "new label" button should also exist, just in case it doesn't, use "?."
   const elNewLabel = pageContent.querySelector<HTMLElement>('.ui.button.new-label');
   elNewLabel?.addEventListener('click', () => showLabelEditModal(elNewLabel));
 
