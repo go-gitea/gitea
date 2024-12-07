@@ -136,6 +136,9 @@
 				{{else if .IsBlame}}
 					{{template "repo/blame" .}}
 				{{else}}{{/* IsViewDirectory */}}
+					{{if $isTreePathRoot}}
+						{{template "repo/code/upstream_diverging_info" .}}
+					{{end}}
 					{{template "repo/view_list" .}}
 				{{end}}
 			</div>

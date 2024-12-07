@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -86,29 +87,31 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 	ctx.Data["OpenWithEditorApps"] = tmplApps
 }
 
-func prepareHomeSidebarCitationFile(ctx *context.Context, entry *git.TreeEntry) {
-	if entry.Name() != "" {
-		return
-	}
-	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
-	if err != nil {
-		HandleGitError(ctx, "Repo.Commit.SubTree", err)
-		return
-	}
-	allEntries, err := tree.ListEntries()
-	if err != nil {
-		ctx.ServerError("ListEntries", err)
-		return
-	}
-	for _, entry := range allEntries {
-		if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
-			// Read Citation file contents
-			if content, err := entry.Blob().GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
-				log.Error("checkCitationFile: GetBlobContent: %v", err)
-			} else {
-				ctx.Data["CitiationExist"] = true
-				ctx.PageData["citationFileContent"] = content
-				break
+func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Context) {
+	return func(ctx *context.Context) {
+		if entry.Name() != "" {
+			return
+		}
+		tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+		if err != nil {
+			HandleGitError(ctx, "Repo.Commit.SubTree", err)
+			return
+		}
+		allEntries, err := tree.ListEntries()
+		if err != nil {
+			ctx.ServerError("ListEntries", err)
+			return
+		}
+		for _, entry := range allEntries {
+			if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
+				// Read Citation file contents
+				if content, err := entry.Blob().GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+					log.Error("checkCitationFile: GetBlobContent: %v", err)
+				} else {
+					ctx.Data["CitiationExist"] = true
+					ctx.PageData["citationFileContent"] = content
+					break
+				}
 			}
 		}
 	}
@@ -174,83 +177,21 @@ func prepareHomeSidebarLatestRelease(ctx *context.Context) {
 	}
 }
 
-func renderHomeCode(ctx *context.Context) {
-	ctx.Data["PageIsViewCode"] = true
-	ctx.Data["RepositoryUploadEnabled"] = setting.Repository.Upload.Enabled
-	prepareOpenWithEditorApps(ctx)
-
-	if ctx.Repo.Commit == nil || ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsBroken() {
-		showEmpty := true
-		var err error
-		if ctx.Repo.GitRepo != nil {
-			showEmpty, err = ctx.Repo.GitRepo.IsEmpty()
-			if err != nil {
-				log.Error("GitRepo.IsEmpty: %v", err)
-				ctx.Repo.Repository.Status = repo_model.RepositoryBroken
-				showEmpty = true
-				ctx.Flash.Error(ctx.Tr("error.occurred"), true)
-			}
-		}
-		if showEmpty {
-			ctx.HTML(http.StatusOK, tplRepoEMPTY)
-			return
-		}
-
-		// the repo is not really empty, so we should update the modal in database
-		// such problem may be caused by:
-		// 1) an error occurs during pushing/receiving.  2) the user replaces an empty git repo manually
-		// and even more: the IsEmpty flag is deeply broken and should be removed with the UI changed to manage to cope with empty repos.
-		// it's possible for a repository to be non-empty by that flag but still 500
-		// because there are no branches - only tags -or the default branch is non-extant as it has been 0-pushed.
-		ctx.Repo.Repository.IsEmpty = false
-		if err = repo_model.UpdateRepositoryCols(ctx, ctx.Repo.Repository, "is_empty"); err != nil {
-			ctx.ServerError("UpdateRepositoryCols", err)
-			return
-		}
-		if err = repo_module.UpdateRepoSize(ctx, ctx.Repo.Repository); err != nil {
-			ctx.ServerError("UpdateRepoSize", err)
-			return
-		}
-
-		// the repo's IsEmpty has been updated, redirect to this page to make sure middlewares can get the correct values
-		link := ctx.Link
-		if ctx.Req.URL.RawQuery != "" {
-			link += "?" + ctx.Req.URL.RawQuery
-		}
-		ctx.Redirect(link)
+func prepareUpstreamDivergingInfo(ctx *context.Context) {
+	if !ctx.Repo.Repository.IsFork || !ctx.Repo.IsViewBranch || ctx.Repo.TreePath != "" {
 		return
 	}
-
-	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
-	if len(ctx.Repo.Repository.Description) > 0 {
-		title += ": " + ctx.Repo.Repository.Description
-	}
-	ctx.Data["Title"] = title
-
-	// Get Topics of this repo
-	prepareHomeSidebarRepoTopics(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	// Get current entry user currently looking at.
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	upstreamDivergingInfo, err := repo_service.GetUpstreamDivergingInfo(ctx, ctx.Repo.Repository, ctx.Repo.BranchName)
 	if err != nil {
-		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
+		if !errors.Is(err, util.ErrNotExist) && !errors.Is(err, util.ErrInvalidArgument) {
+			log.Error("GetUpstreamDivergingInfo: %v", err)
+		}
 		return
 	}
+	ctx.Data["UpstreamDivergingInfo"] = upstreamDivergingInfo
+}
 
-	checkOutdatedBranch(ctx)
-
-	if entry.IsDir() {
-		prepareToRenderDirectory(ctx)
-	} else {
-		renderFile(ctx, entry)
-	}
-	if ctx.Written() {
-		return
-	}
-
+func prepareRecentlyPushedNewBranches(ctx *context.Context) {
 	if ctx.Doer != nil {
 		if err := ctx.Repo.Repository.GetBaseRepo(ctx); err != nil {
 			ctx.ServerError("GetBaseRepo", err)
@@ -280,7 +221,112 @@ func renderHomeCode(ctx *context.Context) {
 			}
 		}
 	}
+}
 
+func handleRepoEmptyOrBroken(ctx *context.Context) {
+	showEmpty := true
+	var err error
+	if ctx.Repo.GitRepo != nil {
+		showEmpty, err = ctx.Repo.GitRepo.IsEmpty()
+		if err != nil {
+			log.Error("GitRepo.IsEmpty: %v", err)
+			ctx.Repo.Repository.Status = repo_model.RepositoryBroken
+			showEmpty = true
+			ctx.Flash.Error(ctx.Tr("error.occurred"), true)
+		}
+	}
+	if showEmpty {
+		ctx.HTML(http.StatusOK, tplRepoEMPTY)
+		return
+	}
+
+	// the repo is not really empty, so we should update the modal in database
+	// such problem may be caused by:
+	// 1) an error occurs during pushing/receiving.  2) the user replaces an empty git repo manually
+	// and even more: the IsEmpty flag is deeply broken and should be removed with the UI changed to manage to cope with empty repos.
+	// it's possible for a repository to be non-empty by that flag but still 500
+	// because there are no branches - only tags -or the default branch is non-extant as it has been 0-pushed.
+	ctx.Repo.Repository.IsEmpty = false
+	if err = repo_model.UpdateRepositoryCols(ctx, ctx.Repo.Repository, "is_empty"); err != nil {
+		ctx.ServerError("UpdateRepositoryCols", err)
+		return
+	}
+	if err = repo_module.UpdateRepoSize(ctx, ctx.Repo.Repository); err != nil {
+		ctx.ServerError("UpdateRepoSize", err)
+		return
+	}
+
+	// the repo's IsEmpty has been updated, redirect to this page to make sure middlewares can get the correct values
+	link := ctx.Link
+	if ctx.Req.URL.RawQuery != "" {
+		link += "?" + ctx.Req.URL.RawQuery
+	}
+	ctx.Redirect(link)
+}
+
+func prepareToRenderDirOrFile(entry *git.TreeEntry) func(ctx *context.Context) {
+	return func(ctx *context.Context) {
+		if entry.IsDir() {
+			prepareToRenderDirectory(ctx)
+		} else {
+			prepareToRenderFile(ctx, entry)
+		}
+	}
+}
+
+func handleRepoHomeFeed(ctx *context.Context) bool {
+	if setting.Other.EnableFeed {
+		isFeed, _, showFeedType := feed.GetFeedType(ctx.PathParam(":reponame"), ctx.Req)
+		if isFeed {
+			switch {
+			case ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType):
+				feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+			case ctx.Repo.TreePath == "":
+				feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
+			case ctx.Repo.TreePath != "":
+				feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
+			}
+			return true
+		}
+	}
+	return false
+}
+
+// Home render repository home page
+func Home(ctx *context.Context) {
+	if handleRepoHomeFeed(ctx) {
+		return
+	}
+
+	// Check whether the repo is viewable: not in migration, and the code unit should be enabled
+	// Ideally the "feed" logic should be after this, but old code did so, so keep it as-is.
+	checkHomeCodeViewable(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
+	if len(ctx.Repo.Repository.Description) > 0 {
+		title += ": " + ctx.Repo.Repository.Description
+	}
+	ctx.Data["Title"] = title
+	ctx.Data["PageIsViewCode"] = true
+	ctx.Data["RepositoryUploadEnabled"] = setting.Repository.Upload.Enabled // show New File / Upload File buttons
+
+	if ctx.Repo.Commit == nil || ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsBroken() {
+		// empty or broken repositories need to be handled differently
+		handleRepoEmptyOrBroken(ctx)
+		return
+	}
+
+	// get the current git entry which doer user is currently looking at.
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	if err != nil {
+		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
+		return
+	}
+
+	// prepare the tree path
 	var treeNames, paths []string
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
@@ -295,57 +341,38 @@ func renderHomeCode(ctx *context.Context) {
 			ctx.Data["ParentPath"] = "/" + paths[len(paths)-2]
 		}
 	}
-
-	isTreePathRoot := ctx.Repo.TreePath == ""
-	if isTreePathRoot {
-		prepareHomeSidebarLicenses(ctx)
-		if ctx.Written() {
-			return
-		}
-		prepareHomeSidebarCitationFile(ctx, entry)
-		if ctx.Written() {
-			return
-		}
-
-		prepareHomeSidebarLanguageStats(ctx)
-		if ctx.Written() {
-			return
-		}
-
-		prepareHomeSidebarLatestRelease(ctx)
-		if ctx.Written() {
-			return
-		}
-	}
-
 	ctx.Data["Paths"] = paths
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
-	ctx.HTML(http.StatusOK, tplRepoHome)
-}
 
-// Home render repository home page
-func Home(ctx *context.Context) {
-	if setting.Other.EnableFeed {
-		isFeed, _, showFeedType := feed.GetFeedType(ctx.PathParam(":reponame"), ctx.Req)
-		if isFeed {
-			switch {
-			case ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType):
-				feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
-			case ctx.Repo.TreePath == "":
-				feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
-			case ctx.Repo.TreePath != "":
-				feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
-			}
+	// some UI components are only shown when the tree path is root
+	isTreePathRoot := ctx.Repo.TreePath == ""
+
+	prepareFuncs := []func(*context.Context){
+		prepareOpenWithEditorApps,
+		prepareHomeSidebarRepoTopics,
+		checkOutdatedBranch,
+		prepareToRenderDirOrFile(entry),
+		prepareRecentlyPushedNewBranches,
+	}
+
+	if isTreePathRoot {
+		prepareFuncs = append(prepareFuncs,
+			prepareUpstreamDivergingInfo,
+			prepareHomeSidebarLicenses,
+			prepareHomeSidebarCitationFile(entry),
+			prepareHomeSidebarLanguageStats,
+			prepareHomeSidebarLatestRelease,
+		)
+	}
+
+	for _, prepare := range prepareFuncs {
+		prepare(ctx)
+		if ctx.Written() {
 			return
 		}
 	}
 
-	checkHomeCodeViewable(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	renderHomeCode(ctx)
+	ctx.HTML(http.StatusOK, tplRepoHome)
 }
