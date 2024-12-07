@@ -6,7 +6,6 @@ package doctor
 import (
 	"context"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -29,7 +28,7 @@ func fixOwnerTeamCreateOrgRepo(ctx context.Context, logger log.Logger, autofix b
 				return nil
 			}
 
-			return models.UpdateTeam(ctx, team, "can_create_org_repo")
+			return org_model.UpdateTeam(ctx, team, "can_create_org_repo")
 		},
 	)
 	if err != nil {

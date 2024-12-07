@@ -377,12 +377,12 @@ lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
 .PHONY: lint-js
 lint-js: node_modules
 	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
-#	npx tsc
+#	npx vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules
 	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
-#	npx tsc
+#	npx vue-tsc
 
 .PHONY: lint-css
 lint-css: node_modules
@@ -450,6 +450,10 @@ lint-templates: .venv node_modules
 .PHONY: lint-yaml
 lint-yaml: .venv
 	@poetry run yamllint .
+
+.PHONY: tsc
+tsc:
+	npx vue-tsc
 
 .PHONY: watch
 watch:

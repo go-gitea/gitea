@@ -37,9 +37,12 @@
 			</h4>
 
 			<div class="ui attached segment">
-				<div class="flex-list">
+				<div class="flex-list" id="protected-branches-list" data-update-priority-url="{{$.Repository.Link}}/settings/branches/priority">
 					{{range .ProtectedBranches}}
-						<div class="flex-item tw-items-center">
+						<div class="flex-item tw-items-center item" data-id="{{.ID}}" >
+							<div class="drag-handle tw-cursor-grab">
+								{{svg "octicon-grabber" 16}}
+							</div>
 							<div class="flex-item-main">
 								<div class="flex-item-title">
 									<div class="ui basic primary label">{{.RuleName}}</div>

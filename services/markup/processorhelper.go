@@ -11,10 +11,8 @@ import (
 	gitea_context "code.gitea.io/gitea/services/context"
 )
 
-func ProcessorHelper() *markup.ProcessorHelper {
-	return &markup.ProcessorHelper{
-		ElementDir: "auto", // set dir="auto" for necessary (eg: <p>, <h?>, etc) tags
-
+func ProcessorHelper() *markup.RenderHelperFuncs {
+	return &markup.RenderHelperFuncs{
 		RenderRepoFileCodePreview: renderRepoFileCodePreview,
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
 			mentionedUser, err := user.GetUserByName(ctx, username)

@@ -10,17 +10,16 @@ import (
 	"html/template"
 	"net/url"
 	"reflect"
-	"slices"
 	"strings"
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/templates/eval"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
 	"code.gitea.io/gitea/services/webtheme"
@@ -32,6 +31,7 @@ func NewFuncMap() template.FuncMap {
 		"ctx": func() any { return nil }, // template context function
 
 		"DumpVar": dumpVar,
+		"NIL":     func() any { return nil },
 
 		// -----------------------------------------------------------------
 		// html/template related functions
@@ -39,7 +39,7 @@ func NewFuncMap() template.FuncMap {
 		"Iif":          iif,
 		"Eval":         evalTokens,
 		"SafeHTML":     safeHTML,
-		"HTMLFormat":   HTMLFormat,
+		"HTMLFormat":   htmlutil.HTMLFormat,
 		"HTMLEscape":   htmlEscape,
 		"QueryEscape":  queryEscape,
 		"JSEscape":     jsEscapeSafe,
@@ -54,6 +54,7 @@ func NewFuncMap() template.FuncMap {
 		"StringUtils": NewStringUtils,
 		"SliceUtils":  NewSliceUtils,
 		"JsonUtils":   NewJsonUtils,
+		"DateUtils":   NewDateUtils,
 
 		// -----------------------------------------------------------------
 		// svg / avatar / icon / color
@@ -66,12 +67,12 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// time / number / format
-		"FileSize":      base.FileSize,
-		"CountFmt":      base.FormatNumberSI,
-		"TimeSince":     timeutil.TimeSince,
-		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"DateTime":      timeutil.DateTime,
-		"Sec2Time":      util.SecToTime,
+		"FileSize": base.FileSize,
+		"CountFmt": base.FormatNumberSI,
+		"Sec2Time": util.SecToTime,
+
+		"TimeEstimateString": timeEstimateString,
+
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
@@ -154,18 +155,8 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// render
-		"RenderCommitMessage":            RenderCommitMessage,
-		"RenderCommitMessageLinkSubject": renderCommitMessageLinkSubject,
-
-		"RenderCommitBody": renderCommitBody,
-		"RenderCodeBlock":  renderCodeBlock,
-		"RenderIssueTitle": renderIssueTitle,
-		"RenderEmoji":      renderEmoji,
-		"ReactionToEmoji":  reactionToEmoji,
-
-		"RenderMarkdownToHtml": RenderMarkdownToHtml,
-		"RenderLabel":          renderLabel,
-		"RenderLabels":         RenderLabels,
+		"RenderCodeBlock": renderCodeBlock,
+		"ReactionToEmoji": reactionToEmoji,
 
 		// -----------------------------------------------------------------
 		// misc
@@ -177,24 +168,23 @@ func NewFuncMap() template.FuncMap {
 
 		"FilenameIsImage": filenameIsImage,
 		"TabSizeClass":    tabSizeClass,
-	}
-}
 
-func HTMLFormat(s string, rawArgs ...any) template.HTML {
-	args := slices.Clone(rawArgs)
-	for i, v := range args {
-		switch v := v.(type) {
-		case nil, bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, template.HTML:
-			// for most basic types (including template.HTML which is safe), just do nothing and use it
-		case string:
-			args[i] = template.HTMLEscapeString(v)
-		case fmt.Stringer:
-			args[i] = template.HTMLEscapeString(v.String())
-		default:
-			args[i] = template.HTMLEscapeString(fmt.Sprint(v))
-		}
+		// for backward compatibility only, do not use them anymore
+		"TimeSince":     timeSinceLegacy,
+		"TimeSinceUnix": timeSinceLegacy,
+		"DateTime":      dateTimeLegacy,
+
+		"RenderEmoji":      renderEmojiLegacy,
+		"RenderLabel":      renderLabelLegacy,
+		"RenderLabels":     renderLabelsLegacy,
+		"RenderIssueTitle": renderIssueTitleLegacy,
+
+		"RenderMarkdownToHtml": renderMarkdownToHtmlLegacy,
+
+		"RenderCommitMessage":            renderCommitMessageLegacy,
+		"RenderCommitMessageLinkSubject": renderCommitMessageLinkSubjectLegacy,
+		"RenderCommitBody":               renderCommitBodyLegacy,
 	}
-	return template.HTML(fmt.Sprintf(s, args...))
 }
 
 // safeHTML render raw as HTML
@@ -293,4 +283,18 @@ func userThemeName(user *user_model.User) string {
 		return user.Theme
 	}
 	return setting.UI.DefaultTheme
+}
+
+func timeEstimateString(timeSec any) string {
+	v, _ := util.ToInt64(timeSec)
+	if v == 0 {
+		return ""
+	}
+	return util.TimeEstimateString(v)
+}
+
+func panicIfDevOrTesting() {
+	if !setting.IsProd || setting.IsInTesting {
+		panic("legacy template functions are for backward compatibility only, do not use them in new code")
+	}
 }

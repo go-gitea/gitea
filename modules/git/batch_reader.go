@@ -146,9 +146,8 @@ func catFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 }
 
 // ReadBatchLine reads the header line from cat-file --batch
-// We expect:
-// <sha> SP <type> SP <size> LF
-// sha is a hex encoded here
+// We expect: <oid> SP <type> SP <size> LF
+// then leaving the rest of the stream "<contents> LF" to be read
 func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err error) {
 	typ, err = rd.ReadString('\n')
 	if err != nil {

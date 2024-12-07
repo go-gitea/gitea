@@ -53,11 +53,11 @@ func InitializeLabels(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 }
 
-// RetrieveLabels find all the labels of a repository and organization
-func RetrieveLabels(ctx *context.Context) {
+// RetrieveLabelsForList find all the labels of a repository and organization, it is only used by "/labels" page to list all labels
+func RetrieveLabelsForList(ctx *context.Context) {
 	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), db.ListOptions{})
 	if err != nil {
-		ctx.ServerError("RetrieveLabels.GetLabels", err)
+		ctx.ServerError("RetrieveLabelsForList.GetLabels", err)
 		return
 	}
 

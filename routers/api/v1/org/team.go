@@ -8,7 +8,6 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -23,6 +22,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	feed_service "code.gitea.io/gitea/services/feed"
 	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -240,7 +240,7 @@ func CreateTeam(ctx *context.APIContext) {
 		attachAdminTeamUnits(team)
 	}
 
-	if err := models.NewTeam(ctx, team); err != nil {
+	if err := org_service.NewTeam(ctx, team); err != nil {
 		if organization.IsErrTeamAlreadyExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
@@ -363,7 +363,7 @@ func DeleteTeam(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := models.DeleteTeam(ctx, ctx.Org.Team); err != nil {
+	if err := org_service.DeleteTeam(ctx, ctx.Org.Team); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteTeam", err)
 		return
 	}
@@ -497,7 +497,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if err := models.AddTeamMember(ctx, ctx.Org.Team, u); err != nil {
+	if err := org_service.AddTeamMember(ctx, ctx.Org.Team, u); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Error(http.StatusForbidden, "AddTeamMember", err)
 		} else {
@@ -538,7 +538,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.RemoveTeamMember(ctx, ctx.Org.Team, u); err != nil {
+	if err := org_service.RemoveTeamMember(ctx, ctx.Org.Team, u); err != nil {
 		ctx.Error(http.StatusInternalServerError, "RemoveTeamMember", err)
 		return
 	}
@@ -701,7 +701,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
-	if err := org_service.TeamAddRepository(ctx, ctx.Org.Team, repo); err != nil {
+	if err := repo_service.TeamAddRepository(ctx, ctx.Org.Team, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "TeamAddRepository", err)
 		return
 	}
@@ -884,7 +884,7 @@ func ListTeamActivityFeeds(ctx *context.APIContext) {
 		ListOptions:    listOptions,
 	}
 
-	feeds, count, err := activities_model.GetFeeds(ctx, opts)
+	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetFeeds", err)
 		return

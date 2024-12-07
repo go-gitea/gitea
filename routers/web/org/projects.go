@@ -103,9 +103,9 @@ func Projects(ctx *context.Context) {
 	} else {
 		ctx.Data["State"] = "open"
 	}
-
+	renderUtils := templates.NewRenderUtils(ctx)
 	for _, project := range projects {
-		project.RenderedContent = templates.RenderMarkdownToHtml(ctx, project.Description)
+		project.RenderedContent = renderUtils.MarkdownToHtml(project.Description)
 	}
 
 	err = shared_user.LoadHeaderCount(ctx)
@@ -435,7 +435,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["AssigneeID"] = assigneeID
 
-	project.RenderedContent = templates.RenderMarkdownToHtml(ctx, project.Description)
+	project.RenderedContent = templates.NewRenderUtils(ctx).MarkdownToHtml(project.Description)
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)

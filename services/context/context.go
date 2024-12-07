@@ -65,6 +65,9 @@ type Context struct {
 type TemplateContext map[string]any
 
 func init() {
+	web.RegisterResponseStatusProvider[*Base](func(req *http.Request) web_types.ResponseStatusProvider {
+		return req.Context().Value(BaseContextKey).(*Base)
+	})
 	web.RegisterResponseStatusProvider[*Context](func(req *http.Request) web_types.ResponseStatusProvider {
 		return req.Context().Value(WebContextKey).(*Context)
 	})
@@ -100,6 +103,7 @@ func NewTemplateContextForWeb(ctx *Context) TemplateContext {
 	tmplCtx := NewTemplateContext(ctx)
 	tmplCtx["Locale"] = ctx.Base.Locale
 	tmplCtx["AvatarUtils"] = templates.NewAvatarUtils(ctx)
+	tmplCtx["RenderUtils"] = templates.NewRenderUtils(ctx)
 	tmplCtx["RootData"] = ctx.Data
 	tmplCtx["Consts"] = map[string]any{
 		"RepoUnitTypeCode":            unit.TypeCode,
@@ -154,7 +158,9 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx := NewWebContext(base, rnd, session.GetContextSession(req))
 
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
-			ctx.Data["Context"] = ctx // TODO: use "ctx" in template and remove this
+			if setting.IsProd && !setting.IsInTesting {
+				ctx.Data["Context"] = ctx // TODO: use "ctx" in template and remove this
+			}
 			ctx.Data["CurrentURL"] = setting.AppSubURL + req.URL.RequestURI()
 			ctx.Data["Link"] = ctx.Link
 

@@ -195,3 +195,7 @@ export function initAreYouSure($) {
     });
   };
 }
+
+export function applyAreYouSure(selectorOrEl: string|Element|$, opts = {}) {
+  $(selectorOrEl).areYouSure(opts);
+}

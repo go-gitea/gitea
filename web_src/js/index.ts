@@ -25,17 +25,14 @@ import {initPdfViewer} from './render/pdf.ts';
 
 import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
 import {
-  initRepoIssueDue,
   initRepoIssueReferenceRepositorySearch,
-  initRepoIssueTimeTracking,
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
-  initRepoPullRequestReview, initRepoIssueSidebarList, initArchivedLabelHandler,
+  initRepoPullRequestReview, initRepoIssueSidebarList,
 } from './features/repo-issue.ts';
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
-import {initAdminEmails} from './features/admin/emails.ts';
 import {initAdminCommon} from './features/admin/common.ts';
 import {initRepoTemplateSearch} from './features/repo-template.ts';
 import {initRepoCodeView} from './features/repo-code.ts';
@@ -43,11 +40,6 @@ import {initSshKeyFormParser} from './features/sshkey-helper.ts';
 import {initUserSettings} from './features/user-settings.ts';
 import {initRepoActivityTopAuthorsChart, initRepoArchiveLinks} from './features/repo-common.ts';
 import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
-import {
-  initRepoSettingGitHook,
-  initRepoSettingsCollaboration,
-  initRepoSettingSearchTeamBox,
-} from './features/repo-settings.ts';
 import {initRepoDiffView} from './features/repo-diff.ts';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.ts';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
@@ -59,7 +51,7 @@ import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
 import {initCommonOrganization} from './features/common-organization.ts';
 import {initRepoWikiForm} from './features/repo-wiki.ts';
-import {initRepoCommentForm, initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
+import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCopyContent} from './features/copycontent.ts';
 import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
@@ -89,9 +81,12 @@ import {
   initGlobalButtonClickOnEnter,
   initGlobalButtons,
   initGlobalDeleteButton,
-  initGlobalShowModal,
 } from './features/common-button.ts';
-import {initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
+import {
+  initGlobalComboMarkdownEditor,
+  initGlobalEnterQuickSubmit,
+  initGlobalFormDirtyLeaveConfirm,
+} from './features/common-form.ts';
 
 initGiteaFomantic();
 initDirAuto();
@@ -128,7 +123,6 @@ onDomReady(() => {
   callInitFunctions([
     initGlobalDropdown,
     initGlobalTabularMenu,
-    initGlobalShowModal,
     initGlobalFetchAction,
     initGlobalTooltips,
     initGlobalButtonClickOnEnter,
@@ -136,6 +130,7 @@ onDomReady(() => {
     initGlobalCopyToClipboardListener,
     initGlobalEnterQuickSubmit,
     initGlobalFormDirtyLeaveConfirm,
+    initGlobalComboMarkdownEditor,
     initGlobalDeleteButton,
 
     initCommonOrganization,
@@ -163,7 +158,6 @@ onDomReady(() => {
     initCopyContent,
 
     initAdminCommon,
-    initAdminEmails,
     initAdminUserListSearchForm,
     initAdminConfigs,
     initAdminSelfCheck,
@@ -180,19 +174,15 @@ onDomReady(() => {
     initRepoArchiveLinks,
     initRepoBranchButton,
     initRepoCodeView,
-    initRepoCommentForm,
     initBranchSelectorTabs,
     initRepoEllipsisButton,
     initRepoDiffCommitBranchesAndTags,
     initRepoEditor,
     initRepoGraphGit,
     initRepoIssueContentHistory,
-    initRepoIssueDue,
     initRepoIssueList,
     initRepoIssueSidebarList,
-    initArchivedLabelHandler,
     initRepoIssueReferenceRepositorySearch,
-    initRepoIssueTimeTracking,
     initRepoIssueWipTitle,
     initRepoMigration,
     initRepoMigrationStatusChecker,
@@ -202,9 +192,6 @@ onDomReady(() => {
     initRepoPullRequestReview,
     initRepoRelease,
     initRepoReleaseNew,
-    initRepoSettingGitHook,
-    initRepoSettingSearchTeamBox,
-    initRepoSettingsCollaboration,
     initRepoTemplateSearch,
     initRepoTopicBar,
     initRepoWikiForm,

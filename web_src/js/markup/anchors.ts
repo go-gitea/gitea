@@ -1,11 +1,11 @@
 import {svg} from '../svg.ts';
 
-const addPrefix = (str) => `user-content-${str}`;
-const removePrefix = (str) => str.replace(/^user-content-/, '');
-const hasPrefix = (str) => str.startsWith('user-content-');
+const addPrefix = (str: string): string => `user-content-${str}`;
+const removePrefix = (str: string): string => str.replace(/^user-content-/, '');
+const hasPrefix = (str: string): boolean => str.startsWith('user-content-');
 
 // scroll to anchor while respecting the `user-content` prefix that exists on the target
-function scrollToAnchor(encodedId) {
+function scrollToAnchor(encodedId: string): void {
   if (!encodedId) return;
   const id = decodeURIComponent(encodedId);
   const prefixedId = addPrefix(id);
@@ -24,7 +24,7 @@ function scrollToAnchor(encodedId) {
   el?.scrollIntoView();
 }
 
-export function initMarkupAnchors() {
+export function initMarkupAnchors(): void {
   const markupEls = document.querySelectorAll('.markup');
   if (!markupEls.length) return;
 
@@ -39,7 +39,7 @@ export function initMarkupAnchors() {
     }
 
     // remove `user-content-` prefix from links so they don't show in url bar when clicked
-    for (const a of markupEl.querySelectorAll('a[href^="#"]')) {
+    for (const a of markupEl.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
       const href = a.getAttribute('href');
       if (!href.startsWith('#user-content-')) continue;
       a.setAttribute('href', `#${removePrefix(href.substring(1))}`);
@@ -47,15 +47,15 @@ export function initMarkupAnchors() {
 
     // add `user-content-` prefix to user-generated `a[name]` link targets
     // TODO: this prefix should be added in backend instead
-    for (const a of markupEl.querySelectorAll('a[name]')) {
+    for (const a of markupEl.querySelectorAll<HTMLAnchorElement>('a[name]')) {
       const name = a.getAttribute('name');
       if (!name) continue;
-      a.setAttribute('name', addPrefix(a.name));
+      a.setAttribute('name', addPrefix(name));
     }
 
-    for (const a of markupEl.querySelectorAll('a[href^="#"]')) {
+    for (const a of markupEl.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
       a.addEventListener('click', (e) => {
-        scrollToAnchor(e.currentTarget.getAttribute('href')?.substring(1));
+        scrollToAnchor((e.currentTarget as HTMLAnchorElement).getAttribute('href')?.substring(1));
       });
     }
   }

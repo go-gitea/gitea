@@ -21,7 +21,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/perm"
+	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -77,7 +77,7 @@ func CheckAcceptMediaType(ctx *context.Context) {
 	}
 }
 
-var rangeHeaderRegexp = regexp.MustCompile(`bytes=(\d+)\-(\d*).*`)
+var rangeHeaderRegexp = regexp.MustCompile(`bytes=(\d+)-(\d*).*`)
 
 // DownloadHandler gets the content from the content store
 func DownloadHandler(ctx *context.Context) {
@@ -507,11 +507,11 @@ func writeStatusMessage(ctx *context.Context, status int, message string) {
 }
 
 // authenticate uses the authorization string to determine whether
-// or not to proceed. This server assumes an HTTP Basic auth format.
+// to proceed. This server assumes an HTTP Basic auth format.
 func authenticate(ctx *context.Context, repository *repo_model.Repository, authorization string, requireSigned, requireWrite bool) bool {
-	accessMode := perm.AccessModeRead
+	accessMode := perm_model.AccessModeRead
 	if requireWrite {
-		accessMode = perm.AccessModeWrite
+		accessMode = perm_model.AccessModeWrite
 	}
 
 	if ctx.Data["IsActionsToken"] == true {
@@ -526,9 +526,9 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		}
 
 		if task.IsForkPullRequest {
-			return accessMode <= perm.AccessModeRead
+			return accessMode <= perm_model.AccessModeRead
 		}
-		return accessMode <= perm.AccessModeWrite
+		return accessMode <= perm_model.AccessModeWrite
 	}
 
 	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
@@ -553,7 +553,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	return true
 }
 
-func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
+func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repository, mode perm_model.AccessMode) (*user_model.User, error) {
 	if !strings.Contains(tokenSHA, ".") {
 		return nil, nil
 	}
@@ -576,7 +576,7 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
-	if mode == perm.AccessModeWrite && claims.Op != "upload" {
+	if mode == perm_model.AccessModeWrite && claims.Op != "upload" {
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
@@ -588,7 +588,7 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 	return u, nil
 }
 
-func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
+func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Repository, mode perm_model.AccessMode) (*user_model.User, error) {
 	if authorization == "" {
 		return nil, fmt.Errorf("no token")
 	}
@@ -608,6 +608,6 @@ func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Rep
 }
 
 func requireAuth(ctx *context.Context) {
-	ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
+	ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="gitea-lfs"`)
 	writeStatus(ctx, http.StatusUnauthorized)
 }

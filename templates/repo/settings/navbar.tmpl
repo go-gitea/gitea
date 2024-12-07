@@ -12,7 +12,7 @@
 				{{ctx.Locale.Tr "repo.settings.hooks"}}
 			</a>
 		{{end}}
-		{{if .Repository.UnitEnabled $.Context ctx.Consts.RepoUnitTypeCode}}
+		{{if .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeCode}}
 			<a class="{{if .PageIsSettingsBranches}}active {{end}}item" href="{{.RepoLink}}/settings/branches">
 				{{ctx.Locale.Tr "repo.settings.branches"}}
 			</a>
