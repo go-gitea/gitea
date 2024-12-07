@@ -35,10 +35,17 @@ type ActionRunJob struct {
 	RunsOn            []string `xorm:"JSON TEXT"`
 	TaskID            int64    // the latest task of the job
 	Status            Status   `xorm:"index"`
-	Started           timeutil.TimeStamp
-	Stopped           timeutil.TimeStamp
-	Created           timeutil.TimeStamp `xorm:"created"`
-	Updated           timeutil.TimeStamp `xorm:"updated index"`
+
+	RawConcurrencyGroup    string // raw concurrency.group
+	RawConcurrencyCancel   string // raw concurrency.cancel-in-progress
+	IsConcurrencyEvaluated bool   // whether RawConcurrencyGroup have been evaluated, only valid when RawConcurrencyGroup is not empty
+	ConcurrencyGroup       string `xorm:"index"` // evaluated concurrency.group
+	ConcurrencyCancel      bool   // evaluated concurrency.cancel-in-progress
+
+	Started timeutil.TimeStamp
+	Stopped timeutil.TimeStamp
+	Created timeutil.TimeStamp `xorm:"created"`
+	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
 func init() {
@@ -196,4 +203,93 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 	default:
 		return StatusUnknown // it shouldn't happen
 	}
+}
+
+func ShouldBlockJobByConcurrency(ctx context.Context, job *ActionRunJob) (bool, error) {
+	if job.RawConcurrencyGroup == "" {
+		return false, nil
+	}
+	if !job.IsConcurrencyEvaluated {
+		return false, ErrUnevaluatedConcurrency{
+			Group:            job.RawConcurrencyGroup,
+			CancelInProgress: job.RawConcurrencyCancel,
+		}
+	}
+	if job.ConcurrencyGroup == "" || job.ConcurrencyCancel {
+		return false, nil
+	}
+
+	concurrentJobsNum, err := db.Count[ActionRunJob](ctx, FindRunJobOptions{
+		RepoID:           job.RepoID,
+		ConcurrencyGroup: job.ConcurrencyGroup,
+		Statuses:         []Status{StatusRunning, StatusWaiting},
+	})
+	if err != nil {
+		return false, fmt.Errorf("count running and waiting jobs: %w", err)
+	}
+	if concurrentJobsNum > 0 {
+		return true, nil
+	}
+
+	if err := job.LoadRun(ctx); err != nil {
+		return false, fmt.Errorf("load run: %w", err)
+	}
+
+	return ShouldBlockRunByConcurrency(ctx, job.Run)
+}
+
+func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) ([]*ActionRunJob, error) {
+	var cancelledJobs []*ActionRunJob
+
+	if job.RawConcurrencyGroup != "" {
+		if !job.IsConcurrencyEvaluated {
+			return cancelledJobs, ErrUnevaluatedConcurrency{
+				Group:            job.RawConcurrencyGroup,
+				CancelInProgress: job.RawConcurrencyCancel,
+			}
+		}
+		if job.ConcurrencyGroup != "" && job.ConcurrencyCancel {
+			// cancel previous jobs in the same concurrency group
+			previousJobs, err := db.Find[ActionRunJob](ctx, &FindRunJobOptions{
+				RepoID:           job.RepoID,
+				ConcurrencyGroup: job.ConcurrencyGroup,
+				Statuses:         []Status{StatusRunning, StatusWaiting, StatusBlocked},
+			})
+			if err != nil {
+				return cancelledJobs, fmt.Errorf("find previous jobs: %w", err)
+			}
+			previousJobs = slices.DeleteFunc(previousJobs, func(j *ActionRunJob) bool { return j.ID == job.ID })
+			cjs, err := CancelJobs(ctx, previousJobs)
+			if err != nil {
+				return cancelledJobs, fmt.Errorf("cancel previous jobs: %w", err)
+			}
+			cancelledJobs = append(cancelledJobs, cjs...)
+		}
+	}
+
+	if err := job.LoadRun(ctx); err != nil {
+		return cancelledJobs, fmt.Errorf("load run: %w", err)
+	}
+
+	cancelledJobsByRun, err := CancelPreviousJobsByRunConcurrency(ctx, job.Run)
+	if err != nil {
+		return cancelledJobs, fmt.Errorf("cancel runs: %w", err)
+	}
+	cancelledJobs = append(cancelledJobs, cancelledJobsByRun...)
+
+	return cancelledJobs, nil
+}
+
+type ErrUnevaluatedConcurrency struct {
+	Group            string
+	CancelInProgress string
+}
+
+func IsErrUnevaluatedConcurrency(err error) bool {
+	_, ok := err.(ErrUnevaluatedConcurrency)
+	return ok
+}
+
+func (err ErrUnevaluatedConcurrency) Error() string {
+	return fmt.Sprintf("the raw concurrency [group=%s, cancel-in-progress=%s] is not evaluated", err.Group, err.CancelInProgress)
 }

@@ -69,12 +69,13 @@ func (jobs ActionJobList) LoadAttributes(ctx context.Context, withRepo bool) err
 
 type FindRunJobOptions struct {
 	db.ListOptions
-	RunID         int64
-	RepoID        int64
-	OwnerID       int64
-	CommitSHA     string
-	Statuses      []Status
-	UpdatedBefore timeutil.TimeStamp
+	RunID            int64
+	RepoID           int64
+	OwnerID          int64
+	CommitSHA        string
+	Statuses         []Status
+	UpdatedBefore    timeutil.TimeStamp
+	ConcurrencyGroup string
 }
 
 func (opts FindRunJobOptions) ToConds() builder.Cond {
@@ -96,6 +97,9 @@ func (opts FindRunJobOptions) ToConds() builder.Cond {
 	}
 	if opts.UpdatedBefore > 0 {
 		cond = cond.And(builder.Lt{"updated": opts.UpdatedBefore})
+	}
+	if opts.ConcurrencyGroup != "" {
+		cond = cond.And(builder.Eq{"concurrency_group": opts.ConcurrencyGroup})
 	}
 	return cond
 }

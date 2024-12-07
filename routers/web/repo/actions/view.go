@@ -447,8 +447,37 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 	job.Started = 0
 	job.Stopped = 0
 
+	job.ConcurrencyGroup = ""
+	job.ConcurrencyCancel = false
+	job.IsConcurrencyEvaluated = false
+	if err := job.LoadRun(ctx); err != nil {
+		return err
+	}
+	vars, err := actions_model.GetVariablesOfRun(ctx, job.Run)
+	if err != nil {
+		return fmt.Errorf("get run %d variables: %w", job.Run.ID, err)
+	}
+	if job.RawConcurrencyGroup != "" && job.Status != actions_model.StatusBlocked {
+		var err error
+		job.ConcurrencyGroup, job.ConcurrencyCancel, err = actions_service.EvaluateJobConcurrency(ctx, job.Run, job, vars, nil)
+		if err != nil {
+			return fmt.Errorf("evaluate job concurrency: %w", err)
+		}
+		job.IsConcurrencyEvaluated = true
+		blockByConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, job)
+		if err != nil {
+			return err
+		}
+		if blockByConcurrency {
+			job.Status = actions_model.StatusBlocked
+		} else if err := actions_service.CancelJobsByJobConcurrency(ctx, job); err != nil {
+			return fmt.Errorf("cancel jobs: %w", err)
+		}
+	}
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
+		updateCols := []string{"task_id", "status", "started", "stopped", "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated"}
+		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, updateCols...)
 		return err
 	}); err != nil {
 		return err
@@ -550,7 +579,17 @@ func Approve(ctx *context_module.Context) {
 			return err
 		}
 		for _, job := range jobs {
-			if len(job.Needs) == 0 && job.Status.IsBlocked() {
+			blockJobByConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, job)
+			if err != nil {
+				if actions_model.IsErrUnevaluatedConcurrency(err) {
+					continue
+				}
+				return err
+			}
+			if len(job.Needs) == 0 && job.Status.IsBlocked() && !blockJobByConcurrency {
+				if err := actions_service.CancelJobsByJobConcurrency(ctx, job); err != nil {
+					return fmt.Errorf("cancel jobs: %w", err)
+				}
 				job.Status = actions_model.StatusWaiting
 				n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
 				if err != nil {
