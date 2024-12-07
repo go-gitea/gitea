@@ -1,3 +1,10 @@
+{{/* TODO: RemoveIssueRef: the Issue.Ref will be removed in 1.24 or 1.25 if no end user really uses it.
+The Issue.Ref was added by Add possibility to record branch or tag information in an issue (#780)
+After 8 years, this "branch selector" does nothing more than saving the branch/tag name into database and displays it.
+So there is a plan to remove it:
+* Only hide it from the UI in 1.23, and collect feedbacks.
+* If nobody complains and explains how to use it, remove code and drop database column in next release.
+*/}}
 {{if and (not .Issue.IsPull) (not .PageIsComparePull)}}
 <input id="ref_selector" name="ref" type="hidden" value="{{.Reference}}">
 <div class="ui dropdown select-branch branch-selector-dropdown ellipsis-items-nowrap {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}}"
