@@ -27,7 +27,6 @@
     "noPropertyAccessFromIndexSignature": false,
     "exactOptionalPropertyTypes": false,
     "sourceMap": true,
-    "tsBuildInfoFile": "./node_modules/.cache/tsbuild",
     "types": [
       "vitest/globals",
       "./web_src/js/globals.d.ts",
