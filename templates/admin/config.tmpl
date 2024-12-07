@@ -269,6 +269,18 @@
 					<dd>{{.IncomingMail.Mailbox}}</dd>
 					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_maximum_message_size"}}</dt>
 					<dd>{{.IncomingMail.MaximumMessageSize}}</dd>
+					<div class="divider"></div>
+					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_test"}}</dt>
+					<dd class="tw-py-0">
+						<form class="ui form" action="#" method="post">
+							{{.CsrfTokenHtml}}
+							<button class="ui tiny primary button" data-tooltip-placement="top" data-tooltip-content={{ctx.Locale.Tr "admin.config.incoming_mail_description"}} data-tooltip-follow-cursor="horizontal">
+								{{ctx.Locale.Tr "admin.config.incoming_mail_test_btn"}}
+							</button>
+						</form>
+					</dd>
+					<dt class="tw-py-1 tw-flex tw-items-center">{{ctx.Locale.Tr "admin.config.incoming_mail_result"}}</dt>
+					<dd><pre class="tw-m-0">{{ctx.Locale.Tr "admin.config.incoming_mail_result"}}</pre></dd>
 				{{end}}
 			</dl>
 		</div>
