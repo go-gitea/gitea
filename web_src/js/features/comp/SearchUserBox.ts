@@ -10,10 +10,11 @@ export function initCompSearchUserBox() {
 
   const allowEmailInput = searchUserBox.getAttribute('data-allow-email') === 'true';
   const allowEmailDescription = searchUserBox.getAttribute('data-allow-email-description') ?? undefined;
+  const includeOrgs = searchUserBox.getAttribute('data-include-orgs') === 'true';
   fomanticQuery(searchUserBox).search({
     minCharacters: 2,
     apiSettings: {
-      url: `${appSubUrl}/user/search_candidates?q={query}`,
+      url: `${appSubUrl}/user/search_candidates?q={query}&orgs=${includeOrgs}`,
       onResponse(response) {
         const resultItems = [];
         const searchQuery = searchUserBox.querySelector('input').value;
