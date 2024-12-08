@@ -9,6 +9,9 @@ import {
   PointElement,
   LineElement,
   Filler,
+  type ChartOptions,
+  type ChartData,
+  type Plugin,
 } from 'chart.js';
 import {GET} from '../modules/fetch.ts';
 import zoomPlugin from 'chartjs-plugin-zoom';
@@ -22,8 +25,9 @@ import {chartJsColors} from '../utils/color.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import type {Entries} from 'type-fest';
 
-const customEventListener = {
+const customEventListener: Plugin = {
   id: 'customEventListener',
   afterEvent: (chart, args, opts) => {
     // event will be replayed from chart.update when reset zoom,
@@ -65,10 +69,10 @@ export default {
   data: () => ({
     isLoading: false,
     errorText: '',
-    totalStats: {},
-    sortedContributors: {},
+    totalStats: {} as Record<string, any>,
+    sortedContributors: {} as Record<string, any>,
     type: 'commits',
-    contributorsStats: [],
+    contributorsStats: {} as Record<string, any>,
     xAxisStart: null,
     xAxisEnd: null,
     xAxisMin: null,
@@ -99,7 +103,7 @@ export default {
     async fetchGraphData() {
       this.isLoading = true;
       try {
-        let response;
+        let response: Response;
         do {
           response = await GET(`${this.repoLink}/activity/contributors/data`);
           if (response.status === 202) {
@@ -112,7 +116,7 @@ export default {
           // below line might be deleted if we are sure go produces map always sorted by keys
           total.weeks = Object.fromEntries(Object.entries(total.weeks).sort());
 
-          const weekValues = Object.values(total.weeks);
+          const weekValues = Object.values(total.weeks) as any;
           this.xAxisStart = weekValues[0].week;
           this.xAxisEnd = firstStartDateAfterDate(new Date());
           const startDays = startDaysBetween(this.xAxisStart, this.xAxisEnd);
@@ -120,7 +124,7 @@ export default {
           this.xAxisMin = this.xAxisStart;
           this.xAxisMax = this.xAxisEnd;
           this.contributorsStats = {};
-          for (const [email, user] of Object.entries(rest)) {
+          for (const [email, user] of Object.entries(rest) as Entries<Record<string, Record<string, any>>>) {
             user.weeks = fillEmptyStartDaysWithZeroes(startDays, user.weeks);
             this.contributorsStats[email] = user;
           }
@@ -146,7 +150,7 @@ export default {
         user.total_additions = 0;
         user.total_deletions = 0;
         user.max_contribution_type = 0;
-        const filteredWeeks = user.weeks.filter((week) => {
+        const filteredWeeks = user.weeks.filter((week: Record<string, number>) => {
           const oneWeek = 7 * 24 * 60 * 60 * 1000;
           if (week.week >= this.xAxisMin - oneWeek && week.week <= this.xAxisMax + oneWeek) {
             user.total_commits += week.commits;
@@ -195,7 +199,7 @@ export default {
       return (1 - (coefficient % 1)) * 10 ** exp + maxValue;
     },
 
-    toGraphData(data) {
+    toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
       return {
         datasets: [
           {
@@ -211,9 +215,9 @@ export default {
       };
     },
 
-    updateOtherCharts(event, reset) {
-      const minVal = event.chart.options.scales.x.min;
-      const maxVal = event.chart.options.scales.x.max;
+    updateOtherCharts({chart}: {chart: Chart}, reset?: boolean = false) {
+      const minVal = chart.options.scales.x.min;
+      const maxVal = chart.options.scales.x.max;
       if (reset) {
         this.xAxisMin = this.xAxisStart;
         this.xAxisMax = this.xAxisEnd;
@@ -225,7 +229,7 @@ export default {
       }
     },
 
-    getOptions(type) {
+    getOptions(type: string): ChartOptions<'line'> {
       return {
         responsive: true,
         maintainAspectRatio: false,
@@ -238,6 +242,7 @@ export default {
             position: 'top',
             align: 'center',
           },
+          // @ts-expect-error: bug in chart.js types
           customEventListener: {
             chartType: type,
             instance: this,
