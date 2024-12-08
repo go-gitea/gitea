@@ -24,7 +24,7 @@
   border-top: 1px solid var(--color-secondary); /* same to .flex-list > .flex-item + .flex-item */
 }
 
-@media (max-width: 767.98px) {
+@media (max-width: 872px) { /* value is exactly where the file table starts to overflow */
   .repo-grid-filelist-sidebar {
     grid-template-columns: 100%;
     grid-template-rows: auto auto auto;
