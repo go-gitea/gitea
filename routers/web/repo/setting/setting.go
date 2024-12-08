@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer/code"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -904,6 +905,9 @@ func SettingsPost(ctx *context.Context) {
 		if err := actions_model.CleanRepoScheduleTasks(ctx, repo); err != nil {
 			log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 		}
+
+		// update issue indexer
+		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 
