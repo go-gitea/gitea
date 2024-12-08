@@ -41,8 +41,10 @@ const baseOptions: MonacoOpts = {
 };
 
 function getEditorconfig(input: HTMLInputElement): EditorConfig | null {
+  const json = input.getAttribute('data-editorconfig');
+  if (!json) return null;
   try {
-    return JSON.parse(input.getAttribute('data-editorconfig') ?? '');
+    return JSON.parse(json);
   } catch {
     return null;
   }
