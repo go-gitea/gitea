@@ -1,0 +1,8 @@
+{{if gt .IncomingMailResult.Time 0}}
+<pre class="tw-m-0">
+{
+	"time": {{.IncomingMailResult.Time}},
+	"result": {{.IncomingMailResult.Result}}
+}
+</pre>
+{{end}}
