@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
@@ -26,9 +27,15 @@ import (
 )
 
 const (
-	tplConfig         base.TplName = "admin/config"
-	tplConfigSettings base.TplName = "admin/config_settings"
+	tplConfig                       base.TplName = "admin/config"
+	tplConfigIncomingMailTestResult base.TplName = "admin/config_incoming_mail_test_result"
+	tplConfigSettings               base.TplName = "admin/config_settings"
 )
+
+var incomingMailResult struct {
+	Time   int64
+	Result string
+}
 
 // SendTestMail send test mail to confirm mail service is OK
 func SendTestMail(ctx *context.Context) {
@@ -41,6 +48,21 @@ func SendTestMail(ctx *context.Context) {
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/-/admin/config")
+}
+
+// TestIncomingMail ...
+func TestIncomingMail(ctx *context.Context) {
+	log.Trace("call TestIncomingMail")
+	incomingMailResult.Time = time.Now().Unix()
+	incomingMailResult.Result = "ok"
+	ctx.Redirect(setting.AppSubURL + "/-/admin/config")
+}
+
+// IncomingMail ...
+func IncomingMail(ctx *context.Context) {
+	log.Trace("call IncomingMail")
+	ctx.Data["IncomingMailResult"] = incomingMailResult
+	ctx.HTML(http.StatusOK, tplConfigIncomingMailTestResult)
 }
 
 // TestCache test the cache settings
@@ -157,6 +179,7 @@ func Config(ctx *context.Context) {
 		ctx.Data["IncomingMailEnabled"] = true
 	}
 	ctx.Data["IncomingMail"] = setting.IncomingEmail
+	ctx.Data["IncomingMailResult"] = incomingMailResult
 
 	ctx.Data["CacheAdapter"] = setting.CacheService.Adapter
 	ctx.Data["CacheInterval"] = setting.CacheService.Interval

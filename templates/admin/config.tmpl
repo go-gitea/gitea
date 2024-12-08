@@ -231,7 +231,7 @@
 					<div class="divider"></div>
 					<dt class="tw-py-1 tw-flex tw-items-center">{{ctx.Locale.Tr "admin.config.send_test_mail"}}</dt>
 					<dd class="tw-py-0">
-						<form class="ui form ignore-dirty" action="{{AppSubUrl}}/-/admin/config/test_mail" method="post">
+						<form class="ui form ignore-dirty" action="{{AppSubUrl}}/-/admin/config/test/mail" method="post">
 							{{.CsrfTokenHtml}}
 							<div class="ui tiny input">
 								<input type="email" name="email" placeholder="{{ctx.Locale.Tr "admin.config.test_email_placeholder"}}" size="29" required>
@@ -272,7 +272,7 @@
 					<div class="divider"></div>
 					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_test"}}</dt>
 					<dd class="tw-py-0">
-						<form class="ui form" action="#" method="post">
+						<form class="ui form" action="{{AppSubUrl}}/-/admin/config/test/incoming-mail" method="post">
 							{{.CsrfTokenHtml}}
 							<button class="ui tiny primary button" data-tooltip-placement="top" data-tooltip-content={{ctx.Locale.Tr "admin.config.incoming_mail_description"}} data-tooltip-follow-cursor="horizontal">
 								{{ctx.Locale.Tr "admin.config.incoming_mail_test_btn"}}
@@ -280,7 +280,9 @@
 						</form>
 					</dd>
 					<dt class="tw-py-1 tw-flex tw-items-center">{{ctx.Locale.Tr "admin.config.incoming_mail_result"}}</dt>
-					<dd><pre class="tw-m-0">{{ctx.Locale.Tr "admin.config.incoming_mail_result"}}</pre></dd>
+					<dd hx-get="{{$.Link}}/test/incoming-mail" hx-swap="morph:innerHTML" hx-trigger="every 5s" hx-indicator=".no-loading-indicator">
+						{{template "admin/config_incoming_mail_test_result" .}}
+					</dd>
 				{{end}}
 			</dl>
 		</div>
@@ -305,7 +307,7 @@
 				<div class="divider"></div>
 				<dt class="tw-py-1 tw-flex tw-items-center">{{ctx.Locale.Tr "admin.config.cache_test"}}</dt>
 				<dd class="tw-py-0">
-					<form class="ui form ignore-dirty" action="{{AppSubUrl}}/-/admin/config/test_cache" method="post">
+					<form class="ui form ignore-dirty" action="{{AppSubUrl}}/-/admin/config/test/cache" method="post">
 						{{.CsrfTokenHtml}}
 						<button class="ui tiny primary button">{{ctx.Locale.Tr "test"}}</button>
 					</form>
