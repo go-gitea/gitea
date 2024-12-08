@@ -272,3 +272,8 @@ func IncrTeamRepoNum(ctx context.Context, teamID int64) error {
 	_, err := db.GetEngine(ctx).Incr("num_repos").ID(teamID).Update(new(Team))
 	return err
 }
+
+func UpdateTeam(ctx context.Context, t *Team, cols ...string) error {
+	_, err := db.GetEngine(ctx).ID(t.ID).Cols(cols...).Update(t)
+	return err
+}

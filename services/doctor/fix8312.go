@@ -10,7 +10,6 @@ import (
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/log"
-	org_service "code.gitea.io/gitea/services/org"
 
 	"xorm.io/builder"
 )
@@ -29,7 +28,7 @@ func fixOwnerTeamCreateOrgRepo(ctx context.Context, logger log.Logger, autofix b
 				return nil
 			}
 
-			return org_service.UpdateTeam(ctx, team, false, false)
+			return org_model.UpdateTeam(ctx, team, "can_create_org_repo")
 		},
 	)
 	if err != nil {
