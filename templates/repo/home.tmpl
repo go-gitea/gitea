@@ -102,7 +102,8 @@
 						{{end}}
 					</div>
 
-					<div class="repo-button-row-right">
+					{{/* by default, the row-right flex grows, but on non-root tree path, it should not because the row-left might contain a long path */}}
+					<div class="repo-button-row-right {{if not $isTreePathRoot}}tw-flex-grow-0{{end}}">
 						<!-- Only show clone panel in repository home page -->
 						{{if $isTreePathRoot}}
 							<div class="clone-panel ui action tiny input">
@@ -122,7 +123,6 @@
 								</button>
 								{{template "repo/clone_script" .}}{{/* the script will update `.js-clone-url` and related elements */}}
 							</div>
-							{{template "repo/cite/cite_modal" .}}
 						{{end}}
 						{{if and (not $isTreePathRoot) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home), TODO: split the templates, avoid using "if" tricks */}}
 							<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
