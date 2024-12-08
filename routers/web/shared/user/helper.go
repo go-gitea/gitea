@@ -30,7 +30,8 @@ func MakeSelfOnTop(doer *user.User, users []*user.User) []*user.User {
 // GetFilterUserIDByName tries to get the user ID from the given username.
 // Before, the "issue filter" passes user ID to query the list, but in many cases, it's impossible to pre-fetch the full user list.
 // So it's better to make it work like GitHub: users could input username directly.
-// Old usage: poster=123, new usage: poster=the-user-name (at the moment, non-existing username is treated as poster=0)
+// Since it only converts the username to ID directly and is only used internally (to search issues), so no permission check is needed.
+// Old usage: poster=123, new usage: poster=the-username (at the moment, non-existing username is treated as poster=0, not ideal but acceptable)
 func GetFilterUserIDByName(ctx context.Context, name string) int64 {
 	if name == "" {
 		return 0

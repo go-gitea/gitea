@@ -504,7 +504,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	if !util.SliceContainsString(types, viewType, true) {
 		viewType = "all"
 	}
-
+	// TODO: "assignee" should also use GetFilterUserIDByName in the future to support usernames directly
 	assigneeID := ctx.FormInt64("assignee")
 	posterUsername := ctx.FormString("poster")
 	posterUserID := shared_user.GetFilterUserIDByName(ctx, posterUsername)

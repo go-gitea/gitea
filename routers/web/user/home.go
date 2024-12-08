@@ -444,6 +444,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// In the future, we need something like github: "author:user1" to accept usernames directly.
 	posterUsername := ctx.FormString("poster")
 	opts.PosterID = user.GetFilterUserIDByName(ctx, posterUsername)
+	// TODO: "assignee" should also use GetFilterUserIDByName in the future to support usernames directly
 	opts.AssigneeID, _ = strconv.ParseInt(ctx.FormString("assignee"), 10, 64)
 
 	isFuzzy := ctx.FormBool("fuzzy")
@@ -583,9 +584,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			// because the doer may create issues or be mentioned in any public repo.
 			// So we need search issues in all public repos.
 			o.AllPublic = ctx.Doer.ID == ctxUser.ID
-			// TODO: to make it work with poster/assignee filter
+			// TODO: to make it work with poster/assignee filter, then these IDs should be kept
 			o.AssigneeID = nil
 			o.PosterID = nil
+
 			o.MentionID = nil
 			o.ReviewRequestedID = nil
 			o.ReviewedID = nil
