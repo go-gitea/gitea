@@ -102,3 +102,50 @@ func TestTemplateTruthy(t *testing.T) {
 	}
 	assert.True(t, truthyCount != 0 && truthyCount != len(cases))
 }
+
+func TestQueryBuild(t *testing.T) {
+	t.Run("construct", func(t *testing.T) {
+		assert.Equal(t, "", string(queryBuild()))
+		assert.Equal(t, "a=1&b=true", string(queryBuild("a", 1, "b", "true")))
+		assert.Equal(t, "?k=1", string(queryBuild("?", "k", 1)))
+		assert.Equal(t, "?a=b&k=1", string(queryBuild("?a=b", "k", 1)))
+		assert.Equal(t, "&k=1", string(queryBuild("&", "k", 1)))
+		assert.Equal(t, "&a=b&k=1", string(queryBuild("&a=b", "k", 1)))
+	})
+	t.Run("replace", func(t *testing.T) {
+		assert.Equal(t, "a=1&c=d&e=f", string(queryBuild(QueryString("a=b&c=d&e=f"), "a", 1)))
+		assert.Equal(t, "a=b&c=1&e=f", string(queryBuild(QueryString("a=b&c=d&e=f"), "c", 1)))
+		assert.Equal(t, "a=b&c=d&e=1", string(queryBuild(QueryString("a=b&c=d&e=f"), "e", 1)))
+		assert.Equal(t, "a=b&c=d&e=f&k=1", string(queryBuild(QueryString("a=b&c=d&e=f"), "k", 1)))
+	})
+	t.Run("replace-?", func(t *testing.T) {
+		assert.Equal(t, "?a=1&c=d&e=f", string(queryBuild(QueryString("?a=b&c=d&e=f"), "a", 1)))
+		assert.Equal(t, "?a=b&c=1&e=f", string(queryBuild(QueryString("?a=b&c=d&e=f"), "c", 1)))
+		assert.Equal(t, "?a=b&c=d&e=1", string(queryBuild(QueryString("?a=b&c=d&e=f"), "e", 1)))
+		assert.Equal(t, "?a=b&c=d&e=f&k=1", string(queryBuild(QueryString("?a=b&c=d&e=f"), "k", 1)))
+	})
+	t.Run("replace-&", func(t *testing.T) {
+		assert.Equal(t, "&a=1&c=d&e=f", string(queryBuild(QueryString("&a=b&c=d&e=f"), "a", 1)))
+		assert.Equal(t, "&a=b&c=1&e=f", string(queryBuild(QueryString("&a=b&c=d&e=f"), "c", 1)))
+		assert.Equal(t, "&a=b&c=d&e=1", string(queryBuild(QueryString("&a=b&c=d&e=f"), "e", 1)))
+		assert.Equal(t, "&a=b&c=d&e=f&k=1", string(queryBuild(QueryString("&a=b&c=d&e=f"), "k", 1)))
+	})
+	t.Run("delete", func(t *testing.T) {
+		assert.Equal(t, "c=d&e=f", string(queryBuild(QueryString("a=b&c=d&e=f"), "a", "")))
+		assert.Equal(t, "a=b&e=f", string(queryBuild(QueryString("a=b&c=d&e=f"), "c", "")))
+		assert.Equal(t, "a=b&c=d", string(queryBuild(QueryString("a=b&c=d&e=f"), "e", "")))
+		assert.Equal(t, "a=b&c=d&e=f", string(queryBuild(QueryString("a=b&c=d&e=f"), "k", "")))
+	})
+	t.Run("delete-?", func(t *testing.T) {
+		assert.Equal(t, "?c=d&e=f", string(queryBuild(QueryString("?a=b&c=d&e=f"), "a", "")))
+		assert.Equal(t, "?a=b&e=f", string(queryBuild(QueryString("?a=b&c=d&e=f"), "c", "")))
+		assert.Equal(t, "?a=b&c=d", string(queryBuild(QueryString("?a=b&c=d&e=f"), "e", "")))
+		assert.Equal(t, "?a=b&c=d&e=f", string(queryBuild(QueryString("?a=b&c=d&e=f"), "k", "")))
+	})
+	t.Run("delete-&", func(t *testing.T) {
+		assert.Equal(t, "&c=d&e=f", string(queryBuild(QueryString("&a=b&c=d&e=f"), "a", "")))
+		assert.Equal(t, "&a=b&e=f", string(queryBuild(QueryString("&a=b&c=d&e=f"), "c", "")))
+		assert.Equal(t, "&a=b&c=d", string(queryBuild(QueryString("&a=b&c=d&e=f"), "e", "")))
+		assert.Equal(t, "&a=b&c=d&e=f", string(queryBuild(QueryString("&a=b&c=d&e=f"), "k", "")))
+	})
+}
