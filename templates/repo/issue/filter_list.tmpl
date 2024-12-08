@@ -30,10 +30,11 @@
 		{{range .Labels}}
 			{{$exclusiveScope := .ExclusiveScope}}
 			{{if and (ne $previousExclusiveScope $exclusiveScope)}}
-				<div class="divider"></div>
+				<div class="divider" data-scope="{{.ExclusiveScope}}"></div>
 			{{end}}
 			{{$previousExclusiveScope = $exclusiveScope}}
-			<a class="item label-filter-item tw-flex tw-items-center" {{if .IsArchived}}data-is-archived{{end}} href="{{QueryBuild $queryLink "labels" .QueryString}}" data-label-id="{{.ID}}">
+			<a class="item label-filter-item tw-flex tw-items-center" data-label-id="{{.ID}}" data-scope="{{.ExclusiveScope}}" {{if .IsArchived}}data-is-archived{{end}}
+				href="{{QueryBuild $queryLink "labels" .QueryString}}">
 				{{if .IsExcluded}}
 					{{svg "octicon-circle-slash"}}
 				{{else if .IsSelected}}

@@ -22,7 +22,7 @@
 					{{range $data.RepoLabels}}
 						{{$exclusiveScope := .ExclusiveScope}}
 						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-							<div class="divider"></div>
+							<div class="divider" data-scope="{{.ExclusiveScope}}"></div>
 						{{end}}
 						{{$previousExclusiveScope = $exclusiveScope}}
 						{{template "repo/issue/sidebar/label_list_item" dict "Label" .}}
@@ -32,7 +32,7 @@
 					{{range $data.OrgLabels}}
 						{{$exclusiveScope := .ExclusiveScope}}
 						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-							<div class="divider"></div>
+							<div class="divider" data-scope="{{.ExclusiveScope}}"></div>
 						{{end}}
 						{{$previousExclusiveScope = $exclusiveScope}}
 						{{template "repo/issue/sidebar/label_list_item" dict "Label" .}}

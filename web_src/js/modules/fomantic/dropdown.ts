@@ -59,6 +59,12 @@ function updateSelectionLabel(label: HTMLElement) {
   }
 }
 
+function processMenuItems($dropdown, dropdownCall) {
+  const hideEmptyDividers = dropdownCall('setting', 'hideDividers') === 'empty';
+  const itemsMenu = $dropdown[0].querySelector('.scrolling.menu') || $dropdown[0].querySelector('.menu');
+  if (hideEmptyDividers) hideScopedEmptyDividers(itemsMenu);
+}
+
 // delegate the dropdown's template functions and callback functions to add aria attributes.
 function delegateOne($dropdown: any) {
   const dropdownCall = fomanticDropdownFn.bind($dropdown);
@@ -71,6 +77,18 @@ function delegateOne($dropdown: any) {
   dropdownCall('internal', 'focusSearch', function () { dropdownCall('show'); oldFocusSearch.call(this) });
   // * If the "dropdown icon" is clicked again when the menu is visible, Fomantic calls "blurSearch", so hide the menu
   dropdownCall('internal', 'blurSearch', function () { oldBlurSearch.call(this); dropdownCall('hide') });
+
+  const oldFilterItems = dropdownCall('internal', 'filterItems');
+  dropdownCall('internal', 'filterItems', function () {
+    oldFilterItems.call(this);
+    processMenuItems($dropdown, dropdownCall);
+  });
+
+  const oldShow = dropdownCall('internal', 'show');
+  dropdownCall('internal', 'show', function (...args) {
+    oldShow.call(this, ...args);
+    processMenuItems($dropdown, dropdownCall);
+  });
 
   // the "template" functions are used for dynamic creation (eg: AJAX)
   const dropdownTemplates = {...dropdownCall('setting', 'templates'), t: performance.now()};
@@ -270,4 +288,59 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
     }
     ignoreClickPreEvents = ignoreClickPreVisible = 0;
   }, true);
+}
+
+export function hideScopedEmptyDividers(container: Element) {
+  const visibleItems: Element[] = [];
+  const curScopeVisibleItems: Element[] = [];
+  let curScope = '', lastVisibleScope = '';
+  const isScopedDivider = (item: Element) => item.matches('.divider') && item.hasAttribute('data-scope');
+  const hideDivider = (item: Element) => item.classList.add('hidden', 'transition'); // dropdown has its own classes to hide items
+
+  const handleScopeSwitch = (itemScope: string) => {
+    if (curScopeVisibleItems.length === 1 && isScopedDivider(curScopeVisibleItems[0])) {
+      hideDivider(curScopeVisibleItems[0]);
+    } else if (curScopeVisibleItems.length) {
+      if (isScopedDivider(curScopeVisibleItems[0]) && lastVisibleScope === curScope) {
+        hideDivider(curScopeVisibleItems[0]);
+        curScopeVisibleItems.shift();
+      }
+      visibleItems.push(...curScopeVisibleItems);
+      lastVisibleScope = curScope;
+    }
+    curScope = itemScope;
+    curScopeVisibleItems.length = 0;
+  };
+
+  // hide the scope dividers if the scope items are empty
+  for (const item of container.children) {
+    const itemScope = item.getAttribute('data-scope') || '';
+    if (itemScope !== curScope) {
+      handleScopeSwitch(itemScope);
+    }
+    if (!item.classList.contains('filtered') && !item.classList.contains('tw-hidden')) {
+      curScopeVisibleItems.push(item as HTMLElement);
+    }
+  }
+  handleScopeSwitch('');
+
+  // hide all leading and trailing dividers
+  while (visibleItems.length) {
+    if (!visibleItems[0].matches('.divider')) break;
+    hideDivider(visibleItems[0]);
+    visibleItems.shift();
+  }
+  while (visibleItems.length) {
+    if (!visibleItems[visibleItems.length - 1].matches('.divider')) break;
+    hideDivider(visibleItems[visibleItems.length - 1]);
+    visibleItems.pop();
+  }
+  // hide all duplicate dividers
+  for (let i = 0; i < visibleItems.length; i++) {
+    const item = visibleItems[i];
+    if (!item.matches('.divider')) continue;
+    if (i === 0 || i === visibleItems.length - 1 || item.nextElementSibling?.matches('.divider')) {
+      hideDivider(item);
+    }
+  }
 }

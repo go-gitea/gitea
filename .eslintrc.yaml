@@ -818,7 +818,7 @@ rules:
   unicorn/consistent-destructuring: [2]
   unicorn/consistent-empty-array-spread: [2]
   unicorn/consistent-existence-index-check: [0]
-  unicorn/consistent-function-scoping: [2]
+  unicorn/consistent-function-scoping: [0]
   unicorn/custom-error-definition: [0]
   unicorn/empty-brace-spaces: [2]
   unicorn/error-message: [0]

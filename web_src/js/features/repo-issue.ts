@@ -8,6 +8,7 @@ import {parseIssuePageInfo, toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl} = window.config;
 
@@ -31,34 +32,35 @@ export function initRepoIssueSidebarList() {
   if (crossRepoSearch === 'true') {
     issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}`;
   }
-  $('#new-dependency-drop-list')
-    .dropdown({
-      apiSettings: {
-        url: issueSearchUrl,
-        onResponse(response) {
-          const filteredResponse = {success: true, results: []};
-          const currIssueId = $('#new-dependency-drop-list').data('issue-id');
-          // Parse the response from the api to work with our dropdown
-          $.each(response, (_i, issue) => {
-            // Don't list current issue in the dependency list.
-            if (issue.id === currIssueId) {
-              return;
-            }
-            filteredResponse.results.push({
-              name: `<div class="gt-ellipsis">#${issue.number} ${htmlEscape(issue.title)}</div>
+  fomanticQuery('#new-dependency-drop-list').dropdown({
+    fullTextSearch: true,
+    apiSettings: {
+      url: issueSearchUrl,
+      onResponse(response) {
+        const filteredResponse = {success: true, results: []};
+        const currIssueId = $('#new-dependency-drop-list').data('issue-id');
+        // Parse the response from the api to work with our dropdown
+        $.each(response, (_i, issue) => {
+          // Don't list current issue in the dependency list.
+          if (issue.id === currIssueId) {
+            return;
+          }
+          filteredResponse.results.push({
+            name: `<div class="gt-ellipsis">#${issue.number} ${htmlEscape(issue.title)}</div>
 <div class="text small tw-break-anywhere">${htmlEscape(issue.repository.full_name)}</div>`,
-              value: issue.id,
-            });
+            value: issue.id,
           });
-          return filteredResponse;
-        },
-        cache: false,
+        });
+        return filteredResponse;
       },
+      cache: false,
+    },
+  });
+}
 
-      fullTextSearch: true,
-    });
-
-  $('.menu a.label-filter-item').each(function () {
+export function initRepoIssueLabelFilter() {
+  // the "label-filter" is used in 2 templates: projects/view, issue/filter_list (issue list page including the milestone page)
+  $('.ui.dropdown.label-filter a.label-filter-item').each(function () {
     $(this).on('click', function (e) {
       if (e.altKey) {
         e.preventDefault();
@@ -66,11 +68,9 @@ export function initRepoIssueSidebarList() {
       }
     });
   });
-
-  // FIXME: it is wrong place to init ".ui.dropdown.label-filter"
-  $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
+  $('.ui.dropdown.label-filter').on('keydown', (e) => {
     if (e.altKey && e.key === 'Enter') {
-      const selectedItem = document.querySelector('.menu .ui.dropdown.label-filter .menu .item.selected');
+      const selectedItem = document.querySelector('.ui.dropdown.label-filter .menu .item.selected');
       if (selectedItem) {
         excludeLabel(selectedItem);
       }
