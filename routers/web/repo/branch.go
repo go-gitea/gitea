@@ -259,3 +259,20 @@ func CreateBranch(ctx *context.Context) {
 	ctx.Flash.Success(ctx.Tr("repo.branch.create_success", form.NewBranchName))
 	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(form.NewBranchName) + "/" + util.PathEscapeSegments(form.CurrentPath))
 }
+
+func MergeUpstream(ctx *context.Context) {
+	branchName := ctx.FormString("branch")
+	_, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, branchName)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.JSONError(ctx.Tr("error.not_found"))
+			return
+		} else if models.IsErrMergeConflicts(err) {
+			ctx.JSONError(ctx.Tr("repo.pulls.merge_conflict"))
+			return
+		}
+		ctx.ServerError("MergeUpstream", err)
+		return
+	}
+	ctx.JSONRedirect("")
+}

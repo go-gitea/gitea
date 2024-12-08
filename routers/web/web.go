@@ -1320,6 +1320,7 @@ func registerRoutes(m *web.Router) {
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
 			m.Post("/rename", web.Bind(forms.RenameBranchForm{}), repo_setting.RenameBranchPost)
+			m.Post("/merge-upstream", repo.MergeUpstream)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
 
 		m.Combo("/fork").Get(repo.Fork).Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
