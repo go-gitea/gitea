@@ -1800,7 +1800,7 @@ td .commit-summary {
 
 .repository .repository-summary .sub-menu .item {
   flex: 1;
-  height: 30px;
+  height: 33.6px; /* match search bar height */
   line-height: var(--line-height-default);
   display: flex;
   align-items: center;
