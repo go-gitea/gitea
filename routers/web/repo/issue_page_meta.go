@@ -441,4 +441,8 @@ func (d *IssuePageMetaData) retrieveLabelsData(ctx *context.Context) {
 	}
 	labelsData.AllLabels = append(labelsData.AllLabels, labelsData.RepoLabels...)
 	labelsData.AllLabels = append(labelsData.AllLabels, labelsData.OrgLabels...)
+
+	sort.Slice(labelsData.AllLabels, func(i, j int) bool {
+		return labelsData.AllLabels[i].Name < labelsData.AllLabels[j].Name
+	})
 }
