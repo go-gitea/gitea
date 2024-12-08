@@ -12,8 +12,8 @@ type MonacoOpts = IEditorOptions & IGlobalEditorOptions & ITextModelUpdateOption
 
 type EditorConfig = {
   indent_style?: 'tab' | 'space',
-  indent_size?: number,
-  tab_width?: number,
+  indent_size?: string | number, // backend emits this as string
+  tab_width?: string | number, // backend emits this as string
   end_of_line?: 'lf' | 'cr' | 'crlf',
   charset?: 'latin1' | 'utf-8' | 'utf-8-bom' | 'utf-16be' | 'utf-16le',
   trim_trailing_whitespace?: boolean,
@@ -215,9 +215,17 @@ function getEditorConfigOptions(ec: EditorConfig | null): MonacoOpts {
 
   const opts: MonacoOpts = {};
   opts.detectIndentation = !('indent_style' in ec) || !('indent_size' in ec);
-  if ('indent_size' in ec) opts.indentSize = Number(ec.indent_size);
-  if ('tab_width' in ec) opts.tabSize = Number(ec.tab_width) || (opts.indentSize as number);
-  if ('max_line_length' in ec) opts.rulers = [Number(ec.max_line_length)];
+
+  if ('indent_size' in ec) {
+    opts.indentSize = Number(ec.indent_size);
+  }
+  if ('tab_width' in ec) {
+    opts.tabSize = Number(ec.tab_width) || Number(ec.indent_size);
+  }
+  if ('max_line_length' in ec) {
+    opts.rulers = [Number(ec.max_line_length)];
+  }
+
   opts.trimAutoWhitespace = ec.trim_trailing_whitespace === true;
   opts.insertSpaces = ec.indent_style === 'space';
   opts.useTabStops = ec.indent_style === 'tab';
