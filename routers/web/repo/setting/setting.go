@@ -933,6 +933,9 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
+		// update issue indexer
+		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
 
 		log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
