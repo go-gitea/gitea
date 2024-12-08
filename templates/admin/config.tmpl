@@ -251,24 +251,6 @@
 				<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_enabled"}}</dt>
 				<dd>{{svg (Iif .IncomingMailEnabled "octicon-check" "octicon-x")}}</dd>
 				{{if .IncomingMailEnabled}}
-					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_reply_to_address"}}</dt>
-					<dd>{{.IncomingMail.ReplyToAddress}}</dd>
-					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_host"}}</dt>
-					<dd>{{.IncomingMail.Host}}</dd>
-					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_port"}}</dt>
-					<dd>{{.IncomingMail.Port}}</dd>
-					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_username"}}</dt>
-					<dd>{{.IncomingMail.Username}}</dd>
-					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_password"}}</dt>
-					<dd>{{if ne .IncomingMail.Password ""}}******{{end}}</dd>
-					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_use_tls"}}</dt>
-					<dd>{{svg (Iif .IncomingMail.UseTLS "octicon-check" "octicon-x")}}</dd>
-					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_skip_tls_verify"}}</dt>
-					<dd>{{svg (Iif .IncomingMail.SkipTLSVerify "octicon-check" "octicon-x")}}</dd>
-					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_mailbox"}}</dt>
-					<dd>{{.IncomingMail.Mailbox}}</dd>
-					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_maximum_message_size"}}</dt>
-					<dd>{{.IncomingMail.MaximumMessageSize}}</dd>
 					<div class="divider"></div>
 					<dt>{{ctx.Locale.Tr "admin.config.incoming_mail_test"}}</dt>
 					<dd class="tw-py-0">
