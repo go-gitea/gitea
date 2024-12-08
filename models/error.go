@@ -72,48 +72,6 @@ func (err ErrDeleteLastAdminUser) Error() string {
 	return fmt.Sprintf("can not delete the last admin user [uid: %d]", err.UID)
 }
 
-// ErrNoPendingRepoTransfer is an error type for repositories without a pending
-// transfer request
-type ErrNoPendingRepoTransfer struct {
-	RepoID int64
-}
-
-func (err ErrNoPendingRepoTransfer) Error() string {
-	return fmt.Sprintf("repository doesn't have a pending transfer [repo_id: %d]", err.RepoID)
-}
-
-// IsErrNoPendingTransfer is an error type when a repository has no pending
-// transfers
-func IsErrNoPendingTransfer(err error) bool {
-	_, ok := err.(ErrNoPendingRepoTransfer)
-	return ok
-}
-
-func (err ErrNoPendingRepoTransfer) Unwrap() error {
-	return util.ErrNotExist
-}
-
-// ErrRepoTransferInProgress represents the state of a repository that has an
-// ongoing transfer
-type ErrRepoTransferInProgress struct {
-	Uname string
-	Name  string
-}
-
-// IsErrRepoTransferInProgress checks if an error is a ErrRepoTransferInProgress.
-func IsErrRepoTransferInProgress(err error) bool {
-	_, ok := err.(ErrRepoTransferInProgress)
-	return ok
-}
-
-func (err ErrRepoTransferInProgress) Error() string {
-	return fmt.Sprintf("repository is already being transferred [uname: %s, name: %s]", err.Uname, err.Name)
-}
-
-func (err ErrRepoTransferInProgress) Unwrap() error {
-	return util.ErrAlreadyExist
-}
-
 // ErrInvalidCloneAddr represents a "InvalidCloneAddr" kind of error.
 type ErrInvalidCloneAddr struct {
 	Host               string

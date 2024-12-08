@@ -1,7 +1,7 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package models
+package repo
 
 import (
 	"context"
@@ -10,16 +10,58 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
 
+// ErrNoPendingRepoTransfer is an error type for repositories without a pending
+// transfer request
+type ErrNoPendingRepoTransfer struct {
+	RepoID int64
+}
+
+func (err ErrNoPendingRepoTransfer) Error() string {
+	return fmt.Sprintf("repository doesn't have a pending transfer [repo_id: %d]", err.RepoID)
+}
+
+// IsErrNoPendingTransfer is an error type when a repository has no pending
+// transfers
+func IsErrNoPendingTransfer(err error) bool {
+	_, ok := err.(ErrNoPendingRepoTransfer)
+	return ok
+}
+
+func (err ErrNoPendingRepoTransfer) Unwrap() error {
+	return util.ErrNotExist
+}
+
+// ErrRepoTransferInProgress represents the state of a repository that has an
+// ongoing transfer
+type ErrRepoTransferInProgress struct {
+	Uname string
+	Name  string
+}
+
+// IsErrRepoTransferInProgress checks if an error is a ErrRepoTransferInProgress.
+func IsErrRepoTransferInProgress(err error) bool {
+	_, ok := err.(ErrRepoTransferInProgress)
+	return ok
+}
+
+func (err ErrRepoTransferInProgress) Error() string {
+	return fmt.Sprintf("repository is already being transferred [uname: %s, name: %s]", err.Uname, err.Name)
+}
+
+func (err ErrRepoTransferInProgress) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // RepoTransfer is used to manage repository transfers
-type RepoTransfer struct {
+type RepoTransfer struct { //nolint
 	ID          int64 `xorm:"pk autoincr"`
 	DoerID      int64
 	Doer        *user_model.User `xorm:"-"`
@@ -126,7 +168,7 @@ func GetPendingRepositoryTransfers(ctx context.Context, opts *PendingRepositoryT
 
 // GetPendingRepositoryTransfer fetches the most recent and ongoing transfer
 // process for the repository
-func GetPendingRepositoryTransfer(ctx context.Context, repo *repo_model.Repository) (*RepoTransfer, error) {
+func GetPendingRepositoryTransfer(ctx context.Context, repo *Repository) (*RepoTransfer, error) {
 	transfers, err := GetPendingRepositoryTransfers(ctx, &PendingRepositoryTransferOptions{RepoID: repo.ID})
 	if err != nil {
 		return nil, err
@@ -145,11 +187,11 @@ func DeleteRepositoryTransfer(ctx context.Context, repoID int64) error {
 }
 
 // TestRepositoryReadyForTransfer make sure repo is ready to transfer
-func TestRepositoryReadyForTransfer(status repo_model.RepositoryStatus) error {
+func TestRepositoryReadyForTransfer(status RepositoryStatus) error {
 	switch status {
-	case repo_model.RepositoryBeingMigrated:
+	case RepositoryBeingMigrated:
 		return errors.New("repo is not ready, currently migrating")
-	case repo_model.RepositoryPendingTransfer:
+	case RepositoryPendingTransfer:
 		return ErrRepoTransferInProgress{}
 	}
 	return nil
@@ -159,7 +201,7 @@ func TestRepositoryReadyForTransfer(status repo_model.RepositoryStatus) error {
 // it marks the repository transfer as "pending"
 func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repoID int64, teams []*organization.Team) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+		repo, err := GetRepositoryByID(ctx, repoID)
 		if err != nil {
 			return err
 		}
@@ -169,16 +211,16 @@ func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_m
 			return err
 		}
 
-		repo.Status = repo_model.RepositoryPendingTransfer
-		if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+		repo.Status = RepositoryPendingTransfer
+		if err := UpdateRepositoryCols(ctx, repo, "status"); err != nil {
 			return err
 		}
 
 		// Check if new owner has repository with same name.
-		if has, err := repo_model.IsRepositoryModelExist(ctx, newOwner, repo.Name); err != nil {
+		if has, err := IsRepositoryModelExist(ctx, newOwner, repo.Name); err != nil {
 			return fmt.Errorf("IsRepositoryExist: %w", err)
 		} else if has {
-			return repo_model.ErrRepoAlreadyExist{
+			return ErrRepoAlreadyExist{
 				Uname: newOwner.LowerName,
 				Name:  repo.Name,
 			}

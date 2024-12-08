@@ -9,7 +9,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 
 	"xorm.io/builder"
@@ -98,11 +97,11 @@ func SearchTeam(ctx context.Context, opts *SearchTeamOptions) (TeamList, int64, 
 }
 
 // GetRepoTeams gets the list of teams that has access to the repository
-func GetRepoTeams(ctx context.Context, repo *repo_model.Repository) (teams TeamList, err error) {
+func GetRepoTeams(ctx context.Context, orgID, repoID int64) (teams TeamList, err error) {
 	return teams, db.GetEngine(ctx).
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
-		Where("team.org_id = ?", repo.OwnerID).
-		And("team_repo.repo_id=?", repo.ID).
+		Where("team.org_id = ?", orgID).
+		And("team_repo.repo_id=?", repoID).
 		OrderBy("CASE WHEN name LIKE '" + OwnerTeamName + "' THEN '' ELSE name END").
 		Find(&teams)
 }
