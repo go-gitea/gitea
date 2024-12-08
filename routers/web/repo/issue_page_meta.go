@@ -148,7 +148,7 @@ func (d *IssuePageMetaData) retrieveAssigneesDataForIssueWriter(ctx *context.Con
 		d.AssigneesData.SelectedAssigneeIDs = strings.Join(ids, ",")
 	}
 	// FIXME: this is a tricky part which writes ctx.Data["Mentionable*"]
-	handleTeamMentions(ctx)
+	handleMentionableAssigneesAndTeams(ctx, d.AssigneesData.CandidateAssignees)
 }
 
 func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Context) {
@@ -195,7 +195,9 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 	var reviews issues_model.ReviewList
 
 	if d.Issue == nil {
-		posterID = ctx.Doer.ID
+		if ctx.Doer != nil {
+			posterID = ctx.Doer.ID
+		}
 	} else {
 		posterID = d.Issue.PosterID
 		if d.Issue.OriginalAuthorID > 0 {

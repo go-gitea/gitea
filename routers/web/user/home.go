@@ -31,7 +31,9 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
+	"code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	feed_service "code.gitea.io/gitea/services/feed"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -375,16 +377,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		return
 	}
 
-	var (
-		viewType   string
-		sortType   = ctx.FormString("sort")
-		filterMode int
-	)
-
 	// Default to recently updated, unlike repository issues list
-	if sortType == "" {
-		sortType = "recentupdate"
-	}
+	sortType := util.IfZero(ctx.FormString("sort"), "recentupdate")
 
 	// --------------------------------------------------------------------------------
 	// Distinguish User from Organization.
@@ -399,7 +393,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// TODO: distinguish during routing
 
-	viewType = ctx.FormString("type")
+	viewType := ctx.FormString("type")
+	var filterMode int
 	switch viewType {
 	case "assigned":
 		filterMode = issues_model.FilterModeAssign
@@ -443,6 +438,14 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		Team:       team,
 		User:       ctx.Doer,
 	}
+	// Get filter by author id & assignee id
+	// FIXME: this feature doesn't work at the moment, because frontend can't use a "user-remote-search" dropdown directly
+	// the existing "/posters" handlers doesn't work for this case, it is unable to list the related users correctly.
+	// In the future, we need something like github: "author:user1" to accept usernames directly.
+	posterUsername := ctx.FormString("poster")
+	opts.PosterID = user.GetFilterUserIDByName(ctx, posterUsername)
+	// TODO: "assignee" should also use GetFilterUserIDByName in the future to support usernames directly
+	opts.AssigneeID, _ = strconv.ParseInt(ctx.FormString("assignee"), 10, 64)
 
 	isFuzzy := ctx.FormBool("fuzzy")
 
@@ -573,8 +576,22 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// -------------------------------
 	// Fill stats to post to ctx.Data.
 	// -------------------------------
-	issueStats, err := getUserIssueStats(ctx, ctxUser, filterMode, issue_indexer.ToSearchOptions(keyword, opts).Copy(
-		func(o *issue_indexer.SearchOptions) { o.IsFuzzyKeyword = isFuzzy },
+	issueStats, err := getUserIssueStats(ctx, filterMode, issue_indexer.ToSearchOptions(keyword, opts).Copy(
+		func(o *issue_indexer.SearchOptions) {
+			o.IsFuzzyKeyword = isFuzzy
+			// If the doer is the same as the context user, which means the doer is viewing his own dashboard,
+			// it's not enough to show the repos that the doer owns or has been explicitly granted access to,
+			// because the doer may create issues or be mentioned in any public repo.
+			// So we need search issues in all public repos.
+			o.AllPublic = ctx.Doer.ID == ctxUser.ID
+			// TODO: to make it work with poster/assignee filter, then these IDs should be kept
+			o.AssigneeID = nil
+			o.PosterID = nil
+
+			o.MentionID = nil
+			o.ReviewRequestedID = nil
+			o.ReviewedID = nil
+		},
 	))
 	if err != nil {
 		ctx.ServerError("getUserIssueStats", err)
@@ -630,6 +647,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["SelectLabels"] = selectedLabels
 	ctx.Data["IsFuzzy"] = isFuzzy
+	ctx.Data["SearchFilterPosterID"] = util.Iif[any](opts.PosterID != 0, opts.PosterID, nil)
+	ctx.Data["SearchFilterAssigneeID"] = util.Iif[any](opts.AssigneeID != 0, opts.AssigneeID, nil)
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -643,7 +662,11 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	pager.AddParamString("sort", sortType)
 	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
 	pager.AddParamString("labels", selectedLabels)
-	pager.AddParamString("fuzzy", fmt.Sprintf("%v", isFuzzy))
+	pager.AddParamString("fuzzy", fmt.Sprint(isFuzzy))
+	pager.AddParamString("poster", posterUsername)
+	if opts.AssigneeID != 0 {
+		pager.AddParamString("assignee", fmt.Sprint(opts.AssigneeID))
+	}
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplIssues)
@@ -768,26 +791,9 @@ func UsernameSubRoute(ctx *context.Context) {
 	}
 }
 
-func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMode int, opts *issue_indexer.SearchOptions) (*issues_model.IssueStats, error) {
+func getUserIssueStats(ctx *context.Context, filterMode int, opts *issue_indexer.SearchOptions) (ret *issues_model.IssueStats, err error) {
+	ret = &issues_model.IssueStats{}
 	doerID := ctx.Doer.ID
-
-	opts = opts.Copy(func(o *issue_indexer.SearchOptions) {
-		// If the doer is the same as the context user, which means the doer is viewing his own dashboard,
-		// it's not enough to show the repos that the doer owns or has been explicitly granted access to,
-		// because the doer may create issues or be mentioned in any public repo.
-		// So we need search issues in all public repos.
-		o.AllPublic = doerID == ctxUser.ID
-		o.AssigneeID = nil
-		o.PosterID = nil
-		o.MentionID = nil
-		o.ReviewRequestedID = nil
-		o.ReviewedID = nil
-	})
-
-	var (
-		err error
-		ret = &issues_model.IssueStats{}
-	)
 
 	{
 		openClosedOpts := opts.Copy()

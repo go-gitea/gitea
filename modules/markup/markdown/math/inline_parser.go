@@ -26,7 +26,6 @@ var defaultDualDollarParser = &inlineParser{
 	end:   []byte{'$', '$'},
 }
 
-// NewInlineDollarParser returns a new inline parser
 func NewInlineDollarParser() parser.InlineParser {
 	return defaultInlineDollarParser
 }
@@ -40,7 +39,6 @@ var defaultInlineBracketParser = &inlineParser{
 	end:   []byte{'\\', ')'},
 }
 
-// NewInlineDollarParser returns a new inline parser
 func NewInlineBracketParser() parser.InlineParser {
 	return defaultInlineBracketParser
 }
@@ -81,35 +79,35 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 	opener := len(parser.start)
 
 	// Now look for an ending line
-	ender := opener
-	for {
-		pos := bytes.Index(line[ender:], parser.end)
-		if pos < 0 {
-			return nil
-		}
-
-		ender += pos
-
-		// Now we want to check the character at the end of our parser section
-		// that is ender + len(parser.end) and check if char before ender is '\'
-		pos = ender + len(parser.end)
-		if len(line) <= pos {
+	depth := 0
+	ender := -1
+	for i := opener; i < len(line); i++ {
+		if depth == 0 && bytes.HasPrefix(line[i:], parser.end) {
+			succeedingCharacter := byte(0)
+			if i+len(parser.end) < len(line) {
+				succeedingCharacter = line[i+len(parser.end)]
+			}
+			// check valid ending character
+			isValidEndingChar := isPunctuation(succeedingCharacter) || isBracket(succeedingCharacter) ||
+				succeedingCharacter == ' ' || succeedingCharacter == '\n' || succeedingCharacter == 0
+			if !isValidEndingChar {
+				break
+			}
+			ender = i
 			break
 		}
-		suceedingCharacter := line[pos]
-		// check valid ending character
-		if !isPunctuation(suceedingCharacter) &&
-			!(suceedingCharacter == ' ') &&
-			!(suceedingCharacter == '\n') &&
-			!isBracket(suceedingCharacter) {
-			return nil
+		if line[i] == '\\' {
+			i++
+			continue
 		}
-		if line[ender-1] != '\\' {
-			break
+		if line[i] == '{' {
+			depth++
+		} else if line[i] == '}' {
+			depth--
 		}
-
-		// move the pointer onwards
-		ender += len(parser.end)
+	}
+	if ender == -1 {
+		return nil
 	}
 
 	block.Advance(opener)

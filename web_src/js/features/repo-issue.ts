@@ -11,37 +11,6 @@ import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 
 const {appSubUrl} = window.config;
 
-export function initRepoIssueTimeTracking() {
-  $(document).on('click', '.issue-add-time', () => {
-    $('.issue-start-time-modal').modal({
-      duration: 200,
-      onApprove() {
-        $('#add_time_manual_form').trigger('submit');
-      },
-    }).modal('show');
-    $('.issue-start-time-modal input').on('keydown', (e) => {
-      if (e.key === 'Enter') {
-        $('#add_time_manual_form').trigger('submit');
-      }
-    });
-  });
-  $(document).on('click', '.issue-start-time, .issue-stop-time', () => {
-    $('#toggle_stopwatch_form').trigger('submit');
-  });
-  $(document).on('click', '.issue-cancel-time', () => {
-    $('#cancel_stopwatch_form').trigger('submit');
-  });
-  $(document).on('click', 'button.issue-delete-time', function () {
-    const sel = `.issue-delete-time-modal[data-id="${$(this).data('id')}"]`;
-    $(sel).modal({
-      duration: 200,
-      onApprove() {
-        $(`${sel} form`).trigger('submit');
-      },
-    }).modal('show');
-  });
-}
-
 /**
  * @param {HTMLElement} item
  */
@@ -413,11 +382,6 @@ export function initRepoPullRequestReview() {
     e.preventDefault();
     await handleReply(this);
   });
-
-  const elReviewBox = document.querySelector('.review-box-panel');
-  if (elReviewBox) {
-    initComboMarkdownEditor(elReviewBox.querySelector('.combo-markdown-editor'));
-  }
 
   // The following part is only for diff views
   if (!$('.repository.pull.diff').length) return;
