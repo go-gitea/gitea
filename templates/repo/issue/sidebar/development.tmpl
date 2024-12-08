@@ -3,7 +3,8 @@
 
 	<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.development"}}</strong></span>
 	<div class="ui devlinks list">
-	{{if not .Issue.IsClosed}}
+	{{/* AllowedRepos not empty means login user can create new branch in some of the repositories */}}
+	{{if and (not .Issue.IsClosed) .AllowedRepos}}
 		<div class="tw-items-center">
 			<a class="tw-mt-1 fluid ui show-modal" data-modal="#create_branch">{{ctx.Locale.Tr "repo.branch.new_branch"}}</a>
 		</div>
