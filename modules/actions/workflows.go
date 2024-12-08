@@ -24,6 +24,7 @@ type DetectedWorkflow struct {
 	EntryName    string
 	TriggerEvent *jobparser.Event
 	Content      []byte
+	Concurrency  *jobparser.UninterpolatedConcurrency
 }
 
 func init() {
@@ -95,6 +96,19 @@ func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
 	return events, nil
 }
 
+func GetConcurrencyFromContent(content []byte) (*jobparser.UninterpolatedConcurrency, error) {
+	workflow, err := model.ReadWorkflow(bytes.NewReader(content))
+	if err != nil {
+		return nil, err
+	}
+	uc, err := jobparser.ParseRawConcurrency(&workflow.RawConcurrency)
+	if err != nil {
+		return nil, err
+	}
+
+	return uc, nil
+}
+
 func DetectWorkflows(
 	gitRepo *git.Repository,
 	commit *git.Commit,
@@ -121,6 +135,11 @@ func DetectWorkflows(
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
 			continue
 		}
+		concurrency, err := GetConcurrencyFromContent(content)
+		if err != nil {
+			log.Warn("ignore workflow with invalid concurrency %q: %v", entry.Name(), err)
+			continue
+		}
 		for _, evt := range events {
 			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
 			if evt.IsSchedule() {
@@ -137,6 +156,7 @@ func DetectWorkflows(
 					EntryName:    entry.Name(),
 					TriggerEvent: evt,
 					Content:      content,
+					Concurrency:  concurrency,
 				}
 				workflows = append(workflows, dwf)
 			}
