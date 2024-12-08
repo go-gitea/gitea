@@ -41,3 +41,7 @@ h4.divider {
   border-top: 1px solid var(--color-secondary);
   margin: 4px 0;
 }
+
+.ui.dropdown .menu .item.filtered + .divider {
+  display: none;
+}
