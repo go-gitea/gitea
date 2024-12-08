@@ -42,6 +42,7 @@ func NewFuncMap() template.FuncMap {
 		"HTMLFormat":   htmlutil.HTMLFormat,
 		"HTMLEscape":   htmlEscape,
 		"QueryEscape":  queryEscape,
+		"QueryBuild":   queryBuild,
 		"JSEscape":     jsEscapeSafe,
 		"SanitizeHTML": SanitizeHTML,
 		"URLJoin":      util.URLJoin,
@@ -291,6 +292,71 @@ func timeEstimateString(timeSec any) string {
 		return ""
 	}
 	return util.TimeEstimateString(v)
+}
+
+type QueryString string
+
+func queryBuild(a ...any) QueryString {
+	var s string
+	if len(a)%2 == 1 {
+		if v, ok := a[0].(string); ok {
+			if v == "" || (v[0] != '?' && v[0] != '&') {
+				panic("queryBuild: invalid argument")
+			}
+			s = v
+		} else if v, ok := a[0].(QueryString); ok {
+			s = string(v)
+		} else {
+			panic("queryBuild: invalid argument")
+		}
+	}
+	for i := len(a) % 2; i < len(a); i += 2 {
+		k, ok := a[i].(string)
+		if !ok {
+			panic("queryBuild: invalid argument")
+		}
+		var v string
+		if va, ok := a[i+1].(string); ok {
+			v = va
+		} else if a[i+1] != nil {
+			v = fmt.Sprint(a[i+1])
+		}
+		// pos1 to pos2 is the "k=v&" part, "&" is optional
+		pos1 := strings.Index(s, "&"+k+"=")
+		if pos1 != -1 {
+			pos1++
+		} else {
+			pos1 = strings.Index(s, "?"+k+"=")
+			if pos1 != -1 {
+				pos1++
+			} else if strings.HasPrefix(s, k+"=") {
+				pos1 = 0
+			}
+		}
+		pos2 := len(s)
+		if pos1 == -1 {
+			pos1 = len(s)
+		} else {
+			pos2 = pos1 + 1
+			for pos2 < len(s) && s[pos2-1] != '&' {
+				pos2++
+			}
+		}
+		if v != "" {
+			sep := ""
+			hasPrefixSep := pos1 == 0 || (pos1 <= len(s) && (s[pos1-1] == '?' || s[pos1-1] == '&'))
+			if !hasPrefixSep {
+				sep = "&"
+			}
+			s = s[:pos1] + sep + k + "=" + url.QueryEscape(v) + "&" + s[pos2:]
+		} else {
+			s = s[:pos1] + s[pos2:]
+		}
+	}
+	if s != "" && s != "&" && s[len(s)-1] == '&' {
+		s = s[:len(s)-1]
+	}
+	return QueryString(s)
 }
 
 func panicIfDevOrTesting() {
