@@ -42,6 +42,6 @@ h4.divider {
   margin: 4px 0;
 }
 
-.ui.dropdown .menu .item.filtered + .divider {
+.ui.dropdown .menu > .item.filtered + .divider {
   display: none;
 }
