@@ -1,4 +1,4 @@
-{{$queryLink := QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" $.State "labels" $.SelectLabels "milestone" $.MilestoneID "project" $.ProjectID "assignee" $.AssigneeID "poster" $.PosterID "archived" (Iif $.ShowArchivedLabels NIL)}}
+{{$queryLink := QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" $.State "labels" $.SelectLabels "milestone" $.MilestoneID "project" $.ProjectID "assignee" $.AssigneeID "poster" $.PosterUsername "archived" (Iif $.ShowArchivedLabels NIL)}}
 <!-- Label -->
 <div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter">
 	<span class="text">
@@ -131,7 +131,7 @@
 <div class="ui dropdown jump item user-remote-search" data-tooltip-content="{{ctx.Locale.Tr "repo.author_search_tooltip"}}"
 	data-search-url="{{if .Milestone}}{{$.RepoLink}}/issues/posters{{else}}{{$.Link}}/posters{{end}}"
 	data-selected-user-id="{{$.PosterID}}"
-	data-action-jump-url="{{QueryBuild $queryLink "poster" NIL}}&poster={user_id}"
+	data-action-jump-url="{{QueryBuild $queryLink "poster" NIL}}&poster={username}"
 >
 	<span class="text">
 		{{ctx.Locale.Tr "repo.issues.filter_poster"}}

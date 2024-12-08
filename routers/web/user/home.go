@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
+	"code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	feed_service "code.gitea.io/gitea/services/feed"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -441,7 +442,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// FIXME: this feature doesn't work at the moment, because frontend can't use a "user-remote-search" dropdown directly
 	// the existing "/posters" handlers doesn't work for this case, it is unable to list the related users correctly.
 	// In the future, we need something like github: "author:user1" to accept usernames directly.
-	opts.PosterID, _ = strconv.ParseInt(ctx.FormString("poster"), 10, 64)
+	posterUsername := ctx.FormString("poster")
+	opts.PosterID = user.GetFilterUserIDByName(ctx, posterUsername)
 	opts.AssigneeID, _ = strconv.ParseInt(ctx.FormString("assignee"), 10, 64)
 
 	isFuzzy := ctx.FormBool("fuzzy")
@@ -659,9 +661,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
 	pager.AddParamString("labels", selectedLabels)
 	pager.AddParamString("fuzzy", fmt.Sprint(isFuzzy))
-	if opts.PosterID != 0 {
-		pager.AddParamString("poster", fmt.Sprint(opts.PosterID))
-	}
+	pager.AddParamString("poster", posterUsername)
 	if opts.AssigneeID != 0 {
 		pager.AddParamString("assignee", fmt.Sprint(opts.AssigneeID))
 	}

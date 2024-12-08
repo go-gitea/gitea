@@ -110,14 +110,14 @@ function initDropdownUserRemoteSearch(el: Element) {
         for (const item of resp.results) {
           let html = `<img class="ui avatar tw-align-middle" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt="" width="20" height="20"><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
           if (item.full_name) html += `<span class="search-fullname tw-ml-2">${htmlEscape(item.full_name)}</span>`;
-          processedResults.push({value: item.user_id, name: html});
+          processedResults.push({value: item.username, name: html});
         }
         resp.results = processedResults;
         return resp;
       },
     },
     action: (_text, value) => {
-      window.location.href = actionJumpUrl.replace('{user_id}', encodeURIComponent(value));
+      window.location.href = actionJumpUrl.replace('{username}', encodeURIComponent(value));
     },
     onShow: () => {
       $searchDropdown.dropdown('filter', ' '); // trigger a search on first show

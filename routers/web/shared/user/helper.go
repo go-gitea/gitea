@@ -4,7 +4,9 @@
 package user
 
 import (
+	"context"
 	"slices"
+	"strconv"
 
 	"code.gitea.io/gitea/models/user"
 )
@@ -23,4 +25,18 @@ func MakeSelfOnTop(doer *user.User, users []*user.User) []*user.User {
 		}
 	}
 	return users
+}
+
+func GetFilterUserIDByName(ctx context.Context, name string) int64 {
+	if name == "" {
+		return 0
+	}
+	u, err := user.GetUserByName(ctx, name)
+	if err != nil {
+		if id, err := strconv.ParseInt(name, 10, 64); err == nil {
+			return id
+		}
+		return 0
+	}
+	return u.ID
 }
