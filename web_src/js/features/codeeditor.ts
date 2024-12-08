@@ -129,6 +129,9 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
   container.className = 'monaco-editor-container';
   textarea.parentNode?.append(container);
 
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    updateTheme(monaco);
+  });
   updateTheme(monaco);
 
   const editor = monaco.editor.create(container, {
@@ -136,10 +139,6 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
     theme: 'gitea',
     language,
     ...other,
-  });
-
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    updateTheme(monaco);
   });
 
   monaco.editor.addKeybindingRules([
