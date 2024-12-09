@@ -79,13 +79,13 @@ function delegateOne($dropdown: any) {
   dropdownCall('internal', 'blurSearch', function () { oldBlurSearch.call(this); dropdownCall('hide') });
 
   const oldFilterItems = dropdownCall('internal', 'filterItems');
-  dropdownCall('internal', 'filterItems', function () {
-    oldFilterItems.call(this);
+  dropdownCall('internal', 'filterItems', function (...args: any[]) {
+    oldFilterItems.call(this, ...args);
     processMenuItems($dropdown, dropdownCall);
   });
 
   const oldShow = dropdownCall('internal', 'show');
-  dropdownCall('internal', 'show', function (...args) {
+  dropdownCall('internal', 'show', function (...args: any[]) {
     oldShow.call(this, ...args);
     processMenuItems($dropdown, dropdownCall);
   });
