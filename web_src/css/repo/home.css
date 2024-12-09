@@ -20,7 +20,7 @@
   grid-row: 2;
   padding-left: 1em;
 }
-.repo-home-sidebar-bottom > :first-child {
+.repo-home-sidebar-bottom .flex-list > :first-child {
   border-top: 1px solid var(--color-secondary); /* same to .flex-list > .flex-item + .flex-item */
 }
 
@@ -43,7 +43,7 @@
     grid-row: 3;
     padding-left: 0;
   }
-  .repo-home-sidebar-bottom > :first-child {
+  .repo-home-sidebar-bottom .flex-list > :first-child {
     border-top: 0;
   }
 }
