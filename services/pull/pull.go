@@ -629,17 +629,11 @@ func (errs errlist) Error() string {
 	return ""
 }
 
-// RetargetChildrenOnMerge retarget children pull requests on merge if possible
-func RetargetChildrenOnMerge(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) error {
-	if setting.Repository.PullRequest.RetargetChildrenOnMerge && pr.BaseRepoID == pr.HeadRepoID {
-		return RetargetBranchPulls(ctx, doer, pr.HeadRepoID, pr.HeadBranch, pr.BaseBranch)
-	}
-	return nil
-}
+var _ error = &errlist{}
 
-// RetargetBranchPulls change target branch for all pull requests whose base branch is the branch
+// retargetBranchPulls change target branch for all pull requests whose base branch is the branch
 // Both branch and targetBranch must be in the same repo (for security reasons)
-func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch, targetBranch string) error {
+func retargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch, targetBranch string) error {
 	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
 	if err != nil {
 		return err
@@ -666,20 +660,21 @@ func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int6
 	return nil
 }
 
-// CloseBranchPulls close all the pull requests who's head branch is the branch
-func CloseBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch string) error {
-	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repoID, branch)
+// AdjustPullsCausedByBranchDeleted close all the pull requests who's head branch is the branch
+// Or Close all the plls who's base branch is the branch if setting.Repository.PullRequest.RetargetChildrenOnMerge is false.
+// If it's true, Retarget all these pulls to the default branch.
+func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branch string) error {
+	// branch as head branch
+	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch)
 	if err != nil {
 		return err
 	}
 
-	prs2, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
-	if err != nil {
-		return err
-	}
-
-	prs = append(prs, prs2...)
 	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+		return err
+	}
+	issues_model.PullRequestList(prs).SetHeadRepo(repo)
+	if err := issues_model.PullRequestList(prs).LoadRepositories(ctx); err != nil {
 		return err
 	}
 
@@ -687,6 +682,47 @@ func CloseBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, 
 	for _, pr := range prs {
 		if err = issue_service.ChangeStatus(ctx, pr.Issue, doer, "", true); err != nil && !issues_model.IsErrPullWasClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
 			errs = append(errs, err)
+		}
+		if err == nil {
+			if err := issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
+				log.Error("AddDeletePRBranchComment: %v", err)
+				errs = append(errs, err)
+			}
+		}
+	}
+
+	if setting.Repository.PullRequest.RetargetChildrenOnMerge {
+		if err := retargetBranchPulls(ctx, doer, repo.ID, branch, repo.DefaultBranch); err != nil {
+			log.Error("retargetBranchPulls failed: %v", err)
+			errs = append(errs, err)
+		}
+		return errs
+	}
+
+	// branch as base branch
+	prs, err = issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repo.ID, branch)
+	if err != nil {
+		return err
+	}
+
+	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+		return err
+	}
+	issues_model.PullRequestList(prs).SetBaseRepo(repo)
+	if err := issues_model.PullRequestList(prs).LoadRepositories(ctx); err != nil {
+		return err
+	}
+
+	errs = nil
+	for _, pr := range prs {
+		if err = issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.Issue.ID, pr.BaseBranch); err != nil {
+			log.Error("AddDeletePRBranchComment: %v", err)
+			errs = append(errs, err)
+		}
+		if err == nil {
+			if err = issue_service.ChangeStatus(ctx, pr.Issue, doer, "", true); err != nil && !issues_model.IsErrPullWasClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
+				errs = append(errs, err)
+			}
 		}
 	}
 	if len(errs) > 0 {

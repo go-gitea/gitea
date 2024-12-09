@@ -489,7 +489,7 @@ func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchNam
 }
 
 // DeleteBranch delete branch
-func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
+func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string, pr *issues_model.PullRequest) error {
 	err := repo.MustNotBeArchived()
 	if err != nil {
 		return err
@@ -516,6 +516,12 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		if !notExist {
 			if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, doer.ID); err != nil {
 				return err
+			}
+		}
+
+		if pr != nil {
+			if err := issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
+				return fmt.Errorf("DeleteBranch: %v", err)
 			}
 		}
 
