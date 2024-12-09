@@ -84,7 +84,7 @@
 	"QueryParamKey" "poster"
 	"QueryLink" $queryLink
 	"UserSearchUrl" (Iif .Milestone (print $.RepoLink "/issues/posters") (print $.Link "/posters"))
-	"SelectedUserId" $.PosterID
+	"SelectedUserId" $.PosterUserID
 	"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_poster")
 }}
 

@@ -798,6 +798,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	ctx.Data["MilestoneID"] = milestoneID
 	ctx.Data["ProjectID"] = projectID
 	ctx.Data["AssigneeID"] = assigneeID
+	ctx.Data["PosterUserID"] = posterUserID
 	ctx.Data["PosterUsername"] = posterUsername
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["IsShowClosed"] = isShowClosed
