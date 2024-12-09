@@ -1,8 +1,8 @@
 {{if .IsFile}}
-	<a class="item-file {{if .File.IsViewed}} viewed {{end}}" title="{{ .Name }}" href="#diff-{{ .File.NameHash }}">
+	<a class="item-file {{if .File.IsViewed}} viewed {{end}}" title="{{.Name}}" href="#diff-{{.File.NameHash}}">
 		<!-- file -->
 		{{svg "octicon-file"}}
-		<span class="gt-ellipsis tw-flex-1">{{ .Name }}</span>
+		<span class="gt-ellipsis tw-flex-1">{{.Name}}</span>
 		{{if eq .File.Type 1}}
 			{{svg "octicon-diff-added" 16 "text green"}}
 		{{else if eq .File.Type 2}}
@@ -16,11 +16,11 @@
 		{{end}}
 	</a>
 {{else}}
-	<div class="item-directory" title="{{ .Name }}">
+	<div class="item-directory" title="{{.Name}}">
 		<!-- directory -->
 		{{svg "octicon-chevron-down"}}
 		{{svg "octicon-file-directory-open-fill" 16 "text primary"}}
-		<span class="gt-ellipsis">{{ .Name }}</span>
+		<span class="gt-ellipsis">{{.Name}}</span>
 	</div>
 {{end}}
 {{if and .Children (gt (len .Children) 0)}}
