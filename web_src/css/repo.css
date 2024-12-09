@@ -2377,7 +2377,7 @@ tbody.commit-list {
   gap: 8px;
 }
 
-#diff-file-tree {
+.file-tree {
   flex: 0 0 20%;
   max-width: 380px;
   line-height: inherit;
@@ -2387,6 +2387,60 @@ tbody.commit-list {
   max-height: calc(100vh - 47px);
   height: 100%;
   overflow-y: auto;
+}
+
+.file-tree .file-tree-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-right: .5rem;
+}
+
+.file-tree .file-tree-items a, a:hover {
+  text-decoration: none;
+  color: var(--color-text);
+}
+
+.file-tree .file-tree-items .sub-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-left: 13px;
+  border-left: 1px solid var(--color-secondary);
+}
+
+.file-tree .file-tree-items .sub-items .item-file {
+  padding-left: 18px;
+}
+
+.file-tree .file-tree-items .item-file.selected {
+  color: var(--color-text);
+  background: var(--color-active);
+  border-radius: 4px;
+}
+
+.file-tree .file-tree-items .item-file.viewed {
+  color: var(--color-text-light-3);
+}
+
+.file-tree .file-tree-items .item-directory {
+  user-select: none;
+}
+
+.file-tree .file-tree-items .item-file,
+.file-tree .file-tree-items .item-directory {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  padding: 6px;
+}
+
+.file-tree .file-tree-items .item-file:hover,
+.file-tree .file-tree-items .item-directory:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .ui.message.unicode-escape-prompt {

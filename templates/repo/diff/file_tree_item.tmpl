@@ -1,0 +1,32 @@
+{{if .IsFile}}
+	<a class="item-file {{if .File.IsViewed}} viewed {{end}}" title="{{ .Name }}" href="#diff-{{ .File.NameHash }}">
+		<!-- file -->
+		{{svg "octicon-file"}}
+		<span class="gt-ellipsis tw-flex-1">{{ .Name }}</span>
+		{{if eq .File.Type 1}}
+			{{svg "octicon-diff-added" 16 "text green"}}
+		{{else if eq .File.Type 2}}
+			{{svg "octicon-diff-modified" 16 "text yellow"}}
+		{{else if eq .File.Type 3}}
+			{{svg "octicon-diff-removed" 16 "text red"}}
+		{{else if eq .File.Type 4}}
+			{{svg "octicon-diff-renamed" 16 "text teal"}}
+		{{else if eq .File.Type 5}}
+			{{svg "octicon-diff-renamed" 16 "text green"}}
+		{{end}}
+	</a>
+{{else}}
+	<div class="item-directory" title="{{ .Name }}">
+    <!-- directory -->
+		{{svg "octicon-chevron-down"}}
+		{{svg "octicon-file-directory-open-fill" 16 "text primary"}}
+    <span class="gt-ellipsis">{{ .Name }}</span>
+  </div>
+{{end}}
+{{if and .Children (gt (len .Children) 0)}}
+	<div class="sub-items">
+		{{range .Children}}
+    	{{template "repo/diff/file_tree_item" .}}
+		{{end}}
+	</div>
+{{end}}

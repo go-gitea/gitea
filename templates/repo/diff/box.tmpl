@@ -61,35 +61,29 @@
 			</div>
 		{{end}}
 		<script id="diff-data-script" type="module">
-			const diffDataFiles = [{{range $i, $file := .Diff.Files}}{Name:"{{$file.Name}}",NameHash:"{{$file.NameHash}}",Type:{{$file.Type}},IsBin:{{$file.IsBin}},Addition:{{$file.Addition}},Deletion:{{$file.Deletion}},IsViewed:{{$file.IsViewed}}},{{end}}];
 			const diffData = {
-				isIncomplete: {{.Diff.IsIncomplete}},
 				tooManyFilesMessage: "{{ctx.Locale.Tr "repo.diff.too_many_files"}}",
 				binaryFileMessage: "{{ctx.Locale.Tr "repo.diff.bin"}}",
-				showMoreMessage: "{{ctx.Locale.Tr "repo.diff.show_more"}}",
 				statisticsMessage: "{{ctx.Locale.Tr "repo.diff.stats_desc_file"}}",
-				linkLoadMore: "?skip-to={{.Diff.End}}&file-only=true",
 			};
 
 			// for first time loading, the diffFileInfo is a plain object
 			// after the Vue component is mounted, the diffFileInfo is a reactive object
 			// keep in mind that this script block would be executed many times when loading more files, by "loadMoreFiles"
 			let diffFileInfo = window.config.pageData.diffFileInfo || {
-				files:[],
 				fileTreeIsVisible: false,
 				fileListIsVisible: false,
 				isLoadingNewData: false,
 				selectedItem: '',
 			};
 			diffFileInfo = Object.assign(diffFileInfo, diffData);
-			diffFileInfo.files.push(...diffDataFiles);
 			window.config.pageData.diffFileInfo = diffFileInfo;
 		</script>
 		<div id="diff-file-list"></div>
 	{{end}}
 	<div id="diff-container">
 		{{if $showFileTree}}
-			<div id="diff-file-tree" class="tw-hidden not-mobile"></div>
+			{{template "repo/diff/file_tree" dict "Files" .Diff.FileTree "IsIncomplete" .Diff.IsIncomplete "LoadMoreLink" "?skip-to={{.Diff.End}}&file-only=true"}}
 			<script>
 				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('tw-hidden');
 			</script>
@@ -228,7 +222,7 @@
 					<div class="diff-file-box diff-box file-content tw-mt-2" id="diff-incomplete">
 						<h4 class="ui top attached header tw-font-normal tw-flex tw-items-center tw-justify-between">
 							{{ctx.Locale.Tr "repo.diff.too_many_files"}}
-							<a class="ui basic tiny button" id="diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true">{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
+							<a class="ui basic tiny button diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true">{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
 						</h4>
 					</div>
 				{{end}}
