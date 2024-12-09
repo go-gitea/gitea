@@ -321,22 +321,13 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 	}
 	defer gitRepo.Close()
 
-	var doerID int64
-	if doer != nil {
-		doerID = doer.ID
-	}
-
-	const repoDoerPermCacheKey = "repo_doer_perm_cache"
-	p, err := cache.GetWithContextCache(ctx, repoDoerPermCacheKey, fmt.Sprintf("%d_%d", baseRepo.ID, doerID),
-		func() (access_model.Permission, error) {
-			return access_model.GetUserRepoPermission(ctx, baseRepo, doer)
-		})
+	baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, baseRepo, doer)
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", baseRepo.ID, err)
-		p.AccessMode = perm.AccessModeNone
+		baseRepoPerm.AccessMode = perm.AccessModeNone
 	}
 
-	apiRepo := ToRepo(ctx, baseRepo, p)
+	apiRepo := ToRepo(ctx, baseRepo, baseRepoPerm)
 	baseBranchCache := make(map[string]*git_model.Branch)
 	apiPullRequests := make([]*api.PullRequest, 0, len(prs))
 	for _, pr := range prs {
