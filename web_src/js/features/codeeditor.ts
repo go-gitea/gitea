@@ -65,7 +65,7 @@ function getLanguage(filename: string): string {
   return languagesByFilename[filename] || languagesByExt[extname(filename)] || 'plaintext';
 }
 
-function updateEditor(monaco: Monaco, editor: IStandaloneCodeEditor, filename: string, lineWrapExts: string[]) {
+function updateEditor(monaco: Monaco, editor: IStandaloneCodeEditor, filename: string, lineWrapExts: string[]): void {
   editor.updateOptions(getFileBasedOptions(filename, lineWrapExts));
   const model = editor.getModel();
   if (!model) return;
@@ -118,7 +118,7 @@ function updateTheme(monaco: Monaco): void {
 
 type CreateMonacoOpts = MonacoOpts & {language?: string};
 
-export async function createMonaco(textarea: HTMLTextAreaElement, filename: string, opts: CreateMonacoOpts) {
+export async function createMonaco(textarea: HTMLTextAreaElement, filename: string, opts: CreateMonacoOpts): Promise<{monaco: Monaco, editor: IStandaloneCodeEditor}> {
   const monaco = await import(/* webpackChunkName: "monaco" */'monaco-editor');
 
   initLanguages(monaco);
