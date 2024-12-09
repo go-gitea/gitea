@@ -1386,7 +1386,7 @@ table th[data-sortt-desc] .svg {
 .flex-text-block {
   display: flex;
   align-items: center;
-  gap: .25rem;
+  gap: .5rem;
   min-width: 0;
 }
 

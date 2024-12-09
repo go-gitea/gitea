@@ -5,9 +5,9 @@ package sender
 
 import (
 	"fmt"
-	"net/smtp"
 
 	"github.com/Azure/go-ntlmssp"
+	"github.com/wneessen/go-mail/smtp"
 )
 
 type loginAuth struct {

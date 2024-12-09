@@ -105,6 +105,13 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 	return nil
 }
 
+// ChangeTimeEstimate changes the time estimate of this issue, as the given user.
+func ChangeTimeEstimate(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, timeEstimate int64) (err error) {
+	issue.TimeEstimate = timeEstimate
+
+	return issues_model.ChangeIssueTimeEstimate(ctx, issue, doer, timeEstimate)
+}
+
 // ChangeIssueRef changes the branch of this issue, as the given user.
 func ChangeIssueRef(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, ref string) error {
 	oldRef := issue.Ref

@@ -5,6 +5,7 @@ package math
 
 import (
 	"code.gitea.io/gitea/modules/markup/internal"
+	giteaUtil "code.gitea.io/gitea/modules/util"
 
 	gast "github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
@@ -37,10 +38,11 @@ func (r *BlockRenderer) writeLines(w util.BufWriter, source []byte, n gast.Node)
 func (r *BlockRenderer) renderBlock(w util.BufWriter, source []byte, node gast.Node, entering bool) (gast.WalkStatus, error) {
 	n := node.(*Block)
 	if entering {
-		_ = r.renderInternal.FormatWithSafeAttrs(w, `<pre class="code-block is-loading"><code class="chroma language-math display">`)
+		code := giteaUtil.Iif(n.Inline, "", `<pre class="code-block is-loading">`) + `<code class="chroma language-math display">`
+		_ = r.renderInternal.FormatWithSafeAttrs(w, code)
 		r.writeLines(w, source, n)
 	} else {
-		_, _ = w.WriteString(`</code></pre>` + "\n")
+		_, _ = w.WriteString(`</code>` + giteaUtil.Iif(n.Inline, "", `</pre>`) + "\n")
 	}
 	return gast.WalkContinue, nil
 }
