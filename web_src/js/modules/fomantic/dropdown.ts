@@ -290,6 +290,15 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
   }, true);
 }
 
+// Although Fomantic Dropdown supports "hideDividers", it doesn't really work with our "scoped dividers"
+// At the moment, "label dropdown items" use scopes, a sample case is:
+// * a-label
+// * divider
+// * scope/1
+// * scope/2
+// * divider
+// * z-label
+// when the "scope/*" are filtered out, we'd like to see "a-label" and "z-label" without the divider.
 export function hideScopedEmptyDividers(container: Element) {
   const visibleItems: Element[] = [];
   const curScopeVisibleItems: Element[] = [];
