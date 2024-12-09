@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -101,4 +102,38 @@ func TestTemplateTruthy(t *testing.T) {
 		assert.True(t, truthyMatches, "case %d (%T) %#v fail: %s", i, v, v, out)
 	}
 	assert.True(t, truthyCount != 0 && truthyCount != len(cases))
+}
+
+func TestTemplateEscape(t *testing.T) {
+	execTmpl := func(code string) string {
+		tmpl := template.New("test")
+		tmpl.Funcs(template.FuncMap{"QueryBuild": queryBuild, "HTMLFormat": htmlutil.HTMLFormat})
+		template.Must(tmpl.Parse(code))
+		w := &strings.Builder{}
+		assert.NoError(t, tmpl.Execute(w, nil))
+		return w.String()
+	}
+
+	t.Run("Golang URL Escape", func(t *testing.T) {
+		// Golang template considers "href", "*src*", "*uri*", "*url*" (and more) ... attributes as contentTypeURL and does auto-escaping
+		actual := execTmpl(`<a href="?a={{"%"}}"></a>`)
+		assert.Equal(t, `<a href="?a=%25"></a>`, actual)
+		actual = execTmpl(`<a data-xxx-url="?a={{"%"}}"></a>`)
+		assert.Equal(t, `<a data-xxx-url="?a=%25"></a>`, actual)
+	})
+	t.Run("Golang URL No-escape", func(t *testing.T) {
+		// non-URL content isn't auto-escaped
+		actual := execTmpl(`<a data-link="?a={{"%"}}"></a>`)
+		assert.Equal(t, `<a data-link="?a=%"></a>`, actual)
+	})
+	t.Run("QueryBuild", func(t *testing.T) {
+		actual := execTmpl(`<a href="{{QueryBuild "?" "a" "%"}}"></a>`)
+		assert.Equal(t, `<a href="?a=%25"></a>`, actual)
+		actual = execTmpl(`<a href="?{{QueryBuild "a" "%"}}"></a>`)
+		assert.Equal(t, `<a href="?a=%25"></a>`, actual)
+	})
+	t.Run("HTMLFormat", func(t *testing.T) {
+		actual := execTmpl("{{HTMLFormat `<a k=\"%s\">%s</a>` `\"` `<>`}}")
+		assert.Equal(t, `<a k="&#34;">&lt;&gt;</a>`, actual)
+	})
 }
