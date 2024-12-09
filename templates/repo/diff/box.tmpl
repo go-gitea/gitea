@@ -83,7 +83,7 @@
 	{{end}}
 	<div id="diff-container">
 		{{if $showFileTree}}
-			{{template "repo/diff/file_tree" dict "Files" .Diff.FileTree "IsIncomplete" .Diff.IsIncomplete "LoadMoreLink" "?skip-to={{.Diff.End}}&file-only=true"}}
+			{{template "repo/diff/file_tree" dict "Files" .Diff.FileTree "IsIncomplete" .Diff.IsIncomplete "LoadMoreLink" (printf "?skip-to=%s&file-only=true" .Diff.End)}}
 			<script>
 				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('tw-hidden');
 			</script>
