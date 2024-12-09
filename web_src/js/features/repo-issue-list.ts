@@ -1,17 +1,17 @@
-import $ from 'jquery';
 import {updateIssuesMeta} from './repo-common.ts';
-import {toggleElem, hideElem, isElemHidden} from '../utils/dom.ts';
+import {toggleElem, hideElem, isElemHidden, queryElems} from '../utils/dom.ts';
 import {htmlEscape} from 'escape-goat';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {createSortable} from '../modules/sortable.ts';
 import {DELETE, POST} from '../modules/fetch.ts';
 import {parseDom} from '../utils.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 function initRepoIssueListCheckboxes() {
-  const issueSelectAll = document.querySelector('.issue-checkbox-all');
+  const issueSelectAll = document.querySelector<HTMLInputElement>('.issue-checkbox-all');
   if (!issueSelectAll) return; // logged out state
-  const issueCheckboxes = document.querySelectorAll('.issue-checkbox');
+  const issueCheckboxes = document.querySelectorAll<HTMLInputElement>('.issue-checkbox');
 
   const syncIssueSelectionState = () => {
     const checkedCheckboxes = Array.from(issueCheckboxes).filter((el) => el.checked);
@@ -29,8 +29,8 @@ function initRepoIssueListCheckboxes() {
       issueSelectAll.indeterminate = false;
     }
     // if any issue is selected, show the action panel, otherwise show the filter panel
-    toggleElem($('#issue-filters'), !anyChecked);
-    toggleElem($('#issue-actions'), anyChecked);
+    toggleElem('#issue-filters', !anyChecked);
+    toggleElem('#issue-actions', anyChecked);
     // there are two panels but only one select-all checkbox, so move the checkbox to the visible panel
     const panels = document.querySelectorAll('#issue-filters, #issue-actions');
     const visiblePanel = Array.from(panels).find((el) => !isElemHidden(el));
@@ -49,56 +49,55 @@ function initRepoIssueListCheckboxes() {
     syncIssueSelectionState();
   });
 
-  $('.issue-action').on('click', async function (e) {
-    e.preventDefault();
+  queryElems(document, '.issue-action', (el) => el.addEventListener('click',
+    async (e: MouseEvent) => {
+      e.preventDefault();
 
-    const url = this.getAttribute('data-url');
-    let action = this.getAttribute('data-action');
-    let elementId = this.getAttribute('data-element-id');
-    let issueIDs = [];
-    for (const el of document.querySelectorAll('.issue-checkbox:checked')) {
-      issueIDs.push(el.getAttribute('data-issue-id'));
-    }
-    issueIDs = issueIDs.join(',');
-    if (!issueIDs) return;
-
-    // for assignee
-    if (elementId === '0' && url.endsWith('/assignee')) {
-      elementId = '';
-      action = 'clear';
-    }
-
-    // for toggle
-    if (action === 'toggle' && e.altKey) {
-      action = 'toggle-alt';
-    }
-
-    // for delete
-    if (action === 'delete') {
-      const confirmText = e.target.getAttribute('data-action-delete-confirm');
-      if (!await confirmModal({content: confirmText, confirmButtonColor: 'red'})) {
-        return;
+      const url = el.getAttribute('data-url');
+      let action = el.getAttribute('data-action');
+      let elementId = el.getAttribute('data-element-id');
+      const issueIDList: string[] = [];
+      for (const el of document.querySelectorAll('.issue-checkbox:checked')) {
+        issueIDList.push(el.getAttribute('data-issue-id'));
       }
-    }
+      const issueIDs = issueIDList.join(',');
+      if (!issueIDs) return;
 
-    try {
-      await updateIssuesMeta(url, action, issueIDs, elementId);
-      window.location.reload();
-    } catch (err) {
-      showErrorToast(err.responseJSON?.error ?? err.message);
-    }
-  });
+      // for assignee
+      if (elementId === '0' && url.endsWith('/assignee')) {
+        elementId = '';
+        action = 'clear';
+      }
+
+      // for toggle
+      if (action === 'toggle' && e.altKey) {
+        action = 'toggle-alt';
+      }
+
+      // for delete
+      if (action === 'delete') {
+        const confirmText = el.getAttribute('data-action-delete-confirm');
+        if (!await confirmModal({content: confirmText, confirmButtonColor: 'red'})) {
+          return;
+        }
+      }
+
+      try {
+        await updateIssuesMeta(url, action, issueIDs, elementId);
+        window.location.reload();
+      } catch (err) {
+        showErrorToast(err.responseJSON?.error ?? err.message);
+      }
+    },
+  ));
 }
 
-function initRepoIssueListAuthorDropdown() {
-  const $searchDropdown = $('.user-remote-search');
-  if (!$searchDropdown.length) return;
-
-  let searchUrl = $searchDropdown[0].getAttribute('data-search-url');
-  const actionJumpUrl = $searchDropdown[0].getAttribute('data-action-jump-url');
-  const selectedUserId = $searchDropdown[0].getAttribute('data-selected-user-id');
+function initDropdownUserRemoteSearch(el: Element) {
+  let searchUrl = el.getAttribute('data-search-url');
+  const actionJumpUrl = el.getAttribute('data-action-jump-url');
+  const selectedUserId = el.getAttribute('data-selected-user-id');
   if (!searchUrl.includes('?')) searchUrl += '?';
-
+  const $searchDropdown = fomanticQuery(el);
   $searchDropdown.dropdown('setting', {
     fullTextSearch: true,
     selectOnKeydown: false,
@@ -111,14 +110,14 @@ function initRepoIssueListAuthorDropdown() {
         for (const item of resp.results) {
           let html = `<img class="ui avatar tw-align-middle" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt="" width="20" height="20"><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
           if (item.full_name) html += `<span class="search-fullname tw-ml-2">${htmlEscape(item.full_name)}</span>`;
-          processedResults.push({value: item.user_id, name: html});
+          processedResults.push({value: item.username, name: html});
         }
         resp.results = processedResults;
         return resp;
       },
     },
     action: (_text, value) => {
-      window.location.href = actionJumpUrl.replace('{user_id}', encodeURIComponent(value));
+      window.location.href = actionJumpUrl.replace('{username}', encodeURIComponent(value));
     },
     onShow: () => {
       $searchDropdown.dropdown('filter', ' '); // trigger a search on first show
@@ -160,7 +159,7 @@ function initRepoIssueListAuthorDropdown() {
 function initPinRemoveButton() {
   for (const button of document.querySelectorAll('.issue-card-unpin')) {
     button.addEventListener('click', async (event) => {
-      const el = event.currentTarget;
+      const el = event.currentTarget as HTMLElement;
       const id = Number(el.getAttribute('data-issue-id'));
 
       // Send the unpin request
@@ -205,10 +204,8 @@ async function initIssuePinSort() {
 }
 
 function initArchivedLabelFilter() {
-  const archivedLabelEl = document.querySelector('#archived-filter-checkbox');
-  if (!archivedLabelEl) {
-    return;
-  }
+  const archivedLabelEl = document.querySelector<HTMLInputElement>('#archived-filter-checkbox');
+  if (!archivedLabelEl) return;
 
   const url = new URL(window.location.href);
   const archivedLabels = document.querySelectorAll('[data-is-archived]');
@@ -219,7 +216,7 @@ function initArchivedLabelFilter() {
   }
   const selectedLabels = (url.searchParams.get('labels') || '')
     .split(',')
-    .map((id) => id < 0 ? `${~id + 1}` : id); // selectedLabels contains -ve ids, which are excluded so convert any -ve value id to +ve
+    .map((id) => parseInt(id) < 0 ? `${~id + 1}` : id); // selectedLabels contains -ve ids, which are excluded so convert any -ve value id to +ve
 
   const archivedElToggle = () => {
     for (const label of archivedLabels) {
@@ -241,9 +238,9 @@ function initArchivedLabelFilter() {
 }
 
 export function initRepoIssueList() {
-  if (!document.querySelectorAll('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list').length) return;
+  if (!document.querySelector('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list')) return;
   initRepoIssueListCheckboxes();
-  initRepoIssueListAuthorDropdown();
+  queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
   initIssuePinSort();
   initArchivedLabelFilter();
 }
