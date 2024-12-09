@@ -46,7 +46,7 @@ func Organizations(ctx *context.Context) {
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
-		Type:        user_model.UserTypeOrganization,
+		Types:       []user_model.UserType{user_model.UserTypeOrganization},
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		Visible:     visibleTypes,
 
