@@ -127,7 +127,8 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
 
   const container = document.createElement('div');
   container.className = 'monaco-editor-container';
-  textarea.parentNode?.append(container);
+  if (!textarea.parentNode) throw new Error('Parent node absent');
+  textarea.parentNode.append(container);
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
     updateTheme(monaco);
@@ -146,7 +147,8 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
   ]);
 
   const model = editor.getModel();
-  model?.onDidChangeContent(() => {
+  if (!model) throw new Error('Unable to get editor model');
+  model.onDidChangeContent(() => {
     textarea.value = editor.getValue({
       preserveBOM: true,
       lineEnding: '',
