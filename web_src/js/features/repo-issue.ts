@@ -1,7 +1,14 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {createTippy, showTemporaryTooltip} from '../modules/tippy.ts';
-import {addDelegatedEventListener, createElementFromHTML, hideElem, showElem, toggleElem} from '../utils/dom.ts';
+import {
+  addDelegatedEventListener,
+  createElementFromHTML,
+  hideElem,
+  queryElems,
+  showElem,
+  toggleElem,
+} from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {parseIssuePageInfo, toAbsoluteUrl} from '../utils.ts';
@@ -11,19 +18,6 @@ import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl} = window.config;
-
-/**
- * @param {HTMLElement} item
- */
-function excludeLabel(item) {
-  const href = item.getAttribute('href');
-  const id = item.getAttribute('data-label-id');
-
-  const regStr = `labels=((?:-?[0-9]+%2c)*)(${id})((?:%2c-?[0-9]+)*)&`;
-  const newStr = 'labels=$1-$2$3&';
-
-  window.location.assign(href.replace(new RegExp(regStr), newStr));
-}
 
 export function initRepoIssueSidebarList() {
   const issuePageInfo = parseIssuePageInfo();
@@ -58,24 +52,74 @@ export function initRepoIssueSidebarList() {
   });
 }
 
-export function initRepoIssueLabelFilter() {
-  // the "label-filter" is used in 2 templates: projects/view, issue/filter_list (issue list page including the milestone page)
-  $('.ui.dropdown.label-filter a.label-filter-item').each(function () {
-    $(this).on('click', function (e) {
-      if (e.altKey) {
-        e.preventDefault();
-        excludeLabel(this);
-      }
+function initRepoIssueLabelFilter(elDropdown: Element) {
+  const url = new URL(window.location.href);
+  const showArchivedLabels = url.searchParams.get('archived_labels') === 'true';
+  const queryLabels = url.searchParams.get('labels') || '';
+  const selectedLabelIds = new Set<string>();
+  for (const id of queryLabels ? queryLabels.split(',') : []) {
+    selectedLabelIds.add(`${Math.abs(parseInt(id))}`); // "labels" contains negative ids, which are excluded
+  }
+
+  const excludeLabel = (e: MouseEvent|KeyboardEvent, item: Element) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const labelId = item.getAttribute('data-label-id');
+    let labelIds: string[] = queryLabels ? queryLabels.split(',') : [];
+    labelIds = labelIds.filter((id) => Math.abs(parseInt(id)) !== Math.abs(parseInt(labelId)));
+    labelIds.push(`-${labelId}`);
+    url.searchParams.set('labels', labelIds.join(','));
+    window.location.assign(url);
+  };
+
+  // alt(or option) + click to exclude label
+  queryElems(elDropdown, '.label-filter-query-item', (el) => {
+    el.addEventListener('click', (e: MouseEvent) => {
+      if (e.altKey) excludeLabel(e, el);
     });
   });
-  $('.ui.dropdown.label-filter').on('keydown', (e) => {
+  // alt(or option) + enter to exclude selected label
+  elDropdown.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.altKey && e.key === 'Enter') {
-      const selectedItem = document.querySelector('.ui.dropdown.label-filter .menu .item.selected');
-      if (selectedItem) {
-        excludeLabel(selectedItem);
-      }
+      const selectedItem = elDropdown.querySelector('.label-filter-query-item.selected');
+      if (selectedItem) excludeLabel(e, selectedItem);
     }
   });
+  // no "labels" query parameter means "all issues"
+  elDropdown.querySelector('.label-filter-query-default').classList.toggle('selected', queryLabels === '');
+  // "labels=0" query parameter means "issues without label"
+  elDropdown.querySelector('.label-filter-query-not-set').classList.toggle('selected', queryLabels === '0');
+
+  // prepare to process "archived" labels
+  const elShowArchivedLabel = elDropdown.querySelector('.label-filter-archived-toggle');
+  if (!elShowArchivedLabel) return;
+  const elShowArchivedInput = elShowArchivedLabel.querySelector<HTMLInputElement>('input');
+  elShowArchivedInput.checked = showArchivedLabels;
+  const archivedLabels = elDropdown.querySelectorAll('.item[data-is-archived]');
+  // if no archived labels, hide the toggle and return
+  if (!archivedLabels.length) {
+    hideElem(elShowArchivedLabel);
+    return;
+  }
+
+  // show the archived labels if the toggle is checked or the label is selected
+  for (const label of archivedLabels) {
+    toggleElem(label, showArchivedLabels || selectedLabelIds.has(label.getAttribute('data-label-id')));
+  }
+  // update the url when the toggle is changed and reload
+  elShowArchivedInput.addEventListener('input', () => {
+    if (elShowArchivedInput.checked) {
+      url.searchParams.set('archived_labels', 'true');
+    } else {
+      url.searchParams.delete('archived_labels');
+    }
+    window.location.assign(url);
+  });
+}
+
+export function initRepoIssueFilterItemLabel() {
+  // the "label-filter" is used in 2 templates: projects/view, issue/filter_list (issue list page including the milestone page)
+  queryElems(document, '.ui.dropdown.label-filter', initRepoIssueLabelFilter);
 }
 
 export function initRepoIssueCommentDelete() {

@@ -74,24 +74,6 @@
   }
 }
 
-.repository .filter.menu.labels .label-filter .menu .info {
-  display: inline-block;
-  padding: 0.5rem 0;
-  font-size: 12px;
-  width: 100%;
-  white-space: nowrap;
-  margin-left: 10px;
-  margin-right: 8px;
-  text-align: left;
-}
-
-.repository .filter.menu.labels .label-filter .menu .info code {
-  border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
-  padding: 1px 2px;
-  font-size: 11px;
-}
-
 /* make all issue filter dropdown menus popup leftward, to avoid go out the viewport (right side) */
 .repository .filter.menu .ui.dropdown .menu {
   max-height: 500px;
@@ -106,6 +88,24 @@
   min-width: max-content;
   right: unset;
   left: 0;
+}
+
+.repository .filter.menu .ui.dropdown.label-filter .menu .info {
+  display: inline-block;
+  padding: 0.5rem 0;
+  font-size: 12px;
+  width: 100%;
+  white-space: nowrap;
+  margin-left: 10px;
+  margin-right: 8px;
+  text-align: left;
+}
+
+.repository .filter.menu .ui.dropdown.label-filter .menu .info code {
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  padding: 1px 2px;
+  font-size: 11px;
 }
 
 /* For the secondary pointing menu, respect its own border-bottom */
