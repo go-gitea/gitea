@@ -1,11 +1,11 @@
 {{/*
-* "labels" from query string
+* "labels" from query string (needed by JS)
 * QueryLink
 * Labels
 * SupportArchivedLabel, if true, then it needs "archived_labes" from query string
 */}}
 {{$queryLink := .QueryLink}}
-<div class="item ui {{if not .Labels}}disabled{{end}} dropdown jump label-filter">
+<div class="item ui dropdown jump {{if not .Labels}}disabled{{end}} label-filter">
 	<span class="text">{{ctx.Locale.Tr "repo.issues.filter_label"}}</span>
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	<div class="menu flex-items-menu">

@@ -8,7 +8,7 @@
 * TextNegativeOne: the text for "issues with no assignee"
 */}}
 {{$queryLink := .QueryLink}}
-<div class="item ui {{if not .UserSearchList}}disabled{{end}} dropdown jump">
+<div class="item ui dropdown jump {{if not .UserSearchList}}disabled{{end}}">
 	{{$.TextFilterTitle}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	<div class="menu">
 		<div class="ui icon search input">
@@ -23,7 +23,7 @@
 		{{end}}
 		<div class="divider"></div>
 		{{range .UserSearchList}}
-			<a class="item {{if eq $.SelectedUserId .ID}}selected{{end}} item" href="{{QueryBuild $queryLink $.QueryParamKey .ID}}">
+			<a class="item {{if eq $.SelectedUserId .ID}}selected{{end}}" href="{{QueryBuild $queryLink $.QueryParamKey .ID}}">
 				{{ctx.AvatarUtils.Avatar . 20}}{{template "repo/search_name" .}}
 			</a>
 		{{end}}
