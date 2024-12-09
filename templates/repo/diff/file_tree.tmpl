@@ -1,9 +1,9 @@
 <div id="diff-file-tree" class="file-tree tw-hidden not-mobile">
 	<div class="file-tree-items">
 		{{range .Files}}
-    	{{template "repo/diff/file_tree_item" .}}
+			{{template "repo/diff/file_tree_item" .}}
 		{{end}}
-  </div>
+	</div>
 	{{if .IsIncomplete}}
 		<div class="tw-pt-1">
 			<a class="ui basic tiny button diff-show-more-files" data-href="{{ .LoadMoreLink }}">{{ctx.Locale.Tr "repo.diff.show_more"}}</a>

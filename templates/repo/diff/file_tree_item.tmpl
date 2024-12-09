@@ -17,16 +17,16 @@
 	</a>
 {{else}}
 	<div class="item-directory" title="{{ .Name }}">
-    <!-- directory -->
+		<!-- directory -->
 		{{svg "octicon-chevron-down"}}
 		{{svg "octicon-file-directory-open-fill" 16 "text primary"}}
-    <span class="gt-ellipsis">{{ .Name }}</span>
-  </div>
+		<span class="gt-ellipsis">{{ .Name }}</span>
+	</div>
 {{end}}
 {{if and .Children (gt (len .Children) 0)}}
 	<div class="sub-items">
 		{{range .Children}}
-    	{{template "repo/diff/file_tree_item" .}}
+			{{template "repo/diff/file_tree_item" .}}
 		{{end}}
 	</div>
 {{end}}
