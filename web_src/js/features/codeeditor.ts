@@ -162,7 +162,7 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
   return {monaco, editor};
 }
 
-function getFileBasedOptions(filename: string, lineWrapExts: string[]): IEditorOptions & IGlobalEditorOptions {
+function getFileBasedOptions(filename: string, lineWrapExts: string[]): MonacoOpts {
   return {
     wordWrap: (lineWrapExts || []).includes(extname(filename)) ? 'on' : 'off',
   };
