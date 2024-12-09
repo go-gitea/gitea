@@ -15,7 +15,7 @@ const {appSubUrl} = window.config;
 /**
  * @param {HTMLElement} item
  */
-function excludeLabel(item) {
+function excludeLabel(item: Element) {
   const href = item.getAttribute('href');
   const id = item.getAttribute('data-label-id');
 
@@ -80,7 +80,7 @@ export function initRepoIssueLabelFilter() {
 
 export function initRepoIssueCommentDelete() {
   // Delete comment
-  document.addEventListener('click', async (e) => {
+  document.addEventListener('click', async (e: MouseEvent & {target: HTMLElement}) => {
     if (!e.target.matches('.delete-comment')) return;
     e.preventDefault();
 
@@ -155,7 +155,7 @@ export function initRepoIssueDependencyDelete() {
 
 export function initRepoIssueCodeCommentCancel() {
   // Cancel inline code comment
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', (e: MouseEvent & {target: HTMLElement}) => {
     if (!e.target.matches('.cancel-code-comment')) return;
 
     const form = e.target.closest('form');
@@ -294,7 +294,7 @@ export function initRepoIssueWipTitle() {
 export function initRepoIssueComments() {
   if (!$('.repository.view.issue .timeline').length) return;
 
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', (e: MouseEvent & {target: HTMLElement}) => {
     const urlTarget = document.querySelector(':target');
     if (!urlTarget) return;
 
@@ -446,7 +446,7 @@ export function initRepoPullRequestReview() {
 
 export function initRepoIssueReferenceIssue() {
   // Reference issue
-  $(document).on('click', '.reference-issue', function (event) {
+  $(document).on('click', '.reference-issue', function (e) {
     const target = this.getAttribute('data-target');
     const content = document.querySelector(`#${target}`)?.textContent ?? '';
     const poster = this.getAttribute('data-poster-username');
@@ -456,7 +456,7 @@ export function initRepoIssueReferenceIssue() {
     const textarea = modal.querySelector('textarea[name="content"]');
     textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
     $(modal).modal('show');
-    event.preventDefault();
+    e.preventDefault();
   });
 }
 
@@ -540,7 +540,7 @@ export function initRepoIssueTitleEdit() {
 }
 
 export function initRepoIssueBranchSelect() {
-  document.querySelector('#branch-select')?.addEventListener('click', (e) => {
+  document.querySelector('#branch-select')?.addEventListener('click', (e: MouseEvent & {target: HTMLElement}) => {
     const el = e.target.closest('.item[data-branch]');
     if (!el) return;
     const pullTargetBranch = document.querySelector('#pull-target-branch');
