@@ -305,7 +305,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 
 	reviewersMap := make(map[int64][]*user_model.User)
 	for _, review := range reviews {
-		if review.ReviewerID != 0 {
+		if review.Reviewer != nil {
 			reviewersMap[review.IssueID] = append(reviewersMap[review.IssueID], review.Reviewer)
 		}
 	}
@@ -481,7 +481,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			// Calculate diff
 			startCommitID = pr.MergeBase
 
-			apiPullRequest.ChangedFiles, apiPullRequest.Additions, apiPullRequest.Deletions, err = gitRepo.GetDiffShortStat(startCommitID, endCommitID)
+ 			apiPullRequest.ChangedFiles, apiPullRequest.Additions, apiPullRequest.Deletions, err = gitRepo.GetDiffShortStat(startCommitID, endCommitID)
 			if err != nil {
 				log.Error("GetDiffShortStat: %v", err)
 			}
