@@ -7,6 +7,7 @@ test('hideScopedEmptyDividers-simple', () => {
 <div class="item">a</div>
 <div class="divider"></div>
 <div class="divider"></div>
+<div class="divider"></div>
 <div class="item">b</div>
 <div class="divider"></div>
 </div>`);
@@ -14,6 +15,7 @@ test('hideScopedEmptyDividers-simple', () => {
   expect(container.innerHTML).toEqual(`
 <div class="divider hidden transition"></div>
 <div class="item">a</div>
+<div class="divider hidden transition"></div>
 <div class="divider hidden transition"></div>
 <div class="divider"></div>
 <div class="item">b</div>

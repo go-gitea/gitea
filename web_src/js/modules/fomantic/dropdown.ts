@@ -302,7 +302,7 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
 export function hideScopedEmptyDividers(container: Element) {
   const visibleItems: Element[] = [];
   const curScopeVisibleItems: Element[] = [];
-  let curScope = '', lastVisibleScope = '';
+  let curScope: string = '', lastVisibleScope: string = '';
   const isScopedDivider = (item: Element) => item.matches('.divider') && item.hasAttribute('data-scope');
   const hideDivider = (item: Element) => item.classList.add('hidden', 'transition'); // dropdown has its own classes to hide items
 
@@ -344,12 +344,10 @@ export function hideScopedEmptyDividers(container: Element) {
     hideDivider(visibleItems[visibleItems.length - 1]);
     visibleItems.pop();
   }
-  // hide all duplicate dividers
-  for (let i = 0; i < visibleItems.length; i++) {
-    const item = visibleItems[i];
+  // hide all duplicate dividers, hide current divider if next sibling is still divider
+  // no need to update "visibleItems" array since this is the last loop
+  for (const item of visibleItems) {
     if (!item.matches('.divider')) continue;
-    if (i === 0 || i === visibleItems.length - 1 || item.nextElementSibling?.matches('.divider')) {
-      hideDivider(item);
-    }
+    if (item.nextElementSibling?.matches('.divider')) hideDivider(item);
   }
 }
