@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
+	"code.gitea.io/gitea/routers/web/shared/issue"
 	"code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	feed_service "code.gitea.io/gitea/services/feed"
@@ -413,6 +414,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		viewType = "your_repositories"
 	}
 
+	isPullList := unitType == unit.TypePullRequests
+	opts := &issues_model.IssuesOptions{
+		IsPull:     optional.Some(isPullList),
+		SortType:   sortType,
+		IsArchived: optional.Some(false),
+		User:       ctx.Doer,
+	}
 	// --------------------------------------------------------------------------
 	// Build opts (IssuesOptions), which contains filter information.
 	// Will eventually be used to retrieve issues relevant for the overview page.
@@ -422,30 +430,24 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// --------------------------------------------------------------------------
 
 	// Get repository IDs where User/Org/Team has access.
-	var team *organization.Team
-	var org *organization.Organization
-	if ctx.Org != nil {
-		org = ctx.Org.Organization
-		team = ctx.Org.Team
-	}
+	if ctx.Org != nil && ctx.Org.Organization != nil {
+		opts.Org = ctx.Org.Organization
+		opts.Team = ctx.Org.Team
 
-	isPullList := unitType == unit.TypePullRequests
-	opts := &issues_model.IssuesOptions{
-		IsPull:     optional.Some(isPullList),
-		SortType:   sortType,
-		IsArchived: optional.Some(false),
-		Org:        org,
-		Team:       team,
-		User:       ctx.Doer,
+		issue.PrepareFilterIssueLabels(ctx, 0, ctx.Org.Organization.AsUser())
+		if ctx.Written() {
+			return
+		}
 	}
 	// Get filter by author id & assignee id
-	// FIXME: this feature doesn't work at the moment, because frontend can't use a "user-remote-search" dropdown directly
 	// the existing "/posters" handlers doesn't work for this case, it is unable to list the related users correctly.
 	// In the future, we need something like github: "author:user1" to accept usernames directly.
 	posterUsername := ctx.FormString("poster")
+	ctx.Data["FilterPosterUsername"] = posterUsername
 	opts.PosterID = user.GetFilterUserIDByName(ctx, posterUsername)
-	// TODO: "assignee" should also use GetFilterUserIDByName in the future to support usernames directly
-	opts.AssigneeID, _ = strconv.ParseInt(ctx.FormString("assignee"), 10, 64)
+	assigneeUsername := ctx.FormString("assignee")
+	ctx.Data["FilterAssigneeUsername"] = assigneeUsername
+	opts.AssigneeID = user.GetFilterUserIDByName(ctx, assigneeUsername)
 
 	isFuzzy := ctx.FormBool("fuzzy")
 
@@ -471,8 +473,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		UnitType:    unitType,
 		Archived:    optional.Some(false),
 	}
-	if team != nil {
-		repoOpts.TeamID = team.ID
+	if opts.Team != nil {
+		repoOpts.TeamID = opts.Team.ID
 	}
 	accessibleRepos := container.Set[int64]{}
 	{
@@ -500,9 +502,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	case issues_model.FilterModeAll:
 	case issues_model.FilterModeYourRepositories:
 	case issues_model.FilterModeAssign:
-		opts.AssigneeID = ctx.Doer.ID
+		opts.AssigneeID = optional.Some(ctx.Doer.ID)
 	case issues_model.FilterModeCreate:
-		opts.PosterID = ctx.Doer.ID
+		opts.PosterID = optional.Some(ctx.Doer.ID)
 	case issues_model.FilterModeMention:
 		opts.MentionedID = ctx.Doer.ID
 	case issues_model.FilterModeReviewRequested:
@@ -584,10 +586,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			// because the doer may create issues or be mentioned in any public repo.
 			// So we need search issues in all public repos.
 			o.AllPublic = ctx.Doer.ID == ctxUser.ID
-			// TODO: to make it work with poster/assignee filter, then these IDs should be kept
-			o.AssigneeID = nil
-			o.PosterID = nil
-
 			o.MentionID = nil
 			o.ReviewRequestedID = nil
 			o.ReviewedID = nil
@@ -645,10 +643,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["IsShowClosed"] = isShowClosed
-	ctx.Data["SelectLabels"] = selectedLabels
 	ctx.Data["IsFuzzy"] = isFuzzy
-	ctx.Data["SearchFilterPosterID"] = util.Iif[any](opts.PosterID != 0, opts.PosterID, nil)
-	ctx.Data["SearchFilterAssigneeID"] = util.Iif[any](opts.AssigneeID != 0, opts.AssigneeID, nil)
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -657,16 +652,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 
 	pager := context.NewPagination(shownIssues, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParamString("q", keyword)
-	pager.AddParamString("type", viewType)
-	pager.AddParamString("sort", sortType)
-	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
-	pager.AddParamString("labels", selectedLabels)
-	pager.AddParamString("fuzzy", fmt.Sprint(isFuzzy))
-	pager.AddParamString("poster", posterUsername)
-	if opts.AssigneeID != 0 {
-		pager.AddParamString("assignee", fmt.Sprint(opts.AssigneeID))
-	}
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplIssues)
