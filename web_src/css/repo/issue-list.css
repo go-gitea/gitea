@@ -68,10 +68,8 @@
   background-color: var(--color-secondary-dark-4);
 }
 
-.archived-label-filter {
-  margin-left: 10px;
+.label-filter-archived-toggle {
+  margin: 8px 10px;
   font-size: 12px;
-  display: flex !important;
-  margin-bottom: 8px;
   min-width: fit-content;
 }
