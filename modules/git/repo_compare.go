@@ -233,17 +233,6 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 	return numFiles, totalAdditions, totalDeletions, err
 }
 
-// GetDiffOrPatch generates either diff or formatted patch data between given revisions
-func (repo *Repository) GetDiffOrPatch(compareString string, w io.Writer, patch, binary bool) error {
-	if patch {
-		return repo.GetPatch(compareString, w)
-	}
-	if binary {
-		return repo.GetDiffBinary(compareString, w)
-	}
-	return repo.GetDiff(compareString, w)
-}
-
 func parseCompareArgs(compareArgs string) (args []string) {
 	parts := strings.Split(compareArgs, "...")
 	if len(parts) == 2 {
