@@ -668,3 +668,191 @@ func TestNoCrashes(t *testing.T) {
 		ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
 	}
 }
+
+func TestBuildTree(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []*DiffFile
+		expected []*FileTreeNode
+	}{
+		{
+			name: "Test case 1",
+			input: []*DiffFile{
+				{Name: "2/2", NameHash: "23b3d60a69a4b1bacb1a3b9ced0a8ac609efbf61"},
+				{Name: "test1", NameHash: "b444ac06613fc8d63795be9ad0beaf55011936ac"},
+			},
+			expected: []*FileTreeNode{
+				{
+					Name:   "2",
+					IsFile: false,
+					Children: []*FileTreeNode{
+						{
+							Name:   "2",
+							IsFile: true,
+							File: &DiffFile{
+								Name:     "2/2",
+								NameHash: "23b3d60a69a4b1bacb1a3b9ced0a8ac609efbf61",
+							},
+						},
+					},
+				},
+				{
+					Name:   "test1",
+					IsFile: true,
+					File: &DiffFile{
+						Name:     "test1",
+						NameHash: "b444ac06613fc8d63795be9ad0beaf55011936ac",
+					},
+				},
+			},
+		},
+		{
+			name: "Test case 2",
+			input: []*DiffFile{
+				{Name: "a/b/c", NameHash: "hash1"},
+				{Name: "a/b/d", NameHash: "hash2"},
+				{Name: "a/e", NameHash: "hash3"},
+				{Name: "f", NameHash: "hash4"},
+			},
+			expected: []*FileTreeNode{
+				{
+					Name:   "a",
+					IsFile: false,
+					Children: []*FileTreeNode{
+						{
+							Name:   "b",
+							IsFile: false,
+							Children: []*FileTreeNode{
+								{
+									Name:   "c",
+									IsFile: true,
+									File: &DiffFile{
+										Name:     "a/b/c",
+										NameHash: "hash1",
+									},
+								},
+								{
+									Name:   "d",
+									IsFile: true,
+									File: &DiffFile{
+										Name:     "a/b/d",
+										NameHash: "hash2",
+									},
+								},
+							},
+						},
+						{
+							Name:   "e",
+							IsFile: true,
+							File: &DiffFile{
+								Name:     "a/e",
+								NameHash: "hash3",
+							},
+						},
+					},
+				},
+				{
+					Name:   "f",
+					IsFile: true,
+					File: &DiffFile{
+						Name:     "f",
+						NameHash: "hash4",
+					},
+				},
+			},
+		},
+		{
+			name: "Test case 3",
+			input: []*DiffFile{
+				{Name: "dir1/file1", NameHash: "hash1"},
+				{Name: "dir1/file2", NameHash: "hash2"},
+				{Name: "dir2/file3", NameHash: "hash3"},
+				{Name: "dir2/file4", NameHash: "hash4"},
+				{Name: "file5", NameHash: "hash5"},
+			},
+			expected: []*FileTreeNode{
+				{
+					Name:   "dir1",
+					IsFile: false,
+					Children: []*FileTreeNode{
+						{
+							Name:   "file1",
+							IsFile: true,
+							File: &DiffFile{
+								Name:     "dir1/file1",
+								NameHash: "hash1",
+							},
+						},
+						{
+							Name:   "file2",
+							IsFile: true,
+							File: &DiffFile{
+								Name:     "dir1/file2",
+								NameHash: "hash2",
+							},
+						},
+					},
+				},
+				{
+					Name:   "dir2",
+					IsFile: false,
+					Children: []*FileTreeNode{
+						{
+							Name:   "file3",
+							IsFile: true,
+							File: &DiffFile{
+								Name:     "dir2/file3",
+								NameHash: "hash3",
+							},
+						},
+						{
+							Name:   "file4",
+							IsFile: true,
+							File: &DiffFile{
+								Name:     "dir2/file4",
+								NameHash: "hash4",
+							},
+						},
+					},
+				},
+				{
+					Name:   "file5",
+					IsFile: true,
+					File: &DiffFile{
+						Name:     "file5",
+						NameHash: "hash5",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := buildTree(tt.input)
+			if !compareFileTreeNodes(result, tt.expected) {
+				t.Errorf("Expected %v, but got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+func compareFileTreeNodes(a, b []*FileTreeNode) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].Name != b[i].Name || a[i].IsFile != b[i].IsFile {
+			return false
+		}
+		if a[i].IsFile && b[i].IsFile {
+			if a[i].File.Name != b[i].File.Name || a[i].File.NameHash != b[i].File.NameHash {
+				return false
+			}
+		}
+		if !compareFileTreeNodes(a[i].Children, b[i].Children) {
+			return false
+		}
+	}
+	return true
+}
