@@ -25,7 +25,7 @@ async function createNewColumn(url, columnTitle, projectColorInput) {
   }
 }
 
-async function moveIssue({item, from, to, oldIndex}) {
+async function moveIssue({item, from, to, oldIndex}: {item: HTMLElement, from: HTMLElement, to: HTMLElement, oldIndex: number}) {
   const columnCards = to.querySelectorAll('.issue-card');
   updateIssueCount(from);
   updateIssueCount(to);
@@ -97,14 +97,14 @@ export function initRepoProject() {
     return;
   }
 
-  const _promise = initRepoProjectSortable();
+  initRepoProjectSortable(); // no await
 
   for (const modal of document.querySelectorAll('.edit-project-column-modal')) {
-    const projectHeader = modal.closest('.project-column-header');
-    const projectTitleLabel = projectHeader?.querySelector('.project-column-title-label');
-    const projectTitleInput = modal.querySelector('.project-column-title-input');
-    const projectColorInput = modal.querySelector('#new_project_column_color');
-    const boardColumn = modal.closest('.project-column');
+    const projectHeader = modal.closest<HTMLElement>('.project-column-header');
+    const projectTitleLabel = projectHeader?.querySelector<HTMLElement>('.project-column-title-label');
+    const projectTitleInput = modal.querySelector<HTMLInputElement>('.project-column-title-input');
+    const projectColorInput = modal.querySelector<HTMLInputElement>('#new_project_column_color');
+    const boardColumn = modal.closest<HTMLElement>('.project-column');
     modal.querySelector('.edit-project-column-button')?.addEventListener('click', async function (e) {
       e.preventDefault();
       try {
@@ -119,7 +119,7 @@ export function initRepoProject() {
       } finally {
         projectTitleLabel.textContent = projectTitleInput?.value;
         projectTitleInput.closest('form')?.classList.remove('dirty');
-        const dividers = boardColumn.querySelectorAll(':scope > .divider');
+        const dividers = boardColumn.querySelectorAll<HTMLElement>(':scope > .divider');
         if (projectColorInput.value) {
           const color = contrastColor(projectColorInput.value);
           boardColumn.style.setProperty('background', projectColorInput.value, 'important');

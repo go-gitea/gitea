@@ -64,7 +64,7 @@ export function initRepoCloneLink() {
   });
 }
 
-export function initRepoCommonBranchOrTagDropdown(selector) {
+export function initRepoCommonBranchOrTagDropdown(selector: string) {
   $(selector).each(function () {
     const $dropdown = $(this);
     $dropdown.find('.reference.column').on('click', function () {
@@ -75,7 +75,7 @@ export function initRepoCommonBranchOrTagDropdown(selector) {
   });
 }
 
-export function initRepoCommonFilterSearchDropdown(selector) {
+export function initRepoCommonFilterSearchDropdown(selector: string) {
   const $dropdown = $(selector);
   if (!$dropdown.length) return;
 
