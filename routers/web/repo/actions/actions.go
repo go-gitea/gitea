@@ -245,6 +245,11 @@ func List(ctx *context.Context) {
 		return
 	}
 
+	if err := loadIsRefDeleted(ctx, runs); err != nil {
+		ctx.ServerError("LoadIsRefDeleted", err)
+		return
+	}
+
 	ctx.Data["Runs"] = runs
 
 	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
@@ -265,6 +270,36 @@ func List(ctx *context.Context) {
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 
 	ctx.HTML(http.StatusOK, tplListActions)
+}
+
+// loadIsRefDeleted loads the IsRefDeleted field for each run in the list.
+// TODO: move this function to models/actions/run_list.go but now it will result in a circular import.
+func loadIsRefDeleted(ctx *context.Context, runs actions_model.RunList) error {
+	branchRuns := make(map[string][]*actions_model.ActionRun)
+	branches := make(container.Set[string], len(runs))
+	for _, run := range runs {
+		refName := git.RefName(run.Ref)
+		if refName.IsBranch() {
+			branchName := refName.ShortName()
+			run.IsRefDeleted = true // assume it's deleted then if it's found in the database it's not deleted
+			branchRuns[branchName] = append(branchRuns[branchName], run)
+			branches.Add(branchName)
+		}
+	}
+	if len(branches) == 0 {
+		return nil
+	}
+	branchInfos, err := git_model.GetExistBranches(ctx, ctx.Repo.Repository.ID, branches.Values())
+	if err != nil {
+		return err
+	}
+	for _, branchInfo := range branchInfos {
+		branchRun := branchRuns[branchInfo.Name]
+		for _, br := range branchRun {
+			br.IsRefDeleted = false
+		}
+	}
+	return nil
 }
 
 type WorkflowDispatchInput struct {
