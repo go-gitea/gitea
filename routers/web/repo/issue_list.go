@@ -504,19 +504,16 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	if !util.SliceContainsString(types, viewType, true) {
 		viewType = "all"
 	}
-
-	var (
-		assigneeID        = ctx.FormInt64("assignee")
-		posterID          = ctx.FormInt64("poster")
-		mentionedID       int64
-		reviewRequestedID int64
-		reviewedID        int64
-	)
+	// TODO: "assignee" should also use GetFilterUserIDByName in the future to support usernames directly
+	assigneeID := ctx.FormInt64("assignee")
+	posterUsername := ctx.FormString("poster")
+	posterUserID := shared_user.GetFilterUserIDByName(ctx, posterUsername)
+	var mentionedID, reviewRequestedID, reviewedID int64
 
 	if ctx.IsSigned {
 		switch viewType {
 		case "created_by":
-			posterID = ctx.Doer.ID
+			posterUserID = ctx.Doer.ID
 		case "mentioned":
 			mentionedID = ctx.Doer.ID
 		case "assigned":
@@ -564,7 +561,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		ProjectID:         projectID,
 		AssigneeID:        assigneeID,
 		MentionedID:       mentionedID,
-		PosterID:          posterID,
+		PosterID:          posterUserID,
 		ReviewRequestedID: reviewRequestedID,
 		ReviewedID:        reviewedID,
 		IsPull:            isPullOption,
@@ -646,7 +643,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			},
 			RepoIDs:           []int64{repo.ID},
 			AssigneeID:        assigneeID,
-			PosterID:          posterID,
+			PosterID:          posterUserID,
 			MentionedID:       mentionedID,
 			ReviewRequestedID: reviewRequestedID,
 			ReviewedID:        reviewedID,
@@ -800,16 +797,16 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["OpenCount"] = issueStats.OpenCount
 	ctx.Data["ClosedCount"] = issueStats.ClosedCount
-	linkStr := "%s?q=%s&type=%s&sort=%s&state=%s&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%d&archived=%t"
+	linkStr := "%s?q=%s&type=%s&sort=%s&state=%s&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%v&archived=%t"
 	ctx.Data["AllStatesLink"] = fmt.Sprintf(linkStr, ctx.Link,
 		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "all", url.QueryEscape(selectLabels),
-		milestoneID, projectID, assigneeID, posterID, archived)
+		milestoneID, projectID, assigneeID, url.QueryEscape(posterUsername), archived)
 	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Link,
 		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "open", url.QueryEscape(selectLabels),
-		milestoneID, projectID, assigneeID, posterID, archived)
+		milestoneID, projectID, assigneeID, url.QueryEscape(posterUsername), archived)
 	ctx.Data["ClosedLink"] = fmt.Sprintf(linkStr, ctx.Link,
 		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "closed", url.QueryEscape(selectLabels),
-		milestoneID, projectID, assigneeID, posterID, archived)
+		milestoneID, projectID, assigneeID, url.QueryEscape(posterUsername), archived)
 	ctx.Data["SelLabelIDs"] = labelIDs
 	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["ViewType"] = viewType
@@ -817,7 +814,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	ctx.Data["MilestoneID"] = milestoneID
 	ctx.Data["ProjectID"] = projectID
 	ctx.Data["AssigneeID"] = assigneeID
-	ctx.Data["PosterID"] = posterID
+	ctx.Data["PosterUsername"] = posterUsername
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["IsShowClosed"] = isShowClosed
 	switch {
@@ -838,7 +835,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	pager.AddParamString("milestone", fmt.Sprint(milestoneID))
 	pager.AddParamString("project", fmt.Sprint(projectID))
 	pager.AddParamString("assignee", fmt.Sprint(assigneeID))
-	pager.AddParamString("poster", fmt.Sprint(posterID))
+	pager.AddParamString("poster", posterUsername)
 	pager.AddParamString("archived", fmt.Sprint(archived))
 
 	ctx.Data["Page"] = pager
