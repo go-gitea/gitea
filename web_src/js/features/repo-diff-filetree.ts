@@ -51,6 +51,7 @@ export function initDiffFileTree() {
   for (const el of document.querySelectorAll<HTMLInputElement>('.file-tree-items .item-directory')) {
     el.addEventListener('click', () => {
       toggleElem(el.nextElementSibling);
+      toggleElem(el.querySelectorAll('.svg.octicon-chevron-right, .svg.octicon-chevron-down, .svg.octicon-file-directory-fill, .svg.octicon-file-directory-open-fill'));
     });
   }
 }

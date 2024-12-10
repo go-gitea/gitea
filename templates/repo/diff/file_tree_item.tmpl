@@ -18,7 +18,9 @@
 {{else}}
 	<div class="item-directory" title="{{.Name}}">
 		<!-- directory -->
-		{{svg "octicon-chevron-down"}}
+		{{svg "octicon-chevron-right" 16 "tw-hidden"}}
+		{{svg "octicon-chevron-down" 16}}
+		{{svg "octicon-file-directory-fill" 16 "text primary tw-hidden"}}
 		{{svg "octicon-file-directory-open-fill" 16 "text primary"}}
 		<span class="gt-ellipsis">{{.Name}}</span>
 	</div>
