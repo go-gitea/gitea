@@ -140,6 +140,9 @@
 						{{template "repo/code/upstream_diverging_info" .}}
 					{{end}}
 					{{template "repo/view_list" .}}
+					{{if and .ReadmeExist (or .IsMarkup .IsPlainText)}}
+						{{template "repo/view_file" .}}
+					{{end}}
 				{{end}}
 			</div>
 
