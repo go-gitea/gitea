@@ -340,7 +340,7 @@ index 0000000..92e798b
 @@ -0,0 +1 @@
 +b b/b
 `,
-			oldFilename: "",
+			oldFilename: "b b/b",
 			filename:    "b b/b",
 			addition:    1,
 			deletion:    0,
