@@ -678,8 +678,8 @@ func TestBuildTree(t *testing.T) {
 		{
 			name: "Test case 1",
 			input: []*DiffFile{
-				{Name: "2/2", NameHash: "23b3d60a69a4b1bacb1a3b9ced0a8ac609efbf61"},
 				{Name: "test1", NameHash: "b444ac06613fc8d63795be9ad0beaf55011936ac"},
+				{Name: "2/2", NameHash: "23b3d60a69a4b1bacb1a3b9ced0a8ac609efbf61"},
 			},
 			expected: []*FileTreeNode{
 				{
@@ -709,9 +709,9 @@ func TestBuildTree(t *testing.T) {
 		{
 			name: "Test case 2",
 			input: []*DiffFile{
-				{Name: "a/b/c", NameHash: "hash1"},
 				{Name: "a/b/d", NameHash: "hash2"},
 				{Name: "a/e", NameHash: "hash3"},
+				{Name: "a/b/c", NameHash: "hash1"},
 				{Name: "f", NameHash: "hash4"},
 			},
 			expected: []*FileTreeNode{
@@ -764,10 +764,10 @@ func TestBuildTree(t *testing.T) {
 		{
 			name: "Test case 3",
 			input: []*DiffFile{
-				{Name: "dir1/file1", NameHash: "hash1"},
-				{Name: "dir1/file2", NameHash: "hash2"},
-				{Name: "dir2/file3", NameHash: "hash3"},
 				{Name: "dir2/file4", NameHash: "hash4"},
+				{Name: "dir1/file1", NameHash: "hash1"},
+				{Name: "dir2/file3", NameHash: "hash3"},
+				{Name: "dir1/file2", NameHash: "hash2"},
 				{Name: "file5", NameHash: "hash5"},
 			},
 			expected: []*FileTreeNode{
