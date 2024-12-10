@@ -7,8 +7,7 @@
   ],
   "compilerOptions": {
     "target": "es2020",
-    "module": "node16",
-    "moduleResolution": "node16",
+    "module": "nodenext",
     "lib": ["dom", "dom.iterable", "dom.asynciterable", "esnext"],
     "allowImportingTsExtensions": true,
     "allowJs": true,
