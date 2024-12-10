@@ -1432,11 +1432,13 @@ func buildTree(files []*DiffFile) []*FileTreeNode {
 	for _, node := range result {
 		if len(node.Children) > 0 {
 			mergedNode := mergeSingleChildDirs(node)
+			sortChildren(mergedNode)
 			roots = append(roots, mergedNode)
 		} else {
 			roots = append(roots, node)
 		}
 	}
+	sortChildren(&FileTreeNode{Children: roots})
 	return roots
 }
 
@@ -1454,4 +1456,16 @@ func mergeSingleChildDirs(node *FileTreeNode) *FileTreeNode {
 		node.Children[i] = mergeSingleChildDirs(child)
 	}
 	return node
+}
+
+func sortChildren(node *FileTreeNode) {
+	sort.Slice(node.Children, func(i, j int) bool {
+		if node.Children[i].IsFile == node.Children[j].IsFile {
+			return node.Children[i].Name < node.Children[j].Name
+		}
+		return !node.Children[i].IsFile
+	})
+	for _, child := range node.Children {
+		sortChildren(child)
+	}
 }
