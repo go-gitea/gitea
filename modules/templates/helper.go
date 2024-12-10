@@ -294,9 +294,7 @@ func timeEstimateString(timeSec any) string {
 	return util.TimeEstimateString(v)
 }
 
-type QueryString string
-
-func queryBuild(a ...any) QueryString {
+func queryBuild(a ...any) template.URL {
 	var s string
 	if len(a)%2 == 1 {
 		if v, ok := a[0].(string); ok {
@@ -304,7 +302,7 @@ func queryBuild(a ...any) QueryString {
 				panic("queryBuild: invalid argument")
 			}
 			s = v
-		} else if v, ok := a[0].(QueryString); ok {
+		} else if v, ok := a[0].(template.URL); ok {
 			s = string(v)
 		} else {
 			panic("queryBuild: invalid argument")
@@ -356,7 +354,7 @@ func queryBuild(a ...any) QueryString {
 	if s != "" && s != "&" && s[len(s)-1] == '&' {
 		s = s[:len(s)-1]
 	}
-	return QueryString(s)
+	return template.URL(s)
 }
 
 func panicIfDevOrTesting() {
