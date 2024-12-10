@@ -86,16 +86,14 @@ type DiffLine struct {
 
 // DiffLineSectionInfo represents diff line section meta data
 type DiffLineSectionInfo struct {
-	Path                string
-	LastLeftIdx         int
-	LastRightIdx        int
-	LeftIdx             int
-	RightIdx            int
-	LeftHunkSize        int
-	RightHunkSize       int
-	HasComments         bool
-	LastRightCommentIdx int
-	RightCommentIdx     int
+	Path          string
+	LastLeftIdx   int
+	LastRightIdx  int
+	LeftIdx       int
+	RightIdx      int
+	LeftHunkSize  int
+	RightHunkSize int
+	HasComments   bool
 }
 
 // BlobExcerptChunkSize represent max lines of excerpt
@@ -146,12 +144,10 @@ func (d *DiffLine) GetBlobExcerptQuery() string {
 		"last_left=%d&last_right=%d&"+
 			"left=%d&right=%d&"+
 			"left_hunk_size=%d&right_hunk_size=%d&"+
-			"last_rightt_comment_idx=%d&right_comment_idx=%d&"+
 			"path=%s",
 		d.SectionInfo.LastLeftIdx, d.SectionInfo.LastRightIdx,
 		d.SectionInfo.LeftIdx, d.SectionInfo.RightIdx,
 		d.SectionInfo.LeftHunkSize, d.SectionInfo.RightHunkSize,
-		d.SectionInfo.LastRightCommentIdx, d.SectionInfo.RightCommentIdx,
 		url.QueryEscape(d.SectionInfo.Path))
 	return query
 }
@@ -175,16 +171,14 @@ func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int
 	leftLine, leftHunk, rightLine, righHunk := git.ParseDiffHunkString(line)
 
 	return &DiffLineSectionInfo{
-		Path:                treePath,
-		LastLeftIdx:         lastLeftIdx,
-		LastRightIdx:        lastRightIdx,
-		LeftIdx:             leftLine,
-		RightIdx:            rightLine,
-		LeftHunkSize:        leftHunk,
-		RightHunkSize:       righHunk,
-		HasComments:         false,
-		LastRightCommentIdx: 0,
-		RightCommentIdx:     0,
+		Path:          treePath,
+		LastLeftIdx:   lastLeftIdx,
+		LastRightIdx:  lastRightIdx,
+		LeftIdx:       leftLine,
+		RightIdx:      rightLine,
+		LeftHunkSize:  leftHunk,
+		RightHunkSize: righHunk,
+		HasComments:   false,
 	}
 }
 
@@ -404,14 +398,12 @@ func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommit, ri
 		Type:    DiffLineSection,
 		Content: " ",
 		SectionInfo: &DiffLineSectionInfo{
-			Path:                diffFile.Name,
-			LastLeftIdx:         lastLine.LeftIdx,
-			LastRightIdx:        lastLine.RightIdx,
-			LeftIdx:             leftLineCount,
-			RightIdx:            rightLineCount,
-			HasComments:         false,
-			LastRightCommentIdx: 0,
-			RightCommentIdx:     0,
+			Path:         diffFile.Name,
+			LastLeftIdx:  lastLine.LeftIdx,
+			LastRightIdx: lastLine.RightIdx,
+			LeftIdx:      leftLineCount,
+			RightIdx:     rightLineCount,
+			HasComments:  false,
 		},
 	}
 	tailSection := &DiffSection{FileName: diffFile.Name, Lines: []*DiffLine{tailDiffLine}}
@@ -469,11 +461,9 @@ type Diff struct {
 	NumViewedFiles               int // user-specific
 }
 
-// function (section *DiffSection) GetType() int {
-
 // LoadComments loads comments into each line
 func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, currentUser *user_model.User, showOutdatedComments bool) error {
-	allComments, err := issues_model.FetchCodeComments(ctx, issue, currentUser, showOutdatedComments)
+	allComments, err := issues_model.FetchCodeComments(ctx, issue, currentUser, showOutdatedComments, nil)
 	if err != nil {
 		return err
 	}

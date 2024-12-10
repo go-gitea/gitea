@@ -1520,10 +1520,6 @@ func registerRoutes(m *web.Router) {
 			m.Get("/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
 		}, func(ctx *context.Context) gocontext.CancelFunc {
 			// FIXME: refactor this function, use separate routes for wiki/code
-			if ctx.FormBool("pull") {
-				ctx.Data["PageIsPullFiles"] = true
-			}
-
 			if ctx.FormBool("wiki") {
 				ctx.Data["PageIsWiki"] = true
 				repo.MustEnableWiki(ctx)

@@ -924,16 +924,14 @@ func ExcerptBlob(ctx *context.Context) {
 			Type:    gitdiff.DiffLineSection,
 			Content: lineText,
 			SectionInfo: &gitdiff.DiffLineSectionInfo{
-				Path:                filePath,
-				LastLeftIdx:         lastLeft,
-				LastRightIdx:        lastRight,
-				LeftIdx:             idxLeft,
-				RightIdx:            idxRight,
-				LeftHunkSize:        leftHunkSize,
-				RightHunkSize:       rightHunkSize,
-				HasComments:         false,
-				LastRightCommentIdx: 0,
-				RightCommentIdx:     0,
+				Path:          filePath,
+				LastLeftIdx:   lastLeft,
+				LastRightIdx:  lastRight,
+				LeftIdx:       idxLeft,
+				RightIdx:      idxRight,
+				LeftHunkSize:  leftHunkSize,
+				RightHunkSize: rightHunkSize,
+				HasComments:   false,
 			},
 			Comments: nil,
 		}
@@ -946,11 +944,11 @@ func ExcerptBlob(ctx *context.Context) {
 	issueIndex := ctx.FormInt64("issue_index")
 	if ctx.FormBool("pull") && issueIndex > 0 {
 		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
-		if issue == nil {
+		if err != nil {
 			ctx.ServerError("GetIssueByIndex", err)
 			return
 		}
-		allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, false)
+		allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, false, &filePath)
 		if err != nil {
 			ctx.ServerError("FetchCodeComments", err)
 			return
