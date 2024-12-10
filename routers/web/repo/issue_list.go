@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -531,12 +530,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	// 0 means issues with no label
 	// blank means labels will not be filtered for issues
 	selectLabels := ctx.FormString("labels")
-	if selectLabels == "" {
-		ctx.Data["AllLabels"] = true
-	} else if selectLabels == "0" {
-		ctx.Data["NoLabel"] = true
-	}
-	if len(selectLabels) > 0 {
+	if selectLabels != "" {
 		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
 		if err != nil {
 			ctx.Flash.Error(ctx.Tr("invalid_data", selectLabels), true)
@@ -615,8 +609,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		}
 		ctx.Data["TotalTrackedTime"] = totalTrackedTime
 	}
-
-	archived := ctx.FormBool("archived")
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
@@ -792,21 +784,13 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		return
 	}
 
+	showArchivedLabels := ctx.FormBool("archived_labels")
+	ctx.Data["ShowArchivedLabels"] = showArchivedLabels
 	ctx.Data["PinnedIssues"] = pinned
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["OpenCount"] = issueStats.OpenCount
 	ctx.Data["ClosedCount"] = issueStats.ClosedCount
-	linkStr := "%s?q=%s&type=%s&sort=%s&state=%s&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%v&archived=%t"
-	ctx.Data["AllStatesLink"] = fmt.Sprintf(linkStr, ctx.Link,
-		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "all", url.QueryEscape(selectLabels),
-		milestoneID, projectID, assigneeID, url.QueryEscape(posterUsername), archived)
-	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Link,
-		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "open", url.QueryEscape(selectLabels),
-		milestoneID, projectID, assigneeID, url.QueryEscape(posterUsername), archived)
-	ctx.Data["ClosedLink"] = fmt.Sprintf(linkStr, ctx.Link,
-		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "closed", url.QueryEscape(selectLabels),
-		milestoneID, projectID, assigneeID, url.QueryEscape(posterUsername), archived)
 	ctx.Data["SelLabelIDs"] = labelIDs
 	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["ViewType"] = viewType
@@ -814,6 +798,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	ctx.Data["MilestoneID"] = milestoneID
 	ctx.Data["ProjectID"] = projectID
 	ctx.Data["AssigneeID"] = assigneeID
+	ctx.Data["PosterUserID"] = posterUserID
 	ctx.Data["PosterUsername"] = posterUsername
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["IsShowClosed"] = isShowClosed
@@ -825,7 +810,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	default:
 		ctx.Data["State"] = "open"
 	}
-	ctx.Data["ShowArchivedLabels"] = archived
 
 	pager.AddParamString("q", keyword)
 	pager.AddParamString("type", viewType)
@@ -836,8 +820,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	pager.AddParamString("project", fmt.Sprint(projectID))
 	pager.AddParamString("assignee", fmt.Sprint(assigneeID))
 	pager.AddParamString("poster", posterUsername)
-	pager.AddParamString("archived", fmt.Sprint(archived))
-
+	if showArchivedLabels {
+		pager.AddParamString("archived_labels", "true")
+	}
 	ctx.Data["Page"] = pager
 }
 

@@ -1,55 +1,6 @@
-{{$queryLink := QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" $.State "labels" $.SelectLabels "milestone" $.MilestoneID "project" $.ProjectID "assignee" $.AssigneeID "poster" $.PosterUsername "archived" (Iif $.ShowArchivedLabels NIL)}}
-<!-- Label -->
-<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter">
-	<span class="text">
-		{{ctx.Locale.Tr "repo.issues.filter_label"}}
-	</span>
-	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu">
-		<div class="ui icon search input">
-			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_label"}}">
-		</div>
-		<div class="ui checkbox compact archived-label-filter">
-			<input name="archived" type="checkbox"
-				id="archived-filter-checkbox"
-				{{if .ShowArchivedLabels}}checked{{end}}
-			>
-			<label for="archived-filter-checkbox">
-				{{ctx.Locale.Tr "repo.issues.label_archived_filter"}}
-				<i class="tw-ml-1" data-tooltip-content={{ctx.Locale.Tr "repo.issues.label_archive_tooltip"}}>
-					{{svg "octicon-info"}}
-				</i>
-			</label>
-		</div>
-		<span class="info">{{ctx.Locale.Tr "repo.issues.filter_label_exclude"}}</span>
-		<div class="divider"></div>
-		<a class="{{if .AllLabels}}active selected {{end}}item" href="{{QueryBuild $queryLink "labels" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_label_no_select"}}</a>
-		<a class="{{if .NoLabel}}active selected {{end}}item" href="{{QueryBuild $queryLink "labels" 0}}">{{ctx.Locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
-		{{$previousExclusiveScope := "_no_scope"}}
-		{{range .Labels}}
-			{{$exclusiveScope := .ExclusiveScope}}
-			{{if and (ne $previousExclusiveScope $exclusiveScope)}}
-				<div class="divider" data-scope="{{.ExclusiveScope}}"></div>
-			{{end}}
-			{{$previousExclusiveScope = $exclusiveScope}}
-			<a class="item label-filter-item tw-flex tw-items-center" data-label-id="{{.ID}}" data-scope="{{.ExclusiveScope}}" {{if .IsArchived}}data-is-archived{{end}}
-				href="{{QueryBuild $queryLink "labels" .QueryString}}">
-				{{if .IsExcluded}}
-					{{svg "octicon-circle-slash"}}
-				{{else if .IsSelected}}
-					{{if $exclusiveScope}}
-						{{svg "octicon-dot-fill"}}
-					{{else}}
-						{{svg "octicon-check"}}
-					{{end}}
-				{{end}}
-				{{ctx.RenderUtils.RenderLabel .}}
-				<p class="tw-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
-			</a>
-		{{end}}
-	</div>
-</div>
+{{$queryLink := QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" $.State "labels" $.SelectLabels "milestone" $.MilestoneID "project" $.ProjectID "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
+
+{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
 
 {{if not .Milestone}}
 <!-- Milestone -->
@@ -128,46 +79,24 @@
 	</div>
 </div>
 
-<!-- Author -->
-<div class="ui dropdown jump item user-remote-search" data-tooltip-content="{{ctx.Locale.Tr "repo.author_search_tooltip"}}"
-	data-search-url="{{if .Milestone}}{{$.RepoLink}}/issues/posters{{else}}{{$.Link}}/posters{{end}}"
-	data-selected-user-id="{{$.PosterID}}"
-	data-action-jump-url="{{QueryBuild $queryLink "poster" NIL}}&poster={username}"
->
-	<span class="text">
-		{{ctx.Locale.Tr "repo.issues.filter_poster"}}
-	</span>
-	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu">
-		<div class="ui icon search input">
-			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_poster"}}">
-		</div>
-		<a class="item" data-value="0">{{ctx.Locale.Tr "repo.issues.filter_poster_no_select"}}</a>
-	</div>
-</div>
+{{/* TODO: the UserSearchUrl is old logic but not right, milestone could also have "pull request" posters */}}
+{{template "repo/issue/filter_item_user_fetch" dict
+	"QueryParamKey" "poster"
+	"QueryLink" $queryLink
+	"UserSearchUrl" (Iif .Milestone (print $.RepoLink "/issues/posters") (print $.Link "/posters"))
+	"SelectedUserId" $.PosterUserID
+	"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_poster")
+}}
 
-<!-- Assignee -->
-<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
-	<span class="text">
-		{{ctx.Locale.Tr "repo.issues.filter_assignee"}}
-	</span>
-	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu">
-		<div class="ui icon search input">
-			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignee"}}">
-		</div>
-		<a class="{{if not .AssigneeID}}active selected {{end}}item" href="{{QueryBuild $queryLink "assignee" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
-		<a class="{{if eq .AssigneeID -1}}active selected {{end}}item" href="{{QueryBuild $queryLink "assignee" -1}}">{{ctx.Locale.Tr "repo.issues.filter_assginee_no_assignee"}}</a>
-		<div class="divider"></div>
-		{{range .Assignees}}
-			<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item tw-flex" href="{{QueryBuild $queryLink "assignee" .ID}}">
-				{{ctx.AvatarUtils.Avatar . 20}}{{template "repo/search_name" .}}
-			</a>
-		{{end}}
-	</div>
-</div>
+{{template "repo/issue/filter_item_user_assign" dict
+	"QueryParamKey" "assignee"
+	"QueryLink" $queryLink
+	"UserSearchList" $.Assignees
+	"SelectedUserId" $.AssigneeID
+	"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_assignee")
+	"TextZeroValue" (ctx.Locale.Tr "repo.issues.filter_assginee_no_select")
+	"TextNegativeOne" (ctx.Locale.Tr "repo.issues.filter_assginee_no_assignee")
+}}
 
 {{if .IsSigned}}
 	<!-- Type -->
