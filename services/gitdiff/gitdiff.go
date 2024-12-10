@@ -641,7 +641,6 @@ parsingLoop:
 				}
 			case strings.HasPrefix(line, "new file"):
 				curFile.Type = DiffFileAdd
-				curFile.OldName = ""
 				curFile.IsCreated = true
 				if strings.HasPrefix(line, "new file mode ") {
 					curFile.Mode = prepareValue(line, "new file mode ")
@@ -689,7 +688,7 @@ parsingLoop:
 						if line[len(line)-2] == '\t' {
 							curFile.Name = curFile.Name[:len(curFile.Name)-1]
 						}
-						if curFile.OldName == "" && curFile.Type != DiffFileAdd {
+						if curFile.OldName == "" {
 							curFile.OldName = curFile.Name
 						}
 					} else {

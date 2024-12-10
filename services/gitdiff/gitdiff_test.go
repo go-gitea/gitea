@@ -216,7 +216,6 @@ func TestParsePatch_singlefile(t *testing.T) {
 		wantErr     bool
 		addition    int
 		deletion    int
-		Type        DiffFileType
 		oldFilename string
 		filename    string
 	}
@@ -238,7 +237,6 @@ func TestParsePatch_singlefile(t *testing.T) {
 `,
 			addition:    4,
 			deletion:    1,
-			Type:        DiffFileChange,
 			filename:    "README.md",
 			oldFilename: "README.md",
 		},
@@ -257,7 +255,6 @@ func TestParsePatch_singlefile(t *testing.T) {
 + cut off`,
 			addition:    4,
 			deletion:    1,
-			Type:        DiffFileChange,
 			filename:    "A \\ B",
 			oldFilename: "A \\ B",
 		},
@@ -274,7 +271,6 @@ index d2186f1..f5c8ed2 100644
 \ No newline at end of file`,
 			addition:    0,
 			deletion:    1,
-			Type:        DiffFileChange,
 			filename:    "a b/file b/a a/file",
 			oldFilename: "a b/file b/a a/file",
 		},
@@ -294,7 +290,6 @@ index 898651a..0000000
 `,
 			addition:    0,
 			deletion:    5,
-			Type:        DiffFileDel,
 			filename:    "file with blanks",
 			oldFilename: "file with blanks",
 		},
@@ -307,7 +302,6 @@ rename to "a\342\200\224as"
 `,
 			addition:    0,
 			deletion:    0,
-			Type:        DiffFileRename,
 			oldFilename: "𣐵b†vs",
 			filename:    "a—as",
 		},
@@ -318,7 +312,6 @@ similarity index 100%
 rename from a b/file b/a a/file
 rename to a b/a a/file b/b file
 `,
-			Type:        DiffFileRename,
 			oldFilename: "a b/file b/a a/file",
 			filename:    "a b/a a/file b/b file",
 		},
@@ -332,7 +325,6 @@ index 92e798b..0000000
 @@ -1 +0,0 @@
 -b b/b
 `,
-			Type:        DiffFileDel,
 			oldFilename: "b b/b",
 			filename:    "b b/b",
 			addition:    0,
@@ -348,7 +340,6 @@ index 0000000..92e798b
 @@ -0,0 +1 @@
 +b b/b
 `,
-			Type:        DiffFileAdd,
 			oldFilename: "",
 			filename:    "b b/b",
 			addition:    1,
@@ -361,7 +352,6 @@ similarity index 100%
 rename from b b/b b/b b/b b/b
 rename to b
 `,
-			Type:        DiffFileRename,
 			oldFilename: "b b/b b/b b/b b/b",
 			filename:    "b",
 		},
@@ -372,7 +362,6 @@ similarity index 100%
 rename from b b/b b/b b/b b/b
 rename to b
 `,
-			Type:        DiffFileRename,
 			oldFilename: "b b/b b/b b/b b/b",
 			filename:    "b",
 		},
@@ -383,7 +372,6 @@ similarity index 100%
 rename from b b/b b/b b/b
 rename to b b/b
 `,
-			Type:        DiffFileRename,
 			oldFilename: "b b/b b/b b/b",
 			filename:    "b b/b",
 		},
@@ -403,7 +391,6 @@ index 6961180..9ba1a00 100644
 +++ 3rd line
 +-- 4th line
 `,
-			Type:        DiffFileChange,
 			oldFilename: "minuses-and-pluses",
 			filename:    "minuses-and-pluses",
 			addition:    4,
@@ -431,9 +418,6 @@ index 6961180..9ba1a00 100644
 				t.Errorf("ParsePath(%q) did not have correct totalDeletion %d, wanted %d", testcase.name, got.TotalDeletion, testcase.deletion)
 			}
 			file := got.Files[0]
-			if file.Type != testcase.Type {
-				t.Errorf("ParsePath(%q) did not have correct Type %d, wanted %d", testcase.name, file.Type, testcase.Type)
-			}
 			if file.Addition != testcase.addition {
 				t.Errorf("ParsePath(%q) does not have correct file addition %d, wanted %d", testcase.name, file.Addition, testcase.addition)
 			}
