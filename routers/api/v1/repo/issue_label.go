@@ -351,8 +351,8 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 	}
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.Status(http.StatusForbidden)
-		return nil, nil, nil
+		ctx.Error(http.StatusForbidden, "CanWriteIssuesOrPulls", "you should have write access to issue")
+		return nil, nil, fmt.Errorf("permission denied")
 	}
 
 	return issue, labels, err
