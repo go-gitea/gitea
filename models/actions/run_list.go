@@ -110,9 +110,9 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 func (opts FindRunOptions) ToOrders() string {
 	switch opts.SortType {
 	case "oldest":
-		return "created_unix ASC"
+		return "created ASC"
 	case "newest":
-		return "created_unix DESC"
+		return "created DESC"
 	default:
 		return "`id` DESC"
 	}
