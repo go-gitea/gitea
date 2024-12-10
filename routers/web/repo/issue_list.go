@@ -488,7 +488,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		viewType = "all"
 	}
 
-	assigneeID := ctx.FormInt64("assignee")
+	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
 	posterUsername := ctx.FormString("poster")
 	posterUserID := shared_user.GetFilterUserIDByName(ctx, posterUsername)
 	var mentionedID, reviewRequestedID, reviewedID int64

@@ -310,7 +310,7 @@ func ViewProject(ctx *context.Context) {
 
 	labelIDs := issue.PrepareFilterIssueLabels(ctx, ctx.Repo.Repository.ID, ctx.Repo.Owner)
 
-	assigneeID := ctx.FormInt64("assignee")
+	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
 
 	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns, &issues_model.IssuesOptions{
 		LabelIDs:   labelIDs,

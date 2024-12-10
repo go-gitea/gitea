@@ -39,7 +39,7 @@ func MakeSelfOnTop(doer *user.User, users []*user.User) []*user.User {
 // * some(NonExistingID): match no issue (due to the user doesn't exist)
 func GetFilterUserIDByName(ctx context.Context, name string) optional.Option[int64] {
 	if name == "" {
-		return nil
+		return optional.None[int64]()
 	}
 	u, err := user.GetUserByName(ctx, name)
 	if err != nil {

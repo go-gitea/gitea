@@ -353,7 +353,8 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 }
 
 func applyAssigneeCondition(sess *xorm.Session, assigneeID optional.Option[int64]) {
-	if assigneeID == nil || assigneeID.Value() == 0 {
+	// old logic: 0 is also treated as "not filtering assignee", because the "assignee" was read as FormInt64
+	if !assigneeID.Has() || assigneeID.Value() == 0 {
 		return
 	}
 	if assigneeID.Value() == db.NoConditionID {
@@ -365,7 +366,7 @@ func applyAssigneeCondition(sess *xorm.Session, assigneeID optional.Option[int64
 }
 
 func applyPosterCondition(sess *xorm.Session, posterID optional.Option[int64]) {
-	if posterID == nil {
+	if !posterID.Has() {
 		return
 	}
 	// poster doesn't need to support db.NoConditionID(-1), so just use the value as-is

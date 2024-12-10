@@ -339,7 +339,7 @@ func ViewProject(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	assigneeID := ctx.FormInt64("assignee")
+	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
 
 	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns, &issues_model.IssuesOptions{
 		LabelIDs:   labelIDs,
