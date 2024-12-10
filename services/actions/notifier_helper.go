@@ -332,6 +332,10 @@ func handleWorkflows(
 			continue
 		}
 
+		wfGitCtx := jobparser.ToGitContext(GenerateGitContext(run, nil))
+		concurrencyGroup, concurrencyCancel := jobparser.InterpolateWorkflowConcurrency(dwf.Concurrency, wfGitCtx, vars)
+		_, _ = concurrencyGroup, concurrencyCancel
+		// TODO: check concurrencyGroup and concurrencyCancel
 		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars))
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
