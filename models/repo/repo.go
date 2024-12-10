@@ -597,7 +597,7 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 
 // CanCreateBranch returns true if repository meets the requirements for creating new branches.
 func (repo *Repository) CanCreateBranch() bool {
-	return !repo.IsMirror
+	return !repo.IsMirror && !repo.IsArchived
 }
 
 // CanEnablePulls returns true if repository meets the requirements of accepting pulls.

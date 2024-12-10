@@ -990,4 +990,7 @@ func prepareIssueViewSidebarDevLinks(ctx *context.Context, issue *issues_model.I
 	}
 
 	ctx.Data["AllowedRepos"] = allowedRepos
+	ctx.Data["ShowCreateBranchLink"] = !ctx.Repo.Repository.IsEmpty &&
+		ctx.Repo.Repository.CanCreateBranch() &&
+		len(allowedRepos) > 0 && !issue.IsClosed
 }
