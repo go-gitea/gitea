@@ -1,5 +1,5 @@
 import {updateIssuesMeta} from './repo-common.ts';
-import {toggleElem, hideElem, isElemHidden, queryElems} from '../utils/dom.ts';
+import {toggleElem, isElemHidden, queryElems} from '../utils/dom.ts';
 import {htmlEscape} from 'escape-goat';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {showErrorToast} from '../modules/toast.ts';
@@ -95,34 +95,51 @@ function initRepoIssueListCheckboxes() {
 function initDropdownUserRemoteSearch(el: Element) {
   let searchUrl = el.getAttribute('data-search-url');
   const actionJumpUrl = el.getAttribute('data-action-jump-url');
-  const selectedUserId = el.getAttribute('data-selected-user-id');
+  const selectedUserId = parseInt(el.getAttribute('data-selected-user-id'));
+  let selectedUsername = '';
   if (!searchUrl.includes('?')) searchUrl += '?';
   const $searchDropdown = fomanticQuery(el);
+  const elSearchInput = el.querySelector<HTMLInputElement>('.ui.search input');
+  const elItemFromInput = el.querySelector('.menu > .item-from-input');
+
   $searchDropdown.dropdown('setting', {
     fullTextSearch: true,
     selectOnKeydown: false,
-    apiSettings: {
+    action: (_text, value) => {
+      window.location.href = actionJumpUrl.replace('{username}', encodeURIComponent(value));
+    },
+  });
+
+  type ProcessedResult = {value: string, name: string};
+  const processedResults: ProcessedResult[] = []; // to be used by dropdown to generate menu items
+  const syncItemFromInput = () => {
+    elItemFromInput.setAttribute('data-value', elSearchInput.value);
+    elItemFromInput.textContent = elSearchInput.value;
+    toggleElem(elItemFromInput, !processedResults.length);
+  };
+
+  if (!searchUrl) {
+    elSearchInput.addEventListener('input', syncItemFromInput);
+  } else {
+    $searchDropdown.dropdown('setting', 'apiSettings', {
       cache: false,
       url: `${searchUrl}&q={query}`,
       onResponse(resp) {
         // the content is provided by backend IssuePosters handler
-        const processedResults = []; // to be used by dropdown to generate menu items
+        processedResults.length = 0;
         for (const item of resp.results) {
           let html = `<img class="ui avatar tw-align-middle" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt="" width="20" height="20"><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
           if (item.full_name) html += `<span class="search-fullname tw-ml-2">${htmlEscape(item.full_name)}</span>`;
+          if (selectedUserId === item.user_id) selectedUsername = item.username;
           processedResults.push({value: item.username, name: html});
         }
         resp.results = processedResults;
+        syncItemFromInput();
         return resp;
       },
-    },
-    action: (_text, value) => {
-      window.location.href = actionJumpUrl.replace('{username}', encodeURIComponent(value));
-    },
-    onShow: () => {
-      $searchDropdown.dropdown('filter', ' '); // trigger a search on first show
-    },
-  });
+    });
+    $searchDropdown.dropdown('setting', 'onShow', () => $searchDropdown.dropdown('filter', ' ')); // trigger a search on first show
+  }
 
   // we want to generate the dropdown menu items by ourselves, replace its internal setup functions
   const dropdownSetup = {...$searchDropdown.dropdown('internal', 'setup')};
@@ -151,7 +168,7 @@ function initDropdownUserRemoteSearch(el: Element) {
       for (const el of menu.querySelectorAll('.item.active, .item.selected')) {
         el.classList.remove('active', 'selected');
       }
-      menu.querySelector(`.item[data-value="${selectedUserId}"]`)?.classList.add('selected');
+      menu.querySelector(`.item[data-value="${CSS.escape(selectedUsername)}"]`)?.classList.add('selected');
     }, 0);
   };
 }
@@ -203,44 +220,9 @@ async function initIssuePinSort() {
   });
 }
 
-function initArchivedLabelFilter() {
-  const archivedLabelEl = document.querySelector<HTMLInputElement>('#archived-filter-checkbox');
-  if (!archivedLabelEl) return;
-
-  const url = new URL(window.location.href);
-  const archivedLabels = document.querySelectorAll('[data-is-archived]');
-
-  if (!archivedLabels.length) {
-    hideElem('.archived-label-filter');
-    return;
-  }
-  const selectedLabels = (url.searchParams.get('labels') || '')
-    .split(',')
-    .map((id) => parseInt(id) < 0 ? `${~id + 1}` : id); // selectedLabels contains -ve ids, which are excluded so convert any -ve value id to +ve
-
-  const archivedElToggle = () => {
-    for (const label of archivedLabels) {
-      const id = label.getAttribute('data-label-id');
-      toggleElem(label, archivedLabelEl.checked || selectedLabels.includes(id));
-    }
-  };
-
-  archivedElToggle();
-  archivedLabelEl.addEventListener('change', () => {
-    archivedElToggle();
-    if (archivedLabelEl.checked) {
-      url.searchParams.set('archived', 'true');
-    } else {
-      url.searchParams.delete('archived');
-    }
-    window.location.href = url.href;
-  });
-}
-
 export function initRepoIssueList() {
   if (!document.querySelector('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list')) return;
   initRepoIssueListCheckboxes();
   queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
   initIssuePinSort();
-  initArchivedLabelFilter();
 }

@@ -312,12 +312,7 @@ func ViewProject(ctx *context.Context) {
 	// 0 means issues with no label
 	// blank means labels will not be filtered for issues
 	selectLabels := ctx.FormString("labels")
-	if selectLabels == "" {
-		ctx.Data["AllLabels"] = true
-	} else if selectLabels == "0" {
-		ctx.Data["NoLabel"] = true
-	}
-	if len(selectLabels) > 0 {
+	if selectLabels != "" {
 		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
 		if err != nil {
 			ctx.Flash.Error(ctx.Tr("invalid_data", selectLabels), true)

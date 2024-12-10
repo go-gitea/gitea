@@ -16,8 +16,27 @@ type LogLine = {
   message: string;
 };
 
-const LogLinePrefixGroup = '::group::';
-const LogLinePrefixEndGroup = '::endgroup::';
+const LogLinePrefixesGroup = ['::group::', '##[group]'];
+const LogLinePrefixesEndGroup = ['::endgroup::', '##[endgroup]'];
+
+type LogLineCommand = {
+  name: 'group' | 'endgroup',
+  prefix: string,
+}
+
+function parseLineCommand(line: LogLine): LogLineCommand | null {
+  for (const prefix of LogLinePrefixesGroup) {
+    if (line.message.startsWith(prefix)) {
+      return {name: 'group', prefix};
+    }
+  }
+  for (const prefix of LogLinePrefixesEndGroup) {
+    if (line.message.startsWith(prefix)) {
+      return {name: 'endgroup', prefix};
+    }
+  }
+  return null;
+}
 
 const sfc = {
   name: 'RepoActionView',
@@ -129,13 +148,13 @@ const sfc = {
       return el._stepLogsActiveContainer ?? el;
     },
     // begin a log group
-    beginLogGroup(stepIndex: number, startTime: number, line: LogLine) {
+    beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
       const el = this.$refs.logs[stepIndex];
       const elJobLogGroupSummary = createElementFromAttrs('summary', {class: 'job-log-group-summary'},
         this.createLogLine(stepIndex, startTime, {
           index: line.index,
           timestamp: line.timestamp,
-          message: line.message.substring(LogLinePrefixGroup.length),
+          message: line.message.substring(cmd.prefix.length),
         }),
       );
       const elJobLogList = createElementFromAttrs('div', {class: 'job-log-list'});
@@ -147,13 +166,13 @@ const sfc = {
       el._stepLogsActiveContainer = elJobLogList;
     },
     // end a log group
-    endLogGroup(stepIndex: number, startTime: number, line: LogLine) {
+    endLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
       const el = this.$refs.logs[stepIndex];
       el._stepLogsActiveContainer = null;
       el.append(this.createLogLine(stepIndex, startTime, {
         index: line.index,
         timestamp: line.timestamp,
-        message: line.message.substring(LogLinePrefixEndGroup.length),
+        message: line.message.substring(cmd.prefix.length),
       }));
     },
 
@@ -201,11 +220,12 @@ const sfc = {
     appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
       for (const line of logLines) {
         const el = this.getLogsContainer(stepIndex);
-        if (line.message.startsWith(LogLinePrefixGroup)) {
-          this.beginLogGroup(stepIndex, startTime, line);
+        const cmd = parseLineCommand(line);
+        if (cmd?.name === 'group') {
+          this.beginLogGroup(stepIndex, startTime, line, cmd);
           continue;
-        } else if (line.message.startsWith(LogLinePrefixEndGroup)) {
-          this.endLogGroup(stepIndex, startTime, line);
+        } else if (cmd?.name === 'endgroup') {
+          this.endLogGroup(stepIndex, startTime, line, cmd);
           continue;
         }
         el.append(this.createLogLine(stepIndex, startTime, line));
@@ -393,7 +413,7 @@ export function initRepositoryActionView() {
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button tw-mr-0 tw-whitespace-nowrap link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
+        <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
@@ -537,6 +557,11 @@ export function initRepositoryActionView() {
   margin: 0 0 0 8px;
   flex: 1;
   overflow-wrap: anywhere;
+}
+
+.action-info-summary .ui.button {
+  margin: 0;
+  white-space: nowrap;
 }
 
 .action-commit-summary {
