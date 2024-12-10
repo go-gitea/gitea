@@ -125,8 +125,11 @@ type Issue struct {
 	IsPull            bool             `xorm:"INDEX"` // Indicates whether is a pull request or not.
 	PullRequest       *PullRequest     `xorm:"-"`
 	NumComments       int
-	Ref               string
-	PinOrder          int `xorm:"DEFAULT 0"`
+
+	// TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl"
+	Ref string
+
+	PinOrder int `xorm:"DEFAULT 0"`
 
 	DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
 
