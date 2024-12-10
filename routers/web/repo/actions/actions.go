@@ -246,8 +246,7 @@ func List(ctx *context.Context) {
 	}
 
 	if err := loadIsRefDeleted(ctx, runs); err != nil {
-		ctx.ServerError("LoadIsRefDeleted", err)
-		return
+		log.Error("LoadIsRefDeleted", err)
 	}
 
 	ctx.Data["Runs"] = runs
