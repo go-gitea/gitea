@@ -42,7 +42,7 @@ func NewFuncMap() template.FuncMap {
 		"HTMLFormat":   htmlutil.HTMLFormat,
 		"HTMLEscape":   htmlEscape,
 		"QueryEscape":  queryEscape,
-		"QueryBuild":   queryBuild,
+		"QueryBuild":   QueryBuild,
 		"JSEscape":     jsEscapeSafe,
 		"SanitizeHTML": SanitizeHTML,
 		"URLJoin":      util.URLJoin,
@@ -294,24 +294,27 @@ func timeEstimateString(timeSec any) string {
 	return util.TimeEstimateString(v)
 }
 
-func queryBuild(a ...any) template.URL {
+// QueryBuild builds a query string from a list of key-value pairs.
+// It omits the nil and empty strings, but it doesn't omit other zero values,
+// because the zero value of number types may have a meaning.
+func QueryBuild(a ...any) template.URL {
 	var s string
 	if len(a)%2 == 1 {
 		if v, ok := a[0].(string); ok {
 			if v == "" || (v[0] != '?' && v[0] != '&') {
-				panic("queryBuild: invalid argument")
+				panic("QueryBuild: invalid argument")
 			}
 			s = v
 		} else if v, ok := a[0].(template.URL); ok {
 			s = string(v)
 		} else {
-			panic("queryBuild: invalid argument")
+			panic("QueryBuild: invalid argument")
 		}
 	}
 	for i := len(a) % 2; i < len(a); i += 2 {
 		k, ok := a[i].(string)
 		if !ok {
-			panic("queryBuild: invalid argument")
+			panic("QueryBuild: invalid argument")
 		}
 		var v string
 		if va, ok := a[i+1].(string); ok {
