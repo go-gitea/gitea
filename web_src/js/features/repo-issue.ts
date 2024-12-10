@@ -143,7 +143,7 @@ export function initRepoIssueCommentDelete() {
           const counter = document.querySelector('#review-box .review-comments-counter');
           let num = parseInt(counter?.getAttribute('data-pending-comment-number')) - 1 || 0;
           num = Math.max(num, 0);
-          counter.setAttribute('data-pending-comment-number', num);
+          counter.setAttribute('data-pending-comment-number', String(num));
           counter.textContent = String(num);
         }
 
@@ -268,12 +268,14 @@ export function initRepoPullRequestMergeInstruction() {
 export function initRepoPullRequestAllowMaintainerEdit() {
   const wrapper = document.querySelector('#allow-edits-from-maintainers');
   if (!wrapper) return;
-  const checkbox = wrapper.querySelector('input[type="checkbox"]');
+  const checkbox = wrapper.querySelector<HTMLInputElement>('input[type="checkbox"]');
   checkbox.addEventListener('input', async () => {
     const url = `${wrapper.getAttribute('data-url')}/set_allow_maintainer_edit`;
     wrapper.classList.add('is-loading');
     try {
-      const resp = await POST(url, {data: new URLSearchParams({allow_maintainer_edit: checkbox.checked})});
+      const resp = await POST(url, {data: new URLSearchParams({
+        allow_maintainer_edit: String(checkbox.checked),
+      })});
       if (!resp.ok) {
         throw new Error('Failed to update maintainer edit permission');
       }
@@ -322,7 +324,7 @@ export function initRepoIssueWipTitle() {
 
     const $issueTitle = $('#issue_title');
     $issueTitle.trigger('focus');
-    const value = $issueTitle.val().trim().toUpperCase();
+    const value = ($issueTitle.val() as string).trim().toUpperCase();
 
     const wipPrefixes = $('.title_wip_desc').data('wip-prefixes');
     for (const prefix of wipPrefixes) {
