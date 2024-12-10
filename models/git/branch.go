@@ -174,6 +174,13 @@ func GetBranches(ctx context.Context, repoID int64, branchNames []string) ([]*Br
 	return branches, db.GetEngine(ctx).Where("repo_id=?", repoID).In("name", branchNames).Find(&branches)
 }
 
+func GetExistBranches(ctx context.Context, repoID int64, branchNames []string) ([]*Branch, error) {
+	branches := make([]*Branch, 0, len(branchNames))
+	return branches, db.GetEngine(ctx).Where("repo_id=?", repoID).
+		And("is_deleted=?", false).
+		In("name", branchNames).Find(&branches)
+}
+
 func AddBranches(ctx context.Context, branches []*Branch) error {
 	for _, branch := range branches {
 		if _, err := db.GetEngine(ctx).Insert(branch); err != nil {

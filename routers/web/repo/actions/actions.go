@@ -281,6 +281,7 @@ func loadIsRefDeleted(ctx *context.Context, runs actions_model.RunList) error {
 		refName := git.RefName(run.Ref)
 		if refName.IsBranch() {
 			branchName := refName.ShortName()
+			run.IsRefDeleted = true // assume it's deleted then if it's found in the database it's not deleted
 			branchRuns[branchName] = append(branchRuns[branchName], run)
 			branches.Add(branchName)
 		}
@@ -288,21 +289,14 @@ func loadIsRefDeleted(ctx *context.Context, runs actions_model.RunList) error {
 	if len(branches) == 0 {
 		return nil
 	}
-	var branchInfos []*git_model.Branch
-	if err := db.GetEngine(ctx).Where("repo_id = ?", ctx.Repo.Repository.ID).
-		In("name", branches.Values()).Find(&branchInfos); err != nil {
+	branchInfos, err := git_model.GetExistBranches(ctx, ctx.Repo.Repository.ID, branches.Values())
+	if err != nil {
 		return err
 	}
-	for branch, branchRun := range branchRuns {
-		exist := false
-		for _, branchInfo := range branchInfos {
-			if branchInfo.Name == branch {
-				exist = !branchInfo.IsDeleted
-				break
-			}
-		}
+	for _, branchInfo := range branchInfos {
+		branchRun := branchRuns[branchInfo.Name]
 		for _, br := range branchRun {
-			br.IsRefDeleted = !exist
+			br.IsRefDeleted = false
 		}
 	}
 	return nil
