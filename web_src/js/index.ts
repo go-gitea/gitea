@@ -29,7 +29,7 @@ import {
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
-  initRepoPullRequestReview, initRepoIssueSidebarList, initRepoIssueLabelFilter,
+  initRepoPullRequestReview, initRepoIssueSidebarList, initRepoIssueFilterItemLabel,
 } from './features/repo-issue.ts';
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
@@ -181,7 +181,7 @@ onDomReady(() => {
     initRepoGraphGit,
     initRepoIssueContentHistory,
     initRepoIssueList,
-    initRepoIssueLabelFilter,
+    initRepoIssueFilterItemLabel,
     initRepoIssueSidebarList,
     initRepoIssueReferenceRepositorySearch,
     initRepoIssueWipTitle,
