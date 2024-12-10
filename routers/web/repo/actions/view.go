@@ -137,8 +137,9 @@ type ViewUser struct {
 }
 
 type ViewBranch struct {
-	Name string `json:"name"`
-	Link string `json:"link"`
+	Name      string `json:"name"`
+	Link      string `json:"link"`
+	IsDeleted bool   `json:"isDeleted"`
 }
 
 type ViewJobStep struct {
@@ -243,7 +244,7 @@ func ViewPost(ctx *context_module.Context) {
 		if err != nil && !git_model.IsErrBranchNotExist(err) {
 			log.Error("GetBranch: %v", err)
 		} else if git_model.IsErrBranchNotExist(err) || (b != nil && b.IsDeleted) {
-			branch.Link = "" // remove the link of branch if it doesn't exist'
+			branch.IsDeleted = true
 		}
 	}
 

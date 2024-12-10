@@ -409,11 +409,11 @@ export function initRepositoryActionView() {
           <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
         </template>
         <span class="ui label tw-max-w-full" v-if="run.commit.shortSHA">
-          <template v-if="run.commit.branch.link">
-            <a class="gt-ellipsis" :href="run.commit.branch.link" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</a>
+          <template v-if="run.commit.branch.isDeleted">
+            <span class="gt-ellipsis tw-line-through" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</span>
           </template>
           <template v-else>
-            <span class="gt-ellipsis tw-line-through" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</span>
+            <a class="gt-ellipsis" :href="run.commit.branch.link" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</a>
           </template>
         </span>
       </div>
