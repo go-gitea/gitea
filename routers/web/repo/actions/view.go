@@ -893,7 +893,7 @@ func Run(ctx *context_module.Context) {
 	}
 
 	// Insert the action run and its associated jobs into the database
-	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+	if err := actions_model.InsertRun(ctx, run, workflows, false); err != nil {
 		ctx.ServerError("workflow", err)
 		return
 	}

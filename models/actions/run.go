@@ -46,6 +46,7 @@ type ActionRun struct {
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status                       `xorm:"index"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
+	ConcurrencyGroup  string
 	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
@@ -195,13 +196,20 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 // It's useful when a new run is triggered, and all previous runs needn't be continued anymore.
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
 	// Find all runs in the specified repository, reference, and workflow with non-final status
-	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
+	opts := &FindRunOptions{
 		RepoID:       repoID,
 		Ref:          ref,
 		WorkflowID:   workflowID,
 		TriggerEvent: event,
 		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked},
-	})
+	}
+	return CancelPreviousJobsWithOpts(ctx, opts)
+}
+
+// CancelPreviousJobs cancels all previous jobs with opts
+func CancelPreviousJobsWithOpts(ctx context.Context, opts *FindRunOptions) error {
+	// Find all runs by opts
+	runs, total, err := db.FindAndCount[ActionRun](ctx, opts)
 	if err != nil {
 		return err
 	}
@@ -262,7 +270,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
-func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
+func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow, blockedByConcurrency bool) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err

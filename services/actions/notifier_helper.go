@@ -332,10 +332,18 @@ func handleWorkflows(
 			continue
 		}
 
+		// check workflow concurrency
 		wfGitCtx := jobparser.ToGitContext(GenerateGitContext(run, nil))
-		concurrencyGroup, concurrencyCancel := jobparser.InterpolateWorkflowConcurrency(dwf.Concurrency, wfGitCtx, vars)
-		_, _ = concurrencyGroup, concurrencyCancel
-		// TODO: check concurrencyGroup and concurrencyCancel
+		wfConcurrencyGroup, wfConcurrencyCancel := jobparser.InterpolateWorkflowConcurrency(dwf.Concurrency, wfGitCtx, vars)
+		if len(wfConcurrencyGroup) > 0 {
+			run.ConcurrencyGroup = wfConcurrencyGroup
+			if wfConcurrencyCancel {
+				if err := CancelActionRunByConcurrency(ctx, run); err != nil {
+					log.Error("CancelActionRunByConcurrency: %v", err)
+				}
+			}
+		}
+
 		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars))
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
@@ -356,7 +364,7 @@ func handleWorkflows(
 			}
 		}
 
-		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
+		if err := actions_model.InsertRun(ctx, run, jobs, !wfConcurrencyCancel); err != nil {
 			log.Error("InsertRun: %v", err)
 			continue
 		}

@@ -37,11 +37,55 @@ func jobEmitterQueueHandler(items ...*jobUpdate) []*jobUpdate {
 	ctx := graceful.GetManager().ShutdownContext()
 	var ret []*jobUpdate
 	for _, update := range items {
-		if err := checkJobsOfRun(ctx, update.RunID); err != nil {
+		if err := checkJobsByRunID(ctx, update.RunID); err != nil {
 			ret = append(ret, update)
 		}
 	}
 	return ret
+}
+
+func checkJobsByRunID(ctx context.Context, runID int64) error {
+	run, exist, err := db.GetByID[actions_model.ActionRun](ctx, runID)
+	if err != nil {
+		return fmt.Errorf("get action run: %w", err)
+	}
+	if !exist {
+		return fmt.Errorf("action run %d does not exist", runID)
+	}
+
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// check jobs of the current run
+		if err := checkJobsOfRun(ctx, runID); err != nil {
+			return err
+		}
+
+		// check jobs by the concurrency group of the run
+		if len(run.ConcurrencyGroup) == 0 {
+			return nil
+		}
+		concurrentActionRuns, err := db.Find[actions_model.ActionRun](ctx, &actions_model.FindRunOptions{
+			ConcurrencyGroup: run.ConcurrencyGroup,
+			Status: []actions_model.Status{
+				actions_model.StatusRunning,
+				actions_model.StatusWaiting,
+				actions_model.StatusBlocked,
+			},
+			SortType: "oldest",
+		})
+		if err != nil {
+			return fmt.Errorf("find action run with concurrency group %s: %w", run.ConcurrencyGroup, err)
+		}
+		for _, cRun := range concurrentActionRuns {
+			if cRun.NeedApproval {
+				continue
+			}
+			if err := checkJobsOfRun(ctx, cRun.ID); err != nil {
+				return err
+			}
+			break // only run one blocked action run with the same concurrency group
+		}
+		return nil
+	})
 }
 
 func checkJobsOfRun(ctx context.Context, runID int64) error {
