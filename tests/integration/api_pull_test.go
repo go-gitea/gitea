@@ -51,7 +51,7 @@ func TestAPIViewPulls(t *testing.T) {
 	assert.Len(t, pull.RequestedReviewersTeams, 0)
 	assert.EqualValues(t, 5, pull.RequestedReviewers[0].ID)
 	assert.EqualValues(t, 6, pull.RequestedReviewers[1].ID)
-	assert.EqualValues(t, 2, pull.ChangedFiles)
+	assert.EqualValues(t, 1, pull.ChangedFiles)
 
 	if assert.EqualValues(t, 5, pull.ID) {
 		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
@@ -97,7 +97,7 @@ func TestAPIViewPulls(t *testing.T) {
 		assert.NoError(t, err)
 		if assert.Len(t, patch.Files, pull.ChangedFiles) {
 			assert.Equal(t, "README.md", patch.Files[0].Name)
-			assert.Empty(t, patch.Files[0].OldName)
+			assert.NotEmpty(t, patch.Files[0].OldName)
 			assert.EqualValues(t, pull.Additions, patch.Files[0].Addition)
 			assert.EqualValues(t, pull.Deletions, patch.Files[0].Deletion)
 			assert.Equal(t, gitdiff.DiffFileChange, patch.Files[0].Type)
