@@ -205,10 +205,7 @@ func TestAPIUpdateBranch(t *testing.T) {
 			assert.Contains(t, resp.Body.String(), "Branch doesn't exist.")
 		})
 		t.Run("RenameBranchNormalScenario", func(t *testing.T) {
-			resp := testAPIUpdateBranch(t, "user2", "repo1", "branch2", "new-branch-name", http.StatusOK)
-			var branch api.Branch
-			DecodeJSON(t, resp, &branch)
-			assert.EqualValues(t, "new-branch-name", branch.Name)
+			testAPIUpdateBranch(t, "user2", "repo1", "branch2", "new-branch-name", http.StatusNoContent)
 		})
 	})
 }

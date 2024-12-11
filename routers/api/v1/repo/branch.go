@@ -416,8 +416,8 @@ func UpdateBranch(ctx *context.APIContext) {
 	//   schema:
 	//     "$ref": "#/definitions/UpdateBranchRepoOption"
 	// responses:
-	//   "200":
-	//     "$ref": "#/responses/Branch"
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
@@ -454,31 +454,7 @@ func UpdateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branch, err := ctx.Repo.GitRepo.GetBranch(opt.Name)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetBranch", err)
-		return
-	}
-
-	commit, err := branch.GetCommit()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCommit", err)
-		return
-	}
-
-	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branch.Name)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetFirstMatchProtectedBranchRule", err)
-		return
-	}
-
-	br, err := convert.ToBranch(ctx, repo, branch.Name, commit, pb, ctx.Doer, ctx.Repo.IsAdmin())
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ToBranch", err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, br)
+	ctx.Status(http.StatusNoContent)
 }
 
 // GetBranchProtection gets a branch protection
