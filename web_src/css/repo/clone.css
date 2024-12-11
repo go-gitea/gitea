@@ -11,7 +11,7 @@
 /* used by the clone-panel popup */
 .clone-panel-field,
 .clone-panel-list {
-  margin: 10px 10px;
+  margin: 10px;
 }
 
 .clone-panel-tab .item {
@@ -24,7 +24,7 @@
 }
 
 .clone-panel-tab + .divider {
-  margin: -1px 0 0 0;
+  margin: -1px 0 0;
 }
 
 .clone-panel-list .item {
