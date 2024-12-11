@@ -102,8 +102,7 @@
 						{{end}}
 					</div>
 
-					{{/* by default, the row-right flex grows, but on non-root tree path, it should not because the row-left might contain a long path */}}
-					<div class="repo-button-row-right {{if not $isTreePathRoot}}tw-flex-grow-0{{end}}">
+					<div class="repo-button-row-right">
 						<!-- Only show clone panel in repository home page -->
 						{{if $isTreePathRoot}}
 							{{template "repo/clone_panel" .}}

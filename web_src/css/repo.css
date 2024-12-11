@@ -1662,26 +1662,18 @@ td .commit-summary {
   display: flex;
   align-items: center;
   gap: 8px;
-  justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 .repo-button-row-left,
 .repo-button-row-right {
   display: flex;
-  flex: 1;
   align-items: center;
   gap: 0.5rem;
 }
 
-.repo-button-row-right {
-  justify-content: flex-end;
-}
-
-@media (max-width: 1200px) {
-  .repository:not(.wiki) .repo-button-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.repo-button-row-left {
+  flex: 1;
 }
 
 .repo-button-row .button {
@@ -1693,16 +1685,6 @@ td .commit-summary {
 
 .repo-button-row .button.dropdown:not(.icon) {
   padding-right: 22px !important; /* normal buttons have !important paddings, so we need to override it for dropdown (Add File) icons */
-}
-
-.repo-button-row input {
-  height: 30px;
-}
-
-@media (max-width: 600px) {
-  .repo-button-row-left {
-    flex-wrap: wrap;
-  }
 }
 
 tbody.commit-list {
