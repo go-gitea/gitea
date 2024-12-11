@@ -52,6 +52,7 @@ func TestCompareRouters(t *testing.T) {
 			router: "develop",
 			compareRouter: &CompareRouter{
 				HeadOriRef: "develop",
+				DotTimes:   3,
 			},
 		},
 		{
@@ -60,6 +61,7 @@ func TestCompareRouters(t *testing.T) {
 				HeadOwnerName: "lunny",
 				HeadRepoName:  "forked_repo",
 				HeadOriRef:    "develop",
+				DotTimes:      3,
 			},
 		},
 		{
@@ -99,6 +101,22 @@ func TestCompareRouters(t *testing.T) {
 				BaseOriRef: "v1.0",
 				HeadOriRef: "v1.1",
 				DotTimes:   3,
+			},
+		},
+		{
+			router: "teabot-patch-1...v0.0.1",
+			compareRouter: &CompareRouter{
+				BaseOriRef: "teabot-patch-1",
+				HeadOriRef: "v0.0.1",
+				DotTimes:   3,
+			},
+		},
+		{
+			router: "teabot:feature1",
+			compareRouter: &CompareRouter{
+				HeadOwnerName: "teabot",
+				HeadOriRef:    "feature1",
+				DotTimes:      3,
 			},
 		},
 		{

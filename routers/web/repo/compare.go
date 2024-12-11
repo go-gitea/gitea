@@ -189,32 +189,6 @@ func setCsvCompareContext(ctx *context.Context) {
 // ParseCompareInfo parse compare info between two commit for preparing comparing references
 // Permission check for base repository's code read should be checked before invoking this function
 func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
-	// Get compared branches information
-	// A full compare url is of the form:
-	//
-	// 1. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headBranch}
-	// 2. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}:{:headBranch}
-	// 3. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}/{:headRepoName}:{:headBranch}
-	// 4. /{:baseOwner}/{:baseRepoName}/compare/{:headBranch}
-	// 5. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}:{:headBranch}
-	// 6. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}/{:headRepoName}:{:headBranch}
-	//
-	// Here we obtain the infoPath "{:baseBranch}...[{:headOwner}/{:headRepoName}:]{:headBranch}" as ctx.PathParam("*")
-	// with the :baseRepo in ctx.Repo.
-	//
-	// Note: Generally :headRepoName is not provided here - we are only passed :headOwner.
-	//
-	// How do we determine the :headRepo?
-	//
-	// 1. If :headOwner is not set then the :headRepo = :baseRepo
-	// 2. If :headOwner is set - then look for the fork of :baseRepo owned by :headOwner
-	// 3. But... :baseRepo could be a fork of :headOwner's repo - so check that
-	// 4. Now, :baseRepo and :headRepos could be forks of the same repo - so check that
-	//
-	// format: <base branch>...[<head repo>:]<head branch>
-	// base<-head: master...head:feature
-	// same repo: master...feature
-
 	fileOnly := ctx.FormBool("file-only")
 	pathParam := ctx.PathParam("*")
 	baseRepo := ctx.Repo.Repository
@@ -250,90 +224,6 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		return nil
 	}
 
-	ctx.Data["PageIsComparePull"] = ci.IsPull() && ctx.Repo.CanReadIssuesOrPulls(true)
-	ctx.Data["BaseName"] = baseRepo.OwnerName
-	ctx.Data["BaseBranch"] = ci.BaseOriRef
-	ctx.Data["HeadUser"] = ci.HeadUser
-	ctx.Data["HeadBranch"] = ci.HeadOriRef
-	ctx.Repo.PullRequest.SameRepo = ci.IsSameRepo()
-
-	ctx.Data["BaseIsCommit"] = ci.IsBaseCommit
-	ctx.Data["BaseIsBranch"] = ci.BaseFullRef.IsBranch()
-	ctx.Data["BaseIsTag"] = ci.BaseFullRef.IsTag()
-	ctx.Data["IsPull"] = true
-
-	// Now we have the repository that represents the base
-
-	// The current base and head repositories and branches may not
-	// actually be the intended branches that the user wants to
-	// create a pull-request from - but also determining the head
-	// repo is difficult.
-
-	// We will want therefore to offer a few repositories to set as
-	// our base and head
-
-	// 1. First if the baseRepo is a fork get the "RootRepo" it was
-	// forked from
-	var rootRepo *repo_model.Repository
-	if baseRepo.IsFork {
-		err = baseRepo.GetBaseRepo(ctx)
-		if err != nil {
-			if !repo_model.IsErrRepoNotExist(err) {
-				ctx.ServerError("Unable to find root repo", err)
-				return nil
-			}
-		} else {
-			rootRepo = baseRepo.BaseRepo
-		}
-	}
-
-	// 2. Now if the current user is not the owner of the baseRepo,
-	// check if they have a fork of the base repo and offer that as
-	// "OwnForkRepo"
-	var ownForkRepo *repo_model.Repository
-	if ctx.Doer != nil && baseRepo.OwnerID != ctx.Doer.ID {
-		repo := repo_model.GetForkedRepo(ctx, ctx.Doer.ID, baseRepo.ID)
-		if repo != nil {
-			ownForkRepo = repo
-			ctx.Data["OwnForkRepo"] = ownForkRepo
-		}
-	}
-
-	has := ci.HeadRepo != nil
-	// 3. If the base is a forked from "RootRepo" and the owner of
-	// the "RootRepo" is the :headUser - set headRepo to that
-	if !has && rootRepo != nil && rootRepo.OwnerID == ci.HeadUser.ID {
-		ci.HeadRepo = rootRepo
-		has = true
-	}
-
-	// 4. If the ctx.Doer has their own fork of the baseRepo and the headUser is the ctx.Doer
-	// set the headRepo to the ownFork
-	if !has && ownForkRepo != nil && ownForkRepo.OwnerID == ci.HeadUser.ID {
-		ci.HeadRepo = ownForkRepo
-		has = true
-	}
-
-	// 5. If the headOwner has a fork of the baseRepo - use that
-	if !has {
-		ci.HeadRepo = repo_model.GetForkedRepo(ctx, ci.HeadUser.ID, baseRepo.ID)
-		has = ci.HeadRepo != nil
-	}
-
-	// 6. If the baseRepo is a fork and the headUser has a fork of that use that
-	if !has && baseRepo.IsFork {
-		ci.HeadRepo = repo_model.GetForkedRepo(ctx, ci.HeadUser.ID, baseRepo.ForkID)
-		has = ci.HeadRepo != nil
-	}
-
-	// 7. Otherwise if we're not the same repo and haven't found a repo give up
-	if !ci.IsSameRepo() && !has {
-		ctx.Data["PageIsComparePull"] = false
-	}
-
-	ctx.Data["HeadRepo"] = ci.HeadRepo
-	ctx.Data["BaseCompareRepo"] = ctx.Repo.Repository
-
 	// If we're not merging from the same repo:
 	if !ci.IsSameRepo() {
 		// Assert ctx.Doer has permission to read headRepo's codes
@@ -355,53 +245,23 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		ctx.Data["CanWriteToHeadRepo"] = permHead.CanWrite(unit.TypeCode)
 	}
 
-	// If we have a rootRepo and it's different from:
-	// 1. the computed base
-	// 2. the computed head
-	// then get the branches of it
-	if rootRepo != nil &&
-		rootRepo.ID != ci.HeadRepo.ID &&
-		rootRepo.ID != baseRepo.ID {
-		canRead := access_model.CheckRepoUnitUser(ctx, rootRepo, ctx.Doer, unit.TypeCode)
-		if canRead {
-			ctx.Data["RootRepo"] = rootRepo
-			if !fileOnly {
-				branches, tags, err := getBranchesAndTagsForRepo(ctx, rootRepo)
-				if err != nil {
-					ctx.ServerError("GetBranchesForRepo", err)
-					return nil
-				}
+	// TODO: prepareRepos, branches and tags for dropdowns
 
-				ctx.Data["RootRepoBranches"] = branches
-				ctx.Data["RootRepoTags"] = tags
-			}
-		}
-	}
+	ctx.Data["PageIsComparePull"] = ci.IsPull() && ctx.Repo.CanReadIssuesOrPulls(true)
+	ctx.Data["BaseName"] = baseRepo.OwnerName
+	ctx.Data["BaseBranch"] = ci.BaseOriRef
+	ctx.Data["HeadUser"] = ci.HeadUser
+	ctx.Data["HeadBranch"] = ci.HeadOriRef
+	ctx.Repo.PullRequest.SameRepo = ci.IsSameRepo()
 
-	// If we have a ownForkRepo and it's different from:
-	// 1. The computed base
-	// 2. The computed head
-	// 3. The rootRepo (if we have one)
-	// then get the branches from it.
-	if ownForkRepo != nil &&
-		ownForkRepo.ID != ci.HeadRepo.ID &&
-		ownForkRepo.ID != baseRepo.ID &&
-		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		canRead := access_model.CheckRepoUnitUser(ctx, ownForkRepo, ctx.Doer, unit.TypeCode)
-		if canRead {
-			ctx.Data["OwnForkRepo"] = ownForkRepo
-			if !fileOnly {
-				branches, tags, err := getBranchesAndTagsForRepo(ctx, ownForkRepo)
-				if err != nil {
-					ctx.ServerError("GetBranchesForRepo", err)
-					return nil
-				}
-				ctx.Data["OwnForkRepoBranches"] = branches
-				ctx.Data["OwnForkRepoTags"] = tags
-			}
-		}
-	}
+	ctx.Data["BaseIsCommit"] = ci.IsBaseCommit
+	ctx.Data["BaseIsBranch"] = ci.BaseFullRef.IsBranch()
+	ctx.Data["BaseIsTag"] = ci.BaseFullRef.IsTag()
+	ctx.Data["IsPull"] = true
+	// ctx.Data["OwnForkRepo"] = ownForkRepo FIXME: This is not used
 
+	ctx.Data["HeadRepo"] = ci.HeadRepo
+	ctx.Data["BaseCompareRepo"] = ctx.Repo.Repository
 	ctx.Data["HeadIsCommit"] = ci.IsHeadCommit
 	ctx.Data["HeadIsBranch"] = ci.HeadFullRef.IsBranch()
 	ctx.Data["HeadIsTag"] = ci.HeadFullRef.IsTag()

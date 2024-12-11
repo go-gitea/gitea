@@ -166,7 +166,11 @@ func ForkPost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
 			return
 		}
-		repo := repo_model.GetForkedRepo(ctx, ctxUser.ID, traverseParentRepo.ID)
+		repo, err := repo_model.GetForkedRepo(ctx, ctxUser.ID, traverseParentRepo.ID)
+		if err != nil && !repo_model.IsErrRepoNotExist(err) {
+			ctx.ServerError("GetForkedRepo", err)
+			return
+		}
 		if repo != nil {
 			ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
 			return

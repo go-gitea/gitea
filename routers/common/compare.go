@@ -53,7 +53,7 @@ func parseHead(head string) (string, string, string) {
 	}
 	ownerRepo := strings.SplitN(paths[0], "/", 2)
 	if len(ownerRepo) == 1 {
-		return "", paths[0], paths[1]
+		return paths[0], "", paths[1]
 	}
 	return ownerRepo[0], ownerRepo[1], paths[1]
 }
@@ -73,6 +73,7 @@ func parseCompareRouter(router string) (*CompareRouter, error) {
 				HeadOriRef:    headRef,
 				HeadOwnerName: headOwnerName,
 				HeadRepoName:  headRepoName,
+				DotTimes:      dotTimes,
 			}, nil
 		} else if len(parts) > 2 {
 			return nil, util.NewSilentWrapErrorf(util.ErrInvalidArgument, "invalid compare router: %s", router)
@@ -120,10 +121,10 @@ func (ci *CompareInfo) Close() {
 
 func detectFullRef(ctx context.Context, repoID int64, gitRepo *git.Repository, oriRef string) (git.RefName, bool, error) {
 	b, err := git_model.GetBranch(ctx, repoID, oriRef)
-	if err != nil {
+	if err != nil && !git_model.IsErrBranchNotExist(err) {
 		return "", false, err
 	}
-	if !b.IsDeleted {
+	if b != nil && !b.IsDeleted {
 		return git.RefNameFromBranch(oriRef), false, nil
 	}
 
@@ -142,6 +143,78 @@ func detectFullRef(ctx context.Context, repoID int64, gitRepo *git.Repository, o
 	return git.RefName(commitObjectID.String()), true, nil
 }
 
+func findHeadRepo(ctx context.Context, baseRepo *repo_model.Repository, headUserID int64) (*repo_model.Repository, error) {
+	if baseRepo.IsFork {
+		curRepo := baseRepo
+		for curRepo.OwnerID != headUserID { // We assume the fork deepth is not too deep.
+			if err := curRepo.GetBaseRepo(ctx); err != nil {
+				return nil, err
+			}
+			if curRepo.BaseRepo == nil {
+				return findHeadRepoFromRootBase(ctx, curRepo, headUserID, 3)
+			}
+			curRepo = curRepo.BaseRepo
+		}
+		return curRepo, nil
+	}
+
+	return findHeadRepoFromRootBase(ctx, baseRepo, headUserID, 3)
+}
+
+func findHeadRepoFromRootBase(ctx context.Context, baseRepo *repo_model.Repository, headUserID int64, traverseLevel int) (*repo_model.Repository, error) {
+	if traverseLevel == 0 {
+		return nil, nil
+	}
+	// test if we are lucky
+	repo, err := repo_model.GetForkedRepo(ctx, headUserID, baseRepo.ID)
+	if err == nil {
+		return repo, nil
+	}
+	if !repo_model.IsErrRepoNotExist(err) {
+		return nil, err
+	}
+
+	firstLevelForkedRepo, err := repo_model.GetRepositoriesByForkID(ctx, baseRepo.ID)
+	if err != nil {
+		return nil, err
+	}
+	for _, repo := range firstLevelForkedRepo {
+		forked, err := findHeadRepoFromRootBase(ctx, repo, headUserID, traverseLevel-1)
+		if err != nil {
+			return nil, err
+		}
+		if forked != nil {
+			return forked, nil
+		}
+	}
+	return nil, nil
+}
+
+// ParseComparePathParams Get compare information
+// A full compare url is of the form:
+//
+// 1. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headBranch}
+// 2. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}:{:headBranch}
+// 3. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}/{:headRepoName}:{:headBranch}
+// 4. /{:baseOwner}/{:baseRepoName}/compare/{:headBranch}
+// 5. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}:{:headBranch}
+// 6. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}/{:headRepoName}:{:headBranch}
+//
+// Here we obtain the infoPath "{:baseBranch}...[{:headOwner}/{:headRepoName}:]{:headBranch}" as ctx.PathParam("*")
+// with the :baseRepo in ctx.Repo.
+//
+// Note: Generally :headRepoName is not provided here - we are only passed :headOwner.
+//
+// How do we determine the :headRepo?
+//
+// 1. If :headOwner is not set then the :headRepo = :baseRepo
+// 2. If :headOwner is set - then look for the fork of :baseRepo owned by :headOwner
+// 3. But... :baseRepo could be a fork of :headOwner's repo - so check that
+// 4. Now, :baseRepo and :headRepos could be forks of the same repo - so check that
+//
+// format: <base branch>...[<head repo>:]<head branch>
+// base<-head: master...head:feature
+// same repo: master...feature
 func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *repo_model.Repository, baseGitRepo *git.Repository) (*CompareInfo, error) {
 	ci := &CompareInfo{}
 	var err error
@@ -159,12 +232,18 @@ func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *rep
 	}
 
 	if ci.IsSameRepo() {
+		ci.HeadOwnerName = baseRepo.Owner.Name
+		ci.HeadRepoName = baseRepo.Name
 		ci.HeadUser = baseRepo.Owner
 		ci.HeadRepo = baseRepo
 		ci.HeadGitRepo = baseGitRepo
 	} else {
 		if ci.HeadOwnerName == baseRepo.Owner.Name {
 			ci.HeadUser = baseRepo.Owner
+			if ci.HeadRepoName == "" {
+				ci.HeadRepoName = baseRepo.Name
+				ci.HeadRepo = baseRepo
+			}
 		} else {
 			ci.HeadUser, err = user_model.GetUserByName(ctx, ci.HeadOwnerName)
 			if err != nil {
@@ -172,9 +251,15 @@ func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *rep
 			}
 		}
 
-		ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, ci.HeadOwnerName, ci.HeadRepoName)
-		if err != nil {
-			return nil, err
+		if ci.HeadRepo == nil {
+			if ci.HeadRepoName != "" {
+				ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, ci.HeadOwnerName, ci.HeadRepoName)
+			} else {
+				ci.HeadRepo, err = findHeadRepo(ctx, baseRepo, ci.HeadUser.ID)
+			}
+			if err != nil {
+				return nil, err
+			}
 		}
 		ci.HeadRepo.Owner = ci.HeadUser
 		ci.HeadGitRepo, err = gitrepo.OpenRepository(ctx, ci.HeadRepo)

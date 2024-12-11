@@ -105,25 +105,6 @@ func CompareDiff(ctx *context.APIContext) {
 	ctx.Repo.PullRequest.SameRepo = ci.IsSameRepo()
 	log.Trace("Repo path: %q, base branch: %q, head branch: %q", ctx.Repo.GitRepo.Path, ci.BaseOriRef, ci.HeadOriRef)
 
-	// Check if current user has fork of repository or in the same repository.
-	/*headRepo := repo_model.GetForkedRepo(ctx, ci.HeadUser.ID, ctx.Repo.Repository.ID)
-	if headRepo == nil && !ci.IsSameRepo() {
-		err := ctx.Repo.Repository.GetBaseRepo(ctx)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetBaseRepo", err)
-			return nil, nil, nil, "", ""
-		}
-
-		// Check if baseRepo's base repository is the same as headUser's repository.
-		if baseRepo.BaseRepo == nil || baseRepo.BaseRepo.OwnerID != headUser.ID {
-			log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-			ctx.NotFound("GetBaseRepo")
-			return nil, nil, nil, "", ""
-		}
-		// Assign headRepo so it can be used below.
-		headRepo = baseRepo.BaseRepo
-	}*/
-
 	ci.CompareInfo, err = ci.HeadGitRepo.GetCompareInfo(repo_model.RepoPath(baseRepo.Owner.Name, baseRepo.Name), ci.BaseOriRef, ci.HeadOriRef, false, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetCompareInfo", err)
