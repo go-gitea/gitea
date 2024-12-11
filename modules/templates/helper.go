@@ -162,6 +162,7 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// misc
 		"ShortSha":                 base.ShortSha,
+		"ShortSha256":              base.ShortSha256,
 		"ActionContent2Commits":    ActionContent2Commits,
 		"IsMultilineCommitMessage": isMultilineCommitMessage,
 		"CommentMustAsDiff":        gitdiff.CommentMustAsDiff,
