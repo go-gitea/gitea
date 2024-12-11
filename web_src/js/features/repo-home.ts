@@ -1,7 +1,7 @@
 import {stripTags} from '../utils.ts';
 import {hideElem, queryElemChildren, showElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
-import {showErrorToast} from '../modules/toast.ts';
+import {showErrorToast, type Toast} from '../modules/toast.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl} = window.config;
@@ -13,7 +13,7 @@ export function initRepoTopicBar() {
   const editDiv = document.querySelector('#topic_edit');
   const viewDiv = document.querySelector('#repo-topics');
   const topicDropdown = editDiv.querySelector('.ui.dropdown');
-  let lastErrorToast;
+  let lastErrorToast: Toast;
 
   mgrBtn.addEventListener('click', () => {
     hideElem(viewDiv);
