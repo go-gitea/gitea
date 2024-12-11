@@ -4,7 +4,27 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.22.4](https://github.com/go-gitea/gitea/releases/tag/1.22.4) - 2024-11-14
+## [1.22.5](https://github.com/go-gitea/gitea/releases/tag/v1.22.5) - 2024-12-11
+
+* SECURITY
+  * Upgrade crypto library (#32791)
+  * Fix delete branch perm checking (#32654) (#32707)
+* BUGFIXES
+  * Add standard-compliant route to serve outdated R packages (#32783) (#32789)
+  * Fix internal server error when updating labels without write permission (#32776) (#32785)
+  * Add Swift login endpoint (#32693) (#32701)
+  * Fix fork page branch selection (#32711) (#32725)
+  * Fix word overflow in file search page (#32695) (#32699)
+  * Fix gogit `GetRefCommitID` (#32705) (#32712)
+  * Fix race condition in mermaid observer (#32599) (#32673)
+  * Fixe a keystring misuse and refactor duplicates keystrings (#32668) (#32792)
+  * Bump relative-time-element to v4.4.4 (#32739)
+* PERFORMANCE
+  * Make wiki pages visit fast (#32732) (#32745)
+* MISC
+  * Don't create action when syncing mirror pull refs (#32659) (#32664)
+
+## [1.22.4](https://github.com/go-gitea/gitea/releases/tag/v1.22.4) - 2024-11-14
 
 * SECURITY
   * Fix basic auth with webauthn (#32531) (#32536)
@@ -61,7 +81,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Update github.com/go-enry/go-enry to v2.9.1 (#32295) (#32296)
   * Warn users when they try to use a non-root-url to sign in/up (#32272) (#32273)
 
-## [1.22.3](https://github.com/go-gitea/gitea/releases/tag/1.22.3) - 2024-10-08
+## [1.22.3](https://github.com/go-gitea/gitea/releases/tag/v1.22.3) - 2024-10-08
 
 * SECURITY
   * Fix bug when a token is given public only (#32204) (#32218)
@@ -102,7 +122,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Lazy load avatar images (#32051) (#32063)
   * Upgrade cache to v0.2.1 (#32003) (#32009)
 
-## [1.22.2](https://github.com/go-gitea/gitea/releases/tag/1.22.2) - 2024-08-28
+## [1.22.2](https://github.com/go-gitea/gitea/releases/tag/v1.22.2) - 2024-08-28
 
 * Security
   * Replace v-html with v-text in search inputbox (#31966) (#31973)
@@ -158,7 +178,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Upgrade micromatch to 4.0.8 (#31944)
   * Update webpack to 5.94.0 (#31941)
 
-## [1.22.1](https://github.com/go-gitea/gitea/releases/tag/1.22.1) - 2024-07-04
+## [1.22.1](https://github.com/go-gitea/gitea/releases/tag/v1.22.1) - 2024-07-04
 
 * SECURITY
   * Add replacement module for `mholt/archiver` (#31267) (#31270)
