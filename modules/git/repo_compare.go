@@ -246,18 +246,40 @@ func (repo *Repository) GetDiffOrPatch(base, head string, w io.Writer, patch, bi
 
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
 func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
-	return NewCommand(repo.Ctx, "diff", "-p").AddDynamicArguments(base, head).Run(&RunOpts{
-		Dir:    repo.Path,
-		Stdout: w,
-	})
+	stderr := new(bytes.Buffer)
+	err := NewCommand(repo.Ctx, "diff", "-p").AddDynamicArguments(base + "..." + head).
+		Run(&RunOpts{
+			Dir:    repo.Path,
+			Stdout: w,
+			Stderr: stderr,
+		})
+	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
+		return NewCommand(repo.Ctx, "diff", "-p").AddDynamicArguments(base, head).
+			Run(&RunOpts{
+				Dir:    repo.Path,
+				Stdout: w,
+			})
+	}
+	return err
 }
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
 func (repo *Repository) GetDiffBinary(base, head string, w io.Writer) error {
-	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram").AddDynamicArguments(base, head).Run(&RunOpts{
-		Dir:    repo.Path,
-		Stdout: w,
-	})
+	stderr := new(bytes.Buffer)
+	err := NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram").AddDynamicArguments(base + "..." + head).
+		Run(&RunOpts{
+			Dir:    repo.Path,
+			Stdout: w,
+			Stderr: stderr,
+		})
+	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
+		return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram").AddDynamicArguments(base, head).
+			Run(&RunOpts{
+				Dir:    repo.Path,
+				Stdout: w,
+			})
+	}
+	return err
 }
 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`

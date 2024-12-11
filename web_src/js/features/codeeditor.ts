@@ -1,11 +1,30 @@
 import tinycolor from 'tinycolor2';
 import {basename, extname, isObject, isDarkTheme} from '../utils.ts';
 import {onInputDebounce} from '../utils/dom.ts';
+import type MonacoNamespace from 'monaco-editor';
 
-const languagesByFilename = {};
-const languagesByExt = {};
+type Monaco = typeof MonacoNamespace;
+type IStandaloneCodeEditor = MonacoNamespace.editor.IStandaloneCodeEditor;
+type IEditorOptions = MonacoNamespace.editor.IEditorOptions;
+type IGlobalEditorOptions = MonacoNamespace.editor.IGlobalEditorOptions;
+type ITextModelUpdateOptions = MonacoNamespace.editor.ITextModelUpdateOptions;
+type MonacoOpts = IEditorOptions & IGlobalEditorOptions & ITextModelUpdateOptions;
 
-const baseOptions = {
+type EditorConfig = {
+  indent_style?: 'tab' | 'space',
+  indent_size?: string | number, // backend emits this as string
+  tab_width?: string | number, // backend emits this as string
+  end_of_line?: 'lf' | 'cr' | 'crlf',
+  charset?: 'latin1' | 'utf-8' | 'utf-8-bom' | 'utf-16be' | 'utf-16le',
+  trim_trailing_whitespace?: boolean,
+  insert_final_newline?: boolean,
+  root?: boolean,
+}
+
+const languagesByFilename: Record<string, string> = {};
+const languagesByExt: Record<string, string> = {};
+
+const baseOptions: MonacoOpts = {
   fontFamily: 'var(--fonts-monospace)',
   fontSize: 14, // https://github.com/microsoft/monaco-editor/issues/2242
   guides: {bracketPairs: false, indentation: false},
@@ -15,21 +34,23 @@ const baseOptions = {
   overviewRulerLanes: 0,
   renderLineHighlight: 'all',
   renderLineHighlightOnlyWhenFocus: true,
-  rulers: false,
+  rulers: [],
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
   scrollBeyondLastLine: false,
   automaticLayout: true,
 };
 
-function getEditorconfig(input: HTMLInputElement) {
+function getEditorconfig(input: HTMLInputElement): EditorConfig | null {
+  const json = input.getAttribute('data-editorconfig');
+  if (!json) return null;
   try {
-    return JSON.parse(input.getAttribute('data-editorconfig'));
+    return JSON.parse(json);
   } catch {
     return null;
   }
 }
 
-function initLanguages(monaco) {
+function initLanguages(monaco: Monaco): void {
   for (const {filenames, extensions, id} of monaco.languages.getLanguages()) {
     for (const filename of filenames || []) {
       languagesByFilename[filename] = id;
@@ -40,35 +61,26 @@ function initLanguages(monaco) {
   }
 }
 
-function getLanguage(filename) {
+function getLanguage(filename: string): string {
   return languagesByFilename[filename] || languagesByExt[extname(filename)] || 'plaintext';
 }
 
-function updateEditor(monaco, editor, filename, lineWrapExts) {
+function updateEditor(monaco: Monaco, editor: IStandaloneCodeEditor, filename: string, lineWrapExts: string[]): void {
   editor.updateOptions(getFileBasedOptions(filename, lineWrapExts));
   const model = editor.getModel();
+  if (!model) return;
   const language = model.getLanguageId();
   const newLanguage = getLanguage(filename);
   if (language !== newLanguage) monaco.editor.setModelLanguage(model, newLanguage);
 }
 
 // export editor for customization - https://github.com/go-gitea/gitea/issues/10409
-function exportEditor(editor) {
+function exportEditor(editor: IStandaloneCodeEditor): void {
   if (!window.codeEditors) window.codeEditors = [];
   if (!window.codeEditors.includes(editor)) window.codeEditors.push(editor);
 }
 
-export async function createMonaco(textarea: HTMLTextAreaElement, filename: string, editorOpts: Record<string, any>) {
-  const monaco = await import(/* webpackChunkName: "monaco" */'monaco-editor');
-
-  initLanguages(monaco);
-  let {language, ...other} = editorOpts;
-  if (!language) language = getLanguage(filename);
-
-  const container = document.createElement('div');
-  container.className = 'monaco-editor-container';
-  textarea.parentNode.append(container);
-
+function updateTheme(monaco: Monaco): void {
   // https://github.com/microsoft/monaco-editor/issues/2427
   // also, monaco can only parse 6-digit hex colors, so we convert the colors to that format
   const styles = window.getComputedStyle(document.documentElement);
@@ -80,6 +92,7 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
     rules: [
       {
         background: getColor('--color-code-bg'),
+        token: '',
       },
     ],
     colors: {
@@ -101,6 +114,26 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
       'focusBorder': '#0000', // prevent blue border
     },
   });
+}
+
+type CreateMonacoOpts = MonacoOpts & {language?: string};
+
+export async function createMonaco(textarea: HTMLTextAreaElement, filename: string, opts: CreateMonacoOpts): Promise<{monaco: Monaco, editor: IStandaloneCodeEditor}> {
+  const monaco = await import(/* webpackChunkName: "monaco" */'monaco-editor');
+
+  initLanguages(monaco);
+  let {language, ...other} = opts;
+  if (!language) language = getLanguage(filename);
+
+  const container = document.createElement('div');
+  container.className = 'monaco-editor-container';
+  if (!textarea.parentNode) throw new Error('Parent node absent');
+  textarea.parentNode.append(container);
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    updateTheme(monaco);
+  });
+  updateTheme(monaco);
 
   const editor = monaco.editor.create(container, {
     value: textarea.value,
@@ -114,8 +147,12 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
   ]);
 
   const model = editor.getModel();
+  if (!model) throw new Error('Unable to get editor model');
   model.onDidChangeContent(() => {
-    textarea.value = editor.getValue({preserveBOM: true});
+    textarea.value = editor.getValue({
+      preserveBOM: true,
+      lineEnding: '',
+    });
     textarea.dispatchEvent(new Event('change')); // seems to be needed for jquery-are-you-sure
   });
 
@@ -127,13 +164,13 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
   return {monaco, editor};
 }
 
-function getFileBasedOptions(filename: string, lineWrapExts: string[]) {
+function getFileBasedOptions(filename: string, lineWrapExts: string[]): MonacoOpts {
   return {
     wordWrap: (lineWrapExts || []).includes(extname(filename)) ? 'on' : 'off',
   };
 }
 
-function togglePreviewDisplay(previewable: boolean) {
+function togglePreviewDisplay(previewable: boolean): void {
   const previewTab = document.querySelector<HTMLElement>('a[data-tab="preview"]');
   if (!previewTab) return;
 
@@ -145,19 +182,19 @@ function togglePreviewDisplay(previewable: boolean) {
     // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
     if (previewTab.classList.contains('active')) {
       const writeTab = document.querySelector<HTMLElement>('a[data-tab="write"]');
-      writeTab.click();
+      writeTab?.click();
     }
   }
 }
 
-export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameInput: HTMLInputElement) {
+export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameInput: HTMLInputElement): Promise<IStandaloneCodeEditor> {
   const filename = basename(filenameInput.value);
   const previewableExts = new Set((textarea.getAttribute('data-previewable-extensions') || '').split(','));
   const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
-  const previewable = previewableExts.has(extname(filename));
+  const isPreviewable = previewableExts.has(extname(filename));
   const editorConfig = getEditorconfig(filenameInput);
 
-  togglePreviewDisplay(previewable);
+  togglePreviewDisplay(isPreviewable);
 
   const {monaco, editor} = await createMonaco(textarea, filename, {
     ...baseOptions,
@@ -175,14 +212,22 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   return editor;
 }
 
-function getEditorConfigOptions(ec: Record<string, any>): Record<string, any> {
-  if (!isObject(ec)) return {};
+function getEditorConfigOptions(ec: EditorConfig | null): MonacoOpts {
+  if (!ec || !isObject(ec)) return {};
 
-  const opts: Record<string, any> = {};
+  const opts: MonacoOpts = {};
   opts.detectIndentation = !('indent_style' in ec) || !('indent_size' in ec);
-  if ('indent_size' in ec) opts.indentSize = Number(ec.indent_size);
-  if ('tab_width' in ec) opts.tabSize = Number(ec.tab_width) || opts.indentSize;
-  if ('max_line_length' in ec) opts.rulers = [Number(ec.max_line_length)];
+
+  if ('indent_size' in ec) {
+    opts.indentSize = Number(ec.indent_size);
+  }
+  if ('tab_width' in ec) {
+    opts.tabSize = Number(ec.tab_width) || Number(ec.indent_size);
+  }
+  if ('max_line_length' in ec) {
+    opts.rulers = [Number(ec.max_line_length)];
+  }
+
   opts.trimAutoWhitespace = ec.trim_trailing_whitespace === true;
   opts.insertSpaces = ec.indent_style === 'space';
   opts.useTabStops = ec.indent_style === 'tab';

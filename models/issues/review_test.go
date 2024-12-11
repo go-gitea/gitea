@@ -126,42 +126,48 @@ func TestGetReviewersByIssueID(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
 	expectedReviews := []*issues_model.Review{}
 	expectedReviews = append(expectedReviews,
 		&issues_model.Review{
+			ID:          7,
 			Reviewer:    org3,
 			Type:        issues_model.ReviewTypeReject,
 			UpdatedUnix: 946684812,
 		},
 		&issues_model.Review{
+			ID:          8,
 			Reviewer:    user4,
 			Type:        issues_model.ReviewTypeApprove,
 			UpdatedUnix: 946684813,
 		},
 		&issues_model.Review{
+			ID:          9,
 			Reviewer:    user2,
 			Type:        issues_model.ReviewTypeReject,
 			UpdatedUnix: 946684814,
-		})
+		},
+		&issues_model.Review{
+			ID:          10,
+			Reviewer:    user_model.NewGhostUser(),
+			Type:        issues_model.ReviewTypeReject,
+			UpdatedUnix: 946684815,
+		},
+		&issues_model.Review{
+			ID:          22,
+			Reviewer:    user5,
+			Type:        issues_model.ReviewTypeRequest,
+			UpdatedUnix: 946684817,
+		},
+	)
 
 	allReviews, err := issues_model.GetReviewsByIssueID(db.DefaultContext, issue.ID)
 	assert.NoError(t, err)
 	for _, review := range allReviews {
 		assert.NoError(t, review.LoadReviewer(db.DefaultContext))
 	}
-	if assert.Len(t, allReviews, 3) {
-		for i, review := range allReviews {
-			assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
-			assert.Equal(t, expectedReviews[i].Type, review.Type)
-			assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
-		}
-	}
-
-	allReviews, err = issues_model.GetReviewsByIssueID(db.DefaultContext, issue.ID)
-	assert.NoError(t, err)
-	assert.NoError(t, allReviews.LoadReviewers(db.DefaultContext))
-	if assert.Len(t, allReviews, 3) {
+	if assert.Len(t, allReviews, 5) {
 		for i, review := range allReviews {
 			assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
 			assert.Equal(t, expectedReviews[i].Type, review.Type)

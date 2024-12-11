@@ -68,10 +68,26 @@
   background-color: var(--color-secondary-dark-4);
 }
 
-.archived-label-filter {
-  margin-left: 10px;
+.label-filter-archived-toggle {
+  margin: 8px 10px;
   font-size: 12px;
-  display: flex !important;
-  margin-bottom: 8px;
   min-width: fit-content;
+}
+
+.label-filter-exclude-info {
+  display: inline-block;
+  padding: 0.5rem 0;
+  font-size: 12px;
+  width: 100%;
+  white-space: nowrap;
+  margin-left: 10px;
+  margin-right: 8px;
+  text-align: left;
+}
+
+.label-filter-exclude-info code {
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  padding: 1px 2px;
+  font-size: 11px;
 }

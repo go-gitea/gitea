@@ -8,6 +8,8 @@ import {
   PointElement,
   LineElement,
   Filler,
+  type ChartOptions,
+  type ChartData,
 } from 'chart.js';
 import {GET} from '../modules/fetch.ts';
 import {Line as ChartLine} from 'vue-chartjs';
@@ -16,6 +18,7 @@ import {
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
   type DayData,
+  type DayDataObject,
 } from '../utils/time.ts';
 import {chartJsColors} from '../utils/color.ts';
 import {sleep} from '../utils.ts';
@@ -64,12 +67,12 @@ async function fetchGraphData() {
       }
     } while (response.status === 202);
     if (response.ok) {
-      data.value = await response.json();
-      const weekValues = Object.values(data.value);
+      const dayDataObject: DayDataObject = await response.json();
+      const weekValues = Object.values(dayDataObject);
       const start = weekValues[0].week;
       const end = firstStartDateAfterDate(new Date());
       const startDays = startDaysBetween(start, end);
-      data.value = fillEmptyStartDaysWithZeroes(startDays, data.value);
+      data.value = fillEmptyStartDaysWithZeroes(startDays, dayDataObject);
       errorText.value = '';
     } else {
       errorText.value = response.statusText;
@@ -81,7 +84,7 @@ async function fetchGraphData() {
   }
 }
 
-function toGraphData(data) {
+function toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
   return {
     datasets: [
       {
@@ -108,10 +111,9 @@ function toGraphData(data) {
   };
 }
 
-const options = {
+const options: ChartOptions<'line'> = {
   responsive: true,
   maintainAspectRatio: false,
-  animation: true,
   plugins: {
     legend: {
       display: true,

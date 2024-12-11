@@ -1,0 +1,23 @@
+{{/* This is a user list for filter, the data is provided by a remote "fetch" request
+* QueryParamKey: eg: "poster", "assignee"
+* QueryLink
+* UserSearchUrl
+* SelectedUsername
+* TextFilterTitle
+*/}}
+{{$queryLink := .QueryLink}}
+<div class="item ui dropdown custom user-remote-search" data-tooltip-content="{{ctx.Locale.Tr "repo.user_search_tooltip"}}"
+		data-search-url="{{$.UserSearchUrl}}"
+		data-selected-username="{{$.SelectedUsername}}"
+		data-action-jump-url="{{QueryBuild $queryLink $.QueryParamKey NIL}}&{{$.QueryParamKey}}={username}"
+>
+	{{$.TextFilterTitle}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}
+	<div class="menu">
+		<div class="ui icon search input">
+			<i class="icon">{{svg "octicon-search" 16}}</i>
+			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_user_placeholder"}}">
+		</div>
+		<a class="item" data-value="">{{ctx.Locale.Tr "repo.issues.filter_user_no_select"}}</a>
+		<a class="item item-from-input tw-hidden"></a>
+	</div>
+</div>

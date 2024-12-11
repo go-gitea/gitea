@@ -6,15 +6,18 @@ package integration
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,5 +51,25 @@ func TestRepoCloneWiki(t *testing.T) {
 			assertFileExist(t, filepath.Join(dstPath, "files/Non-Renderable-File.zip"))
 			assertFileExist(t, filepath.Join(dstPath, "jpeg.jpg"))
 		})
+	})
+}
+
+func Test_RepoWikiPages(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	url := "/user2/repo1/wiki/?action=_pages"
+	req := NewRequest(t, "GET", url)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	doc := NewHTMLParser(t, resp.Body)
+	expectedPagePaths := []string{
+		"Home", "Page-With-Image", "Page-With-Spaced-Name", "Unescaped-File",
+	}
+	doc.Find("tr").Each(func(i int, s *goquery.Selection) {
+		firstAnchor := s.Find("a").First()
+		href, _ := firstAnchor.Attr("href")
+		pagePath := strings.TrimPrefix(href, "/user2/repo1/wiki/")
+
+		assert.EqualValues(t, expectedPagePaths[i], pagePath)
 	})
 }

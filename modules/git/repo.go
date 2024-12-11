@@ -223,7 +223,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	if err != nil {
 		if strings.Contains(stderr, "non-fast-forward") {
 			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}
-		} else if strings.Contains(stderr, "! [remote rejected]") {
+		} else if strings.Contains(stderr, "! [remote rejected]") || strings.Contains(stderr, "! [rejected]") {
 			err := &ErrPushRejected{StdOut: stdout, StdErr: stderr, Err: err}
 			err.GenerateMessage()
 			return err

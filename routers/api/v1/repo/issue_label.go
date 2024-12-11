@@ -319,6 +319,11 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return nil, nil, err
 	}
 
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Error(http.StatusForbidden, "CanWriteIssuesOrPulls", "write permission is required")
+		return nil, nil, fmt.Errorf("permission denied")
+	}
+
 	var (
 		labelIDs   []int64
 		labelNames []string
@@ -348,11 +353,6 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByIDs", err)
 		return nil, nil, err
-	}
-
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.Status(http.StatusForbidden)
-		return nil, nil, nil
 	}
 
 	return issue, labels, err

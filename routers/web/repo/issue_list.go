@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -18,12 +17,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/web/shared/issue"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -264,8 +263,10 @@ func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
 	return user.ID
 }
 
-// ListIssues list the issues of a repository
-func ListIssues(ctx *context.Context) {
+// SearchRepoIssuesJSON lists the issues of a repository
+// This function was copied from API (decouple the web and API routes),
+// it is only used by frontend to search some dependency or related issues
+func SearchRepoIssuesJSON(ctx *context.Context) {
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, err.Error())
@@ -287,20 +288,11 @@ func ListIssues(ctx *context.Context) {
 		keyword = ""
 	}
 
-	var labelIDs []int64
-	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
-		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, splitted)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return
-		}
-	}
-
 	var mileIDs []int64
 	if part := strings.Split(ctx.FormString("milestones"), ","); len(part) > 0 {
 		for i := range part {
 			// uses names and fall back to ids
-			// non existent milestones are discarded
+			// non-existent milestones are discarded
 			mile, err := issues_model.GetMilestoneByRepoIDANDName(ctx, ctx.Repo.Repository.ID, part[i])
 			if err == nil {
 				mileIDs = append(mileIDs, mile.ID)
@@ -371,17 +363,8 @@ func ListIssues(ctx *context.Context) {
 	if before != 0 {
 		searchOpt.UpdatedBeforeUnix = optional.Some(before)
 	}
-	if len(labelIDs) == 1 && labelIDs[0] == 0 {
-		searchOpt.NoLabelOnly = true
-	} else {
-		for _, labelID := range labelIDs {
-			if labelID > 0 {
-				searchOpt.IncludedLabelIDs = append(searchOpt.IncludedLabelIDs, labelID)
-			} else {
-				searchOpt.ExcludedLabelIDs = append(searchOpt.ExcludedLabelIDs, -labelID)
-			}
-		}
-	}
+
+	// TODO: the "labels" query parameter is never used, so no need to handle it
 
 	if len(mileIDs) == 1 && mileIDs[0] == db.NoConditionID {
 		searchOpt.MilestoneIDs = []int64{0}
@@ -505,18 +488,15 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		viewType = "all"
 	}
 
-	var (
-		assigneeID        = ctx.FormInt64("assignee")
-		posterID          = ctx.FormInt64("poster")
-		mentionedID       int64
-		reviewRequestedID int64
-		reviewedID        int64
-	)
+	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
+	posterUsername := ctx.FormString("poster")
+	posterUserID := shared_user.GetFilterUserIDByName(ctx, posterUsername)
+	var mentionedID, reviewRequestedID, reviewedID int64
 
 	if ctx.IsSigned {
 		switch viewType {
 		case "created_by":
-			posterID = ctx.Doer.ID
+			posterUserID = optional.Some(ctx.Doer.ID)
 		case "mentioned":
 			mentionedID = ctx.Doer.ID
 		case "assigned":
@@ -529,23 +509,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	}
 
 	repo := ctx.Repo.Repository
-	var labelIDs []int64
-	// 1,-2 means including label 1 and excluding label 2
-	// 0 means issues with no label
-	// blank means labels will not be filtered for issues
-	selectLabels := ctx.FormString("labels")
-	if selectLabels == "" {
-		ctx.Data["AllLabels"] = true
-	} else if selectLabels == "0" {
-		ctx.Data["NoLabel"] = true
-	}
-	if len(selectLabels) > 0 {
-		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
-		if err != nil {
-			ctx.Flash.Error(ctx.Tr("invalid_data", selectLabels), true)
-		}
-	}
-
 	keyword := strings.Trim(ctx.FormString("q"), " ")
 	if bytes.Contains([]byte(keyword), []byte{0x00}) {
 		keyword = ""
@@ -556,15 +519,20 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		mileIDs = []int64{milestoneID}
 	}
 
+	labelIDs := issue.PrepareFilterIssueLabels(ctx, repo.ID, ctx.Repo.Owner)
+	if ctx.Written() {
+		return
+	}
+
 	var issueStats *issues_model.IssueStats
 	statsOpts := &issues_model.IssuesOptions{
 		RepoIDs:           []int64{repo.ID},
 		LabelIDs:          labelIDs,
 		MilestoneIDs:      mileIDs,
 		ProjectID:         projectID,
-		AssigneeID:        assigneeID,
+		AssigneeID:        optional.Some(assigneeID),
 		MentionedID:       mentionedID,
-		PosterID:          posterID,
+		PosterID:          posterUserID,
 		ReviewRequestedID: reviewRequestedID,
 		ReviewedID:        reviewedID,
 		IsPull:            isPullOption,
@@ -619,8 +587,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		ctx.Data["TotalTrackedTime"] = totalTrackedTime
 	}
 
-	archived := ctx.FormBool("archived")
-
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -645,8 +611,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 				PageSize: setting.UI.IssuePagingNum,
 			},
 			RepoIDs:           []int64{repo.ID},
-			AssigneeID:        assigneeID,
-			PosterID:          posterID,
+			AssigneeID:        optional.Some(assigneeID),
+			PosterID:          posterUserID,
 			MentionedID:       mentionedID,
 			ReviewRequestedID: reviewRequestedID,
 			ReviewedID:        reviewedID,
@@ -720,49 +686,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		return
 	}
 
-	labels, err := issues_model.GetLabelsByRepoID(ctx, repo.ID, "", db.ListOptions{})
-	if err != nil {
-		ctx.ServerError("GetLabelsByRepoID", err)
-		return
-	}
-
-	if repo.Owner.IsOrganization() {
-		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
-		if err != nil {
-			ctx.ServerError("GetLabelsByOrgID", err)
-			return
-		}
-
-		ctx.Data["OrgLabels"] = orgLabels
-		labels = append(labels, orgLabels...)
-	}
-
-	// Get the exclusive scope for every label ID
-	labelExclusiveScopes := make([]string, 0, len(labelIDs))
-	for _, labelID := range labelIDs {
-		foundExclusiveScope := false
-		for _, label := range labels {
-			if label.ID == labelID || label.ID == -labelID {
-				labelExclusiveScopes = append(labelExclusiveScopes, label.ExclusiveScope())
-				foundExclusiveScope = true
-				break
-			}
-		}
-		if !foundExclusiveScope {
-			labelExclusiveScopes = append(labelExclusiveScopes, "")
-		}
-	}
-
-	for _, l := range labels {
-		l.LoadSelectedLabelsAfterClick(labelIDs, labelExclusiveScopes)
-	}
-	ctx.Data["Labels"] = labels
-	ctx.Data["NumLabels"] = len(labels)
-
-	if ctx.FormInt64("assignee") == 0 {
-		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
-	}
-
 	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
 
 	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
@@ -795,29 +718,20 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		return
 	}
 
+	showArchivedLabels := ctx.FormBool("archived_labels")
+	ctx.Data["ShowArchivedLabels"] = showArchivedLabels
 	ctx.Data["PinnedIssues"] = pinned
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["OpenCount"] = issueStats.OpenCount
 	ctx.Data["ClosedCount"] = issueStats.ClosedCount
-	linkStr := "%s?q=%s&type=%s&sort=%s&state=%s&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%d&archived=%t"
-	ctx.Data["AllStatesLink"] = fmt.Sprintf(linkStr, ctx.Link,
-		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "all", url.QueryEscape(selectLabels),
-		milestoneID, projectID, assigneeID, posterID, archived)
-	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Link,
-		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "open", url.QueryEscape(selectLabels),
-		milestoneID, projectID, assigneeID, posterID, archived)
-	ctx.Data["ClosedLink"] = fmt.Sprintf(linkStr, ctx.Link,
-		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "closed", url.QueryEscape(selectLabels),
-		milestoneID, projectID, assigneeID, posterID, archived)
 	ctx.Data["SelLabelIDs"] = labelIDs
-	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["MilestoneID"] = milestoneID
 	ctx.Data["ProjectID"] = projectID
 	ctx.Data["AssigneeID"] = assigneeID
-	ctx.Data["PosterID"] = posterID
+	ctx.Data["PosterUsername"] = posterUsername
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["IsShowClosed"] = isShowClosed
 	switch {
@@ -828,19 +742,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	default:
 		ctx.Data["State"] = "open"
 	}
-	ctx.Data["ShowArchivedLabels"] = archived
-
-	pager.AddParamString("q", keyword)
-	pager.AddParamString("type", viewType)
-	pager.AddParamString("sort", sortType)
-	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
-	pager.AddParamString("labels", fmt.Sprint(selectLabels))
-	pager.AddParamString("milestone", fmt.Sprint(milestoneID))
-	pager.AddParamString("project", fmt.Sprint(projectID))
-	pager.AddParamString("assignee", fmt.Sprint(assigneeID))
-	pager.AddParamString("poster", fmt.Sprint(posterID))
-	pager.AddParamString("archived", fmt.Sprint(archived))
-
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 }
 

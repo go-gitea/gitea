@@ -12,5 +12,5 @@ export function initCommonOrganization() {
   });
 
   // Labels
-  initCompLabelEdit('.organization.settings.labels');
+  initCompLabelEdit('.page-content.organization.settings.labels');
 }

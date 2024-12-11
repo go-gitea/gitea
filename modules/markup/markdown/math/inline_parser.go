@@ -79,9 +79,10 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 	opener := len(parser.start)
 
 	// Now look for an ending line
+	depth := 0
 	ender := -1
 	for i := opener; i < len(line); i++ {
-		if bytes.HasPrefix(line[i:], parser.end) {
+		if depth == 0 && bytes.HasPrefix(line[i:], parser.end) {
 			succeedingCharacter := byte(0)
 			if i+len(parser.end) < len(line) {
 				succeedingCharacter = line[i+len(parser.end)]
@@ -98,6 +99,11 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 		if line[i] == '\\' {
 			i++
 			continue
+		}
+		if line[i] == '{' {
+			depth++
+		} else if line[i] == '}' {
+			depth--
 		}
 	}
 	if ender == -1 {

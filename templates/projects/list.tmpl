@@ -24,16 +24,19 @@
 		<input type="hidden" name="state" value="{{$.State}}">
 		{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.project_kind")}}
 	</form>
-	<!-- Sort -->
-	<div class="list-header-sort ui small dropdown type jump item">
-		<span class="text">
-			{{ctx.Locale.Tr "repo.issues.filter_sort"}}
-		</span>
-		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-		<div class="menu">
-			<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="?q={{$.Keyword}}&sort=oldest&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-			<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="?q={{$.Keyword}}&sort=recentupdate&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-			<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="?q={{$.Keyword}}&sort=leastupdate&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+
+	<div class="list-header-filters">
+		<!-- Sort -->
+		<div class="item ui small dropdown jump">
+			<span class="text">
+				{{ctx.Locale.Tr "repo.issues.filter_sort"}}
+			</span>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<div class="menu">
+				<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="?q={{$.Keyword}}&sort=oldest&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+				<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="?q={{$.Keyword}}&sort=recentupdate&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+				<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="?q={{$.Keyword}}&sort=leastupdate&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+			</div>
 		</div>
 	</div>
 </div>

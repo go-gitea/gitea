@@ -43,7 +43,7 @@ export function initRepository() {
   initRepoCommentFormAndSidebar();
 
   // Labels
-  initCompLabelEdit('.repository.labels');
+  initCompLabelEdit('.page-content.repository.labels');
   initRepoMilestone();
   initRepoNew();
 

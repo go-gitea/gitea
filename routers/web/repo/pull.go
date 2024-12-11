@@ -263,8 +263,18 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 	return baseCommit
 }
 
-// PrepareMergedViewPullInfo show meta information for a merged pull request view page
-func PrepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.CompareInfo {
+func preparePullViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.CompareInfo {
+	if !issue.IsPull {
+		return nil
+	}
+	if issue.PullRequest.HasMerged {
+		return prepareMergedViewPullInfo(ctx, issue)
+	}
+	return prepareViewPullInfo(ctx, issue)
+}
+
+// prepareMergedViewPullInfo show meta information for a merged pull request view page
+func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.CompareInfo {
 	pull := issue.PullRequest
 
 	setMergeTarget(ctx, pull)
@@ -309,8 +319,8 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 	return compareInfo
 }
 
-// PrepareViewPullInfo show meta information for a pull request preview page
-func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.CompareInfo {
+// prepareViewPullInfo show meta information for a pull request preview page
+func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.CompareInfo {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 
 	repo := ctx.Repo.Repository
@@ -610,15 +620,8 @@ func ViewPullCommits(ctx *context.Context) {
 	if !ok {
 		return
 	}
-	pull := issue.PullRequest
 
-	var prInfo *git.CompareInfo
-	if pull.HasMerged {
-		prInfo = PrepareMergedViewPullInfo(ctx, issue)
-	} else {
-		prInfo = PrepareViewPullInfo(ctx, issue)
-	}
-
+	prInfo := preparePullViewPullInfo(ctx, issue)
 	if ctx.Written() {
 		return
 	} else if prInfo == nil {
@@ -662,11 +665,12 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		gitRepo       = ctx.Repo.GitRepo
 	)
 
-	var prInfo *git.CompareInfo
-	if pull.HasMerged {
-		prInfo = PrepareMergedViewPullInfo(ctx, issue)
-	} else {
-		prInfo = PrepareViewPullInfo(ctx, issue)
+	prInfo := preparePullViewPullInfo(ctx, issue)
+	if ctx.Written() {
+		return
+	} else if prInfo == nil {
+		ctx.NotFound("ViewPullFiles", nil)
+		return
 	}
 
 	// Validate the given commit sha to show (if any passed)

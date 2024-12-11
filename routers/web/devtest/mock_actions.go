@@ -26,9 +26,9 @@ func generateMockStepsLog(logCur actions.LogCursor) (stepsLog []*actions.ViewSte
 		"::endgroup::",
 		"message for: step={step}, cursor={cursor}",
 		"message for: step={step}, cursor={cursor}",
-		"message for: step={step}, cursor={cursor}",
-		"message for: step={step}, cursor={cursor}",
-		"message for: step={step}, cursor={cursor}",
+		"##[group]test group for: step={step}, cursor={cursor}",
+		"in group msg for: step={step}, cursor={cursor}",
+		"##[endgroup]",
 	}
 	cur := logCur.Cursor // usually the cursor is the "file offset", but here we abuse it as "line number" to make the mock easier, intentionally
 	for i := 0; i < util.Iif(logCur.Step == 0, 3, 1); i++ {
@@ -52,6 +52,10 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	req := web.GetForm(ctx).(*actions.ViewRequest)
 
 	resp := &actions.ViewResponse{}
+	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
+	resp.State.Run.Status = actions_model.StatusRunning.String()
+	resp.State.Run.CanCancel = true
+	resp.State.Run.CanDeleteArtifact = true
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:   "artifact-a",
 		Size:   100 * 1024,

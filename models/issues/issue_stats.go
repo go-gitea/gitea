@@ -151,15 +151,9 @@ func applyIssuesOptions(sess *xorm.Session, opts *IssuesOptions, issueIDs []int6
 
 	applyProjectCondition(sess, opts)
 
-	if opts.AssigneeID > 0 {
-		applyAssigneeCondition(sess, opts.AssigneeID)
-	} else if opts.AssigneeID == db.NoConditionID {
-		sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
-	}
+	applyAssigneeCondition(sess, opts.AssigneeID)
 
-	if opts.PosterID > 0 {
-		applyPosterCondition(sess, opts.PosterID)
-	}
+	applyPosterCondition(sess, opts.PosterID)
 
 	if opts.MentionedID > 0 {
 		applyMentionedCondition(sess, opts.MentionedID)

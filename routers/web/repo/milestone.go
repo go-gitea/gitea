@@ -66,12 +66,6 @@ func Milestones(ctx *context.Context) {
 	}
 	ctx.Data["OpenCount"] = stats.OpenCount
 	ctx.Data["ClosedCount"] = stats.ClosedCount
-	linkStr := "%s/milestones?state=%s&q=%s&sort=%s"
-	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Repo.RepoLink, "open",
-		url.QueryEscape(keyword), url.QueryEscape(sortType))
-	ctx.Data["ClosedLink"] = fmt.Sprintf(linkStr, ctx.Repo.RepoLink, "closed",
-		url.QueryEscape(keyword), url.QueryEscape(sortType))
-
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if err := issues_model.MilestoneList(miles).LoadTotalTrackedTimes(ctx); err != nil {
 			ctx.ServerError("LoadTotalTrackedTimes", err)

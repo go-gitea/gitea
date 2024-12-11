@@ -74,24 +74,6 @@
   }
 }
 
-.repository .filter.menu.labels .label-filter .menu .info {
-  display: inline-block;
-  padding: 0.5rem 0;
-  font-size: 12px;
-  width: 100%;
-  white-space: nowrap;
-  margin-left: 10px;
-  margin-right: 8px;
-  text-align: left;
-}
-
-.repository .filter.menu.labels .label-filter .menu .info code {
-  border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
-  padding: 1px 2px;
-  font-size: 11px;
-}
-
 /* make all issue filter dropdown menus popup leftward, to avoid go out the viewport (right side) */
 .repository .filter.menu .ui.dropdown .menu {
   max-height: 500px;
@@ -420,14 +402,6 @@ td .commit-summary {
 
 .non-diff-file-content .pdfobject {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
-}
-
-.repository.file.list .sidebar {
-  padding-left: 0;
-}
-
-.repository.file.list .sidebar .svg {
-  width: 16px;
 }
 
 .repo-editor-header {
@@ -1822,16 +1796,6 @@ td .commit-summary {
   background: var(--color-secondary);
 }
 
-.repository .repository-summary .segment.language-stats {
-  display: flex;
-  gap: 2px;
-  padding: 0;
-  height: 10px;
-  white-space: nowrap;
-  border-radius: 0 0 3px 3px !important;
-  overflow: hidden;
-}
-
 #cite-repo-modal #citation-panel {
   display: flex;
   width: 100%;
@@ -2079,17 +2043,6 @@ td .commit-summary {
   padding: 1em;
 }
 
-.edit-label.modal .form .column,
-.new-label.modal .form .column {
-  padding-right: 0;
-}
-
-.edit-label.modal .form .buttons,
-.new-label.modal .form .buttons {
-  margin-left: auto;
-  padding-top: 15px;
-}
-
 .stats-table {
   display: table;
   width: 100%;
@@ -2172,11 +2125,7 @@ td .commit-summary {
   justify-content: flex-end;
 }
 
-.repo-button-row[data-is-homepage="false"] .repo-button-row-right {
-  flex-grow: 0;
-}
-
-@media (max-width: 991px) {
+@media (max-width: 1200px) {
   .repository:not(.wiki) .repo-button-row {
     flex-direction: column;
     align-items: stretch;
@@ -2302,6 +2251,7 @@ tbody.commit-list {
   font-weight: var(--font-weight-normal);
   cursor: pointer;
   margin: 0;
+  display: inline-block !important;
 }
 
 #new-dependency-drop-list.ui.selection.dropdown {
@@ -2820,9 +2770,9 @@ tbody.commit-list {
 /* FIXME: These media selectors are not ideal (just keep them from old code).
     There are many different pages, some need the max-width while some others don't,
     they should be tested and improved in the future. */
-@media (min-width: 768px) and (max-width: 991.98px) {
+@media (min-width: 768px) and (max-width: 1235px) {
   .branch-selector-dropdown .branch-dropdown-button {
-    max-width: 185px;
+    max-width: 301px;
   }
 }
 

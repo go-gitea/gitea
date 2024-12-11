@@ -14,7 +14,7 @@ export default {
       issueLink: el.getAttribute('data-issuelink'),
       locale: {
         filter_changes_by_commit: el.getAttribute('data-filter_changes_by_commit'),
-      },
+      } as Record<string, string>,
       commits: [],
       hoverActivated: false,
       lastReviewCommitSha: null,
@@ -41,16 +41,16 @@ export default {
     this.$el.removeEventListener('keyup', this.onKeyUp);
   },
   methods: {
-    onBodyClick(event) {
+    onBodyClick(event: MouseEvent) {
       // close this menu on click outside of this element when the dropdown is currently visible opened
       if (this.$el.contains(event.target)) return;
       if (this.menuVisible) {
         this.toggleMenu();
       }
     },
-    onKeyDown(event) {
+    onKeyDown(event: KeyboardEvent) {
       if (!this.menuVisible) return;
-      const item = document.activeElement;
+      const item = document.activeElement as HTMLElement;
       if (!this.$el.contains(item)) return;
       switch (event.key) {
         case 'ArrowDown': // select next element
@@ -73,7 +73,7 @@ export default {
         if (commitIdx) this.highlight(this.commits[commitIdx]);
       }
     },
-    onKeyUp(event) {
+    onKeyUp(event: KeyboardEvent) {
       if (!this.menuVisible) return;
       const item = document.activeElement;
       if (!this.$el.contains(item)) return;
@@ -95,7 +95,7 @@ export default {
       }
     },
     /** Focus given element */
-    focusElem(elem, prevElem) {
+    focusElem(elem: HTMLElement, prevElem: HTMLElement) {
       if (elem) {
         elem.tabIndex = 0;
         if (prevElem) prevElem.tabIndex = -1;
@@ -149,7 +149,7 @@ export default {
       window.location.assign(`${this.issueLink}/files/${this.lastReviewCommitSha}..${this.commits.at(-1).id}${this.queryParams}`);
     },
     /** Clicking on a single commit opens this specific commit */
-    commitClicked(commitId, newWindow = false) {
+    commitClicked(commitId: string, newWindow = false) {
       const url = `${this.issueLink}/commits/${commitId}${this.queryParams}`;
       if (newWindow) {
         window.open(url);
