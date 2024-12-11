@@ -9,7 +9,7 @@ import {
 import {initUnicodeEscapeButton} from './repo-unicode-escape.ts';
 import {initRepoBranchTagSelector} from '../components/RepoBranchTagSelector.vue';
 import {
-  initRepoCloneLink, initRepoCommonBranchOrTagDropdown, initRepoCommonFilterSearchDropdown,
+  initRepoCloneButtons, initRepoCommonBranchOrTagDropdown, initRepoCommonFilterSearchDropdown,
 } from './repo-common.ts';
 import {initCitationFileCopyContent} from './citation.ts';
 import {initCompLabelEdit} from './comp/LabelEdit.ts';
@@ -54,7 +54,7 @@ export function initRepository() {
     initRepoCommonFilterSearchDropdown('.choose.branch .dropdown');
   }
 
-  initRepoCloneLink();
+  initRepoCloneButtons();
   initCitationFileCopyContent();
   initRepoSettings();
 

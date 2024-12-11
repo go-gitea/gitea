@@ -68,6 +68,7 @@
 @import "./repo/home.css";
 @import "./repo/home-file-list.css";
 @import "./repo/reactions.css";
+@import "./repo/clone.css";
 @import "./repo/commit-sign.css";
 
 @import "./editor/fileeditor.css";

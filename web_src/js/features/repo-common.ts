@@ -5,6 +5,8 @@ import {showErrorToast} from '../modules/toast.ts';
 import {sleep} from '../utils.ts';
 import RepoActivityTopAuthors from '../components/RepoActivityTopAuthors.vue';
 import {createApp} from 'vue';
+import {toOriginUrl} from '../utils/url.ts';
+import {createTippy} from '../modules/tippy.ts';
 
 async function onDownloadArchive(e) {
   e.preventDefault();
@@ -41,30 +43,71 @@ export function initRepoActivityTopAuthorsChart() {
   }
 }
 
-export function initRepoCloneLink() {
-  const $repoCloneSsh = $('#repo-clone-ssh');
-  const $repoCloneHttps = $('#repo-clone-https');
-  const $inputLink = $('#repo-clone-url');
+function initCloneSchemeUrlSelection(parent: Element) {
+  const elCloneUrlInput = parent.querySelector<HTMLInputElement>('.repo-clone-url');
 
-  if ((!$repoCloneSsh.length && !$repoCloneHttps.length) || !$inputLink.length) {
-    return;
-  }
+  const tabSsh = parent.querySelector('.repo-clone-ssh');
+  const tabHttps = parent.querySelector('.repo-clone-https');
+  const updateClonePanelUi = function() {
+    const scheme = localStorage.getItem('repo-clone-protocol') || 'https';
+    const isSSH = scheme === 'ssh' && Boolean(tabSsh) || scheme !== 'ssh' && !tabHttps;
+    if (tabHttps) {
+      tabHttps.textContent = window.origin.split(':')[0].toUpperCase(); // show "HTTP" or "HTTPS"
+      tabHttps.classList.toggle('active', !isSSH);
+    }
+    if (tabSsh) {
+      tabSsh.classList.toggle('active', isSSH);
+    }
 
-  $repoCloneSsh.on('click', () => {
+    const tab = isSSH ? tabSsh : tabHttps;
+    if (!tab) return;
+    const link = toOriginUrl(tab.getAttribute('data-link'));
+
+    for (const el of document.querySelectorAll('.js-clone-url')) {
+      if (el.nodeName === 'INPUT') {
+        (el as HTMLInputElement).value = link;
+      } else {
+        el.textContent = link;
+      }
+    }
+    for (const el of parent.querySelectorAll<HTMLAnchorElement>('.js-clone-url-editor')) {
+      el.href = el.getAttribute('data-href-template').replace('{url}', encodeURIComponent(link));
+    }
+  };
+
+  updateClonePanelUi();
+
+  tabSsh.addEventListener('click', () => {
     localStorage.setItem('repo-clone-protocol', 'ssh');
-    window.updateCloneStates();
+    updateClonePanelUi();
   });
-  $repoCloneHttps.on('click', () => {
+  tabHttps.addEventListener('click', () => {
     localStorage.setItem('repo-clone-protocol', 'https');
-    window.updateCloneStates();
+    updateClonePanelUi();
   });
-
-  $inputLink.on('focus', () => {
-    $inputLink.trigger('select');
+  elCloneUrlInput.addEventListener('focus', () => {
+    elCloneUrlInput.select();
   });
 }
 
-export function initRepoCommonBranchOrTagDropdown(selector) {
+function initClonePanelButton(btn: HTMLButtonElement) {
+  const elPanel = btn.nextElementSibling;
+  createTippy(btn, {
+    content: elPanel,
+    trigger: 'click',
+    placement: 'bottom-end',
+    interactive: true,
+    hideOnClick: true,
+  });
+  initCloneSchemeUrlSelection(elPanel);
+}
+
+export function initRepoCloneButtons() {
+  queryElems(document, '.js-btn-clone-panel', initClonePanelButton);
+  queryElems(document, '.clone-buttons-combo', initCloneSchemeUrlSelection);
+}
+
+export function initRepoCommonBranchOrTagDropdown(selector: string) {
   $(selector).each(function () {
     const $dropdown = $(this);
     $dropdown.find('.reference.column').on('click', function () {
@@ -75,7 +118,7 @@ export function initRepoCommonBranchOrTagDropdown(selector) {
   });
 }
 
-export function initRepoCommonFilterSearchDropdown(selector) {
+export function initRepoCommonFilterSearchDropdown(selector: string) {
   const $dropdown = $(selector);
   if (!$dropdown.length) return;
 

@@ -127,10 +127,10 @@ func TestViewRepo1CloneLinkAnonymous(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("#repo-clone-https").Attr("data-link")
+	link, exists := htmlDoc.doc.Find(".repo-clone-https").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
 	assert.Equal(t, setting.AppURL+"user2/repo1.git", link)
-	_, exists = htmlDoc.doc.Find("#repo-clone-ssh").Attr("data-link")
+	_, exists = htmlDoc.doc.Find(".repo-clone-ssh").Attr("data-link")
 	assert.False(t, exists)
 }
 
@@ -143,10 +143,10 @@ func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("#repo-clone-https").Attr("data-link")
+	link, exists := htmlDoc.doc.Find(".repo-clone-https").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
 	assert.Equal(t, setting.AppURL+"user2/repo1.git", link)
-	link, exists = htmlDoc.doc.Find("#repo-clone-ssh").Attr("data-link")
+	link, exists = htmlDoc.doc.Find(".repo-clone-ssh").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
 	sshURL := fmt.Sprintf("ssh://%s@%s:%d/user2/repo1.git", setting.SSH.User, setting.SSH.Domain, setting.SSH.Port)
 	assert.Equal(t, sshURL, link)
