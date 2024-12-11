@@ -47,6 +47,7 @@ type ActionRun struct {
 	Status            Status                       `xorm:"index"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
 	ConcurrencyGroup  string
+	ConcurrencyCancel bool
 	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
@@ -270,7 +271,7 @@ func CancelPreviousJobsWithOpts(ctx context.Context, opts *FindRunOptions) error
 
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
-func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow, blockedByConcurrency bool) error {
+func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -283,6 +284,32 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	}
 	run.Index = index
 	run.Title, _ = util.SplitStringAtByteN(run.Title, 255)
+
+	blockedByWorkflowConcurrency := false
+	if len(run.ConcurrencyGroup) > 0 {
+		if run.ConcurrencyCancel {
+			if err := CancelPreviousJobsWithOpts(ctx, &FindRunOptions{
+				RepoID:           run.RepoID,
+				ConcurrencyGroup: run.ConcurrencyGroup,
+				Status:           []Status{StatusRunning, StatusWaiting, StatusBlocked},
+			}); err != nil {
+				return err
+			}
+		} else {
+			waitingConcurrentRunsNum, err := db.Count[ActionRun](ctx, &FindRunOptions{
+				RepoID:           run.RepoID,
+				ConcurrencyGroup: run.ConcurrencyGroup,
+				Status:           []Status{StatusWaiting},
+			})
+			if err != nil {
+				return err
+			}
+			blockedByWorkflowConcurrency = waitingConcurrentRunsNum > 0
+		}
+	}
+	if blockedByWorkflowConcurrency {
+		run.Status = StatusBlocked
+	}
 
 	if err := db.Insert(ctx, run); err != nil {
 		return err
@@ -310,13 +337,13 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		}
 		payload, _ := v.Marshal()
 		status := StatusWaiting
-		if len(needs) > 0 || run.NeedApproval {
+		if len(needs) > 0 || run.NeedApproval || blockedByWorkflowConcurrency {
 			status = StatusBlocked
 		} else {
 			hasWaiting = true
 		}
 		job.Name, _ = util.SplitStringAtByteN(job.Name, 255)
-		runJobs = append(runJobs, &ActionRunJob{
+		runJob := &ActionRunJob{
 			RunID:             run.ID,
 			RepoID:            run.RepoID,
 			OwnerID:           run.OwnerID,
@@ -328,7 +355,12 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 			Needs:             needs,
 			RunsOn:            job.RunsOn(),
 			Status:            status,
-		})
+		}
+		if job.RawConcurrency != nil {
+			runJob.RawConcurrencyGroup = job.RawConcurrency.Group
+			runJob.RawConcurrencyCancel = job.RawConcurrency.CancelInProgress
+		}
+		runJobs = append(runJobs, runJob)
 	}
 	if err := db.Insert(ctx, runJobs); err != nil {
 		return err

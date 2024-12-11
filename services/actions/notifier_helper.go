@@ -333,14 +333,12 @@ func handleWorkflows(
 		}
 
 		// check workflow concurrency
-		wfGitCtx := jobparser.ToGitContext(GenerateGitContext(run, nil))
-		wfConcurrencyGroup, wfConcurrencyCancel := jobparser.InterpolateWorkflowConcurrency(dwf.Concurrency, wfGitCtx, vars)
-		if len(wfConcurrencyGroup) > 0 {
-			run.ConcurrencyGroup = wfConcurrencyGroup
-			if wfConcurrencyCancel {
-				if err := CancelActionRunByConcurrency(ctx, run); err != nil {
-					log.Error("CancelActionRunByConcurrency: %v", err)
-				}
+		if dwf.RawConcurrency != nil {
+			wfGitCtx := jobparser.ToGitContext(GenerateGitContext(run, nil))
+			wfConcurrencyGroup, wfConcurrencyCancel := jobparser.InterpolateWorkflowConcurrency(dwf.RawConcurrency, wfGitCtx, vars)
+			if len(wfConcurrencyGroup) > 0 {
+				run.ConcurrencyGroup = wfConcurrencyGroup
+				run.ConcurrencyCancel = wfConcurrencyCancel
 			}
 		}
 
@@ -350,21 +348,7 @@ func handleWorkflows(
 			continue
 		}
 
-		// cancel running jobs if the event is push or pull_request_sync
-		if run.Event == webhook_module.HookEventPush ||
-			run.Event == webhook_module.HookEventPullRequestSync {
-			if err := actions_model.CancelPreviousJobs(
-				ctx,
-				run.RepoID,
-				run.Ref,
-				run.WorkflowID,
-				run.Event,
-			); err != nil {
-				log.Error("CancelPreviousJobs: %v", err)
-			}
-		}
-
-		if err := actions_model.InsertRun(ctx, run, jobs, !wfConcurrencyCancel); err != nil {
+		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
 			log.Error("InsertRun: %v", err)
 			continue
 		}

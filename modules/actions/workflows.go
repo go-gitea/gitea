@@ -21,10 +21,10 @@ import (
 )
 
 type DetectedWorkflow struct {
-	EntryName    string
-	TriggerEvent *jobparser.Event
-	Content      []byte
-	Concurrency  *jobparser.UninterpolatedConcurrency
+	EntryName      string
+	TriggerEvent   *jobparser.Event
+	Content        []byte
+	RawConcurrency *model.RawConcurrency
 }
 
 func init() {
@@ -96,17 +96,12 @@ func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
 	return events, nil
 }
 
-func GetConcurrencyFromContent(content []byte) (*jobparser.UninterpolatedConcurrency, error) {
+func GetConcurrencyFromContent(content []byte) (*model.RawConcurrency, error) {
 	workflow, err := model.ReadWorkflow(bytes.NewReader(content))
 	if err != nil {
 		return nil, err
 	}
-	uc, err := jobparser.ParseRawConcurrency(&workflow.RawConcurrency)
-	if err != nil {
-		return nil, err
-	}
-
-	return uc, nil
+	return workflow.RawConcurrency, nil
 }
 
 func DetectWorkflows(
@@ -153,10 +148,10 @@ func DetectWorkflows(
 				}
 			} else if detectMatched(gitRepo, commit, triggedEvent, payload, evt) {
 				dwf := &DetectedWorkflow{
-					EntryName:    entry.Name(),
-					TriggerEvent: evt,
-					Content:      content,
-					Concurrency:  concurrency,
+					EntryName:      entry.Name(),
+					TriggerEvent:   evt,
+					Content:        content,
+					RawConcurrency: concurrency,
 				}
 				workflows = append(workflows, dwf)
 			}

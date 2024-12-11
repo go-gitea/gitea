@@ -546,6 +546,7 @@ func Approve(ctx *context_module.Context) {
 		}
 		for _, job := range jobs {
 			if len(job.Needs) == 0 && job.Status.IsBlocked() {
+				// TODO: check concurrency
 				job.Status = actions_model.StatusWaiting
 				_, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
 				if err != nil {
@@ -899,7 +900,7 @@ func Run(ctx *context_module.Context) {
 	}
 
 	// Insert the action run and its associated jobs into the database
-	if err := actions_model.InsertRun(ctx, run, workflows, false); err != nil {
+	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
 		ctx.ServerError("workflow", err)
 		return
 	}
