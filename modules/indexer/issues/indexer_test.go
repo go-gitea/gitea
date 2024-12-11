@@ -192,7 +192,7 @@ func searchIssueByID(t *testing.T) {
 		},
 		{
 			// NOTE: This tests no assignees filtering and also ToSearchOptions() to ensure it will set AssigneeID to 0 when it is passed as -1.
-			opts:        *ToSearchOptions("", &issues.IssuesOptions{AssigneeID: -1}),
+			opts:        *ToSearchOptions("", &issues.IssuesOptions{AssigneeID: optional.Some(db.NoConditionID)}),
 			expectedIDs: []int64{22, 21, 16, 15, 14, 13, 12, 11, 20, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2},
 		},
 		{
