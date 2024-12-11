@@ -64,10 +64,9 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 			return nil
 		}
 		concurrentActionRuns, err := db.Find[actions_model.ActionRun](ctx, &actions_model.FindRunOptions{
+			RepoID:           run.RepoID,
 			ConcurrencyGroup: run.ConcurrencyGroup,
 			Status: []actions_model.Status{
-				actions_model.StatusRunning,
-				actions_model.StatusWaiting,
 				actions_model.StatusBlocked,
 			},
 			SortType: "oldest",

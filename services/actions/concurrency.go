@@ -11,6 +11,7 @@ import (
 
 func CancelActionRunByConcurrency(ctx context.Context, run *actions_model.ActionRun) error {
 	return actions_model.CancelPreviousJobsWithOpts(ctx, &actions_model.FindRunOptions{
+		RepoID:           run.RepoID,
 		ConcurrencyGroup: run.ConcurrencyGroup,
 		Status: []actions_model.Status{
 			actions_model.StatusRunning,
