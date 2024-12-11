@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -155,7 +156,7 @@ func TestIssues(t *testing.T) {
 	}{
 		{
 			issues_model.IssuesOptions{
-				AssigneeID: 1,
+				AssigneeID: optional.Some(int64(1)),
 				SortType:   "oldest",
 			},
 			[]int64{1, 6},
