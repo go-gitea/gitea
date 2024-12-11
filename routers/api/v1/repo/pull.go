@@ -419,7 +419,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 	defer ci.Close()
 
-	if ci.IsPull() {
+	if !ci.IsPull() {
 		ctx.Error(http.StatusUnprocessableEntity, "Bad base or head refs", "Only support branch to branch comparison")
 		return
 	}
