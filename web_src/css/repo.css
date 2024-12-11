@@ -101,58 +101,6 @@
   margin-bottom: 12px;
 }
 
-.repository .clone-panel {
-  display: flex;
-  flex: 1;
-  min-width: 200px;
-}
-
-.repository.wiki .clone-panel {
-  flex: 0;
-}
-
-.repository.wiki .clone-panel input {
-  width: 20ch;
-}
-
-.repository .clone-panel #repo-clone-url {
-  border-radius: 0;
-  flex: 1;
-}
-
-.repository .ui.action.input.clone-panel > button + button,
-.repository .ui.action.input.clone-panel > button + input {
-  margin-left: -1px; /* make the borders overlap to avoid double borders */
-}
-
-.repository #clone-panel {
-  position: relative;
-}
-
-.clone-panel .ui.segment {
-  border: none;
-}
-
-.repository .clone-panel > button {
-  border-radius: var(--border-radius) !important;
-}
-
-.clone.tabs {
-  cursor: pointer;
-
-  border-bottom: 3px solid;
-  border-color: transparent;
-
-  font-weight: var(--font-weight-semibold);
-  font-size: 1rem;
-
-  padding: 0.5rem;
-}
-
-.clone.tabs.primary {
-  border-color: var(--color-primary);
-}
-
 .repository .repo-description {
   font-size: 16px;
   margin-bottom: 5px;
@@ -1629,14 +1577,6 @@ td .commit-summary {
 
 .repository.quickstart .guide .item small {
   font-weight: var(--font-weight-normal);
-}
-
-.repository.quickstart .guide #repo-clone-url {
-  border-radius: 0;
-  padding: 5px 10px;
-  font-size: 1.2em;
-  line-height: 1.4;
-  flex: 1
 }
 
 .empty-placeholder {
