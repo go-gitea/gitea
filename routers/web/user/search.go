@@ -16,10 +16,14 @@ import (
 
 // SearchCandidates searches candidate users for dropdown list
 func SearchCandidates(ctx *context.Context) {
+	searchUserTypes := []user_model.UserType{user_model.UserTypeIndividual}
+	if ctx.FormBool("orgs") {
+		searchUserTypes = append(searchUserTypes, user_model.UserTypeOrganization)
+	}
 	users, _, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Keyword:     ctx.FormTrim("q"),
-		Type:        user_model.UserTypeIndividual,
+		Types:       searchUserTypes,
 		IsActive:    optional.Some(true),
 		ListOptions: db.ListOptions{PageSize: setting.UI.MembersPagingNum},
 	})
