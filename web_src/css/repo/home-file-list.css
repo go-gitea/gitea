@@ -4,7 +4,7 @@
   grid-template-columns: auto 1fr auto;
   border: 1px solid var(--color-light-border);
   border-radius: var(--border-radius);
-  margin: 8px 0;
+  margin: 10px 0; /* match the "clone-panel-popup" margin to avoid "visual double-border" */
 }
 
 #repo-files-table .svg.octicon-file-directory-fill,

@@ -92,6 +92,8 @@ function initCloneSchemeUrlSelection(parent: Element) {
 
 function initClonePanelButton(btn: HTMLButtonElement) {
   const elPanel = btn.nextElementSibling;
+  // "init" must be before the "createTippy" otherwise the "tippy-target" will be removed from the document
+  initCloneSchemeUrlSelection(elPanel);
   createTippy(btn, {
     content: elPanel,
     trigger: 'click',
@@ -99,7 +101,6 @@ function initClonePanelButton(btn: HTMLButtonElement) {
     interactive: true,
     hideOnClick: true,
   });
-  initCloneSchemeUrlSelection(elPanel);
 }
 
 export function initRepoCloneButtons() {

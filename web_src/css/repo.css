@@ -1334,7 +1334,7 @@ td .commit-summary {
 
 .repository .repository-summary .sub-menu .item {
   flex: 1;
-  height: 33.6px; /* match search bar height, need to be improved in the future to use some consistent methods */
+  height: 33px; /* match search bar height, need to be improved in the future to use some consistent methods */
   line-height: var(--line-height-default);
   display: flex;
   align-items: center;
