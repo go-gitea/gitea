@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/shared/issue"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -334,23 +335,15 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	var labelIDs []int64
-	// 1,-2 means including label 1 and excluding label 2
-	// 0 means issues with no label
-	// blank means labels will not be filtered for issues
-	selectLabels := ctx.FormString("labels")
-	if selectLabels != "" {
-		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
-		if err != nil {
-			ctx.Flash.Error(ctx.Tr("invalid_data", selectLabels), true)
-		}
+	labelIDs := issue.PrepareFilterIssueLabels(ctx, project.RepoID, project.Owner)
+	if ctx.Written() {
+		return
 	}
-
-	assigneeID := ctx.FormInt64("assignee")
+	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
 
 	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns, &issues_model.IssuesOptions{
 		LabelIDs:   labelIDs,
-		AssigneeID: assigneeID,
+		AssigneeID: optional.Some(assigneeID),
 	})
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfColumns", err)
@@ -426,8 +419,6 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
-
-	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["AssigneeID"] = assigneeID
 
 	project.RenderedContent = templates.NewRenderUtils(ctx).MarkdownToHtml(project.Description)

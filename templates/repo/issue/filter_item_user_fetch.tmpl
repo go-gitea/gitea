@@ -2,13 +2,13 @@
 * QueryParamKey: eg: "poster", "assignee"
 * QueryLink
 * UserSearchUrl
-* SelectedUserId
+* SelectedUsername
 * TextFilterTitle
 */}}
 {{$queryLink := .QueryLink}}
 <div class="item ui dropdown custom user-remote-search" data-tooltip-content="{{ctx.Locale.Tr "repo.user_search_tooltip"}}"
 		data-search-url="{{$.UserSearchUrl}}"
-		data-selected-user-id="{{$.SelectedUserId}}"
+		data-selected-username="{{$.SelectedUsername}}"
 		data-action-jump-url="{{QueryBuild $queryLink $.QueryParamKey NIL}}&{{$.QueryParamKey}}={username}"
 >
 	{{$.TextFilterTitle}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}
