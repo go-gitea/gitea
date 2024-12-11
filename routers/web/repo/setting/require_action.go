@@ -39,7 +39,7 @@ func getRequireActionCtx(ctx *context.Context) (*requireActionsCtx, error) {
 
 // Listing all RequireAction
 func RequireAction(ctx *context.Context) {
-	ctx.Data["ActionsTitle"] = ctx.Tr("actions.requires")
+	ctx.Data["Title"] = ctx.Tr("actions.requires")
 	ctx.Data["PageType"] = "require_action"
 	ctx.Data["PageIsSharedSettingsRequireAction"] = true
 

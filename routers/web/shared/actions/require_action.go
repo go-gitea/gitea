@@ -62,7 +62,7 @@ func CreateRequireAction(ctx *context.Context, orgID int64, redirectURL string) 
 	v, err := actions_service.CreateRequireAction(ctx, orgID, form.RepoName, form.WorkflowName)
 	if err != nil {
 		log.Error("CreateRequireAction: %v", err)
-		ctx.JSONError(ctx.Tr("actions.require_action.creation.failed"))
+		ctx.JSONError(ctx.Tr("actions.require_action.creation.failed", v.WorkflowName))
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.require_action.creation.success", v.WorkflowName))
