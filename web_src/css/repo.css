@@ -90,24 +90,6 @@
   left: 0;
 }
 
-.repository .filter.menu .ui.dropdown.label-filter .menu .info {
-  display: inline-block;
-  padding: 0.5rem 0;
-  font-size: 12px;
-  width: 100%;
-  white-space: nowrap;
-  margin-left: 10px;
-  margin-right: 8px;
-  text-align: left;
-}
-
-.repository .filter.menu .ui.dropdown.label-filter .menu .info code {
-  border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
-  padding: 1px 2px;
-  font-size: 11px;
-}
-
 /* For the secondary pointing menu, respect its own border-bottom */
 /* style reference: https://semantic-ui.com/collections/menu.html#pointing */
 .repository .ui.tabs.container .ui.menu:not(.secondary.pointing) {
@@ -117,42 +99,6 @@
 .repository .ui.tabs.divider {
   margin-top: -1px;
   margin-bottom: 12px;
-}
-
-.repository .clone-panel {
-  display: flex;
-  flex: 1;
-}
-
-.repository.wiki .clone-panel {
-  flex: 0;
-}
-
-.repository.wiki .clone-panel input {
-  width: 20ch;
-}
-
-.repository .clone-panel #repo-clone-url {
-  border-radius: 0;
-  flex: 1;
-}
-
-.repository .ui.action.input.clone-panel > button + button,
-.repository .ui.action.input.clone-panel > button + input {
-  margin-left: -1px; /* make the borders overlap to avoid double borders */
-}
-
-.repository .clone-panel > button:first-of-type {
-  border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
-}
-
-.repository .clone-panel > button:last-of-type {
-  border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
-}
-
-.repository .clone-panel .dropdown .menu {
-  right: 0 !important;
-  left: auto !important;
 }
 
 .repository .repo-description {
@@ -1631,14 +1577,6 @@ td .commit-summary {
 
 .repository.quickstart .guide .item small {
   font-weight: var(--font-weight-normal);
-}
-
-.repository.quickstart .guide #repo-clone-url {
-  border-radius: 0;
-  padding: 5px 10px;
-  font-size: 1.2em;
-  line-height: 1.4;
-  flex: 1
 }
 
 .empty-placeholder {

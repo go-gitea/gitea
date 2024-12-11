@@ -48,7 +48,7 @@ function makeCollections({mentions, emoji}) {
   return collections;
 }
 
-export async function attachTribute(element, {mentions, emoji} = {}) {
+export async function attachTribute(element, {mentions, emoji}) {
   const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
   const collections = makeCollections({mentions, emoji});
   const tribute = new Tribute({collection: collections, noMatchTemplate: ''});

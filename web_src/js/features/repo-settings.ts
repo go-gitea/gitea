@@ -73,7 +73,7 @@ function initRepoSettingsSearchTeamBox() {
 function initRepoSettingsGitHook() {
   if (!$('.edit.githook').length) return;
   const filename = document.querySelector('.hook-filename').textContent;
-  createMonaco($('#content')[0], filename, {language: 'shell'});
+  createMonaco($('#content')[0] as HTMLTextAreaElement, filename, {language: 'shell'});
 }
 
 function initRepoSettingsBranches() {
@@ -99,7 +99,7 @@ function initRepoSettingsBranches() {
 
   // show the `Matched` mark for the status checks that match the pattern
   const markMatchedStatusChecks = () => {
-    const patterns = (document.querySelector('#status_check_contexts').value || '').split(/[\r\n]+/);
+    const patterns = (document.querySelector<HTMLTextAreaElement>('#status_check_contexts').value || '').split(/[\r\n]+/);
     const validPatterns = patterns.map((item) => item.trim()).filter(Boolean);
     const marks = document.querySelectorAll('.status-check-matched-mark');
 
@@ -122,7 +122,7 @@ function initRepoSettingsBranches() {
 function initRepoSettingsOptions() {
   if ($('.repository.settings.options').length > 0) {
     // Enable or select internal/external wiki system and issue tracker.
-    $('.enable-system').on('change', function () {
+    $('.enable-system').on('change', function (this: HTMLInputElement) {
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
         if (!$(this).data('context')) $($(this).data('context')).addClass('disabled');
@@ -131,7 +131,7 @@ function initRepoSettingsOptions() {
         if (!$(this).data('context')) $($(this).data('context')).removeClass('disabled');
       }
     });
-    $('.enable-system-radio').on('change', function () {
+    $('.enable-system-radio').on('change', function (this: HTMLInputElement) {
       if (this.value === 'false') {
         $($(this).data('target')).addClass('disabled');
         if ($(this).data('context') !== undefined) $($(this).data('context')).removeClass('disabled');

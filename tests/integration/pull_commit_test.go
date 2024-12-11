@@ -26,8 +26,8 @@ func TestListPullCommits(t *testing.T) {
 		DecodeJSON(t, resp, &pullCommitList)
 
 		if assert.Len(t, pullCommitList.Commits, 2) {
-			assert.Equal(t, "5f22f7d0d95d614d25a5b68592adb345a4b5c7fd", pullCommitList.Commits[0].ID)
-			assert.Equal(t, "4a357436d925b5c974181ff12a994538ddc5a269", pullCommitList.Commits[1].ID)
+			assert.Equal(t, "985f0301dba5e7b34be866819cd15ad3d8f508ee", pullCommitList.Commits[0].ID)
+			assert.Equal(t, "5c050d3b6d2db231ab1f64e324f1b6b9a0b181c2", pullCommitList.Commits[1].ID)
 		}
 		assert.Equal(t, "4a357436d925b5c974181ff12a994538ddc5a269", pullCommitList.LastReviewCommitSha)
 	})

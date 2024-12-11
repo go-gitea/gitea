@@ -4,7 +4,7 @@
 
 {{if not .Milestone}}
 <!-- Milestone -->
-<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
+<div class="item ui dropdown jump {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}}">
 	<span class="text">
 		{{ctx.Locale.Tr "repo.issues.filter_milestone"}}
 	</span>
@@ -42,7 +42,7 @@
 {{end}}
 
 <!-- Project -->
-<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
+<div class="item ui dropdown jump {{if not (or .OpenProjects .ClosedProjects)}}disabled{{end}}">
 	<span class="text">
 		{{ctx.Locale.Tr "repo.issues.filter_project"}}
 	</span>
@@ -84,7 +84,7 @@
 	"QueryParamKey" "poster"
 	"QueryLink" $queryLink
 	"UserSearchUrl" (Iif .Milestone (print $.RepoLink "/issues/posters") (print $.Link "/posters"))
-	"SelectedUserId" $.PosterUserID
+	"SelectedUsername" $.PosterUsername
 	"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_poster")
 }}
 
@@ -100,7 +100,7 @@
 
 {{if .IsSigned}}
 	<!-- Type -->
-	<div class="ui dropdown type jump item">
+	<div class="item ui dropdown jump">
 		<span class="text">
 			{{ctx.Locale.Tr "repo.issues.filter_type"}}
 		</span>
@@ -119,7 +119,7 @@
 {{end}}
 
 <!-- Sort -->
-<div class="list-header-sort ui small dropdown downward type jump item">
+<div class="item ui dropdown jump">
 	<span class="text">
 		{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 	</span>
