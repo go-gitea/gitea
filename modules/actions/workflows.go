@@ -117,10 +117,10 @@ func DetectWorkflows(
 	if err != nil {
 		return nil, nil, err
 	}
-	return _DetectWorkflows(gitRepo, commit, triggedEvent, payload, detectSchedule, entries)
+	return detectWorkflows(gitRepo, commit, triggedEvent, payload, detectSchedule, entries)
 }
 
-func _DetectWorkflows(
+func detectWorkflows(
 	gitRepo *git.Repository,
 	commit *git.Commit,
 	triggedEvent webhook_module.HookEventType,
@@ -168,7 +168,7 @@ func _DetectWorkflows(
 }
 
 func DetectScheduledGlobalWorkflows(gitRepo *git.Repository, commit *git.Commit, entries git.Entries) ([]*DetectedWorkflow, error) {
-	return _DetectScheduledWorkflows(gitRepo, commit, entries)
+	return detectScheduledWorkflows(gitRepo, commit, entries)
 }
 
 func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
@@ -176,10 +176,10 @@ func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*D
 	if err != nil {
 		return nil, err
 	}
-	return _DetectScheduledWorkflows(gitRepo, commit, entries)
+	return detectScheduledWorkflows(gitRepo, commit, entries)
 }
 
-func _DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit, entries git.Entries) ([]*DetectedWorkflow, error) {
+func detectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit, entries git.Entries) ([]*DetectedWorkflow, error) {
 	if gitRepo != nil {
 		log.Trace("detect scheduled workflow for gitRepo.Path: %q", gitRepo.Path)
 	}
