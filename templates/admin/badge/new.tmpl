@@ -1,0 +1,30 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin new user")}}
+	<div class="admin-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "admin.badges.new_badge"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{template "base/disable_form_autofill"}}
+				{{.CsrfTokenHtml}}
+
+				<div class="required non-local field {{if .Err_Slug}}error{{end}}">
+					<label for="slug">{{ctx.Locale.Tr "admin.badges.slug"}}</label>
+					<input autofocus required id="slug" name="slug" value="{{.slug}}">
+				</div>
+				<div class="field {{if .Err_Description}}error{{end}}">
+					<label for="description">{{ctx.Locale.Tr "admin.badges.description"}}</label>
+					<textarea id="description" type="text" name="description" rows="2">{{.description}}</textarea>
+				</div>
+				<div class="field {{if .Err_ImageURL}}error{{end}}">
+					<label for="image_url">{{ctx.Locale.Tr "admin.badges.image_url"}}</label>
+					<input id="image_url" type="url" name="image_url" value="{{.image_url}}">
+				</div>
+
+				<div class="field">
+					<button class="ui primary button">{{ctx.Locale.Tr "admin.badges.new_badge"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{{template "admin/layout_footer" .}}

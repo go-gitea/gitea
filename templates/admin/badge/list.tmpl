@@ -1,0 +1,67 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+	<div class="admin-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "admin.badges.badges_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
+			<div class="ui right">
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/badges/new">{{ctx.Locale.Tr "admin.badges.new_badge"}}</a>
+			</div>
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form ignore-dirty" id="user-list-search-form">
+
+				<!-- Right Menu -->
+				<div class="ui right floated secondary filter menu">
+					<!-- Sort Menu Item -->
+					<div class="ui dropdown type jump item">
+						<span class="text">
+							{{ctx.Locale.Tr "repo.issues.filter_sort"}}
+						</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<button class="item" name="sort" value="oldest">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</button>
+							<button class="item" name="sort" value="newest">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</button>
+							<button class="item" name="sort" value="alphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
+							<button class="item" name="sort" value="reversealphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
+						</div>
+					</div>
+				</div>
+
+				{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.badge_kind")}}
+			</form>
+		</div>
+		<div class="ui attached table segment">
+			<table class="ui very basic striped table unstackable">
+				<thead>
+					<tr>
+						<th data-sortt-asc="oldest" data-sortt-desc="newest" data-sortt-default="true">ID{{SortArrow "oldest" "newest" .SortType false}}</th>
+						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
+							{{ctx.Locale.Tr "admin.badges.slug"}}
+							{{SortArrow "alphabetically" "reversealphabeically" $.SortType true}}
+						</th>
+						<th>{{ctx.Locale.Tr "admin.badges.description"}}</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Badges}}
+						<tr>
+							<td>{{.ID}}</td>
+							<td>
+								<a href="{{$.Link}}/{{.Slug}}">{{.Slug}}</a>
+							</td>
+							<td class="gt-ellipsis tw-max-w-48">{{.Description}}</td>
+							<td>
+								<div class="tw-flex tw-gap-2">
+									<a href="{{$.Link}}/{{.Slug}}" data-tooltip-content="{{ctx.Locale.Tr "admin.badges.details"}}">{{svg "octicon-star"}}</a>
+									<a href="{{$.Link}}/{{.Slug}}/edit" data-tooltip-content="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a>
+								</div>
+							</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+
+		{{template "base/paginate" .}}
+	</div>
+{{template "admin/layout_footer" .}}

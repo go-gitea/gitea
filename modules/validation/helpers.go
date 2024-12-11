@@ -127,3 +127,7 @@ func IsValidUsername(name string) bool {
 	// but it's easier to use positive and negative checks.
 	return validUsernamePattern.MatchString(name) && !invalidUsernamePattern.MatchString(name)
 }
+
+func IsValidSlug(slug string) bool {
+	return IsValidUsername(slug)
+}
