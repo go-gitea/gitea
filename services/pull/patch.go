@@ -29,17 +29,6 @@ import (
 	"github.com/gobwas/glob"
 )
 
-// getDiffOrPatch generates either diff or formatted patch data between given revisions
-func getDiffOrPatch(repo *git.Repository, compareString string, w io.Writer, patch, binary bool) error {
-	if patch {
-		return repo.GetPatch(compareString, w)
-	}
-	if binary {
-		return repo.GetDiffBinary(compareString, w)
-	}
-	return repo.GetDiff(compareString, w)
-}
-
 // DownloadDiffOrPatch will write the patch for the pr to the writer
 func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io.Writer, patch, binary bool) error {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
@@ -53,7 +42,17 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 	}
 	defer closer.Close()
 
-	if err := getDiffOrPatch(gitRepo, pr.MergeBase+"..."+pr.GetGitRefName(), w, patch, binary); err != nil {
+	compareString := pr.MergeBase + "..." + pr.GetGitRefName()
+	switch {
+	case patch:
+		err = gitRepo.GetPatch(compareString, w)
+	case binary:
+		err = gitRepo.GetDiffBinary(compareString, w)
+	default:
+		err = gitRepo.GetDiff(compareString, w)
+	}
+
+	if err != nil {
 		log.Error("unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 		return fmt.Errorf("unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
