@@ -105,9 +105,20 @@
 					<span class="only-mobile">{{ctx.Locale.Tr "create_new"}}</span>
 				</span>
 				<div class="menu">
-					<a class="item" href="{{AppSubUrl}}/repo/create">
-						{{svg "octicon-plus"}} {{ctx.Locale.Tr "new_repo"}}
-					</a>
+					{{if .SignedUser.CanCreateRepo}}
+						<a class="item" href="{{AppSubUrl}}/repo/create">
+							{{svg "octicon-plus"}} {{ctx.Locale.Tr "new_repo"}}
+						</a>
+					{{else}}
+						<a
+							class="disabled-with-tooltip item"
+							data-tooltip-content="{{ctx.Locale.TrN .SignedUser.MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .SignedUser.MaxCreationLimit}}"
+							href="/"
+							onclick="event.stopPropagation(); event.preventDefault()"
+						>
+							{{svg "octicon-plus"}} {{ctx.Locale.Tr "new_repo"}}
+						</a>
+					{{end}}
 					{{if not .DisableMigrations}}
 						<a class="item" href="{{AppSubUrl}}/repo/migrate">
 							{{svg "octicon-repo-push"}} {{ctx.Locale.Tr "new_migrate"}}
