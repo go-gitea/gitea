@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
+	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
@@ -26,6 +27,7 @@ type PullRequestsOptions struct {
 	SortType    string
 	Labels      []int64
 	MilestoneID int64
+	PosterID    int64
 }
 
 func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) *xorm.Session {
@@ -44,6 +46,10 @@ func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullR
 
 	if opts.MilestoneID > 0 {
 		sess.And("issue.milestone_id=?", opts.MilestoneID)
+	}
+
+	if opts.PosterID > 0 {
+		sess.And("issue.poster_id=?", opts.PosterID)
 	}
 
 	return sess
@@ -233,6 +239,64 @@ func (prs PullRequestList) GetIssueIDs() []int64 {
 	return container.FilterSlice(prs, func(pr *PullRequest) (int64, bool) {
 		return pr.IssueID, pr.IssueID > 0
 	})
+}
+
+func (prs PullRequestList) LoadReviewCommentsCounts(ctx context.Context) (map[int64]int, error) {
+	issueIDs := prs.GetIssueIDs()
+	countsMap := make(map[int64]int, len(issueIDs))
+	counts := make([]struct {
+		IssueID int64
+		Count   int
+	}, 0, len(issueIDs))
+	if err := db.GetEngine(ctx).Select("issue_id, count(*) as count").
+		Table("comment").In("issue_id", issueIDs).And("type = ?", CommentTypeReview).
+		GroupBy("issue_id").Find(&counts); err != nil {
+		return nil, err
+	}
+	for _, c := range counts {
+		countsMap[c.IssueID] = c.Count
+	}
+	return countsMap, nil
+}
+
+func (prs PullRequestList) LoadReviews(ctx context.Context) (ReviewList, error) {
+	issueIDs := prs.GetIssueIDs()
+	reviews := make([]*Review, 0, len(issueIDs))
+
+	subQuery := builder.Select("max(id) as id").
+		From("review").
+		Where(builder.In("issue_id", issueIDs)).
+		And(builder.In("`type`", ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest)).
+		And(builder.Eq{
+			"dismissed":          false,
+			"original_author_id": 0,
+			"reviewer_team_id":   0,
+		}).
+		GroupBy("issue_id, reviewer_id")
+	// Get latest review of each reviewer, sorted in order they were made
+	if err := db.GetEngine(ctx).In("id", subQuery).OrderBy("review.updated_unix ASC").Find(&reviews); err != nil {
+		return nil, err
+	}
+
+	teamReviewRequests := make([]*Review, 0, 5)
+	subQueryTeam := builder.Select("max(id) as id").
+		From("review").
+		Where(builder.In("issue_id", issueIDs)).
+		And(builder.Eq{
+			"original_author_id": 0,
+		}).And(builder.Neq{
+		"reviewer_team_id": 0,
+	}).
+		GroupBy("issue_id, reviewer_team_id")
+	if err := db.GetEngine(ctx).In("id", subQueryTeam).OrderBy("review.updated_unix ASC").Find(&teamReviewRequests); err != nil {
+		return nil, err
+	}
+
+	if len(teamReviewRequests) > 0 {
+		reviews = append(reviews, teamReviewRequests...)
+	}
+
+	return reviews, nil
 }
 
 // HasMergedPullRequestInRepo returns whether the user(poster) has merged pull-request in the repo

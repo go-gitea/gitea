@@ -8,13 +8,13 @@ export function initFomanticTransition() {
     'set duration', 'save conditions', 'restore conditions',
   ]);
   // stand-in for removed transition module
-  $.fn.transition = function (arg0, arg1, arg2) {
+  $.fn.transition = function (arg0: any, arg1: any, arg2: any) {
     if (arg0 === 'is supported') return true;
     if (arg0 === 'is animating') return false;
     if (arg0 === 'is inward') return false;
     if (arg0 === 'is outward') return false;
 
-    let argObj;
+    let argObj: Record<string, any>;
     if (typeof arg0 === 'string') {
       // many behaviors are no-op now. https://fomantic-ui.com/modules/transition.html#/usage
       if (transitionNopBehaviors.has(arg0)) return this;

@@ -23,7 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/web/repo"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 
@@ -168,8 +168,8 @@ func List(ctx *context.Context) {
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
 	ctx.Data["ActionsConfig"] = actionsConfig
 
-	if len(workflowID) > 0 && ctx.Repo.IsAdmin() {
-		ctx.Data["AllowDisableOrEnableWorkflow"] = true
+	if len(workflowID) > 0 && ctx.Repo.CanWrite(unit.TypeActions) {
+		ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.IsAdmin()
 		isWorkflowDisabled := actionsConfig.IsWorkflowDisabled(workflowID)
 		ctx.Data["CurWorkflowDisabled"] = isWorkflowDisabled
 
@@ -252,7 +252,7 @@ func List(ctx *context.Context) {
 		ctx.ServerError("GetActors", err)
 		return
 	}
-	ctx.Data["Actors"] = repo.MakeSelfOnTop(ctx.Doer, actors)
+	ctx.Data["Actors"] = shared_user.MakeSelfOnTop(ctx.Doer, actors)
 
 	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx)
 

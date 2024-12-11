@@ -6,8 +6,10 @@ package web
 import (
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 
@@ -82,15 +84,23 @@ func (r *Router) getPattern(pattern string) string {
 	return strings.TrimSuffix(newPattern, "/")
 }
 
+func isNilOrFuncNil(v any) bool {
+	if v == nil {
+		return true
+	}
+	r := reflect.ValueOf(v)
+	return r.Kind() == reflect.Func && r.IsNil()
+}
+
 func (r *Router) wrapMiddlewareAndHandler(h []any) ([]func(http.Handler) http.Handler, http.HandlerFunc) {
 	handlerProviders := make([]func(http.Handler) http.Handler, 0, len(r.curMiddlewares)+len(h)+1)
 	for _, m := range r.curMiddlewares {
-		if m != nil {
+		if !isNilOrFuncNil(m) {
 			handlerProviders = append(handlerProviders, toHandlerProvider(m))
 		}
 	}
 	for _, m := range h {
-		if h != nil {
+		if !isNilOrFuncNil(m) {
 			handlerProviders = append(handlerProviders, toHandlerProvider(m))
 		}
 	}
@@ -205,7 +215,9 @@ func (r *Router) normalizeRequestPath(resp http.ResponseWriter, req *http.Reques
 			normalizedPath = "/"
 		} else if !strings.HasPrefix(normalizedPath+"/", "/v2/") {
 			// do not respond to other requests, to simulate a real sub-path environment
-			http.Error(resp, "404 page not found, sub-path is: "+setting.AppSubURL, http.StatusNotFound)
+			resp.Header().Add("Content-Type", "text/html; charset=utf-8")
+			resp.WriteHeader(http.StatusNotFound)
+			_, _ = resp.Write([]byte(htmlutil.HTMLFormat(`404 page not found, sub-path is: <a href="%s">%s</a>`, setting.AppSubURL, setting.AppSubURL)))
 			return
 		}
 		normalized = true

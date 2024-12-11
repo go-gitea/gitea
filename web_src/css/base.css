@@ -1364,6 +1364,10 @@ table th[data-sortt-desc] .svg {
   min-width: 0; /* make ellipsis work */
 }
 
+.ui.multiple.selection.dropdown {
+  flex-wrap: wrap;
+}
+
 .ui.ui.dropdown.selection {
   min-width: 14em; /* match the default min width */
 }
@@ -1377,20 +1381,26 @@ table th[data-sortt-desc] .svg {
   align-items: stretch;
 }
 
+.ui.list.flex-items-block > .item,
 .flex-items-block > .item,
 .flex-text-block {
   display: flex;
   align-items: center;
-  gap: .25rem;
+  gap: .5rem;
   min-width: 0;
 }
 
-/* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content */
-.ui.dropdown .menu.flex-items-menu > .item {
+/* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content
+the "!important" is necessary to override Fomantic UI menu item styles, meanwhile we should keep the "hidden" items still hidden */
+.ui.dropdown .menu.flex-items-menu > .item:not(.hidden, .filtered, .tw-hidden) {
   display: flex !important;
   align-items: center;
   gap: .5rem;
   min-width: 0;
+}
+.ui.dropdown .menu.flex-items-menu > .item img,
+.ui.dropdown .menu.flex-items-menu > .item svg {
+  margin: 0; /* use gap, but not margin */
 }
 
 .ui.dropdown.ellipsis-items-nowrap > .text {

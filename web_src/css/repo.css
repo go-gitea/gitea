@@ -50,9 +50,21 @@
   width: 300px;
 }
 
+.issue-sidebar-combo .ui.dropdown .item:not(.checked) .item-check-mark {
+  visibility: hidden;
+}
+
 .issue-content-right .dropdown > .menu {
   max-width: 270px;
   min-width: 0;
+  max-height: 500px;
+  overflow-x: auto;
+}
+
+.issue-content-right .dropdown > .menu .item-secondary-info small {
+  display: block;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 @media (max-width: 767.98px) {
@@ -60,46 +72,6 @@
   .issue-content-right {
     width: 100%;
   }
-}
-
-.repository .issue-content-right .ui.list .dependency {
-  padding: 0;
-  white-space: nowrap;
-}
-
-.repository .issue-content-right .ui.list .title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.repository .issue-content-right #deadlineForm input {
-  width: 12.8rem;
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
-  border-right: 0;
-  white-space: nowrap;
-}
-
-.repository .issue-content-right .filter.menu {
-  max-height: 500px;
-  overflow-x: auto;
-}
-
-.repository .filter.menu.labels .label-filter .menu .info {
-  display: inline-block;
-  padding: 0.5rem 0;
-  font-size: 12px;
-  width: 100%;
-  white-space: nowrap;
-  margin-left: 10px;
-  margin-right: 8px;
-  text-align: left;
-}
-
-.repository .filter.menu.labels .label-filter .menu .info code {
-  border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
-  padding: 1px 2px;
-  font-size: 11px;
 }
 
 /* make all issue filter dropdown menus popup leftward, to avoid go out the viewport (right side) */
@@ -116,10 +88,6 @@
   min-width: max-content;
   right: unset;
   left: 0;
-}
-
-.repository .select-label .desc {
-  padding-left: 23px;
 }
 
 /* For the secondary pointing menu, respect its own border-bottom */
@@ -450,14 +418,6 @@ td .commit-summary {
 
 .non-diff-file-content .pdfobject {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
-}
-
-.repository.file.list .sidebar {
-  padding-left: 0;
-}
-
-.repository.file.list .sidebar .svg {
-  width: 16px;
 }
 
 .repo-editor-header {
@@ -1035,7 +995,7 @@ td .commit-summary {
 }
 
 .repository.view.issue .comment-list .code-comment .comment-content {
-  margin-left: 36px;
+  margin-left: 24px;
 }
 
 .repository.view.issue .comment-list .comment > .avatar {
@@ -1852,16 +1812,6 @@ td .commit-summary {
   background: var(--color-secondary);
 }
 
-.repository .repository-summary .segment.language-stats {
-  display: flex;
-  gap: 2px;
-  padding: 0;
-  height: 10px;
-  white-space: nowrap;
-  border-radius: 0 0 3px 3px !important;
-  overflow: hidden;
-}
-
 #cite-repo-modal #citation-panel {
   display: flex;
   width: 100%;
@@ -2109,17 +2059,6 @@ td .commit-summary {
   padding: 1em;
 }
 
-.edit-label.modal .form .column,
-.new-label.modal .form .column {
-  padding-right: 0;
-}
-
-.edit-label.modal .form .buttons,
-.new-label.modal .form .buttons {
-  margin-left: auto;
-  padding-top: 15px;
-}
-
 .stats-table {
   display: table;
   width: 100%;
@@ -2202,11 +2141,7 @@ td .commit-summary {
   justify-content: flex-end;
 }
 
-.repo-button-row[data-is-homepage="false"] .repo-button-row-right {
-  flex-grow: 0;
-}
-
-@media (max-width: 991px) {
+@media (max-width: 1200px) {
   .repository:not(.wiki) .repo-button-row {
     flex-direction: column;
     align-items: stretch;
@@ -2332,6 +2267,7 @@ tbody.commit-list {
   font-weight: var(--font-weight-normal);
   cursor: pointer;
   margin: 0;
+  display: inline-block !important;
 }
 
 #new-dependency-drop-list.ui.selection.dropdown {
@@ -2477,12 +2413,6 @@ tbody.commit-list {
 
 .title_wip_desc {
   margin-top: 1em;
-}
-
-.sidebar-item-link {
-  display: inline-flex;
-  align-items: center;
-  overflow-wrap: anywhere;
 }
 
 .diff-file-header {
@@ -2856,9 +2786,9 @@ tbody.commit-list {
 /* FIXME: These media selectors are not ideal (just keep them from old code).
     There are many different pages, some need the max-width while some others don't,
     they should be tested and improved in the future. */
-@media (min-width: 768px) and (max-width: 991.98px) {
+@media (min-width: 768px) and (max-width: 1235px) {
   .branch-selector-dropdown .branch-dropdown-button {
-    max-width: 185px;
+    max-width: 301px;
   }
 }
 

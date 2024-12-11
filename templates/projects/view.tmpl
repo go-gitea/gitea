@@ -3,6 +3,23 @@
 <div class="ui container tw-max-w-full">
 	<div class="tw-flex tw-justify-between tw-items-center tw-mb-4 tw-gap-3">
 		<h2 class="tw-mb-0 tw-flex-1 tw-break-anywhere">{{.Project.Title}}</h2>
+			<div class="project-toolbar-right">
+				<div class="ui secondary filter menu labels">
+					{{$queryLink := QueryBuild "?" "labels" .SelectLabels "assignee" $.AssigneeID "archived_labels" (Iif $.ShowArchivedLabels "true")}}
+
+					{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
+
+					{{template "repo/issue/filter_item_user_assign" dict
+						"QueryParamKey" "assignee"
+						"QueryLink" $queryLink
+						"UserSearchList" $.Assignees
+						"SelectedUserId" $.AssigneeID
+						"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_assignee")
+						"TextZeroValue" (ctx.Locale.Tr "repo.issues.filter_assginee_no_select")
+						"TextNegativeOne" (ctx.Locale.Tr "repo.issues.filter_assginee_no_assignee")
+					}}
+				</div>
+			</div>
 		{{if $canWriteProject}}
 			<div class="ui compact mini menu">
 				<a class="item" href="{{.Link}}/edit?redirect=project">

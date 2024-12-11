@@ -19,7 +19,7 @@ export function initGiteaFomantic() {
   // Do not use "cursor: pointer" for dropdown labels
   $.fn.dropdown.settings.className.label += ' tw-cursor-default';
   // Always use Gitea's SVG icons
-  $.fn.dropdown.settings.templates.label = function(_value, text, preserveHTML, className) {
+  $.fn.dropdown.settings.templates.label = function(_value: any, text: any, preserveHTML: any, className: Record<string, string>) {
     const escape = $.fn.dropdown.settings.templates.escape;
     return escape(text, preserveHTML) + svg('octicon-x', 16, `${className.delete} icon`);
   };

@@ -215,14 +215,14 @@ func NewUserPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10))
 }
 
 func prepareUserInfo(ctx *context.Context) *user_model.User {
 	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64(":userid"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.Redirect(setting.AppSubURL + "/admin/users")
+			ctx.Redirect(setting.AppSubURL + "/-/admin/users")
 		} else {
 			ctx.ServerError("GetUserByID", err)
 		}
@@ -481,7 +481,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 }
 
 // DeleteUser response for deleting a user
@@ -495,7 +495,7 @@ func DeleteUser(ctx *context.Context) {
 	// admin should not delete themself
 	if u.ID == ctx.Doer.ID {
 		ctx.Flash.Error(ctx.Tr("admin.users.cannot_delete_self"))
-		ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		return
 	}
 
@@ -503,16 +503,16 @@ func DeleteUser(ctx *context.Context) {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
+			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		case models.IsErrUserHasOrgs(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_has_org"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
+			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		case models.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_packages"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
+			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		case models.IsErrDeleteLastAdminUser(err):
 			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
+			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		default:
 			ctx.ServerError("DeleteUser", err)
 		}
@@ -521,7 +521,7 @@ func DeleteUser(ctx *context.Context) {
 	log.Trace("Account deleted by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.users.deletion_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/users")
+	ctx.Redirect(setting.AppSubURL + "/-/admin/users")
 }
 
 // AvatarPost response for change user's avatar request
@@ -538,7 +538,7 @@ func AvatarPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.update_user_avatar_success"))
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10))
 }
 
 // DeleteAvatar render delete avatar page
@@ -552,5 +552,5 @@ func DeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.JSONRedirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
+	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10))
 }

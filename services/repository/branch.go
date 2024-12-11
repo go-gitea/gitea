@@ -14,7 +14,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
@@ -463,15 +465,17 @@ var (
 	ErrBranchIsDefault = errors.New("branch is default")
 )
 
-// DeleteBranch delete branch
-func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
-	err := repo.MustNotBeArchived()
+func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User) error {
+	if branchName == repo.DefaultBranch {
+		return ErrBranchIsDefault
+	}
+
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
 	if err != nil {
 		return err
 	}
-
-	if branchName == repo.DefaultBranch {
-		return ErrBranchIsDefault
+	if !perm.CanWrite(unit.TypeCode) {
+		return util.NewPermissionDeniedErrorf("permission denied to access repo %d unit %s", repo.ID, unit.TypeCode.LogString())
 	}
 
 	isProtected, err := git_model.IsBranchProtected(ctx, repo.ID, branchName)
@@ -481,15 +485,27 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	if isProtected {
 		return git_model.ErrBranchIsProtected
 	}
+	return nil
+}
+
+// DeleteBranch delete branch
+func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
+	err := repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
+	if err := CanDeleteBranch(ctx, repo, branchName, doer); err != nil {
+		return err
+	}
 
 	rawBranch, err := git_model.GetBranch(ctx, repo.ID, branchName)
-	if err != nil {
+	if err != nil && !git_model.IsErrBranchNotExist(err) {
 		return fmt.Errorf("GetBranch: %vc", err)
 	}
 
-	if rawBranch.IsDeleted {
-		return nil
-	}
+	// database branch record not exist or it's a deleted branch
+	notExist := git_model.IsErrBranchNotExist(err) || rawBranch.IsDeleted
 
 	commit, err := gitRepo.GetBranchCommit(branchName)
 	if err != nil {
@@ -497,8 +513,10 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, doer.ID); err != nil {
-			return err
+		if !notExist {
+			if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, doer.ID); err != nil {
+				return err
+			}
 		}
 
 		return gitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
@@ -601,14 +619,17 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 			log.Error("CancelPreviousJobs: %v", err)
 		}
 
-		if err := gitrepo.SetDefaultBranch(ctx, repo, newBranchName); err != nil {
-			if !git.IsErrUnsupportedVersion(err) {
-				return err
-			}
-		}
-		return nil
+		return gitrepo.SetDefaultBranch(ctx, repo, newBranchName)
 	}); err != nil {
 		return err
+	}
+
+	if !repo.IsEmpty {
+		if err := AddRepoToLicenseUpdaterQueue(&LicenseUpdaterOptions{
+			RepoID: repo.ID,
+		}); err != nil {
+			log.Error("AddRepoToLicenseUpdaterQueue: %v", err)
+		}
 	}
 
 	notify_service.ChangeDefaultBranch(ctx, repo)

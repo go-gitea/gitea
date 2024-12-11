@@ -1,9 +1,9 @@
-import $ from 'jquery';
 import {stripTags} from '../utils.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {hideElem, queryElemChildren, showElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl} = window.config;
 
@@ -34,7 +34,7 @@ export function initRepoClonePanel() {
 }
 
 export function initRepoTopicBar() {
-  const mgrBtn = document.querySelector('#manage_topic');
+  const mgrBtn = document.querySelector<HTMLButtonElement>('#manage_topic');
   if (!mgrBtn) return;
 
   const editDiv = document.querySelector('#topic_edit');
@@ -45,7 +45,7 @@ export function initRepoTopicBar() {
   mgrBtn.addEventListener('click', () => {
     hideElem(viewDiv);
     showElem(editDiv);
-    topicDropdown.querySelector('input.search').focus();
+    topicDropdown.querySelector<HTMLInputElement>('input.search').focus();
   });
 
   document.querySelector('#cancel_topic_edit').addEventListener('click', () => {
@@ -55,9 +55,9 @@ export function initRepoTopicBar() {
     mgrBtn.focus();
   });
 
-  document.querySelector('#save_topic').addEventListener('click', async (e) => {
+  document.querySelector('#save_topic').addEventListener('click', async (e: MouseEvent & {target: HTMLButtonElement}) => {
     lastErrorToast?.hideToast();
-    const topics = editDiv.querySelector('input[name=topics]').value;
+    const topics = editDiv.querySelector<HTMLInputElement>('input[name=topics]').value;
 
     const data = new FormData();
     data.append('topics', topics);
@@ -72,12 +72,13 @@ export function initRepoTopicBar() {
           const topicArray = topics.split(',');
           topicArray.sort();
           for (const topic of topicArray) {
-            // it should match the code in repo/home.tmpl
+            // TODO: sort items in topicDropdown, or items in edit div will have different order to the items in view div
+            // !!!! it SHOULD and MUST match the code in "home_sidebar_top.tmpl" !!!!
             const link = document.createElement('a');
-            link.classList.add('repo-topic', 'ui', 'large', 'label');
+            link.classList.add('repo-topic', 'ui', 'large', 'label', 'gt-ellipsis');
             link.href = `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`;
             link.textContent = topic;
-            mgrBtn.parentNode.insertBefore(link, mgrBtn); // insert all new topics before manage button
+            viewDiv.append(link);
           }
         }
         hideElem(editDiv);
@@ -87,7 +88,7 @@ export function initRepoTopicBar() {
       // how to test: input topic like " invalid topic " (with spaces), and select it from the list, then "Save"
       const responseData = await response.json();
       lastErrorToast = showErrorToast(responseData.message, {duration: 5000});
-      if (responseData.invalidTopics.length > 0) {
+      if (responseData.invalidTopics && responseData.invalidTopics.length > 0) {
         const {invalidTopics} = responseData;
         const topicLabels = queryElemChildren(topicDropdown, 'a.ui.label');
         for (const [index, value] of topics.split(',').entries()) {
@@ -100,7 +101,7 @@ export function initRepoTopicBar() {
     }
   });
 
-  $(topicDropdown).dropdown({
+  fomanticQuery(topicDropdown).dropdown({
     allowAdditions: true,
     forceSelection: false,
     fullTextSearch: 'exact',
@@ -163,7 +164,7 @@ export function initRepoTopicBar() {
     onLabelCreate(value) {
       value = value.toLowerCase().trim();
       this.attr('data-value', value).contents().first().replaceWith(value);
-      return $(this);
+      return fomanticQuery(this);
     },
     onAdd(addedValue, _addedText, $addedChoice) {
       addedValue = addedValue.toLowerCase().trim();

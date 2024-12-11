@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {generateAriaId} from './base.ts';
+import type {FomanticInitFunction} from '../../types.ts';
 
 const ariaPatchKey = '_giteaAriaPatchDropdown';
 const fomanticDropdownFn = $.fn.dropdown;
@@ -8,13 +9,13 @@ const fomanticDropdownFn = $.fn.dropdown;
 export function initAriaDropdownPatch() {
   if ($.fn.dropdown === ariaDropdownFn) throw new Error('initAriaDropdownPatch could only be called once');
   $.fn.dropdown = ariaDropdownFn;
-  ariaDropdownFn.settings = fomanticDropdownFn.settings;
+  (ariaDropdownFn as FomanticInitFunction).settings = fomanticDropdownFn.settings;
 }
 
 // the patched `$.fn.dropdown` function, it passes the arguments to Fomantic's `$.fn.dropdown` function, and:
 // * it does the one-time attaching on the first call
 // * it delegates the `onLabelCreate` to the patched `onLabelCreate` to add necessary aria attributes
-function ariaDropdownFn(...args) {
+function ariaDropdownFn(...args: Parameters<FomanticInitFunction>) {
   const ret = fomanticDropdownFn.apply(this, args);
 
   // if the `$().dropdown()` call is without arguments, or it has non-string (object) argument,
@@ -33,7 +34,7 @@ function ariaDropdownFn(...args) {
 
 // make the item has role=option/menuitem, add an id if there wasn't one yet, make items as non-focusable
 // the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
-function updateMenuItem(dropdown, item) {
+function updateMenuItem(dropdown: HTMLElement, item: HTMLElement) {
   if (!item.id) item.id = generateAriaId();
   item.setAttribute('role', dropdown[ariaPatchKey].listItemRole);
   item.setAttribute('tabindex', '-1');
@@ -43,7 +44,7 @@ function updateMenuItem(dropdown, item) {
  * make the label item and its "delete icon" have correct aria attributes
  * @param {HTMLElement} label
  */
-function updateSelectionLabel(label) {
+function updateSelectionLabel(label: HTMLElement) {
   // the "label" is like this: "<a|div class="ui label" data-value="1">the-label-name <i|svg class="delete icon"/></a>"
   if (!label.id) {
     label.id = generateAriaId();
@@ -58,8 +59,14 @@ function updateSelectionLabel(label) {
   }
 }
 
+function processMenuItems($dropdown, dropdownCall) {
+  const hideEmptyDividers = dropdownCall('setting', 'hideDividers') === 'empty';
+  const itemsMenu = $dropdown[0].querySelector('.scrolling.menu') || $dropdown[0].querySelector('.menu');
+  if (hideEmptyDividers) hideScopedEmptyDividers(itemsMenu);
+}
+
 // delegate the dropdown's template functions and callback functions to add aria attributes.
-function delegateOne($dropdown) {
+function delegateOne($dropdown: any) {
   const dropdownCall = fomanticDropdownFn.bind($dropdown);
 
   // If there is a "search input" in the "menu", Fomantic will only "focus the input" but not "toggle the menu" when the "dropdown icon" is clicked.
@@ -71,10 +78,22 @@ function delegateOne($dropdown) {
   // * If the "dropdown icon" is clicked again when the menu is visible, Fomantic calls "blurSearch", so hide the menu
   dropdownCall('internal', 'blurSearch', function () { oldBlurSearch.call(this); dropdownCall('hide') });
 
+  const oldFilterItems = dropdownCall('internal', 'filterItems');
+  dropdownCall('internal', 'filterItems', function (...args: any[]) {
+    oldFilterItems.call(this, ...args);
+    processMenuItems($dropdown, dropdownCall);
+  });
+
+  const oldShow = dropdownCall('internal', 'show');
+  dropdownCall('internal', 'show', function (...args: any[]) {
+    oldShow.call(this, ...args);
+    processMenuItems($dropdown, dropdownCall);
+  });
+
   // the "template" functions are used for dynamic creation (eg: AJAX)
   const dropdownTemplates = {...dropdownCall('setting', 'templates'), t: performance.now()};
   const dropdownTemplatesMenuOld = dropdownTemplates.menu;
-  dropdownTemplates.menu = function(response, fields, preserveHTML, className) {
+  dropdownTemplates.menu = function(response: any, fields: any, preserveHTML: any, className: Record<string, string>) {
     // when the dropdown menu items are loaded from AJAX requests, the items are created dynamically
     const menuItems = dropdownTemplatesMenuOld(response, fields, preserveHTML, className);
     const div = document.createElement('div');
@@ -89,7 +108,7 @@ function delegateOne($dropdown) {
 
   // the `onLabelCreate` is used to add necessary aria attributes for dynamically created selection labels
   const dropdownOnLabelCreateOld = dropdownCall('setting', 'onLabelCreate');
-  dropdownCall('setting', 'onLabelCreate', function(value, text) {
+  dropdownCall('setting', 'onLabelCreate', function(value: any, text: string) {
     const $label = dropdownOnLabelCreateOld.call(this, value, text);
     updateSelectionLabel($label[0]);
     return $label;
@@ -97,7 +116,7 @@ function delegateOne($dropdown) {
 
   const oldSet = dropdownCall('internal', 'set');
   const oldSetDirection = oldSet.direction;
-  oldSet.direction = function($menu) {
+  oldSet.direction = function($menu: any) {
     oldSetDirection.call(this, $menu);
     const classNames = dropdownCall('setting', 'className');
     $menu = $menu || $dropdown.find('> .menu');
@@ -113,7 +132,7 @@ function delegateOne($dropdown) {
 }
 
 // for static dropdown elements (generated by server-side template), prepare them with necessary aria attributes
-function attachStaticElements(dropdown, focusable, menu) {
+function attachStaticElements(dropdown: HTMLElement, focusable: HTMLElement, menu: HTMLElement) {
   // prepare static dropdown menu list popup
   if (!menu.id) {
     menu.id = generateAriaId();
@@ -125,7 +144,7 @@ function attachStaticElements(dropdown, focusable, menu) {
   menu.setAttribute('role', dropdown[ariaPatchKey].listPopupRole);
 
   // prepare selection label items
-  for (const label of dropdown.querySelectorAll('.ui.label')) {
+  for (const label of dropdown.querySelectorAll<HTMLElement>('.ui.label')) {
     updateSelectionLabel(label);
   }
 
@@ -142,7 +161,7 @@ function attachStaticElements(dropdown, focusable, menu) {
   }
 }
 
-function attachInit(dropdown) {
+function attachInit(dropdown: HTMLElement) {
   dropdown[ariaPatchKey] = {};
   if (dropdown.classList.contains('custom')) return;
 
@@ -161,7 +180,7 @@ function attachInit(dropdown) {
 
   // TODO: multiple selection is only partially supported. Check and test them one by one in the future.
 
-  const textSearch = dropdown.querySelector('input.search');
+  const textSearch = dropdown.querySelector<HTMLElement>('input.search');
   const focusable = textSearch || dropdown; // the primary element for focus, see comment above
   if (!focusable) return;
 
@@ -191,7 +210,7 @@ function attachInit(dropdown) {
   attachStaticElements(dropdown, focusable, menu);
 }
 
-function attachDomEvents(dropdown, focusable, menu) {
+function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HTMLElement) {
   // when showing, it has class: ".animating.in"
   // when hiding, it has class: ".visible.animating.out"
   const isMenuVisible = () => (menu.classList.contains('visible') && !menu.classList.contains('out')) || menu.classList.contains('in');
@@ -215,7 +234,7 @@ function attachDomEvents(dropdown, focusable, menu) {
     }
   };
 
-  dropdown.addEventListener('keydown', (e) => {
+  dropdown.addEventListener('keydown', (e: KeyboardEvent) => {
     // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
     if (e.key === 'Enter') {
       const dropdownCall = fomanticDropdownFn.bind($(dropdown));
@@ -260,7 +279,7 @@ function attachDomEvents(dropdown, focusable, menu) {
       deferredRefreshAriaActiveItem(100);
     }, 0);
   }, true);
-  dropdown.addEventListener('click', (e) => {
+  dropdown.addEventListener('click', (e: MouseEvent) => {
     if (isMenuVisible() &&
       ignoreClickPreVisible !== 2 && // dropdown is switch from invisible to visible
       ignoreClickPreEvents === 2 // the click event is related to mousedown+focus
@@ -269,4 +288,66 @@ function attachDomEvents(dropdown, focusable, menu) {
     }
     ignoreClickPreEvents = ignoreClickPreVisible = 0;
   }, true);
+}
+
+// Although Fomantic Dropdown supports "hideDividers", it doesn't really work with our "scoped dividers"
+// At the moment, "label dropdown items" use scopes, a sample case is:
+// * a-label
+// * divider
+// * scope/1
+// * scope/2
+// * divider
+// * z-label
+// when the "scope/*" are filtered out, we'd like to see "a-label" and "z-label" without the divider.
+export function hideScopedEmptyDividers(container: Element) {
+  const visibleItems: Element[] = [];
+  const curScopeVisibleItems: Element[] = [];
+  let curScope: string = '', lastVisibleScope: string = '';
+  const isScopedDivider = (item: Element) => item.matches('.divider') && item.hasAttribute('data-scope');
+  const hideDivider = (item: Element) => item.classList.add('hidden', 'transition'); // dropdown has its own classes to hide items
+
+  const handleScopeSwitch = (itemScope: string) => {
+    if (curScopeVisibleItems.length === 1 && isScopedDivider(curScopeVisibleItems[0])) {
+      hideDivider(curScopeVisibleItems[0]);
+    } else if (curScopeVisibleItems.length) {
+      if (isScopedDivider(curScopeVisibleItems[0]) && lastVisibleScope === curScope) {
+        hideDivider(curScopeVisibleItems[0]);
+        curScopeVisibleItems.shift();
+      }
+      visibleItems.push(...curScopeVisibleItems);
+      lastVisibleScope = curScope;
+    }
+    curScope = itemScope;
+    curScopeVisibleItems.length = 0;
+  };
+
+  // hide the scope dividers if the scope items are empty
+  for (const item of container.children) {
+    const itemScope = item.getAttribute('data-scope') || '';
+    if (itemScope !== curScope) {
+      handleScopeSwitch(itemScope);
+    }
+    if (!item.classList.contains('filtered') && !item.classList.contains('tw-hidden')) {
+      curScopeVisibleItems.push(item as HTMLElement);
+    }
+  }
+  handleScopeSwitch('');
+
+  // hide all leading and trailing dividers
+  while (visibleItems.length) {
+    if (!visibleItems[0].matches('.divider')) break;
+    hideDivider(visibleItems[0]);
+    visibleItems.shift();
+  }
+  while (visibleItems.length) {
+    if (!visibleItems[visibleItems.length - 1].matches('.divider')) break;
+    hideDivider(visibleItems[visibleItems.length - 1]);
+    visibleItems.pop();
+  }
+  // hide all duplicate dividers, hide current divider if next sibling is still divider
+  // no need to update "visibleItems" array since this is the last loop
+  for (const item of visibleItems) {
+    if (!item.matches('.divider')) continue;
+    if (item.nextElementSibling?.matches('.divider')) hideDivider(item);
+  }
 }

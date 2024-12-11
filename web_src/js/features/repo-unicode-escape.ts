@@ -1,13 +1,13 @@
-import {hideElem, queryElemSiblings, showElem, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, hideElem, queryElemSiblings, showElem, toggleElem} from '../utils/dom.ts';
 
 export function initUnicodeEscapeButton() {
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('.escape-button, .unescape-button, .toggle-escape-button');
-    if (!btn) return;
-
+  addDelegatedEventListener(document, 'click', '.escape-button, .unescape-button, .toggle-escape-button', (btn, e) => {
     e.preventDefault();
 
-    const fileContent = btn.closest('.file-content, .non-diff-file-content');
+    const fileContentElemId = btn.getAttribute('data-file-content-elem-id');
+    const fileContent = fileContentElemId ?
+      document.querySelector(`#${fileContentElemId}`) :
+      btn.closest('.file-content, .non-diff-file-content');
     const fileView = fileContent?.querySelectorAll('.file-code, .file-view');
     if (btn.matches('.escape-button')) {
       for (const el of fileView) el.classList.add('unicode-escaped');

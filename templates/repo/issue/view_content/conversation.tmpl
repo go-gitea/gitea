@@ -54,7 +54,7 @@
 		<div id="code-comments-{{$comment.ID}}" class="comment-code-cloud ui segment{{if $resolved}} tw-hidden{{end}}">
 			<div class="ui comments tw-mb-0">
 				{{range .comments}}
-					{{$createdSubStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
+					{{$createdSubStr:= DateUtils.TimeSince .CreatedUnix}}
 					<div class="comment code-comment" id="{{.HashTag}}">
 						<div class="content comment-container">
 							<div class="header comment-header">
@@ -83,7 +83,7 @@
 									{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 									{{if not $.Repository.IsArchived}}
 										{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-										{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+										{{template "repo/issue/view_content/context_menu" dict "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 									{{end}}
 								</div>
 							</div>
