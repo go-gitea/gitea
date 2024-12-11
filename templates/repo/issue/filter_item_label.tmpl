@@ -19,7 +19,7 @@
 			<span data-tooltip-content={{ctx.Locale.Tr "repo.issues.label_archive_tooltip"}}>{{svg "octicon-info"}}</span>
 		</label>
 		{{end}}
-		<span class="info">{{ctx.Locale.Tr "repo.issues.filter_label_exclude"}}</span>
+		<span class="label-filter-exclude-info">{{ctx.Locale.Tr "repo.issues.filter_label_exclude"}}</span>
 		<div class="divider"></div>
 		<a class="item label-filter-query-default" href="{{QueryBuild $queryLink "labels" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_label_no_select"}}</a>
 		<a class="item label-filter-query-not-set" href="{{QueryBuild $queryLink "labels" 0}}">{{ctx.Locale.Tr "repo.issues.filter_label_select_no_label"}}</a>

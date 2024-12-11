@@ -4,7 +4,7 @@
 	{{$title := .title}}
 	<div class="ui container">
 		<div class="repo-button-row">
-			<div class="tw-flex tw-items-center">
+			<div class="flex-text-block tw-flex-1">
 				<div class="ui floating filter dropdown" data-no-results="{{ctx.Locale.Tr "no_results_found"}}">
 					<div class="ui basic small button">
 						<span class="text">
@@ -28,10 +28,7 @@
 					</div>
 				</div>
 			</div>
-			<div class="clone-panel ui action small input">
-				{{template "repo/clone_buttons" .}}
-				{{template "repo/clone_script" .}}
-			</div>
+			{{template "repo/clone_panel" .}}
 		</div>
 		<div class="ui dividing header">
 			<div class="flex-text-block tw-flex-wrap tw-justify-end">
@@ -45,7 +42,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="flex-text-block tw-flex-wrap tw-justify-end">
+				<div class="repo-button-row">
 					{{if .EscapeStatus.Escaped}}
 						<a class="ui small button unescape-button tw-m-0 tw-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</a>
 						<a class="ui small button escape-button tw-m-0">{{ctx.Locale.Tr "repo.escape_control_characters"}}</a>
