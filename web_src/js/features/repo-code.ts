@@ -8,7 +8,7 @@ import {toAbsoluteUrl} from '../utils.ts';
 export const singleAnchorRegex = /^#(L|n)([1-9][0-9]*)$/;
 export const rangeAnchorRegex = /^#(L[1-9][0-9]*)-(L[1-9][0-9]*)$/;
 
-function changeHash(hash) {
+function changeHash(hash: string) {
   if (window.history.pushState) {
     window.history.pushState(null, null, hash);
   } else {
@@ -24,7 +24,7 @@ function getLineEls() {
   return document.querySelectorAll(`.code-view td.lines-code${isBlame() ? '.blame-code' : ''}`);
 }
 
-function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
+function selectRange($linesEls, $selectionEndEl, $selectionStartEls?) {
   for (const el of $linesEls) {
     el.closest('tr').classList.remove('active');
   }
@@ -34,7 +34,7 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
   const copyPermalink = document.querySelector('a.copy-line-permalink');
   const viewGitBlame = document.querySelector('a.view_git_blame');
 
-  const updateIssueHref = function (anchor) {
+  const updateIssueHref = function (anchor: string) {
     if (!refInNewIssue) return;
     const urlIssueNew = refInNewIssue.getAttribute('data-url-issue-new');
     const urlParamBodyLink = refInNewIssue.getAttribute('data-url-param-body-link');
@@ -42,7 +42,7 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
     refInNewIssue.setAttribute('href', `${urlIssueNew}?body=${encodeURIComponent(issueContent)}`);
   };
 
-  const updateViewGitBlameFragment = function (anchor) {
+  const updateViewGitBlameFragment = function (anchor: string) {
     if (!viewGitBlame) return;
     let href = viewGitBlame.getAttribute('href');
     href = `${href.replace(/#L\d+$|#L\d+-L\d+$/, '')}`;
@@ -52,7 +52,7 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls) {
     viewGitBlame.setAttribute('href', href);
   };
 
-  const updateCopyPermalinkUrl = function (anchor) {
+  const updateCopyPermalinkUrl = function (anchor: string) {
     if (!copyPermalink) return;
     let link = copyPermalink.getAttribute('data-url');
     link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
@@ -142,13 +142,7 @@ export function initRepoCodeView() {
         });
       }
       selectRange($(linesEls), $(selectedEls), from ? $(from) : null);
-
-      if (window.getSelection) {
-        window.getSelection().removeAllRanges();
-      } else {
-        document.selection.empty();
-      }
-
+      window.getSelection().removeAllRanges();
       showLineButton();
     });
 

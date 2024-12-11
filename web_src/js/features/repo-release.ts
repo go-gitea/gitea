@@ -1,11 +1,11 @@
 import {hideElem, showElem} from '../utils/dom.ts';
 
 export function initRepoRelease() {
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', (e: MouseEvent & {target: HTMLElement}) => {
     if (e.target.matches('.remove-rel-attach')) {
       const uuid = e.target.getAttribute('data-uuid');
       const id = e.target.getAttribute('data-id');
-      document.querySelector(`input[name='attachment-del-${uuid}']`).value = 'true';
+      document.querySelector<HTMLInputElement>(`input[name='attachment-del-${uuid}']`).value = 'true';
       hideElem(`#attachment-${id}`);
     }
   });
@@ -28,8 +28,8 @@ function initTagNameEditor() {
   const newTagHelperText = el.getAttribute('data-tag-helper-new');
   const existingTagHelperText = el.getAttribute('data-tag-helper-existing');
 
-  const tagNameInput = document.querySelector('#tag-name');
-  const hideTargetInput = function(tagNameInput) {
+  const tagNameInput = document.querySelector<HTMLInputElement>('#tag-name');
+  const hideTargetInput = function(tagNameInput: HTMLInputElement) {
     const value = tagNameInput.value;
     const tagHelper = document.querySelector('#tag-helper');
     if (existingTags.includes(value)) {
@@ -42,7 +42,7 @@ function initTagNameEditor() {
     }
   };
   hideTargetInput(tagNameInput); // update on page load because the input may have a value
-  tagNameInput.addEventListener('input', (e) => {
+  tagNameInput.addEventListener('input', (e: InputEvent & {target: HTMLInputElement}) => {
     hideTargetInput(e.target);
   });
 }
