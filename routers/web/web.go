@@ -1208,7 +1208,7 @@ func registerRoutes(m *web.Router) {
 					Post(web.Bind(forms.CreateIssueForm{}), repo.NewIssuePost)
 				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
 			})
-			m.Get("/search", repo.ListIssues)
+			m.Get("/search", repo.SearchRepoIssuesJSON)
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.

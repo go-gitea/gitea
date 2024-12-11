@@ -95,10 +95,9 @@ function initRepoIssueListCheckboxes() {
 function initDropdownUserRemoteSearch(el: Element) {
   let searchUrl = el.getAttribute('data-search-url');
   const actionJumpUrl = el.getAttribute('data-action-jump-url');
-  const selectedUserId = parseInt(el.getAttribute('data-selected-user-id'));
-  let selectedUsername = '';
-  if (!searchUrl.includes('?')) searchUrl += '?';
+  let selectedUsername = el.getAttribute('data-selected-username') || '';
   const $searchDropdown = fomanticQuery(el);
+  const elMenu = el.querySelector('.menu');
   const elSearchInput = el.querySelector<HTMLInputElement>('.ui.search input');
   const elItemFromInput = el.querySelector('.menu > .item-from-input');
 
@@ -110,17 +109,27 @@ function initDropdownUserRemoteSearch(el: Element) {
     },
   });
 
+  const selectUsername = (username: string) => {
+    queryElems(elMenu, '.item.active, .item.selected', (el) => el.classList.remove('active', 'selected'));
+    elMenu.querySelector(`.item[data-value="${CSS.escape(username)}"]`)?.classList.add('selected');
+  };
+
   type ProcessedResult = {value: string, name: string};
   const processedResults: ProcessedResult[] = []; // to be used by dropdown to generate menu items
   const syncItemFromInput = () => {
-    elItemFromInput.setAttribute('data-value', elSearchInput.value);
-    elItemFromInput.textContent = elSearchInput.value;
-    toggleElem(elItemFromInput, !processedResults.length);
+    const inputVal = elSearchInput.value.trim();
+    elItemFromInput.setAttribute('data-value', inputVal);
+    elItemFromInput.textContent = inputVal;
+    const showItemFromInput = !processedResults.length && inputVal !== '';
+    toggleElem(elItemFromInput, showItemFromInput);
+    selectUsername(showItemFromInput ? inputVal : selectedUsername);
   };
 
+  elSearchInput.value = selectedUsername;
   if (!searchUrl) {
     elSearchInput.addEventListener('input', syncItemFromInput);
   } else {
+    if (!searchUrl.includes('?')) searchUrl += '?';
     $searchDropdown.dropdown('setting', 'apiSettings', {
       cache: false,
       url: `${searchUrl}&q={query}`,
@@ -130,11 +139,10 @@ function initDropdownUserRemoteSearch(el: Element) {
         for (const item of resp.results) {
           let html = `<img class="ui avatar tw-align-middle" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt="" width="20" height="20"><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
           if (item.full_name) html += `<span class="search-fullname tw-ml-2">${htmlEscape(item.full_name)}</span>`;
-          if (selectedUserId === item.user_id) selectedUsername = item.username;
+          if (selectedUsername.toLowerCase() === item.username.toLowerCase()) selectedUsername = item.username;
           processedResults.push({value: item.username, name: html});
         }
         resp.results = processedResults;
-        syncItemFromInput();
         return resp;
       },
     });
@@ -146,9 +154,8 @@ function initDropdownUserRemoteSearch(el: Element) {
   const dropdownTemplates = $searchDropdown.dropdown('setting', 'templates');
   $searchDropdown.dropdown('internal', 'setup', dropdownSetup);
   dropdownSetup.menu = function (values) {
-    const menu = $searchDropdown.find('> .menu')[0];
     // remove old dynamic items
-    for (const el of menu.querySelectorAll(':scope > .dynamic-item')) {
+    for (const el of elMenu.querySelectorAll(':scope > .dynamic-item')) {
       el.remove();
     }
 
@@ -160,16 +167,11 @@ function initDropdownUserRemoteSearch(el: Element) {
       }
       const div = document.createElement('div');
       div.classList.add('divider', 'dynamic-item');
-      menu.append(div, ...newMenuItems);
+      elMenu.append(div, ...newMenuItems);
     }
     $searchDropdown.dropdown('refresh');
     // defer our selection to the next tick, because dropdown will set the selection item after this `menu` function
-    setTimeout(() => {
-      for (const el of menu.querySelectorAll('.item.active, .item.selected')) {
-        el.classList.remove('active', 'selected');
-      }
-      menu.querySelector(`.item[data-value="${CSS.escape(selectedUsername)}"]`)?.classList.add('selected');
-    }, 0);
+    setTimeout(() => syncItemFromInput(), 0);
   };
 }
 
@@ -221,8 +223,12 @@ async function initIssuePinSort() {
 }
 
 export function initRepoIssueList() {
-  if (!document.querySelector('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list')) return;
-  initRepoIssueListCheckboxes();
-  queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
-  initIssuePinSort();
+  if (document.querySelector('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list')) {
+    initRepoIssueListCheckboxes();
+    queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
+    initIssuePinSort();
+  } else if (document.querySelector('.page-content.dashboard.issues')) {
+    // user or org home: issue list, pull request list
+    queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
+  }
 }
