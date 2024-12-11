@@ -67,6 +67,7 @@
 @import "./repo/header.css";
 @import "./repo/home.css";
 @import "./repo/reactions.css";
+@import "./repo/clone.css";
 
 @import "./editor/fileeditor.css";
 @import "./editor/combomarkdowneditor.css";
