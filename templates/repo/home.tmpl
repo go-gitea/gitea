@@ -102,27 +102,10 @@
 						{{end}}
 					</div>
 
-					{{/* by default, the row-right flex grows, but on non-root tree path, it should not because the row-left might contain a long path */}}
-					<div class="repo-button-row-right {{if not $isTreePathRoot}}tw-flex-grow-0{{end}}">
+					<div class="repo-button-row-right">
 						<!-- Only show clone panel in repository home page -->
 						{{if $isTreePathRoot}}
-							<div class="clone-panel ui action tiny input">
-								{{template "repo/clone_buttons" .}}
-								<button class="ui small jump dropdown icon button" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
-									{{svg "octicon-kebab-horizontal"}}
-									<div class="menu">
-										{{if not $.DisableDownloadSourceArchives}}
-											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_zip"}}</a>
-											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_tar"}}</a>
-											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.download_bundle"}}</a>
-										{{end}}
-										{{range .OpenWithEditorApps}}
-											<a class="item js-clone-url-editor" data-href-template="{{.OpenURL}}">{{.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" .DisplayName}}</a>
-										{{end}}
-									</div>
-								</button>
-								{{template "repo/clone_script" .}}{{/* the script will update `.js-clone-url` and related elements */}}
-							</div>
+							{{template "repo/clone_panel" .}}
 						{{end}}
 						{{if and (not $isTreePathRoot) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home), TODO: split the templates, avoid using "if" tricks */}}
 							<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
@@ -140,6 +123,9 @@
 						{{template "repo/code/upstream_diverging_info" .}}
 					{{end}}
 					{{template "repo/view_list" .}}
+					{{if and .ReadmeExist (or .IsMarkup .IsPlainText)}}
+						{{template "repo/view_file" .}}
+					{{end}}
 				{{end}}
 			</div>
 

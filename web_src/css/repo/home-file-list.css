@@ -1,0 +1,70 @@
+#repo-files-table {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  border: 1px solid var(--color-light-border);
+  border-radius: var(--border-radius);
+  margin: 10px 0; /* match the "clone-panel-popup" margin to avoid "visual double-border" */
+}
+
+#repo-files-table .svg.octicon-file-directory-fill,
+#repo-files-table .svg.octicon-file-submodule {
+  color: var(--color-primary);
+}
+
+#repo-files-table .svg.octicon-file,
+#repo-files-table .svg.octicon-file-symlink-file,
+#repo-files-table .svg.octicon-file-directory-symlink {
+  color: var(--color-secondary-dark-7);
+}
+
+#repo-files-table .repo-file-item {
+  display: contents;
+}
+
+#repo-files-table .repo-file-item:hover > .repo-file-cell {
+  background: var(--color-hover);
+}
+
+#repo-files-table .repo-file-line,
+#repo-files-table .repo-file-cell {
+  border-top: 1px solid var(--color-light-border);
+  padding: 6px 10px;
+}
+
+#repo-files-table .repo-file-line:first-child {
+  border-top: none;
+}
+
+#repo-files-table .repo-file-line {
+  grid-column: 1 / span 3;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 6px 10px;
+}
+
+#repo-files-table .repo-file-cell.name {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#repo-files-table .repo-file-cell.message {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-light-1);
+}
+
+#repo-files-table .repo-file-cell.age {
+  white-space: nowrap;
+  color: var(--color-text-light-1);
+}
+
+@media (max-width: 767.98px) {
+  #repo-files-table .repo-file-cell.name {
+    max-width: 150px;
+  }
+}
