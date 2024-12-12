@@ -36,8 +36,8 @@ type ActionRunJob struct {
 
 	RawConcurrencyGroup  string // raw concurrency.group
 	RawConcurrencyCancel string // raw concurrency.cancel-in-progress
-	ConcurrencyGroup     string // interpolated concurrency.group
-	ConcurrencyCancel    bool   // interpolated concurrency.cancel-in-progress
+	ConcurrencyGroup     string // evaluated concurrency.group
+	ConcurrencyCancel    bool   // evaluated concurrency.cancel-in-progress
 
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp

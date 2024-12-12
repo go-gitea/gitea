@@ -812,9 +812,10 @@ func Run(ctx *context_module.Context) {
 
 	// find workflow from commit
 	var workflows []*jobparser.SingleWorkflow
+	var content []byte
 	for _, entry := range entries {
 		if entry.Name() == workflowID {
-			content, err := actions.GetContentFromEntry(entry)
+			content, err = actions.GetContentFromEntry(entry)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, err.Error())
 				return
@@ -899,8 +900,14 @@ func Run(ctx *context_module.Context) {
 		log.Error("CancelRunningJobs: %v", err)
 	}
 
+	runJobs, err := actions_service.PrepareConcurrencyForRunAndJobs(ctx, content, run, workflows)
+	if err != nil {
+		ctx.ServerError("PrepareConcurrencyForRunAndJobs", err)
+		return
+	}
+
 	// Insert the action run and its associated jobs into the database
-	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+	if err := actions_model.InsertRun(ctx, run, runJobs); err != nil {
 		ctx.ServerError("workflow", err)
 		return
 	}

@@ -4,7 +4,6 @@
 package actions
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -16,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 
 	"github.com/nektos/act/pkg/jobparser"
-	act_model "github.com/nektos/act/pkg/model"
 	"xorm.io/builder"
 )
 
@@ -230,22 +228,8 @@ func checkJobConcurrency(ctx context.Context, actionRunJob *actions_model.Action
 		return false, nil
 	}
 
-	run := actionRunJob.Run
-
 	if len(actionRunJob.ConcurrencyGroup) == 0 {
-		rawConcurrency := &act_model.RawConcurrency{
-			Group:            actionRunJob.RawConcurrencyGroup,
-			CancelInProgress: actionRunJob.RawConcurrencyCancel,
-		}
-
-		gitCtx := jobparser.ToGitContext(GenerateGitContext(run, actionRunJob))
-
-		actWorkflow, err := act_model.ReadWorkflow(bytes.NewReader(actionRunJob.WorkflowPayload))
-		if err != nil {
-			return false, fmt.Errorf("read workflow: %w", err)
-		}
-		actJob := actWorkflow.GetJob(actionRunJob.JobID)
-
+		// empty concurrency group means the raw concurrency has not been evaluated
 		task, err := actions_model.GetTaskByID(ctx, actionRunJob.TaskID)
 		if err != nil {
 			return false, fmt.Errorf("get task by id: %w", err)
@@ -254,7 +238,6 @@ func checkJobConcurrency(ctx context.Context, actionRunJob *actions_model.Action
 		if err != nil {
 			return false, fmt.Errorf("find task needs: %w", err)
 		}
-
 		jobResults := make(map[string]*jobparser.JobResult, len(taskNeeds))
 		for jobID, taskNeed := range taskNeeds {
 			jobResult := &jobparser.JobResult{
@@ -264,7 +247,11 @@ func checkJobConcurrency(ctx context.Context, actionRunJob *actions_model.Action
 			jobResults[jobID] = jobResult
 		}
 
-		actionRunJob.ConcurrencyGroup, actionRunJob.ConcurrencyCancel = jobparser.InterpolatJobConcurrency(rawConcurrency, actJob, gitCtx, vars, jobResults)
+		actionRunJob.ConcurrencyGroup, actionRunJob.ConcurrencyCancel, err = evaluateJobConcurrency(ctx, actionRunJob, vars, jobResults)
+		if err != nil {
+			return false, fmt.Errorf("evaluate job concurrency: %w", err)
+		}
+
 		if _, err := actions_model.UpdateRunJob(ctx, &actions_model.ActionRunJob{
 			ID:                actionRunJob.ID,
 			ConcurrencyGroup:  actionRunJob.ConcurrencyGroup,
@@ -274,35 +261,17 @@ func checkJobConcurrency(ctx context.Context, actionRunJob *actions_model.Action
 		}
 	}
 
-	if actionRunJob.ConcurrencyCancel {
-		// cancel previous jobs in the same concurrency group
-		previousJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
-			RepoID:           actionRunJob.RepoID,
-			ConcurrencyGroup: actionRunJob.ConcurrencyGroup,
-			Statuses: []actions_model.Status{
-				actions_model.StatusRunning,
-				actions_model.StatusWaiting,
-				actions_model.StatusBlocked,
-			},
-		})
-		if err != nil {
-			return false, fmt.Errorf("find previous jobs: %w", err)
-		}
-		if err := actions_model.CancelJobs(ctx, previousJobs); err != nil {
-			return false, fmt.Errorf("cancel previous jobs: %w", err)
-		}
-		// we have cancelled all previous jobs, so this job does not need to be blocked
+	if len(actionRunJob.ConcurrencyGroup) == 0 {
+		// the job should not be blocked by concurrency if its concurrency group is empty
 		return false, nil
 	}
 
-	waitingConcurrentJobsNum, err := db.Count[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
-		RepoID:           actionRunJob.RepoID,
-		ConcurrencyGroup: actionRunJob.ConcurrencyGroup,
-		Statuses:         []actions_model.Status{actions_model.StatusWaiting},
-	})
-	if err != nil {
-		return false, fmt.Errorf("count waiting jobs: %w", err)
+	if actionRunJob.ConcurrencyCancel {
+		if err := actions_model.CancelConcurrentJobs(ctx, actionRunJob); err != nil {
+			return false, fmt.Errorf("cancel concurrent jobs: %w", err)
+		}
+		return false, nil
 	}
 
-	return waitingConcurrentJobsNum > 0, nil
+	return actions_model.ShouldJobBeBlockedByConcurrentJobs(ctx, actionRunJob)
 }

@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
-	"github.com/nektos/act/pkg/jobparser"
 	"xorm.io/builder"
 )
 
@@ -278,7 +277,7 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) error {
 
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
-func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
+func InsertRun(ctx context.Context, run *ActionRun, runJobs []*ActionRunJob) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -334,40 +333,27 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		return err
 	}
 
-	runJobs := make([]*ActionRunJob, 0, len(jobs))
 	var hasWaiting bool
-	for _, v := range jobs {
-		id, job := v.Job()
-		needs := job.Needs()
-		if err := v.SetJob(id, job.EraseNeeds()); err != nil {
-			return err
+	for _, job := range runJobs {
+		if job.Status != StatusBlocked {
+			if blockedByWorkflowConcurrency {
+				// the job should also be blocked when the run is blocked
+				job.Status = StatusBlocked
+			} else if len(job.ConcurrencyGroup) > 0 {
+				// check if the job should be blocked by job concurrency
+				shouldBlock, err := ShouldJobBeBlockedByConcurrentJobs(ctx, job)
+				if err != nil {
+					return err
+				}
+				if shouldBlock {
+					job.Status = StatusBlocked
+				}
+			}
 		}
-		payload, _ := v.Marshal()
-		status := StatusWaiting
-		if len(needs) > 0 || run.NeedApproval || blockedByWorkflowConcurrency {
-			status = StatusBlocked
-		} else {
+
+		if job.Status == StatusWaiting {
 			hasWaiting = true
 		}
-		job.Name, _ = util.SplitStringAtByteN(job.Name, 255)
-		runJob := &ActionRunJob{
-			RunID:             run.ID,
-			RepoID:            run.RepoID,
-			OwnerID:           run.OwnerID,
-			CommitSHA:         run.CommitSHA,
-			IsForkPullRequest: run.IsForkPullRequest,
-			Name:              job.Name,
-			WorkflowPayload:   payload,
-			JobID:             id,
-			Needs:             needs,
-			RunsOn:            job.RunsOn(),
-			Status:            status,
-		}
-		if job.RawConcurrency != nil {
-			runJob.RawConcurrencyGroup = job.RawConcurrency.Group
-			runJob.RawConcurrencyCancel = job.RawConcurrency.CancelInProgress
-		}
-		runJobs = append(runJobs, runJob)
 	}
 	if err := db.Insert(ctx, runJobs); err != nil {
 		return err
@@ -481,3 +467,34 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 }
 
 type ActionRunIndex db.ResourceIndex
+
+func CancelConcurrentJobs(ctx context.Context, actionRunJob *ActionRunJob) error {
+	// cancel previous jobs in the same concurrency group
+	previousJobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
+		RepoID:           actionRunJob.RepoID,
+		ConcurrencyGroup: actionRunJob.ConcurrencyGroup,
+		Statuses: []Status{
+			StatusRunning,
+			StatusWaiting,
+			StatusBlocked,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("find previous jobs: %w", err)
+	}
+
+	return CancelJobs(ctx, previousJobs)
+}
+
+func ShouldJobBeBlockedByConcurrentJobs(ctx context.Context, actionRunJob *ActionRunJob) (bool, error) {
+	waitingConcurrentJobsNum, err := db.Count[ActionRunJob](ctx, FindRunJobOptions{
+		RepoID:           actionRunJob.RepoID,
+		ConcurrencyGroup: actionRunJob.ConcurrencyGroup,
+		Statuses:         []Status{StatusWaiting},
+	})
+	if err != nil {
+		return false, fmt.Errorf("count waiting jobs: %w", err)
+	}
+
+	return waitingConcurrentJobsNum > 0, nil
+}
