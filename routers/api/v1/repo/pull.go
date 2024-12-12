@@ -391,8 +391,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 
 	form := *web.GetForm(ctx).(*api.CreatePullRequestOption)
 	if form.Head == form.Base {
-		ctx.Error(http.StatusUnprocessableEntity, "BaseHeadSame",
-			"Invalid PullRequest: There are no changes between the head and the base")
+		ctx.Error(http.StatusUnprocessableEntity, "BaseHeadSame", "Invalid PullRequest: There are no changes between the head and the base")
 		return
 	}
 
