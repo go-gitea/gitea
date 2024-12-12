@@ -45,8 +45,8 @@ import (
 //	set conn.Permissions from serverAuthenticate
 //  sessionHandler(conn)
 //
-// Then sessionHandler should only use the "verified keyID" from the conn.
-// Otherwise, if a users provides 2 keys A and B, if A succeeds to authenticate, sessionHandler will see B's keyID
+// Then sessionHandler should only use the "verified keyID" from the original ssh conn, but not the ctx one.
+// Otherwise, if a user provides 2 keys A and B, if A succeeds to authenticate, sessionHandler will see B's keyID
 
 const giteaPermissionExtensionKeyID = "gitea-perm-ext-key-id"
 
@@ -75,7 +75,7 @@ func getExitStatusFromError(err error) int {
 }
 
 // sessionPartial is the private struct from "gliderlabs/ssh/session.go"
-// we need to read the original "conn" field from "ssh.Session interface" which contains the "*session pointer"
+// We need to read the original "conn" field from "ssh.Session interface" which contains the "*session pointer"
 // https://github.com/gliderlabs/ssh/blob/d137aad99cd6f2d9495bfd98c755bec4e5dffb8c/session.go#L109-L113
 // If upstream fixes the problem and/or changes the struct, we need to follow.
 // If the struct mismatches, the builtin ssh server will fail during integration tests.
@@ -96,7 +96,8 @@ func ptr[T any](intf any) *T {
 }
 
 func sessionHandler(session ssh.Session) {
-	// it can't use session.Permissions() because it only use the ctx one, so we must use the original ssh conn
+	// it can't use session.Permissions() because it only use the value from ctx, which might not be the authenticated one.
+	// so we must use the original ssh conn, which always contains the correct (verified) keyID.
 	sshConn := ptr[sessionPartial](session)
 	keyID := sshConn.conn.Permissions.Extensions[giteaPermissionExtensionKeyID]
 
