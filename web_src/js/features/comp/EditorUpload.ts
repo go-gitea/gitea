@@ -178,6 +178,7 @@ export function initTextareaEvents(textarea, dropzoneEl) {
   });
   textarea.addEventListener('drop', (e) => {
     if (!e.dataTransfer.files.length) return;
+    if (!dropzoneEl) return;
     handleUploadFiles(new TextareaEditor(textarea), dropzoneEl, e.dataTransfer.files, e);
   });
   dropzoneEl?.dropzone.on(DropzoneCustomEventRemovedFile, ({fileUuid}) => {
