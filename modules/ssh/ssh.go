@@ -74,6 +74,11 @@ func getExitStatusFromError(err error) int {
 	return waitStatus.ExitStatus()
 }
 
+// sessionPartial is the private struct from "gliderlabs/ssh/session.go"
+// we need to read the original "conn" field from "ssh.Session interface" which contains the "*session pointer"
+// https://github.com/gliderlabs/ssh/blob/d137aad99cd6f2d9495bfd98c755bec4e5dffb8c/session.go#L109-L113
+// If upstream fixes the problem and/or changes the struct, we need to follow.
+// If the struct mismatches, the builtin ssh server will fail during integration tests.
 type sessionPartial struct {
 	sync.Mutex
 	gossh.Channel
