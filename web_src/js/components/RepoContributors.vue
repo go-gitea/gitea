@@ -1,5 +1,6 @@
 <script lang="ts">
 import {SvgIcon} from '../svg.ts';
+import dayjs from 'dayjs';
 import {
   Chart,
   Title,
@@ -26,6 +27,8 @@ import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import type {Entries} from 'type-fest';
+
+const {pageData} = window.config;
 
 const customEventListener: Plugin = {
   id: 'customEventListener',
@@ -72,11 +75,13 @@ export default {
     totalStats: {} as Record<string, any>,
     sortedContributors: {} as Record<string, any>,
     type: 'commits',
+    repoBranch: pageData.repoContributorsData.repoDefaultBranch,
     contributorsStats: {} as Record<string, any>,
     xAxisStart: null,
     xAxisEnd: null,
     xAxisMin: null,
     xAxisMax: null,
+    searchQuery: '',
   }),
   mounted() {
     this.fetchGraphData();
@@ -93,6 +98,9 @@ export default {
   methods: {
     sortContributors() {
       const contributors = this.filterContributorWeeksByDateRange();
+      const min = dayjs(this.xAxisMin).format('YYYY-MM-DD');
+      const max = dayjs(this.xAxisMax).format('YYYY-MM-DD');
+      this.searchQuery = `${this.repoLink}/commits/branch/${this.repoBranch}/search?q=after:${min}, before:${max}, author:`;
       const criteria = `total_${this.type}`;
       this.sortedContributors = Object.values(contributors)
         .filter((contributor) => contributor[criteria] !== 0)
@@ -167,7 +175,7 @@ export default {
         // for details.
         user.max_contribution_type += 1;
 
-        filteredData[key] = {...user, weeks: filteredWeeks};
+        filteredData[key] = {...user, weeks: filteredWeeks, email: key};
       }
 
       return filteredData;
@@ -389,7 +397,11 @@ export default {
               {{ contributor.name }}
             </h4>
             <p class="tw-text-12 tw-flex tw-gap-1">
-              <strong v-if="contributor.total_commits">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
+              <strong v-if="contributor.total_commits">
+                <a class="silenced" :href="searchQuery + contributor.email">
+                  {{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}
+                </a>
+              </strong>
               <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
               <strong v-if="contributor.total_deletions" class="text red">
                 {{ contributor.total_deletions.toLocaleString() }}--</strong>
