@@ -115,6 +115,14 @@ func TestPackageCran(t *testing.T) {
 			MakeRequest(t, req, http.StatusOK)
 		})
 
+		t.Run("DownloadArchived", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/src/contrib/Archive/%s/%s_%s.tar.gz", url, packageName, packageName, packageVersion)).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusOK)
+		})
+
 		t.Run("Enumerate", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 

@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 3
+	issueIndexerLatestVersion = 4
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
@@ -61,6 +61,7 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 			"is_public",
 			"is_pull",
 			"is_closed",
+			"is_archived",
 			"label_ids",
 			"no_label",
 			"milestone_id",
@@ -144,6 +145,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 	if options.IsClosed.Has() {
 		query.And(inner_meilisearch.NewFilterEq("is_closed", options.IsClosed.Value()))
+	}
+	if options.IsArchived.Has() {
+		query.And(inner_meilisearch.NewFilterEq("is_archived", options.IsArchived.Value()))
 	}
 
 	if options.NoLabelOnly {

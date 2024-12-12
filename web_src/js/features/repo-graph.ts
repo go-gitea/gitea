@@ -22,7 +22,7 @@ export function initRepoGraphGit() {
     for (const link of document.querySelectorAll('.pagination a')) {
       const href = link.getAttribute('href');
       if (!href) continue;
-      const url = new URL(href, window.location);
+      const url = new URL(href, window.location.href);
       const params = url.searchParams;
       params.set('mode', 'monochrome');
       url.search = `?${params.toString()}`;
@@ -38,7 +38,7 @@ export function initRepoGraphGit() {
     for (const link of document.querySelectorAll('.pagination a')) {
       const href = link.getAttribute('href');
       if (!href) continue;
-      const url = new URL(href, window.location);
+      const url = new URL(href, window.location.href);
       const params = url.searchParams;
       params.delete('mode');
       url.search = `?${params.toString()}`;
@@ -53,7 +53,7 @@ export function initRepoGraphGit() {
       window.history.replaceState({}, '', window.location.pathname);
     }
   });
-  const url = new URL(window.location);
+  const url = new URL(window.location.href);
   const params = url.searchParams;
   const updateGraph = () => {
     const queryString = params.toString();
@@ -103,7 +103,7 @@ export function initRepoGraphGit() {
     },
     onAdd(toAdd) {
       if (toAdd === '...flow-hide-pr-refs') {
-        params.set('hide-pr-refs', true);
+        params.set('hide-pr-refs', 'true');
       } else {
         params.append('branch', toAdd);
       }
@@ -111,7 +111,7 @@ export function initRepoGraphGit() {
     },
   });
 
-  graphContainer.addEventListener('mouseenter', (e) => {
+  graphContainer.addEventListener('mouseenter', (e: MouseEvent & {target: HTMLElement}) => {
     if (e.target.matches('#rev-list li')) {
       const flow = e.target.getAttribute('data-flow');
       if (flow === '0') return;
@@ -132,7 +132,7 @@ export function initRepoGraphGit() {
     }
   });
 
-  graphContainer.addEventListener('mouseleave', (e) => {
+  graphContainer.addEventListener('mouseleave', (e: MouseEvent & {target: HTMLElement}) => {
     if (e.target.matches('#rev-list li')) {
       const flow = e.target.getAttribute('data-flow');
       if (flow === '0') return;

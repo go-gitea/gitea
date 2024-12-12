@@ -1,15 +1,13 @@
-<!-- there is always at least one button (by context/repo.go) -->
-{{if $.CloneButtonShowHTTPS}}
-	<button class="ui small button" id="repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}">
-		HTTPS
+<!-- there is always at least one button (guaranteed by context/repo.go) -->
+<div class="ui action small input clone-buttons-combo">
+	{{if $.CloneButtonShowHTTPS}}
+		<button class="ui small button repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}">HTTPS</button>
+	{{end}}
+	{{if $.CloneButtonShowSSH}}
+		<button class="ui small button repo-clone-ssh" data-link="{{$.CloneButtonOriginLink.SSH}}">SSH</button>
+	{{end}}
+	<input size="10" class="repo-clone-url js-clone-url" value="{{$.CloneButtonOriginLink.HTTPS}}" readonly>
+	<button class="ui small icon button" data-clipboard-target=".repo-clone-url" data-tooltip-content="{{ctx.Locale.Tr "copy_url"}}">
+		{{svg "octicon-copy" 14}}
 	</button>
-{{end}}
-{{if $.CloneButtonShowSSH}}
-	<button class="ui small button" id="repo-clone-ssh" data-link="{{$.CloneButtonOriginLink.SSH}}">
-		SSH
-	</button>
-{{end}}
-<input id="repo-clone-url" size="10" class="js-clone-url" value="{{$.CloneButtonOriginLink.HTTPS}}" readonly>
-<button class="ui small icon button" id="clipboard-btn" data-tooltip-content="{{ctx.Locale.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url" aria-label="{{ctx.Locale.Tr "copy_url"}}">
-	{{svg "octicon-copy" 14}}
-</button>
+</div>

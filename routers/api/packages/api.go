@@ -358,6 +358,7 @@ func CommonRoutes() *web.Router {
 					r.Get("/PACKAGES", cran.EnumerateSourcePackages)
 					r.Get("/PACKAGES{format}", cran.EnumerateSourcePackages)
 					r.Get("/{filename}", cran.DownloadSourcePackageFile)
+					r.Get("/Archive/{packagename}/{filename}", cran.DownloadSourcePackageFile)
 				})
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), cran.UploadSourcePackageFile)
 			})

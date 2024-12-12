@@ -33,6 +33,7 @@ interface JQuery {
   modal: any; // fomantic
   tab: any; // fomantic
   transition: any, // fomantic
+  search: any, // fomantic
 }
 
 interface JQueryStatic {
@@ -62,4 +63,5 @@ interface Window {
   turnstile: any,
   hcaptcha: any,
   codeEditors: any[],
+  updateCloneStates: () => void,
 }

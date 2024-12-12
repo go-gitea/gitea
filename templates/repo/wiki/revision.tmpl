@@ -15,10 +15,7 @@
 				</div>
 			</div>
 			<div class="ui eight wide column text right">
-				<div class="clone-panel ui action small input">
-					{{template "repo/clone_buttons" .}}
-					{{template "repo/clone_script" .}}
-				</div>
+				{{template "repo/clone_panel" .}}
 			</div>
 		</div>
 		<h2 class="ui top header">{{ctx.Locale.Tr "repo.wiki.wiki_page_revisions"}}</h2>

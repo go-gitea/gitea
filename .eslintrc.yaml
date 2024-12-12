@@ -16,10 +16,10 @@ parserOptions:
   parser: "@typescript-eslint/parser" # for vue plugin - https://eslint.vuejs.org/user-guide/#how-to-use-a-custom-parser
 
 settings:
-  import/extensions: [".js", ".ts"]
-  import/parsers:
+  import-x/extensions: [".js", ".ts"]
+  import-x/parsers:
     "@typescript-eslint/parser": [".js", ".ts"]
-  import/resolver:
+  import-x/resolver:
     typescript: true
 
 plugins:
@@ -28,7 +28,7 @@ plugins:
   - "@typescript-eslint/eslint-plugin"
   - eslint-plugin-array-func
   - eslint-plugin-github
-  - eslint-plugin-i
+  - eslint-plugin-import-x
   - eslint-plugin-no-jquery
   - eslint-plugin-no-use-extend-native
   - eslint-plugin-regexp
@@ -58,15 +58,15 @@ overrides:
       no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, status, statusbar, stop, toolbar, top]
   - files: ["*.config.*"]
     rules:
-      i/no-unused-modules: [0]
+      import-x/no-unused-modules: [0]
   - files: ["**/*.d.ts"]
     rules:
-      i/no-unused-modules: [0]
+      import-x/no-unused-modules: [0]
       "@typescript-eslint/consistent-type-definitions": [0]
       "@typescript-eslint/consistent-type-imports": [0]
   - files: ["web_src/js/types.ts"]
     rules:
-      i/no-unused-modules: [0]
+      import-x/no-unused-modules: [0]
   - files: ["**/*.test.*", "web_src/js/test/setup.ts"]
     env:
       vitest-globals/env: true
@@ -394,49 +394,49 @@ rules:
   id-blacklist: [0]
   id-length: [0]
   id-match: [0]
-  i/consistent-type-specifier-style: [0]
-  i/default: [0]
-  i/dynamic-import-chunkname: [0]
-  i/export: [2]
-  i/exports-last: [0]
-  i/extensions: [2, always, {ignorePackages: true}]
-  i/first: [2]
-  i/group-exports: [0]
-  i/max-dependencies: [0]
-  i/named: [2]
-  i/namespace: [0]
-  i/newline-after-import: [0]
-  i/no-absolute-path: [0]
-  i/no-amd: [2]
-  i/no-anonymous-default-export: [0]
-  i/no-commonjs: [2]
-  i/no-cycle: [2, {ignoreExternal: true, maxDepth: 1}]
-  i/no-default-export: [0]
-  i/no-deprecated: [0]
-  i/no-dynamic-require: [0]
-  i/no-empty-named-blocks: [2]
-  i/no-extraneous-dependencies: [2]
-  i/no-import-module-exports: [0]
-  i/no-internal-modules: [0]
-  i/no-mutable-exports: [0]
-  i/no-named-as-default-member: [0]
-  i/no-named-as-default: [0]
-  i/no-named-default: [0]
-  i/no-named-export: [0]
-  i/no-namespace: [0]
-  i/no-nodejs-modules: [0]
-  i/no-relative-packages: [0]
-  i/no-relative-parent-imports: [0]
-  i/no-restricted-paths: [0]
-  i/no-self-import: [2]
-  i/no-unassigned-import: [0]
-  i/no-unresolved: [2, {commonjs: true, ignore: ["\\?.+$"]}]
-  i/no-unused-modules: [2, {unusedExports: true}]
-  i/no-useless-path-segments: [2, {commonjs: true}]
-  i/no-webpack-loader-syntax: [2]
-  i/order: [0]
-  i/prefer-default-export: [0]
-  i/unambiguous: [0]
+  import-x/consistent-type-specifier-style: [0]
+  import-x/default: [0]
+  import-x/dynamic-import-chunkname: [0]
+  import-x/export: [2]
+  import-x/exports-last: [0]
+  import-x/extensions: [2, always, {ignorePackages: true}]
+  import-x/first: [2]
+  import-x/group-exports: [0]
+  import-x/max-dependencies: [0]
+  import-x/named: [2]
+  import-x/namespace: [0]
+  import-x/newline-after-import: [0]
+  import-x/no-absolute-path: [0]
+  import-x/no-amd: [2]
+  import-x/no-anonymous-default-export: [0]
+  import-x/no-commonjs: [2]
+  import-x/no-cycle: [2, {ignoreExternal: true, maxDepth: 1}]
+  import-x/no-default-export: [0]
+  import-x/no-deprecated: [0]
+  import-x/no-dynamic-require: [0]
+  import-x/no-empty-named-blocks: [2]
+  import-x/no-extraneous-dependencies: [2]
+  import-x/no-import-module-exports: [0]
+  import-x/no-internal-modules: [0]
+  import-x/no-mutable-exports: [0]
+  import-x/no-named-as-default-member: [0]
+  import-x/no-named-as-default: [0]
+  import-x/no-named-default: [0]
+  import-x/no-named-export: [0]
+  import-x/no-namespace: [0]
+  import-x/no-nodejs-modules: [0]
+  import-x/no-relative-packages: [0]
+  import-x/no-relative-parent-imports: [0]
+  import-x/no-restricted-paths: [0]
+  import-x/no-self-import: [2]
+  import-x/no-unassigned-import: [0]
+  import-x/no-unresolved: [2, {commonjs: true, ignore: ["\\?.+$"]}]
+  import-x/no-unused-modules: [2, {unusedExports: true}]
+  import-x/no-useless-path-segments: [2, {commonjs: true}]
+  import-x/no-webpack-loader-syntax: [2]
+  import-x/order: [0]
+  import-x/prefer-default-export: [0]
+  import-x/unambiguous: [0]
   init-declarations: [0]
   line-comment-position: [0]
   logical-assignment-operators: [0]

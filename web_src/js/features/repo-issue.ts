@@ -124,7 +124,7 @@ export function initRepoIssueFilterItemLabel() {
 
 export function initRepoIssueCommentDelete() {
   // Delete comment
-  document.addEventListener('click', async (e) => {
+  document.addEventListener('click', async (e: MouseEvent & {target: HTMLElement}) => {
     if (!e.target.matches('.delete-comment')) return;
     e.preventDefault();
 
@@ -143,7 +143,7 @@ export function initRepoIssueCommentDelete() {
           const counter = document.querySelector('#review-box .review-comments-counter');
           let num = parseInt(counter?.getAttribute('data-pending-comment-number')) - 1 || 0;
           num = Math.max(num, 0);
-          counter.setAttribute('data-pending-comment-number', num);
+          counter.setAttribute('data-pending-comment-number', String(num));
           counter.textContent = String(num);
         }
 
@@ -199,7 +199,7 @@ export function initRepoIssueDependencyDelete() {
 
 export function initRepoIssueCodeCommentCancel() {
   // Cancel inline code comment
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', (e: MouseEvent & {target: HTMLElement}) => {
     if (!e.target.matches('.cancel-code-comment')) return;
 
     const form = e.target.closest('form');
@@ -268,12 +268,14 @@ export function initRepoPullRequestMergeInstruction() {
 export function initRepoPullRequestAllowMaintainerEdit() {
   const wrapper = document.querySelector('#allow-edits-from-maintainers');
   if (!wrapper) return;
-  const checkbox = wrapper.querySelector('input[type="checkbox"]');
+  const checkbox = wrapper.querySelector<HTMLInputElement>('input[type="checkbox"]');
   checkbox.addEventListener('input', async () => {
     const url = `${wrapper.getAttribute('data-url')}/set_allow_maintainer_edit`;
     wrapper.classList.add('is-loading');
     try {
-      const resp = await POST(url, {data: new URLSearchParams({allow_maintainer_edit: checkbox.checked})});
+      const resp = await POST(url, {data: new URLSearchParams({
+        allow_maintainer_edit: String(checkbox.checked),
+      })});
       if (!resp.ok) {
         throw new Error('Failed to update maintainer edit permission');
       }
@@ -322,7 +324,7 @@ export function initRepoIssueWipTitle() {
 
     const $issueTitle = $('#issue_title');
     $issueTitle.trigger('focus');
-    const value = $issueTitle.val().trim().toUpperCase();
+    const value = ($issueTitle.val() as string).trim().toUpperCase();
 
     const wipPrefixes = $('.title_wip_desc').data('wip-prefixes');
     for (const prefix of wipPrefixes) {
@@ -338,7 +340,7 @@ export function initRepoIssueWipTitle() {
 export function initRepoIssueComments() {
   if (!$('.repository.view.issue .timeline').length) return;
 
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', (e: MouseEvent & {target: HTMLElement}) => {
     const urlTarget = document.querySelector(':target');
     if (!urlTarget) return;
 
@@ -490,7 +492,7 @@ export function initRepoPullRequestReview() {
 
 export function initRepoIssueReferenceIssue() {
   // Reference issue
-  $(document).on('click', '.reference-issue', function (event) {
+  $(document).on('click', '.reference-issue', function (e) {
     const target = this.getAttribute('data-target');
     const content = document.querySelector(`#${target}`)?.textContent ?? '';
     const poster = this.getAttribute('data-poster-username');
@@ -500,7 +502,7 @@ export function initRepoIssueReferenceIssue() {
     const textarea = modal.querySelector('textarea[name="content"]');
     textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
     $(modal).modal('show');
-    event.preventDefault();
+    e.preventDefault();
   });
 }
 
@@ -584,7 +586,7 @@ export function initRepoIssueTitleEdit() {
 }
 
 export function initRepoIssueBranchSelect() {
-  document.querySelector('#branch-select')?.addEventListener('click', (e) => {
+  document.querySelector('#branch-select')?.addEventListener('click', (e: MouseEvent & {target: HTMLElement}) => {
     const el = e.target.closest('.item[data-branch]');
     if (!el) return;
     const pullTargetBranch = document.querySelector('#pull-target-branch');
