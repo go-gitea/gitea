@@ -474,3 +474,17 @@ func (c *Commit) GetRepositoryDefaultPublicGPGKey(forceUpdate bool) (*GPGSetting
 	}
 	return c.repo.GetDefaultPublicGPGKey(forceUpdate)
 }
+
+func IsStringLikelyCommitID(objFmt ObjectFormat, s string, minLength ...int) bool {
+	minLen := util.OptionalArg(minLength, objFmt.FullLength())
+	if len(s) < minLen || len(s) > objFmt.FullLength() {
+		return false
+	}
+	for _, c := range s {
+		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+		if !isHex {
+			return false
+		}
+	}
+	return true
+}
