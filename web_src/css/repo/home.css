@@ -48,6 +48,49 @@
   }
 }
 
+.repo-grid-tree-sidebar {
+  display: grid;
+  grid-template-columns: 300px auto;
+  grid-template-rows: auto auto 1fr;
+}
+
+.repo-grid-tree-sidebar .repo-home-filelist {
+  min-width: 0;
+  grid-column: 2;
+  grid-row: 1 / 4;
+}
+
+.repo-grid-tree-sidebar .repo-view-file-tree-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+}
+
+.repo-grid-tree-sidebar .view-file-tree-sidebar-top {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+}
+
+.repo-grid-tree-sidebar .view-file-tree-sidebar-top .button {
+  padding: 6px 10px !important;
+  height: 30px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.repo-grid-tree-sidebar .view-file-tree-sidebar-top .sidebar-ref {
+  display: flex;
+  gap: 0.25em;
+}
+
+@media (max-width: 767.98px) {
+  .repo-grid-tree-sidebar {
+    grid-template-columns: auto;
+    grid-template-rows: auto auto auto;
+  }
+}
+
 .language-stats {
   display: flex;
   gap: 2px;

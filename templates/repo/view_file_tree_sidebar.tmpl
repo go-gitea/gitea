@@ -1,0 +1,65 @@
+<div class="view-file-tree-sidebar-top">
+	<div class="sidebar-header">
+		<button class="hide-tree-sidebar-button ui compact basic button icon" title="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
+			{{svg "octicon-sidebar-expand" 20 "icon"}}
+		</button>
+		<b> Files</b>
+	</div>
+	<div class="sidebar-ref">
+		{{$branchDropdownCurrentRefType := "branch"}}
+		{{$branchDropdownCurrentRefShortName := .BranchName}}
+		{{if .IsViewTag}}
+			{{$branchDropdownCurrentRefType = "tag"}}
+			{{$branchDropdownCurrentRefShortName = .TagName}}
+		{{end}}
+		{{template "repo/branch_dropdown" dict
+			"Repository" .Repository
+			"ShowTabBranches" true
+			"ShowTabTags" true
+			"CurrentRefType" $branchDropdownCurrentRefType
+			"CurrentRefShortName" $branchDropdownCurrentRefShortName
+			"CurrentTreePath" .TreePath
+			"RefLinkTemplate" "{RepoLink}/src/{RefType}/{RefShortName}/{TreePath}"
+			"AllowCreateNewRef" .CanCreateBranch
+			"ShowViewAllRefsEntry" true
+		}}
+
+		{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
+			{{$cmpBranch := ""}}
+			{{if ne .Repository.ID .BaseRepo.ID}}
+				{{$cmpBranch = printf "%s/%s:" (.Repository.OwnerName|PathEscape) (.Repository.Name|PathEscape)}}
+			{{end}}
+			{{$cmpBranch = print $cmpBranch (.BranchName|PathEscapeSegments)}}
+			{{$compareLink := printf "%s/compare/%s...%s" .BaseRepo.Link (.BaseRepo.DefaultBranch|PathEscapeSegments) $cmpBranch}}
+			<a role="button" class="ui compact basic button" href="{{$compareLink}}"
+				data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{ctx.Locale.Tr "repo.pulls.compare_changes"}}{{else}}{{ctx.Locale.Tr "action.compare_branch"}}{{end}}">
+				{{svg "octicon-git-pull-request"}}
+			</a>
+		{{end}}
+
+		{{if and .CanWriteCode .IsViewBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
+			<button class="ui dropdown basic compact jump button"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+				{{ctx.Locale.Tr "repo.editor.add_file"}}
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="menu">
+					<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+						{{ctx.Locale.Tr "repo.editor.new_file"}}
+					</a>
+					{{if .RepositoryUploadEnabled}}
+					<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+						{{ctx.Locale.Tr "repo.editor.upload_file"}}
+					</a>
+					{{end}}
+					<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+						{{ctx.Locale.Tr "repo.editor.patch"}}
+					</a>
+				</div>
+			</button>
+		{{end}}
+	</div>
+</div>
+<div class="view-file-tree-sidebar-bottom">
+	<div id="view-file-tree" class="center" data-api-base-url="{{.RepoLink}}" data-tree-path="{{$.TreePath}}">
+		{{svg "octicon-sync" 16 "job-status-rotate"}}
+	</div>
+</div>

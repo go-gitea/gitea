@@ -19,11 +19,24 @@
 		{{$treeNamesLen := len .TreeNames}}
 		{{$isTreePathRoot := eq $treeNamesLen 0}}
 		{{$showSidebar := $isTreePathRoot}}
-		<div class="{{Iif $showSidebar "repo-grid-filelist-sidebar" "repo-grid-filelist-only"}}">
+		{{$hasTreeSidebar := not $isTreePathRoot}}
+		{{$showTreeSidebar := .RepoPreferences.ShowFileViewTreeSidebar}}
+		{{$hideTreeSidebar := not $showTreeSidebar}}
+		{{$hasAndShowTreeSidebar := and $hasTreeSidebar $showTreeSidebar}}
+		<div class="{{Iif $showSidebar "repo-grid-filelist-sidebar" (Iif $showTreeSidebar "repo-grid-tree-sidebar" "repo-grid-filelist-only")}}">
+			{{if $hasTreeSidebar}}
+				<div class="repo-view-file-tree-sidebar not-mobile {{if $hideTreeSidebar}}tw-hidden{{end}}">{{template "repo/view_file_tree_sidebar" .}}</div>
+			{{end}}
+
 			<div class="repo-home-filelist">
 				{{template "repo/sub_menu" .}}
 				<div class="repo-button-row">
 					<div class="repo-button-row-left">
+						{{if $hasTreeSidebar}}
+							<button class="show-tree-sidebar-button ui compact basic button icon not-mobile {{if $showTreeSidebar}}tw-hidden{{end}}" title="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
+								{{svg "octicon-sidebar-collapse" 20 "icon"}}
+							</button>
+						{{end}}
 						{{$branchDropdownCurrentRefType := "branch"}}
 						{{$branchDropdownCurrentRefShortName := .BranchName}}
 						{{if .IsViewTag}}
@@ -40,6 +53,7 @@
 							"RefLinkTemplate" "{RepoLink}/src/{RefType}/{RefShortName}/{TreePath}"
 							"AllowCreateNewRef" .CanCreateBranch
 							"ShowViewAllRefsEntry" true
+							"ContainerClasses" (Iif $hasAndShowTreeSidebar "tw-hidden" "")
 						}}
 						{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 							{{$cmpBranch := ""}}
@@ -48,7 +62,7 @@
 							{{end}}
 							{{$cmpBranch = print $cmpBranch (.BranchName|PathEscapeSegments)}}
 							{{$compareLink := printf "%s/compare/%s...%s" .BaseRepo.Link (.BaseRepo.DefaultBranch|PathEscapeSegments) $cmpBranch}}
-							<a id="new-pull-request" role="button" class="ui compact basic button" href="{{$compareLink}}"
+							<a id="new-pull-request" role="button" class="ui compact basic button {{if $hasAndShowTreeSidebar}}tw-hidden{{end}}" href="{{$compareLink}}"
 								data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{ctx.Locale.Tr "repo.pulls.compare_changes"}}{{else}}{{ctx.Locale.Tr "action.compare_branch"}}{{end}}">
 								{{svg "octicon-git-pull-request"}}
 							</a>
@@ -60,7 +74,7 @@
 						{{end}}
 
 						{{if and .CanWriteCode .IsViewBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
-							<button class="ui dropdown basic compact jump button"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+							<button class="add-file-dropdown ui dropdown basic compact jump button {{if $hasAndShowTreeSidebar}}tw-hidden{{end}}"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
 								{{ctx.Locale.Tr "repo.editor.add_file"}}
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">

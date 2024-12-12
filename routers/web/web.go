@@ -987,6 +987,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/migrate", repo.Migrate)
 		m.Post("/migrate", web.Bind(forms.MigrateRepoForm{}), repo.MigratePost)
 		m.Get("/search", repo.SearchRepo)
+		m.Put("/preferences", repo.UpdatePreferences)
 	}, reqSignIn)
 	// end "/repo": create, migrate, search
 
@@ -1160,6 +1161,10 @@ func registerRoutes(m *web.Router) {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.TreeList)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.TreeList)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.TreeList)
+		})
+		m.Group("/contents", func() {
+			m.Get("", repo.GetContentsList)
+			m.Get("/*", repo.GetContents)
 		})
 		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists).
