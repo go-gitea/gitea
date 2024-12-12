@@ -36,7 +36,7 @@ func TestAPICompareBranches(t *testing.T) {
 		assert.Len(t, apiResp.Commits, 2)
 	})
 
-	t.Run("CompareBranches", func(t *testing.T) {
+	t.Run("CompareCommits", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/808038d2f71b0ab02099...c8e31bc7688741a5287f").AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)

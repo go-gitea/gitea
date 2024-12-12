@@ -1096,7 +1096,7 @@ type parseCompareInfoResult struct {
 }
 
 // parseCompareInfo returns non-nil if it succeeds, it always writes to the context and returns nil if it fails
-func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) (result *parseCompareInfoResult, closer func() error) {
+func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) (result *parseCompareInfoResult, closer func()) {
 	var err error
 	// Get compared branches information
 	// format: <base branch>...[<head repo>:]<head branch>
@@ -1104,15 +1104,12 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	// same repo: master...feature
 	baseRepo := ctx.Repo.Repository
 	baseRefToGuess := form.Base
+
+	headUser := ctx.Repo.Owner
 	headRefToGuess := form.Head
-
-	var headUser *user_model.User
-
-	headInfos := strings.Split(form.Head, ":")
-	if len(headInfos) == 1 {
+	if headInfos := strings.Split(form.Head, ":"); len(headInfos) == 1 {
 		// If there is no head repository, it means pull request between same repository.
-		headUser = ctx.Repo.Owner
-		headRefToGuess = headInfos[0]
+		// Do nothing here because the head variables have been assigned above.
 	} else if len(headInfos) == 2 {
 		// There is a head repository (the head repository could also be the same base repo)
 		headRefToGuess = headInfos[1]
@@ -1155,14 +1152,14 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	if isSameRepo {
 		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
-		closer = func() error { return nil } // no need to close the head repo because it shares the base repo
+		closer = func() {} // no need to close the head repo because it shares the base repo
 	} else {
 		headGitRepo, err = gitrepo.OpenRepository(ctx, headRepo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return nil, nil
 		}
-		closer = headGitRepo.Close
+		closer = func() { _ = headGitRepo.Close() }
 	}
 	defer func() {
 		if result == nil && !isSameRepo {
