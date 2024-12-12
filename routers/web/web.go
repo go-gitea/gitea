@@ -712,8 +712,12 @@ func registerRoutes(m *web.Router) {
 		m.Group("/config", func() {
 			m.Get("", admin.Config)
 			m.Post("", admin.ChangeConfig)
-			m.Post("/test_mail", admin.SendTestMail)
-			m.Post("/test_cache", admin.TestCache)
+			m.Group("/test", func() {
+				m.Post("/mail", admin.SendTestMail)
+				m.Get("/incoming-mail", admin.IncomingMail)
+				m.Post("/incoming-mail", admin.TestIncomingMail)
+				m.Post("/cache", admin.TestCache)
+			})
 			m.Get("/settings", admin.ConfigSettings)
 		})
 
