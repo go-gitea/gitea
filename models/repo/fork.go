@@ -76,7 +76,7 @@ func GetForksByUserAndOrgs(ctx context.Context, user *user_model.User, repo *Rep
 	if user == nil {
 		return repoList, nil
 	}
-	forkedRepo, err := GetForkedRepo(ctx, repo.ID, user.ID)
+	forkedRepo, err := GetForkedRepo(ctx, user.ID, repo.ID)
 	if err != nil && !IsErrRepoNotExist(err) {
 		return repoList, err
 	}
