@@ -1180,7 +1180,8 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil
 	}
 
-	// user should have permission to read headrepo's codes
+	// user should have permission to read headRepo's codes
+	// TODO: could the logic be simplified if the headRepo is the same as the baseRepo? Need to think more about it.
 	permHead, err := access_model.GetUserRepoPermission(ctx, headRepo, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
