@@ -21,17 +21,15 @@ func GetRepositoriesByForkID(ctx context.Context, forkID int64) ([]*Repository, 
 }
 
 // GetForkedRepo checks if given user has already forked a repository with given ID.
-func GetForkedRepo(ctx context.Context, ownerID, repoID int64) (*Repository, error) {
+func GetForkedRepo(ctx context.Context, ownerID, repoID int64) *Repository {
 	repo := new(Repository)
-	has, err := db.GetEngine(ctx).
+	has, _ := db.GetEngine(ctx).
 		Where("owner_id=? AND fork_id=?", ownerID, repoID).
 		Get(repo)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrRepoNotExist{ID: repoID}
+	if has {
+		return repo
 	}
-	return repo, nil
+	return nil
 }
 
 // HasForkedRepo checks if given user has already forked a repository with given ID.
@@ -41,6 +39,19 @@ func HasForkedRepo(ctx context.Context, ownerID, repoID int64) bool {
 		Where("owner_id=? AND fork_id=?", ownerID, repoID).
 		Exist()
 	return has
+}
+
+// GetUserFork return user forked repository from this repository, if not forked return nil
+func GetUserFork(ctx context.Context, repoID, userID int64) (*Repository, error) {
+	var forkedRepo Repository
+	has, err := db.GetEngine(ctx).Where("fork_id = ?", repoID).And("owner_id = ?", userID).Get(&forkedRepo)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, nil
+	}
+	return &forkedRepo, nil
 }
 
 // IncrementRepoForkNum increment repository fork number
@@ -76,8 +87,8 @@ func GetForksByUserAndOrgs(ctx context.Context, user *user_model.User, repo *Rep
 	if user == nil {
 		return repoList, nil
 	}
-	forkedRepo, err := GetForkedRepo(ctx, repo.ID, user.ID)
-	if err != nil && !IsErrRepoNotExist(err) {
+	forkedRepo, err := GetUserFork(ctx, repo.ID, user.ID)
+	if err != nil {
 		return repoList, err
 	}
 	if forkedRepo != nil {

@@ -119,6 +119,8 @@ func (ci *CompareInfo) Close() {
 	}
 }
 
+// detectFullRef detects a short name as a branch, tag or commit's full ref name and type.
+// It's the same job as git.UnstableGuessRefByShortName but with a database read instead of git read.
 func detectFullRef(ctx context.Context, repoID int64, gitRepo *git.Repository, oriRef string) (git.RefName, bool, error) {
 	b, err := git_model.GetBranch(ctx, repoID, oriRef)
 	if err != nil && !git_model.IsErrBranchNotExist(err) {
@@ -166,12 +168,12 @@ func findHeadRepoFromRootBase(ctx context.Context, baseRepo *repo_model.Reposito
 		return nil, nil
 	}
 	// test if we are lucky
-	repo, err := repo_model.GetForkedRepo(ctx, headUserID, baseRepo.ID)
-	if err == nil {
-		return repo, nil
-	}
-	if !repo_model.IsErrRepoNotExist(err) {
+	repo, err := repo_model.GetUserFork(ctx, headUserID, baseRepo.ID)
+	if err != nil {
 		return nil, err
+	}
+	if repo != nil {
+		return repo, nil
 	}
 
 	firstLevelForkedRepo, err := repo_model.GetRepositoriesByForkID(ctx, baseRepo.ID)

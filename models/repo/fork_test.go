@@ -20,14 +20,14 @@ func TestGetUserFork(t *testing.T) {
 	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 10)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
-	repo, err = repo_model.GetForkedRepo(db.DefaultContext, repo.ID, 13)
+	repo, err = repo_model.GetUserFork(db.DefaultContext, repo.ID, 13)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
 
 	repo, err = repo_model.GetRepositoryByID(db.DefaultContext, 9)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
-	repo, err = repo_model.GetForkedRepo(db.DefaultContext, repo.ID, 13)
+	repo, err = repo_model.GetUserFork(db.DefaultContext, repo.ID, 13)
 	assert.NoError(t, err)
 	assert.Nil(t, repo)
 }
