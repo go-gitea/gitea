@@ -75,12 +75,12 @@ function initCloneSchemeUrlSelection(parent: Element) {
   };
 
   updateClonePanelUi();
-
-  tabSsh.addEventListener('click', () => {
+  // tabSsh or tabHttps might not both exist, eg: guest view, or one is disabled by the server
+  tabSsh?.addEventListener('click', () => {
     localStorage.setItem('repo-clone-protocol', 'ssh');
     updateClonePanelUi();
   });
-  tabHttps.addEventListener('click', () => {
+  tabHttps?.addEventListener('click', () => {
     localStorage.setItem('repo-clone-protocol', 'https');
     updateClonePanelUi();
   });
