@@ -167,8 +167,8 @@
 								<button class="btn diff-header-popup-btn tw-p-1">{{svg "octicon-kebab-horizontal" 18}}</button>
 								<div class="tippy-target">
 									{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
-										<button class="unescape-button item" data-file-content-elem-id="diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-										<button class="escape-button tw-hidden item" data-file-content-elem-id="diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+										<button class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+										<button class="escape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 									{{end}}
 									{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 										{{if $file.IsDeleted}}
