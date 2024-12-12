@@ -429,7 +429,8 @@ export function initRepositoryActionView() {
           <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
         </template>
         <span class="ui label tw-max-w-full" v-if="run.commit.shortSHA">
-          <a class="gt-ellipsis" :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
+          <span v-if="run.commit.branch.isDeleted" class="gt-ellipsis tw-line-through" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</span>
+          <a v-else class="gt-ellipsis" :href="run.commit.branch.link" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</a>
         </span>
       </div>
     </div>

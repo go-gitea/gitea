@@ -305,7 +305,7 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		branches, err := git_model.GetBranches(ctx, repoID, branchNames)
+		branches, err := git_model.GetBranches(ctx, repoID, branchNames, true)
 		if err != nil {
 			return fmt.Errorf("git_model.GetBranches: %v", err)
 		}
