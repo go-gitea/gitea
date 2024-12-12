@@ -201,6 +201,10 @@ func sessionHandler(session ssh.Session) {
 }
 
 func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
+	// The publicKeyHandler (PublicKeyCallback) only provides the candidate keys to authenticate,
+	// It does NOT really verify here, so we could only record the related information here.
+	// After authentication (Verify), the "Permissions" will be assigned to the ssh conn,
+	// then we can use it in the "session handler"
 	setPermExt := func(keyID int64) {
 		ctx.Permissions().Permissions.Extensions = map[string]string{
 			giteaPermissionExtensionKeyID: fmt.Sprint(keyID),
