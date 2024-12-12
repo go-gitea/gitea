@@ -236,6 +236,7 @@ func createRequest(ctx context.Context, method, url string, headers map[string]s
 		req.Header.Set(key, value)
 	}
 	req.Header.Set("Accept", AcceptHeader)
+	req.Header.Set("User-Agent", UserAgentHeader)
 
 	return req, nil
 }
