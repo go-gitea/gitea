@@ -7,10 +7,22 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddConcurrencyGroupToActionRun(x *xorm.Engine) error {
+func AddActionsConcurrency(x *xorm.Engine) error {
 	type ActionRun struct {
-		ConcurrencyGroup string
+		ConcurrencyGroup  string
+		ConcurrencyCancel bool
 	}
 
-	return x.Sync(new(ActionRun))
+	if err := x.Sync(new(ActionRun)); err != nil {
+		return err
+	}
+
+	type ActionRunJob struct {
+		RawConcurrencyGroup  string
+		RawConcurrencyCancel string
+		ConcurrencyGroup     string
+		ConcurrencyCancel    bool
+	}
+
+	return x.Sync(new(ActionRunJob))
 }
