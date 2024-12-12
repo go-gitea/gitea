@@ -444,13 +444,19 @@ func prepareCompareRepoBranchesTagsDropdowns(ctx *context.Context, ci *common.Co
 		ctx.Data["HeadTags"] = headTags
 	}
 
-	if ci.RootRepo != nil &&
-		ci.RootRepo.ID != ci.HeadRepo.ID &&
-		ci.RootRepo.ID != baseRepo.ID {
-		canRead := access_model.CheckRepoUnitUser(ctx, ci.RootRepo, ctx.Doer, unit.TypeCode)
+	rootRepo, ownForkRepo, err := ci.LoadRootRepoAndOwnForkRepo(ctx, baseRepo, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("LoadRootRepoAndOwnForkRepo", err)
+		return
+	}
+
+	if rootRepo != nil &&
+		rootRepo.ID != ci.HeadRepo.ID &&
+		rootRepo.ID != baseRepo.ID {
+		canRead := access_model.CheckRepoUnitUser(ctx, rootRepo, ctx.Doer, unit.TypeCode)
 		if canRead {
-			ctx.Data["RootRepo"] = ci.RootRepo
-			branches, tags, err := getBranchesAndTagsForRepo(ctx, ci.RootRepo)
+			ctx.Data["RootRepo"] = rootRepo
+			branches, tags, err := getBranchesAndTagsForRepo(ctx, rootRepo)
 			if err != nil {
 				ctx.ServerError("GetBranchesForRepo", err)
 				return
@@ -460,12 +466,12 @@ func prepareCompareRepoBranchesTagsDropdowns(ctx *context.Context, ci *common.Co
 		}
 	}
 
-	if ci.OwnForkRepo != nil &&
-		ci.OwnForkRepo.ID != ci.HeadRepo.ID &&
-		ci.OwnForkRepo.ID != baseRepo.ID &&
-		(ci.RootRepo == nil || ci.OwnForkRepo.ID != ci.RootRepo.ID) {
-		ctx.Data["OwnForkRepo"] = ci.OwnForkRepo
-		branches, tags, err := getBranchesAndTagsForRepo(ctx, ci.OwnForkRepo)
+	if ownForkRepo != nil &&
+		ownForkRepo.ID != ci.HeadRepo.ID &&
+		ownForkRepo.ID != baseRepo.ID &&
+		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
+		ctx.Data["OwnForkRepo"] = ownForkRepo
+		branches, tags, err := getBranchesAndTagsForRepo(ctx, ownForkRepo)
 		if err != nil {
 			ctx.ServerError("GetBranchesForRepo", err)
 			return

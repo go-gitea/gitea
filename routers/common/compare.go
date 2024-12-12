@@ -101,8 +101,6 @@ type CompareInfo struct {
 	HeadUser     *user_model.User
 	HeadRepo     *repo_model.Repository
 	HeadGitRepo  *git.Repository
-	RootRepo     *repo_model.Repository
-	OwnForkRepo  *repo_model.Repository
 	CompareInfo  *git.CompareInfo
 	close        func()
 	IsBaseCommit bool
@@ -289,28 +287,6 @@ func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *rep
 		}
 	}
 
-	// find root repo
-	if !baseRepo.IsFork {
-		ci.RootRepo = baseRepo
-	} else {
-		if !ci.HeadRepo.IsFork {
-			ci.RootRepo = ci.HeadRepo
-		} else {
-			ci.RootRepo, err = getRootRepo(ctx, baseRepo)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	// find ownfork repo
-	if doer != nil && ci.HeadRepo.OwnerID != doer.ID && baseRepo.OwnerID != doer.ID {
-		ci.OwnForkRepo, err = findHeadRepo(ctx, baseRepo, doer.ID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	ci.BaseFullRef, ci.IsBaseCommit, err = detectFullRef(ctx, baseRepo.ID, baseGitRepo, ci.BaseOriRef)
 	if err != nil {
 		ci.Close()
@@ -323,4 +299,33 @@ func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *rep
 		return nil, err
 	}
 	return ci, nil
+}
+
+func (ci *CompareInfo) LoadRootRepoAndOwnForkRepo(ctx context.Context, baseRepo *repo_model.Repository, doer *user_model.User) (*repo_model.Repository, *repo_model.Repository, error) {
+	// find root repo
+	var rootRepo *repo_model.Repository
+	var err error
+	if !baseRepo.IsFork {
+		rootRepo = baseRepo
+	} else {
+		if !ci.HeadRepo.IsFork {
+			rootRepo = ci.HeadRepo
+		} else {
+			rootRepo, err = getRootRepo(ctx, baseRepo)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+
+	// find ownfork repo
+	var ownForkRepo *repo_model.Repository
+	if doer != nil && ci.HeadRepo.OwnerID != doer.ID && baseRepo.OwnerID != doer.ID {
+		ownForkRepo, err = findHeadRepo(ctx, baseRepo, doer.ID)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return rootRepo, ownForkRepo, nil
 }

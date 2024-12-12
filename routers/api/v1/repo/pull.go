@@ -423,6 +423,9 @@ func CreatePullRequest(ctx *context.APIContext) {
 		return
 	}
 
+	// we just need to check the head repository's permission here because the base
+	// repository's permission is already checked in api.go with
+	// mustAllowPulls, reqRepoReader(unit.TypeCode)
 	if !ci.IsSameRepo() {
 		// user should have permission to read headrepo's codes
 		permHead, err := access_model.GetUserRepoPermission(ctx, ci.HeadRepo, ctx.Doer)
