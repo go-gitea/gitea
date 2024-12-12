@@ -27,8 +27,7 @@ import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import type {Entries} from 'type-fest';
-
-const {pageData} = window.config;
+import {pathEscapeSegments} from '../utils/url.ts';
 
 const customEventListener: Plugin = {
   id: 'customEventListener',
@@ -68,6 +67,10 @@ export default {
       type: String,
       required: true,
     },
+    repoDefaultBranchName: {
+      type: String,
+      required: true,
+    },
   },
   data: () => ({
     isLoading: false,
@@ -75,7 +78,6 @@ export default {
     totalStats: {} as Record<string, any>,
     sortedContributors: {} as Record<string, any>,
     type: 'commits',
-    repoBranch: pageData.repoContributorsData.repoDefaultBranch,
     contributorsStats: {} as Record<string, any>,
     xAxisStart: null,
     xAxisEnd: null,
@@ -110,7 +112,7 @@ export default {
       const params = new URLSearchParams({
         'q': `after:${min}, before:${max}, author:${contributorEmail}`,
       });
-      return `${this.repoLink}/commits/branch/${this.repoBranch}/search?${params.toString()}`;
+      return `${this.repoLink}/commits/branch/${pathEscapeSegments(this.repoDefaultBranchName)}/search?${params.toString()}`;
     },
 
     async fetchGraphData() {
@@ -228,7 +230,7 @@ export default {
       };
     },
 
-    updateOtherCharts({chart}: {chart: Chart}, reset?: boolean = false) {
+    updateOtherCharts({chart}: {chart: Chart}, reset: boolean = false) {
       const minVal = chart.options.scales.x.min;
       const maxVal = chart.options.scales.x.max;
       if (reset) {
@@ -394,7 +396,7 @@ export default {
         <div class="ui top attached header tw-flex tw-flex-1">
           <b class="ui right">#{{ index + 1 }}</b>
           <a :href="contributor.home_link">
-            <img class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link">
+            <img class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link" alt="{{ contributor.name }}">
           </a>
           <div class="tw-ml-2">
             <a v-if="contributor.home_link !== ''" :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>

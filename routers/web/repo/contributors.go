@@ -21,9 +21,6 @@ func Contributors(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.activity.navbar.contributors")
 	ctx.Data["PageIsActivity"] = true
 	ctx.Data["PageIsContributors"] = true
-	ctx.PageData["repoContributorsData"] = map[string]any{
-		"repoDefaultBranch": ctx.Repo.RefName,
-	}
 	ctx.HTML(http.StatusOK, tplContributors)
 }
 
