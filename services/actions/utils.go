@@ -4,10 +4,13 @@
 package actions
 
 import (
+	"context"
 	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
@@ -93,4 +96,49 @@ func GenerateGitContext(run *actions_model.ActionRun, job *actions_model.ActionR
 	}
 
 	return gitContext
+}
+
+type TaskNeed struct {
+	Result  actions_model.Status
+	Outputs map[string]string
+}
+
+func FindTaskNeeds(ctx context.Context, task *actions_model.ActionTask) (map[string]*TaskNeed, error) {
+	if err := task.LoadAttributes(ctx); err != nil {
+		return nil, fmt.Errorf("LoadAttributes: %w", err)
+	}
+	if len(task.Job.Needs) == 0 {
+		return nil, nil
+	}
+	needs := container.SetOf(task.Job.Needs...)
+
+	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: task.Job.RunID})
+	if err != nil {
+		return nil, fmt.Errorf("FindRunJobs: %w", err)
+	}
+
+	ret := make(map[string]*TaskNeed, len(needs))
+	for _, job := range jobs {
+		if !needs.Contains(job.JobID) {
+			continue
+		}
+		if job.TaskID == 0 || !job.Status.IsDone() {
+			// it shouldn't happen, or the job has been rerun
+			continue
+		}
+		outputs := make(map[string]string)
+		got, err := actions_model.FindTaskOutputByTaskID(ctx, job.TaskID)
+		if err != nil {
+			return nil, fmt.Errorf("FindTaskOutputByTaskID: %w", err)
+		}
+		for _, v := range got {
+			outputs[v.OutputKey] = v.OutputValue
+		}
+		ret[job.JobID] = &TaskNeed{
+			Outputs: outputs,
+			Result:  job.Status,
+		}
+	}
+
+	return ret, nil
 }

@@ -230,42 +230,49 @@ func CancelPreviousJobsWithOpts(ctx context.Context, opts *FindRunOptions) error
 			return err
 		}
 
-		// Iterate over each job and attempt to cancel it.
-		for _, job := range jobs {
-			// Skip jobs that are already in a terminal state (completed, cancelled, etc.).
-			status := job.Status
-			if status.IsDone() {
-				continue
-			}
-
-			// If the job has no associated task (probably an error), set its status to 'Cancelled' and stop it.
-			if job.TaskID == 0 {
-				job.Status = StatusCancelled
-				job.Stopped = timeutil.TimeStampNow()
-
-				// Update the job's status and stopped time in the database.
-				n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
-				if err != nil {
-					return err
-				}
-
-				// If the update affected 0 rows, it means the job has changed in the meantime, so we need to try again.
-				if n == 0 {
-					return fmt.Errorf("job has changed, try again")
-				}
-
-				// Continue with the next job.
-				continue
-			}
-
-			// If the job has an associated task, try to stop the task, effectively cancelling the job.
-			if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
-				return err
-			}
+		if err := CancelJobs(ctx, jobs); err != nil {
+			return err
 		}
 	}
 
 	// Return nil to indicate successful cancellation of all running and waiting jobs.
+	return nil
+}
+
+func CancelJobs(ctx context.Context, jobs []*ActionRunJob) error {
+	// Iterate over each job and attempt to cancel it.
+	for _, job := range jobs {
+		// Skip jobs that are already in a terminal state (completed, cancelled, etc.).
+		status := job.Status
+		if status.IsDone() {
+			continue
+		}
+
+		// If the job has no associated task (probably an error), set its status to 'Cancelled' and stop it.
+		if job.TaskID == 0 {
+			job.Status = StatusCancelled
+			job.Stopped = timeutil.TimeStampNow()
+
+			// Update the job's status and stopped time in the database.
+			n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
+			if err != nil {
+				return err
+			}
+
+			// If the update affected 0 rows, it means the job has changed in the meantime, so we need to try again.
+			if n == 0 {
+				return fmt.Errorf("job has changed, try again")
+			}
+
+			// Continue with the next job.
+			continue
+		}
+
+		// If the job has an associated task, try to stop the task, effectively cancelling the job.
+		if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
