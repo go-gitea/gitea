@@ -403,7 +403,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	)
 
 	// Get repo/branch information
-	ci, err := common.ParseComparePathParams(ctx, form.Base+"..."+form.Head, repo, ctx.Repo.GitRepo)
+	ci, err := common.ParseComparePathParams(ctx, form.Base+"..."+form.Head, repo, ctx.Repo.GitRepo, ctx.Doer)
 	if err != nil {
 		switch {
 		case user_model.IsErrUserNotExist(err):

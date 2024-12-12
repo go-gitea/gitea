@@ -101,6 +101,8 @@ type CompareInfo struct {
 	HeadUser     *user_model.User
 	HeadRepo     *repo_model.Repository
 	HeadGitRepo  *git.Repository
+	RootRepo     *repo_model.Repository
+	OwnForkRepo  *repo_model.Repository
 	CompareInfo  *git.CompareInfo
 	close        func()
 	IsBaseCommit bool
@@ -190,6 +192,20 @@ func findHeadRepoFromRootBase(ctx context.Context, baseRepo *repo_model.Reposito
 	return nil, nil
 }
 
+func getRootRepo(ctx context.Context, repo *repo_model.Repository) (*repo_model.Repository, error) {
+	curRepo := repo
+	for curRepo.IsFork {
+		if err := curRepo.GetBaseRepo(ctx); err != nil {
+			return nil, err
+		}
+		if curRepo.BaseRepo == nil {
+			break
+		}
+		curRepo = curRepo.BaseRepo
+	}
+	return curRepo, nil
+}
+
 // ParseComparePathParams Get compare information
 // A full compare url is of the form:
 //
@@ -215,7 +231,7 @@ func findHeadRepoFromRootBase(ctx context.Context, baseRepo *repo_model.Reposito
 // format: <base branch>...[<head repo>:]<head branch>
 // base<-head: master...head:feature
 // same repo: master...feature
-func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *repo_model.Repository, baseGitRepo *git.Repository) (*CompareInfo, error) {
+func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *repo_model.Repository, baseGitRepo *git.Repository, doer *user_model.User) (*CompareInfo, error) {
 	ci := &CompareInfo{}
 	var err error
 
@@ -273,13 +289,37 @@ func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *rep
 		}
 	}
 
+	// find root repo
+	if !baseRepo.IsFork {
+		ci.RootRepo = baseRepo
+	} else {
+		if !ci.HeadRepo.IsFork {
+			ci.RootRepo = ci.HeadRepo
+		} else {
+			ci.RootRepo, err = getRootRepo(ctx, baseRepo)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// find ownfork repo
+	if doer != nil && ci.HeadRepo.OwnerID != doer.ID && baseRepo.OwnerID != doer.ID {
+		ci.OwnForkRepo, err = findHeadRepo(ctx, baseRepo, doer.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	ci.BaseFullRef, ci.IsBaseCommit, err = detectFullRef(ctx, baseRepo.ID, baseGitRepo, ci.BaseOriRef)
 	if err != nil {
+		ci.Close()
 		return nil, err
 	}
 
 	ci.HeadFullRef, ci.IsHeadCommit, err = detectFullRef(ctx, ci.HeadRepo.ID, ci.HeadGitRepo, ci.HeadOriRef)
 	if err != nil {
+		ci.Close()
 		return nil, err
 	}
 	return ci, nil

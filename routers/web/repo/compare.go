@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -193,7 +194,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	pathParam := ctx.PathParam("*")
 	baseRepo := ctx.Repo.Repository
 
-	ci, err := common.ParseComparePathParams(ctx, pathParam, baseRepo, ctx.Repo.GitRepo)
+	ci, err := common.ParseComparePathParams(ctx, pathParam, baseRepo, ctx.Repo.GitRepo, ctx.Doer)
 	if err != nil {
 		switch {
 		case user_model.IsErrUserNotExist(err):
@@ -207,7 +208,6 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		}
 		return nil
 	}
-	defer ci.Close()
 
 	// remove the check when we support compare with carets
 	if ci.CaretTimes > 0 {
@@ -245,8 +245,6 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		ctx.Data["CanWriteToHeadRepo"] = permHead.CanWrite(unit.TypeCode)
 	}
 
-	// TODO: prepareRepos, branches and tags for dropdowns
-
 	ctx.Data["PageIsComparePull"] = ci.IsPull() && ctx.Repo.CanReadIssuesOrPulls(true)
 	ctx.Data["BaseName"] = baseRepo.OwnerName
 	ctx.Data["BaseBranch"] = ci.BaseOriRef
@@ -258,7 +256,6 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	ctx.Data["BaseIsBranch"] = ci.BaseFullRef.IsBranch()
 	ctx.Data["BaseIsTag"] = ci.BaseFullRef.IsTag()
 	ctx.Data["IsPull"] = true
-	// ctx.Data["OwnForkRepo"] = ownForkRepo FIXME: This is not used
 
 	ctx.Data["HeadRepo"] = ci.HeadRepo
 	ctx.Data["BaseCompareRepo"] = ctx.Repo.Repository
@@ -399,14 +396,8 @@ func PrepareCompareDiff(
 	return false
 }
 
-func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repository) (branches, tags []string, err error) {
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer gitRepo.Close()
-
-	branches, err = git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repository) ([]string, []string, error) {
+	branches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
 		RepoID:          repo.ID,
 		ListOptions:     db.ListOptionsAll,
 		IsDeletedBranch: optional.Some(false),
@@ -414,19 +405,82 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 	if err != nil {
 		return nil, nil, err
 	}
-	tags, err = gitRepo.GetTags(0, 0)
+	// always put default branch on the top if it exists
+	if slices.Contains(branches, repo.DefaultBranch) {
+		branches = util.SliceRemoveAll(branches, repo.DefaultBranch)
+		branches = append([]string{repo.DefaultBranch}, branches...)
+	}
+
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, repo.ID)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	return branches, tags, nil
+}
+
+func prepareCompareRepoBranchesTagsDropdowns(ctx *context.Context, ci *common.CompareInfo) {
+	baseRepo := ctx.Repo.Repository
+	// For compare repo branches
+	baseBranches, baseTags, err := getBranchesAndTagsForRepo(ctx, baseRepo)
+	if err != nil {
+		ctx.ServerError("getBranchesAndTagsForRepo", err)
+		return
+	}
+
+	ctx.Data["Branches"] = baseBranches
+	ctx.Data["Tags"] = baseTags
+
+	if ci.IsSameRepo() {
+		ctx.Data["HeadBranches"] = baseBranches
+		ctx.Data["HeadTags"] = baseTags
+	} else {
+		headBranches, headTags, err := getBranchesAndTagsForRepo(ctx, ci.HeadRepo)
+		if err != nil {
+			ctx.ServerError("getBranchesAndTagsForRepo", err)
+			return
+		}
+		ctx.Data["HeadBranches"] = headBranches
+		ctx.Data["HeadTags"] = headTags
+	}
+
+	if ci.RootRepo != nil &&
+		ci.RootRepo.ID != ci.HeadRepo.ID &&
+		ci.RootRepo.ID != baseRepo.ID {
+		canRead := access_model.CheckRepoUnitUser(ctx, ci.RootRepo, ctx.Doer, unit.TypeCode)
+		if canRead {
+			ctx.Data["RootRepo"] = ci.RootRepo
+			branches, tags, err := getBranchesAndTagsForRepo(ctx, ci.RootRepo)
+			if err != nil {
+				ctx.ServerError("GetBranchesForRepo", err)
+				return
+			}
+			ctx.Data["RootRepoBranches"] = branches
+			ctx.Data["RootRepoTags"] = tags
+		}
+	}
+
+	if ci.OwnForkRepo != nil &&
+		ci.OwnForkRepo.ID != ci.HeadRepo.ID &&
+		ci.OwnForkRepo.ID != baseRepo.ID &&
+		(ci.RootRepo == nil || ci.OwnForkRepo.ID != ci.RootRepo.ID) {
+		ctx.Data["OwnForkRepo"] = ci.OwnForkRepo
+		branches, tags, err := getBranchesAndTagsForRepo(ctx, ci.OwnForkRepo)
+		if err != nil {
+			ctx.ServerError("GetBranchesForRepo", err)
+			return
+		}
+		ctx.Data["OwnForkRepoBranches"] = branches
+		ctx.Data["OwnForkRepoTags"] = tags
+	}
 }
 
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
 	ci := ParseCompareInfo(ctx)
 	defer func() {
-		if ci != nil && ci.HeadGitRepo != nil {
-			ci.HeadGitRepo.Close()
+		if ci != nil {
+			ci.Close()
 		}
 	}()
 	if ctx.Written() {
@@ -448,42 +502,16 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	baseTags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
-		return
-	}
-	ctx.Data["Tags"] = baseTags
-
 	fileOnly := ctx.FormBool("file-only")
 	if fileOnly {
 		ctx.HTML(http.StatusOK, tplDiffBox)
 		return
 	}
 
-	headBranches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID:          ci.HeadRepo.ID,
-		ListOptions:     db.ListOptionsAll,
-		IsDeletedBranch: optional.Some(false),
-	})
-	if err != nil {
-		ctx.ServerError("GetBranches", err)
-		return
-	}
-	ctx.Data["HeadBranches"] = headBranches
-
-	// For compare repo branches
-	PrepareBranchList(ctx)
+	prepareCompareRepoBranchesTagsDropdowns(ctx, ci)
 	if ctx.Written() {
 		return
 	}
-
-	headTags, err := repo_model.GetTagNamesByRepoID(ctx, ci.HeadRepo.ID)
-	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
-		return
-	}
-	ctx.Data["HeadTags"] = headTags
 
 	if ctx.Data["PageIsComparePull"] == true {
 		pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadOriRef, ci.BaseOriRef, issues_model.PullRequestFlowGithub)

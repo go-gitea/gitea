@@ -61,7 +61,7 @@ func CompareDiff(ctx *context.APIContext) {
 
 	pathParam := ctx.PathParam("*")
 	baseRepo := ctx.Repo.Repository
-	ci, err := common.ParseComparePathParams(ctx, pathParam, baseRepo, ctx.Repo.GitRepo)
+	ci, err := common.ParseComparePathParams(ctx, pathParam, baseRepo, ctx.Repo.GitRepo, ctx.Doer)
 	if err != nil {
 		switch {
 		case user_model.IsErrUserNotExist(err):
