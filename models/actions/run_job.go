@@ -33,10 +33,16 @@ type ActionRunJob struct {
 	RunsOn            []string `xorm:"JSON TEXT"`
 	TaskID            int64    // the latest task of the job
 	Status            Status   `xorm:"index"`
-	Started           timeutil.TimeStamp
-	Stopped           timeutil.TimeStamp
-	Created           timeutil.TimeStamp `xorm:"created"`
-	Updated           timeutil.TimeStamp `xorm:"updated index"`
+
+	RawConcurrencyGroup  string // raw concurrency.group
+	RawConcurrencyCancel string // raw concurrency.cancel-in-progress
+	ConcurrencyGroup     string // evaluated concurrency.group
+	ConcurrencyCancel    bool   // evaluated concurrency.cancel-in-progress
+
+	Started timeutil.TimeStamp
+	Stopped timeutil.TimeStamp
+	Created timeutil.TimeStamp `xorm:"created"`
+	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
 func init() {

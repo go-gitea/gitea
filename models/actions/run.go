@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
-	"github.com/nektos/act/pkg/jobparser"
 	"xorm.io/builder"
 )
 
@@ -46,6 +45,8 @@ type ActionRun struct {
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status                       `xorm:"index"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
+	ConcurrencyGroup  string
+	ConcurrencyCancel bool
 	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
@@ -195,13 +196,20 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 // It's useful when a new run is triggered, and all previous runs needn't be continued anymore.
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
 	// Find all runs in the specified repository, reference, and workflow with non-final status
-	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
+	opts := &FindRunOptions{
 		RepoID:       repoID,
 		Ref:          ref,
 		WorkflowID:   workflowID,
 		TriggerEvent: event,
 		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked},
-	})
+	}
+	return CancelPreviousJobsWithOpts(ctx, opts)
+}
+
+// CancelPreviousJobs cancels all previous jobs with opts
+func CancelPreviousJobsWithOpts(ctx context.Context, opts *FindRunOptions) error {
+	// Find all runs by opts
+	runs, total, err := db.FindAndCount[ActionRun](ctx, opts)
 	if err != nil {
 		return err
 	}
@@ -221,38 +229,8 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 			return err
 		}
 
-		// Iterate over each job and attempt to cancel it.
-		for _, job := range jobs {
-			// Skip jobs that are already in a terminal state (completed, cancelled, etc.).
-			status := job.Status
-			if status.IsDone() {
-				continue
-			}
-
-			// If the job has no associated task (probably an error), set its status to 'Cancelled' and stop it.
-			if job.TaskID == 0 {
-				job.Status = StatusCancelled
-				job.Stopped = timeutil.TimeStampNow()
-
-				// Update the job's status and stopped time in the database.
-				n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
-				if err != nil {
-					return err
-				}
-
-				// If the update affected 0 rows, it means the job has changed in the meantime, so we need to try again.
-				if n == 0 {
-					return fmt.Errorf("job has changed, try again")
-				}
-
-				// Continue with the next job.
-				continue
-			}
-
-			// If the job has an associated task, try to stop the task, effectively cancelling the job.
-			if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
-				return err
-			}
+		if err := CancelJobs(ctx, jobs); err != nil {
+			return err
 		}
 	}
 
@@ -260,9 +238,46 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 	return nil
 }
 
+func CancelJobs(ctx context.Context, jobs []*ActionRunJob) error {
+	// Iterate over each job and attempt to cancel it.
+	for _, job := range jobs {
+		// Skip jobs that are already in a terminal state (completed, cancelled, etc.).
+		status := job.Status
+		if status.IsDone() {
+			continue
+		}
+
+		// If the job has no associated task (probably an error), set its status to 'Cancelled' and stop it.
+		if job.TaskID == 0 {
+			job.Status = StatusCancelled
+			job.Stopped = timeutil.TimeStampNow()
+
+			// Update the job's status and stopped time in the database.
+			n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
+			if err != nil {
+				return err
+			}
+
+			// If the update affected 0 rows, it means the job has changed in the meantime, so we need to try again.
+			if n == 0 {
+				return fmt.Errorf("job has changed, try again")
+			}
+
+			// Continue with the next job.
+			continue
+		}
+
+		// If the job has an associated task, try to stop the task, effectively cancelling the job.
+		if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
-func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
+func InsertRun(ctx context.Context, run *ActionRun, runJobs []*ActionRunJob) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -275,6 +290,32 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	}
 	run.Index = index
 	run.Title, _ = util.SplitStringAtByteN(run.Title, 255)
+
+	blockedByWorkflowConcurrency := false
+	if len(run.ConcurrencyGroup) > 0 {
+		if run.ConcurrencyCancel {
+			if err := CancelPreviousJobsWithOpts(ctx, &FindRunOptions{
+				RepoID:           run.RepoID,
+				ConcurrencyGroup: run.ConcurrencyGroup,
+				Status:           []Status{StatusRunning, StatusWaiting, StatusBlocked},
+			}); err != nil {
+				return err
+			}
+		} else {
+			waitingConcurrentRunsNum, err := db.Count[ActionRun](ctx, &FindRunOptions{
+				RepoID:           run.RepoID,
+				ConcurrencyGroup: run.ConcurrencyGroup,
+				Status:           []Status{StatusWaiting},
+			})
+			if err != nil {
+				return err
+			}
+			blockedByWorkflowConcurrency = waitingConcurrentRunsNum > 0
+		}
+	}
+	if blockedByWorkflowConcurrency {
+		run.Status = StatusBlocked
+	}
 
 	if err := db.Insert(ctx, run); err != nil {
 		return err
@@ -292,35 +333,27 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		return err
 	}
 
-	runJobs := make([]*ActionRunJob, 0, len(jobs))
 	var hasWaiting bool
-	for _, v := range jobs {
-		id, job := v.Job()
-		needs := job.Needs()
-		if err := v.SetJob(id, job.EraseNeeds()); err != nil {
-			return err
+	for _, job := range runJobs {
+		if job.Status != StatusBlocked {
+			if blockedByWorkflowConcurrency {
+				// the job should also be blocked when the run is blocked
+				job.Status = StatusBlocked
+			} else if len(job.ConcurrencyGroup) > 0 {
+				// check if the job should be blocked by job concurrency
+				shouldBlock, err := ShouldJobBeBlockedByConcurrentJobs(ctx, job)
+				if err != nil {
+					return err
+				}
+				if shouldBlock {
+					job.Status = StatusBlocked
+				}
+			}
 		}
-		payload, _ := v.Marshal()
-		status := StatusWaiting
-		if len(needs) > 0 || run.NeedApproval {
-			status = StatusBlocked
-		} else {
+
+		if job.Status == StatusWaiting {
 			hasWaiting = true
 		}
-		job.Name, _ = util.SplitStringAtByteN(job.Name, 255)
-		runJobs = append(runJobs, &ActionRunJob{
-			RunID:             run.ID,
-			RepoID:            run.RepoID,
-			OwnerID:           run.OwnerID,
-			CommitSHA:         run.CommitSHA,
-			IsForkPullRequest: run.IsForkPullRequest,
-			Name:              job.Name,
-			WorkflowPayload:   payload,
-			JobID:             id,
-			Needs:             needs,
-			RunsOn:            job.RunsOn(),
-			Status:            status,
-		})
 	}
 	if err := db.Insert(ctx, runJobs); err != nil {
 		return err
@@ -434,3 +467,34 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 }
 
 type ActionRunIndex db.ResourceIndex
+
+func CancelConcurrentJobs(ctx context.Context, actionRunJob *ActionRunJob) error {
+	// cancel previous jobs in the same concurrency group
+	previousJobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
+		RepoID:           actionRunJob.RepoID,
+		ConcurrencyGroup: actionRunJob.ConcurrencyGroup,
+		Statuses: []Status{
+			StatusRunning,
+			StatusWaiting,
+			StatusBlocked,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("find previous jobs: %w", err)
+	}
+
+	return CancelJobs(ctx, previousJobs)
+}
+
+func ShouldJobBeBlockedByConcurrentJobs(ctx context.Context, actionRunJob *ActionRunJob) (bool, error) {
+	waitingConcurrentJobsNum, err := db.Count[ActionRunJob](ctx, FindRunJobOptions{
+		RepoID:           actionRunJob.RepoID,
+		ConcurrencyGroup: actionRunJob.ConcurrencyGroup,
+		Statuses:         []Status{StatusWaiting},
+	})
+	if err != nil {
+		return false, fmt.Errorf("count waiting jobs: %w", err)
+	}
+
+	return waitingConcurrentJobsNum > 0, nil
+}

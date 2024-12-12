@@ -11,6 +11,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 
 	"github.com/nektos/act/pkg/jobparser"
@@ -37,25 +38,73 @@ func jobEmitterQueueHandler(items ...*jobUpdate) []*jobUpdate {
 	ctx := graceful.GetManager().ShutdownContext()
 	var ret []*jobUpdate
 	for _, update := range items {
-		if err := checkJobsOfRun(ctx, update.RunID); err != nil {
+		if err := checkJobsByRunID(ctx, update.RunID); err != nil {
 			ret = append(ret, update)
 		}
 	}
 	return ret
 }
 
-func checkJobsOfRun(ctx context.Context, runID int64) error {
-	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: runID})
+func checkJobsByRunID(ctx context.Context, runID int64) error {
+	run, exist, err := db.GetByID[actions_model.ActionRun](ctx, runID)
+	if err != nil {
+		return fmt.Errorf("get action run: %w", err)
+	}
+	if !exist {
+		return fmt.Errorf("action run %d does not exist", runID)
+	}
+
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// check jobs of the current run
+		if err := checkJobsOfRun(ctx, run); err != nil {
+			return err
+		}
+
+		// check jobs by the concurrency group of the run
+		if len(run.ConcurrencyGroup) == 0 {
+			return nil
+		}
+		concurrentActionRuns, err := db.Find[actions_model.ActionRun](ctx, &actions_model.FindRunOptions{
+			RepoID:           run.RepoID,
+			ConcurrencyGroup: run.ConcurrencyGroup,
+			Status: []actions_model.Status{
+				actions_model.StatusBlocked,
+			},
+			SortType: "oldest",
+		})
+		if err != nil {
+			return fmt.Errorf("find action run with concurrency group %s: %w", run.ConcurrencyGroup, err)
+		}
+		for _, cRun := range concurrentActionRuns {
+			if cRun.NeedApproval {
+				continue
+			}
+			if err := checkJobsOfRun(ctx, cRun); err != nil {
+				return err
+			}
+			break // only run one blocked action run with the same concurrency group
+		}
+		return nil
+	})
+}
+
+func checkJobsOfRun(ctx context.Context, run *actions_model.ActionRun) error {
+	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
 	if err != nil {
 		return err
 	}
+
+	vars, err := actions_model.GetVariablesOfRun(ctx, run)
+	if err != nil {
+		return fmt.Errorf("get run %d variables: %w", run.ID, err)
+	}
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		idToJobs := make(map[string][]*actions_model.ActionRunJob, len(jobs))
 		for _, job := range jobs {
-			idToJobs[job.JobID] = append(idToJobs[job.JobID], job)
+			job.Run = run
 		}
 
-		updates := newJobStatusResolver(jobs).Resolve()
+		updates := newJobStatusResolver(jobs, vars).Resolve(ctx)
 		for _, job := range jobs {
 			if status, ok := updates[job.ID]; ok {
 				job.Status = status
@@ -78,9 +127,10 @@ type jobStatusResolver struct {
 	statuses map[int64]actions_model.Status
 	needs    map[int64][]int64
 	jobMap   map[int64]*actions_model.ActionRunJob
+	vars     map[string]string
 }
 
-func newJobStatusResolver(jobs actions_model.ActionJobList) *jobStatusResolver {
+func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]string) *jobStatusResolver {
 	idToJobs := make(map[string][]*actions_model.ActionRunJob, len(jobs))
 	jobMap := make(map[int64]*actions_model.ActionRunJob)
 	for _, job := range jobs {
@@ -102,13 +152,14 @@ func newJobStatusResolver(jobs actions_model.ActionJobList) *jobStatusResolver {
 		statuses: statuses,
 		needs:    needs,
 		jobMap:   jobMap,
+		vars:     vars,
 	}
 }
 
-func (r *jobStatusResolver) Resolve() map[int64]actions_model.Status {
+func (r *jobStatusResolver) Resolve(ctx context.Context) map[int64]actions_model.Status {
 	ret := map[int64]actions_model.Status{}
 	for i := 0; i < len(r.statuses); i++ {
-		updated := r.resolve()
+		updated := r.resolve(ctx)
 		if len(updated) == 0 {
 			return ret
 		}
@@ -120,7 +171,7 @@ func (r *jobStatusResolver) Resolve() map[int64]actions_model.Status {
 	return ret
 }
 
-func (r *jobStatusResolver) resolve() map[int64]actions_model.Status {
+func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model.Status {
 	ret := map[int64]actions_model.Status{}
 	for id, status := range r.statuses {
 		if status != actions_model.StatusBlocked {
@@ -137,6 +188,17 @@ func (r *jobStatusResolver) resolve() map[int64]actions_model.Status {
 			}
 		}
 		if allDone {
+			// check concurrency
+			blockedByJobConcurrency, err := checkJobConcurrency(ctx, r.jobMap[id], r.vars)
+			if err != nil {
+				log.Error("Check run %d job %d concurrency: %v. This job will stay blocked.")
+				continue
+			}
+
+			if blockedByJobConcurrency {
+				continue
+			}
+
 			if allSucceed {
 				ret[id] = actions_model.StatusWaiting
 			} else {
@@ -159,4 +221,57 @@ func (r *jobStatusResolver) resolve() map[int64]actions_model.Status {
 		}
 	}
 	return ret
+}
+
+func checkJobConcurrency(ctx context.Context, actionRunJob *actions_model.ActionRunJob, vars map[string]string) (bool, error) {
+	if len(actionRunJob.RawConcurrencyGroup) == 0 {
+		return false, nil
+	}
+
+	if len(actionRunJob.ConcurrencyGroup) == 0 {
+		// empty concurrency group means the raw concurrency has not been evaluated
+		task, err := actions_model.GetTaskByID(ctx, actionRunJob.TaskID)
+		if err != nil {
+			return false, fmt.Errorf("get task by id: %w", err)
+		}
+		taskNeeds, err := FindTaskNeeds(ctx, task)
+		if err != nil {
+			return false, fmt.Errorf("find task needs: %w", err)
+		}
+		jobResults := make(map[string]*jobparser.JobResult, len(taskNeeds))
+		for jobID, taskNeed := range taskNeeds {
+			jobResult := &jobparser.JobResult{
+				Result:  taskNeed.Result.String(),
+				Outputs: taskNeed.Outputs,
+			}
+			jobResults[jobID] = jobResult
+		}
+
+		actionRunJob.ConcurrencyGroup, actionRunJob.ConcurrencyCancel, err = evaluateJobConcurrency(ctx, actionRunJob, vars, jobResults)
+		if err != nil {
+			return false, fmt.Errorf("evaluate job concurrency: %w", err)
+		}
+
+		if _, err := actions_model.UpdateRunJob(ctx, &actions_model.ActionRunJob{
+			ID:                actionRunJob.ID,
+			ConcurrencyGroup:  actionRunJob.ConcurrencyGroup,
+			ConcurrencyCancel: actionRunJob.ConcurrencyCancel,
+		}, nil); err != nil {
+			return false, fmt.Errorf("update run job: %w", err)
+		}
+	}
+
+	if len(actionRunJob.ConcurrencyGroup) == 0 {
+		// the job should not be blocked by concurrency if its concurrency group is empty
+		return false, nil
+	}
+
+	if actionRunJob.ConcurrencyCancel {
+		if err := actions_model.CancelConcurrentJobs(ctx, actionRunJob); err != nil {
+			return false, fmt.Errorf("cancel concurrent jobs: %w", err)
+		}
+		return false, nil
+	}
+
+	return actions_model.ShouldJobBeBlockedByConcurrentJobs(ctx, actionRunJob)
 }

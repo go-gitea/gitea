@@ -369,6 +369,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(309, "Improve Notification table indices", v1_23.ImproveNotificationTableIndices),
 		newMigration(310, "Add Priority to ProtectedBranch", v1_23.AddPriorityToProtectedBranch),
 		newMigration(311, "Add TimeEstimate to Issue table", v1_23.AddTimeEstimateColumnToIssueTable),
+		// TODO: AddActionsConcurrency
 	}
 	return preparedMigrations
 }

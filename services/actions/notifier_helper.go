@@ -337,22 +337,13 @@ func handleWorkflows(
 			log.Error("jobparser.Parse: %v", err)
 			continue
 		}
-
-		// cancel running jobs if the event is push or pull_request_sync
-		if run.Event == webhook_module.HookEventPush ||
-			run.Event == webhook_module.HookEventPullRequestSync {
-			if err := actions_model.CancelPreviousJobs(
-				ctx,
-				run.RepoID,
-				run.Ref,
-				run.WorkflowID,
-				run.Event,
-			); err != nil {
-				log.Error("CancelPreviousJobs: %v", err)
-			}
+		runJobs, err := PrepareConcurrencyForRunAndJobs(ctx, dwf.Content, run, jobs)
+		if err != nil {
+			log.Error("PrepareConcurrencyForRunAndJobs: %v", err)
+			continue
 		}
 
-		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
+		if err := actions_model.InsertRun(ctx, run, runJobs); err != nil {
 			log.Error("InsertRun: %v", err)
 			continue
 		}
