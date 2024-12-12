@@ -99,7 +99,8 @@ func optionsCorsHandler() func(next http.Handler) http.Handler {
 func buildAuthGroup() *auth_service.Group {
 	group := auth_service.NewGroup()
 	group.Add(&auth_service.OAuth2{}) // FIXME: this should be removed and only applied in download and oauth related routers
-	group.Add(&auth_service.Basic{})  // FIXME: this should be removed and only applied in download and git/lfs routers
+	group.Add(&auth_service.AccessToken{})
+	group.Add(&auth_service.Basic{}) // FIXME: this should be removed and only applied in download and git/lfs routers
 
 	if setting.Service.EnableReverseProxyAuth {
 		group.Add(&auth_service.ReverseProxy{}) // reverseproxy should before Session, otherwise the header will be ignored if user has login

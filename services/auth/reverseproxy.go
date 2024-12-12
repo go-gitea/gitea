@@ -100,6 +100,10 @@ func (r *ReverseProxy) getUserFromAuthEmail(req *http.Request) *user_model.User 
 	return user
 }
 
+func (r *ReverseProxy) Match(req *http.Request) bool {
+	return true
+}
+
 // Verify attempts to load a user object based on headers sent by the reverse proxy.
 // First it will attempt to load it based on the username (see docs for getUserFromAuthUser),
 // and failing that it will attempt to load it based on the email (see docs for getUserFromAuthEmail).

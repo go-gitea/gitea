@@ -116,6 +116,7 @@ func CommonRoutes() *web.Router {
 
 	verifyAuth(r, []auth.Method{
 		&auth.OAuth2{},
+		&auth.AccessToken{},
 		&auth.Basic{},
 		&nuget.Auth{},
 		&conan.Auth{},
@@ -722,6 +723,7 @@ func ContainerRoutes() *web.Router {
 	r.Use(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{
+		&auth.AccessToken{},
 		&auth.Basic{},
 		&container.Auth{},
 	})

@@ -41,10 +41,22 @@ func (b *Group) Name() string {
 	return strings.Join(names, ",")
 }
 
+func (b *Group) Match(req *http.Request) bool {
+	return true
+}
+
 func (b *Group) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
-	// Try to sign in with each of the enabled plugins
-	var retErr error
+	// find all methods that match the request
+	matchedMethods := make([]Method, 0, len(b.methods))
 	for _, m := range b.methods {
+		if m.Match(req) {
+			matchedMethods = append(matchedMethods, m)
+		}
+	}
+
+	var retErr error
+	// Try to sign in with each of the matched plugins
+	for _, m := range matchedMethods {
 		user, err := m.Verify(req, w, store, sess)
 		if err != nil {
 			if retErr == nil {
