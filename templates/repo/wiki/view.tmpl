@@ -44,13 +44,13 @@
 				</div>
 				<div class="repo-button-row">
 					{{if .EscapeStatus.Escaped}}
-						<a class="ui small button unescape-button tw-m-0 tw-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</a>
-						<a class="ui small button escape-button tw-m-0">{{ctx.Locale.Tr "repo.escape_control_characters"}}</a>
+						<a class="ui small button unescape-button tw-hidden" data-unicode-content-selector=".wiki-content-parts">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</a>
+						<a class="ui small button escape-button" data-unicode-content-selector=".wiki-content-parts">{{ctx.Locale.Tr "repo.escape_control_characters"}}</a>
 					{{end}}
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 						<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_edit">{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}</a>
 						<a class="ui small primary button" href="{{.RepoLink}}/wiki?action=_new">{{ctx.Locale.Tr "repo.wiki.new_page_button"}}</a>
-						<a class="ui small red button tw-m-0 delete-button" href="" data-url="{{.RepoLink}}/wiki/{{.PageURL}}?action=_delete" data-id="{{.PageURL}}">{{ctx.Locale.Tr "repo.wiki.delete_page_button"}}</a>
+						<a class="ui small red button delete-button" href="" data-url="{{.RepoLink}}/wiki/{{.PageURL}}?action=_delete" data-id="{{.PageURL}}">{{ctx.Locale.Tr "repo.wiki.delete_page_button"}}</a>
 					{{end}}
 				</div>
 			</div>
