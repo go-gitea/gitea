@@ -275,7 +275,8 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				}
 			} else {
 				notify_service.DeleteRef(ctx, pusher, repo, opts.RefFullName)
-				if err = pull_service.CloseBranchPulls(ctx, pusher, repo.ID, branch); err != nil {
+
+				if err := pull_service.AdjustPullsCausedByBranchDeleted(ctx, pusher, repo, branch); err != nil {
 					// close all related pulls
 					log.Error("close related pull request failed: %v", err)
 				}
