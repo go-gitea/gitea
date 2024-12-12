@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,9 +34,21 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 )
 
-type contextKey string
+// The ssh auth overall works like this:
+// NewServerConn:
+//	serverHandshake+serverAuthenticate:
+//		PublicKeyCallback:
+//			PublicKeyHandler (our code):
+//				clear(ctx.Permissions) and set ctx.Permissions.giteaKeyID = keyID
+//		pubKey.Verify
+//		return ctx.Permissions // only reaches here, the pub key is really authenticated
+//	set conn.Permissions from serverAuthenticate
+//  sessionHandler(conn)
+//
+// Then sessionHandler should only use the "verified keyID" from the conn.
+// Otherwise, if a users provides 2 keys A and B, if A succeeds to authenticate, sessionHandler will see B's keyID
 
-const giteaKeyID = contextKey("gitea-key-id")
+const giteaPermissionExtensionKeyID = "gitea-perm-ext-key-id"
 
 func getExitStatusFromError(err error) int {
 	if err == nil {
@@ -61,8 +74,26 @@ func getExitStatusFromError(err error) int {
 	return waitStatus.ExitStatus()
 }
 
+type sessionPartial struct {
+	sync.Mutex
+	gossh.Channel
+	conn *gossh.ServerConn
+}
+
+func ptr[T any](intf any) *T {
+	// https://pkg.go.dev/unsafe#Pointer
+	// (1) Conversion of a *T1 to Pointer to *T2.
+	// Provided that T2 is no larger than T1 and that the two share an equivalent memory layout,
+	// this conversion allows reinterpreting data of one type as data of another type.
+	v := reflect.ValueOf(intf)
+	p := v.UnsafePointer()
+	return (*T)(p)
+}
+
 func sessionHandler(session ssh.Session) {
-	keyID := fmt.Sprintf("%d", session.Context().Value(giteaKeyID).(int64))
+	// it can't use session.Permissions() because it only use the ctx one, so we must use the original ssh conn
+	sshConn := ptr[sessionPartial](session)
+	keyID := sshConn.conn.Permissions.Extensions[giteaPermissionExtensionKeyID]
 
 	command := session.RawCommand()
 
@@ -164,6 +195,12 @@ func sessionHandler(session ssh.Session) {
 }
 
 func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
+	setPermExt := func(keyID int64) {
+		ctx.Permissions().Permissions.Extensions = map[string]string{
+			giteaPermissionExtensionKeyID: fmt.Sprint(keyID),
+		}
+	}
+
 	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
 		log.Debug("Handle Public Key: Fingerprint: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
 	}
@@ -238,8 +275,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 			if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
 				log.Debug("Successfully authenticated: %s Certificate Fingerprint: %s Principal: %s", ctx.RemoteAddr(), gossh.FingerprintSHA256(key), principal)
 			}
-			ctx.SetValue(giteaKeyID, pkey.ID)
-
+			setPermExt(pkey.ID)
 			return true
 		}
 
@@ -266,8 +302,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
 		log.Debug("Successfully authenticated: %s Public Key Fingerprint: %s", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
 	}
-	ctx.SetValue(giteaKeyID, pkey.ID)
-
+	setPermExt(pkey.ID)
 	return true
 }
 
