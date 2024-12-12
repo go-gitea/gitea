@@ -8,6 +8,7 @@ export async function initRepoContributors() {
   try {
     const View = createApp(RepoContributors, {
       repoLink: el.getAttribute('data-repo-link'),
+      repoDefaultBranchName: el.getAttribute('data-repo-default-branch-name'),
       locale: {
         filterLabel: el.getAttribute('data-locale-filter-label'),
         contributionType: {

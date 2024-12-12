@@ -1,5 +1,6 @@
 <script lang="ts">
 import {SvgIcon} from '../svg.ts';
+import dayjs from 'dayjs';
 import {
   Chart,
   Title,
@@ -26,6 +27,7 @@ import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import type {Entries} from 'type-fest';
+import {pathEscapeSegments} from '../utils/url.ts';
 
 const customEventListener: Plugin = {
   id: 'customEventListener',
@@ -65,6 +67,10 @@ export default {
       type: String,
       required: true,
     },
+    repoDefaultBranchName: {
+      type: String,
+      required: true,
+    },
   },
   data: () => ({
     isLoading: false,
@@ -98,6 +104,15 @@ export default {
         .filter((contributor) => contributor[criteria] !== 0)
         .sort((a, b) => a[criteria] > b[criteria] ? -1 : a[criteria] === b[criteria] ? 0 : 1)
         .slice(0, 100);
+    },
+
+    getContributorSearchQuery(contributorEmail: string) {
+      const min = dayjs(this.xAxisMin).format('YYYY-MM-DD');
+      const max = dayjs(this.xAxisMax).format('YYYY-MM-DD');
+      const params = new URLSearchParams({
+        'q': `after:${min}, before:${max}, author:${contributorEmail}`,
+      });
+      return `${this.repoLink}/commits/branch/${pathEscapeSegments(this.repoDefaultBranchName)}/search?${params.toString()}`;
     },
 
     async fetchGraphData() {
@@ -167,7 +182,7 @@ export default {
         // for details.
         user.max_contribution_type += 1;
 
-        filteredData[key] = {...user, weeks: filteredWeeks};
+        filteredData[key] = {...user, weeks: filteredWeeks, email: key};
       }
 
       return filteredData;
@@ -215,7 +230,7 @@ export default {
       };
     },
 
-    updateOtherCharts({chart}: {chart: Chart}, reset?: boolean = false) {
+    updateOtherCharts({chart}: {chart: Chart}, reset: boolean = false) {
       const minVal = chart.options.scales.x.min;
       const maxVal = chart.options.scales.x.max;
       if (reset) {
@@ -381,7 +396,7 @@ export default {
         <div class="ui top attached header tw-flex tw-flex-1">
           <b class="ui right">#{{ index + 1 }}</b>
           <a :href="contributor.home_link">
-            <img class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link">
+            <img class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link" alt="">
           </a>
           <div class="tw-ml-2">
             <a v-if="contributor.home_link !== ''" :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
@@ -389,7 +404,11 @@ export default {
               {{ contributor.name }}
             </h4>
             <p class="tw-text-12 tw-flex tw-gap-1">
-              <strong v-if="contributor.total_commits">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
+              <strong v-if="contributor.total_commits">
+                <a class="silenced" :href="getContributorSearchQuery(contributor.email)">
+                  {{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}
+                </a>
+              </strong>
               <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
               <strong v-if="contributor.total_deletions" class="text red">
                 {{ contributor.total_deletions.toLocaleString() }}--</strong>
