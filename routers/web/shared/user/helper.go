@@ -8,7 +8,9 @@ import (
 	"slices"
 	"strconv"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 )
 
 func MakeSelfOnTop(doer *user.User, users []*user.User) []*user.User {
@@ -31,17 +33,20 @@ func MakeSelfOnTop(doer *user.User, users []*user.User) []*user.User {
 // Before, the "issue filter" passes user ID to query the list, but in many cases, it's impossible to pre-fetch the full user list.
 // So it's better to make it work like GitHub: users could input username directly.
 // Since it only converts the username to ID directly and is only used internally (to search issues), so no permission check is needed.
-// Old usage: poster=123, new usage: poster=the-username (at the moment, non-existing username is treated as poster=0, not ideal but acceptable)
-func GetFilterUserIDByName(ctx context.Context, name string) int64 {
+// Return values:
+// * nil: no filter
+// * some(id): match the id, the id could be -1 to match the issues without assignee
+// * some(NonExistingID): match no issue (due to the user doesn't exist)
+func GetFilterUserIDByName(ctx context.Context, name string) optional.Option[int64] {
 	if name == "" {
-		return 0
+		return optional.None[int64]()
 	}
 	u, err := user.GetUserByName(ctx, name)
 	if err != nil {
 		if id, err := strconv.ParseInt(name, 10, 64); err == nil {
-			return id
+			return optional.Some(id)
 		}
-		return 0
+		return optional.Some(db.NonExistingID)
 	}
-	return u.ID
+	return optional.Some(u.ID)
 }
