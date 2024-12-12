@@ -81,7 +81,6 @@ export default {
     xAxisEnd: null,
     xAxisMin: null,
     xAxisMax: null,
-    searchQuery: '',
   }),
   mounted() {
     this.fetchGraphData();
@@ -98,14 +97,20 @@ export default {
   methods: {
     sortContributors() {
       const contributors = this.filterContributorWeeksByDateRange();
-      const min = dayjs(this.xAxisMin).format('YYYY-MM-DD');
-      const max = dayjs(this.xAxisMax).format('YYYY-MM-DD');
-      this.searchQuery = `${this.repoLink}/commits/branch/${this.repoBranch}/search?q=after:${min}, before:${max}, author:`;
       const criteria = `total_${this.type}`;
       this.sortedContributors = Object.values(contributors)
         .filter((contributor) => contributor[criteria] !== 0)
         .sort((a, b) => a[criteria] > b[criteria] ? -1 : a[criteria] === b[criteria] ? 0 : 1)
         .slice(0, 100);
+    },
+
+    getContributorSearchQuery(contributorEmail: string) {
+      const min = dayjs(this.xAxisMin).format('YYYY-MM-DD');
+      const max = dayjs(this.xAxisMax).format('YYYY-MM-DD');
+      const params = new URLSearchParams({
+        'q': `after:${min}, before:${max}, author:${contributorEmail}`,
+      });
+      return `${this.repoLink}/commits/branch/${this.repoBranch}/search?${params.toString()}`;
     },
 
     async fetchGraphData() {
@@ -398,7 +403,7 @@ export default {
             </h4>
             <p class="tw-text-12 tw-flex tw-gap-1">
               <strong v-if="contributor.total_commits">
-                <a class="silenced" :href="searchQuery + contributor.email">
+                <a class="silenced" :href="getContributorSearchQuery(contributor.email)">
                   {{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}
                 </a>
               </strong>
