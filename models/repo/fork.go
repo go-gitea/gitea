@@ -28,7 +28,7 @@ func GetForkedRepo(ctx context.Context, ownerID, repoID int64) (*Repository, err
 		Get(repo)
 	if err != nil {
 		return nil, err
-	} else if has {
+	} else if !has {
 		return nil, ErrRepoNotExist{ID: repoID}
 	}
 	return repo, nil
