@@ -1,8 +1,8 @@
 export function initRepositorySearch() {
-  const repositorySearchForm = document.querySelector('#repo-search-form');
+  const repositorySearchForm = document.querySelector<HTMLFormElement>('#repo-search-form');
   if (!repositorySearchForm) return;
 
-  repositorySearchForm.addEventListener('change', (e) => {
+  repositorySearchForm.addEventListener('change', (e: Event & {target: HTMLFormElement}) => {
     e.preventDefault();
 
     const formData = new FormData(repositorySearchForm);
