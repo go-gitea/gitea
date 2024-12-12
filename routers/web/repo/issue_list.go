@@ -418,14 +418,11 @@ func UpdateIssueStatus(ctx *context.Context) {
 		return
 	}
 
-	var isClosed bool
-	switch action := ctx.FormString("action"); action {
-	case "open":
-		isClosed = false
-	case "close":
-		isClosed = true
-	default:
+	action := ctx.FormString("action")
+	if action != "open" && action != "close" {
 		log.Warn("Unrecognized action: %s", action)
+		ctx.JSONOK()
+		return
 	}
 
 	if _, err := issues.LoadRepositories(ctx); err != nil {
@@ -441,15 +438,20 @@ func UpdateIssueStatus(ctx *context.Context) {
 		if issue.IsPull && issue.PullRequest.HasMerged {
 			continue
 		}
-		if issue.IsClosed != isClosed {
-			if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, "", isClosed); err != nil {
+		if action == "close" && !issue.IsClosed {
+			if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
 					ctx.JSON(http.StatusPreconditionFailed, map[string]any{
 						"error": ctx.Tr("repo.issues.dependency.issue_batch_close_blocked", issue.Index),
 					})
 					return
 				}
-				ctx.ServerError("ChangeStatus", err)
+				ctx.ServerError("CloseIssue", err)
+				return
+			}
+		} else if action == "open" && issue.IsClosed {
+			if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
+				ctx.ServerError("ReopenIssue", err)
 				return
 			}
 		}
