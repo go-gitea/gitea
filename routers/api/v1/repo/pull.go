@@ -400,12 +400,11 @@ func CreatePullRequest(ctx *context.APIContext) {
 	)
 
 	// Get repo/branch information
-	//headRepo, headGitRepo, compareInfo, baseBranch, headBranch := parseCompareInfo(ctx, form)
-	compareResult := parseCompareInfo(ctx, form)
+	compareResult, closer := parseCompareInfo(ctx, form)
 	if ctx.Written() {
 		return
 	}
-	defer compareResult.headGitRepo.Close()
+	defer closer()
 
 	if !compareResult.baseRef.IsBranch() || !compareResult.headRef.IsBranch() {
 		ctx.Error(http.StatusUnprocessableEntity, "BaseHeadInvalidRefType", "Invalid PullRequest: base and head must be branches")
@@ -1096,7 +1095,8 @@ type parseCompareInfoResult struct {
 	headRef     git.RefName
 }
 
-func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) *parseCompareInfoResult {
+// parseCompareInfo returns non-nil if it succeeds, it always writes to the context and returns nil if it fails
+func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) (result *parseCompareInfoResult, closer func() error) {
 	var err error
 	// Get compared branches information
 	// format: <base branch>...[<head repo>:]<head branch>
@@ -1123,11 +1123,11 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 			}
-			return nil
+			return nil, nil
 		}
 	} else {
 		ctx.NotFound()
-		return nil
+		return nil, nil
 	}
 
 	isSameRepo := ctx.Repo.Owner.ID == headUser.ID
@@ -1138,14 +1138,14 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		err = baseRepo.GetBaseRepo(ctx)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetBaseRepo", err)
-			return nil
+			return nil, nil
 		}
 
 		// Check if baseRepo's base repository is the same as headUser's repository.
 		if baseRepo.BaseRepo == nil || baseRepo.BaseRepo.OwnerID != headUser.ID {
 			log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
 			ctx.NotFound("GetBaseRepo")
-			return nil
+			return nil, nil
 		}
 		// Assign headRepo so it can be used below.
 		headRepo = baseRepo.BaseRepo
@@ -1154,44 +1154,45 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	var headGitRepo *git.Repository
 	if isSameRepo {
 		headRepo = ctx.Repo.Repository
-		// FIXME: it is not right, the caller will close this "ctx.Repo.GitRepo",
-		// but there could still be other operations on it later
 		headGitRepo = ctx.Repo.GitRepo
+		closer = func() error { return nil } // no need to close the head repo because it shares the base repo
 	} else {
 		headGitRepo, err = gitrepo.OpenRepository(ctx, headRepo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
-			return nil
+			return nil, nil
 		}
+		closer = headGitRepo.Close
 	}
+	defer func() {
+		if result == nil && !isSameRepo {
+			_ = headGitRepo.Close()
+		}
+	}()
 
 	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
 	permBase, err := access_model.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
 	if err != nil {
-		headGitRepo.Close()
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
-		return nil
+		return nil, nil
 	}
 
 	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(unit.TypeCode) {
 		log.Trace("Permission Denied: User %-v cannot create/read pull requests or cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v", ctx.Doer, baseRepo, permBase)
-		headGitRepo.Close()
 		ctx.NotFound("Can't read pulls or can't read UnitTypeCode")
-		return nil
+		return nil, nil
 	}
 
 	// user should have permission to read headrepo's codes
 	permHead, err := access_model.GetUserRepoPermission(ctx, headRepo, ctx.Doer)
 	if err != nil {
-		headGitRepo.Close()
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
-		return nil
+		return nil, nil
 	}
 	if !permHead.CanRead(unit.TypeCode) {
 		log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v", ctx.Doer, headRepo, permHead)
-		headGitRepo.Close()
 		ctx.NotFound("Can't read headRepo UnitTypeCode")
-		return nil
+		return nil, nil
 	}
 
 	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefToGuess)
@@ -1203,19 +1204,18 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	headRefValid := headRef.IsBranch() || headRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(headRepo.ObjectFormatName), headRef.ShortName())
 	// Check if base&head ref are valid.
 	if !baseRefValid || !headRefValid {
-		headGitRepo.Close()
 		ctx.NotFound()
-		return nil
+		return nil, nil
 	}
 
 	compareInfo, err := headGitRepo.GetCompareInfo(repo_model.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseRef.ShortName(), headRef.ShortName(), false, false)
 	if err != nil {
-		headGitRepo.Close()
 		ctx.Error(http.StatusInternalServerError, "GetCompareInfo", err)
-		return nil
+		return nil, nil
 	}
 
-	return &parseCompareInfoResult{headRepo: headRepo, headGitRepo: headGitRepo, compareInfo: compareInfo, baseRef: baseRef, headRef: headRef}
+	result = &parseCompareInfoResult{headRepo: headRepo, headGitRepo: headGitRepo, compareInfo: compareInfo, baseRef: baseRef, headRef: headRef}
+	return result, closer
 }
 
 // UpdatePullRequest merge PR's baseBranch into headBranch

@@ -82,7 +82,10 @@ func (repo *Repository) UnstableGuessRefByShortName(shortName string) RefName {
 	}
 	commit, err := repo.GetCommit(shortName)
 	if err == nil {
-		return RefName(commit.ID.String())
+		commitIDString := commit.ID.String()
+		if strings.HasPrefix(commitIDString, shortName) {
+			return RefName(commitIDString)
+		}
 	}
 	return ""
 }

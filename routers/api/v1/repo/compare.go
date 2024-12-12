@@ -64,11 +64,11 @@ func CompareDiff(ctx *context.APIContext) {
 		}
 	}
 
-	compareResult := parseCompareInfo(ctx, api.CreatePullRequestOption{Base: infos[0], Head: infos[1]})
+	compareResult, closer := parseCompareInfo(ctx, api.CreatePullRequestOption{Base: infos[0], Head: infos[1]})
 	if ctx.Written() {
 		return
 	}
-	defer compareResult.headGitRepo.Close()
+	defer closer()
 
 	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
 	files := ctx.FormString("files") == "" || ctx.FormBool("files")
