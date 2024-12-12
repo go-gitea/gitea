@@ -66,6 +66,7 @@ func TestGetDiffPreview(t *testing.T) {
 									RightIdx:      1,
 									LeftHunkSize:  3,
 									RightHunkSize: 4,
+									HasComments:   false,
 								},
 							},
 							{
