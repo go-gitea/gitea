@@ -6,7 +6,6 @@ package user
 import (
 	"context"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -194,7 +193,7 @@ func unwatchRepos(ctx context.Context, watcher, repoOwner *user_model.User) erro
 }
 
 func cancelRepositoryTransfers(ctx context.Context, sender, recipient *user_model.User) error {
-	transfers, err := models.GetPendingRepositoryTransfers(ctx, &models.PendingRepositoryTransferOptions{
+	transfers, err := repo_model.GetPendingRepositoryTransfers(ctx, &repo_model.PendingRepositoryTransferOptions{
 		SenderID:    sender.ID,
 		RecipientID: recipient.ID,
 	})
