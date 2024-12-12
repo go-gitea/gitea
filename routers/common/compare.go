@@ -231,7 +231,7 @@ func getRootRepo(ctx context.Context, repo *repo_model.Repository) (*repo_model.
 // format: <base branch>...[<head repo>:]<head branch>
 // base<-head: master...head:feature
 // same repo: master...feature
-func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *repo_model.Repository, baseGitRepo *git.Repository, doer *user_model.User) (*CompareInfo, error) {
+func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *repo_model.Repository, baseGitRepo *git.Repository) (*CompareInfo, error) {
 	ci := &CompareInfo{}
 	var err error
 

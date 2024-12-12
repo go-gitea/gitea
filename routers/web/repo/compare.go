@@ -194,7 +194,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	pathParam := ctx.PathParam("*")
 	baseRepo := ctx.Repo.Repository
 
-	ci, err := common.ParseComparePathParams(ctx, pathParam, baseRepo, ctx.Repo.GitRepo, ctx.Doer)
+	ci, err := common.ParseComparePathParams(ctx, pathParam, baseRepo, ctx.Repo.GitRepo)
 	if err != nil {
 		switch {
 		case user_model.IsErrUserNotExist(err):
