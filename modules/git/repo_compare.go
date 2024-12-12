@@ -233,63 +233,72 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 	return numFiles, totalAdditions, totalDeletions, err
 }
 
-func parseCompareArgs(compareArgs string) (args []string) {
-	parts := strings.Split(compareArgs, "...")
-	if len(parts) == 2 {
-		return []string{compareArgs}
+// GetDiffOrPatch generates either diff or formatted patch data between given revisions
+func (repo *Repository) GetDiffOrPatch(base, head string, w io.Writer, patch, binary bool) error {
+	if patch {
+		return repo.GetPatch(base, head, w)
 	}
-	parts = strings.Split(compareArgs, "..")
-	if len(parts) == 2 {
-		return parts
+	if binary {
+		return repo.GetDiffBinary(base, head, w)
 	}
-	parts = strings.Fields(compareArgs)
-	if len(parts) == 2 {
-		return parts
-	}
-
-	return nil
+	return repo.GetDiff(base, head, w)
 }
 
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
-func (repo *Repository) GetDiff(compareArgs string, w io.Writer) error {
-	args := parseCompareArgs(compareArgs)
-	if len(args) == 0 {
-		return fmt.Errorf("invalid compareArgs: %s", compareArgs)
-	}
+func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
-	return NewCommand(repo.Ctx, "diff", "-p").AddDynamicArguments(args...).
+	err := NewCommand(repo.Ctx, "diff", "-p").AddDynamicArguments(base + "..." + head).
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
 			Stderr: stderr,
 		})
+	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
+		return NewCommand(repo.Ctx, "diff", "-p").AddDynamicArguments(base, head).
+			Run(&RunOpts{
+				Dir:    repo.Path,
+				Stdout: w,
+			})
+	}
+	return err
 }
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
-func (repo *Repository) GetDiffBinary(compareArgs string, w io.Writer) error {
-	args := parseCompareArgs(compareArgs)
-	if len(args) == 0 {
-		return fmt.Errorf("invalid compareArgs: %s", compareArgs)
-	}
-	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram").AddDynamicArguments(args...).Run(&RunOpts{
-		Dir:    repo.Path,
-		Stdout: w,
-	})
-}
-
-// GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
-func (repo *Repository) GetPatch(compareArgs string, w io.Writer) error {
-	args := parseCompareArgs(compareArgs)
-	if len(args) == 0 {
-		return fmt.Errorf("invalid compareArgs: %s", compareArgs)
-	}
+func (repo *Repository) GetDiffBinary(base, head string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
-	return NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddDynamicArguments(args...).
+	err := NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram").AddDynamicArguments(base + "..." + head).
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
 			Stderr: stderr,
 		})
+	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
+		return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram").AddDynamicArguments(base, head).
+			Run(&RunOpts{
+				Dir:    repo.Path,
+				Stdout: w,
+			})
+	}
+	return err
+}
+
+// GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
+func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
+	stderr := new(bytes.Buffer)
+	err := NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddDynamicArguments(base + "..." + head).
+		Run(&RunOpts{
+			Dir:    repo.Path,
+			Stdout: w,
+			Stderr: stderr,
+		})
+	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
+		return NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddDynamicArguments(base, head).
+			Run(&RunOpts{
+				Dir:    repo.Path,
+				Stdout: w,
+			})
+	}
+	return err
 }
 
 // GetFilesChangedBetween returns a list of all files that have been changed between the given commits
@@ -318,6 +327,21 @@ func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, err
 	}
 
 	return split, err
+}
+
+// GetDiffFromMergeBase generates and return patch data from merge base to head
+func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) error {
+	stderr := new(bytes.Buffer)
+	err := NewCommand(repo.Ctx, "diff", "-p", "--binary").AddDynamicArguments(base + "..." + head).
+		Run(&RunOpts{
+			Dir:    repo.Path,
+			Stdout: w,
+			Stderr: stderr,
+		})
+	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
+		return repo.GetDiffBinary(base, head, w)
+	}
+	return err
 }
 
 // ReadPatchCommit will check if a diff patch exists and return stats
