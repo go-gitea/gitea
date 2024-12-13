@@ -47,7 +47,8 @@ import (
 //  sessionHandler(conn)
 //
 // Then sessionHandler should only use the "verified keyID" from the original ssh conn, but not the ctx one.
-// Otherwise, if a user provides 2 keys A and B, if A succeeds to authenticate, sessionHandler will see B's keyID
+// Otherwise, if a user provides 2 keys A (a correct one) and B (public key matches but no private key),
+// then only A succeeds to authenticate, sessionHandler will see B's keyID
 
 const giteaPermissionExtensionKeyID = "gitea-perm-ext-key-id"
 
@@ -97,7 +98,7 @@ func ptr[T any](intf any) *T {
 }
 
 func sessionHandler(session ssh.Session) {
-	// it can't use session.Permissions() because it only use the value from ctx, which might not be the authenticated one.
+	// here can't use session.Permissions() because it only uses the value from ctx, which might not be the authenticated one.
 	// so we must use the original ssh conn, which always contains the correct (verified) keyID.
 	sshConn := ptr[sessionPartial](session)
 	keyID := sshConn.conn.Permissions.Extensions[giteaPermissionExtensionKeyID]
