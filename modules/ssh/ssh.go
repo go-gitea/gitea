@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"os"
 	"os/exec"
@@ -39,7 +40,7 @@ import (
 //	serverHandshake+serverAuthenticate:
 //		PublicKeyCallback:
 //			PublicKeyHandler (our code):
-//				clear(ctx.Permissions) and set ctx.Permissions.giteaKeyID = keyID
+//				reset(ctx.Permissions) and set ctx.Permissions.giteaKeyID = keyID
 //		pubKey.Verify
 //		return ctx.Permissions // only reaches here, the pub key is really authenticated
 //	set conn.Permissions from serverAuthenticate
@@ -205,6 +206,13 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	// It does NOT really verify here, so we could only record the related information here.
 	// After authentication (Verify), the "Permissions" will be assigned to the ssh conn,
 	// then we can use it in the "session handler"
+
+	// first, reset the ctx permissions (just like https://github.com/gliderlabs/ssh/pull/243 does)
+	// it shouldn't be reused across different ssh conn (sessions)
+	ctxPerm := ctx.Permissions().Permissions
+	ctx.Permissions().Permissions = &gossh.Permissions{}
+	ctx.Permissions().Permissions.CriticalOptions = maps.Clone(ctxPerm.CriticalOptions)
+
 	setPermExt := func(keyID int64) {
 		ctx.Permissions().Permissions.Extensions = map[string]string{
 			giteaPermissionExtensionKeyID: fmt.Sprint(keyID),
