@@ -44,6 +44,10 @@
   padding: 6px 10px;
 }
 
+#repo-files-table .repo-file-last-commit {
+  background: var(--color-box-header);
+}
+
 #repo-files-table .repo-file-cell.name {
   max-width: 300px;
   white-space: nowrap;
@@ -59,6 +63,7 @@
 }
 
 #repo-files-table .repo-file-cell.age {
+  text-align: right;
   white-space: nowrap;
   color: var(--color-text-light-1);
 }
