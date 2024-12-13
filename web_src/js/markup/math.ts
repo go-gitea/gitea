@@ -3,7 +3,7 @@ import {displayError} from './common.ts';
 function targetElement(el: Element) {
   // The target element is either the current element if it has the
   // `is-loading` class or the pre that contains it
-  return el.classList.contains('is-loading') ? el : el.closest('pre');
+  return el.classList.contains('is-loading') ? el : (el.closest('pre') ?? el.closest('code'));
 }
 
 export async function renderMath(): Promise<void> {
