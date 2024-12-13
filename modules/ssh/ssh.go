@@ -202,16 +202,16 @@ func sessionHandler(session ssh.Session) {
 }
 
 func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
-	// The publicKeyHandler (PublicKeyCallback) only provides the candidate keys to authenticate,
+	// The publicKeyHandler (PublicKeyCallback) only helps to provide the candidate keys to authenticate,
 	// It does NOT really verify here, so we could only record the related information here.
 	// After authentication (Verify), the "Permissions" will be assigned to the ssh conn,
 	// then we can use it in the "session handler"
 
 	// first, reset the ctx permissions (just like https://github.com/gliderlabs/ssh/pull/243 does)
-	// it shouldn't be reused across different ssh conn (sessions)
-	ctxPerm := ctx.Permissions().Permissions
+	// it shouldn't be reused across different ssh conn (sessions), each pub key should have its own "Permissions"
+	oldCtxPerm := ctx.Permissions().Permissions
 	ctx.Permissions().Permissions = &gossh.Permissions{}
-	ctx.Permissions().Permissions.CriticalOptions = maps.Clone(ctxPerm.CriticalOptions)
+	ctx.Permissions().Permissions.CriticalOptions = maps.Clone(oldCtxPerm.CriticalOptions)
 
 	setPermExt := func(keyID int64) {
 		ctx.Permissions().Permissions.Extensions = map[string]string{
