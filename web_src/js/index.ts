@@ -33,6 +33,7 @@ import {
 } from './features/repo-issue.ts';
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
+import {initViewFileTreeSidebar} from './features/repo-view-file-tree-sidebar.ts';
 import {initAdminCommon} from './features/admin/common.ts';
 import {initRepoTemplateSearch} from './features/repo-template.ts';
 import {initRepoCodeView} from './features/repo-code.ts';
@@ -195,6 +196,7 @@ onDomReady(() => {
     initRepoReleaseNew,
     initRepoTemplateSearch,
     initRepoTopicBar,
+    initViewFileTreeSidebar,
     initRepoWikiForm,
     initRepository,
     initRepositoryActionView,
