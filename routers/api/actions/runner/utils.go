@@ -202,7 +202,7 @@ func findTaskNeeds(ctx context.Context, task *actions_model.ActionTask) (map[str
 }
 
 // mergeTwoOutputs merges two outputs from two different ActionRunJobs
-// Values with the same output name may be overriden. The user should ensure the output names are unique.
+// Values with the same output name may be overridden. The user should ensure the output names are unique.
 // See https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#using-job-outputs-in-a-matrix-job
 func mergeTwoOutputs(o1, o2 map[string]string) map[string]string {
 	ret := make(map[string]string, len(o1))
