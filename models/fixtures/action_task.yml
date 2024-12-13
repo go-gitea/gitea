@@ -62,7 +62,7 @@
   job_id: 194
   attempt: 1
   runner_id: 1
-  status: 1 #success
+  status: 1 # success
   started: 1683636528
   stopped: 1683636626
   repo_id: 4
