@@ -60,7 +60,7 @@ function initLanguages(monaco: Monaco): void {
     }
     if (id === 'typescript') {
       monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-        // this is needed to supporess error annotations in tsx files regarding missing --jsx flag.
+        // this is needed to suppress error annotations in tsx regarding missing --jsx flag.
         jsx: monaco.languages.typescript.JsxEmit.Preserve,
       });
     }
