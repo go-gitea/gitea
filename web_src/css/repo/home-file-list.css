@@ -63,6 +63,7 @@
 }
 
 #repo-files-table .repo-file-cell.age {
+  text-align: right;
   white-space: nowrap;
   color: var(--color-text-light-1);
 }
