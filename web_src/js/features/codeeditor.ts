@@ -155,7 +155,6 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
     {keybinding: monaco.KeyCode.Enter, command: null}, // disable enter from accepting code completion
   ]);
 
-  if (!model) throw new Error('Unable to get editor model');
   model.onDidChangeContent(() => {
     textarea.value = editor.getValue({
       preserveBOM: true,
