@@ -1,4 +1,4 @@
-import {createApp} from 'vue';
+import {createApp, ref} from 'vue';
 import {toggleElem} from '../utils/dom.ts';
 import {GET, PUT} from '../modules/fetch.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
@@ -64,6 +64,10 @@ async function loadRecursive(treePath) {
   return root;
 }
 
+async function loadContent(item) {
+  document.querySelector('.repo-home-filelist').innerHTML = `load content of ${item.path}`;
+}
+
 export async function initViewFileTreeSidebar() {
   const sidebarElement = document.querySelector('.repo-view-file-tree-sidebar');
   if (!sidebarElement) return;
@@ -78,10 +82,15 @@ export async function initViewFileTreeSidebar() {
 
   const fileTree = document.querySelector('#view-file-tree');
   const treePath = fileTree.getAttribute('data-tree-path');
+  const selectedItem = ref(treePath);
 
   const files = await loadRecursive(treePath);
 
   fileTree.classList.remove('center');
-  const fileTreeView = createApp(ViewFileTree, {files, selectedItem: treePath, loadChildren});
+  const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren, loadContent: (item) => {
+    window.history.pushState(null, null, item.htmlUrl);
+    selectedItem.value = item.path;
+    loadContent(item);
+  }});
   fileTreeView.mount(fileTree);
 }
