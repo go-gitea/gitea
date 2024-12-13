@@ -178,11 +178,11 @@ func findTaskNeeds(ctx context.Context, task *actions_model.ActionTask) (map[str
 				// it shouldn't happen, or the job has been rerun
 				continue
 			}
-			outputs := make(map[string]string)
 			got, err := actions_model.FindTaskOutputByTaskID(ctx, job.TaskID)
 			if err != nil {
 				return nil, fmt.Errorf("FindTaskOutputByTaskID: %w", err)
 			}
+			outputs := make(map[string]string, len(got))
 			for _, v := range got {
 				outputs[v.OutputKey] = v.OutputValue
 			}
