@@ -1,9 +1,8 @@
 import {displayError} from './common.ts';
 
 function targetElement(el: Element) {
-  // The target element is either the current element if it has the
-  // `is-loading` class or the pre that contains it
-  return el.classList.contains('is-loading') ? el : el.closest('pre');
+  // The target element is either the parent "code block with loading indicator", or itself
+  return el.closest('.code-block.is-loading') ?? el;
 }
 
 export async function renderMath(): Promise<void> {

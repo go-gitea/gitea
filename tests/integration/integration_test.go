@@ -95,6 +95,11 @@ func TestMain(m *testing.M) {
 	os.Unsetenv("GIT_COMMITTER_EMAIL")
 	os.Unsetenv("GIT_COMMITTER_DATE")
 
+	// Avoid loading the default system config. On MacOS, this config
+	// sets the osxkeychain credential helper, which will cause tests
+	// to freeze with a dialog.
+	os.Setenv("GIT_CONFIG_NOSYSTEM", "true")
+
 	err := unittest.InitFixtures(
 		unittest.FixturesOptions{
 			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
@@ -440,7 +445,7 @@ func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v any) {
 	t.Helper()
 
 	decoder := json.NewDecoder(resp.Body)
-	assert.NoError(t, decoder.Decode(v))
+	require.NoError(t, decoder.Decode(v))
 }
 
 func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile string) {
