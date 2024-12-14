@@ -55,10 +55,6 @@
   border-bottom: none;
 }
 
-#repo-files-table .repo-file-item:last-child {
-  border-bottom: none;
-}
-
 #repo-files-table .repo-file-item:last-child .repo-file-cell:first-child {
   border-bottom-left-radius: calc(var(--border-radius) - 1px);
 }
