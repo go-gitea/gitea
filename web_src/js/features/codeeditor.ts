@@ -58,6 +58,12 @@ function initLanguages(monaco: Monaco): void {
     for (const extension of extensions || []) {
       languagesByExt[extension] = id;
     }
+    if (id === 'typescript') {
+      monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+        // this is needed to suppress error annotations in tsx regarding missing --jsx flag.
+        jsx: monaco.languages.typescript.JsxEmit.Preserve,
+      });
+    }
   }
 }
 
@@ -72,6 +78,8 @@ function updateEditor(monaco: Monaco, editor: IStandaloneCodeEditor, filename: s
   const language = model.getLanguageId();
   const newLanguage = getLanguage(filename);
   if (language !== newLanguage) monaco.editor.setModelLanguage(model, newLanguage);
+  // TODO: Need to update the model uri with the new filename, but there is no easy way currently, see
+  // https://github.com/microsoft/monaco-editor/discussions/3751
 }
 
 // export editor for customization - https://github.com/go-gitea/gitea/issues/10409
@@ -135,10 +143,11 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
   });
   updateTheme(monaco);
 
+  const model = monaco.editor.createModel(textarea.value, language, monaco.Uri.file(filename));
+
   const editor = monaco.editor.create(container, {
-    value: textarea.value,
+    model,
     theme: 'gitea',
-    language,
     ...other,
   });
 
@@ -146,8 +155,6 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
     {keybinding: monaco.KeyCode.Enter, command: null}, // disable enter from accepting code completion
   ]);
 
-  const model = editor.getModel();
-  if (!model) throw new Error('Unable to get editor model');
   model.onDidChangeContent(() => {
     textarea.value = editor.getValue({
       preserveBOM: true,
