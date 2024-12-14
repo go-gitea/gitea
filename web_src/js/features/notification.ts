@@ -151,8 +151,7 @@ async function updateNotificationTable() {
       const params = new URLSearchParams(window.location.search);
       params.set('div-only', String(true));
       params.set('sequence-number', String(++notificationSequenceNumber));
-      const url = `${appSubUrl}/notifications?${params.toString()}`;
-      const response = await GET(url);
+      const response = await GET(`${appSubUrl}/notifications?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch notification table');
