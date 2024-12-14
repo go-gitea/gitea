@@ -8,6 +8,12 @@ declare module '*.css' {
   export default value;
 }
 
+declare module '*.vue' {
+  import type {DefineComponent} from 'vue';
+  const component: DefineComponent<unknown, unknown, any>;
+  export default component;
+}
+
 declare let __webpack_public_path__: string;
 
 declare module 'htmx.org/dist/htmx.esm.js' {
