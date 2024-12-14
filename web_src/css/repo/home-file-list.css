@@ -72,7 +72,6 @@
   display: flex;
   align-items: center;
   gap: 0.5em;
-  padding: 6px 10px;
 }
 
 #repo-files-table .repo-file-last-commit {
