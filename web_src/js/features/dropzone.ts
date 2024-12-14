@@ -6,6 +6,7 @@ import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {createElementFromHTML, createElementFromAttrs} from '../utils/dom.ts';
 import {isImageFile, isVideoFile} from '../utils.ts';
+import type {DropzoneFile} from 'dropzone/index.js';
 
 const {csrfToken, i18n} = window.config;
 
@@ -15,7 +16,7 @@ export const DropzoneCustomEventRemovedFile = 'dropzone-custom-removed-file';
 export const DropzoneCustomEventUploadDone = 'dropzone-custom-upload-done';
 
 async function createDropzone(el, opts) {
-  const [{Dropzone}] = await Promise.all([
+  const [{default: Dropzone}] = await Promise.all([
     import(/* webpackChunkName: "dropzone" */'dropzone'),
     import(/* webpackChunkName: "dropzone" */'dropzone/dist/dropzone.css'),
   ]);
@@ -88,7 +89,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   // "http://localhost:3000/owner/repo/issues/[object%20Event]"
   // the reason is that the preview "callback(dataURL)" is assign to "img.onerror" then "thumbnail" uses the error object as the dataURL and generates '<img src="[object Event]">'
   const dzInst = await createDropzone(dropzoneEl, opts);
-  dzInst.on('success', (file, resp) => {
+  dzInst.on('success', (file: DropzoneFile & {uuid: string}, resp: any) => {
     file.uuid = resp.uuid;
     fileUuidDict[file.uuid] = {submitted: false};
     const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${resp.uuid}`, value: resp.uuid});
@@ -97,7 +98,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
     dzInst.emit(DropzoneCustomEventUploadDone, {file});
   });
 
-  dzInst.on('removedfile', async (file) => {
+  dzInst.on('removedfile', async (file: DropzoneFile & {uuid: string}) => {
     if (disableRemovedfileEvent) return;
 
     dzInst.emit(DropzoneCustomEventRemovedFile, {fileUuid: file.uuid});
