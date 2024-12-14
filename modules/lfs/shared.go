@@ -22,7 +22,7 @@ const (
 // UserAgentHeader Add User-Agent for gitea's self-implemented lfs client,
 // and the version is consistent with the latest version of git lfs can be avoided incompatibilities.
 // Some lfs servers will check this
-var UserAgentHeader = fmt.Sprintf("git-lfs/3.6.0 (Gitea; %s %s; %s)", runtime.GOOS, runtime.GOARCH, runtime.Version())
+var UserAgentHeader = "git-lfs/3.6.0 (Gitea)"
 
 // BatchRequest contains multiple requests processed in one batch operation.
 // https://github.com/git-lfs/git-lfs/blob/main/docs/api/batch.md#requests
