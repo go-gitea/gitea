@@ -10,7 +10,7 @@
 
 @media (max-width: 767.98px) {
   #repo-files-table {
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: auto 1fr auto;
   }
 }
 
