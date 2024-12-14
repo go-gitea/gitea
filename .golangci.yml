@@ -19,6 +19,7 @@ linters:
     - revive
     - staticcheck
     - stylecheck
+    - tenv
     - typecheck
     - unconvert
     - unused
