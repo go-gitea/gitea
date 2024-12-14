@@ -248,7 +248,7 @@ func TestHTTPClientDownload(t *testing.T) {
 				},
 			}
 
-			err := client.Download(context.Background(), []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
+			err := client.Download(context.Background(), "", []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
 				if objectError != nil {
 					return objectError
 				}

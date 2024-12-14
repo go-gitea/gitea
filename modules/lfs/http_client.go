@@ -67,7 +67,7 @@ func (c *HTTPClient) transferNames() []string {
 	return keys
 }
 
-func (c *HTTPClient) batch(ctx context.Context, operation string, refName string, objects []Pointer) (*BatchResponse, error) {
+func (c *HTTPClient) batch(ctx context.Context, operation, refName string, objects []Pointer) (*BatchResponse, error) {
 	log.Trace("BATCH operation with objects: %v", objects)
 
 	url := fmt.Sprintf("%s/objects/batch", c.endpoint)
