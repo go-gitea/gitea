@@ -162,28 +162,56 @@ func findTaskNeeds(ctx context.Context, task *actions_model.ActionTask) (map[str
 		return nil, fmt.Errorf("FindRunJobs: %w", err)
 	}
 
-	ret := make(map[string]*runnerv1.TaskNeed, len(needs))
+	jobIDJobs := make(map[string][]*actions_model.ActionRunJob)
 	for _, job := range jobs {
-		if !needs.Contains(job.JobID) {
+		jobIDJobs[job.JobID] = append(jobIDJobs[job.JobID], job)
+	}
+
+	ret := make(map[string]*runnerv1.TaskNeed, len(needs))
+	for jobID, jobsWithSameID := range jobIDJobs {
+		if !needs.Contains(jobID) {
 			continue
 		}
-		if job.TaskID == 0 || !job.Status.IsDone() {
-			// it shouldn't happen, or the job has been rerun
-			continue
+		var jobOutputs map[string]string
+		for _, job := range jobsWithSameID {
+			if job.TaskID == 0 || !job.Status.IsDone() {
+				// it shouldn't happen, or the job has been rerun
+				continue
+			}
+			got, err := actions_model.FindTaskOutputByTaskID(ctx, job.TaskID)
+			if err != nil {
+				return nil, fmt.Errorf("FindTaskOutputByTaskID: %w", err)
+			}
+			outputs := make(map[string]string, len(got))
+			for _, v := range got {
+				outputs[v.OutputKey] = v.OutputValue
+			}
+			if len(jobOutputs) == 0 {
+				jobOutputs = outputs
+			} else {
+				jobOutputs = mergeTwoOutputs(outputs, jobOutputs)
+			}
 		}
-		outputs := make(map[string]string)
-		got, err := actions_model.FindTaskOutputByTaskID(ctx, job.TaskID)
-		if err != nil {
-			return nil, fmt.Errorf("FindTaskOutputByTaskID: %w", err)
-		}
-		for _, v := range got {
-			outputs[v.OutputKey] = v.OutputValue
-		}
-		ret[job.JobID] = &runnerv1.TaskNeed{
-			Outputs: outputs,
-			Result:  runnerv1.Result(job.Status),
+		ret[jobID] = &runnerv1.TaskNeed{
+			Outputs: jobOutputs,
+			Result:  runnerv1.Result(actions_model.AggregateJobStatus(jobsWithSameID)),
 		}
 	}
 
 	return ret, nil
+}
+
+// mergeTwoOutputs merges two outputs from two different ActionRunJobs
+// Values with the same output name may be overridden. The user should ensure the output names are unique.
+// See https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#using-job-outputs-in-a-matrix-job
+func mergeTwoOutputs(o1, o2 map[string]string) map[string]string {
+	ret := make(map[string]string, len(o1))
+	for k1, v1 := range o1 {
+		if len(v1) > 0 {
+			ret[k1] = v1
+		} else {
+			ret[k1] = o2[k1]
+		}
+	}
+	return ret
 }
