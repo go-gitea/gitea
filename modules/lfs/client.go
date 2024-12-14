@@ -19,7 +19,7 @@ type UploadCallback func(p Pointer, objectError error) (io.ReadCloser, error)
 // Client is used to communicate with a LFS source
 type Client interface {
 	BatchSize() int
-	Download(ctx context.Context, refName string, objects []Pointer, callback DownloadCallback) error
+	Download(ctx context.Context, objects []Pointer, callback DownloadCallback) error
 	Upload(ctx context.Context, objects []Pointer, callback UploadCallback) error
 }
 
