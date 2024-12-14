@@ -98,7 +98,3 @@
   white-space: nowrap;
   color: var(--color-text-light-1);
 }
-
-#repo-files-table .parent-link {
-  width: 100%;
-}
