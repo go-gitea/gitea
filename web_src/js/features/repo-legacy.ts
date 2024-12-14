@@ -7,6 +7,7 @@ import {
   initRepoPullRequestUpdate,
 } from './repo-issue.ts';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.ts';
+// @ts-expect-error import functions from Vue SFC
 import {initRepoBranchTagSelector} from '../components/RepoBranchTagSelector.vue';
 import {initRepoCloneButtons} from './repo-common.ts';
 import {initCitationFileCopyContent} from './citation.ts';
