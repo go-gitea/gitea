@@ -22,7 +22,7 @@ async function createDropzone(el, opts) {
   return new Dropzone(el, opts);
 }
 
-export function generateMarkdownLinkForAttachment(file, {width, dppx} = {}) {
+export function generateMarkdownLinkForAttachment(file, {width, dppx}: {width?: number, dppx?: number} = {}) {
   let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
   if (isImageFile(file)) {
     fileMarkdown = `!${fileMarkdown}`;
@@ -60,14 +60,14 @@ function addCopyLink(file) {
 /**
  * @param {HTMLElement} dropzoneEl
  */
-export async function initDropzone(dropzoneEl) {
+export async function initDropzone(dropzoneEl: HTMLElement) {
   const listAttachmentsUrl = dropzoneEl.closest('[data-attachment-url]')?.getAttribute('data-attachment-url');
   const removeAttachmentUrl = dropzoneEl.getAttribute('data-remove-url');
   const attachmentBaseLinkUrl = dropzoneEl.getAttribute('data-link-url');
 
   let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
   let fileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
-  const opts = {
+  const opts: Record<string, any> = {
     url: dropzoneEl.getAttribute('data-upload-url'),
     headers: {'X-Csrf-Token': csrfToken},
     acceptedFiles: ['*/*', ''].includes(dropzoneEl.getAttribute('data-accepts')) ? null : dropzoneEl.getAttribute('data-accepts'),

@@ -16,8 +16,8 @@ declare module 'htmx.org/dist/htmx.esm.js' {
 }
 
 declare module 'uint8-to-base64' {
-  export function encode(arrayBuffer: ArrayBuffer): string;
-  export function decode(base64str: string): ArrayBuffer;
+  export function encode(arrayBuffer: ArrayBuffer | Uint8Array): string;
+  export function decode(base64str: string): Uint8Array;
 }
 
 declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
