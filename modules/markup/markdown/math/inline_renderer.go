@@ -50,5 +50,4 @@ func (r *InlineRenderer) renderInline(w util.BufWriter, source []byte, n ast.Nod
 // RegisterFuncs registers the renderer for inline math nodes
 func (r *InlineRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindInline, r.renderInline)
-	reg.Register(KindInlineBlock, r.renderInline)
 }
