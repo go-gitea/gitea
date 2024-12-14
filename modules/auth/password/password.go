@@ -99,10 +99,10 @@ func IsComplexEnough(pwd string) bool {
 func Generate(n int) (string, error) {
 	NewComplexity()
 	buffer := make([]byte, n)
-	max := big.NewInt(int64(len(validChars)))
+	maxInt := big.NewInt(int64(len(validChars)))
 	for {
 		for j := 0; j < n; j++ {
-			rnd, err := rand.Int(rand.Reader, max)
+			rnd, err := rand.Int(rand.Reader, maxInt)
 			if err != nil {
 				return "", err
 			}
