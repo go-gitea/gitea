@@ -179,8 +179,14 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 	errChan := make(chan error, 1)
 	go lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan, errChan)
 
+	defaultBranch, err := gitrepo.GetDefaultBranch(ctx, repo)
+	if err != nil {
+		log.Error("Repo[%-v]: get default branch err: %v", repo, err)
+		return err
+	}
+
 	downloadObjects := func(pointers []lfs.Pointer) error {
-		err := lfsClient.Download(ctx, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
+		err := lfsClient.Download(ctx, git.RefNameFromBranch(defaultBranch).String(), pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
 			if errors.Is(objectError, lfs.ErrObjectNotExist) {
 				log.Warn("Ignoring missing upstream LFS object %-v: %v", p, objectError)
 				return nil

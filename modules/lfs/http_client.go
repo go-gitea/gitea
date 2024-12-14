@@ -67,12 +67,12 @@ func (c *HTTPClient) transferNames() []string {
 	return keys
 }
 
-func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Pointer) (*BatchResponse, error) {
+func (c *HTTPClient) batch(ctx context.Context, operation string, refName string, objects []Pointer) (*BatchResponse, error) {
 	log.Trace("BATCH operation with objects: %v", objects)
 
 	url := fmt.Sprintf("%s/objects/batch", c.endpoint)
 
-	request := &BatchRequest{operation, c.transferNames(), nil, objects}
+	request := &BatchRequest{operation, c.transferNames(), &Reference{Name: refName}, objects}
 	payload := new(bytes.Buffer)
 	err := json.NewEncoder(payload).Encode(request)
 	if err != nil {
@@ -106,17 +106,17 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 }
 
 // Download reads the specific LFS object from the LFS server
-func (c *HTTPClient) Download(ctx context.Context, objects []Pointer, callback DownloadCallback) error {
-	return c.performOperation(ctx, objects, callback, nil)
+func (c *HTTPClient) Download(ctx context.Context, refName string, objects []Pointer, callback DownloadCallback) error {
+	return c.performOperation(ctx, refName, objects, callback, nil)
 }
 
 // Upload sends the specific LFS object to the LFS server
 func (c *HTTPClient) Upload(ctx context.Context, objects []Pointer, callback UploadCallback) error {
-	return c.performOperation(ctx, objects, nil, callback)
+	return c.performOperation(ctx, "", objects, nil, callback)
 }
 
 // performOperation takes a slice of LFS object pointers, batches them, and performs the upload/download operations concurrently in each batch
-func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc DownloadCallback, uc UploadCallback) error {
+func (c *HTTPClient) performOperation(ctx context.Context, refName string, objects []Pointer, dc DownloadCallback, uc UploadCallback) error {
 	if len(objects) == 0 {
 		return nil
 	}
@@ -126,7 +126,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 		operation = "upload"
 	}
 
-	result, err := c.batch(ctx, operation, objects)
+	result, err := c.batch(ctx, operation, refName, objects)
 	if err != nil {
 		return err
 	}
