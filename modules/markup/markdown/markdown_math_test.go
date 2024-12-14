@@ -12,8 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const nl = "\n"
+
 func TestMathRender(t *testing.T) {
-	const nl = "\n"
 	testcases := []struct {
 		testcase string
 		expected string
@@ -85,6 +86,18 @@ func TestMathRender(t *testing.T) {
 		{
 			`$\text{$b$}$`,
 			`<p><code class="language-math">\text{$b$}</code></p>` + nl,
+		},
+		{
+			"a$`b`$c",
+			`<p>a<code class="language-math">b</code>c</p>` + nl,
+		},
+		{
+			"a $`b`$ c",
+			`<p>a <code class="language-math">b</code> c</p>` + nl,
+		},
+		{
+			"a$``b``$c x$```y```$z",
+			`<p>a<code class="language-math">b</code>c x<code class="language-math">y</code>z</p>` + nl,
 		},
 	}
 
@@ -214,6 +227,11 @@ x
 <li>b</li>
 </ol>
 `,
+		},
+		{
+			"inline-non-math",
+			`\[x]`,
+			`<p>[x]</p>` + nl,
 		},
 	}
 
