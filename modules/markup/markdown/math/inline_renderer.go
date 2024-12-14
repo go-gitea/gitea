@@ -13,6 +13,9 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
+// Inline render output:
+// <code class="language-math">...</code>
+
 // InlineRenderer is an inline renderer
 type InlineRenderer struct {
 	renderInternal *internal.RenderInternal
@@ -25,11 +28,7 @@ func NewInlineRenderer(renderInternal *internal.RenderInternal) renderer.NodeRen
 
 func (r *InlineRenderer) renderInline(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		extraClass := ""
-		if _, ok := n.(*InlineBlock); ok {
-			extraClass = "display "
-		}
-		_ = r.renderInternal.FormatWithSafeAttrs(w, `<code class="language-math %sis-loading">`, extraClass)
+		_ = r.renderInternal.FormatWithSafeAttrs(w, `<code class="language-math">`)
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
 			segment := c.(*ast.Text).Segment
 			value := util.EscapeHTML(segment.Value(source))
