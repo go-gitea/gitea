@@ -29,7 +29,7 @@
 #repo-files-table .repo-file-line,
 #repo-files-table .repo-file-cell {
   border-top: 1px solid var(--color-light-border);
-  padding: 6px 10px;
+  padding: 8px 10px;
 }
 
 #repo-files-table .repo-file-line:first-child {
@@ -41,7 +41,6 @@
   display: flex;
   align-items: center;
   gap: 0.5em;
-  padding: 6px 10px;
 }
 
 #repo-files-table .repo-file-last-commit {
