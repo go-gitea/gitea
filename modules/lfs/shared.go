@@ -6,7 +6,6 @@ package lfs
 import (
 	"errors"
 	"fmt"
-	"runtime"
 	"time"
 
 	"code.gitea.io/gitea/modules/util"
@@ -17,12 +16,11 @@ const (
 	MediaType = "application/vnd.git-lfs+json"
 	// AcceptHeader Some LFS servers offer content with other types, so fallback to '*/*' if application/vnd.git-lfs+json cannot be served
 	AcceptHeader = "application/vnd.git-lfs+json;q=0.9, */*;q=0.8"
+	// UserAgentHeader Add User-Agent for gitea's self-implemented lfs client,
+	// and the version is consistent with the latest version of git lfs can be avoided incompatibilities.
+	// Some lfs servers will check this
+	UserAgentHeader = "git-lfs/3.6.0 (Gitea)"
 )
-
-// UserAgentHeader Add User-Agent for gitea's self-implemented lfs client,
-// and the version is consistent with the latest version of git lfs can be avoided incompatibilities.
-// Some lfs servers will check this
-var UserAgentHeader = fmt.Sprintf("git-lfs/3.6.0 (Gitea; %s %s; %s)", runtime.GOOS, runtime.GOARCH, runtime.Version())
 
 // BatchRequest contains multiple requests processed in one batch operation.
 // https://github.com/git-lfs/git-lfs/blob/main/docs/api/batch.md#requests
