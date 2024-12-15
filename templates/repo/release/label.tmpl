@@ -3,5 +3,5 @@
 {{else if .IsPrerelease}}
 	<span class="ui orange label">{{ctx.Locale.Tr "repo.release.prerelease"}}</span>
 {{else if (not .IsTag)}}
-	<span class="ui green label">{{ctx.Locale.Tr "repo.release.stable"}}</span>
+	<span class="ui green label">{{ctx.Locale.Tr "latest"}}</span>
 {{end}}
