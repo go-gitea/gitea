@@ -17,7 +17,7 @@
 						<div class="flex-item-header">
 							<div class="flex-item-title tw-gap-2">
 								<a class="gt-ellipsis muted" href="{{.LatestRelease.Link}}" title="{{.LatestRelease.Title}}">{{.LatestRelease.Title}}</a>
-								{{template "repo/release/label" (dict "release" .LatestRelease "IsLatest" true)}}
+								{{template "repo/release/label" (dict "Release" .LatestRelease "IsLatest" true)}}
 							</div>
 						</div>
 						<div class="flex-item-body">

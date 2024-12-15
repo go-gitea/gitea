@@ -1,13 +1,14 @@
 {{/*
 Template Attributes:
+* Release: the release
 * IsLatest: whether this is the latest release
 */}}
 {{if .IsLatest}}
 	<span class="ui green label">{{ctx.Locale.Tr "repo.release.latest"}}</span>
-{{else if .release.IsDraft}}
+{{else if .Release.IsDraft}}
 	<span class="ui yellow label">{{ctx.Locale.Tr "repo.release.draft"}}</span>
-{{else if .release.IsPrerelease}}
+{{else if .Release.IsPrerelease}}
 	<span class="ui orange label">{{ctx.Locale.Tr "repo.release.prerelease"}}</span>
-{{else if (not .release.IsTag)}}
+{{else if (not .Release.IsTag)}}
 	<span class="ui green label">{{ctx.Locale.Tr "repo.release.stable"}}</span>
 {{end}}
