@@ -78,7 +78,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	assert.True(t, doRemovePushMirror(t, session, user.Name, srcRepo.Name, mirrors[0].ID))
 	mirrors, _, err = repo_model.GetPushMirrorsByRepoID(db.DefaultContext, srcRepo.ID, db.ListOptions{})
 	assert.NoError(t, err)
-	assert.Len(t, mirrors, 0)
+	assert.Empty(t, mirrors)
 }
 
 func testCreatePushMirror(t *testing.T, session *TestSession, owner, repo, address, username, password, interval string) {

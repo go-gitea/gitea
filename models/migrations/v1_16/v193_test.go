@@ -56,8 +56,8 @@ func Test_AddRepoIDForAttachment(t *testing.T) {
 	err := x.Table("attachment").Where("issue_id > 0").Find(&issueAttachments)
 	assert.NoError(t, err)
 	for _, attach := range issueAttachments {
-		assert.Greater(t, attach.RepoID, int64(0))
-		assert.Greater(t, attach.IssueID, int64(0))
+		assert.Positive(t, attach.RepoID)
+		assert.Positive(t, attach.IssueID)
 		var issue Issue
 		has, err := x.ID(attach.IssueID).Get(&issue)
 		assert.NoError(t, err)
@@ -69,8 +69,8 @@ func Test_AddRepoIDForAttachment(t *testing.T) {
 	err = x.Table("attachment").Where("release_id > 0").Find(&releaseAttachments)
 	assert.NoError(t, err)
 	for _, attach := range releaseAttachments {
-		assert.Greater(t, attach.RepoID, int64(0))
-		assert.Greater(t, attach.ReleaseID, int64(0))
+		assert.Positive(t, attach.RepoID)
+		assert.Positive(t, attach.ReleaseID)
 		var release Release
 		has, err := x.ID(attach.ReleaseID).Get(&release)
 		assert.NoError(t, err)
