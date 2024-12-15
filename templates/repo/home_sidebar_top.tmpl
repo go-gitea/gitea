@@ -16,7 +16,7 @@
 						{{if $description}}{{$description | RenderCodeBlock}}{{else}}{{ctx.Locale.Tr "repo.repo_no_desc"}}{{end}}
 					</div>
 					{{if .Repository.Website}}
-						<a class="flex-text-block muted" href="{{.Repository.Website}}">
+						<a class="flex-text-block" href="{{.Repository.Website}}">
 							{{svg "octicon-link" 16 "tw-text-text"}} <span class="tw-text-primary">{{.Repository.Website}}</span>
 						</a>
 					{{end}}
