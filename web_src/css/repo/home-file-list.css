@@ -40,19 +40,13 @@
 
 #repo-files-table .repo-file-line,
 #repo-files-table .repo-file-cell {
-  border-top: .5px solid var(--color-light-border);
-  border-bottom: .5px solid var(--color-light-border);
+  border-top: 1px solid var(--color-light-border);
   padding: 8px 10px;
 }
 
 #repo-files-table .repo-file-line:first-child {
   border-top: none;
   border-radius: var(--border-radius) var(--border-radius) 0 0;
-}
-
-#repo-files-table .repo-file-item:last-child .repo-file-line,
-#repo-files-table .repo-file-item:last-child .repo-file-cell {
-  border-bottom: none;
 }
 
 #repo-files-table .repo-file-item:last-child .repo-file-cell:first-child {
