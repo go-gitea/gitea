@@ -2,7 +2,6 @@
 import './bootstrap.ts';
 import './htmx.ts';
 
-// @ts-expect-error import functions from Vue SFC
 import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
 import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
@@ -55,7 +54,6 @@ import {initRepoWikiForm} from './features/repo-wiki.ts';
 import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCopyContent} from './features/copycontent.ts';
 import {initCaptcha} from './features/captcha.ts';
-// @ts-expect-error import functions from Vue SFC
 import {initRepositoryActionView} from './components/RepoActionView.vue';
 import {initGlobalTooltips} from './modules/tippy.ts';
 import {initGiteaFomantic} from './modules/fomantic.ts';

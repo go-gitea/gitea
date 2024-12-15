@@ -16,6 +16,7 @@ export default defineConfig({
   },
   plugins: [
     stringPlugin(),
+    // @ts-expect-error TS2351: This expression is not callable, only happens with vue-tsc
     vuePlugin(),
   ],
 });
