@@ -130,8 +130,8 @@
 			</div>
 
 			{{if $showSidebar}}
-				<div class="repo-home-sidebar-top">{{template "repo/home_sidebar_top" .}}</div>
-				<div class="repo-home-sidebar-bottom">{{template "repo/home_sidebar_bottom" .}}</div>
+				{{template "repo/home_sidebar_top" .}}
+				{{template "repo/home_sidebar_bottom" .}}
 			{{end}}
 		</div>
 	</div>
