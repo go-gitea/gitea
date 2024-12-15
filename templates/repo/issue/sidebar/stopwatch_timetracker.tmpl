@@ -44,7 +44,7 @@
 				<form method="post" class="ui form form-fetch-action" action="{{.Issue.Link}}/time_estimate">
 					<div class="content">
 						{{$.CsrfTokenHtml}}
-						<input name="time_estimate" placeholder="{{ctx.Locale.Tr "repo.issues.time_estimate_placeholder"}}" value="{{TimeEstimateString .Issue.TimeEstimate}}">
+						<input name="time_estimate" placeholder="1h 2m" value="{{TimeEstimateString .Issue.TimeEstimate}}">
 						<div class="actions">
 							<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
 							<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>

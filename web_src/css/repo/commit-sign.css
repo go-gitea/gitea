@@ -1,0 +1,272 @@
+
+.repository .ui.attached.isSigned.isWarning {
+  border-left: 1px solid var(--color-error-border);
+  border-right: 1px solid var(--color-error-border);
+}
+
+.repository .ui.attached.isSigned.isWarning.top,
+.repository .ui.attached.isSigned.isWarning.message {
+  border-top: 1px solid var(--color-error-border);
+}
+
+.repository .ui.attached.isSigned.isWarning.message {
+  box-shadow: none;
+  background-color: var(--color-error-bg);
+  color: var(--color-error-text);
+}
+
+.repository .ui.attached.isSigned.isWarning.message .ui.text {
+  color: var(--color-error-text);
+}
+
+.repository .ui.attached.isSigned.isWarning:last-child,
+.repository .ui.attached.isSigned.isWarning.bottom {
+  border-bottom: 1px solid var(--color-error-border);
+}
+
+.repository .ui.attached.isSigned.isVerified {
+  border-left: 1px solid var(--color-success-border);
+  border-right: 1px solid var(--color-success-border);
+}
+
+.repository .ui.attached.isSigned.isVerified.top,
+.repository .ui.attached.isSigned.isVerified.message {
+  border-top: 1px solid var(--color-success-border);
+}
+
+.repository .ui.attached.isSigned.isVerified.message {
+  box-shadow: none;
+  background-color: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.repository .ui.attached.isSigned.isVerified.message .pull-right {
+  color: var(--color-text);
+}
+
+.repository .ui.attached.isSigned.isVerified.message .ui.text {
+  color: var(--color-success-text);
+}
+
+.repository .ui.attached.isSigned.isVerified:last-child,
+.repository .ui.attached.isSigned.isVerified.bottom {
+  border-bottom: 1px solid var(--color-success-border);
+}
+
+.repository .ui.attached.isSigned.isVerifiedUntrusted,
+.repository .ui.attached.isSigned.isVerifiedUnmatched {
+  border-left: 1px solid var(--color-warning-border);
+  border-right: 1px solid var(--color-warning-border);
+}
+
+.repository .ui.attached.isSigned.isVerifiedUntrusted.top,
+.repository .ui.attached.isSigned.isVerifiedUnmatched.top,
+.repository .ui.attached.isSigned.isVerifiedUntrusted.message,
+.repository .ui.attached.isSigned.isVerifiedUnmatched.message {
+  border-top: 1px solid var(--color-warning-border);
+}
+
+.repository .ui.attached.isSigned.isVerifiedUntrusted.message,
+.repository .ui.attached.isSigned.isVerifiedUnmatched.message {
+  box-shadow: none;
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.repository .ui.attached.isSigned.isVerifiedUntrusted.message .ui.text,
+.repository .ui.attached.isSigned.isVerifiedUnmatched.message .ui.text {
+  color: var(--color-warning-text);
+}
+
+.repository .ui.attached.isSigned.isVerifiedUntrusted:last-child,
+.repository .ui.attached.isSigned.isVerifiedUnmatched:last-child,
+.repository .ui.attached.isSigned.isVerifiedUntrusted.bottom,
+.repository .ui.attached.isSigned.isVerifiedUnmatched.bottom {
+  border-bottom: 1px solid var(--color-warning-border);
+}
+
+.repository #commits-table td.sha .sha.label,
+.repository #repo-files-table .sha.label,
+.repository #repo-file-commit-box .sha.label,
+.repository #rev-list .sha.label,
+.repository .timeline-item.commits-list .singular-commit .sha.label {
+  border: 1px solid var(--color-light-border);
+}
+
+.repository #commits-table td.sha .sha.label .detail.icon,
+.repository #repo-files-table .sha.label .detail.icon,
+.repository #repo-file-commit-box .sha.label .detail.icon,
+.repository #rev-list .sha.label .detail.icon,
+.repository .timeline-item.commits-list .singular-commit .sha.label .detail.icon {
+  background: var(--color-light);
+  margin: -6px -10px -4px 0;
+  padding: 5px 4px 5px 6px;
+  border-left: 1px solid var(--color-light-border);
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.repository #commits-table td.sha .sha.label .detail.icon .svg,
+.repository #repo-files-table .sha.label .detail.icon .svg,
+.repository #repo-file-commit-box .sha.label .detail.icon .svg,
+.repository #rev-list .sha.label .detail.icon .svg,
+.repository .timeline-item.commits-list .singular-commit .sha.label .detail.icon .svg {
+  margin: 0 0.25em 0 0;
+}
+
+.repository #commits-table td.sha .sha.label .detail.icon > div,
+.repository #repo-files-table .sha.label .detail.icon > div,
+.repository #repo-file-commit-box .sha.label .detail.icon > div,
+.repository #rev-list .sha.label .detail.icon > div,
+.repository .timeline-item.commits-list .singular-commit .sha.label .detail.icon > div {
+  display: flex;
+  align-items: center;
+}
+
+.repository #commits-table td.sha .sha.label.isSigned.isWarning,
+.repository #repo-files-table .sha.label.isSigned.isWarning,
+.repository #repo-file-commit-box .sha.label.isSigned.isWarning,
+.repository #rev-list .sha.label.isSigned.isWarning,
+.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isWarning {
+  border: 1px solid var(--color-red-badge);
+  background: var(--color-red-badge-bg);
+}
+
+.repository #commits-table td.sha .sha.label.isSigned.isWarning .detail.icon,
+.repository #repo-files-table .sha.label.isSigned.isWarning .detail.icon,
+.repository #repo-file-commit-box .sha.label.isSigned.isWarning .detail.icon,
+.repository #rev-list .sha.label.isSigned.isWarning .detail.icon,
+.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isWarning .detail.icon {
+  border-left: 1px solid var(--color-red-badge);
+  color: var(--color-red-badge);
+}
+
+.repository #commits-table td.sha .sha.label.isSigned.isWarning:hover,
+.repository #repo-files-table .sha.label.isSigned.isWarning:hover,
+.repository #repo-file-commit-box .sha.label.isSigned.isWarning:hover,
+.repository #rev-list .sha.label.isSigned.isWarning:hover,
+.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isWarning:hover {
+  background: var(--color-red-badge-hover-bg) !important;
+}
+
+.repository #commits-table td.sha .sha.label.isSigned.isVerified,
+.repository #repo-files-table .sha.label.isSigned.isVerified,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerified,
+.repository #rev-list .sha.label.isSigned.isVerified,
+.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerified {
+  border: 1px solid var(--color-green-badge);
+  background: var(--color-green-badge-bg);
+}
+
+.repository #commits-table td.sha .sha.label.isSigned.isVerified .detail.icon,
+.repository #repo-files-table .sha.label.isSigned.isVerified .detail.icon,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerified .detail.icon,
+.repository #rev-list .sha.label.isSigned.isVerified .detail.icon,
+.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerified .detail.icon {
+  border-left: 1px solid var(--color-green-badge);
+  color: var(--color-green-badge);
+}
+
+.repository #commits-table td.sha .sha.label.isSigned.isVerified:hover,
+.repository #repo-files-table .sha.label.isSigned.isVerified:hover,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerified:hover,
+.repository #rev-list .sha.label.isSigned.isVerified:hover,
+.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerified:hover {
+  background: var(--color-green-badge-hover-bg) !important;
+}
+
+.repository #commits-table td.sha .sha.label.isSigned.isVerifiedUntrusted,
+.repository #repo-files-table .sha.label.isSigned.isVerifiedUntrusted,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerifiedUntrusted,
+.repository #rev-list .sha.label.isSigned.isVerifiedUntrusted,
+.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUntrusted {
+  border: 1px solid var(--color-yellow-badge);
+  background: var(--color-yellow-badge-bg);
+}
+
+.repository #commits-table td.sha .sha.label.isSigned.isVerifiedUntrusted .detail.icon,
+.repository #repo-files-table .sha.label.isSigned.isVerifiedUntrusted .detail.icon,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerifiedUntrusted .detail.icon,
+.repository #rev-list .sha.label.isSigned.isVerifiedUntrusted .detail.icon,
+.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUntrusted .detail.icon {
+  border-left: 1px solid var(--color-yellow-badge);
+  color: var(--color-yellow-badge);
+}
+
+.repository #commits-table td.sha .sha.label.isSigned.isVerifiedUntrusted:hover,
+.repository #repo-files-table .sha.label.isSigned.isVerifiedUntrusted:hover,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerifiedUntrusted:hover,
+.repository #rev-list .sha.label.isSigned.isVerifiedUntrusted:hover,
+.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUntrusted:hover {
+  background: var(--color-yellow-badge-hover-bg) !important;
+}
+
+.repository #commits-table td.sha .sha.label.isSigned.isVerifiedUnmatched,
+.repository #repo-files-table .sha.label.isSigned.isVerifiedUnmatched,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerifiedUnmatched,
+.repository #rev-list .sha.label.isSigned.isVerifiedUnmatched,
+.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUnmatched {
+  border: 1px solid var(--color-orange-badge);
+  background: var(--color-orange-badge-bg);
+}
+
+.repository #commits-table td.sha .sha.label.isSigned.isVerifiedUnmatched .detail.icon,
+.repository #repo-files-table .sha.label.isSigned.isVerifiedUnmatched .detail.icon,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerifiedUnmatched .detail.icon,
+.repository #rev-list .sha.label.isSigned.isVerifiedUnmatched .detail.icon,
+.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUnmatched .detail.icon {
+  border-left: 1px solid var(--color-orange-badge);
+  color: var(--color-orange-badge);
+}
+
+.repository #commits-table td.sha .sha.label.isSigned.isVerifiedUnmatched:hover,
+.repository #repo-files-table .sha.label.isSigned.isVerifiedUnmatched:hover,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerifiedUnmatched:hover,
+.repository #rev-list .sha.label.isSigned.isVerifiedUnmatched:hover,
+.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUnmatched:hover {
+  background: var(--color-orange-badge-hover-bg) !important;
+}
+
+.singular-commit .shabox .sha.label {
+  margin: 0;
+  border: 1px solid var(--color-light-border);
+}
+
+.singular-commit .shabox .sha.label.isSigned.isWarning {
+  border: 1px solid var(--color-red-badge);
+  background: var(--color-red-badge-bg);
+}
+
+.singular-commit .shabox .sha.label.isSigned.isWarning:hover {
+  background: var(--color-red-badge-hover-bg) !important;
+}
+
+.singular-commit .shabox .sha.label.isSigned.isVerified {
+  border: 1px solid var(--color-green-badge);
+  background: var(--color-green-badge-bg);
+}
+
+.singular-commit .shabox .sha.label.isSigned.isVerified:hover {
+  background: var(--color-green-badge-hover-bg) !important;
+}
+
+.singular-commit .shabox .sha.label.isSigned.isVerifiedUntrusted {
+  border: 1px solid var(--color-yellow-badge);
+  background: var(--color-yellow-badge-bg);
+}
+
+.singular-commit .shabox .sha.label.isSigned.isVerifiedUntrusted:hover {
+  background: var(--color-yellow-badge-hover-bg) !important;
+}
+
+.singular-commit .shabox .sha.label.isSigned.isVerifiedUnmatched {
+  border: 1px solid var(--color-orange-badge);
+  background: var(--color-orange-badge-bg);
+}
+
+.singular-commit .shabox .sha.label.isSigned.isVerifiedUnmatched:hover {
+  background: var(--color-orange-badge-hover-bg) !important;
+}

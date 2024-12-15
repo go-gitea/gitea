@@ -10,12 +10,12 @@ import (
 )
 
 // ParsePaginator parses a db.Paginator into a skip and limit
-func ParsePaginator(paginator *db.ListOptions, max ...int) (int, int) {
+func ParsePaginator(paginator *db.ListOptions, maxNums ...int) (int, int) {
 	// Use a very large number to indicate no limit
 	unlimited := math.MaxInt32
-	if len(max) > 0 {
+	if len(maxNums) > 0 {
 		// Some indexer engines have a limit on the page size, respect that
-		unlimited = max[0]
+		unlimited = maxNums[0]
 	}
 
 	if paginator == nil || paginator.IsListAll() {

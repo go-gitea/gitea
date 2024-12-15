@@ -1,5 +1,4 @@
-import $ from 'jquery';
-import {hideElem, queryElems, showElem} from '../utils/dom.ts';
+import {queryElems} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {sleep} from '../utils.ts';
@@ -76,12 +75,12 @@ function initCloneSchemeUrlSelection(parent: Element) {
   };
 
   updateClonePanelUi();
-
-  tabSsh.addEventListener('click', () => {
+  // tabSsh or tabHttps might not both exist, eg: guest view, or one is disabled by the server
+  tabSsh?.addEventListener('click', () => {
     localStorage.setItem('repo-clone-protocol', 'ssh');
     updateClonePanelUi();
   });
-  tabHttps.addEventListener('click', () => {
+  tabHttps?.addEventListener('click', () => {
     localStorage.setItem('repo-clone-protocol', 'https');
     updateClonePanelUi();
   });
@@ -92,6 +91,8 @@ function initCloneSchemeUrlSelection(parent: Element) {
 
 function initClonePanelButton(btn: HTMLButtonElement) {
   const elPanel = btn.nextElementSibling;
+  // "init" must be before the "createTippy" otherwise the "tippy-target" will be removed from the document
+  initCloneSchemeUrlSelection(elPanel);
   createTippy(btn, {
     content: elPanel,
     trigger: 'click',
@@ -99,39 +100,11 @@ function initClonePanelButton(btn: HTMLButtonElement) {
     interactive: true,
     hideOnClick: true,
   });
-  initCloneSchemeUrlSelection(elPanel);
 }
 
 export function initRepoCloneButtons() {
   queryElems(document, '.js-btn-clone-panel', initClonePanelButton);
   queryElems(document, '.clone-buttons-combo', initCloneSchemeUrlSelection);
-}
-
-export function initRepoCommonBranchOrTagDropdown(selector: string) {
-  $(selector).each(function () {
-    const $dropdown = $(this);
-    $dropdown.find('.reference.column').on('click', function () {
-      hideElem($dropdown.find('.scrolling.reference-list-menu'));
-      showElem($($(this).data('target')));
-      return false;
-    });
-  });
-}
-
-export function initRepoCommonFilterSearchDropdown(selector: string) {
-  const $dropdown = $(selector);
-  if (!$dropdown.length) return;
-
-  $dropdown.dropdown({
-    fullTextSearch: 'exact',
-    selectOnKeydown: false,
-    onChange(_text, _value, $choice) {
-      if ($choice[0].getAttribute('data-url')) {
-        window.location.href = $choice[0].getAttribute('data-url');
-      }
-    },
-    message: {noResults: $dropdown[0].getAttribute('data-no-results')},
-  });
 }
 
 export async function updateIssuesMeta(url, action, issue_ids, id) {
