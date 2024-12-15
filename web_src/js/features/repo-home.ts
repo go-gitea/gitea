@@ -16,7 +16,7 @@ export function initRepoTopicBar() {
   let lastErrorToast: Toast;
 
   mgrBtn.addEventListener('click', () => {
-    hideElem(viewDiv);
+    hideElem([viewDiv, mgrBtn]);
     showElem(editDiv);
     topicDropdown.querySelector<HTMLInputElement>('input.search').focus();
   });
@@ -24,7 +24,7 @@ export function initRepoTopicBar() {
   document.querySelector('#cancel_topic_edit').addEventListener('click', () => {
     lastErrorToast?.hideToast();
     hideElem(editDiv);
-    showElem(viewDiv);
+    showElem([viewDiv, mgrBtn]);
     mgrBtn.focus();
   });
 
@@ -55,7 +55,7 @@ export function initRepoTopicBar() {
           }
         }
         hideElem(editDiv);
-        showElem(viewDiv);
+        showElem([viewDiv, mgrBtn]);
       }
     } else if (response.status === 422) {
       // how to test: input topic like " invalid topic " (with spaces), and select it from the list, then "Save"
