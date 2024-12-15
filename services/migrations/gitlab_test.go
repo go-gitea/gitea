@@ -50,7 +50,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 
 	topics, err := downloader.GetTopics()
 	assert.NoError(t, err)
-	assert.True(t, len(topics) == 2)
+	assert.Len(t, topics, 2)
 	assert.EqualValues(t, []string{"migration", "test"}, topics)
 
 	milestones, err := downloader.GetMilestones()
