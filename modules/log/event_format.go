@@ -110,10 +110,10 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 			buf = append(buf, ' ')
 		}
 		if flags&(Ltime|Lmicroseconds) != 0 {
-			hour, min, sec := t.Clock()
+			hour, minNum, sec := t.Clock()
 			buf = itoa(buf, hour, 2)
 			buf = append(buf, ':')
-			buf = itoa(buf, min, 2)
+			buf = itoa(buf, minNum, 2)
 			buf = append(buf, ':')
 			buf = itoa(buf, sec, 2)
 			if flags&Lmicroseconds != 0 {

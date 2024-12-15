@@ -465,15 +465,15 @@ func (repo *Repository) getBranches(env []string, commitID string, limit int) ([
 
 	refs := strings.Split(stdout, "\n")
 
-	var max int
+	var maxNum int
 	if len(refs) > limit {
-		max = limit
+		maxNum = limit
 	} else {
-		max = len(refs) - 1
+		maxNum = len(refs) - 1
 	}
 
-	branches := make([]string, max)
-	for i, ref := range refs[:max] {
+	branches := make([]string, maxNum)
+	for i, ref := range refs[:maxNum] {
 		parts := strings.Fields(ref)
 
 		branches[i] = parts[len(parts)-1]
