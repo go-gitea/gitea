@@ -43,23 +43,25 @@
 					{{end}}
 				{{end}}
 			</div>
-			<div class="flex-item-body tw-flex-col tw-gap-1 tw-mt-2 tw-items-start">
-				{{if .ReadmeExist}}
-					<a class="flex-text-block muted" href="{{.TreeLink}}/{{.FileName}}">
-						{{svg "octicon-book"}} {{ctx.Locale.Tr "readme"}}
-					</a>
-				{{end}}
-				{{if .DetectedRepoLicenses}}
-					<a class="flex-text-block muted" href="{{.RepoLink}}/src/{{.Repository.DefaultBranch}}/{{PathEscapeSegments .LicenseFileName}}" title="{{StringUtils.Join .DetectedRepoLicenses ", "}}">
-						{{svg "octicon-law"}} {{if eq (len .DetectedRepoLicenses) 1}}{{index .DetectedRepoLicenses 0}}{{else}}{{ctx.Locale.Tr "repo.multiple_licenses"}}{{end}}
-					</a>
-				{{end}}
-				{{if .CitiationExist}}
-					{{template "repo/cite/cite_modal" .}}
-					<a class="flex-text-block muted" id="cite-repo-button">
-						{{svg "octicon-cross-reference"}} {{ctx.Locale.Tr "repo.cite_this_repo"}}
-					</a>
-				{{end}}
+			<div class="flex-item-body">
+				<div class="tw-flex tw-flex-col tw-gap-1 tw-mt-2">
+					{{if .ReadmeExist}}
+						<a class="flex-text-block muted" href="{{.TreeLink}}/{{.FileName}}">
+							{{svg "octicon-book"}} {{ctx.Locale.Tr "readme"}}
+						</a>
+					{{end}}
+					{{if .DetectedRepoLicenses}}
+						<a class="flex-text-block muted" href="{{.RepoLink}}/src/{{.Repository.DefaultBranch}}/{{PathEscapeSegments .LicenseFileName}}" title="{{StringUtils.Join .DetectedRepoLicenses ", "}}">
+							{{svg "octicon-law"}} {{if eq (len .DetectedRepoLicenses) 1}}{{index .DetectedRepoLicenses 0}}{{else}}{{ctx.Locale.Tr "repo.multiple_licenses"}}{{end}}
+						</a>
+					{{end}}
+					{{if .CitiationExist}}
+						{{template "repo/cite/cite_modal" .}}
+						<a class="flex-text-block muted" id="cite-repo-button">
+							{{svg "octicon-cross-reference"}} {{ctx.Locale.Tr "repo.cite_this_repo"}}
+						</a>
+					{{end}}
+				</div>
 			</div>
 		</div>
 	</div>
