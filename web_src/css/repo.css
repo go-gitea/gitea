@@ -101,11 +101,6 @@
   margin-bottom: 12px;
 }
 
-.repository .repo-description {
-  font-size: 16px;
-  margin-bottom: 5px;
-}
-
 .commit-summary {
   flex: 1;
   overflow-wrap: anywhere;
