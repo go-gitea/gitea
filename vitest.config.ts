@@ -1,5 +1,5 @@
 import {defineConfig} from 'vitest/config';
-import {default as vuePlugin} from '@vitejs/plugin-vue';
+import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
 
 export default defineConfig({
