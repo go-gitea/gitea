@@ -30,6 +30,9 @@ if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
     if [ -n "$SECRET_KEY" ] && [ -z "$INSTALL_LOCK" ]; then
         INSTALL_LOCK=true
     fi
+    if  [  "$DB_PASSWD_FILE" ]; then
+        DB_PASSWD=`cat $DB_PASSWD_FILE`;
+    fi
 
     # Substitute the environment variables in the template
     APP_NAME=${APP_NAME:-"Gitea: Git with a cup of tea"} \
