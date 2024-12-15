@@ -56,7 +56,7 @@ func TestLogger(t *testing.T) {
 	logger := NewLoggerWithWriters(context.Background(), "test")
 
 	dump := logger.DumpWriters()
-	assert.EqualValues(t, 0, len(dump))
+	assert.Empty(t, dump)
 	assert.EqualValues(t, NONE, logger.GetLevel())
 	assert.False(t, logger.IsEnabled())
 
@@ -69,7 +69,7 @@ func TestLogger(t *testing.T) {
 	assert.EqualValues(t, DEBUG, logger.GetLevel())
 
 	dump = logger.DumpWriters()
-	assert.EqualValues(t, 2, len(dump))
+	assert.Len(t, dump, 2)
 
 	logger.Trace("trace-level") // this level is not logged
 	logger.Debug("debug-level")

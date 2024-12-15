@@ -228,7 +228,7 @@ func TestViewRepoDirectory(t *testing.T) {
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
 
 	repoFilesTable := htmlDoc.doc.Find("#repo-files-table")
-	assert.NotZero(t, len(repoFilesTable.Nodes))
+	assert.NotEmpty(t, repoFilesTable.Nodes)
 
 	assert.Zero(t, description.Length())
 	assert.Zero(t, repoTopics.Length())
