@@ -2,7 +2,7 @@
   width: 100%;
   display: grid;
   grid-template-columns: 2fr 3fr auto;
-  border: 1px solid var(--color-light-border);
+  border: 1px solid var(--color-secondary);
   background: var(--color-box-body);
   border-radius: var(--border-radius);
   margin: 10px 0; /* match the "clone-panel-popup" margin to avoid "visual double-border" */
@@ -40,13 +40,17 @@
 
 #repo-files-table .repo-file-line,
 #repo-files-table .repo-file-cell {
-  border-top: 1px solid var(--color-light-border);
+  border-top: 1px solid var(--color-secondary-light-1);
   padding: 8px 10px;
 }
 
 #repo-files-table .repo-file-line:first-child {
   border-top: none;
   border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+#repo-files-table .repo-file-item:nth-child(2) .repo-file-cell {
+  border-top-color: var(--color-secondary);
 }
 
 #repo-files-table .repo-file-item:last-child .repo-file-cell:first-child {
