@@ -1,0 +1,7 @@
+{{if .IsDraft}}
+	<span class="ui yellow label">{{ctx.Locale.Tr "repo.release.draft"}}</span>
+{{else if .IsPrerelease}}
+	<span class="ui orange label">{{ctx.Locale.Tr "repo.release.prerelease"}}</span>
+{{else if (not .IsTag)}}
+	<span class="ui green label">{{ctx.Locale.Tr "repo.release.stable"}}</span>
+{{end}}
