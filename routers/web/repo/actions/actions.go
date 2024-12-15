@@ -292,7 +292,7 @@ func loadIsRefDeleted(ctx *context.Context, runs actions_model.RunList) error {
 	branchSet := git_model.BranchesToNamesSet(branchInfos)
 	for _, run := range runs {
 		refName := git.RefName(run.Ref)
-		if refName.IsBranch() && !branchSet.Contains(run.Ref) {
+		if refName.IsBranch() && !branchSet.Contains(refName.ShortName()) {
 			run.IsRefDeleted = true
 		}
 	}
