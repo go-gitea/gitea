@@ -7,6 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
+	unittest "code.gitea.io/gitea/models/unittest"
 	act_model "github.com/nektos/act/pkg/model"
 	"github.com/stretchr/testify/assert"
 )
@@ -153,4 +156,21 @@ func TestReadWorkflow_WorkflowDispatchConfig(t *testing.T) {
 		Required:    true,
 		Type:        "boolean",
 	}, workflowDispatch.Inputs[2])
+}
+
+func Test_loadIsRefDeleted(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	runs, total, err := db.FindAndCount[actions_model.ActionRun](db.DefaultContext, actions_model.FindRunOptions{RepoID: 4})
+	assert.NoError(t, err)
+	assert.Len(t, runs, 3)
+	assert.EqualValues(t, 3, total)
+	for _, run := range runs {
+		assert.False(t, run.IsRefDeleted)
+	}
+
+	assert.NoError(t, loadIsRefDeleted(db.DefaultContext, 4, runs))
+	for _, run := range runs {
+		assert.True(t, run.IsRefDeleted)
+	}
 }
