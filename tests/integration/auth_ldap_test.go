@@ -265,7 +265,7 @@ func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
 		tr := htmlDoc.doc.Find("table.table tbody tr")
-		assert.True(t, tr.Length() == 0)
+		assert.Equal(t, 0, tr.Length())
 	}
 
 	for _, u := range gitLDAPUsers {

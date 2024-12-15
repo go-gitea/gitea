@@ -661,7 +661,7 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 		searchIssuesResp := session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 		var apiIssuesBefore []*api.Issue
 		DecodeJSON(t, searchIssuesResp, &apiIssuesBefore)
-		assert.Len(t, apiIssuesBefore, 0)
+		assert.Empty(t, apiIssuesBefore)
 
 		// merge the pull request
 		elem := strings.Split(test.RedirectURL(createPullResp), "/")

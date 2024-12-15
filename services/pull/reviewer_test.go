@@ -30,7 +30,7 @@ func TestRepoGetReviewers(t *testing.T) {
 	// should not include doer and remove the poster
 	reviewers, err = pull_service.GetReviewers(ctx, repo1, 11, 2)
 	assert.NoError(t, err)
-	assert.Len(t, reviewers, 0)
+	assert.Empty(t, reviewers)
 
 	// should not include PR poster, if PR poster would be otherwise eligible
 	reviewers, err = pull_service.GetReviewers(ctx, repo1, 11, 4)
@@ -43,7 +43,7 @@ func TestRepoGetReviewers(t *testing.T) {
 	reviewers, err = pull_service.GetReviewers(ctx, repo2, 2, 4)
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 1)
-	assert.EqualValues(t, reviewers[0].ID, 2)
+	assert.EqualValues(t, 2, reviewers[0].ID)
 
 	// test private org repo
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
