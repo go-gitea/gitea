@@ -1,7 +1,7 @@
 {{/*
 Template Attributes:
 * Release: the release
-* IsLatest: whether this is the latest release, optional
+* IsLatest: boolean indicating whether this is the latest release, optional
 */}}
 {{if .IsLatest}}
 	<span class="ui green label">{{ctx.Locale.Tr "repo.release.latest"}}</span>
