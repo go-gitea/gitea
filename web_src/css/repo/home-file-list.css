@@ -35,7 +35,7 @@
 
 #repo-files-table .repo-file-item:hover > .repo-file-cell,
 #repo-files-table .parent-link:hover {
-  background: var(--color-hover);
+  background: var(--color-hover-opaque);
 }
 
 #repo-files-table .repo-file-line,
