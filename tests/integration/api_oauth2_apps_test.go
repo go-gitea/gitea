@@ -74,9 +74,9 @@ func testAPIListOAuth2Applications(t *testing.T) {
 	DecodeJSON(t, resp, &appList)
 	expectedApp := appList[0]
 
-	assert.EqualValues(t, existApp.Name, expectedApp.Name)
-	assert.EqualValues(t, existApp.ClientID, expectedApp.ClientID)
-	assert.Equal(t, existApp.ConfidentialClient, expectedApp.ConfidentialClient)
+	assert.EqualValues(t, expectedApp.Name, existApp.Name)
+	assert.EqualValues(t, expectedApp.ClientID, existApp.ClientID)
+	assert.Equal(t, expectedApp.ConfidentialClient, existApp.ConfidentialClient)
 	assert.Len(t, expectedApp.ClientID, 36)
 	assert.Empty(t, expectedApp.ClientSecret)
 	assert.EqualValues(t, existApp.RedirectURIs[0], expectedApp.RedirectURIs[0])
@@ -128,13 +128,13 @@ func testAPIGetOAuth2Application(t *testing.T) {
 	DecodeJSON(t, resp, &app)
 	expectedApp := app
 
-	assert.EqualValues(t, existApp.Name, expectedApp.Name)
-	assert.EqualValues(t, existApp.ClientID, expectedApp.ClientID)
-	assert.Equal(t, existApp.ConfidentialClient, expectedApp.ConfidentialClient)
+	assert.EqualValues(t, expectedApp.Name, existApp.Name)
+	assert.EqualValues(t, expectedApp.ClientID, existApp.ClientID)
+	assert.Equal(t, expectedApp.ConfidentialClient, existApp.ConfidentialClient)
 	assert.Len(t, expectedApp.ClientID, 36)
 	assert.Empty(t, expectedApp.ClientSecret)
 	assert.Len(t, expectedApp.RedirectURIs, 1)
-	assert.EqualValues(t, existApp.RedirectURIs[0], expectedApp.RedirectURIs[0])
+	assert.EqualValues(t, expectedApp.RedirectURIs[0], existApp.RedirectURIs[0])
 	unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
 }
 

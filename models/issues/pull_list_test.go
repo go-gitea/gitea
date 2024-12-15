@@ -40,7 +40,7 @@ func TestPullRequestList_LoadReviewCommentsCounts(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, reviewComments, 2)
 	for _, pr := range prs {
-		assert.EqualValues(t, reviewComments[pr.IssueID], 1)
+		assert.EqualValues(t, 1, reviewComments[pr.IssueID])
 	}
 }
 
