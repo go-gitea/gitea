@@ -40,10 +40,10 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 	assert.NoError(t, err)
 
 	// Setup ssh wrapper
-	os.Setenv("GIT_SSH", path.Join(tmpDir, "ssh"))
-	os.Setenv("GIT_SSH_COMMAND",
+	t.Setenv("GIT_SSH", path.Join(tmpDir, "ssh"))
+	t.Setenv("GIT_SSH_COMMAND",
 		"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i \""+keyFile+"\"")
-	os.Setenv("GIT_SSH_VARIANT", "ssh")
+	t.Setenv("GIT_SSH_VARIANT", "ssh")
 
 	callback(keyFile)
 }

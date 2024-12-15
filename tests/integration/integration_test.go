@@ -278,7 +278,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Log the flash values on failure
-	if !assert.Equal(t, resp.Result().Header["Location"], []string{"/user/settings/applications"}) {
+	if !assert.Equal(t, []string{"/user/settings/applications"}, resp.Result().Header["Location"]) {
 		for _, cookie := range resp.Result().Cookies() {
 			if cookie.Name != gitea_context.CookieNameFlash {
 				continue
@@ -453,16 +453,16 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 
 	schemaFilePath := filepath.Join(filepath.Dir(setting.AppPath), "tests", "integration", "schemas", schemaFile)
 	_, schemaFileErr := os.Stat(schemaFilePath)
-	assert.Nil(t, schemaFileErr)
+	assert.NoError(t, schemaFileErr)
 
 	schema, schemaFileReadErr := os.ReadFile(schemaFilePath)
-	assert.Nil(t, schemaFileReadErr)
-	assert.True(t, len(schema) > 0)
+	assert.NoError(t, schemaFileReadErr)
+	assert.NotEmpty(t, schema)
 
 	nodeinfoSchema := gojsonschema.NewStringLoader(string(schema))
 	nodeinfoString := gojsonschema.NewStringLoader(resp.Body.String())
 	result, schemaValidationErr := gojsonschema.Validate(nodeinfoSchema, nodeinfoString)
-	assert.Nil(t, schemaValidationErr)
+	assert.NoError(t, schemaValidationErr)
 	assert.Empty(t, result.Errors())
 	assert.True(t, result.Valid())
 }

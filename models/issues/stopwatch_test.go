@@ -32,7 +32,7 @@ func TestCancelStopwatch(t *testing.T) {
 
 	_ = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{Type: issues_model.CommentTypeCancelTracking, PosterID: user1.ID, IssueID: issue1.ID})
 
-	assert.Nil(t, issues_model.CancelStopwatch(db.DefaultContext, user1, issue2))
+	assert.NoError(t, issues_model.CancelStopwatch(db.DefaultContext, user1, issue2))
 }
 
 func TestStopwatchExists(t *testing.T) {
