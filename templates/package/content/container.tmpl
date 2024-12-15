@@ -38,7 +38,7 @@
 					{{range .PackageDescriptor.Metadata.Manifests}}
 						{{if ne .Platform "unknown/unknown"}}
 						<tr>
-							<td><a class="ui sha label" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .Digest}}">{{ShortSha256 .Digest}}</a></td>
+							<td><a class="ui sha label" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .Digest}}">{{StringUtils.TrimPrefix .Digest "sha256:" | ShortSha}}</a></td>
 							<td>{{.Platform}}</td>
 							<td>{{FileSize .Size}}</td>
 						</tr>

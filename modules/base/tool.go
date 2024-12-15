@@ -41,14 +41,6 @@ func ShortSha(sha1 string) string {
 	return TruncateString(sha1, 10)
 }
 
-// ShortSha256 takes 7-17 indexes of sha256 string as short sha256
-func ShortSha256(sha256 string) string {
-	if utf8.RuneCountInString(sha256) < 17 {
-		return sha256
-	}
-	return string([]rune(sha256)[7:17])
-}
-
 // BasicAuthDecode decode basic auth string
 func BasicAuthDecode(encoded string) (string, string, error) {
 	s, err := base64.StdEncoding.DecodeString(encoded)
