@@ -156,7 +156,7 @@ func TestStringsToInt64s(t *testing.T) {
 	testSuccess([]string{"1", "4", "16", "64", "256"}, []int64{1, 4, 16, 64, 256})
 
 	ints, err := StringsToInt64s([]string{"-1", "a"})
-	assert.Len(t, ints, 0)
+	assert.Empty(t, ints)
 	assert.Error(t, err)
 }
 

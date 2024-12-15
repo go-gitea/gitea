@@ -34,7 +34,7 @@ func TestRepository_GetBranches(t *testing.T) {
 	branches, countAll, err = bareRepo1.GetBranchNames(5, 1)
 
 	assert.NoError(t, err)
-	assert.Len(t, branches, 0)
+	assert.Empty(t, branches)
 	assert.EqualValues(t, 3, countAll)
 	assert.ElementsMatch(t, []string{}, branches)
 }
@@ -66,7 +66,7 @@ func TestGetRefsBySha(t *testing.T) {
 	// do not exist
 	branches, err := bareRepo5.GetRefsBySha("8006ff9adbf0cb94da7dad9e537e53817f9fa5c0", "")
 	assert.NoError(t, err)
-	assert.Len(t, branches, 0)
+	assert.Empty(t, branches)
 
 	// refs/pull/1/head
 	branches, err = bareRepo5.GetRefsBySha("c83380d7056593c51a699d12b9c00627bd5743e9", PullPrefix)

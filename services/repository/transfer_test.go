@@ -103,7 +103,7 @@ func TestRepositoryTransfer(t *testing.T) {
 	assert.NoError(t, models.CreatePendingRepositoryTransfer(db.DefaultContext, doer, user2, repo.ID, nil))
 
 	transfer, err = models.GetPendingRepositoryTransfer(db.DefaultContext, repo)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.NoError(t, transfer.LoadAttributes(db.DefaultContext))
 	assert.Equal(t, "user2", transfer.Recipient.Name)
 
