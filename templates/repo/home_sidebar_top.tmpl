@@ -20,7 +20,7 @@
 							{{svg "octicon-link"}} <span class="tw-text-primary">{{.Repository.Website}}</span>
 						</a>
 					{{end}}
-					<div id="repo-topics" class="flex-text-block tw-flex-wrap tw-gap-1 tw-my-2" >
+					<div id="repo-topics" class="flex-text-block tw-flex-wrap tw-gap-1 tw-my-2 tw-text-text">
 						{{/* !!!! it SHOULD and MUST match the code in repo-home.ts */}}
 						{{range .Topics}}<a class="repo-topic ui large label gt-ellipsis" title={{.Name}} href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
 					</div>
