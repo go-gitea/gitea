@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"maps"
 	"net"
 	"os"
 	"os/exec"
@@ -49,6 +48,10 @@ import (
 // Then sessionHandler should only use the "verified keyID" from the original ssh conn, but not the ctx one.
 // Otherwise, if a user provides 2 keys A (a correct one) and B (public key matches but no private key),
 // then only A succeeds to authenticate, sessionHandler will see B's keyID
+//
+// After x/crypto >= 0.31.0 (fix CVE-2024-45337), the PublicKeyCallback will be called again for the verified key,
+// it mitigates the misuse for most cases, it's still good for us to make sure we don't rely on that mitigation
+// and do not misuse the PublicKeyCallback: we should only use the verified keyID from the verified ssh conn.
 
 const giteaPermissionExtensionKeyID = "gitea-perm-ext-key-id"
 
@@ -100,8 +103,8 @@ func ptr[T any](intf any) *T {
 func sessionHandler(session ssh.Session) {
 	// here can't use session.Permissions() because it only uses the value from ctx, which might not be the authenticated one.
 	// so we must use the original ssh conn, which always contains the correct (verified) keyID.
-	sshConn := ptr[sessionPartial](session)
-	keyID := sshConn.conn.Permissions.Extensions[giteaPermissionExtensionKeyID]
+	sshSession := ptr[sessionPartial](session)
+	keyID := sshSession.conn.Permissions.Extensions[giteaPermissionExtensionKeyID]
 
 	command := session.RawCommand()
 
@@ -210,10 +213,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 	// first, reset the ctx permissions (just like https://github.com/gliderlabs/ssh/pull/243 does)
 	// it shouldn't be reused across different ssh conn (sessions), each pub key should have its own "Permissions"
-	oldCtxPerm := ctx.Permissions().Permissions
 	ctx.Permissions().Permissions = &gossh.Permissions{}
-	ctx.Permissions().Permissions.CriticalOptions = maps.Clone(oldCtxPerm.CriticalOptions)
-
 	setPermExt := func(keyID int64) {
 		ctx.Permissions().Permissions.Extensions = map[string]string{
 			giteaPermissionExtensionKeyID: fmt.Sprint(keyID),
