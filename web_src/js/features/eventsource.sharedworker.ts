@@ -2,6 +2,11 @@ const sourcesByUrl = {};
 const sourcesByPort = {};
 
 class Source {
+  url: string;
+  eventSource: EventSource;
+  listening: Record<string, any>;
+  clients: Array<any>;
+
   constructor(url) {
     this.url = url;
     this.eventSource = new EventSource(url);
@@ -67,7 +72,7 @@ class Source {
   }
 }
 
-self.addEventListener('connect', (e) => {
+self.addEventListener('connect', (e: Event & {ports: Array<any>}) => {
   for (const port of e.ports) {
     port.addEventListener('message', (event) => {
       if (!self.EventSource) {
