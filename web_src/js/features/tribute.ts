@@ -51,6 +51,7 @@ function makeCollections({mentions, emoji}) {
 export async function attachTribute(element, {mentions, emoji}) {
   const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
   const collections = makeCollections({mentions, emoji});
+  // @ts-expect-error TS2351: This expression is not constructable (strange, why)
   const tribute = new Tribute({collection: collections, noMatchTemplate: ''});
   tribute.attach(element);
   return tribute;
