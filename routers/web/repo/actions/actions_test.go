@@ -161,10 +161,11 @@ func TestReadWorkflow_WorkflowDispatchConfig(t *testing.T) {
 func Test_loadIsRefDeleted(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	runs, total, err := db.FindAndCount[actions_model.ActionRun](db.DefaultContext, actions_model.FindRunOptions{RepoID: 4})
+	runs, total, err := db.FindAndCount[actions_model.ActionRun](db.DefaultContext,
+		actions_model.FindRunOptions{RepoID: 4, Ref: "refs/heads/test"})
 	assert.NoError(t, err)
-	assert.Len(t, runs, 3)
-	assert.EqualValues(t, 3, total)
+	assert.Len(t, runs, 1)
+	assert.EqualValues(t, 1, total)
 	for _, run := range runs {
 		assert.False(t, run.IsRefDeleted)
 	}
