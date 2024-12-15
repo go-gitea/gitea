@@ -1,5 +1,5 @@
 import {defineConfig} from 'vitest/config';
-import vuePlugin from '@vitejs/plugin-vue';
+import {default as vuePlugin} from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
 
 export default defineConfig({
@@ -16,7 +16,6 @@ export default defineConfig({
   },
   plugins: [
     stringPlugin(),
-    // @ts-expect-error TS2351: This expression is not callable, only happens with vue-tsc
     vuePlugin(),
   ],
 });

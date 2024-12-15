@@ -1,4 +1,4 @@
-import {isDarkTheme} from '../utils.ts';
+import {isDarkTheme} from '../utils';
 
 export async function initCaptcha() {
   const captchaEl = document.querySelector('#captcha');
