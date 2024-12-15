@@ -5,9 +5,9 @@
 		<div>{{if and .LatestCommit .LatestCommit.Committer}}{{DateUtils.TimeSince .LatestCommit.Committer.When}}{{end}}</div>
 	</div>
 	{{if .HasParentPath}}
-	<div class="repo-file-line">
-		{{svg "octicon-reply"}} <a class="muted" href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">..</a>
-	</div>
+	<a class="repo-file-line parent-link silenced" href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">
+		{{svg "octicon-file-directory-fill"}} ..
+	</a>
 	{{end}}
 	{{range $item := .Files}}
 		<div class="repo-file-item">
