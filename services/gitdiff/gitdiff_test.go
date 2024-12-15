@@ -644,7 +644,7 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 			})
 		assert.NoError(t, err, "Error when diff with %s", behavior)
 		for _, f := range diffs.Files {
-			assert.Positive(t, f.Sections, "%s should have sections", f.Name)
+			assert.NotEmpty(t, f.Sections, "%s should have sections", f.Name)
 		}
 	}
 }
