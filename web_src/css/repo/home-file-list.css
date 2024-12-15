@@ -49,7 +49,8 @@
   border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
-#repo-files-table .repo-file-item:nth-child(2) .repo-file-cell {
+#repo-files-table .repo-file-last-commit + .repo-file-line,
+#repo-files-table .repo-file-last-commit + .repo-file-item .repo-file-cell {
   border-top-color: var(--color-secondary);
 }
 
