@@ -8,44 +8,42 @@
 <div class="flex-list">
 	<div class="flex-item">
 		<div class="flex-item-main">
-			<div class="flex-item-title">
-				{{ctx.Locale.Tr "repo.repo_desc"}}
+			<div class="flex-item-title">{{ctx.Locale.Tr "repo.repo_desc"}}</div>
+			<div class="flex-item-body">
+				{{if and (not .HideRepoInfo) (not .IsBlame)}}
+					<div class="repo-description tw-break-anywhere tw-gap-2 tw-my-2">
+						{{- $description := .Repository.DescriptionHTML ctx -}}
+						{{if $description}}{{$description | RenderCodeBlock}}{{else}}{{ctx.Locale.Tr "repo.repo_no_desc"}}{{end}}
+					</div>
+					{{if .Repository.Website}}
+						<a class="flex-text-block muted" href="{{.Repository.Website}}">
+							{{svg "octicon-link"}} <span class="tw-text-primary">{{.Repository.Website}}</span>
+						</a>
+					{{end}}
+					<div id="repo-topics" class="flex-text-block tw-flex-wrap tw-gap-1 tw-my-2" >
+						{{/* !!!! it SHOULD and MUST match the code in repo-home.ts */}}
+						{{range .Topics}}<a class="repo-topic ui large label gt-ellipsis" title={{.Name}} href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
+					</div>
+					{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
+						<button id="manage_topic" class="btn interact-fg tw-text-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>
+						<div class="ui form tw-hidden tw-my-2" id="topic_edit">
+							<div class="ui fluid multiple search selection dropdown tw-flex-wrap tw-flex-1">
+								<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
+								{{range .Topics}}
+									{{/* keep the same layout as Fomantic UI generated labels */}}
+									<a class="ui label transition visible tw-cursor-default tw-inline-block repo-topic" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
+								{{end}}
+								<div class="text"></div>
+							</div>
+							<div class="tw-my-2">
+								<button class="ui primary button" id="save_topic" data-link="{{.RepoLink}}/topics">{{ctx.Locale.Tr "save"}}</button>
+								<button class="ui basic button" id="cancel_topic_edit">{{ctx.Locale.Tr "cancel"}}</button>
+							</div>
+						</div>
+					{{end}}
+				{{end}}
 			</div>
-			{{if and (not .HideRepoInfo) (not .IsBlame)}}
-				<div class="flex-item-body repo-description tw-break-anywhere tw-gap-2 tw-my-2">
-					{{- $description := .Repository.DescriptionHTML ctx -}}
-					{{if $description}}{{$description | RenderCodeBlock}}{{else}}{{ctx.Locale.Tr "repo.repo_no_desc"}}{{end}}
-				</div>
-				{{if .Repository.Website}}
-					<a class="flex-text-block muted" href="{{.Repository.Website}}">
-						{{svg "octicon-link"}} <span class="tw-text-primary">{{.Repository.Website}}</span>
-					</a>
-				{{end}}
-				<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-2 tw-my-2" id="repo-topics">
-					{{/* !!!! it SHOULD and MUST match the code in issue-home.js */}}
-					{{range .Topics}}<a class="repo-topic ui large label gt-ellipsis" title={{.Name}} href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
-				</div>
-				{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
-					<button id="manage_topic" class="btn interact-fg tw-text-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>
-				{{end}}
-			{{end}}
-			{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
-				<div class="ui form tw-hidden flex-item-body tw-gap-2 tw-my-2" id="topic_edit">
-					<div class="ui fluid multiple search selection dropdown tw-flex-wrap tw-flex-1">
-						<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
-						{{range .Topics}}
-							{{/* keep the same layout as Fomantic UI generated labels */}}
-							<a class="ui label transition visible tw-cursor-default tw-inline-block repo-topic" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
-						{{end}}
-						<div class="text"></div>
-					</div>
-					<div>
-						<button class="ui primary button" id="save_topic" data-link="{{.RepoLink}}/topics">{{ctx.Locale.Tr "save"}}</button>
-						<button class="ui basic button" id="cancel_topic_edit">{{ctx.Locale.Tr "cancel"}}</button>
-					</div>
-				</div>
-			{{end}}
-			<div class="flex-item-body tw-flex tw-flex-col tw-gap-1 tw-mt-2 tw-items-start">
+			<div class="flex-item-body tw-flex-col tw-gap-1 tw-mt-2 tw-items-start">
 				{{if .ReadmeExist}}
 					<a class="flex-text-block muted" href="{{.TreeLink}}/{{.FileName}}">
 						{{svg "octicon-book"}} {{ctx.Locale.Tr "readme"}}
