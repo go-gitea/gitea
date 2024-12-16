@@ -434,7 +434,7 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
 	milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1})
-	assert.EqualValues(t, milestone.ID, 1)
+	assert.EqualValues(t, 1, milestone.ID)
 	reaction := &issues_model.Reaction{
 		Type:   "heart",
 		UserID: owner.ID,

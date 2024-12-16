@@ -31,13 +31,13 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		return nil, user_model.ErrUserNotExist{Name: loginName}
 	}
 	// Fallback.
-	if len(sr.Username) == 0 {
+	if sr.Username == "" {
 		sr.Username = userName
 	}
-	if len(sr.Mail) == 0 {
+	if sr.Mail == "" {
 		sr.Mail = fmt.Sprintf("%s@localhost.local", sr.Username)
 	}
-	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
+	isAttributeSSHPublicKeySet := strings.TrimSpace(source.AttributeSSHPublicKey) != ""
 
 	// Update User admin flag if exist
 	if isExist, err := user_model.IsUserExist(ctx, 0, sr.Username); err != nil {
@@ -51,11 +51,11 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		}
 		if user != nil && !user.ProhibitLogin {
 			opts := &user_service.UpdateOptions{}
-			if len(source.AdminFilter) > 0 && user.IsAdmin != sr.IsAdmin {
+			if source.AdminFilter != "" && user.IsAdmin != sr.IsAdmin {
 				// Change existing admin flag only if AdminFilter option is set
 				opts.IsAdmin = optional.Some(sr.IsAdmin)
 			}
-			if !sr.IsAdmin && len(source.RestrictedFilter) > 0 && user.IsRestricted != sr.IsRestricted {
+			if !sr.IsAdmin && source.RestrictedFilter != "" && user.IsRestricted != sr.IsRestricted {
 				// Change existing restricted flag only if RestrictedFilter option is set
 				opts.IsRestricted = optional.Some(sr.IsRestricted)
 			}
@@ -99,7 +99,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 				return user, err
 			}
 		}
-		if len(source.AttributeAvatar) > 0 {
+		if source.AttributeAvatar != "" {
 			if err := user_service.UploadAvatar(ctx, user, sr.Avatar); err != nil {
 				return user, err
 			}

@@ -137,7 +137,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		if err != nil {
 			return 0, err
 		}
-		run.Status = aggregateJobStatus(jobs)
+		run.Status = AggregateJobStatus(jobs)
 		if run.Started.IsZero() && run.Status.IsRunning() {
 			run.Started = timeutil.TimeStampNow()
 		}
@@ -152,7 +152,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 	return affected, nil
 }
 
-func aggregateJobStatus(jobs []*ActionRunJob) Status {
+func AggregateJobStatus(jobs []*ActionRunJob) Status {
 	allDone := true
 	allWaiting := true
 	hasFailure := false
