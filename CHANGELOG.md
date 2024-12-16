@@ -45,7 +45,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Enhancing Gitea OAuth2 Provider with Granular Scopes for Resource Access (#32573)
 
 * PERFORMANCE
-  * Faster git.GetDivergingCommits (#24482)
   * Perf: add extra index to notification table (#32395)
   * Introduce OrgList and add LoadTeams, optimaze Load teams for orgs (#32543)
   * Improve performance of diffs (#32393)
@@ -2325,7 +2324,7 @@ Key highlights of this release encompass significant changes categorized under `
   * Revert "Prevent a user with a different email from accepting the team invite" (#24531)
   * Temporarily disable PATs until next release (#24527)
   * Clean up polluted styles and remove dead CSS code (#24497)
-
+  * Faster git.GetDivergingCommits (#24482)
   * Fix test delivery button in repo webhook settings page (#24478)
   * Use globally shared HTMLRender (#24436)
   * Changelog 1.19.2 (#24365) (#24403)
