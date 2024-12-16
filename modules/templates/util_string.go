@@ -60,3 +60,7 @@ func (su *StringUtils) EllipsisString(s string, maxLength int) string {
 func (su *StringUtils) ToUpper(s string) string {
 	return strings.ToUpper(s)
 }
+
+func (su *StringUtils) TrimPrefix(s, prefix string) string {
+	return strings.TrimPrefix(s, prefix)
+}
