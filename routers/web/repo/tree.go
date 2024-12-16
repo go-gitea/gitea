@@ -5,6 +5,8 @@ package repo
 
 import (
 	"net/http"
+	"path"
+	"strings"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -51,4 +53,28 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 	}
 
 	return false
+}
+
+func getPossibleBranches(dir string) []string {
+	cnt := strings.Count(dir, "/")
+	branches := make([]string, cnt, cnt)
+	for i := 0; i < cnt; i++ {
+		branches[i] = dir
+		dir = path.Dir(dir)
+	}
+	return branches
+}
+
+func guessRefInfoAndDir(ctx *context.Context, dir string) (git.RefName, string, error) {
+	branches := getPossibleBranches(dir)
+}
+
+func Tree(ctx *context.Context) {
+	pathParam := ctx.PathParam("*")
+	dir := path.Dir(pathParam)
+	refName, realDir, err := guessRefInfoAndDir(ctx, dir)
+	if err != nil {
+		ctx.ServerError("guessRefInfoAndDir", err)
+		return
+	}
 }
