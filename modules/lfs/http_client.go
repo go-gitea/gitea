@@ -72,7 +72,10 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 
 	url := fmt.Sprintf("%s/objects/batch", c.endpoint)
 
-	request := &BatchRequest{operation, c.transferNames(), nil, objects}
+	// `ref` is an "optional object describing the server ref that the objects belong to"
+	// but some (incorrect) lfs servers require it, so maybe adding an empty ref here doesn't break the correct ones.
+	// https://github.com/git-lfs/git-lfs/blob/a32a02b44bf8a511aa14f047627c49e1a7fd5021/docs/api/batch.md?plain=1#L37
+	request := &BatchRequest{operation, c.transferNames(), &Reference{}, objects}
 	payload := new(bytes.Buffer)
 	err := json.NewEncoder(payload).Encode(request)
 	if err != nil {

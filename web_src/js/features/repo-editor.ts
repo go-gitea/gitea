@@ -35,7 +35,7 @@ function initEditPreviewTab(elForm: HTMLFormElement) {
 }
 
 export function initRepoEditor() {
-  const dropzoneUpload = document.querySelector('.page-content.repository.editor.upload .dropzone');
+  const dropzoneUpload = document.querySelector<HTMLElement>('.page-content.repository.editor.upload .dropzone');
   if (dropzoneUpload) initDropzone(dropzoneUpload);
 
   const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');

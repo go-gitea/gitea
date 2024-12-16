@@ -59,7 +59,7 @@ func initMigrationTest(t *testing.T) func() {
 
 	unittest.InitSettings()
 
-	assert.True(t, len(setting.RepoRootPath) != 0)
+	assert.NotEmpty(t, setting.RepoRootPath)
 	assert.NoError(t, unittest.SyncDirs(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	assert.NoError(t, git.InitFull(context.Background()))
 	setting.LoadDBSetting()

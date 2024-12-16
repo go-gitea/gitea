@@ -278,12 +278,12 @@ func TestRender_AutoLink(t *testing.T) {
 	test := func(input, expected string) {
 		var buffer strings.Builder
 		err := PostProcessDefault(NewTestRenderContext(localMetas), strings.NewReader(input), &buffer)
-		assert.Equal(t, err, nil)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer.String()))
 
 		buffer.Reset()
 		err = PostProcessDefault(NewTestRenderContext(localMetas), strings.NewReader(input), &buffer)
-		assert.Equal(t, err, nil)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer.String()))
 	}
 
