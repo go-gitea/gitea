@@ -72,7 +72,7 @@
 													"Repository" .Repository
 													"ShowTabBranches" true
 													"CurrentRefType" "branch"
-													"CurrentRefShortName" (Iif $.BranchName $.Repository.DefaultBranch)
+													"CurrentRefShortName" (or $.BranchName $.Repository.DefaultBranch)
 													"RefFormActionTemplate" (print "{RepoLink}/_cherrypick/" .CommitID "/{RefShortName}")
 												}}
 												<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br>
