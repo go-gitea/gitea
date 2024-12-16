@@ -16,7 +16,6 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // because we should use our own wrapper functions to handle them, do not let the user override them
   const {onHide, onShow, onDestroy, role, theme, arrow, ...other} = opts;
 
-  // @ts-expect-error: wrong type derived by typescript
   const instance: Instance = tippy(target, {
     appendTo: document.body,
     animation: false,

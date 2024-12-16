@@ -83,7 +83,7 @@ func TestLoadRequestedReviewers(t *testing.T) {
 	assert.NoError(t, pull.LoadIssue(db.DefaultContext))
 	issue := pull.Issue
 	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
-	assert.Len(t, pull.RequestedReviewers, 0)
+	assert.Empty(t, pull.RequestedReviewers)
 
 	user1, err := user_model.GetUserByID(db.DefaultContext, 1)
 	assert.NoError(t, err)

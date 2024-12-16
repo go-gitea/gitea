@@ -64,7 +64,7 @@ func TestFetchCodeComments(t *testing.T) {
 }
 
 func TestAsCommentType(t *testing.T) {
-	assert.Equal(t, issues_model.CommentType(0), issues_model.CommentTypeComment)
+	assert.Equal(t, issues_model.CommentTypeComment, issues_model.CommentType(0))
 	assert.Equal(t, issues_model.CommentTypeUndefined, issues_model.AsCommentType(""))
 	assert.Equal(t, issues_model.CommentTypeUndefined, issues_model.AsCommentType("nonsense"))
 	assert.Equal(t, issues_model.CommentTypeComment, issues_model.AsCommentType("comment"))

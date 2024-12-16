@@ -12,31 +12,25 @@ import (
 )
 
 type inlineParser struct {
-	start []byte
-	end   []byte
+	trigger              []byte
+	endBytesSingleDollar []byte
+	endBytesDoubleDollar []byte
+	endBytesBracket      []byte
 }
 
 var defaultInlineDollarParser = &inlineParser{
-	start: []byte{'$'},
-	end:   []byte{'$'},
-}
-
-var defaultDualDollarParser = &inlineParser{
-	start: []byte{'$', '$'},
-	end:   []byte{'$', '$'},
+	trigger:              []byte{'$'},
+	endBytesSingleDollar: []byte{'$'},
+	endBytesDoubleDollar: []byte{'$', '$'},
 }
 
 func NewInlineDollarParser() parser.InlineParser {
 	return defaultInlineDollarParser
 }
 
-func NewInlineDualDollarParser() parser.InlineParser {
-	return defaultDualDollarParser
-}
-
 var defaultInlineBracketParser = &inlineParser{
-	start: []byte{'\\', '('},
-	end:   []byte{'\\', ')'},
+	trigger:         []byte{'\\', '('},
+	endBytesBracket: []byte{'\\', ')'},
 }
 
 func NewInlineBracketParser() parser.InlineParser {
@@ -45,7 +39,7 @@ func NewInlineBracketParser() parser.InlineParser {
 
 // Trigger triggers this parser on $ or \
 func (parser *inlineParser) Trigger() []byte {
-	return parser.start
+	return parser.trigger
 }
 
 func isPunctuation(b byte) bool {
@@ -64,33 +58,60 @@ func isAlphanumeric(b byte) bool {
 func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
 	line, _ := block.PeekLine()
 
-	if !bytes.HasPrefix(line, parser.start) {
+	if !bytes.HasPrefix(line, parser.trigger) {
 		// We'll catch this one on the next time round
 		return nil
 	}
 
-	precedingCharacter := block.PrecendingCharacter()
-	if precedingCharacter < 256 && (isAlphanumeric(byte(precedingCharacter)) || isPunctuation(byte(precedingCharacter))) {
-		// need to exclude things like `a$` from being considered a start
-		return nil
+	var startMarkLen int
+	var stopMark []byte
+	checkSurrounding := true
+	if line[0] == '$' {
+		startMarkLen = 1
+		stopMark = parser.endBytesSingleDollar
+		if len(line) > 1 {
+			if line[1] == '$' {
+				startMarkLen = 2
+				stopMark = parser.endBytesDoubleDollar
+			} else if line[1] == '`' {
+				pos := 1
+				for ; pos < len(line) && line[pos] == '`'; pos++ {
+				}
+				startMarkLen = pos
+				stopMark = bytes.Repeat([]byte{'`'}, pos)
+				stopMark[len(stopMark)-1] = '$'
+				checkSurrounding = false
+			}
+		}
+	} else {
+		startMarkLen = 2
+		stopMark = parser.endBytesBracket
+	}
+
+	if checkSurrounding {
+		precedingCharacter := block.PrecendingCharacter()
+		if precedingCharacter < 256 && (isAlphanumeric(byte(precedingCharacter)) || isPunctuation(byte(precedingCharacter))) {
+			// need to exclude things like `a$` from being considered a start
+			return nil
+		}
 	}
 
 	// move the opener marker point at the start of the text
-	opener := len(parser.start)
+	opener := startMarkLen
 
 	// Now look for an ending line
 	depth := 0
 	ender := -1
 	for i := opener; i < len(line); i++ {
-		if depth == 0 && bytes.HasPrefix(line[i:], parser.end) {
+		if depth == 0 && bytes.HasPrefix(line[i:], stopMark) {
 			succeedingCharacter := byte(0)
-			if i+len(parser.end) < len(line) {
-				succeedingCharacter = line[i+len(parser.end)]
+			if i+len(stopMark) < len(line) {
+				succeedingCharacter = line[i+len(stopMark)]
 			}
 			// check valid ending character
 			isValidEndingChar := isPunctuation(succeedingCharacter) || isBracket(succeedingCharacter) ||
 				succeedingCharacter == ' ' || succeedingCharacter == '\n' || succeedingCharacter == 0
-			if !isValidEndingChar {
+			if checkSurrounding && !isValidEndingChar {
 				break
 			}
 			ender = i
@@ -112,21 +133,12 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 
 	block.Advance(opener)
 	_, pos := block.Position()
-	var node ast.Node
-	if parser == defaultDualDollarParser {
-		node = NewInlineBlock()
-	} else {
-		node = NewInline()
-	}
+	node := NewInline()
+
 	segment := pos.WithStop(pos.Start + ender - opener)
 	node.AppendChild(node, ast.NewRawTextSegment(segment))
-	block.Advance(ender - opener + len(parser.end))
-
-	if parser == defaultDualDollarParser {
-		trimBlock(&(node.(*InlineBlock)).Inline, block)
-	} else {
-		trimBlock(node.(*Inline), block)
-	}
+	block.Advance(ender - opener + len(stopMark))
+	trimBlock(node, block)
 	return node
 }
 
