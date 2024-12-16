@@ -102,8 +102,12 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 }
 
-func FindUserProfileReadme(ctx *context.Context, doer *user_model.User) (profileDbRepo *repo_model.Repository, profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {
-	profileDbRepo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, ".profile")
+func FindUserProfileReadme(ctx *context.Context, doer *user_model.User, profileType string) (profileDbRepo *repo_model.Repository, profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {
+	profileName := ".profile"
+	if profileType != "Public" {
+		profileName = ".profile-private"
+	}
+	profileDbRepo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, profileName)
 	if err == nil {
 		perm, err := access_model.GetUserRepoPermission(ctx, profileDbRepo, doer)
 		if err == nil && !profileDbRepo.IsEmpty && perm.CanRead(unit.TypeCode) {
@@ -130,9 +134,9 @@ func FindUserProfileReadme(ctx *context.Context, doer *user_model.User) (profile
 func RenderUserHeader(ctx *context.Context) {
 	prepareContextForCommonProfile(ctx)
 
-	_, _, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx, ctx.Doer)
+	_, _, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx, ctx.Doer, "Public")
 	defer profileClose()
-	ctx.Data["HasProfileReadme"] = profileReadmeBlob != nil
+	ctx.Data["HasPublicProfileReadme"] = profileReadmeBlob != nil
 }
 
 func LoadHeaderCount(ctx *context.Context) error {
@@ -174,9 +178,13 @@ func RenderOrgHeader(ctx *context.Context) error {
 		return err
 	}
 
-	_, _, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx, ctx.Doer)
+	_, _, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx, ctx.Doer, "Public")
 	defer profileClose()
-	ctx.Data["HasProfileReadme"] = profileReadmeBlob != nil
+	ctx.Data["HasPublicProfileReadme"] = profileReadmeBlob != nil
+
+	_, _, profileReadmeBlob, profileClose = FindUserProfileReadme(ctx, ctx.Doer, "Private")
+	defer profileClose()
+	ctx.Data["HasPrivateProfileReadme"] = profileReadmeBlob != nil
 
 	return nil
 }
