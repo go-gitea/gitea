@@ -551,6 +551,7 @@ export function initRepositoryActionView() {
 
 .action-info-summary-title {
   display: flex;
+  align-items: center;
 }
 
 .action-info-summary-title-text {

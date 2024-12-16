@@ -6,19 +6,19 @@
 import {SvgIcon} from '../svg.ts';
 
 withDefaults(defineProps<{
-  status: '',
-  size?: number,
-  className?: string,
+  status: 'success' | 'skipped' | 'waiting' | 'blocked' | 'running' | 'failure' | 'cancelled' | 'unknown',
+  size: number,
+  className: string,
   localeStatus?: string,
 }>(), {
   size: 16,
-  className: undefined,
+  className: '',
   localeStatus: undefined,
 });
 </script>
 
 <template>
-  <span class="tw-flex tw-items-center" :data-tooltip-content="localeStatus" v-if="status">
+  <span :data-tooltip-content="localeStatus ?? status" v-if="status">
     <SvgIcon name="octicon-check-circle-fill" class="text green" :size="size" :class-name="className" v-if="status === 'success'"/>
     <SvgIcon name="octicon-skip" class="text grey" :size="size" :class-name="className" v-else-if="status === 'skipped'"/>
     <SvgIcon name="octicon-stop" class="text yellow" :size="size" :class-name="className" v-else-if="status === 'cancelled'"/>

@@ -4,7 +4,7 @@
 -->
 {{- $size := Iif .size .size 16 -}}
 {{- $className := Iif .className .className "" -}}
-<span class="tw-flex tw-items-center" data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" .status)}}">
+<span data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" .status)}}">
 {{if eq .status "success"}}
 	{{svg "octicon-check-circle-fill" $size (printf "text green %s" $className)}}
 {{else if eq .status "skipped"}}
