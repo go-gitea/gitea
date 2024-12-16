@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -757,4 +758,21 @@ func PrepareBranchList(ctx *context.Context) {
 		brs = append([]string{ctx.Repo.Repository.DefaultBranch}, brs...)
 	}
 	ctx.Data["Branches"] = brs
+}
+
+type preferencesForm struct {
+	ShowFileViewTreeSidebar bool `json:"show_file_view_tree_sidebar"`
+}
+
+func UpdatePreferences(ctx *context.Context) {
+	form := &preferencesForm{}
+	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+		ctx.ServerError("DecodePreferencesForm", err)
+		return
+	}
+	// if err := ctx.Session.Set("repoPreferences", form); err != nil {
+	// 	ctx.ServerError("Session.Set", err)
+	// 	return
+	// }
+	ctx.JSONOK()
 }
