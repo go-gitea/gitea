@@ -30,8 +30,15 @@ func TestAggregateJobStatus(t *testing.T) {
 		statuses []Status
 		expected Status
 	}{
-		// empty, maybe it shouldn't happen in real world
+		// unknown cases, maybe it shouldn't happen in real world
 		{[]Status{}, StatusUnknown},
+		{[]Status{StatusUnknown, StatusSuccess}, StatusUnknown},
+		{[]Status{StatusUnknown, StatusSkipped}, StatusUnknown},
+		{[]Status{StatusUnknown, StatusFailure}, StatusFailure},
+		{[]Status{StatusUnknown, StatusCancelled}, StatusCancelled},
+		{[]Status{StatusUnknown, StatusWaiting}, StatusWaiting},
+		{[]Status{StatusUnknown, StatusRunning}, StatusRunning},
+		{[]Status{StatusUnknown, StatusBlocked}, StatusBlocked},
 
 		// success with other status
 		{[]Status{StatusSuccess}, StatusSuccess},
