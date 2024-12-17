@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	html_template "html/template"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -112,11 +113,11 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
 	currentURL := ctx.Req.URL
-    queryParams := currentURL.Query()
+	queryParams := currentURL.Query()
 	queryParams.Set("view_as", "member")
-	ctx.Data["QueryForMember"] = queryParams.Encode()
+	ctx.Data["QueryForMember"] = html_template.URL(queryParams.Encode())
 	queryParams.Set("view_as", "public")
-	ctx.Data["QueryForPublic"] = queryParams.Encode()
+	ctx.Data["QueryForPublic"] = html_template.URL(queryParams.Encode())
 
 	isViewerMember := ctx.FormString("view_as") == "member"
 	ctx.Data["IsViewerMember"] = isViewerMember
