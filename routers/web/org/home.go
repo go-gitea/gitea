@@ -5,10 +5,10 @@ package org
 
 import (
 	"fmt"
+	html_template "html/template"
 	"net/http"
 	"path"
 	"strings"
-	html_template "html/template"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -129,6 +129,12 @@ func home(ctx *context.Context, viewRepositories bool) {
 
 	if !prepareOrgProfileReadme(ctx, viewRepositories, profileType) {
 		ctx.Data["PageIsViewRepositories"] = true
+	}
+
+	err = shared_user.RenderOrgHeader(ctx)
+	if err != nil {
+		ctx.ServerError("RenderOrgHeader", err)
+		return
 	}
 
 	var (
