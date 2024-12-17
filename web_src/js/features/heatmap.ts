@@ -21,8 +21,8 @@ export function initHeatmap() {
     // last heatmap tooltip localization attempt https://github.com/go-gitea/gitea/pull/24131/commits/a83761cbbae3c2e3b4bced71e680f44432073ac8
     const locale = {
       heatMapLocale: {
-        months: new Array(12).fill().map((_, idx) => translateMonth(idx)),
-        days: new Array(7).fill().map((_, idx) => translateDay(idx)),
+        months: new Array(12).fill(undefined).map((_, idx) => translateMonth(idx)),
+        days: new Array(7).fill(undefined).map((_, idx) => translateDay(idx)),
         on: ' - ', // no correct locale support for it, because in many languages the sentence is not "something on someday"
         more: el.getAttribute('data-locale-more'),
         less: el.getAttribute('data-locale-less'),

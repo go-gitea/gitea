@@ -417,6 +417,12 @@ func (a *actionNotifier) SyncPushCommits(ctx context.Context, pusher *user_model
 }
 
 func (a *actionNotifier) SyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
+	// ignore pull sync message for pull requests refs
+	// TODO: it's better to have a UI to let users chose
+	if refFullName.IsPull() {
+		return
+	}
+
 	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(ctx),
@@ -431,6 +437,12 @@ func (a *actionNotifier) SyncCreateRef(ctx context.Context, doer *user_model.Use
 }
 
 func (a *actionNotifier) SyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
+	// ignore pull sync message for pull requests refs
+	// TODO: it's better to have a UI to let users chose
+	if refFullName.IsPull() {
+		return
+	}
+
 	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(ctx),

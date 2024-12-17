@@ -64,8 +64,8 @@ func TestSource(t *testing.T) {
 			ok, err := user_model.GetExternalLogin(context.Background(), e)
 			assert.NoError(t, err)
 			assert.True(t, ok)
-			assert.Equal(t, e.RefreshToken, "refresh")
-			assert.Equal(t, e.AccessToken, "token")
+			assert.Equal(t, "refresh", e.RefreshToken)
+			assert.Equal(t, "token", e.AccessToken)
 
 			u, err := user_model.GetUserByID(context.Background(), user.ID)
 			assert.NoError(t, err)
@@ -89,8 +89,8 @@ func TestSource(t *testing.T) {
 			ok, err := user_model.GetExternalLogin(context.Background(), e)
 			assert.NoError(t, err)
 			assert.True(t, ok)
-			assert.Equal(t, e.RefreshToken, "")
-			assert.Equal(t, e.AccessToken, "")
+			assert.Equal(t, "", e.RefreshToken)
+			assert.Equal(t, "", e.AccessToken)
 
 			u, err := user_model.GetUserByID(context.Background(), user.ID)
 			assert.NoError(t, err)

@@ -25,7 +25,7 @@ func TestPrepareFileNameAndType(t *testing.T) {
 		assert.Equal(t,
 			fmt.Sprintf("outFile=%s, outType=%s", expFile, expType),
 			fmt.Sprintf("outFile=%s, outType=%s", outFile, outType),
-			fmt.Sprintf("argFile=%s, argType=%s", argFile, argType),
+			"argFile=%s, argType=%s", argFile, argType,
 		)
 	}
 

@@ -244,7 +244,7 @@ func TestAPIBranchProtection(t *testing.T) {
 		StatusCheckContexts: []string{"test1"},
 	}, http.StatusOK)
 	bp := testAPIGetBranchProtection(t, "master", http.StatusOK)
-	assert.Equal(t, true, bp.EnableStatusCheck)
+	assert.True(t, bp.EnableStatusCheck)
 	assert.Equal(t, []string{"test1"}, bp.StatusCheckContexts)
 
 	// disable status checks, clear the list of required checks
@@ -253,7 +253,7 @@ func TestAPIBranchProtection(t *testing.T) {
 		StatusCheckContexts: []string{},
 	}, http.StatusOK)
 	bp = testAPIGetBranchProtection(t, "master", http.StatusOK)
-	assert.Equal(t, false, bp.EnableStatusCheck)
+	assert.False(t, bp.EnableStatusCheck)
 	assert.Equal(t, []string{}, bp.StatusCheckContexts)
 
 	testAPIDeleteBranchProtection(t, "master", http.StatusNoContent)

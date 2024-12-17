@@ -38,6 +38,6 @@ EXTEND = true
 	_, err = getCronSettings(cfg, "test", extended)
 	assert.NoError(t, err)
 	assert.True(t, extended.Base)
-	assert.EqualValues(t, extended.Second, "white rabbit")
+	assert.EqualValues(t, "white rabbit", extended.Second)
 	assert.True(t, extended.Extend)
 }
