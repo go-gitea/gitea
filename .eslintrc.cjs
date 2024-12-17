@@ -685,7 +685,7 @@ module.exports = {
     'no-unused-expressions': [2],
     'no-unused-labels': [2],
     'no-unused-private-class-members': [2],
-    'no-unused-vars': [0], // handled by @typescript-eslint/no-unused-vars,
+    'no-unused-vars': [0], // handled by @typescript-eslint/no-unused-vars
     'no-use-before-define': [2, {functions: false, classes: true, variables: true, allowNamedExports: true}],
     'no-use-extend-native/no-use-extend-native': [2],
     'no-useless-backreference': [2],
