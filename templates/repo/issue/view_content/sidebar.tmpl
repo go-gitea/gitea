@@ -1,5 +1,5 @@
 <div class="issue-content-right ui segment">
-	{{template "repo/issue/branch_selector_field" $}}
+	{{template "repo/issue/branch_selector_field" $}}{{/* TODO: RemoveIssueRef: template "repo/issue/branch_selector_field" $*/}}
 
 	{{if .Issue.IsPull}}
 		{{template "repo/issue/sidebar/reviewer_list" $.IssuePageMetaData}}

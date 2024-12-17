@@ -28,10 +28,10 @@ func Test_RegenerateSession(t *testing.T) {
 	sess, err := auth.RegenerateSession(db.DefaultContext, "", key)
 	assert.NoError(t, err)
 	assert.EqualValues(t, key, sess.Key)
-	assert.Len(t, sess.Data, 0)
+	assert.Empty(t, sess.Data)
 
 	sess, err = auth.ReadSession(db.DefaultContext, key2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, key2, sess.Key)
-	assert.Len(t, sess.Data, 0)
+	assert.Empty(t, sess.Data)
 }

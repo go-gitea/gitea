@@ -78,26 +78,23 @@ func (r *GlodmarkRender) Renderer() renderer.Renderer {
 
 func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.CodeBlockContext, entering bool) {
 	if entering {
-		language, _ := c.Language()
-		if language == nil {
-			language = []byte("text")
-		}
+		languageBytes, _ := c.Language()
+		languageStr := giteautil.IfZero(string(languageBytes), "text")
 
-		languageStr := string(language)
-
-		preClasses := []string{"code-block"}
+		preClasses := "code-block"
 		if languageStr == "mermaid" || languageStr == "math" {
-			preClasses = append(preClasses, "is-loading")
+			preClasses += " is-loading"
 		}
 
-		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<pre class="%s">`, strings.Join(preClasses, " "))
+		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<pre class="%s">`, preClasses)
 		if err != nil {
 			return
 		}
 
-		// include language-x class as part of commonmark spec
-		// the "display" class is used by "js/markup/math.js" to render the code element as a block
-		err = r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<code class="chroma language-%s display">`, string(language))
+		// include language-x class as part of commonmark spec, "chroma" class is used to highlight the code
+		// the "display" class is used by "js/markup/math.ts" to render the code element as a block
+		// the "math.ts" strictly depends on the structure: <pre class="code-block is-loading"><code class="language-math display">...</code></pre>
+		err = r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<code class="chroma language-%s display">`, languageStr)
 		if err != nil {
 			return
 		}
@@ -128,7 +125,13 @@ func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 				),
 				highlighting.WithWrapperRenderer(r.highlightingRenderer),
 			),
-			math.NewExtension(&ctx.RenderInternal, math.Enabled(setting.Markdown.EnableMath)),
+			math.NewExtension(&ctx.RenderInternal, math.Options{
+				Enabled:           setting.Markdown.EnableMath,
+				ParseDollarInline: true,
+				ParseDollarBlock:  true,
+				ParseSquareBlock:  true, // TODO: this is a bad syntax "\[ ... \]", it conflicts with normal markdown escaping, it should be deprecated in the future (by some config options)
+				// ParseBracketInline: true, // TODO: this is also a bad syntax "\( ... \)", it also conflicts, it should be deprecated in the future
+			}),
 			meta.Meta,
 		),
 		goldmark.WithParserOptions(

@@ -38,8 +38,6 @@ func TestIterate(t *testing.T) {
 		if !has {
 			return db.ErrNotExist{Resource: "repo_unit", ID: repoUnit.ID}
 		}
-		assert.EqualValues(t, repoUnit.RepoID, repoUnit.RepoID)
-		assert.EqualValues(t, repoUnit.CreatedUnix, repoUnit.CreatedUnix)
 		return nil
 	})
 	assert.NoError(t, err)
