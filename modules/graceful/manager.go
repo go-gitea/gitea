@@ -218,13 +218,13 @@ func (g *Manager) ServerDone() {
 	g.runningServerWaitGroup.Done()
 }
 
-func (g *Manager) setStateTransition(old, new state) bool {
+func (g *Manager) setStateTransition(oldState, newState state) bool {
 	g.lock.Lock()
-	if g.state != old {
+	if g.state != oldState {
 		g.lock.Unlock()
 		return false
 	}
-	g.state = new
+	g.state = newState
 	g.lock.Unlock()
 	return true
 }

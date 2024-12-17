@@ -40,7 +40,7 @@ func Test_ToPullReview(t *testing.T) {
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 		prList, err := ToPullReviewList(db.DefaultContext, reviewList, user4)
 		assert.NoError(t, err)
-		assert.Len(t, prList, 0)
+		assert.Empty(t, prList)
 	})
 
 	t.Run("Admin User", func(t *testing.T) {

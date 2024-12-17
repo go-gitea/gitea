@@ -1,16 +1,23 @@
+{{/* this tmpl is quite dirty, it should not mix unrelated things together .... need to split it in the future*/}}
+{{$allStatesLink := ""}}{{$openLink := ""}}{{$closedLink := ""}}
+{{if .PageIsMilestones}}
+	{{$allStatesLink = QueryBuild "?" "q" $.Keyword "sort" $.SortType "state" "all"}}
+{{else}}
+	{{$allStatesLink = QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" "all" "labels" $.SelectLabels "milestone" $.MilestoneID "project" $.ProjectID "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
+{{end}}
+{{$openLink = QueryBuild $allStatesLink "state" "open"}}
+{{$closedLink = QueryBuild $allStatesLink "state" "closed"}}
 <div class="small-menu-items ui compact tiny menu">
-	<a class="{{if eq .State "open"}}active {{end}}item" href="{{if eq .State "open"}}{{.AllStatesLink}}{{else}}{{.OpenLink}}{{end}}">
+	<a class="{{if eq .State "open"}}active {{end}}item flex-text-inline" href="{{if eq .State "open"}}{{$allStatesLink}}{{else}}{{$openLink}}{{end}}">
 		{{if .PageIsMilestones}}
-			{{svg "octicon-milestone" 16 "tw-mr-2"}}
-		{{else if .PageIsPullList}}
-			{{svg "octicon-git-pull-request" 16 "tw-mr-2"}}
+			{{svg "octicon-milestone"}}
 		{{else}}
-			{{svg "octicon-issue-opened" 16 "tw-mr-2"}}
+			{{Iif .PageIsPullList (svg "octicon-git-pull-request") (svg "octicon-issue-opened")}}
 		{{end}}
-		{{ctx.Locale.PrettyNumber .OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
+		{{ctx.Locale.PrettyNumber .OpenCount}} {{ctx.Locale.Tr "repo.issues.open_title"}}
 	</a>
-	<a class="{{if eq .State "closed"}}active {{end}}item" href="{{if eq .State "closed"}}{{.AllStatesLink}}{{else}}{{.ClosedLink}}{{end}}">
-		{{svg "octicon-check" 16 "tw-mr-2"}}
-		{{ctx.Locale.PrettyNumber .ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
+	<a class="{{if eq .State "closed"}}active {{end}}item flex-text-inline" href="{{if eq .State "closed"}}{{$allStatesLink}}{{else}}{{$closedLink}}{{end}}">
+		{{svg "octicon-check"}}
+		{{ctx.Locale.PrettyNumber .ClosedCount}} {{ctx.Locale.Tr "repo.issues.closed_title"}}
 	</a>
 </div>

@@ -343,9 +343,9 @@ func TestGetCommitFileStatusMerges(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, commitFileStatus.Added, expected.Added)
-	assert.Equal(t, commitFileStatus.Removed, expected.Removed)
-	assert.Equal(t, commitFileStatus.Modified, expected.Modified)
+	assert.Equal(t, expected.Added, commitFileStatus.Added)
+	assert.Equal(t, expected.Removed, commitFileStatus.Removed)
+	assert.Equal(t, expected.Modified, commitFileStatus.Modified)
 }
 
 func Test_GetCommitBranchStart(t *testing.T) {

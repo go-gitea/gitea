@@ -1,0 +1,61 @@
+<div class="repo-home-sidebar-bottom">
+	<div class="flex-list">
+		{{if .LatestRelease}}
+		<div class="flex-item">
+			<div class="flex-item-main">
+				<div class="flex-item-title">
+					<a class="item muted" href="{{.Link}}/releases">
+						{{ctx.Locale.Tr "repo.releases"}}
+						<span class="ui small label">{{.NumReleases}}</span>
+					</a>
+				</div>
+				<div class="flex-item">
+					<div class="flex-item-icon">
+						{{svg "octicon-tag" 16}}
+					</div>
+					<div class="flex-item-main">
+						<div class="flex-item-header">
+							<div class="flex-item-title tw-gap-2">
+								<a class="gt-ellipsis muted" href="{{.LatestRelease.Link}}" title="{{.LatestRelease.Title}}">{{.LatestRelease.Title}}</a>
+								{{template "repo/release/label" (dict "Release" .LatestRelease "IsLatest" true)}}
+							</div>
+						</div>
+						<div class="flex-item-body">
+							<span class="time">{{DateUtils.TimeSince .LatestRelease.CreatedUnix}}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		{{end}}
+
+		{{if and (not .IsEmptyRepo) .LanguageStats}}
+		<div class="flex-item">
+			<div class="flex-item-main">
+				<div class="flex-item-title">
+					{{ctx.Locale.Tr "repo.repo_lang"}}
+				</div>
+
+				<div class="flex-item-body">
+					<div class="language-stats">
+						{{range .LanguageStats}}
+							<div class="bar" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-tooltip-placement="top" data-tooltip-content={{.Language}} data-tooltip-follow-cursor="horizontal"></div>
+						{{end}}
+					</div>
+					<div class="language-stats-details">
+						{{range .LanguageStats}}
+							<div class="item">
+								<i class="color-icon" style="background-color: {{.Color}}"></i>
+								<span class="tw-font-semibold">
+									{{Iif (eq .Language "other") (ctx.Locale.Tr "repo.language_other") .Language}}
+								</span>
+								{{.Percentage}}%
+							</div>
+						{{end}}
+					</div>
+				</div>
+			</div>
+		</div>
+		{{end}}
+	</div>
+</div>
