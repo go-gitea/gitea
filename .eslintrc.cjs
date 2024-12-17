@@ -1,3 +1,5 @@
+const restrictedSyntax = ['WithStatement', 'ForInStatement', 'LabeledStatement', 'SequenceExpression'];
+
 module.exports = {
   root: true,
   reportUnusedDisableDirectives: true,
@@ -138,7 +140,7 @@ module.exports = {
     {
       files: ['web_src/js/modules/fetch.ts', 'web_src/js/standalone/**/*'],
       rules: {
-        'no-restricted-syntax': [2, 'WithStatement', 'ForInStatement', 'LabeledStatement', 'SequenceExpression'],
+        'no-restricted-syntax': [2, ...restrictedSyntax],
       },
     },
     {
@@ -657,7 +659,7 @@ module.exports = {
     'no-restricted-exports': [0],
     'no-restricted-globals': [2, 'addEventListener', 'blur', 'close', 'closed', 'confirm', 'defaultStatus', 'defaultstatus', 'error', 'event', 'external', 'find', 'focus', 'frameElement', 'frames', 'history', 'innerHeight', 'innerWidth', 'isFinite', 'isNaN', 'length', 'locationbar', 'menubar', 'moveBy', 'moveTo', 'name', 'onblur', 'onerror', 'onfocus', 'onload', 'onresize', 'onunload', 'open', 'opener', 'opera', 'outerHeight', 'outerWidth', 'pageXOffset', 'pageYOffset', 'parent', 'print', 'removeEventListener', 'resizeBy', 'resizeTo', 'screen', 'screenLeft', 'screenTop', 'screenX', 'screenY', 'scroll', 'scrollbars', 'scrollBy', 'scrollTo', 'scrollX', 'scrollY', 'status', 'statusbar', 'stop', 'toolbar', 'top'],
     'no-restricted-imports': [0],
-    'no-restricted-syntax': [2, 'WithStatement', 'ForInStatement', 'LabeledStatement', 'SequenceExpression', {selector: 'CallExpression[callee.name="fetch"]', message: 'use modules/fetch.ts instead'}],
+    'no-restricted-syntax': [2, ...restrictedSyntax, {selector: 'CallExpression[callee.name="fetch"]', message: 'use modules/fetch.ts instead'}],
     'no-return-assign': [0],
     'no-script-url': [2],
     'no-self-assign': [2, {props: true}],
