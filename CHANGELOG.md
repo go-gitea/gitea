@@ -7,7 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.23.0-rc0](https://github.com/go-gitea/gitea/releases/tag/v1.23.0-rc0) - 2024-12-16
 
 * BREAKING
-  * Use camo.Always instead of camo.Allways (#32097)
+  * Rename config option `[camo].Allways` to `[camo].Always` (#32097)
   * Remove SHA1 for support for ssh rsa signing (#31857)
   * Use UTC as default timezone when schedule Actions cron tasks (#31742)
   * Delete Actions logs older than 1 year by default (#31735)
