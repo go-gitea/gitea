@@ -10,7 +10,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Use camo.Always instead of camo.Allways (#32097)
   * Remove SHA1 for support for ssh rsa signing (#31857)
   * Use UTC as default timezone when schedule Actions cron tasks (#31742)
-  * Clear up old Actions logs (#31735)
+  * Delete Actions logs older than 1 year by default (#31735)
   * Fix OIDC introspection authentication (#31632)
   * Rename project `board` -> `column` to make the UI less confusing (#30170)
 
