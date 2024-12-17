@@ -18,7 +18,16 @@
 		</div>
 		<div class="field">
 			<label>{{ctx.Locale.Tr "repo.projects.description"}}</label>
-			<textarea name="content" placeholder="{{ctx.Locale.Tr "repo.projects.description_placeholder"}}">{{.content}}</textarea>
+			{{/* TODO: repo-level project and org-level project have different behaviros to render */}}
+			{{/* the "Repository" is nil when the project is org-level */}}
+			{{template "shared/combomarkdowneditor" (dict
+				"MarkdownPreviewInRepo" $.Repository
+				"MarkdownPreviewContext" (Iif $.Repository "" .HomeLink)
+				"MarkdownPreviewMode" (Iif $.Repository "comment")
+				"TextareaName" "content"
+				"TextareaContent" .content
+				"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.description_placeholder")
+			)}}
 		</div>
 
 		{{if not .PageIsEditProjects}}

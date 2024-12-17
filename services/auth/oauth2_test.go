@@ -28,7 +28,7 @@ func TestUserIDFromToken(t *testing.T) {
 		o := OAuth2{}
 		uid := o.userIDFromToken(context.Background(), token, ds)
 		assert.Equal(t, int64(user_model.ActionsUserID), uid)
-		assert.Equal(t, ds["IsActionsToken"], true)
+		assert.Equal(t, true, ds["IsActionsToken"])
 		assert.Equal(t, ds["ActionsTaskID"], int64(RunningTaskID))
 	})
 }

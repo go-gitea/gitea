@@ -172,8 +172,8 @@ func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSett
 
 	q2() // restart the queue to continue to execute the tasks in it
 
-	assert.NotZero(t, len(tasksQ1))
-	assert.NotZero(t, len(tasksQ2))
+	assert.NotEmpty(t, tasksQ1)
+	assert.NotEmpty(t, tasksQ2)
 	assert.EqualValues(t, testCount, len(tasksQ1)+len(tasksQ2))
 }
 

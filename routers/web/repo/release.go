@@ -13,13 +13,13 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -114,15 +114,8 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 			cacheUsers[r.PublisherID] = r.Publisher
 		}
 
-		r.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
-			Links: markup.Links{
-				Base: ctx.Repo.RepoLink,
-			},
-			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo: ctx.Repo.GitRepo,
-			Repo:    ctx.Repo.Repository,
-			Ctx:     ctx,
-		}, r.Note)
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, r.Repo)
+		r.RenderedNote, err = markdown.RenderString(rctx, r.Note)
 		if err != nil {
 			return nil, err
 		}
@@ -159,9 +152,6 @@ func Releases(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 	ctx.Data["IsViewBranch"] = false
 	ctx.Data["IsViewTag"] = true
-	// Disable the showCreateNewBranch form in the dropdown on this page.
-	ctx.Data["CanCreateBranch"] = false
-	ctx.Data["HideBranchesInDropdown"] = true
 
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
@@ -199,7 +189,6 @@ func Releases(ctx *context.Context) {
 	pager := context.NewPagination(int(numReleases), listOptions.PageSize, listOptions.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
-
 	ctx.HTML(http.StatusOK, tplReleasesList)
 }
 
@@ -209,9 +198,6 @@ func TagsList(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.tags")
 	ctx.Data["IsViewBranch"] = false
 	ctx.Data["IsViewTag"] = true
-	// Disable the showCreateNewBranch form in the dropdown on this page.
-	ctx.Data["CanCreateBranch"] = false
-	ctx.Data["HideBranchesInDropdown"] = true
 	ctx.Data["CanCreateRelease"] = ctx.Repo.CanWrite(unit.TypeReleases) && !ctx.Repo.Repository.IsArchived
 
 	namePattern := ctx.FormTrim("q")
@@ -258,7 +244,6 @@ func TagsList(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 	ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
-
 	ctx.HTML(http.StatusOK, tplTagsList)
 }
 

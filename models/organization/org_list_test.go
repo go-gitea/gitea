@@ -40,7 +40,7 @@ func TestFindOrgs(t *testing.T) {
 		IncludePrivate: false,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, orgs, 0)
+	assert.Empty(t, orgs)
 
 	total, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
 		UserID:         4,
@@ -59,4 +59,15 @@ func TestGetUserOrgsList(t *testing.T) {
 		// repo_id: 3 is in the team, 32 is public, 5 is private with no team
 		assert.EqualValues(t, 2, orgs[0].NumRepos)
 	}
+}
+
+func TestLoadOrgListTeams(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	orgs, err := organization.GetUserOrgsList(db.DefaultContext, &user_model.User{ID: 4})
+	assert.NoError(t, err)
+	assert.Len(t, orgs, 1)
+	teamsMap, err := organization.OrgList(orgs).LoadTeams(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Len(t, teamsMap, 1)
+	assert.Len(t, teamsMap[3], 5)
 }

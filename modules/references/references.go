@@ -164,9 +164,9 @@ func newKeywords() {
 	})
 }
 
-func doNewKeywords(close, reopen []string) {
-	issueCloseKeywordsPat = makeKeywordsPat(close)
-	issueReopenKeywordsPat = makeKeywordsPat(reopen)
+func doNewKeywords(closeKeywords, reopenKeywords []string) {
+	issueCloseKeywordsPat = makeKeywordsPat(closeKeywords)
+	issueReopenKeywordsPat = makeKeywordsPat(reopenKeywords)
 }
 
 // getGiteaHostName returns a normalized string with the local host name, with no scheme or port information

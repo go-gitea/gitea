@@ -46,10 +46,10 @@ func testQueueBasic(t *testing.T, newFn func(cfg *BaseConfig) (baseQueue, error)
 		assert.NoError(t, err)
 		if !isUnique {
 			assert.EqualValues(t, 2, cnt)
-			assert.EqualValues(t, false, has) // non-unique queues don't check for duplicates
+			assert.False(t, has) // non-unique queues don't check for duplicates
 		} else {
 			assert.EqualValues(t, 1, cnt)
-			assert.EqualValues(t, true, has)
+			assert.True(t, has)
 		}
 
 		// push another item
@@ -101,7 +101,7 @@ func testQueueBasic(t *testing.T, newFn func(cfg *BaseConfig) (baseQueue, error)
 		pushBlockTime = 30 * time.Millisecond
 		err = q.PushItem(ctx, []byte("item-full"))
 		assert.ErrorIs(t, err, context.DeadlineExceeded)
-		assert.True(t, time.Since(timeStart) >= pushBlockTime*2/3)
+		assert.GreaterOrEqual(t, time.Since(timeStart), pushBlockTime*2/3)
 		pushBlockTime = oldPushBlockTime
 
 		// remove all
