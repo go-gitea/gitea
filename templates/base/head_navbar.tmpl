@@ -3,7 +3,7 @@
 	{{$notificationUnreadCount = call .NotificationUnreadCount}}
 {{end}}
 
-<nav id="navbar" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
+<nav id="navbar" class="ui secondary menu" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
 	<div class="navbar-left">
 		<!-- the logo -->
 		<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home"}}{{end}}">
@@ -11,7 +11,7 @@
 		</a>
 
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
-		<div class="ui secondary menu item navbar-mobile-right only-mobile">
+		<div class="item navbar-mobile-right only-mobile">
 			{{if and .IsSigned EnableTimetracking .ActiveStopwatch}}
 			<a id="mobile-stopwatch-icon" class="active-stopwatch item tw-mx-0" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{.ActiveStopwatch.Seconds}}">
 				<div class="tw-relative">
