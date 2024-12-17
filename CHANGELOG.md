@@ -66,12 +66,17 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
     * Add tag name in the commits list (#31082)
     * Add `MAX_ROWS` option for CSV rendering (#30268)
     * Allow code search by filename (#32210)
-    * Add some handy markdown editor features (#32400)
     * Make git push options accept short name (#32245)
     * Repo file list enhancements (#32835)
 
-  * Issue
+  * Markdown & Editor
     * Refactor markdown math render, add dollor-backquote syntax support (#32831)
+    * Make Monaco theme follow browser, fully type codeeditor.ts (#32756)
+    * Refactor markdown editor and use it for milestone description editor (#32688)
+    * Add some handy markdown editor features (#32400)
+    * Improve markdown textarea for indentation and lists (#31406)
+
+  * Issue
     * Add label/author/assignee filters to the user/org home issue list (#32779)
     * Refactor issue filter (labels, poster, assignee) (#32771)
     * Style unification for the issue_management area (#32605)
@@ -80,8 +85,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
     * Add avif image file support (#32508)
     * Prevent from submitting issue/comment on uploading (#32263)
     * Issue Templates: add option to have dropdown printed list (#31577)
-    * Improve markdown textarea for indentation and lists (#31406)
-    * Refactor markdown editor and use it for milestone description editor (#32688)
     * Allow searching issues by ID (#31479)
     * Add `is_archived` option for issue indexer (#32735)
     * Improve attachment upload methods (#30513)
@@ -135,7 +138,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
     * Move repository visibility to danger zone in the settings area (#31126)
 
   * Others
-    * Make Monaco theme follow browser, fully type codeeditor.ts (#32756)
     * Remove urls from translations (#31950)
     * Simplify 404/500 page (#31409)
     * Optimize installation-page experience (#32558)
