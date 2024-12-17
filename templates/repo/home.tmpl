@@ -18,7 +18,7 @@
 
 		{{$treeNamesLen := len .TreeNames}}
 		{{$isTreePathRoot := eq $treeNamesLen 0}}
-		{{$showSidebar := $isTreePathRoot}}
+		{{$showSidebar := and $isTreePathRoot (not .HideRepoInfo) (not .IsBlame)}}
 		<div class="{{Iif $showSidebar "repo-grid-filelist-sidebar" "repo-grid-filelist-only"}}">
 			<div class="repo-home-filelist">
 				{{template "repo/sub_menu" .}}
@@ -130,8 +130,8 @@
 			</div>
 
 			{{if $showSidebar}}
-				<div class="repo-home-sidebar-top">{{template "repo/home_sidebar_top" .}}</div>
-				<div class="repo-home-sidebar-bottom">{{template "repo/home_sidebar_bottom" .}}</div>
+				{{template "repo/home_sidebar_top" .}}
+				{{template "repo/home_sidebar_bottom" .}}
 			{{end}}
 		</div>
 	</div>

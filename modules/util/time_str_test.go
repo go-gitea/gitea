@@ -27,9 +27,9 @@ func TestTimeStr(t *testing.T) {
 			t.Run(test.input, func(t *testing.T) {
 				output, err := TimeEstimateParse(test.input)
 				if test.err {
-					assert.NotNil(t, err)
+					assert.Error(t, err)
 				} else {
-					assert.Nil(t, err)
+					assert.NoError(t, err)
 				}
 				assert.Equal(t, test.output, output)
 			})

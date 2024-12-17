@@ -6,7 +6,6 @@ package integration
 import (
 	"fmt"
 	"net/url"
-	"strings"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -211,6 +210,6 @@ func TestPushPullRefs(t *testing.T) {
 		})
 		assert.Error(t, err)
 		assert.Empty(t, stdout)
-		assert.False(t, strings.Contains(stderr, "[deleted]"), "stderr: %s", stderr)
+		assert.NotContains(t, stderr, "[deleted]", "stderr: %s", stderr)
 	})
 }

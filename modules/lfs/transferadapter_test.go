@@ -96,7 +96,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 		for n, c := range cases {
 			_, err := a.Download(context.Background(), c.link)
 			if len(c.expectederror) > 0 {
-				assert.True(t, strings.Contains(err.Error(), c.expectederror), "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
+				assert.Contains(t, err.Error(), c.expectederror, "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 			} else {
 				assert.NoError(t, err, "case %d", n)
 			}
@@ -129,7 +129,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 		for n, c := range cases {
 			err := a.Upload(context.Background(), c.link, p, bytes.NewBufferString("dummy"))
 			if len(c.expectederror) > 0 {
-				assert.True(t, strings.Contains(err.Error(), c.expectederror), "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
+				assert.Contains(t, err.Error(), c.expectederror, "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 			} else {
 				assert.NoError(t, err, "case %d", n)
 			}
@@ -162,7 +162,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 		for n, c := range cases {
 			err := a.Verify(context.Background(), c.link, p)
 			if len(c.expectederror) > 0 {
-				assert.True(t, strings.Contains(err.Error(), c.expectederror), "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
+				assert.Contains(t, err.Error(), c.expectederror, "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 			} else {
 				assert.NoError(t, err, "case %d", n)
 			}

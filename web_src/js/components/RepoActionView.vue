@@ -551,11 +551,13 @@ export function initRepositoryActionView() {
 
 .action-info-summary-title {
   display: flex;
+  align-items: center;
+  gap: 0.5em;
 }
 
 .action-info-summary-title-text {
   font-size: 20px;
-  margin: 0 0 0 8px;
+  margin: 0;
   flex: 1;
   overflow-wrap: anywhere;
 }

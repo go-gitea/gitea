@@ -62,15 +62,15 @@ func Test_calcSync(t *testing.T) {
 	}
 
 	inserts, deletes, updates := calcSync(gitTags, dbReleases)
-	if assert.EqualValues(t, 1, len(inserts), "inserts") {
+	if assert.Len(t, inserts, 1, "inserts") {
 		assert.EqualValues(t, *gitTags[2], *inserts[0], "inserts equal")
 	}
 
-	if assert.EqualValues(t, 1, len(deletes), "deletes") {
+	if assert.Len(t, deletes, 1, "deletes") {
 		assert.EqualValues(t, 1, deletes[0], "deletes equal")
 	}
 
-	if assert.EqualValues(t, 1, len(updates), "updates") {
+	if assert.Len(t, updates, 1, "updates") {
 		assert.EqualValues(t, *gitTags[1], *updates[0], "updates equal")
 	}
 }

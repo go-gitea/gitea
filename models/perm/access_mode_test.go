@@ -15,7 +15,7 @@ func TestAccessMode(t *testing.T) {
 		m := ParseAccessMode(name)
 		assert.Equal(t, AccessMode(i), m)
 	}
-	assert.Equal(t, AccessMode(4), AccessModeOwner)
+	assert.Equal(t, AccessModeOwner, AccessMode(4))
 	assert.Equal(t, "owner", AccessModeOwner.ToString())
 	assert.Equal(t, AccessModeNone, ParseAccessMode("owner"))
 	assert.Equal(t, AccessModeNone, ParseAccessMode("invalid"))
