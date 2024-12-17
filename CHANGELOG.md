@@ -12,7 +12,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Use UTC as default timezone when schedule Actions cron tasks (#31742)
   * Delete Actions logs older than 1 year by default (#31735)
   * Make OIDC introspection authentication strictly require Client ID and secret (#31632)
-  * Rename project `board` -> `column` to make the UI less confusing (#30170)
 
 * SECURITY
   * Include file extension checks in attachment API (#32151)
@@ -116,6 +115,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Project
     * Add title to project view page (#32747)
     * Set the columns height to hug all its contents (#31726)
+    * Rename project `board` -> `column` to make the UI less confusing (#30170)
 
   * User & Organazition
     * Use better name for userinfo structure (#32544)
