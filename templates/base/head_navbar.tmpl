@@ -3,8 +3,8 @@
 	{{$notificationUnreadCount = call .NotificationUnreadCount}}
 {{end}}
 
-<nav id="navbar" class="ui secondary menu" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
-	<div class="navbar-left">
+<nav id="navbar" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
+	<div class="navbar-left ui secondary menu">
 		<!-- the logo -->
 		<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home"}}{{end}}">
 			<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}" aria-hidden="true">
