@@ -5,6 +5,14 @@
 	<div class="ui container">
 		<div class="ui mobile reversed stackable grid">
 			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
+				<div class="item ui small dropdown jump">
+					<span class="text">view as</span>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<div class="menu">
+						<a href="{{$.Org.HomeLink}}?{{.QueryForPublic}}" class="{{if not .IsViewerMember}}active {{end}}item"><input hidden type="radio" {{if not .IsViewerMember}}checked{{end}}> Public</a>
+						<a href="{{$.Org.HomeLink}}?{{.QueryForMember}}" class="{{if .IsViewerMember}}active {{end}}item"><input hidden type="radio" {{if .IsViewerMember}}checked{{end}}> Member</a>
+					</div>
+				</div>
 				{{if .IsViewerMember}}
 					{{if .PrivateProfileReadme}}
 						<div id="readme_profile" class="markup">{{.PrivateProfileReadme}}</div>
