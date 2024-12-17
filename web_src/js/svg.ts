@@ -65,6 +65,7 @@ import octiconSidebarCollapse from '../../public/assets/img/svg/octicon-sidebar-
 import octiconSidebarExpand from '../../public/assets/img/svg/octicon-sidebar-expand.svg';
 import octiconSkip from '../../public/assets/img/svg/octicon-skip.svg';
 import octiconStar from '../../public/assets/img/svg/octicon-star.svg';
+import octiconStop from '../../public/assets/img/svg/octicon-stop.svg';
 import octiconStrikethrough from '../../public/assets/img/svg/octicon-strikethrough.svg';
 import octiconSync from '../../public/assets/img/svg/octicon-sync.svg';
 import octiconTable from '../../public/assets/img/svg/octicon-table.svg';
@@ -140,6 +141,7 @@ const svgs = {
   'octicon-sidebar-expand': octiconSidebarExpand,
   'octicon-skip': octiconSkip,
   'octicon-star': octiconStar,
+  'octicon-stop': octiconStop,
   'octicon-strikethrough': octiconStrikethrough,
   'octicon-sync': octiconSync,
   'octicon-table': octiconTable,
