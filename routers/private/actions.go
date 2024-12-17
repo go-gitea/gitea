@@ -41,9 +41,12 @@ func GenerateActionsRunnerToken(ctx *context.PrivateContext) {
 		})
 	}
 
-	token, err := actions_model.GetLatestRunnerToken(ctx, owner, repo)
-	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
-		token, err = actions_model.NewRunnerToken(ctx, owner, repo)
+	var token *actions_model.ActionRunnerToken
+	if genRequest.PutToken == "" {
+		token, err = actions_model.GetLatestRunnerToken(ctx, owner, repo)
+	}
+	if genRequest.PutToken != "" || errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
+		token, err = actions_model.NewRunnerToken(ctx, owner, repo, genRequest.PutToken)
 		if err != nil {
 			errMsg := fmt.Sprintf("error while creating runner token: %v", err)
 			log.Error("NewRunnerToken failed: %v", errMsg)

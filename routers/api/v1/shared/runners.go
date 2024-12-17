@@ -19,14 +19,18 @@ type RegistrationToken struct {
 }
 
 func GetRegistrationToken(ctx *context.APIContext, ownerID, repoID int64) {
-	token, err := actions_model.GetLatestRunnerToken(ctx, ownerID, repoID)
-	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
-		token, err = actions_model.NewRunnerToken(ctx, ownerID, repoID)
+	putToken := ctx.FormString("put-token")
+	var token *actions_model.ActionRunnerToken
+	var err error
+	if putToken == "" {
+		token, err = actions_model.GetLatestRunnerToken(ctx, ownerID, repoID)
+	}
+	if putToken != "" || errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
+		token, err = actions_model.NewRunnerToken(ctx, ownerID, repoID, putToken)
 	}
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
-
 	ctx.JSON(http.StatusOK, RegistrationToken{Token: token.Token})
 }

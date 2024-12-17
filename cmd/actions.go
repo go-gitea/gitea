@@ -34,6 +34,12 @@ var (
 				Value:   "",
 				Usage:   "{owner}[/{repo}] - leave empty for a global runner",
 			},
+			&cli.StringFlag{
+				Name:    "put-token",
+				Aliases: []string{"t"},
+				Value:   "",
+				Usage:   "[{token}] - leave empty will generate a new token, otherwise will update the token to database. The token MUST be a 40 digital string containing only 0-9 and a-f",
+			},
 		},
 	}
 )
@@ -45,8 +51,9 @@ func runGenerateActionsRunnerToken(c *cli.Context) error {
 	setting.MustInstalled()
 
 	scope := c.String("scope")
+	putToken := c.String("put-token")
 
-	respText, extra := private.GenerateActionsRunnerToken(ctx, scope)
+	respText, extra := private.GenerateActionsRunnerToken(ctx, scope, putToken)
 	if extra.HasError() {
 		return handleCliResponseExtra(extra)
 	}

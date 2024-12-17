@@ -32,7 +32,7 @@ func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
 	var token *actions_model.ActionRunnerToken
 	token, err = actions_model.GetLatestRunnerToken(ctx, opts.OwnerID, opts.RepoID)
 	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
-		token, err = actions_model.NewRunnerToken(ctx, opts.OwnerID, opts.RepoID)
+		token, err = actions_model.NewRunnerToken(ctx, opts.OwnerID, opts.RepoID, "")
 		if err != nil {
 			ctx.ServerError("CreateRunnerToken", err)
 			return
@@ -131,7 +131,7 @@ func RunnerDetailsEditPost(ctx *context.Context, runnerID, ownerID, repoID int64
 
 // RunnerResetRegistrationToken reset registration token
 func RunnerResetRegistrationToken(ctx *context.Context, ownerID, repoID int64, redirectTo string) {
-	_, err := actions_model.NewRunnerToken(ctx, ownerID, repoID)
+	_, err := actions_model.NewRunnerToken(ctx, ownerID, repoID, "")
 	if err != nil {
 		ctx.ServerError("ResetRunnerRegistrationToken", err)
 		return

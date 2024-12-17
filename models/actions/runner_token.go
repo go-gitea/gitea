@@ -70,16 +70,24 @@ func UpdateRunnerToken(ctx context.Context, r *ActionRunnerToken, cols ...string
 
 // NewRunnerToken creates a new active runner token and invalidate all old tokens
 // ownerID will be ignored and treated as 0 if repoID is non-zero.
-func NewRunnerToken(ctx context.Context, ownerID, repoID int64) (*ActionRunnerToken, error) {
+func NewRunnerToken(ctx context.Context, ownerID, repoID int64, preDefinedToken string) (*ActionRunnerToken, error) {
 	if ownerID != 0 && repoID != 0 {
 		// It's trying to create a runner token that belongs to a repository, but OwnerID has been set accidentally.
 		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
 		ownerID = 0
 	}
 
-	token, err := util.CryptoRandomString(40)
-	if err != nil {
-		return nil, err
+	token := preDefinedToken
+	if token == "" {
+		var err error
+		token, err = util.CryptoRandomString(40)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if len(token) != 40 || !util.IsRandomStringValid(token) {
+			return nil, util.NewInvalidArgumentErrorf("invalid token: %s", token)
+		}
 	}
 	runnerToken := &ActionRunnerToken{
 		OwnerID:  ownerID,
@@ -95,7 +103,7 @@ func NewRunnerToken(ctx context.Context, ownerID, repoID int64) (*ActionRunnerTo
 			return err
 		}
 
-		_, err = db.GetEngine(ctx).Insert(runnerToken)
+		_, err := db.GetEngine(ctx).Insert(runnerToken)
 		return err
 	})
 }
