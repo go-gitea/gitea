@@ -38,7 +38,7 @@ var (
 				Name:    "put-token",
 				Aliases: []string{"t"},
 				Value:   "",
-				Usage:   "[{token}] - leave empty will generate a new token, otherwise will update the token to database. The token MUST be a 40 digital string containing only 0-9 and a-f",
+				Usage:   "[{token}] - leave empty will generate a new token, otherwise will update the token to database. The token MUST be a 40 digital string containing only [0-9a-zA-Z]",
 			},
 		},
 	}
