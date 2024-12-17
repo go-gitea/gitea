@@ -23,7 +23,9 @@ const (
 )
 
 // LifecyclePProfLabel is a label marking manager lifecycle phase
-// Compliant with prometheus key regex
+// Making it compliant with prometheus key regex https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
+// would enable someone interested to be able to to continuously gather profiles into pyroscope.
+// Other labels for pprof (in "modules/process" package) should also follow this rule.
 const LifecyclePProfLabel = "graceful_lifecycle"
 
 func statusMsg(msg string) systemdNotifyMsg {
