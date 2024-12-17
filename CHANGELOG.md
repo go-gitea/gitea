@@ -16,7 +16,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 * SECURITY
   * Include file extension checks in attachment API (#32151)
-  * All security pull requests have been backported to v1.22
+  * Include all security fixes which have been backported to v1.22
 
 * FEATURES
   * Allow to fork repository into the same owner (#32819)
@@ -55,7 +55,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Use batch database operations instead of one by one to optimze api pulls (#32680)
 
 * ENHANCEMENTS
-  * CODE
+  * Code
     * Remove unnecessary border in repo home page sidebar (#32767)
     * Add 'Copy path' button to file view (#32584)
     * Improve diff file tree (#32658)
@@ -71,7 +71,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
     * Make git push options accept short name (#32245)
     * Repo file list enhancements (#32835)
 
-  * ISSUES
+  * Issue
     * Refactor markdown math render, add dollor-backquote syntax support (#32831)
     * Add label/author/assignee filters to the user/org home issue list (#32779)
     * Refactor issue filter (labels, poster, assignee) (#32771)
@@ -89,7 +89,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
     * Support issue template assignees (#31083)
     * Prevent simultaneous editing of comments and issues (#31053)
 
-  * PULL REQUEST
+  * Pull Request
     * Display head branch more comfortable on pull request view (#32000)
     * Simplify review UI (#31062)
     * Allow force push to protected branches (#28086)
@@ -98,7 +98,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
     * Allow maintainers to view and edit files of private repos when "Allow maintainers to edit" is enabled (#32215)
     * Allow including `Reviewed-on`/`Reviewed-by` lines for custom merge messages (#31211)
 
-  * ACTIONS
+  * Actions
     * Render job title as commit message (#32748)
     * Refactor RepoActionView.vue, add `::group::` support (#32713)
     * Make RepoActionView.vue support `##[group]` (#32770)
@@ -107,17 +107,17 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
     * Allow users with write permission to run actions (#32644)
     * Show latest run when visit /run/latest (#31808)
 
-  * PACKAGES
+  * Packages
     * Improve rubygems package registry (#31357)
     * Add support for npm bundleDependencies (#30751)
     * Add signature support for the RPM module (#27069)
     * Extract and display readme and comments for Composer packages (#30927)
 
-  * PROJECTS
+  * Project
     * Add title to project view page (#32747)
     * Set the columns height to hug all its contents (#31726)
 
-  * USERS & ORGANAZITIONS
+  * User & Organazition
     * Use better name for userinfo structure (#32544)
     * Use user.FullName in Oauth2 id_token response (#32542)
     * Limit org member view of restricted users (#32211)
@@ -125,7 +125,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
     * Add option to change mail from user display name (#31528)
     * Use FullName in Emails to address the recipient if possible (#31527)
 
-  * ADMINISTRATION
+  * Administration
     * Add support for a credentials chain for minio access (#31051)
     * Move admin routers from /admin to /-/admin (#32189)
     * Add cache test for admins (#31265)
@@ -134,7 +134,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
     * Supports forced use of S3 virtual-hosted style (#30969)
     * Move repository visibility to danger zone in the settings area (#31126)
 
-  * OTHERS
+  * Others
     * Make Monaco theme follow browser, fully type codeeditor.ts (#32756)
     * Remove urls from translations (#31950)
     * Simplify 404/500 page (#31409)
