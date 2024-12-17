@@ -485,6 +485,8 @@ func registerRoutes(m *web.Router) {
 		m.Methods("GET, HEAD", "/*", public.FileHandlerFunc())
 	}, optionsCorsHandler())
 
+	m.Post("/-/markup", reqSignIn, web.Bind(structs.MarkupOption{}), misc.Markup)
+
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
@@ -1206,7 +1208,7 @@ func registerRoutes(m *web.Router) {
 					Post(web.Bind(forms.CreateIssueForm{}), repo.NewIssuePost)
 				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
 			})
-			m.Get("/search", repo.ListIssues)
+			m.Get("/search", repo.SearchRepoIssuesJSON)
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.
@@ -1233,6 +1235,7 @@ func registerRoutes(m *web.Router) {
 						m.Post("/cancel", repo.CancelStopwatch)
 					})
 				})
+				m.Post("/time_estimate", repo.UpdateIssueTimeEstimate)
 				m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeIssueReaction)
 				m.Post("/lock", reqRepoIssuesOrPullsWriter, web.Bind(forms.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoIssuesOrPullsWriter, repo.UnlockIssue)
@@ -1317,6 +1320,7 @@ func registerRoutes(m *web.Router) {
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
 			m.Post("/rename", web.Bind(forms.RenameBranchForm{}), repo_setting.RenameBranchPost)
+			m.Post("/merge-upstream", repo.MergeUpstream)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
 
 		m.Combo("/fork").Get(repo.Fork).Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
@@ -1421,7 +1425,6 @@ func registerRoutes(m *web.Router) {
 			})
 			m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 			m.Post("/approve", reqRepoActionsWriter, actions.Approve)
-			m.Get("/artifacts", actions.ArtifactsView)
 			m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
 			m.Delete("/artifacts/{artifact_name}", actions.ArtifactsDeleteView)
 			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
@@ -1623,9 +1626,12 @@ func registerRoutes(m *web.Router) {
 	}
 
 	if !setting.IsProd {
-		m.Any("/devtest", devtest.List)
-		m.Any("/devtest/fetch-action-test", devtest.FetchActionTest)
-		m.Any("/devtest/{sub}", devtest.Tmpl)
+		m.Group("/devtest", func() {
+			m.Any("", devtest.List)
+			m.Any("/fetch-action-test", devtest.FetchActionTest)
+			m.Any("/{sub}", devtest.Tmpl)
+			m.Post("/actions-mock/runs/{run}/jobs/{job}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
+		})
 	}
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {

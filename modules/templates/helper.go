@@ -42,6 +42,7 @@ func NewFuncMap() template.FuncMap {
 		"HTMLFormat":   htmlutil.HTMLFormat,
 		"HTMLEscape":   htmlEscape,
 		"QueryEscape":  queryEscape,
+		"QueryBuild":   QueryBuild,
 		"JSEscape":     jsEscapeSafe,
 		"SanitizeHTML": SanitizeHTML,
 		"URLJoin":      util.URLJoin,
@@ -70,6 +71,9 @@ func NewFuncMap() template.FuncMap {
 		"FileSize": base.FileSize,
 		"CountFmt": base.FormatNumberSI,
 		"Sec2Time": util.SecToTime,
+
+		"TimeEstimateString": timeEstimateString,
+
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
@@ -280,6 +284,80 @@ func userThemeName(user *user_model.User) string {
 		return user.Theme
 	}
 	return setting.UI.DefaultTheme
+}
+
+func timeEstimateString(timeSec any) string {
+	v, _ := util.ToInt64(timeSec)
+	if v == 0 {
+		return ""
+	}
+	return util.TimeEstimateString(v)
+}
+
+// QueryBuild builds a query string from a list of key-value pairs.
+// It omits the nil and empty strings, but it doesn't omit other zero values,
+// because the zero value of number types may have a meaning.
+func QueryBuild(a ...any) template.URL {
+	var s string
+	if len(a)%2 == 1 {
+		if v, ok := a[0].(string); ok {
+			if v == "" || (v[0] != '?' && v[0] != '&') {
+				panic("QueryBuild: invalid argument")
+			}
+			s = v
+		} else if v, ok := a[0].(template.URL); ok {
+			s = string(v)
+		} else {
+			panic("QueryBuild: invalid argument")
+		}
+	}
+	for i := len(a) % 2; i < len(a); i += 2 {
+		k, ok := a[i].(string)
+		if !ok {
+			panic("QueryBuild: invalid argument")
+		}
+		var v string
+		if va, ok := a[i+1].(string); ok {
+			v = va
+		} else if a[i+1] != nil {
+			v = fmt.Sprint(a[i+1])
+		}
+		// pos1 to pos2 is the "k=v&" part, "&" is optional
+		pos1 := strings.Index(s, "&"+k+"=")
+		if pos1 != -1 {
+			pos1++
+		} else {
+			pos1 = strings.Index(s, "?"+k+"=")
+			if pos1 != -1 {
+				pos1++
+			} else if strings.HasPrefix(s, k+"=") {
+				pos1 = 0
+			}
+		}
+		pos2 := len(s)
+		if pos1 == -1 {
+			pos1 = len(s)
+		} else {
+			pos2 = pos1 + 1
+			for pos2 < len(s) && s[pos2-1] != '&' {
+				pos2++
+			}
+		}
+		if v != "" {
+			sep := ""
+			hasPrefixSep := pos1 == 0 || (pos1 <= len(s) && (s[pos1-1] == '?' || s[pos1-1] == '&'))
+			if !hasPrefixSep {
+				sep = "&"
+			}
+			s = s[:pos1] + sep + k + "=" + url.QueryEscape(v) + "&" + s[pos2:]
+		} else {
+			s = s[:pos1] + s[pos2:]
+		}
+	}
+	if s != "" && s != "&" && s[len(s)-1] == '&' {
+		s = s[:len(s)-1]
+	}
+	return template.URL(s)
 }
 
 func panicIfDevOrTesting() {

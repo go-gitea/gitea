@@ -38,9 +38,9 @@ func (ut *RenderUtils) RenderCommitMessage(msg string, metas map[string]string) 
 	cleanMsg := template.HTMLEscapeString(msg)
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	fullMessage, err := markup.RenderCommitMessage(markup.NewRenderContext(ut.ctx).WithMetas(metas), cleanMsg)
+	fullMessage, err := markup.PostProcessCommitMessage(markup.NewRenderContext(ut.ctx).WithMetas(metas), cleanMsg)
 	if err != nil {
-		log.Error("RenderCommitMessage: %v", err)
+		log.Error("PostProcessCommitMessage: %v", err)
 		return ""
 	}
 	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
@@ -65,9 +65,9 @@ func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, me
 
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	renderedMessage, err := markup.RenderCommitMessageSubject(markup.NewRenderContext(ut.ctx).WithMetas(metas), urlDefault, template.HTMLEscapeString(msgLine))
+	renderedMessage, err := markup.PostProcessCommitMessageSubject(markup.NewRenderContext(ut.ctx).WithMetas(metas), urlDefault, template.HTMLEscapeString(msgLine))
 	if err != nil {
-		log.Error("RenderCommitMessageSubject: %v", err)
+		log.Error("PostProcessCommitMessageSubject: %v", err)
 		return ""
 	}
 	return renderCodeBlock(template.HTML(renderedMessage))
@@ -87,9 +87,9 @@ func (ut *RenderUtils) RenderCommitBody(msg string, metas map[string]string) tem
 		return ""
 	}
 
-	renderedMessage, err := markup.RenderCommitMessage(markup.NewRenderContext(ut.ctx).WithMetas(metas), template.HTMLEscapeString(msgLine))
+	renderedMessage, err := markup.PostProcessCommitMessage(markup.NewRenderContext(ut.ctx).WithMetas(metas), template.HTMLEscapeString(msgLine))
 	if err != nil {
-		log.Error("RenderCommitMessage: %v", err)
+		log.Error("PostProcessCommitMessage: %v", err)
 		return ""
 	}
 	return template.HTML(renderedMessage)
@@ -106,12 +106,19 @@ func renderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 
 // RenderIssueTitle renders issue/pull title with defined post processors
 func (ut *RenderUtils) RenderIssueTitle(text string, metas map[string]string) template.HTML {
-	renderedText, err := markup.RenderIssueTitle(markup.NewRenderContext(ut.ctx).WithMetas(metas), template.HTMLEscapeString(text))
+	renderedText, err := markup.PostProcessIssueTitle(markup.NewRenderContext(ut.ctx).WithMetas(metas), template.HTMLEscapeString(text))
 	if err != nil {
-		log.Error("RenderIssueTitle: %v", err)
+		log.Error("PostProcessIssueTitle: %v", err)
 		return ""
 	}
-	return template.HTML(renderedText)
+	return renderCodeBlock(template.HTML(renderedText))
+}
+
+// RenderIssueSimpleTitle only renders with emoji and inline code block
+func (ut *RenderUtils) RenderIssueSimpleTitle(text string) template.HTML {
+	ret := ut.RenderEmoji(text)
+	ret = renderCodeBlock(ret)
+	return ret
 }
 
 // RenderLabel renders a label
@@ -174,7 +181,7 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 
 // RenderEmoji renders html text with emoji post processors
 func (ut *RenderUtils) RenderEmoji(text string) template.HTML {
-	renderedText, err := markup.RenderEmoji(markup.NewRenderContext(ut.ctx), template.HTMLEscapeString(text))
+	renderedText, err := markup.PostProcessEmoji(markup.NewRenderContext(ut.ctx), template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("RenderEmoji: %v", err)
 		return ""

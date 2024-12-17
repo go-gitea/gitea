@@ -4,7 +4,6 @@
 package archiver
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -121,7 +120,7 @@ func TestArchive_Basic(t *testing.T) {
 	// It's fine to go ahead and set it to nil now.
 
 	assert.Equal(t, zipReq, zipReq2)
-	assert.False(t, zipReq == zipReq2)
+	assert.NotSame(t, zipReq, zipReq2)
 
 	// Same commit, different compression formats should have different names.
 	// Ideally, the extension would match what we originally requested.
@@ -131,5 +130,5 @@ func TestArchive_Basic(t *testing.T) {
 
 func TestErrUnknownArchiveFormat(t *testing.T) {
 	err := ErrUnknownArchiveFormat{RequestFormat: "master"}
-	assert.True(t, errors.Is(err, ErrUnknownArchiveFormat{}))
+	assert.ErrorIs(t, err, ErrUnknownArchiveFormat{})
 }

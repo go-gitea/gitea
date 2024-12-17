@@ -7,8 +7,8 @@
   ],
   "compilerOptions": {
     "target": "es2020",
-    "module": "node16",
-    "moduleResolution": "node16",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "lib": ["dom", "dom.iterable", "dom.asynciterable", "esnext"],
     "allowImportingTsExtensions": true,
     "allowJs": true,

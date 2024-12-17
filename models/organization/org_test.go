@@ -283,7 +283,7 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 		OrgID:       unittest.NonexistentID,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, orgUsers, 0)
+	assert.Empty(t, orgUsers)
 }
 
 func TestChangeOrgUserStatus(t *testing.T) {

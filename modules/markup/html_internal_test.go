@@ -252,7 +252,7 @@ func TestRender_IssueIndexPattern_NoShortPattern(t *testing.T) {
 	testRenderIssueIndexPattern(t, "!1", "!1", NewTestRenderContext(metas))
 }
 
-func TestRender_RenderIssueTitle(t *testing.T) {
+func TestRender_PostProcessIssueTitle(t *testing.T) {
 	setting.AppURL = TestAppURL
 	metas := map[string]string{
 		"format": "https://someurl.com/{user}/{repo}/{index}",
@@ -260,7 +260,7 @@ func TestRender_RenderIssueTitle(t *testing.T) {
 		"repo":   "someRepo",
 		"style":  IssueNameStyleNumeric,
 	}
-	actual, err := RenderIssueTitle(NewTestRenderContext(metas), "#1")
+	actual, err := PostProcessIssueTitle(NewTestRenderContext(metas), "#1")
 	assert.NoError(t, err)
 	assert.Equal(t, "#1", actual)
 }
@@ -278,12 +278,12 @@ func TestRender_AutoLink(t *testing.T) {
 	test := func(input, expected string) {
 		var buffer strings.Builder
 		err := PostProcessDefault(NewTestRenderContext(localMetas), strings.NewReader(input), &buffer)
-		assert.Equal(t, err, nil)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer.String()))
 
 		buffer.Reset()
 		err = PostProcessDefault(NewTestRenderContext(localMetas), strings.NewReader(input), &buffer)
-		assert.Equal(t, err, nil)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer.String()))
 	}
 

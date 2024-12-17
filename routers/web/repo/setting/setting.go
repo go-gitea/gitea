@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer/code"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -905,6 +906,9 @@ func SettingsPost(ctx *context.Context) {
 			log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 		}
 
+		// update issue indexer
+		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 
 		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -928,6 +932,9 @@ func SettingsPost(ctx *context.Context) {
 				log.Error("DetectAndHandleSchedules for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 			}
 		}
+
+		// update issue indexer
+		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
 

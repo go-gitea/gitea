@@ -3,11 +3,11 @@
 		<input type="hidden" name="state" value="{{$.State}}">
 		{{if not .PageIsMilestones}}
 			<input type="hidden" name="type" value="{{$.ViewType}}">
-			<input type="hidden" name="labels" value="{{.SelectLabels}}">
+			<input type="hidden" name="labels" value="{{$.SelectLabels}}">
 			<input type="hidden" name="milestone" value="{{$.MilestoneID}}">
 			<input type="hidden" name="project" value="{{$.ProjectID}}">
 			<input type="hidden" name="assignee" value="{{$.AssigneeID}}">
-			<input type="hidden" name="poster" value="{{$.PosterID}}">
+			<input type="hidden" name="poster" value="{{$.PosterUsername}}">
 		{{end}}
 		{{template "shared/search/input" dict "Value" .Keyword}}
 		{{if .PageIsIssueList}}

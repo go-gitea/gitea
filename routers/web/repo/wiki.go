@@ -6,6 +6,7 @@ package repo
 
 import (
 	"bytes"
+	gocontext "context"
 	"fmt"
 	"io"
 	"net/http"
@@ -645,22 +646,32 @@ func WikiPages(ctx *context.Context) {
 		return
 	}
 
-	entries, err := commit.ListEntries()
+	treePath := "" // To support list sub folders' pages in the future
+	tree, err := commit.SubTree(treePath)
+	if err != nil {
+		ctx.ServerError("SubTree", err)
+		return
+	}
+
+	allEntries, err := tree.ListEntries()
 	if err != nil {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
+	allEntries.CustomSort(base.NaturalSortLess)
+
+	entries, _, err := allEntries.GetCommitsInfo(gocontext.Context(ctx), commit, treePath)
+	if err != nil {
+		ctx.ServerError("GetCommitsInfo", err)
+		return
+	}
+
 	pages := make([]PageMeta, 0, len(entries))
 	for _, entry := range entries {
-		if !entry.IsRegular() {
+		if !entry.Entry.IsRegular() {
 			continue
 		}
-		c, err := wikiRepo.GetCommitByPath(entry.Name())
-		if err != nil {
-			ctx.ServerError("GetCommit", err)
-			return
-		}
-		wikiName, err := wiki_service.GitPathToWebPath(entry.Name())
+		wikiName, err := wiki_service.GitPathToWebPath(entry.Entry.Name())
 		if err != nil {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
@@ -672,8 +683,8 @@ func WikiPages(ctx *context.Context) {
 		pages = append(pages, PageMeta{
 			Name:         displayName,
 			SubURL:       wiki_service.WebPathToURLPath(wikiName),
-			GitEntryName: entry.Name(),
-			UpdatedUnix:  timeutil.TimeStamp(c.Author.When.Unix()),
+			GitEntryName: entry.Entry.Name(),
+			UpdatedUnix:  timeutil.TimeStamp(entry.Commit.Author.When.Unix()),
 		})
 	}
 	ctx.Data["Pages"] = pages
