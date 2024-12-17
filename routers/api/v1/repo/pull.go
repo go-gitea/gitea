@@ -1133,7 +1133,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	headRepo, err := repo_model.GetForkedRepo(ctx, headUser.ID, baseRepo.ID)
 	if err != nil && !repo_model.IsErrRepoNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetForkedRepo", err)
-		return nil, nil, nil, "", ""
+		return nil, nil
 	}
 	if headRepo == nil && !isSameRepo {
 		err = baseRepo.GetBaseRepo(ctx)
