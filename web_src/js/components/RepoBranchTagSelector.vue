@@ -113,6 +113,16 @@ const sfc = {
       if (this.menuVisible) this.menuVisible = false;
     });
   },
+
+  mounted() {
+    if (this.refFormActionTemplate) {
+      // if the selector is used in a form and needs to change the form action,
+      // make a mock item and select it to update the form action
+      const item: ListItem = {selected: true, refType: this.currentRefType, refShortName: this.currentRefShortName, rssFeedLink: ''};
+      this.selectItem(item);
+    }
+  },
+
   methods: {
     selectItem(item: ListItem) {
       this.menuVisible = false;
