@@ -35,7 +35,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Support compression for Actions logs & enable by default (#31761 & #32013)
   * Add pure SSH LFS support (#31516)
   * Add Passkey login support (#31504)
-  * Add issue comment when moving issues from one column to another of the project (#29311)
   * Actions support workflow dispatch event (#28163)
   * Support repo license (#24872)
   * Issue time estimate, meaningful time tracking (#23113)
@@ -90,6 +89,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
     * Improve attachment upload methods (#30513)
     * Support issue template assignees (#31083)
     * Prevent simultaneous editing of comments and issues (#31053)
+    * Add issue comment when moving issues from one column to another of the project (#29311)
 
   * Pull Request
     * Display head branch more comfortable on pull request view (#32000)
@@ -173,7 +173,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add support for searching users by email (#30908)
   * Add API endpoints for getting action jobs status (#26673)
 
-* Refactor
+* REFACTOR
   * Update JS and PY dependencies (#31940)
   * Enable `no-jquery/no-parse-html-literal` and fix violation (#31684)
   * Refactor image diff (#31444)
@@ -240,6 +240,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Refactor DateUtils and merge TimeSince (#32409)
   * Replace DateTime with proper functions (#32402)
   * Replace DateTime with DateUtils (#32383)
+  * Convert frontend code to typescript (#31559)
 
 * BUGFIXES
   * Fix issues with inconsistent spacing in areas (#32607)
@@ -311,13 +312,11 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Use GetDisplayName() instead of DisplayName() to generate rss feeds (#31687)
   * Code editor theme enhancements (#31629)
   * Update JS dependencies (#31616)
-  * Add bohde as maintainer (#31601)
   * Add types for js globals (#31586)
   * Add back esbuild-loader for .js files (#31585)
   * Don't show hidden labels when filling out an issue template (#31576)
   * Allow synchronizing user status from OAuth2 login providers (#31572)
   * Display app name in the registration email title (#31562)
-  * Convert frontend code to typescript (#31559)
   * Use stable version of fabric (#31526)
   * Support legacy _links LFS batch responses (#31513)
   * Fix JS error with disabled attachment and easymde (#31511)
