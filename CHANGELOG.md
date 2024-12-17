@@ -16,7 +16,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 * SECURITY
   * Include file extension checks in attachment API (#32151)
-  * Update JS and PY dependencies (#31940)
+  * All security pull requests have been backported to v1.22
 
 * FEATURES
   * Allow to fork repository into the same owner (#32819)
@@ -172,6 +172,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add API endpoints for getting action jobs status (#26673)
 
 * Refactor
+  * Update JS and PY dependencies (#31940)
   * Enable `no-jquery/no-parse-html-literal` and fix violation (#31684)
   * Refactor image diff (#31444)
   * Refactor CSRF token (#32216)
