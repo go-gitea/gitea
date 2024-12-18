@@ -573,19 +573,19 @@ func GetTeamRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	team := ctx.Org.Team
-	teamRepos, err := organization.GetTeamRepositories(ctx, &organization.SearchTeamRepoOptions{
+	teamRepos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		TeamID:      team.ID,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
+		ctx.Error(http.StatusInternalServerError, "GetTeamRepositories", err)
 		return
 	}
 	repos := make([]*api.Repository, len(teamRepos))
 	for i, repo := range teamRepos {
 		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
 		}
 		repos[i] = convert.ToRepo(ctx, repo, permission)
