@@ -1,31 +1,31 @@
-import $ from 'jquery';
 import {contrastColor} from '../utils/color.ts';
 import {createSortable} from '../modules/sortable.ts';
 import {POST, DELETE, PUT} from '../modules/fetch.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
-function updateIssueCount(cards) {
-  const parent = cards.parentElement;
+function updateIssueCount(card: HTMLElement): void {
+  const parent = card.parentElement;
   const cnt = parent.querySelectorAll('.issue-card').length;
-  parent.querySelectorAll('.project-column-issue-count')[0].textContent = cnt;
+  parent.querySelectorAll('.project-column-issue-count')[0].textContent = String(cnt);
 }
 
-async function createNewColumn(url, columnTitle, projectColorInput) {
+async function createNewColumn(url: string, columnTitleInput: HTMLInputElement, projectColorInput: HTMLInputElement): Promise<void> {
   try {
     await POST(url, {
       data: {
-        title: columnTitle.val(),
-        color: projectColorInput.val(),
+        title: columnTitleInput.value,
+        color: projectColorInput.value,
       },
     });
   } catch (error) {
     console.error(error);
   } finally {
-    columnTitle.closest('form').removeClass('dirty');
+    columnTitleInput.closest('form').classList.remove('dirty');
     window.location.reload();
   }
 }
 
-async function moveIssue({item, from, to, oldIndex}: {item: HTMLElement, from: HTMLElement, to: HTMLElement, oldIndex: number}) {
+async function moveIssue({item, from, to, oldIndex}: {item: HTMLElement, from: HTMLElement, to: HTMLElement, oldIndex: number}): Promise<void> {
   const columnCards = to.querySelectorAll('.issue-card');
   updateIssueCount(from);
   updateIssueCount(to);
@@ -47,13 +47,13 @@ async function moveIssue({item, from, to, oldIndex}: {item: HTMLElement, from: H
   }
 }
 
-async function initRepoProjectSortable() {
+async function initRepoProjectSortable(): Promise<void> {
   const els = document.querySelectorAll('#project-board > .board.sortable');
   if (!els.length) return;
 
   // the HTML layout is: #project-board > .board > .project-column .cards > .issue-card
   const mainBoard = els[0];
-  let boardColumns = mainBoard.querySelectorAll('.project-column');
+  let boardColumns = mainBoard.querySelectorAll<HTMLDivElement>('.project-column');
   createSortable(mainBoard, {
     group: 'project-column',
     draggable: '.project-column',
@@ -61,7 +61,7 @@ async function initRepoProjectSortable() {
     delayOnTouchOnly: true,
     delay: 500,
     onSort: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises
-      boardColumns = mainBoard.querySelectorAll('.project-column');
+      boardColumns = mainBoard.querySelectorAll<HTMLDivElement>('.project-column');
 
       const columnSorting = {
         columns: Array.from(boardColumns, (column, i) => ({
@@ -92,14 +92,14 @@ async function initRepoProjectSortable() {
   }
 }
 
-export function initRepoProject() {
+export function initRepoProject(): void {
   if (!document.querySelector('.repository.projects')) {
     return;
   }
 
   initRepoProjectSortable(); // no await
 
-  for (const modal of document.querySelectorAll('.edit-project-column-modal')) {
+  for (const modal of document.querySelectorAll<HTMLDivElement>('.edit-project-column-modal')) {
     const projectHeader = modal.closest<HTMLElement>('.project-column-header');
     const projectTitleLabel = projectHeader?.querySelector<HTMLElement>('.project-column-title-label');
     const projectTitleInput = modal.querySelector<HTMLInputElement>('.project-column-title-input');
@@ -134,55 +134,47 @@ export function initRepoProject() {
             divider.style.removeProperty('color');
           }
         }
-        $('.ui.modal').modal('hide');
+        fomanticQuery('.ui.modal').modal('hide');
       }
     });
   }
 
-  $('.default-project-column-modal').each(function () {
-    const $boardColumn = $(this).closest('.project-column');
-    const $showButton = $($boardColumn).find('.default-project-column-show');
-    const $commitButton = $(this).find('.actions > .ok.button');
-
-    $($commitButton).on('click', async (e) => {
+  for (const modal of document.querySelectorAll('.default-project-column-modal')) {
+    const column = modal.closest('.project-column');
+    const showBtn = column.querySelector('.default-project-column-show');
+    const okBtn = modal.querySelector('.actions .ok.button');
+    okBtn.addEventListener('click', async (e: MouseEvent) => {
       e.preventDefault();
-
       try {
-        await POST($($showButton).data('url'));
+        await POST(showBtn.getAttribute('data-url'));
       } catch (error) {
         console.error(error);
       } finally {
         window.location.reload();
       }
     });
-  });
+  }
 
-  $('.show-delete-project-column-modal').each(function () {
-    const $deleteColumnModal = $(`${this.getAttribute('data-modal')}`);
-    const $deleteColumnButton = $deleteColumnModal.find('.actions > .ok.button');
-    const deleteUrl = this.getAttribute('data-url');
-
-    $deleteColumnButton.on('click', async (e) => {
+  for (const btn of document.querySelectorAll('.show-delete-project-column-modal')) {
+    const okBtn = document.querySelector(`${btn.getAttribute('data-modal')} .actions .ok.button`);
+    okBtn?.addEventListener('click', async (e: MouseEvent) => {
       e.preventDefault();
-
       try {
-        await DELETE(deleteUrl);
+        await DELETE(btn.getAttribute('data-url'));
       } catch (error) {
         console.error(error);
       } finally {
         window.location.reload();
       }
     });
-  });
+  }
 
-  $('#new_project_column_submit').on('click', (e) => {
+  document.querySelector('#new_project_column_submit')?.addEventListener('click', async (e: MouseEvent & {target: HTMLButtonElement}) => {
     e.preventDefault();
-    const $columnTitle = $('#new_project_column');
-    const $projectColorInput = $('#new_project_column_color_picker');
-    if (!$columnTitle.val()) {
-      return;
-    }
+    const columnTitleInput = document.querySelector<HTMLInputElement>('#new_project_column');
+    const projectColorInput = document.querySelector<HTMLInputElement>('#new_project_column_color_picker');
+    if (!columnTitleInput.value) return;
     const url = e.target.getAttribute('data-url');
-    createNewColumn(url, $columnTitle, $projectColorInput);
+    await createNewColumn(url, columnTitleInput, projectColorInput);
   });
 }
