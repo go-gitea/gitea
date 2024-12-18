@@ -109,8 +109,6 @@ endif
 
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
-LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64
-
 GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration code.gitea.io/gitea/tests/e2e,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
 
@@ -805,15 +803,13 @@ $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
 
 .PHONY: release-windows
-release-windows: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
-ifeq (,$(findstring gogit,$(TAGS)))
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo gogit $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
-endif
+release-windows: | $(DIST_DIRS) zig-release-windows-amd64 zig-release-windows-arm64 zig-release-windows-amd64-gogit zig-release-windows-arm64-gogit
+	@echo "Windows binaries built"
 
 .PHONY: release-linux
-release-linux: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
+release-linux: | $(DIST_DIRS) zig-release-linux-amd64 zig-release-linux-arm64 zig-release-linux-arm6 zig-release-linux-linux-386
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/arm-5' -out gitea-$(VERSION) .
+	echo "Linux binaries built"
 
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
@@ -985,6 +981,103 @@ generate-manpage:
 docker:
 	docker build --disable-content-trust=false -t $(DOCKER_REF) .
 # support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
+
+## Experimental Zig-based cross-compiling
+
+# Platform definitions
+LINUX_PLATFORMS := linux-amd64 linux-arm64 linux-386 linux-arm6
+WINDOWS_PLATFORMS := windows-amd64 windows-arm64 windows-386
+DARWIN_PLATFORMS := darwin-amd64 darwin-arm64
+
+PLATFORMS := $(LINUX_PLATFORMS) $(WINDOWS_PLATFORMS) $(DARWIN_PLATFORMS)
+
+# Zig target mappings
+ZIG_TARGET.linux-amd64 := x86_64-linux-musl
+ZIG_TARGET.linux-arm64 := aarch64-linux-musl
+ZIG_TARGET.linux-386 := x86-linux-musl
+ZIG_TARGET.linux-arm6 := arm-linux-musleabihf
+ZIG_TARGET.windows-amd64 := x86_64-windows-gnu
+ZIG_TARGET.windows-arm64 := aarch64-windows-gnu
+ZIG_TARGET.windows-386 := x86-windows-gnu
+ZIG_TARGET.darwin-amd64 := x86_64-macos
+ZIG_TARGET.darwin-arm64 := aarch64-macos
+
+# Output filename components
+DARWIN_VERSION := 10.12
+WINDOWS_VERSION := 4.0
+
+# Function to get OS, ARCH from platform
+OS = $(word 1,$(subst -, ,$1))
+ARCH = $(word 2,$(subst -, ,$1))
+
+# Function to generate output filename
+define GET_FILENAME
+$(strip \
+    $(if $(findstring windows,$1), \
+        gitea-$(VERSION)-$(if $2,gogit-)windows-$(WINDOWS_VERSION)-$(call ARCH,$1).exe, \
+		$(if $(findstring darwin,$1), \
+				gitea-$(VERSION)-darwin-$(DARWIN_VERSION)-$(call ARCH,$1), \
+		$(if $(filter %arm6,$(1)), \
+				gitea-$(VERSION)-linux-arm-6, \
+		gitea-$(VERSION)-linux-$(call ARCH,$1)) \
+		) \
+    ) \
+)
+endef
+
+# Common build flags
+COMMON_TAGS := netgo osusergo $(TAGS)
+
+# Platform-specific flags
+CGO_FLAGS.linux := $(CGO_CFLAGS)
+CGO_FLAGS.windows := $(CGO_CFLAGS)
+CGO_FLAGS.darwin := $(CGO_CFLAGS)
+
+# Platform-specific linker flags
+EXTRA_LDFLAGS.linux := -static
+# EXTRA_LDFLAGS.darwin := -dead_strip
+
+GOARCH.linux-arm6 := arm
+
+define GET_GOARCH
+$(or $(GOARCH.$1),$(call ARCH,$1))
+endef
+
+# For ARM builds, we need to specify additional compiler flags
+ZIG_ARM_FLAGS.linux-arm6 := -mcpu=arm1176jzf_s
+
+# Generic release target
+define RELEASE_template
+zig-release-$(1)$(if $(2),-gogit): $$(DIST_DIRS)
+	CC="zig cc -target $$(ZIG_TARGET.$(1)) $$(ZIG_ARM_FLAGS.$(1))" \
+  CXX="zig c++ -target $$(ZIG_TARGET.$(1)) $$(ZIG_ARM_FLAGS.$(1))" \
+	CGO_ENABLED=1 \
+	CGO_CFLAGS="$$(CGO_FLAGS.$$(call OS,$(1)))" \
+	GOOS=$$(call OS,$(1)) \
+	GOARCH=$$(call GET_GOARCH,$(1)) \
+	$(if $(filter %arm6,$(1)),GOARM=6,) \
+	$$(GO) build $$(GOFLAGS) -tags '$$(COMMON_TAGS)$(if $(2), gogit,)' \
+		-ldflags '-s -w $(if $(findstring darwin,$(1)),,-linkmode external) -extldflags "$$(EXTRA_LDFLAGS.$$(call OS,$(1)))" $$(LDFLAGS)' \
+		-o $$(DIST)/binaries/$$(call GET_FILENAME,$(1),$(2)) .
+endef
+
+# Generate release targets for all platforms
+$(foreach platform,$(PLATFORMS),$(eval $(call RELEASE_template,$(platform),)))
+
+# Generate additional gogit targets for Windows
+$(foreach platform,$(WINDOWS_PLATFORMS),$(eval $(call RELEASE_template,$(platform),1)))
+
+# Target to build all platforms
+zig-release-all: $(foreach platform,$(PLATFORMS),zig-release-$(platform)) \
+	$(foreach platform,$(WINDOWS_PLATFORMS),zig-release-$(platform)-gogit)
+
+# Helper to list all available targets
+.PHONY: list-targets
+zig-list-targets:
+	@echo "Available targets:"
+	@echo "Linux targets: $(addprefix zig-release-,$(LINUX_PLATFORMS))"
+	@echo "Windows targets: $(addprefix zig-release-,$(WINDOWS_PLATFORMS)) $(addprefix zig-release-,$(addsuffix -gogit,$(WINDOWS_PLATFORMS)))"
+	@echo "Darwin targets: $(addprefix zig-release-,$(DARWIN_PLATFORMS))"
 
 # This endif closes the if at the top of the file
 endif
