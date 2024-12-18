@@ -144,7 +144,7 @@ func CloseIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comm
 	return comment, nil
 }
 
-// ChangeIssueStatus changes issue status to open or closed.
+// ReopenIssue changes issue status to open.
 func ReopenIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err

@@ -912,31 +912,10 @@ func EditIssue(ctx *context.APIContext) {
 			}
 		}
 
-		var closeOrReopen bool
-		switch state := api.StateType(*form.State); state {
-		case api.StateOpen:
-			closeOrReopen = false
-		case api.StateClosed:
-			closeOrReopen = true
-		default:
-			ctx.Error(http.StatusPreconditionFailed, "UnknownIssueStateError", fmt.Sprintf("unknown state: %s", state))
+		state := api.StateType(*form.State)
+		closeOrReopenIssue(ctx, issue, state)
+		if ctx.Written() {
 			return
-		}
-
-		if closeOrReopen && !issue.IsClosed {
-			if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
-				if issues_model.IsErrDependenciesLeft(err) {
-					ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
-					return
-				}
-				ctx.Error(http.StatusInternalServerError, "CloseIssue", err)
-				return
-			}
-		} else if !closeOrReopen && issue.IsClosed {
-			if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
-				ctx.Error(http.StatusInternalServerError, "ReopenIssue", err)
-				return
-			}
 		}
 	}
 
@@ -1059,4 +1038,27 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: deadlineUnix.AsTimePtr()})
+}
+
+func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType) {
+	if state != api.StateOpen && state != api.StateClosed {
+		ctx.Error(http.StatusPreconditionFailed, "UnknownIssueStateError", fmt.Sprintf("unknown state: %s", state))
+		return
+	}
+
+	if state == api.StateClosed && !issue.IsClosed {
+		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
+			if issues_model.IsErrDependenciesLeft(err) {
+				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue or pull request because it still has open dependencies")
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "CloseIssue", err)
+			return
+		}
+	} else if state == api.StateOpen && issue.IsClosed {
+		if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
+			ctx.Error(http.StatusInternalServerError, "ReopenIssue", err)
+			return
+		}
+	}
 }
