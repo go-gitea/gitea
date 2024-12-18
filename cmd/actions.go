@@ -83,9 +83,9 @@ func runSetActionsRunnerToken(c *cli.Context) error {
 	setting.MustInstalled()
 
 	scope := c.String("scope")
-	putToken := c.String("token")
+	token := c.String("token")
 
-	respText, extra := private.SetActionsRunnerToken(ctx, scope, putToken)
+	respText, extra := private.SetActionsRunnerToken(ctx, scope, token)
 	if extra.HasError() {
 		return handleCliResponseExtra(extra)
 	}

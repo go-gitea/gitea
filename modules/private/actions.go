@@ -10,8 +10,7 @@ import (
 )
 
 type GenerateTokenRequest struct {
-	Scope    string
-	PutToken string
+	Scope string
 }
 
 // GenerateActionsRunnerToken calls the internal GenerateActionsRunnerToken function
