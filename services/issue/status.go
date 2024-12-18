@@ -13,7 +13,7 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
-// CloseIssue close and issue.
+// CloseIssue close an issue.
 func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string) error {
 	dbCtx, committer, err := db.TxContext(ctx)
 	if err != nil {
