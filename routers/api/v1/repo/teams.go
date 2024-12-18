@@ -42,7 +42,7 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
-	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository)
+	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
