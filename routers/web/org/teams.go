@@ -410,11 +410,15 @@ func TeamRepositories(ctx *context.Context) {
 		return
 	}
 
-	if err := ctx.Org.Team.LoadRepositories(ctx); err != nil {
-		ctx.ServerError("GetRepositories", err)
+	repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
+		TeamID: ctx.Org.Team.ID,
+	})
+	if err != nil {
+		ctx.ServerError("GetTeamRepositories", err)
 		return
 	}
 	ctx.Data["Units"] = unit_model.Units
+	ctx.Data["TeamRepos"] = repos
 	ctx.HTML(http.StatusOK, tplTeamRepositories)
 }
 

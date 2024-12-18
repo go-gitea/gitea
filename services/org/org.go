@@ -8,15 +8,44 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
+	secret_model "code.gitea.io/gitea/models/secret"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
+
+// deleteOrganization deletes models associated to an organization.
+func deleteOrganization(ctx context.Context, org *org_model.Organization) error {
+	if org.Type != user_model.UserTypeOrganization {
+		return fmt.Errorf("%s is a user not an organization", org.Name)
+	}
+
+	if err := db.DeleteBeans(ctx,
+		&org_model.Team{OrgID: org.ID},
+		&org_model.OrgUser{OrgID: org.ID},
+		&org_model.TeamUser{OrgID: org.ID},
+		&org_model.TeamUnit{OrgID: org.ID},
+		&org_model.TeamInvite{OrgID: org.ID},
+		&secret_model.Secret{OwnerID: org.ID},
+		&user_model.Blocking{BlockerID: org.ID},
+		&actions_model.ActionRunner{OwnerID: org.ID},
+		&actions_model.ActionRunnerToken{OwnerID: org.ID},
+	); err != nil {
+		return fmt.Errorf("DeleteBeans: %w", err)
+	}
+
+	if _, err := db.GetEngine(ctx).ID(org.ID).Delete(new(user_model.User)); err != nil {
+		return fmt.Errorf("Delete: %w", err)
+	}
+
+	return nil
+}
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge bool) error {
@@ -48,7 +77,7 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 		return models.ErrUserOwnPackages{UID: org.ID}
 	}
 
-	if err := org_model.DeleteOrganization(ctx, org); err != nil {
+	if err := deleteOrganization(ctx, org); err != nil {
 		return fmt.Errorf("DeleteOrganization: %w", err)
 	}
 
