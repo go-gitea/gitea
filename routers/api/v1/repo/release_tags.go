@@ -6,11 +6,10 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
-	releaseservice "code.gitea.io/gitea/services/release"
+	release_service "code.gitea.io/gitea/services/release"
 )
 
 // GetReleaseByTag get a single release of a repository by tag name
@@ -112,8 +111,8 @@ func DeleteReleaseByTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err = releaseservice.DeleteReleaseByID(ctx, ctx.Repo.Repository, release, ctx.Doer, false); err != nil {
-		if models.IsErrProtectedTagName(err) {
+	if err = release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, release, ctx.Doer, false); err != nil {
+		if release_service.IsErrProtectedTagName(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "delTag", "user not allowed to delete protected tag")
 			return
 		}
