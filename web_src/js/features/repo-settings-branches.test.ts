@@ -3,6 +3,7 @@ import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {POST} from '../modules/fetch.ts';
 import {createSortable} from '../modules/sortable.ts';
 import type {SortableEvent} from 'sortablejs';
+import type Sortable from 'sortablejs';
 
 vi.mock('../modules/fetch.ts', () => ({
   POST: vi.fn(),
@@ -57,7 +58,8 @@ describe('Repository Branch Settings', () => {
     // Mock createSortable to capture and execute the onEnd callback
     vi.mocked(createSortable).mockImplementation(async (_el: Element, options) => {
       options.onEnd(new Event('SortableEvent') as SortableEvent);
-      return {destroy: vi.fn()};
+      // @ts-expect-error: mock is incomplete
+      return {destroy: vi.fn()} as Sortable;
     });
 
     initRepoSettingsBranchesDrag();
