@@ -866,6 +866,21 @@ func (repo *Repository) TemplateRepo(ctx context.Context) *Repository {
 	return repo
 }
 
+// ErrUserOwnRepos represents a "UserOwnRepos" kind of error.
+type ErrUserOwnRepos struct {
+	UID int64
+}
+
+// IsErrUserOwnRepos checks if an error is a ErrUserOwnRepos.
+func IsErrUserOwnRepos(err error) bool {
+	_, ok := err.(ErrUserOwnRepos)
+	return ok
+}
+
+func (err ErrUserOwnRepos) Error() string {
+	return fmt.Sprintf("user still has ownership of repositories [uid: %d]", err.UID)
+}
+
 type CountRepositoryOptions struct {
 	OwnerID int64
 	Private optional.Option[bool]

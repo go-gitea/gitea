@@ -96,7 +96,7 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 			ctx.Error(http.StatusForbidden, "Access", err)
 			return
 		}
-		if git_model.IsErrBranchAlreadyExists(err) || models.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
+		if git_model.IsErrBranchAlreadyExists(err) || files.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
 			models.IsErrFilePathInvalid(err) || models.IsErrRepoFileAlreadyExists(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "Invalid", err)
 			return

@@ -100,14 +100,14 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		// Check that the path given in opts.treePath is valid (not a git path)
 		treePath := CleanUploadFileName(file.TreePath)
 		if treePath == "" {
-			return nil, models.ErrFilenameInvalid{
+			return nil, ErrFilenameInvalid{
 				Path: file.TreePath,
 			}
 		}
 		// If there is a fromTreePath (we are copying it), also clean it up
 		fromTreePath := CleanUploadFileName(file.FromTreePath)
 		if fromTreePath == "" && file.FromTreePath != "" {
-			return nil, models.ErrFilenameInvalid{
+			return nil, ErrFilenameInvalid{
 				Path: file.FromTreePath,
 			}
 		}

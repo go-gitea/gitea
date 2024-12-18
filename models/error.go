@@ -12,66 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// ErrUserOwnRepos represents a "UserOwnRepos" kind of error.
-type ErrUserOwnRepos struct {
-	UID int64
-}
-
-// IsErrUserOwnRepos checks if an error is a ErrUserOwnRepos.
-func IsErrUserOwnRepos(err error) bool {
-	_, ok := err.(ErrUserOwnRepos)
-	return ok
-}
-
-func (err ErrUserOwnRepos) Error() string {
-	return fmt.Sprintf("user still has ownership of repositories [uid: %d]", err.UID)
-}
-
-// ErrUserHasOrgs represents a "UserHasOrgs" kind of error.
-type ErrUserHasOrgs struct {
-	UID int64
-}
-
-// IsErrUserHasOrgs checks if an error is a ErrUserHasOrgs.
-func IsErrUserHasOrgs(err error) bool {
-	_, ok := err.(ErrUserHasOrgs)
-	return ok
-}
-
-func (err ErrUserHasOrgs) Error() string {
-	return fmt.Sprintf("user still has membership of organizations [uid: %d]", err.UID)
-}
-
-// ErrUserOwnPackages notifies that the user (still) owns the packages.
-type ErrUserOwnPackages struct {
-	UID int64
-}
-
-// IsErrUserOwnPackages checks if an error is an ErrUserOwnPackages.
-func IsErrUserOwnPackages(err error) bool {
-	_, ok := err.(ErrUserOwnPackages)
-	return ok
-}
-
-func (err ErrUserOwnPackages) Error() string {
-	return fmt.Sprintf("user still has ownership of packages [uid: %d]", err.UID)
-}
-
-// ErrDeleteLastAdminUser represents a "DeleteLastAdminUser" kind of error.
-type ErrDeleteLastAdminUser struct {
-	UID int64
-}
-
-// IsErrDeleteLastAdminUser checks if an error is a ErrDeleteLastAdminUser.
-func IsErrDeleteLastAdminUser(err error) bool {
-	_, ok := err.(ErrDeleteLastAdminUser)
-	return ok
-}
-
-func (err ErrDeleteLastAdminUser) Error() string {
-	return fmt.Sprintf("can not delete the last admin user [uid: %d]", err.UID)
-}
-
 // ErrInvalidCloneAddr represents a "InvalidCloneAddr" kind of error.
 type ErrInvalidCloneAddr struct {
 	Host               string
@@ -203,25 +143,6 @@ func (err ErrRepoFileDoesNotExist) Error() string {
 
 func (err ErrRepoFileDoesNotExist) Unwrap() error {
 	return util.ErrNotExist
-}
-
-// ErrFilenameInvalid represents a "FilenameInvalid" kind of error.
-type ErrFilenameInvalid struct {
-	Path string
-}
-
-// IsErrFilenameInvalid checks if an error is an ErrFilenameInvalid.
-func IsErrFilenameInvalid(err error) bool {
-	_, ok := err.(ErrFilenameInvalid)
-	return ok
-}
-
-func (err ErrFilenameInvalid) Error() string {
-	return fmt.Sprintf("path contains a malformed path component [path: %s]", err.Path)
-}
-
-func (err ErrFilenameInvalid) Unwrap() error {
-	return util.ErrInvalidArgument
 }
 
 // ErrUserCannotCommit represents "UserCannotCommit" kind of error.
