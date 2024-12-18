@@ -107,3 +107,43 @@ func IsErrUserIsNotLocal(err error) bool {
 	_, ok := err.(ErrUserIsNotLocal)
 	return ok
 }
+
+// ErrBadgeAlreadyExist represents a "badge already exists" error.
+type ErrBadgeAlreadyExist struct {
+	Slug string
+}
+
+// IsErrBadgeAlreadyExist checks if an error is a ErrBadgeAlreadyExist.
+func IsErrBadgeAlreadyExist(err error) bool {
+	_, ok := err.(ErrBadgeAlreadyExist)
+	return ok
+}
+
+func (err ErrBadgeAlreadyExist) Error() string {
+	return fmt.Sprintf("badge already exists [slug: %s]", err.Slug)
+}
+
+// Unwrap unwraps this error as a ErrExist error
+func (err ErrBadgeAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
+// ErrBadgeNotExist represents a "BadgeNotExist" kind of error.
+type ErrBadgeNotExist struct {
+	Slug string
+}
+
+// IsErrBadgeNotExist checks if an error is a ErrBadgeNotExist.
+func IsErrBadgeNotExist(err error) bool {
+	_, ok := err.(ErrBadgeNotExist)
+	return ok
+}
+
+func (err ErrBadgeNotExist) Error() string {
+	return fmt.Sprintf("badge does not exist [slug: %s]", err.Slug)
+}
+
+// Unwrap unwraps this error as a ErrNotExist error
+func (err ErrBadgeNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
