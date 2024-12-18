@@ -93,3 +93,44 @@ func parseScope(ctx *context.PrivateContext, scope string) (ownerID, repoID int6
 	repoID = r.ID
 	return ownerID, repoID, nil
 }
+
+// SetActionsRunnerToken set a runner token for a given scope
+func SetActionsRunnerToken(ctx *context.PrivateContext) {
+	var setRequest private.SetTokenRequest
+	rd := ctx.Req.Body
+	defer rd.Close()
+
+	if err := json.NewDecoder(rd).Decode(&setRequest); err != nil {
+		log.Error("JSON Decode failed: %v", err)
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: err.Error(),
+		})
+		return
+	}
+
+	owner, repo, err := parseScope(ctx, setRequest.Scope)
+	if err != nil {
+		log.Error("parseScope failed: %v", err)
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: err.Error(),
+		})
+	}
+	if setRequest.Token == "" {
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: "token is empty",
+		})
+		return
+	}
+
+	token, err := actions_model.NewRunnerToken(ctx, owner, repo, setRequest.Token)
+	if err != nil {
+		errMsg := fmt.Sprintf("error while creating runner token: %v", err)
+		log.Error("NewRunnerToken failed: %v", errMsg)
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: errMsg,
+		})
+		return
+	}
+
+	ctx.PlainText(http.StatusOK, token.Token)
+}

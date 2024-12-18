@@ -84,11 +84,10 @@ func NewRunnerToken(ctx context.Context, ownerID, repoID int64, preDefinedToken 
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		if len(token) != 40 || !util.IsRandomStringValid(token) {
-			return nil, util.NewInvalidArgumentErrorf("invalid token: %s", token)
-		}
+	} else if len(token) != 40 || !util.IsRandomStringValid(token) {
+		return nil, util.NewInvalidArgumentErrorf("invalid token: %s", token)
 	}
+
 	runnerToken := &ActionRunnerToken{
 		OwnerID:  ownerID,
 		RepoID:   repoID,

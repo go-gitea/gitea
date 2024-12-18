@@ -19,6 +19,7 @@ var (
 		Usage: "Manage Gitea Actions",
 		Subcommands: []*cli.Command{
 			subcmdActionsGenRunnerToken,
+			subcmdActionsSetRunnerToken,
 		},
 	}
 
@@ -34,8 +35,23 @@ var (
 				Value:   "",
 				Usage:   "{owner}[/{repo}] - leave empty for a global runner",
 			},
+		},
+	}
+
+	subcmdActionsSetRunnerToken = &cli.Command{
+		Name:    "set-runner-token",
+		Usage:   "Set a new token for a runner to as register token",
+		Action:  runSetActionsRunnerToken,
+		Aliases: []string{"grt"},
+		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    "put-token",
+				Name:    "scope",
+				Aliases: []string{"s"},
+				Value:   "",
+				Usage:   "{owner}[/{repo}] - leave empty for a global runner",
+			},
+			&cli.StringFlag{
+				Name:    "token",
 				Aliases: []string{"t"},
 				Value:   "",
 				Usage:   "[{token}] - leave empty will generate a new token, otherwise will update the token to database. The token MUST be a 40 digital string containing only [0-9a-zA-Z]",
@@ -51,9 +67,25 @@ func runGenerateActionsRunnerToken(c *cli.Context) error {
 	setting.MustInstalled()
 
 	scope := c.String("scope")
-	putToken := c.String("put-token")
 
-	respText, extra := private.GenerateActionsRunnerToken(ctx, scope, putToken)
+	respText, extra := private.GenerateActionsRunnerToken(ctx, scope)
+	if extra.HasError() {
+		return handleCliResponseExtra(extra)
+	}
+	_, _ = fmt.Printf("%s\n", respText.Text)
+	return nil
+}
+
+func runSetActionsRunnerToken(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	setting.MustInstalled()
+
+	scope := c.String("scope")
+	putToken := c.String("token")
+
+	respText, extra := private.SetActionsRunnerToken(ctx, scope, putToken)
 	if extra.HasError() {
 		return handleCliResponseExtra(extra)
 	}
