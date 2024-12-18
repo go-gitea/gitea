@@ -52,6 +52,10 @@ func TestCreateIssueDependency(t *testing.T) {
 	_, err = issues_model.CloseIssue(db.DefaultContext, issue2, user1)
 	assert.NoError(t, err)
 
+	issue2_closed, err := issues_model.GetIssueByID(db.DefaultContext, 2)
+	assert.NoError(t, err)
+	assert.True(t, issue2_closed.IsClosed)
+
 	left, err = issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.True(t, left)
@@ -59,4 +63,11 @@ func TestCreateIssueDependency(t *testing.T) {
 	// Test removing the dependency
 	err = issues_model.RemoveIssueDependency(db.DefaultContext, user1, issue1, issue2, issues_model.DependencyTypeBlockedBy)
 	assert.NoError(t, err)
+
+	_, err = issues_model.ReopenIssue(db.DefaultContext, issue2, user1)
+	assert.NoError(t, err)
+
+	issue2_reopened, err := issues_model.GetIssueByID(db.DefaultContext, 2)
+	assert.NoError(t, err)
+	assert.False(t, issue2_reopened.IsClosed)
 }
