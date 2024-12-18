@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
-	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -611,7 +610,91 @@ func CreateReviewRequests(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	opts := web.GetForm(ctx).(*api.PullReviewRequestOptions)
-	apiReviewRequest(ctx, *opts, true)
+
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	if err != nil {
+		if issues_model.IsErrPullRequestNotExist(err) {
+			ctx.NotFound("GetPullRequestByIndex", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
+		}
+		return
+	}
+
+	allowedUsers, err := pull_service.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer.ID, pr.Issue.PosterID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetReviewers", err)
+		return
+	}
+	filteredUsers := make([]*user_model.User, 0, len(opts.Reviewers))
+	for _, reviewer := range opts.Reviewers {
+		found := false
+		for _, allowedUser := range allowedUsers {
+			if allowedUser.Name == reviewer || allowedUser.Email == reviewer {
+				filteredUsers = append(filteredUsers, allowedUser)
+				found = true
+				break
+			}
+		}
+		if !found {
+			ctx.Error(http.StatusUnprocessableEntity, "", "")
+			return
+		}
+	}
+
+	filteredTeams := make([]*organization.Team, 0, len(opts.TeamReviewers))
+	if ctx.Repo.Repository.Owner.IsOrganization() && len(opts.TeamReviewers) > 0 {
+		allowedTeams, err := pull_service.GetReviewerTeams(ctx, ctx.Repo.Repository)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetReviewers", err)
+			return
+		}
+		for _, teamReviewer := range opts.TeamReviewers {
+			found := false
+			for _, allowedTeam := range allowedTeams {
+				if allowedTeam.Name == teamReviewer {
+					filteredTeams = append(filteredTeams, allowedTeam)
+					found = true
+					break
+				}
+			}
+			if !found {
+				ctx.Error(http.StatusUnprocessableEntity, "", "")
+				return
+			}
+		}
+	}
+	comments, err := pull_service.ReviewRequests(ctx, pr, ctx.Doer, filteredUsers, filteredTeams)
+	if err != nil {
+		if issues_model.IsErrReviewRequestOnClosedPR(err) {
+			ctx.Error(http.StatusForbidden, "", err)
+			return
+		}
+		if issues_model.IsErrNotValidReviewRequest(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "ReviewRequests", err)
+		return
+	}
+
+	reviews := make([]*issues_model.Review, 0, len(filteredUsers))
+	for _, comment := range comments {
+		if comment != nil {
+			if err = comment.LoadReview(ctx); err != nil {
+				ctx.ServerError("ReviewRequest", err)
+				return
+			}
+			reviews = append(reviews, comment.Review)
+		}
+	}
+
+	apiReviews, err := convert.ToPullReviewList(ctx, reviews, ctx.Doer)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "convertToPullReviewList", err)
+		return
+	}
+	ctx.JSON(http.StatusCreated, apiReviews)
 }
 
 // DeleteReviewRequests delete review requests to an pull request
@@ -653,11 +736,10 @@ func DeleteReviewRequests(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	opts := web.GetForm(ctx).(*api.PullReviewRequestOptions)
-	apiReviewRequest(ctx, *opts, false)
+	deleteReviewRequests(ctx, *opts)
 }
 
-func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerNames []string) (reviewers []*user_model.User, teamReviewers []*organization.Team) {
-	var err error
+func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerNames []string) (reviewers []*user_model.User, teamReviewers []*organization.Team, err error) {
 	for _, r := range reviewerNames {
 		var reviewer *user_model.User
 		if strings.Contains(r, "@") {
@@ -665,14 +747,8 @@ func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerN
 		} else {
 			reviewer, err = user_model.GetUserByName(ctx, r)
 		}
-
 		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				ctx.NotFound("UserNotExist", fmt.Sprintf("User '%s' not exist", r))
-				return nil, nil
-			}
-			ctx.Error(http.StatusInternalServerError, "GetUser", err)
-			return nil, nil
+			return nil, nil, err
 		}
 
 		reviewers = append(reviewers, reviewer)
@@ -680,24 +756,18 @@ func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerN
 
 	if ctx.Repo.Repository.Owner.IsOrganization() && len(teamReviewerNames) > 0 {
 		for _, t := range teamReviewerNames {
-			var teamReviewer *organization.Team
-			teamReviewer, err = organization.GetTeam(ctx, ctx.Repo.Owner.ID, t)
+			teamReviewer, err := organization.GetTeam(ctx, ctx.Repo.Owner.ID, t)
 			if err != nil {
-				if organization.IsErrTeamNotExist(err) {
-					ctx.NotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", t))
-					return nil, nil
-				}
-				ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
-				return nil, nil
+				return nil, nil, err
 			}
 
 			teamReviewers = append(teamReviewers, teamReviewer)
 		}
 	}
-	return reviewers, teamReviewers
+	return reviewers, teamReviewers, nil
 }
 
-func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions, isAdd bool) {
+func deleteReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOptions) {
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
@@ -719,18 +789,21 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		return
 	}
 
-	reviewers, teamReviewers := parseReviewersByNames(ctx, opts.Reviewers, opts.TeamReviewers)
-	if ctx.Written() {
+	reviewers, teamReviewers, err := parseReviewersByNames(ctx, opts.Reviewers, opts.TeamReviewers)
+	switch {
+	case user_model.IsErrUserNotExist(err):
+		ctx.NotFound("UserNotExist", fmt.Sprintf("User '%s' not exist", err.(user_model.ErrUserNotExist).Name))
+		return
+	case organization.IsErrTeamNotExist(err):
+		ctx.NotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", err.(organization.ErrTeamNotExist).Name))
+		return
+	case err != nil:
+		ctx.Error(http.StatusInternalServerError, "GetUser", err)
 		return
 	}
 
-	var reviews []*issues_model.Review
-	if isAdd {
-		reviews = make([]*issues_model.Review, 0, len(reviewers))
-	}
-
 	for _, reviewer := range reviewers {
-		comment, err := issue_service.ReviewRequest(ctx, pr.Issue, ctx.Doer, &permDoer, reviewer, isAdd)
+		_, err := pull_service.ReviewRequest(ctx, pr, ctx.Doer, &permDoer, reviewer, false)
 		if err != nil {
 			if issues_model.IsErrReviewRequestOnClosedPR(err) {
 				ctx.Error(http.StatusForbidden, "", err)
@@ -743,19 +816,11 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 			ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
 			return
 		}
-
-		if comment != nil && isAdd {
-			if err = comment.LoadReview(ctx); err != nil {
-				ctx.ServerError("ReviewRequest", err)
-				return
-			}
-			reviews = append(reviews, comment.Review)
-		}
 	}
 
 	if ctx.Repo.Repository.Owner.IsOrganization() && len(opts.TeamReviewers) > 0 {
 		for _, teamReviewer := range teamReviewers {
-			comment, err := issue_service.TeamReviewRequest(ctx, pr.Issue, ctx.Doer, teamReviewer, isAdd)
+			_, err := pull_service.TeamReviewRequest(ctx, pr, ctx.Doer, teamReviewer, false)
 			if err != nil {
 				if issues_model.IsErrReviewRequestOnClosedPR(err) {
 					ctx.Error(http.StatusForbidden, "", err)
@@ -768,28 +833,10 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 				ctx.ServerError("TeamReviewRequest", err)
 				return
 			}
-
-			if comment != nil && isAdd {
-				if err = comment.LoadReview(ctx); err != nil {
-					ctx.ServerError("ReviewRequest", err)
-					return
-				}
-				reviews = append(reviews, comment.Review)
-			}
 		}
 	}
 
-	if isAdd {
-		apiReviews, err := convert.ToPullReviewList(ctx, reviews, ctx.Doer)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "convertToPullReviewList", err)
-			return
-		}
-		ctx.JSON(http.StatusCreated, apiReviews)
-	} else {
-		ctx.Status(http.StatusNoContent)
-		return
-	}
+	ctx.Status(http.StatusNoContent)
 }
 
 // DismissPullReview dismiss a review for a pull request
