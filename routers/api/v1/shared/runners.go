@@ -19,7 +19,7 @@ type RegistrationToken struct {
 }
 
 func GetRegistrationToken(ctx *context.APIContext, ownerID, repoID int64) {
-	setToken := ctx.FormString("set-token")
+	setToken := ctx.FormString("set_token")
 	var token *actions_model.ActionRunnerToken
 	var err error
 	if setToken == "" {

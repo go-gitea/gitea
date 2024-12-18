@@ -182,7 +182,7 @@ func (Action) GetRegistrationToken(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
-	// - name: set-token
+	// - name: set_token
 	//   in: body
 	//   description: set a runner register token instead of generating one.
 	//   type: string
