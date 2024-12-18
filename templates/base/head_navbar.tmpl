@@ -3,7 +3,7 @@
 	{{$notificationUnreadCount = call .NotificationUnreadCount}}
 {{end}}
 
-<nav id="navbar" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
+<nav id="navbar" {{if .IsAdmin}}style="background-color: #ff0000"{{else}}{{end}} aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
 	<div class="navbar-left">
 		<!-- the logo -->
 		<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home"}}{{end}}">
