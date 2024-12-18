@@ -136,7 +136,7 @@ func (g *Manager) doShutdown() {
 	}
 	g.lock.Lock()
 	g.shutdownCtxCancel()
-	atShutdownCtx := pprof.WithLabels(g.hammerCtx, pprof.Labels("graceful-lifecycle", "post-shutdown"))
+	atShutdownCtx := pprof.WithLabels(g.hammerCtx, pprof.Labels(LifecyclePProfLabel, "post-shutdown"))
 	pprof.SetGoroutineLabels(atShutdownCtx)
 	for _, fn := range g.toRunAtShutdown {
 		go fn()
@@ -167,7 +167,7 @@ func (g *Manager) doHammerTime(d time.Duration) {
 	default:
 		log.Warn("Setting Hammer condition")
 		g.hammerCtxCancel()
-		atHammerCtx := pprof.WithLabels(g.terminateCtx, pprof.Labels("graceful-lifecycle", "post-hammer"))
+		atHammerCtx := pprof.WithLabels(g.terminateCtx, pprof.Labels(LifecyclePProfLabel, "post-hammer"))
 		pprof.SetGoroutineLabels(atHammerCtx)
 	}
 	g.lock.Unlock()
@@ -183,7 +183,7 @@ func (g *Manager) doTerminate() {
 	default:
 		log.Warn("Terminating")
 		g.terminateCtxCancel()
-		atTerminateCtx := pprof.WithLabels(g.managerCtx, pprof.Labels("graceful-lifecycle", "post-terminate"))
+		atTerminateCtx := pprof.WithLabels(g.managerCtx, pprof.Labels(LifecyclePProfLabel, "post-terminate"))
 		pprof.SetGoroutineLabels(atTerminateCtx)
 
 		for _, fn := range g.toRunAtTerminate {
