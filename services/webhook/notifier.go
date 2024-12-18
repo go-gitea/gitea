@@ -876,7 +876,7 @@ func (m *webhookNotifier) CreateCommitStatus(ctx context.Context, repo *repo_mod
 		Description: status.Description,
 		ID:          status.ID,
 		SHA:         commit.Sha1,
-		State:       status.State.String(),
+		State:       status.State,
 		TargetURL:   status.TargetURL,
 
 		Commit: apiCommit,

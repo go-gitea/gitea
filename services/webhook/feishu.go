@@ -166,6 +166,12 @@ func (fc feishuConvertor) Package(p *api.PackagePayload) (FeishuPayload, error) 
 	return newFeishuTextPayload(text), nil
 }
 
+func (fc feishuConvertor) CommitStatus(p *api.CommitStatusPayload) (FeishuPayload, error) {
+	text, _ := getCommitStatusPayloadInfo(p, markdownFormatter, true)
+
+	return newFeishuTextPayload(text), nil
+}
+
 func newFeishuRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	var pc payloadConvertor[FeishuPayload] = feishuConvertor{}
 	return newJSONRequest(pc, w, t, true)

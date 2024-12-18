@@ -170,6 +170,12 @@ func (dc dingtalkConvertor) Package(p *api.PackagePayload) (DingtalkPayload, err
 	return createDingtalkPayload(text, text, "view package", p.Package.HTMLURL), nil
 }
 
+func (dc dingtalkConvertor) CommitStatus(p *api.CommitStatusPayload) (DingtalkPayload, error) {
+	text, _ := getCommitStatusPayloadInfo(p, noneLinkFormatter, true)
+
+	return createDingtalkPayload(text, text, "view commit status", p.TargetURL), nil
+}
+
 func createDingtalkPayload(title, text, singleTitle, singleURL string) DingtalkPayload {
 	return DingtalkPayload{
 		MsgType: "actionCard",
