@@ -10,8 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -66,12 +66,6 @@ func Milestones(ctx *context.Context) {
 	}
 	ctx.Data["OpenCount"] = stats.OpenCount
 	ctx.Data["ClosedCount"] = stats.ClosedCount
-	linkStr := "%s/milestones?state=%s&q=%s&sort=%s"
-	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Repo.RepoLink, "open",
-		url.QueryEscape(keyword), url.QueryEscape(sortType))
-	ctx.Data["ClosedLink"] = fmt.Sprintf(linkStr, ctx.Repo.RepoLink, "closed",
-		url.QueryEscape(keyword), url.QueryEscape(sortType))
-
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if err := issues_model.MilestoneList(miles).LoadTotalTrackedTimes(ctx); err != nil {
 			ctx.ServerError("LoadTotalTrackedTimes", err)
@@ -79,15 +73,8 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 	for _, m := range miles {
-		m.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Links: markup.Links{
-				Base: ctx.Repo.RepoLink,
-			},
-			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo: ctx.Repo.GitRepo,
-			Repo:    ctx.Repo.Repository,
-			Ctx:     ctx,
-		}, m.Content)
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+		m.RenderedContent, err = markdown.RenderString(rctx, m.Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return
@@ -268,15 +255,8 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 		return
 	}
 
-	milestone.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		Links: markup.Links{
-			Base: ctx.Repo.RepoLink,
-		},
-		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo: ctx.Repo.GitRepo,
-		Repo:    ctx.Repo.Repository,
-		Ctx:     ctx,
-	}, milestone.Content)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+	milestone.RenderedContent, err = markdown.RenderString(rctx, milestone.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return

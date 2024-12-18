@@ -10,6 +10,8 @@ import (
 	"code.gitea.io/gitea/services/lfs"
 )
 
+const RouterMockPointCommonLFS = "common-lfs"
+
 func AddOwnerRepoGitLFSRoutes(m *web.Router, middlewares ...any) {
 	// shared by web and internal routers
 	m.Group("/{username}/{reponame}/info/lfs", func() {
@@ -25,5 +27,5 @@ func AddOwnerRepoGitLFSRoutes(m *web.Router, middlewares ...any) {
 			m.Post("/{lid}/unlock", lfs.UnLockHandler)
 		}, lfs.CheckAcceptMediaType)
 		m.Any("/*", http.NotFound)
-	}, middlewares...)
+	}, append([]any{web.RouterMockPoint(RouterMockPointCommonLFS)}, middlewares...)...)
 }

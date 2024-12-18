@@ -53,6 +53,7 @@ var (
 		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
 		AllowForkWithoutMaximumLimit            bool
+		AllowForkIntoSameOwner                  bool
 
 		// Repository editor settings
 		Editor struct {

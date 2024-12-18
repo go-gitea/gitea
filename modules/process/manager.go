@@ -26,7 +26,7 @@ var (
 )
 
 // DescriptionPProfLabel is a label set on goroutines that have a process attached
-const DescriptionPProfLabel = "process-description"
+const DescriptionPProfLabel = "process_description"
 
 // PIDPProfLabel is a label set on goroutines that have a process attached
 const PIDPProfLabel = "pid"
@@ -35,7 +35,7 @@ const PIDPProfLabel = "pid"
 const PPIDPProfLabel = "ppid"
 
 // ProcessTypePProfLabel is a label set on goroutines that have a process attached
-const ProcessTypePProfLabel = "process-type"
+const ProcessTypePProfLabel = "process_type"
 
 // IDType is a pid type
 type IDType string

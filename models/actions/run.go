@@ -37,6 +37,7 @@ type ActionRun struct {
 	TriggerUser       *user_model.User       `xorm:"-"`
 	ScheduleID        int64
 	Ref               string `xorm:"index"` // the commit/tag/… that caused the run
+	IsRefDeleted      bool   `xorm:"-"`
 	CommitSHA         string
 	IsForkPullRequest bool                         // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
 	NeedApproval      bool                         // may need approval if it's a fork pull request
@@ -261,6 +262,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 }
 
 // InsertRun inserts a run
+// The title will be cut off at 255 characters if it's longer than 255 characters.
 func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
@@ -273,6 +275,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		return err
 	}
 	run.Index = index
+	run.Title, _ = util.SplitStringAtByteN(run.Title, 255)
 
 	if err := db.Insert(ctx, run); err != nil {
 		return err
@@ -399,6 +402,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 	if len(cols) > 0 {
 		sess.Cols(cols...)
 	}
+	run.Title, _ = util.SplitStringAtByteN(run.Title, 255)
 	affected, err := sess.Update(run)
 	if err != nil {
 		return err

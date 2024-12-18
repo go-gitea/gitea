@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   binary:
-    runs-on: nscloud
+    runs-on: namespace-profile-gitea-release-binary
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
@@ -25,7 +25,7 @@ jobs:
           check-latest: true
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
       - run: make deps-frontend deps-backend
@@ -70,7 +70,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
   docker-rootful:
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-gitea-release-docker
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
@@ -105,7 +105,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
   docker-rootless:
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-gitea-release-docker
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions

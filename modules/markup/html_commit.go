@@ -4,13 +4,10 @@
 package markup
 
 import (
-	"io"
 	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/net/html"
@@ -54,7 +51,7 @@ func createCodeLink(href, content, class string) *html.Node {
 }
 
 func anyHashPatternExtract(s string) (ret anyHashPatternResult, ok bool) {
-	m := anyHashPattern.FindStringSubmatchIndex(s)
+	m := globalVars().anyHashPattern.FindStringSubmatchIndex(s)
 	if m == nil {
 		return ret, false
 	}
@@ -84,7 +81,7 @@ func anyHashPatternExtract(s string) (ret anyHashPatternResult, ok bool) {
 
 // fullHashPatternProcessor renders SHA containing URLs
 func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.Metas == nil {
+	if ctx.RenderOptions.Metas == nil {
 		return
 	}
 	nodeStop := node.NextSibling
@@ -111,7 +108,7 @@ func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 }
 
 func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.Metas == nil {
+	if ctx.RenderOptions.Metas == nil {
 		return
 	}
 	nodeStop := node.NextSibling
@@ -120,7 +117,7 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 			node = node.NextSibling
 			continue
 		}
-		m := comparePattern.FindStringSubmatchIndex(node.Data)
+		m := globalVars().comparePattern.FindStringSubmatchIndex(node.Data)
 		if m == nil || slices.Contains(m[:8], -1) { // ensure that every group (m[0]...m[7]) has a match
 			node = node.NextSibling
 			continue
@@ -163,17 +160,14 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 // hashCurrentPatternProcessor renders SHA1 strings to corresponding links that
 // are assumed to be in the same repository.
 func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.Metas == nil || ctx.Metas["user"] == "" || ctx.Metas["repo"] == "" || (ctx.Repo == nil && ctx.GitRepo == nil) {
+	if ctx.RenderOptions.Metas == nil || ctx.RenderOptions.Metas["user"] == "" || ctx.RenderOptions.Metas["repo"] == "" || ctx.RenderHelper == nil {
 		return
 	}
 
 	start := 0
 	next := node.NextSibling
-	if ctx.ShaExistCache == nil {
-		ctx.ShaExistCache = make(map[string]bool)
-	}
 	for node != nil && node != next && start < len(node.Data) {
-		m := hashCurrentPattern.FindStringSubmatchIndex(node.Data[start:])
+		m := globalVars().hashCurrentPattern.FindStringSubmatchIndex(node.Data[start:])
 		if m == nil {
 			return
 		}
@@ -189,35 +183,12 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		// as used by git and github for linking and thus we have to do similar.
 		// Because of this, we check to make sure that a matched hash is actually
 		// a commit in the repository before making it a link.
-
-		// check cache first
-		exist, inCache := ctx.ShaExistCache[hash]
-		if !inCache {
-			if ctx.GitRepo == nil {
-				var err error
-				var closer io.Closer
-				ctx.GitRepo, closer, err = gitrepo.RepositoryFromContextOrOpen(ctx.Ctx, ctx.Repo)
-				if err != nil {
-					log.Error("unable to open repository: %s Error: %v", gitrepo.RepoGitURL(ctx.Repo), err)
-					return
-				}
-				ctx.AddCancel(func() {
-					_ = closer.Close()
-					ctx.GitRepo = nil
-				})
-			}
-
-			// Don't use IsObjectExist since it doesn't support short hashs with gogit edition.
-			exist = ctx.GitRepo.IsReferenceExist(hash)
-			ctx.ShaExistCache[hash] = exist
-		}
-
-		if !exist {
+		if !ctx.RenderHelper.IsCommitIDExisting(hash) {
 			start = m[3]
 			continue
 		}
 
-		link := util.URLJoin(ctx.Links.Prefix(), ctx.Metas["user"], ctx.Metas["repo"], "commit", hash)
+		link := ctx.RenderHelper.ResolveLink(util.URLJoin(ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], "commit", hash), LinkTypeApp)
 		replaceContent(node, m[2], m[3], createCodeLink(link, base.ShortSha(hash), "commit"))
 		start = 0
 		node = node.NextSibling.NextSibling

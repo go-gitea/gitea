@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"os/exec"
 	"strconv"
@@ -29,7 +28,7 @@ type Commit struct {
 	Signature     *CommitSignature
 
 	Parents        []ObjectID // ID strings
-	submoduleCache *ObjectCache
+	submoduleCache *ObjectCache[*SubModule]
 }
 
 // CommitSignature represents a git commit signature part.
@@ -357,69 +356,6 @@ func (c *Commit) GetFileContent(filename string, limit int) (string, error) {
 	return string(bytes), nil
 }
 
-// GetSubModules get all the sub modules of current revision git tree
-func (c *Commit) GetSubModules() (*ObjectCache, error) {
-	if c.submoduleCache != nil {
-		return c.submoduleCache, nil
-	}
-
-	entry, err := c.GetTreeEntryByPath(".gitmodules")
-	if err != nil {
-		if _, ok := err.(ErrNotExist); ok {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	rd, err := entry.Blob().DataAsync()
-	if err != nil {
-		return nil, err
-	}
-
-	defer rd.Close()
-	scanner := bufio.NewScanner(rd)
-	c.submoduleCache = newObjectCache()
-	var ismodule bool
-	var path string
-	for scanner.Scan() {
-		if strings.HasPrefix(scanner.Text(), "[submodule") {
-			ismodule = true
-			continue
-		}
-		if ismodule {
-			fields := strings.Split(scanner.Text(), "=")
-			k := strings.TrimSpace(fields[0])
-			if k == "path" {
-				path = strings.TrimSpace(fields[1])
-			} else if k == "url" {
-				c.submoduleCache.Set(path, &SubModule{path, strings.TrimSpace(fields[1])})
-				ismodule = false
-			}
-		}
-	}
-	if err = scanner.Err(); err != nil {
-		return nil, fmt.Errorf("GetSubModules scan: %w", err)
-	}
-
-	return c.submoduleCache, nil
-}
-
-// GetSubModule get the sub module according entryname
-func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
-	modules, err := c.GetSubModules()
-	if err != nil {
-		return nil, err
-	}
-
-	if modules != nil {
-		module, has := modules.Get(entryname)
-		if has {
-			return module.(*SubModule), nil
-		}
-	}
-	return nil, nil
-}
-
 // GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
 func (c *Commit) GetBranchName() (string, error) {
 	cmd := NewCommand(c.repo.Ctx, "name-rev")
@@ -537,4 +473,18 @@ func (c *Commit) GetRepositoryDefaultPublicGPGKey(forceUpdate bool) (*GPGSetting
 		return nil, nil
 	}
 	return c.repo.GetDefaultPublicGPGKey(forceUpdate)
+}
+
+func IsStringLikelyCommitID(objFmt ObjectFormat, s string, minLength ...int) bool {
+	minLen := util.OptionalArg(minLength, objFmt.FullLength())
+	if len(s) < minLen || len(s) > objFmt.FullLength() {
+		return false
+	}
+	for _, c := range s {
+		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+		if !isHex {
+			return false
+		}
+	}
+	return true
 }

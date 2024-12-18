@@ -1,4 +1,4 @@
 {{if eq .PackageDescriptor.Package.Type "debian"}}
-	{{if .PackageDescriptor.Metadata.Maintainer}}<div class="item" title="{{ctx.Locale.Tr "packages.details.author"}}">{{svg "octicon-person" 16 "mr-3"}} {{.PackageDescriptor.Metadata.Maintainer}}</div>{{end}}
-	{{if .PackageDescriptor.Metadata.ProjectURL}}<div class="item">{{svg "octicon-link-external" 16 "mr-3"}} <a href="{{.PackageDescriptor.Metadata.ProjectURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.project_site"}}</a></div>{{end}}
+	{{if .PackageDescriptor.Metadata.Maintainer}}<div class="item" title="{{ctx.Locale.Tr "packages.details.author"}}">{{svg "octicon-person"}} {{.PackageDescriptor.Metadata.Maintainer}}</div>{{end}}
+	{{if .PackageDescriptor.Metadata.ProjectURL}}<div class="item">{{svg "octicon-link-external"}} <a href="{{.PackageDescriptor.Metadata.ProjectURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.project_site"}}</a></div>{{end}}
 {{end}}

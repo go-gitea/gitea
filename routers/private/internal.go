@@ -20,8 +20,6 @@ import (
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 )
 
-const RouterMockPointInternalLFS = "internal-lfs"
-
 func authInternal(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if setting.InternalToken == "" {
@@ -87,10 +85,11 @@ func Routes() *web.Router {
 
 	r.Group("/repo", func() {
 		// FIXME: it is not right to use context.Contexter here because all routes here should use PrivateContext
+		// Fortunately, the LFS handlers are able to handle requests without a complete web context
 		common.AddOwnerRepoGitLFSRoutes(r, func(ctx *context.PrivateContext) {
 			webContext := &context.Context{Base: ctx.Base}
 			ctx.AppendContextValue(context.WebContextKey, webContext)
-		}, web.RouterMockPoint(RouterMockPointInternalLFS))
+		})
 	})
 
 	return r

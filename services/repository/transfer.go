@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -59,7 +58,7 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 	}
 
 	for _, team := range teams {
-		if err := models.AddRepository(ctx, team, newRepo); err != nil {
+		if err := addRepositoryToTeam(ctx, team, newRepo); err != nil {
 			return err
 		}
 	}
@@ -205,7 +204,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		}
 		for _, t := range teams {
 			if t.IncludesAllRepositories {
-				if err := models.AddRepository(ctx, t, repo); err != nil {
+				if err := addRepositoryToTeam(ctx, t, repo); err != nil {
 					return fmt.Errorf("AddRepository: %w", err)
 				}
 			}
@@ -285,7 +284,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		wikiRenamed = true
 	}
 
-	if err := models.DeleteRepositoryTransfer(ctx, repo.ID); err != nil {
+	if err := repo_model.DeleteRepositoryTransfer(ctx, repo.ID); err != nil {
 		return fmt.Errorf("deleteRepositoryTransfer: %w", err)
 	}
 	repo.Status = repo_model.RepositoryReady
@@ -388,7 +387,7 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 // StartRepositoryTransfer transfer a repo from one owner to a new one.
 // it make repository into pending transfer state, if doer can not create repo for new owner.
 func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
-	if err := models.TestRepositoryReadyForTransfer(repo.Status); err != nil {
+	if err := repo_model.TestRepositoryReadyForTransfer(repo.Status); err != nil {
 		return err
 	}
 
@@ -425,7 +424,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 
 	// Make repo as pending for transfer
 	repo.Status = repo_model.RepositoryPendingTransfer
-	if err := models.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams); err != nil {
+	if err := repo_model.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams); err != nil {
 		return err
 	}
 
@@ -449,7 +448,7 @@ func CancelRepositoryTransfer(ctx context.Context, repo *repo_model.Repository) 
 		return err
 	}
 
-	if err := models.DeleteRepositoryTransfer(ctx, repo.ID); err != nil {
+	if err := repo_model.DeleteRepositoryTransfer(ctx, repo.ID); err != nil {
 		return err
 	}
 

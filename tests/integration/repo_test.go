@@ -49,7 +49,7 @@ func testViewRepo(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	files := htmlDoc.doc.Find("#repo-files-table  > TBODY > TR")
+	files := htmlDoc.doc.Find("#repo-files-table .repo-file-item")
 
 	type file struct {
 		fileName   string
@@ -61,7 +61,7 @@ func testViewRepo(t *testing.T) {
 	var items []file
 
 	files.Each(func(i int, s *goquery.Selection) {
-		tds := s.Find("td")
+		tds := s.Find(".repo-file-cell")
 		var f file
 		tds.Each(func(i int, s *goquery.Selection) {
 			if i == 0 {
@@ -127,10 +127,10 @@ func TestViewRepo1CloneLinkAnonymous(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("#repo-clone-https").Attr("data-link")
+	link, exists := htmlDoc.doc.Find(".repo-clone-https").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
 	assert.Equal(t, setting.AppURL+"user2/repo1.git", link)
-	_, exists = htmlDoc.doc.Find("#repo-clone-ssh").Attr("data-link")
+	_, exists = htmlDoc.doc.Find(".repo-clone-ssh").Attr("data-link")
 	assert.False(t, exists)
 }
 
@@ -143,10 +143,10 @@ func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("#repo-clone-https").Attr("data-link")
+	link, exists := htmlDoc.doc.Find(".repo-clone-https").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
 	assert.Equal(t, setting.AppURL+"user2/repo1.git", link)
-	link, exists = htmlDoc.doc.Find("#repo-clone-ssh").Attr("data-link")
+	link, exists = htmlDoc.doc.Find(".repo-clone-ssh").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
 	sshURL := fmt.Sprintf("ssh://%s@%s:%d/user2/repo1.git", setting.SSH.User, setting.SSH.Domain, setting.SSH.Port)
 	assert.Equal(t, sshURL, link)
@@ -161,7 +161,7 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	files := htmlDoc.doc.Find("#repo-files-table > TBODY > TR > TD.name > SPAN.truncate")
+	files := htmlDoc.doc.Find("#repo-files-table .repo-file-cell.name")
 	items := files.Map(func(i int, s *goquery.Selection) string {
 		cls, _ := s.Find("SVG").Attr("class")
 		file := strings.Trim(s.Find("A").Text(), " \t\n")
@@ -228,7 +228,7 @@ func TestViewRepoDirectory(t *testing.T) {
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
 
 	repoFilesTable := htmlDoc.doc.Find("#repo-files-table")
-	assert.NotZero(t, len(repoFilesTable.Nodes))
+	assert.NotEmpty(t, repoFilesTable.Nodes)
 
 	assert.Zero(t, description.Length())
 	assert.Zero(t, repoTopics.Length())

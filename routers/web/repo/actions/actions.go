@@ -5,6 +5,7 @@ package actions
 
 import (
 	"bytes"
+	stdCtx "context"
 	"fmt"
 	"net/http"
 	"slices"
@@ -168,8 +169,8 @@ func List(ctx *context.Context) {
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
 	ctx.Data["ActionsConfig"] = actionsConfig
 
-	if len(workflowID) > 0 && ctx.Repo.IsAdmin() {
-		ctx.Data["AllowDisableOrEnableWorkflow"] = true
+	if len(workflowID) > 0 && ctx.Repo.CanWrite(unit.TypeActions) {
+		ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.IsAdmin()
 		isWorkflowDisabled := actionsConfig.IsWorkflowDisabled(workflowID)
 		ctx.Data["CurWorkflowDisabled"] = isWorkflowDisabled
 
@@ -245,6 +246,10 @@ func List(ctx *context.Context) {
 		return
 	}
 
+	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, runs); err != nil {
+		log.Error("LoadIsRefDeleted", err)
+	}
+
 	ctx.Data["Runs"] = runs
 
 	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
@@ -265,6 +270,34 @@ func List(ctx *context.Context) {
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 
 	ctx.HTML(http.StatusOK, tplListActions)
+}
+
+// loadIsRefDeleted loads the IsRefDeleted field for each run in the list.
+// TODO: move this function to models/actions/run_list.go but now it will result in a circular import.
+func loadIsRefDeleted(ctx stdCtx.Context, repoID int64, runs actions_model.RunList) error {
+	branches := make(container.Set[string], len(runs))
+	for _, run := range runs {
+		refName := git.RefName(run.Ref)
+		if refName.IsBranch() {
+			branches.Add(refName.ShortName())
+		}
+	}
+	if len(branches) == 0 {
+		return nil
+	}
+
+	branchInfos, err := git_model.GetBranches(ctx, repoID, branches.Values(), false)
+	if err != nil {
+		return err
+	}
+	branchSet := git_model.BranchesToNamesSet(branchInfos)
+	for _, run := range runs {
+		refName := git.RefName(run.Ref)
+		if refName.IsBranch() && !branchSet.Contains(refName.ShortName()) {
+			run.IsRefDeleted = true
+		}
+	}
+	return nil
 }
 
 type WorkflowDispatchInput struct {

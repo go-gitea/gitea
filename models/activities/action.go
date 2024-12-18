@@ -200,7 +200,7 @@ func (a *Action) LoadActUser(ctx context.Context) {
 	}
 }
 
-func (a *Action) loadRepo(ctx context.Context) {
+func (a *Action) LoadRepo(ctx context.Context) {
 	if a.Repo != nil {
 		return
 	}
@@ -250,7 +250,10 @@ func (a *Action) GetActDisplayNameTitle(ctx context.Context) string {
 
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName(ctx context.Context) string {
-	a.loadRepo(ctx)
+	a.LoadRepo(ctx)
+	if a.Repo == nil {
+		return "(non-existing-repo)"
+	}
 	return a.Repo.OwnerName
 }
 
@@ -262,7 +265,10 @@ func (a *Action) ShortRepoUserName(ctx context.Context) string {
 
 // GetRepoName returns the name of the action repository.
 func (a *Action) GetRepoName(ctx context.Context) string {
-	a.loadRepo(ctx)
+	a.LoadRepo(ctx)
+	if a.Repo == nil {
+		return "(non-existing-repo)"
+	}
 	return a.Repo.Name
 }
 
@@ -442,65 +448,13 @@ type GetFeedsOptions struct {
 	Date            string                 // the day we want activity for: YYYY-MM-DD
 }
 
-// GetFeeds returns actions according to the provided options
-func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, error) {
-	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
-		return nil, 0, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
-	}
-
-	cond, err := activityQueryCondition(ctx, opts)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	actions := make([]*Action, 0, opts.PageSize)
-	var count int64
-	opts.SetDefaultValues()
-
-	if opts.Page < 10 { // TODO: why it's 10 but other values? It's an experience value.
-		sess := db.GetEngine(ctx).Where(cond)
-		sess = db.SetSessionPagination(sess, &opts)
-
-		count, err = sess.Desc("`action`.created_unix").FindAndCount(&actions)
-		if err != nil {
-			return nil, 0, fmt.Errorf("FindAndCount: %w", err)
-		}
-	} else {
-		// First, only query which IDs are necessary, and only then query all actions to speed up the overall query
-		sess := db.GetEngine(ctx).Where(cond).Select("`action`.id")
-		sess = db.SetSessionPagination(sess, &opts)
-
-		actionIDs := make([]int64, 0, opts.PageSize)
-		if err := sess.Table("action").Desc("`action`.created_unix").Find(&actionIDs); err != nil {
-			return nil, 0, fmt.Errorf("Find(actionsIDs): %w", err)
-		}
-
-		count, err = db.GetEngine(ctx).Where(cond).
-			Table("action").
-			Cols("`action`.id").Count()
-		if err != nil {
-			return nil, 0, fmt.Errorf("Count: %w", err)
-		}
-
-		if err := db.GetEngine(ctx).In("`action`.id", actionIDs).Desc("`action`.created_unix").Find(&actions); err != nil {
-			return nil, 0, fmt.Errorf("Find: %w", err)
-		}
-	}
-
-	if err := ActionList(actions).LoadAttributes(ctx); err != nil {
-		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
-	}
-
-	return actions, count, nil
-}
-
 // ActivityReadable return whether doer can read activities of user
 func ActivityReadable(user, doer *user_model.User) bool {
 	return !user.KeepActivityPrivate ||
 		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
 }
 
-func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.Cond, error) {
+func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.Cond, error) {
 	cond := builder.NewCond()
 
 	if opts.RequestedTeam != nil && opts.RequestedUser == nil {
@@ -557,7 +511,7 @@ func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	}
 
 	if opts.RequestedTeam != nil {
-		env := organization.OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(ctx, opts.RequestedTeam)
+		env := repo_model.AccessibleTeamReposEnv(ctx, organization.OrgFromUser(opts.RequestedUser), opts.RequestedTeam)
 		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamRepositories: %w", err)
@@ -638,7 +592,7 @@ func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 		}
 
 		if repoChanged {
-			act.loadRepo(ctx)
+			act.LoadRepo(ctx)
 			repo = act.Repo
 
 			// check repo owner exist.
@@ -764,7 +718,7 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID, issueIndex int64) 
 // CountActionCreatedUnixString count actions where created_unix is an empty string
 func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
 	if setting.Database.Type.IsSQLite3() {
-		return db.GetEngine(ctx).Where(`created_unix = ""`).Count(new(Action))
+		return db.GetEngine(ctx).Where(`created_unix = ''`).Count(new(Action))
 	}
 	return 0, nil
 }
@@ -772,7 +726,7 @@ func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
 // FixActionCreatedUnixString set created_unix to zero if it is an empty string
 func FixActionCreatedUnixString(ctx context.Context) (int64, error) {
 	if setting.Database.Type.IsSQLite3() {
-		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
+		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ''`)
 		if err != nil {
 			return 0, err
 		}

@@ -129,15 +129,6 @@ func TestGetOrgByName(t *testing.T) {
 	assert.True(t, organization.IsErrOrgNotExist(err))
 }
 
-func TestCountOrganizations(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	expected, err := db.GetEngine(db.DefaultContext).Where("type=?", user_model.UserTypeOrganization).Count(&organization.Organization{})
-	assert.NoError(t, err)
-	cnt, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{IncludePrivate: true})
-	assert.NoError(t, err)
-	assert.Equal(t, expected, cnt)
-}
-
 func TestIsOrganizationOwner(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(orgID, userID int64, expected bool) {
@@ -251,33 +242,6 @@ func TestRestrictedUserOrgMembers(t *testing.T) {
 	}
 }
 
-func TestFindOrgs(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	orgs, err := db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
-		UserID:         4,
-		IncludePrivate: true,
-	})
-	assert.NoError(t, err)
-	if assert.Len(t, orgs, 1) {
-		assert.EqualValues(t, 3, orgs[0].ID)
-	}
-
-	orgs, err = db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
-		UserID:         4,
-		IncludePrivate: false,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, orgs, 0)
-
-	total, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
-		UserID:         4,
-		IncludePrivate: true,
-	})
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, total)
-}
-
 func TestGetOrgUsersByOrgID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -319,7 +283,7 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 		OrgID:       unittest.NonexistentID,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, orgUsers, 0)
+	assert.Empty(t, orgUsers)
 }
 
 func TestChangeOrgUserStatus(t *testing.T) {
@@ -354,7 +318,7 @@ func TestAccessibleReposEnv_CountRepos(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	testSuccess := func(userID, expectedCount int64) {
-		env, err := organization.AccessibleReposEnv(db.DefaultContext, org, userID)
+		env, err := repo_model.AccessibleReposEnv(db.DefaultContext, org, userID)
 		assert.NoError(t, err)
 		count, err := env.CountRepos()
 		assert.NoError(t, err)
@@ -368,7 +332,7 @@ func TestAccessibleReposEnv_RepoIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	testSuccess := func(userID int64, expectedRepoIDs []int64) {
-		env, err := organization.AccessibleReposEnv(db.DefaultContext, org, userID)
+		env, err := repo_model.AccessibleReposEnv(db.DefaultContext, org, userID)
 		assert.NoError(t, err)
 		repoIDs, err := env.RepoIDs(1, 100)
 		assert.NoError(t, err)
@@ -382,7 +346,7 @@ func TestAccessibleReposEnv_Repos(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	testSuccess := func(userID int64, expectedRepoIDs []int64) {
-		env, err := organization.AccessibleReposEnv(db.DefaultContext, org, userID)
+		env, err := repo_model.AccessibleReposEnv(db.DefaultContext, org, userID)
 		assert.NoError(t, err)
 		repos, err := env.Repos(1, 100)
 		assert.NoError(t, err)
@@ -401,7 +365,7 @@ func TestAccessibleReposEnv_MirrorRepos(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	testSuccess := func(userID int64, expectedRepoIDs []int64) {
-		env, err := organization.AccessibleReposEnv(db.DefaultContext, org, userID)
+		env, err := repo_model.AccessibleReposEnv(db.DefaultContext, org, userID)
 		assert.NoError(t, err)
 		repos, err := env.MirrorRepos()
 		assert.NoError(t, err)

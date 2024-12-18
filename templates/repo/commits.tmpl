@@ -4,8 +4,25 @@
 	<div class="ui container">
 		{{template "repo/sub_menu" .}}
 		<div class="repo-button-row">
-			<div class="tw-flex tw-items-center">
-				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "tw-mr-1"}}
+			<div class="repo-button-row-left">
+
+				{{$branchDropdownCurrentRefType := "branch"}}
+				{{$branchDropdownCurrentRefShortName := .BranchName}}
+				{{if .IsViewTag}}
+					{{$branchDropdownCurrentRefType = "tag"}}
+					{{$branchDropdownCurrentRefShortName = .TagName}}
+				{{end}}
+				{{template "repo/branch_dropdown" dict
+					"Repository" .Repository
+					"ShowTabBranches" true
+					"ShowTabTags" true
+					"CurrentRefType" $branchDropdownCurrentRefType
+					"CurrentRefShortName" $branchDropdownCurrentRefShortName
+					"CurrentTreePath" .TreePath
+					"RefLinkTemplate" "{RepoLink}/commits/{RefType}/{RefShortName}/{TreePath}"
+					"AllowCreateNewRef" .CanCreateBranch
+				}}
+
 				<a href="{{.RepoLink}}/graph" class="ui basic small compact button">
 					{{svg "octicon-git-branch"}}
 					{{ctx.Locale.Tr "repo.commit_graph"}}

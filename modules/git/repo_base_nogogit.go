@@ -21,7 +21,7 @@ const isGogit = false
 type Repository struct {
 	Path string
 
-	tagCache *ObjectCache
+	tagCache *ObjectCache[*Tag]
 
 	gpgSettings *GPGSettings
 
@@ -53,7 +53,7 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 
 	return &Repository{
 		Path:     repoPath,
-		tagCache: newObjectCache(),
+		tagCache: newObjectCache[*Tag](),
 		Ctx:      ctx,
 	}, nil
 }

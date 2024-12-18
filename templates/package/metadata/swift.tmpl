@@ -1,4 +1,4 @@
 {{if eq .PackageDescriptor.Package.Type "swift"}}
-	{{if .PackageDescriptor.Metadata.Author.String}}<div class="item" title="{{ctx.Locale.Tr "packages.details.author"}}">{{svg "octicon-person" 16 "mr-3"}} {{.PackageDescriptor.Metadata.Author}}</div>{{end}}
-	{{if .PackageDescriptor.Metadata.RepositoryURL}}<div class="item">{{svg "octicon-link-external" 16 "tw-mr-2"}} <a href="{{.PackageDescriptor.Metadata.RepositoryURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.repository_site"}}</a></div>{{end}}
+	{{if .PackageDescriptor.Metadata.Author.String}}<div class="item" title="{{ctx.Locale.Tr "packages.details.author"}}">{{svg "octicon-person"}} {{.PackageDescriptor.Metadata.Author}}</div>{{end}}
+	{{if .PackageDescriptor.Metadata.RepositoryURL}}<div class="item">{{svg "octicon-link-external"}} <a href="{{.PackageDescriptor.Metadata.RepositoryURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.repository_site"}}</a></div>{{end}}
 {{end}}

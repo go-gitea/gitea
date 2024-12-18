@@ -6,41 +6,18 @@ package markup
 import (
 	"net/url"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/markup/common"
-	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
 
-func ResolveLink(ctx *RenderContext, link, userContentAnchorPrefix string) (result string, resolved bool) {
-	isAnchorFragment := link != "" && link[0] == '#'
-	if !isAnchorFragment && !IsFullURLString(link) {
-		linkBase := ctx.Links.Base
-		if ctx.IsWiki {
-			// no need to check if the link should be resolved as a wiki link or a wiki raw link
-			// just use wiki link here and it will be redirected to a wiki raw link if necessary
-			linkBase = ctx.Links.WikiLink()
-		} else if ctx.Links.BranchPath != "" || ctx.Links.TreePath != "" {
-			// if there is no BranchPath, then the link will be something like "/owner/repo/src/{the-file-path}"
-			// and then this link will be handled by the "legacy-ref" code and be redirected to the default branch like "/owner/repo/src/branch/main/{the-file-path}"
-			linkBase = ctx.Links.SrcLink()
-		}
-		link, resolved = util.URLJoin(linkBase, link), true
-	}
-	if isAnchorFragment && userContentAnchorPrefix != "" {
-		link, resolved = userContentAnchorPrefix+link[1:], true
-	}
-	return link, resolved
-}
-
 func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := shortLinkPattern.FindStringSubmatchIndex(node.Data)
+		m := globalVars().shortLinkPattern.FindStringSubmatchIndex(node.Data)
 		if m == nil {
 			return
 		}
@@ -116,7 +93,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 
 		name += tail
 		image := false
-		ext := filepath.Ext(link)
+		ext := path.Ext(link)
 		switch ext {
 		// fast path: empty string, ignore
 		case "":
@@ -139,6 +116,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			if image {
 				link = strings.ReplaceAll(link, " ", "+")
 			} else {
+				// the hacky wiki name encoding: space to "-"
 				link = strings.ReplaceAll(link, " ", "-") // FIXME: it should support dashes in the link, eg: "the-dash-support.-"
 			}
 			if !strings.Contains(link, "/") {
@@ -146,9 +124,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			}
 		}
 		if image {
-			if !absoluteLink {
-				link = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsWiki), link)
-			}
+			link = ctx.RenderHelper.ResolveLink(link, LinkTypeMedia)
 			title := props["title"]
 			if title == "" {
 				title = props["alt"]
@@ -174,7 +150,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 				childNode.Attr = childNode.Attr[:2]
 			}
 		} else {
-			link, _ = ResolveLink(ctx, link, "")
+			link = ctx.RenderHelper.ResolveLink(link, LinkTypeDefault)
 			childNode.Type = html.TextNode
 			childNode.Data = name
 		}
@@ -189,33 +165,14 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 func linkProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := common.LinkRegex.FindStringIndex(node.Data)
+		m := common.GlobalVars().LinkRegex.FindStringIndex(node.Data)
 		if m == nil {
 			return
 		}
 
 		uri := node.Data[m[0]:m[1]]
-		replaceContent(node, m[0], m[1], createLink(uri, uri, "link"))
+		replaceContent(node, m[0], m[1], createLink(ctx, uri, uri, "" /*link*/))
 		node = node.NextSibling.NextSibling
-	}
-}
-
-func genDefaultLinkProcessor(defaultLink string) processor {
-	return func(ctx *RenderContext, node *html.Node) {
-		ch := &html.Node{
-			Parent: node,
-			Type:   html.TextNode,
-			Data:   node.Data,
-		}
-
-		node.Type = html.ElementNode
-		node.Data = "a"
-		node.DataAtom = atom.A
-		node.Attr = []html.Attribute{
-			{Key: "href", Val: defaultLink},
-			{Key: "class", Val: "default-link muted"},
-		}
-		node.FirstChild, node.LastChild = ch, ch
 	}
 }
 
@@ -223,7 +180,7 @@ func genDefaultLinkProcessor(defaultLink string) processor {
 func descriptionLinkProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := common.LinkRegex.FindStringIndex(node.Data)
+		m := common.GlobalVars().LinkRegex.FindStringIndex(node.Data)
 		if m == nil {
 			return
 		}

@@ -13,16 +13,17 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/shared/issue"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -92,15 +93,8 @@ func Projects(ctx *context.Context) {
 	}
 
 	for i := range projects {
-		projects[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Links: markup.Links{
-				Base: ctx.Repo.RepoLink,
-			},
-			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo: ctx.Repo.GitRepo,
-			Repo:    ctx.Repo.Repository,
-			Ctx:     ctx,
-		}, projects[i].Description)
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, repo)
+		projects[i].RenderedContent, err = markdown.RenderString(rctx, projects[i].Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return
@@ -314,28 +308,13 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	var labelIDs []int64
-	// 1,-2 means including label 1 and excluding label 2
-	// 0 means issues with no label
-	// blank means labels will not be filtered for issues
-	selectLabels := ctx.FormString("labels")
-	if selectLabels == "" {
-		ctx.Data["AllLabels"] = true
-	} else if selectLabels == "0" {
-		ctx.Data["NoLabel"] = true
-	}
-	if len(selectLabels) > 0 {
-		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
-		if err != nil {
-			ctx.Flash.Error(ctx.Tr("invalid_data", selectLabels), true)
-		}
-	}
+	labelIDs := issue.PrepareFilterIssueLabels(ctx, ctx.Repo.Repository.ID, ctx.Repo.Owner)
 
-	assigneeID := ctx.FormInt64("assignee")
+	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
 
 	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns, &issues_model.IssuesOptions{
 		LabelIDs:   labelIDs,
-		AssigneeID: assigneeID,
+		AssigneeID: optional.Some(assigneeID),
 	})
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfColumns", err)
@@ -421,24 +400,16 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
-
-	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["AssigneeID"] = assigneeID
 
-	project.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		Links: markup.Links{
-			Base: ctx.Repo.RepoLink,
-		},
-		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo: ctx.Repo.GitRepo,
-		Repo:    ctx.Repo.Repository,
-		Ctx:     ctx,
-	}, project.Description)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+	project.RenderedContent, err = markdown.RenderString(rctx, project.Description)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return
 	}
 
+	ctx.Data["Title"] = project.Title
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["Project"] = project

@@ -263,8 +263,18 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 	return baseCommit
 }
 
-// PrepareMergedViewPullInfo show meta information for a merged pull request view page
-func PrepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.CompareInfo {
+func preparePullViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.CompareInfo {
+	if !issue.IsPull {
+		return nil
+	}
+	if issue.PullRequest.HasMerged {
+		return prepareMergedViewPullInfo(ctx, issue)
+	}
+	return prepareViewPullInfo(ctx, issue)
+}
+
+// prepareMergedViewPullInfo show meta information for a merged pull request view page
+func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.CompareInfo {
 	pull := issue.PullRequest
 
 	setMergeTarget(ctx, pull)
@@ -309,8 +319,8 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 	return compareInfo
 }
 
-// PrepareViewPullInfo show meta information for a pull request preview page
-func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.CompareInfo {
+// prepareViewPullInfo show meta information for a pull request preview page
+func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.CompareInfo {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 
 	repo := ctx.Repo.Repository
@@ -348,6 +358,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	}
 
 	if !baseGitRepo.IsBranchExist(pull.BaseBranch) {
+		ctx.Data["BaseBranchNotExist"] = true
 		ctx.Data["IsPullRequestBroken"] = true
 		ctx.Data["BaseTarget"] = pull.BaseBranch
 		ctx.Data["HeadTarget"] = pull.HeadBranch
@@ -609,15 +620,8 @@ func ViewPullCommits(ctx *context.Context) {
 	if !ok {
 		return
 	}
-	pull := issue.PullRequest
 
-	var prInfo *git.CompareInfo
-	if pull.HasMerged {
-		prInfo = PrepareMergedViewPullInfo(ctx, issue)
-	} else {
-		prInfo = PrepareViewPullInfo(ctx, issue)
-	}
-
+	prInfo := preparePullViewPullInfo(ctx, issue)
 	if ctx.Written() {
 		return
 	} else if prInfo == nil {
@@ -661,11 +665,12 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		gitRepo       = ctx.Repo.GitRepo
 	)
 
-	var prInfo *git.CompareInfo
-	if pull.HasMerged {
-		prInfo = PrepareMergedViewPullInfo(ctx, issue)
-	} else {
-		prInfo = PrepareViewPullInfo(ctx, issue)
+	prInfo := preparePullViewPullInfo(ctx, issue)
+	if ctx.Written() {
+		return
+	} else if prInfo == nil {
+		ctx.NotFound("ViewPullFiles", nil)
+		return
 	}
 
 	// Validate the given commit sha to show (if any passed)
@@ -839,9 +844,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
-
-	handleTeamMentions(ctx)
+	handleMentionableAssigneesAndTeams(ctx, shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers))
 	if ctx.Written() {
 		return
 	}
@@ -1184,32 +1187,34 @@ func MergePullRequest(ctx *context.Context) {
 
 	log.Trace("Pull request merged: %d", pr.ID)
 
-	if form.DeleteBranchAfterMerge {
-		// Don't cleanup when other pr use this branch as head branch
-		exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
-		if err != nil {
-			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
-			return
-		}
-		if exist {
-			ctx.JSONRedirect(issue.Link())
-			return
-		}
-
-		var headRepo *git.Repository
-		if ctx.Repo != nil && ctx.Repo.Repository != nil && pr.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
-			headRepo = ctx.Repo.GitRepo
-		} else {
-			headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
-			if err != nil {
-				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.FullName()), err)
-				return
-			}
-			defer headRepo.Close()
-		}
-		deleteBranch(ctx, pr, headRepo)
+	if !form.DeleteBranchAfterMerge {
+		ctx.JSONRedirect(issue.Link())
+		return
 	}
 
+	// Don't cleanup when other pr use this branch as head branch
+	exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
+	if err != nil {
+		ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
+		return
+	}
+	if exist {
+		ctx.JSONRedirect(issue.Link())
+		return
+	}
+
+	var headRepo *git.Repository
+	if ctx.Repo != nil && ctx.Repo.Repository != nil && pr.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
+		headRepo = ctx.Repo.GitRepo
+	} else {
+		headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
+		if err != nil {
+			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.FullName()), err)
+			return
+		}
+		defer headRepo.Close()
+	}
+	deleteBranch(ctx, pr, headRepo)
 	ctx.JSONRedirect(issue.Link())
 }
 
@@ -1402,8 +1407,8 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 	pr := issue.PullRequest
 
-	// Don't cleanup unmerged and unclosed PRs
-	if !pr.HasMerged && !issue.IsClosed {
+	// Don't cleanup unmerged and unclosed PRs and agit PRs
+	if !pr.HasMerged && !issue.IsClosed && pr.Flow != issues_model.PullRequestFlowGithub {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}
@@ -1434,13 +1439,12 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
-		return
-	}
-	if !perm.CanWrite(unit.TypeCode) {
-		ctx.NotFound("CleanUpPullRequest", nil)
+	if err := repo_service.CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, ctx.Doer); err != nil {
+		if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.NotFound("CanDeleteBranch", nil)
+		} else {
+			ctx.ServerError("CanDeleteBranch", err)
+		}
 		return
 	}
 

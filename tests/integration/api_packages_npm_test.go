@@ -325,7 +325,7 @@ func TestPackageNpm(t *testing.T) {
 
 			pvs, err = packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
 			assert.NoError(t, err)
-			assert.Len(t, pvs, 0)
+			assert.Empty(t, pvs)
 		})
 	})
 }

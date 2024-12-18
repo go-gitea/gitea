@@ -37,9 +37,7 @@
 									</a>
 									{{end}}
 								{{end}}
-								<div class="clone-panel ui action small input tw-flex-1">
-									{{template "repo/clone_buttons" .}}
-								</div>
+								{{template "repo/clone_buttons" .}}
 							</div>
 						</div>
 
@@ -73,7 +71,6 @@ git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 							{{ctx.Locale.Tr "repo.empty_message"}}
 						</div>
 					{{end}}
-					{{template "repo/clone_script" .}}
 				</div>
 			</div>
 		</div>

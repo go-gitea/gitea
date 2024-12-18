@@ -98,7 +98,7 @@ func TestAgitPullPush(t *testing.T) {
 		doGitCreateBranch(dstPath, "test-agit-push")
 
 		// commit 1
-		_, err = generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+		_, err = generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-")
 		assert.NoError(t, err)
 
 		// push to create an agit pull request
@@ -115,7 +115,7 @@ func TestAgitPullPush(t *testing.T) {
 		assert.Equal(t, "test-description", pr.Issue.Content)
 
 		// commit 2
-		_, err = generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-2-")
+		_, err = generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-2-")
 		assert.NoError(t, err)
 
 		// push 2

@@ -134,16 +134,16 @@ export function toAbsoluteUrl(url: string): string {
   return `${window.location.origin}${url}`;
 }
 
-// Encode an ArrayBuffer into a URLEncoded base64 string.
-export function encodeURLEncodedBase64(arrayBuffer: ArrayBuffer): string {
-  return encode(arrayBuffer)
+// Encode an Uint8Array into a URLEncoded base64 string.
+export function encodeURLEncodedBase64(uint8Array: Uint8Array): string {
+  return encode(uint8Array)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
 }
 
-// Decode a URLEncoded base64 to an ArrayBuffer.
-export function decodeURLEncodedBase64(base64url: string): ArrayBuffer {
+// Decode a URLEncoded base64 to an Uint8Array.
+export function decodeURLEncodedBase64(base64url: string): Uint8Array {
   return decode(base64url
     .replace(/_/g, '/')
     .replace(/-/g, '+'));
@@ -165,7 +165,7 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export function isImageFile({name, type}: {name: string, type?: string}): boolean {
-  return /\.(jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/');
+  return /\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/');
 }
 
 export function isVideoFile({name, type}: {name: string, type?: string}): boolean {
