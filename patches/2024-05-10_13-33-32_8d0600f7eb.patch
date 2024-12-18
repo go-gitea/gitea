@@ -1,17 +1,17 @@
-From 343b5d5701076992bf2bf7f8d5160e387eb2f5c3 Mon Sep 17 00:00:00 2001
+From 8d0600f7eb914d9629e78b8f5250fb9307d2dd43 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 13:33:32 +0200
 Subject: [PATCH] BLENDER: Don't allow assigning large teams as reviewers
 
 To avoid accidentally spamming hundreds of people.
 ---
- models/organization/team.go   | 16 ++++++++++++++++
- routers/web/repo/issue.go     |  4 ++--
- services/repository/review.go |  2 +-
+ models/organization/team.go | 16 ++++++++++++++++
+ routers/web/repo/issue.go   |  4 ++--
+ services/pull/reviewer.go   |  2 +-
  3 files changed, 19 insertions(+), 3 deletions(-)
 
 diff --git a/models/organization/team.go b/models/organization/team.go
-index fb7f0c04939e6..be56a0428ec83 100644
+index fb7f0c0493..be56a0428e 100644
 --- a/models/organization/team.go
 +++ b/models/organization/team.go
 @@ -272,3 +272,19 @@ func IncrTeamRepoNum(ctx context.Context, teamID int64) error {
@@ -35,12 +35,12 @@ index fb7f0c04939e6..be56a0428ec83 100644
 +	return smallTeams, nil
 +}
 diff --git a/routers/web/repo/issue.go b/routers/web/repo/issue.go
-index cb233b787a690..bbc25ec8be915 100644
+index 3fdf594045..2f3660178c 100644
 --- a/routers/web/repo/issue.go
 +++ b/routers/web/repo/issue.go
-@@ -3673,13 +3673,13 @@ func handleTeamMentions(ctx *context.Context) {
+@@ -3670,13 +3670,13 @@ func handleTeamMentions(ctx *context.Context) {
  	}
-
+ 
  	if isAdmin {
 -		teams, err = org.LoadTeams(ctx)
 +		teams, err = organization.FilterLargeTeams(org.LoadTeams(ctx))
@@ -54,14 +54,17 @@ index cb233b787a690..bbc25ec8be915 100644
  		if err != nil {
  			ctx.ServerError("GetUserTeams", err)
  			return
-diff --git a/services/repository/review.go b/services/repository/review.go
-index 40513e6bc67ba..f85424d60efa8 100644
---- a/services/repository/review.go
-+++ b/services/repository/review.go
-@@ -20,5 +20,5 @@ func GetReviewerTeams(ctx context.Context, repo *repo_model.Repository) ([]*orga
+diff --git a/services/pull/reviewer.go b/services/pull/reviewer.go
+index bf0d8cb298..c3b0858aa3 100644
+--- a/services/pull/reviewer.go
++++ b/services/pull/reviewer.go
+@@ -85,5 +85,5 @@ func GetReviewerTeams(ctx context.Context, repo *repo_model.Repository) ([]*orga
  		return nil, nil
  	}
-
--	return organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead)
-+	return organization.FilterLargeTeams(organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead))
+ 
+-	return organization.GetTeamsWithAccessToRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests)
++	return organization.FilterLargeTeams(organization.GetTeamsWithAccessToRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests))
  }
+-- 
+2.45.2
+
