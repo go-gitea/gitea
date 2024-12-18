@@ -42,7 +42,7 @@ var (
 		Name:    "set-runner-token",
 		Usage:   "Set a new token for a runner to as register token",
 		Action:  runSetActionsRunnerToken,
-		Aliases: []string{"grt"},
+		Aliases: []string{"srt"},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "scope",
