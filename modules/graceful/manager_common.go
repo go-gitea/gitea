@@ -22,6 +22,12 @@ const (
 	watchdogMsg  systemdNotifyMsg = "WATCHDOG=1"
 )
 
+// LifecyclePProfLabel is a label marking manager lifecycle phase
+// Making it compliant with prometheus key regex https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
+// would enable someone interested to be able to to continuously gather profiles into pyroscope.
+// Other labels for pprof (in "modules/process" package) should also follow this rule.
+const LifecyclePProfLabel = "graceful_lifecycle"
+
 func statusMsg(msg string) systemdNotifyMsg {
 	return systemdNotifyMsg("STATUS=" + msg)
 }
@@ -65,10 +71,10 @@ func (g *Manager) prepare(ctx context.Context) {
 	g.hammerCtx, g.hammerCtxCancel = context.WithCancel(ctx)
 	g.managerCtx, g.managerCtxCancel = context.WithCancel(ctx)
 
-	g.terminateCtx = pprof.WithLabels(g.terminateCtx, pprof.Labels("graceful-lifecycle", "with-terminate"))
-	g.shutdownCtx = pprof.WithLabels(g.shutdownCtx, pprof.Labels("graceful-lifecycle", "with-shutdown"))
-	g.hammerCtx = pprof.WithLabels(g.hammerCtx, pprof.Labels("graceful-lifecycle", "with-hammer"))
-	g.managerCtx = pprof.WithLabels(g.managerCtx, pprof.Labels("graceful-lifecycle", "with-manager"))
+	g.terminateCtx = pprof.WithLabels(g.terminateCtx, pprof.Labels(LifecyclePProfLabel, "with-terminate"))
+	g.shutdownCtx = pprof.WithLabels(g.shutdownCtx, pprof.Labels(LifecyclePProfLabel, "with-shutdown"))
+	g.hammerCtx = pprof.WithLabels(g.hammerCtx, pprof.Labels(LifecyclePProfLabel, "with-hammer"))
+	g.managerCtx = pprof.WithLabels(g.managerCtx, pprof.Labels(LifecyclePProfLabel, "with-manager"))
 
 	if !g.setStateTransition(stateInit, stateRunning) {
 		panic("invalid graceful manager state: transition from init to running failed")
