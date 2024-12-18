@@ -293,45 +293,46 @@ func EditTeam(ctx *context.APIContext) {
 		team.CanCreateOrgRepo = team.IsOwnerTeam() || *form.CanCreateOrgRepo
 	}
 
+	teamName := team.Name
 	if len(form.Name) > 0 {
-		team.Name = form.Name
+		teamName = form.Name
 	}
 
+	description := team.Description
 	if form.Description != nil {
-		team.Description = *form.Description
+		description = *form.Description
 	}
 
-	isAuthChanged := false
-	isIncludeAllChanged := false
-	if !team.IsOwnerTeam() && len(form.Permission) != 0 {
-		// Validate permission level.
-		p := perm.ParseAccessMode(form.Permission)
-		if p < perm.AccessModeAdmin && len(form.UnitsMap) > 0 {
-			p = unit_model.MinUnitAccessMode(convertUnitsMap(form.UnitsMap))
-		}
-
-		if team.AccessMode != p {
-			isAuthChanged = true
-			team.AccessMode = p
-		}
-
-		if form.IncludesAllRepositories != nil {
-			isIncludeAllChanged = true
-			team.IncludesAllRepositories = *form.IncludesAllRepositories
-		}
+	includeAllRepos := team.IncludesAllRepositories
+	if form.IncludesAllRepositories != nil {
+		includeAllRepos = *form.IncludesAllRepositories
 	}
 
+	canCreateOrgRepo := team.CanCreateOrgRepo
+	if form.CanCreateOrgRepo != nil {
+		canCreateOrgRepo = *form.CanCreateOrgRepo
+	}
+
+	unitPerms := make(map[unit_model.Type]perm.AccessMode)
 	if team.AccessMode < perm.AccessModeAdmin {
 		if len(form.UnitsMap) > 0 {
-			attachTeamUnitsMap(team, form.UnitsMap)
-		} else if len(form.Units) > 0 {
-			attachTeamUnits(team, form.Units)
+			unitPerms = convertUnitsMap(form.UnitsMap)
 		}
-	} else {
-		attachAdminTeamUnits(team)
 	}
 
-	if err := org_service.UpdateTeam(ctx, team, isAuthChanged, isIncludeAllChanged); err != nil {
+	isAdmin := team.AccessMode == perm.AccessModeAdmin
+	if form.Permission != "" && form.Permission == "admin" {
+		isAdmin = true
+	}
+
+	if err := org_service.UpdateTeam(ctx, team, org_service.UpdateTeamOptions{
+		TeamName:                teamName,
+		Description:             description,
+		IsAdmin:                 isAdmin,
+		IncludesAllRepositories: includeAllRepos,
+		CanCreateOrgRepo:        canCreateOrgRepo,
+		UnitPerms:               unitPerms,
+	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "EditTeam", err)
 		return
 	}
