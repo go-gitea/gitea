@@ -33,7 +33,6 @@
 @import "./shared/repoorg.css";
 @import "./shared/settings.css";
 
-@import "./features/dropzone.css";
 @import "./features/gitgraph.css";
 @import "./features/heatmap.css";
 @import "./features/imagediff.css";
