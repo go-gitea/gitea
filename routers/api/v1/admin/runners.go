@@ -18,6 +18,11 @@ func GetRegistrationToken(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: set-token
+	//   in: body
+	//   description: set a runner register token instead of generating one.
+	//   type: string
+	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RegistrationToken"

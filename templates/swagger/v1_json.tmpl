@@ -402,6 +402,14 @@
         ],
         "summary": "Get an global actions runner registration token",
         "operationId": "adminGetRunnerRegistrationToken",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "set a runner register token instead of generating one.",
+            "name": "set-token",
+            "in": "body"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/RegistrationToken"
@@ -1702,6 +1710,12 @@
             "name": "org",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "set a runner register token instead of generating one.",
+            "name": "set-token",
+            "in": "body"
           }
         ],
         "responses": {
@@ -3891,6 +3905,12 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "set a runner register token instead of generating one.",
+            "name": "set-token",
+            "in": "body"
           }
         ],
         "responses": {
