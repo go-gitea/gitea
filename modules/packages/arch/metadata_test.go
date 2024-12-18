@@ -42,8 +42,10 @@ depend = gitea
 provides = common
 provides = gitea
 optdepend = hex
+replaces = gogs
 checkdepend = common
 makedepend = cmake
+conflict = ninja
 backup = usr/bin/paket1`)
 }
 
@@ -149,8 +151,10 @@ func TestParsePackageInfo(t *testing.T) {
 		assert.ElementsMatch(t, []string{"group"}, p.FileMetadata.Groups)
 		assert.ElementsMatch(t, []string{"common", "gitea"}, p.FileMetadata.Provides)
 		assert.ElementsMatch(t, []string{"common", "gitea"}, p.FileMetadata.Depends)
+		assert.ElementsMatch(t, []string{"gogs"}, p.FileMetadata.Replaces)
 		assert.ElementsMatch(t, []string{"hex"}, p.FileMetadata.OptDepends)
 		assert.ElementsMatch(t, []string{"common"}, p.FileMetadata.CheckDepends)
+		assert.ElementsMatch(t, []string{"ninja"}, p.FileMetadata.Conflicts)
 		assert.ElementsMatch(t, []string{"cmake"}, p.FileMetadata.MakeDepends)
 		assert.ElementsMatch(t, []string{"usr/bin/paket1"}, p.FileMetadata.Backup)
 	})
