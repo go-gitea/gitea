@@ -1,6 +1,6 @@
 import {applyAreYouSure, initAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.ts';
-import {queryElems} from '../utils/dom.ts';
+import {queryElems, type DOMEvent} from '../utils/dom.ts';
 import {initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 
 export function initGlobalFormDirtyLeaveConfirm() {
@@ -13,7 +13,7 @@ export function initGlobalFormDirtyLeaveConfirm() {
 }
 
 export function initGlobalEnterQuickSubmit() {
-  document.addEventListener('keydown', (e: KeyboardEvent & {target: HTMLElement}) => {
+  document.addEventListener('keydown', (e: DOMEvent<KeyboardEvent>) => {
     if (e.key !== 'Enter') return;
     const hasCtrlOrMeta = ((e.ctrlKey || e.metaKey) && !e.altKey);
     if (hasCtrlOrMeta && e.target.matches('textarea')) {
