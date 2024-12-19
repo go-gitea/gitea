@@ -63,7 +63,7 @@ async function initRepoProjectSortable(): Promise<void> {
   });
 
   for (const boardColumn of boardColumns) {
-    const boardCardList = boardColumn.querySelectorAll('.cards')[0];
+    const boardCardList = boardColumn.querySelector('.cards');
     createSortable(boardCardList, {
       group: 'shared',
       onAdd: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises
@@ -74,12 +74,7 @@ async function initRepoProjectSortable(): Promise<void> {
   }
 }
 
-export function initRepoProject(): void {
-  const writableProjectBoard = document.querySelector('#project-board[data-project-borad-writable="true"]');
-  if (!writableProjectBoard) return;
-
-  initRepoProjectSortable(); // no await
-
+function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
   const elColumnEditModal = document.querySelector<HTMLFormElement>('.ui.modal#project-column-modal-edit');
   const elColumnEditForm = elColumnEditModal.querySelector<HTMLFormElement>('form');
 
@@ -114,9 +109,10 @@ export function initRepoProject(): void {
       elColumnEditForm.classList.add('is-loading');
       await request(formLink, {method: formMethod, data: formData});
       if (!columnId) {
-        window.location.reload();
+        window.location.reload(); // newly added column, need to reload the page
         return;
       }
+      fomanticQuery(elColumnEditModal).modal('hide');
 
       // update the newly saved column title and color in the project board (to avoid reload)
       const elEditButton = writableProjectBoard.querySelector<HTMLButtonElement>(`.show-project-column-modal-edit[${dataAttrColumnId}="${columnId}"]`);
@@ -136,9 +132,16 @@ export function initRepoProject(): void {
         elBoardColumn.style.removeProperty('color');
         queryElemChildren<HTMLElement>(elBoardColumn, '.divider', (divider) => divider.style.removeProperty('color'));
       }
-      fomanticQuery(elColumnEditModal).modal('hide');
     } finally {
       elColumnEditForm.classList.remove('is-loading');
     }
   });
+}
+
+export function initRepoProject(): void {
+  const writableProjectBoard = document.querySelector('#project-board[data-project-borad-writable="true"]');
+  if (!writableProjectBoard) return;
+
+  initRepoProjectSortable(); // no await
+  initRepoProjectColumnEdit(writableProjectBoard);
 }
