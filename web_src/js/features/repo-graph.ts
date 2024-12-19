@@ -1,9 +1,9 @@
-import {hideElem, showElem} from '../utils/dom.ts';
+import {hideElem, showElem, type DOMEvent} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 export function initRepoGraphGit() {
-  const graphContainer = document.querySelector('#git-graph-container');
+  const graphContainer = document.querySelector<HTMLElement>('#git-graph-container');
   if (!graphContainer) return;
 
   document.querySelector('#flow-color-monochrome')?.addEventListener('click', () => {
@@ -87,7 +87,7 @@ export function initRepoGraphGit() {
   fomanticQuery(flowSelectRefsDropdown).dropdown({
     clearable: true,
     fullTextSeach: 'exact',
-    onRemove(toRemove) {
+    onRemove(toRemove: string) {
       if (toRemove === '...flow-hide-pr-refs') {
         params.delete('hide-pr-refs');
       } else {
@@ -101,7 +101,7 @@ export function initRepoGraphGit() {
       }
       updateGraph();
     },
-    onAdd(toAdd) {
+    onAdd(toAdd: string) {
       if (toAdd === '...flow-hide-pr-refs') {
         params.set('hide-pr-refs', 'true');
       } else {
@@ -111,7 +111,7 @@ export function initRepoGraphGit() {
     },
   });
 
-  graphContainer.addEventListener('mouseenter', (e: MouseEvent & {target: HTMLElement}) => {
+  graphContainer.addEventListener('mouseenter', (e: DOMEvent<MouseEvent>) => {
     if (e.target.matches('#rev-list li')) {
       const flow = e.target.getAttribute('data-flow');
       if (flow === '0') return;
@@ -132,7 +132,7 @@ export function initRepoGraphGit() {
     }
   });
 
-  graphContainer.addEventListener('mouseleave', (e: MouseEvent & {target: HTMLElement}) => {
+  graphContainer.addEventListener('mouseleave', (e: DOMEvent<MouseEvent>) => {
     if (e.target.matches('#rev-list li')) {
       const flow = e.target.getAttribute('data-flow');
       if (flow === '0') return;
