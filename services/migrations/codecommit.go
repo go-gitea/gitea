@@ -278,7 +278,7 @@ func (c *CodeCommitDownloader) getUsernameFromARN(arn string) string {
 	return ""
 }
 
-func generateSigV4AuthPassword(secretKey string, host string, path string, region string, now time.Time) string {
+func generateSigV4AuthPassword(secretKey, host, path, region string, now time.Time) string {
 	amzDate := now.Format("20060102T150405")
 	date := now.Format("20060102")
 
