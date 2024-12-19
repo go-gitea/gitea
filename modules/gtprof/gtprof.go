@@ -9,7 +9,7 @@ package gtprof
 // LabelGracefulLifecycle is a label marking manager lifecycle phase
 // Making it compliant with prometheus key regex https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
 // would enable someone interested to be able to continuously gather profiles into pyroscope.
-// Other labels for pprof (in "modules/process" package) should also follow this rule.
+// Other labels for pprof should also follow this rule.
 const LabelGracefulLifecycle = "graceful_lifecycle"
 
 // LabelPid is a label set on goroutines that have a process attached
