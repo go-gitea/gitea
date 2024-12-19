@@ -10,7 +10,9 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	org_model "code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
@@ -301,16 +303,16 @@ func DeleteAccount(ctx *context.Context) {
 
 	if err := user.DeleteUser(ctx, ctx.Doer, false); err != nil {
 		switch {
-		case models.IsErrUserOwnRepos(err):
+		case repo_model.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("form.still_own_repo"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
-		case models.IsErrUserHasOrgs(err):
+		case org_model.IsErrUserHasOrgs(err):
 			ctx.Flash.Error(ctx.Tr("form.still_has_org"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
-		case models.IsErrUserOwnPackages(err):
+		case packages_model.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("form.still_own_packages"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
-		case models.IsErrDeleteLastAdminUser(err):
+		case user_model.IsErrDeleteLastAdminUser(err):
 			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		default:

@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -39,7 +38,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 
 		err = release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-2", "second tag")
 		assert.Error(t, err)
-		assert.True(t, models.IsErrProtectedTagName(err))
+		assert.True(t, release.IsErrProtectedTagName(err))
 
 		err = release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1.1", "third tag")
 		assert.NoError(t, err)
