@@ -80,7 +80,7 @@
 	<div class="divider"></div>
 </div>
 
-<div id="project-board">
+<div id="project-board" data-project-borad-writable="{{$canWriteProject}}">
 	<div class="board {{if .CanWriteProjects}}sortable{{end}}"{{if .CanWriteProjects}} data-url="{{$.Link}}/move"{{end}}>
 		{{range .Columns}}
 			<div class="project-column"{{if .Color}} style="background: {{.Color}} !important; color: {{ContrastColor .Color}} !important"{{end}} data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">

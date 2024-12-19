@@ -6,7 +6,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 function updateIssueCount(card: HTMLElement): void {
   const parent = card.parentElement;
   const cnt = parent.querySelectorAll('.issue-card').length;
-  parent.querySelectorAll('.project-column-issue-count')[0].textContent = String(cnt);
+  parent.querySelector('.project-column-issue-count').textContent = String(cnt);
 }
 
 async function createNewColumn(url: string, columnTitleInput: HTMLInputElement, projectColorInput: HTMLInputElement): Promise<void> {
@@ -48,11 +48,8 @@ async function moveIssue({item, from, to, oldIndex}: {item: HTMLElement, from: H
 }
 
 async function initRepoProjectSortable(): Promise<void> {
-  const els = document.querySelectorAll('#project-board > .board.sortable');
-  if (!els.length) return;
-
   // the HTML layout is: #project-board > .board > .project-column .cards > .issue-card
-  const mainBoard = els[0];
+  const mainBoard = document.querySelector('#project-board > .board.sortable');
   let boardColumns = mainBoard.querySelectorAll<HTMLDivElement>('.project-column');
   createSortable(mainBoard, {
     group: 'project-column',
@@ -93,32 +90,30 @@ async function initRepoProjectSortable(): Promise<void> {
 }
 
 export function initRepoProject(): void {
-  if (!document.querySelector('.repository.projects')) {
-    return;
-  }
+  if (!document.querySelector('#project-board[data-project-borad-writable="true"]')) return;
 
   initRepoProjectSortable(); // no await
 
   for (const modal of document.querySelectorAll<HTMLDivElement>('.edit-project-column-modal')) {
     const projectHeader = modal.closest<HTMLElement>('.project-column-header');
-    const projectTitleLabel = projectHeader?.querySelector<HTMLElement>('.project-column-title-label');
+    const projectTitleLabel = projectHeader.querySelector<HTMLElement>('.project-column-title-label');
     const projectTitleInput = modal.querySelector<HTMLInputElement>('.project-column-title-input');
     const projectColorInput = modal.querySelector<HTMLInputElement>('#new_project_column_color');
     const boardColumn = modal.closest<HTMLElement>('.project-column');
-    modal.querySelector('.edit-project-column-button')?.addEventListener('click', async function (e) {
+    modal.querySelector('.edit-project-column-button').addEventListener('click', async function (e) {
       e.preventDefault();
       try {
         await PUT(this.getAttribute('data-url'), {
           data: {
-            title: projectTitleInput?.value,
-            color: projectColorInput?.value,
+            title: projectTitleInput.value,
+            color: projectColorInput.value,
           },
         });
       } catch (error) {
         console.error(error);
       } finally {
-        projectTitleLabel.textContent = projectTitleInput?.value;
-        projectTitleInput.closest('form')?.classList.remove('dirty');
+        projectTitleLabel.textContent = projectTitleInput.value;
+        projectTitleInput.closest('form').classList.remove('dirty');
         const dividers = boardColumn.querySelectorAll<HTMLElement>(':scope > .divider');
         if (projectColorInput.value) {
           const color = contrastColor(projectColorInput.value);
@@ -157,7 +152,7 @@ export function initRepoProject(): void {
 
   for (const btn of document.querySelectorAll('.show-delete-project-column-modal')) {
     const okBtn = document.querySelector(`${btn.getAttribute('data-modal')} .actions .ok.button`);
-    okBtn?.addEventListener('click', async (e: MouseEvent) => {
+    okBtn.addEventListener('click', async (e: MouseEvent) => {
       e.preventDefault();
       try {
         await DELETE(btn.getAttribute('data-url'));
@@ -169,7 +164,7 @@ export function initRepoProject(): void {
     });
   }
 
-  document.querySelector('#new_project_column_submit')?.addEventListener('click', async (e: MouseEvent & {target: HTMLButtonElement}) => {
+  document.querySelector('#new_project_column_submit').addEventListener('click', async (e: MouseEvent & {target: HTMLButtonElement}) => {
     e.preventDefault();
     const columnTitleInput = document.querySelector<HTMLInputElement>('#new_project_column');
     const projectColorInput = document.querySelector<HTMLInputElement>('#new_project_column_color_picker');
