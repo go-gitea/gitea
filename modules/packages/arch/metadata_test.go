@@ -122,6 +122,14 @@ func TestParsePackageInfo(t *testing.T) {
 		assert.ErrorIs(t, err, ErrInvalidName)
 	})
 
+	t.Run("Regexp", func(t *testing.T) {
+		assert.Regexp(t, versionPattern, "1.2_3~4+5")
+		assert.Regexp(t, versionPattern, "1:2_3~4+5")
+		assert.NotRegexp(t, versionPattern, "a:1.0.0-1")
+		assert.NotRegexp(t, versionPattern, "0.0.1/1-1")
+		assert.NotRegexp(t, versionPattern, "1.0.0 -1")
+	})
+
 	t.Run("InvalidVersion", func(t *testing.T) {
 		data := createPKGINFOContent(packageName, "")
 
