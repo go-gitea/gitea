@@ -377,6 +377,23 @@ func GetLatestRun(ctx context.Context, repoID int64) (*ActionRun, error) {
 	return run, nil
 }
 
+func GetRunsBeforeDate(ctx context.Context, repoID int64, beforeDate time.Time) ([]*ActionRun, error) {
+	var runs []*ActionRun
+	err := db.GetEngine(ctx).
+		Where("repo_id = ?", repoID).
+		And("created < ?", beforeDate).
+		Find(&runs)
+	if err != nil {
+		return nil, err
+	}
+	return runs, nil
+}
+
+func GetObsoleteRuns(ctx context.Context, repoID int64, days int) ([]*ActionRun, error) {
+	thresholdDate := time.Now().AddDate(0, 0, -days)
+	return GetRunsBeforeDate(ctx, repoID, thresholdDate)
+}
+
 func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, branch, event string) (*ActionRun, error) {
 	var run ActionRun
 	q := db.GetEngine(ctx).Where("repo_id=?", repoID).
