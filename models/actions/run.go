@@ -380,11 +380,11 @@ func GetLatestRun(ctx context.Context, repoID int64) (*ActionRun, error) {
 func GetRunsBeforeDate(ctx context.Context, repoID int64, beforeDate time.Time) ([]*ActionRun, error) {
 	var runs []*ActionRun
 	err := db.GetEngine(ctx).
-			Where("repo_id = ?", repoID).
-			And("created < ?", beforeDate).
-			Find(&runs)
+		Where("repo_id = ?", repoID).
+		And("created < ?", beforeDate).
+		Find(&runs)
 	if err != nil {
-			return nil, err
+		return nil, err
 	}
 	return runs, nil
 }
