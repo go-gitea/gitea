@@ -14,7 +14,10 @@ _test
 /gitea_*
 
 # MS VSCode
-.vscode
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
 __debug_bin*
 
 *.cgo1.go
