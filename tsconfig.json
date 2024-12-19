@@ -24,6 +24,7 @@
     "strict": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "strictFunctionTypes": true,
     "noPropertyAccessFromIndexSignature": false,
     "exactOptionalPropertyTypes": false,
     "sourceMap": true,

@@ -1,5 +1,5 @@
 import {stripTags} from '../utils.ts';
-import {hideElem, queryElemChildren, showElem} from '../utils/dom.ts';
+import {hideElem, queryElemChildren, showElem, type DOMEvent} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast, type Toast} from '../modules/toast.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
@@ -28,7 +28,7 @@ export function initRepoTopicBar() {
     mgrBtn.focus();
   });
 
-  document.querySelector('#save_topic').addEventListener('click', async (e: MouseEvent & {target: HTMLButtonElement}) => {
+  document.querySelector<HTMLButtonElement>('#save_topic').addEventListener('click', async (e: DOMEvent<MouseEvent, HTMLButtonElement>) => {
     lastErrorToast?.hideToast();
     const topics = editDiv.querySelector<HTMLInputElement>('input[name=topics]').value;
 
