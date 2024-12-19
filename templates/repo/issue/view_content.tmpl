@@ -139,7 +139,7 @@
 </div>
 
 <template id="issue-comment-editor-template">
-	<div class="ui form comment">
+	<form class="ui form comment">
 		<div class="field">
 			{{template "shared/combomarkdowneditor" (dict
 				"CustomInit" true
@@ -162,7 +162,7 @@
 				<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
 			</div>
 		</div>
-	</div>
+	</form>
 </template>
 
 {{template "repo/issue/view_content/reference_issue_dialog" .}}

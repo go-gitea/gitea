@@ -26,9 +26,9 @@
 		</div>
 	</div>
 	{{if $canEditIssueTitle}}
-	<div class="ui form issue-title tw-hidden" id="issue-title-editor">
+	<form class="ui form issue-title tw-hidden" id="issue-title-editor">
 		<div class="ui input tw-flex-1">
-			<input value="{{.Issue.Title}}" data-old-title="{{.Issue.Title}}" maxlength="255" autocomplete="off">
+			<input name="title" value="{{.Issue.Title}}" data-old-title="{{.Issue.Title}}" maxlength="255" autocomplete="off" />
 		</div>
 		<div class="issue-title-buttons">
 			<button class="ui small basic cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
@@ -36,7 +36,7 @@
 				{{ctx.Locale.Tr "repo.issues.save"}}
 			</button>
 		</div>
-	</div>
+	</form>
 	{{end}}
 	<div class="issue-title-meta">
 		{{if .HasMerged}}
