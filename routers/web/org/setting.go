@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -178,10 +178,10 @@ func SettingsDelete(ctx *context.Context) {
 		}
 
 		if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
-			if models.IsErrUserOwnRepos(err) {
+			if repo_model.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
-			} else if models.IsErrUserOwnPackages(err) {
+			} else if packages_model.IsErrUserOwnPackages(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_packages"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
 			} else {

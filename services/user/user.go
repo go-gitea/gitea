@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -127,7 +126,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	}
 
 	if u.IsActive && user_model.IsLastAdminUser(ctx, u) {
-		return models.ErrDeleteLastAdminUser{UID: u.ID}
+		return user_model.ErrDeleteLastAdminUser{UID: u.ID}
 	}
 
 	if purge {
@@ -225,7 +224,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	if err != nil {
 		return fmt.Errorf("GetRepositoryCount: %w", err)
 	} else if count > 0 {
-		return models.ErrUserOwnRepos{UID: u.ID}
+		return repo_model.ErrUserOwnRepos{UID: u.ID}
 	}
 
 	// Check membership of organization.
@@ -233,14 +232,14 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	if err != nil {
 		return fmt.Errorf("GetOrganizationCount: %w", err)
 	} else if count > 0 {
-		return models.ErrUserHasOrgs{UID: u.ID}
+		return organization.ErrUserHasOrgs{UID: u.ID}
 	}
 
 	// Check ownership of packages.
 	if ownsPackages, err := packages_model.HasOwnerPackages(ctx, u.ID); err != nil {
 		return fmt.Errorf("HasOwnerPackages: %w", err)
 	} else if ownsPackages {
-		return models.ErrUserOwnPackages{UID: u.ID}
+		return packages_model.ErrUserOwnPackages{UID: u.ID}
 	}
 
 	if err := deleteUser(ctx, u, purge); err != nil {
@@ -288,7 +287,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 	for _, u := range inactiveUsers {
 		if err = DeleteUser(ctx, u, false); err != nil {
 			// Ignore inactive users that were ever active but then were set inactive by admin
-			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) || models.IsErrUserOwnPackages(err) {
+			if repo_model.IsErrUserOwnRepos(err) || organization.IsErrUserHasOrgs(err) || packages_model.IsErrUserOwnPackages(err) {
 				log.Warn("Inactive user %q has repositories, organizations or packages, skipping deletion: %v", u.Name, err)
 				continue
 			}
