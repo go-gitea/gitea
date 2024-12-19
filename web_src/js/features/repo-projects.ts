@@ -1,31 +1,17 @@
-import $ from 'jquery';
 import {contrastColor} from '../utils/color.ts';
 import {createSortable} from '../modules/sortable.ts';
-import {POST, DELETE, PUT} from '../modules/fetch.ts';
+import {POST, request} from '../modules/fetch.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {queryElemChildren, queryElems} from '../utils/dom.ts';
+import type {SortableEvent} from 'sortablejs';
 
-function updateIssueCount(cards) {
-  const parent = cards.parentElement;
-  const cnt = parent.querySelectorAll('.issue-card').length;
-  parent.querySelectorAll('.project-column-issue-count')[0].textContent = cnt;
+function updateIssueCount(card: HTMLElement): void {
+  const parent = card.parentElement;
+  const count = parent.querySelectorAll('.issue-card').length;
+  parent.querySelector('.project-column-issue-count').textContent = String(count);
 }
 
-async function createNewColumn(url, columnTitle, projectColorInput) {
-  try {
-    await POST(url, {
-      data: {
-        title: columnTitle.val(),
-        color: projectColorInput.val(),
-      },
-    });
-  } catch (error) {
-    console.error(error);
-  } finally {
-    columnTitle.closest('form').removeClass('dirty');
-    window.location.reload();
-  }
-}
-
-async function moveIssue({item, from, to, oldIndex}: {item: HTMLElement, from: HTMLElement, to: HTMLElement, oldIndex: number}) {
+async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<void> {
   const columnCards = to.querySelectorAll('.issue-card');
   updateIssueCount(from);
   updateIssueCount(to);
@@ -47,13 +33,10 @@ async function moveIssue({item, from, to, oldIndex}: {item: HTMLElement, from: H
   }
 }
 
-async function initRepoProjectSortable() {
-  const els = document.querySelectorAll('#project-board > .board.sortable');
-  if (!els.length) return;
-
+async function initRepoProjectSortable(): Promise<void> {
   // the HTML layout is: #project-board > .board > .project-column .cards > .issue-card
-  const mainBoard = els[0];
-  let boardColumns = mainBoard.querySelectorAll('.project-column');
+  const mainBoard = document.querySelector('#project-board > .board.sortable');
+  let boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
   createSortable(mainBoard, {
     group: 'project-column',
     draggable: '.project-column',
@@ -61,7 +44,7 @@ async function initRepoProjectSortable() {
     delayOnTouchOnly: true,
     delay: 500,
     onSort: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises
-      boardColumns = mainBoard.querySelectorAll('.project-column');
+      boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
 
       const columnSorting = {
         columns: Array.from(boardColumns, (column, i) => ({
@@ -81,7 +64,7 @@ async function initRepoProjectSortable() {
   });
 
   for (const boardColumn of boardColumns) {
-    const boardCardList = boardColumn.querySelectorAll('.cards')[0];
+    const boardCardList = boardColumn.querySelector('.cards');
     createSortable(boardCardList, {
       group: 'shared',
       onAdd: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises
@@ -92,97 +75,74 @@ async function initRepoProjectSortable() {
   }
 }
 
-export function initRepoProject() {
-  if (!document.querySelector('.repository.projects')) {
-    return;
-  }
+function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
+  const elModal = document.querySelector<HTMLElement>('.ui.modal#project-column-modal-edit');
+  const elForm = elModal.querySelector<HTMLFormElement>('form');
+
+  const elColumnId = elForm.querySelector<HTMLInputElement>('input[name="id"]');
+  const elColumnTitle = elForm.querySelector<HTMLInputElement>('input[name="title"]');
+  const elColumnColor = elForm.querySelector<HTMLInputElement>('input[name="color"]');
+
+  const attrDataColumnId = 'data-modal-project-column-id';
+  const attrDataColumnTitle = 'data-modal-project-column-title-input';
+  const attrDataColumnColor = 'data-modal-project-column-color-input';
+
+  // the "new" button is not in project board, so need to query from document
+  queryElems(document, '.show-project-column-modal-edit', (el) => {
+    el.addEventListener('click', () => {
+      elColumnId.value = el.getAttribute(attrDataColumnId);
+      elColumnTitle.value = el.getAttribute(attrDataColumnTitle);
+      elColumnColor.value = el.getAttribute(attrDataColumnColor);
+      elColumnColor.dispatchEvent(new Event('input', {bubbles: true})); // trigger the color picker
+    });
+  });
+
+  elForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const columnId = elColumnId.value;
+    const actionBaseLink = elForm.getAttribute('data-action-base-link');
+
+    const formData = new FormData(elForm);
+    const formLink = columnId ? `${actionBaseLink}/${columnId}` : `${actionBaseLink}/columns/new`;
+    const formMethod = columnId ? 'PUT' : 'POST';
+
+    try {
+      elForm.classList.add('is-loading');
+      await request(formLink, {method: formMethod, data: formData});
+      if (!columnId) {
+        window.location.reload(); // newly added column, need to reload the page
+        return;
+      }
+      fomanticQuery(elModal).modal('hide');
+
+      // update the newly saved column title and color in the project board (to avoid reload)
+      const elEditButton = writableProjectBoard.querySelector<HTMLButtonElement>(`.show-project-column-modal-edit[${attrDataColumnId}="${columnId}"]`);
+      elEditButton.setAttribute(attrDataColumnTitle, elColumnTitle.value);
+      elEditButton.setAttribute(attrDataColumnColor, elColumnColor.value);
+
+      const elBoardColumn = writableProjectBoard.querySelector<HTMLElement>(`.project-column[data-id="${columnId}"]`);
+      const elBoardColumnTitle = elBoardColumn.querySelector<HTMLElement>(`.project-column-title-text`);
+      elBoardColumnTitle.textContent = elColumnTitle.value;
+      if (elColumnColor.value) {
+        const textColor = contrastColor(elColumnColor.value);
+        elBoardColumn.style.setProperty('background', elColumnColor.value, 'important');
+        elBoardColumn.style.setProperty('color', textColor, 'important');
+        queryElemChildren<HTMLElement>(elBoardColumn, '.divider', (divider) => divider.style.color = textColor);
+      } else {
+        elBoardColumn.style.removeProperty('background');
+        elBoardColumn.style.removeProperty('color');
+        queryElemChildren<HTMLElement>(elBoardColumn, '.divider', (divider) => divider.style.removeProperty('color'));
+      }
+    } finally {
+      elForm.classList.remove('is-loading');
+    }
+  });
+}
+
+export function initRepoProject(): void {
+  const writableProjectBoard = document.querySelector('#project-board[data-project-borad-writable="true"]');
+  if (!writableProjectBoard) return;
 
   initRepoProjectSortable(); // no await
-
-  for (const modal of document.querySelectorAll('.edit-project-column-modal')) {
-    const projectHeader = modal.closest<HTMLElement>('.project-column-header');
-    const projectTitleLabel = projectHeader?.querySelector<HTMLElement>('.project-column-title-label');
-    const projectTitleInput = modal.querySelector<HTMLInputElement>('.project-column-title-input');
-    const projectColorInput = modal.querySelector<HTMLInputElement>('#new_project_column_color');
-    const boardColumn = modal.closest<HTMLElement>('.project-column');
-    modal.querySelector('.edit-project-column-button')?.addEventListener('click', async function (e) {
-      e.preventDefault();
-      try {
-        await PUT(this.getAttribute('data-url'), {
-          data: {
-            title: projectTitleInput?.value,
-            color: projectColorInput?.value,
-          },
-        });
-      } catch (error) {
-        console.error(error);
-      } finally {
-        projectTitleLabel.textContent = projectTitleInput?.value;
-        projectTitleInput.closest('form')?.classList.remove('dirty');
-        const dividers = boardColumn.querySelectorAll<HTMLElement>(':scope > .divider');
-        if (projectColorInput.value) {
-          const color = contrastColor(projectColorInput.value);
-          boardColumn.style.setProperty('background', projectColorInput.value, 'important');
-          boardColumn.style.setProperty('color', color, 'important');
-          for (const divider of dividers) {
-            divider.style.setProperty('color', color);
-          }
-        } else {
-          boardColumn.style.removeProperty('background');
-          boardColumn.style.removeProperty('color');
-          for (const divider of dividers) {
-            divider.style.removeProperty('color');
-          }
-        }
-        $('.ui.modal').modal('hide');
-      }
-    });
-  }
-
-  $('.default-project-column-modal').each(function () {
-    const $boardColumn = $(this).closest('.project-column');
-    const $showButton = $($boardColumn).find('.default-project-column-show');
-    const $commitButton = $(this).find('.actions > .ok.button');
-
-    $($commitButton).on('click', async (e) => {
-      e.preventDefault();
-
-      try {
-        await POST($($showButton).data('url'));
-      } catch (error) {
-        console.error(error);
-      } finally {
-        window.location.reload();
-      }
-    });
-  });
-
-  $('.show-delete-project-column-modal').each(function () {
-    const $deleteColumnModal = $(`${this.getAttribute('data-modal')}`);
-    const $deleteColumnButton = $deleteColumnModal.find('.actions > .ok.button');
-    const deleteUrl = this.getAttribute('data-url');
-
-    $deleteColumnButton.on('click', async (e) => {
-      e.preventDefault();
-
-      try {
-        await DELETE(deleteUrl);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        window.location.reload();
-      }
-    });
-  });
-
-  $('#new_project_column_submit').on('click', (e) => {
-    e.preventDefault();
-    const $columnTitle = $('#new_project_column');
-    const $projectColorInput = $('#new_project_column_color_picker');
-    if (!$columnTitle.val()) {
-      return;
-    }
-    const url = e.target.getAttribute('data-url');
-    createNewColumn(url, $columnTitle, $projectColorInput);
-  });
+  initRepoProjectColumnEdit(writableProjectBoard);
 }
