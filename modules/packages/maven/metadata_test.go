@@ -7,7 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/text/encoding/charmap"
 )
 
@@ -85,5 +88,36 @@ func TestParsePackageMetaData(t *testing.T) {
 		m, err := ParsePackageMetaData(strings.NewReader(pomContent8859_1))
 		assert.NoError(t, err)
 		assert.NotNil(t, m)
+	})
+
+	t.Run("ParentInherit", func(t *testing.T) {
+		pom := `<?xml version="1.0"?>
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.mycompany.app</groupId>
+    <artifactId>my-app</artifactId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>submodule1</artifactId>
+</project>
+`
+		m, err := ParsePackageMetaData(strings.NewReader(pom))
+		require.NoError(t, err)
+		require.NotNil(t, m)
+
+		assert.Equal(t, "com.mycompany.app", m.GroupID)
+		assert.Equal(t, "submodule1", m.ArtifactID)
+	})
+
+	t.Run("ParentInherit", func(t *testing.T) {
+		pom := `<?xml version="1.0"?>
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId></artifactId>
+</project>
+`
+		_, err := ParsePackageMetaData(strings.NewReader(pom))
+		require.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 }
