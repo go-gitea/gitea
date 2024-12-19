@@ -88,7 +88,7 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
   const attrDataColumnColor = 'data-modal-project-column-color-input';
 
   // the "new" button is not in project board, so need to query from document
-  queryElems(document, '.show-project-column-modal-edit', (el: Element) => {
+  queryElems(document, '.show-project-column-modal-edit', (el) => {
     el.addEventListener('click', () => {
       elColumnId.value = el.getAttribute(attrDataColumnId);
       elColumnTitle.value = el.getAttribute(attrDataColumnTitle);
@@ -97,7 +97,7 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
     });
   });
 
-  elForm.addEventListener('submit', async (e: SubmitEvent) => {
+  elForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const columnId = elColumnId.value;
     const actionBaseLink = elForm.getAttribute('data-action-base-link');
