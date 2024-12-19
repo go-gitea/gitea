@@ -3,14 +3,15 @@ import {createSortable} from '../modules/sortable.ts';
 import {POST, request} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {queryElemChildren, queryElems} from '../utils/dom.ts';
+import type {SortableEvent} from 'sortablejs';
 
 function updateIssueCount(card: HTMLElement): void {
   const parent = card.parentElement;
-  const cnt = parent.querySelectorAll('.issue-card').length;
-  parent.querySelector('.project-column-issue-count').textContent = String(cnt);
+  const count = parent.querySelectorAll('.issue-card').length;
+  parent.querySelector('.project-column-issue-count').textContent = String(count);
 }
 
-async function moveIssue({item, from, to, oldIndex}: {item: HTMLElement, from: HTMLElement, to: HTMLElement, oldIndex: number}): Promise<void> {
+async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<void> {
   const columnCards = to.querySelectorAll('.issue-card');
   updateIssueCount(from);
   updateIssueCount(to);
@@ -35,7 +36,7 @@ async function moveIssue({item, from, to, oldIndex}: {item: HTMLElement, from: H
 async function initRepoProjectSortable(): Promise<void> {
   // the HTML layout is: #project-board > .board > .project-column .cards > .issue-card
   const mainBoard = document.querySelector('#project-board > .board.sortable');
-  let boardColumns = mainBoard.querySelectorAll<HTMLDivElement>('.project-column');
+  let boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
   createSortable(mainBoard, {
     group: 'project-column',
     draggable: '.project-column',
@@ -43,7 +44,7 @@ async function initRepoProjectSortable(): Promise<void> {
     delayOnTouchOnly: true,
     delay: 500,
     onSort: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises
-      boardColumns = mainBoard.querySelectorAll<HTMLDivElement>('.project-column');
+      boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
 
       const columnSorting = {
         columns: Array.from(boardColumns, (column, i) => ({
@@ -87,7 +88,7 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
   const attrDataColumnColor = 'data-modal-project-column-color-input';
 
   // the "new" button is not in project board, so need to query from document
-  queryElems(document, '.show-project-column-modal-edit', (el) => {
+  queryElems(document, '.show-project-column-modal-edit', (el: Element) => {
     el.addEventListener('click', () => {
       elColumnId.value = el.getAttribute(attrDataColumnId);
       elColumnTitle.value = el.getAttribute(attrDataColumnTitle);
@@ -96,7 +97,7 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
     });
   });
 
-  elForm.addEventListener('submit', async (e) => {
+  elForm.addEventListener('submit', async (e: SubmitEvent) => {
     e.preventDefault();
     const columnId = elColumnId.value;
     const actionBaseLink = elForm.getAttribute('data-action-base-link');
