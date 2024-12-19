@@ -27,14 +27,6 @@
 						<label for="aws_secret_access_key">{{ctx.Locale.Tr "repo.migrate.codecommit.aws_secret_access_key"}}</label>
 						<input id="aws_secret_access_key" name="aws_secret_access_key" type="password" value="{{.aws_secret_access_key}}" required>
 					</div>
-					<div class="inline required field {{if .Err_Auth}}error{{end}}">
-						<label for="auth_username">{{ctx.Locale.Tr "repo.migrate.codecommit.https_git_credentials_username"}}</label>
-						<input id="auth_username" name="auth_username" value="{{.auth_username}}" required>
-					</div>
-					<div class="inline required field {{if .Err_Auth}}error{{end}}">
-						<label for="auth_password">{{ctx.Locale.Tr "repo.migrate.codecommit.https_git_credentials_password"}}</label>
-						<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}" required>
-					</div>
 
 					{{if not .DisableNewPullMirrors}}
 					<div class="inline field">
