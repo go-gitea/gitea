@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,11 +23,25 @@ func TestGetLatestRunnerToken(t *testing.T) {
 
 func TestNewRunnerToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	token, err := NewRunnerToken(db.DefaultContext, 1, 0)
+	token, err := NewRunnerToken(db.DefaultContext, 1, 0, "")
 	assert.NoError(t, err)
 	expectedToken, err := GetLatestRunnerToken(db.DefaultContext, 1, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, expectedToken, token)
+
+	predefinedToken, err := util.CryptoRandomString(40)
+	assert.NoError(t, err)
+
+	token, err = NewRunnerToken(db.DefaultContext, 1, 0, predefinedToken)
+	assert.NoError(t, err)
+	assert.EqualValues(t, predefinedToken, token.Token)
+
+	expectedToken, err = GetLatestRunnerToken(db.DefaultContext, 1, 0)
+	assert.NoError(t, err)
+	assert.EqualValues(t, expectedToken, token)
+
+	_, err = NewRunnerToken(db.DefaultContext, 1, 0, "invalid-token")
+	assert.Error(t, err)
 }
 
 func TestUpdateRunnerToken(t *testing.T) {

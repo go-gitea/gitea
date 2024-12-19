@@ -23,3 +23,20 @@ func GenerateActionsRunnerToken(ctx context.Context, scope string) (*ResponseTex
 
 	return requestJSONResp(req, &ResponseText{})
 }
+
+type SetTokenRequest struct {
+	Scope string
+	Token string
+}
+
+// SetActionsRunnerToken calls the internal GenerateActionsRunnerToken function
+func SetActionsRunnerToken(ctx context.Context, scope, token string) (*ResponseText, ResponseExtra) {
+	reqURL := setting.LocalURL + "api/internal/actions/set_actions_runner_token"
+
+	req := newInternalRequest(ctx, reqURL, "POST", SetTokenRequest{
+		Scope: scope,
+		Token: token,
+	})
+
+	return requestJSONResp(req, &ResponseText{})
+}
