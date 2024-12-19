@@ -701,9 +701,6 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 	if ctx.Written() {
 		return
-	} else if prInfo == nil {
-		ctx.NotFound("ViewPullFiles", nil)
-		return
 	}
 
 	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())

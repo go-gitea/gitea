@@ -25,7 +25,7 @@ type timeStrGlobalVarsType struct {
 // In the future, it could be some configurable options to help users
 // to convert the working time to different units.
 
-var timeStrGlobalVars = sync.OnceValue[*timeStrGlobalVarsType](func() *timeStrGlobalVarsType {
+var timeStrGlobalVars = sync.OnceValue(func() *timeStrGlobalVarsType {
 	v := &timeStrGlobalVarsType{}
 	v.re = regexp.MustCompile(`(?i)(\d+)\s*([hms])`)
 	v.units = []struct {

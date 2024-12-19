@@ -17,7 +17,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-var reAttrClass = sync.OnceValue[*regexp.Regexp](func() *regexp.Regexp {
+var reAttrClass = sync.OnceValue(func() *regexp.Regexp {
 	// TODO: it isn't a problem at the moment because our HTML contents are always well constructed
 	return regexp.MustCompile(`(<[^>]+)\s+class="([^"]+)"([^>]*>)`)
 })
