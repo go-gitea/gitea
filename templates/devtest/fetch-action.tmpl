@@ -1,4 +1,4 @@
-{{template "base/head" .}}
+{{template "devtest/devtest-header"}}
 <div class="page-content devtest ui container">
 	{{template "base/alert" .}}
 	<div>
@@ -11,6 +11,7 @@
 			<button class="link-action" data-url="fetch-action-test?k=1">test action</button>
 			<button class="link-action" data-url="fetch-action-test?k=1" data-modal-confirm="confirm?">test with confirm</button>
 			<button class="ui red button link-action" data-url="fetch-action-test?k=1" data-modal-confirm="confirm?">test with risky confirm</button>
+			<button class="ui button link-action" data-url="fetch-action-test?k=1" data-modal-confirm-header="confirm header" data-modal-confirm-content="confirm content">test with confirm header</button>
 		</div>
 	</div>
 	<div>
@@ -21,11 +22,11 @@
 				<button name="btn">submit get</button>
 			</form>
 			<form method="post" action="fetch-action-test?k=1" class="form-fetch-action">
-				<div><textarea name="text" rows="3" class="js-quick-submit"></textarea></div>
+				<div><textarea name="text" rows="3"></textarea></div>
 				<div><label><input name="check" type="checkbox"> check</label></div>
 				<div><button name="btn">submit post</button></div>
 			</form>
-			<form method="post" action="/no-such-uri" class="form-fetch-action">
+			<form method="post" action="no-such-uri" class="form-fetch-action">
 				<div class="tw-py-8">bad action url</div>
 				<div><button name="btn">submit test</button></div>
 			</form>
@@ -41,4 +42,4 @@
 		border: 1px red dashed; /* show the border for demo purpose */
 	}
 </style>
-{{template "base/footer" .}}
+{{template "devtest/devtest-footer"}}

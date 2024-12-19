@@ -421,7 +421,6 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 		return nil, false, fmt.Errorf("error while listing issues: %w", err)
 	}
 	for _, issue := range issues {
-
 		labels := make([]*base.Label, 0, len(issue.Labels))
 		for _, l := range issue.Labels {
 			labels = append(labels, &base.Label{
@@ -723,6 +722,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			PatchURL:     pr.WebURL + ".patch",
 			ForeignIndex: int64(pr.IID),
 			Context:      gitlabIssueContext{IsMergeRequest: true},
+			IsDraft:      pr.Draft,
 		})
 
 		// SECURITY: Ensure that the PR is safe

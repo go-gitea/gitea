@@ -21,9 +21,9 @@ import (
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
 
-	_ "github.com/denisenkom/go-mssqldb" // Needed for the MSSQL driver
-	_ "github.com/go-sql-driver/mysql"   // Needed for the MySQL driver
-	_ "github.com/lib/pq"                // Needed for the Postgresql driver
+	_ "github.com/go-sql-driver/mysql"  // Needed for the MySQL driver
+	_ "github.com/lib/pq"               // Needed for the Postgresql driver
+	_ "github.com/microsoft/go-mssqldb" // Needed for the MSSQL driver
 )
 
 var (
@@ -57,6 +57,7 @@ type Engine interface {
 	SumInt(bean any, columnName string) (res int64, err error)
 	Sync(...any) error
 	Select(string) *xorm.Session
+	SetExpr(string, any) *xorm.Session
 	NotIn(string, ...any) *xorm.Session
 	OrderBy(any, ...any) *xorm.Session
 	Exist(...any) (bool, error)
@@ -133,6 +134,9 @@ func SyncAllTables() error {
 func InitEngine(ctx context.Context) error {
 	xormEngine, err := newXORMEngine()
 	if err != nil {
+		if strings.Contains(err.Error(), "SQLite3 support") {
+			return fmt.Errorf(`sqlite3 requires: -tags sqlite,sqlite_unlock_notify%s%w`, "\n", err)
+		}
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
@@ -160,10 +164,7 @@ func InitEngine(ctx context.Context) error {
 // SetDefaultEngine sets the default engine for db
 func SetDefaultEngine(ctx context.Context, eng *xorm.Engine) {
 	x = eng
-	DefaultContext = &Context{
-		Context: ctx,
-		e:       x,
-	}
+	DefaultContext = &Context{Context: ctx, engine: x}
 }
 
 // UnsetDefaultEngine closes and unsets the default engine
@@ -227,7 +228,6 @@ func NamesToBean(names ...string) ([]any, error) {
 	// Need to map provided names to beans...
 	beanMap := make(map[string]any)
 	for _, bean := range tables {
-
 		beanMap[strings.ToLower(reflect.Indirect(reflect.ValueOf(bean)).Type().Name())] = bean
 		beanMap[strings.ToLower(x.TableName(bean))] = bean
 		beanMap[strings.ToLower(x.TableName(bean, true))] = bean
@@ -284,8 +284,8 @@ func MaxBatchInsertSize(bean any) int {
 }
 
 // IsTableNotEmpty returns true if table has at least one record
-func IsTableNotEmpty(tableName string) (bool, error) {
-	return x.Table(tableName).Exist()
+func IsTableNotEmpty(beanOrTableName any) (bool, error) {
+	return x.Table(beanOrTableName).Exist()
 }
 
 // DeleteAllRecords will delete all the records of this table

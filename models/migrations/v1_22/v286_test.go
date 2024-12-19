@@ -19,21 +19,21 @@ func PrepareOldRepository(t *testing.T) (*xorm.Engine, func()) {
 
 	type CommitStatus struct {
 		ID          int64
-		ContextHash string
+		ContextHash string `xorm:"char(40) index"`
 	}
 
 	type RepoArchiver struct {
 		ID       int64
-		RepoID   int64
-		Type     int
-		CommitID string
+		RepoID   int64  `xorm:"index unique(s)"`
+		Type     int    `xorm:"unique(s)"`
+		CommitID string `xorm:"VARCHAR(40) unique(s)"`
 	}
 
 	type ReviewState struct {
 		ID        int64
-		CommitSHA string
-		UserID    int64
-		PullID    int64
+		UserID    int64  `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
+		PullID    int64  `xorm:"NOT NULL INDEX UNIQUE(pull_commit_user) DEFAULT 0"`
+		CommitSHA string `xorm:"NOT NULL VARCHAR(40) UNIQUE(pull_commit_user)"`
 	}
 
 	type Comment struct {
@@ -107,12 +107,12 @@ func Test_RepositoryFormat(t *testing.T) {
 	repo = new(Repository)
 	ok, err := x.ID(2).Get(repo)
 	assert.NoError(t, err)
-	assert.EqualValues(t, true, ok)
+	assert.True(t, ok)
 	assert.EqualValues(t, "sha1", repo.ObjectFormatName)
 
 	repo = new(Repository)
 	ok, err = x.ID(id).Get(repo)
 	assert.NoError(t, err)
-	assert.EqualValues(t, true, ok)
+	assert.True(t, ok)
 	assert.EqualValues(t, "sha256", repo.ObjectFormatName)
 }

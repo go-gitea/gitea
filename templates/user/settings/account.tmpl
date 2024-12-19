@@ -4,7 +4,7 @@
 			{{ctx.Locale.Tr "settings.password"}}
 		</h4>
 		<div class="ui attached segment">
-			{{if or (.SignedUser.IsLocal) (.SignedUser.IsOAuth2)}}
+			{{if and (not ($.UserDisabledFeatures.Contains "manage_credentials")) (or (.SignedUser.IsLocal) (.SignedUser.IsOAuth2))}}
 			<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/settings/account" method="post">
 				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
@@ -35,11 +35,12 @@
 			{{end}}
 		</div>
 
+		{{if not (and ($.UserDisabledFeatures.Contains "manage_credentials") (not $.EnableNotifyMail))}}
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "settings.manage_emails"}}
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui list">
+			<div class="ui list flex-items-block">
 				{{if $.EnableNotifyMail}}
 				<div class="item">
 					<div class="tw-mb-2">{{ctx.Locale.Tr "settings.email_desc"}}</div>
@@ -63,27 +64,35 @@
 					</form>
 				</div>
 				{{end}}
-				{{range .Emails}}
-					<div class="item">
-						{{if not .IsPrimary}}
-							<div class="right floated content">
+				{{if not ($.UserDisabledFeatures.Contains "manage_credentials")}}
+					{{range .Emails}}
+						<div class="item tw-flex-wrap">
+							<div class="content tw-flex-1">
+								<strong>{{.Email}}</strong>
+								{{if .IsPrimary}}
+									<div class="ui primary label">{{ctx.Locale.Tr "settings.primary"}}</div>
+								{{end}}
+								{{if .IsActivated}}
+									<div class="ui green label">{{ctx.Locale.Tr "settings.activated"}}</div>
+								{{else}}
+									<div class="ui label">{{ctx.Locale.Tr "settings.requires_activation"}}</div>
+								{{end}}
+							</div>
+							<div class="flex-text-block">
+							{{if not .IsPrimary}}
 								<button class="ui red tiny button delete-button" data-modal-id="delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete" data-id="{{.ID}}">
 									{{ctx.Locale.Tr "settings.delete_email"}}
 								</button>
-							</div>
-							{{if .CanBePrimary}}
-								<div class="right floated content">
+								{{if .CanBePrimary}}
 									<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
 										{{$.CsrfTokenHtml}}
 										<input name="_method" type="hidden" value="PRIMARY">
 										<input name="id" type="hidden" value="{{.ID}}">
 										<button class="ui primary tiny button">{{ctx.Locale.Tr "settings.primary_email"}}</button>
 									</form>
-								</div>
+								{{end}}
 							{{end}}
-						{{end}}
-						{{if not .IsActivated}}
-							<div class="right floated content">
+							{{if not .IsActivated}}
 								<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
 									{{$.CsrfTokenHtml}}
 									<input name="_method" type="hidden" value="SENDACTIVATION">
@@ -94,24 +103,17 @@
 										<button class="ui primary tiny button">{{ctx.Locale.Tr "settings.activate_email"}}</button>
 									{{end}}
 								</form>
+							{{end}}
 							</div>
-						{{end}}
-						<div class="content tw-py-2">
-							<strong>{{.Email}}</strong>
-							{{if .IsPrimary}}
-								<div class="ui primary label">{{ctx.Locale.Tr "settings.primary"}}</div>
-							{{end}}
-							{{if .IsActivated}}
-								<div class="ui green label">{{ctx.Locale.Tr "settings.activated"}}</div>
-							{{else}}
-								<div class="ui label">{{ctx.Locale.Tr "settings.requires_activation"}}</div>
-							{{end}}
 						</div>
-					</div>
-				{{end}}
+					{{end}}{{/* range Emails */}}
+				{{end}}{{/* if manage_credentials */}}
 			</div>
 		</div>
-		<div class="ui attached bottom segment">
+		{{end}}
+
+		{{if not ($.UserDisabledFeatures.Contains "manage_credentials")}}
+		<div class="ui bottom attached segment">
 			<form class="ui form" action="{{AppSubUrl}}/user/settings/account/email" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Email}}error{{end}}">
@@ -127,6 +129,7 @@
 				<div class="ui warning message">{{ctx.Locale.Tr "settings.can_not_add_email_activations_pending"}}</div>
 			{{end}}
 		</div>
+		{{end}}
 
 		{{if not ($.UserDisabledFeatures.Contains "deletion")}}
 		<h4 class="ui top attached error header">

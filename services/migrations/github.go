@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v61/github"
 	"golang.org/x/oauth2"
 )
 
@@ -737,6 +737,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			PatchURL:     pr.GetPatchURL(), // see below for SECURITY related issues here
 			Reactions:    reactions,
 			ForeignIndex: int64(*pr.Number),
+			IsDraft:      pr.GetDraft(),
 		})
 
 		// SECURITY: Ensure that the PR is safe

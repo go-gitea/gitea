@@ -1,0 +1,93 @@
+{{if .Repository.IsTimetrackerEnabled ctx}}
+	{{if and .CanUseTimetracker (not .Repository.IsArchived)}}
+		<div class="divider"></div>
+		<div>
+			<div class="ui dropdown jump">
+				<a class="text muted">
+					<strong>{{ctx.Locale.Tr "repo.issues.tracker"}}</strong> {{svg "octicon-gear"}}
+					{{if $.IsStopwatchRunning}}{{svg "octicon-stopwatch"}}{{end}}
+				</a>
+				<div class="menu">
+					<a class="item issue-set-time-estimate show-modal" data-modal="#issue-time-set-estimate-modal">
+						{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.issues.time_estimate_set"}}
+					</a>
+					<div class="divider"></div>
+					{{if $.IsStopwatchRunning}}
+					<a class="item issue-stop-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/toggle">
+						{{svg "octicon-stopwatch"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_stop"}}
+					</a>
+					<a class="item issue-cancel-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/cancel">
+						{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_discard"}}
+					</a>
+					{{else}}
+					<a class="item issue-start-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/toggle">
+						{{svg "octicon-stopwatch"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_start"}}
+					</a>
+					<a class="item issue-add-time show-modal" data-modal="#issue-time-manually-add-modal">
+						{{svg "octicon-plus"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_manually_add"}}
+					</a>
+					{{end}}
+				</div>
+			</div>
+
+			{{if and (not $.IsStopwatchRunning) .HasUserStopwatch}}
+				<div class="ui warning message">{{ctx.Locale.Tr "repo.issues.tracking_already_started" .OtherStopwatchURL}}</div>
+			{{end}}
+
+			{{if .Issue.TimeEstimate}}
+				<div class="tw-my-2">{{ctx.Locale.Tr "repo.issues.time_estimate_display" (TimeEstimateString .Issue.TimeEstimate)}}</div>
+			{{end}}
+
+			{{/* set time estimate modal */}}
+			<div class="ui mini modal" id="issue-time-set-estimate-modal">
+				<div class="header">{{ctx.Locale.Tr "repo.issues.time_estimate_set"}}</div>
+				<form method="post" class="ui form form-fetch-action" action="{{.Issue.Link}}/time_estimate">
+					<div class="content">
+						{{$.CsrfTokenHtml}}
+						<input name="time_estimate" placeholder="1h 2m" value="{{TimeEstimateString .Issue.TimeEstimate}}">
+						<div class="actions">
+							<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
+							<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
+						</div>
+					</div>
+				</form>
+			</div>
+
+			{{/* manually add time modal */}}
+			<div class="ui mini modal" id="issue-time-manually-add-modal">
+				<div class="header">{{ctx.Locale.Tr "repo.issues.add_time_manually"}}</div>
+				<form method="post" class="ui form form-fetch-action" action="{{.Issue.Link}}/times/add">
+					<div class="content flex-text-block">
+						{{$.CsrfTokenHtml}}
+						<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">:
+						<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes">
+					</div>
+					<div class="actions">
+						<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
+						<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.timetracker_timer_manually_add"}}</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	{{end}}
+	{{if .WorkingUsers}}
+		<div class="ui comments tw-mt-2">
+			{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Time)}}
+			<div>
+				{{range $user, $trackedtime := .WorkingUsers}}
+					<div class="comment tw-mt-2">
+						<a class="avatar">
+							{{ctx.AvatarUtils.Avatar $user}}
+						</a>
+						<div class="content">
+							{{template "shared/user/authorlink" $user}}
+							<div class="text">
+								{{$trackedtime|Sec2Time}}
+							</div>
+						</div>
+					</div>
+				{{end}}
+			</div>
+		</div>
+	{{end}}
+{{end}}

@@ -6,6 +6,7 @@ package setting
 import (
 	"net/http"
 
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
@@ -19,6 +20,7 @@ const (
 func BlockedUsers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("user.block.list")
 	ctx.Data["PageIsSettingsBlockedUsers"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	shared_user.BlockedUsers(ctx, ctx.Doer)
 	if ctx.Written() {

@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 1
+	issueIndexerLatestVersion = 2
 	// multi-match-types, currently only 2 types are used
 	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
 	esMultiMatchTypeBestFields   = "best_fields"
@@ -58,6 +58,7 @@ const (
 
 			"is_pull": { "type": "boolean", "index": true },
 			"is_closed": { "type": "boolean", "index": true },
+			"is_archived": { "type": "boolean", "index": true },
 			"label_ids": { "type": "integer", "index": true },
 			"no_label": { "type": "boolean", "index": true },
 			"milestone_id": { "type": "integer", "index": true },
@@ -145,7 +146,6 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	query := elastic.NewBoolQuery()
 
 	if options.Keyword != "" {
-
 		searchType := esMultiMatchTypePhrasePrefix
 		if options.IsFuzzyKeyword {
 			searchType = esMultiMatchTypeBestFields
@@ -168,6 +168,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 	if options.IsClosed.Has() {
 		query.Must(elastic.NewTermQuery("is_closed", options.IsClosed.Value()))
+	}
+	if options.IsArchived.Has() {
+		query.Must(elastic.NewTermQuery("is_archived", options.IsArchived.Value()))
 	}
 
 	if options.NoLabelOnly {
@@ -198,8 +201,8 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.ProjectID.Has() {
 		query.Must(elastic.NewTermQuery("project_id", options.ProjectID.Value()))
 	}
-	if options.ProjectBoardID.Has() {
-		query.Must(elastic.NewTermQuery("project_board_id", options.ProjectBoardID.Value()))
+	if options.ProjectColumnID.Has() {
+		query.Must(elastic.NewTermQuery("project_board_id", options.ProjectColumnID.Value()))
 	}
 
 	if options.PosterID.Has() {

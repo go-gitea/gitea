@@ -18,18 +18,27 @@
 		</div>
 		<div class="field">
 			<label>{{ctx.Locale.Tr "repo.projects.description"}}</label>
-			<textarea name="content" placeholder="{{ctx.Locale.Tr "repo.projects.description_placeholder"}}">{{.content}}</textarea>
+			{{/* TODO: repo-level project and org-level project have different behaviros to render */}}
+			{{/* the "Repository" is nil when the project is org-level */}}
+			{{template "shared/combomarkdowneditor" (dict
+				"MarkdownPreviewInRepo" $.Repository
+				"MarkdownPreviewContext" (Iif $.Repository "" .HomeLink)
+				"MarkdownPreviewMode" (Iif $.Repository "comment")
+				"TextareaName" "content"
+				"TextareaContent" .content
+				"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.description_placeholder")
+			)}}
 		</div>
 
 		{{if not .PageIsEditProjects}}
 			<div class="field">
 				<label>{{ctx.Locale.Tr "repo.projects.template.desc"}}</label>
 				<div class="ui selection dropdown">
-					<input type="hidden" name="board_type" value="{{.type}}">
+					<input type="hidden" name="template_type" value="{{.type}}">
 					<div class="default text">{{ctx.Locale.Tr "repo.projects.template.desc_helper"}}</div>
 					<div class="menu">
-						{{range $element := .BoardTypes}}
-							<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{ctx.Locale.Tr $element.Translation}}</div>
+						{{range $element := .TemplateConfigs}}
+							<div class="item" data-id="{{$element.TemplateType}}" data-value="{{$element.TemplateType}}">{{ctx.Locale.Tr $element.Translation}}</div>
 						{{end}}
 					</div>
 				</div>

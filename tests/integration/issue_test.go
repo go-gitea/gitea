@@ -6,6 +6,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"path"
@@ -143,7 +144,7 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	val := htmlDoc.doc.Find("#issue-title").Text()
+	val := htmlDoc.doc.Find("#issue-title-display").Text()
 	assert.Contains(t, val, title)
 	val = htmlDoc.doc.Find(".comment .render-content p").First().Text()
 	assert.Equal(t, content, val)
@@ -190,6 +191,34 @@ func TestNewIssue(t *testing.T) {
 	testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 }
 
+func TestEditIssue(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
+		"_csrf":   GetUserCSRFToken(t, session),
+		"content": "modified content",
+		"context": fmt.Sprintf("/%s/%s", "user2", "repo1"),
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
+		"_csrf":   GetUserCSRFToken(t, session),
+		"content": "modified content",
+		"context": fmt.Sprintf("/%s/%s", "user2", "repo1"),
+	})
+	session.MakeRequest(t, req, http.StatusBadRequest)
+
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
+		"_csrf":           GetUserCSRFToken(t, session),
+		"content":         "modified content",
+		"content_version": "1",
+		"context":         fmt.Sprintf("/%s/%s", "user2", "repo1"),
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
 func TestIssueCommentClose(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
@@ -217,11 +246,11 @@ func TestIssueCommentDelete(t *testing.T) {
 
 	// Using the ID of a comment that does not belong to the repository must fail
 	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d/delete", "user5", "repo4", commentID), map[string]string{
-		"_csrf": GetCSRF(t, session, issueURL),
+		"_csrf": GetUserCSRFToken(t, session),
 	})
 	session.MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d/delete", "user2", "repo1", commentID), map[string]string{
-		"_csrf": GetCSRF(t, session, issueURL),
+		"_csrf": GetUserCSRFToken(t, session),
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 	unittest.AssertNotExistsBean(t, &issues_model.Comment{ID: commentID})
@@ -241,19 +270,57 @@ func TestIssueCommentUpdate(t *testing.T) {
 
 	// Using the ID of a comment that does not belong to the repository must fail
 	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user5", "repo4", commentID), map[string]string{
-		"_csrf":   GetCSRF(t, session, issueURL),
+		"_csrf":   GetUserCSRFToken(t, session),
 		"content": modifiedContent,
 	})
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
-		"_csrf":   GetCSRF(t, session, issueURL),
+		"_csrf":   GetUserCSRFToken(t, session),
 		"content": modifiedContent,
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 
 	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: commentID})
 	assert.Equal(t, modifiedContent, comment.Content)
+}
+
+func TestIssueCommentUpdateSimultaneously(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+	comment1 := "Test comment 1"
+	commentID := testIssueAddComment(t, session, issueURL, comment1, "")
+
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: commentID})
+	assert.Equal(t, comment1, comment.Content)
+
+	modifiedContent := comment.Content + "MODIFIED"
+
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
+		"_csrf":   GetUserCSRFToken(t, session),
+		"content": modifiedContent,
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	modifiedContent = comment.Content + "2"
+
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
+		"_csrf":   GetUserCSRFToken(t, session),
+		"content": modifiedContent,
+	})
+	session.MakeRequest(t, req, http.StatusBadRequest)
+
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
+		"_csrf":           GetUserCSRFToken(t, session),
+		"content":         modifiedContent,
+		"content_version": "1",
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: commentID})
+	assert.Equal(t, modifiedContent, comment.Content)
+	assert.Equal(t, 2, comment.ContentVersion)
 }
 
 func TestIssueReaction(t *testing.T) {
@@ -573,10 +640,14 @@ func TestGetIssueInfo(t *testing.T) {
 	urlStr := fmt.Sprintf("/%s/%s/issues/%d/info", owner.Name, repo.Name, issue.Index)
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	var apiIssue api.Issue
-	DecodeJSON(t, resp, &apiIssue)
+	var respStruct struct {
+		ConvertedIssue api.Issue
+		RenderedLabels template.HTML
+	}
+	DecodeJSON(t, resp, &respStruct)
 
-	assert.EqualValues(t, issue.ID, apiIssue.ID)
+	assert.EqualValues(t, issue.ID, respStruct.ConvertedIssue.ID)
+	assert.Contains(t, string(respStruct.RenderedLabels), `"labels-list"`)
 }
 
 func TestUpdateIssueDeadline(t *testing.T) {
@@ -586,26 +657,21 @@ func TestUpdateIssueDeadline(t *testing.T) {
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
 	assert.NoError(t, issueBefore.LoadAttributes(db.DefaultContext))
-	assert.Equal(t, int64(1019307200), int64(issueBefore.DeadlineUnix))
+	assert.Equal(t, "2002-04-20", issueBefore.DeadlineUnix.FormatDate())
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 
 	session := loginUser(t, owner.Name)
+	urlStr := fmt.Sprintf("%s/%s/issues/%d/deadline?_csrf=%s", owner.Name, repoBefore.Name, issueBefore.Index, GetUserCSRFToken(t, session))
 
-	issueURL := fmt.Sprintf("%s/%s/issues/%d", owner.Name, repoBefore.Name, issueBefore.Index)
-	req := NewRequest(t, "GET", issueURL)
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
+	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{"deadline": "2022-04-06"})
+	session.MakeRequest(t, req, http.StatusOK)
+	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
+	assert.EqualValues(t, "2022-04-06", issueAfter.DeadlineUnix.FormatDate())
 
-	urlStr := issueURL + "/deadline?_csrf=" + htmlDoc.GetCSRF()
-	req = NewRequestWithJSON(t, "POST", urlStr, map[string]string{
-		"due_date": "2022-04-06T00:00:00.000Z",
-	})
-
-	resp = session.MakeRequest(t, req, http.StatusCreated)
-	var apiIssue api.IssueDeadline
-	DecodeJSON(t, resp, &apiIssue)
-
-	assert.EqualValues(t, "2022-04-06", apiIssue.Deadline.Format("2006-01-02"))
+	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{"deadline": ""})
+	session.MakeRequest(t, req, http.StatusOK)
+	issueAfter = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
+	assert.True(t, issueAfter.DeadlineUnix.IsZero())
 }
 
 func TestIssueReferenceURL(t *testing.T) {

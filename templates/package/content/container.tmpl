@@ -5,13 +5,13 @@
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.container.pull"}}</label>
 				{{if eq .PackageDescriptor.Metadata.Type "helm"}}
-				<div class="markup"><pre class="code-block"><code>helm pull oci://{{.RegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}} --version {{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
+				<div class="markup"><pre class="code-block"><code>helm pull oci://{{.PackageRegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}} --version {{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
 				{{else}}
 					{{$separator := ":"}}
 					{{if not .PackageDescriptor.Metadata.IsTagged}}
 						{{$separator = "@"}}
 					{{end}}
-					<div class="markup"><pre class="code-block"><code>docker pull {{.RegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}}{{$separator}}{{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
+					<div class="markup"><pre class="code-block"><code>docker pull {{.PackageRegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}}{{$separator}}{{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
 				{{end}}
 			</div>
 			<div class="field">
@@ -36,11 +36,14 @@
 				</thead>
 				<tbody>
 					{{range .PackageDescriptor.Metadata.Manifests}}
-					<tr>
-						<td><a href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .Digest}}">{{.Digest}}</a></td>
-						<td>{{.Platform}}</td>
-						<td>{{FileSize .Size}}</td>
-					</tr>
+						{{/* "unknown/unknown" is attestation-manifest, so we should skip it */}}
+						{{if ne .Platform "unknown/unknown"}}
+						<tr>
+							<td><a class="tw-font-mono" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .Digest}}">{{StringUtils.TrimPrefix .Digest "sha256:" | ShortSha}}</a></td>
+							<td>{{.Platform}}</td>
+							<td>{{FileSize .Size}}</td>
+						</tr>
+						{{end}}
 					{{end}}
 				</tbody>
 			</table>
@@ -54,7 +57,7 @@
 	{{end}}
 	{{if .PackageDescriptor.Metadata.ImageLayers}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.container.layers"}}</h4>
-		<div class="ui attached segment gt-word-break">
+		<div class="ui attached segment tw-break-anywhere">
 			<table class="ui very basic compact table">
 				<tbody>
 					{{range .PackageDescriptor.Metadata.ImageLayers}}
@@ -80,7 +83,7 @@
 					{{range $key, $value := .PackageDescriptor.Metadata.Labels}}
 						<tr>
 							<td class="top aligned">{{$key}}</td>
-							<td class="gt-word-break">{{$value}}</td>
+							<td class="tw-break-anywhere">{{$value}}</td>
 						</tr>
 					{{end}}
 				</tbody>

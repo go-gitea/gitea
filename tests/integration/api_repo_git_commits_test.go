@@ -77,7 +77,7 @@ func TestAPIReposGitCommitList(t *testing.T) {
 	assert.EqualValues(t, "c8e31bc7688741a5287fcde4fbb8fc129ca07027", apiData[1].CommitMeta.SHA)
 	compareCommitFiles(t, []string{"test.csv"}, apiData[1].Files)
 
-	assert.EqualValues(t, resp.Header().Get("X-Total"), "2")
+	assert.EqualValues(t, "2", resp.Header().Get("X-Total"))
 }
 
 func TestAPIReposGitCommitListNotMaster(t *testing.T) {
@@ -103,7 +103,7 @@ func TestAPIReposGitCommitListNotMaster(t *testing.T) {
 	assert.EqualValues(t, "5099b81332712fe655e34e8dd63574f503f61811", apiData[2].CommitMeta.SHA)
 	compareCommitFiles(t, []string{"readme.md"}, apiData[2].Files)
 
-	assert.EqualValues(t, resp.Header().Get("X-Total"), "3")
+	assert.EqualValues(t, "3", resp.Header().Get("X-Total"))
 }
 
 func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
@@ -121,7 +121,7 @@ func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
 	var apiData []api.Commit
 	DecodeJSON(t, resp, &apiData)
 
-	assert.Len(t, apiData, 0)
+	assert.Empty(t, apiData)
 }
 
 func TestAPIReposGitCommitListDifferentBranch(t *testing.T) {
@@ -208,7 +208,7 @@ func TestGetFileHistory(t *testing.T) {
 	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0].CommitMeta.SHA)
 	compareCommitFiles(t, []string{"readme.md"}, apiData[0].Files)
 
-	assert.EqualValues(t, resp.Header().Get("X-Total"), "1")
+	assert.EqualValues(t, "1", resp.Header().Get("X-Total"))
 }
 
 func TestGetFileHistoryNotOnMaster(t *testing.T) {
@@ -229,5 +229,5 @@ func TestGetFileHistoryNotOnMaster(t *testing.T) {
 	assert.Equal(t, "c8e31bc7688741a5287fcde4fbb8fc129ca07027", apiData[0].CommitMeta.SHA)
 	compareCommitFiles(t, []string{"test.csv"}, apiData[0].Files)
 
-	assert.EqualValues(t, resp.Header().Get("X-Total"), "1")
+	assert.EqualValues(t, "1", resp.Header().Get("X-Total"))
 }

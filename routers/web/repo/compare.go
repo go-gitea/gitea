@@ -35,6 +35,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -148,7 +149,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			return csvReader, reader, err
 		}
 
-		baseReader, baseBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, RelativePath: diffFile.OldName}, baseBlob)
+		baseReader, baseBlobCloser, err := csvReaderFromCommit(markup.NewRenderContext(ctx).WithRelativePath(diffFile.OldName), baseBlob)
 		if baseBlobCloser != nil {
 			defer baseBlobCloser.Close()
 		}
@@ -160,7 +161,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			return CsvDiffResult{nil, "unable to load file"}
 		}
 
-		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, RelativePath: diffFile.Name}, headBlob)
+		headReader, headBlobCloser, err := csvReaderFromCommit(markup.NewRenderContext(ctx).WithRelativePath(diffFile.Name), headBlob)
 		if headBlobCloser != nil {
 			defer headBlobCloser.Close()
 		}
@@ -185,21 +186,10 @@ func setCsvCompareContext(ctx *context.Context) {
 	}
 }
 
-// CompareInfo represents the collected results from ParseCompareInfo
-type CompareInfo struct {
-	HeadUser         *user_model.User
-	HeadRepo         *repo_model.Repository
-	HeadGitRepo      *git.Repository
-	CompareInfo      *git.CompareInfo
-	BaseBranch       string
-	HeadBranch       string
-	DirectComparison bool
-}
-
 // ParseCompareInfo parse compare info between two commit for preparing comparing references
-func ParseCompareInfo(ctx *context.Context) *CompareInfo {
+func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	baseRepo := ctx.Repo.Repository
-	ci := &CompareInfo{}
+	ci := &common.CompareInfo{}
 
 	fileOnly := ctx.FormBool("file-only")
 
@@ -213,7 +203,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// 5. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}:{:headBranch}
 	// 6. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}/{:headRepoName}:{:headBranch}
 	//
-	// Here we obtain the infoPath "{:baseBranch}...[{:headOwner}/{:headRepoName}:]{:headBranch}" as ctx.Params("*")
+	// Here we obtain the infoPath "{:baseBranch}...[{:headOwner}/{:headRepoName}:]{:headBranch}" as ctx.PathParam("*")
 	// with the :baseRepo in ctx.Repo.
 	//
 	// Note: Generally :headRepoName is not provided here - we are only passed :headOwner.
@@ -235,7 +225,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		err        error
 	)
 
-	infoPath = ctx.Params("*")
+	infoPath = ctx.PathParam("*")
 	var infos []string
 	if infoPath == "" {
 		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
@@ -576,7 +566,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 // PrepareCompareDiff renders compare diff page
 func PrepareCompareDiff(
 	ctx *context.Context,
-	ci *CompareInfo,
+	ci *common.CompareInfo,
 	whitespaceBehavior git.TrustedCmdArgs,
 ) bool {
 	var (
@@ -621,6 +611,8 @@ func PrepareCompareDiff(
 		maxLines, maxFiles = -1, -1
 	}
 
+	fileOnly := ctx.FormBool("file-only")
+
 	diff, err := gitdiff.GetDiff(ctx, ci.HeadGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     beforeCommitID,
@@ -631,6 +623,7 @@ func PrepareCompareDiff(
 			MaxFiles:           maxFiles,
 			WhitespaceBehavior: whitespaceBehavior,
 			DirectComparison:   ci.DirectComparison,
+			FileOnly:           fileOnly,
 		}, ctx.FormStrings("files")...)
 	if err != nil {
 		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
@@ -653,7 +646,7 @@ func PrepareCompareDiff(
 		return false
 	}
 
-	commits := git_model.ConvertFromGitCommit(ctx, ci.CompareInfo.Commits, ci.HeadRepo)
+	commits := processGitCommits(ctx, ci.CompareInfo.Commits)
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 
@@ -795,9 +788,13 @@ func CompareDiff(ctx *context.Context) {
 
 		if !nothingToCompare {
 			// Setup information for new form.
-			RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
+			pageMetaData := retrieveRepoIssueMetaData(ctx, ctx.Repo.Repository, nil, true)
 			if ctx.Written() {
 				return
+			}
+			_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates, pageMetaData)
+			if len(templateErrs) > 0 {
+				ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
 			}
 		}
 	}
@@ -810,20 +807,14 @@ func CompareDiff(ctx *context.Context) {
 	}
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + separator + base.ShortSha(afterCommitID)
 
-	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
-	_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
-
-	if len(templateErrs) > 0 {
-		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
-	}
 
 	if content, ok := ctx.Data["content"].(string); ok && content != "" {
 		// If a template content is set, prepend the "content". In this case that's only
 		// applicable if you have one commit to compare and that commit has a message.
 		// In that case the commit message will be prepend to the template body.
 		if templateContent, ok := ctx.Data[pullRequestTemplateKey].(string); ok && templateContent != "" {
-			// Re-use the same key as that's priortized over the "content" key.
+			// Re-use the same key as that's prioritized over the "content" key.
 			// Add two new lines between the content to ensure there's always at least
 			// one empty line between them.
 			ctx.Data[pullRequestTemplateKey] = content + "\n\n" + templateContent
@@ -861,7 +852,7 @@ func CompareDiff(ctx *context.Context) {
 
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
-	commitID := ctx.Params("sha")
+	commitID := ctx.PathParam("sha")
 	lastLeft := ctx.FormInt("last_left")
 	lastRight := ctx.FormInt("last_right")
 	idxLeft := ctx.FormInt("left")
@@ -942,7 +933,7 @@ func ExcerptBlob(ctx *context.Context) {
 		}
 	}
 	ctx.Data["section"] = section
-	ctx.Data["FileNameHash"] = base.EncodeSha1(filePath)
+	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
 	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Anchor"] = anchor
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)

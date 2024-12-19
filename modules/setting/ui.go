@@ -52,6 +52,7 @@ var UI = struct {
 
 	CSV struct {
 		MaxFileSize int64
+		MaxRows     int
 	} `ini:"ui.csv"`
 
 	Admin struct {
@@ -82,10 +83,10 @@ var UI = struct {
 	ReactionMaxUserNum:      10,
 	MaxDisplayFileSize:      8388608,
 	DefaultTheme:            `gitea-auto`,
-	Themes:                  []string{`gitea-auto`, `gitea-light`, `gitea-dark`},
 	Reactions:               []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 	CustomEmojis:            []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
 	CustomEmojisMap:         map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
+	ExploreDefaultSort:      "recentupdate",
 	PreferredTimestampTense: "mixed",
 
 	AmbiguousUnicodeDetection: true,
@@ -108,8 +109,10 @@ var UI = struct {
 	},
 	CSV: struct {
 		MaxFileSize int64
+		MaxRows     int
 	}{
 		MaxFileSize: 524288,
+		MaxRows:     2500,
 	},
 	Admin: struct {
 		UserPagingNum   int

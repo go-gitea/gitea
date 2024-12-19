@@ -25,7 +25,7 @@
 		<div class="ui attached segment">
 			{{if .PackageDescriptor.Metadata.Readme}}
 			<div class="markup markdown">
-				{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.Readme}}
+				{{ctx.RenderUtils.MarkdownToHtml .PackageDescriptor.Metadata.Readme}}
 			</div>
 			{{else if .PackageDescriptor.Metadata.Description}}
 				{{.PackageDescriptor.Metadata.Description}}
@@ -42,6 +42,15 @@
 				{{template "package/content/npm_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.PeerDependencies "title" (ctx.Locale.Tr "packages.npm.dependencies.peer")}}
 				{{template "package/content/npm_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.OptionalDependencies "title" (ctx.Locale.Tr "packages.npm.dependencies.optional")}}
 			</div>
+		</div>
+	{{end}}
+
+	{{if .PackageDescriptor.Metadata.BundleDependencies}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.npm.dependencies.bundle"}}</h4>
+		<div class="ui attached segment">
+			{{range .PackageDescriptor.Metadata.BundleDependencies}}
+				{{.}}
+			{{end}}
 		</div>
 	{{end}}
 

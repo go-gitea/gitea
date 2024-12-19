@@ -4,6 +4,7 @@
 package charset
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -156,13 +157,16 @@ func TestEscapeControlReader(t *testing.T) {
 		tests = append(tests, test)
 	}
 
+	re := regexp.MustCompile(`repo.ambiguous_character:\d+,\d+`) // simplify the output for the tests, remove the translation variants
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			output := &strings.Builder{}
 			status, err := EscapeControlReader(strings.NewReader(tt.text), output, &translation.MockLocale{})
 			assert.NoError(t, err)
 			assert.Equal(t, tt.status, *status)
-			assert.Equal(t, tt.result, output.String())
+			outStr := output.String()
+			outStr = re.ReplaceAllString(outStr, "repo.ambiguous_character")
+			assert.Equal(t, tt.result, outStr)
 		})
 	}
 }

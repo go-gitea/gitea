@@ -22,15 +22,13 @@ import (
 	"github.com/go-git/go-git/v5/storage/filesystem"
 )
 
-func init() {
-	isGogit = true
-}
+const isGogit = true
 
 // Repository represents a Git repository.
 type Repository struct {
 	Path string
 
-	tagCache *ObjectCache
+	tagCache *ObjectCache[*Tag]
 
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
@@ -81,7 +79,7 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		Path:         repoPath,
 		gogitRepo:    gogitRepo,
 		gogitStorage: storage,
-		tagCache:     newObjectCache(),
+		tagCache:     newObjectCache[*Tag](),
 		Ctx:          ctx,
 		objectFormat: ParseGogitHash(plumbing.ZeroHash).Type(),
 	}, nil

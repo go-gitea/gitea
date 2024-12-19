@@ -35,8 +35,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
       - run: pip install poetry
       - run: make deps-py
+      - run: make deps-frontend
       - run: make lint-templates
 
   lint-yaml:
@@ -60,7 +66,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
       - run: make deps-frontend
       - run: make lint-swagger
 
@@ -129,7 +137,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
       - run: make deps-frontend
       - run: make lint-frontend
       - run: make checks-frontend
@@ -176,10 +186,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
       - run: make deps-frontend
       - run: make lint-md
-      - run: make docs
 
   actions:
     if: needs.files-changed.outputs.actions == 'true' || needs.files-changed.outputs.actions == 'true'

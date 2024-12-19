@@ -4,20 +4,25 @@
 package integration
 
 import (
+	"fmt"
+	"net/http"
 	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/release"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateNewTagProtected(t *testing.T) {
@@ -26,22 +31,10 @@ func TestCreateNewTagProtected(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	t.Run("API", func(t *testing.T) {
+	t.Run("Code", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		err := release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1", "first tag")
-		assert.NoError(t, err)
-
-		err = git_model.InsertProtectedTag(db.DefaultContext, &git_model.ProtectedTag{
-			RepoID:      repo.ID,
-			NamePattern: "v-*",
-		})
-		assert.NoError(t, err)
-		err = git_model.InsertProtectedTag(db.DefaultContext, &git_model.ProtectedTag{
-			RepoID:           repo.ID,
-			NamePattern:      "v-1.1",
-			AllowlistUserIDs: []int64{repo.OwnerID},
-		})
+		err := release.CreateNewTag(git.DefaultContext, owner, repo, "master", "t-first", "first tag")
 		assert.NoError(t, err)
 
 		err = release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-2", "second tag")
@@ -54,13 +47,12 @@ func TestCreateNewTagProtected(t *testing.T) {
 
 	t.Run("Git", func(t *testing.T) {
 		onGiteaRun(t, func(t *testing.T, u *url.URL) {
-			username := "user2"
-			httpContext := NewAPITestContext(t, username, "repo1")
+			httpContext := NewAPITestContext(t, owner.Name, repo.Name)
 
 			dstPath := t.TempDir()
 
 			u.Path = httpContext.GitPath()
-			u.User = url.UserPassword(username, userPassword)
+			u.User = url.UserPassword(owner.Name, userPassword)
 
 			doGitClone(dstPath, u)(t)
 
@@ -70,6 +62,40 @@ func TestCreateNewTagProtected(t *testing.T) {
 			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunStdString(&git.RunOpts{Dir: dstPath})
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "Tag v-2 is protected")
+		})
+	})
+
+	t.Run("GitTagForce", func(t *testing.T) {
+		onGiteaRun(t, func(t *testing.T, u *url.URL) {
+			httpContext := NewAPITestContext(t, owner.Name, repo.Name)
+
+			dstPath := t.TempDir()
+
+			u.Path = httpContext.GitPath()
+			u.User = url.UserPassword(owner.Name, userPassword)
+
+			doGitClone(dstPath, u)(t)
+
+			_, _, err := git.NewCommand(git.DefaultContext, "tag", "v-1.1", "-m", "force update", "--force").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.NoError(t, err)
+
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.NoError(t, err)
+
+			_, _, err = git.NewCommand(git.DefaultContext, "tag", "v-1.1", "-m", "force update v2", "--force").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.NoError(t, err)
+
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "the tag already exists in the remote")
+
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags", "--force").RunStdString(&git.RunOpts{Dir: dstPath})
+			require.NoError(t, err)
+			req := NewRequestf(t, "GET", "/%s/releases/tag/v-1.1", repo.FullName())
+			resp := MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			tagsTab := htmlDoc.Find(".release-list-title")
+			assert.Contains(t, tagsTab.Text(), "force update v2")
 		})
 	})
 
@@ -93,4 +119,48 @@ func TestCreateNewTagProtected(t *testing.T) {
 		err = git_model.DeleteProtectedTag(db.DefaultContext, protectedTag)
 		assert.NoError(t, err)
 	}
+}
+
+func TestRepushTag(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+		session := loginUser(t, owner.LowerName)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		httpContext := NewAPITestContext(t, owner.Name, repo.Name)
+
+		dstPath := t.TempDir()
+
+		u.Path = httpContext.GitPath()
+		u.User = url.UserPassword(owner.Name, userPassword)
+
+		doGitClone(dstPath, u)(t)
+
+		// create and push a tag
+		_, _, err := git.NewCommand(git.DefaultContext, "tag", "v2.0").RunStdString(&git.RunOpts{Dir: dstPath})
+		assert.NoError(t, err)
+		_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "--tags", "v2.0").RunStdString(&git.RunOpts{Dir: dstPath})
+		assert.NoError(t, err)
+		// create a release for the tag
+		createdRelease := createNewReleaseUsingAPI(t, token, owner, repo, "v2.0", "", "Release of v2.0", "desc")
+		assert.False(t, createdRelease.IsDraft)
+		// delete the tag
+		_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "--delete", "v2.0").RunStdString(&git.RunOpts{Dir: dstPath})
+		assert.NoError(t, err)
+		// query the release by API and it should be a draft
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, "v2.0"))
+		resp := MakeRequest(t, req, http.StatusOK)
+		var respRelease *api.Release
+		DecodeJSON(t, resp, &respRelease)
+		assert.True(t, respRelease.IsDraft)
+		// re-push the tag
+		_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "--tags", "v2.0").RunStdString(&git.RunOpts{Dir: dstPath})
+		assert.NoError(t, err)
+		// query the release by API and it should not be a draft
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, "v2.0"))
+		resp = MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &respRelease)
+		assert.False(t, respRelease.IsDraft)
+	})
 }

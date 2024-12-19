@@ -26,7 +26,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 	p := Pointer{Oid: "b5a2c96250612366ea272ffac6d9744aaf4b45aacd96aa7cfcb931ee3b558259", Size: 5}
 
 	roundTripHandler := func(req *http.Request) *http.Response {
-		assert.Equal(t, MediaType, req.Header.Get("Accept"))
+		assert.Equal(t, AcceptHeader, req.Header.Get("Accept"))
 		assert.Equal(t, "test-value", req.Header.Get("test-header"))
 
 		url := req.URL.String()
@@ -96,7 +96,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 		for n, c := range cases {
 			_, err := a.Download(context.Background(), c.link)
 			if len(c.expectederror) > 0 {
-				assert.True(t, strings.Contains(err.Error(), c.expectederror), "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
+				assert.Contains(t, err.Error(), c.expectederror, "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 			} else {
 				assert.NoError(t, err, "case %d", n)
 			}
@@ -129,7 +129,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 		for n, c := range cases {
 			err := a.Upload(context.Background(), c.link, p, bytes.NewBufferString("dummy"))
 			if len(c.expectederror) > 0 {
-				assert.True(t, strings.Contains(err.Error(), c.expectederror), "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
+				assert.Contains(t, err.Error(), c.expectederror, "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 			} else {
 				assert.NoError(t, err, "case %d", n)
 			}
@@ -162,7 +162,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 		for n, c := range cases {
 			err := a.Verify(context.Background(), c.link, p)
 			if len(c.expectederror) > 0 {
-				assert.True(t, strings.Contains(err.Error(), c.expectederror), "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
+				assert.Contains(t, err.Error(), c.expectederror, "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 			} else {
 				assert.NoError(t, err, "case %d", n)
 			}

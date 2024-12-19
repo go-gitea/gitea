@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
@@ -29,7 +30,7 @@ import (
 )
 
 const (
-	esRepoIndexerLatestVersion = 1
+	esRepoIndexerLatestVersion = 3
 	// multi-match-types, currently only 2 types are used
 	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
 	esMultiMatchTypeBestFields   = "best_fields"
@@ -56,16 +57,63 @@ func NewIndexer(url, indexerName string) *Indexer {
 
 const (
 	defaultMapping = `{
+		"settings": {
+    		"analysis": {
+      			"analyzer": {
+					"content_analyzer": {
+						"tokenizer": "content_tokenizer",
+						"filter" : ["lowercase"]
+					},
+        			"filename_path_analyzer": {
+          				"tokenizer": "path_tokenizer"
+        			},
+        			"reversed_filename_path_analyzer": {
+          				"tokenizer": "reversed_path_tokenizer"
+        			}
+      			},
+				"tokenizer": {
+					"content_tokenizer": {
+						"type": "simple_pattern_split",
+						"pattern": "[^a-zA-Z0-9]"
+					},
+					"path_tokenizer": {
+						"type": "path_hierarchy",
+						"delimiter": "/"
+					},
+					"reversed_path_tokenizer": {
+						"type": "path_hierarchy",
+						"delimiter": "/",
+						"reverse": true
+					}
+				}
+			}
+  		},
 		"mappings": {
 			"properties": {
 				"repo_id": {
 					"type": "long",
 					"index": true
 				},
+				"filename": {
+					"type": "text",
+					"term_vector": "with_positions_offsets",
+					"index": true,
+					"fields": {
+         		  		"path": {
+            				"type": "text",
+            				"analyzer": "reversed_filename_path_analyzer"
+						},
+          				"path_reversed": {
+            				"type": "text",
+            				"analyzer": "filename_path_analyzer"
+          				}
+        			}
+				},
 				"content": {
 					"type": "text",
 					"term_vector": "with_positions_offsets",
-					"index": true
+					"index": true,
+					"analyzer": "content_analyzer"
 				},
 				"commit_id": {
 					"type": "keyword",
@@ -135,6 +183,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 			Id(id).
 			Doc(map[string]any{
 				"repo_id":    repo.ID,
+				"filename":   update.Filename,
 				"content":    string(charset.ToUTF8DropErrors(fileContents, charset.ConvertOpts{})),
 				"commit_id":  sha,
 				"language":   analyze.GetCodeLanguage(update.Filename, fileContents),
@@ -154,17 +203,19 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elasti
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
-		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-		if err := git.EnsureValidGitRepository(ctx, repo.RepoPath()); err != nil {
-			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
+		r, err := gitrepo.OpenRepository(ctx, repo)
+		if err != nil {
 			return err
 		}
-
-		batchWriter, batchReader, cancel := git.CatFileBatch(ctx, repo.RepoPath())
-		defer cancel()
+		defer r.Close()
+		batch, err := r.NewBatch(ctx)
+		if err != nil {
+			return err
+		}
+		defer batch.Close()
 
 		for _, update := range changes.Updates {
-			updateReqs, err := b.addUpdate(ctx, batchWriter, batchReader, sha, update, repo)
+			updateReqs, err := b.addUpdate(ctx, batch.Writer, batch.Reader, sha, update, repo)
 			if err != nil {
 				return err
 			}
@@ -172,7 +223,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 				reqs = append(reqs, updateReqs...)
 			}
 		}
-		cancel()
+		batch.Close()
 	}
 
 	for _, filename := range changes.RemovedFilenames {
@@ -195,19 +246,44 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 	return nil
 }
 
-// Delete deletes indexes by ids
+// Delete entries by repoId
 func (b *Indexer) Delete(ctx context.Context, repoID int64) error {
+	if err := b.doDelete(ctx, repoID); err != nil {
+		// Maybe there is a conflict during the delete operation, so we should retry after a refresh
+		log.Warn("Deletion of entries of repo %v within index %v was erroneus. Trying to refresh index before trying again", repoID, b.inner.VersionedIndexName(), err)
+		if err := b.refreshIndex(ctx); err != nil {
+			return err
+		}
+		if err := b.doDelete(ctx, repoID); err != nil {
+			log.Error("Could not delete entries of repo %v within index %v", repoID, b.inner.VersionedIndexName())
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *Indexer) refreshIndex(ctx context.Context) error {
+	if _, err := b.inner.Client.Refresh(b.inner.VersionedIndexName()).Do(ctx); err != nil {
+		log.Error("Error while trying to refresh index %v", b.inner.VersionedIndexName(), err)
+		return err
+	}
+
+	return nil
+}
+
+// Delete entries by repoId
+func (b *Indexer) doDelete(ctx context.Context, repoID int64) error {
 	_, err := b.inner.Client.DeleteByQuery(b.inner.VersionedIndexName()).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
 		Do(ctx)
 	return err
 }
 
-// indexPos find words positions for start and the following end on content. It will
+// contentMatchIndexPos find words positions for start and the following end on content. It will
 // return the beginning position of the first start and the ending position of the
 // first end following the start string.
 // If not found any of the positions, it will return -1, -1.
-func indexPos(content, start, end string) (int, int) {
+func contentMatchIndexPos(content, start, end string) (int, int) {
 	startIdx := strings.Index(content, start)
 	if startIdx < 0 {
 		return -1, -1
@@ -216,33 +292,34 @@ func indexPos(content, start, end string) (int, int) {
 	if endIdx < 0 {
 		return -1, -1
 	}
-	return startIdx, startIdx + len(start) + endIdx + len(end)
+	return startIdx, (startIdx + len(start) + endIdx + len(end)) - 9 // remove the length <em></em> since we give Content the original data
 }
 
 func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
 	hits := make([]*internal.SearchResult, 0, pageSize)
 	for _, hit := range searchResult.Hits.Hits {
+		repoID, fileName := internal.ParseIndexerID(hit.Id)
+		res := make(map[string]any)
+		if err := json.Unmarshal(hit.Source, &res); err != nil {
+			return 0, nil, nil, err
+		}
+
 		// FIXME: There is no way to get the position the keyword on the content currently on the same request.
 		// So we get it from content, this may made the query slower. See
 		// https://discuss.elastic.co/t/fetching-position-of-keyword-in-matched-document/94291
 		var startIndex, endIndex int
-		c, ok := hit.Highlight["content"]
-		if ok && len(c) > 0 {
+		if c, ok := hit.Highlight["filename"]; ok && len(c) > 0 {
+			startIndex, endIndex = internal.FilenameMatchIndexPos(res["content"].(string))
+		} else if c, ok := hit.Highlight["content"]; ok && len(c) > 0 {
 			// FIXME: Since the highlighting content will include <em> and </em> for the keywords,
 			// now we should find the positions. But how to avoid html content which contains the
 			// <em> and </em> tags? If elastic search has handled that?
-			startIndex, endIndex = indexPos(c[0], "<em>", "</em>")
+			startIndex, endIndex = contentMatchIndexPos(c[0], "<em>", "</em>")
 			if startIndex == -1 {
 				panic(fmt.Sprintf("1===%s,,,%#v,,,%s", kw, hit.Highlight, c[0]))
 			}
 		} else {
 			panic(fmt.Sprintf("2===%#v", hit.Highlight))
-		}
-
-		repoID, fileName := internal.ParseIndexerID(hit.Id)
-		res := make(map[string]any)
-		if err := json.Unmarshal(hit.Source, &res); err != nil {
-			return 0, nil, nil, err
 		}
 
 		language := res["language"].(string)
@@ -255,7 +332,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 			UpdatedUnix: timeutil.TimeStamp(res["updated_at"].(float64)),
 			Language:    language,
 			StartIndex:  startIndex,
-			EndIndex:    endIndex - 9, // remove the length <em></em> since we give Content the original data
+			EndIndex:    endIndex,
 			Color:       enry.GetColor(language),
 		})
 	}
@@ -287,7 +364,10 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		searchType = esMultiMatchTypeBestFields
 	}
 
-	kwQuery := elastic.NewMultiMatchQuery(opts.Keyword, "content").Type(searchType)
+	kwQuery := elastic.NewBoolQuery().Should(
+		elastic.NewMultiMatchQuery(opts.Keyword, "content").Type(searchType),
+		elastic.NewMultiMatchQuery(opts.Keyword, "filename^10").Type(esMultiMatchTypePhrasePrefix),
+	)
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
 	if len(opts.RepoIDs) > 0 {
@@ -313,10 +393,12 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 			Highlight(
 				elastic.NewHighlight().
 					Field("content").
+					Field("filename").
 					NumOfFragments(0). // return all highting content on fragments
 					HighlighterType("fvh"),
 			).
-			Sort("repo_id", true).
+			Sort("_score", false).
+			Sort("updated_at", true).
 			From(start).Size(pageSize).
 			Do(ctx)
 		if err != nil {
@@ -344,10 +426,12 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		Highlight(
 			elastic.NewHighlight().
 				Field("content").
+				Field("filename").
 				NumOfFragments(0). // return all highting content on fragments
 				HighlighterType("fvh"),
 		).
-		Sort("repo_id", true).
+		Sort("_score", false).
+		Sort("updated_at", true).
 		From(start).Size(pageSize).
 		Do(ctx)
 	if err != nil {

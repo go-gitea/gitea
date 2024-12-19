@@ -1,27 +1,30 @@
 {{with .Issue}}
 	{{if eq $.Page.Project.CardType 1}}{{/* Images and Text*/}}
+		{{$attachments := index $.Page.issuesAttachmentMap .ID}}
+		{{if $attachments}}
 		<div class="card-attachment-images">
-			{{range (index $.Page.issuesAttachmentMap .ID)}}
+			{{range $attachments}}
 				<img src="{{.DownloadURL}}" alt="{{.Name}}" />
 			{{end}}
 		</div>
+		{{end}}
 	{{end}}
-	<div class="content tw-p-0 tw-w-full">
-		<div class="tw-flex tw-items-start">
+	<div class="content tw-w-full">
+		<div class="tw-flex tw-items-start tw-gap-[5px]">
 			<div class="issue-card-icon">
 				{{template "shared/issueicon" .}}
 			</div>
-			<a class="issue-card-title muted issue-title" href="{{.Link}}">{{.Title | RenderEmoji ctx | RenderCodeBlock}}</a>
+			<a class="issue-card-title muted issue-title tw-break-anywhere" href="{{.Link}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 			{{if and $.isPinnedIssueCard $.Page.IsRepoAdmin}}
 				<a role="button" class="issue-card-unpin muted tw-flex tw-items-center" data-tooltip-content={{ctx.Locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Page.Link}}/unpin/{{.Index}}">
 					{{svg "octicon-x" 16}}
 				</a>
 			{{end}}
 		</div>
-		<div class="meta tw-my-1">
+		<div class="meta">
 			<span class="text light grey muted-links">
 				{{if not $.Page.Repository}}{{.Repo.FullName}}{{end}}#{{.Index}}
-				{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
+				{{$timeStr := DateUtils.TimeSince .GetLastEventTimestamp}}
 				{{if .OriginalAuthor}}
 					{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor}}
 				{{else if gt .Poster.ID 0}}
@@ -59,13 +62,15 @@
 	</div>
 
 	{{if or .Labels .Assignees}}
-	<div class="extra content labels-list tw-p-0 tw-pt-1">
-		{{range .Labels}}
-			<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{RenderLabel ctx ctx.Locale .}}</a>
-		{{end}}
-		<div class="right floated">
+	<div class="issue-card-bottom">
+		<div class="labels-list">
+			{{range .Labels}}
+				<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{ctx.RenderUtils.RenderLabel .}}</a>
+			{{end}}
+		</div>
+		<div class="issue-card-assignees">
 			{{range .Assignees}}
-				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28 "mini tw-mr-2"}}</a>
+				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28}}</a>
 			{{end}}
 		</div>
 	</div>

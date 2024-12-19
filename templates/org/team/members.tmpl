@@ -8,7 +8,7 @@
 			<div class="ui ten wide column">
 				{{template "org/team/navbar" .}}
 				{{if .IsOrganizationOwner}}
-					<div class="ui attached segment">
+					<div class="ui top attached segment">
 						<form class="ui form ignore-dirty tw-flex tw-flex-wrap tw-gap-2" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
@@ -21,7 +21,7 @@
 						</form>
 					</div>
 				{{end}}
-				<div class="ui attached segment">
+				<div class="ui{{if not .IsOrganizationOwner}} top{{end}} attached segment">
 					<div class="flex-list">
 						{{range .Team.Members}}
 							<div class="flex-item tw-items-center">
@@ -46,7 +46,7 @@
 							</div>
 						{{else}}
 							<div class="flex-item">
-								<span class="text grey italic">{{ctx.Locale.Tr "org.teams.members.none"}}</span>
+								<span class="text grey tw-italic">{{ctx.Locale.Tr "org.teams.members.none"}}</span>
 							</div>
 						{{end}}
 					</div>

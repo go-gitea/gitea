@@ -3,7 +3,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.repos.repo_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/repos/unadopted">{{ctx.Locale.Tr "admin.repos.unadopted"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/-/admin/repos/unadopted">{{ctx.Locale.Tr "admin.repos.unadopted"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached segment">
@@ -47,13 +47,13 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a class="gt-word-break" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
+								<a class="tw-break-anywhere" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 								{{if .Owner.Visibility.IsPrivate}}
 									<span class="text gold">{{svg "octicon-lock"}}</span>
 								{{end}}
 							</td>
 							<td>
-								<a class="gt-word-break" href="{{.Link}}">{{.Name}}</a>
+								<a class="tw-break-anywhere" href="{{.Link}}">{{.Name}}</a>
 								{{if .IsArchived}}
 									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 								{{end}}
@@ -82,8 +82,8 @@
 							<td>{{.NumIssues}}</td>
 							<td>{{FileSize .GitSize}}</td>
 							<td>{{FileSize .LFSSize}}</td>
-							<td>{{DateTime "short" .UpdatedUnix}}</td>
-							<td>{{DateTime "short" .CreatedUnix}}</td>
+							<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
+							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trash"}}</a></td>
 						</tr>
 					{{end}}

@@ -7,7 +7,6 @@ package org
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
+	org_service "code.gitea.io/gitea/services/org"
 )
 
 const (
@@ -34,8 +34,8 @@ func Members(ctx *context.Context) {
 	}
 
 	opts := &organization.FindOrgMembersOpts{
-		OrgID:      org.ID,
-		PublicOnly: true,
+		Doer:  ctx.Doer,
+		OrgID: org.ID,
 	}
 
 	if ctx.Doer != nil {
@@ -44,9 +44,9 @@ func Members(ctx *context.Context) {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
-		opts.PublicOnly = !isMember && !ctx.Doer.IsAdmin
+		opts.IsDoerMember = isMember
 	}
-	ctx.Data["PublicOnly"] = opts.PublicOnly
+	ctx.Data["PublicOnly"] = opts.PublicOnly()
 
 	total, err := organization.CountOrgMembers(ctx, opts)
 	if err != nil {
@@ -54,9 +54,9 @@ func Members(ctx *context.Context) {
 		return
 	}
 
-	err = shared_user.LoadHeaderCount(ctx)
+	err = shared_user.RenderOrgHeader(ctx)
 	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
+		ctx.ServerError("RenderOrgHeader", err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func MembersAction(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	switch ctx.Params(":action") {
+	switch ctx.PathParam(":action") {
 	case "private":
 		if ctx.Doer.ID != member.ID && !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
@@ -108,14 +108,14 @@ func MembersAction(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = models.RemoveOrgUser(ctx, org, member)
+		err = org_service.RemoveOrgUser(ctx, org, member)
 		if organization.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			ctx.JSONRedirect(ctx.Org.OrgLink + "/members")
 			return
 		}
 	case "leave":
-		err = models.RemoveOrgUser(ctx, org, ctx.Doer)
+		err = org_service.RemoveOrgUser(ctx, org, ctx.Doer)
 		if err == nil {
 			ctx.Flash.Success(ctx.Tr("form.organization_leave_success", org.DisplayName()))
 			ctx.JSON(http.StatusOK, map[string]any{
@@ -131,7 +131,7 @@ func MembersAction(ctx *context.Context) {
 	}
 
 	if err != nil {
-		log.Error("Action(%s): %v", ctx.Params(":action"), err)
+		log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
 		ctx.JSON(http.StatusOK, map[string]any{
 			"ok":  false,
 			"err": err.Error(),
@@ -140,7 +140,7 @@ func MembersAction(ctx *context.Context) {
 	}
 
 	redirect := ctx.Org.OrgLink + "/members"
-	if ctx.Params(":action") == "leave" {
+	if ctx.PathParam(":action") == "leave" {
 		redirect = setting.AppSubURL + "/"
 	}
 

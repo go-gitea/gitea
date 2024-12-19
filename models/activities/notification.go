@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/schemas"
 )
 
 type (
@@ -50,25 +51,64 @@ const (
 // Notification represents a notification
 type Notification struct {
 	ID     int64 `xorm:"pk autoincr"`
-	UserID int64 `xorm:"INDEX NOT NULL"`
-	RepoID int64 `xorm:"INDEX NOT NULL"`
+	UserID int64 `xorm:"NOT NULL"`
+	RepoID int64 `xorm:"NOT NULL"`
 
-	Status NotificationStatus `xorm:"SMALLINT INDEX NOT NULL"`
-	Source NotificationSource `xorm:"SMALLINT INDEX NOT NULL"`
+	Status NotificationStatus `xorm:"SMALLINT NOT NULL"`
+	Source NotificationSource `xorm:"SMALLINT NOT NULL"`
 
-	IssueID   int64  `xorm:"INDEX NOT NULL"`
-	CommitID  string `xorm:"INDEX"`
+	IssueID   int64 `xorm:"NOT NULL"`
+	CommitID  string
 	CommentID int64
 
-	UpdatedBy int64 `xorm:"INDEX NOT NULL"`
+	UpdatedBy int64 `xorm:"NOT NULL"`
 
 	Issue      *issues_model.Issue    `xorm:"-"`
 	Repository *repo_model.Repository `xorm:"-"`
 	Comment    *issues_model.Comment  `xorm:"-"`
 	User       *user_model.User       `xorm:"-"`
 
-	CreatedUnix timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"updated INDEX NOT NULL"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
+}
+
+// TableIndices implements xorm's TableIndices interface
+func (n *Notification) TableIndices() []*schemas.Index {
+	indices := make([]*schemas.Index, 0, 8)
+	usuuIndex := schemas.NewIndex("u_s_uu", schemas.IndexType)
+	usuuIndex.AddColumn("user_id", "status", "updated_unix")
+	indices = append(indices, usuuIndex)
+
+	// Add the individual indices that were previously defined in struct tags
+	userIDIndex := schemas.NewIndex("idx_notification_user_id", schemas.IndexType)
+	userIDIndex.AddColumn("user_id")
+	indices = append(indices, userIDIndex)
+
+	repoIDIndex := schemas.NewIndex("idx_notification_repo_id", schemas.IndexType)
+	repoIDIndex.AddColumn("repo_id")
+	indices = append(indices, repoIDIndex)
+
+	statusIndex := schemas.NewIndex("idx_notification_status", schemas.IndexType)
+	statusIndex.AddColumn("status")
+	indices = append(indices, statusIndex)
+
+	sourceIndex := schemas.NewIndex("idx_notification_source", schemas.IndexType)
+	sourceIndex.AddColumn("source")
+	indices = append(indices, sourceIndex)
+
+	issueIDIndex := schemas.NewIndex("idx_notification_issue_id", schemas.IndexType)
+	issueIDIndex.AddColumn("issue_id")
+	indices = append(indices, issueIDIndex)
+
+	commitIDIndex := schemas.NewIndex("idx_notification_commit_id", schemas.IndexType)
+	commitIDIndex.AddColumn("commit_id")
+	indices = append(indices, commitIDIndex)
+
+	updatedByIndex := schemas.NewIndex("idx_notification_updated_by", schemas.IndexType)
+	updatedByIndex.AddColumn("updated_by")
+	indices = append(indices, updatedByIndex)
+
+	return indices
 }
 
 func init() {
@@ -286,13 +326,14 @@ type UserIDCount struct {
 	Count  int64
 }
 
-// GetUIDsAndNotificationCounts between the two provided times
+// GetUIDsAndNotificationCounts returns the unread counts for every user between the two provided times.
+// It must return all user IDs which appear during the period, including count=0 for users who have read all.
 func GetUIDsAndNotificationCounts(ctx context.Context, since, until timeutil.TimeStamp) ([]UserIDCount, error) {
-	sql := `SELECT user_id, count(*) AS count FROM notification ` +
+	sql := `SELECT user_id, sum(case when status= ? then 1 else 0 end) AS count FROM notification ` +
 		`WHERE user_id IN (SELECT user_id FROM notification WHERE updated_unix >= ? AND ` +
-		`updated_unix < ?) AND status = ? GROUP BY user_id`
+		`updated_unix < ?) GROUP BY user_id`
 	var res []UserIDCount
-	return res, db.GetEngine(ctx).SQL(sql, since, until, NotificationStatusUnread).Find(&res)
+	return res, db.GetEngine(ctx).SQL(sql, NotificationStatusUnread, since, until).Find(&res)
 }
 
 // SetIssueReadBy sets issue to be read by given user.

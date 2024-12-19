@@ -4,6 +4,7 @@
 package git
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -31,7 +32,7 @@ func TestRepository_GetCommitBranches(t *testing.T) {
 	for _, testCase := range testCases {
 		commit, err := bareRepo1.GetCommit(testCase.CommitID)
 		assert.NoError(t, err)
-		branches, err := bareRepo1.getBranches(commit, 2)
+		branches, err := bareRepo1.getBranches(os.Environ(), commit.ID.String(), 2)
 		assert.NoError(t, err)
 		assert.Equal(t, testCase.ExpectedBranches, branches)
 	}
@@ -98,5 +99,30 @@ func TestRepository_CommitsBetweenIDs(t *testing.T) {
 		commits, err := bareRepo1.CommitsBetweenIDs(c.NewID, c.OldID)
 		assert.NoError(t, err)
 		assert.Len(t, commits, c.ExpectedCommits, "case %d", i)
+	}
+}
+
+func TestGetRefCommitID(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	assert.NoError(t, err)
+	defer bareRepo1.Close()
+
+	// these test case are specific to the repo1_bare test repo
+	testCases := []struct {
+		Ref              string
+		ExpectedCommitID string
+	}{
+		{RefNameFromBranch("master").String(), "ce064814f4a0d337b333e646ece456cd39fab612"},
+		{RefNameFromBranch("branch1").String(), "2839944139e0de9737a044f78b0e4b40d989a9e3"},
+		{RefNameFromTag("test").String(), "3ad28a9149a2864384548f3d17ed7f38014c9e8a"},
+		{"ce064814f4a0d337b333e646ece456cd39fab612", "ce064814f4a0d337b333e646ece456cd39fab612"},
+	}
+
+	for _, testCase := range testCases {
+		commitID, err := bareRepo1.GetRefCommitID(testCase.Ref)
+		if assert.NoError(t, err) {
+			assert.Equal(t, testCase.ExpectedCommitID, commitID)
+		}
 	}
 }

@@ -63,16 +63,16 @@ func NewComplexity() {
 func setupComplexity(values []string) {
 	if len(values) != 1 || values[0] != "off" {
 		for _, val := range values {
-			if complex, ok := charComplexities[val]; ok {
-				validChars += complex.ValidChars
-				requiredList = append(requiredList, complex)
+			if complexity, ok := charComplexities[val]; ok {
+				validChars += complexity.ValidChars
+				requiredList = append(requiredList, complexity)
 			}
 		}
 		if len(requiredList) == 0 {
 			// No valid character classes found; use all classes as default
-			for _, complex := range charComplexities {
-				validChars += complex.ValidChars
-				requiredList = append(requiredList, complex)
+			for _, complexity := range charComplexities {
+				validChars += complexity.ValidChars
+				requiredList = append(requiredList, complexity)
 			}
 		}
 	}
@@ -99,10 +99,10 @@ func IsComplexEnough(pwd string) bool {
 func Generate(n int) (string, error) {
 	NewComplexity()
 	buffer := make([]byte, n)
-	max := big.NewInt(int64(len(validChars)))
+	maxInt := big.NewInt(int64(len(validChars)))
 	for {
 		for j := 0; j < n; j++ {
-			rnd, err := rand.Int(rand.Reader, max)
+			rnd, err := rand.Int(rand.Reader, maxInt)
 			if err != nil {
 				return "", err
 			}

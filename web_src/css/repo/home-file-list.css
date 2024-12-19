@@ -1,0 +1,94 @@
+#repo-files-table {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 2fr 3fr auto;
+  border: 1px solid var(--color-secondary);
+  background: var(--color-box-body);
+  border-radius: var(--border-radius);
+  margin: 10px 0; /* match the "clone-panel-popup" margin to avoid "visual double-border" */
+}
+
+@media (max-width: 767.98px) {
+  #repo-files-table {
+    grid-template-columns: auto 1fr auto;
+  }
+}
+
+#repo-files-table .repo-file-cell.name .svg {
+  margin-right: 2px;
+}
+
+#repo-files-table .svg.octicon-file-directory-fill,
+#repo-files-table .svg.octicon-file-submodule {
+  color: var(--color-primary);
+}
+
+#repo-files-table .svg.octicon-file,
+#repo-files-table .svg.octicon-file-symlink-file,
+#repo-files-table .svg.octicon-file-directory-symlink {
+  color: var(--color-secondary-dark-7);
+}
+
+#repo-files-table .repo-file-item {
+  display: contents;
+}
+
+#repo-files-table .repo-file-item:hover > .repo-file-cell,
+#repo-files-table .parent-link:hover {
+  background: var(--color-hover-opaque);
+}
+
+#repo-files-table .repo-file-line,
+#repo-files-table .repo-file-cell {
+  border-top: 1px solid var(--color-secondary);
+  padding: 8px 10px;
+}
+
+#repo-files-table .repo-file-line:first-child {
+  border-top: none;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+#repo-files-table .repo-file-item:last-child .repo-file-cell:first-child {
+  border-bottom-left-radius: calc(var(--border-radius) - 1px);
+}
+
+#repo-files-table .repo-file-item:last-child .repo-file-cell:last-child {
+  border-bottom-right-radius: calc(var(--border-radius) - 1px);
+}
+
+#repo-files-table .repo-file-line {
+  grid-column: 1 / span 3;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+#repo-files-table .repo-file-last-commit {
+  background: var(--color-box-header);
+}
+
+#repo-files-table .repo-file-cell.name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 767.98px) {
+  #repo-files-table .repo-file-cell.name {
+    max-width: 35vw;
+  }
+}
+
+#repo-files-table .repo-file-cell.message {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-light-1);
+}
+
+#repo-files-table .repo-file-cell.age {
+  text-align: right;
+  white-space: nowrap;
+  color: var(--color-text-light-1);
+}

@@ -9,6 +9,8 @@ import (
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -52,13 +54,19 @@ func (s *Service) Register(
 		return nil, errors.New("runner registration token has been invalidated, please use the latest one")
 	}
 
-	labels := req.Msg.Labels
-	// TODO: agent_labels should be removed from pb after Gitea 1.20 released.
-	// Old version runner's agent_labels slice is not empty and labels slice is empty.
-	// And due to compatibility with older versions, it is temporarily marked as Deprecated in pb, so use `//nolint` here.
-	if len(req.Msg.AgentLabels) > 0 && len(req.Msg.Labels) == 0 { //nolint:staticcheck
-		labels = req.Msg.AgentLabels //nolint:staticcheck
+	if runnerToken.OwnerID > 0 {
+		if _, err := user_model.GetUserByID(ctx, runnerToken.OwnerID); err != nil {
+			return nil, errors.New("owner of the token not found")
+		}
 	}
+
+	if runnerToken.RepoID > 0 {
+		if _, err := repo_model.GetRepositoryByID(ctx, runnerToken.RepoID); err != nil {
+			return nil, errors.New("repository of the token not found")
+		}
+	}
+
+	labels := req.Msg.Labels
 
 	// create new runner
 	name, _ := util.SplitStringAtByteN(req.Msg.Name, 255)
@@ -167,7 +175,9 @@ func (s *Service) UpdateTask(
 	ctx context.Context,
 	req *connect.Request[runnerv1.UpdateTaskRequest],
 ) (*connect.Response[runnerv1.UpdateTaskResponse], error) {
-	task, err := actions_model.UpdateTaskByState(ctx, req.Msg.State)
+	runner := GetRunner(ctx)
+
+	task, err := actions_model.UpdateTaskByState(ctx, runner.ID, req.Msg.State)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}
@@ -229,11 +239,15 @@ func (s *Service) UpdateLog(
 	ctx context.Context,
 	req *connect.Request[runnerv1.UpdateLogRequest],
 ) (*connect.Response[runnerv1.UpdateLogResponse], error) {
+	runner := GetRunner(ctx)
+
 	res := connect.NewResponse(&runnerv1.UpdateLogResponse{})
 
 	task, err := actions_model.GetTaskByID(ctx, req.Msg.TaskId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get task: %v", err)
+	} else if runner.ID != task.RunnerID {
+		return nil, status.Errorf(codes.Internal, "invalid runner for task")
 	}
 	ack := task.LogLength
 

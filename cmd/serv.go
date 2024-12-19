@@ -20,8 +20,10 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/lfstransfer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
@@ -36,7 +38,11 @@ import (
 )
 
 const (
-	lfsAuthenticateVerb = "git-lfs-authenticate"
+	verbUploadPack      = "git-upload-pack"
+	verbUploadArchive   = "git-upload-archive"
+	verbReceivePack     = "git-receive-pack"
+	verbLfsAuthenticate = "git-lfs-authenticate"
+	verbLfsTransfer     = "git-lfs-transfer"
 )
 
 // CmdServ represents the available serv sub-command.
@@ -73,12 +79,18 @@ func setup(ctx context.Context, debug bool) {
 }
 
 var (
-	allowedCommands = map[string]perm.AccessMode{
-		"git-upload-pack":    perm.AccessModeRead,
-		"git-upload-archive": perm.AccessModeRead,
-		"git-receive-pack":   perm.AccessModeWrite,
-		lfsAuthenticateVerb:  perm.AccessModeNone,
-	}
+	// keep getAccessMode() in sync
+	allowedCommands = container.SetOf(
+		verbUploadPack,
+		verbUploadArchive,
+		verbReceivePack,
+		verbLfsAuthenticate,
+		verbLfsTransfer,
+	)
+	allowedCommandsLfs = container.SetOf(
+		verbLfsAuthenticate,
+		verbLfsTransfer,
+	)
 	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
 
@@ -99,12 +111,10 @@ func fail(ctx context.Context, userMessage, logMsgFmt string, args ...any) error
 		if !setting.IsProd {
 			_, _ = fmt.Fprintln(os.Stderr, "Gitea:", logMsg)
 		}
-		if userMessage != "" {
-			if unicode.IsPunct(rune(userMessage[len(userMessage)-1])) {
-				logMsg = userMessage + " " + logMsg
-			} else {
-				logMsg = userMessage + ". " + logMsg
-			}
+		if unicode.IsPunct(rune(userMessage[len(userMessage)-1])) {
+			logMsg = userMessage + " " + logMsg
+		} else {
+			logMsg = userMessage + ". " + logMsg
 		}
 		_ = private.SSHLog(ctx, true, logMsg)
 	}
@@ -122,6 +132,45 @@ func handleCliResponseExtra(extra private.ResponseExtra) error {
 		return cli.Exit(extra.Error, 1)
 	}
 	return nil
+}
+
+func getAccessMode(verb, lfsVerb string) perm.AccessMode {
+	switch verb {
+	case verbUploadPack, verbUploadArchive:
+		return perm.AccessModeRead
+	case verbReceivePack:
+		return perm.AccessModeWrite
+	case verbLfsAuthenticate, verbLfsTransfer:
+		switch lfsVerb {
+		case "upload":
+			return perm.AccessModeWrite
+		case "download":
+			return perm.AccessModeRead
+		}
+	}
+	// should be unreachable
+	return perm.AccessModeNone
+}
+
+func getLFSAuthToken(ctx context.Context, lfsVerb string, results *private.ServCommandResults) (string, error) {
+	now := time.Now()
+	claims := lfs.Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
+			NotBefore: jwt.NewNumericDate(now),
+		},
+		RepoID: results.RepoID,
+		Op:     lfsVerb,
+		UserID: results.UserID,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
+	if err != nil {
+		return "", fail(ctx, "Failed to sign JWT Token", "Failed to sign JWT token: %v", err)
+	}
+	return fmt.Sprintf("Bearer %s", tokenString), nil
 }
 
 func runServ(c *cli.Context) error {
@@ -142,6 +191,12 @@ func runServ(c *cli.Context) error {
 		}
 		return nil
 	}
+
+	defer func() {
+		if err := recover(); err != nil {
+			_ = fail(ctx, "Internal Server Error", "Panic: %v\n%s", err, log.Stack(2))
+		}
+	}()
 
 	keys := strings.Split(c.Args().First(), "-")
 	if len(keys) != 2 || keys[0] != "key" {
@@ -178,7 +233,7 @@ func runServ(c *cli.Context) error {
 	}
 
 	if len(words) < 2 {
-		if git.CheckGitVersionAtLeast("2.29") == nil {
+		if git.DefaultFeatures().SupportProcReceive {
 			// for AGit Flow
 			if cmd == "ssh_info" {
 				fmt.Print(`{"type":"gitea","version":1}`)
@@ -189,21 +244,9 @@ func runServ(c *cli.Context) error {
 	}
 
 	verb := words[0]
-	repoPath := words[1]
-	if repoPath[0] == '/' {
-		repoPath = repoPath[1:]
-	}
+	repoPath := strings.TrimPrefix(words[1], "/")
 
 	var lfsVerb string
-	if verb == lfsAuthenticateVerb {
-		if !setting.LFS.StartServer {
-			return fail(ctx, "Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
-		}
-
-		if len(words) > 2 {
-			lfsVerb = words[2]
-		}
-	}
 
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
@@ -240,53 +283,52 @@ func runServ(c *cli.Context) error {
 		}()
 	}
 
-	requestedMode, has := allowedCommands[verb]
-	if !has {
+	if allowedCommands.Contains(verb) {
+		if allowedCommandsLfs.Contains(verb) {
+			if !setting.LFS.StartServer {
+				return fail(ctx, "LFS Server is not enabled", "")
+			}
+			if verb == verbLfsTransfer && !setting.LFS.AllowPureSSH {
+				return fail(ctx, "LFS SSH transfer is not enabled", "")
+			}
+			if len(words) > 2 {
+				lfsVerb = words[2]
+			}
+		}
+	} else {
 		return fail(ctx, "Unknown git command", "Unknown git command %s", verb)
 	}
 
-	if verb == lfsAuthenticateVerb {
-		if lfsVerb == "upload" {
-			requestedMode = perm.AccessModeWrite
-		} else if lfsVerb == "download" {
-			requestedMode = perm.AccessModeRead
-		} else {
-			return fail(ctx, "Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
-		}
-	}
+	requestedMode := getAccessMode(verb, lfsVerb)
 
 	results, extra := private.ServCommand(ctx, keyID, username, reponame, requestedMode, verb, lfsVerb)
 	if extra.HasError() {
 		return fail(ctx, extra.UserMsg, "ServCommand failed: %s", extra.Error)
 	}
 
+	// LFS SSH protocol
+	if verb == verbLfsTransfer {
+		token, err := getLFSAuthToken(ctx, lfsVerb, results)
+		if err != nil {
+			return err
+		}
+		return lfstransfer.Main(ctx, repoPath, lfsVerb, token)
+	}
+
 	// LFS token authentication
-	if verb == lfsAuthenticateVerb {
+	if verb == verbLfsAuthenticate {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
-		now := time.Now()
-		claims := lfs.Claims{
-			RegisteredClaims: jwt.RegisteredClaims{
-				ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
-				NotBefore: jwt.NewNumericDate(now),
-			},
-			RepoID: results.RepoID,
-			Op:     lfsVerb,
-			UserID: results.UserID,
-		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-		// Sign and get the complete encoded token as a string using the secret
-		tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
+		token, err := getLFSAuthToken(ctx, lfsVerb, results)
 		if err != nil {
-			return fail(ctx, "Failed to sign JWT Token", "Failed to sign JWT token: %v", err)
+			return err
 		}
 
 		tokenAuthentication := &git_model.LFSTokenResponse{
 			Header: make(map[string]string),
 			Href:   url,
 		}
-		tokenAuthentication.Header["Authorization"] = fmt.Sprintf("Bearer %s", tokenString)
+		tokenAuthentication.Header["Authorization"] = token
 
 		enc := json.NewEncoder(os.Stdout)
 		err = enc.Encode(tokenAuthentication)

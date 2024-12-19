@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ctx.Locale.Lang}}" data-theme="{{ThemeName .SignedUser}}">
+<html lang="{{ctx.Locale.Lang}}" data-theme="{{UserThemeName .SignedUser}}">
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>{{if .Title}}{{.Title}} - {{end}}{{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>

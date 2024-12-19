@@ -64,9 +64,17 @@ func forkTestPayload() *api.ForkPayload {
 }
 
 func pushTestPayload() *api.PushPayload {
+	return pushTestPayloadWithCommitMessage("commit message")
+}
+
+func pushTestMultilineCommitMessagePayload() *api.PushPayload {
+	return pushTestPayloadWithCommitMessage("chore: This is a commit summary\n\nThis is a commit description.")
+}
+
+func pushTestPayloadWithCommitMessage(message string) *api.PushPayload {
 	commit := &api.PayloadCommit{
 		ID:      "2020558fe2e34debb818a514715839cabd25e778",
-		Message: "commit message",
+		Message: message,
 		URL:     "http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778",
 		Author: &api.PayloadUser{
 			Name:     "user1",
@@ -424,10 +432,10 @@ func TestGetIssuesPayloadInfo(t *testing.T) {
 
 	for i, c := range cases {
 		p.Action = c.action
-		text, issueTitle, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter, true)
+		text, issueTitle, extraMarkdown, color := getIssuesPayloadInfo(p, noneLinkFormatter, true)
 		assert.Equal(t, c.text, text, "case %d", i)
 		assert.Equal(t, c.issueTitle, issueTitle, "case %d", i)
-		assert.Equal(t, c.attachmentText, attachmentText, "case %d", i)
+		assert.Equal(t, c.attachmentText, extraMarkdown, "case %d", i)
 		assert.Equal(t, c.color, color, "case %d", i)
 	}
 }
@@ -523,10 +531,10 @@ func TestGetPullRequestPayloadInfo(t *testing.T) {
 
 	for i, c := range cases {
 		p.Action = c.action
-		text, issueTitle, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
+		text, issueTitle, extraMarkdown, color := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
 		assert.Equal(t, c.text, text, "case %d", i)
 		assert.Equal(t, c.issueTitle, issueTitle, "case %d", i)
-		assert.Equal(t, c.attachmentText, attachmentText, "case %d", i)
+		assert.Equal(t, c.attachmentText, extraMarkdown, "case %d", i)
 		assert.Equal(t, c.color, color, "case %d", i)
 	}
 }

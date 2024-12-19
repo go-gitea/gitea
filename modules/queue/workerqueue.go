@@ -32,19 +32,21 @@ type WorkerPoolQueue[T any] struct {
 	baseConfig    *BaseConfig
 	baseQueue     baseQueue
 
-	batchChan chan []T
-	flushChan chan flushType
+	batchChan  chan []T
+	flushChan  chan flushType
+	isFlushing atomic.Bool
 
 	batchLength     int
 	workerNum       int
 	workerMaxNum    int
 	workerActiveNum int
 	workerNumMu     sync.Mutex
-
-	workerStartedCounter int32
 }
 
-type flushType chan struct{}
+type flushType struct {
+	timeout time.Duration
+	c       chan struct{}
+}
 
 var _ ManagedWorkerPoolQueue = (*WorkerPoolQueue[any])(nil)
 
@@ -106,12 +108,12 @@ func (q *WorkerPoolQueue[T]) FlushWithContext(ctx context.Context, timeout time.
 	if timeout > 0 {
 		after = time.After(timeout)
 	}
-	c := make(flushType)
+	flush := flushType{timeout: timeout, c: make(chan struct{})}
 
 	// send flush request
 	// if it blocks, it means that there is a flush in progress or the queue hasn't been started yet
 	select {
-	case q.flushChan <- c:
+	case q.flushChan <- flush:
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-q.ctxRun.Done():
@@ -122,7 +124,7 @@ func (q *WorkerPoolQueue[T]) FlushWithContext(ctx context.Context, timeout time.
 
 	// wait for flush to finish
 	select {
-	case <-c:
+	case <-flush.c:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()

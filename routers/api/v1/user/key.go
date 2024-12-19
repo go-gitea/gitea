@@ -55,7 +55,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	var count int
 
 	fingerprint := ctx.FormString("fingerprint")
-	username := ctx.Params("username")
+	username := ctx.PathParam("username")
 
 	if fingerprint != "" {
 		var userID int64 // Unrestricted
@@ -179,7 +179,7 @@ func GetPublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := asymkey_model.GetPublicKeyByID(ctx, ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetPublicKeyByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
@@ -199,7 +199,7 @@ func GetPublicKey(ctx *context.APIContext) {
 
 // CreateUserPublicKey creates new public key to given user by ID.
 func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid int64) {
-	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
 		ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
 		return
 	}
@@ -269,12 +269,12 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
 		ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
 		return
 	}
 
-	id := ctx.ParamsInt64(":id")
+	id := ctx.PathParamInt64(":id")
 	externallyManaged, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, id)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {

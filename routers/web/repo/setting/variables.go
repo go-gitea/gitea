@@ -74,7 +74,7 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 			RepoID:            0,
 			IsGlobal:          true,
 			VariablesTemplate: tplAdminVariables,
-			RedirectLink:      setting.AppSubURL + "/admin/actions/variables",
+			RedirectLink:      setting.AppSubURL + "/-/admin/actions/variables",
 		}, nil
 	}
 

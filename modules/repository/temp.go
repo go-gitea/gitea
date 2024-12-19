@@ -32,7 +32,6 @@ func CreateTemporaryPath(prefix string) (string, error) {
 	if err != nil {
 		log.Error("Unable to create temporary directory: %s-*.git (%v)", prefix, err)
 		return "", fmt.Errorf("Failed to create dir %s-*.git: %w", prefix, err)
-
 	}
 	return basePath, nil
 }

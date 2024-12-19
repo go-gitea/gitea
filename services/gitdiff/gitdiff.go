@@ -23,7 +23,6 @@ import (
 	pull_model "code.gitea.io/gitea/models/pull"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -381,18 +380,11 @@ func (diffFile *DiffFile) GetType() int {
 }
 
 // GetTailSection creates a fake DiffLineSection if the last section is not the end of the file
-func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommitID, rightCommitID string) *DiffSection {
+func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommit, rightCommit *git.Commit) *DiffSection {
 	if len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange || diffFile.IsBin || diffFile.IsLFSFile {
 		return nil
 	}
-	leftCommit, err := gitRepo.GetCommit(leftCommitID)
-	if err != nil {
-		return nil
-	}
-	rightCommit, err := gitRepo.GetCommit(rightCommitID)
-	if err != nil {
-		return nil
-	}
+
 	lastSection := diffFile.Sections[len(diffFile.Sections)-1]
 	lastLine := lastSection.Lines[len(lastSection.Lines)-1]
 	leftLineCount := getCommitFileLineCount(leftCommit, diffFile.Name)
@@ -537,11 +529,6 @@ parsingLoop:
 			lastFile := createDiffFile(diff, line)
 			diff.End = lastFile.Name
 			diff.IsIncomplete = true
-			_, err := io.Copy(io.Discard, reader)
-			if err != nil {
-				// By the definition of io.Copy this never returns io.EOF
-				return diff, fmt.Errorf("error during io.Copy: %w", err)
-			}
 			break parsingLoop
 		}
 
@@ -746,7 +733,7 @@ parsingLoop:
 	diffLineTypeBuffers[DiffLineAdd] = new(bytes.Buffer)
 	diffLineTypeBuffers[DiffLineDel] = new(bytes.Buffer)
 	for _, f := range diff.Files {
-		f.NameHash = base.EncodeSha1(f.Name)
+		f.NameHash = git.HashFilePathForWebUI(f.Name)
 
 		for _, buffer := range diffLineTypeBuffers {
 			buffer.Reset()
@@ -1044,10 +1031,10 @@ func createDiffFile(diff *Diff, line string) *DiffFile {
 			// diff --git a/b b/b b/b b/b b/b b/b
 			//
 			midpoint := (len(line) + len(cmdDiffHead) - 1) / 2
-			new, old := line[len(cmdDiffHead):midpoint], line[midpoint+1:]
-			if len(new) > 2 && len(old) > 2 && new[2:] == old[2:] {
-				curFile.OldName = old[2:]
-				curFile.Name = old[2:]
+			newPart, oldPart := line[len(cmdDiffHead):midpoint], line[midpoint+1:]
+			if len(newPart) > 2 && len(oldPart) > 2 && newPart[2:] == oldPart[2:] {
+				curFile.OldName = oldPart[2:]
+				curFile.Name = oldPart[2:]
 			}
 		}
 	}
@@ -1062,7 +1049,7 @@ func readFileName(rd *strings.Reader) (string, bool) {
 	char, _ := rd.ReadByte()
 	_ = rd.UnreadByte()
 	if char == '"' {
-		fmt.Fscanf(rd, "%q ", &name)
+		_, _ = fmt.Fscanf(rd, "%q ", &name)
 		if len(name) == 0 {
 			log.Error("Reader has no file name: reader=%+v", rd)
 			return "", true
@@ -1074,12 +1061,12 @@ func readFileName(rd *strings.Reader) (string, bool) {
 	} else {
 		// This technique is potentially ambiguous it may not be possible to uniquely identify the filenames from the diff line alone
 		ambiguity = true
-		fmt.Fscanf(rd, "%s ", &name)
+		_, _ = fmt.Fscanf(rd, "%s ", &name)
 		char, _ := rd.ReadByte()
 		_ = rd.UnreadByte()
 		for !(char == 0 || char == '"' || char == 'b') {
 			var suffix string
-			fmt.Fscanf(rd, "%s ", &suffix)
+			_, _ = fmt.Fscanf(rd, "%s ", &suffix)
 			name += " " + suffix
 			char, _ = rd.ReadByte()
 			_ = rd.UnreadByte()
@@ -1102,6 +1089,7 @@ type DiffOptions struct {
 	MaxFiles           int
 	WhitespaceBehavior git.TrustedCmdArgs
 	DirectComparison   bool
+	FileOnly           bool
 }
 
 // GetDiff builds a Diff between two commits of a repository.
@@ -1110,12 +1098,16 @@ type DiffOptions struct {
 func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
 	repoPath := gitRepo.Path
 
+	var beforeCommit *git.Commit
 	commit, err := gitRepo.GetCommit(opts.AfterCommitID)
 	if err != nil {
 		return nil, err
 	}
 
-	cmdDiff := git.NewCommand(gitRepo.Ctx)
+	cmdCtx, cmdCancel := context.WithCancel(ctx)
+	defer cmdCancel()
+
+	cmdDiff := git.NewCommand(cmdCtx)
 	objectFormat, err := gitRepo.GetObjectFormat()
 	if err != nil {
 		return nil, err
@@ -1137,13 +1129,19 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 			AddArguments(opts.WhitespaceBehavior...).
 			AddDynamicArguments(actualBeforeCommitID, opts.AfterCommitID)
 		opts.BeforeCommitID = actualBeforeCommitID
+
+		var err error
+		beforeCommit, err = gitRepo.GetCommit(opts.BeforeCommitID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// In git 2.31, git diff learned --skip-to which we can use to shortcut skip to file
 	// so if we are using at least this version of git we don't have to tell ParsePatch to do
 	// the skipping for us
 	parsePatchSkipToFile := opts.SkipTo
-	if opts.SkipTo != "" && git.CheckGitVersionAtLeast("2.31") == nil {
+	if opts.SkipTo != "" && git.DefaultFeatures().CheckVersionAtLeast("2.31") {
 		cmdDiff.AddOptionFormat("--skip-to=%s", opts.SkipTo)
 		parsePatchSkipToFile = ""
 	}
@@ -1164,14 +1162,16 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 			Dir:     repoPath,
 			Stdout:  writer,
 			Stderr:  stderr,
-		}); err != nil {
+		}); err != nil && !git.IsErrCanceledOrKilled(err) {
 			log.Error("error during GetDiff(git diff dir: %s): %v, stderr: %s", repoPath, err, stderr.String())
 		}
 
 		_ = writer.Close()
 	}()
 
-	diff, err := ParsePatch(ctx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)
+	diff, err := ParsePatch(cmdCtx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)
+	// Ensure the git process is killed if it didn't exit already
+	cmdCancel()
 	if err != nil {
 		return nil, fmt.Errorf("unable to ParsePatch: %w", err)
 	}
@@ -1181,7 +1181,6 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	defer deferable()
 
 	for _, diffFile := range diff.Files {
-
 		isVendored := optional.None[bool]()
 		isGenerated := optional.None[bool]()
 		if checker != nil {
@@ -1207,37 +1206,28 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 		}
 		diffFile.IsGenerated = isGenerated.Value()
 
-		tailSection := diffFile.GetTailSection(gitRepo, opts.BeforeCommitID, opts.AfterCommitID)
+		tailSection := diffFile.GetTailSection(gitRepo, beforeCommit, commit)
 		if tailSection != nil {
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
 	}
 
-	separator := "..."
-	if opts.DirectComparison {
-		separator = ".."
+	if opts.FileOnly {
+		return diff, nil
 	}
 
-	diffPaths := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
-	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.EmptyObjectID().String() {
-		diffPaths = []string{objectFormat.EmptyTree().String(), opts.AfterCommitID}
-	}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
-	if err != nil && strings.Contains(err.Error(), "no merge base") {
-		// git >= 2.28 now returns an error if base and head have become unrelated.
-		// previously it would return the results of git diff --shortstat base head so let's try that...
-		diffPaths = []string{opts.BeforeCommitID, opts.AfterCommitID}
-		diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
-	}
+	stats, err := GetPullDiffStats(gitRepo, opts)
 	if err != nil {
 		return nil, err
 	}
+
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion = stats.NumFiles, stats.TotalAddition, stats.TotalDeletion
 
 	return diff, nil
 }
 
 type PullDiffStats struct {
-	TotalAddition, TotalDeletion int
+	NumFiles, TotalAddition, TotalDeletion int
 }
 
 // GetPullDiffStats
@@ -1261,12 +1251,12 @@ func GetPullDiffStats(gitRepo *git.Repository, opts *DiffOptions) (*PullDiffStat
 		diffPaths = []string{objectFormat.EmptyTree().String(), opts.AfterCommitID}
 	}
 
-	_, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// git >= 2.28 now returns an error if base and head have become unrelated.
 		// previously it would return the results of git diff --shortstat base head so let's try that...
 		diffPaths = []string{opts.BeforeCommitID, opts.AfterCommitID}
-		_, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
+		diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
 	}
 	if err != nil {
 		return nil, err

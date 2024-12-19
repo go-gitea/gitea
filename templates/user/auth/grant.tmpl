@@ -8,8 +8,11 @@
 			<div class="ui attached segment">
 				{{template "base/alert" .}}
 				<p>
+					{{if not .AdditionalScopes}}
 					<b>{{ctx.Locale.Tr "auth.authorize_application_description"}}</b><br>
-					{{ctx.Locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML}}
+					{{end}}
+					{{ctx.Locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML}}<br>
+					{{ctx.Locale.Tr "auth.authorize_application_with_scopes" (HTMLFormat "<b>%s</b>" .Scope)}}
 				</p>
 			</div>
 			<div class="ui attached segment">
@@ -23,8 +26,8 @@
 					<input type="hidden" name="scope" value="{{.Scope}}">
 					<input type="hidden" name="nonce" value="{{.Nonce}}">
 					<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
-					<button type="submit" id="authorize-app" value="{{ctx.Locale.Tr "auth.authorize_application"}}" class="ui red inline button">{{ctx.Locale.Tr "auth.authorize_application"}}</button>
-					<a href="{{.RedirectURI}}" class="ui basic primary inline button">Cancel</a>
+					<button type="submit" id="authorize-app" name="granted" value="true" class="ui red inline button">{{ctx.Locale.Tr "auth.authorize_application"}}</button>
+					<button type="submit" name="granted" value="false" class="ui basic primary inline button">{{ctx.Locale.Tr "cancel"}}</button>
 				</form>
 			</div>
 		</div>

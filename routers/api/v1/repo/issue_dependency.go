@@ -61,7 +61,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
@@ -153,7 +153,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		blockerIssues = append(blockerIssues, &blocker.Issue)
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, blockerIssues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, blockerIssues))
 }
 
 // CreateIssueDependency create a new issue dependencies
@@ -214,7 +214,7 @@ func CreateIssueDependency(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, target))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, target))
 }
 
 // RemoveIssueDependency remove an issue dependency
@@ -275,7 +275,7 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, target))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, target))
 }
 
 // GetIssueBlocks list issues that are blocked by this issue
@@ -338,7 +338,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	}
 
 	skip := (page - 1) * limit
-	max := page * limit
+	maxNum := page * limit
 
 	deps, err := issue.BlockingDependencies(ctx)
 	if err != nil {
@@ -352,7 +352,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
 
 	for i, depMeta := range deps {
-		if i < skip || i >= max {
+		if i < skip || i >= maxNum {
 			continue
 		}
 
@@ -381,7 +381,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		issues = append(issues, &depMeta.Issue)
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }
 
 // CreateIssueBlocking block the issue given in the body by the issue in path
@@ -438,7 +438,7 @@ func CreateIssueBlocking(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, dependency))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, dependency))
 }
 
 // RemoveIssueBlocking unblock the issue given in the body by the issue in path
@@ -495,11 +495,11 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, dependency))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, dependency))
 }
 
 func getParamsIssue(ctx *context.APIContext) *issues_model.Issue {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)

@@ -1,4 +1,4 @@
-<div class="ui container column fluid{{if .LinkAccountMode}} icon{{end}}">
+<div class="ui container fluid{{if .LinkAccountMode}} icon{{end}}">
 	<h4 class="ui top attached header center">
 		{{if .LinkAccountMode}}
 			{{ctx.Locale.Tr "auth.oauth_signup_title"}}
@@ -7,7 +7,7 @@
 		{{end}}
 	</h4>
 	<div class="ui attached segment">
-		<form class="ui form tw-max-w-2xl tw-m-auto" action="{{.SignUpLink}}" method="post">
+		<form class="ui form" action="{{.SignUpLink}}" method="post">
 			{{.CsrfTokenHtml}}
 			{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister)}}
 			{{template "base/alert" .}}
@@ -38,7 +38,7 @@
 				{{template "user/auth/captcha" .}}
 
 				<div class="inline field">
-					<button class="ui primary button">
+					<button class="ui primary button tw-w-full">
 						{{if .LinkAccountMode}}
 							{{ctx.Locale.Tr "auth.oauth_signup_submit"}}
 						{{else}}
@@ -46,31 +46,25 @@
 						{{end}}
 					</button>
 				</div>
-
-				{{if not .LinkAccountMode}}
-				<div class="inline field">
-					<a href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "auth.register_helper_msg"}}</a>
-				</div>
-				{{end}}
 			{{end}}
-
-			{{if .OAuth2Providers}}
-			<div class="divider divider-text">
-				{{ctx.Locale.Tr "sign_in_or"}}
-			</div>
-			<div id="oauth2-login-navigator" class="tw-py-1">
-				<div class="tw-flex tw-flex-col tw-justify-center">
-					<div id="oauth2-login-navigator-inner" class="tw-flex tw-flex-col tw-flex-wrap tw-items-center tw-gap-2">
-						{{range $provider := .OAuth2Providers}}
-							<a class="{{$provider.Name}} ui button tw-flex tw-items-center tw-justify-center tw-py-2 tw-w-full oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$provider.DisplayName}}">
-								{{$provider.IconHTML 28}}
-								{{ctx.Locale.Tr "sign_in_with_provider" $provider.DisplayName}}
-							</a>
-						{{end}}
-					</div>
-				</div>
-			</div>
+			{{/* "oauth_container" contains not only "oauth2" methods, but also "OIDC" and "SSPI" methods */}}
+			{{/* TODO: it seems that "EnableSSPI" is only set in "sign-in" handlers, but it should use the same logic to control its display */}}
+			{{$showOAuth2Methods := or .OAuth2Providers .EnableOpenIDSignIn .EnableSSPI}}
+			{{if $showOAuth2Methods}}
+				<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
+				{{template "user/auth/oauth_container" .}}
 			{{end}}
 		</form>
+	</div>
+</div>
+
+<div class="ui container fluid">
+	<div class="ui attached segment header top tw-flex tw-flex-col tw-items-center">
+		{{if not .LinkAccountMode}}
+		<div class="field">
+			<span>{{ctx.Locale.Tr "auth.already_have_account"}}</span>
+			<a href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "auth.sign_in_now"}}</a>
+		</div>
+		{{end}}
 	</div>
 </div>

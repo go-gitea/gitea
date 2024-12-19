@@ -13,19 +13,20 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/feed"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/forms"
@@ -113,14 +114,8 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 			cacheUsers[r.PublisherID] = r.Publisher
 		}
 
-		r.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
-			Links: markup.Links{
-				Base: ctx.Repo.RepoLink,
-			},
-			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo: ctx.Repo.GitRepo,
-			Ctx:     ctx,
-		}, r.Note)
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, r.Repo)
+		r.RenderedNote, err = markdown.RenderString(rctx, r.Note)
 		if err != nil {
 			return nil, err
 		}
@@ -157,9 +152,6 @@ func Releases(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 	ctx.Data["IsViewBranch"] = false
 	ctx.Data["IsViewTag"] = true
-	// Disable the showCreateNewBranch form in the dropdown on this page.
-	ctx.Data["CanCreateBranch"] = false
-	ctx.Data["HideBranchesInDropdown"] = true
 
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
@@ -197,7 +189,6 @@ func Releases(ctx *context.Context) {
 	pager := context.NewPagination(int(numReleases), listOptions.PageSize, listOptions.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
-
 	ctx.HTML(http.StatusOK, tplReleasesList)
 }
 
@@ -207,10 +198,9 @@ func TagsList(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.tags")
 	ctx.Data["IsViewBranch"] = false
 	ctx.Data["IsViewTag"] = true
-	// Disable the showCreateNewBranch form in the dropdown on this page.
-	ctx.Data["CanCreateBranch"] = false
-	ctx.Data["HideBranchesInDropdown"] = true
 	ctx.Data["CanCreateRelease"] = ctx.Repo.CanWrite(unit.TypeReleases) && !ctx.Repo.Repository.IsArchived
+
+	namePattern := ctx.FormTrim("q")
 
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
@@ -231,6 +221,7 @@ func TagsList(ctx *context.Context) {
 		IncludeTags:   true,
 		HasSha1:       optional.Some(true),
 		RepoID:        ctx.Repo.Repository.ID,
+		NamePattern:   optional.Some(namePattern),
 	}
 
 	releases, err := db.Find[repo_model.Release](ctx, opts)
@@ -239,13 +230,19 @@ func TagsList(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Releases"] = releases
+	count, err := db.Count[repo_model.Release](ctx, opts)
+	if err != nil {
+		ctx.ServerError("GetReleasesByRepoID", err)
+		return
+	}
 
-	numTags := ctx.Data["NumTags"].(int64)
-	pager := context.NewPagination(int(numTags), opts.PageSize, opts.Page, 5)
+	ctx.Data["Keyword"] = namePattern
+	ctx.Data["Releases"] = releases
+	ctx.Data["TagCount"] = count
+
+	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
-
 	ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
 	ctx.HTML(http.StatusOK, tplTagsList)
 }
@@ -277,7 +274,6 @@ func releasesOrTagsFeed(ctx *context.Context, isReleasesOnly bool, formatType st
 // SingleRelease renders a single release's page
 func SingleRelease(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
-	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 
 	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
@@ -285,7 +281,7 @@ func SingleRelease(ctx *context.Context) {
 	releases, err := getReleaseInfos(ctx, &repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{Page: 1, PageSize: 1},
 		RepoID:      ctx.Repo.Repository.ID,
-		TagNames:    []string{ctx.Params("*")},
+		TagNames:    []string{ctx.PathParam("*")},
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
 		IncludeDrafts: writeAccess,
 		IncludeTags:   true,
@@ -369,7 +365,7 @@ func NewRelease(ctx *context.Context) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
+	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	upload.AddUploadContext(ctx, "release")
 
@@ -527,7 +523,7 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "release")
 
-	tagName := ctx.Params("*")
+	tagName := ctx.PathParam("*")
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
@@ -558,7 +554,7 @@ func EditRelease(ctx *context.Context) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
+	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
@@ -570,7 +566,7 @@ func EditReleasePost(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
 
-	tagName := ctx.Params("*")
+	tagName := ctx.PathParam("*")
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {

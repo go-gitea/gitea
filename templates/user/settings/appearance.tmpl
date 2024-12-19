@@ -1,4 +1,4 @@
-{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings sshkeys")}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings")}}
 	<div class="user-setting-content">
 
 		<!-- Theme -->
@@ -6,39 +6,26 @@
 			{{ctx.Locale.Tr "settings.manage_themes"}}
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui email list">
-				<div class="item">
-					{{ctx.Locale.Tr "settings.theme_desc"}}
-				</div>
-
 			<form class="ui form" action="{{.Link}}/theme" method="post">
 				{{.CsrfTokenHtml}}
-					<div class="field">
-						<label for="ui">{{ctx.Locale.Tr "settings.ui"}}</label>
-						<div class="ui selection dropdown" id="ui">
-							<input name="theme" type="hidden" value="{{.SignedUser.Theme}}">
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="text">
-								{{range $i,$a := .AllThemes}}
-									{{if eq $.SignedUser.Theme $a}}{{$a}}{{end}}
-								{{end}}
-							</div>
-
-							<div class="menu">
-							{{range $i,$a := .AllThemes}}
-								<div class="item{{if eq $.SignedUser.Theme $a}} active selected{{end}}" data-value="{{$a}}">
-									{{$a}}
-								</div>
-							{{end}}
-							</div>
-						</div>
-					</div>
-
+				<div class="field">
+					{{ctx.Locale.Tr "settings.theme_desc"}}
+					<a class="muted" target="_blank" href="https://github.com/go-gitea/gitea/blob/main/web_src/css/themes/" data-tooltip-content="{{ctx.Locale.Tr "settings.theme_colorblindness_prompt"}}">
+						{{svg "octicon-question"}} {{ctx.Locale.Tr "settings.theme_colorblindness_help"}}
+					</a>
+				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "settings.ui"}}</label>
+					<select name="theme" class="ui dropdown">
+						{{range $theme := .AllThemes}}
+						<option value="{{$theme}}" {{Iif (eq $.SignedUser.Theme $theme) "selected"}}>{{$theme}}</option>
+						{{end}}
+					</select>
+				</div>
 				<div class="field">
 					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_theme"}}</button>
 				</div>
 			</form>
-			</div>
 		</div>
 
 		<!-- Language -->

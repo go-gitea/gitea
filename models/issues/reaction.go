@@ -163,7 +163,7 @@ func FindReactions(ctx context.Context, opts FindReactionsOptions) (ReactionList
 		Where(opts.toConds()).
 		In("reaction.`type`", setting.UI.Reactions).
 		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id")
-	if opts.Page != 0 {
+	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 
 		reactions := make([]*Reaction, 0, opts.PageSize)
@@ -305,14 +305,12 @@ func (list ReactionList) GroupByType() map[string]ReactionList {
 }
 
 func (list ReactionList) getUserIDs() []int64 {
-	userIDs := make(container.Set[int64], len(list))
-	for _, reaction := range list {
+	return container.FilterSlice(list, func(reaction *Reaction) (int64, bool) {
 		if reaction.OriginalAuthor != "" {
-			continue
+			return 0, false
 		}
-		userIDs.Add(reaction.UserID)
-	}
-	return userIDs.Values()
+		return reaction.UserID, true
+	})
 }
 
 func valuesUser(m map[int64]*user_model.User) []*user_model.User {

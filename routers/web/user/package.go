@@ -5,6 +5,7 @@ package user
 
 import (
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -15,9 +16,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
+	arch_module "code.gitea.io/gitea/modules/packages/arch"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/setting"
@@ -82,7 +85,7 @@ func ListPackages(ctx *context.Context) {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return
 		}
-		repositoryAccessMap[pd.Repository.ID] = permission.HasAccess()
+		repositoryAccessMap[pd.Repository.ID] = permission.HasAnyUnitAccess()
 	}
 
 	hasPackages, err := packages_model.HasOwnerPackages(ctx, ctx.ContextUser.ID)
@@ -134,7 +137,7 @@ func ListPackages(ctx *context.Context) {
 
 // RedirectToLastVersion redirects to the latest package version
 func RedirectToLastVersion(ctx *context.Context) {
-	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.Params("type")), ctx.Params("name"))
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
 			ctx.NotFound("GetPackageByName", err)
@@ -176,9 +179,13 @@ func ViewPackageVersion(ctx *context.Context) {
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
 
+	registryHostURL, err := url.Parse(httplib.GuessCurrentHostURL(ctx))
+	if err != nil {
+		registryHostURL, _ = url.Parse(setting.AppURL)
+	}
+	ctx.Data["PackageRegistryHost"] = registryHostURL.Host
+
 	switch pd.Package.Type {
-	case packages_model.TypeContainer:
-		ctx.Data["RegistryHost"] = setting.Packages.RegistryHost
 	case packages_model.TypeAlpine:
 		branches := make(container.Set[string])
 		repositories := make(container.Set[string])
@@ -198,6 +205,23 @@ func ViewPackageVersion(ctx *context.Context) {
 		}
 
 		ctx.Data["Branches"] = util.Sorted(branches.Values())
+		ctx.Data["Repositories"] = util.Sorted(repositories.Values())
+		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
+	case packages_model.TypeArch:
+		repositories := make(container.Set[string])
+		architectures := make(container.Set[string])
+
+		for _, f := range pd.Files {
+			for _, pp := range f.Properties {
+				switch pp.Name {
+				case arch_module.PropertyRepository:
+					repositories.Add(pp.Value)
+				case arch_module.PropertyArchitecture:
+					architectures.Add(pp.Value)
+				}
+			}
+		}
+
 		ctx.Data["Repositories"] = util.Sorted(repositories.Values())
 		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
 	case packages_model.TypeDebian:
@@ -243,7 +267,6 @@ func ViewPackageVersion(ctx *context.Context) {
 	var (
 		total int64
 		pvs   []*packages_model.PackageVersion
-		err   error
 	)
 	switch pd.Package.Type {
 	case packages_model.TypeContainer:
@@ -276,7 +299,7 @@ func ViewPackageVersion(ctx *context.Context) {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return
 		}
-		hasRepositoryAccess = permission.HasAccess()
+		hasRepositoryAccess = permission.HasAnyUnitAccess()
 	}
 	ctx.Data["HasRepositoryAccess"] = hasRepositoryAccess
 
@@ -292,7 +315,7 @@ func ViewPackageVersion(ctx *context.Context) {
 // ListPackageVersions lists all versions of a package
 func ListPackageVersions(ctx *context.Context) {
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
-	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.Params("type")), ctx.Params("name"))
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
 			ctx.NotFound("GetPackageByName", err)
@@ -479,7 +502,7 @@ func PackageSettingsPost(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package file
 func DownloadPackageFile(ctx *context.Context) {
-	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.ParamsInt64(":fileid"))
+	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.PathParamInt64(":fileid"))
 	if err != nil {
 		if err == packages_model.ErrPackageFileNotExist {
 			ctx.NotFound("", err)

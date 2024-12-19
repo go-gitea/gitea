@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
@@ -40,7 +39,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	}
 	log.Trace("Doing: Update")
 
-	handler := func(idx int, bean any) error {
+	handler := func(bean any) error {
 		var repo *repo_model.Repository
 		var mirrorType SyncType
 		var referenceID int64
@@ -90,8 +89,8 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 
 	pullMirrorsRequested := 0
 	if pullLimit != 0 {
-		if err := repo_model.MirrorsIterate(ctx, pullLimit, func(idx int, bean any) error {
-			if err := handler(idx, bean); err != nil {
+		if err := repo_model.MirrorsIterate(ctx, pullLimit, func(_ int, bean any) error {
+			if err := handler(bean); err != nil {
 				return err
 			}
 			pullMirrorsRequested++
@@ -105,7 +104,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	pushMirrorsRequested := 0
 	if pushLimit != 0 {
 		if err := repo_model.PushMirrorsIterate(ctx, pushLimit, func(idx int, bean any) error {
-			if err := handler(idx, bean); err != nil {
+			if err := handler(bean); err != nil {
 				return err
 			}
 			pushMirrorsRequested++
@@ -119,14 +118,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	return nil
 }
 
-func queueHandler(items ...*SyncRequest) []*SyncRequest {
-	for _, req := range items {
-		doMirrorSync(graceful.GetManager().ShutdownContext(), req)
-	}
-	return nil
-}
-
 // InitSyncMirrors initializes a go routine to sync the mirrors
 func InitSyncMirrors() {
-	StartSyncMirrors(queueHandler)
+	StartSyncMirrors()
 }

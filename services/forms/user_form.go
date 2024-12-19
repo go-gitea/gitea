@@ -11,7 +11,6 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/context"
@@ -162,6 +161,7 @@ func (f *AuthorizationForm) Validate(req *http.Request, errs binding.Errors) bin
 // GrantApplicationForm form for authorizing oauth2 clients
 type GrantApplicationForm struct {
 	ClientID    string `binding:"Required"`
+	Granted     bool
 	RedirectURI string
 	State       string
 	Scope       string
@@ -273,27 +273,13 @@ func (f *AddEmailForm) Validate(req *http.Request, errs binding.Errors) binding.
 
 // UpdateThemeForm form for updating a users' theme
 type UpdateThemeForm struct {
-	Theme string `binding:"Required;MaxSize(30)"`
+	Theme string `binding:"Required;MaxSize(255)"`
 }
 
 // Validate validates the field
 func (f *UpdateThemeForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// IsThemeExists checks if the theme is a theme available in the config.
-func (f UpdateThemeForm) IsThemeExists() bool {
-	var exists bool
-
-	for _, v := range setting.UI.Themes {
-		if strings.EqualFold(v, f.Theme) {
-			exists = true
-			break
-		}
-	}
-
-	return exists
 }
 
 // ChangePasswordForm form for changing password
@@ -379,9 +365,10 @@ func (f *NewAccessTokenForm) GetScope() (auth_model.AccessTokenScope, error) {
 
 // EditOAuth2ApplicationForm form for editing oauth2 applications
 type EditOAuth2ApplicationForm struct {
-	Name               string `binding:"Required;MaxSize(255)" form:"application_name"`
-	RedirectURIs       string `binding:"Required" form:"redirect_uris"`
-	ConfidentialClient bool   `form:"confidential_client"`
+	Name                       string `binding:"Required;MaxSize(255)" form:"application_name"`
+	RedirectURIs               string `binding:"Required;ValidUrlList" form:"redirect_uris"`
+	ConfidentialClient         bool   `form:"confidential_client"`
+	SkipSecondaryAuthorization bool   `form:"skip_secondary_authorization"`
 }
 
 // Validate validates the fields

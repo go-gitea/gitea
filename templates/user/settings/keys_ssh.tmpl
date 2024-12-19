@@ -16,7 +16,7 @@
 			</div>
 			<div class="field {{if .Err_Content}}error{{end}}">
 				<label for="ssh-key-content">{{ctx.Locale.Tr "settings.key_content"}}</label>
-				<textarea id="ssh-key-content" name="content" class="js-quick-submit" placeholder="{{ctx.Locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
+				<textarea id="ssh-key-content" name="content" placeholder="{{ctx.Locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 			</div>
 			<input name="type" type="hidden" value="ssh">
 			<button class="ui primary button">
@@ -53,7 +53,7 @@
 								{{.Fingerprint}}
 						</div>
 						<div class="flex-item-body">
-								<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix)}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
 						</div>
 				</div>
 				<div class="flex-item-trailing">
@@ -84,7 +84,7 @@
 						</div>
 						<div class="field">
 							<label for="signature">{{ctx.Locale.Tr "settings.ssh_token_signature"}}</label>
-							<textarea id="ssh-key-signature" name="signature" class="js-quick-submit" placeholder="{{ctx.Locale.Tr "settings.key_signature_ssh_placeholder"}}" required>{{$.signature}}</textarea>
+							<textarea id="ssh-key-signature" name="signature" placeholder="{{ctx.Locale.Tr "settings.key_signature_ssh_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_ssh">
 						<button class="ui primary button">

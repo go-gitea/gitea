@@ -17,18 +17,16 @@ import (
 
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	mc "code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	web_types "code.gitea.io/gitea/modules/web/types"
-
-	"gitea.com/go-chi/cache"
-	"gitea.com/go-chi/session"
 )
 
 // Render represents a template render
@@ -46,7 +44,7 @@ type Context struct {
 	Render   Render
 	PageData map[string]any // data used by JavaScript modules in one page, it's `window.config.pageData`
 
-	Cache   cache.Cache
+	Cache   cache.StringCache
 	Csrf    CSRFProtector
 	Flash   *middleware.Flash
 	Session session.Store
@@ -67,6 +65,9 @@ type Context struct {
 type TemplateContext map[string]any
 
 func init() {
+	web.RegisterResponseStatusProvider[*Base](func(req *http.Request) web_types.ResponseStatusProvider {
+		return req.Context().Value(BaseContextKey).(*Base)
+	})
 	web.RegisterResponseStatusProvider[*Context](func(req *http.Request) web_types.ResponseStatusProvider {
 		return req.Context().Value(WebContextKey).(*Context)
 	})
@@ -102,6 +103,20 @@ func NewTemplateContextForWeb(ctx *Context) TemplateContext {
 	tmplCtx := NewTemplateContext(ctx)
 	tmplCtx["Locale"] = ctx.Base.Locale
 	tmplCtx["AvatarUtils"] = templates.NewAvatarUtils(ctx)
+	tmplCtx["RenderUtils"] = templates.NewRenderUtils(ctx)
+	tmplCtx["RootData"] = ctx.Data
+	tmplCtx["Consts"] = map[string]any{
+		"RepoUnitTypeCode":            unit.TypeCode,
+		"RepoUnitTypeIssues":          unit.TypeIssues,
+		"RepoUnitTypePullRequests":    unit.TypePullRequests,
+		"RepoUnitTypeReleases":        unit.TypeReleases,
+		"RepoUnitTypeWiki":            unit.TypeWiki,
+		"RepoUnitTypeExternalWiki":    unit.TypeExternalWiki,
+		"RepoUnitTypeExternalTracker": unit.TypeExternalTracker,
+		"RepoUnitTypeProjects":        unit.TypeProjects,
+		"RepoUnitTypePackages":        unit.TypePackages,
+		"RepoUnitTypeActions":         unit.TypeActions,
+	}
 	return tmplCtx
 }
 
@@ -111,7 +126,7 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 		Render:  render,
 		Session: session,
 
-		Cache: mc.GetCache(),
+		Cache: cache.GetCache(),
 		Link:  setting.AppSubURL + strings.TrimSuffix(base.Req.URL.EscapedPath(), "/"),
 		Repo:  &Repository{PullRequest: &PullRequest{}},
 		Org:   &Organization{},
@@ -127,10 +142,8 @@ func Contexter() func(next http.Handler) http.Handler {
 	csrfOpts := CsrfOptions{
 		Secret:         hex.EncodeToString(setting.GetGeneralTokenSigningSecret()),
 		Cookie:         setting.CSRFCookieName,
-		SetCookie:      true,
 		Secure:         setting.SessionConfig.Secure,
 		CookieHTTPOnly: setting.CSRFCookieHTTPOnly,
-		Header:         "X-Csrf-Token",
 		CookieDomain:   setting.SessionConfig.Domain,
 		CookiePath:     setting.SessionConfig.CookiePath,
 		SameSite:       setting.SessionConfig.SameSite,
@@ -142,10 +155,12 @@ func Contexter() func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base, baseCleanUp := NewBaseContext(resp, req)
 			defer baseCleanUp()
-			ctx := NewWebContext(base, rnd, session.GetSession(req))
+			ctx := NewWebContext(base, rnd, session.GetContextSession(req))
 
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
-			ctx.Data["Context"] = ctx // TODO: use "ctx" in template and remove this
+			if setting.IsProd && !setting.IsInTesting {
+				ctx.Data["Context"] = ctx // TODO: use "ctx" in template and remove this
+			}
 			ctx.Data["CurrentURL"] = setting.AppSubURL + req.URL.RequestURI()
 			ctx.Data["Link"] = ctx.Link
 
@@ -156,7 +171,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Base.AppendContextValue(WebContextKey, ctx)
 			ctx.Base.AppendContextValueFunc(gitrepo.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
 
-			ctx.Csrf = PrepareCSRFProtector(csrfOpts, ctx)
+			ctx.Csrf = NewCSRFProtector(csrfOpts)
 
 			// Get the last flash message from cookie
 			lastFlashCookie := middleware.GetSiteCookie(ctx.Req, CookieNameFlash)
@@ -193,22 +208,13 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["SystemConfig"] = setting.Config()
-			ctx.Data["CsrfToken"] = ctx.Csrf.GetToken()
-			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
 
 			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 			ctx.Data["DisableStars"] = setting.Repository.DisableStars
-			ctx.Data["EnableActions"] = setting.Actions.Enabled
+			ctx.Data["EnableActions"] = setting.Actions.Enabled && !unit.TypeActions.UnitGlobalDisabled()
 
 			ctx.Data["ManifestData"] = setting.ManifestData
-
-			ctx.Data["UnitWikiGlobalDisabled"] = unit.TypeWiki.UnitGlobalDisabled()
-			ctx.Data["UnitIssuesGlobalDisabled"] = unit.TypeIssues.UnitGlobalDisabled()
-			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
-			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
-			ctx.Data["UnitActionsGlobalDisabled"] = unit.TypeActions.UnitGlobalDisabled()
-
 			ctx.Data["AllLangs"] = translation.AllLangs()
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
@@ -218,6 +224,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 // HasError returns true if error occurs in form validation.
 // Attention: this function changes ctx.Data and ctx.Flash
+// If HasError is called, then before Redirect, the error message should be stored by ctx.Flash.Error(ctx.GetErrMsg()) again.
 func (ctx *Context) HasError() bool {
 	hasErr, ok := ctx.Data["HasError"]
 	if !ok {

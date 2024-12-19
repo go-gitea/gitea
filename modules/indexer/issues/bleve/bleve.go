@@ -23,7 +23,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 4
+	issueIndexerLatestVersion = 5
 )
 
 const unicodeNormalizeName = "unicodeNormalize"
@@ -35,11 +35,7 @@ func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 	})
 }
 
-const (
-	maxBatchSize = 16
-	// fuzzyDenominator determines the levenshtein distance per each character of a keyword
-	fuzzyDenominator = 4
-)
+const maxBatchSize = 16
 
 // IndexerData an update to the issue indexer
 type IndexerData internal.IndexerData
@@ -79,6 +75,7 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 
 	docMapping.AddFieldMappingsAt("is_pull", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("is_closed", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("is_archived", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("label_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("no_label", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("milestone_id", numberFieldMapping)
@@ -162,7 +159,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.Keyword != "" {
 		fuzziness := 0
 		if options.IsFuzzyKeyword {
-			fuzziness = len(options.Keyword) / fuzzyDenominator
+			fuzziness = inner_bleve.GuessFuzzinessByKeyword(options.Keyword)
 		}
 
 		queries = append(queries, bleve.NewDisjunctionQuery([]query.Query{
@@ -188,6 +185,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 	if options.IsClosed.Has() {
 		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsClosed.Value(), "is_closed"))
+	}
+	if options.IsArchived.Has() {
+		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsArchived.Value(), "is_archived"))
 	}
 
 	if options.NoLabelOnly {
@@ -228,8 +228,8 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.ProjectID.Has() {
 		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectID.Value(), "project_id"))
 	}
-	if options.ProjectBoardID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectBoardID.Value(), "project_board_id"))
+	if options.ProjectColumnID.Has() {
+		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectColumnID.Value(), "project_board_id"))
 	}
 
 	if options.PosterID.Has() {

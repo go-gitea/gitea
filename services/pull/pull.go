@@ -17,35 +17,73 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	gitea_context "code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
-// TODO: use clustered lock (unique queue? or *abuse* cache)
-var pullWorkingPool = sync.NewExclusivePool()
+func getPullWorkingLockKey(prID int64) string {
+	return fmt.Sprintf("pull_working_%d", prID)
+}
+
+type NewPullRequestOptions struct {
+	Repo            *repo_model.Repository
+	Issue           *issues_model.Issue
+	LabelIDs        []int64
+	AttachmentUUIDs []string
+	PullRequest     *issues_model.PullRequest
+	AssigneeIDs     []int64
+	Reviewers       []*user_model.User
+	TeamReviewers   []*organization.Team
+}
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, pr *issues_model.PullRequest, assigneeIDs []int64) error {
+func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
+	repo, issue, labelIDs, uuids, pr, assigneeIDs := opts.Repo, opts.Issue, opts.LabelIDs, opts.AttachmentUUIDs, opts.PullRequest, opts.AssigneeIDs
 	if err := issue.LoadPoster(ctx); err != nil {
 		return err
 	}
 
 	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) || user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) {
 		return user_model.ErrBlockedUser
+	}
+
+	// user should be a collaborator or a member of the organization for base repo
+	if !issue.Poster.IsAdmin {
+		canCreate, err := repo_model.IsOwnerMemberCollaborator(ctx, repo, issue.Poster.ID)
+		if err != nil {
+			return err
+		}
+
+		if !canCreate {
+			// or user should have write permission in the head repo
+			if err := pr.LoadHeadRepo(ctx); err != nil {
+				return err
+			}
+			perm, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, issue.Poster)
+			if err != nil {
+				return err
+			}
+			if !perm.CanWrite(unit.TypeCode) {
+				return issues_model.ErrMustCollaborator
+			}
+		}
 	}
 
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
@@ -77,7 +115,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	}
 	defer baseGitRepo.Close()
 
-	var reviewNotifers []*issue_service.ReviewRequestNotifier
+	var reviewNotifiers []*issue_service.ReviewRequestNotifier
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr); err != nil {
 			return err
@@ -137,7 +175,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 		}
 
 		if !pr.IsWorkInProgress(ctx) {
-			reviewNotifers, err = issue_service.PullRequestCodeOwnersReview(ctx, issue, pr)
+			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, issue, pr)
 			if err != nil {
 				return err
 			}
@@ -152,7 +190,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	}
 	baseGitRepo.Close() // close immediately to avoid notifications will open the repository again
 
-	issue_service.ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifers)
+	issue_service.ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 
 	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, issue.Poster, issue.Content)
 	if err != nil {
@@ -172,14 +210,28 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 		}
 		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
 	}
-
+	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
+	for _, reviewer := range opts.Reviewers {
+		if _, err = issue_service.ReviewRequest(ctx, pr.Issue, issue.Poster, &permDoer, reviewer, true); err != nil {
+			return err
+		}
+	}
+	for _, teamReviewer := range opts.TeamReviewers {
+		if _, err = issue_service.TeamReviewRequest(ctx, pr.Issue, issue.Poster, teamReviewer, true); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 // ChangeTargetBranch changes the target branch of this pull request, as the given user.
 func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, targetBranch string) (err error) {
-	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
-	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
+	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer releaser()
 
 	// Current target branch is already the same
 	if pr.BaseBranch == targetBranch {
@@ -526,6 +578,25 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 	return nil
 }
 
+// UpdatePullsRefs update all the PRs head file pointers like /refs/pull/1/head so that it will be dependent by other operations
+func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *repo_module.PushUpdateOptions) {
+	branch := update.RefFullName.BranchName()
+	// GetUnmergedPullRequestsByHeadInfo() only return open and unmerged PR.
+	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch)
+	if err != nil {
+		log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repo.ID, branch, err)
+	} else {
+		for _, pr := range prs {
+			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
+			if pr.Flow == issues_model.PullRequestFlowGithub {
+				if err := PushToBaseRepo(ctx, pr); err != nil {
+					log.Error("PushToBaseRepo: %v", err)
+				}
+			}
+		}
+	}
+}
+
 // UpdateRef update refs/pull/id/head directly for agit flow pull request
 func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
 	log.Trace("UpdateRef[%d]: upgate pull request ref in base repo '%s'", pr.ID, pr.GetGitRefName())
@@ -788,7 +859,6 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 			if err != nil {
 				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
 				return ""
-
 			}
 			if len(commits) == 0 {
 				break
@@ -948,6 +1018,8 @@ type CommitInfo struct {
 }
 
 // GetPullCommits returns all commits on given pull request and the last review commit sha
+// Attention: The last review commit sha must be from the latest review whose commit id is not empty.
+// So the type of the latest review cannot be "ReviewTypeRequest".
 func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]CommitInfo, string, error) {
 	pull := issue.PullRequest
 
@@ -970,12 +1042,12 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Co
 	for _, commit := range prInfo.Commits {
 		var committerOrAuthorName string
 		var commitTime time.Time
-		if commit.Committer != nil {
-			committerOrAuthorName = commit.Committer.Name
-			commitTime = commit.Committer.When
-		} else {
+		if commit.Author != nil {
 			committerOrAuthorName = commit.Author.Name
 			commitTime = commit.Author.When
+		} else {
+			committerOrAuthorName = commit.Committer.Name
+			commitTime = commit.Committer.When
 		}
 
 		commits = append(commits, CommitInfo{
@@ -993,7 +1065,11 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Co
 		lastreview, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
 			IssueID:    issue.ID,
 			ReviewerID: ctx.Doer.ID,
-			Type:       issues_model.ReviewTypeUnknown,
+			Types: []issues_model.ReviewType{
+				issues_model.ReviewTypeApprove,
+				issues_model.ReviewTypeComment,
+				issues_model.ReviewTypeReject,
+			},
 		})
 
 		if err != nil && !issues_model.IsErrReviewNotExist(err) {

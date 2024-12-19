@@ -1,13 +1,22 @@
-<script>
+<script lang="ts">
 import {createApp, nextTick} from 'vue';
-import $ from 'jquery';
-import {SvgIcon} from '../svg.js';
-import {GET} from '../modules/fetch.js';
+import {SvgIcon} from '../svg.ts';
+import {GET} from '../modules/fetch.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
+type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning';
+
+type CommitStatusMap = {
+  [status in CommitStatus]: {
+    name: string,
+    color: string,
+  };
+};
+
 // make sure this matches templates/repo/commit_status.tmpl
-const commitStatus = {
+const commitStatus: CommitStatusMap = {
   pending: {name: 'octicon-dot-fill', color: 'yellow'},
   success: {name: 'octicon-check', color: 'green'},
   error: {name: 'gitea-exclamation', color: 'red'},
@@ -78,7 +87,6 @@ const sfc = {
     searchURL() {
       return `${this.subUrl}/repo/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
       }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
-      }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
       }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
       }${this.privateFilter === 'private' ? '&is_private=true' : ''}${this.privateFilter === 'public' ? '&is_private=false' : ''
       }`;
@@ -101,9 +109,9 @@ const sfc = {
   },
 
   mounted() {
-    const el = document.getElementById('dashboard-repo-list');
+    const el = document.querySelector('#dashboard-repo-list');
     this.changeReposFilter(this.reposFilter);
-    $(el).find('.dropdown').dropdown();
+    fomanticQuery(el.querySelector('.ui.dropdown')).dropdown();
     nextTick(() => {
       this.$refs.search.focus();
     });
@@ -251,9 +259,9 @@ const sfc = {
         this.repos = json.data.map((webSearchRepo) => {
           return {
             ...webSearchRepo.repository,
-            latest_commit_status_state: webSearchRepo.latest_commit_status.State,
+            latest_commit_status_state: webSearchRepo.latest_commit_status?.State, // if latest_commit_status is null, it means there is no commit status
+            latest_commit_status_state_link: webSearchRepo.latest_commit_status?.TargetURL,
             locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
-            latest_commit_status_state_link: webSearchRepo.latest_commit_status.TargetURL,
           };
         });
         const count = response.headers.get('X-Total-Count');
@@ -282,18 +290,18 @@ const sfc = {
       return 'octicon-repo';
     },
 
-    statusIcon(status) {
+    statusIcon(status: CommitStatus) {
       return commitStatus[status].name;
     },
 
-    statusColor(status) {
+    statusColor(status: CommitStatus) {
       return commitStatus[status].color;
     },
 
     reposFilterKeyControl(e) {
       switch (e.key) {
         case 'Enter':
-          document.querySelector('.repo-owner-name-list li.active a')?.click();
+          document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();
           break;
         case 'ArrowUp':
           if (this.activeIndex > 0) {
@@ -330,7 +338,7 @@ const sfc = {
 };
 
 export function initDashboardRepoList() {
-  const el = document.getElementById('dashboard-repo-list');
+  const el = document.querySelector('#dashboard-repo-list');
   if (el) {
     createApp(sfc).mount(el);
   }
@@ -355,17 +363,17 @@ export default sfc; // activate the IDE's Vue plugin
         </a>
       </h4>
       <div class="ui attached segment repos-search">
-        <div class="ui small fluid action left icon input" :class="{loading: isLoading}">
+        <div class="ui small fluid action left icon input">
           <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
-          <i class="icon"><svg-icon name="octicon-search" :size="16"/></i>
+          <i class="icon loading-icon-3px" :class="{'is-loading': isLoading}"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="ui dropdown icon button" :title="textFilter">
             <svg-icon name="octicon-filter" :size="16"/>
             <div class="menu">
               <a class="item" @click="toggleArchivedFilter()">
                 <div class="ui checkbox" ref="checkboxArchivedFilter" :title="checkboxArchivedFilterTitle">
-                  <!--the "hidden" is necessary to make the checkbox work without Fomantic UI js,
+                  <!--the "tw-pointer-events-none" is necessary to prevent the checkbox from handling user's input,
                       otherwise if the "input" handles click event for intermediate status, it breaks the internal state-->
-                  <input type="checkbox" class="hidden" v-bind.prop="checkboxArchivedFilterProps">
+                  <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxArchivedFilterProps">
                   <label>
                     <svg-icon name="octicon-archive" :size="16" class-name="tw-mr-1"/>
                     {{ textShowArchived }}
@@ -374,7 +382,7 @@ export default sfc; // activate the IDE's Vue plugin
               </a>
               <a class="item" @click="togglePrivateFilter()">
                 <div class="ui checkbox" ref="checkboxPrivateFilter" :title="checkboxPrivateFilterTitle">
-                  <input type="checkbox" class="hidden" v-bind.prop="checkboxPrivateFilterProps">
+                  <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxPrivateFilterProps">
                   <label>
                     <svg-icon name="octicon-lock" :size="16" class-name="tw-mr-1"/>
                     {{ textShowPrivate }}
@@ -472,7 +480,7 @@ export default sfc; // activate the IDE's Vue plugin
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
-              <div class="text truncate">{{ org.name }}</div>
+              <div class="text truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
               <div><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
@@ -509,10 +517,8 @@ ul li:not(:last-child) {
 }
 
 .repos-filter {
-  padding-top: 0 !important;
   margin-top: 0 !important;
   border-bottom-width: 0 !important;
-  margin-bottom: 2px !important;
 }
 
 .repos-filter .item {

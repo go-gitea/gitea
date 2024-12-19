@@ -37,27 +37,24 @@ import (
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
+	"code.gitea.io/gitea/routers/web/shared/project"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/lfs"
 
 	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
 	"gitea.com/go-chi/captcha"
-	"github.com/NYTimes/gziphandler"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/klauspost/compress/gzhttp"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const (
-	// GzipMinSize represents min size to compress for the body size of response
-	GzipMinSize = 1400
-)
+var GzipMinSize = 1400 // min size to compress for the body size of response
 
 // optionsCorsHandler return a http handler which sets CORS options if enabled by config, it blocks non-CORS OPTIONS requests.
 func optionsCorsHandler() func(next http.Handler) http.Handler {
@@ -100,14 +97,14 @@ func optionsCorsHandler() func(next http.Handler) http.Handler {
 // The Session plugin is expected to be executed second, in order to skip authentication
 // for users that have already signed in.
 func buildAuthGroup() *auth_service.Group {
-	group := auth_service.NewGroup(
-		&auth_service.OAuth2{}, // FIXME: this should be removed and only applied in download and oauth related routers
-		&auth_service.Basic{},  // FIXME: this should be removed and only applied in download and git/lfs routers
-		&auth_service.Session{},
-	)
+	group := auth_service.NewGroup()
+	group.Add(&auth_service.OAuth2{}) // FIXME: this should be removed and only applied in download and oauth related routers
+	group.Add(&auth_service.Basic{})  // FIXME: this should be removed and only applied in download and git/lfs routers
+
 	if setting.Service.EnableReverseProxyAuth {
-		group.Add(&auth_service.ReverseProxy{})
+		group.Add(&auth_service.ReverseProxy{}) // reverseproxy should before Session, otherwise the header will be ignored if user has login
 	}
+	group.Add(&auth_service.Session{})
 
 	if setting.IsWindows && auth_model.IsSSPIEnabled(db.DefaultContext) {
 		group.Add(&auth_service.SSPI{}) // it MUST be the last, see the comment of SSPI
@@ -131,6 +128,8 @@ func webAuth(authMethod auth_service.Method) func(*context.Context) {
 			// ensure the session uid is deleted
 			_ = ctx.Session.Delete("uid")
 		}
+
+		ctx.Csrf.PrepareForSessionUser(ctx)
 	}
 }
 
@@ -228,8 +227,8 @@ func ctxDataSet(args ...any) func(ctx *context.Context) {
 }
 
 // Routes returns all web routes
-func Routes() *web.Route {
-	routes := web.NewRoute()
+func Routes() *web.Router {
+	routes := web.NewRouter()
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", optionsCorsHandler(), public.FileHandlerFunc())
@@ -244,11 +243,13 @@ func Routes() *web.Route {
 	var mid []any
 
 	if setting.EnableGzip {
-		h, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(GzipMinSize))
+		// random jitter is recommended by: https://pkg.go.dev/github.com/klauspost/compress/gzhttp#readme-breach-mitigation
+		// compression level 6 is the gzip default and a good general tradeoff between speed, CPU usage, and compression
+		wrapper, err := gzhttp.NewWrapper(gzhttp.RandomJitter(32, 0, false), gzhttp.MinSize(GzipMinSize), gzhttp.CompressionLevel(6))
 		if err != nil {
-			log.Fatal("GzipHandlerWithOpts failed: %v", err)
+			log.Fatal("gzhttp.NewWrapper failed: %v", err)
 		}
-		mid = append(mid, h)
+		mid = append(mid, wrapper)
 	}
 
 	if setting.Service.EnableCaptcha {
@@ -261,7 +262,7 @@ func Routes() *web.Route {
 		routes.Get("/metrics", append(mid, Metrics)...)
 	}
 
-	routes.Get("/robots.txt", append(mid, misc.RobotsTxt)...)
+	routes.Methods("GET,HEAD", "/robots.txt", append(mid, misc.RobotsTxt)...)
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
@@ -283,22 +284,23 @@ func Routes() *web.Route {
 	mid = append(mid, repo.GetActiveStopwatch)
 	mid = append(mid, goGet)
 
-	others := web.NewRoute()
+	others := web.NewRouter()
 	others.Use(mid...)
 	registerRoutes(others)
 	routes.Mount("", others)
 	return routes
 }
 
-var ignSignInAndCsrf = verifyAuthWithOptions(&common.VerifyOptions{DisableCSRF: true})
+var optSignInIgnoreCsrf = verifyAuthWithOptions(&common.VerifyOptions{DisableCSRF: true})
 
 // registerRoutes register routes
-func registerRoutes(m *web.Route) {
+func registerRoutes(m *web.Router) {
+	// required to be signed in or signed out
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
 	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})
-	// TODO: rename them to "optSignIn", which means that the "sign-in" could be optional, depends on the VerifyOptions (RequireSignInView)
-	ignSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
-	ignExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
+	// optional sign in (if signed in, use the user as doer, if not, no doer)
+	optSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
+	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
 
 	validation.AddBindingRules()
 
@@ -318,6 +320,13 @@ func registerRoutes(m *web.Route) {
 
 	openIDSignUpEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignUp {
+			ctx.Error(http.StatusForbidden)
+			return
+		}
+	}
+
+	oauth2Enabled := func(ctx *context.Context) {
+		if !setting.OAuth2.Enabled {
 			ctx.Error(http.StatusForbidden)
 			return
 		}
@@ -384,18 +393,18 @@ func registerRoutes(m *web.Route) {
 		return func(ctx *context.Context) {
 			// only check global disabled units when ignoreGlobal is false
 			if !ignoreGlobal && unitType.UnitGlobalDisabled() {
-				ctx.NotFound(unitType.String(), nil)
+				ctx.NotFound("Repo unit is is disabled: "+unitType.LogString(), nil)
 				return
 			}
 
 			if ctx.ContextUser == nil {
-				ctx.NotFound(unitType.String(), nil)
+				ctx.NotFound("ContextUser is nil", nil)
 				return
 			}
 
 			if ctx.ContextUser.IsOrganization() {
 				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
-					ctx.NotFound(unitType.String(), nil)
+					ctx.NotFound("ContextUser is org but doer has no access to unit", nil)
 					return
 				}
 			}
@@ -462,7 +471,7 @@ func registerRoutes(m *web.Route) {
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 
 	m.Get("/", Home)
-	m.Get("/sitemap.xml", sitemapEnabled, ignExploreSignIn, HomeSitemap)
+	m.Get("/sitemap.xml", sitemapEnabled, optExploreSignIn, HomeSitemap)
 	m.Group("/.well-known", func() {
 		m.Get("/openid-configuration", auth.OIDCWellKnown)
 		m.Group("", func() {
@@ -476,6 +485,8 @@ func registerRoutes(m *web.Route) {
 		m.Methods("GET, HEAD", "/*", public.FileHandlerFunc())
 	}, optionsCorsHandler())
 
+	m.Post("/-/markup", reqSignIn, web.Bind(structs.MarkupOption{}), misc.Markup)
+
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
@@ -487,12 +498,13 @@ func registerRoutes(m *web.Route) {
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", func(ctx *context.Context) {
 			if unit.TypeCode.UnitGlobalDisabled() {
-				ctx.NotFound(unit.TypeCode.String(), nil)
+				ctx.NotFound("Repo unit code is disabled", nil)
 				return
 			}
 		}, explore.Code)
 		m.Get("/topics/search", explore.TopicSearch)
-	}, ignExploreSignIn)
+	}, optExploreSignIn)
+
 	m.Group("/issues", func() {
 		m.Get("", user.Issues)
 		m.Get("/search", repo.SearchIssues)
@@ -534,6 +546,8 @@ func registerRoutes(m *web.Route) {
 		})
 		m.Group("/webauthn", func() {
 			m.Get("", auth.WebAuthn)
+			m.Get("/passkey/assertion", auth.WebAuthnPasskeyAssertion)
+			m.Post("/passkey/login", auth.WebAuthnPasskeyLogin)
 			m.Get("/assertion", auth.WebAuthnLoginAssertion)
 			m.Post("/assertion", auth.WebAuthnLoginAssertionPost)
 		})
@@ -542,16 +556,18 @@ func registerRoutes(m *web.Route) {
 	m.Any("/user/events", routing.MarkLongPolling, events.Events)
 
 	m.Group("/login/oauth", func() {
-		m.Get("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
-		m.Post("/grant", web.Bind(forms.GrantApplicationForm{}), auth.GrantApplicationOAuth)
-		// TODO manage redirection
-		m.Post("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
-	}, ignSignInAndCsrf, reqSignIn)
+		m.Group("", func() {
+			m.Get("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
+			m.Post("/grant", web.Bind(forms.GrantApplicationForm{}), auth.GrantApplicationOAuth)
+			// TODO manage redirection
+			m.Post("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
+		}, optSignInIgnoreCsrf, reqSignIn)
 
-	m.Methods("GET, OPTIONS", "/login/oauth/userinfo", optionsCorsHandler(), ignSignInAndCsrf, auth.InfoOAuth)
-	m.Methods("POST, OPTIONS", "/login/oauth/access_token", optionsCorsHandler(), web.Bind(forms.AccessTokenForm{}), ignSignInAndCsrf, auth.AccessTokenOAuth)
-	m.Methods("GET, OPTIONS", "/login/oauth/keys", optionsCorsHandler(), ignSignInAndCsrf, auth.OIDCKeys)
-	m.Methods("POST, OPTIONS", "/login/oauth/introspect", optionsCorsHandler(), web.Bind(forms.IntrospectTokenForm{}), ignSignInAndCsrf, auth.IntrospectOAuth)
+		m.Methods("GET, POST, OPTIONS", "/userinfo", optionsCorsHandler(), optSignInIgnoreCsrf, auth.InfoOAuth)
+		m.Methods("POST, OPTIONS", "/access_token", optionsCorsHandler(), web.Bind(forms.AccessTokenForm{}), optSignInIgnoreCsrf, auth.AccessTokenOAuth)
+		m.Methods("GET, OPTIONS", "/keys", optionsCorsHandler(), optSignInIgnoreCsrf, auth.OIDCKeys)
+		m.Methods("POST, OPTIONS", "/introspect", optionsCorsHandler(), web.Bind(forms.IntrospectTokenForm{}), optSignInIgnoreCsrf, auth.IntrospectOAuth)
+	}, oauth2Enabled)
 
 	m.Group("/user/settings", func() {
 		m.Get("", user_setting.Profile)
@@ -592,17 +608,24 @@ func registerRoutes(m *web.Route) {
 			}, openIDSignInEnabled)
 			m.Post("/account_link", linkAccountEnabled, security.DeleteAccountLink)
 		})
-		m.Group("/applications/oauth2", func() {
-			m.Get("/{id}", user_setting.OAuth2ApplicationShow)
-			m.Post("/{id}", web.Bind(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsEdit)
-			m.Post("/{id}/regenerate_secret", user_setting.OAuthApplicationsRegenerateSecret)
-			m.Post("", web.Bind(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsPost)
-			m.Post("/{id}/delete", user_setting.DeleteOAuth2Application)
-			m.Post("/{id}/revoke/{grantId}", user_setting.RevokeOAuth2Grant)
+
+		m.Group("/applications", func() {
+			// oauth2 applications
+			m.Group("/oauth2", func() {
+				m.Get("/{id}", user_setting.OAuth2ApplicationShow)
+				m.Post("/{id}", web.Bind(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsEdit)
+				m.Post("/{id}/regenerate_secret", user_setting.OAuthApplicationsRegenerateSecret)
+				m.Post("", web.Bind(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsPost)
+				m.Post("/{id}/delete", user_setting.DeleteOAuth2Application)
+				m.Post("/{id}/revoke/{grantId}", user_setting.RevokeOAuth2Grant)
+			}, oauth2Enabled)
+
+			// access token applications
+			m.Combo("").Get(user_setting.Applications).
+				Post(web.Bind(forms.NewAccessTokenForm{}), user_setting.ApplicationsPost)
+			m.Post("/delete", user_setting.DeleteApplication)
 		})
-		m.Combo("/applications").Get(user_setting.Applications).
-			Post(web.Bind(forms.NewAccessTokenForm{}), user_setting.ApplicationsPost)
-		m.Post("/applications/delete", user_setting.DeleteApplication)
+
 		m.Combo("/keys").Get(user_setting.Keys).
 			Post(web.Bind(forms.AddKeyForm{}), user_setting.KeysPost)
 		m.Post("/keys/delete", user_setting.DeleteKey)
@@ -652,7 +675,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("", user_setting.BlockedUsers)
 			m.Post("", web.Bind(forms.BlockUserForm{}), user_setting.BlockedUsersPost)
 		})
-	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "AllThemes", setting.UI.Themes, "EnablePackages", setting.Packages.Enabled))
+	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "EnablePackages", setting.Packages.Enabled))
 
 	m.Group("/user", func() {
 		m.Get("/activate", auth.Activate)
@@ -664,9 +687,8 @@ func registerRoutes(m *web.Route) {
 		m.Get("/forgot_password", auth.ForgotPasswd)
 		m.Post("/forgot_password", auth.ForgotPasswdPost)
 		m.Post("/logout", auth.SignOut)
-		m.Get("/task/{task}", reqSignIn, user.TaskStatus)
 		m.Get("/stopwatches", reqSignIn, user.GetStopwatches)
-		m.Get("/search", ignExploreSignIn, user.Search)
+		m.Get("/search_candidates", optExploreSignIn, user.SearchCandidates)
 		m.Group("/oauth2", func() {
 			m.Get("/{provider}", auth.SignInOAuth)
 			m.Get("/{provider}/callback", auth.SignInOAuthCallback)
@@ -679,17 +701,19 @@ func registerRoutes(m *web.Route) {
 	adminReq := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true, AdminRequired: true})
 
 	// ***** START: Admin *****
-	m.Group("/admin", func() {
+	m.Group("/-/admin", func() {
 		m.Get("", admin.Dashboard)
 		m.Get("/system_status", admin.SystemStatus)
 		m.Post("", web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
 
 		m.Get("/self_check", admin.SelfCheck)
+		m.Post("/self_check", admin.SelfCheckPost)
 
 		m.Group("/config", func() {
 			m.Get("", admin.Config)
 			m.Post("", admin.ChangeConfig)
 			m.Post("/test_mail", admin.SendTestMail)
+			m.Post("/test_cache", admin.TestCache)
 			m.Get("/settings", admin.ConfigSettings)
 		})
 
@@ -720,6 +744,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("/emails", func() {
 			m.Get("", admin.Emails)
 			m.Post("/activate", admin.ActivateEmail)
+			m.Post("/delete", admin.DeleteEmail)
 		})
 
 		m.Group("/orgs", func() {
@@ -774,12 +799,7 @@ func registerRoutes(m *web.Route) {
 				m.Post("/regenerate_secret", admin.ApplicationsRegenerateSecret)
 				m.Post("/delete", admin.DeleteApplication)
 			})
-		}, func(ctx *context.Context) {
-			if !setting.OAuth2.Enabled {
-				ctx.Error(http.StatusForbidden)
-				return
-			}
-		})
+		}, oauth2Enabled)
 
 		m.Group("/actions", func() {
 			m.Get("", admin.RedirectToDefaultSetting)
@@ -792,7 +812,7 @@ func registerRoutes(m *web.Route) {
 	m.Group("", func() {
 		m.Get("/{username}", user.UsernameSubRoute)
 		m.Methods("GET, OPTIONS", "/attachments/{uuid}", optionsCorsHandler(), repo.GetAttachment)
-	}, ignSignIn)
+	}, optSignIn)
 
 	m.Post("/{username}", reqSignIn, context.UserAssignmentWeb(), user.Action)
 
@@ -802,6 +822,7 @@ func registerRoutes(m *web.Route) {
 	reqRepoCodeReader := context.RequireRepoReader(unit.TypeCode)
 	reqRepoReleaseWriter := context.RequireRepoWriter(unit.TypeReleases)
 	reqRepoReleaseReader := context.RequireRepoReader(unit.TypeReleases)
+	reqRepoWikiReader := context.RequireRepoReader(unit.TypeWiki)
 	reqRepoWikiWriter := context.RequireRepoWriter(unit.TypeWiki)
 	reqRepoIssueReader := context.RequireRepoReader(unit.TypeIssues)
 	reqRepoPullsReader := context.RequireRepoReader(unit.TypePullRequests)
@@ -838,12 +859,12 @@ func registerRoutes(m *web.Route) {
 		}
 	}
 
-	// ***** START: Organization *****
 	m.Group("/org", func() {
 		m.Group("/{org}", func() {
 			m.Get("/members", org.Members)
 		}, context.OrgAssignment())
-	}, ignSignIn)
+	}, optSignIn)
+	// end "/org": members
 
 	m.Group("/org", func() {
 		m.Group("", func() {
@@ -876,10 +897,15 @@ func registerRoutes(m *web.Route) {
 			m.Post("/teams/{team}/action/repo/{action}", org.TeamsRepoAction)
 		}, context.OrgAssignment(true, false, true))
 
+		// require admin permission
+		m.Group("/{org}", func() {
+			m.Get("/teams/-/search", org.SearchTeam)
+		}, context.OrgAssignment(true, false, false, true))
+
+		// require owner permission
 		m.Group("/{org}", func() {
 			m.Get("/teams/new", org.NewTeam)
 			m.Post("/teams/new", web.Bind(forms.CreateTeamForm{}), org.NewTeamPost)
-			m.Get("/teams/-/search", org.SearchTeam)
 			m.Get("/teams/{team}/edit", org.EditTeam)
 			m.Post("/teams/{team}/edit", web.Bind(forms.CreateTeamForm{}), org.EditTeamPost)
 			m.Post("/teams/{team}/delete", org.DeleteTeam)
@@ -897,12 +923,7 @@ func registerRoutes(m *web.Route) {
 						m.Post("/regenerate_secret", org.OAuthApplicationsRegenerateSecret)
 						m.Post("/delete", org.DeleteOAuth2Application)
 					})
-				}, func(ctx *context.Context) {
-					if !setting.OAuth2.Enabled {
-						ctx.Error(http.StatusForbidden)
-						return
-					}
-				})
+				}, oauth2Enabled)
 
 				m.Group("/hooks", func() {
 					m.Get("", org.Webhooks)
@@ -958,9 +979,8 @@ func registerRoutes(m *web.Route) {
 			}, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled, "PageIsOrgSettings", true))
 		}, context.OrgAssignment(true, true))
 	}, reqSignIn)
-	// ***** END: Organization *****
+	// end "/org": most org routes
 
-	// ***** START: Repository *****
 	m.Group("/repo", func() {
 		m.Get("/create", repo.Create)
 		m.Post("/create", web.Bind(forms.CreateRepoForm{}), repo.CreatePost)
@@ -968,6 +988,7 @@ func registerRoutes(m *web.Route) {
 		m.Post("/migrate", web.Bind(forms.MigrateRepoForm{}), repo.MigratePost)
 		m.Get("/search", repo.SearchRepo)
 	}, reqSignIn)
+	// end "/repo": create, migrate, search
 
 	m.Group("/{username}/-", func() {
 		if setting.Packages.Enabled {
@@ -988,6 +1009,8 @@ func registerRoutes(m *web.Route) {
 			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 
+		m.Get("/repositories", org.Repositories)
+
 		m.Group("/projects", func() {
 			m.Group("", func() {
 				m.Get("", org.Projects)
@@ -997,19 +1020,19 @@ func registerRoutes(m *web.Route) {
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
-					m.Post("", web.Bind(forms.EditProjectBoardForm{}), org.AddBoardToProjectPost)
 					m.Post("/delete", org.DeleteProject)
 
 					m.Get("/edit", org.RenderEditProject)
 					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), org.EditProjectPost)
 					m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
-					m.Group("/{boardID}", func() {
-						m.Put("", web.Bind(forms.EditProjectBoardForm{}), org.EditProjectBoard)
-						m.Delete("", org.DeleteProjectBoard)
-						m.Post("/default", org.SetDefaultProjectBoard)
-						m.Post("/unsetdefault", org.UnsetDefaultProjectBoard)
-
+					// TODO: improper name. Others are "delete project", "edit project", but this one is "move columns"
+					m.Post("/move", project.MoveColumns)
+					m.Post("/columns/new", web.Bind(forms.EditProjectColumnForm{}), org.AddColumnToProjectPost)
+					m.Group("/{columnID}", func() {
+						m.Put("", web.Bind(forms.EditProjectColumnForm{}), org.EditProjectColumn)
+						m.Delete("", org.DeleteProjectColumn)
+						m.Post("/default", org.SetDefaultProjectColumn)
 						m.Post("/move", org.MoveIssues)
 					})
 				})
@@ -1024,140 +1047,178 @@ func registerRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false), individualPermsChecker)
-	}, ignSignIn, context.UserAssignmentWeb(), context.OrgAssignment()) // for "/{username}/-" (packages, projects, code)
+	}, optSignIn, context.UserAssignmentWeb(), context.OrgAssignment())
+	// end "/{username}/-": packages, projects, code
+
+	m.Group("/{username}/{reponame}/-", func() {
+		m.Group("/migrate", func() {
+			m.Get("/status", repo.MigrateStatus)
+		})
+	}, optSignIn, context.RepoAssignment, reqRepoCodeReader)
+	// end "/{username}/{reponame}/-": migrate
+
+	m.Group("/{username}/{reponame}/settings", func() {
+		m.Group("", func() {
+			m.Combo("").Get(repo_setting.Settings).
+				Post(web.Bind(forms.RepoSettingForm{}), repo_setting.SettingsPost)
+		}, repo_setting.SettingsCtxData)
+		m.Post("/avatar", web.Bind(forms.AvatarForm{}), repo_setting.SettingsAvatar)
+		m.Post("/avatar/delete", repo_setting.SettingsDeleteAvatar)
+
+		m.Group("/collaboration", func() {
+			m.Combo("").Get(repo_setting.Collaboration).Post(repo_setting.CollaborationPost)
+			m.Post("/access_mode", repo_setting.ChangeCollaborationAccessMode)
+			m.Post("/delete", repo_setting.DeleteCollaboration)
+			m.Group("/team", func() {
+				m.Post("", repo_setting.AddTeamPost)
+				m.Post("/delete", repo_setting.DeleteTeam)
+			})
+		})
+
+		m.Group("/branches", func() {
+			m.Post("/", repo_setting.SetDefaultBranchPost)
+		}, repo.MustBeNotEmpty)
+
+		m.Group("/branches", func() {
+			m.Get("/", repo_setting.ProtectedBranchRules)
+			m.Combo("/edit").Get(repo_setting.SettingsProtectedBranch).
+				Post(web.Bind(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
+			m.Post("/{id}/delete", repo_setting.DeleteProtectedBranchRulePost)
+			m.Post("/priority", web.Bind(forms.ProtectBranchPriorityForm{}), context.RepoMustNotBeArchived(), repo_setting.UpdateBranchProtectionPriories)
+		})
+
+		m.Group("/tags", func() {
+			m.Get("", repo_setting.ProtectedTags)
+			m.Post("", web.Bind(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo_setting.NewProtectedTagPost)
+			m.Post("/delete", context.RepoMustNotBeArchived(), repo_setting.DeleteProtectedTagPost)
+			m.Get("/{id}", repo_setting.EditProtectedTag)
+			m.Post("/{id}", web.Bind(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo_setting.EditProtectedTagPost)
+		})
+
+		m.Group("/hooks/git", func() {
+			m.Get("", repo_setting.GitHooks)
+			m.Combo("/{name}").Get(repo_setting.GitHooksEdit).
+				Post(repo_setting.GitHooksEditPost)
+		}, context.GitHookService())
+
+		m.Group("/hooks", func() {
+			m.Get("", repo_setting.Webhooks)
+			m.Post("/delete", repo_setting.DeleteWebhook)
+			addWebhookAddRoutes()
+			m.Group("/{id}", func() {
+				m.Get("", repo_setting.WebHooksEdit)
+				m.Post("/test", repo_setting.TestWebhook)
+				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
+			})
+			addWebhookEditRoutes()
+		}, webhooksEnabled)
+
+		m.Group("/keys", func() {
+			m.Combo("").Get(repo_setting.DeployKeys).
+				Post(web.Bind(forms.AddKeyForm{}), repo_setting.DeployKeysPost)
+			m.Post("/delete", repo_setting.DeleteDeployKey)
+		})
+
+		m.Group("/lfs", func() {
+			m.Get("/", repo_setting.LFSFiles)
+			m.Get("/show/{oid}", repo_setting.LFSFileGet)
+			m.Post("/delete/{oid}", repo_setting.LFSDelete)
+			m.Get("/pointers", repo_setting.LFSPointerFiles)
+			m.Post("/pointers/associate", repo_setting.LFSAutoAssociate)
+			m.Get("/find", repo_setting.LFSFileFind)
+			m.Group("/locks", func() {
+				m.Get("/", repo_setting.LFSLocks)
+				m.Post("/", repo_setting.LFSLockFile)
+				m.Post("/{lid}/unlock", repo_setting.LFSUnlock)
+			})
+		})
+		m.Group("/actions", func() {
+			m.Get("", repo_setting.RedirectToDefaultSetting)
+			addSettingsRunnersRoutes()
+			addSettingsSecretsRoutes()
+			addSettingsVariablesRoutes()
+		}, actions.MustEnableActions)
+		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
+		m.Group("/migrate", func() {
+			m.Post("/retry", repo.MigrateRetryPost)
+			m.Post("/cancel", repo.MigrateCancelPost)
+		})
+	},
+		reqSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoRef(),
+		ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer),
+	)
+	// end "/{username}/{reponame}/settings"
+
+	// user/org home, including rss feeds
+	m.Get("/{username}/{reponame}", optSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home)
+
+	// TODO: maybe it should relax the permission to allow "any access"
+	m.Post("/{username}/{reponame}/markup", optSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki), web.Bind(structs.MarkupOption{}), misc.Markup)
 
 	m.Group("/{username}/{reponame}", func() {
-		m.Group("/settings", func() {
-			m.Group("", func() {
-				m.Combo("").Get(repo_setting.Settings).
-					Post(web.Bind(forms.RepoSettingForm{}), repo_setting.SettingsPost)
-			}, repo_setting.SettingsCtxData)
-			m.Post("/avatar", web.Bind(forms.AvatarForm{}), repo_setting.SettingsAvatar)
-			m.Post("/avatar/delete", repo_setting.SettingsDeleteAvatar)
-
-			m.Group("/collaboration", func() {
-				m.Combo("").Get(repo_setting.Collaboration).Post(repo_setting.CollaborationPost)
-				m.Post("/access_mode", repo_setting.ChangeCollaborationAccessMode)
-				m.Post("/delete", repo_setting.DeleteCollaboration)
-				m.Group("/team", func() {
-					m.Post("", repo_setting.AddTeamPost)
-					m.Post("/delete", repo_setting.DeleteTeam)
-				})
-			})
-
-			m.Group("/branches", func() {
-				m.Post("/", repo_setting.SetDefaultBranchPost)
-			}, repo.MustBeNotEmpty)
-
-			m.Group("/branches", func() {
-				m.Get("/", repo_setting.ProtectedBranchRules)
-				m.Combo("/edit").Get(repo_setting.SettingsProtectedBranch).
-					Post(web.Bind(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
-				m.Post("/{id}/delete", repo_setting.DeleteProtectedBranchRulePost)
-			}, repo.MustBeNotEmpty)
-
-			m.Post("/rename_branch", web.Bind(forms.RenameBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.RenameBranchPost)
-
-			m.Group("/tags", func() {
-				m.Get("", repo_setting.ProtectedTags)
-				m.Post("", web.Bind(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo_setting.NewProtectedTagPost)
-				m.Post("/delete", context.RepoMustNotBeArchived(), repo_setting.DeleteProtectedTagPost)
-				m.Get("/{id}", repo_setting.EditProtectedTag)
-				m.Post("/{id}", web.Bind(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo_setting.EditProtectedTagPost)
-			})
-
-			m.Group("/hooks/git", func() {
-				m.Get("", repo_setting.GitHooks)
-				m.Combo("/{name}").Get(repo_setting.GitHooksEdit).
-					Post(repo_setting.GitHooksEditPost)
-			}, context.GitHookService())
-
-			m.Group("/hooks", func() {
-				m.Get("", repo_setting.Webhooks)
-				m.Post("/delete", repo_setting.DeleteWebhook)
-				addWebhookAddRoutes()
-				m.Group("/{id}", func() {
-					m.Get("", repo_setting.WebHooksEdit)
-					m.Post("/test", repo_setting.TestWebhook)
-					m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
-				})
-				addWebhookEditRoutes()
-			}, webhooksEnabled)
-
-			m.Group("/keys", func() {
-				m.Combo("").Get(repo_setting.DeployKeys).
-					Post(web.Bind(forms.AddKeyForm{}), repo_setting.DeployKeysPost)
-				m.Post("/delete", repo_setting.DeleteDeployKey)
-			})
-
-			m.Group("/lfs", func() {
-				m.Get("/", repo_setting.LFSFiles)
-				m.Get("/show/{oid}", repo_setting.LFSFileGet)
-				m.Post("/delete/{oid}", repo_setting.LFSDelete)
-				m.Get("/pointers", repo_setting.LFSPointerFiles)
-				m.Post("/pointers/associate", repo_setting.LFSAutoAssociate)
-				m.Get("/find", repo_setting.LFSFileFind)
-				m.Group("/locks", func() {
-					m.Get("/", repo_setting.LFSLocks)
-					m.Post("/", repo_setting.LFSLockFile)
-					m.Post("/{lid}/unlock", repo_setting.LFSUnlock)
-				})
-			})
-			m.Group("/actions", func() {
-				m.Get("", repo_setting.RedirectToDefaultSetting)
-				addSettingsRunnersRoutes()
-				addSettingsSecretsRoutes()
-				addSettingsVariablesRoutes()
-			}, actions.MustEnableActions)
-			// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
-			m.Group("/migrate", func() {
-				m.Post("/retry", repo.MigrateRetryPost)
-				m.Post("/cancel", repo.MigrateCancelPost)
-			})
-		}, ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer))
-	}, reqSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoAdmin, context.RepoRef())
-
-	m.Post("/{username}/{reponame}/action/{action}", reqSignIn, context.RepoAssignment, context.UnitTypes(), repo.Action)
-
-	// Grouping for those endpoints not requiring authentication (but should respect ignSignIn)
-	m.Group("/{username}/{reponame}", func() {
-		m.Group("/milestone", func() {
-			m.Get("/{id}", repo.MilestoneIssuesAndPulls)
-		}, reqRepoIssuesOrPullsReader, context.RepoRef())
 		m.Get("/find/*", repo.FindFiles)
 		m.Group("/tree-list", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.TreeList)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.TreeList)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.TreeList)
 		})
-		m.Get("/compare", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists, ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
-		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
+		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
+		m.Combo("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
+	}, optSignIn, context.RepoAssignment, reqRepoCodeReader)
+	// end "/{username}/{reponame}": find, compare, list (code related)
+
+	m.Group("/{username}/{reponame}", func() {
+		m.Get("/issues/posters", repo.IssuePosters) // it can't use {type:issues|pulls} because it would conflict with other routes like "/pulls/{index}"
+		m.Get("/pulls/posters", repo.PullPosters)
+		m.Get("/comments/{id}/attachments", repo.GetCommentAttachments)
+		m.Get("/labels", repo.RetrieveLabelsForList, repo.Labels)
+		m.Get("/milestones", repo.Milestones)
+		m.Get("/milestone/{id}", context.RepoRef(), repo.MilestoneIssuesAndPulls)
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
 				m.Get("/info", repo.GetIssueInfo)
+				m.Get("/attachments", repo.GetIssueAttachments)
+				m.Get("/attachments/{uuid}", repo.GetAttachment)
+				m.Group("/content-history", func() {
+					m.Get("/overview", repo.GetContentHistoryOverview)
+					m.Get("/list", repo.GetContentHistoryList)
+					m.Get("/detail", repo.GetContentHistoryDetail)
+				})
+			})
+		}, context.RepoRef())
+		m.Get("/issues/suggestions", repo.IssueSuggestions)
+	}, optSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader)
+	// end "/{username}/{reponame}": view milestone, label, issue, pull, etc
+
+	m.Group("/{username}/{reponame}", func() {
+		m.Group("/{type:issues|pulls}", func() {
+			m.Get("", repo.Issues)
+			m.Group("/{index}", func() {
+				m.Get("", repo.ViewIssue)
 			})
 		})
-	}, ignSignIn, context.RepoAssignment, context.UnitTypes()) // for "/{username}/{reponame}" which doesn't require authentication
+	}, optSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypeIssues, unit.TypePullRequests, unit.TypeExternalTracker))
+	// end "/{username}/{reponame}": issue/pull list, issue/pull view, external tracker
 
-	// Grouping for those endpoints that do require authentication
-	m.Group("/{username}/{reponame}", func() {
+	m.Group("/{username}/{reponame}", func() { // edit issues, pulls, labels, milestones, etc
 		m.Group("/issues", func() {
 			m.Group("/new", func() {
 				m.Combo("").Get(context.RepoRef(), repo.NewIssue).
 					Post(web.Bind(forms.CreateIssueForm{}), repo.NewIssuePost)
 				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
 			})
-			m.Get("/search", repo.ListIssues)
+			m.Get("/search", repo.SearchRepoIssuesJSON)
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
+
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
-				m.Post("/deadline", web.Bind(structs.EditDeadlineOption{}), repo.UpdateIssueDeadline)
+				m.Post("/deadline", repo.UpdateIssueDeadline)
 				m.Post("/watch", repo.IssueWatch)
 				m.Post("/ref", repo.UpdateIssueRef)
 				m.Post("/pin", reqRepoAdmin, repo.IssuePinOrUnpin)
@@ -1175,15 +1236,13 @@ func registerRoutes(m *web.Route) {
 						m.Post("/cancel", repo.CancelStopwatch)
 					})
 				})
+				m.Post("/time_estimate", repo.UpdateIssueTimeEstimate)
 				m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeIssueReaction)
 				m.Post("/lock", reqRepoIssuesOrPullsWriter, web.Bind(forms.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoIssuesOrPullsWriter, repo.UnlockIssue)
 				m.Post("/delete", reqRepoAdmin, repo.DeleteIssue)
 			}, context.RepoMustNotBeArchived())
-			m.Group("/{index}", func() {
-				m.Get("/attachments", repo.GetIssueAttachments)
-				m.Get("/attachments/{uuid}", repo.GetAttachment)
-			})
+
 			m.Group("/{index}", func() {
 				m.Post("/content-history/soft-delete", repo.SoftDeleteContentHistory)
 			})
@@ -1192,25 +1251,23 @@ func registerRoutes(m *web.Route) {
 			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
 			m.Post("/projects", reqRepoIssuesOrPullsWriter, reqRepoProjectsReader, repo.UpdateIssueProject)
 			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
-			m.Post("/request_review", reqRepoIssuesOrPullsReader, repo.UpdatePullReviewRequest)
+			m.Post("/request_review", repo.UpdatePullReviewRequest)
 			m.Post("/dismiss_review", reqRepoAdmin, web.Bind(forms.DismissReviewForm{}), repo.DismissReview)
 			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
 			m.Post("/delete", reqRepoAdmin, repo.BatchDeleteIssues)
-			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.SetShowOutdatedComments, repo.UpdateResolveConversation)
+			m.Post("/resolve_conversation", repo.SetShowOutdatedComments, repo.UpdateResolveConversation)
 			m.Post("/attachments", repo.UploadIssueAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
 			m.Delete("/unpin/{index}", reqRepoAdmin, repo.IssueUnpin)
 			m.Post("/move_pin", reqRepoAdmin, repo.IssuePinMove)
 		}, context.RepoMustNotBeArchived())
+
 		m.Group("/comments/{id}", func() {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeCommentReaction)
 		}, context.RepoMustNotBeArchived())
-		m.Group("/comments/{id}", func() {
-			m.Get("/attachments", repo.GetCommentAttachments)
-		})
-		m.Post("/markup", web.Bind(structs.MarkupOption{}), misc.Markup)
+
 		m.Group("/labels", func() {
 			m.Post("/new", web.Bind(forms.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", web.Bind(forms.CreateLabelForm{}), repo.UpdateLabel)
@@ -1228,7 +1285,10 @@ func registerRoutes(m *web.Route) {
 		m.Group("/pull", func() {
 			m.Post("/{index}/target_branch", repo.UpdatePullRequestTarget)
 		}, context.RepoMustNotBeArchived())
+	}, reqSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader)
+	// end "/{username}/{reponame}": create or edit issues, pulls, labels, milestones
 
+	m.Group("/{username}/{reponame}", func() { // repo code
 		m.Group("", func() {
 			m.Group("", func() {
 				m.Combo("/_edit/*").Get(repo.EditFile).
@@ -1260,34 +1320,36 @@ func registerRoutes(m *web.Route) {
 			}, web.Bind(forms.NewBranchForm{}))
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
+			m.Post("/rename", web.Bind(forms.RenameBranchForm{}), repo_setting.RenameBranchPost)
+			m.Post("/merge-upstream", repo.MergeUpstream)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
 
-		m.Combo("/fork", reqRepoCodeReader).Get(repo.Fork).Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
-	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
+		m.Combo("/fork").Get(repo.Fork).Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
+	}, reqSignIn, context.RepoAssignment, reqRepoCodeReader)
+	// end "/{username}/{reponame}": repo code
 
-	// Tags
-	m.Group("/{username}/{reponame}", func() {
+	m.Group("/{username}/{reponame}", func() { // repo tags
 		m.Group("/tags", func() {
 			m.Get("", repo.TagsList)
 			m.Get("/list", repo.GetTagList)
 			m.Get(".rss", feedEnabled, repo.TagsListFeedRSS)
 			m.Get(".atom", feedEnabled, repo.TagsListFeedAtom)
 		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
-			repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag, true))
+			repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag, context.RepoRefByTypeOptions{IgnoreNotExistErr: true}))
 		m.Post("/tags/delete", repo.DeleteTag, reqSignIn,
 			repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoCodeWriter, context.RepoRef())
-	}, ignSignIn, context.RepoAssignment, context.UnitTypes())
+	}, optSignIn, context.RepoAssignment, reqRepoCodeReader)
+	// end "/{username}/{reponame}": repo tags
 
-	// Releases
-	m.Group("/{username}/{reponame}", func() {
+	m.Group("/{username}/{reponame}", func() { // repo releases
 		m.Group("/releases", func() {
-			m.Get("/", repo.Releases)
+			m.Get("", repo.Releases)
 			m.Get("/tag/*", repo.SingleRelease)
 			m.Get("/latest", repo.LatestRelease)
 			m.Get(".rss", feedEnabled, repo.ReleasesFeedRSS)
 			m.Get(".atom", feedEnabled, repo.ReleasesFeedAtom)
 		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
-			repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag, true))
+			repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag, context.RepoRefByTypeOptions{IgnoreNotExistErr: true}))
 		m.Get("/releases/attachments/{uuid}", repo.MustBeNotEmpty, repo.GetAttachment)
 		m.Get("/releases/download/{vTag}/{fileName}", repo.MustBeNotEmpty, repo.RedirectDownload)
 		m.Group("/releases", func() {
@@ -1301,162 +1363,118 @@ func registerRoutes(m *web.Route) {
 			m.Get("/edit/*", repo.EditRelease)
 			m.Post("/edit/*", web.Bind(forms.EditReleaseForm{}), repo.EditReleasePost)
 		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, repo.CommitInfoCache)
-	}, ignSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoReleaseReader)
+	}, optSignIn, context.RepoAssignment, reqRepoReleaseReader)
+	// end "/{username}/{reponame}": repo releases
 
-	// to maintain compatibility with old attachments
-	m.Group("/{username}/{reponame}", func() {
+	m.Group("/{username}/{reponame}", func() { // to maintain compatibility with old attachments
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
-	}, ignSignIn, context.RepoAssignment, context.UnitTypes())
+	}, optSignIn, context.RepoAssignment)
+	// end "/{username}/{reponame}": compatibility with old attachments
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Post("/topics", repo.TopicsPost)
-	}, context.RepoAssignment, context.RepoMustNotBeArchived(), reqRepoAdmin)
+	}, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived())
 
 	m.Group("/{username}/{reponame}", func() {
-		m.Group("", func() {
-			m.Get("/issues/posters", repo.IssuePosters) // it can't use {type:issues|pulls} because other routes like "/pulls/{index}" has higher priority
-			m.Get("/{type:issues|pulls}", repo.Issues)
-			m.Get("/{type:issues|pulls}/{index}", repo.ViewIssue)
-			m.Group("/{type:issues|pulls}/{index}/content-history", func() {
-				m.Get("/overview", repo.GetContentHistoryOverview)
-				m.Get("/list", repo.GetContentHistoryList)
-				m.Get("/detail", repo.GetContentHistoryDetail)
-			})
-			m.Get("/labels", reqRepoIssuesOrPullsReader, repo.RetrieveLabels, repo.Labels)
-			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
-		}, context.RepoRef())
-
 		if setting.Packages.Enabled {
 			m.Get("/packages", repo.Packages)
 		}
+	}, optSignIn, context.RepoAssignment)
 
-		m.Group("/projects", func() {
-			m.Get("", repo.Projects)
-			m.Get("/{id}", repo.ViewProject)
-			m.Group("", func() { //nolint:dupl
-				m.Get("/new", repo.RenderNewProject)
-				m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
-				m.Group("/{id}", func() {
-					m.Post("", web.Bind(forms.EditProjectBoardForm{}), repo.AddBoardToProjectPost)
-					m.Post("/delete", repo.DeleteProject)
+	m.Group("/{username}/{reponame}/projects", func() {
+		m.Get("", repo.Projects)
+		m.Get("/{id}", repo.ViewProject)
+		m.Group("", func() { //nolint:dupl
+			m.Get("/new", repo.RenderNewProject)
+			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
+			m.Group("/{id}", func() {
+				m.Post("/delete", repo.DeleteProject)
 
-					m.Get("/edit", repo.RenderEditProject)
-					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), repo.EditProjectPost)
-					m.Post("/{action:open|close}", repo.ChangeProjectStatus)
+				m.Get("/edit", repo.RenderEditProject)
+				m.Post("/edit", web.Bind(forms.CreateProjectForm{}), repo.EditProjectPost)
+				m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
-					m.Group("/{boardID}", func() {
-						m.Put("", web.Bind(forms.EditProjectBoardForm{}), repo.EditProjectBoard)
-						m.Delete("", repo.DeleteProjectBoard)
-						m.Post("/default", repo.SetDefaultProjectBoard)
-						m.Post("/unsetdefault", repo.UnSetDefaultProjectBoard)
-
-						m.Post("/move", repo.MoveIssues)
-					})
+				// TODO: improper name. Others are "delete project", "edit project", but this one is "move columns"
+				m.Post("/move", project.MoveColumns)
+				m.Post("/columns/new", web.Bind(forms.EditProjectColumnForm{}), repo.AddColumnToProjectPost)
+				m.Group("/{columnID}", func() {
+					m.Put("", web.Bind(forms.EditProjectColumnForm{}), repo.EditProjectColumn)
+					m.Delete("", repo.DeleteProjectColumn)
+					m.Post("/default", repo.SetDefaultProjectColumn)
+					m.Post("/move", repo.MoveIssues)
 				})
-			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
-		}, reqRepoProjectsReader, repo.MustEnableRepoProjects)
+			})
+		}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
+	}, optSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)
+	// end "/{username}/{reponame}/projects"
 
-		m.Group("/actions", func() {
-			m.Get("", actions.List)
-			m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
-			m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
+	m.Group("/{username}/{reponame}/actions", func() {
+		m.Get("", actions.List)
+		m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
+		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
+		m.Post("/run", reqRepoActionsWriter, actions.Run)
 
-			m.Group("/runs/{run}", func() {
+		m.Group("/runs/{run}", func() {
+			m.Combo("").
+				Get(actions.View).
+				Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
+			m.Group("/jobs/{job}", func() {
 				m.Combo("").
 					Get(actions.View).
 					Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
-				m.Group("/jobs/{job}", func() {
-					m.Combo("").
-						Get(actions.View).
-						Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
-					m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
-					m.Get("/logs", actions.Logs)
-				})
-				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
-				m.Post("/approve", reqRepoActionsWriter, actions.Approve)
-				m.Get("/artifacts", actions.ArtifactsView)
-				m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
-				m.Delete("/artifacts/{artifact_name}", actions.ArtifactsDeleteView)
 				m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
+				m.Get("/logs", actions.Logs)
 			})
-			m.Group("/workflows/{workflow_name}", func() {
-				m.Get("/badge.svg", actions.GetWorkflowBadge)
-			})
-		}, reqRepoActionsReader, actions.MustEnableActions)
-
-		m.Group("/wiki", func() {
-			m.Combo("/").
-				Get(repo.Wiki).
-				Post(context.RepoMustNotBeArchived(), reqSignIn, reqRepoWikiWriter, web.Bind(forms.NewWikiForm{}), repo.WikiPost)
-			m.Combo("/*").
-				Get(repo.Wiki).
-				Post(context.RepoMustNotBeArchived(), reqSignIn, reqRepoWikiWriter, web.Bind(forms.NewWikiForm{}), repo.WikiPost)
-			m.Get("/commit/{sha:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
-			m.Get("/commit/{sha:[a-f0-9]{7,64}}.{ext:patch|diff}", repo.RawDiff)
-		}, repo.MustEnableWiki, func(ctx *context.Context) {
-			ctx.Data["PageIsWiki"] = true
-			ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.WikiCloneLink()
+			m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
+			m.Post("/approve", reqRepoActionsWriter, actions.Approve)
+			m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
+			m.Delete("/artifacts/{artifact_name}", actions.ArtifactsDeleteView)
+			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 		})
-
-		m.Group("/wiki", func() {
-			m.Get("/raw/*", repo.WikiRaw)
-		}, repo.MustEnableWiki)
-
-		m.Group("/activity", func() {
-			m.Get("", repo.Activity)
-			m.Get("/{period}", repo.Activity)
-			m.Group("/contributors", func() {
-				m.Get("", repo.Contributors)
-				m.Get("/data", repo.ContributorsData)
-			})
-			m.Group("/code-frequency", func() {
-				m.Get("", repo.CodeFrequency)
-				m.Get("/data", repo.CodeFrequencyData)
-			})
-			m.Group("/recent-commits", func() {
-				m.Get("", repo.RecentCommits)
-				m.Get("/data", repo.RecentCommitsData)
-			})
-		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases))
-
-		m.Group("/activity_author_data", func() {
-			m.Get("", repo.ActivityAuthors)
-			m.Get("/{period}", repo.ActivityAuthors)
-		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.TypeCode))
-
-		m.Group("/archive", func() {
-			m.Get("/*", repo.Download)
-			m.Post("/*", repo.InitiateDownload)
-		}, repo.MustBeNotEmpty, dlSourceEnabled, reqRepoCodeReader)
-
-		m.Group("/branches", func() {
-			m.Get("/list", repo.GetBranchesList)
-			m.Get("", repo.Branches)
-		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
-
-		m.Group("/blob_excerpt", func() {
-			m.Get("/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
-		}, func(ctx *context.Context) gocontext.CancelFunc {
-			if ctx.FormBool("wiki") {
-				ctx.Data["PageIsWiki"] = true
-				repo.MustEnableWiki(ctx)
-				return nil
-			}
-
-			reqRepoCodeReader(ctx)
-			if ctx.Written() {
-				return nil
-			}
-			cancel := context.RepoRef()(ctx)
-			if ctx.Written() {
-				return cancel
-			}
-
-			repo.MustBeNotEmpty(ctx)
-			return cancel
+		m.Group("/workflows/{workflow_name}", func() {
+			m.Get("/badge.svg", actions.GetWorkflowBadge)
 		})
+	}, optSignIn, context.RepoAssignment, reqRepoActionsReader, actions.MustEnableActions)
+	// end "/{username}/{reponame}/actions"
 
-		m.Get("/pulls/posters", repo.PullPosters)
+	m.Group("/{username}/{reponame}/wiki", func() {
+		m.Combo("").
+			Get(repo.Wiki).
+			Post(context.RepoMustNotBeArchived(), reqSignIn, reqRepoWikiWriter, web.Bind(forms.NewWikiForm{}), repo.WikiPost)
+		m.Combo("/*").
+			Get(repo.Wiki).
+			Post(context.RepoMustNotBeArchived(), reqSignIn, reqRepoWikiWriter, web.Bind(forms.NewWikiForm{}), repo.WikiPost)
+		m.Get("/commit/{sha:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
+		m.Get("/commit/{sha:[a-f0-9]{7,64}}.{ext:patch|diff}", repo.RawDiff)
+		m.Get("/raw/*", repo.WikiRaw)
+	}, optSignIn, context.RepoAssignment, repo.MustEnableWiki, reqRepoWikiReader, func(ctx *context.Context) {
+		ctx.Data["PageIsWiki"] = true
+		ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.WikiCloneLink()
+	})
+	// end "/{username}/{reponame}/wiki"
+
+	m.Group("/{username}/{reponame}/activity", func() {
+		m.Get("", repo.Activity)
+		m.Get("/{period}", repo.Activity)
+		m.Group("/contributors", func() {
+			m.Get("", repo.Contributors)
+			m.Get("/data", repo.ContributorsData)
+		})
+		m.Group("/code-frequency", func() {
+			m.Get("", repo.CodeFrequency)
+			m.Get("/data", repo.CodeFrequencyData)
+		})
+		m.Group("/recent-commits", func() {
+			m.Get("", repo.RecentCommits)
+			m.Get("/data", repo.RecentCommitsData)
+		})
+	},
+		optSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases),
+		context.RepoRef(), repo.MustBeNotEmpty,
+	)
+	// end "/{username}/{reponame}/activity"
+
+	m.Group("/{username}/{reponame}", func() {
 		m.Group("/pulls/{index}", func() {
 			m.Get("", repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewIssue)
 			m.Get(".diff", repo.DownloadPullDiff)
@@ -1481,7 +1499,47 @@ func registerRoutes(m *web.Route) {
 					m.Post("/submit", web.Bind(forms.SubmitReviewForm{}), repo.SubmitReview)
 				}, context.RepoMustNotBeArchived())
 			})
-		}, repo.MustAllowPulls)
+		})
+	}, optSignIn, context.RepoAssignment, repo.MustAllowPulls, reqRepoPullsReader)
+	// end "/{username}/{reponame}/pulls/{index}": repo pull request
+
+	m.Group("/{username}/{reponame}", func() {
+		m.Group("/activity_author_data", func() {
+			m.Get("", repo.ActivityAuthors)
+			m.Get("/{period}", repo.ActivityAuthors)
+		}, context.RepoRef(), repo.MustBeNotEmpty)
+
+		m.Group("/archive", func() {
+			m.Get("/*", repo.Download)
+			m.Post("/*", repo.InitiateDownload)
+		}, repo.MustBeNotEmpty, dlSourceEnabled)
+
+		m.Group("/branches", func() {
+			m.Get("/list", repo.GetBranchesList)
+			m.Get("", repo.Branches)
+		}, repo.MustBeNotEmpty, context.RepoRef())
+
+		m.Group("/blob_excerpt", func() {
+			m.Get("/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
+		}, func(ctx *context.Context) gocontext.CancelFunc {
+			// FIXME: refactor this function, use separate routes for wiki/code
+			if ctx.FormBool("wiki") {
+				ctx.Data["PageIsWiki"] = true
+				repo.MustEnableWiki(ctx)
+				return nil
+			}
+
+			if ctx.Written() {
+				return nil
+			}
+			cancel := context.RepoRef()(ctx)
+			if ctx.Written() {
+				return cancel
+			}
+
+			repo.MustBeNotEmpty(ctx)
+			return cancel
+		})
 
 		m.Group("/media", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.SingleDownloadOrLFS)
@@ -1489,8 +1547,8 @@ func registerRoutes(m *web.Route) {
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.SingleDownloadOrLFS)
 			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), repo.DownloadByIDOrLFS)
 			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.SingleDownloadOrLFS)
-		}, repo.MustBeNotEmpty, reqRepoCodeReader)
+			m.Get("/*", context.RepoRefByType(context.RepoRefUnknown), repo.SingleDownloadOrLFS)
+		}, repo.MustBeNotEmpty)
 
 		m.Group("/raw", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.SingleDownload)
@@ -1498,36 +1556,36 @@ func registerRoutes(m *web.Route) {
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.SingleDownload)
 			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), repo.DownloadByID)
 			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.SingleDownload)
-		}, repo.MustBeNotEmpty, reqRepoCodeReader)
+			m.Get("/*", context.RepoRefByType(context.RepoRefUnknown), repo.SingleDownload)
+		}, repo.MustBeNotEmpty)
 
 		m.Group("/render", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RenderFile)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RenderFile)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RenderFile)
 			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), repo.RenderFile)
-		}, repo.MustBeNotEmpty, reqRepoCodeReader)
+		}, repo.MustBeNotEmpty)
 
 		m.Group("/commits", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RefCommits)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RefCommits)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefCommits)
 			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.RefCommits)
-		}, repo.MustBeNotEmpty, reqRepoCodeReader)
+			m.Get("/*", context.RepoRefByType(context.RepoRefUnknown), repo.RefCommits)
+		}, repo.MustBeNotEmpty)
 
 		m.Group("/blame", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RefBlame)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RefBlame)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefBlame)
-		}, repo.MustBeNotEmpty, reqRepoCodeReader)
+		}, repo.MustBeNotEmpty)
 
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 			m.Get("/commit/{sha:([a-f0-9]{7,64})$}/load-branches-and-tags", repo.LoadBranchesAndTags)
 			m.Get("/cherry-pick/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, repo.CherryPick)
-		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
+		}, repo.MustBeNotEmpty, context.RepoRef())
 
 		m.Get("/rss/branch/*", context.RepoRefByType(context.RepoRefBranch), feedEnabled, feed.RenderBranchFeed)
 		m.Get("/atom/branch/*", context.RepoRefByType(context.RepoRefBranch), feedEnabled, feed.RenderBranchFeed)
@@ -1536,51 +1594,25 @@ func registerRoutes(m *web.Route) {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Home)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.Home)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.Home)
-			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.Home)
+			m.Get("/*", context.RepoRefByType(context.RepoRefUnknown), repo.Home) // "/*" route is deprecated, and kept for backward compatibility
 		}, repo.SetEditorconfigIfExists)
 
-		m.Group("", func() {
-			m.Get("/forks", repo.Forks)
-		}, context.RepoRef(), reqRepoCodeReader)
-		m.Get("/commit/{sha:([a-f0-9]{7,64})}.{ext:patch|diff}", repo.MustBeNotEmpty, reqRepoCodeReader, repo.RawDiff)
-	}, ignSignIn, context.RepoAssignment, context.UnitTypes())
-
-	m.Post("/{username}/{reponame}/lastcommit/*", ignSignInAndCsrf, context.RepoAssignment, context.UnitTypes(), context.RepoRefByType(context.RepoRefCommit), reqRepoCodeReader, repo.LastCommit)
+		m.Get("/forks", context.RepoRef(), repo.Forks)
+		m.Get("/commit/{sha:([a-f0-9]{7,64})}.{ext:patch|diff}", repo.MustBeNotEmpty, repo.RawDiff)
+		m.Post("/lastcommit/*", context.RepoRefByType(context.RepoRefCommit), repo.LastCommit)
+	}, optSignIn, context.RepoAssignment, reqRepoCodeReader)
+	// end "/{username}/{reponame}": repo code
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/stars", repo.Stars)
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", reqRepoCodeReader, repo.Search)
-	}, ignSignIn, context.RepoAssignment, context.RepoRef(), context.UnitTypes())
+		m.Post("/action/{action}", reqSignIn, repo.Action)
+	}, optSignIn, context.RepoAssignment, context.RepoRef())
 
-	m.Group("/{username}", func() {
-		m.Group("/{reponame}", func() {
-			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
-		}, ignSignIn, context.RepoAssignment, context.RepoRef(), context.UnitTypes())
+	common.AddOwnerRepoGitLFSRoutes(m, optSignInIgnoreCsrf, lfsServerEnabled) // "/{username}/{reponame}/{lfs-paths}": git-lfs support
 
-		m.Group("/{reponame}", func() {
-			m.Group("/info/lfs", func() {
-				m.Post("/objects/batch", lfs.CheckAcceptMediaType, lfs.BatchHandler)
-				m.Put("/objects/{oid}/{size}", lfs.UploadHandler)
-				m.Get("/objects/{oid}/{filename}", lfs.DownloadHandler)
-				m.Get("/objects/{oid}", lfs.DownloadHandler)
-				m.Post("/verify", lfs.CheckAcceptMediaType, lfs.VerifyHandler)
-				m.Group("/locks", func() {
-					m.Get("/", lfs.GetListLockHandler)
-					m.Post("/", lfs.PostLockHandler)
-					m.Post("/verify", lfs.VerifyLockHandler)
-					m.Post("/{lid}/unlock", lfs.UnLockHandler)
-				}, lfs.CheckAcceptMediaType)
-				m.Any("/*", func(ctx *context.Context) {
-					ctx.NotFound("", nil)
-				})
-			}, ignSignInAndCsrf, lfsServerEnabled)
-
-			gitHTTPRouters(m)
-		})
-	})
-	// ***** END: Repository *****
+	addOwnerRepoGitHTTPRouters(m) // "/{username}/{reponame}/{git-paths}": git http support
 
 	m.Group("/notifications", func() {
 		m.Get("", user.Notifications)
@@ -1596,13 +1628,17 @@ func registerRoutes(m *web.Route) {
 	}
 
 	if !setting.IsProd {
-		m.Any("/devtest", devtest.List)
-		m.Any("/devtest/fetch-action-test", devtest.FetchActionTest)
-		m.Any("/devtest/{sub}", devtest.Tmpl)
+		m.Group("/devtest", func() {
+			m.Any("", devtest.List)
+			m.Any("/fetch-action-test", devtest.FetchActionTest)
+			m.Any("/{sub}", devtest.Tmpl)
+			m.Post("/actions-mock/runs/{run}/jobs/{job}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
+		})
 	}
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetWebContext(req)
+		routing.UpdateFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))
 		ctx.NotFound("", nil)
 	})
 }

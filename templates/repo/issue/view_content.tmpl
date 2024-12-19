@@ -1,12 +1,5 @@
 <div class="issue-content">
-	<!-- I know, there is probably a better way to do this (moved from sidebar.tmpl, original author: 6543 @ 2021-02-28) -->
-	<!-- Agree, there should be a better way, eg: introduce window.config.pageData (original author: wxiaoguang @ 2021-09-05) -->
-	<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
-	<input type="hidden" id="repoId" value="{{.Repository.ID}}">
-	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}">
-	<input type="hidden" id="type" value="{{.IssueType}}">
-
-	{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix ctx.Locale}}
+	{{$createdStr:= DateUtils.TimeSince .Issue.CreatedUnix}}
 	<div class="issue-content-left comment-list prevent-before-timeline">
 		<div class="ui timeline">
 			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">
@@ -46,9 +39,9 @@
 						<div class="comment-header-right actions tw-flex tw-items-center">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .Issue.ShowRole "IgnorePoster" true}}
 							{{if not $.Repository.IsArchived}}
-								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
+								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 							{{end}}
-							{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
+							{{template "repo/issue/view_content/context_menu" dict "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
 						</div>
 					</div>
 					<div class="ui attached segment comment-body" role="article">
@@ -60,14 +53,14 @@
 							{{end}}
 						</div>
 						<div id="issue-{{.Issue.ID}}-raw" class="raw-content tw-hidden">{{.Issue.Content}}</div>
-						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
+						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-content-version="{{.Issue.ContentVersion}}" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
 						{{if .Issue.Attachments}}
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Issue.Attachments "RenderedContent" .Issue.RenderedContent}}
 						{{end}}
 					</div>
 					{{$reactions := .Issue.Reactions.GroupByType}}
 					{{if $reactions}}
-						{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
+						{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
 					{{end}}
 				</div>
 			</div>
@@ -85,32 +78,34 @@
 						{{ctx.AvatarUtils.Avatar .SignedUser 40}}
 					</a>
 					<div class="content">
-						<form class="ui segment form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
-							{{template "repo/issue/comment_tab" .}}
-							{{.CsrfTokenHtml}}
-							<div class="field footer">
-								<div class="text right">
-									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
-										{{if .Issue.IsClosed}}
-											<button id="status-button" class="ui primary basic button" data-status="{{ctx.Locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
-												{{ctx.Locale.Tr "repo.issues.reopen_issue"}}
-											</button>
-										{{else}}
-											{{$closeTranslationKey := "repo.issues.close"}}
-											{{if .Issue.IsPull}}
-												{{$closeTranslationKey = "repo.pulls.close"}}
+						<div class="ui segment">
+							<form class="ui form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
+								{{template "repo/issue/comment_tab" .}}
+								{{.CsrfTokenHtml}}
+								<div class="field footer">
+									<div class="text right">
+										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
+											{{if .Issue.IsClosed}}
+												<button id="status-button" class="ui primary basic button" data-status="{{ctx.Locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
+													{{ctx.Locale.Tr "repo.issues.reopen_issue"}}
+												</button>
+											{{else}}
+												{{$closeTranslationKey := "repo.issues.close"}}
+												{{if .Issue.IsPull}}
+													{{$closeTranslationKey = "repo.pulls.close"}}
+												{{end}}
+												<button id="status-button" class="ui red basic button" data-status="{{ctx.Locale.Tr $closeTranslationKey}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.close_comment_issue"}}" name="status" value="close">
+													{{ctx.Locale.Tr $closeTranslationKey}}
+												</button>
 											{{end}}
-											<button id="status-button" class="ui red basic button" data-status="{{ctx.Locale.Tr $closeTranslationKey}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.close_comment_issue"}}" name="status" value="close">
-												{{ctx.Locale.Tr $closeTranslationKey}}
-											</button>
 										{{end}}
-									{{end}}
-									<button class="ui primary button">
-										{{ctx.Locale.Tr "repo.issues.create_comment"}}
-									</button>
+										<button id="comment-button" class="ui primary button">
+											{{ctx.Locale.Tr "repo.issues.create_comment"}}
+										</button>
+									</div>
 								</div>
-							</div>
-						</form>
+							</form>
+						</div>
 					</div>
 				</div>
 				{{else if .Repository.IsArchived}}
@@ -144,11 +139,12 @@
 </div>
 
 <template id="issue-comment-editor-template">
-	<div class="ui comment form">
+	<div class="ui form comment">
 		<div class="field">
 			{{template "shared/combomarkdowneditor" (dict
-				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
-				"MarkdownPreviewContext" .RepoLink
+				"CustomInit" true
+				"MarkdownPreviewInRepo" $.Repository
+				"MarkdownPreviewMode" "comment"
 				"TextareaName" "content"
 				"DropzoneParentContainer" ".ui.form"
 			)}}
@@ -162,8 +158,8 @@
 
 		<div class="field">
 			<div class="text right edit">
-				<button class="ui basic cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
-				<button class="ui primary save button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
+				<button class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
 			</div>
 		</div>
 	</div>

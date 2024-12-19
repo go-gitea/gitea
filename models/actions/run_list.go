@@ -19,19 +19,15 @@ type RunList []*ActionRun
 
 // GetUserIDs returns a slice of user's id
 func (runs RunList) GetUserIDs() []int64 {
-	ids := make(container.Set[int64], len(runs))
-	for _, run := range runs {
-		ids.Add(run.TriggerUserID)
-	}
-	return ids.Values()
+	return container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
+		return run.TriggerUserID, true
+	})
 }
 
 func (runs RunList) GetRepoIDs() []int64 {
-	ids := make(container.Set[int64], len(runs))
-	for _, run := range runs {
-		ids.Add(run.RepoID)
-	}
-	return ids.Values()
+	return container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
+		return run.RepoID, true
+	})
 }
 
 func (runs RunList) LoadTriggerUser(ctx context.Context) error {

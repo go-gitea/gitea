@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -21,25 +21,6 @@ const (
 	GitQuarantinePath               = "GIT_QUARANTINE_PATH"
 	GitPushOptionCount              = "GIT_PUSH_OPTION_COUNT"
 )
-
-// GitPushOptions is a wrapper around a map[string]string
-type GitPushOptions map[string]string
-
-// GitPushOptions keys
-const (
-	GitPushOptionRepoPrivate  = "repo.private"
-	GitPushOptionRepoTemplate = "repo.template"
-)
-
-// Bool checks for a key in the map and parses as a boolean
-func (g GitPushOptions) Bool(key string, def bool) bool {
-	if val, ok := g[key]; ok {
-		if b, err := strconv.ParseBool(val); err == nil {
-			return b
-		}
-	}
-	return def
-}
 
 // HookOptions represents the options for the Hook calls
 type HookOptions struct {
@@ -53,6 +34,7 @@ type HookOptions struct {
 	GitQuarantinePath               string
 	GitPushOptions                  GitPushOptions
 	PullRequestID                   int64
+	PushTrigger                     repository.PushTrigger
 	DeployKeyID                     int64 // if the pusher is a DeployKey, then UserID is the repo's org user.
 	IsWiki                          bool
 	ActionPerm                      int
@@ -87,13 +69,17 @@ type HookProcReceiveResult struct {
 
 // HookProcReceiveRefResult represents an individual result from ProcReceive
 type HookProcReceiveRefResult struct {
-	OldOID       string
-	NewOID       string
-	Ref          string
-	OriginalRef  git.RefName
-	IsForcePush  bool
-	IsNotMatched bool
-	Err          string
+	OldOID            string
+	NewOID            string
+	Ref               string
+	OriginalRef       git.RefName
+	IsForcePush       bool
+	IsNotMatched      bool
+	Err               string
+	IsCreatePR        bool
+	URL               string
+	ShouldShowMessage bool
+	HeadBranch        string
 }
 
 // HookPreReceive check whether the provided commits are allowed

@@ -9,13 +9,19 @@
 	<div class="ui secondary segment">
 		{{if eq .PullRequest.Flow 0}}
 		<div>git fetch -u {{if ne .PullRequest.HeadRepo.ID .PullRequest.BaseRepo.ID}}<origin-url data-url="{{.PullRequest.HeadRepo.Link}}"></origin-url>{{else}}origin{{end}} {{.PullRequest.HeadBranch}}:{{$localBranch}}</div>
-		<div>git checkout {{$localBranch}}</div>
 		{{else}}
-		<div>git fetch -u origin {{.GetGitRefName}}:{{$localBranch}}</div>
+		<div>git fetch -u origin {{.PullRequest.GetGitRefName}}:{{$localBranch}}</div>
 		{{end}}
+		<div>git checkout {{$localBranch}}</div>
 	</div>
 	{{if .ShowMergeInstructions}}
-	<div><h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_title"}}</h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_desc"}}</div>
+	<div>
+		<h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_title"}}</h3>
+		{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_desc"}}
+		{{if not .AutodetectManualMerge}}
+			<div>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_warning"}}</div>
+		{{end}}
+	</div>
 	<div class="ui secondary segment">
 		<div data-pull-merge-style="merge">
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>

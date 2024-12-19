@@ -308,7 +308,7 @@ func ListWikiPages(ctx *context.APIContext) {
 	}
 
 	skip := (page - 1) * limit
-	max := page * limit
+	maxNum := page * limit
 
 	entries, err := commit.ListEntries()
 	if err != nil {
@@ -317,7 +317,7 @@ func ListWikiPages(ctx *context.APIContext) {
 	}
 	pages := make([]*api.WikiPageMetaData, 0, len(entries))
 	for i, entry := range entries {
-		if i < skip || i >= max || !entry.IsRegular() {
+		if i < skip || i >= maxNum || !entry.IsRegular() {
 			continue
 		}
 		c, err := wikiRepo.GetCommitByPath(entry.Name())
@@ -478,7 +478,6 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) {
 	wikiRepo, err := gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 	if err != nil {
-
 		if git.IsErrNotExist(err) || err.Error() == "no such file or directory" {
 			ctx.NotFound(err)
 		} else {

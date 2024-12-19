@@ -6,10 +6,17 @@
 @import "./modules/container.css";
 @import "./modules/divider.css";
 @import "./modules/header.css";
+@import "./modules/input.css";
+@import "./modules/label.css";
+@import "./modules/list.css";
 @import "./modules/segment.css";
 @import "./modules/grid.css";
+@import "./modules/menu.css";
 @import "./modules/message.css";
+@import "./modules/table.css";
 @import "./modules/card.css";
+@import "./modules/checkbox.css";
+@import "./modules/dimmer.css";
 @import "./modules/modal.css";
 
 @import "./modules/select.css";
@@ -33,10 +40,12 @@
 @import "./features/codeeditor.css";
 @import "./features/projects.css";
 @import "./features/tribute.css";
+@import "./features/cropper.css";
 @import "./features/console.css";
 
 @import "./markup/content.css";
 @import "./markup/codecopy.css";
+@import "./markup/codepreview.css";
 @import "./markup/asciicast.css";
 
 @import "./chroma/base.css";
@@ -56,6 +65,11 @@
 @import "./repo/linebutton.css";
 @import "./repo/wiki.css";
 @import "./repo/header.css";
+@import "./repo/home.css";
+@import "./repo/home-file-list.css";
+@import "./repo/reactions.css";
+@import "./repo/clone.css";
+@import "./repo/commit-sign.css";
 
 @import "./editor/fileeditor.css";
 @import "./editor/combomarkdowneditor.css";

@@ -43,6 +43,8 @@ var (
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
 		DefaultForkRepoUnits                    []string
+		DefaultMirrorRepoUnits                  []string
+		DefaultTemplateRepoUnits                []string
 		PrefixArchiveFiles                      bool
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
@@ -51,6 +53,7 @@ var (
 		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
 		AllowForkWithoutMaximumLimit            bool
+		AllowForkIntoSameOwner                  bool
 
 		// Repository editor settings
 		Editor struct {
@@ -161,6 +164,8 @@ var (
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
 		DefaultForkRepoUnits:                    []string{},
+		DefaultMirrorRepoUnits:                  []string{},
+		DefaultTemplateRepoUnits:                []string{},
 		PrefixArchiveFiles:                      true,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
@@ -286,7 +291,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		RepoRootPath = filepath.Clean(RepoRootPath)
 	}
 
-	fatalDuplicatedPath("repository.ROOT", RepoRootPath)
+	checkOverlappedPath("[repository].ROOT", RepoRootPath)
 
 	defaultDetectedCharsetsOrder := make([]string, 0, len(Repository.DetectedCharsetsOrder))
 	for _, charset := range Repository.DetectedCharsetsOrder {

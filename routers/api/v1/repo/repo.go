@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -20,7 +21,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
@@ -31,8 +31,10 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	feed_service "code.gitea.io/gitea/services/feed"
 	"code.gitea.io/gitea/services/issue"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -105,7 +107,7 @@ func Search(ctx *context.APIContext) {
 	// - name: sort
 	//   in: query
 	//   description: sort repos by attribute. Supported values are
-	//                "alpha", "created", "updated", "size", and "id".
+	//                "alpha", "created", "updated", "size", "git_size", "lfs_size", "stars", "forks" and "id".
 	//                Default is "alpha"
 	//   type: string
 	// - name: order
@@ -127,6 +129,11 @@ func Search(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	private := ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private"))
+	if ctx.PublicOnly {
+		private = false
+	}
+
 	opts := &repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.Doer,
@@ -136,7 +143,7 @@ func Search(ctx *context.APIContext) {
 		TeamID:             ctx.FormInt64("team_id"),
 		TopicOnly:          ctx.FormBool("topic"),
 		Collaborate:        optional.None[bool](),
-		Private:            ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private")),
+		Private:            private,
 		Template:           optional.None[bool](),
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
@@ -182,7 +189,7 @@ func Search(ctx *context.APIContext) {
 		if len(sortOrder) == 0 {
 			sortOrder = "asc"
 		}
-		if searchModeMap, ok := repo_model.SearchOrderByMap[sortOrder]; ok {
+		if searchModeMap, ok := repo_model.OrderByMap[sortOrder]; ok {
 			if orderBy, ok := searchModeMap[sortMode]; ok {
 				opts.OrderBy = orderBy
 			} else {
@@ -195,7 +202,6 @@ func Search(ctx *context.APIContext) {
 		}
 	}
 
-	var err error
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
@@ -250,7 +256,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		Gitignores:       opt.Gitignores,
 		License:          opt.License,
 		Readme:           opt.Readme,
-		IsPrivate:        opt.Private,
+		IsPrivate:        opt.Private || setting.Repository.ForcePrivate,
 		AutoInit:         opt.AutoInit,
 		DefaultBranch:    opt.DefaultBranch,
 		TrustModel:       repo_model.ToTrustModel(opt.TrustModel),
@@ -362,7 +368,7 @@ func Generate(ctx *context.APIContext) {
 		Name:            form.Name,
 		DefaultBranch:   form.DefaultBranch,
 		Description:     form.Description,
-		Private:         form.Private,
+		Private:         form.Private || setting.Repository.ForcePrivate,
 		GitContent:      form.GitContent,
 		Topics:          form.Topics,
 		GitHooks:        form.GitHooks,
@@ -489,7 +495,7 @@ func CreateOrgRepo(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	opt := web.GetForm(ctx).(*api.CreateRepoOption)
-	org, err := organization.GetOrgByName(ctx, ctx.Params(":org"))
+	org, err := organization.GetOrgByName(ctx, ctx.PathParam(":org"))
 	if err != nil {
 		if organization.IsErrOrgNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -569,7 +575,7 @@ func GetByID(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo, err := repo_model.GetRepositoryByID(ctx, ctx.ParamsInt64(":id"))
+	repo, err := repo_model.GetRepositoryByID(ctx, ctx.PathParamInt64(":id"))
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound()
@@ -583,7 +589,7 @@ func GetByID(ctx *context.APIContext) {
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return
-	} else if !permission.HasAccess() {
+	} else if !permission.HasAnyUnitAccess() {
 		ctx.NotFound()
 		return
 	}
@@ -729,14 +735,14 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	}
 
 	// Default branch only updated if changed and exist or the repository is empty
+	updateRepoLicense := false
 	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && (repo.IsEmpty || ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch)) {
 		if !repo.IsEmpty {
 			if err := gitrepo.SetDefaultBranch(ctx, ctx.Repo.Repository, *opts.DefaultBranch); err != nil {
-				if !git.IsErrUnsupportedVersion(err) {
-					ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
-					return err
-				}
+				ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
+				return err
 			}
+			updateRepoLicense = true
 		}
 		repo.DefaultBranch = *opts.DefaultBranch
 	}
@@ -744,6 +750,15 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepository", err)
 		return err
+	}
+
+	if updateRepoLicense {
+		if err := repo_service.AddRepoToLicenseUpdaterQueue(&repo_service.LicenseUpdaterOptions{
+			RepoID: ctx.Repo.Repository.ID,
+		}); err != nil {
+			ctx.Error(http.StatusInternalServerError, "AddRepoToLicenseUpdaterQueue", err)
+			return err
+		}
 	}
 
 	log.Trace("Repository basic settings updated: %s/%s", owner.Name, repo.Name)
@@ -1035,12 +1050,20 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err
 			}
+			if err := actions_model.CleanRepoScheduleTasks(ctx, repo); err != nil {
+				log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+			}
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		} else {
 			if err := repo_model.SetArchiveRepoState(ctx, repo, *opts.Archived); err != nil {
 				log.Error("Tried to un-archive a repo: %s", err)
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err
+			}
+			if ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypeActions) {
+				if err := actions_service.DetectAndHandleSchedules(ctx, repo); err != nil {
+					log.Error("DetectAndHandleSchedules for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+				}
 			}
 			log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		}
@@ -1052,16 +1075,10 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 	repo := ctx.Repo.Repository
 
-	// only update mirror if interval or enable prune are provided
-	if opts.MirrorInterval == nil && opts.EnablePrune == nil {
-		return nil
-	}
-
-	// these values only make sense if the repo is a mirror
+	// Skip this update if the repo is not a mirror, do not return error.
+	// Because reporting errors only makes the logic more complex&fragile, it doesn't really help end users.
 	if !repo.IsMirror {
-		err := fmt.Errorf("repo is not a mirror, can not change mirror interval")
-		ctx.Error(http.StatusUnprocessableEntity, err.Error(), err)
-		return err
+		return nil
 	}
 
 	// get the mirror from the repo
@@ -1074,7 +1091,6 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 	// update MirrorInterval
 	if opts.MirrorInterval != nil {
-
 		// MirrorInterval should be a duration
 		interval, err := time.ParseDuration(*opts.MirrorInterval)
 		if err != nil {
@@ -1298,7 +1314,7 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 		ListOptions:    listOptions,
 	}
 
-	feeds, count, err := activities_model.GetFeeds(ctx, opts)
+	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetFeeds", err)
 		return
