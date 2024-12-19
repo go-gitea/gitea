@@ -45,7 +45,7 @@ var (
 	// https://man.archlinux.org/man/PKGBUILD.5
 	namePattern = regexp.MustCompile(`\A[a-zA-Z0-9@._+-]+\z`)
 	// (epoch:pkgver-pkgrel)
-	versionPattern = regexp.MustCompile(`\A(?:[\d]:)?[\w.+~]+(?:-[-\w.+~]+)?\z`)
+	versionPattern = regexp.MustCompile(`\A(?:\d:)?[\w.+~]+(?:-[-\w.+~]+)?\z`)
 )
 
 type Package struct {
