@@ -5,10 +5,15 @@ package migrations
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"hash"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	git_module "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -71,6 +76,7 @@ func NewCodeCommitDownloader(ctx context.Context, repoName, baseURL, accessKeyID
 			Credentials: credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, ""),
 			Region:      region,
 		}),
+		regionName: region,
 	}
 
 	return &downloader
@@ -84,6 +90,7 @@ type CodeCommitDownloader struct {
 	repoName          string
 	baseURL           string
 	allPullRequestIDs []string
+	regionName        string
 }
 
 // SetContext set context
@@ -227,7 +234,10 @@ func (c *CodeCommitDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr st
 	if err != nil {
 		return "", err
 	}
-	u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
+	now := time.Now().UTC()
+	datetime := now.Format("20060102T150405Z")
+	signature := generateSigV4AuthPassword(opts.AWSSecretAccessKey, u.Host, u.Path, c.regionName, now)
+	u.User = url.UserPassword(opts.AWSAccessKeyID, datetime+signature)
 	return u.String(), nil
 }
 
@@ -266,4 +276,35 @@ func (c *CodeCommitDownloader) getUsernameFromARN(arn string) string {
 		return parts[len(parts)-1]
 	}
 	return ""
+}
+
+func generateSigV4AuthPassword(secretKey string, host string, path string, region string, now time.Time) string {
+	amzDate := now.Format("20060102T150405")
+	date := now.Format("20060102")
+
+	canonicalRequest := fmt.Sprintf("GIT\n%s\n\nhost:%s\n\nhost\n", path, host)
+
+	stringToSign := "AWS4-HMAC-SHA256\n"
+	stringToSign += amzDate + "\n"
+	stringToSign += fmt.Sprintf("%s/%s/%s/aws4_request\n", date, region, "codecommit")
+	stringToSign += hex.EncodeToString(makeHash(sha256.New(), []byte(canonicalRequest)))
+
+	signKey := sign([]byte("AWS4"+secretKey), date)
+	signKey = sign(signKey, region)
+	signKey = sign(signKey, "codecommit")
+	signKey = sign(signKey, "aws4_request")
+	signature := sign(signKey, stringToSign)
+	return hex.EncodeToString(signature)
+}
+
+func sign(key []byte, msg string) []byte {
+	h := hmac.New(sha256.New, key)
+	h.Write([]byte(msg))
+	return h.Sum(nil)
+}
+
+func makeHash(hash hash.Hash, b []byte) []byte {
+	hash.Reset()
+	hash.Write(b)
+	return hash.Sum(nil)
 }
