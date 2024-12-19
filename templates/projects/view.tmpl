@@ -37,7 +37,10 @@
 						{{ctx.Locale.Tr "repo.projects.close"}}
 					</button>
 				{{end}}
-				<button class="item btn delete-button" data-url="{{.Link}}/delete" data-id="{{.Project.ID}}">
+				<button class="item btn link-action" data-url="{{.Link}}/delete?id={{.Project.ID}}"
+								data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.deletion"}}"
+								data-modal-confirm-content="{{ctx.Locale.Tr "repo.projects.deletion_desc"}}"
+				>
 					{{svg "octicon-trash"}}
 					{{ctx.Locale.Tr "repo.issues.label_delete"}}
 				</button>
@@ -92,8 +95,8 @@
 										{{svg "octicon-pin"}} {{ctx.Locale.Tr "repo.projects.column.set_default"}}
 									</a>
 									<a class="item button link-action" data-url="{{$.Link}}/{{.ID}}" data-link-action-method="DELETE"
-										data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.deletion"}}"
-										data-modal-confirm-content="{{ctx.Locale.Tr "repo.projects.deletion_desc"}}"
+										data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.column.delete"}}"
+										data-modal-confirm-content="{{ctx.Locale.Tr "repo.projects.column.deletion_desc"}}"
 									>
 										{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.projects.column.delete"}}
 									</a>
