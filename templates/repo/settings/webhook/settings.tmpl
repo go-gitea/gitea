@@ -109,6 +109,17 @@
 			</div>
 		</div>
 
+		<!-- CommitStatus -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input name="commit_status" type="checkbox" {{if .Webhook.CommitStatus}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_commitstatus"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_commitstatus_desc"}}</span>
+				</div>
+			</div>
+		</div>
+
 		<!-- Issue Events -->
 		<div class="fourteen wide column">
 			<label>{{ctx.Locale.Tr "repo.settings.event_header_issue"}}</label>
