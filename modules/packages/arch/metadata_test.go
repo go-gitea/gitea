@@ -7,7 +7,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"io"
 	"testing"
 
@@ -123,14 +122,13 @@ func TestParsePackageInfo(t *testing.T) {
 		assert.ErrorIs(t, err, ErrInvalidName)
 	})
 
-	for _, v := range []string{"", "a:1.0.0-1", "0.0.1/1-1", "1.0.0 -1"} {
-		t.Run(fmt.Sprintf("InvalidVersion[%s]", v), func(t *testing.T) {
-			data := createPKGINFOContent(packageName, v)
-			p, err := ParsePackageInfo(bytes.NewReader(data))
-			assert.Nil(t, p)
-			assert.ErrorIs(t, err, ErrInvalidVersion)
-		})
-	}
+	t.Run("Regexp", func(t *testing.T) {
+		assert.Regexp(t, versionPattern, "1.2_3~4+5")
+		assert.Regexp(t, versionPattern, "1:2_3~4+5")
+		assert.NotRegexp(t, versionPattern, "a:1.0.0-1")
+		assert.NotRegexp(t, versionPattern, "0.0.1/1-1")
+		assert.NotRegexp(t, versionPattern, "1.0.0 -1")
+	})
 
 	t.Run("Valid", func(t *testing.T) {
 		data := createPKGINFOContent(packageName, packageVersion)
