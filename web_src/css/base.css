@@ -1403,6 +1403,12 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
   margin: 0; /* use gap, but not margin */
 }
 
+.ui.dropdown .menu > .disabled-with-tooltip.item {
+  cursor: default;
+  opacity: var(--opacity-disabled);
+  background: inherit;
+}
+
 .ui.dropdown.ellipsis-items-nowrap > .text {
   overflow: hidden;
   white-space: nowrap;
