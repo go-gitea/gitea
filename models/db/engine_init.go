@@ -53,7 +53,7 @@ func newXORMEngine() (*xorm.Engine, error) {
 
 // InitEngine initializes the xorm.Engine and sets it as db.DefaultContext
 func InitEngine(ctx context.Context) error {
-	xormEngine, err := newXORMEngine()
+	xe, err := newXORMEngine()
 	if err != nil {
 		if strings.Contains(err.Error(), "SQLite3 support") {
 			return fmt.Errorf(`sqlite3 requires: -tags sqlite,sqlite_unlock_notify%s%w`, "\n", err)
@@ -61,41 +61,41 @@ func InitEngine(ctx context.Context) error {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	xormEngine.SetMapper(names.GonicMapper{})
+	xe.SetMapper(names.GonicMapper{})
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
-	xormEngine.SetLogger(NewXORMLogger(setting.Database.LogSQL))
-	xormEngine.ShowSQL(setting.Database.LogSQL)
-	xormEngine.SetMaxOpenConns(setting.Database.MaxOpenConns)
-	xormEngine.SetMaxIdleConns(setting.Database.MaxIdleConns)
-	xormEngine.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
-	xormEngine.SetDefaultContext(ctx)
+	xe.SetLogger(NewXORMLogger(setting.Database.LogSQL))
+	xe.ShowSQL(setting.Database.LogSQL)
+	xe.SetMaxOpenConns(setting.Database.MaxOpenConns)
+	xe.SetMaxIdleConns(setting.Database.MaxIdleConns)
+	xe.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
+	xe.SetDefaultContext(ctx)
 
 	if setting.Database.SlowQueryThreshold > 0 {
-		xormEngine.AddHook(&SlowQueryHook{
+		xe.AddHook(&SlowQueryHook{
 			Threshold: setting.Database.SlowQueryThreshold,
 			Logger:    log.GetLogger("xorm"),
 		})
 	}
 
-	SetDefaultEngine(ctx, xormEngine)
+	SetDefaultEngine(ctx, xe)
 	return nil
 }
 
 // SetDefaultEngine sets the default engine for db
 func SetDefaultEngine(ctx context.Context, eng *xorm.Engine) {
-	x = eng
-	DefaultContext = &Context{Context: ctx, engine: x}
+	xormEngine = eng
+	DefaultContext = &Context{Context: ctx, engine: xormEngine}
 }
 
 // UnsetDefaultEngine closes and unsets the default engine
 // We hope the SetDefaultEngine and UnsetDefaultEngine can be paired, but it's impossible now,
-// there are many calls to InitEngine -> SetDefaultEngine directly to overwrite the `x` and DefaultContext without close
+// there are many calls to InitEngine -> SetDefaultEngine directly to overwrite the `xormEngine` and DefaultContext without close
 // Global database engine related functions are all racy and there is no graceful close right now.
 func UnsetDefaultEngine() {
-	if x != nil {
-		_ = x.Close()
-		x = nil
+	if xormEngine != nil {
+		_ = xormEngine.Close()
+		xormEngine = nil
 	}
 	DefaultContext = nil
 }
@@ -110,11 +110,11 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 		return err
 	}
 
-	if err = x.Ping(); err != nil {
+	if err = xormEngine.Ping(); err != nil {
 		return err
 	}
 
-	preprocessDatabaseCollation(x)
+	preprocessDatabaseCollation(xormEngine)
 
 	// We have to run migrateFunc here in case the user is re-running installation on a previously created DB.
 	// If we do not then table schemas will be changed and there will be conflicts when the migrations run properly.
@@ -122,7 +122,7 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 	// Installation should only be being re-run if users want to recover an old database.
 	// However, we should think carefully about should we support re-install on an installed instance,
 	// as there may be other problems due to secret reinitialization.
-	if err = migrateFunc(x); err != nil {
+	if err = migrateFunc(xormEngine); err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}
 
@@ -130,7 +130,7 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 		return fmt.Errorf("sync database struct error: %w", err)
 	}
 
-	for _, initFunc := range initFuncs {
+	for _, initFunc := range registeredInitFuncs {
 		if err := initFunc(); err != nil {
 			return fmt.Errorf("initFunc failed: %w", err)
 		}

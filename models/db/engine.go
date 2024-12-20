@@ -20,9 +20,9 @@ import (
 )
 
 var (
-	x         *xorm.Engine
-	tables    []any
-	initFuncs []func() error
+	xormEngine          *xorm.Engine
+	registeredModels    []any
+	registeredInitFuncs []func() error
 )
 
 // Engine represents a xorm engine or session.
@@ -63,22 +63,22 @@ type Engine interface {
 
 // TableInfo returns table's information via an object
 func TableInfo(v any) (*schemas.Table, error) {
-	return x.TableInfo(v)
+	return xormEngine.TableInfo(v)
 }
 
 // RegisterModel registers model, if initFuncs provided, it will be invoked after data model sync
 func RegisterModel(bean any, initFunc ...func() error) {
-	tables = append(tables, bean)
-	if len(initFuncs) > 0 && initFunc[0] != nil {
-		initFuncs = append(initFuncs, initFunc[0])
+	registeredModels = append(registeredModels, bean)
+	if len(registeredInitFuncs) > 0 && initFunc[0] != nil {
+		registeredInitFuncs = append(registeredInitFuncs, initFunc[0])
 	}
 }
 
 // SyncAllTables sync the schemas of all tables, is required by unit test code
 func SyncAllTables() error {
-	_, err := x.StoreEngine("InnoDB").SyncWithOptions(xorm.SyncOptions{
+	_, err := xormEngine.StoreEngine("InnoDB").SyncWithOptions(xorm.SyncOptions{
 		WarnIfDatabaseColumnMissed: true,
-	}, tables...)
+	}, registeredModels...)
 	return err
 }
 
@@ -86,15 +86,15 @@ func SyncAllTables() error {
 func NamesToBean(names ...string) ([]any, error) {
 	beans := []any{}
 	if len(names) == 0 {
-		beans = append(beans, tables...)
+		beans = append(beans, registeredModels...)
 		return beans, nil
 	}
 	// Need to map provided names to beans...
 	beanMap := make(map[string]any)
-	for _, bean := range tables {
+	for _, bean := range registeredModels {
 		beanMap[strings.ToLower(reflect.Indirect(reflect.ValueOf(bean)).Type().Name())] = bean
-		beanMap[strings.ToLower(x.TableName(bean))] = bean
-		beanMap[strings.ToLower(x.TableName(bean, true))] = bean
+		beanMap[strings.ToLower(xormEngine.TableName(bean))] = bean
+		beanMap[strings.ToLower(xormEngine.TableName(bean, true))] = bean
 	}
 
 	gotBean := make(map[any]bool)
@@ -113,7 +113,7 @@ func NamesToBean(names ...string) ([]any, error) {
 
 // MaxBatchInsertSize returns the table's max batch insert size
 func MaxBatchInsertSize(bean any) int {
-	t, err := x.TableInfo(bean)
+	t, err := xormEngine.TableInfo(bean)
 	if err != nil {
 		return 50
 	}
@@ -122,18 +122,18 @@ func MaxBatchInsertSize(bean any) int {
 
 // IsTableNotEmpty returns true if table has at least one record
 func IsTableNotEmpty(beanOrTableName any) (bool, error) {
-	return x.Table(beanOrTableName).Exist()
+	return xormEngine.Table(beanOrTableName).Exist()
 }
 
 // DeleteAllRecords will delete all the records of this table
 func DeleteAllRecords(tableName string) error {
-	_, err := x.Exec(fmt.Sprintf("DELETE FROM %s", tableName))
+	_, err := xormEngine.Exec(fmt.Sprintf("DELETE FROM %s", tableName))
 	return err
 }
 
 // GetMaxID will return max id of the table
 func GetMaxID(beanOrTableName any) (maxID int64, err error) {
-	_, err = x.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
+	_, err = xormEngine.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
 	return maxID, err
 }
 
