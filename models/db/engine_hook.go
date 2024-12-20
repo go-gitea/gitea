@@ -7,23 +7,33 @@ import (
 	"context"
 	"time"
 
+	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm/contexts"
 )
 
-type SlowQueryHook struct {
+type EngineHook struct {
 	Threshold time.Duration
 	Logger    log.Logger
 }
 
-var _ contexts.Hook = (*SlowQueryHook)(nil)
+var _ contexts.Hook = (*EngineHook)(nil)
 
-func (*SlowQueryHook) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
-	return c.Ctx, nil
+func (*EngineHook) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
+	ctx, _ := gtprof.GetTracer().Start(c.Ctx, gtprof.TraceSpanDatabase)
+	return ctx, nil
 }
 
-func (h *SlowQueryHook) AfterProcess(c *contexts.ContextHook) error {
+func (h *EngineHook) AfterProcess(c *contexts.ContextHook) error {
+	span := gtprof.GetContextSpan(c.Ctx)
+	if span != nil {
+		span.SetAttributeString(gtprof.TraceAttrDbSQL, c.SQL)
+		span.End()
+	} else {
+		setting.PanicInDevOrTesting("span in database engine hook is nil")
+	}
 	if c.ExecuteTime >= h.Threshold {
 		// 8 is the amount of skips passed to runtime.Caller, so that in the log the correct function
 		// is being displayed (the function that ultimately wants to execute the query in the code)
