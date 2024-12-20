@@ -28,7 +28,7 @@
 	{{if $canEditIssueTitle}}
 	<form class="ui form issue-title tw-hidden" id="issue-title-editor">
 		<div class="ui input tw-flex-1">
-			<input name="title" value="{{.Issue.Title}}" data-old-title="{{.Issue.Title}}" maxlength="255" autocomplete="off" />
+			<input name="title" value="{{.Issue.Title}}" data-old-title="{{.Issue.Title}}" maxlength="255" autocomplete="off">
 		</div>
 		<div class="issue-title-buttons">
 			<button type="button" class="ui small basic cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
