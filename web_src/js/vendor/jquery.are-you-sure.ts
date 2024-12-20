@@ -162,10 +162,10 @@ export function initAreYouSure($) {
     if (!settings.silent && !window.aysUnloadSet) {
       window.aysUnloadSet = true;
       $(window).bind('beforeunload', function() {
-        const $dirtyForms = $("form:not(.ignore-dirty)").filter('.' + settings.dirtyClass);
-        if ($dirtyForms.length == 0) {
-          return;
-        }
+        const $forms = $("form:not(.ignore-dirty)").filter('.' + settings.dirtyClass);
+        const dirtyFormCount = Array.from($forms).reduce((res, form) => form.closest('.tw-hidden') ? res : res + 1, 0);
+        if (dirtyFormCount === 0) return;
+
         // Prevent multiple prompts - seen on Chrome and IE
         if (navigator.userAgent.toLowerCase().match(/msie|chrome/)) {
           if (window.aysHasPrompted) {

@@ -538,7 +538,6 @@ export function initRepoIssueTitleEdit() {
   const issueTitleInput = issueTitleEditor.querySelector('input');
   const oldTitle = issueTitleInput.getAttribute('data-old-title');
   issueTitleDisplay.querySelector('#issue-title-edit-show').addEventListener('click', () => {
-    issueTitleEditor.classList.remove('ignore-dirty');
     hideElem(issueTitleDisplay);
     hideElem('#pull-desc-display');
     showElem(issueTitleEditor);
@@ -549,7 +548,6 @@ export function initRepoIssueTitleEdit() {
     issueTitleInput.focus();
   });
   issueTitleEditor.querySelector('.ui.cancel.button').addEventListener('click', () => {
-    issueTitleEditor.classList.add('ignore-dirty');
     hideElem(issueTitleEditor);
     hideElem('#pull-desc-editor');
     showElem(issueTitleDisplay);
