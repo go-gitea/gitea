@@ -13,10 +13,9 @@ import (
 type Event struct {
 	Time time.Time
 
-	GoroutinePid string
-	Caller       string
-	Filename     string
-	Line         int
+	Caller   string
+	Filename string
+	Line     int
 
 	Level Level
 
@@ -218,17 +217,16 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 	}
 
 	if flags&Lgopid == Lgopid {
-		if event.GoroutinePid != "" {
-			buf = append(buf, '[')
-			if mode.Colorize {
-				buf = append(buf, ColorBytes(FgHiYellow)...)
-			}
-			buf = append(buf, event.GoroutinePid...)
-			if mode.Colorize {
-				buf = append(buf, resetBytes...)
-			}
-			buf = append(buf, ']', ' ')
+		deprecatedGoroutinePid := "no-gopid" // use a dummy value to avoid breaking the log format
+		buf = append(buf, '[')
+		if mode.Colorize {
+			buf = append(buf, ColorBytes(FgHiYellow)...)
 		}
+		buf = append(buf, deprecatedGoroutinePid...)
+		if mode.Colorize {
+			buf = append(buf, resetBytes...)
+		}
+		buf = append(buf, ']', ' ')
 	}
 	buf = append(buf, msg...)
 
