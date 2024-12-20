@@ -166,7 +166,7 @@ function onShowMoreFiles() {
 }
 
 export async function loadMoreFiles(url) {
-  const target = document.querySelector('a#diff-show-more-files');
+  const target = document.querySelector('a.diff-show-more-files');
   if (target?.classList.contains('disabled') || pageData.diffFileInfo.isLoadingNewData) {
     return;
   }
@@ -195,7 +195,7 @@ export async function loadMoreFiles(url) {
 }
 
 function initRepoDiffShowMore() {
-  $(document).on('click', 'a#diff-show-more-files', (e) => {
+  $(document).on('click', 'a.diff-show-more-files', (e) => {
     e.preventDefault();
 
     const linkLoadMore = e.target.getAttribute('data-href');
