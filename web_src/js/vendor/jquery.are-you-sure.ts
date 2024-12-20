@@ -2,6 +2,7 @@
 // Fork of the upstream module. The only changes are:
 // * use export to make it work with ES6 modules.
 // * the addition of `const` to make it strict mode compatible.
+// * check "ignore-dirty" class, ignore forms with this class.
 
 /*!
  * jQuery Plugin: Are-You-Sure (Dirty Form Detection)
@@ -161,7 +162,7 @@ export function initAreYouSure($) {
     if (!settings.silent && !window.aysUnloadSet) {
       window.aysUnloadSet = true;
       $(window).bind('beforeunload', function() {
-        const $dirtyForms = $("form").filter('.' + settings.dirtyClass);
+        const $dirtyForms = $("form:not(.ignore-dirty)").filter('.' + settings.dirtyClass);
         if ($dirtyForms.length == 0) {
           return;
         }
@@ -198,4 +199,8 @@ export function initAreYouSure($) {
 
 export function applyAreYouSure(selectorOrEl: string|Element|$, opts = {}) {
   $(selectorOrEl).areYouSure(opts);
+}
+
+export function reinitializeAreYouSure(selectorOrEl: string|Element|$) {
+  $(selectorOrEl).trigger('reinitialize.areYouSure');
 }

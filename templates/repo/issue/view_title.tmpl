@@ -31,8 +31,8 @@
 			<input name="title" value="{{.Issue.Title}}" data-old-title="{{.Issue.Title}}" maxlength="255" autocomplete="off" />
 		</div>
 		<div class="issue-title-buttons">
-			<button class="ui small basic cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
-			<button class="ui small primary button" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title">
+			<button type="button" class="ui small basic cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
+			<button type="submit" class="ui small primary button" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title">
 				{{ctx.Locale.Tr "repo.issues.save"}}
 			</button>
 		</div>

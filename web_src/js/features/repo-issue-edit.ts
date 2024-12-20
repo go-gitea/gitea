@@ -7,7 +7,7 @@ import {attachRefIssueContextPopup} from './contextpopup.ts';
 import {initCommentContent, initMarkupContent} from '../markup/content.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
-import {applyAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {applyAreYouSure, reinitializeAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 
 async function tryOnEditContent(e) {
   const clickTarget = e.target.closest('.edit-content');
@@ -20,9 +20,11 @@ async function tryOnEditContent(e) {
   const rawContent = segment.querySelector('.raw-content');
 
   let comboMarkdownEditor : ComboMarkdownEditor;
+  let form: HTMLFormElement;
 
   const cancelAndReset = (e) => {
     e.preventDefault();
+    form.classList.add('ignore-dirty');
     showElem(renderContent);
     hideElem(editContentZone);
     comboMarkdownEditor.dropzoneReloadFiles();
@@ -30,6 +32,7 @@ async function tryOnEditContent(e) {
 
   const saveAndRefresh = async (e) => {
     e.preventDefault();
+    form.classList.remove('ignore-dirty');
     renderContent.classList.add('is-loading');
     showElem(renderContent);
     hideElem(editContentZone);
@@ -49,6 +52,7 @@ async function tryOnEditContent(e) {
         showErrorToast(data.errorMessage);
         return;
       }
+      reinitializeAreYouSure(form);
       editContentZone.setAttribute('data-content-version', data.contentVersion);
       if (!data.content) {
         renderContent.innerHTML = document.querySelector('#no-content').innerHTML;
@@ -87,14 +91,15 @@ async function tryOnEditContent(e) {
   comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
   if (!comboMarkdownEditor) {
     editContentZone.innerHTML = document.querySelector('#issue-comment-editor-template').innerHTML;
-    applyAreYouSure(editContentZone.firstElementChild);
+    form = editContentZone.querySelector('form');
+    applyAreYouSure(form);
     const saveButton = querySingleVisibleElem<HTMLButtonElement>(editContentZone, '.ui.primary.button');
     const cancelButton = querySingleVisibleElem<HTMLButtonElement>(editContentZone, '.ui.cancel.button');
     comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
     const syncUiState = () => saveButton.disabled = comboMarkdownEditor.isUploading();
     comboMarkdownEditor.container.addEventListener(ComboMarkdownEditor.EventUploadStateChanged, syncUiState);
     cancelButton.addEventListener('click', cancelAndReset);
-    saveButton.addEventListener('click', saveAndRefresh);
+    form.addEventListener('submit', saveAndRefresh);
   }
 
   // FIXME: ideally here should reload content and attachment list from backend for existing editor, to avoid losing data

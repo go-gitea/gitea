@@ -16,7 +16,6 @@ import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {applyAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 
 const {appSubUrl} = window.config;
 
@@ -533,14 +532,13 @@ export function initRepoIssueWipToggle() {
 
 export function initRepoIssueTitleEdit() {
   const issueTitleDisplay = document.querySelector('#issue-title-display');
-  const issueTitleEditor = document.querySelector('#issue-title-editor');
+  const issueTitleEditor = document.querySelector<HTMLFormElement>('#issue-title-editor');
   if (!issueTitleEditor) return;
-
-  applyAreYouSure(issueTitleEditor);
 
   const issueTitleInput = issueTitleEditor.querySelector('input');
   const oldTitle = issueTitleInput.getAttribute('data-old-title');
   issueTitleDisplay.querySelector('#issue-title-edit-show').addEventListener('click', () => {
+    issueTitleEditor.classList.remove('ignore-dirty');
     hideElem(issueTitleDisplay);
     hideElem('#pull-desc-display');
     showElem(issueTitleEditor);
@@ -551,6 +549,7 @@ export function initRepoIssueTitleEdit() {
     issueTitleInput.focus();
   });
   issueTitleEditor.querySelector('.ui.cancel.button').addEventListener('click', () => {
+    issueTitleEditor.classList.add('ignore-dirty');
     hideElem(issueTitleEditor);
     hideElem('#pull-desc-editor');
     showElem(issueTitleDisplay);
@@ -561,7 +560,8 @@ export function initRepoIssueTitleEdit() {
   const prTargetUpdateUrl = pullDescEditor?.getAttribute('data-target-update-url');
 
   const editSaveButton = issueTitleEditor.querySelector('.ui.primary.button');
-  editSaveButton.addEventListener('click', async () => {
+  issueTitleEditor.addEventListener('submit', async (e) => {
+    e.preventDefault();
     const newTitle = issueTitleInput.value.trim();
     try {
       if (newTitle && newTitle !== oldTitle) {
@@ -580,6 +580,7 @@ export function initRepoIssueTitleEdit() {
           }
         }
       }
+      issueTitleEditor.classList.remove('dirty');
       window.location.reload();
     } catch (error) {
       console.error(error);
