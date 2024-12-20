@@ -26,7 +26,7 @@ func DumpDatabase(filePath, dbType string) error {
 	}
 	tbs = append(tbs, t)
 
-	if len(dbType) > 0 {
+	if dbType != "" {
 		return xormEngine.DumpTablesToFile(tbs, filePath, schemas.DBType(dbType))
 	}
 	return xormEngine.DumpTablesToFile(tbs, filePath)
