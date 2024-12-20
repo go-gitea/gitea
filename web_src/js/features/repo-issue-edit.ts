@@ -32,7 +32,6 @@ async function tryOnEditContent(e) {
 
   const saveAndRefresh = async (e) => {
     e.preventDefault();
-    form.classList.remove('ignore-dirty');
     renderContent.classList.add('is-loading');
     showElem(renderContent);
     hideElem(editContentZone);
@@ -52,6 +51,7 @@ async function tryOnEditContent(e) {
         showErrorToast(data.errorMessage);
         return;
       }
+      form.classList.remove('ignore-dirty'); // the form is no longer dirty
       reinitializeAreYouSure(form);
       editContentZone.setAttribute('data-content-version', data.contentVersion);
       if (!data.content) {
@@ -101,6 +101,7 @@ async function tryOnEditContent(e) {
     cancelButton.addEventListener('click', cancelAndReset);
     form.addEventListener('submit', saveAndRefresh);
   }
+  form.classList.remove('ignore-dirty');
 
   // FIXME: ideally here should reload content and attachment list from backend for existing editor, to avoid losing data
   if (!comboMarkdownEditor.value()) {
