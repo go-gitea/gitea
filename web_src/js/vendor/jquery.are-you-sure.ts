@@ -2,7 +2,7 @@
 // Fork of the upstream module. The only changes are:
 // * use export to make it work with ES6 modules.
 // * the addition of `const` to make it strict mode compatible.
-// * check "ignore-dirty" class, ignore forms with this class.
+// * ignore forms with "ignore-dirty" class, ignore hidden forms (closest('.tw-hidden'))
 
 /*!
  * jQuery Plugin: Are-You-Sure (Dirty Form Detection)
