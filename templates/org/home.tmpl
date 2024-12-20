@@ -7,12 +7,14 @@
 			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
 				{{if or .PublicProfileReadme .PrivateProfileReadme}}
 					{{if and .ShowMemberAndTeamTab .HasPublicProfileReadme .HasPrivateProfileReadme}}
-					<div class="item ui small dropdown jump">
-						<span class="text">view as: {{if not .IsViewerMember}}Public{{else}}Member{{end}}</span>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
-							<a href="{{$.Org.HomeLink}}?{{.QueryForPublic}}" class="{{if not .IsViewerMember}}active {{end}}item"><input hidden type="radio" {{if not .IsViewerMember}}checked{{end}}> Public</a>
-							<a href="{{$.Org.HomeLink}}?{{.QueryForMember}}" class="{{if .IsViewerMember}}active {{end}}item"><input hidden type="radio" {{if .IsViewerMember}}checked{{end}}> Member</a>
+					<div class="ui small secondary filter menu">
+						<div class="item ui small dropdown jump" style="padding-bottom: 1em;">
+							{{svg "octicon-eye" 14 "view as icon"}}<span class="text">View as: {{if not .IsViewerMember}}{{ctx.Locale.Tr "settings.visibility.public"}}{{else}}{{ctx.Locale.Tr "org.members.member"}}{{end}}</span>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+								<a href="{{$.Org.HomeLink}}?{{.QueryForPublic}}" class="{{if not .IsViewerMember}}active {{end}}item"><input hidden type="radio" {{if not .IsViewerMember}}checked{{end}}> {{ctx.Locale.Tr "settings.visibility.public"}} {{if not .IsViewerMember}}{{svg "octicon-check" 14 "check icon"}}{{end}}</a>
+								<a href="{{$.Org.HomeLink}}?{{.QueryForMember}}" class="{{if .IsViewerMember}}active {{end}}item"><input hidden type="radio" {{if .IsViewerMember}}checked{{end}}> {{ctx.Locale.Tr "org.members.member"}} {{if .IsViewerMember}}{{svg "octicon-check" 14 "check icon"}}{{end}}</a>
+							</div>
 						</div>
 					</div>
 					{{end}}
