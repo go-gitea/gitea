@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -250,7 +249,7 @@ func CreateRelease(ctx *context.APIContext) {
 		if err := release_service.CreateRelease(ctx.Repo.GitRepo, rel, nil, ""); err != nil {
 			if repo_model.IsErrReleaseAlreadyExist(err) {
 				ctx.Error(http.StatusConflict, "ReleaseAlreadyExist", err)
-			} else if models.IsErrProtectedTagName(err) {
+			} else if release_service.IsErrProtectedTagName(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "ProtectedTagName", err)
 			} else if git.IsErrNotExist(err) {
 				ctx.Error(http.StatusNotFound, "ErrNotExist", fmt.Errorf("target \"%v\" not found: %w", rel.Target, err))
@@ -408,7 +407,7 @@ func DeleteRelease(ctx *context.APIContext) {
 		return
 	}
 	if err := release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, false); err != nil {
-		if models.IsErrProtectedTagName(err) {
+		if release_service.IsErrProtectedTagName(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "delTag", "user not allowed to delete protected tag")
 			return
 		}

@@ -9,12 +9,12 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -123,8 +123,8 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 }
 
 func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl base.TplName, form *forms.MigrateRepoForm) {
-	if models.IsErrInvalidCloneAddr(err) {
-		addrErr := err.(*models.ErrInvalidCloneAddr)
+	if git.IsErrInvalidCloneAddr(err) {
+		addrErr := err.(*git.ErrInvalidCloneAddr)
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tpl, form)
@@ -176,7 +176,7 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
-	remoteAddr, err := forms.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
+	remoteAddr, err := git.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
 		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.Doer)
 	}

@@ -532,7 +532,7 @@ export function initRepoIssueWipToggle() {
 
 export function initRepoIssueTitleEdit() {
   const issueTitleDisplay = document.querySelector('#issue-title-display');
-  const issueTitleEditor = document.querySelector('#issue-title-editor');
+  const issueTitleEditor = document.querySelector<HTMLFormElement>('#issue-title-editor');
   if (!issueTitleEditor) return;
 
   const issueTitleInput = issueTitleEditor.querySelector('input');
@@ -558,7 +558,8 @@ export function initRepoIssueTitleEdit() {
   const prTargetUpdateUrl = pullDescEditor?.getAttribute('data-target-update-url');
 
   const editSaveButton = issueTitleEditor.querySelector('.ui.primary.button');
-  editSaveButton.addEventListener('click', async () => {
+  issueTitleEditor.addEventListener('submit', async (e) => {
+    e.preventDefault();
     const newTitle = issueTitleInput.value.trim();
     try {
       if (newTitle && newTitle !== oldTitle) {
@@ -577,6 +578,7 @@ export function initRepoIssueTitleEdit() {
           }
         }
       }
+      issueTitleEditor.classList.remove('dirty');
       window.location.reload();
     } catch (error) {
       console.error(error);

@@ -5,9 +5,10 @@ export function initRepositorySearch() {
   repositorySearchForm.addEventListener('change', (e: Event & {target: HTMLFormElement}) => {
     e.preventDefault();
 
-    const formData = new FormData(repositorySearchForm);
-    const params = new URLSearchParams(formData);
-
+    const params = new URLSearchParams();
+    for (const [key, value] of new FormData(repositorySearchForm).entries()) {
+      params.set(key, value.toString());
+    }
     if (e.target.name === 'clear-filter') {
       params.delete('archived');
       params.delete('fork');

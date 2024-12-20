@@ -283,8 +283,8 @@ export class ComboMarkdownEditor {
     ];
   }
 
-  parseEasyMDEToolbar(EasyMDE, actions) {
-    this.easyMDEToolbarActions = this.easyMDEToolbarActions || easyMDEToolbarActions(EasyMDE, this);
+  parseEasyMDEToolbar(easyMde: typeof EasyMDE, actions) {
+    this.easyMDEToolbarActions = this.easyMDEToolbarActions || easyMDEToolbarActions(easyMde, this);
     const processed = [];
     for (const action of actions) {
       const actionButton = this.easyMDEToolbarActions[action];

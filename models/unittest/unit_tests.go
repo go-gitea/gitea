@@ -79,7 +79,7 @@ func AssertExistsAndLoadMap(t assert.TestingT, table string, conditions ...any) 
 	e := db.GetEngine(db.DefaultContext).Table(table)
 	res, err := whereOrderConditions(e, conditions).Query()
 	assert.NoError(t, err)
-	assert.True(t, len(res) == 1,
+	assert.Len(t, res, 1,
 		"Expected to find one row in %s (with conditions %+v), but found %d",
 		table, conditions, len(res),
 	)

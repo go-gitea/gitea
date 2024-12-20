@@ -112,7 +112,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 }
 
 // it is copied from old code, which is quite doubtful whether it is correct
-var reValidIconName = sync.OnceValue[*regexp.Regexp](func() *regexp.Regexp {
+var reValidIconName = sync.OnceValue(func() *regexp.Regexp {
 	return regexp.MustCompile(`^[-\w]+$`) // old: regexp.MustCompile("^[a-z ]+$")
 })
 

@@ -74,5 +74,5 @@ DEFAULT_APPLICATIONS = tea
 DEFAULT_APPLICATIONS =
 `)
 	loadOAuth2From(cfg)
-	assert.Nil(t, nil, OAuth2.DefaultApplications)
+	assert.Nil(t, OAuth2.DefaultApplications)
 }

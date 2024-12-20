@@ -100,7 +100,7 @@ async function linkAction(el: HTMLElement, e: Event) {
   const url = el.getAttribute('data-url');
   const doRequest = async () => {
     if ('disabled' in el) el.disabled = true; // el could be A or BUTTON, but A doesn't have disabled attribute
-    await fetchActionDoRequest(el, url, {method: 'POST'});
+    await fetchActionDoRequest(el, url, {method: el.getAttribute('data-link-action-method') || 'POST'});
     if ('disabled' in el) el.disabled = false;
   };
 

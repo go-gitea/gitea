@@ -48,7 +48,7 @@ func TestAPIViewPulls(t *testing.T) {
 	pull := pulls[0]
 	assert.EqualValues(t, 1, pull.Poster.ID)
 	assert.Len(t, pull.RequestedReviewers, 2)
-	assert.Len(t, pull.RequestedReviewersTeams, 0)
+	assert.Empty(t, pull.RequestedReviewersTeams)
 	assert.EqualValues(t, 5, pull.RequestedReviewers[0].ID)
 	assert.EqualValues(t, 6, pull.RequestedReviewers[1].ID)
 	assert.EqualValues(t, 1, pull.ChangedFiles)
@@ -83,7 +83,7 @@ func TestAPIViewPulls(t *testing.T) {
 	pull = pulls[1]
 	assert.EqualValues(t, 1, pull.Poster.ID)
 	assert.Len(t, pull.RequestedReviewers, 4)
-	assert.Len(t, pull.RequestedReviewersTeams, 0)
+	assert.Empty(t, pull.RequestedReviewersTeams)
 	assert.EqualValues(t, 3, pull.RequestedReviewers[0].ID)
 	assert.EqualValues(t, 4, pull.RequestedReviewers[1].ID)
 	assert.EqualValues(t, 2, pull.RequestedReviewers[2].ID)
@@ -120,7 +120,7 @@ func TestAPIViewPulls(t *testing.T) {
 	pull = pulls[2]
 	assert.EqualValues(t, 1, pull.Poster.ID)
 	assert.Len(t, pull.RequestedReviewers, 1)
-	assert.Len(t, pull.RequestedReviewersTeams, 0)
+	assert.Empty(t, pull.RequestedReviewersTeams)
 	assert.EqualValues(t, 1, pull.RequestedReviewers[0].ID)
 	assert.EqualValues(t, 0, pull.ChangedFiles)
 

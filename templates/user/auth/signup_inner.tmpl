@@ -47,7 +47,9 @@
 					</button>
 				</div>
 			{{end}}
-			{{$showOAuth2Methods := or .OAuth2Providers .EnableOpenIDSignIn}}
+			{{/* "oauth_container" contains not only "oauth2" methods, but also "OIDC" and "SSPI" methods */}}
+			{{/* TODO: it seems that "EnableSSPI" is only set in "sign-in" handlers, but it should use the same logic to control its display */}}
+			{{$showOAuth2Methods := or .OAuth2Providers .EnableOpenIDSignIn .EnableSSPI}}
 			{{if $showOAuth2Methods}}
 				<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
 				{{template "user/auth/oauth_container" .}}
