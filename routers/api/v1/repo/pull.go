@@ -396,13 +396,20 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	var (
-		repo        = ctx.Repo.Repository
+		baseRepo    = ctx.Repo.Repository
 		labelIDs    []int64
 		milestoneID int64
 	)
 
+	baseGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, baseRepo)
+	if err != nil {
+		ctx.ServerError("OpenRepository", err)
+		return
+	}
+	defer closer.Close()
+
 	// Get repo/branch information
-	ci, err := common.ParseComparePathParams(ctx, form.Base+"..."+form.Head, repo, ctx.Repo.GitRepo)
+	ci, err := common.ParseComparePathParams(ctx, form.Base+"..."+form.Head, baseRepo, baseGitRepo)
 	if err != nil {
 		switch {
 		case user_model.IsErrUserNotExist(err):
@@ -446,7 +453,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	// Check if another PR exists with the same targets
-	existingPr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadOriRef, ci.BaseOriRef, issues_model.PullRequestFlowGithub)
+	existingPr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, baseRepo.ID, ci.HeadOriRef, ci.BaseOriRef, issues_model.PullRequestFlowGithub)
 	if err != nil {
 		if !issues_model.IsErrPullRequestNotExist(err) {
 			ctx.Error(http.StatusInternalServerError, "GetUnmergedPullRequest", err)
@@ -466,7 +473,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	if len(form.Labels) > 0 {
-		labels, err := issues_model.GetLabelsInRepoByIDs(ctx, ctx.Repo.Repository.ID, form.Labels)
+		labels, err := issues_model.GetLabelsInRepoByIDs(ctx, baseRepo.ID, form.Labels)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDs", err)
 			return
@@ -493,7 +500,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.Milestone > 0 {
-		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, form.Milestone)
+		milestone, err := issues_model.GetMilestoneByRepoID(ctx, baseRepo.ID, form.Milestone)
 		if err != nil {
 			if issues_model.IsErrMilestoneNotExist(err) {
 				ctx.NotFound()
@@ -512,7 +519,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	prIssue := &issues_model.Issue{
-		RepoID:       repo.ID,
+		RepoID:       baseRepo.ID,
 		Title:        form.Title,
 		PosterID:     ctx.Doer.ID,
 		Poster:       ctx.Doer,
@@ -523,11 +530,11 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 	pr := &issues_model.PullRequest{
 		HeadRepoID: ci.HeadRepo.ID,
-		BaseRepoID: repo.ID,
+		BaseRepoID: baseRepo.ID,
 		HeadBranch: ci.HeadOriRef,
 		BaseBranch: ci.BaseOriRef,
 		HeadRepo:   ci.HeadRepo,
-		BaseRepo:   repo,
+		BaseRepo:   baseRepo,
 		MergeBase:  ci.CompareInfo.MergeBase,
 		Type:       issues_model.PullRequestGitea,
 	}
@@ -550,19 +557,19 @@ func CreatePullRequest(ctx *context.APIContext) {
 			return
 		}
 
-		valid, err := access_model.CanBeAssigned(ctx, assignee, repo, true)
+		valid, err := access_model.CanBeAssigned(ctx, assignee, baseRepo, true)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "canBeAssigned", err)
 			return
 		}
 		if !valid {
-			ctx.Error(http.StatusUnprocessableEntity, "canBeAssigned", repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
+			ctx.Error(http.StatusUnprocessableEntity, "canBeAssigned", repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: baseRepo.Name})
 			return
 		}
 	}
 
 	prOpts := &pull_service.NewPullRequestOptions{
-		Repo:        repo,
+		Repo:        baseRepo,
 		Issue:       prIssue,
 		LabelIDs:    labelIDs,
 		PullRequest: pr,
@@ -586,7 +593,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
+	log.Trace("Pull request created: %d/%d", baseRepo.ID, prIssue.ID)
 	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
 }
 
