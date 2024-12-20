@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -31,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	notify_service "code.gitea.io/gitea/services/notify"
+	release_service "code.gitea.io/gitea/services/release"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"xorm.io/builder"
@@ -274,7 +274,7 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 				BranchName: branchRefName,
 			}
 		case refName == git.TagPrefix+name:
-			return models.ErrTagAlreadyExists{
+			return release_service.ErrTagAlreadyExists{
 				TagName: name,
 			}
 		}
