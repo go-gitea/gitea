@@ -100,8 +100,10 @@ async function tryOnEditContent(e) {
     comboMarkdownEditor.container.addEventListener(ComboMarkdownEditor.EventUploadStateChanged, syncUiState);
     cancelButton.addEventListener('click', cancelAndReset);
     form.addEventListener('submit', saveAndRefresh);
+  } else {
+    form = editContentZone.querySelector('form');
+    form.classList.remove('ignore-dirty'); // the form is shown again, respect the "dirty" state
   }
-  form.classList.remove('ignore-dirty');
 
   // FIXME: ideally here should reload content and attachment list from backend for existing editor, to avoid losing data
   if (!comboMarkdownEditor.value()) {
