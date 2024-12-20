@@ -15,7 +15,7 @@ import (
 // Stacktrace show admin monitor goroutines page
 func Stacktrace(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
-	ctx.Data["PageIsAdminMonitorStacktrace"] = true
+	ctx.Data["PageIsAdminMonitorTrace"] = true
 
 	ctx.Data["GoroutineCount"] = runtime.NumGoroutine()
 
