@@ -104,12 +104,13 @@
   display: block;
   position: absolute;
   font-size: 10px;
-  color: var(--color-white);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-nav-bg);
   background: var(--color-primary);
   padding: 2px 4px;
   border-radius: 10px;
-  top: -3px;
-  left: 22px;
+  top: -1px;
+  left: 18px;
 }
 
 #navbar a.item:hover .notification_count,
