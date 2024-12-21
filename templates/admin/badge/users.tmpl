@@ -1,0 +1,54 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+	<div class="admin-setting-content">
+		<h4 class="ui top attached header">
+			{{.Title}}
+		</h4>
+		{{if .Users}}
+		<div class="ui attached segment">
+			<div class="flex-list">
+				{{range .Users}}
+					<div class="flex-item tw-items-center">
+						<div class="flex-item-leading">
+							<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
+						</div>
+						<div class="flex-item-main">
+							<div class="flex-item-title">
+								{{template "shared/user/name" .}}
+							</div>
+						</div>
+						<div class="flex-item-trailing">
+							<button class="ui red tiny button inline delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+								{{ctx.Locale.Tr "admin.badges.remove_user"}}
+							</button>
+						</div>
+					</div>
+				{{end}}
+			</div>
+		</div>
+		{{end}}
+		<div class="ui bottom attached segment">
+			<form class="ui form" id="search-badge-user-form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<div id="search-user-box" class="ui search input tw-align-middle">
+					<input class="prompt" name="user" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" autofocus required>
+				</div>
+				<button class="ui primary button">{{ctx.Locale.Tr "admin.badges.add_user"}}</button>
+			</form>
+		</div>
+	</div>
+
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
+		{{svg "octicon-trash"}}
+		{{ctx.Locale.Tr "admin.badges.remove_user"}}
+	</div>
+<form class="ui form" method="post" id="remove-badge-user-form" action="{{.Link}}">
+<div class="content">
+		{{$.CsrfTokenHtml}}
+		<p>{{ctx.Locale.Tr "admin.badges.delete_user_desc"}}</p>
+	</div>
+	{{template "base/modal_actions_confirm" .}}
+	</form>
+</div>
+
+{{template "admin/layout_footer" .}}
