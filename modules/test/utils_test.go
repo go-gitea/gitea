@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDetectGiteaRoot(t *testing.T) {
+func TestSetupGiteaRoot(t *testing.T) {
 	t.Setenv("GITEA_ROOT", "test")
 	assert.Equal(t, "test", SetupGiteaRoot())
 	t.Setenv("GITEA_ROOT", "")

@@ -4,7 +4,6 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/test"
 	"compress/gzip"
 	"context"
 	"database/sql"
@@ -26,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"github.com/stretchr/testify/assert"
