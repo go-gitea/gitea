@@ -38,6 +38,11 @@ function parseLineCommand(line: LogLine): LogLineCommand | null {
   return null;
 }
 
+function isLogElementInViewport(el: HTMLElement): boolean {
+  const rect = el.getBoundingClientRect();
+  return rect.top >= 0 && rect.bottom <= window.innerHeight; // only check height but not width
+}
+
 const sfc = {
   name: 'RepoActionView',
   components: {
@@ -142,9 +147,14 @@ const sfc = {
   },
 
   methods: {
-    // get the active container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
-    getLogsContainer(stepIndex: number) {
-      const el = this.$refs.logs[stepIndex];
+    // get the job step logs container ('.job-step-logs')
+    getJobStepLogsContainer(stepIndex: number): HTMLElement {
+      return this.$refs.logs[stepIndex];
+    },
+
+    // get the active logs container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
+    getActiveLogsContainer(stepIndex: number): HTMLElement {
+      const el = this.getJobStepLogsContainer(stepIndex);
       return el._stepLogsActiveContainer ?? el;
     },
     // begin a log group
@@ -217,14 +227,15 @@ const sfc = {
       );
     },
 
-    appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
-      // position of the client view relative to the website top
-      const clientHeight = document.documentElement.clientHeight + window.scrollY;
-      // height of the logs container relative to the website top
-      const logsContainerHeight = this.$refs.stepsContainer.getBoundingClientRect().bottom + window.scrollY;
+    shouldAutoScroll(stepIndex: number): boolean {
+      const el = this.getJobStepLogsContainer(stepIndex);
+      if (!el.lastChild) return false;
+      return isLogElementInViewport(el.lastChild);
+    },
 
+    appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
       for (const line of logLines) {
-        const el = this.getLogsContainer(stepIndex);
+        const el = this.getActiveLogsContainer(stepIndex);
         const cmd = parseLineCommand(line);
         if (cmd?.name === 'group') {
           this.beginLogGroup(stepIndex, startTime, line, cmd);
@@ -234,12 +245,6 @@ const sfc = {
           continue;
         }
         el.append(this.createLogLine(stepIndex, startTime, line));
-      }
-
-      // scrolls to the bottom if job is running and the bottom of the logs container is visible
-      if (!this.run.done && logLines.length && clientHeight >= logsContainerHeight) {
-        const newLogsContainerHeight = this.$refs.stepsContainer.getBoundingClientRect().bottom + window.scrollY;
-        window.scrollTo({top: clientHeight + (newLogsContainerHeight - logsContainerHeight), behavior: 'smooth'});
       }
     },
 
@@ -289,6 +294,14 @@ const sfc = {
             this.currentJobStepsStates[i] = {cursor: null, expanded: false};
           }
         }
+
+        // find the step indexes that need to auto-scroll
+        const autoScrollStepIndexes = new Map<number, boolean>();
+        for (const logs of job.logs.stepsLog ?? []) {
+          if (autoScrollStepIndexes.has(logs.step)) continue;
+          autoScrollStepIndexes.set(logs.step, this.shouldAutoScroll(logs.step));
+        }
+
         // append logs to the UI
         for (const logs of job.logs.stepsLog ?? []) {
           // save the cursor, it will be passed to backend next time
@@ -296,6 +309,15 @@ const sfc = {
           this.appendLogs(logs.step, logs.started, logs.lines);
         }
 
+        // auto-scroll to the last log line of the last step
+        let autoScrollJobStepElement: HTMLElement;
+        for (let stepIndex = 0; stepIndex < this.currentJob.steps.length; stepIndex++) {
+          if (!autoScrollStepIndexes.get(stepIndex)) continue;
+          autoScrollJobStepElement = this.getJobStepLogsContainer(stepIndex);
+        }
+        autoScrollJobStepElement?.lastElementChild.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+
+        // clear the interval timer if the job is done
         if (this.run.done && this.intervalID) {
           clearInterval(this.intervalID);
           this.intervalID = null;
@@ -478,7 +500,7 @@ export function initRepositoryActionView() {
         </div>
       </div>
 
-      <div class="action-view-right" ref="stepsContainer">
+      <div class="action-view-right">
         <div class="job-info-header">
           <div class="job-info-header-left gt-ellipsis">
             <h3 class="job-info-header-title gt-ellipsis">
