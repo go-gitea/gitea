@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestProcessorHelper(t *testing.T) {
+func TestRenderHelperMention(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	userPublic := "user1"
@@ -32,10 +32,10 @@ func TestProcessorHelper(t *testing.T) {
 	unittest.AssertCount(t, &user.User{Name: userNoSuch}, 0)
 
 	// when using general context, use user's visibility to check
-	assert.True(t, ProcessorHelper().IsUsernameMentionable(context.Background(), userPublic))
-	assert.False(t, ProcessorHelper().IsUsernameMentionable(context.Background(), userLimited))
-	assert.False(t, ProcessorHelper().IsUsernameMentionable(context.Background(), userPrivate))
-	assert.False(t, ProcessorHelper().IsUsernameMentionable(context.Background(), userNoSuch))
+	assert.True(t, FormalRenderHelperFuncs().IsUsernameMentionable(context.Background(), userPublic))
+	assert.False(t, FormalRenderHelperFuncs().IsUsernameMentionable(context.Background(), userLimited))
+	assert.False(t, FormalRenderHelperFuncs().IsUsernameMentionable(context.Background(), userPrivate))
+	assert.False(t, FormalRenderHelperFuncs().IsUsernameMentionable(context.Background(), userNoSuch))
 
 	// when using web context, use user.IsUserVisibleToViewer to check
 	req, err := http.NewRequest("GET", "/", nil)
@@ -44,11 +44,11 @@ func TestProcessorHelper(t *testing.T) {
 	defer baseCleanUp()
 	giteaCtx := gitea_context.NewWebContext(base, &contexttest.MockRender{}, nil)
 
-	assert.True(t, ProcessorHelper().IsUsernameMentionable(giteaCtx, userPublic))
-	assert.False(t, ProcessorHelper().IsUsernameMentionable(giteaCtx, userPrivate))
+	assert.True(t, FormalRenderHelperFuncs().IsUsernameMentionable(giteaCtx, userPublic))
+	assert.False(t, FormalRenderHelperFuncs().IsUsernameMentionable(giteaCtx, userPrivate))
 
 	giteaCtx.Doer, err = user.GetUserByName(db.DefaultContext, userPrivate)
 	assert.NoError(t, err)
-	assert.True(t, ProcessorHelper().IsUsernameMentionable(giteaCtx, userPublic))
-	assert.True(t, ProcessorHelper().IsUsernameMentionable(giteaCtx, userPrivate))
+	assert.True(t, FormalRenderHelperFuncs().IsUsernameMentionable(giteaCtx, userPublic))
+	assert.True(t, FormalRenderHelperFuncs().IsUsernameMentionable(giteaCtx, userPrivate))
 }
