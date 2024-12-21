@@ -7,8 +7,8 @@ import {SvgIcon} from '../svg.ts';
 
 withDefaults(defineProps<{
   status: 'success' | 'skipped' | 'waiting' | 'blocked' | 'running' | 'failure' | 'cancelled' | 'unknown',
-  size: number,
-  className: string,
+  size?: number,
+  className?: string,
   localeStatus?: string,
 }>(), {
   size: 16,
