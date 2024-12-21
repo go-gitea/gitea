@@ -15,7 +15,6 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	attachment_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -29,9 +28,9 @@ import (
 )
 
 const (
-	tplProjects     base.TplName = "org/projects/list"
-	tplProjectsNew  base.TplName = "org/projects/new"
-	tplProjectsView base.TplName = "org/projects/view"
+	tplProjects     templates.TplName = "org/projects/list"
+	tplProjectsNew  templates.TplName = "org/projects/new"
+	tplProjectsView templates.TplName = "org/projects/view"
 )
 
 // MustEnableProjects check if projects are enabled in settings

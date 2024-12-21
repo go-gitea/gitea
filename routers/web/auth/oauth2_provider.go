@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
@@ -29,8 +30,8 @@ import (
 )
 
 const (
-	tplGrantAccess base.TplName = "user/auth/grant"
-	tplGrantError  base.TplName = "user/auth/grant_error"
+	tplGrantAccess templates.TplName = "user/auth/grant"
+	tplGrantError  templates.TplName = "user/auth/grant_error"
 )
 
 // TODO move error and responses to SDK or models

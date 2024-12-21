@@ -15,13 +15,13 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -38,10 +38,10 @@ import (
 )
 
 const (
-	tplSignIn         base.TplName = "user/auth/signin"          // for sign in page
-	tplSignUp         base.TplName = "user/auth/signup"          // for sign up page
-	TplActivate       base.TplName = "user/auth/activate"        // for activate user
-	TplActivatePrompt base.TplName = "user/auth/activate_prompt" // for showing a message for user activation
+	tplSignIn         templates.TplName = "user/auth/signin"          // for sign in page
+	tplSignUp         templates.TplName = "user/auth/signup"          // for sign up page
+	TplActivate       templates.TplName = "user/auth/activate"        // for activate user
+	TplActivatePrompt templates.TplName = "user/auth/activate_prompt" // for showing a message for user activation
 )
 
 // autoSignIn reads cookie and try to auto-login.
@@ -517,7 +517,7 @@ func SignUpPost(ctx *context.Context) {
 
 // createAndHandleCreatedUser calls createUserInContext and
 // then handleUserCreated.
-func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) bool {
+func createAndHandleCreatedUser(ctx *context.Context, tpl templates.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) bool {
 	if !createUserInContext(ctx, tpl, form, u, overwrites, gothUser, allowLink) {
 		return false
 	}
@@ -526,7 +526,7 @@ func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form any
 
 // createUserInContext creates a user and handles errors within a given context.
 // Optionally a template can be specified.
-func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) (ok bool) {
+func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) (ok bool) {
 	meta := &user_model.Meta{
 		InitialIP:        ctx.RemoteAddr(),
 		InitialUserAgent: ctx.Req.UserAgent(),

@@ -11,9 +11,9 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -25,7 +25,7 @@ import (
 	"github.com/markbates/goth"
 )
 
-var tplLinkAccount base.TplName = "user/auth/link_account"
+var tplLinkAccount templates.TplName = "user/auth/link_account"
 
 // LinkAccount shows the page where the user can decide to login or create a new account
 func LinkAccount(ctx *context.Context) {
@@ -92,7 +92,7 @@ func LinkAccount(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplLinkAccount)
 }
 
-func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl base.TplName, invoker string, err error) {
+func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl templates.TplName, invoker string, err error) {
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
 	} else if errors.Is(err, util.ErrInvalidArgument) {

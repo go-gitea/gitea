@@ -32,7 +32,7 @@ import (
 // Render represents a template render
 type Render interface {
 	TemplateLookup(tmpl string, templateCtx context.Context) (templates.TemplateExecutor, error)
-	HTML(w io.Writer, status int, name string, data any, templateCtx context.Context) error
+	HTML(w io.Writer, status int, name templates.TplName, data any, templateCtx context.Context) error
 }
 
 // Context represents context of a request.

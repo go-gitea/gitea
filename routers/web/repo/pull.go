@@ -23,13 +23,13 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
@@ -49,9 +49,9 @@ import (
 )
 
 const (
-	tplCompareDiff base.TplName = "repo/diff/compare"
-	tplPullCommits base.TplName = "repo/pulls/commits"
-	tplPullFiles   base.TplName = "repo/pulls/files"
+	tplCompareDiff templates.TplName = "repo/diff/compare"
+	tplPullCommits templates.TplName = "repo/pulls/commits"
+	tplPullFiles   templates.TplName = "repo/pulls/files"
 
 	pullRequestTemplateKey = "PullRequestTemplate"
 )

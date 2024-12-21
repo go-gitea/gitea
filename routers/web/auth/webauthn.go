@@ -11,9 +11,9 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	wa "code.gitea.io/gitea/modules/auth/webauthn"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/externalaccount"
 
@@ -21,7 +21,7 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 
-var tplWebAuthn base.TplName = "user/auth/webauthn"
+var tplWebAuthn templates.TplName = "user/auth/webauthn"
 
 // WebAuthn shows the WebAuthn login page
 func WebAuthn(ctx *context.Context) {

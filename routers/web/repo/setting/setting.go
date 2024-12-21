@@ -18,7 +18,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -27,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
@@ -41,12 +41,12 @@ import (
 )
 
 const (
-	tplSettingsOptions base.TplName = "repo/settings/options"
-	tplCollaboration   base.TplName = "repo/settings/collaboration"
-	tplBranches        base.TplName = "repo/settings/branches"
-	tplGithooks        base.TplName = "repo/settings/githooks"
-	tplGithookEdit     base.TplName = "repo/settings/githook_edit"
-	tplDeployKeys      base.TplName = "repo/settings/deploy_keys"
+	tplSettingsOptions templates.TplName = "repo/settings/options"
+	tplCollaboration   templates.TplName = "repo/settings/collaboration"
+	tplBranches        templates.TplName = "repo/settings/branches"
+	tplGithooks        templates.TplName = "repo/settings/githooks"
+	tplGithookEdit     templates.TplName = "repo/settings/githook_edit"
+	tplDeployKeys      templates.TplName = "repo/settings/deploy_keys"
 )
 
 // SettingsCtxData is a middleware that sets all the general context data for the

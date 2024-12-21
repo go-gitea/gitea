@@ -169,18 +169,3 @@ func TestInt64sToStrings(t *testing.T) {
 }
 
 // TODO: Test EntryIcon
-
-func TestSetupGiteaRoot(t *testing.T) {
-	t.Setenv("GITEA_ROOT", "test")
-	assert.Equal(t, "test", SetupGiteaRoot())
-	t.Setenv("GITEA_ROOT", "")
-	assert.NotEqual(t, "test", SetupGiteaRoot())
-}
-
-func TestFormatNumberSI(t *testing.T) {
-	assert.Equal(t, "125", FormatNumberSI(int(125)))
-	assert.Equal(t, "1.3k", FormatNumberSI(int64(1317)))
-	assert.Equal(t, "21.3M", FormatNumberSI(21317675))
-	assert.Equal(t, "45.7G", FormatNumberSI(45721317675))
-	assert.Equal(t, "", FormatNumberSI("test"))
-}

@@ -13,13 +13,13 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -31,10 +31,10 @@ import (
 )
 
 const (
-	tplEditFile        base.TplName = "repo/editor/edit"
-	tplEditDiffPreview base.TplName = "repo/editor/diff_preview"
-	tplDeleteFile      base.TplName = "repo/editor/delete"
-	tplUploadFile      base.TplName = "repo/editor/upload"
+	tplEditFile        templates.TplName = "repo/editor/edit"
+	tplEditDiffPreview templates.TplName = "repo/editor/diff_preview"
+	tplDeleteFile      templates.TplName = "repo/editor/delete"
+	tplUploadFile      templates.TplName = "repo/editor/upload"
 
 	frmCommitChoiceDirect    string = "direct"
 	frmCommitChoiceNewBranch string = "commit-to-new-branch"

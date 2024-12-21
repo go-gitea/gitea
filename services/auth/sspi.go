@@ -13,10 +13,10 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/sspi"
 	gitea_context "code.gitea.io/gitea/services/context"
@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	tplSignIn base.TplName = "user/auth/signin"
+	tplSignIn templates.TplName = "user/auth/signin"
 )
 
 type SSPIAuth interface {
