@@ -8,8 +8,8 @@ import (
 
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	tplPatchFile base.TplName = "repo/editor/patch"
+	tplPatchFile templates.TplName = "repo/editor/patch"
 )
 
 // NewDiffPatch render create patch page
