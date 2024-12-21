@@ -34,7 +34,6 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	committerEmail := sig.Email
 
 	if stdout, _, err := git.NewCommand(ctx, "add", "--all").
-		SetDescription(fmt.Sprintf("initRepoCommit (git add): %s", tmpPath)).
 		RunStdString(&git.RunOpts{Dir: tmpPath}); err != nil {
 		log.Error("git add --all failed: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git add --all: %w", err)
@@ -62,9 +61,8 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	)
 
 	if stdout, _, err := cmd.
-		SetDescription(fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath)).
 		RunStdString(&git.RunOpts{Dir: tmpPath, Env: env}); err != nil {
-		log.Error("Failed to commit: %v: Stdout: %s\nError: %v", cmd.String(), stdout, err)
+		log.Error("Failed to commit: %v: Stdout: %s\nError: %v", cmd.LogString(), stdout, err)
 		return fmt.Errorf("git commit: %w", err)
 	}
 
@@ -73,7 +71,6 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	}
 
 	if stdout, _, err := git.NewCommand(ctx, "push", "origin").AddDynamicArguments("HEAD:" + defaultBranch).
-		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
 		RunStdString(&git.RunOpts{Dir: tmpPath, Env: repo_module.InternalPushingEnvironment(u, repo)}); err != nil {
 		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git push: %w", err)

@@ -46,11 +46,6 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	}
 
 	cmd := git.NewCommand(ctx, "remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(addr)
-	if strings.Contains(addr, "://") && strings.Contains(addr, "@") {
-		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, util.SanitizeCredentialURLs(addr), repoPath))
-	} else {
-		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, addr, repoPath))
-	}
 	_, _, err = cmd.RunStdString(&git.RunOpts{Dir: repoPath})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
@@ -66,11 +61,6 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		}
 
 		cmd = git.NewCommand(ctx, "remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(wikiRemotePath)
-		if strings.Contains(wikiRemotePath, "://") && strings.Contains(wikiRemotePath, "@") {
-			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, util.SanitizeCredentialURLs(wikiRemotePath), wikiPath))
-		} else {
-			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, wikiRemotePath, wikiPath))
-		}
 		_, _, err = cmd.RunStdString(&git.RunOpts{Dir: wikiPath})
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 			return err
@@ -197,7 +187,6 @@ func pruneBrokenReferences(ctx context.Context,
 	stderrBuilder.Reset()
 	stdoutBuilder.Reset()
 	pruneErr := git.NewCommand(ctx, "remote", "prune").AddDynamicArguments(m.GetRemoteName()).
-		SetDescription(fmt.Sprintf("Mirror.runSync %ssPrune references: %s ", wiki, m.Repo.FullName())).
 		Run(&git.RunOpts{
 			Timeout: timeout,
 			Dir:     repoPath,
@@ -248,15 +237,13 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
-	if err := cmd.
-		SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
-		Run(&git.RunOpts{
-			Timeout: timeout,
-			Dir:     repoPath,
-			Env:     envs,
-			Stdout:  &stdoutBuilder,
-			Stderr:  &stderrBuilder,
-		}); err != nil {
+	if err := cmd.Run(&git.RunOpts{
+		Timeout: timeout,
+		Dir:     repoPath,
+		Env:     envs,
+		Stdout:  &stdoutBuilder,
+		Stderr:  &stderrBuilder,
+	}); err != nil {
 		stdout := stdoutBuilder.String()
 		stderr := stderrBuilder.String()
 
@@ -275,14 +262,12 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 				// Successful prune - reattempt mirror
 				stderrBuilder.Reset()
 				stdoutBuilder.Reset()
-				if err = cmd.
-					SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
-					Run(&git.RunOpts{
-						Timeout: timeout,
-						Dir:     repoPath,
-						Stdout:  &stdoutBuilder,
-						Stderr:  &stderrBuilder,
-					}); err != nil {
+				if err = cmd.Run(&git.RunOpts{
+					Timeout: timeout,
+					Dir:     repoPath,
+					Stdout:  &stdoutBuilder,
+					Stderr:  &stderrBuilder,
+				}); err != nil {
 					stdout := stdoutBuilder.String()
 					stderr := stderrBuilder.String()
 
@@ -346,7 +331,6 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
 		if err := git.NewCommand(ctx, "remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
-			SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
 			Run(&git.RunOpts{
 				Timeout: timeout,
 				Dir:     wikiPath,
@@ -373,7 +357,6 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 					stdoutBuilder.Reset()
 
 					if err = git.NewCommand(ctx, "remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
-						SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
 						Run(&git.RunOpts{
 							Timeout: timeout,
 							Dir:     wikiPath,

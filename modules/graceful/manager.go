@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -136,7 +137,7 @@ func (g *Manager) doShutdown() {
 	}
 	g.lock.Lock()
 	g.shutdownCtxCancel()
-	atShutdownCtx := pprof.WithLabels(g.hammerCtx, pprof.Labels(LifecyclePProfLabel, "post-shutdown"))
+	atShutdownCtx := pprof.WithLabels(g.hammerCtx, pprof.Labels(gtprof.LabelGracefulLifecycle, "post-shutdown"))
 	pprof.SetGoroutineLabels(atShutdownCtx)
 	for _, fn := range g.toRunAtShutdown {
 		go fn()
@@ -167,7 +168,7 @@ func (g *Manager) doHammerTime(d time.Duration) {
 	default:
 		log.Warn("Setting Hammer condition")
 		g.hammerCtxCancel()
-		atHammerCtx := pprof.WithLabels(g.terminateCtx, pprof.Labels(LifecyclePProfLabel, "post-hammer"))
+		atHammerCtx := pprof.WithLabels(g.terminateCtx, pprof.Labels(gtprof.LabelGracefulLifecycle, "post-hammer"))
 		pprof.SetGoroutineLabels(atHammerCtx)
 	}
 	g.lock.Unlock()
@@ -183,7 +184,7 @@ func (g *Manager) doTerminate() {
 	default:
 		log.Warn("Terminating")
 		g.terminateCtxCancel()
-		atTerminateCtx := pprof.WithLabels(g.managerCtx, pprof.Labels(LifecyclePProfLabel, "post-terminate"))
+		atTerminateCtx := pprof.WithLabels(g.managerCtx, pprof.Labels(gtprof.LabelGracefulLifecycle, "post-terminate"))
 		pprof.SetGoroutineLabels(atTerminateCtx)
 
 		for _, fn := range g.toRunAtTerminate {
