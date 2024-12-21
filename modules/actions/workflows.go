@@ -5,6 +5,7 @@ package actions
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"strings"
 
@@ -55,7 +56,7 @@ func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 		return nil, err
 	}
 
-	entries, err := tree.ListEntriesRecursiveFast()
+	entries, err := tree.ListEntriesRecursiveFast(context.Background())
 	if err != nil {
 		return nil, err
 	}
