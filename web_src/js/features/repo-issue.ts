@@ -17,6 +17,7 @@ import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 
 const {appSubUrl} = window.config;
 
@@ -579,7 +580,7 @@ export function initRepoIssueTitleEdit() {
           }
         }
       }
-      issueTitleEditor.classList.remove('dirty');
+      ignoreAreYouSure(issueTitleEditor);
       window.location.reload();
     } catch (error) {
       console.error(error);
