@@ -129,7 +129,7 @@ function clearMergeMessage() {
         {{ mergeForm.textCancel }}
       </button>
 
-      <div class="ui checkbox tw-ml-1" v-if="mergeForm.isPullBranchDeletable && !autoMergeWhenSucceed">
+      <div class="ui checkbox tw-ml-1" v-if="mergeForm.isPullBranchDeletable">
         <input name="delete_branch_after_merge" type="checkbox" v-model="deleteBranchAfterMerge" id="delete-branch-after-merge">
         <label for="delete-branch-after-merge">{{ mergeForm.textDeleteBranch }}</label>
       </div>
