@@ -1,0 +1,19 @@
+Ini to Shell
+==================
+
+This is the counterpart to environment-to-ini. It allows extracting
+settings from an existing ini file for further processing in e.g. a shell.
+
+The original incentive comes from the Helm Chart repository, where
+the ini file must be recreated on changes while preserving some of them.
+
+Since it is not possible to define an environment variable for the
+parent process, this script simply echoes the value.
+
+To build locally, run:
+
+	go build contrib/ini-to-shell/ini-to-shell.go
+
+To extract a value from an ini file, run:
+
+	reflogExpire=$(go run contrib/ini-to-shell/ini-to-shell.go -c app.ini -s 'git.config' -k 'gc.reflogExpire')
