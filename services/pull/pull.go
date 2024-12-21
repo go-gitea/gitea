@@ -116,8 +116,32 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 
 	var reviewNotifiers []*issue_service.ReviewRequestNotifier
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr); err != nil {
-			return err
+		idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
+		if err != nil {
+			return fmt.Errorf("generate pull request index failed: %w", err)
+		}
+
+		issue.Index = idx
+		issue.Title, _ = util.SplitStringAtByteN(issue.Title, 255)
+
+		if err = issues_model.NewIssueWithIndex(ctx, issue.Poster, issues_model.NewIssueOptions{
+			Repo:        repo,
+			Issue:       issue,
+			LabelIDs:    labelIDs,
+			Attachments: uuids,
+			IsPull:      true,
+		}); err != nil {
+			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || issues_model.IsErrNewIssueInsert(err) {
+				return err
+			}
+			return fmt.Errorf("newIssue: %w", err)
+		}
+
+		pr.Index = issue.Index
+		pr.BaseRepo = repo
+		pr.IssueID = issue.ID
+		if err = db.Insert(ctx, pr); err != nil {
+			return fmt.Errorf("insert pull repo: %w", err)
 		}
 
 		for _, assigneeID := range assigneeIDs {
@@ -210,6 +234,9 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
 	}
 	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
+	if err != nil {
+		return err
+	}
 	for _, reviewer := range opts.Reviewers {
 		if _, err = issue_service.ReviewRequest(ctx, pr.Issue, issue.Poster, &permDoer, reviewer, true); err != nil {
 			return err

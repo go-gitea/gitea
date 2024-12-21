@@ -592,26 +592,27 @@ func (c *Comment) LoadAttachments(ctx context.Context) error {
 	return nil
 }
 
-// UpdateAttachments update attachments by UUIDs for the comment
-func (c *Comment) UpdateAttachments(ctx context.Context, uuids []string) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
+// UpdateCommentAttachments update attachments by UUIDs for the comment
+func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) error {
+	if len(uuids) == 0 {
+		return nil
 	}
-	defer committer.Close()
 
-	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
-	if err != nil {
-		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
-	}
-	for i := 0; i < len(attachments); i++ {
-		attachments[i].IssueID = c.IssueID
-		attachments[i].CommentID = c.ID
-		if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
-			return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
+		if err != nil {
+			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 		}
-	}
-	return committer.Commit()
+		for i := 0; i < len(attachments); i++ {
+			attachments[i].IssueID = c.IssueID
+			attachments[i].CommentID = c.ID
+			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
+				return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
+			}
+		}
+		c.Attachments = attachments
+		return nil
+	})
 }
 
 // LoadAssigneeUserAndTeam if comment.Type is CommentTypeAssignees, then load assignees
@@ -878,7 +879,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 	// Check comment type.
 	switch opts.Type {
 	case CommentTypeCode:
-		if err = updateAttachments(ctx, opts, comment); err != nil {
+		if err = UpdateCommentAttachments(ctx, comment, opts.Attachments); err != nil {
 			return err
 		}
 		if comment.ReviewID != 0 {
@@ -898,7 +899,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 		fallthrough
 	case CommentTypeReview:
-		if err = updateAttachments(ctx, opts, comment); err != nil {
+		if err = UpdateCommentAttachments(ctx, comment, opts.Attachments); err != nil {
 			return err
 		}
 	case CommentTypeReopen, CommentTypeClose:
@@ -908,23 +909,6 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 	}
 	// update the issue's updated_unix column
 	return UpdateIssueCols(ctx, opts.Issue, "updated_unix")
-}
-
-func updateAttachments(ctx context.Context, opts *CreateCommentOptions, comment *Comment) error {
-	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
-	if err != nil {
-		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)
-	}
-	for i := range attachments {
-		attachments[i].IssueID = opts.Issue.ID
-		attachments[i].CommentID = comment.ID
-		// No assign value could be 0, so ignore AllCols().
-		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
-			return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
-		}
-	}
-	comment.Attachments = attachments
-	return nil
 }
 
 func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
@@ -1139,33 +1123,16 @@ func UpdateCommentInvalidate(ctx context.Context, c *Comment) error {
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *user_model.User) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
-
+func UpdateComment(ctx context.Context, c *Comment, contentVersion int) error {
 	c.ContentVersion = contentVersion + 1
 
-	affected, err := sess.ID(c.ID).AllCols().Where("content_version = ?", contentVersion).Update(c)
+	affected, err := db.GetEngine(ctx).ID(c.ID).AllCols().Where("content_version = ?", contentVersion).Update(c)
 	if err != nil {
 		return err
 	}
 	if affected == 0 {
 		return ErrCommentAlreadyChanged
 	}
-	if err := c.LoadIssue(ctx); err != nil {
-		return err
-	}
-	if err := c.AddCrossReferences(ctx, doer, true); err != nil {
-		return err
-	}
-	if err := committer.Commit(); err != nil {
-		return fmt.Errorf("Commit: %w", err)
-	}
-
 	return nil
 }
 
@@ -1195,7 +1162,7 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	if err := comment.neuterCrossReferences(ctx); err != nil {
+	if err := neuterCrossReferences(ctx, comment.IssueID, comment.ID); err != nil {
 		return err
 	}
 

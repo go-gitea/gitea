@@ -300,7 +300,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 	pr.Merger = merger
 	pr.MergerID = merger.ID
 
-	if merged, err := pr.SetMerged(ctx); err != nil {
+	if merged, err := SetMerged(ctx, pr); err != nil {
 		log.Error("%-v setMerged : %v", pr, err)
 		return false
 	} else if !merged {
