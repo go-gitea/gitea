@@ -34,7 +34,7 @@
   background: var(--color-active);
 }
 
-#navbar a.item:hover,
+#navbar a.item:hover:not(.disabled-with-tooltip),
 #navbar button.item:hover {
   background: var(--color-nav-hover-bg);
 }
