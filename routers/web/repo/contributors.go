@@ -7,13 +7,13 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	contributors_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
-	tplContributors base.TplName = "repo/activity"
+	tplContributors templates.TplName = "repo/activity"
 )
 
 // Contributors render the page to show repository contributors graph

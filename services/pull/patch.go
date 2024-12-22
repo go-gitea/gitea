@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
@@ -502,6 +501,29 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	return false, nil
 }
 
+// ErrFilePathProtected represents a "FilePathProtected" kind of error.
+type ErrFilePathProtected struct {
+	Message string
+	Path    string
+}
+
+// IsErrFilePathProtected checks if an error is an ErrFilePathProtected.
+func IsErrFilePathProtected(err error) bool {
+	_, ok := err.(ErrFilePathProtected)
+	return ok
+}
+
+func (err ErrFilePathProtected) Error() string {
+	if err.Message != "" {
+		return err.Message
+	}
+	return fmt.Sprintf("path is protected and can not be changed [path: %s]", err.Path)
+}
+
+func (err ErrFilePathProtected) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // CheckFileProtection check file Protection
 func CheckFileProtection(repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string) ([]string, error) {
 	if len(patterns) == 0 {
@@ -525,7 +547,7 @@ func CheckFileProtection(repo *git.Repository, branchName, oldCommitID, newCommi
 		}
 	}
 	if len(changedProtectedFiles) > 0 {
-		err = models.ErrFilePathProtected{
+		err = ErrFilePathProtected{
 			Path: changedProtectedFiles[0],
 		}
 	}
@@ -575,7 +597,7 @@ func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest,
 	}
 
 	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.HeadBranch, pr.MergeBase, "tracking", pb.GetProtectedFilePatterns(), 10, os.Environ())
-	if err != nil && !models.IsErrFilePathProtected(err) {
+	if err != nil && !IsErrFilePathProtected(err) {
 		return err
 	}
 	return nil

@@ -8,6 +8,8 @@ import (
 	"runtime/pprof"
 	"sync"
 	"time"
+
+	"code.gitea.io/gitea/modules/gtprof"
 )
 
 // FIXME: it seems that there is a bug when using systemd Type=notify: the "Install Page" (INSTALL_LOCK=false) doesn't notify properly.
@@ -65,10 +67,10 @@ func (g *Manager) prepare(ctx context.Context) {
 	g.hammerCtx, g.hammerCtxCancel = context.WithCancel(ctx)
 	g.managerCtx, g.managerCtxCancel = context.WithCancel(ctx)
 
-	g.terminateCtx = pprof.WithLabels(g.terminateCtx, pprof.Labels("graceful-lifecycle", "with-terminate"))
-	g.shutdownCtx = pprof.WithLabels(g.shutdownCtx, pprof.Labels("graceful-lifecycle", "with-shutdown"))
-	g.hammerCtx = pprof.WithLabels(g.hammerCtx, pprof.Labels("graceful-lifecycle", "with-hammer"))
-	g.managerCtx = pprof.WithLabels(g.managerCtx, pprof.Labels("graceful-lifecycle", "with-manager"))
+	g.terminateCtx = pprof.WithLabels(g.terminateCtx, pprof.Labels(gtprof.LabelGracefulLifecycle, "with-terminate"))
+	g.shutdownCtx = pprof.WithLabels(g.shutdownCtx, pprof.Labels(gtprof.LabelGracefulLifecycle, "with-shutdown"))
+	g.hammerCtx = pprof.WithLabels(g.hammerCtx, pprof.Labels(gtprof.LabelGracefulLifecycle, "with-hammer"))
+	g.managerCtx = pprof.WithLabels(g.managerCtx, pprof.Labels(gtprof.LabelGracefulLifecycle, "with-manager"))
 
 	if !g.setStateTransition(stateInit, stateRunning) {
 		panic("invalid graceful manager state: transition from init to running failed")

@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -43,6 +42,23 @@ func (ctx *mergeContext) RunOpts() *git.RunOpts {
 	}
 }
 
+// ErrSHADoesNotMatch represents a "SHADoesNotMatch" kind of error.
+type ErrSHADoesNotMatch struct {
+	Path       string
+	GivenSHA   string
+	CurrentSHA string
+}
+
+// IsErrSHADoesNotMatch checks if an error is a ErrSHADoesNotMatch.
+func IsErrSHADoesNotMatch(err error) bool {
+	_, ok := err.(ErrSHADoesNotMatch)
+	return ok
+}
+
+func (err ErrSHADoesNotMatch) Error() string {
+	return fmt.Sprintf("sha does not match [given: %s, expected: %s]", err.GivenSHA, err.CurrentSHA)
+}
+
 func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, expectedHeadCommitID string) (mergeCtx *mergeContext, cancel context.CancelFunc, err error) {
 	// Clone base repo.
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
@@ -65,7 +81,7 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 		}
 		if strings.TrimSpace(trackingCommitID) != expectedHeadCommitID {
 			defer cancel()
-			return nil, nil, models.ErrSHADoesNotMatch{
+			return nil, nil, ErrSHADoesNotMatch{
 				GivenSHA:   expectedHeadCommitID,
 				CurrentSHA: trackingCommitID,
 			}
@@ -233,8 +249,27 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, o
 	return err
 }
 
+// ErrRebaseConflicts represents an error if rebase fails with a conflict
+type ErrRebaseConflicts struct {
+	Style     repo_model.MergeStyle
+	CommitSHA string
+	StdOut    string
+	StdErr    string
+	Err       error
+}
+
+// IsErrRebaseConflicts checks if an error is a ErrRebaseConflicts.
+func IsErrRebaseConflicts(err error) bool {
+	_, ok := err.(ErrRebaseConflicts)
+	return ok
+}
+
+func (err ErrRebaseConflicts) Error() string {
+	return fmt.Sprintf("Rebase Error: %v: Whilst Rebasing: %s\n%s\n%s", err.Err, err.CommitSHA, err.StdErr, err.StdOut)
+}
+
 // rebaseTrackingOnToBase checks out the tracking branch as staging and rebases it on to the base branch
-// if there is a conflict it will return a models.ErrRebaseConflicts
+// if there is a conflict it will return an ErrRebaseConflicts
 func rebaseTrackingOnToBase(ctx *mergeContext, mergeStyle repo_model.MergeStyle) error {
 	// Checkout head branch
 	if err := git.NewCommand(ctx, "checkout", "-b").AddDynamicArguments(stagingBranch, trackingBranch).
@@ -268,11 +303,11 @@ func rebaseTrackingOnToBase(ctx *mergeContext, mergeStyle repo_model.MergeStyle)
 				}
 			}
 			if !ok {
-				log.Error("Unable to determine failing commit sha for failing rebase in temp repo for %-v. Cannot cast as models.ErrRebaseConflicts.", ctx.pr)
+				log.Error("Unable to determine failing commit sha for failing rebase in temp repo for %-v. Cannot cast as ErrRebaseConflicts.", ctx.pr)
 				return fmt.Errorf("unable to git rebase staging on to base in temp repo for %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 			}
 			log.Debug("Conflict when rebasing staging on to base in %-v at %s: %v\n%s\n%s", ctx.pr, commitSha, err, ctx.outbuf.String(), ctx.errbuf.String())
-			return models.ErrRebaseConflicts{
+			return ErrRebaseConflicts{
 				CommitSHA: commitSha,
 				Style:     mergeStyle,
 				StdOut:    ctx.outbuf.String(),

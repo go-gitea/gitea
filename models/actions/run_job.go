@@ -153,20 +153,25 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 }
 
 func AggregateJobStatus(jobs []*ActionRunJob) Status {
-	allSuccessOrSkipped := true
-	var hasFailure, hasCancelled, hasSkipped, hasWaiting, hasRunning, hasBlocked bool
+	allSuccessOrSkipped := len(jobs) != 0
+	allSkipped := len(jobs) != 0
+	var hasFailure, hasCancelled, hasWaiting, hasRunning, hasBlocked bool
 	for _, job := range jobs {
 		allSuccessOrSkipped = allSuccessOrSkipped && (job.Status == StatusSuccess || job.Status == StatusSkipped)
+		allSkipped = allSkipped && job.Status == StatusSkipped
 		hasFailure = hasFailure || job.Status == StatusFailure
 		hasCancelled = hasCancelled || job.Status == StatusCancelled
-		hasSkipped = hasSkipped || job.Status == StatusSkipped
 		hasWaiting = hasWaiting || job.Status == StatusWaiting
 		hasRunning = hasRunning || job.Status == StatusRunning
 		hasBlocked = hasBlocked || job.Status == StatusBlocked
 	}
 	switch {
+	case allSkipped:
+		return StatusSkipped
 	case allSuccessOrSkipped:
 		return StatusSuccess
+	case hasCancelled:
+		return StatusCancelled
 	case hasFailure:
 		return StatusFailure
 	case hasRunning:
@@ -175,10 +180,6 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 		return StatusWaiting
 	case hasBlocked:
 		return StatusBlocked
-	case hasCancelled:
-		return StatusCancelled
-	case hasSkipped:
-		return StatusSkipped
 	default:
 		return StatusUnknown // it shouldn't happen
 	}

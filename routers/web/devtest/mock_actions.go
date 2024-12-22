@@ -31,7 +31,11 @@ func generateMockStepsLog(logCur actions.LogCursor) (stepsLog []*actions.ViewSte
 		"##[endgroup]",
 	}
 	cur := logCur.Cursor // usually the cursor is the "file offset", but here we abuse it as "line number" to make the mock easier, intentionally
-	for i := 0; i < util.Iif(logCur.Step == 0, 3, 1); i++ {
+	mockCount := util.Iif(logCur.Step == 0, 3, 1)
+	if logCur.Step == 1 && logCur.Cursor == 0 {
+		mockCount = 30 // for the first batch, return as many as possible to test the auto-expand and auto-scroll
+	}
+	for i := 0; i < mockCount; i++ {
 		logStr := mockedLogs[int(cur)%len(mockedLogs)]
 		cur++
 		logStr = strings.ReplaceAll(logStr, "{step}", fmt.Sprintf("%d", logCur.Step))
@@ -56,6 +60,21 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.Status = actions_model.StatusRunning.String()
 	resp.State.Run.CanCancel = true
 	resp.State.Run.CanDeleteArtifact = true
+	resp.State.Run.WorkflowID = "workflow-id"
+	resp.State.Run.WorkflowLink = "./workflow-link"
+	resp.State.Run.Commit = actions.ViewCommit{
+		ShortSha: "ccccdddd",
+		Link:     "./commit-link",
+		Pusher: actions.ViewUser{
+			DisplayName: "pusher user",
+			Link:        "./pusher-link",
+		},
+		Branch: actions.ViewBranch{
+			Name:      "commit-branch",
+			Link:      "./branch-link",
+			IsDeleted: false,
+		},
+	}
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:   "artifact-a",
 		Size:   100 * 1024,
