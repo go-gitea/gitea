@@ -14,13 +14,13 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -235,5 +235,5 @@ func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
 	metaPath := filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")
 	assert.NoError(t, SyncDirs(metaPath, setting.RepoRootPath))
-	base.SetupGiteaRoot() // Makes sure GITEA_ROOT is set
+	test.SetupGiteaRoot() // Makes sure GITEA_ROOT is set
 }
