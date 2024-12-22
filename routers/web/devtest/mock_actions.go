@@ -56,6 +56,21 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.Status = actions_model.StatusRunning.String()
 	resp.State.Run.CanCancel = true
 	resp.State.Run.CanDeleteArtifact = true
+	resp.State.Run.WorkflowID = "workflow-id"
+	resp.State.Run.WorkflowLink = "./workflow-link"
+	resp.State.Run.Commit = actions.ViewCommit{
+		ShortSha: "ccccdddd",
+		Link:     "./commit-link",
+		Pusher: actions.ViewUser{
+			DisplayName: "pusher user",
+			Link:        "./pusher-link",
+		},
+		Branch: actions.ViewBranch{
+			Name:      "commit-branch",
+			Link:      "./branch-link",
+			IsDeleted: false,
+		},
+	}
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:   "artifact-a",
 		Size:   100 * 1024,

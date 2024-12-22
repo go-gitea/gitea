@@ -65,6 +65,8 @@ const sfc = {
         'log-time-stamp': false,
         'log-time-seconds': false,
       },
+      optionAlwaysAutoExpand: false,
+      optionAlwaysAutoScroll: false,
 
       // provided by backend
       run: {
@@ -399,6 +401,8 @@ export function initRepositoryActionView() {
         skipped: el.getAttribute('data-locale-status-skipped'),
         blocked: el.getAttribute('data-locale-status-blocked'),
       },
+      logsAlwaysAutoScroll: el.getAttribute('data-locale-logs-always-auto-scroll'),
+      logsAlwaysAutoExpand: el.getAttribute('data-locale-logs-always-auto-expand'),
     },
   });
   view.mount(el);
@@ -501,6 +505,17 @@ export function initRepositoryActionView() {
                   <i class="icon"><SvgIcon :name="isFullScreen ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
                   {{ locale.showFullScreen }}
                 </a>
+
+                <div class="divider"/>
+                <a class="item" @click="optionAlwaysAutoScroll = !optionAlwaysAutoScroll">
+                  <i class="icon"><SvgIcon :name="optionAlwaysAutoScroll ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
+                  {{ locale.logsAlwaysAutoScroll }}
+                </a>
+                <a class="item" @click="optionAlwaysAutoExpand = !optionAlwaysAutoExpand">
+                  <i class="icon"><SvgIcon :name="optionAlwaysAutoExpand ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
+                  {{ locale.logsAlwaysAutoExpand }}
+                </a>
+
                 <div class="divider"/>
                 <a :class="['item', !currentJob.steps.length ? 'disabled' : '']" :href="run.link+'/jobs/'+jobIndex+'/logs'" target="_blank">
                   <i class="icon"><SvgIcon name="octicon-download"/></i>
