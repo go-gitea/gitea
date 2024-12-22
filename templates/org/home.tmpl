@@ -16,13 +16,12 @@
 			{{if .ShowMemberAndTeamTab}}
 			<div class="ui five wide column">
 				{{if .CanCreateOrgRepo}}
-					<div class="center aligned tw-mb-4">
+					<div class="flex-text-block tw-flex-wrap tw-justify-end tw-mb-4">
 						<a class="ui primary button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{ctx.Locale.Tr "new_repo"}}</a>
 						{{if not .DisableNewPullMirrors}}
 							<a class="ui primary button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{ctx.Locale.Tr "new_migrate"}}</a>
 						{{end}}
 					</div>
-					<div class="divider"></div>
 				{{end}}
 				{{if .NumMembers}}
 					<h4 class="ui top attached header tw-flex">
@@ -33,7 +32,7 @@
 						{{$isMember := .IsOrganizationMember}}
 						{{range .Members}}
 							{{if or $isMember (call $.IsPublicMember .ID)}}
-								<a href="{{.HomeLink}}" title="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">{{ctx.AvatarUtils.Avatar . 48}}</a>
+								<a href="{{.HomeLink}}" data-tooltip-content="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">{{ctx.AvatarUtils.Avatar . 24}}</a>
 							{{end}}
 						{{end}}
 					</div>
