@@ -49,8 +49,11 @@ type LocaleStorageOptions = {
 };
 
 function getLocaleStorageOptions(): LocaleStorageOptions {
-  const optsJson = localStorage.getItem('actions-view-options');
-  if (optsJson) return JSON.parse(optsJson);
+  try {
+    const optsJson = localStorage.getItem('actions-view-options');
+    if (optsJson) return JSON.parse(optsJson);
+  } catch {}
+  // if no options in localStorage, or failed to parse, return default options
   return {autoScroll: true, expandRunning: false};
 }
 
