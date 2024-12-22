@@ -13,13 +13,13 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	tplMigrate base.TplName = "repo/migrate/migrate"
+	tplMigrate templates.TplName = "repo/migrate/migrate"
 )
 
 // Migrate render migration of repository page
@@ -67,10 +67,10 @@ func Migrate(ctx *context.Context) {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	ctx.HTML(http.StatusOK, base.TplName("repo/migrate/"+serviceType.Name()))
+	ctx.HTML(http.StatusOK, templates.TplName("repo/migrate/"+serviceType.Name()))
 }
 
-func handleMigrateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form *forms.MigrateRepoForm) {
+func handleMigrateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl templates.TplName, form *forms.MigrateRepoForm) {
 	if setting.Repository.DisableMigrations {
 		ctx.Error(http.StatusForbidden, "MigrateError: the site administrator has disabled migrations")
 		return
@@ -122,7 +122,7 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 	}
 }
 
-func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl base.TplName, form *forms.MigrateRepoForm) {
+func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl templates.TplName, form *forms.MigrateRepoForm) {
 	if git.IsErrInvalidCloneAddr(err) {
 		addrErr := err.(*git.ErrInvalidCloneAddr)
 		switch {
@@ -169,7 +169,7 @@ func MigratePost(ctx *context.Context) {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	tpl := base.TplName("repo/migrate/" + form.Service.Name())
+	tpl := templates.TplName("repo/migrate/" + form.Service.Name())
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tpl)
