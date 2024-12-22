@@ -252,7 +252,7 @@ func TestAPIEditIssue(t *testing.T) {
 	assert.Equal(t, api.StateClosed, apiIssue.State)
 	assert.Equal(t, milestone, apiIssue.Milestone.ID)
 	assert.Equal(t, body, apiIssue.Body)
-	assert.True(t, apiIssue.Deadline == nil)
+	assert.Nil(t, apiIssue.Deadline)
 	assert.Equal(t, title, apiIssue.Title)
 
 	// in database

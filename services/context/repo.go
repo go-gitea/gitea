@@ -14,7 +14,6 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -39,10 +38,9 @@ import (
 
 // PullRequest contains information to make a pull request
 type PullRequest struct {
-	BaseRepo       *repo_model.Repository
-	Allowed        bool
-	SameRepo       bool
-	HeadInfoSubURL string // [<user>:]<branch> url segment
+	BaseRepo *repo_model.Repository
+	Allowed  bool // it only used by the web tmpl: "PullRequestCtx.Allowed"
+	SameRepo bool // it only used by the web tmpl: "PullRequestCtx.SameRepo"
 }
 
 // Repository contains information to operate a repository
@@ -396,18 +394,12 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Repo.Repository = repo
 	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
 	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
-
-	repoLicenses, err := repo_model.GetRepoLicenses(ctx, ctx.Repo.Repository)
-	if err != nil {
-		ctx.ServerError("GetRepoLicenses", err)
-		return
-	}
-	ctx.Data["DetectedRepoLicenses"] = repoLicenses.StringList()
 }
 
 // RepoAssignment returns a middleware to handle repository assignment
 func RepoAssignment(ctx *Context) context.CancelFunc {
 	if _, repoAssignmentOnce := ctx.Data["repoAssignmentExecuted"]; repoAssignmentOnce {
+		// FIXME: it should panic in dev/test modes to have a clear behavior
 		log.Trace("RepoAssignment was exec already, skipping second call ...")
 		return nil
 	}
@@ -704,7 +696,6 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		ctx.Data["BaseRepo"] = repo.BaseRepo
 		ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
 		ctx.Repo.PullRequest.Allowed = canPush
-		ctx.Repo.PullRequest.HeadInfoSubURL = url.PathEscape(ctx.Repo.Owner.Name) + ":" + util.PathEscapeSegments(ctx.Repo.BranchName)
 	} else if repo.AllowsPulls(ctx) {
 		// Or, this is repository accepts pull requests between branches.
 		canCompare = true
@@ -712,13 +703,12 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		ctx.Repo.PullRequest.BaseRepo = repo
 		ctx.Repo.PullRequest.Allowed = canPush
 		ctx.Repo.PullRequest.SameRepo = true
-		ctx.Repo.PullRequest.HeadInfoSubURL = util.PathEscapeSegments(ctx.Repo.BranchName)
 	}
 	ctx.Data["CanCompareOrPull"] = canCompare
 	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
-		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
+		repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError("GetPendingRepositoryTransfer", err)
 			return cancel
@@ -778,20 +768,6 @@ func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool
 	return ""
 }
 
-func isStringLikelyCommitID(objFmt git.ObjectFormat, s string, minLength ...int) bool {
-	minLen := util.OptionalArg(minLength, objFmt.FullLength())
-	if len(s) < minLen || len(s) > objFmt.FullLength() {
-		return false
-	}
-	for _, c := range s {
-		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
-		if !isHex {
-			return false
-		}
-	}
-	return true
-}
-
 func getRefNameLegacy(ctx *Base, repo *Repository, optionalExtraRef ...string) (string, RepoRefType) {
 	extraRef := util.OptionalArg(optionalExtraRef)
 	reqPath := ctx.PathParam("*")
@@ -806,7 +782,7 @@ func getRefNameLegacy(ctx *Base, repo *Repository, optionalExtraRef ...string) (
 
 	// For legacy support only full commit sha
 	parts := strings.Split(reqPath, "/")
-	if isStringLikelyCommitID(git.ObjectFormatFromName(repo.Repository.ObjectFormatName), parts[0]) {
+	if git.IsStringLikelyCommitID(git.ObjectFormatFromName(repo.Repository.ObjectFormatName), parts[0]) {
 		// FIXME: this logic is different from other types. Ideally, it should also try to GetCommit to check if it exists
 		repo.TreePath = strings.Join(parts[1:], "/")
 		return parts[0], RepoRefCommit
@@ -856,7 +832,7 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 		return getRefNameFromPath(repo, path, repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
 		parts := strings.Split(path, "/")
-		if isStringLikelyCommitID(repo.GetObjectFormat(), parts[0], 7) {
+		if git.IsStringLikelyCommitID(repo.GetObjectFormat(), parts[0], 7) {
 			// FIXME: this logic is different from other types. Ideally, it should also try to GetCommit to check if it exists
 			repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
@@ -992,7 +968,7 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 					return cancel
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if isStringLikelyCommitID(ctx.Repo.GetObjectFormat(), refName, 7) {
+			} else if git.IsStringLikelyCommitID(ctx.Repo.GetObjectFormat(), refName, 7) {
 				ctx.Repo.IsViewCommit = true
 				ctx.Repo.CommitID = refName
 
@@ -1036,7 +1012,7 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 		ctx.Data["IsViewBranch"] = ctx.Repo.IsViewBranch
 		ctx.Data["IsViewTag"] = ctx.Repo.IsViewTag
 		ctx.Data["IsViewCommit"] = ctx.Repo.IsViewCommit
-		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch()
+		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch() // only used by the branch selector dropdown: AllowCreateNewRef
 
 		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
 		if err != nil {

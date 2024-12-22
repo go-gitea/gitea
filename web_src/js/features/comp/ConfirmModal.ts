@@ -5,7 +5,7 @@ import {fomanticQuery} from '../../modules/fomantic/base.ts';
 
 const {i18n} = window.config;
 
-export function confirmModal({header = '', content = '', confirmButtonColor = 'primary'} = {}) {
+export function confirmModal({header = '', content = '', confirmButtonColor = 'primary'} = {}): Promise<boolean> {
   return new Promise((resolve) => {
     const headerHtml = header ? `<div class="header">${htmlEscape(header)}</div>` : '';
     const modal = createElementFromHTML(`

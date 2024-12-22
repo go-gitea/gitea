@@ -4,7 +4,6 @@
 package user
 
 import (
-	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -36,7 +35,7 @@ func TestCurrentUsername(t *testing.T) {
 	if user != whoami {
 		t.Errorf("expected %s as user, got: %s", whoami, user)
 	}
-	os.Setenv("USER", "spoofed")
+	t.Setenv("USER", "spoofed")
 	user = CurrentUsername()
 	if user != whoami {
 		t.Errorf("expected %s as user, got: %s", whoami, user)

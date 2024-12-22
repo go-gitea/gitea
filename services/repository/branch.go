@@ -9,12 +9,13 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
@@ -29,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	notify_service "code.gitea.io/gitea/services/notify"
+	release_service "code.gitea.io/gitea/services/release"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"xorm.io/builder"
@@ -272,7 +274,7 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 				BranchName: branchRefName,
 			}
 		case refName == git.TagPrefix+name:
-			return models.ErrTagAlreadyExists{
+			return release_service.ErrTagAlreadyExists{
 				TagName: name,
 			}
 		}
@@ -303,7 +305,7 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		branches, err := git_model.GetBranches(ctx, repoID, branchNames)
+		branches, err := git_model.GetBranches(ctx, repoID, branchNames, true)
 		if err != nil {
 			return fmt.Errorf("git_model.GetBranches: %v", err)
 		}
@@ -463,15 +465,17 @@ var (
 	ErrBranchIsDefault = errors.New("branch is default")
 )
 
-// DeleteBranch delete branch
-func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
-	err := repo.MustNotBeArchived()
+func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User) error {
+	if branchName == repo.DefaultBranch {
+		return ErrBranchIsDefault
+	}
+
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
 	if err != nil {
 		return err
 	}
-
-	if branchName == repo.DefaultBranch {
-		return ErrBranchIsDefault
+	if !perm.CanWrite(unit.TypeCode) {
+		return util.NewPermissionDeniedErrorf("permission denied to access repo %d unit %s", repo.ID, unit.TypeCode.LogString())
 	}
 
 	isProtected, err := git_model.IsBranchProtected(ctx, repo.ID, branchName)
@@ -480,6 +484,19 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	}
 	if isProtected {
 		return git_model.ErrBranchIsProtected
+	}
+	return nil
+}
+
+// DeleteBranch delete branch
+func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
+	err := repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
+	if err := CanDeleteBranch(ctx, repo, branchName, doer); err != nil {
+		return err
 	}
 
 	rawBranch, err := git_model.GetBranch(ctx, repo.ID, branchName)

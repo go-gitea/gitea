@@ -37,7 +37,7 @@ type ErrUserDoesNotHaveAccessToRepo struct {
 	RepoName string
 }
 
-// IsErrUserDoesNotHaveAccessToRepo checks if an error is a ErrRepoFileAlreadyExists.
+// IsErrUserDoesNotHaveAccessToRepo checks if an error is a ErrUserDoesNotHaveAccessToRepo.
 func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
 	_, ok := err.(ErrUserDoesNotHaveAccessToRepo)
 	return ok
@@ -617,7 +617,7 @@ func (repo *Repository) CanEnableEditor() bool {
 
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
-	desc, err := markup.RenderDescriptionHTML(markup.NewRenderContext(ctx), repo.Description)
+	desc, err := markup.PostProcessDescriptionHTML(markup.NewRenderContext(ctx), repo.Description)
 	if err != nil {
 		log.Error("Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
 		return template.HTML(markup.SanitizeDescription(repo.Description))
@@ -864,6 +864,21 @@ func (repo *Repository) TemplateRepo(ctx context.Context) *Repository {
 		return nil
 	}
 	return repo
+}
+
+// ErrUserOwnRepos represents a "UserOwnRepos" kind of error.
+type ErrUserOwnRepos struct {
+	UID int64
+}
+
+// IsErrUserOwnRepos checks if an error is a ErrUserOwnRepos.
+func IsErrUserOwnRepos(err error) bool {
+	_, ok := err.(ErrUserOwnRepos)
+	return ok
+}
+
+func (err ErrUserOwnRepos) Error() string {
+	return fmt.Sprintf("user still has ownership of repositories [uid: %d]", err.UID)
 }
 
 type CountRepositoryOptions struct {

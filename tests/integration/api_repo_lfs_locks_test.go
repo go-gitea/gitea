@@ -176,6 +176,6 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocks api.LFSLockList
 		DecodeJSON(t, resp, &lfsLocks)
-		assert.Len(t, lfsLocks.Locks, 0)
+		assert.Empty(t, lfsLocks.Locks)
 	}
 }

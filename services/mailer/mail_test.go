@@ -93,20 +93,20 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, msgs, 2)
 	gomailMsg := msgs[0].ToMessage()
-	replyTo := gomailMsg.GetHeader("Reply-To")[0]
-	subject := gomailMsg.GetHeader("Subject")[0]
+	replyTo := gomailMsg.GetGenHeader("Reply-To")[0]
+	subject := gomailMsg.GetGenHeader("Subject")[0]
 
-	assert.Len(t, gomailMsg.GetHeader("To"), 1, "exactly one recipient is expected in the To field")
+	assert.Len(t, gomailMsg.GetAddrHeader("To"), 1, "exactly one recipient is expected in the To field")
 	tokenRegex := regexp.MustCompile(`\Aincoming\+(.+)@localhost\z`)
 	assert.Regexp(t, tokenRegex, replyTo)
 	token := tokenRegex.FindAllStringSubmatch(replyTo, 1)[0][1]
 	assert.Equal(t, "Re: ", subject[:4], "Comment reply subject should contain Re:")
 	assert.Equal(t, "Re: [user2/repo1] @user2 #1 - issue1", subject)
-	assert.Equal(t, "<user2/repo1/issues/1@localhost>", gomailMsg.GetHeader("In-Reply-To")[0], "In-Reply-To header doesn't match")
-	assert.ElementsMatch(t, []string{"<user2/repo1/issues/1@localhost>", "<reply-" + token + "@localhost>"}, gomailMsg.GetHeader("References"), "References header doesn't match")
-	assert.Equal(t, "<user2/repo1/issues/1/comment/2@localhost>", gomailMsg.GetHeader("Message-ID")[0], "Message-ID header doesn't match")
-	assert.Equal(t, "<mailto:"+replyTo+">", gomailMsg.GetHeader("List-Post")[0])
-	assert.Len(t, gomailMsg.GetHeader("List-Unsubscribe"), 2) // url + mailto
+	assert.Equal(t, "<user2/repo1/issues/1@localhost>", gomailMsg.GetGenHeader("In-Reply-To")[0], "In-Reply-To header doesn't match")
+	assert.ElementsMatch(t, []string{"<user2/repo1/issues/1@localhost>", "<reply-" + token + "@localhost>"}, gomailMsg.GetGenHeader("References"), "References header doesn't match")
+	assert.Equal(t, "<user2/repo1/issues/1/comment/2@localhost>", gomailMsg.GetGenHeader("Message-ID")[0], "Message-ID header doesn't match")
+	assert.Equal(t, "<mailto:"+replyTo+">", gomailMsg.GetGenHeader("List-Post")[0])
+	assert.Len(t, gomailMsg.GetGenHeader("List-Unsubscribe"), 2) // url + mailto
 
 	var buf bytes.Buffer
 	gomailMsg.WriteTo(&buf)
@@ -139,19 +139,19 @@ func TestComposeIssueMessage(t *testing.T) {
 	assert.Len(t, msgs, 2)
 
 	gomailMsg := msgs[0].ToMessage()
-	mailto := gomailMsg.GetHeader("To")
-	subject := gomailMsg.GetHeader("Subject")
-	messageID := gomailMsg.GetHeader("Message-ID")
-	inReplyTo := gomailMsg.GetHeader("In-Reply-To")
-	references := gomailMsg.GetHeader("References")
+	mailto := gomailMsg.GetAddrHeader("To")
+	subject := gomailMsg.GetGenHeader("Subject")
+	messageID := gomailMsg.GetGenHeader("Message-ID")
+	inReplyTo := gomailMsg.GetGenHeader("In-Reply-To")
+	references := gomailMsg.GetGenHeader("References")
 
 	assert.Len(t, mailto, 1, "exactly one recipient is expected in the To field")
 	assert.Equal(t, "[user2/repo1] @user2 #1 - issue1", subject[0])
 	assert.Equal(t, "<user2/repo1/issues/1@localhost>", inReplyTo[0], "In-Reply-To header doesn't match")
 	assert.Equal(t, "<user2/repo1/issues/1@localhost>", references[0], "References header doesn't match")
 	assert.Equal(t, "<user2/repo1/issues/1@localhost>", messageID[0], "Message-ID header doesn't match")
-	assert.Empty(t, gomailMsg.GetHeader("List-Post"))         // incoming mail feature disabled
-	assert.Len(t, gomailMsg.GetHeader("List-Unsubscribe"), 1) // url without mailto
+	assert.Empty(t, gomailMsg.GetGenHeader("List-Post"))         // incoming mail feature disabled
+	assert.Len(t, gomailMsg.GetGenHeader("List-Unsubscribe"), 1) // url without mailto
 }
 
 func TestTemplateSelection(t *testing.T) {
@@ -169,7 +169,7 @@ func TestTemplateSelection(t *testing.T) {
 	template.Must(bodyTemplates.New("issue/close").Parse("issue/close/body"))
 
 	expect := func(t *testing.T, msg *sender_service.Message, expSubject, expBody string) {
-		subject := msg.ToMessage().GetHeader("Subject")
+		subject := msg.ToMessage().GetGenHeader("Subject")
 		msgbuf := new(bytes.Buffer)
 		_, _ = msg.ToMessage().WriteTo(msgbuf)
 		wholemsg := msgbuf.String()
@@ -225,7 +225,7 @@ func TestTemplateServices(t *testing.T) {
 			Content: "test body", Comment: comment,
 		}, recipients, fromMention, "TestTemplateServices")
 
-		subject := msg.ToMessage().GetHeader("Subject")
+		subject := msg.ToMessage().GetGenHeader("Subject")
 		msgbuf := new(bytes.Buffer)
 		_, _ = msg.ToMessage().WriteTo(msgbuf)
 		wholemsg := msgbuf.String()
