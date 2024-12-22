@@ -8,18 +8,37 @@ import (
 	"fmt"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
+
+// ErrSHANotFound represents a "SHADoesNotMatch" kind of error.
+type ErrSHANotFound struct {
+	SHA string
+}
+
+// IsErrSHANotFound checks if an error is a ErrSHANotFound.
+func IsErrSHANotFound(err error) bool {
+	_, ok := err.(ErrSHANotFound)
+	return ok
+}
+
+func (err ErrSHANotFound) Error() string {
+	return fmt.Sprintf("sha not found [%s]", err.SHA)
+}
+
+func (err ErrSHANotFound) Unwrap() error {
+	return util.ErrNotExist
+}
 
 // GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
 func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, sha string, page, perPage int, recursive bool) (*api.GitTreeResponse, error) {
 	gitTree, err := gitRepo.GetTree(sha)
 	if err != nil || gitTree == nil {
-		return nil, models.ErrSHANotFound{
+		return nil, ErrSHANotFound{ // TODO: this error has never been catch outside of this function
 			SHA: sha,
 		}
 	}

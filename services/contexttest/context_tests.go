@@ -183,7 +183,7 @@ func (tr *MockRender) TemplateLookup(tmpl string, _ gocontext.Context) (template
 	return nil, nil
 }
 
-func (tr *MockRender) HTML(w io.Writer, status int, _ string, _ any, _ gocontext.Context) error {
+func (tr *MockRender) HTML(w io.Writer, status int, _ templates.TplName, _ any, _ gocontext.Context) error {
 	if resp, ok := w.(http.ResponseWriter); ok {
 		resp.WriteHeader(status)
 	}

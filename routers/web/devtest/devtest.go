@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
@@ -62,5 +61,5 @@ func Tmpl(ctx *context.Context) {
 		time.Sleep(2 * time.Second)
 	}
 
-	ctx.HTML(http.StatusOK, base.TplName("devtest"+path.Clean("/"+ctx.PathParam("sub"))))
+	ctx.HTML(http.StatusOK, templates.TplName("devtest"+path.Clean("/"+ctx.PathParam("sub"))))
 }
