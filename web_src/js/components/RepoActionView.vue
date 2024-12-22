@@ -261,7 +261,8 @@ const sfc = {
     shouldAutoScroll(stepIndex: number): boolean {
       if (!this.optionAlwaysAutoScroll) return false;
       const el = this.getJobStepLogsContainer(stepIndex);
-      if (!el.lastChild) return false;
+      // if the logs container is empty, then auto-scroll if the step is expanded
+      if (!el.lastChild) return this.currentJobStepsStates[stepIndex].expanded;
       return isLogElementInViewport(el.lastChild);
     },
 

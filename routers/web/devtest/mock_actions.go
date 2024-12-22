@@ -31,7 +31,11 @@ func generateMockStepsLog(logCur actions.LogCursor) (stepsLog []*actions.ViewSte
 		"##[endgroup]",
 	}
 	cur := logCur.Cursor // usually the cursor is the "file offset", but here we abuse it as "line number" to make the mock easier, intentionally
-	for i := 0; i < util.Iif(logCur.Step == 0, 3, 1); i++ {
+	mockCount := util.Iif(logCur.Step == 0, 3, 1)
+	if logCur.Step == 1 && logCur.Cursor == 0 {
+		mockCount = 30 // for the first batch, return as many as possible to test the auto-expand and auto-scroll
+	}
+	for i := 0; i < mockCount; i++ {
 		logStr := mockedLogs[int(cur)%len(mockedLogs)]
 		cur++
 		logStr = strings.ReplaceAll(logStr, "{step}", fmt.Sprintf("%d", logCur.Step))
