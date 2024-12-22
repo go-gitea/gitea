@@ -43,6 +43,17 @@ function isLogElementInViewport(el: HTMLElement): boolean {
   return rect.top >= 0 && rect.bottom <= window.innerHeight; // only check height but not width
 }
 
+type LocaleStorageOptions = {
+  autoScroll: boolean;
+  expandRunning: boolean;
+};
+
+function getLocaleStorageOptions(): LocaleStorageOptions {
+  const optsJson = localStorage.getItem('actions-view-options');
+  if (optsJson) return JSON.parse(optsJson);
+  return {autoScroll: true, expandRunning: false};
+}
+
 const sfc = {
   name: 'RepoActionView',
   components: {
@@ -56,7 +67,17 @@ const sfc = {
     locale: Object,
   },
 
+  watch: {
+    optionAlwaysAutoScroll() {
+      this.saveLocaleStorageOptions();
+    },
+    optionAlwaysExpandRunning() {
+      this.saveLocaleStorageOptions();
+    },
+  },
+
   data() {
+    const {autoScroll, expandRunning} = getLocaleStorageOptions();
     return {
       // internal state
       loadingAbortController: null,
@@ -70,8 +91,8 @@ const sfc = {
         'log-time-stamp': false,
         'log-time-seconds': false,
       },
-      optionAlwaysAutoExpand: false,
-      optionAlwaysAutoScroll: false,
+      optionAlwaysAutoScroll: autoScroll ?? false,
+      optionAlwaysExpandRunning: expandRunning ?? false,
 
       // provided by backend
       run: {
@@ -149,6 +170,11 @@ const sfc = {
   },
 
   methods: {
+    saveLocaleStorageOptions() {
+      const opts: LocaleStorageOptions = {autoScroll: this.optionAlwaysAutoScroll, expandRunning: this.optionAlwaysExpandRunning};
+      localStorage.setItem('actions-view-options', JSON.stringify(opts));
+    },
+
     // get the job step logs container ('.job-step-logs')
     getJobStepLogsContainer(stepIndex: number): HTMLElement {
       return this.$refs.logs[stepIndex];
@@ -230,6 +256,7 @@ const sfc = {
     },
 
     shouldAutoScroll(stepIndex: number): boolean {
+      if (!this.optionAlwaysAutoScroll) return false;
       const el = this.getJobStepLogsContainer(stepIndex);
       if (!el.lastChild) return false;
       return isLogElementInViewport(el.lastChild);
@@ -282,6 +309,7 @@ const sfc = {
       const abortController = new AbortController();
       this.loadingAbortController = abortController;
       try {
+        const isFirstLoad = !this.run.status;
         const job = await this.fetchJobData(abortController);
         if (this.loadingAbortController !== abortController) return;
 
@@ -291,15 +319,10 @@ const sfc = {
 
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
+          const expanded = isFirstLoad && this.optionAlwaysExpandRunning && this.currentJob.steps[i].status === 'running';
           if (!this.currentJobStepsStates[i]) {
             // initial states for job steps
-            this.currentJobStepsStates[i] = {cursor: null, expanded: false};
-          }
-
-          // expands the currently running job step if its state wasn't 'running' before
-          if (this.currentJob.steps[i].status === 'running' && this.currentJobStepsStates[i].cursor === null) {
-            this.currentJobStepsStates[i].cursor = 0;
-            this.currentJobStepsStates[i].expanded = true;
+            this.currentJobStepsStates[i] = {cursor: null, expanded};
           }
         }
 
@@ -435,7 +458,7 @@ export function initRepositoryActionView() {
         blocked: el.getAttribute('data-locale-status-blocked'),
       },
       logsAlwaysAutoScroll: el.getAttribute('data-locale-logs-always-auto-scroll'),
-      logsAlwaysAutoExpand: el.getAttribute('data-locale-logs-always-auto-expand'),
+      logsAlwaysExpandRunning: el.getAttribute('data-locale-logs-always-expand-running'),
     },
   });
   view.mount(el);
@@ -544,9 +567,9 @@ export function initRepositoryActionView() {
                   <i class="icon"><SvgIcon :name="optionAlwaysAutoScroll ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
                   {{ locale.logsAlwaysAutoScroll }}
                 </a>
-                <a class="item" @click="optionAlwaysAutoExpand = !optionAlwaysAutoExpand">
-                  <i class="icon"><SvgIcon :name="optionAlwaysAutoExpand ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
-                  {{ locale.logsAlwaysAutoExpand }}
+                <a class="item" @click="optionAlwaysExpandRunning = !optionAlwaysExpandRunning">
+                  <i class="icon"><SvgIcon :name="optionAlwaysExpandRunning ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
+                  {{ locale.logsAlwaysExpandRunning }}
                 </a>
 
                 <div class="divider"/>
