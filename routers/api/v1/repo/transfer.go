@@ -100,7 +100,7 @@ func Transfer(ctx *context.APIContext) {
 	}
 
 	if ctx.Repo.GitRepo != nil {
-		ctx.Repo.GitRepo.Close()
+		_ = ctx.Repo.GitRepo.Close()
 		ctx.Repo.GitRepo = nil
 	}
 

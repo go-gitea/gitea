@@ -67,7 +67,6 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.SetContextValue(context.WebContextKey, ctx)
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data.MergeFrom(reqctx.ContextData{
-				"locale":         ctx.Locale,
 				"Title":          ctx.Locale.Tr("install.install"),
 				"PageIsInstall":  true,
 				"DbTypeNames":    dbTypeNames,

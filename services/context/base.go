@@ -4,6 +4,7 @@
 package context
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"io"
@@ -29,7 +30,8 @@ type BaseContextKeyType struct{}
 var BaseContextKey BaseContextKeyType
 
 type Base struct {
-	*reqctx.RequestContext
+	context.Context
+	reqctx.RequestDataStore
 
 	Resp ResponseWriter
 	Req  *http.Request
@@ -262,18 +264,27 @@ func (b *Base) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
 }
 
 func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {
-	ctx := reqctx.GetRequestContext(req.Context())
+	ds := reqctx.GetRequestDataStore(req.Context())
 	b := &Base{
-		RequestContext: ctx,
-
-		Req:    req,
-		Resp:   WrapResponseWriter(resp),
-		Locale: middleware.Locale(resp, req),
-		Data:   middleware.GetContextData(req.Context()),
+		Context:          req.Context(),
+		RequestDataStore: ds,
+		Req:              req,
+		Resp:             WrapResponseWriter(resp),
+		Locale:           middleware.Locale(resp, req),
+		Data:             ds.GetData(),
 	}
 	b.Req = b.Req.WithContext(b)
-	ctx.SetContextValue(BaseContextKey, b)
-	ctx.SetContextValue(translation.ContextKey, b.Locale)
-	ctx.SetContextValue(httplib.RequestContextKey, b.Req)
+	ds.SetContextValue(BaseContextKey, b)
+	ds.SetContextValue(translation.ContextKey, b.Locale)
+	ds.SetContextValue(httplib.RequestContextKey, b.Req)
 	return b
+}
+
+func NewBaseContextForTest(resp http.ResponseWriter, req *http.Request) *Base {
+	if !setting.IsInTesting {
+		panic("This function is only for testing")
+	}
+	ctx := reqctx.NewRequestContextForTest(req.Context())
+	*req = *req.WithContext(ctx)
+	return NewBaseContext(resp, req)
 }

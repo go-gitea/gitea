@@ -5,7 +5,6 @@
 package context
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -265,31 +264,22 @@ func (ctx *APIContext) NotFound(objs ...any) {
 
 // ReferencesGitRepo injects the GitRepo into the Context
 // you can optional skip the IsEmpty check
-func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context.CancelFunc) {
-	return func(ctx *APIContext) (cancel context.CancelFunc) {
+func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) {
+	return func(ctx *APIContext) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty && !(len(allowEmpty) != 0 && allowEmpty[0]) {
-			return nil
+			return
 		}
 
 		// For API calls.
 		if ctx.Repo.GitRepo == nil {
-			gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
+			var err error
+			ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx, ctx.Repo.Repository)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, fmt.Sprintf("Open Repository %v failed", ctx.Repo.Repository.FullName()), err)
-				return cancel
-			}
-			ctx.Repo.GitRepo = gitRepo
-			// We opened it, we should close it
-			return func() {
-				// If it's been set to nil then assume someone else has closed it.
-				if ctx.Repo.GitRepo != nil {
-					_ = ctx.Repo.GitRepo.Close()
-				}
+				return
 			}
 		}
-
-		return cancel
 	}
 }
 

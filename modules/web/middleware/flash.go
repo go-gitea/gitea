@@ -13,7 +13,7 @@ import (
 
 // Flash represents a one time data transfer between two requests.
 type Flash struct {
-	DataStore reqctx.ContextDataStore
+	DataStore reqctx.RequestDataStore
 	url.Values
 	ErrorMsg, WarningMsg, InfoMsg, SuccessMsg string
 }

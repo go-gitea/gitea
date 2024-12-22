@@ -12,8 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/session"
 )
 
-// DataStore represents a data store
-type DataStore reqctx.ContextDataStore
+type DataStore = reqctx.ContextDataProvider
 
 // SessionStore represents a session store
 type SessionStore session.Store

@@ -14,7 +14,7 @@ import (
 const ContextDataKeySignedUser = "SignedUser"
 
 func GetContextData(c context.Context) reqctx.ContextData {
-	if rc := reqctx.GetRequestContext(c); rc != nil {
+	if rc := reqctx.GetRequestDataStore(c); rc != nil {
 		return rc.GetData()
 	}
 	return nil

@@ -40,7 +40,7 @@ func TestProcessorHelper(t *testing.T) {
 	// when using web context, use user.IsUserVisibleToViewer to check
 	req, err := http.NewRequest("GET", "/", nil)
 	assert.NoError(t, err)
-	base := gitea_context.NewBaseContext(httptest.NewRecorder(), req)
+	base := gitea_context.NewBaseContextForTest(httptest.NewRecorder(), req)
 	giteaCtx := gitea_context.NewWebContext(base, &contexttest.MockRender{}, nil)
 
 	assert.True(t, ProcessorHelper().IsUsernameMentionable(giteaCtx, userPublic))

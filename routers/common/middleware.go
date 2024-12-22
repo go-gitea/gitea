@@ -45,7 +45,7 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			profDesc := fmt.Sprintf("%s: %s", req.Method, req.RequestURI)
-			reqCtx, finished := reqctx.NewRequestContext(req.Context(), profDesc)
+			ctx, finished := reqctx.NewRequestContext(req.Context(), profDesc)
 			defer finished()
 
 			defer func() {
@@ -54,9 +54,10 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 				}
 			}()
 
-			req = req.WithContext(cache.WithCacheContext(reqCtx))
-			reqCtx.SetContextValue(httplib.RequestContextKey, req)
-			reqCtx.AddCleanUp(func() {
+			ds := reqctx.GetRequestDataStore(ctx)
+			req = req.WithContext(cache.WithCacheContext(ctx))
+			ds.SetContextValue(httplib.RequestContextKey, req)
+			ds.AddCleanUp(func() {
 				if req.MultipartForm != nil {
 					_ = req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
 				}

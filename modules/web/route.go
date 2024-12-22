@@ -30,12 +30,12 @@ func Bind[T any](_ T) http.HandlerFunc {
 }
 
 // SetForm set the form object
-func SetForm(dataStore reqctx.ContextDataStore, obj any) {
+func SetForm(dataStore reqctx.ContextDataProvider, obj any) {
 	dataStore.GetData()["__form"] = obj
 }
 
 // GetForm returns the validate form information
-func GetForm(dataStore reqctx.ContextDataStore) any {
+func GetForm(dataStore reqctx.RequestDataStore) any {
 	return dataStore.GetData()["__form"]
 }
 

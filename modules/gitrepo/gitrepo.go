@@ -44,9 +44,9 @@ type contextKey struct {
 
 // RepositoryFromContextOrOpen attempts to get the repository from the context or just opens it
 func RepositoryFromContextOrOpen(ctx context.Context, repo Repository) (*git.Repository, io.Closer, error) {
-	reqCtx := reqctx.GetRequestContext(ctx)
-	if reqCtx != nil {
-		gitRepo, err := RepositoryFromRequestContextOrOpen(reqCtx, repo)
+	ds := reqctx.GetRequestDataStore(ctx)
+	if ds != nil {
+		gitRepo, err := RepositoryFromRequestContextOrOpen(ctx, ds, repo)
 		return gitRepo, util.NopCloser{}, err
 	}
 	gitRepo, err := OpenRepository(ctx, repo)
@@ -55,7 +55,7 @@ func RepositoryFromContextOrOpen(ctx context.Context, repo Repository) (*git.Rep
 
 // RepositoryFromRequestContextOrOpen opens the repository at the given relative path in the provided request context
 // The repo will be automatically closed when the request context is done
-func RepositoryFromRequestContextOrOpen(ctx *reqctx.RequestContext, repo Repository) (*git.Repository, error) {
+func RepositoryFromRequestContextOrOpen(ctx context.Context, ds reqctx.RequestDataStore, repo Repository) (*git.Repository, error) {
 	ck := contextKey{repoPath: repoPath(repo)}
 	if gitRepo, ok := ctx.Value(ck).(*git.Repository); ok {
 		return gitRepo, nil
@@ -64,9 +64,9 @@ func RepositoryFromRequestContextOrOpen(ctx *reqctx.RequestContext, repo Reposit
 	if err != nil {
 		return nil, err
 	}
-	ctx.AddCleanUp(func() {
+	ds.AddCleanUp(func() {
 		gitRepo.Close()
 	})
-	ctx.SetContextValue(ck, gitRepo)
+	ds.SetContextValue(ck, gitRepo)
 	return gitRepo, nil
 }
