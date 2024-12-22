@@ -64,11 +64,9 @@ func GetPrivateContext(req *http.Request) *PrivateContext {
 func PrivateContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			base, baseCleanUp := NewBaseContext(w, req)
+			base := NewBaseContext(w, req)
 			ctx := &PrivateContext{Base: base}
-			defer baseCleanUp()
-			ctx.Base.AppendContextValue(privateContextKey, ctx)
-
+			ctx.SetContextValue(privateContextKey, ctx)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}

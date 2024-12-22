@@ -212,17 +212,15 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 func APIContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			base, baseCleanUp := NewBaseContext(w, req)
+			base := NewBaseContext(w, req)
 			ctx := &APIContext{
 				Base:  base,
 				Cache: cache.GetCache(),
 				Repo:  &Repository{PullRequest: &PullRequest{}},
 				Org:   &APIOrganization{},
 			}
-			defer baseCleanUp()
 
-			ctx.Base.AppendContextValue(apiContextKey, ctx)
-			ctx.Base.AppendContextValueFunc(gitrepo.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
+			ctx.SetContextValue(apiContextKey, ctx)
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {

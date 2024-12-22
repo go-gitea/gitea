@@ -4,7 +4,6 @@
 package context
 
 import (
-	"context"
 	"fmt"
 	"html/template"
 	"io"
@@ -12,12 +11,12 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -25,63 +24,22 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type contextValuePair struct {
-	key     any
-	valueFn func() any
-}
-
 type BaseContextKeyType struct{}
 
 var BaseContextKey BaseContextKeyType
 
 type Base struct {
-	originCtx     context.Context
-	contextValues []contextValuePair
+	*reqctx.RequestContext
 
 	Resp ResponseWriter
 	Req  *http.Request
 
 	// Data is prepared by ContextDataStore middleware, this field only refers to the pre-created/prepared ContextData.
 	// Although it's mainly used for MVC templates, sometimes it's also used to pass data between middlewares/handler
-	Data middleware.ContextData
+	Data reqctx.ContextData
 
 	// Locale is mainly for Web context, although the API context also uses it in some cases: message response, form validation
 	Locale translation.Locale
-}
-
-func (b *Base) Deadline() (deadline time.Time, ok bool) {
-	return b.originCtx.Deadline()
-}
-
-func (b *Base) Done() <-chan struct{} {
-	return b.originCtx.Done()
-}
-
-func (b *Base) Err() error {
-	return b.originCtx.Err()
-}
-
-func (b *Base) Value(key any) any {
-	for _, pair := range b.contextValues {
-		if pair.key == key {
-			return pair.valueFn()
-		}
-	}
-	return b.originCtx.Value(key)
-}
-
-func (b *Base) AppendContextValueFunc(key any, valueFn func() any) any {
-	b.contextValues = append(b.contextValues, contextValuePair{key, valueFn})
-	return b
-}
-
-func (b *Base) AppendContextValue(key, value any) any {
-	b.contextValues = append(b.contextValues, contextValuePair{key, func() any { return value }})
-	return b
-}
-
-func (b *Base) GetData() middleware.ContextData {
-	return b.Data
 }
 
 // AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
@@ -295,13 +253,6 @@ func (b *Base) ServeContent(r io.ReadSeeker, opts *ServeHeaderOptions) {
 	http.ServeContent(b.Resp, b.Req, opts.Filename, opts.LastModified, r)
 }
 
-// Close frees all resources hold by Context
-func (b *Base) cleanUp() {
-	if b.Req != nil && b.Req.MultipartForm != nil {
-		_ = b.Req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
-	}
-}
-
 func (b *Base) Tr(msg string, args ...any) template.HTML {
 	return b.Locale.Tr(msg, args...)
 }
@@ -310,17 +261,19 @@ func (b *Base) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
 	return b.Locale.TrN(cnt, key1, keyN, args...)
 }
 
-func NewBaseContext(resp http.ResponseWriter, req *http.Request) (b *Base, closeFunc func()) {
-	b = &Base{
-		originCtx: req.Context(),
-		Req:       req,
-		Resp:      WrapResponseWriter(resp),
-		Locale:    middleware.Locale(resp, req),
-		Data:      middleware.GetContextData(req.Context()),
+func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {
+	ctx := reqctx.GetRequestContext(req.Context())
+	b := &Base{
+		RequestContext: ctx,
+
+		Req:    req,
+		Resp:   WrapResponseWriter(resp),
+		Locale: middleware.Locale(resp, req),
+		Data:   middleware.GetContextData(req.Context()),
 	}
 	b.Req = b.Req.WithContext(b)
-	b.AppendContextValue(BaseContextKey, b)
-	b.AppendContextValue(translation.ContextKey, b.Locale)
-	b.AppendContextValue(httplib.RequestContextKey, b.Req)
-	return b, b.cleanUp
+	ctx.SetContextValue(BaseContextKey, b)
+	ctx.SetContextValue(translation.ContextKey, b.Locale)
+	ctx.SetContextValue(httplib.RequestContextKey, b.Req)
+	return b
 }

@@ -8,12 +8,12 @@ import (
 	"net/http"
 
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/session"
-	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // DataStore represents a data store
-type DataStore middleware.ContextDataStore
+type DataStore reqctx.ContextDataStore
 
 // SessionStore represents a session store
 type SessionStore session.Store

@@ -40,8 +40,7 @@ func TestRedirectToCurrentSite(t *testing.T) {
 		t.Run(c.location, func(t *testing.T) {
 			req := &http.Request{URL: &url.URL{Path: "/"}}
 			resp := httptest.NewRecorder()
-			base, baseCleanUp := NewBaseContext(resp, req)
-			defer baseCleanUp()
+			base := NewBaseContext(resp, req)
 			ctx := NewWebContext(base, nil, nil)
 			ctx.RedirectToCurrentSite(c.location)
 			redirect := test.RedirectURL(resp)
