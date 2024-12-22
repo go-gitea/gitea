@@ -64,9 +64,7 @@ func RepositoryFromRequestContextOrOpen(ctx context.Context, ds reqctx.RequestDa
 	if err != nil {
 		return nil, err
 	}
-	ds.AddCleanUp(func() {
-		gitRepo.Close()
-	})
+	ds.AddCloser(gitRepo)
 	ds.SetContextValue(ck, gitRepo)
 	return gitRepo, nil
 }

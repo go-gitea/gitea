@@ -26,6 +26,7 @@ func TestRemoveSessionCookieHeader(t *testing.T) {
 }
 
 func TestRedirectToCurrentSite(t *testing.T) {
+	setting.IsInTesting = true
 	defer test.MockVariableValue(&setting.AppURL, "http://localhost:3000/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
 	cases := []struct {
@@ -40,7 +41,7 @@ func TestRedirectToCurrentSite(t *testing.T) {
 		t.Run(c.location, func(t *testing.T) {
 			req := &http.Request{URL: &url.URL{Path: "/"}}
 			resp := httptest.NewRecorder()
-			base := NewBaseContext(resp, req)
+			base := NewBaseContextForTest(resp, req)
 			ctx := NewWebContext(base, nil, nil)
 			ctx.RedirectToCurrentSite(c.location)
 			redirect := test.RedirectURL(resp)

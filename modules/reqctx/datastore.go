@@ -44,9 +44,8 @@ var RequestDataStoreKey requestDataStoreKeyType
 type requestDataStore struct {
 	data ContextData
 
-	mu     sync.RWMutex
-	values map[any]any
-
+	mu           sync.RWMutex
+	values       map[any]any
 	cleanUpFuncs []func()
 }
 
@@ -55,12 +54,8 @@ func (r *requestDataStore) GetContextValue(key any) any {
 		return r
 	}
 	r.mu.RLock()
-	if v, ok := r.values[key]; ok {
-		r.mu.RUnlock()
-		return v
-	}
-	r.mu.RUnlock()
-	return nil
+	defer r.mu.RUnlock()
+	return r.values[key]
 }
 
 func (r *requestDataStore) SetContextValue(k, v any) {
@@ -106,9 +101,6 @@ type requestContext struct {
 }
 
 func (c *requestContext) Value(key any) any {
-	if key == RequestDataStoreKey {
-		return c.dataStore
-	}
 	if v := c.dataStore.GetContextValue(key); v != nil {
 		return v
 	}
