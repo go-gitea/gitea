@@ -8,15 +8,11 @@
 				<button class="ui small primary new-label button">{{ctx.Locale.Tr "repo.issues.new_label"}}</button>
 			{{end}}
 		</div>
-		{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
-			{{template "repo/issue/labels/label_new" .}}
-		{{end}}
 		{{template "base/alert" .}}
 		{{template "repo/issue/labels/label_list" .}}
 	</div>
+	{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
+		{{template "repo/issue/labels/label_edit_modal" .}}
+	{{end}}
 </div>
-
-{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
-	{{template "repo/issue/labels/edit_delete_label" .}}
-{{end}}
 {{template "base/footer" .}}

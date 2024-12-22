@@ -4,7 +4,7 @@
 	{{$title := .title}}
 	<div class="ui container">
 		<div class="repo-button-row">
-			<div class="tw-flex tw-items-center">
+			<div class="flex-text-block tw-flex-1">
 				<div class="ui floating filter dropdown" data-no-results="{{ctx.Locale.Tr "no_results_found"}}">
 					<div class="ui basic small button">
 						<span class="text">
@@ -28,32 +28,29 @@
 					</div>
 				</div>
 			</div>
-			<div class="clone-panel ui action small input">
-				{{template "repo/clone_buttons" .}}
-				{{template "repo/clone_script" .}}
-			</div>
+			{{template "repo/clone_panel" .}}
 		</div>
 		<div class="ui dividing header">
-			<div class="ui stackable grid">
-				<div class="eight wide column">
+			<div class="flex-text-block tw-flex-wrap tw-justify-end">
+				<div class="flex-text-block tw-flex-1 tw-min-w-[300px]">
 					<a class="file-revisions-btn ui basic button" title="{{ctx.Locale.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_revision" ><span>{{.CommitCount}}</span> {{svg "octicon-history"}}</a>
-					{{$title}}
-					<div class="ui sub header">
-						{{$timeSince := TimeSince .Author.When ctx.Locale}}
-						{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince}}
+					<div class="tw-flex-1 gt-ellipsis">
+						{{$title}}
+						<div class="ui sub header gt-ellipsis">
+							{{$timeSince := DateUtils.TimeSince .Author.When}}
+							{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince}}
+						</div>
 					</div>
 				</div>
-				<div class="eight wide right aligned column">
+				<div class="repo-button-row">
 					{{if .EscapeStatus.Escaped}}
-						<a class="ui small button unescape-button tw-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</a>
-						<a class="ui small button escape-button">{{ctx.Locale.Tr "repo.escape_control_characters"}}</a>
+						<a class="ui small button unescape-button tw-hidden" data-unicode-content-selector=".wiki-content-parts">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</a>
+						<a class="ui small button escape-button" data-unicode-content-selector=".wiki-content-parts">{{ctx.Locale.Tr "repo.escape_control_characters"}}</a>
 					{{end}}
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-						<div class="ui right">
-							<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_edit">{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}</a>
-							<a class="ui small primary button" href="{{.RepoLink}}/wiki?action=_new">{{ctx.Locale.Tr "repo.wiki.new_page_button"}}</a>
-							<a class="ui small red button delete-button" href="" data-url="{{.RepoLink}}/wiki/{{.PageURL}}?action=_delete" data-id="{{.PageURL}}">{{ctx.Locale.Tr "repo.wiki.delete_page_button"}}</a>
-						</div>
+						<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_edit">{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}</a>
+						<a class="ui small primary button" href="{{.RepoLink}}/wiki?action=_new">{{ctx.Locale.Tr "repo.wiki.new_page_button"}}</a>
+						<a class="ui small red button delete-button" href="" data-url="{{.RepoLink}}/wiki/{{.PageURL}}?action=_delete" data-id="{{.PageURL}}">{{ctx.Locale.Tr "repo.wiki.delete_page_button"}}</a>
 					{{end}}
 				</div>
 			</div>

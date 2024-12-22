@@ -25,7 +25,7 @@ import (
 func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	log.Trace("Doing: SyncExternalUsers[%s]", source.authSource.Name)
 
-	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
+	isAttributeSSHPublicKeySet := strings.TrimSpace(source.AttributeSSHPublicKey) != ""
 	var sshKeysNeedUpdate bool
 
 	// Find all users with this login type - FIXME: Should this be an iterator?
@@ -86,26 +86,26 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			return db.ErrCancelledf("During update of %s before completed update of users", source.authSource.Name)
 		default:
 		}
-		if len(su.Username) == 0 && len(su.Mail) == 0 {
+		if su.Username == "" && su.Mail == "" {
 			continue
 		}
 
 		var usr *user_model.User
-		if len(su.Username) > 0 {
+		if su.Username != "" {
 			usr = usernameUsers[su.LowerName]
 		}
-		if usr == nil && len(su.Mail) > 0 {
+		if usr == nil && su.Mail != "" {
 			usr = mailUsers[strings.ToLower(su.Mail)]
 		}
 
 		if usr != nil {
 			keepActiveUsers.Add(usr.ID)
-		} else if len(su.Username) == 0 {
+		} else if su.Username == "" {
 			// we cannot create the user if su.Username is empty
 			continue
 		}
 
-		if len(su.Mail) == 0 {
+		if su.Mail == "" {
 			su.Mail = fmt.Sprintf("%s@localhost.local", su.Username)
 		}
 
@@ -129,7 +129,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				IsActive:     optional.Some(true),
 			}
 
-			err = user_model.CreateUser(ctx, usr, overwriteDefault)
+			err = user_model.CreateUser(ctx, usr, &user_model.Meta{}, overwriteDefault)
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.authSource.Name, su.Username, err)
 			}
@@ -141,7 +141,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				}
 			}
 
-			if err == nil && len(source.AttributeAvatar) > 0 {
+			if err == nil && source.AttributeAvatar != "" {
 				_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
 			}
 		} else if updateExisting {
@@ -151,8 +151,8 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			}
 
 			// Check if user data has changed
-			if (len(source.AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
-				(len(source.RestrictedFilter) > 0 && usr.IsRestricted != su.IsRestricted) ||
+			if (source.AdminFilter != "" && usr.IsAdmin != su.IsAdmin) ||
+				(source.RestrictedFilter != "" && usr.IsRestricted != su.IsRestricted) ||
 				!strings.EqualFold(usr.Email, su.Mail) ||
 				usr.FullName != fullName ||
 				!usr.IsActive {
@@ -180,7 +180,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			}
 
 			if usr.IsUploadAvatarChanged(su.Avatar) {
-				if err == nil && len(source.AttributeAvatar) > 0 {
+				if err == nil && source.AttributeAvatar != "" {
 					_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
 				}
 			}

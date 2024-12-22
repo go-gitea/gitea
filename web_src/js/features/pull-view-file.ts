@@ -34,7 +34,7 @@ export function countAndUpdateViewedFiles() {
 export function initViewedCheckboxListenerFor() {
   for (const form of document.querySelectorAll(`${viewedCheckboxSelector}:not([data-has-viewed-checkbox-listener="true"])`)) {
     // To prevent double addition of listeners
-    form.setAttribute('data-has-viewed-checkbox-listener', true);
+    form.setAttribute('data-has-viewed-checkbox-listener', String(true));
 
     // The checkbox consists of a div containing the real checkbox with its label and the CSRF token,
     // hence the actual checkbox first has to be found
@@ -67,7 +67,7 @@ export function initViewedCheckboxListenerFor() {
       // Unfortunately, actual forms cause too many problems, hence another approach is needed
       const files = {};
       files[fileName] = this.checked;
-      const data = {files};
+      const data: Record<string, any> = {files};
       const headCommitSHA = form.getAttribute('data-headcommit');
       if (headCommitSHA) data.headCommitSHA = headCommitSHA;
       POST(form.getAttribute('data-link'), {data});

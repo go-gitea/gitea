@@ -117,10 +117,10 @@ func dial(source *Source) (*ldap.Conn, error) {
 	}
 
 	if source.SecurityProtocol == SecurityProtocolLDAPS {
-		return ldap.DialTLS("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)), tlsConfig)
+		return ldap.DialTLS("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)), tlsConfig) //nolint:staticcheck
 	}
 
-	conn, err := ldap.Dial("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)))
+	conn, err := ldap.Dial("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port))) //nolint:staticcheck
 	if err != nil {
 		return nil, fmt.Errorf("error during Dial: %w", err)
 	}
@@ -147,7 +147,7 @@ func bindUser(l *ldap.Conn, userDN, passwd string) error {
 }
 
 func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
-	if len(ls.AdminFilter) == 0 {
+	if ls.AdminFilter == "" {
 		return false
 	}
 	log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, userDN)
@@ -169,7 +169,7 @@ func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
 }
 
 func checkRestricted(l *ldap.Conn, ls *Source, userDN string) bool {
-	if len(ls.RestrictedFilter) == 0 {
+	if ls.RestrictedFilter == "" {
 		return false
 	}
 	if ls.RestrictedFilter == "*" {
@@ -250,8 +250,17 @@ func (source *Source) getUserAttributeListedInGroup(entry *ldap.Entry) string {
 
 // SearchEntry : search an LDAP source if an entry (name, passwd) is valid and in the specific filter
 func (source *Source) SearchEntry(name, passwd string, directBind bool) *SearchResult {
+	if MockedSearchEntry != nil {
+		return MockedSearchEntry(source, name, passwd, directBind)
+	}
+	return realSearchEntry(source, name, passwd, directBind)
+}
+
+var MockedSearchEntry func(source *Source, name, passwd string, directBind bool) *SearchResult
+
+func realSearchEntry(source *Source, name, passwd string, directBind bool) *SearchResult {
 	// See https://tools.ietf.org/search/rfc4513#section-5.1.2
-	if len(passwd) == 0 {
+	if passwd == "" {
 		log.Debug("Auth. failed for %s, password cannot be empty", name)
 		return nil
 	}
@@ -323,17 +332,17 @@ func (source *Source) SearchEntry(name, passwd string, directBind bool) *SearchR
 		return nil
 	}
 
-	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
-	isAtributeAvatarSet := len(strings.TrimSpace(source.AttributeAvatar)) > 0
+	isAttributeSSHPublicKeySet := strings.TrimSpace(source.AttributeSSHPublicKey) != ""
+	isAttributeAvatarSet := strings.TrimSpace(source.AttributeAvatar) != ""
 
 	attribs := []string{source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail}
-	if len(strings.TrimSpace(source.UserUID)) > 0 {
+	if strings.TrimSpace(source.UserUID) != "" {
 		attribs = append(attribs, source.UserUID)
 	}
 	if isAttributeSSHPublicKeySet {
 		attribs = append(attribs, source.AttributeSSHPublicKey)
 	}
-	if isAtributeAvatarSet {
+	if isAttributeAvatarSet {
 		attribs = append(attribs, source.AttributeAvatar)
 	}
 
@@ -375,7 +384,7 @@ func (source *Source) SearchEntry(name, passwd string, directBind bool) *SearchR
 		isRestricted = checkRestricted(l, source, userDN)
 	}
 
-	if isAtributeAvatarSet {
+	if isAttributeAvatarSet {
 		Avatar = sr.Entries[0].GetRawAttributeValue(source.AttributeAvatar)
 	}
 
@@ -440,14 +449,14 @@ func (source *Source) SearchEntries() ([]*SearchResult, error) {
 
 	userFilter := fmt.Sprintf(source.Filter, "*")
 
-	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
-	isAtributeAvatarSet := len(strings.TrimSpace(source.AttributeAvatar)) > 0
+	isAttributeSSHPublicKeySet := strings.TrimSpace(source.AttributeSSHPublicKey) != ""
+	isAttributeAvatarSet := strings.TrimSpace(source.AttributeAvatar) != ""
 
 	attribs := []string{source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail, source.UserUID}
 	if isAttributeSSHPublicKeySet {
 		attribs = append(attribs, source.AttributeSSHPublicKey)
 	}
-	if isAtributeAvatarSet {
+	if isAttributeAvatarSet {
 		attribs = append(attribs, source.AttributeAvatar)
 	}
 
@@ -503,7 +512,7 @@ func (source *Source) SearchEntries() ([]*SearchResult, error) {
 			user.SSHPublicKey = v.GetAttributeValues(source.AttributeSSHPublicKey)
 		}
 
-		if isAtributeAvatarSet {
+		if isAttributeAvatarSet {
 			user.Avatar = v.GetRawAttributeValue(source.AttributeAvatar)
 		}
 

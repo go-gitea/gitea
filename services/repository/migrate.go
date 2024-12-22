@@ -122,7 +122,6 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 
 	if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-		SetDescription(fmt.Sprintf("MigrateRepositoryGitData(git update-server-info): %s", repoPath)).
 		RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %w", err)
@@ -171,6 +170,11 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				log.Error("Failed to store missing LFS objects for repository: %v", err)
 				return repo, fmt.Errorf("StoreMissingLfsObjectsInRepository: %w", err)
 			}
+		}
+
+		// Update repo license
+		if err := AddRepoToLicenseUpdaterQueue(&LicenseUpdaterOptions{RepoID: repo.ID}); err != nil {
+			log.Error("Failed to add repo to license updater queue: %v", err)
 		}
 	}
 

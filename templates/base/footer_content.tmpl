@@ -6,7 +6,7 @@
 		{{if (or .ShowFooterVersion .PageIsAdmin)}}
 			{{ctx.Locale.Tr "version"}}:
 			{{if .IsAdmin}}
-				<a href="{{AppSubUrl}}/admin/config">{{AppVer}}</a>
+				<a href="{{AppSubUrl}}/-/admin/config">{{AppVer}}</a>
 			{{else}}
 				{{AppVer}}
 			{{end}}
@@ -17,12 +17,12 @@
 		{{end}}
 	</div>
 	<div class="right-links" role="group" aria-label="{{ctx.Locale.Tr "aria.footer.links"}}">
-		<div class="ui dropdown upward language">
+		<div class="ui dropdown upward">
 			<span class="flex-text-inline">{{svg "octicon-globe" 14}} {{ctx.Locale.LangName}}</span>
 			<div class="menu language-menu">
-				{{range .AllLangs}}
-					<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq ctx.Locale.Lang .Lang}}active selected{{end}}">{{.Name}}</a>
-				{{end}}
+				{{range .AllLangs -}}
+				<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq ctx.Locale.Lang .Lang}}selected{{end}}">{{.Name}}</a>
+				{{end -}}
 			</div>
 		</div>
 		<a href="{{AssetUrlPrefix}}/licenses.txt">{{ctx.Locale.Tr "licenses"}}</a>

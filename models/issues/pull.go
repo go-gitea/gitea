@@ -268,6 +268,10 @@ func (pr *PullRequest) LoadAttributes(ctx context.Context) (err error) {
 	return nil
 }
 
+func (pr *PullRequest) IsAgitFlow() bool {
+	return pr.Flow == PullRequestFlowAGit
+}
+
 // LoadHeadRepo loads the head repository, pr.HeadRepo will remain nil if it does not exist
 // and thus ErrRepoNotExist will never be returned
 func (pr *PullRequest) LoadHeadRepo(ctx context.Context) (err error) {
@@ -410,7 +414,7 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 
 	// Note: This doesn't page as we only expect a very limited number of reviews
 	reviews, err := FindLatestReviews(ctx, FindReviewOptions{
-		Type:         ReviewTypeApprove,
+		Types:        []ReviewType{ReviewTypeApprove},
 		IssueID:      pr.IssueID,
 		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,
 	})
@@ -568,6 +572,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *Iss
 	}
 
 	issue.Index = idx
+	issue.Title, _ = util.SplitStringAtByteN(issue.Title, 255)
 
 	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,
@@ -697,7 +702,7 @@ func GetPullRequestByIssueID(ctx context.Context, issueID int64) (*PullRequest, 
 	return pr, pr.LoadAttributes(ctx)
 }
 
-// GetPullRequestsByBaseHeadInfo returns the pull request by given base and head
+// GetPullRequestByBaseHeadInfo returns the pull request by given base and head
 func GetPullRequestByBaseHeadInfo(ctx context.Context, baseID, headID int64, base, head string) (*PullRequest, error) {
 	pr := &PullRequest{}
 	sess := db.GetEngine(ctx).

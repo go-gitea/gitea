@@ -27,6 +27,7 @@ import octiconDownload from '../../public/assets/img/svg/octicon-download.svg';
 import octiconEye from '../../public/assets/img/svg/octicon-eye.svg';
 import octiconFile from '../../public/assets/img/svg/octicon-file.svg';
 import octiconFileDirectoryFill from '../../public/assets/img/svg/octicon-file-directory-fill.svg';
+import octiconFileDirectoryOpenFill from '../../public/assets/img/svg/octicon-file-directory-open-fill.svg';
 import octiconFilter from '../../public/assets/img/svg/octicon-filter.svg';
 import octiconGear from '../../public/assets/img/svg/octicon-gear.svg';
 import octiconGitBranch from '../../public/assets/img/svg/octicon-git-branch.svg';
@@ -34,6 +35,7 @@ import octiconGitCommit from '../../public/assets/img/svg/octicon-git-commit.svg
 import octiconGitMerge from '../../public/assets/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/assets/img/svg/octicon-git-pull-request.svg';
 import octiconGitPullRequestDraft from '../../public/assets/img/svg/octicon-git-pull-request-draft.svg';
+import octiconGrabber from '../../public/assets/img/svg/octicon-grabber.svg';
 import octiconHeading from '../../public/assets/img/svg/octicon-heading.svg';
 import octiconHorizontalRule from '../../public/assets/img/svg/octicon-horizontal-rule.svg';
 import octiconImage from '../../public/assets/img/svg/octicon-image.svg';
@@ -63,6 +65,7 @@ import octiconSidebarCollapse from '../../public/assets/img/svg/octicon-sidebar-
 import octiconSidebarExpand from '../../public/assets/img/svg/octicon-sidebar-expand.svg';
 import octiconSkip from '../../public/assets/img/svg/octicon-skip.svg';
 import octiconStar from '../../public/assets/img/svg/octicon-star.svg';
+import octiconStop from '../../public/assets/img/svg/octicon-stop.svg';
 import octiconStrikethrough from '../../public/assets/img/svg/octicon-strikethrough.svg';
 import octiconSync from '../../public/assets/img/svg/octicon-sync.svg';
 import octiconTable from '../../public/assets/img/svg/octicon-table.svg';
@@ -100,6 +103,7 @@ const svgs = {
   'octicon-eye': octiconEye,
   'octicon-file': octiconFile,
   'octicon-file-directory-fill': octiconFileDirectoryFill,
+  'octicon-file-directory-open-fill': octiconFileDirectoryOpenFill,
   'octicon-filter': octiconFilter,
   'octicon-gear': octiconGear,
   'octicon-git-branch': octiconGitBranch,
@@ -107,6 +111,7 @@ const svgs = {
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
   'octicon-git-pull-request-draft': octiconGitPullRequestDraft,
+  'octicon-grabber': octiconGrabber,
   'octicon-heading': octiconHeading,
   'octicon-horizontal-rule': octiconHorizontalRule,
   'octicon-image': octiconImage,
@@ -136,6 +141,7 @@ const svgs = {
   'octicon-sidebar-expand': octiconSidebarExpand,
   'octicon-skip': octiconSkip,
   'octicon-star': octiconStar,
+  'octicon-stop': octiconStop,
   'octicon-strikethrough': octiconStrikethrough,
   'octicon-sync': octiconSync,
   'octicon-table': octiconTable,
@@ -153,7 +159,8 @@ export type SvgName = keyof typeof svgs;
 //  most of the SVG icons in assets couldn't be used directly.
 
 // retrieve an HTML string for given SVG icon name, size and additional classes
-export function svg(name: SvgName, size = 16, className = '') {
+export function svg(name: SvgName, size = 16, classNames?: string|string[]): string {
+  const className = Array.isArray(classNames) ? classNames.join(' ') : classNames;
   if (!(name in svgs)) throw new Error(`Unknown SVG icon: ${name}`);
   if (size === 16 && !className) return svgs[name];
 

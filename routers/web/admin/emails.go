@@ -134,7 +134,7 @@ func ActivateEmail(ctx *context.Context) {
 		ctx.Flash.Info(ctx.Tr("admin.emails.updated"))
 	}
 
-	redirect, _ := url.Parse(setting.AppSubURL + "/admin/emails")
+	redirect, _ := url.Parse(setting.AppSubURL + "/-/admin/emails")
 	q := url.Values{}
 	if val := ctx.FormTrim("q"); len(val) > 0 {
 		q.Set("q", val)
@@ -154,7 +154,7 @@ func ActivateEmail(ctx *context.Context) {
 
 // DeleteEmail serves a POST request for delete a user's email
 func DeleteEmail(ctx *context.Context) {
-	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("Uid"))
+	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
 	if err != nil || u == nil {
 		ctx.ServerError("GetUserByID", err)
 		return

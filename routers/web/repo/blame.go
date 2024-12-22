@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -114,12 +113,6 @@ func RefBlame(ctx *context.Context) {
 
 	ctx.Data["UsesIgnoreRevs"] = result.UsesIgnoreRevs
 	ctx.Data["FaultyIgnoreRevsFile"] = result.FaultyIgnoreRevsFile
-
-	// Get Topics of this repo
-	renderRepoTopics(ctx)
-	if ctx.Written() {
-		return
-	}
 
 	commitNames := processBlameParts(ctx, result.Parts)
 	if ctx.Written() {
@@ -280,7 +273,7 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 				commitCnt++
 
 				// User avatar image
-				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Locale)
+				commitSince := templates.TimeSince(commit.Author.When)
 
 				var avatar string
 				if commit.User != nil {

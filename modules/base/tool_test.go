@@ -6,7 +6,6 @@ package base
 import (
 	"crypto/sha1"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -152,11 +151,12 @@ func TestStringsToInt64s(t *testing.T) {
 	}
 	testSuccess(nil, nil)
 	testSuccess([]string{}, []int64{})
+	testSuccess([]string{""}, []int64{})
 	testSuccess([]string{"-1234"}, []int64{-1234})
 	testSuccess([]string{"1", "4", "16", "64", "256"}, []int64{1, 4, 16, 64, 256})
 
 	ints, err := StringsToInt64s([]string{"-1", "a"})
-	assert.Len(t, ints, 0)
+	assert.Empty(t, ints)
 	assert.Error(t, err)
 }
 
@@ -171,9 +171,9 @@ func TestInt64sToStrings(t *testing.T) {
 // TODO: Test EntryIcon
 
 func TestSetupGiteaRoot(t *testing.T) {
-	_ = os.Setenv("GITEA_ROOT", "test")
+	t.Setenv("GITEA_ROOT", "test")
 	assert.Equal(t, "test", SetupGiteaRoot())
-	_ = os.Setenv("GITEA_ROOT", "")
+	t.Setenv("GITEA_ROOT", "")
 	assert.NotEqual(t, "test", SetupGiteaRoot())
 }
 

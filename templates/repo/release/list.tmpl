@@ -12,7 +12,20 @@
 						<a class="muted" href="{{if not (and $release.Sha1 ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode))}}#{{else}}{{$.RepoLink}}/src/tag/{{$release.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "tw-mr-1"}}{{$release.TagName}}</a>
 						{{if and $release.Sha1 ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 							<a class="muted tw-font-mono" href="{{$.RepoLink}}/src/commit/{{$release.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "tw-mr-1"}}{{ShortSha $release.Sha1}}</a>
-							{{template "repo/branch_dropdown" dict "root" $ "release" $release}}
+							{{$compareTarget := ""}}
+							{{if $release.IsDraft}}
+									{{$compareTarget = $release.Target}}
+							{{else if $release.TagName}}
+									{{$compareTarget = $release.TagName}}
+							{{else}}
+								{{$compareTarget = $release.Sha1}}
+							{{end}}
+							{{template "repo/branch_dropdown" dict
+								"Repository" $.Repository
+								"ShowTabTags" true
+								"DropdownFixedText" (ctx.Locale.Tr "repo.release.compare")
+								"RefLinkTemplate" (print "{RepoLink}/compare/{RefShortName}..." (PathEscapeSegments $compareTarget))
+							}}
 						{{end}}
 					</div>
 					<div class="ui segment detail">
@@ -20,13 +33,7 @@
 							<h4 class="release-list-title tw-break-anywhere">
 								{{if $.PageIsSingleTag}}{{$release.Title}}{{else}}<a class="muted" href="{{$.RepoLink}}/releases/tag/{{$release.TagName | PathEscapeSegments}}">{{$release.Title}}</a>{{end}}
 								{{template "repo/commit_statuses" dict "Status" $info.CommitStatus "Statuses" $info.CommitStatuses "AdditionalClasses" "tw-flex"}}
-								{{if $release.IsDraft}}
-									<span class="ui yellow label">{{ctx.Locale.Tr "repo.release.draft"}}</span>
-								{{else if $release.IsPrerelease}}
-									<span class="ui orange label">{{ctx.Locale.Tr "repo.release.prerelease"}}</span>
-								{{else if (not $release.IsTag)}}
-									<span class="ui green label">{{ctx.Locale.Tr "repo.release.stable"}}</span>
-								{{end}}
+								{{template "repo/release/label" (dict "Release" $release)}}
 							</h4>
 							<div>
 								{{if and $.CanCreateRelease (not $.PageIsSingleTag)}}
@@ -51,7 +58,7 @@
 								{{ctx.Locale.Tr "repo.released_this"}}
 							</span>
 							{{if $release.CreatedUnix}}
-								<span class="time">{{TimeSinceUnix $release.CreatedUnix ctx.Locale}}</span>
+								<span class="time">{{DateUtils.TimeSince $release.CreatedUnix}}</span>
 							{{end}}
 							{{if and (not $release.IsDraft) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 								| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{$release.TagName | PathEscapeSegments}}...{{$release.TargetBehind | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.release.ahead.commits" $release.NumCommitsBehind}}</a> {{ctx.Locale.Tr "repo.release.ahead.target" $release.TargetBehind}}</span>

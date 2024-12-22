@@ -47,14 +47,9 @@ func (reviews ReviewList) LoadReviewersTeams(ctx context.Context) error {
 		}
 	}
 
-	teamsMap := make(map[int64]*organization_model.Team, 0)
-	for _, teamID := range reviewersTeamsIDs {
-		team, err := organization_model.GetTeamByID(ctx, teamID)
-		if err != nil {
-			return err
-		}
-
-		teamsMap[teamID] = team
+	teamsMap, err := organization_model.GetTeamsByIDs(ctx, reviewersTeamsIDs)
+	if err != nil {
+		return err
 	}
 
 	for _, review := range reviews {
@@ -92,7 +87,7 @@ func (reviews ReviewList) LoadIssues(ctx context.Context) error {
 // FindReviewOptions represent possible filters to find reviews
 type FindReviewOptions struct {
 	db.ListOptions
-	Type         ReviewType
+	Types        []ReviewType
 	IssueID      int64
 	ReviewerID   int64
 	OfficialOnly bool
@@ -107,8 +102,8 @@ func (opts *FindReviewOptions) toCond() builder.Cond {
 	if opts.ReviewerID > 0 {
 		cond = cond.And(builder.Eq{"reviewer_id": opts.ReviewerID})
 	}
-	if opts.Type != ReviewTypeUnknown {
-		cond = cond.And(builder.Eq{"type": opts.Type})
+	if len(opts.Types) > 0 {
+		cond = cond.And(builder.In("type", opts.Types))
 	}
 	if opts.OfficialOnly {
 		cond = cond.And(builder.Eq{"official": true})

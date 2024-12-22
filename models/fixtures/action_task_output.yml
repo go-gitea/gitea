@@ -1,0 +1,20 @@
+-
+  id: 1
+  task_id: 49
+  output_key: output_a
+  output_value: abc
+-
+  id: 2
+  task_id: 49
+  output_key: output_b
+  output_value: ''
+-
+  id: 3
+  task_id: 50
+  output_key: output_a
+  output_value: ''
+-
+  id: 4
+  task_id: 50
+  output_key: output_b
+  output_value: bbb

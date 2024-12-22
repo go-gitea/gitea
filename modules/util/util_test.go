@@ -122,8 +122,8 @@ func Test_NormalizeEOL(t *testing.T) {
 
 func Test_RandomInt(t *testing.T) {
 	randInt, err := CryptoRandomInt(255)
-	assert.True(t, randInt >= 0)
-	assert.True(t, randInt <= 255)
+	assert.GreaterOrEqual(t, randInt, int64(0))
+	assert.LessOrEqual(t, randInt, int64(255))
 	assert.NoError(t, err)
 }
 
@@ -223,20 +223,33 @@ func BenchmarkToUpper(b *testing.B) {
 }
 
 func TestToTitleCase(t *testing.T) {
-	assert.Equal(t, ToTitleCase(`foo bar baz`), `Foo Bar Baz`)
-	assert.Equal(t, ToTitleCase(`FOO BAR BAZ`), `Foo Bar Baz`)
+	assert.Equal(t, `Foo Bar Baz`, ToTitleCase(`foo bar baz`))
+	assert.Equal(t, `Foo Bar Baz`, ToTitleCase(`FOO BAR BAZ`))
 }
 
 func TestToPointer(t *testing.T) {
 	assert.Equal(t, "abc", *ToPointer("abc"))
 	assert.Equal(t, 123, *ToPointer(123))
 	abc := "abc"
-	assert.False(t, &abc == ToPointer(abc))
+	assert.NotSame(t, &abc, ToPointer(abc))
 	val123 := 123
-	assert.False(t, &val123 == ToPointer(val123))
+	assert.NotSame(t, &val123, ToPointer(val123))
 }
 
 func TestReserveLineBreakForTextarea(t *testing.T) {
-	assert.Equal(t, ReserveLineBreakForTextarea("test\r\ndata"), "test\ndata")
-	assert.Equal(t, ReserveLineBreakForTextarea("test\r\ndata\r\n"), "test\ndata\n")
+	assert.Equal(t, "test\ndata", ReserveLineBreakForTextarea("test\r\ndata"))
+	assert.Equal(t, "test\ndata\n", ReserveLineBreakForTextarea("test\r\ndata\r\n"))
+}
+
+func TestOptionalArg(t *testing.T) {
+	foo := func(_ any, optArg ...int) int {
+		return OptionalArg(optArg)
+	}
+	bar := func(_ any, optArg ...int) int {
+		return OptionalArg(optArg, 42)
+	}
+	assert.Equal(t, 0, foo(nil))
+	assert.Equal(t, 100, foo(nil, 100))
+	assert.Equal(t, 42, bar(nil))
+	assert.Equal(t, 100, bar(nil, 100))
 }

@@ -35,18 +35,18 @@ func BoolFieldQuery(value bool, field string) *query.BoolFieldQuery {
 	return q
 }
 
-func NumericRangeInclusiveQuery(min, max optional.Option[int64], field string) *query.NumericRangeQuery {
+func NumericRangeInclusiveQuery(minOption, maxOption optional.Option[int64], field string) *query.NumericRangeQuery {
 	var minF, maxF *float64
 	var minI, maxI *bool
-	if min.Has() {
+	if minOption.Has() {
 		minF = new(float64)
-		*minF = float64(min.Value())
+		*minF = float64(minOption.Value())
 		minI = new(bool)
 		*minI = true
 	}
-	if max.Has() {
+	if maxOption.Has() {
 		maxF = new(float64)
-		*maxF = float64(max.Value())
+		*maxF = float64(maxOption.Value())
 		maxI = new(bool)
 		*maxI = true
 	}

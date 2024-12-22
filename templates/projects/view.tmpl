@@ -3,6 +3,23 @@
 <div class="ui container tw-max-w-full">
 	<div class="tw-flex tw-justify-between tw-items-center tw-mb-4 tw-gap-3">
 		<h2 class="tw-mb-0 tw-flex-1 tw-break-anywhere">{{.Project.Title}}</h2>
+			<div class="project-toolbar-right">
+				<div class="ui secondary filter menu labels">
+					{{$queryLink := QueryBuild "?" "labels" .SelectLabels "assignee" $.AssigneeID "archived_labels" (Iif $.ShowArchivedLabels "true")}}
+
+					{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
+
+					{{template "repo/issue/filter_item_user_assign" dict
+						"QueryParamKey" "assignee"
+						"QueryLink" $queryLink
+						"UserSearchList" $.Assignees
+						"SelectedUserId" $.AssigneeID
+						"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_assignee")
+						"TextZeroValue" (ctx.Locale.Tr "repo.issues.filter_assginee_no_select")
+						"TextNegativeOne" (ctx.Locale.Tr "repo.issues.filter_assginee_no_assignee")
+					}}
+				</div>
+			</div>
 		{{if $canWriteProject}}
 			<div class="ui compact mini menu">
 				<a class="item" href="{{.Link}}/edit?redirect=project">
@@ -20,40 +37,24 @@
 						{{ctx.Locale.Tr "repo.projects.close"}}
 					</button>
 				{{end}}
-				<button class="item btn delete-button" data-url="{{.Link}}/delete" data-id="{{.Project.ID}}">
+				<button class="item btn link-action" data-url="{{.Link}}/delete?id={{.Project.ID}}"
+								data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.deletion"}}"
+								data-modal-confirm-content="{{ctx.Locale.Tr "repo.projects.deletion_desc"}}"
+				>
 					{{svg "octicon-trash"}}
 					{{ctx.Locale.Tr "repo.issues.label_delete"}}
 				</button>
-				<button class="item btn show-modal" data-modal="#new-project-column-item">
+				<button class="item btn show-modal show-project-column-modal-edit" data-modal="#project-column-modal-edit"
+								data-modal-header="{{ctx.Locale.Tr "repo.projects.column.new"}}"
+								data-modal-project-column-title-label="{{ctx.Locale.Tr "repo.projects.column.new_title"}}"
+								data-modal-project-column-button-save="{{ctx.Locale.Tr "repo.projects.column.new_submit"}}"
+								data-modal-project-column-id=""
+								data-modal-project-column-title-input=""
+								data-modal-project-column-color-input=""
+				>
 					{{svg "octicon-plus"}}
 					{{ctx.Locale.Tr "new_project_column"}}
 				</button>
-			</div>
-			<div class="ui small modal new-project-column-modal" id="new-project-column-item">
-				<div class="header">
-					{{ctx.Locale.Tr "repo.projects.column.new"}}
-				</div>
-				<div class="content">
-					<form class="ui form">
-						<div class="required field">
-							<label for="new_project_column">{{ctx.Locale.Tr "repo.projects.column.new_title"}}</label>
-							<input class="new-project-column" id="new_project_column" name="title" required>
-						</div>
-
-						<div class="field color-field">
-							<label for="new_project_column_color_picker">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
-							<div class="js-color-picker-input column">
-								<input maxlength="7" placeholder="#c320f6" id="new_project_column_color_picker" name="color">
-								{{template "repo/issue/label_precolors"}}
-							</div>
-						</div>
-
-						<div class="text right actions">
-							<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-							<button data-url="{{$.Link}}" class="ui primary button" id="new_project_column_submit">{{ctx.Locale.Tr "repo.projects.column.new_submit"}}</button>
-						</div>
-					</form>
-				</div>
 			</div>
 		{{end}}
 	</div>
@@ -63,88 +64,43 @@
 	<div class="divider"></div>
 </div>
 
-<div id="project-board">
-	<div class="board {{if .CanWriteProjects}}sortable{{end}}"{{if .CanWriteProjects}} data-url="{{$.Link}}/move"{{end}}>
+<div id="project-board" data-project-borad-writable="{{$canWriteProject}}">
+	<div class="board {{if $canWriteProject}}sortable{{end}}" {{if $canWriteProject}}data-url="{{$.Link}}/move"{{end}}>
 		{{range .Columns}}
-			<div class="project-column"{{if .Color}} style="background: {{.Color}} !important; color: {{ContrastColor .Color}} !important"{{end}} data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
+			<div class="project-column" {{if .Color}}style="background: {{.Color}} !important; color: {{ContrastColor .Color}} !important"{{end}} data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
 				<div class="project-column-header{{if $canWriteProject}} tw-cursor-grab{{end}}">
 					<div class="ui circular label project-column-issue-count">
 						{{.NumIssues ctx}}
 					</div>
-					<div class="project-column-title-label gt-ellipsis">{{.Title}}</div>
+					<div class="project-column-title-text gt-ellipsis">{{.Title}}</div>
 					{{if $canWriteProject}}
 						<div class="ui dropdown tw-p-1">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
-								<a class="item show-modal button" data-modal="#edit-project-column-modal-{{.ID}}">
-									{{svg "octicon-pencil"}}
-									{{ctx.Locale.Tr "repo.projects.column.edit"}}
+								<a class="item button show-modal show-project-column-modal-edit" data-modal="#project-column-modal-edit"
+									data-modal-header="{{ctx.Locale.Tr "repo.projects.column.edit"}}"
+									data-modal-project-column-title-label="{{ctx.Locale.Tr "repo.projects.column.edit_title"}}"
+									data-modal-project-column-button-save="{{ctx.Locale.Tr "repo.projects.column.edit"}}"
+									data-modal-project-column-id="{{.ID}}"
+									data-modal-project-column-title-input="{{.Title}}"
+									data-modal-project-column-color-input="{{.Color}}"
+								>
+									{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.projects.column.edit"}}
 								</a>
 								{{if not .Default}}
-									<a class="item show-modal button default-project-column-show"
-										data-modal="#default-project-column-modal-{{.ID}}"
-										data-modal-default-project-column-header="{{ctx.Locale.Tr "repo.projects.column.set_default"}}"
-										data-modal-default-project-column-content="{{ctx.Locale.Tr "repo.projects.column.set_default_desc"}}"
-										data-url="{{$.Link}}/{{.ID}}/default">
-										{{svg "octicon-pin"}}
-										{{ctx.Locale.Tr "repo.projects.column.set_default"}}
+									<a class="item button link-action" data-url="{{$.Link}}/{{.ID}}/default"
+										data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.column.set_default"}}"
+										data-modal-confirm-content="{{ctx.Locale.Tr "repo.projects.column.set_default_desc"}}"
+									>
+										{{svg "octicon-pin"}} {{ctx.Locale.Tr "repo.projects.column.set_default"}}
 									</a>
-									<a class="item show-modal button show-delete-project-column-modal"
-										data-modal="#delete-project-column-modal-{{.ID}}"
-										data-url="{{$.Link}}/{{.ID}}">
-										{{svg "octicon-trash"}}
-										{{ctx.Locale.Tr "repo.projects.column.delete"}}
+									<a class="item button link-action" data-url="{{$.Link}}/{{.ID}}" data-link-action-method="DELETE"
+										data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.column.delete"}}"
+										data-modal-confirm-content="{{ctx.Locale.Tr "repo.projects.column.deletion_desc"}}"
+									>
+										{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.projects.column.delete"}}
 									</a>
 								{{end}}
-
-								<div class="ui small modal edit-project-column-modal" id="edit-project-column-modal-{{.ID}}">
-									<div class="header">
-										{{ctx.Locale.Tr "repo.projects.column.edit"}}
-									</div>
-									<div class="content">
-										<form class="ui form">
-											<div class="required field">
-												<label for="new_project_column_title">{{ctx.Locale.Tr "repo.projects.column.edit_title"}}</label>
-												<input class="project-column-title-input" id="new_project_column_title" name="title" value="{{.Title}}" required>
-											</div>
-
-											<div class="field color-field">
-												<label for="new_project_column_color">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
-												<div class="js-color-picker-input column">
-													<input maxlength="7" placeholder="#c320f6" id="new_project_column_color" name="color" value="{{.Color}}">
-													{{template "repo/issue/label_precolors"}}
-												</div>
-											</div>
-
-											<div class="text right actions">
-												<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-												<button data-url="{{$.Link}}/{{.ID}}" class="ui primary button edit-project-column-button">{{ctx.Locale.Tr "repo.projects.column.edit"}}</button>
-											</div>
-										</form>
-									</div>
-								</div>
-
-								<div class="ui g-modal-confirm modal default-project-column-modal" id="default-project-column-modal-{{.ID}}">
-									<div class="header">
-										<span id="default-project-column-header"></span>
-									</div>
-									<div class="content">
-										<label id="default-project-column-content"></label>
-									</div>
-									{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
-								</div>
-
-								<div class="ui g-modal-confirm modal" id="delete-project-column-modal-{{.ID}}">
-									<div class="header">
-										{{ctx.Locale.Tr "repo.projects.column.delete"}}
-									</div>
-									<div class="content">
-										<label>
-											{{ctx.Locale.Tr "repo.projects.column.deletion_desc"}}
-										</label>
-									</div>
-									{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
-								</div>
 							</div>
 						</div>
 					{{end}}
@@ -162,15 +118,28 @@
 	</div>
 </div>
 
-{{if .CanWriteProjects}}
-	<div class="ui g-modal-confirm delete modal">
-		<div class="header">
-			{{svg "octicon-trash"}}
-			{{ctx.Locale.Tr "repo.projects.deletion"}}
-		</div>
-		<div class="content">
-			<p>{{ctx.Locale.Tr "repo.projects.deletion_desc"}}</p>
-		</div>
-		{{template "base/modal_actions_confirm" .}}
+{{if $canWriteProject}}
+<div class="ui small modal" id="project-column-modal-edit">
+	<div class="header">edit</div>
+	<div class="content">
+		<form class="ui form ignore-dirty" method="post" data-action-base-link="{{$.Link}}">
+			<input class="project-column-id" type="hidden" name="id">
+			<div class="required field">
+				<label class="project-column-title-label" for="project-column-title-input">title</label>
+				<input id="project-column-title-input" name="title" value="{{.Title}}" required>
+			</div>
+			<div class="field">
+				<label class="project-column-color-label" for="project-column-color-input">color</label>
+				<div class="js-color-picker-input column">
+					<input maxlength="7" placeholder="#c320f6" id="project-column-color-input" name="color" value="{{.Color}}">
+					{{template "repo/issue/label_precolors"}}
+				</div>
+			</div>
+			<div class="actions tw-text-right">
+				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+				<button type="submit" class="ui primary button project-column-button-save">save</button>
+			</div>
+		</form>
 	</div>
+</div>
 {{end}}

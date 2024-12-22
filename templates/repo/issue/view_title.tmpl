@@ -3,11 +3,17 @@
 		{{template "base/alert" .}}
 	</div>
 {{end}}
+<div class="tw-hidden" id="issue-page-info"
+	data-issue-index="{{$.Issue.Index}}"
+	data-issue-dependency-search-type="{{$.IssueDependencySearchType}}"
+	data-issue-repo-link="{{$.RepoLink}}"
+	data-issue-repo-id="{{$.Repository.ID}}"
+></div>
 <div class="issue-title-header">
 	{{$canEditIssueTitle := and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 	<div class="issue-title" id="issue-title-display">
 		<h1 class="tw-break-anywhere">
-			{{RenderIssueTitle $.Context .Issue.Title ($.Repository.ComposeMetas ctx) | RenderCodeBlock}}
+			{{ctx.RenderUtils.RenderIssueTitle .Issue.Title ($.Repository.ComposeMetas ctx)}}
 			<span class="index">#{{.Issue.Index}}</span>
 		</h1>
 		<div class="issue-title-buttons">
@@ -20,17 +26,17 @@
 		</div>
 	</div>
 	{{if $canEditIssueTitle}}
-	<div class="ui form issue-title tw-hidden" id="issue-title-editor">
+	<form class="ui form issue-title tw-hidden" id="issue-title-editor">
 		<div class="ui input tw-flex-1">
-			<input value="{{.Issue.Title}}" data-old-title="{{.Issue.Title}}" maxlength="255" autocomplete="off">
+			<input name="title" value="{{.Issue.Title}}" data-old-title="{{.Issue.Title}}" maxlength="255" autocomplete="off">
 		</div>
 		<div class="issue-title-buttons">
-			<button class="ui small basic cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
-			<button class="ui small primary button" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title">
+			<button type="button" class="ui small basic cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
+			<button type="submit" class="ui small primary button" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title">
 				{{ctx.Locale.Tr "repo.issues.save"}}
 			</button>
 		</div>
-	</div>
+	</form>
 	{{end}}
 	<div class="issue-title-meta">
 		{{if .HasMerged}}
@@ -50,15 +56,24 @@
 			{{if .Issue.IsPull}}
 				{{$headHref := .HeadTarget}}
 				{{if .HeadBranchLink}}
-					{{$headHref = HTMLFormat `<a href="%s">%s</a>` .HeadBranchLink $headHref}}
+					{{$headHref = HTMLFormat `<a href="%s">%s</a> <button class="btn interact-fg" data-tooltip-content="%s" data-clipboard-text="%s">%s</button>` .HeadBranchLink $headHref (ctx.Locale.Tr "copy_branch") .HeadTarget (svg "octicon-copy" 14)}}
+				{{else}}
+					{{if .Issue.PullRequest.IsAgitFlow}}
+						{{$headHref = HTMLFormat `%s <a href="%s" target="_blank"><span class="ui label basic tiny" data-tooltip-content="%s">AGit</span></a>` $headHref "https://docs.gitea.com/usage/agit" (ctx.Locale.Tr "repo.pull.agit_documentation")}}
+					{{else}}
+						{{$headHref = HTMLFormat `<span class="tw-line-through" data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "form.target_branch_not_exist") $headHref}}
+					{{end}}
 				{{end}}
-				{{$headHref = HTMLFormat `%s <button class="btn interact-fg" data-tooltip-content="%s" data-clipboard-text="%s">%s</button>` $headHref (ctx.Locale.Tr "copy_branch") .HeadTarget (svg "octicon-copy" 14)}}
 				{{$baseHref := .BaseTarget}}
 				{{if .BaseBranchLink}}
-					{{$baseHref = HTMLFormat `<a href="%s">%s</a>` .BaseBranchLink $baseHref}}
+					{{if .BaseBranchNotExist}}
+						{{$baseHref = HTMLFormat `<span class="tw-line-through" data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "form.target_branch_not_exist") $baseHref}}
+					{{else}}
+						{{$baseHref = HTMLFormat `<a href="%s">%s</a>` .BaseBranchLink $baseHref}}
+					{{end}}
 				{{end}}
 				{{if .Issue.PullRequest.HasMerged}}
-					{{$mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix ctx.Locale}}
+					{{$mergedStr:= DateUtils.TimeSince .Issue.PullRequest.MergedUnix}}
 					{{if .Issue.OriginalAuthor}}
 						{{.Issue.OriginalAuthor}}
 						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr}}</span>
@@ -97,7 +112,7 @@
 										{{$sameBase := ne $.BaseName $.HeadUserName}}
 										{{$differentBranch := ne . $.HeadBranch}}
 										{{if or $sameBase $differentBranch}}
-											<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-branch="{{.}}">{{$.BaseName}}{{if $.HeadRepo}}/{{$.HeadRepo}}{{end}}:{{.}}</div>
+											<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-branch="{{.}}">{{$.BaseName}}:{{.}}</div>
 										{{end}}
 									{{end}}
 								</div>
@@ -106,7 +121,7 @@
 					</span>
 				{{end}}
 			{{else}}
-				{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix ctx.Locale}}
+				{{$createdStr:= DateUtils.TimeSince .Issue.CreatedUnix}}
 				<span class="time-desc">
 					{{if .Issue.OriginalAuthor}}
 						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr .Issue.OriginalAuthor}}

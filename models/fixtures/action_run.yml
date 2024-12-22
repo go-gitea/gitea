@@ -36,3 +36,41 @@
   updated: 1683636626
   need_approval: 0
   approved_by: 0
+-
+  id: 793
+  title: "job output"
+  repo_id: 4
+  owner_id: 1
+  workflow_id: "test.yaml"
+  index: 189
+  trigger_user_id: 1
+  ref: "refs/heads/master"
+  commit_sha: "c2d72f548424103f01ee1dc02889c1e2bff816b0"
+  event: "push"
+  is_fork_pull_request: 0
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+  created: 1683636108
+  updated: 1683636626
+  need_approval: 0
+  approved_by: 0
+-
+  id: 794
+  title: "job output"
+  repo_id: 4
+  owner_id: 1
+  workflow_id: "test.yaml"
+  index: 190
+  trigger_user_id: 1
+  ref: "refs/heads/test"
+  commit_sha: "c2d72f548424103f01ee1dc02889c1e2bff816b0"
+  event: "push"
+  is_fork_pull_request: 0
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+  created: 1683636108
+  updated: 1683636626
+  need_approval: 0
+  approved_by: 0

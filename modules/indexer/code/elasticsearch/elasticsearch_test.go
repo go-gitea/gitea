@@ -10,7 +10,7 @@ import (
 )
 
 func TestIndexPos(t *testing.T) {
-	startIdx, endIdx := indexPos("test index start and end", "start", "end")
+	startIdx, endIdx := contentMatchIndexPos("test index start and end", "start", "end")
 	assert.EqualValues(t, 11, startIdx)
-	assert.EqualValues(t, 24, endIdx)
+	assert.EqualValues(t, 15, endIdx)
 }

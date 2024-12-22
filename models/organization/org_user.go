@@ -9,7 +9,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 
 	"xorm.io/builder"
@@ -32,6 +34,21 @@ type OrgUser struct {
 
 func init() {
 	db.RegisterModel(new(OrgUser))
+}
+
+// ErrUserHasOrgs represents a "UserHasOrgs" kind of error.
+type ErrUserHasOrgs struct {
+	UID int64
+}
+
+// IsErrUserHasOrgs checks if an error is a ErrUserHasOrgs.
+func IsErrUserHasOrgs(err error) bool {
+	_, ok := err.(ErrUserHasOrgs)
+	return ok
+}
+
+func (err ErrUserHasOrgs) Error() string {
+	return fmt.Sprintf("user still has membership of organizations [uid: %d]", err.UID)
 }
 
 // GetOrganizationCount returns count of membership of organization of the user.
@@ -110,6 +127,49 @@ func IsUserOrgOwner(ctx context.Context, users user_model.UserList, orgID int64)
 		}
 	}
 	return results
+}
+
+// GetOrgAssignees returns all users that have write access and can be assigned to issues
+// of the any repository in the organization.
+func GetOrgAssignees(ctx context.Context, orgID int64) (_ []*user_model.User, err error) {
+	e := db.GetEngine(ctx)
+	userIDs := make([]int64, 0, 10)
+	if err = e.Table("access").
+		Join("INNER", "repository", "`repository`.id = `access`.repo_id").
+		Where("`repository`.owner_id = ? AND `access`.mode >= ?", orgID, perm.AccessModeWrite).
+		Select("user_id").
+		Find(&userIDs); err != nil {
+		return nil, err
+	}
+
+	additionalUserIDs := make([]int64, 0, 10)
+	if err = e.Table("team_user").
+		Join("INNER", "team_repo", "`team_repo`.team_id = `team_user`.team_id").
+		Join("INNER", "team_unit", "`team_unit`.team_id = `team_user`.team_id").
+		Join("INNER", "repository", "`repository`.id = `team_repo`.repo_id").
+		Where("`repository`.owner_id = ? AND (`team_unit`.access_mode >= ? OR (`team_unit`.access_mode = ? AND `team_unit`.`type` = ?))",
+			orgID, perm.AccessModeWrite, perm.AccessModeRead, unit.TypePullRequests).
+		Distinct("`team_user`.uid").
+		Select("`team_user`.uid").
+		Find(&additionalUserIDs); err != nil {
+		return nil, err
+	}
+
+	uniqueUserIDs := make(container.Set[int64])
+	uniqueUserIDs.AddMultiple(userIDs...)
+	uniqueUserIDs.AddMultiple(additionalUserIDs...)
+
+	users := make([]*user_model.User, 0, len(uniqueUserIDs))
+	if len(userIDs) > 0 {
+		if err = e.In("id", uniqueUserIDs.Values()).
+			Where(builder.Eq{"`user`.is_active": true}).
+			OrderBy(user_model.GetOrderByName()).
+			Find(&users); err != nil {
+			return nil, err
+		}
+	}
+
+	return users, nil
 }
 
 func loadOrganizationOwners(ctx context.Context, users user_model.UserList, orgID int64) (map[int64]*TeamUser, error) {

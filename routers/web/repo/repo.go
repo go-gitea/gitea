@@ -11,7 +11,6 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
@@ -352,6 +351,9 @@ func Action(ctx *context.Context) {
 		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	}
 
+	// see the `hx-trigger="refreshUserCards ..."` comments in tmpl
+	ctx.RespHeader().Add("hx-trigger", "refreshUserCards")
+
 	switch ctx.PathParam(":action") {
 	case "watch", "unwatch", "star", "unstar":
 		// we have to reload the repository because NumStars or NumWatching (used in the templates) has just changed
@@ -375,7 +377,7 @@ func Action(ctx *context.Context) {
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
-	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
+	repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 	if err != nil {
 		return err
 	}
@@ -461,7 +463,12 @@ func RedirectDownload(ctx *context.Context) {
 // Download an archive of a repository
 func Download(ctx *context.Context) {
 	uri := ctx.PathParam("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
+	ext, tp, err := archiver_service.ParseFileName(uri)
+	if err != nil {
+		ctx.ServerError("ParseFileName", err)
+		return
+	}
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, strings.TrimSuffix(uri, ext), tp)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.Error(http.StatusBadRequest, err.Error())
@@ -494,7 +501,7 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 	rPath := archiver.RelativePath()
 	if setting.RepoArchive.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.RepoArchives.URL(rPath, downloadName)
+		u, err := storage.RepoArchives.URL(rPath, downloadName, nil)
 		if u != nil && err == nil {
 			ctx.Redirect(u.String())
 			return
@@ -520,7 +527,12 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
 	uri := ctx.PathParam("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
+	ext, tp, err := archiver_service.ParseFileName(uri)
+	if err != nil {
+		ctx.ServerError("ParseFileName", err)
+		return
+	}
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, strings.TrimSuffix(uri, ext), tp)
 	if err != nil {
 		ctx.ServerError("archiver_service.NewRequest", err)
 		return

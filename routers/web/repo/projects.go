@@ -13,16 +13,18 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/shared/issue"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	project_service "code.gitea.io/gitea/services/projects"
@@ -91,15 +93,8 @@ func Projects(ctx *context.Context) {
 	}
 
 	for i := range projects {
-		projects[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Links: markup.Links{
-				Base: ctx.Repo.RepoLink,
-			},
-			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo: ctx.Repo.GitRepo,
-			Repo:    ctx.Repo.Repository,
-			Ctx:     ctx,
-		}, projects[i].Description)
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, repo)
+		projects[i].RenderedContent, err = markdown.RenderString(rctx, projects[i].Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return
@@ -313,7 +308,14 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns)
+	labelIDs := issue.PrepareFilterIssueLabels(ctx, ctx.Repo.Repository.ID, ctx.Repo.Owner)
+
+	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
+
+	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns, &issues_model.IssuesOptions{
+		LabelIDs:   labelIDs,
+		AssigneeID: optional.Some(assigneeID),
+	})
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfColumns", err)
 		return
@@ -353,20 +355,61 @@ func ViewProject(ctx *context.Context) {
 	}
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 
-	project.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		Links: markup.Links{
-			Base: ctx.Repo.RepoLink,
-		},
-		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo: ctx.Repo.GitRepo,
-		Repo:    ctx.Repo.Repository,
-		Ctx:     ctx,
-	}, project.Description)
+	labels, err := issues_model.GetLabelsByRepoID(ctx, project.RepoID, "", db.ListOptions{})
+	if err != nil {
+		ctx.ServerError("GetLabelsByRepoID", err)
+		return
+	}
+
+	if ctx.Repo.Owner.IsOrganization() {
+		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, "", db.ListOptions{})
+		if err != nil {
+			ctx.ServerError("GetLabelsByOrgID", err)
+			return
+		}
+
+		labels = append(labels, orgLabels...)
+	}
+
+	// Get the exclusive scope for every label ID
+	labelExclusiveScopes := make([]string, 0, len(labelIDs))
+	for _, labelID := range labelIDs {
+		foundExclusiveScope := false
+		for _, label := range labels {
+			if label.ID == labelID || label.ID == -labelID {
+				labelExclusiveScopes = append(labelExclusiveScopes, label.ExclusiveScope())
+				foundExclusiveScope = true
+				break
+			}
+		}
+		if !foundExclusiveScope {
+			labelExclusiveScopes = append(labelExclusiveScopes, "")
+		}
+	}
+
+	for _, l := range labels {
+		l.LoadSelectedLabelsAfterClick(labelIDs, labelExclusiveScopes)
+	}
+	ctx.Data["Labels"] = labels
+	ctx.Data["NumLabels"] = len(labels)
+
+	// Get assignees.
+	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetRepoAssignees", err)
+		return
+	}
+	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
+	ctx.Data["AssigneeID"] = assigneeID
+
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+	project.RenderedContent, err = markdown.RenderString(rctx, project.Description)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return
 	}
 
+	ctx.Data["Title"] = project.Title
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["Project"] = project

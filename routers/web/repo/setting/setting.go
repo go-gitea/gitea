@@ -8,11 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -23,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer/code"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -223,7 +222,7 @@ func SettingsPost(ctx *context.Context) {
 			form.MirrorPassword, _ = u.User.Password()
 		}
 
-		address, err := forms.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
+		address, err := git.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
 		if err == nil {
 			err = migrations.IsMigrateURLAllowed(address, ctx.Doer)
 		}
@@ -290,8 +289,8 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		m, err := selectPushMirrorByForm(ctx, form, repo)
-		if err != nil {
+		m, _, _ := repo_model.GetPushMirrorByIDAndRepoID(ctx, form.PushMirrorID, repo.ID)
+		if m == nil {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -317,15 +316,13 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		id, err := strconv.ParseInt(form.PushMirrorID, 10, 64)
-		if err != nil {
-			ctx.ServerError("UpdatePushMirrorIntervalPushMirrorID", err)
+		m, _, _ := repo_model.GetPushMirrorByIDAndRepoID(ctx, form.PushMirrorID, repo.ID)
+		if m == nil {
+			ctx.NotFound("", nil)
 			return
 		}
-		m := &repo_model.PushMirror{
-			ID:       id,
-			Interval: interval,
-		}
+
+		m.Interval = interval
 		if err := repo_model.UpdatePushMirrorInterval(ctx, m); err != nil {
 			ctx.ServerError("UpdatePushMirrorInterval", err)
 			return
@@ -334,7 +331,10 @@ func SettingsPost(ctx *context.Context) {
 		// If we observed its implementation in the context of `push-mirror-sync` where it
 		// is evident that pushing to the queue is necessary for updates.
 		// So, there are updates within the given interval, it is necessary to update the queue accordingly.
-		mirror_service.AddPushMirrorToQueue(m.ID)
+		if !ctx.FormBool("push_mirror_defer_sync") {
+			// push_mirror_defer_sync is mainly for testing purpose, we do not really want to sync the push mirror immediately
+			mirror_service.AddPushMirrorToQueue(m.ID)
+		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
 
@@ -348,18 +348,18 @@ func SettingsPost(ctx *context.Context) {
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
 
-		m, err := selectPushMirrorByForm(ctx, form, repo)
-		if err != nil {
+		m, _, _ := repo_model.GetPushMirrorByIDAndRepoID(ctx, form.PushMirrorID, repo.ID)
+		if m == nil {
 			ctx.NotFound("", nil)
 			return
 		}
 
-		if err = mirror_service.RemovePushMirrorRemote(ctx, m); err != nil {
+		if err := mirror_service.RemovePushMirrorRemote(ctx, m); err != nil {
 			ctx.ServerError("RemovePushMirrorRemote", err)
 			return
 		}
 
-		if err = repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
+		if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
 			ctx.ServerError("DeletePushMirrorByID", err)
 			return
 		}
@@ -384,7 +384,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		address, err := forms.ParseRemoteAddr(form.PushMirrorAddress, form.PushMirrorUsername, form.PushMirrorPassword)
+		address, err := git.ParseRemoteAddr(form.PushMirrorAddress, form.PushMirrorUsername, form.PushMirrorPassword)
 		if err == nil {
 			err = migrations.IsMigrateURLAllowed(address, ctx.Doer)
 		}
@@ -787,7 +787,7 @@ func SettingsPost(ctx *context.Context) {
 		if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, repo, nil); err != nil {
 			if repo_model.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
-			} else if models.IsErrRepoTransferInProgress(err) {
+			} else if repo_model.IsErrRepoTransferInProgress(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
 			} else if errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer.blocked_user"), tplSettingsOptions, nil)
@@ -813,9 +813,9 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
+		repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 		if err != nil {
-			if models.IsErrNoPendingTransfer(err) {
+			if repo_model.IsErrNoPendingTransfer(err) {
 				ctx.Flash.Error("repo.settings.transfer_abort_invalid")
 				ctx.Redirect(repo.Link() + "/settings")
 			} else {
@@ -905,6 +905,9 @@ func SettingsPost(ctx *context.Context) {
 			log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 		}
 
+		// update issue indexer
+		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 
 		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -928,6 +931,9 @@ func SettingsPost(ctx *context.Context) {
 				log.Error("DetectAndHandleSchedules for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 			}
 		}
+
+		// update issue indexer
+		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
 
@@ -973,8 +979,8 @@ func SettingsPost(ctx *context.Context) {
 }
 
 func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.RepoSettingForm) {
-	if models.IsErrInvalidCloneAddr(err) {
-		addrErr := err.(*models.ErrInvalidCloneAddr)
+	if git.IsErrInvalidCloneAddr(err) {
+		addrErr := err.(*git.ErrInvalidCloneAddr)
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, form)
@@ -994,25 +1000,4 @@ func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.R
 		return
 	}
 	ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, form)
-}
-
-func selectPushMirrorByForm(ctx *context.Context, form *forms.RepoSettingForm, repo *repo_model.Repository) (*repo_model.PushMirror, error) {
-	id, err := strconv.ParseInt(form.PushMirrorID, 10, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	pushMirrors, _, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, db.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	for _, m := range pushMirrors {
-		if m.ID == id {
-			m.Repo = repo
-			return m, nil
-		}
-	}
-
-	return nil, fmt.Errorf("PushMirror[%v] not associated to repository %v", id, repo)
 }
