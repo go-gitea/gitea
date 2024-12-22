@@ -9,20 +9,20 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sitemap"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
 	// tplExploreUsers explore users page template
-	tplExploreUsers base.TplName = "explore/users"
+	tplExploreUsers templates.TplName = "explore/users"
 )
 
 var nullByte = []byte{0x00}
@@ -32,7 +32,7 @@ func isKeywordValid(keyword string) bool {
 }
 
 // RenderUserSearch render user search page
-func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, tplName base.TplName) {
+func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, tplName templates.TplName) {
 	// Sitemap index for sitemap paths
 	opts.Page = int(ctx.PathParamInt64("idx"))
 	isSitemap := ctx.PathParam("idx") != ""

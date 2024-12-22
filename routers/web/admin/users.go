@@ -18,10 +18,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
@@ -33,10 +33,10 @@ import (
 )
 
 const (
-	tplUsers    base.TplName = "admin/user/list"
-	tplUserNew  base.TplName = "admin/user/new"
-	tplUserView base.TplName = "admin/user/view"
-	tplUserEdit base.TplName = "admin/user/edit"
+	tplUsers    templates.TplName = "admin/user/list"
+	tplUserNew  templates.TplName = "admin/user/new"
+	tplUserView templates.TplName = "admin/user/view"
+	tplUserEdit templates.TplName = "admin/user/edit"
 )
 
 // UserSearchDefaultAdminSort is the default sort type for admin view

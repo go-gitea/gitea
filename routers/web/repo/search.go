@@ -8,14 +8,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
-const tplSearch base.TplName = "repo/search"
+const tplSearch templates.TplName = "repo/search"
 
 func indexSettingToGitGrepPathspecList() (list []string) {
 	for _, expr := range setting.Indexer.IncludePatterns {

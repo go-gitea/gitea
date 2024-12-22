@@ -9,16 +9,16 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplSettingsApplications         base.TplName = "org/settings/applications"
-	tplSettingsOAuthApplicationEdit base.TplName = "org/settings/applications_oauth2_edit"
+	tplSettingsApplications         templates.TplName = "org/settings/applications"
+	tplSettingsOAuthApplicationEdit templates.TplName = "org/settings/applications_oauth2_edit"
 )
 
 func newOAuth2CommonHandlers(org *context.Organization) *user_setting.OAuth2CommonHandlers {
