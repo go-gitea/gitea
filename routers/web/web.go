@@ -463,7 +463,7 @@ func registerRoutes(m *web.Router) {
 			m.Combo("/{runnerid}").Get(repo_setting.RunnersEdit).
 				Post(web.Bind(forms.EditRunnerForm{}), repo_setting.RunnersEditPost)
 			m.Post("/{runnerid}/delete", repo_setting.RunnerDeletePost)
-			m.Get("/reset_registration_token", repo_setting.ResetRunnerRegistrationToken)
+			m.Post("/reset_registration_token", repo_setting.ResetRunnerRegistrationToken)
 		})
 	}
 
