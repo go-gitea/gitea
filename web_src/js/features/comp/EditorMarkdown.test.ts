@@ -20,8 +20,9 @@ test('EditorMarkdown', () => {
   testInput('1. ', '');
 
   testInput('- x', '- x\n- ');
+  testInput('1. foo', '1. foo\n2. ');
   testInput('- [ ]', '- [ ]\n- ');
   testInput('- [ ] foo', '- [ ] foo\n- [ ] ');
   testInput('* [x] foo', '* [x] foo\n* [ ] ');
-  testInput('1. [x] foo', '1. [x] foo\n1. [ ] ');
+  testInput('1. [x] foo', '1. [x] foo\n2. [ ] ');
 });
