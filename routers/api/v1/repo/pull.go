@@ -451,6 +451,12 @@ func CreatePullRequest(ctx *context.APIContext) {
 		}
 	}
 
+	ci.CompareInfo, err = ci.HeadGitRepo.GetCompareInfo(repo_model.RepoPath(baseRepo.Owner.Name, baseRepo.Name), ci.BaseOriRef, ci.HeadOriRef, false, false)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetCompareInfo", err)
+		return
+	}
+
 	// Check if another PR exists with the same targets
 	existingPr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, baseRepo.ID, ci.HeadOriRef, ci.BaseOriRef, issues_model.PullRequestFlowGithub)
 	if err != nil {

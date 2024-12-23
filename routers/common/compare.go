@@ -26,14 +26,6 @@ type CompareRouter struct {
 	DotTimes      int // 2(..) or 3(...)
 }
 
-func (cr *CompareRouter) IsSameRepo() bool {
-	return cr.HeadOwnerName == "" && cr.HeadRepoName == ""
-}
-
-func (cr *CompareRouter) IsSameRef() bool {
-	return cr.IsSameRepo() && cr.BaseOriRef == cr.HeadOriRef
-}
-
 func (cr *CompareRouter) DirectComparison() bool {
 	return cr.DotTimes == 2
 }
@@ -98,6 +90,7 @@ func parseCompareRouter(router string) (*CompareRouter, error) {
 // CompareInfo represents the collected results from ParseCompareInfo
 type CompareInfo struct {
 	*CompareRouter
+	BaseRepo     *repo_model.Repository
 	HeadUser     *user_model.User
 	HeadRepo     *repo_model.Repository
 	HeadGitRepo  *git.Repository
@@ -107,10 +100,18 @@ type CompareInfo struct {
 	IsHeadCommit bool
 }
 
+func (cr *CompareInfo) IsSameRepo() bool {
+	return cr.HeadRepo.ID == cr.BaseRepo.ID
+}
+
+func (cr *CompareInfo) IsSameRef() bool {
+	return cr.IsSameRepo() && cr.BaseOriRef == cr.HeadOriRef
+}
+
 // display pull related information or not
 func (ci *CompareInfo) IsPull() bool {
 	return ci.CaretTimes == 0 && !ci.DirectComparison() &&
-		ci.BaseFullRef.IsBranch() && ci.HeadFullRef.IsBranch()
+		ci.BaseFullRef.IsBranch() && (ci.HeadRepo == nil || ci.HeadFullRef.IsBranch())
 }
 
 func (ci *CompareInfo) Close() {
@@ -232,7 +233,7 @@ func getRootRepo(ctx context.Context, repo *repo_model.Repository) (*repo_model.
 // base<-head: master...head:feature
 // same repo: master...feature
 func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *repo_model.Repository, baseGitRepo *git.Repository) (*CompareInfo, error) {
-	ci := &CompareInfo{}
+	ci := &CompareInfo{BaseRepo: baseRepo}
 	var err error
 
 	if pathParam == "" {
@@ -247,7 +248,8 @@ func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *rep
 		ci.BaseOriRef = baseRepo.DefaultBranch
 	}
 
-	if ci.IsSameRepo() {
+	if (ci.HeadOwnerName == "" && ci.HeadRepoName == "") ||
+		(ci.HeadOwnerName == baseRepo.Owner.Name && ci.HeadRepoName == baseRepo.Name) {
 		ci.HeadOwnerName = baseRepo.Owner.Name
 		ci.HeadRepoName = baseRepo.Name
 		ci.HeadUser = baseRepo.Owner
@@ -277,14 +279,16 @@ func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *rep
 				return nil, err
 			}
 		}
-		ci.HeadRepo.Owner = ci.HeadUser
-		ci.HeadGitRepo, err = gitrepo.OpenRepository(ctx, ci.HeadRepo)
-		if err != nil {
-			return nil, err
-		}
-		ci.close = func() {
-			if ci.HeadGitRepo != nil {
-				ci.HeadGitRepo.Close()
+		if ci.HeadRepo != nil {
+			ci.HeadRepo.Owner = ci.HeadUser
+			ci.HeadGitRepo, err = gitrepo.OpenRepository(ctx, ci.HeadRepo)
+			if err != nil {
+				return nil, err
+			}
+			ci.close = func() {
+				if ci.HeadGitRepo != nil {
+					ci.HeadGitRepo.Close()
+				}
 			}
 		}
 	}
@@ -295,10 +299,12 @@ func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *rep
 		return nil, err
 	}
 
-	ci.HeadFullRef, ci.IsHeadCommit, err = detectFullRef(ctx, ci.HeadRepo.ID, ci.HeadGitRepo, ci.HeadOriRef)
-	if err != nil {
-		ci.Close()
-		return nil, err
+	if ci.HeadRepo != nil {
+		ci.HeadFullRef, ci.IsHeadCommit, err = detectFullRef(ctx, ci.HeadRepo.ID, ci.HeadGitRepo, ci.HeadOriRef)
+		if err != nil {
+			ci.Close()
+			return nil, err
+		}
 	}
 	return ci, nil
 }
