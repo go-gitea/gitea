@@ -45,6 +45,13 @@ func TestInitToken(t *testing.T) {
 		require.NoError(t, err)
 		token := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunnerToken{Token: tokenValue})
 		assert.True(t, token.IsActive)
+
+		// init with the same token again, should not create a new token
+		err = initGlobalRunnerToken(db.DefaultContext)
+		require.NoError(t, err)
+		token2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunnerToken{Token: tokenValue})
+		assert.Equal(t, token.ID, token2.ID)
+		assert.True(t, token.IsActive)
 	})
 
 	t.Run("EnvFileToken", func(t *testing.T) {

@@ -45,8 +45,10 @@ func initGlobalRunnerToken(ctx context.Context) error {
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return fmt.Errorf("unable to check existing token: %w", err)
 	}
-	if existing != nil && !existing.IsActive {
-		log.Warn("The token defined by GITEA_RUNNER_REGISTRATION_TOKEN is already invalidated, please use the latest one from web UI")
+	if existing != nil {
+		if !existing.IsActive {
+			log.Warn("The token defined by GITEA_RUNNER_REGISTRATION_TOKEN is already invalidated, please use the latest one from web UI")
+		}
 		return nil
 	}
 	_, err = actions_model.NewRunnerTokenWithValue(ctx, 0, 0, token)
