@@ -11,8 +11,8 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	tplSettingsKeys base.TplName = "user/settings/keys"
+	tplSettingsKeys templates.TplName = "user/settings/keys"
 )
 
 // Keys render user's SSH/GPG public keys page

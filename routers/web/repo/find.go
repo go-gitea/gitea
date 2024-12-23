@@ -6,13 +6,13 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplFindFiles base.TplName = "repo/find/files"
+	tplFindFiles templates.TplName = "repo/find/files"
 )
 
 // FindFiles render the page to find repository files
