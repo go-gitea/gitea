@@ -18,15 +18,15 @@
 						<input type="hidden" name="template-file" value="{{.TemplateFile}}">
 						{{range .Fields}}
 							{{if eq .Type "input"}}
-								{{template "repo/issue/fields/input" dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/input" dict "item" .}}
 							{{else if eq .Type "markdown"}}
-								{{template "repo/issue/fields/markdown" dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/markdown" dict "item" .}}
 							{{else if eq .Type "textarea"}}
-								{{template "repo/issue/fields/textarea" dict "Context" $.Context "item" . "root" $}}
+								{{template "repo/issue/fields/textarea" dict "item" . "root" $}}
 							{{else if eq .Type "dropdown"}}
-								{{template "repo/issue/fields/dropdown" dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/dropdown" dict "item" .}}
 							{{else if eq .Type "checkboxes"}}
-								{{template "repo/issue/fields/checkboxes" dict "Context" $.Context "item" .}}
+								{{template "repo/issue/fields/checkboxes" dict "item" .}}
 							{{end}}
 						{{end}}
 					{{else}}
@@ -47,142 +47,25 @@
 	</div>
 
 	<div class="issue-content-right ui segment">
-		{{template "repo/issue/branch_selector_field" .}}
+		{{template "repo/issue/branch_selector_field" $}}{{/* TODO: RemoveIssueRef: template "repo/issue/branch_selector_field" $*/}}
 
-		<input id="label_ids" name="label_ids" type="hidden" value="{{.label_ids}}">
-		{{template "repo/issue/labels/labels_selector_field" .}}
-		{{template "repo/issue/labels/labels_sidebar" dict "root" $}}
-
-		<div class="divider"></div>
-
-		<input id="milestone_id" name="milestone_id" type="hidden" value="{{.milestone_id}}">
-		<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-milestone dropdown">
-			<span class="text flex-text-block">
-				<strong>{{ctx.Locale.Tr "repo.issues.new.milestone"}}</strong>
-				{{if .HasIssuesOrPullsWritePermission}}
-					{{svg "octicon-gear" 16 "tw-ml-1"}}
-				{{end}}
-			</span>
-			<div class="menu">
-				{{template "repo/issue/milestone/select_menu" .}}
-			</div>
-		</div>
-		<div class="ui select-milestone list">
-			<span class="no-select item {{if .Milestone}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_milestone"}}</span>
-			<div class="selected">
-				{{if .Milestone}}
-					<a class="item muted sidebar-item-link" href="{{.RepoLink}}/issues?milestone={{.Milestone.ID}}">
-						{{svg "octicon-milestone" 18 "tw-mr-2"}}
-						{{.Milestone.Name}}
-					</a>
-				{{end}}
-			</div>
-		</div>
-
-		{{if .IsProjectsEnabled}}
-		<div class="divider"></div>
-
-		<input id="project_id" name="project_id" type="hidden" value="{{.project_id}}">
-		<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-project dropdown">
-			<span class="text flex-text-block">
-				<strong>{{ctx.Locale.Tr "repo.issues.new.projects"}}</strong>
-				{{if .HasIssuesOrPullsWritePermission}}
-					{{svg "octicon-gear" 16 "tw-ml-1"}}
-				{{end}}
-			</span>
-			<div class="menu">
-				{{if or .OpenProjects .ClosedProjects}}
-				<div class="ui icon search input">
-					<i class="icon">{{svg "octicon-search" 16}}</i>
-					<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_projects"}}">
-				</div>
-				{{end}}
-				<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
-				{{if and (not .OpenProjects) (not .ClosedProjects)}}
-					<div class="disabled item">
-						{{ctx.Locale.Tr "repo.issues.new.no_items"}}
-					</div>
-				{{else}}
-					{{if .OpenProjects}}
-						<div class="divider"></div>
-						<div class="header">
-							{{ctx.Locale.Tr "repo.issues.new.open_projects"}}
-						</div>
-						{{range .OpenProjects}}
-							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
-								{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
-							</a>
-						{{end}}
-					{{end}}
-					{{if .ClosedProjects}}
-						<div class="divider"></div>
-						<div class="header">
-							{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}
-						</div>
-						{{range .ClosedProjects}}
-							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
-								{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
-							</a>
-						{{end}}
-					{{end}}
-				{{end}}
-			</div>
-		</div>
-		<div class="ui select-project list">
-			<span class="no-select item {{if .Project}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
-			<div class="selected">
-				{{if .Project}}
-					<a class="item muted sidebar-item-link" href="{{.Project.Link ctx}}">
-						{{svg .Project.IconName 18 "tw-mr-2"}}{{.Project.Title}}
-					</a>
-				{{end}}
-			</div>
-		</div>
+		{{if .PageIsComparePull}}
+			{{template "repo/issue/sidebar/reviewer_list" $.IssuePageMetaData}}
+			<div class="divider"></div>
 		{{end}}
-		<div class="divider"></div>
-			<input id="assignee_ids" name="assignee_ids" type="hidden" value="{{.assignee_ids}}">
-			<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-assignees dropdown">
-				<span class="text flex-text-block">
-					<strong>{{ctx.Locale.Tr "repo.issues.new.assignees"}}</strong>
-					{{if .HasIssuesOrPullsWritePermission}}
-						{{svg "octicon-gear" 16 "tw-ml-1"}}
-					{{end}}
-				</span>
-				<div class="filter menu" data-id="#assignee_ids">
-					<div class="ui icon search input">
-						<i class="icon">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignees"}}">
-					</div>
-					<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
-					{{range .Assignees}}
-						<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
-							<span class="octicon-check tw-invisible">{{svg "octicon-check"}}</span>
-							<span class="text">
-								{{ctx.AvatarUtils.Avatar . 28 "tw-mr-2"}}{{template "repo/search_name" .}}
-							</span>
-						</a>
-					{{end}}
-				</div>
-			</div>
-			<div class="ui assignees list">
-				<span class="no-select item {{if .HasSelectedLabel}}tw-hidden{{end}}">
-					{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}
-				</span>
-				<div class="selected">
-				{{range .Assignees}}
-					<a class="item tw-p-1 muted tw-hidden" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
-						{{ctx.AvatarUtils.Avatar . 28 "tw-mr-2 tw-align-middle"}}{{.GetDisplayName}}
-					</a>
-				{{end}}
-				</div>
-			</div>
+
+		{{template "repo/issue/sidebar/label_list" $.IssuePageMetaData}}
+		{{template "repo/issue/sidebar/milestone_list" $.IssuePageMetaData}}
+		{{if .IsProjectsEnabled}}
+			{{template "repo/issue/sidebar/project_list" $.IssuePageMetaData}}
+		{{end}}
+		{{template "repo/issue/sidebar/assignee_list" $.IssuePageMetaData}}
+
 		{{if and .PageIsComparePull (not (eq .HeadRepo.FullName .BaseCompareRepo.FullName)) .CanWriteToHeadRepo}}
 			<div class="divider"></div>
-			<div class="inline field">
-				<div class="ui checkbox">
-					<label data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
-					<input name="allow_maintainer_edit" type="checkbox" {{if .AllowMaintainerEdit}}checked{{end}}>
-				</div>
+			<div class="ui checkbox">
+				<label data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
+				<input name="allow_maintainer_edit" type="checkbox" {{if .AllowMaintainerEdit}}checked{{end}}>
 			</div>
 		{{end}}
 	</div>

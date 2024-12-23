@@ -12,12 +12,10 @@
 				{{ctx.Locale.Tr "repo.settings.hooks"}}
 			</a>
 		{{end}}
-		{{if .Repository.UnitEnabled $.Context ctx.Consts.RepoUnitTypeCode}}
-			{{if not .Repository.IsEmpty}}
-				<a class="{{if .PageIsSettingsBranches}}active {{end}}item" href="{{.RepoLink}}/settings/branches">
-					{{ctx.Locale.Tr "repo.settings.branches"}}
-				</a>
-			{{end}}
+		{{if .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeCode}}
+			<a class="{{if .PageIsSettingsBranches}}active {{end}}item" href="{{.RepoLink}}/settings/branches">
+				{{ctx.Locale.Tr "repo.settings.branches"}}
+			</a>
 			<a class="{{if .PageIsSettingsTags}}active {{end}}item" href="{{.RepoLink}}/settings/tags">
 				{{ctx.Locale.Tr "repo.settings.tags"}}
 			</a>
@@ -35,7 +33,7 @@
 				</a>
 			{{end}}
 		{{end}}
-		{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
+		{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
 		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>
 			<div class="menu">

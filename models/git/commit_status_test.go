@@ -4,9 +4,11 @@
 package git_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -32,7 +34,7 @@ func TestGetCommitStatuses(t *testing.T) {
 		SHA:         sha1,
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, int(maxResults), 5)
+	assert.Equal(t, 5, int(maxResults))
 	assert.Len(t, statuses, 5)
 
 	assert.Equal(t, "ci/awesomeness", statuses[0].Context)
@@ -61,7 +63,7 @@ func TestGetCommitStatuses(t *testing.T) {
 		SHA:         sha1,
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, int(maxResults), 5)
+	assert.Equal(t, 5, int(maxResults))
 	assert.Empty(t, statuses)
 }
 
@@ -230,4 +232,27 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 	if assert.Len(t, contexts, 1) {
 		assert.Equal(t, "compliance/lint-backend", contexts[0])
 	}
+}
+
+func TestCommitStatusesHideActionsURL(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 791, RepoID: repo.ID})
+	assert.NoError(t, run.LoadAttributes(db.DefaultContext))
+
+	statuses := []*git_model.CommitStatus{
+		{
+			RepoID:    repo.ID,
+			TargetURL: fmt.Sprintf("%s/jobs/%d", run.Link(), run.Index),
+		},
+		{
+			RepoID:    repo.ID,
+			TargetURL: "https://mycicd.org/1",
+		},
+	}
+
+	git_model.CommitStatusesHideActionsURL(db.DefaultContext, statuses)
+	assert.Empty(t, statuses[0].TargetURL)
+	assert.Equal(t, "https://mycicd.org/1", statuses[1].TargetURL)
 }

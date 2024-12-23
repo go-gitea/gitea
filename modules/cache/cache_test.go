@@ -34,6 +34,18 @@ func TestNewContext(t *testing.T) {
 	assert.Nil(t, con)
 }
 
+func TestTest(t *testing.T) {
+	defaultCache = nil
+	_, err := Test()
+	assert.Error(t, err)
+
+	createTestCache()
+	elapsed, err := Test()
+	assert.NoError(t, err)
+	// mem cache should take from 300ns up to 1ms on modern hardware ...
+	assert.Less(t, elapsed, time.Millisecond)
+}
+
 func TestGetCache(t *testing.T) {
 	createTestCache()
 

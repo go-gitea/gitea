@@ -40,10 +40,10 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 	assert.NoError(t, err)
 
 	// Setup ssh wrapper
-	os.Setenv("GIT_SSH", path.Join(tmpDir, "ssh"))
-	os.Setenv("GIT_SSH_COMMAND",
+	t.Setenv("GIT_SSH", path.Join(tmpDir, "ssh"))
+	t.Setenv("GIT_SSH_COMMAND",
 		"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i \""+keyFile+"\"")
-	os.Setenv("GIT_SSH_VARIANT", "ssh")
+	t.Setenv("GIT_SSH_VARIANT", "ssh")
 
 	callback(keyFile)
 }
@@ -157,6 +157,24 @@ func doGitPushTestRepositoryFail(dstPath string, args ...string) func(*testing.T
 	return func(t *testing.T) {
 		_, _, err := git.NewCommand(git.DefaultContext, "push").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.Error(t, err)
+	}
+}
+
+func doGitAddSomeCommits(dstPath, branch string) func(*testing.T) {
+	return func(t *testing.T) {
+		doGitCheckoutBranch(dstPath, branch)(t)
+
+		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, fmt.Sprintf("file-%s.txt", branch)), []byte(fmt.Sprintf("file %s", branch)), 0o644))
+		assert.NoError(t, git.AddChanges(dstPath, true))
+		signature := git.Signature{
+			Email: "test@test.test",
+			Name:  "test",
+		}
+		assert.NoError(t, git.CommitChanges(dstPath, git.CommitChangesOptions{
+			Committer: &signature,
+			Author:    &signature,
+			Message:   fmt.Sprintf("update %s", branch),
+		}))
 	}
 }
 

@@ -1,40 +1,42 @@
-<script>
-import {loadMoreFiles} from '../features/repo-diff.js';
-import {diffTreeStore} from '../modules/stores.js';
+<script lang="ts" setup>
+import {onMounted, onUnmounted} from 'vue';
+import {loadMoreFiles} from '../features/repo-diff.ts';
+import {diffTreeStore} from '../modules/stores.ts';
 
-export default {
-  data: () => {
-    return {store: diffTreeStore()};
-  },
-  mounted() {
-    document.getElementById('show-file-list-btn').addEventListener('click', this.toggleFileList);
-  },
-  unmounted() {
-    document.getElementById('show-file-list-btn').removeEventListener('click', this.toggleFileList);
-  },
-  methods: {
-    toggleFileList() {
-      this.store.fileListIsVisible = !this.store.fileListIsVisible;
-    },
-    diffTypeToString(pType) {
-      const diffTypes = {
-        1: 'add',
-        2: 'modify',
-        3: 'del',
-        4: 'rename',
-        5: 'copy',
-      };
-      return diffTypes[pType];
-    },
-    diffStatsWidth(adds, dels) {
-      return `${adds / (adds + dels) * 100}%`;
-    },
-    loadMoreData() {
-      loadMoreFiles(this.store.linkLoadMore);
-    },
-  },
-};
+const store = diffTreeStore();
+
+onMounted(() => {
+  document.querySelector('#show-file-list-btn').addEventListener('click', toggleFileList);
+});
+
+onUnmounted(() => {
+  document.querySelector('#show-file-list-btn').removeEventListener('click', toggleFileList);
+});
+
+function toggleFileList() {
+  store.fileListIsVisible = !store.fileListIsVisible;
+}
+
+function diffTypeToString(pType) {
+  const diffTypes = {
+    1: 'add',
+    2: 'modify',
+    3: 'del',
+    4: 'rename',
+    5: 'copy',
+  };
+  return diffTypes[pType];
+}
+
+function diffStatsWidth(adds, dels) {
+  return `${adds / (adds + dels) * 100}%`;
+}
+
+function loadMoreData() {
+  loadMoreFiles(store.linkLoadMore);
+}
 </script>
+
 <template>
   <ol class="diff-stats tw-m-0" ref="root" v-if="store.fileListIsVisible">
     <li v-for="file in store.files" :key="file.NameHash">

@@ -13,7 +13,7 @@
 		</div>
 		<div class="content tw-flex-1">
 			<div class="header">{{.Process.Description}}</div>
-			<div class="description">{{if ne .Process.Type "none"}}{{TimeSince .Process.Start ctx.Locale}}{{end}}</div>
+			<div class="description">{{if ne .Process.Type "none"}}{{DateUtils.TimeSince .Process.Start}}{{end}}</div>
 		</div>
 		<div>
 			{{if or (eq .Process.Type "request") (eq .Process.Type "normal")}}

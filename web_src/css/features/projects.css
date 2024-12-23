@@ -3,17 +3,32 @@
   flex-direction: row;
   flex-wrap: nowrap;
   overflow-x: auto;
+  overflow-y: clip;
+  align-items: stretch;
   margin: 0 0.5em;
+}
+
+.project-toolbar-right .filter.menu {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 767.98px) {
+  .project-toolbar-right .dropdown .menu {
+    left: auto !important;
+    right: auto !important;
+  }
 }
 
 .project-column {
   background-color: var(--color-project-column-bg) !important;
   border: 1px solid var(--color-secondary) !important;
+  border-radius: var(--border-radius);
   margin: 0 0.5rem !important;
   padding: 0.5rem !important;
   width: 320px;
-  height: calc(100vh - 450px);
-  min-height: 60vh;
+  height: initial;
+  min-height: max(calc(100vh - 400px), 300px);
   flex: 0 0 auto;
   overflow: visible;
   display: flex;
@@ -36,10 +51,6 @@
   color: inherit;
 }
 
-.project-column-title-label {
-  flex: 1;
-}
-
 .project-column > .cards {
   flex: 1;
   display: flex;
@@ -48,7 +59,7 @@
   padding: 0 !important;
   flex-wrap: nowrap !important;
   flex-direction: column;
-  overflow-x: auto;
+  overflow-x: clip;
   gap: .25rem;
 }
 
@@ -69,7 +80,9 @@
 .card-attachment-images {
   display: inline-block;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: scroll;
+  cursor: default;
+  scroll-snap-type: x mandatory;
   text-align: center;
 }
 
@@ -77,7 +90,10 @@
   display: inline-block;
   max-height: 50px;
   border-radius: var(--border-radius);
+  text-align: left;
+  scroll-snap-align: center;
   margin-right: 2px;
+  aspect-ratio: 1;
 }
 
 .card-attachment-images img:only-child {

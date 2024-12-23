@@ -8,6 +8,8 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"mime"
+	"net/mail"
 	"net/url"
 	"path/filepath"
 	"regexp"
@@ -46,19 +48,19 @@ const (
 	UserTypeIndividual UserType = iota // Historic reason to make it starts at 0.
 
 	// UserTypeOrganization defines an organization
-	UserTypeOrganization
+	UserTypeOrganization // 1
 
 	// UserTypeUserReserved reserves a (non-existing) user, i.e. to prevent a spam user from re-registering after being deleted, or to reserve the name until the user is actually created later on
-	UserTypeUserReserved
+	UserTypeUserReserved // 2
 
 	// UserTypeOrganizationReserved reserves a (non-existing) organization, to be used in combination with UserTypeUserReserved
-	UserTypeOrganizationReserved
+	UserTypeOrganizationReserved // 3
 
 	// UserTypeBot defines a bot user
-	UserTypeBot
+	UserTypeBot // 4
 
 	// UserTypeRemoteUser defines a remote user for federated users
-	UserTypeRemoteUser
+	UserTypeRemoteUser // 5
 )
 
 const (
@@ -146,6 +148,14 @@ type User struct {
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
+}
+
+// Meta defines the meta information of a user, to be stored in the K/V table
+type Meta struct {
+	// Store the initial registration of the user, to aid in spam prevention
+	// Ensure that one IP isn't creating many accounts (following mediawiki approach)
+	InitialIP        string
+	InitialUserAgent string
 }
 
 func init() {
@@ -320,7 +330,7 @@ func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListO
 		And("`user`.type=?", UserTypeIndividual).
 		And(isUserVisibleToViewerCond(viewer))
 
-	if listOptions.Page != 0 {
+	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
@@ -342,7 +352,7 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 		And("`user`.type IN (?, ?)", UserTypeIndividual, UserTypeOrganization).
 		And(isUserVisibleToViewerCond(viewer))
 
-	if listOptions.Page != 0 {
+	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
@@ -398,6 +408,10 @@ func (u *User) IsIndividual() bool {
 	return u.Type == UserTypeIndividual
 }
 
+func (u *User) IsUser() bool {
+	return u.Type == UserTypeIndividual || u.Type == UserTypeBot
+}
+
 // IsBot returns whether or not the user is of type bot
 func (u *User) IsBot() bool {
 	return u.Type == UserTypeBot
@@ -411,6 +425,34 @@ func (u *User) DisplayName() string {
 		return trimmed
 	}
 	return u.Name
+}
+
+var emailToReplacer = strings.NewReplacer(
+	"\n", "",
+	"\r", "",
+	"<", "",
+	">", "",
+	",", "",
+	":", "",
+	";", "",
+)
+
+// EmailTo returns a string suitable to be put into a e-mail `To:` header.
+func (u *User) EmailTo() string {
+	sanitizedDisplayName := emailToReplacer.Replace(u.DisplayName())
+
+	// should be an edge case but nice to have
+	if sanitizedDisplayName == u.Email {
+		return u.Email
+	}
+
+	to := fmt.Sprintf("%s <%s>", sanitizedDisplayName, u.Email)
+	add, err := mail.ParseAddress(to)
+	if err != nil {
+		return u.Email
+	}
+
+	return fmt.Sprintf("%s <%s>", mime.QEncoding.Encode("utf-8", add.Name), add.Address)
 }
 
 // GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
@@ -523,42 +565,43 @@ var (
 		".",
 		"..",
 		".well-known",
-		"admin",
-		"api",
-		"assets",
-		"attachments",
-		"avatar",
-		"avatars",
-		"captcha",
-		"commits",
-		"debug",
-		"error",
-		"explore",
-		"favicon.ico",
-		"ghost",
-		"issues",
-		"login",
-		"manifest.json",
-		"metrics",
-		"milestones",
-		"new",
-		"notifications",
-		"org",
-		"pulls",
-		"raw",
-		"repo",
+
+		"api",     // gitea api
+		"metrics", // prometheus metrics api
+		"v2",      // container registry api
+
+		"assets",      // static asset files
+		"attachments", // issue attachments
+
+		"avatar",  // avatar by email hash
+		"avatars", // user avatars by file name
 		"repo-avatars",
-		"robots.txt",
-		"search",
-		"serviceworker.js",
-		"ssh_info",
+
+		"captcha",
+		"login", // oauth2 login
+		"org",   // org create/manage, or "/org/{org}", BUT if an org is named as "invite" then it goes wrong
+		"repo",  // repo create/migrate, etc
+		"user",  // user login/activate/settings, etc
+
+		"explore",
+		"issues",
+		"pulls",
+		"milestones",
+		"notifications",
+
+		"favicon.ico",
+		"manifest.json", // web app manifests
+		"robots.txt",    // search engine robots
+		"sitemap.xml",   // search engine sitemap
+		"ssh_info",      // agit info
 		"swagger.v1.json",
-		"user",
-		"v2",
-		"gitea-actions",
+
+		"ghost",         // reserved name for deleted users (id: -1)
+		"gitea-actions", // gitea builtin user (id: -2)
 	}
 
-	// DON'T ADD ANY NEW STUFF, WE SOLVE THIS WITH `/user/{obj}` PATHS!
+	// These names are reserved for user accounts: user's keys, user's rss feed, user's avatar, etc.
+	// DO NOT add any new stuff! The paths with these names are processed by `/{username}` handler (UsernameSubRoute) manually.
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom", "*.png"}
 )
 
@@ -585,17 +628,17 @@ type CreateUserOverwriteOptions struct {
 }
 
 // CreateUser creates record of a new user.
-func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
-	return createUser(ctx, u, false, overwriteDefault...)
+func CreateUser(ctx context.Context, u *User, meta *Meta, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, meta, false, overwriteDefault...)
 }
 
 // AdminCreateUser is used by admins to manually create users
-func AdminCreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
-	return createUser(ctx, u, true, overwriteDefault...)
+func AdminCreateUser(ctx context.Context, u *User, meta *Meta, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+	return createUser(ctx, u, meta, true, overwriteDefault...)
 }
 
 // createUser creates record of a new user.
-func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
 	}
@@ -715,6 +758,22 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 		return err
 	}
 
+	if setting.RecordUserSignupMetadata {
+		// insert initial IP and UserAgent
+		if err = SetUserSetting(ctx, u.ID, SignupIP, meta.InitialIP); err != nil {
+			return err
+		}
+
+		// trim user agent string to a reasonable length, if necessary
+		userAgent := strings.TrimSpace(meta.InitialUserAgent)
+		if len(userAgent) > 255 {
+			userAgent = userAgent[:255]
+		}
+		if err = SetUserSetting(ctx, u.ID, SignupUserAgent, userAgent); err != nil {
+			return err
+		}
+	}
+
 	// insert email address
 	if err := db.Insert(ctx, &EmailAddress{
 		UID:         u.ID,
@@ -727,6 +786,21 @@ func createUser(ctx context.Context, u *User, createdByAdmin bool, overwriteDefa
 	}
 
 	return committer.Commit()
+}
+
+// ErrDeleteLastAdminUser represents a "DeleteLastAdminUser" kind of error.
+type ErrDeleteLastAdminUser struct {
+	UID int64
+}
+
+// IsErrDeleteLastAdminUser checks if an error is a ErrDeleteLastAdminUser.
+func IsErrDeleteLastAdminUser(err error) bool {
+	_, ok := err.(ErrDeleteLastAdminUser)
+	return ok
+}
+
+func (err ErrDeleteLastAdminUser) Error() string {
+	return fmt.Sprintf("can not delete the last admin user [uid: %d]", err.UID)
 }
 
 // IsLastAdminUser check whether user is the last admin
@@ -825,7 +899,13 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 
 // GetInactiveUsers gets all inactive users
 func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, error) {
-	var cond builder.Cond = builder.Eq{"is_active": false}
+	cond := builder.And(
+		builder.Eq{"is_active": false},
+		builder.Or( // only plain user
+			builder.Eq{"`type`": UserTypeIndividual},
+			builder.Eq{"`type`": UserTypeUserReserved},
+		),
+	)
 
 	if olderThan > 0 {
 		cond = cond.And(builder.Lt{"created_unix": time.Now().Add(-olderThan).Unix()})
@@ -856,6 +936,10 @@ func GetUserByID(ctx context.Context, id int64) (*User, error) {
 
 // GetUserByIDs returns the user objects by given IDs if exists.
 func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
 	users := make([]*User, 0, len(ids))
 	err := db.GetEngine(ctx).In("id", ids).
 		Table("user").
@@ -1229,12 +1313,14 @@ func GetOrderByName() string {
 	return "name"
 }
 
-// IsFeatureDisabledWithLoginType checks if a user feature is disabled, taking into account the login type of the
+// IsFeatureDisabledWithLoginType checks if a user features are disabled, taking into account the login type of the
 // user if applicable
-func IsFeatureDisabledWithLoginType(user *User, feature string) bool {
+func IsFeatureDisabledWithLoginType(user *User, features ...string) bool {
 	// NOTE: in the long run it may be better to check the ExternalLoginUser table rather than user.LoginType
-	return (user != nil && user.LoginType > auth.Plain && setting.Admin.ExternalUserDisableFeatures.Contains(feature)) ||
-		setting.Admin.UserDisabledFeatures.Contains(feature)
+	if user != nil && user.LoginType > auth.Plain {
+		return setting.Admin.ExternalUserDisableFeatures.Contains(features...)
+	}
+	return setting.Admin.UserDisabledFeatures.Contains(features...)
 }
 
 // DisabledFeaturesWithLoginType returns the set of user features disabled, taking into account the login type

@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unittest"
@@ -33,6 +34,41 @@ func testGitPush(t *testing.T, u *url.URL) {
 			}
 			pushed = append(pushed, "master")
 			doGitPushTestRepository(gitPath, "origin", "--all")(t)
+			return pushed, deleted
+		})
+	})
+
+	t.Run("Push branches exists", func(t *testing.T) {
+		runTestGitPush(t, u, func(t *testing.T, gitPath string) (pushed, deleted []string) {
+			for i := 0; i < 10; i++ {
+				branchName := fmt.Sprintf("branch-%d", i)
+				if i < 5 {
+					pushed = append(pushed, branchName)
+				}
+				doGitCreateBranch(gitPath, branchName)(t)
+			}
+			// only push master and the first 5 branches
+			pushed = append(pushed, "master")
+			args := append([]string{"origin"}, pushed...)
+			doGitPushTestRepository(gitPath, args...)(t)
+
+			pushed = pushed[:0]
+			// do some changes for the first 5 branches created above
+			for i := 0; i < 5; i++ {
+				branchName := fmt.Sprintf("branch-%d", i)
+				pushed = append(pushed, branchName)
+
+				doGitAddSomeCommits(gitPath, branchName)(t)
+			}
+
+			for i := 5; i < 10; i++ {
+				pushed = append(pushed, fmt.Sprintf("branch-%d", i))
+			}
+			pushed = append(pushed, "master")
+
+			// push all, so that master are not chagned
+			doGitPushTestRepository(gitPath, "origin", "--all")(t)
+
 			return pushed, deleted
 		})
 	})
@@ -156,4 +192,24 @@ func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gi
 	}
 
 	require.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, repo.ID))
+}
+
+func TestPushPullRefs(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		u.Path = baseAPITestContext.GitPath()
+		u.User = url.UserPassword("user2", userPassword)
+
+		dstPath := t.TempDir()
+		doGitClone(dstPath, u)(t)
+
+		cmd := git.NewCommand(git.DefaultContext, "push", "--delete", "origin", "refs/pull/2/head")
+		stdout, stderr, err := cmd.RunStdString(&git.RunOpts{
+			Dir: dstPath,
+		})
+		assert.Error(t, err)
+		assert.Empty(t, stdout)
+		assert.NotContains(t, stderr, "[deleted]", "stderr: %s", stderr)
+	})
 }

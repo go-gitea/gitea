@@ -26,7 +26,7 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 7320
+  size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
 
@@ -1751,6 +1751,37 @@
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 1
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
+  is_mirror: false
+  status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
+
+-
+  id: 62
+  owner_id: 42
+  owner_name: org42
+  lower_name: search-by-path
+  name: search-by-path
+  default_branch: master
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
   num_closed_pulls: 0
   num_milestones: 0
   num_closed_milestones: 0

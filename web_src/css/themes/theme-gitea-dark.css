@@ -203,6 +203,7 @@
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #e8f3ff28;
   --color-hover: #e8f3ff19;
+  --color-hover-opaque: #21252a; /* TODO: color-mix(in srgb, var(--color-body), var(--color-hover)); */
   --color-active: #e8f3ff24;
   --color-menu: #171a1e;
   --color-card: #171a1e;
@@ -212,6 +213,7 @@
   --color-button: #171a1e;
   --color-code-bg: #14171a;
   --color-shadow: #00001758;
+  --color-shadow-opaque: #000017;
   --color-secondary-bg: #2a3137;
   --color-expand-button: #2f363d;
   --color-placeholder-text: var(--color-text-light-3);

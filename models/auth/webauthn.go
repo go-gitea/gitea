@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 
@@ -89,14 +90,33 @@ func (cred *WebAuthnCredential) AfterLoad() {
 // WebAuthnCredentialList is a list of *WebAuthnCredential
 type WebAuthnCredentialList []*WebAuthnCredential
 
+// newCredentialFlagsFromAuthenticatorFlags is copied from https://github.com/go-webauthn/webauthn/pull/337
+// to convert protocol.AuthenticatorFlags to webauthn.CredentialFlags
+func newCredentialFlagsFromAuthenticatorFlags(flags protocol.AuthenticatorFlags) webauthn.CredentialFlags {
+	return webauthn.CredentialFlags{
+		UserPresent:    flags.HasUserPresent(),
+		UserVerified:   flags.HasUserVerified(),
+		BackupEligible: flags.HasBackupEligible(),
+		BackupState:    flags.HasBackupState(),
+	}
+}
+
 // ToCredentials will convert all WebAuthnCredentials to webauthn.Credentials
-func (list WebAuthnCredentialList) ToCredentials() []webauthn.Credential {
+func (list WebAuthnCredentialList) ToCredentials(defaultAuthFlags ...protocol.AuthenticatorFlags) []webauthn.Credential {
+	// TODO: at the moment, Gitea doesn't store or check the flags
+	// so we need to use the default flags from the authenticator to make the login validation pass
+	// In the future, we should:
+	// 1. store the flags when registering the credential
+	// 2. provide the stored flags when converting the credentials (for login)
+	// 3. for old users, still use this fallback to the default flags
+	defAuthFlags := util.OptionalArg(defaultAuthFlags)
 	creds := make([]webauthn.Credential, 0, len(list))
 	for _, cred := range list {
 		creds = append(creds, webauthn.Credential{
 			ID:              cred.CredentialID,
 			PublicKey:       cred.PublicKey,
 			AttestationType: cred.AttestationType,
+			Flags:           newCredentialFlagsFromAuthenticatorFlags(defAuthFlags),
 			Authenticator: webauthn.Authenticator{
 				AAGUID:       cred.AAGUID,
 				SignCount:    cred.SignCount,
@@ -181,7 +201,7 @@ func DeleteCredential(ctx context.Context, id, userID int64) (bool, error) {
 	return had > 0, err
 }
 
-// WebAuthnCredentials implementns the webauthn.User interface
+// WebAuthnCredentials implements the webauthn.User interface
 func WebAuthnCredentials(ctx context.Context, userID int64) ([]webauthn.Credential, error) {
 	dbCreds, err := GetWebAuthnCredentialsByUID(ctx, userID)
 	if err != nil {

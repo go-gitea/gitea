@@ -156,6 +156,25 @@ func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *user_m
 	return authorUser, committerUser
 }
 
+// ErrFilenameInvalid represents a "FilenameInvalid" kind of error.
+type ErrFilenameInvalid struct {
+	Path string
+}
+
+// IsErrFilenameInvalid checks if an error is an ErrFilenameInvalid.
+func IsErrFilenameInvalid(err error) bool {
+	_, ok := err.(ErrFilenameInvalid)
+	return ok
+}
+
+func (err ErrFilenameInvalid) Error() string {
+	return fmt.Sprintf("path contains a malformed path component [path: %s]", err.Path)
+}
+
+func (err ErrFilenameInvalid) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // CleanUploadFileName Trims a filename and returns empty string if it is a .git directory
 func CleanUploadFileName(name string) string {
 	// Rebase the filename

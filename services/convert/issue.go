@@ -31,13 +31,13 @@ func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.
 }
 
 func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
-	if err := issue.LoadLabels(ctx); err != nil {
-		return &api.Issue{}
-	}
 	if err := issue.LoadPoster(ctx); err != nil {
 		return &api.Issue{}
 	}
 	if err := issue.LoadRepo(ctx); err != nil {
+		return &api.Issue{}
+	}
+	if err := issue.LoadAttachments(ctx); err != nil {
 		return &api.Issue{}
 	}
 
@@ -63,6 +63,9 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		}
 		apiIssue.URL = issue.APIURL(ctx)
 		apiIssue.HTMLURL = issue.HTMLURL()
+		if err := issue.LoadLabels(ctx); err != nil {
+			return &api.Issue{}
+		}
 		apiIssue.Labels = ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner)
 		apiIssue.Repo = &api.RepositoryMeta{
 			ID:       issue.Repo.ID,
@@ -257,7 +260,7 @@ func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
 	if m.IsClosed {
 		apiMilestone.Closed = m.ClosedDateUnix.AsTimePtr()
 	}
-	if m.DeadlineUnix.Year() < 9999 {
+	if m.DeadlineUnix > 0 {
 		apiMilestone.Deadline = m.DeadlineUnix.AsTimePtr()
 	}
 	return apiMilestone

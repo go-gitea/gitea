@@ -9,17 +9,16 @@ import (
 	"html"
 	"html/template"
 	"net/url"
-	"slices"
 	"strings"
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/templates/eval"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
 	"code.gitea.io/gitea/services/webtheme"
@@ -31,20 +30,22 @@ func NewFuncMap() template.FuncMap {
 		"ctx": func() any { return nil }, // template context function
 
 		"DumpVar": dumpVar,
+		"NIL":     func() any { return nil },
 
 		// -----------------------------------------------------------------
 		// html/template related functions
 		"dict":         dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
-		"Iif":          Iif,
-		"Eval":         Eval,
-		"SafeHTML":     SafeHTML,
-		"HTMLFormat":   HTMLFormat,
-		"HTMLEscape":   HTMLEscape,
-		"QueryEscape":  QueryEscape,
-		"JSEscape":     JSEscapeSafe,
+		"Iif":          iif,
+		"Eval":         evalTokens,
+		"SafeHTML":     safeHTML,
+		"HTMLFormat":   htmlutil.HTMLFormat,
+		"HTMLEscape":   htmlEscape,
+		"QueryEscape":  queryEscape,
+		"QueryBuild":   QueryBuild,
+		"JSEscape":     jsEscapeSafe,
 		"SanitizeHTML": SanitizeHTML,
 		"URLJoin":      util.URLJoin,
-		"DotEscape":    DotEscape,
+		"DotEscape":    dotEscape,
 
 		"PathEscape":         url.PathEscape,
 		"PathEscapeSegments": util.PathEscapeSegments,
@@ -53,24 +54,25 @@ func NewFuncMap() template.FuncMap {
 		"StringUtils": NewStringUtils,
 		"SliceUtils":  NewSliceUtils,
 		"JsonUtils":   NewJsonUtils,
+		"DateUtils":   NewDateUtils,
 
 		// -----------------------------------------------------------------
 		// svg / avatar / icon / color
 		"svg":           svg.RenderHTML,
 		"EntryIcon":     base.EntryIcon,
-		"MigrationIcon": MigrationIcon,
-		"ActionIcon":    ActionIcon,
-		"SortArrow":     SortArrow,
+		"MigrationIcon": migrationIcon,
+		"ActionIcon":    actionIcon,
+		"SortArrow":     sortArrow,
 		"ContrastColor": util.ContrastColor,
 
 		// -----------------------------------------------------------------
 		// time / number / format
-		"FileSize":      base.FileSize,
-		"CountFmt":      base.FormatNumberSI,
-		"TimeSince":     timeutil.TimeSince,
-		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"DateTime":      timeutil.DateTime,
-		"Sec2Time":      util.SecToTime,
+		"FileSize": base.FileSize,
+		"CountFmt": countFmt,
+		"Sec2Time": util.SecToTime,
+
+		"TimeEstimateString": timeEstimateString,
+
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
@@ -138,7 +140,7 @@ func NewFuncMap() template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
-		"UserThemeName": UserThemeName,
+		"UserThemeName": userThemeName,
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
@@ -153,51 +155,40 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// render
-		"RenderCommitMessage":            RenderCommitMessage,
-		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
-
-		"RenderCommitBody": RenderCommitBody,
-		"RenderCodeBlock":  RenderCodeBlock,
-		"RenderIssueTitle": RenderIssueTitle,
-		"RenderEmoji":      RenderEmoji,
-		"ReactionToEmoji":  ReactionToEmoji,
-
-		"RenderMarkdownToHtml": RenderMarkdownToHtml,
-		"RenderLabel":          RenderLabel,
-		"RenderLabels":         RenderLabels,
+		"RenderCodeBlock": renderCodeBlock,
+		"ReactionToEmoji": reactionToEmoji,
 
 		// -----------------------------------------------------------------
 		// misc
 		"ShortSha":                 base.ShortSha,
 		"ActionContent2Commits":    ActionContent2Commits,
-		"IsMultilineCommitMessage": IsMultilineCommitMessage,
+		"IsMultilineCommitMessage": isMultilineCommitMessage,
 		"CommentMustAsDiff":        gitdiff.CommentMustAsDiff,
 		"MirrorRemoteAddress":      mirrorRemoteAddress,
 
-		"FilenameIsImage": FilenameIsImage,
-		"TabSizeClass":    TabSizeClass,
+		"FilenameIsImage": filenameIsImage,
+		"TabSizeClass":    tabSizeClass,
+
+		// for backward compatibility only, do not use them anymore
+		"TimeSince":     timeSinceLegacy,
+		"TimeSinceUnix": timeSinceLegacy,
+		"DateTime":      dateTimeLegacy,
+
+		"RenderEmoji":      renderEmojiLegacy,
+		"RenderLabel":      renderLabelLegacy,
+		"RenderLabels":     renderLabelsLegacy,
+		"RenderIssueTitle": renderIssueTitleLegacy,
+
+		"RenderMarkdownToHtml": renderMarkdownToHtmlLegacy,
+
+		"RenderCommitMessage":            renderCommitMessageLegacy,
+		"RenderCommitMessageLinkSubject": renderCommitMessageLinkSubjectLegacy,
+		"RenderCommitBody":               renderCommitBodyLegacy,
 	}
 }
 
-func HTMLFormat(s string, rawArgs ...any) template.HTML {
-	args := slices.Clone(rawArgs)
-	for i, v := range args {
-		switch v := v.(type) {
-		case nil, bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, template.HTML:
-			// for most basic types (including template.HTML which is safe), just do nothing and use it
-		case string:
-			args[i] = template.HTMLEscapeString(v)
-		case fmt.Stringer:
-			args[i] = template.HTMLEscapeString(v.String())
-		default:
-			args[i] = template.HTMLEscapeString(fmt.Sprint(v))
-		}
-	}
-	return template.HTML(fmt.Sprintf(s, args...))
-}
-
-// SafeHTML render raw as HTML
-func SafeHTML(s any) template.HTML {
+// safeHTML render raw as HTML
+func safeHTML(s any) template.HTML {
 	switch v := s.(type) {
 	case string:
 		return template.HTML(v)
@@ -212,7 +203,7 @@ func SanitizeHTML(s string) template.HTML {
 	return template.HTML(markup.Sanitize(s))
 }
 
-func HTMLEscape(s any) template.HTML {
+func htmlEscape(s any) template.HTML {
 	switch v := s.(type) {
 	case string:
 		return template.HTML(html.EscapeString(v))
@@ -222,23 +213,23 @@ func HTMLEscape(s any) template.HTML {
 	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
-func JSEscapeSafe(s string) template.HTML {
+func jsEscapeSafe(s string) template.HTML {
 	return template.HTML(template.JSEscapeString(s))
 }
 
-func QueryEscape(s string) template.URL {
+func queryEscape(s string) template.URL {
 	return template.URL(url.QueryEscape(s))
 }
 
-// DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls
-func DotEscape(raw string) string {
+// dotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent auto-linkers from detecting these as urls
+func dotEscape(raw string) string {
 	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
 }
 
-// Iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,
-// and it could be simply used as "{{Iif expr trueVal}}" (omit the falseVal).
-func Iif(condition bool, vals ...any) any {
-	if condition {
+// iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,
+// and it could be simply used as "{{iif expr trueVal}}" (omit the falseVal).
+func iif(condition any, vals ...any) any {
+	if isTemplateTruthy(condition) {
 		return vals[0]
 	} else if len(vals) > 1 {
 		return vals[1]
@@ -246,19 +237,24 @@ func Iif(condition bool, vals ...any) any {
 	return nil
 }
 
-// Eval the expression and return the result, see the comment of eval.Expr for details.
+func isTemplateTruthy(v any) bool {
+	truth, _ := template.IsTrue(v)
+	return truth
+}
+
+// evalTokens evaluates the expression by tokens and returns the result, see the comment of eval.Expr for details.
 // To use this helper function in templates, pass each token as a separate parameter.
 //
 //	{{ $int64 := Eval $var "+" 1 }}
 //	{{ $float64 := Eval $var "+" 1.0 }}
 //
 // Golang's template supports comparable int types, so the int64 result can be used in later statements like {{if lt $int64 10}}
-func Eval(tokens ...any) (any, error) {
+func evalTokens(tokens ...any) (any, error) {
 	n, err := eval.Expr(tokens...)
 	return n.Value, err
 }
 
-func UserThemeName(user *user_model.User) string {
+func userThemeName(user *user_model.User) string {
 	if user == nil || user.Theme == "" {
 		return setting.UI.DefaultTheme
 	}
@@ -266,4 +262,76 @@ func UserThemeName(user *user_model.User) string {
 		return user.Theme
 	}
 	return setting.UI.DefaultTheme
+}
+
+// QueryBuild builds a query string from a list of key-value pairs.
+// It omits the nil and empty strings, but it doesn't omit other zero values,
+// because the zero value of number types may have a meaning.
+func QueryBuild(a ...any) template.URL {
+	var s string
+	if len(a)%2 == 1 {
+		if v, ok := a[0].(string); ok {
+			if v == "" || (v[0] != '?' && v[0] != '&') {
+				panic("QueryBuild: invalid argument")
+			}
+			s = v
+		} else if v, ok := a[0].(template.URL); ok {
+			s = string(v)
+		} else {
+			panic("QueryBuild: invalid argument")
+		}
+	}
+	for i := len(a) % 2; i < len(a); i += 2 {
+		k, ok := a[i].(string)
+		if !ok {
+			panic("QueryBuild: invalid argument")
+		}
+		var v string
+		if va, ok := a[i+1].(string); ok {
+			v = va
+		} else if a[i+1] != nil {
+			v = fmt.Sprint(a[i+1])
+		}
+		// pos1 to pos2 is the "k=v&" part, "&" is optional
+		pos1 := strings.Index(s, "&"+k+"=")
+		if pos1 != -1 {
+			pos1++
+		} else {
+			pos1 = strings.Index(s, "?"+k+"=")
+			if pos1 != -1 {
+				pos1++
+			} else if strings.HasPrefix(s, k+"=") {
+				pos1 = 0
+			}
+		}
+		pos2 := len(s)
+		if pos1 == -1 {
+			pos1 = len(s)
+		} else {
+			pos2 = pos1 + 1
+			for pos2 < len(s) && s[pos2-1] != '&' {
+				pos2++
+			}
+		}
+		if v != "" {
+			sep := ""
+			hasPrefixSep := pos1 == 0 || (pos1 <= len(s) && (s[pos1-1] == '?' || s[pos1-1] == '&'))
+			if !hasPrefixSep {
+				sep = "&"
+			}
+			s = s[:pos1] + sep + k + "=" + url.QueryEscape(v) + "&" + s[pos2:]
+		} else {
+			s = s[:pos1] + s[pos2:]
+		}
+	}
+	if s != "" && s != "&" && s[len(s)-1] == '&' {
+		s = s[:len(s)-1]
+	}
+	return template.URL(s)
+}
+
+func panicIfDevOrTesting() {
+	if !setting.IsProd || setting.IsInTesting {
+		panic("legacy template functions are for backward compatibility only, do not use them in new code")
+	}
 }

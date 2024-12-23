@@ -1,0 +1,44 @@
+<button class="ui primary button js-btn-clone-panel">
+	<span>{{svg "octicon-code" 16}} Code</span>
+	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+</button>
+<div class="clone-panel-popup tippy-target">
+	<div class="flex-text-block clone-panel-field">{{svg "octicon-terminal"}} Clone</div>
+
+	<div class="clone-panel-tab">
+		<!-- there is always at least one button (guaranteed by context/repo.go) -->
+		{{if $.CloneButtonShowHTTPS}}
+			<button class="item repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}">HTTPS</button>
+		{{end}}
+		{{if $.CloneButtonShowSSH}}
+			<button class="item repo-clone-ssh" data-link="{{$.CloneButtonOriginLink.SSH}}">SSH</button>
+		{{end}}
+	</div>
+	<div class="divider"></div>
+
+	<div class="clone-panel-field">
+		<div class="ui input tiny action">
+			<input size="30" class="repo-clone-url js-clone-url" value="{{$.CloneButtonOriginLink.HTTPS}}" readonly>
+			<div class="ui small compact icon button" data-clipboard-target=".js-clone-url" data-tooltip-content="{{ctx.Locale.Tr "copy_url"}}">
+				{{svg "octicon-copy" 14}}
+			</div>
+		</div>
+	</div>
+
+	{{if not .PageIsWiki}}
+		<div class="flex-items-block clone-panel-list">
+			{{range .OpenWithEditorApps}}
+			<a class="item muted js-clone-url-editor" data-href-template="{{.OpenURL}}">{{.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" .DisplayName}}</a>
+			{{end}}
+		</div>
+
+		{{if and (not $.DisableDownloadSourceArchives) $.RefName}}
+		<div class="divider"></div>
+		<div class="flex-items-block clone-panel-list">
+				<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_zip"}}</a>
+				<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_tar"}}</a>
+				<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package"}} {{ctx.Locale.Tr "repo.download_bundle"}}</a>
+		</div>
+		{{end}}
+	{{end}}
+</div>

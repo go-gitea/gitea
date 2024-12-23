@@ -114,6 +114,8 @@ const (
 
 	CommentTypePin   // 36 pin Issue
 	CommentTypeUnpin // 37 unpin Issue
+
+	CommentTypeChangeTimeEstimate // 38 Change time estimate
 )
 
 var commentStrings = []string{
@@ -155,6 +157,7 @@ var commentStrings = []string{
 	"pull_cancel_scheduled_merge",
 	"pin",
 	"unpin",
+	"change_time_estimate",
 }
 
 func (t CommentType) String() string {
@@ -220,6 +223,13 @@ func (r RoleInRepo) LocaleString(lang translation.Locale) string {
 // LocaleHelper returns the locale tooltip of the role
 func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 	return lang.TrString("repo.issues.role." + string(r) + "_helper")
+}
+
+// CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
+type CommentMetaData struct {
+	ProjectColumnID    int64  `json:"project_column_id,omitempty"`
+	ProjectColumnTitle string `json:"project_column_title,omitempty"`
+	ProjectTitle       string `json:"project_title,omitempty"`
 }
 
 // Comment represents a comment in commit and issue page.
@@ -294,6 +304,8 @@ type Comment struct {
 	RefCommentID int64                 `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
 	RefAction    references.XRefAction `xorm:"SMALLINT"` // What happens if RefIssueID resolves
 	RefIsPull    bool
+
+	CommentMetaData *CommentMetaData `xorm:"JSON TEXT"` // put all non-index metadata in a single field
 
 	RefRepo    *repo_model.Repository `xorm:"-"`
 	RefIssue   *Issue                 `xorm:"-"`
@@ -797,6 +809,15 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		LabelID = opts.Label.ID
 	}
 
+	var commentMetaData *CommentMetaData
+	if opts.ProjectColumnTitle != "" {
+		commentMetaData = &CommentMetaData{
+			ProjectColumnID:    opts.ProjectColumnID,
+			ProjectColumnTitle: opts.ProjectColumnTitle,
+			ProjectTitle:       opts.ProjectTitle,
+		}
+	}
+
 	comment := &Comment{
 		Type:             opts.Type,
 		PosterID:         opts.Doer.ID,
@@ -830,6 +851,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		RefIsPull:        opts.RefIsPull,
 		IsForcePush:      opts.IsForcePush,
 		Invalidated:      opts.Invalidated,
+		CommentMetaData:  commentMetaData,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -982,34 +1004,37 @@ type CreateCommentOptions struct {
 	Issue *Issue
 	Label *Label
 
-	DependentIssueID int64
-	OldMilestoneID   int64
-	MilestoneID      int64
-	OldProjectID     int64
-	ProjectID        int64
-	TimeID           int64
-	AssigneeID       int64
-	AssigneeTeamID   int64
-	RemovedAssignee  bool
-	OldTitle         string
-	NewTitle         string
-	OldRef           string
-	NewRef           string
-	CommitID         int64
-	CommitSHA        string
-	Patch            string
-	LineNum          int64
-	TreePath         string
-	ReviewID         int64
-	Content          string
-	Attachments      []string // UUIDs of attachments
-	RefRepoID        int64
-	RefIssueID       int64
-	RefCommentID     int64
-	RefAction        references.XRefAction
-	RefIsPull        bool
-	IsForcePush      bool
-	Invalidated      bool
+	DependentIssueID   int64
+	OldMilestoneID     int64
+	MilestoneID        int64
+	OldProjectID       int64
+	ProjectID          int64
+	ProjectTitle       string
+	ProjectColumnID    int64
+	ProjectColumnTitle string
+	TimeID             int64
+	AssigneeID         int64
+	AssigneeTeamID     int64
+	RemovedAssignee    bool
+	OldTitle           string
+	NewTitle           string
+	OldRef             string
+	NewRef             string
+	CommitID           int64
+	CommitSHA          string
+	Patch              string
+	LineNum            int64
+	TreePath           string
+	ReviewID           int64
+	Content            string
+	Attachments        []string // UUIDs of attachments
+	RefRepoID          int64
+	RefIssueID         int64
+	RefCommentID       int64
+	RefAction          references.XRefAction
+	RefIsPull          bool
+	IsForcePush        bool
+	Invalidated        bool
 }
 
 // GetCommentByID returns the comment by given ID.
@@ -1086,7 +1111,7 @@ func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, 
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
 
-	if opts.Page != 0 {
+	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, opts)
 	}
 

@@ -1,19 +1,17 @@
 <h4 class="ui top attached header">
 	{{ctx.Locale.Tr "repo.issues.label_count" .NumLabels}}
 	<div class="ui right">
-		<div class="ui secondary menu">
-			<!-- Sort -->
-			<div class="item ui jump dropdown tw-py-2">
-				<span class="text">
-					{{ctx.Locale.Tr "repo.issues.filter_sort"}}
-				</span>
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				<div class="menu">
-					<a class="{{if or (eq .SortType "alphabetically") (not .SortType)}}active {{end}}item" href="?sort=alphabetically&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
-					<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="?sort=reversealphabetically&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
-					<a class="{{if eq .SortType "leastissues"}}active {{end}}item" href="?sort=leastissues&state={{$.State}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
-					<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="?sort=mostissues&state={{$.State}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
-				</div>
+		<!-- Sort -->
+		<div class="item ui jump dropdown tw-py-2">
+			<span class="text">
+				{{ctx.Locale.Tr "repo.issues.filter_sort"}}
+			</span>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<div class="menu">
+				<a class="{{if or (eq .SortType "alphabetically") (not .SortType)}}active {{end}}item" href="?sort=alphabetically&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
+				<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="?sort=reversealphabetically&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
+				<a class="{{if eq .SortType "leastissues"}}active {{end}}item" href="?sort=leastissues&state={{$.State}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
+				<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="?sort=mostissues&state={{$.State}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
 			</div>
 		</div>
 	</div> <!-- filter menu -->
@@ -29,11 +27,13 @@
 	{{end}}
 
 	<ul class="issue-label-list">
+		{{$canEditLabel := and (not $.PageIsOrgSettingsLabels) (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
+		{{$canEditLabel = or $canEditLabel $.PageIsOrgSettingsLabels}}
 		{{range .Labels}}
 		<li class="item">
 			<div class="label-title">
-				{{RenderLabel $.Context ctx.Locale .}}
-				{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
+				{{ctx.RenderUtils.RenderLabel .}}
+				{{if .Description}}<br><small class="desc">{{.Description | ctx.RenderUtils.RenderEmoji}}</small>{{end}}
 			</div>
 			<div class="label-issues">
 				{{if $.PageIsOrgSettingsLabels}}
@@ -45,12 +45,16 @@
 			<div class="label-operation tw-flex">
 				{{template "repo/issue/labels/label_archived" .}}
 				<div class="tw-flex tw-ml-auto">
-					{{if and (not $.PageIsOrgSettingsLabels) (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
-						<a class="edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" {{if .Exclusive}}data-exclusive{{end}} {{if gt .ArchivedUnix 0}}data-is-archived{{end}} data-num-issues="{{.NumIssues}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
-						<a class="delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
-					{{else if $.PageIsOrgSettingsLabels}}
-						<a class="edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" {{if .Exclusive}}data-exclusive{{end}} {{if gt .ArchivedUnix 0}}data-is-archived{{end}} data-num-issues="{{.NumIssues}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
-						<a class="delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
+					{{if $canEditLabel}}
+						<a class="edit-label-button" href="#"
+							data-label-id="{{.ID}}" data-label-name="{{.Name}}" data-label-color="{{.Color}}"
+							data-label-exclusive="{{.Exclusive}}" data-label-is-archived="{{gt .ArchivedUnix 0}}"
+							data-label-num-issues="{{.NumIssues}}" data-label-description="{{.Description}}"
+						>{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
+						<a class="link-action" href="#" data-url="{{$.Link}}/delete?id={{.ID}}"
+							data-modal-confirm-header="{{ctx.Locale.Tr "repo.issues.label_deletion"}}"
+							data-modal-confirm-content="{{ctx.Locale.Tr "repo.issues.label_deletion_desc"}}"
+						>{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
 					{{end}}
 				</div>
 			</div>
@@ -72,8 +76,8 @@
 			{{range .OrgLabels}}
 			<li class="item org-label">
 				<div class="label-title">
-					{{RenderLabel $.Context ctx.Locale .}}
-					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
+					{{ctx.RenderUtils.RenderLabel .}}
+					{{if .Description}}<br><small class="desc">{{.Description | ctx.RenderUtils.RenderEmoji}}</small>{{end}}
 				</div>
 				<div class="label-issues">
 					<a class="open-issues" {{if .IsArchived}}data-is-archived{{end}} href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues.label_open_issues" .NumOpenRepoIssues}}</a>

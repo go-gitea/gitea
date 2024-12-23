@@ -124,7 +124,7 @@
 					</div>
 					<div class="inline required field">
 						<label for="domain">{{ctx.Locale.Tr "install.domain"}}</label>
-						<input id="domain" name="domain" value="{{.domain}}" placeholder="try.gitea.io" required>
+						<input id="domain" name="domain" value="{{.domain}}" placeholder="demo.gitea.com" required>
 						<span class="help">{{ctx.Locale.Tr "install.domain_helper"}}</span>
 					</div>
 					<div class="inline field">
@@ -139,7 +139,7 @@
 					</div>
 					<div class="inline required field">
 						<label for="app_url">{{ctx.Locale.Tr "install.app_url"}}</label>
-						<input id="app_url" name="app_url" value="{{.app_url}}" placeholder="https://try.gitea.io" required>
+						<input id="app_url" name="app_url" value="{{.app_url}}" placeholder="https://demo.gitea.com" required>
 						<span class="help">{{ctx.Locale.Tr "install.app_url_helper"}}</span>
 					</div>
 					<div class="inline required field">
@@ -338,7 +338,9 @@
 
 					<div class="inline field">
 						<div class="right-content">
-							These configuration options will be written into: {{.CustomConfFile}}
+							{{$copyBtn := svg "octicon-copy" 14}}
+							{{$filePath := HTMLFormat `<span class="ui label">%s</span> <button class="btn interact-fg" data-clipboard-text="%s">%s</button>` .CustomConfFile .CustomConfFile $copyBtn}}
+							{{ctx.Locale.Tr "install.config_write_file_prompt" $filePath}}
 						</div>
 						<div class="tw-mt-4 tw-mb-2 tw-text-center">
 							<button class="ui primary button">{{ctx.Locale.Tr "install.install_btn_confirm"}}</button>

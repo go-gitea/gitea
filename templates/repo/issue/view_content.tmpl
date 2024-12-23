@@ -1,12 +1,5 @@
 <div class="issue-content">
-	<!-- I know, there is probably a better way to do this (moved from sidebar.tmpl, original author: 6543 @ 2021-02-28) -->
-	<!-- Agree, there should be a better way, eg: introduce window.config.pageData (original author: wxiaoguang @ 2021-09-05) -->
-	<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
-	<input type="hidden" id="repoId" value="{{.Repository.ID}}">
-	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}">
-	<input type="hidden" id="type" value="{{.IssueType}}">
-
-	{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix ctx.Locale}}
+	{{$createdStr:= DateUtils.TimeSince .Issue.CreatedUnix}}
 	<div class="issue-content-left comment-list prevent-before-timeline">
 		<div class="ui timeline">
 			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">
@@ -48,7 +41,7 @@
 							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 							{{end}}
-							{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
+							{{template "repo/issue/view_content/context_menu" dict "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
 						</div>
 					</div>
 					<div class="ui attached segment comment-body" role="article">
@@ -106,7 +99,7 @@
 												</button>
 											{{end}}
 										{{end}}
-										<button class="ui primary button">
+										<button id="comment-button" class="ui primary button">
 											{{ctx.Locale.Tr "repo.issues.create_comment"}}
 										</button>
 									</div>
@@ -146,11 +139,12 @@
 </div>
 
 <template id="issue-comment-editor-template">
-	<div class="ui form comment">
+	<form class="ui form comment">
 		<div class="field">
 			{{template "shared/combomarkdowneditor" (dict
-				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
-				"MarkdownPreviewContext" .RepoLink
+				"CustomInit" true
+				"MarkdownPreviewInRepo" $.Repository
+				"MarkdownPreviewMode" "comment"
 				"TextareaName" "content"
 				"DropzoneParentContainer" ".ui.form"
 			)}}
@@ -164,11 +158,11 @@
 
 		<div class="field">
 			<div class="text right edit">
-				<button class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
-				<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
+				<button type="button" class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
+				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
 			</div>
 		</div>
-	</div>
+	</form>
 </template>
 
 {{template "repo/issue/view_content/reference_issue_dialog" .}}

@@ -365,9 +365,10 @@ func (f *NewAccessTokenForm) GetScope() (auth_model.AccessTokenScope, error) {
 
 // EditOAuth2ApplicationForm form for editing oauth2 applications
 type EditOAuth2ApplicationForm struct {
-	Name               string `binding:"Required;MaxSize(255)" form:"application_name"`
-	RedirectURIs       string `binding:"Required" form:"redirect_uris"`
-	ConfidentialClient bool   `form:"confidential_client"`
+	Name                       string `binding:"Required;MaxSize(255)" form:"application_name"`
+	RedirectURIs               string `binding:"Required;ValidUrlList" form:"redirect_uris"`
+	ConfidentialClient         bool   `form:"confidential_client"`
+	SkipSecondaryAuthorization bool   `form:"skip_secondary_authorization"`
 }
 
 // Validate validates the fields

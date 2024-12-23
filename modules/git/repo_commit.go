@@ -7,6 +7,7 @@ package git
 import (
 	"bytes"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 
@@ -215,8 +216,6 @@ type CommitsByFileAndRangeOptions struct {
 
 // CommitsByFileAndRange return the commits according revision file and the page
 func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions) ([]*Commit, error) {
-	skip := (opts.Page - 1) * setting.Git.CommitsRangeSize
-
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
 		_ = stdoutReader.Close()
@@ -225,8 +224,8 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	go func() {
 		stderr := strings.Builder{}
 		gitCmd := NewCommand(repo.Ctx, "rev-list").
-			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize*opts.Page).
-			AddOptionFormat("--skip=%d", skip)
+			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
+			AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
 		gitCmd.AddDynamicArguments(opts.Revision)
 
 		if opts.Not != "" {
@@ -414,7 +413,7 @@ func (repo *Repository) commitsBefore(id ObjectID, limit int) ([]*Commit, error)
 
 	commits := make([]*Commit, 0, len(formattedLog))
 	for _, commit := range formattedLog {
-		branches, err := repo.getBranches(commit, 2)
+		branches, err := repo.getBranches(os.Environ(), commit.ID.String(), 2)
 		if err != nil {
 			return nil, err
 		}
@@ -437,12 +436,15 @@ func (repo *Repository) getCommitsBeforeLimit(id ObjectID, num int) ([]*Commit, 
 	return repo.commitsBefore(id, num)
 }
 
-func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error) {
+func (repo *Repository) getBranches(env []string, commitID string, limit int) ([]string, error) {
 	if DefaultFeatures().CheckVersionAtLeast("2.7.0") {
 		stdout, _, err := NewCommand(repo.Ctx, "for-each-ref", "--format=%(refname:strip=2)").
 			AddOptionFormat("--count=%d", limit).
-			AddOptionValues("--contains", commit.ID.String(), BranchPrefix).
-			RunStdString(&RunOpts{Dir: repo.Path})
+			AddOptionValues("--contains", commitID, BranchPrefix).
+			RunStdString(&RunOpts{
+				Dir: repo.Path,
+				Env: env,
+			})
 		if err != nil {
 			return nil, err
 		}
@@ -451,22 +453,25 @@ func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error)
 		return branches, nil
 	}
 
-	stdout, _, err := NewCommand(repo.Ctx, "branch").AddOptionValues("--contains", commit.ID.String()).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, err := NewCommand(repo.Ctx, "branch").AddOptionValues("--contains", commitID).RunStdString(&RunOpts{
+		Dir: repo.Path,
+		Env: env,
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	refs := strings.Split(stdout, "\n")
 
-	var max int
+	var maxNum int
 	if len(refs) > limit {
-		max = limit
+		maxNum = limit
 	} else {
-		max = len(refs) - 1
+		maxNum = len(refs) - 1
 	}
 
-	branches := make([]string, max)
-	for i, ref := range refs[:max] {
+	branches := make([]string, maxNum)
+	for i, ref := range refs[:maxNum] {
 		parts := strings.Fields(ref)
 
 		branches[i] = parts[len(parts)-1]
@@ -512,4 +517,36 @@ func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error
 		repo.LastCommitCache = NewLastCommitCache(commitsCount, fullName, repo, cache.GetCache())
 	}
 	return nil
+}
+
+func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID string) (string, error) {
+	cmd := NewCommand(repo.Ctx, "log", prettyLogFormat)
+	cmd.AddDynamicArguments(endCommitID)
+
+	stdout, _, runErr := cmd.RunStdBytes(&RunOpts{
+		Dir: repo.Path,
+		Env: env,
+	})
+	if runErr != nil {
+		return "", runErr
+	}
+
+	parts := bytes.Split(bytes.TrimSpace(stdout), []byte{'\n'})
+
+	var startCommitID string
+	for _, commitID := range parts {
+		branches, err := repo.getBranches(env, string(commitID), 2)
+		if err != nil {
+			return "", err
+		}
+		for _, b := range branches {
+			if b != branch {
+				return startCommitID, nil
+			}
+		}
+
+		startCommitID = string(commitID)
+	}
+
+	return "", nil
 }

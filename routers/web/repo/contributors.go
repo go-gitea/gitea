@@ -7,26 +7,20 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	contributors_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
-	tplContributors base.TplName = "repo/activity"
+	tplContributors templates.TplName = "repo/activity"
 )
 
 // Contributors render the page to show repository contributors graph
 func Contributors(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.activity.navbar.contributors")
-
 	ctx.Data["PageIsActivity"] = true
 	ctx.Data["PageIsContributors"] = true
-
-	ctx.PageData["contributionType"] = "commits"
-
-	ctx.PageData["repoLink"] = ctx.Repo.RepoLink
-
 	ctx.HTML(http.StatusOK, tplContributors)
 }
 

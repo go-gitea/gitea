@@ -1,0 +1,9 @@
+This repository will be used to test code search. The snippet below shows its directory structure
+
+.
+├── avocado.md
+├── cucumber.md
+├── ham.md
+├── potato
+|   └── ham.md
+└── example-file.js

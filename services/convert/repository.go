@@ -7,7 +7,6 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -158,8 +157,8 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 
 	var transfer *api.RepoTransfer
 	if repo.Status == repo_model.RepositoryPendingTransfer {
-		t, err := models.GetPendingRepositoryTransfer(ctx, repo)
-		if err != nil && !models.IsErrNoPendingTransfer(err) {
+		t, err := repo_model.GetPendingRepositoryTransfer(ctx, repo)
+		if err != nil && !repo_model.IsErrNoPendingTransfer(err) {
 			log.Warn("GetPendingRepositoryTransfer: %v", err)
 		} else {
 			if err := t.LoadAttributes(ctx); err != nil {
@@ -173,6 +172,11 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	var language string
 	if repo.PrimaryLanguage != nil {
 		language = repo.PrimaryLanguage.Language
+	}
+
+	repoLicenses, err := repo_model.GetRepoLicenses(ctx, repo)
+	if err != nil {
+		return nil
 	}
 
 	repoAPIURL := repo.APIURL()
@@ -191,7 +195,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		Fork:                          repo.IsFork,
 		Parent:                        parent,
 		Mirror:                        repo.IsMirror,
-		HTMLURL:                       repo.HTMLURL(),
+		HTMLURL:                       repo.HTMLURL(ctx),
 		URL:                           repoAPIURL,
 		SSHURL:                        cloneLink.SSH,
 		CloneURL:                      cloneLink.HTTPS,
@@ -236,12 +240,14 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		MirrorInterval:                mirrorInterval,
 		MirrorUpdated:                 mirrorUpdated,
 		RepoTransfer:                  transfer,
+		Topics:                        repo.Topics,
 		ObjectFormatName:              repo.ObjectFormatName,
+		Licenses:                      repoLicenses.StringList(),
 	}
 }
 
 // ToRepoTransfer convert a models.RepoTransfer to a structs.RepeTransfer
-func ToRepoTransfer(ctx context.Context, t *models.RepoTransfer) *api.RepoTransfer {
+func ToRepoTransfer(ctx context.Context, t *repo_model.RepoTransfer) *api.RepoTransfer {
 	teams, _ := ToTeams(ctx, t.Teams, false)
 
 	return &api.RepoTransfer{

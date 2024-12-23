@@ -6,18 +6,18 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplFindFiles base.TplName = "repo/find/files"
+	tplFindFiles templates.TplName = "repo/find/files"
 )
 
 // FindFiles render the page to find repository files
 func FindFiles(ctx *context.Context) {
-	path := ctx.Params("*")
+	path := ctx.PathParam("*")
 	ctx.Data["TreeLink"] = ctx.Repo.RepoLink + "/src/" + util.PathEscapeSegments(path)
 	ctx.Data["DataLink"] = ctx.Repo.RepoLink + "/tree-list/" + util.PathEscapeSegments(path)
 	ctx.HTML(http.StatusOK, tplFindFiles)

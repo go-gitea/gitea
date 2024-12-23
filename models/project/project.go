@@ -112,6 +112,13 @@ type Project struct {
 	ClosedDateUnix timeutil.TimeStamp
 }
 
+// Ghost Project is a project which has been deleted
+const GhostProjectID = -1
+
+func (p *Project) IsGhost() bool {
+	return p.ID == GhostProjectID
+}
+
 func (p *Project) LoadOwner(ctx context.Context) (err error) {
 	if p.Owner != nil {
 		return nil
@@ -244,6 +251,7 @@ func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 }
 
 // NewProject creates a new Project
+// The title will be cut off at 255 characters if it's longer than 255 characters.
 func NewProject(ctx context.Context, p *Project) error {
 	if !IsTemplateTypeValid(p.TemplateType) {
 		p.TemplateType = TemplateTypeNone
@@ -256,6 +264,8 @@ func NewProject(ctx context.Context, p *Project) error {
 	if !IsTypeValid(p.Type) {
 		return util.NewInvalidArgumentErrorf("project type is not valid")
 	}
+
+	p.Title, _ = util.SplitStringAtByteN(p.Title, 255)
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if err := db.Insert(ctx, p); err != nil {
@@ -311,12 +321,19 @@ func GetProjectForRepoByID(ctx context.Context, repoID, id int64) (*Project, err
 	return p, nil
 }
 
+// GetAllProjectsIDsByOwnerID returns the all projects ids it owns
+func GetAllProjectsIDsByOwnerIDAndType(ctx context.Context, ownerID int64, projectType Type) ([]int64, error) {
+	projects := make([]int64, 0)
+	return projects, db.GetEngine(ctx).Table(&Project{}).Where("owner_id=? AND type=?", ownerID, projectType).Cols("id").Find(&projects)
+}
+
 // UpdateProject updates project properties
 func UpdateProject(ctx context.Context, p *Project) error {
 	if !IsCardTypeValid(p.CardType) {
 		p.CardType = CardTypeTextOnly
 	}
 
+	p.Title, _ = util.SplitStringAtByteN(p.Title, 255)
 	_, err := db.GetEngine(ctx).ID(p.ID).Cols(
 		"title",
 		"description",

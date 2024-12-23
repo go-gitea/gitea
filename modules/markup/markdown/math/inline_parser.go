@@ -12,37 +12,42 @@ import (
 )
 
 type inlineParser struct {
-	start []byte
-	end   []byte
+	trigger              []byte
+	endBytesSingleDollar []byte
+	endBytesDoubleDollar []byte
+	endBytesBracket      []byte
 }
 
 var defaultInlineDollarParser = &inlineParser{
-	start: []byte{'$'},
-	end:   []byte{'$'},
+	trigger:              []byte{'$'},
+	endBytesSingleDollar: []byte{'$'},
+	endBytesDoubleDollar: []byte{'$', '$'},
 }
 
-// NewInlineDollarParser returns a new inline parser
 func NewInlineDollarParser() parser.InlineParser {
 	return defaultInlineDollarParser
 }
 
 var defaultInlineBracketParser = &inlineParser{
-	start: []byte{'\\', '('},
-	end:   []byte{'\\', ')'},
+	trigger:         []byte{'\\', '('},
+	endBytesBracket: []byte{'\\', ')'},
 }
 
-// NewInlineDollarParser returns a new inline parser
 func NewInlineBracketParser() parser.InlineParser {
 	return defaultInlineBracketParser
 }
 
 // Trigger triggers this parser on $ or \
 func (parser *inlineParser) Trigger() []byte {
-	return parser.start[0:1]
+	return parser.trigger
 }
 
 func isPunctuation(b byte) bool {
 	return b == '.' || b == '!' || b == '?' || b == ',' || b == ';' || b == ':'
+}
+
+func isBracket(b byte) bool {
+	return b == ')'
 }
 
 func isAlphanumeric(b byte) bool {
@@ -53,55 +58,86 @@ func isAlphanumeric(b byte) bool {
 func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
 	line, _ := block.PeekLine()
 
-	if !bytes.HasPrefix(line, parser.start) {
+	if !bytes.HasPrefix(line, parser.trigger) {
 		// We'll catch this one on the next time round
 		return nil
 	}
 
-	precedingCharacter := block.PrecendingCharacter()
-	if precedingCharacter < 256 && (isAlphanumeric(byte(precedingCharacter)) || isPunctuation(byte(precedingCharacter))) {
-		// need to exclude things like `a$` from being considered a start
-		return nil
+	var startMarkLen int
+	var stopMark []byte
+	checkSurrounding := true
+	if line[0] == '$' {
+		startMarkLen = 1
+		stopMark = parser.endBytesSingleDollar
+		if len(line) > 1 {
+			if line[1] == '$' {
+				startMarkLen = 2
+				stopMark = parser.endBytesDoubleDollar
+			} else if line[1] == '`' {
+				pos := 1
+				for ; pos < len(line) && line[pos] == '`'; pos++ {
+				}
+				startMarkLen = pos
+				stopMark = bytes.Repeat([]byte{'`'}, pos)
+				stopMark[len(stopMark)-1] = '$'
+				checkSurrounding = false
+			}
+		}
+	} else {
+		startMarkLen = 2
+		stopMark = parser.endBytesBracket
+	}
+
+	if checkSurrounding {
+		precedingCharacter := block.PrecendingCharacter()
+		if precedingCharacter < 256 && (isAlphanumeric(byte(precedingCharacter)) || isPunctuation(byte(precedingCharacter))) {
+			// need to exclude things like `a$` from being considered a start
+			return nil
+		}
 	}
 
 	// move the opener marker point at the start of the text
-	opener := len(parser.start)
+	opener := startMarkLen
 
 	// Now look for an ending line
-	ender := opener
-	for {
-		pos := bytes.Index(line[ender:], parser.end)
-		if pos < 0 {
-			return nil
-		}
-
-		ender += pos
-
-		// Now we want to check the character at the end of our parser section
-		// that is ender + len(parser.end) and check if char before ender is '\'
-		pos = ender + len(parser.end)
-		if len(line) <= pos {
+	depth := 0
+	ender := -1
+	for i := opener; i < len(line); i++ {
+		if depth == 0 && bytes.HasPrefix(line[i:], stopMark) {
+			succeedingCharacter := byte(0)
+			if i+len(stopMark) < len(line) {
+				succeedingCharacter = line[i+len(stopMark)]
+			}
+			// check valid ending character
+			isValidEndingChar := isPunctuation(succeedingCharacter) || isBracket(succeedingCharacter) ||
+				succeedingCharacter == ' ' || succeedingCharacter == '\n' || succeedingCharacter == 0
+			if checkSurrounding && !isValidEndingChar {
+				break
+			}
+			ender = i
 			break
 		}
-		suceedingCharacter := line[pos]
-		if !isPunctuation(suceedingCharacter) && !(suceedingCharacter == ' ') {
-			return nil
+		if line[i] == '\\' {
+			i++
+			continue
 		}
-		if line[ender-1] != '\\' {
-			break
+		if line[i] == '{' {
+			depth++
+		} else if line[i] == '}' {
+			depth--
 		}
-
-		// move the pointer onwards
-		ender += len(parser.end)
+	}
+	if ender == -1 {
+		return nil
 	}
 
 	block.Advance(opener)
 	_, pos := block.Position()
 	node := NewInline()
+
 	segment := pos.WithStop(pos.Start + ender - opener)
 	node.AppendChild(node, ast.NewRawTextSegment(segment))
-	block.Advance(ender - opener + len(parser.end))
-
+	block.Advance(ender - opener + len(stopMark))
 	trimBlock(node, block)
 	return node
 }

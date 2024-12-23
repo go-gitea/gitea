@@ -1,4 +1,14 @@
-<div class="user-cards">
+<!-- Refresh the content if a htmx response contains "HX-Trigger" header.
+This usually happens when a user stays on the watchers/stargazers page
+when they watched/unwatched/starred/unstarred and the list should be refreshed.
+To test go to the watchers page and click the watch button. The user cards should reload.
+At the moment, no JS initialization would re-trigger (fortunately there is no JS for this page).
+-->
+<div class="no-loading-indicator tw-hidden"></div>
+<div class="user-cards"
+		hx-trigger="refreshUserCards from:body" hx-indicator=".no-loading-indicator"
+		hx-get="{{$.CurrentURL}}" hx-swap="outerHTML" hx-select=".user-cards"
+>
 	{{if .CardsTitle}}
 	<h2 class="ui dividing header">
 		{{.CardsTitle}}
@@ -8,7 +18,7 @@
 		{{range .Cards}}
 			<li class="item ui segment">
 				<a href="{{.HomeLink}}">
-					{{ctx.AvatarUtils.Avatar .}}
+					{{ctx.AvatarUtils.Avatar . 48}}
 				</a>
 				<h3 class="name"><a href="{{.HomeLink}}">{{.DisplayName}}</a></h3>
 
@@ -18,7 +28,7 @@
 					{{else if .Location}}
 						{{svg "octicon-location"}} {{.Location}}
 					{{else}}
-						{{svg "octicon-calendar"}} {{ctx.Locale.Tr "user.joined_on" (DateTime "short" .CreatedUnix)}}
+						{{svg "octicon-calendar"}} {{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort .CreatedUnix)}}
 					{{end}}
 				</div>
 			</li>

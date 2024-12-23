@@ -5,16 +5,15 @@ package markup
 
 import (
 	"bufio"
-	"bytes"
-	"fmt"
 	"html"
 	"io"
-	"regexp"
 	"strconv"
 
 	"code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func init() {
@@ -37,9 +36,9 @@ func (Renderer) Extensions() []string {
 // SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{
-		{Element: "table", AllowAttr: "class", Regexp: regexp.MustCompile(`data-table`)},
-		{Element: "th", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
-		{Element: "td", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
+		{Element: "table", AllowAttr: "class", Regexp: `^data-table$`},
+		{Element: "th", AllowAttr: "class", Regexp: `^line-num$`},
+		{Element: "td", AllowAttr: "class", Regexp: `^line-num$`},
 	}
 }
 
@@ -51,13 +50,13 @@ func writeField(w io.Writer, element, class, field string) error {
 		return err
 	}
 	if len(class) > 0 {
-		if _, err := io.WriteString(w, " class=\""); err != nil {
+		if _, err := io.WriteString(w, ` class="`); err != nil {
 			return err
 		}
 		if _, err := io.WriteString(w, class); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, "\""); err != nil {
+		if _, err := io.WriteString(w, `"`); err != nil {
 			return err
 		}
 	}
@@ -81,86 +80,38 @@ func writeField(w io.Writer, element, class, field string) error {
 func (r Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	tmpBlock := bufio.NewWriter(output)
 	maxSize := setting.UI.CSV.MaxFileSize
+	maxRows := setting.UI.CSV.MaxRows
 
-	if maxSize == 0 {
-		return r.tableRender(ctx, input, tmpBlock)
+	if maxSize != 0 {
+		input = io.LimitReader(input, maxSize+1)
 	}
 
-	rawBytes, err := io.ReadAll(io.LimitReader(input, maxSize+1))
-	if err != nil {
-		return err
-	}
-
-	if int64(len(rawBytes)) <= maxSize {
-		return r.tableRender(ctx, bytes.NewReader(rawBytes), tmpBlock)
-	}
-	return r.fallbackRender(io.MultiReader(bytes.NewReader(rawBytes), input), tmpBlock)
-}
-
-func (Renderer) fallbackRender(input io.Reader, tmpBlock *bufio.Writer) error {
-	_, err := tmpBlock.WriteString("<pre>")
-	if err != nil {
-		return err
-	}
-
-	scan := bufio.NewScanner(input)
-	scan.Split(bufio.ScanRunes)
-	for scan.Scan() {
-		switch scan.Text() {
-		case `&`:
-			_, err = tmpBlock.WriteString("&amp;")
-		case `'`:
-			_, err = tmpBlock.WriteString("&#39;") // "&#39;" is shorter than "&apos;" and apos was not in HTML until HTML5.
-		case `<`:
-			_, err = tmpBlock.WriteString("&lt;")
-		case `>`:
-			_, err = tmpBlock.WriteString("&gt;")
-		case `"`:
-			_, err = tmpBlock.WriteString("&#34;") // "&#34;" is shorter than "&quot;".
-		default:
-			_, err = tmpBlock.Write(scan.Bytes())
-		}
-		if err != nil {
-			return err
-		}
-	}
-	if err = scan.Err(); err != nil {
-		return fmt.Errorf("fallbackRender scan: %w", err)
-	}
-
-	_, err = tmpBlock.WriteString("</pre>")
-	if err != nil {
-		return err
-	}
-	return tmpBlock.Flush()
-}
-
-func (Renderer) tableRender(ctx *markup.RenderContext, input io.Reader, tmpBlock *bufio.Writer) error {
 	rd, err := csv.CreateReaderAndDetermineDelimiter(ctx, input)
 	if err != nil {
 		return err
 	}
-
 	if _, err := tmpBlock.WriteString(`<table class="data-table">`); err != nil {
 		return err
 	}
-	row := 1
+
+	row := 0
 	for {
 		fields, err := rd.Read()
-		if err == io.EOF {
+		if err == io.EOF || (row >= maxRows && maxRows != 0) {
 			break
 		}
 		if err != nil {
 			continue
 		}
+
 		if _, err := tmpBlock.WriteString("<tr>"); err != nil {
 			return err
 		}
 		element := "td"
-		if row == 1 {
+		if row == 0 {
 			element = "th"
 		}
-		if err := writeField(tmpBlock, element, "line-num", strconv.Itoa(row)); err != nil {
+		if err := writeField(tmpBlock, element, "line-num", strconv.Itoa(row+1)); err != nil {
 			return err
 		}
 		for _, field := range fields {
@@ -174,8 +125,32 @@ func (Renderer) tableRender(ctx *markup.RenderContext, input io.Reader, tmpBlock
 
 		row++
 	}
+
 	if _, err = tmpBlock.WriteString("</table>"); err != nil {
 		return err
 	}
+
+	// Check if maxRows or maxSize is reached, and if true, warn.
+	if (row >= maxRows && maxRows != 0) || (rd.InputOffset() >= maxSize && maxSize != 0) {
+		warn := `<table class="data-table"><tr><td>`
+		rawLink := ` <a href="` + ctx.RenderHelper.ResolveLink(util.PathEscapeSegments(ctx.RenderOptions.RelativePath), markup.LinkTypeRaw) + `">`
+
+		// Try to get the user translation
+		if locale, ok := ctx.Value(translation.ContextKey).(translation.Locale); ok {
+			warn += locale.TrString("repo.file_too_large")
+			rawLink += locale.TrString("repo.file_view_raw")
+		} else {
+			warn += "The file is too large to be shown."
+			rawLink += "View Raw"
+		}
+
+		warn += rawLink + `</a></td></tr></table>`
+
+		// Write the HTML string to the output
+		if _, err := tmpBlock.WriteString(warn); err != nil {
+			return err
+		}
+	}
+
 	return tmpBlock.Flush()
 }

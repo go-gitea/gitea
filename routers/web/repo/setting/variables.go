@@ -7,18 +7,18 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	shared "code.gitea.io/gitea/routers/web/shared/actions"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplRepoVariables  base.TplName = "repo/settings/actions"
-	tplOrgVariables   base.TplName = "org/settings/actions"
-	tplUserVariables  base.TplName = "user/settings/actions"
-	tplAdminVariables base.TplName = "admin/actions"
+	tplRepoVariables  templates.TplName = "repo/settings/actions"
+	tplOrgVariables   templates.TplName = "org/settings/actions"
+	tplUserVariables  templates.TplName = "user/settings/actions"
+	tplAdminVariables templates.TplName = "admin/actions"
 )
 
 type variablesCtx struct {
@@ -28,7 +28,7 @@ type variablesCtx struct {
 	IsOrg             bool
 	IsUser            bool
 	IsGlobal          bool
-	VariablesTemplate base.TplName
+	VariablesTemplate templates.TplName
 	RedirectLink      string
 }
 
@@ -74,7 +74,7 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 			RepoID:            0,
 			IsGlobal:          true,
 			VariablesTemplate: tplAdminVariables,
-			RedirectLink:      setting.AppSubURL + "/admin/actions/variables",
+			RedirectLink:      setting.AppSubURL + "/-/admin/actions/variables",
 		}, nil
 	}
 
