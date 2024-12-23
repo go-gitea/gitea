@@ -80,7 +80,7 @@ jobs:
 		assert.NoError(t, err)
 
 		// download task logs and check content
-		runIndex := task.Context.GetFields()["run_number"].String()
+		runIndex := task.Context.GetFields()["run_number"].GetStringValue()
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%s/jobs/0/logs", user2.Name, repo.Name, runIndex)).
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
