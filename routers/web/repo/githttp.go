@@ -458,7 +458,6 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 
 	var stderr bytes.Buffer
 	cmd.AddArguments("--stateless-rpc").AddDynamicArguments(h.getRepoDir())
-	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.getRepoDir()))
 	if err := cmd.Run(&git.RunOpts{
 		Dir:               h.getRepoDir(),
 		Env:               append(os.Environ(), h.environ...),

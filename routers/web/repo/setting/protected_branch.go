@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/context"
@@ -26,7 +27,7 @@ import (
 )
 
 const (
-	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
+	tplProtectedBranch templates.TplName = "repo/settings/protected_branch"
 )
 
 // ProtectedBranchRules render the page to protect the repository

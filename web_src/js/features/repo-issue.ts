@@ -8,6 +8,7 @@ import {
   queryElems,
   showElem,
   toggleElem,
+  type DOMEvent,
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
@@ -16,6 +17,7 @@ import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 
 const {appSubUrl} = window.config;
 
@@ -52,7 +54,7 @@ export function initRepoIssueSidebarList() {
   });
 }
 
-function initRepoIssueLabelFilter(elDropdown: Element) {
+function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
   const url = new URL(window.location.href);
   const showArchivedLabels = url.searchParams.get('archived_labels') === 'true';
   const queryLabels = url.searchParams.get('labels') || '';
@@ -124,7 +126,7 @@ export function initRepoIssueFilterItemLabel() {
 
 export function initRepoIssueCommentDelete() {
   // Delete comment
-  document.addEventListener('click', async (e: MouseEvent & {target: HTMLElement}) => {
+  document.addEventListener('click', async (e: DOMEvent<MouseEvent>) => {
     if (!e.target.matches('.delete-comment')) return;
     e.preventDefault();
 
@@ -199,7 +201,7 @@ export function initRepoIssueDependencyDelete() {
 
 export function initRepoIssueCodeCommentCancel() {
   // Cancel inline code comment
-  document.addEventListener('click', (e: MouseEvent & {target: HTMLElement}) => {
+  document.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
     if (!e.target.matches('.cancel-code-comment')) return;
 
     const form = e.target.closest('form');
@@ -221,7 +223,7 @@ export function initRepoPullRequestUpdate() {
     e.preventDefault();
     const redirect = this.getAttribute('data-redirect');
     this.classList.add('is-loading');
-    let response;
+    let response: Response;
     try {
       response = await POST(this.getAttribute('data-do'));
     } catch (error) {
@@ -229,7 +231,7 @@ export function initRepoPullRequestUpdate() {
     } finally {
       this.classList.remove('is-loading');
     }
-    let data;
+    let data: Record<string, any>;
     try {
       data = await response?.json(); // the response is probably not a JSON
     } catch (error) {
@@ -340,7 +342,7 @@ export function initRepoIssueWipTitle() {
 export function initRepoIssueComments() {
   if (!$('.repository.view.issue .timeline').length) return;
 
-  document.addEventListener('click', (e: MouseEvent & {target: HTMLElement}) => {
+  document.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
     const urlTarget = document.querySelector(':target');
     if (!urlTarget) return;
 
@@ -532,7 +534,7 @@ export function initRepoIssueWipToggle() {
 
 export function initRepoIssueTitleEdit() {
   const issueTitleDisplay = document.querySelector('#issue-title-display');
-  const issueTitleEditor = document.querySelector('#issue-title-editor');
+  const issueTitleEditor = document.querySelector<HTMLFormElement>('#issue-title-editor');
   if (!issueTitleEditor) return;
 
   const issueTitleInput = issueTitleEditor.querySelector('input');
@@ -558,7 +560,8 @@ export function initRepoIssueTitleEdit() {
   const prTargetUpdateUrl = pullDescEditor?.getAttribute('data-target-update-url');
 
   const editSaveButton = issueTitleEditor.querySelector('.ui.primary.button');
-  editSaveButton.addEventListener('click', async () => {
+  issueTitleEditor.addEventListener('submit', async (e) => {
+    e.preventDefault();
     const newTitle = issueTitleInput.value.trim();
     try {
       if (newTitle && newTitle !== oldTitle) {
@@ -577,6 +580,7 @@ export function initRepoIssueTitleEdit() {
           }
         }
       }
+      ignoreAreYouSure(issueTitleEditor);
       window.location.reload();
     } catch (error) {
       console.error(error);
@@ -586,7 +590,7 @@ export function initRepoIssueTitleEdit() {
 }
 
 export function initRepoIssueBranchSelect() {
-  document.querySelector('#branch-select')?.addEventListener('click', (e: MouseEvent & {target: HTMLElement}) => {
+  document.querySelector<HTMLElement>('#branch-select')?.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
     const el = e.target.closest('.item[data-branch]');
     if (!el) return;
     const pullTargetBranch = document.querySelector('#pull-target-branch');
@@ -625,10 +629,10 @@ function initIssueTemplateCommentEditors($commentForm) {
   // * new issue with issue template
   const $comboFields = $commentForm.find('.combo-editor-dropzone');
 
-  const initCombo = async (elCombo) => {
+  const initCombo = async (elCombo: HTMLElement) => {
     const $formField = $(elCombo.querySelector('.form-field-real'));
-    const dropzoneContainer = elCombo.querySelector('.form-field-dropzone');
-    const markdownEditor = elCombo.querySelector('.combo-markdown-editor');
+    const dropzoneContainer = elCombo.querySelector<HTMLElement>('.form-field-dropzone');
+    const markdownEditor = elCombo.querySelector<HTMLElement>('.combo-markdown-editor');
 
     const editor = await initComboMarkdownEditor(markdownEditor);
     editor.container.addEventListener(ComboMarkdownEditor.EventEditorContentChanged, () => $formField.val(editor.value()));

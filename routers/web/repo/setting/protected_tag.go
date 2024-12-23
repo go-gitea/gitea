@@ -14,13 +14,14 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
 const (
-	tplTags base.TplName = "repo/settings/tags"
+	tplTags templates.TplName = "repo/settings/tags"
 )
 
 // Tags render the page to protect tags

@@ -8,16 +8,16 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -30,13 +30,13 @@ import (
 
 const (
 	// tplSettingsOptions template path for render settings
-	tplSettingsOptions base.TplName = "org/settings/options"
+	tplSettingsOptions templates.TplName = "org/settings/options"
 	// tplSettingsDelete template path for render delete repository
-	tplSettingsDelete base.TplName = "org/settings/delete"
+	tplSettingsDelete templates.TplName = "org/settings/delete"
 	// tplSettingsHooks template path for render hook settings
-	tplSettingsHooks base.TplName = "org/settings/hooks"
+	tplSettingsHooks templates.TplName = "org/settings/hooks"
 	// tplSettingsLabels template path for render labels settings
-	tplSettingsLabels base.TplName = "org/settings/labels"
+	tplSettingsLabels templates.TplName = "org/settings/labels"
 )
 
 // Settings render the main settings page
@@ -178,10 +178,10 @@ func SettingsDelete(ctx *context.Context) {
 		}
 
 		if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
-			if models.IsErrUserOwnRepos(err) {
+			if repo_model.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
-			} else if models.IsErrUserOwnPackages(err) {
+			} else if packages_model.IsErrUserOwnPackages(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_packages"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
 			} else {

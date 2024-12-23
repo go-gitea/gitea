@@ -21,7 +21,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
@@ -37,14 +36,14 @@ import (
 )
 
 const (
-	tplAttachment base.TplName = "repo/issue/view_content/attachments"
+	tplAttachment templates.TplName = "repo/issue/view_content/attachments"
 
-	tplIssues      base.TplName = "repo/issue/list"
-	tplIssueNew    base.TplName = "repo/issue/new"
-	tplIssueChoose base.TplName = "repo/issue/choose"
-	tplIssueView   base.TplName = "repo/issue/view"
+	tplIssues      templates.TplName = "repo/issue/list"
+	tplIssueNew    templates.TplName = "repo/issue/new"
+	tplIssueChoose templates.TplName = "repo/issue/choose"
+	tplIssueView   templates.TplName = "repo/issue/view"
 
-	tplReactions base.TplName = "repo/issue/view_content/reactions"
+	tplReactions templates.TplName = "repo/issue/view_content/reactions"
 
 	issueTemplateKey      = "IssueTemplate"
 	issueTemplateTitleKey = "IssueTemplateTitle"

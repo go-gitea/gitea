@@ -16,11 +16,11 @@ import (
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/shared/issue"
@@ -31,9 +31,9 @@ import (
 )
 
 const (
-	tplProjects     base.TplName = "repo/projects/list"
-	tplProjectsNew  base.TplName = "repo/projects/new"
-	tplProjectsView base.TplName = "repo/projects/view"
+	tplProjects     templates.TplName = "repo/projects/list"
+	tplProjectsNew  templates.TplName = "repo/projects/new"
+	tplProjectsView templates.TplName = "repo/projects/view"
 )
 
 // MustEnableRepoProjects check if repo projects are enabled in settings

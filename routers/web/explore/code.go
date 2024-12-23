@@ -8,15 +8,15 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/base"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
 	// tplExploreCode explore code page template
-	tplExploreCode base.TplName = "explore/code"
+	tplExploreCode templates.TplName = "explore/code"
 )
 
 // Code render explore code page

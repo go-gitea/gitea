@@ -68,7 +68,6 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 
 	// Clone to temporary path and do the init commit.
 	if stdout, _, err := git.NewCommand(ctx, "clone").AddDynamicArguments(repoPath, tmpDir).
-		SetDescription(fmt.Sprintf("prepareRepoCommit (git clone): %s to %s", repoPath, tmpDir)).
 		RunStdString(&git.RunOpts{Dir: "", Env: env}); err != nil {
 		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git clone: %w", err)
@@ -301,7 +300,6 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		}
 
 		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
 			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			rollbackRepo = repo
@@ -314,9 +312,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		if len(opts.License) > 0 {
 			licenses = append(licenses, ConvertLicenseName(opts.License))
 
-			stdout, _, err := git.NewCommand(ctx, "rev-parse", "HEAD").
-				SetDescription(fmt.Sprintf("CreateRepository(git rev-parse HEAD): %s", repoPath)).
-				RunStdString(&git.RunOpts{Dir: repoPath})
+			stdout, _, err := git.NewCommand(ctx, "rev-parse", "HEAD").RunStdString(&git.RunOpts{Dir: repoPath})
 			if err != nil {
 				log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 				rollbackRepo = repo

@@ -10,7 +10,6 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -53,7 +52,7 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePat
 	// Check that the path given in opts.treePath is valid (not a git path)
 	cleanTreePath := CleanUploadFileName(treePath)
 	if cleanTreePath == "" && treePath != "" {
-		return nil, models.ErrFilenameInvalid{
+		return nil, ErrFilenameInvalid{
 			Path: treePath,
 		}
 	}
@@ -128,7 +127,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 	// Check that the path given in opts.treePath is valid (not a git path)
 	cleanTreePath := CleanUploadFileName(treePath)
 	if cleanTreePath == "" && treePath != "" {
-		return nil, models.ErrFilenameInvalid{
+		return nil, ErrFilenameInvalid{
 			Path: treePath,
 		}
 	}

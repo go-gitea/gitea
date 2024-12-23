@@ -6,7 +6,7 @@ import {attachRefIssueContextPopup} from './contextpopup.ts';
 import {POST} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
-import {applyAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {applyAreYouSure, ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 function initEditPreviewTab(elForm: HTMLFormElement) {
@@ -188,7 +188,7 @@ export function initRepoEditor() {
           header: elForm.getAttribute('data-text-empty-confirm-header'),
           content: elForm.getAttribute('data-text-empty-confirm-content'),
         })) {
-          elForm.classList.remove('dirty');
+          ignoreAreYouSure(elForm);
           elForm.submit();
         }
       }
