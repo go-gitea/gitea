@@ -9,8 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/externalaccount"
@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	tplTwofa        base.TplName = "user/auth/twofa"
-	tplTwofaScratch base.TplName = "user/auth/twofa_scratch"
+	tplTwofa        templates.TplName = "user/auth/twofa"
+	tplTwofaScratch templates.TplName = "user/auth/twofa_scratch"
 )
 
 // TwoFactor shows the user a two-factor authentication page.
