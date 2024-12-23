@@ -10,8 +10,8 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	actions_shared "code.gitea.io/gitea/routers/web/shared/actions"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
@@ -19,14 +19,14 @@ import (
 
 const (
 	// TODO: Separate secrets from runners when layout is ready
-	tplRepoRunners     base.TplName = "repo/settings/actions"
-	tplOrgRunners      base.TplName = "org/settings/actions"
-	tplAdminRunners    base.TplName = "admin/actions"
-	tplUserRunners     base.TplName = "user/settings/actions"
-	tplRepoRunnerEdit  base.TplName = "repo/settings/runner_edit"
-	tplOrgRunnerEdit   base.TplName = "org/settings/runners_edit"
-	tplAdminRunnerEdit base.TplName = "admin/runners/edit"
-	tplUserRunnerEdit  base.TplName = "user/settings/runner_edit"
+	tplRepoRunners     templates.TplName = "repo/settings/actions"
+	tplOrgRunners      templates.TplName = "org/settings/actions"
+	tplAdminRunners    templates.TplName = "admin/actions"
+	tplUserRunners     templates.TplName = "user/settings/actions"
+	tplRepoRunnerEdit  templates.TplName = "repo/settings/runner_edit"
+	tplOrgRunnerEdit   templates.TplName = "org/settings/runners_edit"
+	tplAdminRunnerEdit templates.TplName = "admin/runners/edit"
+	tplUserRunnerEdit  templates.TplName = "user/settings/runner_edit"
 )
 
 type runnersCtx struct {
@@ -36,8 +36,8 @@ type runnersCtx struct {
 	IsOrg              bool
 	IsAdmin            bool
 	IsUser             bool
-	RunnersTemplate    base.TplName
-	RunnerEditTemplate base.TplName
+	RunnersTemplate    templates.TplName
+	RunnerEditTemplate templates.TplName
 	RedirectLink       string
 }
 

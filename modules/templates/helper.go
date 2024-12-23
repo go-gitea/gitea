@@ -9,7 +9,6 @@ import (
 	"html"
 	"html/template"
 	"net/url"
-	"reflect"
 	"strings"
 	"time"
 
@@ -69,7 +68,7 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// time / number / format
 		"FileSize": base.FileSize,
-		"CountFmt": base.FormatNumberSI,
+		"CountFmt": countFmt,
 		"Sec2Time": util.SecToTime,
 
 		"TimeEstimateString": timeEstimateString,
@@ -239,29 +238,8 @@ func iif(condition any, vals ...any) any {
 }
 
 func isTemplateTruthy(v any) bool {
-	if v == nil {
-		return false
-	}
-
-	rv := reflect.ValueOf(v)
-	switch rv.Kind() {
-	case reflect.Bool:
-		return rv.Bool()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return rv.Int() != 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return rv.Uint() != 0
-	case reflect.Float32, reflect.Float64:
-		return rv.Float() != 0
-	case reflect.Complex64, reflect.Complex128:
-		return rv.Complex() != 0
-	case reflect.String, reflect.Slice, reflect.Array, reflect.Map:
-		return rv.Len() > 0
-	case reflect.Struct:
-		return true
-	default:
-		return !rv.IsNil()
-	}
+	truth, _ := template.IsTrue(v)
+	return truth
 }
 
 // evalTokens evaluates the expression by tokens and returns the result, see the comment of eval.Expr for details.
@@ -284,14 +262,6 @@ func userThemeName(user *user_model.User) string {
 		return user.Theme
 	}
 	return setting.UI.DefaultTheme
-}
-
-func timeEstimateString(timeSec any) string {
-	v, _ := util.ToInt64(timeSec)
-	if v == 0 {
-		return ""
-	}
-	return util.TimeEstimateString(v)
 }
 
 // QueryBuild builds a query string from a list of key-value pairs.

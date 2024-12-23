@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
@@ -17,10 +17,10 @@ import (
 )
 
 type OAuth2CommonHandlers struct {
-	OwnerID            int64        // 0 for instance-wide, otherwise OrgID or UserID
-	BasePathList       string       // the base URL for the application list page, eg: "/user/setting/applications"
-	BasePathEditPrefix string       // the base URL for the application edit page, will be appended with app id, eg: "/user/setting/applications/oauth2"
-	TplAppEdit         base.TplName // the template for the application edit page
+	OwnerID            int64             // 0 for instance-wide, otherwise OrgID or UserID
+	BasePathList       string            // the base URL for the application list page, eg: "/user/setting/applications"
+	BasePathEditPrefix string            // the base URL for the application edit page, will be appended with app id, eg: "/user/setting/applications/oauth2"
+	TplAppEdit         templates.TplName // the template for the application edit page
 }
 
 func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context) {

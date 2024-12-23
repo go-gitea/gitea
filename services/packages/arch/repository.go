@@ -371,11 +371,12 @@ func writeDescription(tw *tar.Writer, opts *entryOptions) error {
 		{"BUILDDATE", fmt.Sprintf("%d", opts.FileMetadata.BuildDate)},
 		{"PACKAGER", opts.FileMetadata.Packager},
 		{"PROVIDES", strings.Join(opts.FileMetadata.Provides, "\n")},
+		{"REPLACES", strings.Join(opts.FileMetadata.Replaces, "\n")},
+		{"CONFLICTS", strings.Join(opts.FileMetadata.Conflicts, "\n")},
 		{"DEPENDS", strings.Join(opts.FileMetadata.Depends, "\n")},
 		{"OPTDEPENDS", strings.Join(opts.FileMetadata.OptDepends, "\n")},
 		{"MAKEDEPENDS", strings.Join(opts.FileMetadata.MakeDepends, "\n")},
 		{"CHECKDEPENDS", strings.Join(opts.FileMetadata.CheckDepends, "\n")},
-		{"XDATA", strings.Join(opts.FileMetadata.XData, "\n")},
 	})
 }
 

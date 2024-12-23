@@ -21,7 +21,6 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -43,8 +42,8 @@ import (
 
 const (
 	// tplInstall template for installation page
-	tplInstall     base.TplName = "install"
-	tplPostInstall base.TplName = "post-install"
+	tplInstall     templates.TplName = "install"
+	tplPostInstall templates.TplName = "post-install"
 )
 
 // getSupportedDbTypeNames returns a slice for supported database types and names. The slice is used to keep the order
