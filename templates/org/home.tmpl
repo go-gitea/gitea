@@ -19,14 +19,11 @@
 					</div>
 					{{end}}
 				{{end}}
-				{{if .IsViewerMember}}
-					{{if and .ShowMemberAndTeamTab .PrivateProfileReadme}}
-						<div id="readme_profile" class="markup">{{.PrivateProfileReadme}}</div>
-					{{end}}
-				{{else}}
-					{{if .PublicProfileReadme}}
-						<div id="readme_profile" class="markup">{{.PublicProfileReadme}}</div>
-					{{end}}
+				{{if .PrivateProfileReadme}}
+					<div id="readme_profile" class="markup">{{.PrivateProfileReadme}}</div>
+				{{end}}
+				{{if .PublicProfileReadme}}
+					<div id="readme_profile" class="markup">{{.PublicProfileReadme}}</div>
 				{{end}}
 				{{template "shared/repo_search" .}}
 				{{template "explore/repo_list" .}}
