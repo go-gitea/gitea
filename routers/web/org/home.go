@@ -119,22 +119,30 @@ func home(ctx *context.Context, viewRepositories bool) {
 	queryParams.Set("view_as", "public")
 	ctx.Data["QueryForPublic"] = html_template.URL(queryParams.Encode())
 
-	isViewerMember := ctx.FormString("view_as") == "member"
-	ctx.Data["IsViewerMember"] = isViewerMember
-
-	profileType := "Public"
-	if isViewerMember {
-		profileType = "Private"
-	}
-
-	if !prepareOrgProfileReadme(ctx, viewRepositories, profileType) {
-		ctx.Data["PageIsViewRepositories"] = true
-	}
-
 	err = shared_user.RenderOrgHeader(ctx)
 	if err != nil {
 		ctx.ServerError("RenderOrgHeader", err)
 		return
+	}
+
+	isViewerMember := ctx.FormString("view_as")
+	ctx.Data["IsViewerMember"] = isViewerMember == "member"
+
+	profileType := "Public"
+	if isViewerMember == "member" {
+		profileType = "Private"
+	}
+
+	if isViewerMember == "" {
+		if !prepareOrgProfileReadme(ctx, viewRepositories, "Public") {
+			if !prepareOrgProfileReadme(ctx, viewRepositories, "Private") {
+				ctx.Data["PageIsViewRepositories"] = true
+			}
+		}
+	} else {
+		if !prepareOrgProfileReadme(ctx, viewRepositories, profileType) {
+			ctx.Data["PageIsViewRepositories"] = true
+		}
 	}
 
 	var (
