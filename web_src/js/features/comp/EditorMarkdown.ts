@@ -92,11 +92,12 @@ function handleNewline(textarea: HTMLTextAreaElement, e: Event) {
   if (!line) {
     // clear current line if we only have i.e. '1. ' and the user presses enter again to finish creating a list
     textarea.value = value.slice(0, lineStart) + value.slice(lineEnd);
+    textarea.setSelectionRange(selStart - prefix.length, selStart - prefix.length);
   } else {
     // start a new line with the same indention and prefix
     let newPrefix = prefix;
     // a simple approach, otherwise it needs to parse the lines after the current line
-    if (/^\d+\./.test(prefix)) newPrefix = `1. ${newPrefix.slice(newPrefix.indexOf('.') + 2)}`;
+    if (/^\d+\./.test(prefix)) newPrefix = `${Number(newPrefix.slice(0, newPrefix.indexOf('.'))) + 1}. `;
     newPrefix = newPrefix.replace('[x]', '[ ]');
     const newLine = `\n${indention}${newPrefix}`;
     textarea.value = value.slice(0, selStart) + newLine + value.slice(selEnd);
