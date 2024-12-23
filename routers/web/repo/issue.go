@@ -343,7 +343,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, ctx.Req.FormValue("content"), ctx.FormInt("content_version")); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.issues.edit.blocked_user"))
-		} else if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
+		} else if errors.Is(err, issue_service.ErrIssueAlreadyChanged) {
 			if issue.IsPull {
 				ctx.JSONError(ctx.Tr("repo.pulls.edit.already_changed"))
 			} else {
@@ -602,7 +602,7 @@ func updateAttachments(ctx *context.Context, item any, files []string) error {
 		case *issues_model.Issue:
 			err = issues_model.UpdateIssueAttachments(ctx, content.ID, files)
 		case *issues_model.Comment:
-			err = content.UpdateAttachments(ctx, files)
+			err = issues_model.UpdateCommentAttachments(ctx, content, files)
 		default:
 			return fmt.Errorf("unknown Type: %T", content)
 		}
