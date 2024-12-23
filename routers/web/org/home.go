@@ -124,6 +124,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 		ctx.ServerError("RenderOrgHeader", err)
 		return
 	}
+	isBothProfilesExist := ctx.Data["HasPublicProfileReadme"] == true && ctx.Data["HasPrivateProfileReadme"] == true
 
 	isViewerMember := ctx.FormString("view_as")
 	ctx.Data["IsViewerMember"] = isViewerMember == "member"
@@ -133,7 +134,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 		profileType = "Private"
 	}
 
-	if isViewerMember == "" {
+	if !isBothProfilesExist {
 		if !prepareOrgProfileReadme(ctx, viewRepositories, "Public") {
 			if !prepareOrgProfileReadme(ctx, viewRepositories, "Private") {
 				ctx.Data["PageIsViewRepositories"] = true
