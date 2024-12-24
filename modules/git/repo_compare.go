@@ -233,16 +233,16 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 	return numFiles, totalAdditions, totalDeletions, err
 }
 
+// parseCompareArgs parses the compareArgs string into a slice of arguments
+// Only supports the following formats:
+// - "base...head"
+// - "base..head"
 func parseCompareArgs(compareArgs string) (args []string) {
 	parts := strings.Split(compareArgs, "...")
 	if len(parts) == 2 {
 		return []string{compareArgs}
 	}
 	parts = strings.Split(compareArgs, "..")
-	if len(parts) == 2 {
-		return parts
-	}
-	parts = strings.Fields(compareArgs)
 	if len(parts) == 2 {
 		return parts
 	}

@@ -22,10 +22,6 @@ func Test_parseCompareArgs(t *testing.T) {
 			[]string{"master", "develop"},
 		},
 		{
-			"master HEAD",
-			[]string{"master", "HEAD"},
-		},
-		{
 			"HEAD...develop",
 			[]string{"HEAD...develop"},
 		},
