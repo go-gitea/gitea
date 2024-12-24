@@ -24,9 +24,9 @@ func (b *Base) PathParam(name string) string {
 
 // PathParamRaw returns the raw param in request path, eg: "/{var}" => "/a%2fb", then `var == "a%2fb"`
 func (b *Base) PathParamRaw(name string) string {
-	// this check should be removed before 1.25 release
 	if strings.HasPrefix(name, ":") {
-		panic("path param should not start with ':'")
+		setting.PanicInDevOrTesting("path param should not start with ':'")
+		name = name[1:]
 	}
 	return chi.URLParam(b.Req, name)
 }
@@ -38,10 +38,10 @@ func (b *Base) PathParamInt64(p string) int64 {
 }
 
 // SetPathParam set request path params into routes
-func (b *Base) SetPathParam(k, v string) {
-	// this check should be removed before 1.25 release
-	if strings.HasPrefix(k, ":") {
-		panic("path param should not start with ':'")
+func (b *Base) SetPathParam(name, value string) {
+	if strings.HasPrefix(name, ":") {
+		setting.PanicInDevOrTesting("path param should not start with ':'")
+		name = name[1:]
 	}
-	chi.RouteContext(b).URLParams.Add(k, url.PathEscape(v))
+	chi.RouteContext(b).URLParams.Add(name, url.PathEscape(value))
 }

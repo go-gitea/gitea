@@ -449,7 +449,7 @@ func GetTeamMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	u := user.GetUserByParams(ctx)
+	u := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -492,7 +492,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	u := user.GetUserByParams(ctx)
+	u := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -532,7 +532,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	u := user.GetUserByParams(ctx)
+	u := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
