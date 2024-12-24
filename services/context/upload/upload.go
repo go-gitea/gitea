@@ -97,8 +97,8 @@ func AddUploadContext(ctx *context.Context, uploadType string) {
 	} else if uploadType == "comment" {
 		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
 		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/issues/attachments/remove"
-		if len(ctx.PathParam(":index")) > 0 {
-			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/" + url.PathEscape(ctx.PathParam(":index")) + "/attachments"
+		if len(ctx.PathParam("index")) > 0 {
+			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/" + url.PathEscape(ctx.PathParam("index")) + "/attachments"
 		} else {
 			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
 		}

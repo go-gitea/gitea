@@ -34,7 +34,7 @@ import (
 
 // SignInOAuth handles the OAuth2 login buttons
 func SignInOAuth(ctx *context.Context) {
-	provider := ctx.PathParam(":provider")
+	provider := ctx.PathParam("provider")
 
 	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
 	if err != nil {
@@ -73,7 +73,7 @@ func SignInOAuth(ctx *context.Context) {
 
 // SignInOAuthCallback handles the callback from the given provider
 func SignInOAuthCallback(ctx *context.Context) {
-	provider := ctx.PathParam(":provider")
+	provider := ctx.PathParam("provider")
 
 	if ctx.Req.FormValue("error") != "" {
 		var errorKeyValues []string

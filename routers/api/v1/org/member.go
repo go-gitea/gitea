@@ -143,7 +143,7 @@ func IsMember(ctx *context.APIContext) {
 	//   "404":
 	//     description: user is not a member
 
-	userToCheck := user.GetUserByParams(ctx)
+	userToCheck := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -194,7 +194,7 @@ func IsPublicMember(ctx *context.APIContext) {
 	//   "404":
 	//     description: user is not a public member
 
-	userToCheck := user.GetUserByParams(ctx)
+	userToCheck := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -236,7 +236,7 @@ func PublicizeMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	userToPublicize := user.GetUserByParams(ctx)
+	userToPublicize := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -278,7 +278,7 @@ func ConcealMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	userToConceal := user.GetUserByParams(ctx)
+	userToConceal := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -318,7 +318,7 @@ func DeleteMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	member := user.GetUserByParams(ctx)
+	member := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}

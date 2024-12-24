@@ -40,8 +40,8 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	// b) our update function will likely change the repository in the db so we will need to refresh it
 	// c) we don't always need the repo
 
-	ownerName := ctx.PathParam(":owner")
-	repoName := ctx.PathParam(":repo")
+	ownerName := ctx.PathParam("owner")
+	repoName := ctx.PathParam("repo")
 
 	// defer getting the repository at this point - as we should only retrieve it if we're going to call update
 	var (
