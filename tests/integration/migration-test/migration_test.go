@@ -126,7 +126,7 @@ func restoreOldDB(t *testing.T, version string) {
 		err := os.MkdirAll(path.Dir(setting.Database.Path), os.ModePerm)
 		assert.NoError(t, err)
 
-		db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate", setting.Database.Path, setting.Database.Timeout))
+		db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?mode=rwc&_busy_timeout=%d&_txlock=immediate", setting.Database.Path, setting.Database.Timeout))
 		assert.NoError(t, err)
 		defer db.Close()
 
