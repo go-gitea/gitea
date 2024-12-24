@@ -174,6 +174,12 @@ func (t telegramConvertor) Package(p *api.PackagePayload) (TelegramPayload, erro
 	return createTelegramPayloadHTML(text), nil
 }
 
+func (t telegramConvertor) CommitStatus(p *api.CommitStatusPayload) (TelegramPayload, error) {
+	text, _ := getCommitStatusPayloadInfo(p, noneLinkFormatter, true)
+
+	return createTelegramPayloadHTML(text), nil
+}
+
 func createTelegramPayloadHTML(msgHTML string) TelegramPayload {
 	// https://core.telegram.org/bots/api#formatting-options
 	return TelegramPayload{
