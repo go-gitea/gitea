@@ -5,6 +5,7 @@ package org
 
 import (
 	"fmt"
+	html_template "html/template"
 	"net/http"
 	"path"
 	"strings"
@@ -111,8 +112,38 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
-	if !prepareOrgProfileReadme(ctx, viewRepositories) {
-		ctx.Data["PageIsViewRepositories"] = true
+	currentURL := ctx.Req.URL
+	queryParams := currentURL.Query()
+	queryParams.Set("view_as", "member")
+	ctx.Data["QueryForMember"] = html_template.URL(queryParams.Encode())
+	queryParams.Set("view_as", "public")
+	ctx.Data["QueryForPublic"] = html_template.URL(queryParams.Encode())
+
+	err = shared_user.RenderOrgHeader(ctx)
+	if err != nil {
+		ctx.ServerError("RenderOrgHeader", err)
+		return
+	}
+	isBothProfilesExist := ctx.Data["HasPublicProfileReadme"] == true && ctx.Data["HasPrivateProfileReadme"] == true
+
+	isViewerMember := ctx.FormString("view_as")
+	ctx.Data["IsViewerMember"] = isViewerMember == "member"
+
+	profileType := "Public"
+	if isViewerMember == "member" {
+		profileType = "Private"
+	}
+
+	if !isBothProfilesExist {
+		if !prepareOrgProfileReadme(ctx, viewRepositories, "Public") {
+			if !prepareOrgProfileReadme(ctx, viewRepositories, "Private") {
+				ctx.Data["PageIsViewRepositories"] = true
+			}
+		}
+	} else {
+		if !prepareOrgProfileReadme(ctx, viewRepositories, profileType) {
+			ctx.Data["PageIsViewRepositories"] = true
+		}
 	}
 
 	var (
@@ -168,28 +199,26 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }
 
-func prepareOrgProfileReadme(ctx *context.Context, viewRepositories bool) bool {
-	profileDbRepo, profileGitRepo, profileReadme, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
+func prepareOrgProfileReadme(ctx *context.Context, viewRepositories bool, profileType string) bool {
+	profileDbRepo, profileGitRepo, profileReadme, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer, profileType)
 	defer profileClose()
-	ctx.Data["HasProfileReadme"] = profileReadme != nil
+	ctx.Data[fmt.Sprintf("Has%sProfileReadme", profileType)] = profileReadme != nil
 
 	if profileGitRepo == nil || profileReadme == nil || viewRepositories {
 		return false
 	}
 
 	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
-		log.Error("failed to GetBlobContent: %v", err)
+		log.Error("failed to GetBlobContent for %s profile readme: %v", profileType, err)
 	} else {
 		rctx := renderhelper.NewRenderContextRepoFile(ctx, profileDbRepo, renderhelper.RepoFileOptions{
 			CurrentRefPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
 		})
 		if profileContent, err := markdown.RenderString(rctx, bytes); err != nil {
-			log.Error("failed to RenderString: %v", err)
+			log.Error("failed to RenderString for %s profile readme: %v", profileType, err)
 		} else {
-			ctx.Data["ProfileReadme"] = profileContent
+			ctx.Data[fmt.Sprintf("%sProfileReadme", profileType)] = profileContent
 		}
 	}
-
-	ctx.Data["PageIsViewOverview"] = true
 	return true
 }
