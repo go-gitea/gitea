@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/net/html"
@@ -191,6 +192,24 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		link := ctx.RenderHelper.ResolveLink(util.URLJoin(ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], "commit", hash), LinkTypeApp)
 		replaceContent(node, m[2], m[3], createCodeLink(link, base.ShortSha(hash), "commit"))
 		start = 0
+		node = node.NextSibling.NextSibling
+	}
+}
+
+func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
+	next := node.NextSibling
+
+	for node != nil && node != next {
+		found, ref := references.FindRenderizableCommitCrossReference(node.Data)
+		if !found {
+			return
+		}
+
+		reftext := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
+		linkHref := ctx.RenderHelper.ResolveLink(util.URLJoin(ref.Owner, ref.Name, "commit", ref.CommitSha), LinkTypeApp)
+		link := createLink(ctx, linkHref, reftext, "commit")
+
+		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
 		node = node.NextSibling.NextSibling
 	}
 }
