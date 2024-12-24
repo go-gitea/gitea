@@ -140,7 +140,7 @@ func GetTreeList(ctx context.Context, repo *repo_model.Repository, treePath stri
 	// Check that the path given in opts.treePath is valid (not a git path)
 	cleanTreePath := CleanUploadFileName(treePath)
 	if cleanTreePath == "" && treePath != "" {
-		return nil, models.ErrFilenameInvalid{
+		return nil, ErrFilenameInvalid{
 			Path: treePath,
 		}
 	}
