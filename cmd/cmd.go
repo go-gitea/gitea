@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/opentelemetry"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -66,6 +67,9 @@ func initDB(ctx context.Context) error {
 		log.Fatal(`Database settings are missing from the configuration file: %q.
 Ensure you are running in the correct environment or set the correct configuration file with -c.
 If this is the intended configuration file complete the [database] section.`, setting.CustomConf)
+	}
+	if err := opentelemetry.InitOtel(ctx); err != nil {
+		return fmt.Errorf("unable to initialize OpenTelemetry. Error: %w", err)
 	}
 	if err := db.InitEngine(ctx); err != nil {
 		return fmt.Errorf("unable to initialize the database using the configuration in %q. Error: %w", setting.CustomConf, err)

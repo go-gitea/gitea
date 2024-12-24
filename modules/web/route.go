@@ -52,6 +52,10 @@ func NewRouter() *Router {
 	return &Router{chiRouter: r}
 }
 
+func (r *Router) GetRouter() chi.Router {
+	return r.chiRouter
+}
+
 // Use supports two middlewares
 func (r *Router) Use(middlewares ...any) {
 	for _, m := range middlewares {

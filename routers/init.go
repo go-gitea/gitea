@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
+	"code.gitea.io/gitea/modules/opentelemetry"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
@@ -55,6 +56,9 @@ import (
 	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/uinotification"
 	"code.gitea.io/gitea/services/webhook"
+
+	"github.com/riandyrn/otelchi"
+	otelchimetric "github.com/riandyrn/otelchi/metric"
 )
 
 func mustInit(fn func() error) {
@@ -113,6 +117,7 @@ func InitWebInstallPage(ctx context.Context) {
 
 // InitWebInstalled is for global installed configuration.
 func InitWebInstalled(ctx context.Context) {
+	mustInitCtx(ctx, opentelemetry.InitOtel)
 	mustInitCtx(ctx, git.InitFull)
 	log.Info("Git version: %s (home: %s)", git.DefaultFeatures().VersionInfo(), git.HomeDir())
 	if !git.DefaultFeatures().SupportHashSha256 {
@@ -183,6 +188,17 @@ func InitWebInstalled(ctx context.Context) {
 func NormalRoutes() *web.Router {
 	_ = templates.HTMLRenderer()
 	r := web.NewRouter()
+
+	mp := opentelemetry.GetMeterProvider(context.Background())
+
+	baseCfg := otelchimetric.NewBaseConfig("gitea", otelchimetric.WithMeterProvider(mp))
+	r.Use(
+		otelchi.Middleware("gitea", otelchi.WithChiRoutes(r.GetRouter())),
+		otelchimetric.NewRequestDurationMillis(baseCfg),
+		otelchimetric.NewRequestInFlight(baseCfg),
+		otelchimetric.NewResponseSizeBytes(baseCfg),
+	)
+
 	r.Use(common.ProtocolMiddlewares()...)
 
 	r.Mount("/", web_routers.Routes())
