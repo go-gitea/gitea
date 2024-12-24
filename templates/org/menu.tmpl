@@ -20,6 +20,11 @@
 				{{end}}
 			</a>
 			{{end}}
+			{{if .HasProfileWiki}}
+			<a class="item" href="{{$.OrgProfileRepo.Link}}/wiki">
+				{{svg "octicon-book"}} {{ctx.Locale.Tr "repo.wiki"}}
+			</a>
+			{{end}}
 			{{if and .IsPackageEnabled .CanReadPackages}}
 			<a class="{{if .IsPackagesPage}}active {{end}}item" href="{{$.Org.HomeLink}}/-/packages">
 				{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}

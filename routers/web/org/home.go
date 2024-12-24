@@ -111,7 +111,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
-	if !prepareOrgProfileReadme(ctx, viewRepositories) {
+	if !prepareOrgProfileRepo(ctx, viewRepositories) {
 		ctx.Data["PageIsViewRepositories"] = true
 	}
 
@@ -168,14 +168,17 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }
 
-func prepareOrgProfileReadme(ctx *context.Context, viewRepositories bool) bool {
+func prepareOrgProfileRepo(ctx *context.Context, viewRepositories bool) bool {
 	profileDbRepo, profileGitRepo, profileReadme, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
 	defer profileClose()
-	ctx.Data["HasProfileReadme"] = profileReadme != nil
 
 	if profileGitRepo == nil || profileReadme == nil || viewRepositories {
 		return false
 	}
+
+	ctx.Data["OrgProfileRepo"] = profileDbRepo
+	ctx.Data["HasProfileWiki"] = profileDbRepo.HasWiki()
+	ctx.Data["HasProfileReadme"] = true
 
 	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 		log.Error("failed to GetBlobContent: %v", err)
