@@ -10,6 +10,7 @@
 [![](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT "License: MIT")
 [![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod&color=green)](https://gitpod.io/#https://github.com/go-gitea/gitea)
 [![](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea "Crowdin")
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fgo-gitea%2Fgitea.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2Fgo-gitea%2Fgitea?ref=badge_shield&issueType=license)
 
 [View this document in Chinese](./README_ZH.md)
 
