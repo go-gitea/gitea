@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
@@ -24,6 +23,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	pull_service "code.gitea.io/gitea/services/pull"
+	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -247,7 +247,7 @@ func CreateBranch(ctx *context.APIContext) {
 	if err != nil {
 		if git_model.IsErrBranchNotExist(err) {
 			ctx.Error(http.StatusNotFound, "", "The old branch does not exist")
-		} else if models.IsErrTagAlreadyExists(err) {
+		} else if release_service.IsErrTagAlreadyExists(err) {
 			ctx.Error(http.StatusConflict, "", "The branch with the same tag already exists.")
 		} else if git_model.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err) {
 			ctx.Error(http.StatusConflict, "", "The branch already exists.")
@@ -729,15 +729,11 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	} else {
 		if !isPlainRule {
 			if ctx.Repo.GitRepo == nil {
-				ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
+				ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx, ctx.Repo.Repository)
 				if err != nil {
 					ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 					return
 				}
-				defer func() {
-					ctx.Repo.GitRepo.Close()
-					ctx.Repo.GitRepo = nil
-				}()
 			}
 			// FIXME: since we only need to recheck files protected rules, we could improve this
 			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.Repository.ID, ruleName)
@@ -1061,15 +1057,11 @@ func EditBranchProtection(ctx *context.APIContext) {
 	} else {
 		if !isPlainRule {
 			if ctx.Repo.GitRepo == nil {
-				ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
+				ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx, ctx.Repo.Repository)
 				if err != nil {
 					ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 					return
 				}
-				defer func() {
-					ctx.Repo.GitRepo.Close()
-					ctx.Repo.GitRepo = nil
-				}()
 			}
 
 			// FIXME: since we only need to recheck files protected rules, we could improve this

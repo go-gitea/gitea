@@ -11,7 +11,6 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
@@ -19,7 +18,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -28,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
@@ -39,8 +38,8 @@ import (
 )
 
 const (
-	tplCreate       base.TplName = "repo/create"
-	tplAlertDetails base.TplName = "base/alert_details"
+	tplCreate       templates.TplName = "repo/create"
+	tplAlertDetails templates.TplName = "base/alert_details"
 )
 
 // MustBeNotEmpty render when a repo is a empty git dir
@@ -186,7 +185,7 @@ func Create(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCreate)
 }
 
-func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form any) {
+func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl templates.TplName, form any) {
 	switch {
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
@@ -305,8 +304,8 @@ func CreatePost(ctx *context.Context) {
 }
 
 const (
-	tplWatchUnwatch base.TplName = "repo/watch_unwatch"
-	tplStarUnstar   base.TplName = "repo/star_unstar"
+	tplWatchUnwatch templates.TplName = "repo/watch_unwatch"
+	tplStarUnstar   templates.TplName = "repo/star_unstar"
 )
 
 // Action response for actions to a repository
@@ -378,7 +377,7 @@ func Action(ctx *context.Context) {
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
-	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
+	repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 	if err != nil {
 		return err
 	}

@@ -42,7 +42,7 @@ type globalVarsType struct {
 	nulCleaner *strings.Replacer
 }
 
-var globalVars = sync.OnceValue[*globalVarsType](func() *globalVarsType {
+var globalVars = sync.OnceValue(func() *globalVarsType {
 	v := &globalVarsType{}
 	// NOTE: All below regex matching do not perform any extra validation.
 	// Thus a link is produced even if the linked entity does not exist.

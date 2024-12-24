@@ -9,14 +9,14 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplPackagesList base.TplName = "repo/packages"
+	tplPackagesList templates.TplName = "repo/packages"
 )
 
 // Packages displays a list of all packages in the repository

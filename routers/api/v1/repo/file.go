@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -30,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
+	pull_service "code.gitea.io/gitea/services/pull"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
@@ -287,13 +287,12 @@ func GetArchive(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if ctx.Repo.GitRepo == nil {
-		gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
+		var err error
+		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return
 		}
-		ctx.Repo.GitRepo = gitRepo
-		defer gitRepo.Close()
 	}
 
 	archiveDownload(ctx)
@@ -736,12 +735,12 @@ func UpdateFile(ctx *context.APIContext) {
 }
 
 func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
-	if models.IsErrUserCannotCommit(err) || models.IsErrFilePathProtected(err) {
+	if files_service.IsErrUserCannotCommit(err) || pull_service.IsErrFilePathProtected(err) {
 		ctx.Error(http.StatusForbidden, "Access", err)
 		return
 	}
-	if git_model.IsErrBranchAlreadyExists(err) || models.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
-		models.IsErrFilePathInvalid(err) || models.IsErrRepoFileAlreadyExists(err) {
+	if git_model.IsErrBranchAlreadyExists(err) || files_service.IsErrFilenameInvalid(err) || pull_service.IsErrSHADoesNotMatch(err) ||
+		files_service.IsErrFilePathInvalid(err) || files_service.IsErrRepoFileAlreadyExists(err) {
 		ctx.Error(http.StatusUnprocessableEntity, "Invalid", err)
 		return
 	}
@@ -887,17 +886,17 @@ func DeleteFile(ctx *context.APIContext) {
 	}
 
 	if filesResponse, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, opts); err != nil {
-		if git.IsErrBranchNotExist(err) || models.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
+		if git.IsErrBranchNotExist(err) || files_service.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteFile", err)
 			return
 		} else if git_model.IsErrBranchAlreadyExists(err) ||
-			models.IsErrFilenameInvalid(err) ||
-			models.IsErrSHADoesNotMatch(err) ||
-			models.IsErrCommitIDDoesNotMatch(err) ||
-			models.IsErrSHAOrCommitIDNotProvided(err) {
+			files_service.IsErrFilenameInvalid(err) ||
+			pull_service.IsErrSHADoesNotMatch(err) ||
+			files_service.IsErrCommitIDDoesNotMatch(err) ||
+			files_service.IsErrSHAOrCommitIDNotProvided(err) {
 			ctx.Error(http.StatusBadRequest, "DeleteFile", err)
 			return
-		} else if models.IsErrUserCannotCommit(err) {
+		} else if files_service.IsErrUserCannotCommit(err) {
 			ctx.Error(http.StatusForbidden, "DeleteFile", err)
 			return
 		}

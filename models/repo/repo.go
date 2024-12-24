@@ -37,7 +37,7 @@ type ErrUserDoesNotHaveAccessToRepo struct {
 	RepoName string
 }
 
-// IsErrUserDoesNotHaveAccessToRepo checks if an error is a ErrRepoFileAlreadyExists.
+// IsErrUserDoesNotHaveAccessToRepo checks if an error is a ErrUserDoesNotHaveAccessToRepo.
 func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
 	_, ok := err.(ErrUserDoesNotHaveAccessToRepo)
 	return ok
@@ -864,6 +864,21 @@ func (repo *Repository) TemplateRepo(ctx context.Context) *Repository {
 		return nil
 	}
 	return repo
+}
+
+// ErrUserOwnRepos represents a "UserOwnRepos" kind of error.
+type ErrUserOwnRepos struct {
+	UID int64
+}
+
+// IsErrUserOwnRepos checks if an error is a ErrUserOwnRepos.
+func IsErrUserOwnRepos(err error) bool {
+	_, ok := err.(ErrUserOwnRepos)
+	return ok
+}
+
+func (err ErrUserOwnRepos) Error() string {
+	return fmt.Sprintf("user still has ownership of repositories [uid: %d]", err.UID)
 }
 
 type CountRepositoryOptions struct {
