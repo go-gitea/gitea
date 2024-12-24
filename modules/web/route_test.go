@@ -7,177 +7,160 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
 
-	chi "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRoute1(t *testing.T) {
-	buff := bytes.NewBufferString("")
-	recorder := httptest.NewRecorder()
-	recorder.Body = buff
-
-	r := NewRouter()
-	r.Get("/{username}/{reponame}/{type:issues|pulls}", func(resp http.ResponseWriter, req *http.Request) {
-		username := chi.URLParam(req, "username")
-		assert.EqualValues(t, "gitea", username)
-		reponame := chi.URLParam(req, "reponame")
-		assert.EqualValues(t, "gitea", reponame)
-		tp := chi.URLParam(req, "type")
-		assert.EqualValues(t, "issues", tp)
-	})
-
-	req, err := http.NewRequest("GET", "http://localhost:8000/gitea/gitea/issues", nil)
-	assert.NoError(t, err)
-	r.ServeHTTP(recorder, req)
-	assert.EqualValues(t, http.StatusOK, recorder.Code)
+func chiURLParamsToMap(chiCtx *chi.Context) map[string]string {
+	pathParams := chiCtx.URLParams
+	m := make(map[string]string, len(pathParams.Keys))
+	for i, key := range pathParams.Keys {
+		if key == "*" && pathParams.Values[i] == "" {
+			continue // chi router will add an empty "*" key if there is a "Mount"
+		}
+		m[key] = pathParams.Values[i]
+	}
+	return m
 }
 
-func TestRoute2(t *testing.T) {
+func TestPathProcessor(t *testing.T) {
+	testProcess := func(pattern, uri string, expectedPathParams map[string]string) {
+		chiCtx := chi.NewRouteContext()
+		chiCtx.RouteMethod = "GET"
+		p := NewPathProcessor("GET", pattern)
+		assert.True(t, p.ProcessRequestPath(chiCtx, uri), "use pattern %s to process uri %s", pattern, uri)
+		assert.Equal(t, expectedPathParams, chiURLParamsToMap(chiCtx), "use pattern %s to process uri %s", pattern, uri)
+	}
+	testProcess("/<p1>/<p2>", "/a/b", map[string]string{"p1": "a", "p2": "b"})
+	testProcess("/<p1:*>", "", map[string]string{"p1": ""}) // this is a special case, because chi router could use empty path
+	testProcess("/<p1:*>", "/", map[string]string{"p1": ""})
+	testProcess("/<p1:*>/<p2>", "/a", map[string]string{"p1": "", "p2": "a"})
+	testProcess("/<p1:*>/<p2>", "/a/b", map[string]string{"p1": "a", "p2": "b"})
+	testProcess("/<p1:*>/<p2>", "/a/b/c", map[string]string{"p1": "a/b", "p2": "c"})
+}
+
+func TestRouter(t *testing.T) {
 	buff := bytes.NewBufferString("")
 	recorder := httptest.NewRecorder()
 	recorder.Body = buff
 
-	hit := -1
+	type resultStruct struct {
+		method      string
+		pathParams  map[string]string
+		handlerMark string
+	}
+	var res resultStruct
+
+	h := func(optMark ...string) func(resp http.ResponseWriter, req *http.Request) {
+		mark := util.OptionalArg(optMark, "")
+		return func(resp http.ResponseWriter, req *http.Request) {
+			res.method = req.Method
+			res.pathParams = chiURLParamsToMap(chi.RouteContext(req.Context()))
+			res.handlerMark = mark
+		}
+	}
 
 	r := NewRouter()
+	r.Get("/{username}/{reponame}/{type:issues|pulls}", h("list-issues-a")) // this one will never be called
 	r.Group("/{username}/{reponame}", func() {
+		r.Get("/{type:issues|pulls}", h("list-issues-b"))
 		r.Group("", func() {
-			r.Get("/{type:issues|pulls}", func(resp http.ResponseWriter, req *http.Request) {
-				username := chi.URLParam(req, "username")
-				assert.EqualValues(t, "gitea", username)
-				reponame := chi.URLParam(req, "reponame")
-				assert.EqualValues(t, "gitea", reponame)
-				tp := chi.URLParam(req, "type")
-				assert.EqualValues(t, "issues", tp)
-				hit = 0
-			})
-
-			r.Get("/{type:issues|pulls}/{index}", func(resp http.ResponseWriter, req *http.Request) {
-				username := chi.URLParam(req, "username")
-				assert.EqualValues(t, "gitea", username)
-				reponame := chi.URLParam(req, "reponame")
-				assert.EqualValues(t, "gitea", reponame)
-				tp := chi.URLParam(req, "type")
-				assert.EqualValues(t, "issues", tp)
-				index := chi.URLParam(req, "index")
-				assert.EqualValues(t, "1", index)
-				hit = 1
-			})
+			r.Get("/{type:issues|pulls}/{index}", h("view-issue"))
 		}, func(resp http.ResponseWriter, req *http.Request) {
-			if stop, err := strconv.Atoi(req.FormValue("stop")); err == nil {
-				hit = stop
+			if stop := req.FormValue("stop"); stop != "" {
+				h(stop)(resp, req)
 				resp.WriteHeader(http.StatusOK)
 			}
 		})
-
 		r.Group("/issues/{index}", func() {
-			r.Get("/view", func(resp http.ResponseWriter, req *http.Request) {
-				username := chi.URLParam(req, "username")
-				assert.EqualValues(t, "gitea", username)
-				reponame := chi.URLParam(req, "reponame")
-				assert.EqualValues(t, "gitea", reponame)
-				index := chi.URLParam(req, "index")
-				assert.EqualValues(t, "1", index)
-				hit = 2
-			})
+			r.Post("/update", h("update-issue"))
 		})
 	})
-
-	req, err := http.NewRequest("GET", "http://localhost:8000/gitea/gitea/issues", nil)
-	assert.NoError(t, err)
-	r.ServeHTTP(recorder, req)
-	assert.EqualValues(t, http.StatusOK, recorder.Code)
-	assert.EqualValues(t, 0, hit)
-
-	req, err = http.NewRequest("GET", "http://localhost:8000/gitea/gitea/issues/1", nil)
-	assert.NoError(t, err)
-	r.ServeHTTP(recorder, req)
-	assert.EqualValues(t, http.StatusOK, recorder.Code)
-	assert.EqualValues(t, 1, hit)
-
-	req, err = http.NewRequest("GET", "http://localhost:8000/gitea/gitea/issues/1?stop=100", nil)
-	assert.NoError(t, err)
-	r.ServeHTTP(recorder, req)
-	assert.EqualValues(t, http.StatusOK, recorder.Code)
-	assert.EqualValues(t, 100, hit)
-
-	req, err = http.NewRequest("GET", "http://localhost:8000/gitea/gitea/issues/1/view", nil)
-	assert.NoError(t, err)
-	r.ServeHTTP(recorder, req)
-	assert.EqualValues(t, http.StatusOK, recorder.Code)
-	assert.EqualValues(t, 2, hit)
-}
-
-func TestRoute3(t *testing.T) {
-	buff := bytes.NewBufferString("")
-	recorder := httptest.NewRecorder()
-	recorder.Body = buff
-
-	hit := -1
 
 	m := NewRouter()
-	r := NewRouter()
 	r.Mount("/api/v1", m)
-
 	m.Group("/repos", func() {
 		m.Group("/{username}/{reponame}", func() {
-			m.Group("/branch_protections", func() {
-				m.Get("", func(resp http.ResponseWriter, req *http.Request) {
-					hit = 0
-				})
-				m.Post("", func(resp http.ResponseWriter, req *http.Request) {
-					hit = 1
-				})
+			m.Group("/branches", func() {
+				m.Get("", h())
+				m.Post("", h())
 				m.Group("/{name}", func() {
-					m.Get("", func(resp http.ResponseWriter, req *http.Request) {
-						hit = 2
-					})
-					m.Patch("", func(resp http.ResponseWriter, req *http.Request) {
-						hit = 3
-					})
-					m.Delete("", func(resp http.ResponseWriter, req *http.Request) {
-						hit = 4
-					})
+					m.Get("", h())
+					m.Patch("", h())
+					m.Delete("", h())
 				})
 			})
 		})
 	})
 
-	req, err := http.NewRequest("GET", "http://localhost:8000/api/v1/repos/gitea/gitea/branch_protections", nil)
-	assert.NoError(t, err)
-	r.ServeHTTP(recorder, req)
-	assert.EqualValues(t, http.StatusOK, recorder.Code)
-	assert.EqualValues(t, 0, hit)
+	testRoute := func(methodPath string, expected resultStruct) {
+		t.Run(methodPath, func(t *testing.T) {
+			res = resultStruct{}
+			methodPathFields := strings.Fields(methodPath)
+			req, err := http.NewRequest(methodPathFields[0], methodPathFields[1], nil)
+			assert.NoError(t, err)
+			r.ServeHTTP(recorder, req)
+			assert.EqualValues(t, expected, res)
+		})
+	}
 
-	req, err = http.NewRequest("POST", "http://localhost:8000/api/v1/repos/gitea/gitea/branch_protections", nil)
-	assert.NoError(t, err)
-	r.ServeHTTP(recorder, req)
-	assert.EqualValues(t, http.StatusOK, recorder.Code, http.StatusOK)
-	assert.EqualValues(t, 1, hit)
+	t.Run("Root Router", func(t *testing.T) {
+		testRoute("GET /the-user/the-repo/other", resultStruct{})
+		testRoute("GET /the-user/the-repo/pulls", resultStruct{
+			method:      "GET",
+			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "type": "pulls"},
+			handlerMark: "list-issues-b",
+		})
+		testRoute("GET /the-user/the-repo/issues/123", resultStruct{
+			method:      "GET",
+			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "type": "issues", "index": "123"},
+			handlerMark: "view-issue",
+		})
+		testRoute("GET /the-user/the-repo/issues/123?stop=hijack", resultStruct{
+			method:      "GET",
+			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "type": "issues", "index": "123"},
+			handlerMark: "hijack",
+		})
+		testRoute("POST /the-user/the-repo/issues/123/update", resultStruct{
+			method:      "POST",
+			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "index": "123"},
+			handlerMark: "update-issue",
+		})
+	})
 
-	req, err = http.NewRequest("GET", "http://localhost:8000/api/v1/repos/gitea/gitea/branch_protections/master", nil)
-	assert.NoError(t, err)
-	r.ServeHTTP(recorder, req)
-	assert.EqualValues(t, http.StatusOK, recorder.Code)
-	assert.EqualValues(t, 2, hit)
+	t.Run("Sub Router", func(t *testing.T) {
+		testRoute("GET /api/v1/repos/the-user/the-repo/branches", resultStruct{
+			method:     "GET",
+			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo"},
+		})
 
-	req, err = http.NewRequest("PATCH", "http://localhost:8000/api/v1/repos/gitea/gitea/branch_protections/master", nil)
-	assert.NoError(t, err)
-	r.ServeHTTP(recorder, req)
-	assert.EqualValues(t, http.StatusOK, recorder.Code)
-	assert.EqualValues(t, 3, hit)
+		testRoute("POST /api/v1/repos/the-user/the-repo/branches", resultStruct{
+			method:     "POST",
+			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo"},
+		})
 
-	req, err = http.NewRequest("DELETE", "http://localhost:8000/api/v1/repos/gitea/gitea/branch_protections/master", nil)
-	assert.NoError(t, err)
-	r.ServeHTTP(recorder, req)
-	assert.EqualValues(t, http.StatusOK, recorder.Code)
-	assert.EqualValues(t, 4, hit)
+		testRoute("GET /api/v1/repos/the-user/the-repo/branches/master", resultStruct{
+			method:     "GET",
+			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo", "name": "master"},
+		})
+
+		testRoute("PATCH /api/v1/repos/the-user/the-repo/branches/master", resultStruct{
+			method:     "PATCH",
+			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo", "name": "master"},
+		})
+
+		testRoute("DELETE /api/v1/repos/the-user/the-repo/branches/master", resultStruct{
+			method:     "DELETE",
+			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo", "name": "master"},
+		})
+	})
 }
 
 func TestRouteNormalizePath(t *testing.T) {
