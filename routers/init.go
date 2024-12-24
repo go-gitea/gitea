@@ -171,7 +171,7 @@ func InitWebInstalled(ctx context.Context) {
 	auth.Init()
 	mustInit(svg.Init)
 
-	actions_service.Init()
+	mustInitCtx(ctx, actions_service.Init)
 
 	mustInit(repo_service.InitLicenseClassifier)
 
