@@ -316,8 +316,8 @@ func ComposeGoGetImport(ctx context.Context, owner, repo string) string {
 // This is particular a workaround for "go get" command which does not respect
 // .netrc file.
 func EarlyResponseForGoGetMeta(ctx *Context) {
-	username := ctx.PathParam(":username")
-	reponame := strings.TrimSuffix(ctx.PathParam(":reponame"), ".git")
+	username := ctx.PathParam("username")
+	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
 	if username == "" || reponame == "" {
 		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
@@ -336,8 +336,8 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 
 // RedirectToRepo redirect to a differently-named repository
 func RedirectToRepo(ctx *Base, redirectRepoID int64) {
-	ownerName := ctx.PathParam(":username")
-	previousRepoName := ctx.PathParam(":reponame")
+	ownerName := ctx.PathParam("username")
+	previousRepoName := ctx.PathParam("reponame")
 
 	repo, err := repo_model.GetRepositoryByID(ctx, redirectRepoID)
 	if err != nil {
@@ -412,8 +412,8 @@ func RepoAssignment(ctx *Context) {
 		err   error
 	)
 
-	userName := ctx.PathParam(":username")
-	repoName := ctx.PathParam(":reponame")
+	userName := ctx.PathParam("username")
+	repoName := ctx.PathParam("reponame")
 	repoName = strings.TrimSuffix(repoName, ".git")
 	if setting.Other.EnableFeed {
 		repoName = strings.TrimSuffix(repoName, ".rss")
@@ -456,7 +456,7 @@ func RepoAssignment(ctx *Context) {
 	if strings.HasSuffix(repoName, ".wiki") {
 		// ctx.Req.URL.Path does not have the preceding appSubURL - any redirect must have this added
 		// Now we happen to know that all of our paths are: /:username/:reponame/whatever_else
-		originalRepoName := ctx.PathParam(":reponame")
+		originalRepoName := ctx.PathParam("reponame")
 		redirectRepoName := strings.TrimSuffix(repoName, ".wiki")
 		redirectRepoName += originalRepoName[len(redirectRepoName)+5:]
 		redirectPath := strings.Replace(
