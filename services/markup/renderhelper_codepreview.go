@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	gitea_context "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/repository/files"
 )
@@ -46,7 +47,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", err
 	}
 	if !perms.CanRead(unit.TypeCode) {
-		return "", fmt.Errorf("no permission")
+		return "", util.ErrPermissionDenied
 	}
 
 	gitRepo, err := gitrepo.OpenRepository(ctx, dbRepo)

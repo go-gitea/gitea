@@ -10,16 +10,16 @@ import (
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
 
 const (
-	tplNewReleaseMail base.TplName = "release"
+	tplNewReleaseMail templates.TplName = "release"
 )
 
 // MailNewRelease send new release notify to all repo watchers.

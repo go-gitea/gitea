@@ -15,12 +15,12 @@ import (
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
@@ -30,8 +30,8 @@ import (
 )
 
 const (
-	tplProfileBigAvatar base.TplName = "shared/user/profile_big_avatar"
-	tplFollowUnfollow   base.TplName = "org/follow_unfollow"
+	tplProfileBigAvatar templates.TplName = "shared/user/profile_big_avatar"
+	tplFollowUnfollow   templates.TplName = "org/follow_unfollow"
 )
 
 // OwnerProfile render profile page for a user or a organization (aka, repo owner)

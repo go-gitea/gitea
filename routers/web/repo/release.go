@@ -16,12 +16,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/feed"
@@ -33,9 +33,9 @@ import (
 )
 
 const (
-	tplReleasesList base.TplName = "repo/release/list"
-	tplReleaseNew   base.TplName = "repo/release/new"
-	tplTagsList     base.TplName = "repo/tag/list"
+	tplReleasesList templates.TplName = "repo/release/list"
+	tplReleaseNew   templates.TplName = "repo/release/new"
+	tplTagsList     templates.TplName = "repo/tag/list"
 )
 
 // calReleaseNumCommitsBehind calculates given release has how many commits behind release target.

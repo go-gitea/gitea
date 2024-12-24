@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -34,10 +35,10 @@ import (
 )
 
 const (
-	tplCommits    base.TplName = "repo/commits"
-	tplGraph      base.TplName = "repo/graph"
-	tplGraphDiv   base.TplName = "repo/graph/div"
-	tplCommitPage base.TplName = "repo/commit_page"
+	tplCommits    templates.TplName = "repo/commits"
+	tplGraph      templates.TplName = "repo/graph"
+	tplGraphDiv   templates.TplName = "repo/graph/div"
+	tplCommitPage templates.TplName = "repo/commit_page"
 )
 
 // RefCommits render commits page
@@ -281,7 +282,7 @@ func Diff(ctx *context.Context) {
 
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
-	commitID := ctx.PathParam(":sha")
+	commitID := ctx.PathParam("sha")
 	var (
 		gitRepo *git.Repository
 		err     error
@@ -426,13 +427,13 @@ func RawDiff(ctx *context.Context) {
 	}
 	if err := git.GetRawDiff(
 		gitRepo,
-		ctx.PathParam(":sha"),
-		git.RawDiffType(ctx.PathParam(":ext")),
+		ctx.PathParam("sha"),
+		git.RawDiffType(ctx.PathParam("ext")),
 		ctx.Resp,
 	); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetRawDiff",
-				errors.New("commit "+ctx.PathParam(":sha")+" does not exist."))
+				errors.New("commit "+ctx.PathParam("sha")+" does not exist."))
 			return
 		}
 		ctx.ServerError("GetRawDiff", err)

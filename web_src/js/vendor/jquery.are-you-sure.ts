@@ -204,3 +204,9 @@ export function applyAreYouSure(selectorOrEl: string|Element|$, opts = {}) {
 export function reinitializeAreYouSure(selectorOrEl: string|Element|$) {
   $(selectorOrEl).trigger('reinitialize.areYouSure');
 }
+
+export function ignoreAreYouSure(selectorOrEl: string|Element|$) {
+  // here we should only add "ignore-dirty" but not remove "dirty".
+  // because when using "enter" to submit a form, the "dirty" class will appear again before reloading.
+  $(selectorOrEl).addClass('ignore-dirty');
+}

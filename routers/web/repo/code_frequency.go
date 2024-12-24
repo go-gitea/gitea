@@ -7,13 +7,13 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	contributors_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
-	tplCodeFrequency base.TplName = "repo/activity"
+	tplCodeFrequency templates.TplName = "repo/activity"
 )
 
 // CodeFrequency renders the page to show repository code frequency

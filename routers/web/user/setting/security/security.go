@@ -11,16 +11,16 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplSettingsSecurity    base.TplName = "user/settings/security/security"
-	tplSettingsTwofaEnroll base.TplName = "user/settings/security/twofa_enroll"
+	tplSettingsSecurity    templates.TplName = "user/settings/security/security"
+	tplSettingsTwofaEnroll templates.TplName = "user/settings/security/twofa_enroll"
 )
 
 // Security render change user's password page and 2FA

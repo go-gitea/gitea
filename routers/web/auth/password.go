@@ -11,10 +11,10 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -26,9 +26,9 @@ import (
 
 var (
 	// tplMustChangePassword template for updating a user's password
-	tplMustChangePassword base.TplName = "user/auth/change_passwd"
-	tplForgotPassword     base.TplName = "user/auth/forgot_passwd"
-	tplResetPassword      base.TplName = "user/auth/reset_passwd"
+	tplMustChangePassword templates.TplName = "user/auth/change_passwd"
+	tplForgotPassword     templates.TplName = "user/auth/forgot_passwd"
+	tplResetPassword      templates.TplName = "user/auth/reset_passwd"
 )
 
 // ForgotPasswd render the forget password page

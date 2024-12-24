@@ -19,9 +19,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
@@ -33,15 +33,15 @@ import (
 
 const (
 	// tplTeams template path for teams list page
-	tplTeams base.TplName = "org/team/teams"
+	tplTeams templates.TplName = "org/team/teams"
 	// tplTeamNew template path for create new team page
-	tplTeamNew base.TplName = "org/team/new"
+	tplTeamNew templates.TplName = "org/team/new"
 	// tplTeamMembers template path for showing team members page
-	tplTeamMembers base.TplName = "org/team/members"
+	tplTeamMembers templates.TplName = "org/team/members"
 	// tplTeamRepositories template path for showing team repositories page
-	tplTeamRepositories base.TplName = "org/team/repositories"
+	tplTeamRepositories templates.TplName = "org/team/repositories"
 	// tplTeamInvite template path for team invites page
-	tplTeamInvite base.TplName = "org/team/invite"
+	tplTeamInvite templates.TplName = "org/team/invite"
 )
 
 // Teams render teams list page
@@ -71,7 +71,7 @@ func Teams(ctx *context.Context) {
 func TeamsAction(ctx *context.Context) {
 	page := ctx.FormString("page")
 	var err error
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "join":
 		if !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
@@ -84,7 +84,7 @@ func TeamsAction(ctx *context.Context) {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			} else {
-				log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
+				log.Error("Action(%s): %v", ctx.PathParam("action"), err)
 				ctx.JSON(http.StatusOK, map[string]any{
 					"ok":  false,
 					"err": err.Error(),
@@ -111,7 +111,7 @@ func TeamsAction(ctx *context.Context) {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			} else {
-				log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
+				log.Error("Action(%s): %v", ctx.PathParam("action"), err)
 				ctx.JSON(http.StatusOK, map[string]any{
 					"ok":  false,
 					"err": err.Error(),
@@ -178,7 +178,7 @@ func TeamsAction(ctx *context.Context) {
 		}
 
 		if err := org_model.RemoveInviteByID(ctx, iid, ctx.Org.Team.ID); err != nil {
-			log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
+			log.Error("Action(%s): %v", ctx.PathParam("action"), err)
 			ctx.ServerError("RemoveInviteByID", err)
 			return
 		}
@@ -192,7 +192,7 @@ func TeamsAction(ctx *context.Context) {
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Flash.Error(ctx.Tr("org.teams.members.blocked_user"))
 		} else {
-			log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
+			log.Error("Action(%s): %v", ctx.PathParam("action"), err)
 			ctx.JSON(http.StatusOK, map[string]any{
 				"ok":  false,
 				"err": err.Error(),
@@ -233,7 +233,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	}
 
 	var err error
-	action := ctx.PathParam(":action")
+	action := ctx.PathParam("action")
 	switch action {
 	case "add":
 		repoName := path.Base(ctx.FormString("repo_name"))
@@ -258,7 +258,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	}
 
 	if err != nil {
-		log.Error("Action(%s): '%s' %v", ctx.PathParam(":action"), ctx.Org.Team.Name, err)
+		log.Error("Action(%s): '%s' %v", ctx.PathParam("action"), ctx.Org.Team.Name, err)
 		ctx.ServerError("TeamsRepoAction", err)
 		return
 	}
