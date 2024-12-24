@@ -23,7 +23,7 @@
 				{{end}}
 				</div>
 			</td>
-			<td colspan="7" class="lines-code lines-code-old ">
+			<td colspan="7" class="lines-code lines-code-old">
 				{{- $inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale -}}
 				{{- template "repo/diff/section_code" dict "diff" $inlineDiff -}}
 			</td>
