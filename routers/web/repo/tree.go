@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/services/context"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
@@ -59,10 +60,18 @@ func Tree(ctx *context.Context) {
 	ref := ctx.FormTrim("ref")
 	recursive := ctx.FormBool("recursive")
 
-	// TODO: Only support branch for now
-	results, err := files_service.GetTreeList(ctx, ctx.Repo.Repository, dir, git.RefNameFromBranch(ref), recursive)
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, ctx.Repo.Repository)
 	if err != nil {
-		ctx.ServerError("guessRefInfoAndDir", err)
+		ctx.ServerError("RepositoryFromContextOrOpen", err)
+		return
+	}
+	defer closer.Close()
+
+	refName := gitRepo.UnstableGuessRefByShortName(ref)
+
+	results, err := files_service.GetTreeList(ctx, ctx.Repo.Repository, dir, refName, recursive)
+	if err != nil {
+		ctx.ServerError("GetTreeList", err)
 		return
 	}
 
