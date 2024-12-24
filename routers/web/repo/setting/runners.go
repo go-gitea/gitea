@@ -147,7 +147,7 @@ func RunnersEdit(ctx *context.Context) {
 	}
 
 	actions_shared.RunnerDetails(ctx, page,
-		ctx.PathParamInt64(":runnerid"), rCtx.OwnerID, rCtx.RepoID,
+		ctx.PathParamInt64("runnerid"), rCtx.OwnerID, rCtx.RepoID,
 	)
 	ctx.HTML(http.StatusOK, rCtx.RunnerEditTemplate)
 }
@@ -158,9 +158,9 @@ func RunnersEditPost(ctx *context.Context) {
 		ctx.ServerError("getRunnersCtx", err)
 		return
 	}
-	actions_shared.RunnerDetailsEditPost(ctx, ctx.PathParamInt64(":runnerid"),
+	actions_shared.RunnerDetailsEditPost(ctx, ctx.PathParamInt64("runnerid"),
 		rCtx.OwnerID, rCtx.RepoID,
-		rCtx.RedirectLink+url.PathEscape(ctx.PathParam(":runnerid")))
+		rCtx.RedirectLink+url.PathEscape(ctx.PathParam("runnerid")))
 }
 
 func ResetRunnerRegistrationToken(ctx *context.Context) {
@@ -179,7 +179,7 @@ func RunnerDeletePost(ctx *context.Context) {
 		ctx.ServerError("getRunnersCtx", err)
 		return
 	}
-	actions_shared.RunnerDeletePost(ctx, ctx.PathParamInt64(":runnerid"), rCtx.RedirectLink, rCtx.RedirectLink+url.PathEscape(ctx.PathParam(":runnerid")))
+	actions_shared.RunnerDeletePost(ctx, ctx.PathParamInt64("runnerid"), rCtx.RedirectLink, rCtx.RedirectLink+url.PathEscape(ctx.PathParam("runnerid")))
 }
 
 func RedirectToDefaultSetting(ctx *context.Context) {

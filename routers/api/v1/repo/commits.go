@@ -63,7 +63,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	sha := ctx.PathParam(":sha")
+	sha := ctx.PathParam("sha")
 	if !git.IsValidRefPattern(sha) {
 		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
 		return
@@ -312,8 +312,8 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/string"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	sha := ctx.PathParam(":sha")
-	diffType := git.RawDiffType(ctx.PathParam(":diffType"))
+	sha := ctx.PathParam("sha")
+	diffType := git.RawDiffType(ctx.PathParam("diffType"))
 
 	if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
 		if git.IsErrNotExist(err) {

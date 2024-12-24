@@ -748,7 +748,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 
 // Issues render issues page
 func Issues(ctx *context.Context) {
-	isPullList := ctx.PathParam(":type") == "pulls"
+	isPullList := ctx.PathParam("type") == "pulls"
 	if isPullList {
 		MustAllowPulls(ctx)
 		if ctx.Written() {
