@@ -10,7 +10,7 @@
 		{{end}}
 	</div>
 	{{if .CanWriteCode}}
-	<button class="ui compact green button tw-m-0 link-action" data-url="{{.Repository.Link}}/branches/merge-upstream?branch={{.BranchName}}">
+	<button class="ui compact primary button tw-m-0 link-action" data-url="{{.Repository.Link}}/branches/merge-upstream?branch={{.BranchName}}">
 		{{ctx.Locale.Tr "repo.pulls.upstream_diverging_merge"}}
 	</button>
 	{{end}}

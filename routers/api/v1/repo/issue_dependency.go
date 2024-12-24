@@ -338,7 +338,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	}
 
 	skip := (page - 1) * limit
-	max := page * limit
+	maxNum := page * limit
 
 	deps, err := issue.BlockingDependencies(ctx)
 	if err != nil {
@@ -352,7 +352,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
 
 	for i, depMeta := range deps {
-		if i < skip || i >= max {
+		if i < skip || i >= maxNum {
 			continue
 		}
 

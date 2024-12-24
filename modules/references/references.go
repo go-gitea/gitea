@@ -32,7 +32,7 @@ var (
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
 	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\'|\")([#!][0-9]+)(?:\s|$|\)|\]|\'|\"|[:;,.?!]\s|[:;,.?!]$)`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
-	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\"|\')([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$)|\"|\')`)
+	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\"|\')([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$)|\"|\'|,)`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. org/repo#12345
 	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
@@ -164,9 +164,9 @@ func newKeywords() {
 	})
 }
 
-func doNewKeywords(close, reopen []string) {
-	issueCloseKeywordsPat = makeKeywordsPat(close)
-	issueReopenKeywordsPat = makeKeywordsPat(reopen)
+func doNewKeywords(closeKeywords, reopenKeywords []string) {
+	issueCloseKeywordsPat = makeKeywordsPat(closeKeywords)
+	issueReopenKeywordsPat = makeKeywordsPat(reopenKeywords)
 }
 
 // getGiteaHostName returns a normalized string with the local host name, with no scheme or port information
@@ -330,22 +330,22 @@ func FindAllIssueReferences(content string) []IssueReference {
 }
 
 // FindRenderizableReferenceNumeric returns the first unvalidated reference found in a string.
-func FindRenderizableReferenceNumeric(content string, prOnly, crossLinkOnly bool) (bool, *RenderizableReference) {
+func FindRenderizableReferenceNumeric(content string, prOnly, crossLinkOnly bool) *RenderizableReference {
 	var match []int
 	if !crossLinkOnly {
 		match = issueNumericPattern.FindStringSubmatchIndex(content)
 	}
 	if match == nil {
 		if match = crossReferenceIssueNumericPattern.FindStringSubmatchIndex(content); match == nil {
-			return false, nil
+			return nil
 		}
 	}
 	r := getCrossReference(util.UnsafeStringToBytes(content), match[2], match[3], false, prOnly)
 	if r == nil {
-		return false, nil
+		return nil
 	}
 
-	return true, &RenderizableReference{
+	return &RenderizableReference{
 		Issue:          r.issue,
 		Owner:          r.owner,
 		Name:           r.name,
@@ -372,15 +372,14 @@ func FindRenderizableCommitCrossReference(content string) (bool, *RenderizableRe
 }
 
 // FindRenderizableReferenceRegexp returns the first regexp unvalidated references found in a string.
-func FindRenderizableReferenceRegexp(content string, pattern *regexp.Regexp) (bool, *RenderizableReference) {
+func FindRenderizableReferenceRegexp(content string, pattern *regexp.Regexp) *RenderizableReference {
 	match := pattern.FindStringSubmatchIndex(content)
 	if len(match) < 4 {
-		return false, nil
+		return nil
 	}
 
 	action, location := findActionKeywords([]byte(content), match[2])
-
-	return true, &RenderizableReference{
+	return &RenderizableReference{
 		Issue:          content[match[2]:match[3]],
 		RefLocation:    &RefSpan{Start: match[0], End: match[1]},
 		Action:         action,
@@ -390,15 +389,14 @@ func FindRenderizableReferenceRegexp(content string, pattern *regexp.Regexp) (bo
 }
 
 // FindRenderizableReferenceAlphanumeric returns the first alphanumeric unvalidated references found in a string.
-func FindRenderizableReferenceAlphanumeric(content string) (bool, *RenderizableReference) {
+func FindRenderizableReferenceAlphanumeric(content string) *RenderizableReference {
 	match := issueAlphanumericPattern.FindStringSubmatchIndex(content)
 	if match == nil {
-		return false, nil
+		return nil
 	}
 
 	action, location := findActionKeywords([]byte(content), match[2])
-
-	return true, &RenderizableReference{
+	return &RenderizableReference{
 		Issue:          content[match[2]:match[3]],
 		RefLocation:    &RefSpan{Start: match[2], End: match[3]},
 		Action:         action,

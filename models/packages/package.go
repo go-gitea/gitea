@@ -301,6 +301,21 @@ func FindUnreferencedPackages(ctx context.Context) ([]*Package, error) {
 		Find(&ps)
 }
 
+// ErrUserOwnPackages notifies that the user (still) owns the packages.
+type ErrUserOwnPackages struct {
+	UID int64
+}
+
+// IsErrUserOwnPackages checks if an error is an ErrUserOwnPackages.
+func IsErrUserOwnPackages(err error) bool {
+	_, ok := err.(ErrUserOwnPackages)
+	return ok
+}
+
+func (err ErrUserOwnPackages) Error() string {
+	return fmt.Sprintf("user still has ownership of packages [uid: %d]", err.UID)
+}
+
 // HasOwnerPackages tests if a user/org has accessible packages
 func HasOwnerPackages(ctx context.Context, ownerID int64) (bool, error) {
 	return db.GetEngine(ctx).

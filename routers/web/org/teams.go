@@ -19,9 +19,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
@@ -33,15 +33,15 @@ import (
 
 const (
 	// tplTeams template path for teams list page
-	tplTeams base.TplName = "org/team/teams"
+	tplTeams templates.TplName = "org/team/teams"
 	// tplTeamNew template path for create new team page
-	tplTeamNew base.TplName = "org/team/new"
+	tplTeamNew templates.TplName = "org/team/new"
 	// tplTeamMembers template path for showing team members page
-	tplTeamMembers base.TplName = "org/team/members"
+	tplTeamMembers templates.TplName = "org/team/members"
 	// tplTeamRepositories template path for showing team repositories page
-	tplTeamRepositories base.TplName = "org/team/repositories"
+	tplTeamRepositories templates.TplName = "org/team/repositories"
 	// tplTeamInvite template path for team invites page
-	tplTeamInvite base.TplName = "org/team/invite"
+	tplTeamInvite templates.TplName = "org/team/invite"
 )
 
 // Teams render teams list page
@@ -410,11 +410,15 @@ func TeamRepositories(ctx *context.Context) {
 		return
 	}
 
-	if err := ctx.Org.Team.LoadRepositories(ctx); err != nil {
-		ctx.ServerError("GetRepositories", err)
+	repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
+		TeamID: ctx.Org.Team.ID,
+	})
+	if err != nil {
+		ctx.ServerError("GetTeamRepositories", err)
 		return
 	}
 	ctx.Data["Units"] = unit_model.Units
+	ctx.Data["TeamRepos"] = repos
 	ctx.HTML(http.StatusOK, tplTeamRepositories)
 }
 

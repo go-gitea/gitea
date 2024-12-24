@@ -1,13 +1,16 @@
+import type {DOMEvent} from '../utils/dom.ts';
+
 export function initRepositorySearch() {
   const repositorySearchForm = document.querySelector<HTMLFormElement>('#repo-search-form');
   if (!repositorySearchForm) return;
 
-  repositorySearchForm.addEventListener('change', (e: Event & {target: HTMLFormElement}) => {
+  repositorySearchForm.addEventListener('change', (e: DOMEvent<Event, HTMLInputElement>) => {
     e.preventDefault();
 
-    const formData = new FormData(repositorySearchForm);
-    const params = new URLSearchParams(formData);
-
+    const params = new URLSearchParams();
+    for (const [key, value] of new FormData(repositorySearchForm).entries()) {
+      params.set(key, value.toString());
+    }
     if (e.target.name === 'clear-filter') {
       params.delete('archived');
       params.delete('fork');

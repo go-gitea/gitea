@@ -12,10 +12,10 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	pull_model "code.gitea.io/gitea/models/pull"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
@@ -26,10 +26,10 @@ import (
 )
 
 const (
-	tplDiffConversation     base.TplName = "repo/diff/conversation"
-	tplConversationOutdated base.TplName = "repo/diff/conversation_outdated"
-	tplTimelineConversation base.TplName = "repo/issue/view_content/conversation"
-	tplNewComment           base.TplName = "repo/diff/new_comment"
+	tplDiffConversation     templates.TplName = "repo/diff/conversation"
+	tplConversationOutdated templates.TplName = "repo/diff/conversation_outdated"
+	tplTimelineConversation templates.TplName = "repo/issue/view_content/conversation"
+	tplNewComment           templates.TplName = "repo/diff/new_comment"
 )
 
 // RenderNewCodeCommentForm will render the form for creating a new review comment

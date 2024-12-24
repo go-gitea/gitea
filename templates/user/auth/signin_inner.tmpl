@@ -48,7 +48,8 @@
 			</div>
 		</form>
 		{{end}}{{/*if .EnablePasswordSignInForm*/}}
-		{{$showOAuth2Methods := or .OAuth2Providers .EnableOpenIDSignIn}}
+		{{/* "oauth_container" contains not only "oauth2" methods, but also "OIDC" and "SSPI" methods */}}
+		{{$showOAuth2Methods := or .OAuth2Providers .EnableOpenIDSignIn .EnableSSPI}}
 		{{if and $showOAuth2Methods .EnablePasswordSignInForm}}
 			<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
 		{{end}}

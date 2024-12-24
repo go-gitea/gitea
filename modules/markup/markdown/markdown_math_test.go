@@ -12,31 +12,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const nl = "\n"
+
 func TestMathRender(t *testing.T) {
-	const nl = "\n"
 	testcases := []struct {
 		testcase string
 		expected string
 	}{
 		{
 			"$a$",
-			`<p><code class="language-math is-loading">a</code></p>` + nl,
+			`<p><code class="language-math">a</code></p>` + nl,
 		},
 		{
 			"$ a $",
-			`<p><code class="language-math is-loading">a</code></p>` + nl,
+			`<p><code class="language-math">a</code></p>` + nl,
 		},
 		{
 			"$a$ $b$",
-			`<p><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
+			`<p><code class="language-math">a</code> <code class="language-math">b</code></p>` + nl,
 		},
 		{
 			`\(a\) \(b\)`,
-			`<p><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
+			`<p><code class="language-math">a</code> <code class="language-math">b</code></p>` + nl,
 		},
 		{
 			`$a$.`,
-			`<p><code class="language-math is-loading">a</code>.</p>` + nl,
+			`<p><code class="language-math">a</code>.</p>` + nl,
 		},
 		{
 			`.$a$`,
@@ -64,27 +65,39 @@ func TestMathRender(t *testing.T) {
 		},
 		{
 			"$a$ ($b$) [$c$] {$d$}",
-			`<p><code class="language-math is-loading">a</code> (<code class="language-math is-loading">b</code>) [$c$] {$d$}</p>` + nl,
+			`<p><code class="language-math">a</code> (<code class="language-math">b</code>) [$c$] {$d$}</p>` + nl,
 		},
 		{
 			"$$a$$",
-			`<code class="chroma language-math display">a</code>` + nl,
+			`<code class="language-math display">a</code>` + nl,
 		},
 		{
 			"$$a$$ test",
-			`<p><code class="language-math display is-loading">a</code> test</p>` + nl,
+			`<p><code class="language-math">a</code> test</p>` + nl,
 		},
 		{
 			"test $$a$$",
-			`<p>test <code class="language-math display is-loading">a</code></p>` + nl,
+			`<p>test <code class="language-math">a</code></p>` + nl,
 		},
 		{
 			`foo $x=\$$ bar`,
-			`<p>foo <code class="language-math is-loading">x=\$</code> bar</p>` + nl,
+			`<p>foo <code class="language-math">x=\$</code> bar</p>` + nl,
 		},
 		{
 			`$\text{$b$}$`,
-			`<p><code class="language-math is-loading">\text{$b$}</code></p>` + nl,
+			`<p><code class="language-math">\text{$b$}</code></p>` + nl,
+		},
+		{
+			"a$`b`$c",
+			`<p>a<code class="language-math">b</code>c</p>` + nl,
+		},
+		{
+			"a $`b`$ c",
+			`<p>a <code class="language-math">b</code> c</p>` + nl,
+		},
+		{
+			"a$``b``$c x$```y```$z",
+			`<p>a<code class="language-math">b</code>c x<code class="language-math">y</code>z</p>` + nl,
 		},
 	}
 
@@ -110,7 +123,7 @@ func TestMathRenderBlockIndent(t *testing.T) {
 \alpha
 \]
 `,
-			`<pre class="code-block is-loading"><code class="chroma language-math display">
+			`<pre class="code-block is-loading"><code class="language-math display">
 \alpha
 </code></pre>
 `,
@@ -122,7 +135,7 @@ func TestMathRenderBlockIndent(t *testing.T) {
  \alpha
  \]
 `,
-			`<pre class="code-block is-loading"><code class="chroma language-math display">
+			`<pre class="code-block is-loading"><code class="language-math display">
 \alpha
 </code></pre>
 `,
@@ -137,7 +150,7 @@ a
    d
   \]
 `,
-			`<pre class="code-block is-loading"><code class="chroma language-math display">
+			`<pre class="code-block is-loading"><code class="language-math display">
 a
 b
 c
@@ -154,7 +167,7 @@ c
   c
   \]
 `,
-			`<pre class="code-block is-loading"><code class="chroma language-math display">
+			`<pre class="code-block is-loading"><code class="language-math display">
 a
  b
 c
@@ -165,7 +178,7 @@ c
 			"indent-0-oneline",
 			`$$ x $$
 foo`,
-			`<code class="chroma language-math display"> x </code>
+			`<code class="language-math display"> x </code>
 <p>foo</p>
 `,
 		},
@@ -173,7 +186,7 @@ foo`,
 			"indent-3-oneline",
 			`   $$ x $$<SPACE>
 foo`,
-			`<code class="chroma language-math display"> x </code>
+			`<code class="language-math display"> x </code>
 <p>foo</p>
 `,
 		},
@@ -188,10 +201,10 @@ foo`,
 > \]
 `,
 			`<blockquote>
-<pre class="code-block is-loading"><code class="chroma language-math display">
+<pre class="code-block is-loading"><code class="language-math display">
 a
 </code></pre>
-<pre class="code-block is-loading"><code class="chroma language-math display">
+<pre class="code-block is-loading"><code class="language-math display">
 b
 </code></pre>
 </blockquote>
@@ -207,13 +220,18 @@ b
 2. b`,
 			`<ol>
 <li>a
-<pre class="code-block is-loading"><code class="chroma language-math display">
+<pre class="code-block is-loading"><code class="language-math display">
 x
 </code></pre>
 </li>
 <li>b</li>
 </ol>
 `,
+		},
+		{
+			"inline-non-math",
+			`\[x]`,
+			`<p>[x]</p>` + nl,
 		},
 	}
 

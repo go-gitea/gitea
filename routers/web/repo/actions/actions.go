@@ -5,6 +5,7 @@ package actions
 
 import (
 	"bytes"
+	stdCtx "context"
 	"fmt"
 	"net/http"
 	"slices"
@@ -16,12 +17,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
@@ -32,8 +33,8 @@ import (
 )
 
 const (
-	tplListActions base.TplName = "repo/actions/list"
-	tplViewActions base.TplName = "repo/actions/view"
+	tplListActions templates.TplName = "repo/actions/list"
+	tplViewActions templates.TplName = "repo/actions/view"
 )
 
 type Workflow struct {
@@ -245,7 +246,7 @@ func List(ctx *context.Context) {
 		return
 	}
 
-	if err := loadIsRefDeleted(ctx, runs); err != nil {
+	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, runs); err != nil {
 		log.Error("LoadIsRefDeleted", err)
 	}
 
@@ -273,7 +274,7 @@ func List(ctx *context.Context) {
 
 // loadIsRefDeleted loads the IsRefDeleted field for each run in the list.
 // TODO: move this function to models/actions/run_list.go but now it will result in a circular import.
-func loadIsRefDeleted(ctx *context.Context, runs actions_model.RunList) error {
+func loadIsRefDeleted(ctx stdCtx.Context, repoID int64, runs actions_model.RunList) error {
 	branches := make(container.Set[string], len(runs))
 	for _, run := range runs {
 		refName := git.RefName(run.Ref)
@@ -285,14 +286,14 @@ func loadIsRefDeleted(ctx *context.Context, runs actions_model.RunList) error {
 		return nil
 	}
 
-	branchInfos, err := git_model.GetBranches(ctx, ctx.Repo.Repository.ID, branches.Values(), false)
+	branchInfos, err := git_model.GetBranches(ctx, repoID, branches.Values(), false)
 	if err != nil {
 		return err
 	}
 	branchSet := git_model.BranchesToNamesSet(branchInfos)
 	for _, run := range runs {
 		refName := git.RefName(run.Ref)
-		if refName.IsBranch() && !branchSet.Contains(run.Ref) {
+		if refName.IsBranch() && !branchSet.Contains(refName.ShortName()) {
 			run.IsRefDeleted = true
 		}
 	}

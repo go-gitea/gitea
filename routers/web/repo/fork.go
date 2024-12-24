@@ -13,11 +13,12 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -25,7 +26,7 @@ import (
 )
 
 const (
-	tplFork base.TplName = "repo/pulls/fork"
+	tplFork templates.TplName = "repo/pulls/fork"
 )
 
 func getForkRepository(ctx *context.Context) *repo_model.Repository {
@@ -48,7 +49,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	ctx.Data["repo_name"] = forkRepo.Name
 	ctx.Data["description"] = forkRepo.Description
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate || forkRepo.Owner.Visibility == structs.VisibleTypePrivate
-	canForkToUser := forkRepo.OwnerID != ctx.Doer.ID && !repo_model.HasForkedRepo(ctx, ctx.Doer.ID, forkRepo.ID)
+	canForkToUser := repository.CanUserForkBetweenOwners(forkRepo.OwnerID, ctx.Doer.ID) && !repo_model.HasForkedRepo(ctx, ctx.Doer.ID, forkRepo.ID)
 
 	ctx.Data["ForkRepo"] = forkRepo
 
@@ -66,7 +67,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 
 	traverseParentRepo := forkRepo
 	for {
-		if ctx.Doer.ID == traverseParentRepo.OwnerID {
+		if !repository.CanUserForkBetweenOwners(ctx.Doer.ID, traverseParentRepo.OwnerID) {
 			canForkToUser = false
 		} else {
 			for i, org := range orgs {
@@ -162,7 +163,7 @@ func ForkPost(ctx *context.Context) {
 	var err error
 	traverseParentRepo := forkRepo
 	for {
-		if ctxUser.ID == traverseParentRepo.OwnerID {
+		if !repository.CanUserForkBetweenOwners(ctxUser.ID, traverseParentRepo.OwnerID) {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
 			return
 		}

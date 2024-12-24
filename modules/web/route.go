@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/htmlutil"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 
@@ -29,12 +30,12 @@ func Bind[T any](_ T) http.HandlerFunc {
 }
 
 // SetForm set the form object
-func SetForm(dataStore middleware.ContextDataStore, obj any) {
+func SetForm(dataStore reqctx.ContextDataProvider, obj any) {
 	dataStore.GetData()["__form"] = obj
 }
 
 // GetForm returns the validate form information
-func GetForm(dataStore middleware.ContextDataStore) any {
+func GetForm(dataStore reqctx.RequestDataStore) any {
 	return dataStore.GetData()["__form"]
 }
 
