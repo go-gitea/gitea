@@ -41,14 +41,14 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 	}
 	defer closer.Close()
 
-	compareString := pr.MergeBase + "..." + pr.GetGitRefName()
+	compareArg := pr.MergeBase + "..." + pr.GetGitRefName()
 	switch {
 	case patch:
-		err = gitRepo.GetPatch(compareString, w)
+		err = gitRepo.GetPatch(compareArg, w)
 	case binary:
-		err = gitRepo.GetDiffBinary(compareString, w)
+		err = gitRepo.GetDiffBinary(compareArg, w)
 	default:
-		err = gitRepo.GetDiff(compareString, w)
+		err = gitRepo.GetDiff(compareArg, w)
 	}
 
 	if err != nil {

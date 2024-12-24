@@ -12,27 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_parseCompareArgs(t *testing.T) {
-	testCases := []struct {
-		compareString string
-		expected      []string
-	}{
-		{
-			"master..develop",
-			[]string{"master", "develop"},
-		},
-		{
-			"HEAD...develop",
-			[]string{"HEAD...develop"},
-		},
-	}
-
-	for _, tc := range testCases {
-		args := parseCompareArgs(tc.compareString)
-		assert.Equal(t, tc.expected, args)
-	}
-}
-
 func TestGetFormatPatch(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	clonedPath, err := cloneRepo(t, bareRepo1Path)

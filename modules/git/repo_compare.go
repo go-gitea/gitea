@@ -233,31 +233,10 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 	return numFiles, totalAdditions, totalDeletions, err
 }
 
-// parseCompareArgs parses the compareArgs string into a slice of arguments
-// Only supports the following formats:
-// - "base...head"
-// - "base..head"
-func parseCompareArgs(compareArgs string) (args []string) {
-	parts := strings.Split(compareArgs, "...")
-	if len(parts) == 2 {
-		return []string{compareArgs}
-	}
-	parts = strings.Split(compareArgs, "..")
-	if len(parts) == 2 {
-		return parts
-	}
-
-	return nil
-}
-
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
-func (repo *Repository) GetDiff(compareArgs string, w io.Writer) error {
-	args := parseCompareArgs(compareArgs)
-	if len(args) == 0 {
-		return fmt.Errorf("invalid compareArgs: %s", compareArgs)
-	}
+func (repo *Repository) GetDiff(compareArg string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
-	return NewCommand(repo.Ctx, "diff", "-p").AddDynamicArguments(args...).
+	return NewCommand(repo.Ctx, "diff", "-p").AddDynamicArguments(compareArg).
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
@@ -266,25 +245,17 @@ func (repo *Repository) GetDiff(compareArgs string, w io.Writer) error {
 }
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
-func (repo *Repository) GetDiffBinary(compareArgs string, w io.Writer) error {
-	args := parseCompareArgs(compareArgs)
-	if len(args) == 0 {
-		return fmt.Errorf("invalid compareArgs: %s", compareArgs)
-	}
-	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram").AddDynamicArguments(args...).Run(&RunOpts{
+func (repo *Repository) GetDiffBinary(compareArg string, w io.Writer) error {
+	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram").AddDynamicArguments(compareArg).Run(&RunOpts{
 		Dir:    repo.Path,
 		Stdout: w,
 	})
 }
 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
-func (repo *Repository) GetPatch(compareArgs string, w io.Writer) error {
-	args := parseCompareArgs(compareArgs)
-	if len(args) == 0 {
-		return fmt.Errorf("invalid compareArgs: %s", compareArgs)
-	}
+func (repo *Repository) GetPatch(compareArg string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
-	return NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddDynamicArguments(args...).
+	return NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
