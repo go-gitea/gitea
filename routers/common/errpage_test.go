@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/web/middleware"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +21,7 @@ import (
 func TestRenderPanicErrorPage(t *testing.T) {
 	w := httptest.NewRecorder()
 	req := &http.Request{URL: &url.URL{}}
-	req = req.WithContext(middleware.WithContextData(context.Background()))
+	req = req.WithContext(reqctx.NewRequestContextForTest(context.Background()))
 	RenderPanicErrorPage(w, req, errors.New("fake panic error (for test only)"))
 	respContent := w.Body.String()
 	assert.Contains(t, respContent, `class="page-content status-page-500"`)
