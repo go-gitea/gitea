@@ -7,9 +7,12 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"path"
+	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -117,4 +120,93 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		}
 	}
 	return tree, nil
+}
+
+type TreeEntry struct {
+	Name     string       `json:"name"`
+	IsFile   bool         `json:"isFile"`
+	Path     string       `json:"path"`
+	Children []*TreeEntry `json:"children"`
+}
+
+func GetTreeList(ctx context.Context, repo *repo_model.Repository, treePath string, ref git.RefName, recursive bool) ([]*TreeEntry, error) {
+	if repo.IsEmpty {
+		return nil, nil
+	}
+	if ref == "" {
+		ref = git.RefNameFromBranch(repo.DefaultBranch)
+	}
+
+	// Check that the path given in opts.treePath is valid (not a git path)
+	cleanTreePath := CleanUploadFileName(treePath)
+	if cleanTreePath == "" && treePath != "" {
+		return nil, models.ErrFilenameInvalid{
+			Path: treePath,
+		}
+	}
+	treePath = cleanTreePath
+
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	defer closer.Close()
+
+	// Get the commit object for the ref
+	commit, err := gitRepo.GetCommit(ref.String())
+	if err != nil {
+		return nil, err
+	}
+
+	entry, err := commit.GetTreeEntryByPath(treePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// If the entry is a file, we return a FileContentResponse object
+	if entry.Type() != "tree" {
+		return nil, fmt.Errorf("%s is not a tree", treePath)
+	}
+
+	gitTree, err := commit.SubTree(treePath)
+	if err != nil {
+		return nil, err
+	}
+	var entries git.Entries
+	if recursive {
+		entries, err = gitTree.ListEntriesRecursiveFast()
+	} else {
+		entries, err = gitTree.ListEntries()
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var treeList []*TreeEntry
+	mapTree := make(map[string][]*TreeEntry)
+	for _, e := range entries {
+		subTreePath := path.Join(treePath, e.Name())
+
+		if strings.Contains(e.Name(), "/") {
+			mapTree[path.Dir(e.Name())] = append(mapTree[path.Dir(e.Name())], &TreeEntry{
+				Name:   path.Base(e.Name()),
+				IsFile: e.Mode() != git.EntryModeTree,
+				Path:   subTreePath,
+			})
+		} else {
+			treeList = append(treeList, &TreeEntry{
+				Name:   e.Name(),
+				IsFile: e.Mode() != git.EntryModeTree,
+				Path:   subTreePath,
+			})
+		}
+	}
+
+	for _, tree := range treeList {
+		if !tree.IsFile {
+			tree.Children = mapTree[tree.Path]
+		}
+	}
+
+	return treeList, nil
 }
