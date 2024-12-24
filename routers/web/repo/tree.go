@@ -5,12 +5,11 @@ package repo
 
 import (
 	"net/http"
-	"path"
-	"strings"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/services/context"
+	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/go-enry/go-enry/v2"
 )
@@ -55,26 +54,17 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 	return false
 }
 
-func getPossibleBranches(dir string) []string {
-	cnt := strings.Count(dir, "/")
-	branches := make([]string, cnt, cnt)
-	for i := 0; i < cnt; i++ {
-		branches[i] = dir
-		dir = path.Dir(dir)
-	}
-	return branches
-}
-
-func guessRefInfoAndDir(ctx *context.Context, dir string) (git.RefName, string, error) {
-	branches := getPossibleBranches(dir)
-}
-
 func Tree(ctx *context.Context) {
-	pathParam := ctx.PathParam("*")
-	dir := path.Dir(pathParam)
-	refName, realDir, err := guessRefInfoAndDir(ctx, dir)
+	dir := ctx.PathParam("*")
+	ref := ctx.FormTrim("ref")
+	recursive := ctx.FormBool("recursive")
+
+	// TODO: Only support branch for now
+	results, err := files_service.GetTreeList(ctx, ctx.Repo.Repository, dir, git.RefNameFromBranch(ref), recursive)
 	if err != nil {
 		ctx.ServerError("guessRefInfoAndDir", err)
 		return
 	}
+
+	ctx.JSON(http.StatusOK, results)
 }
