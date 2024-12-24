@@ -59,6 +59,7 @@ func Search(ctx *context.Context) {
 			RepoIDs:        []int64{ctx.Repo.Repository.ID},
 			Keyword:        keyword,
 			IsKeywordFuzzy: isFuzzy,
+			IsHTMLSafe:     true,
 			Language:       language,
 			Paginator: &db.ListOptions{
 				Page:     page,
