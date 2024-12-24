@@ -9,12 +9,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestProcessorHelperCodePreview(t *testing.T) {
+func TestRenderHelperCodePreview(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.HTMLRenderer()})
@@ -79,5 +80,5 @@ func TestProcessorHelperCodePreview(t *testing.T) {
 		LineStart: 1,
 		LineStop:  10,
 	})
-	assert.ErrorContains(t, err, "no permission")
+	assert.ErrorIs(t, err, util.ErrPermissionDenied)
 }

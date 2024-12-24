@@ -3,6 +3,7 @@ import {showErrorToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, submitEventSubmitter} from '../utils/dom.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import type {RequestOpts} from '../types.ts';
+import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 
 const {appSubUrl, i18n} = window.config;
 
@@ -27,7 +28,7 @@ async function fetchActionDoRequest(actionElem: HTMLElement, url: string, opt: R
     if (resp.status === 200) {
       let {redirect} = await resp.json();
       redirect = redirect || actionElem.getAttribute('data-redirect');
-      actionElem.classList.remove('dirty'); // remove the areYouSure check before reloading
+      ignoreAreYouSure(actionElem); // ignore the areYouSure check before reloading
       if (redirect) {
         fetchActionDoRedirect(redirect);
       } else {
@@ -100,7 +101,7 @@ async function linkAction(el: HTMLElement, e: Event) {
   const url = el.getAttribute('data-url');
   const doRequest = async () => {
     if ('disabled' in el) el.disabled = true; // el could be A or BUTTON, but A doesn't have disabled attribute
-    await fetchActionDoRequest(el, url, {method: 'POST'});
+    await fetchActionDoRequest(el, url, {method: el.getAttribute('data-link-action-method') || 'POST'});
     if ('disabled' in el) el.disabled = false;
   };
 

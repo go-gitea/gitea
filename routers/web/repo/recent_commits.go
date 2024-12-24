@@ -7,13 +7,13 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	contributors_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
-	tplRecentCommits base.TplName = "repo/activity"
+	tplRecentCommits templates.TplName = "repo/activity"
 )
 
 // RecentCommits renders the page to show recent commit frequency on repository

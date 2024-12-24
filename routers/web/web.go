@@ -4,7 +4,6 @@
 package web
 
 import (
-	gocontext "context"
 	"net/http"
 	"strings"
 
@@ -463,7 +462,7 @@ func registerRoutes(m *web.Router) {
 			m.Combo("/{runnerid}").Get(repo_setting.RunnersEdit).
 				Post(web.Bind(forms.EditRunnerForm{}), repo_setting.RunnersEditPost)
 			m.Post("/{runnerid}/delete", repo_setting.RunnerDeletePost)
-			m.Get("/reset_registration_token", repo_setting.ResetRunnerRegistrationToken)
+			m.Post("/reset_registration_token", repo_setting.ResetRunnerRegistrationToken)
 		})
 	}
 
@@ -1020,14 +1019,15 @@ func registerRoutes(m *web.Router) {
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
-					m.Post("", web.Bind(forms.EditProjectColumnForm{}), org.AddColumnToProjectPost)
-					m.Post("/move", project.MoveColumns)
 					m.Post("/delete", org.DeleteProject)
 
 					m.Get("/edit", org.RenderEditProject)
 					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), org.EditProjectPost)
 					m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
+					// TODO: improper name. Others are "delete project", "edit project", but this one is "move columns"
+					m.Post("/move", project.MoveColumns)
+					m.Post("/columns/new", web.Bind(forms.EditProjectColumnForm{}), org.AddColumnToProjectPost)
 					m.Group("/{columnID}", func() {
 						m.Put("", web.Bind(forms.EditProjectColumnForm{}), org.EditProjectColumn)
 						m.Delete("", org.DeleteProjectColumn)
@@ -1387,14 +1387,15 @@ func registerRoutes(m *web.Router) {
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 			m.Group("/{id}", func() {
-				m.Post("", web.Bind(forms.EditProjectColumnForm{}), repo.AddColumnToProjectPost)
-				m.Post("/move", project.MoveColumns)
 				m.Post("/delete", repo.DeleteProject)
 
 				m.Get("/edit", repo.RenderEditProject)
 				m.Post("/edit", web.Bind(forms.CreateProjectForm{}), repo.EditProjectPost)
 				m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
+				// TODO: improper name. Others are "delete project", "edit project", but this one is "move columns"
+				m.Post("/move", project.MoveColumns)
+				m.Post("/columns/new", web.Bind(forms.EditProjectColumnForm{}), repo.AddColumnToProjectPost)
 				m.Group("/{columnID}", func() {
 					m.Put("", web.Bind(forms.EditProjectColumnForm{}), repo.EditProjectColumn)
 					m.Delete("", repo.DeleteProjectColumn)
@@ -1519,24 +1520,23 @@ func registerRoutes(m *web.Router) {
 
 		m.Group("/blob_excerpt", func() {
 			m.Get("/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
-		}, func(ctx *context.Context) gocontext.CancelFunc {
+		}, func(ctx *context.Context) {
 			// FIXME: refactor this function, use separate routes for wiki/code
 			if ctx.FormBool("wiki") {
 				ctx.Data["PageIsWiki"] = true
 				repo.MustEnableWiki(ctx)
-				return nil
+				return
 			}
 
 			if ctx.Written() {
-				return nil
+				return
 			}
-			cancel := context.RepoRef()(ctx)
+			context.RepoRef()(ctx)
 			if ctx.Written() {
-				return cancel
+				return
 			}
 
 			repo.MustBeNotEmpty(ctx)
-			return cancel
 		})
 
 		m.Group("/media", func() {

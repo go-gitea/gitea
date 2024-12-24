@@ -64,11 +64,9 @@ func GetPrivateContext(req *http.Request) *PrivateContext {
 func PrivateContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			base, baseCleanUp := NewBaseContext(w, req)
+			base := NewBaseContext(w, req)
 			ctx := &PrivateContext{Base: base}
-			defer baseCleanUp()
-			ctx.Base.AppendContextValue(privateContextKey, ctx)
-
+			ctx.SetContextValue(privateContextKey, ctx)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
@@ -78,8 +76,15 @@ func PrivateContexter() func(http.Handler) http.Handler {
 // This function should be used when there is a need for work to continue even if the request has been cancelled.
 // Primarily this affects hook/post-receive and hook/proc-receive both of which need to continue working even if
 // the underlying request has timed out from the ssh/http push
-func OverrideContext(ctx *PrivateContext) (cancel context.CancelFunc) {
-	// We now need to override the request context as the base for our work because even if the request is cancelled we have to continue this work
-	ctx.Override, _, cancel = process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), fmt.Sprintf("PrivateContext: %s", ctx.Req.RequestURI), process.RequestProcessType, true)
-	return cancel
+func OverrideContext() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			// We now need to override the request context as the base for our work because even if the request is cancelled we have to continue this work
+			ctx := GetPrivateContext(req)
+			var finished func()
+			ctx.Override, _, finished = process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), fmt.Sprintf("PrivateContext: %s", ctx.Req.RequestURI), process.RequestProcessType, true)
+			defer finished()
+			next.ServeHTTP(ctx.Resp, ctx.Req)
+		})
+	}
 }

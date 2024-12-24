@@ -726,12 +726,11 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	if ctx.Repo.GitRepo == nil && !repo.IsEmpty {
 		var err error
-		ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, repo)
+		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "Unable to OpenRepository", err)
 			return err
 		}
-		defer ctx.Repo.GitRepo.Close()
 	}
 
 	// Default branch only updated if changed and exist or the repository is empty

@@ -216,8 +216,6 @@ type CommitsByFileAndRangeOptions struct {
 
 // CommitsByFileAndRange return the commits according revision file and the page
 func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions) ([]*Commit, error) {
-	skip := (opts.Page - 1) * setting.Git.CommitsRangeSize
-
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
 		_ = stdoutReader.Close()
@@ -226,8 +224,8 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	go func() {
 		stderr := strings.Builder{}
 		gitCmd := NewCommand(repo.Ctx, "rev-list").
-			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize*opts.Page).
-			AddOptionFormat("--skip=%d", skip)
+			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
+			AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
 		gitCmd.AddDynamicArguments(opts.Revision)
 
 		if opts.Not != "" {

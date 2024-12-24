@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -51,7 +52,7 @@ func GetRunnerToken(ctx context.Context, token string) (*ActionRunnerToken, erro
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, fmt.Errorf("runner token %q: %w", token, util.ErrNotExist)
+		return nil, fmt.Errorf(`runner token "%s...": %w`, base.TruncateString(token, 3), util.ErrNotExist)
 	}
 	return &runnerToken, nil
 }
@@ -68,19 +69,15 @@ func UpdateRunnerToken(ctx context.Context, r *ActionRunnerToken, cols ...string
 	return err
 }
 
-// NewRunnerToken creates a new active runner token and invalidate all old tokens
+// NewRunnerTokenWithValue creates a new active runner token and invalidate all old tokens
 // ownerID will be ignored and treated as 0 if repoID is non-zero.
-func NewRunnerToken(ctx context.Context, ownerID, repoID int64) (*ActionRunnerToken, error) {
+func NewRunnerTokenWithValue(ctx context.Context, ownerID, repoID int64, token string) (*ActionRunnerToken, error) {
 	if ownerID != 0 && repoID != 0 {
 		// It's trying to create a runner token that belongs to a repository, but OwnerID has been set accidentally.
 		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
 		ownerID = 0
 	}
 
-	token, err := util.CryptoRandomString(40)
-	if err != nil {
-		return nil, err
-	}
 	runnerToken := &ActionRunnerToken{
 		OwnerID:  ownerID,
 		RepoID:   repoID,
@@ -95,9 +92,17 @@ func NewRunnerToken(ctx context.Context, ownerID, repoID int64) (*ActionRunnerTo
 			return err
 		}
 
-		_, err = db.GetEngine(ctx).Insert(runnerToken)
+		_, err := db.GetEngine(ctx).Insert(runnerToken)
 		return err
 	})
+}
+
+func NewRunnerToken(ctx context.Context, ownerID, repoID int64) (*ActionRunnerToken, error) {
+	token, err := util.CryptoRandomString(40)
+	if err != nil {
+		return nil, err
+	}
+	return NewRunnerTokenWithValue(ctx, ownerID, repoID, token)
 }
 
 // GetLatestRunnerToken returns the latest runner token

@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -18,7 +17,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-const tplStatus500 base.TplName = "status/500"
+const tplStatus500 templates.TplName = "status/500"
 
 // RenderPanicErrorPage renders a 500 page, and it never panics
 func RenderPanicErrorPage(w http.ResponseWriter, req *http.Request, err any) {
@@ -47,7 +46,7 @@ func RenderPanicErrorPage(w http.ResponseWriter, req *http.Request, err any) {
 		ctxData["ErrorMsg"] = "PANIC: " + combinedErr
 	}
 
-	err = templates.HTMLRenderer().HTML(w, http.StatusInternalServerError, string(tplStatus500), ctxData, tmplCtx)
+	err = templates.HTMLRenderer().HTML(w, http.StatusInternalServerError, tplStatus500, ctxData, tmplCtx)
 	if err != nil {
 		log.Error("Error occurs again when rendering error page: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)

@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/services/actions"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +23,7 @@ func TestUserIDFromToken(t *testing.T) {
 		token, err := actions.CreateAuthorizationToken(RunningTaskID, 1, 2)
 		assert.NoError(t, err)
 
-		ds := make(middleware.ContextData)
+		ds := make(reqctx.ContextData)
 
 		o := OAuth2{}
 		uid := o.userIDFromToken(context.Background(), token, ds)

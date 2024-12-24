@@ -693,7 +693,7 @@
 		{{else if eq .Type 38}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-clock"}}</span>
-				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{$timeStr := .Content|TimeEstimateString}}

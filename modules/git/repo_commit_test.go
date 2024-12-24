@@ -8,7 +8,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRepository_GetCommitBranches(t *testing.T) {
@@ -125,4 +129,22 @@ func TestGetRefCommitID(t *testing.T) {
 			assert.Equal(t, testCase.ExpectedCommitID, commitID)
 		}
 	}
+}
+
+func TestCommitsByFileAndRange(t *testing.T) {
+	defer test.MockVariableValue(&setting.Git.CommitsRangeSize, 2)()
+
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	require.NoError(t, err)
+	defer bareRepo1.Close()
+
+	// "foo" has 3 commits in "master" branch
+	commits, err := bareRepo1.CommitsByFileAndRange(CommitsByFileAndRangeOptions{Revision: "master", File: "foo", Page: 1})
+	require.NoError(t, err)
+	assert.Len(t, commits, 2)
+
+	commits, err = bareRepo1.CommitsByFileAndRange(CommitsByFileAndRangeOptions{Revision: "master", File: "foo", Page: 2})
+	require.NoError(t, err)
+	assert.Len(t, commits, 1)
 }

@@ -4,9 +4,9 @@
 package markup
 
 import (
+	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
@@ -16,7 +16,15 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
 )
+
+type RenderIssueIconTitleOptions struct {
+	OwnerName  string
+	RepoName   string
+	LinkHref   string
+	IssueIndex int64
+}
 
 func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.RenderOptions.Metas == nil {
@@ -66,6 +74,27 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 	}
 }
 
+func createIssueLinkContentWithSummary(ctx *RenderContext, linkHref string, ref *references.RenderizableReference) *html.Node {
+	if DefaultRenderHelperFuncs.RenderRepoIssueIconTitle == nil {
+		return nil
+	}
+	issueIndex, _ := strconv.ParseInt(ref.Issue, 10, 64)
+	h, err := DefaultRenderHelperFuncs.RenderRepoIssueIconTitle(ctx, RenderIssueIconTitleOptions{
+		OwnerName:  ref.Owner,
+		RepoName:   ref.Name,
+		LinkHref:   linkHref,
+		IssueIndex: issueIndex,
+	})
+	if err != nil {
+		log.Error("RenderRepoIssueIconTitle failed: %v", err)
+		return nil
+	}
+	if h == "" {
+		return nil
+	}
+	return &html.Node{Type: html.RawNode, Data: string(ctx.RenderInternal.ProtectSafeAttrs(h))}
+}
+
 func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.RenderOptions.Metas == nil {
 		return
@@ -76,32 +105,28 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 	// old logic: crossLinkOnly := ctx.RenderOptions.Metas["mode"] == "document" && !ctx.IsWiki
 	crossLinkOnly := ctx.RenderOptions.Metas["markupAllowShortIssuePattern"] != "true"
 
-	var (
-		found bool
-		ref   *references.RenderizableReference
-	)
+	var ref *references.RenderizableReference
 
 	next := node.NextSibling
-
 	for node != nil && node != next {
 		_, hasExtTrackFormat := ctx.RenderOptions.Metas["format"]
 
 		// Repos with external issue trackers might still need to reference local PRs
 		// We need to concern with the first one that shows up in the text, whichever it is
 		isNumericStyle := ctx.RenderOptions.Metas["style"] == "" || ctx.RenderOptions.Metas["style"] == IssueNameStyleNumeric
-		foundNumeric, refNumeric := references.FindRenderizableReferenceNumeric(node.Data, hasExtTrackFormat && !isNumericStyle, crossLinkOnly)
+		refNumeric := references.FindRenderizableReferenceNumeric(node.Data, hasExtTrackFormat && !isNumericStyle, crossLinkOnly)
 
 		switch ctx.RenderOptions.Metas["style"] {
 		case "", IssueNameStyleNumeric:
-			found, ref = foundNumeric, refNumeric
+			ref = refNumeric
 		case IssueNameStyleAlphanumeric:
-			found, ref = references.FindRenderizableReferenceAlphanumeric(node.Data)
+			ref = references.FindRenderizableReferenceAlphanumeric(node.Data)
 		case IssueNameStyleRegexp:
 			pattern, err := regexplru.GetCompiled(ctx.RenderOptions.Metas["regexp"])
 			if err != nil {
 				return
 			}
-			found, ref = references.FindRenderizableReferenceRegexp(node.Data, pattern)
+			ref = references.FindRenderizableReferenceRegexp(node.Data, pattern)
 		}
 
 		// Repos with external issue trackers might still need to reference local PRs
@@ -109,17 +134,17 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		if hasExtTrackFormat && !isNumericStyle && refNumeric != nil {
 			// If numeric (PR) was found, and it was BEFORE the non-numeric pattern, use that
 			// Allow a free-pass when non-numeric pattern wasn't found.
-			if found && (ref == nil || refNumeric.RefLocation.Start < ref.RefLocation.Start) {
-				found = foundNumeric
+			if ref == nil || refNumeric.RefLocation.Start < ref.RefLocation.Start {
 				ref = refNumeric
 			}
 		}
-		if !found {
+
+		if ref == nil {
 			return
 		}
 
 		var link *html.Node
-		reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
+		refText := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
 		if hasExtTrackFormat && !ref.IsPull {
 			ctx.RenderOptions.Metas["index"] = ref.Issue
 
@@ -129,18 +154,23 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 				log.Error("unable to expand template vars for ref %s, err: %v", ref.Issue, err)
 			}
 
-			link = createLink(ctx, res, reftext, "ref-issue ref-external-issue")
+			link = createLink(ctx, res, refText, "ref-issue ref-external-issue")
 		} else {
 			// Path determines the type of link that will be rendered. It's unknown at this point whether
 			// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
 			// Gitea will redirect on click as appropriate.
+			issueOwner := util.Iif(ref.Owner == "", ctx.RenderOptions.Metas["user"], ref.Owner)
+			issueRepo := util.Iif(ref.Owner == "", ctx.RenderOptions.Metas["repo"], ref.Name)
 			issuePath := util.Iif(ref.IsPull, "pulls", "issues")
-			if ref.Owner == "" {
-				linkHref := ctx.RenderHelper.ResolveLink(util.URLJoin(ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], issuePath, ref.Issue), LinkTypeApp)
-				link = createLink(ctx, linkHref, reftext, "ref-issue")
-			} else {
-				linkHref := ctx.RenderHelper.ResolveLink(util.URLJoin(ref.Owner, ref.Name, issuePath, ref.Issue), LinkTypeApp)
-				link = createLink(ctx, linkHref, reftext, "ref-issue")
+			linkHref := ctx.RenderHelper.ResolveLink(util.URLJoin(issueOwner, issueRepo, issuePath, ref.Issue), LinkTypeApp)
+
+			// at the moment, only render the issue index in a full line (or simple line) as icon+title
+			// otherwise it would be too noisy for "take #1 as an example" in a sentence
+			if node.Parent.DataAtom == atom.Li && ref.RefLocation.Start < 20 && ref.RefLocation.End == len(node.Data) {
+				link = createIssueLinkContentWithSummary(ctx, linkHref, ref)
+			}
+			if link == nil {
+				link = createLink(ctx, linkHref, refText, "ref-issue")
 			}
 		}
 
@@ -166,23 +196,5 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 		replaceContentList(node, ref.ActionLocation.Start, ref.RefLocation.End, []*html.Node{keyword, spaces, link})
 		node = node.NextSibling.NextSibling.NextSibling.NextSibling
-	}
-}
-
-func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
-	next := node.NextSibling
-
-	for node != nil && node != next {
-		found, ref := references.FindRenderizableCommitCrossReference(node.Data)
-		if !found {
-			return
-		}
-
-		reftext := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
-		linkHref := ctx.RenderHelper.ResolveLink(util.URLJoin(ref.Owner, ref.Name, "commit", ref.CommitSha), LinkTypeApp)
-		link := createLink(ctx, linkHref, reftext, "commit")
-
-		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
-		node = node.NextSibling.NextSibling
 	}
 }

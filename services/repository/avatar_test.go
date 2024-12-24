@@ -61,3 +61,11 @@ func TestDeleteAvatar(t *testing.T) {
 
 	assert.Equal(t, "", repo.Avatar)
 }
+
+func TestGenerateAvatar(t *testing.T) {
+	templateRepo := &repo_model.Repository{ID: 10, Avatar: "a"}
+	generateRepo := &repo_model.Repository{ID: 11}
+	_ = generateAvatar(db.DefaultContext, templateRepo, generateRepo)
+	assert.NotEmpty(t, generateRepo.Avatar)
+	assert.NotEqual(t, templateRepo.Avatar, generateRepo.Avatar)
+}

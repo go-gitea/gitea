@@ -1,4 +1,5 @@
 import {createTippy} from '../modules/tippy.ts';
+import type {DOMEvent} from '../utils/dom.ts';
 
 export async function initColorPickers() {
   const els = document.querySelectorAll<HTMLElement>('.js-color-picker-input');
@@ -37,7 +38,7 @@ function initPicker(el: HTMLElement): void {
     updateSquare(square, e.detail.value);
   });
 
-  input.addEventListener('input', (e: Event & {target: HTMLInputElement}) => {
+  input.addEventListener('input', (e: DOMEvent<Event, HTMLInputElement>) => {
     updateSquare(square, e.target.value);
     updatePicker(picker, e.target.value);
   });
@@ -55,8 +56,8 @@ function initPicker(el: HTMLElement): void {
   });
 
   // init precolors
-  for (const colorEl of el.querySelectorAll('.precolors .color')) {
-    colorEl.addEventListener('click', (e: MouseEvent & {target: HTMLAnchorElement}) => {
+  for (const colorEl of el.querySelectorAll<HTMLElement>('.precolors .color')) {
+    colorEl.addEventListener('click', (e: DOMEvent<MouseEvent, HTMLAnchorElement>) => {
       const newValue = e.target.getAttribute('data-color-hex');
       input.value = newValue;
       input.dispatchEvent(new Event('input', {bubbles: true}));

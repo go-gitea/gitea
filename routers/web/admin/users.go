@@ -11,17 +11,17 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
@@ -33,10 +33,10 @@ import (
 )
 
 const (
-	tplUsers    base.TplName = "admin/user/list"
-	tplUserNew  base.TplName = "admin/user/new"
-	tplUserView base.TplName = "admin/user/view"
-	tplUserEdit base.TplName = "admin/user/edit"
+	tplUsers    templates.TplName = "admin/user/list"
+	tplUserNew  templates.TplName = "admin/user/new"
+	tplUserView templates.TplName = "admin/user/view"
+	tplUserEdit templates.TplName = "admin/user/edit"
 )
 
 // UserSearchDefaultAdminSort is the default sort type for admin view
@@ -446,7 +446,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if err := user_service.UpdateUser(ctx, u, opts); err != nil {
-		if models.IsErrDeleteLastAdminUser(err) {
+		if user_model.IsErrDeleteLastAdminUser(err) {
 			ctx.RenderWithErr(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
 		} else {
 			ctx.ServerError("UpdateUser", err)
@@ -501,16 +501,16 @@ func DeleteUser(ctx *context.Context) {
 
 	if err = user_service.DeleteUser(ctx, u, ctx.FormBool("purge")); err != nil {
 		switch {
-		case models.IsErrUserOwnRepos(err):
+		case repo_model.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))
 			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
-		case models.IsErrUserHasOrgs(err):
+		case org_model.IsErrUserHasOrgs(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_has_org"))
 			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
-		case models.IsErrUserOwnPackages(err):
+		case packages_model.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_packages"))
 			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
-		case models.IsErrDeleteLastAdminUser(err):
+		case user_model.IsErrDeleteLastAdminUser(err):
 			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
 			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
 		default:

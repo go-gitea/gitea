@@ -136,9 +136,8 @@ func RunnerResetRegistrationToken(ctx *context.Context, ownerID, repoID int64, r
 		ctx.ServerError("ResetRunnerRegistrationToken", err)
 		return
 	}
-
 	ctx.Flash.Success(ctx.Tr("actions.runners.reset_registration_token_success"))
-	ctx.Redirect(redirectTo)
+	ctx.JSONRedirect(redirectTo)
 }
 
 // RunnerDeletePost response for deleting a runner

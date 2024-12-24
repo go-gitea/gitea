@@ -15,9 +15,9 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/auth/pam"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -33,9 +33,9 @@ import (
 )
 
 const (
-	tplAuths    base.TplName = "admin/auth/list"
-	tplAuthNew  base.TplName = "admin/auth/new"
-	tplAuthEdit base.TplName = "admin/auth/edit"
+	tplAuths    templates.TplName = "admin/auth/list"
+	tplAuthNew  templates.TplName = "admin/auth/new"
+	tplAuthEdit templates.TplName = "admin/auth/edit"
 )
 
 var (

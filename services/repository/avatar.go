@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -107,7 +106,8 @@ func RemoveRandomAvatars(ctx context.Context) error {
 
 // generateAvatar generates the avatar from a template repository
 func generateAvatar(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	generateRepo.Avatar = strings.Replace(templateRepo.Avatar, strconv.FormatInt(templateRepo.ID, 10), strconv.FormatInt(generateRepo.ID, 10), 1)
+	// generate a new different hash, whatever the "hash data" is, it doesn't matter
+	generateRepo.Avatar = avatar.HashAvatar(generateRepo.ID, []byte("new-avatar"))
 	if _, err := storage.Copy(storage.RepoAvatars, generateRepo.CustomAvatarRelativePath(), storage.RepoAvatars, templateRepo.CustomAvatarRelativePath()); err != nil {
 		return err
 	}

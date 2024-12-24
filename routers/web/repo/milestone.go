@@ -11,10 +11,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
@@ -25,9 +25,9 @@ import (
 )
 
 const (
-	tplMilestone       base.TplName = "repo/issue/milestones"
-	tplMilestoneNew    base.TplName = "repo/issue/milestone_new"
-	tplMilestoneIssues base.TplName = "repo/issue/milestone_issues"
+	tplMilestone       templates.TplName = "repo/issue/milestones"
+	tplMilestoneNew    templates.TplName = "repo/issue/milestone_new"
+	tplMilestoneIssues templates.TplName = "repo/issue/milestone_issues"
 )
 
 // Milestones render milestones page

@@ -1,4 +1,4 @@
-import {showElem} from '../../utils/dom.ts';
+import {showElem, type DOMEvent} from '../../utils/dom.ts';
 
 type CropperOpts = {
   container: HTMLElement,
@@ -26,7 +26,7 @@ export async function initCompCropper({container, fileInput, imageSource}: Cropp
     },
   });
 
-  fileInput.addEventListener('input', (e: Event & {target: HTMLInputElement}) => {
+  fileInput.addEventListener('input', (e: DOMEvent<Event, HTMLInputElement>) => {
     const files = e.target.files;
     if (files?.length > 0) {
       currentFileName = files[0].name;

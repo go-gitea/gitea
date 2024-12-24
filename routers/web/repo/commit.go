@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -34,10 +35,10 @@ import (
 )
 
 const (
-	tplCommits    base.TplName = "repo/commits"
-	tplGraph      base.TplName = "repo/graph"
-	tplGraphDiv   base.TplName = "repo/graph/div"
-	tplCommitPage base.TplName = "repo/commit_page"
+	tplCommits    templates.TplName = "repo/commits"
+	tplGraph      templates.TplName = "repo/graph"
+	tplGraphDiv   templates.TplName = "repo/graph/div"
+	tplCommitPage templates.TplName = "repo/commit_page"
 )
 
 // RefCommits render commits page
