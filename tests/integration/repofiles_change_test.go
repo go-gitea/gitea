@@ -175,7 +175,7 @@ func getExpectedFileResponseForRepofilesCreate(commitID, lastCommitSHA string) *
 	}
 }
 
-func getExpectedFileResponseForRepofilesUpdate(commitID, filename, lastCommitSHA string) *api.FileResponse {
+func getExpectedFileResponseForRepofilesUpdate(commitID, filename, lastCommitSHA string, lastCommitWhen time.Time) *api.FileResponse {
 	encoding := "base64"
 	content := "VGhpcyBpcyBVUERBVEVEIGNvbnRlbnQgZm9yIHRoZSBSRUFETUUgZmlsZQ=="
 	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + filename + "?ref=master"
@@ -184,18 +184,19 @@ func getExpectedFileResponseForRepofilesUpdate(commitID, filename, lastCommitSHA
 	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + filename
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
-			Name:          filename,
-			Path:          filename,
-			SHA:           "dbf8d00e022e05b7e5cf7e535de857de57925647",
-			LastCommitSHA: lastCommitSHA,
-			Type:          "file",
-			Size:          43,
-			Encoding:      &encoding,
-			Content:       &content,
-			URL:           &selfURL,
-			HTMLURL:       &htmlURL,
-			GitURL:        &gitURL,
-			DownloadURL:   &downloadURL,
+			Name:           filename,
+			Path:           filename,
+			SHA:            "dbf8d00e022e05b7e5cf7e535de857de57925647",
+			LastCommitSHA:  lastCommitSHA,
+			LastCommitWhen: lastCommitWhen,
+			Type:           "file",
+			Size:           43,
+			Encoding:       &encoding,
+			Content:        &content,
+			URL:            &selfURL,
+			HTMLURL:        &htmlURL,
+			GitURL:         &gitURL,
+			DownloadURL:    &downloadURL,
 			Links: &api.FileLinksResponse{
 				Self:    &selfURL,
 				GitURL:  &gitURL,
@@ -305,7 +306,7 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
 		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
-		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String())
+		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String(), lastCommit.Committer.When)
 		assert.EqualValues(t, expectedFileResponse.Content, filesResponse.Files[0])
 		assert.EqualValues(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
 		assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
@@ -341,7 +342,7 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
 		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
-		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String())
+		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String(), lastCommit.Committer.When)
 		// assert that the old file no longer exists in the last commit of the branch
 		fromEntry, err := commit.GetTreeEntryByPath(opts.Files[0].FromTreePath)
 		switch err.(type) {
@@ -392,7 +393,7 @@ func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 
 		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
 		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
-		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String())
+		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String(), lastCommit.Committer.When)
 		assert.EqualValues(t, expectedFileResponse.Content, filesResponse.Files[0])
 	})
 }
