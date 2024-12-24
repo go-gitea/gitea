@@ -864,7 +864,7 @@ func ExcerptBlob(ctx *context.Context) {
 	direction := ctx.FormString("direction")
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
-	if ctx.FormBool("wiki") {
+	if ctx.Data["PageIsWiki"] == true {
 		var err error
 		gitRepo, err = gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 		if err != nil {
