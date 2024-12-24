@@ -4,7 +4,6 @@
 package web
 
 import (
-	gocontext "context"
 	"net/http"
 	"strings"
 
@@ -463,7 +462,7 @@ func registerRoutes(m *web.Router) {
 			m.Combo("/{runnerid}").Get(repo_setting.RunnersEdit).
 				Post(web.Bind(forms.EditRunnerForm{}), repo_setting.RunnersEditPost)
 			m.Post("/{runnerid}/delete", repo_setting.RunnerDeletePost)
-			m.Get("/reset_registration_token", repo_setting.ResetRunnerRegistrationToken)
+			m.Post("/reset_registration_token", repo_setting.ResetRunnerRegistrationToken)
 		})
 	}
 
@@ -1521,24 +1520,23 @@ func registerRoutes(m *web.Router) {
 
 		m.Group("/blob_excerpt", func() {
 			m.Get("/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
-		}, func(ctx *context.Context) gocontext.CancelFunc {
+		}, func(ctx *context.Context) {
 			// FIXME: refactor this function, use separate routes for wiki/code
 			if ctx.FormBool("wiki") {
 				ctx.Data["PageIsWiki"] = true
 				repo.MustEnableWiki(ctx)
-				return nil
+				return
 			}
 
 			if ctx.Written() {
-				return nil
+				return
 			}
-			cancel := context.RepoRef()(ctx)
+			context.RepoRef()(ctx)
 			if ctx.Written() {
-				return cancel
+				return
 			}
 
 			repo.MustBeNotEmpty(ctx)
-			return cancel
 		})
 
 		m.Group("/media", func() {

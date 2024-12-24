@@ -10,9 +10,9 @@ import (
 
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/services/repository/files"
 )
 
-var tplCherryPick base.TplName = "repo/editor/cherry_pick"
+var tplCherryPick templates.TplName = "repo/editor/cherry_pick"
 
 // CherryPick handles cherrypick GETs
 func CherryPick(ctx *context.Context) {
