@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {GET} from '../modules/fetch.ts';
-import {toggleElem} from '../utils/dom.ts';
+import {toggleElem, type DOMEvent} from '../utils/dom.ts';
 import {logoutFromWorker} from '../modules/worker.ts';
 
 const {appSubUrl, notificationSettings, assetVersionEncoded} = window.config;
@@ -25,8 +25,8 @@ export function initNotificationsTable() {
   });
 
   // mark clicked unread links for deletion on bfcache restore
-  for (const link of table.querySelectorAll('.notifications-item[data-status="1"] .notifications-link')) {
-    link.addEventListener('click', (e : MouseEvent & {target: HTMLElement}) => {
+  for (const link of table.querySelectorAll<HTMLAnchorElement>('.notifications-item[data-status="1"] .notifications-link')) {
+    link.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
       e.target.closest('.notifications-item').setAttribute('data-remove', 'true');
     });
   }

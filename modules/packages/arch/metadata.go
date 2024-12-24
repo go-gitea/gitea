@@ -43,8 +43,9 @@ var (
 	ErrInvalidArchitecture = util.NewInvalidArgumentErrorf("package architecture is invalid")
 
 	// https://man.archlinux.org/man/PKGBUILD.5
-	namePattern    = regexp.MustCompile(`\A[a-zA-Z0-9@._+-]+\z`)
-	versionPattern = regexp.MustCompile(`\A(?:[0-9]:)?[a-zA-Z0-9.+~]+(?:-[a-zA-Z0-9.+-~]+)?\z`)
+	namePattern = regexp.MustCompile(`\A[a-zA-Z0-9@._+-]+\z`)
+	// (epoch:pkgver-pkgrel)
+	versionPattern = regexp.MustCompile(`\A(?:\d:)?[\w.+~]+(?:-[-\w.+~]+)?\z`)
 )
 
 type Package struct {
@@ -69,10 +70,12 @@ type FileMetadata struct {
 	Packager      string   `json:"packager,omitempty"`
 	Groups        []string `json:"groups,omitempty"`
 	Provides      []string `json:"provides,omitempty"`
+	Replaces      []string `json:"replaces,omitempty"`
 	Depends       []string `json:"depends,omitempty"`
 	OptDepends    []string `json:"opt_depends,omitempty"`
 	MakeDepends   []string `json:"make_depends,omitempty"`
 	CheckDepends  []string `json:"check_depends,omitempty"`
+	Conflicts     []string `json:"conflicts,omitempty"`
 	XData         []string `json:"xdata,omitempty"`
 	Backup        []string `json:"backup,omitempty"`
 	Files         []string `json:"files,omitempty"`
@@ -201,12 +204,16 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 			p.FileMetadata.Provides = append(p.FileMetadata.Provides, value)
 		case "depend":
 			p.FileMetadata.Depends = append(p.FileMetadata.Depends, value)
+		case "replaces":
+			p.FileMetadata.Replaces = append(p.FileMetadata.Replaces, value)
 		case "optdepend":
 			p.FileMetadata.OptDepends = append(p.FileMetadata.OptDepends, value)
 		case "makedepend":
 			p.FileMetadata.MakeDepends = append(p.FileMetadata.MakeDepends, value)
 		case "checkdepend":
 			p.FileMetadata.CheckDepends = append(p.FileMetadata.CheckDepends, value)
+		case "conflict":
+			p.FileMetadata.Conflicts = append(p.FileMetadata.Conflicts, value)
 		case "backup":
 			p.FileMetadata.Backup = append(p.FileMetadata.Backup, value)
 		case "group":

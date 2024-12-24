@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -24,13 +23,13 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
@@ -50,9 +49,9 @@ import (
 )
 
 const (
-	tplCompareDiff base.TplName = "repo/diff/compare"
-	tplPullCommits base.TplName = "repo/pulls/commits"
-	tplPullFiles   base.TplName = "repo/pulls/files"
+	tplCompareDiff templates.TplName = "repo/diff/compare"
+	tplPullCommits templates.TplName = "repo/pulls/commits"
+	tplPullFiles   templates.TplName = "repo/pulls/files"
 
 	pullRequestTemplateKey = "PullRequestTemplate"
 )
@@ -701,9 +700,6 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 	if ctx.Written() {
 		return
-	} else if prInfo == nil {
-		ctx.NotFound("ViewPullFiles", nil)
-		return
 	}
 
 	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
@@ -971,8 +967,8 @@ func UpdatePullRequest(ctx *context.Context) {
 	message := fmt.Sprintf("Merge branch '%s' into %s", issue.PullRequest.BaseBranch, issue.PullRequest.HeadBranch)
 
 	if err = pull_service.Update(ctx, issue.PullRequest, ctx.Doer, message, rebase); err != nil {
-		if models.IsErrMergeConflicts(err) {
-			conflictError := err.(models.ErrMergeConflicts)
+		if pull_service.IsErrMergeConflicts(err) {
+			conflictError := err.(pull_service.ErrMergeConflicts)
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.pulls.merge_conflict"),
 				"Summary": ctx.Tr("repo.pulls.merge_conflict_summary"),
@@ -985,8 +981,8 @@ func UpdatePullRequest(ctx *context.Context) {
 			ctx.Flash.Error(flashError)
 			ctx.Redirect(issue.Link())
 			return
-		} else if models.IsErrRebaseConflicts(err) {
-			conflictError := err.(models.ErrRebaseConflicts)
+		} else if pull_service.IsErrRebaseConflicts(err) {
+			conflictError := err.(pull_service.ErrRebaseConflicts)
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.SanitizeFlashErrorString(conflictError.CommitSHA)),
 				"Summary": ctx.Tr("repo.pulls.rebase_conflict_summary"),
@@ -1050,7 +1046,7 @@ func MergePullRequest(ctx *context.Context) {
 			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_wip"))
 		case errors.Is(err, pull_service.ErrNotMergeableState):
 			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_not_ready"))
-		case models.IsErrDisallowedToMerge(err):
+		case pull_service.IsErrDisallowedToMerge(err):
 			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_not_ready"))
 		case asymkey_service.IsErrWontSign(err):
 			ctx.JSONError(err.Error()) // has no translation ...
@@ -1067,7 +1063,7 @@ func MergePullRequest(ctx *context.Context) {
 	if manuallyMerged {
 		if err := pull_service.MergedManually(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			switch {
-			case models.IsErrInvalidMergeStyle(err):
+			case pull_service.IsErrInvalidMergeStyle(err):
 				ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 			case strings.Contains(err.Error(), "Wrong commit ID"):
 				ctx.JSONError(ctx.Tr("repo.pulls.wrong_commit_id"))
@@ -1114,10 +1110,10 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
-		if models.IsErrInvalidMergeStyle(err) {
+		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
-		} else if models.IsErrMergeConflicts(err) {
-			conflictError := err.(models.ErrMergeConflicts)
+		} else if pull_service.IsErrMergeConflicts(err) {
+			conflictError := err.(pull_service.ErrMergeConflicts)
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.editor.merge_conflict"),
 				"Summary": ctx.Tr("repo.editor.merge_conflict_summary"),
@@ -1129,8 +1125,8 @@ func MergePullRequest(ctx *context.Context) {
 			}
 			ctx.Flash.Error(flashError)
 			ctx.JSONRedirect(issue.Link())
-		} else if models.IsErrRebaseConflicts(err) {
-			conflictError := err.(models.ErrRebaseConflicts)
+		} else if pull_service.IsErrRebaseConflicts(err) {
+			conflictError := err.(pull_service.ErrRebaseConflicts)
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.SanitizeFlashErrorString(conflictError.CommitSHA)),
 				"Summary": ctx.Tr("repo.pulls.rebase_conflict_summary"),
@@ -1142,7 +1138,7 @@ func MergePullRequest(ctx *context.Context) {
 			}
 			ctx.Flash.Error(flashError)
 			ctx.JSONRedirect(issue.Link())
-		} else if models.IsErrMergeUnrelatedHistories(err) {
+		} else if pull_service.IsErrMergeUnrelatedHistories(err) {
 			log.Debug("MergeUnrelatedHistories error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.unrelated_histories"))
 			ctx.JSONRedirect(issue.Link())
@@ -1150,7 +1146,7 @@ func MergePullRequest(ctx *context.Context) {
 			log.Debug("MergePushOutOfDate error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
 			ctx.JSONRedirect(issue.Link())
-		} else if models.IsErrSHADoesNotMatch(err) {
+		} else if pull_service.IsErrSHADoesNotMatch(err) {
 			log.Debug("MergeHeadOutOfDate error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.head_out_of_date"))
 			ctx.JSONRedirect(issue.Link())
@@ -1609,7 +1605,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"error":      err.Error(),
 				"user_error": errorMessage,
 			})
-		} else if models.IsErrPullRequestHasMerged(err) {
+		} else if pull_service.IsErrPullRequestHasMerged(err) {
 			errorMessage := ctx.Tr("repo.pulls.has_merged")
 
 			ctx.Flash.Error(errorMessage)

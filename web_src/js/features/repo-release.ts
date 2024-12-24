@@ -1,7 +1,7 @@
-import {hideElem, showElem} from '../utils/dom.ts';
+import {hideElem, showElem, type DOMEvent} from '../utils/dom.ts';
 
 export function initRepoRelease() {
-  document.addEventListener('click', (e: MouseEvent & {target: HTMLElement}) => {
+  document.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
     if (e.target.matches('.remove-rel-attach')) {
       const uuid = e.target.getAttribute('data-uuid');
       const id = e.target.getAttribute('data-id');
@@ -42,7 +42,7 @@ function initTagNameEditor() {
     }
   };
   hideTargetInput(tagNameInput); // update on page load because the input may have a value
-  tagNameInput.addEventListener('input', (e: InputEvent & {target: HTMLInputElement}) => {
-    hideTargetInput(e.target);
+  tagNameInput.addEventListener('input', (e) => {
+    hideTargetInput(e.target as HTMLInputElement);
   });
 }
