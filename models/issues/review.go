@@ -46,6 +46,7 @@ func (err ErrReviewNotExist) Unwrap() error {
 type ErrNotValidReviewRequest struct {
 	Reason string
 	UserID int64
+	TeamID int64
 	RepoID int64
 }
 
@@ -56,9 +57,10 @@ func IsErrNotValidReviewRequest(err error) bool {
 }
 
 func (err ErrNotValidReviewRequest) Error() string {
-	return fmt.Sprintf("%s [user_id: %d, repo_id: %d]",
+	return fmt.Sprintf("%s [user_id: %d, team_id: %d, repo_id: %d]",
 		err.Reason,
 		err.UserID,
+		err.TeamID,
 		err.RepoID)
 }
 
@@ -736,7 +738,7 @@ func RemoveReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user
 		return nil, nil
 	}
 
-	if _, err = db.DeleteByBean(ctx, review); err != nil {
+	if _, err = db.DeleteByID[Review](ctx, review.ID); err != nil {
 		return nil, err
 	}
 
