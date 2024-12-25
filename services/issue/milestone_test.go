@@ -34,6 +34,7 @@ func TestChangeMilestoneAssign(t *testing.T) {
 	unittest.CheckConsistencyFor(t, &issues_model.Milestone{}, &issues_model.Issue{})
 	assert.NotNil(t, issue.Milestone)
 
+	oldMilestoneID = issue.MilestoneID
 	issue.MilestoneID = 0
 	assert.NoError(t, ChangeMilestoneAssign(db.DefaultContext, issue, doer, oldMilestoneID))
 	assert.EqualValues(t, 0, issue.MilestoneID)
