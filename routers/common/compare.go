@@ -109,14 +109,14 @@ func (cr *CompareInfo) IsSameRef() bool {
 }
 
 // display pull related information or not
-func (ci *CompareInfo) IsPull() bool {
-	return ci.CaretTimes == 0 && !ci.DirectComparison() &&
-		ci.BaseFullRef.IsBranch() && (ci.HeadRepo == nil || ci.HeadFullRef.IsBranch())
+func (cr *CompareInfo) IsPull() bool {
+	return cr.CaretTimes == 0 && !cr.DirectComparison() &&
+		cr.BaseFullRef.IsBranch() && (cr.HeadRepo == nil || cr.HeadFullRef.IsBranch())
 }
 
-func (ci *CompareInfo) Close() {
-	if ci.close != nil {
-		ci.close()
+func (cr *CompareInfo) Close() {
+	if cr.close != nil {
+		cr.close()
 	}
 }
 
@@ -309,15 +309,15 @@ func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *rep
 	return ci, nil
 }
 
-func (ci *CompareInfo) LoadRootRepoAndOwnForkRepo(ctx context.Context, baseRepo *repo_model.Repository, doer *user_model.User) (*repo_model.Repository, *repo_model.Repository, error) {
+func (cr *CompareInfo) LoadRootRepoAndOwnForkRepo(ctx context.Context, baseRepo *repo_model.Repository, doer *user_model.User) (*repo_model.Repository, *repo_model.Repository, error) {
 	// find root repo
 	var rootRepo *repo_model.Repository
 	var err error
 	if !baseRepo.IsFork {
 		rootRepo = baseRepo
 	} else {
-		if !ci.HeadRepo.IsFork {
-			rootRepo = ci.HeadRepo
+		if !cr.HeadRepo.IsFork {
+			rootRepo = cr.HeadRepo
 		} else {
 			rootRepo, err = getRootRepo(ctx, baseRepo)
 			if err != nil {
@@ -328,7 +328,7 @@ func (ci *CompareInfo) LoadRootRepoAndOwnForkRepo(ctx context.Context, baseRepo 
 
 	// find ownfork repo
 	var ownForkRepo *repo_model.Repository
-	if doer != nil && ci.HeadRepo.OwnerID != doer.ID && baseRepo.OwnerID != doer.ID {
+	if doer != nil && cr.HeadRepo.OwnerID != doer.ID && baseRepo.OwnerID != doer.ID {
 		ownForkRepo, err = findHeadRepo(ctx, baseRepo, doer.ID)
 		if err != nil {
 			return nil, nil, err
