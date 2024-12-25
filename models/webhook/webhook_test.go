@@ -43,7 +43,7 @@ func TestWebhook_History(t *testing.T) {
 	webhook = unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 2})
 	tasks, err = webhook.History(db.DefaultContext, 0)
 	assert.NoError(t, err)
-	assert.Len(t, tasks, 0)
+	assert.Empty(t, tasks)
 }
 
 func TestWebhook_UpdateEvent(t *testing.T) {
@@ -206,7 +206,7 @@ func TestHookTasks(t *testing.T) {
 
 	hookTasks, err = HookTasks(db.DefaultContext, unittest.NonexistentID, 1)
 	assert.NoError(t, err)
-	assert.Len(t, hookTasks, 0)
+	assert.Empty(t, hookTasks)
 }
 
 func TestCreateHookTask(t *testing.T) {

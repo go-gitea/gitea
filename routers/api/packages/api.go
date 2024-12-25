@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/packages/alpine"
+	"code.gitea.io/gitea/routers/api/packages/arch"
 	"code.gitea.io/gitea/routers/api/packages/cargo"
 	"code.gitea.io/gitea/routers/api/packages/chef"
 	"code.gitea.io/gitea/routers/api/packages/composer"
@@ -36,6 +37,8 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/vagrant"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
@@ -133,6 +136,43 @@ func CommonRoutes() *web.Router {
 						r.Delete("", reqPackageAccess(perm.AccessModeWrite), alpine.DeletePackageFile)
 					})
 				})
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/arch", func() {
+			r.Methods("HEAD,GET", "/repository.key", arch.GetRepositoryKey)
+
+			reqPutRepository := web.NewPathProcessor("PUT", "/<repository:*>")
+			reqGetRepoArchFile := web.NewPathProcessor("HEAD,GET", "/<repository:*>/<architecture>/<filename>")
+			reqDeleteRepoNameVerArch := web.NewPathProcessor("DELETE", "/<repository:*>/<name>/<version>/<architecture>")
+
+			r.Any("*", func(ctx *context.Context) {
+				chiCtx := chi.RouteContext(ctx.Req.Context())
+				path := ctx.PathParam("*")
+
+				if reqPutRepository.ProcessRequestPath(chiCtx, path) {
+					reqPackageAccess(perm.AccessModeWrite)(ctx)
+					if ctx.Written() {
+						return
+					}
+					arch.UploadPackageFile(ctx)
+					return
+				}
+
+				if reqGetRepoArchFile.ProcessRequestPath(chiCtx, path) {
+					arch.GetPackageOrRepositoryFile(ctx)
+					return
+				}
+
+				if reqDeleteRepoNameVerArch.ProcessRequestPath(chiCtx, path) {
+					reqPackageAccess(perm.AccessModeWrite)(ctx)
+					if ctx.Written() {
+						return
+					}
+					arch.DeletePackageVersion(ctx)
+					return
+				}
+
+				ctx.Status(http.StatusNotFound)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
@@ -314,6 +354,7 @@ func CommonRoutes() *web.Router {
 					r.Get("/PACKAGES", cran.EnumerateSourcePackages)
 					r.Get("/PACKAGES{format}", cran.EnumerateSourcePackages)
 					r.Get("/{filename}", cran.DownloadSourcePackageFile)
+					r.Get("/Archive/{packagename}/{filename}", cran.DownloadSourcePackageFile)
 				})
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), cran.UploadSourcePackageFile)
 			})
@@ -420,6 +461,8 @@ func CommonRoutes() *web.Router {
 			r.Post("/api/charts", reqPackageAccess(perm.AccessModeWrite), helm.UploadPackage)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/maven", func() {
+			// FIXME: this path design is not right.
+			// It should be `/.../{groupId}/{artifactId}/{version}`, but not `/.../{groupId}-{artifactId}/{version}`
 			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
 			r.Get("/*", maven.DownloadPackageFile)
 			r.Head("/*", maven.ProvidePackageFileHeader)
@@ -610,40 +653,46 @@ func CommonRoutes() *web.Router {
 			}, reqPackageAccess(perm.AccessModeWrite))
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/swift", func() {
-			r.Group("/{scope}/{name}", func() {
-				r.Group("", func() {
-					r.Get("", swift.EnumeratePackageVersions)
-					r.Get(".json", swift.EnumeratePackageVersions)
-				}, swift.CheckAcceptMediaType(swift.AcceptJSON))
-				r.Group("/{version}", func() {
-					r.Get("/Package.swift", swift.CheckAcceptMediaType(swift.AcceptSwift), swift.DownloadManifest)
-					r.Put("", reqPackageAccess(perm.AccessModeWrite), swift.CheckAcceptMediaType(swift.AcceptJSON), swift.UploadPackageFile)
-					r.Get("", func(ctx *context.Context) {
-						// Can't use normal routes here: https://github.com/go-chi/chi/issues/781
+			r.Group("", func() { // Needs to be unauthenticated.
+				r.Post("", swift.CheckAuthenticate)
+				r.Post("/login", swift.CheckAuthenticate)
+			})
+			r.Group("", func() {
+				r.Group("/{scope}/{name}", func() {
+					r.Group("", func() {
+						r.Get("", swift.EnumeratePackageVersions)
+						r.Get(".json", swift.EnumeratePackageVersions)
+					}, swift.CheckAcceptMediaType(swift.AcceptJSON))
+					r.Group("/{version}", func() {
+						r.Get("/Package.swift", swift.CheckAcceptMediaType(swift.AcceptSwift), swift.DownloadManifest)
+						r.Put("", reqPackageAccess(perm.AccessModeWrite), swift.CheckAcceptMediaType(swift.AcceptJSON), swift.UploadPackageFile)
+						r.Get("", func(ctx *context.Context) {
+							// Can't use normal routes here: https://github.com/go-chi/chi/issues/781
 
-						version := ctx.PathParam("version")
-						if strings.HasSuffix(version, ".zip") {
-							swift.CheckAcceptMediaType(swift.AcceptZip)(ctx)
-							if ctx.Written() {
-								return
+							version := ctx.PathParam("version")
+							if strings.HasSuffix(version, ".zip") {
+								swift.CheckAcceptMediaType(swift.AcceptZip)(ctx)
+								if ctx.Written() {
+									return
+								}
+								ctx.SetPathParam("version", version[:len(version)-4])
+								swift.DownloadPackageFile(ctx)
+							} else {
+								swift.CheckAcceptMediaType(swift.AcceptJSON)(ctx)
+								if ctx.Written() {
+									return
+								}
+								if strings.HasSuffix(version, ".json") {
+									ctx.SetPathParam("version", version[:len(version)-5])
+								}
+								swift.PackageVersionMetadata(ctx)
 							}
-							ctx.SetPathParam("version", version[:len(version)-4])
-							swift.DownloadPackageFile(ctx)
-						} else {
-							swift.CheckAcceptMediaType(swift.AcceptJSON)(ctx)
-							if ctx.Written() {
-								return
-							}
-							if strings.HasSuffix(version, ".json") {
-								ctx.SetPathParam("version", version[:len(version)-5])
-							}
-							swift.PackageVersionMetadata(ctx)
-						}
+						})
 					})
 				})
-			})
-			r.Get("/identifiers", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.LookupPackageIdentifiers)
-		}, reqPackageAccess(perm.AccessModeRead))
+				r.Get("/identifiers", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.LookupPackageIdentifiers)
+			}, reqPackageAccess(perm.AccessModeRead))
+		})
 		r.Group("/vagrant", func() {
 			r.Group("/authenticate", func() {
 				r.Get("", vagrant.CheckAuthenticate)

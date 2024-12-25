@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
@@ -29,8 +30,8 @@ import (
 )
 
 const (
-	tplGrantAccess base.TplName = "user/auth/grant"
-	tplGrantError  base.TplName = "user/auth/grant_error"
+	tplGrantAccess templates.TplName = "user/auth/grant"
+	tplGrantError  templates.TplName = "user/auth/grant_error"
 )
 
 // TODO move error and responses to SDK or models
@@ -104,7 +105,18 @@ func InfoOAuth(ctx *context.Context) {
 		Picture:           ctx.Doer.AvatarLink(ctx),
 	}
 
-	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer)
+	var accessTokenScope auth.AccessTokenScope
+	if auHead := ctx.Req.Header.Get("Authorization"); auHead != "" {
+		auths := strings.Fields(auHead)
+		if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
+			accessTokenScope, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, auths[1])
+		}
+	}
+
+	// since version 1.22 does not verify if groups should be public-only,
+	// onlyPublicGroups will be set only if 'public-only' is included in a valid scope
+	onlyPublicGroups, _ := accessTokenScope.PublicOnly()
+	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer, onlyPublicGroups)
 	if err != nil {
 		ctx.ServerError("Oauth groups for user", err)
 		return
@@ -303,6 +315,9 @@ func AuthorizeOAuth(ctx *context.Context) {
 		ctx.Redirect(redirect.String())
 		return
 	}
+
+	// check if additional scopes
+	ctx.Data["AdditionalScopes"] = oauth2_provider.GrantAdditionalScopes(form.Scope) != auth.AccessTokenScopeAll
 
 	// show authorize page to grant access
 	ctx.Data["Application"] = app

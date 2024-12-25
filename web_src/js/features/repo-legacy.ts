@@ -7,10 +7,7 @@ import {
   initRepoPullRequestUpdate,
 } from './repo-issue.ts';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.ts';
-import {initRepoBranchTagSelector} from '../components/RepoBranchTagSelector.vue';
-import {
-  initRepoCloneLink, initRepoCommonBranchOrTagDropdown, initRepoCommonFilterSearchDropdown,
-} from './repo-common.ts';
+import {initRepoCloneButtons} from './repo-common.ts';
 import {initCitationFileCopyContent} from './citation.ts';
 import {initCompLabelEdit} from './comp/LabelEdit.ts';
 import {initRepoDiffConversationNav} from './repo-diff.ts';
@@ -22,6 +19,14 @@ import {hideElem, queryElemChildren, showElem} from '../utils/dom.ts';
 import {initRepoIssueCommentEdit} from './repo-issue-edit.ts';
 import {initRepoMilestone} from './repo-milestone.ts';
 import {initRepoNew} from './repo-new.ts';
+import {createApp} from 'vue';
+import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
+
+function initRepoBranchTagSelector(selector: string) {
+  for (const elRoot of document.querySelectorAll(selector)) {
+    createApp(RepoBranchTagSelector, {elRoot}).mount(elRoot);
+  }
+}
 
 export function initBranchSelectorTabs() {
   const elSelectBranch = document.querySelector('.ui.dropdown.select-branch');
@@ -36,6 +41,33 @@ export function initBranchSelectorTabs() {
   });
 }
 
+function initRepoCommonBranchOrTagDropdown(selector: string) {
+  $(selector).each(function () {
+    const $dropdown = $(this);
+    $dropdown.find('.reference.column').on('click', function () {
+      hideElem($dropdown.find('.scrolling.reference-list-menu'));
+      showElem($($(this).data('target')));
+      return false;
+    });
+  });
+}
+
+function initRepoCommonFilterSearchDropdown(selector: string) {
+  const $dropdown = $(selector);
+  if (!$dropdown.length) return;
+
+  $dropdown.dropdown({
+    fullTextSearch: 'exact',
+    selectOnKeydown: false,
+    onChange(_text, _value, $choice) {
+      if ($choice[0].getAttribute('data-url')) {
+        window.location.href = $choice[0].getAttribute('data-url');
+      }
+    },
+    message: {noResults: $dropdown[0].getAttribute('data-no-results')},
+  });
+}
+
 export function initRepository() {
   if (!$('.page-content.repository').length) return;
 
@@ -43,7 +75,7 @@ export function initRepository() {
   initRepoCommentFormAndSidebar();
 
   // Labels
-  initCompLabelEdit('.repository.labels');
+  initCompLabelEdit('.page-content.repository.labels');
   initRepoMilestone();
   initRepoNew();
 
@@ -54,7 +86,7 @@ export function initRepository() {
     initRepoCommonFilterSearchDropdown('.choose.branch .dropdown');
   }
 
-  initRepoCloneLink();
+  initRepoCloneButtons();
   initCitationFileCopyContent();
   initRepoSettings();
 

@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/common"
@@ -42,9 +43,9 @@ import (
 )
 
 const (
-	tplCompare     base.TplName = "repo/diff/compare"
-	tplBlobExcerpt base.TplName = "repo/diff/blob_excerpt"
-	tplDiffBox     base.TplName = "repo/diff/box"
+	tplCompare     templates.TplName = "repo/diff/compare"
+	tplBlobExcerpt templates.TplName = "repo/diff/blob_excerpt"
+	tplDiffBox     templates.TplName = "repo/diff/box"
 )
 
 // setCompareContext sets context data.
@@ -149,7 +150,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			return csvReader, reader, err
 		}
 
-		baseReader, baseBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, RelativePath: diffFile.OldName}, baseBlob)
+		baseReader, baseBlobCloser, err := csvReaderFromCommit(markup.NewRenderContext(ctx).WithRelativePath(diffFile.OldName), baseBlob)
 		if baseBlobCloser != nil {
 			defer baseBlobCloser.Close()
 		}
@@ -161,7 +162,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			return CsvDiffResult{nil, "unable to load file"}
 		}
 
-		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, RelativePath: diffFile.Name}, headBlob)
+		headReader, headBlobCloser, err := csvReaderFromCommit(markup.NewRenderContext(ctx).WithRelativePath(diffFile.Name), headBlob)
 		if headBlobCloser != nil {
 			defer headBlobCloser.Close()
 		}
@@ -863,7 +864,7 @@ func ExcerptBlob(ctx *context.Context) {
 	direction := ctx.FormString("direction")
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
-	if ctx.FormBool("wiki") {
+	if ctx.Data["PageIsWiki"] == true {
 		var err error
 		gitRepo, err = gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 		if err != nil {

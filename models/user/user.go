@@ -330,7 +330,7 @@ func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListO
 		And("`user`.type=?", UserTypeIndividual).
 		And(isUserVisibleToViewerCond(viewer))
 
-	if listOptions.Page != 0 {
+	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
@@ -352,7 +352,7 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 		And("`user`.type IN (?, ?)", UserTypeIndividual, UserTypeOrganization).
 		And(isUserVisibleToViewerCond(viewer))
 
-	if listOptions.Page != 0 {
+	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
@@ -786,6 +786,21 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 	}
 
 	return committer.Commit()
+}
+
+// ErrDeleteLastAdminUser represents a "DeleteLastAdminUser" kind of error.
+type ErrDeleteLastAdminUser struct {
+	UID int64
+}
+
+// IsErrDeleteLastAdminUser checks if an error is a ErrDeleteLastAdminUser.
+func IsErrDeleteLastAdminUser(err error) bool {
+	_, ok := err.(ErrDeleteLastAdminUser)
+	return ok
+}
+
+func (err ErrDeleteLastAdminUser) Error() string {
+	return fmt.Sprintf("can not delete the last admin user [uid: %d]", err.UID)
 }
 
 // IsLastAdminUser check whether user is the last admin

@@ -51,7 +51,7 @@ function getIconForDiffType(pType) {
   <div v-else class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">
     <!-- directory -->
     <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
-    <SvgIcon class="text primary" name="octicon-file-directory-fill"/>
+    <SvgIcon class="text primary" :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"/>
     <span class="gt-ellipsis">{{ item.name }}</span>
   </div>
 
@@ -87,12 +87,16 @@ a, a:hover {
   color: var(--color-text-light-3);
 }
 
+.item-directory {
+  user-select: none;
+}
+
 .item-file,
 .item-directory {
   display: flex;
   align-items: center;
   gap: 0.25em;
-  padding: 3px 6px;
+  padding: 6px;
 }
 
 .item-file:hover,

@@ -61,7 +61,7 @@ func ListPullReviews(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -306,7 +306,7 @@ func CreatePullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	opts := web.GetForm(ctx).(*api.CreatePullReviewOptions)
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -533,7 +533,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 
 // prepareSingleReview return review, related pull and false or nil, nil and true if an error happen
 func prepareSingleReview(ctx *context.APIContext) (*issues_model.Review, *issues_model.PullRequest, bool) {
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -543,7 +543,7 @@ func prepareSingleReview(ctx *context.APIContext) (*issues_model.Review, *issues
 		return nil, nil, true
 	}
 
-	review, err := issues_model.GetReviewByID(ctx, ctx.PathParamInt64(":id"))
+	review, err := issues_model.GetReviewByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrReviewNotExist(err) {
 			ctx.NotFound("GetReviewByID", err)
@@ -698,7 +698,7 @@ func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerN
 }
 
 func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions, isAdd bool) {
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)

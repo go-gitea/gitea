@@ -50,10 +50,10 @@
 							<td>{{svg (Iif .IsPrimary "octicon-check" "octicon-x")}}</td>
 							<td>
 								{{if .CanChange}}
-									<a class="link-email-action" href data-uid="{{.UID}}"
-										data-email="{{.Email}}"
-										data-primary="{{if .IsPrimary}}1{{else}}0{{end}}"
-										data-activate="{{if .IsActivated}}0{{else}}1{{end}}">
+									<a class="show-modal" href data-modal="#change-email-modal" data-modal-uid="{{.UID}}"
+										data-modal-email="{{.Email}}"
+										data-modal-primary="{{if .IsPrimary}}1{{else}}0{{end}}"
+										data-modal-activate="{{if .IsActivated}}0{{else}}1{{end}}">
 										{{svg (Iif .IsActivated "octicon-check" "octicon-x")}}
 									</a>
 								{{else}}
@@ -61,9 +61,10 @@
 								{{end}}
 							</td>
 							<td>
-								<div class="tw-flex tw-gap-2">
-									<a class="delete-button" href="" data-url="{{$.Link}}/delete" data-id="{{.ID}}" data-data-uid="{{.UID}}">{{svg "octicon-trash"}}</a>
-								</div>
+								<a class="link-action negative" href data-url="{{$.Link}}/delete?id={{.ID}}&uid={{.UID}}"
+									data-modal-confirm-header="{{ctx.Locale.Tr "admin.emails.delete"}}"
+									data-modal-confirm-content="{{ctx.Locale.Tr "admin.emails.delete_desc"}}"
+								>{{svg "octicon-trash"}}</a>
 							</td>
 						</tr>
 					{{end}}
@@ -77,40 +78,24 @@
 			<div class="header">
 				{{ctx.Locale.Tr "admin.emails.change_email_header"}}
 			</div>
-			<div class="content">
+			<form class="content ui form" action="{{AppSubUrl}}/-/admin/emails/activate" method="post">
 				<p class="center">{{ctx.Locale.Tr "admin.emails.change_email_text"}}</p>
 
-				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/-/admin/emails/activate" method="post">
-					{{$.CsrfTokenHtml}}
+				{{$.CsrfTokenHtml}}
 
-					<input type="hidden" id="query-sort" name="sort" value="{{.SortType}}">
-					<input type="hidden" id="query-keyword" name="q" value="{{.Keyword}}">
-					<input type="hidden" id="query-primary" name="is_primary" value="{{.IsPrimary}}" required>
-					<input type="hidden" id="query-activated" name="is_activated" value="{{.IsActivated}}" required>
+				<input type="hidden" name="sort" value="{{.SortType}}">
+				<input type="hidden" name="q" value="{{.Keyword}}">
+				<input type="hidden" name="is_primary" value="{{.IsPrimary}}">
+				<input type="hidden" name="is_activated" value="{{.IsActivated}}">
 
-					<input type="hidden" id="form-uid" name="uid" value="" required>
-					<input type="hidden" id="form-email" name="email" value="" required>
-					<input type="hidden" id="form-primary" name="primary" value="" required>
-					<input type="hidden" id="form-activate" name="activate" value="" required>
+				<input type="hidden" name="uid">
+				<input type="hidden" name="email">
+				<input type="hidden" name="primary">
+				<input type="hidden" name="activate">
 
-					<div class="center">
-						{{template "base/modal_actions_confirm" .}}
-					</div>
-				</form>
-			</div>
+				{{template "base/modal_actions_confirm" .}}
+			</form>
 		</div>
-
 	</div>
-
-<div class="ui g-modal-confirm delete modal">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{ctx.Locale.Tr "admin.emails.delete"}}
-	</div>
-	<div class="content">
-		{{ctx.Locale.Tr "admin.emails.delete_desc"}}
-	</div>
-	{{template "base/modal_actions_confirm" .}}
-</div>
 
 {{template "admin/layout_footer" .}}

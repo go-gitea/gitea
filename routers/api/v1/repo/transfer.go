@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -101,14 +100,14 @@ func Transfer(ctx *context.APIContext) {
 	}
 
 	if ctx.Repo.GitRepo != nil {
-		ctx.Repo.GitRepo.Close()
+		_ = ctx.Repo.GitRepo.Close()
 		ctx.Repo.GitRepo = nil
 	}
 
 	oldFullname := ctx.Repo.Repository.FullName()
 
 	if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, ctx.Repo.Repository, teams); err != nil {
-		if models.IsErrRepoTransferInProgress(err) {
+		if repo_model.IsErrRepoTransferInProgress(err) {
 			ctx.Error(http.StatusConflict, "StartRepositoryTransfer", err)
 			return
 		}
@@ -213,9 +212,9 @@ func RejectTransfer(ctx *context.APIContext) {
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
-	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
+	repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 	if err != nil {
-		if models.IsErrNoPendingTransfer(err) {
+		if repo_model.IsErrNoPendingTransfer(err) {
 			ctx.NotFound()
 			return nil
 		}

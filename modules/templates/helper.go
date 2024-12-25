@@ -9,7 +9,6 @@ import (
 	"html"
 	"html/template"
 	"net/url"
-	"reflect"
 	"strings"
 	"time"
 
@@ -42,6 +41,7 @@ func NewFuncMap() template.FuncMap {
 		"HTMLFormat":   htmlutil.HTMLFormat,
 		"HTMLEscape":   htmlEscape,
 		"QueryEscape":  queryEscape,
+		"QueryBuild":   QueryBuild,
 		"JSEscape":     jsEscapeSafe,
 		"SanitizeHTML": SanitizeHTML,
 		"URLJoin":      util.URLJoin,
@@ -68,8 +68,11 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// time / number / format
 		"FileSize": base.FileSize,
-		"CountFmt": base.FormatNumberSI,
+		"CountFmt": countFmt,
 		"Sec2Time": util.SecToTime,
+
+		"TimeEstimateString": timeEstimateString,
+
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
@@ -235,29 +238,8 @@ func iif(condition any, vals ...any) any {
 }
 
 func isTemplateTruthy(v any) bool {
-	if v == nil {
-		return false
-	}
-
-	rv := reflect.ValueOf(v)
-	switch rv.Kind() {
-	case reflect.Bool:
-		return rv.Bool()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return rv.Int() != 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return rv.Uint() != 0
-	case reflect.Float32, reflect.Float64:
-		return rv.Float() != 0
-	case reflect.Complex64, reflect.Complex128:
-		return rv.Complex() != 0
-	case reflect.String, reflect.Slice, reflect.Array, reflect.Map:
-		return rv.Len() > 0
-	case reflect.Struct:
-		return true
-	default:
-		return !rv.IsNil()
-	}
+	truth, _ := template.IsTrue(v)
+	return truth
 }
 
 // evalTokens evaluates the expression by tokens and returns the result, see the comment of eval.Expr for details.
@@ -282,8 +264,72 @@ func userThemeName(user *user_model.User) string {
 	return setting.UI.DefaultTheme
 }
 
-func panicIfDevOrTesting() {
-	if !setting.IsProd || setting.IsInTesting {
-		panic("legacy template functions are for backward compatibility only, do not use them in new code")
+// QueryBuild builds a query string from a list of key-value pairs.
+// It omits the nil and empty strings, but it doesn't omit other zero values,
+// because the zero value of number types may have a meaning.
+func QueryBuild(a ...any) template.URL {
+	var s string
+	if len(a)%2 == 1 {
+		if v, ok := a[0].(string); ok {
+			if v == "" || (v[0] != '?' && v[0] != '&') {
+				panic("QueryBuild: invalid argument")
+			}
+			s = v
+		} else if v, ok := a[0].(template.URL); ok {
+			s = string(v)
+		} else {
+			panic("QueryBuild: invalid argument")
+		}
 	}
+	for i := len(a) % 2; i < len(a); i += 2 {
+		k, ok := a[i].(string)
+		if !ok {
+			panic("QueryBuild: invalid argument")
+		}
+		var v string
+		if va, ok := a[i+1].(string); ok {
+			v = va
+		} else if a[i+1] != nil {
+			v = fmt.Sprint(a[i+1])
+		}
+		// pos1 to pos2 is the "k=v&" part, "&" is optional
+		pos1 := strings.Index(s, "&"+k+"=")
+		if pos1 != -1 {
+			pos1++
+		} else {
+			pos1 = strings.Index(s, "?"+k+"=")
+			if pos1 != -1 {
+				pos1++
+			} else if strings.HasPrefix(s, k+"=") {
+				pos1 = 0
+			}
+		}
+		pos2 := len(s)
+		if pos1 == -1 {
+			pos1 = len(s)
+		} else {
+			pos2 = pos1 + 1
+			for pos2 < len(s) && s[pos2-1] != '&' {
+				pos2++
+			}
+		}
+		if v != "" {
+			sep := ""
+			hasPrefixSep := pos1 == 0 || (pos1 <= len(s) && (s[pos1-1] == '?' || s[pos1-1] == '&'))
+			if !hasPrefixSep {
+				sep = "&"
+			}
+			s = s[:pos1] + sep + k + "=" + url.QueryEscape(v) + "&" + s[pos2:]
+		} else {
+			s = s[:pos1] + s[pos2:]
+		}
+	}
+	if s != "" && s != "&" && s[len(s)-1] == '&' {
+		s = s[:len(s)-1]
+	}
+	return template.URL(s)
+}
+
+func panicIfDevOrTesting() {
+	setting.PanicInDevOrTesting("legacy template functions are for backward compatibility only, do not use them in new code")
 }

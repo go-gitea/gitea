@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/proxy"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // GPGSettings represents the default GPG settings for this repository
@@ -160,12 +159,6 @@ func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, op
 	}
 	cmd.AddDashesAndList(from, to)
 
-	if strings.Contains(from, "://") && strings.Contains(from, "@") {
-		cmd.SetDescription(fmt.Sprintf("clone branch %s from %s to %s (shared: %t, mirror: %t, depth: %d)", opts.Branch, util.SanitizeCredentialURLs(from), to, opts.Shared, opts.Mirror, opts.Depth))
-	} else {
-		cmd.SetDescription(fmt.Sprintf("clone branch %s from %s to %s (shared: %t, mirror: %t, depth: %d)", opts.Branch, from, to, opts.Shared, opts.Mirror, opts.Depth))
-	}
-
 	if opts.Timeout <= 0 {
 		opts.Timeout = -1
 	}
@@ -213,17 +206,11 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	}
 	cmd.AddDashesAndList(remoteBranchArgs...)
 
-	if strings.Contains(opts.Remote, "://") && strings.Contains(opts.Remote, "@") {
-		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, util.SanitizeCredentialURLs(opts.Remote), opts.Force, opts.Mirror))
-	} else {
-		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, opts.Remote, opts.Force, opts.Mirror))
-	}
-
 	stdout, stderr, err := cmd.RunStdString(&RunOpts{Env: opts.Env, Timeout: opts.Timeout, Dir: repoPath})
 	if err != nil {
 		if strings.Contains(stderr, "non-fast-forward") {
 			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}
-		} else if strings.Contains(stderr, "! [remote rejected]") {
+		} else if strings.Contains(stderr, "! [remote rejected]") || strings.Contains(stderr, "! [rejected]") {
 			err := &ErrPushRejected{StdOut: stdout, StdErr: stderr, Err: err}
 			err.GenerateMessage()
 			return err

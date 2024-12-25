@@ -14,9 +14,16 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-// GetRefCommitID returns the last commit ID string of given reference (branch or tag).
+// GetRefCommitID returns the last commit ID string of given reference.
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	ref, err := repo.gogitRepo.Reference(plumbing.ReferenceName(name), true)
+	if plumbing.IsHash(name) {
+		return name, nil
+	}
+	refName := plumbing.ReferenceName(name)
+	if err := refName.Validate(); err != nil {
+		return "", err
+	}
+	ref, err := repo.gogitRepo.Reference(refName, true)
 	if err != nil {
 		if err == plumbing.ErrReferenceNotFound {
 			return "", ErrNotExist{

@@ -9,10 +9,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	tplLabels base.TplName = "repo/issue/labels"
+	tplLabels templates.TplName = "repo/issue/labels"
 )
 
 // Labels render issue's labels page

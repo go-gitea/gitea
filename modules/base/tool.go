@@ -13,9 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"hash"
-	"os"
-	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -188,50 +185,4 @@ func EntryIcon(entry *git.TreeEntry) string {
 	}
 
 	return "file"
-}
-
-// SetupGiteaRoot Sets GITEA_ROOT if it is not already set and returns the value
-func SetupGiteaRoot() string {
-	giteaRoot := os.Getenv("GITEA_ROOT")
-	if giteaRoot == "" {
-		_, filename, _, _ := runtime.Caller(0)
-		giteaRoot = strings.TrimSuffix(filename, "modules/base/tool.go")
-		wd, err := os.Getwd()
-		if err != nil {
-			rel, err := filepath.Rel(giteaRoot, wd)
-			if err != nil && strings.HasPrefix(filepath.ToSlash(rel), "../") {
-				giteaRoot = wd
-			}
-		}
-		if _, err := os.Stat(filepath.Join(giteaRoot, "gitea")); os.IsNotExist(err) {
-			giteaRoot = ""
-		} else if err := os.Setenv("GITEA_ROOT", giteaRoot); err != nil {
-			giteaRoot = ""
-		}
-	}
-	return giteaRoot
-}
-
-// FormatNumberSI format a number
-func FormatNumberSI(data any) string {
-	var num int64
-	if num1, ok := data.(int64); ok {
-		num = num1
-	} else if num1, ok := data.(int); ok {
-		num = int64(num1)
-	} else {
-		return ""
-	}
-
-	if num < 1000 {
-		return fmt.Sprintf("%d", num)
-	} else if num < 1000000 {
-		num2 := float32(num) / float32(1000.0)
-		return fmt.Sprintf("%.1fk", num2)
-	} else if num < 1000000000 {
-		num2 := float32(num) / float32(1000000.0)
-		return fmt.Sprintf("%.1fM", num2)
-	}
-	num2 := float32(num) / float32(1000000000.0)
-	return fmt.Sprintf("%.1fG", num2)
 }

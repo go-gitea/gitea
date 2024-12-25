@@ -1,5 +1,5 @@
 import {isObject} from '../utils.ts';
-import type {RequestData, RequestOpts} from '../types.ts';
+import type {RequestOpts} from '../types.ts';
 
 const {csrfToken} = window.config;
 
@@ -10,7 +10,7 @@ const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 // which will automatically set an appropriate headers. For json content, only object
 // and array types are currently supported.
 export function request(url: string, {method = 'GET', data, headers = {}, ...other}: RequestOpts = {}): Promise<Response> {
-  let body: RequestData;
+  let body: string | FormData | URLSearchParams;
   let contentType: string;
   if (data instanceof FormData || data instanceof URLSearchParams) {
     body = data;

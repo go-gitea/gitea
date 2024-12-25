@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -18,12 +17,11 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
@@ -38,14 +36,14 @@ import (
 )
 
 const (
-	tplAttachment base.TplName = "repo/issue/view_content/attachments"
+	tplAttachment templates.TplName = "repo/issue/view_content/attachments"
 
-	tplIssues      base.TplName = "repo/issue/list"
-	tplIssueNew    base.TplName = "repo/issue/new"
-	tplIssueChoose base.TplName = "repo/issue/choose"
-	tplIssueView   base.TplName = "repo/issue/view"
+	tplIssues      templates.TplName = "repo/issue/list"
+	tplIssueNew    templates.TplName = "repo/issue/new"
+	tplIssueChoose templates.TplName = "repo/issue/choose"
+	tplIssueView   templates.TplName = "repo/issue/view"
 
-	tplReactions base.TplName = "repo/issue/view_content/reactions"
+	tplReactions templates.TplName = "repo/issue/view_content/reactions"
 
 	issueTemplateKey      = "IssueTemplate"
 	issueTemplateTitleKey = "IssueTemplateTitle"
@@ -114,7 +112,6 @@ func MustAllowPulls(ctx *context.Context) {
 	// User can send pull request if owns a forked repository.
 	if ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID) {
 		ctx.Repo.PullRequest.Allowed = true
-		ctx.Repo.PullRequest.HeadInfoSubURL = url.PathEscape(ctx.Doer.Name) + ":" + util.PathEscapeSegments(ctx.Repo.BranchName)
 	}
 }
 
@@ -184,7 +181,7 @@ func retrieveProjectsInternal(ctx *context.Context, repo *repo_model.Repository)
 
 // GetActionIssue will return the issue which is used in the context.
 func GetActionIssue(ctx *context.Context) *issues_model.Issue {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
 		return nil
@@ -249,7 +246,7 @@ func getActionIssues(ctx *context.Context) issues_model.IssueList {
 
 // GetIssueInfo get an issue of a repository
 func GetIssueInfo(ctx *context.Context) {
-	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.Error(http.StatusNotFound)
@@ -366,15 +363,8 @@ func UpdateIssueContent(ctx *context.Context) {
 		}
 	}
 
-	content, err := markdown.RenderString(&markup.RenderContext{
-		Links: markup.Links{
-			Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		},
-		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo: ctx.Repo.GitRepo,
-		Repo:    ctx.Repo.Repository,
-		Ctx:     ctx,
-	}, issue.Content)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+	content, err := markdown.RenderString(rctx, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return
@@ -389,7 +379,7 @@ func UpdateIssueContent(ctx *context.Context) {
 
 // UpdateIssueDeadline updates an issue deadline
 func UpdateIssueDeadline(ctx *context.Context) {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("GetIssueByIndex", err)
@@ -516,7 +506,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 		return
 	}
 
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "react":
 		reaction, err := issue_service.CreateIssueReaction(ctx, ctx.Doer, issue, form.Content)
 		if err != nil {
@@ -550,7 +540,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for issue removed: %d/%d", ctx.Repo.Repository.ID, issue.ID)
 	default:
-		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.PathParam(":action")), nil)
+		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.PathParam("action")), nil)
 		return
 	}
 
@@ -644,8 +634,12 @@ func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment,
 	return attachHTML
 }
 
-// get all teams that current user can mention
-func handleTeamMentions(ctx *context.Context) {
+// handleMentionableAssigneesAndTeams gets all teams that current user can mention, and fills the assignee users to the context data
+func handleMentionableAssigneesAndTeams(ctx *context.Context, assignees []*user_model.User) {
+	// TODO: need to figure out how many places this is really used, and rename it to "MentionableAssignees"
+	// at the moment it is used on the issue list page, for the markdown editor mention
+	ctx.Data["Assignees"] = assignees
+
 	if ctx.Doer == nil || !ctx.Repo.Owner.IsOrganization() {
 		return
 	}

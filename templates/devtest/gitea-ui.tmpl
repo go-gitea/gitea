@@ -1,5 +1,4 @@
-{{template "base/head" .}}
-<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/devtest.css?v={{AssetVersion}}">
+{{template "devtest/devtest-header"}}
 <div class="page-content devtest ui container">
 	<div>
 		<h1>Link</h1>
@@ -184,8 +183,7 @@
 
 	<div>
 		<h1>ComboMarkdownEditor</h1>
-		<div>ps: no JS code attached, so just a layout</div>
-		{{template "shared/combomarkdowneditor" .}}
+		{{template "shared/combomarkdowneditor" dict "MarkdownPreviewContext" "/owner/path"}}
 	</div>
 
 	<h1>Tailwind CSS Demo</h1>
@@ -193,4 +191,4 @@
 		<button class="{{if true}}tw-bg-red{{end}} tw-p-5 tw-border tw-rounded hover:tw-bg-blue active:tw-bg-yellow">Button</button>
 	</div>
 </div>
-{{template "base/footer" .}}
+{{template "devtest/devtest-footer"}}

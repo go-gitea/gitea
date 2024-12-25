@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	org_service "code.gitea.io/gitea/services/org"
 )
 
 // listMembers list an organization's members
@@ -143,7 +143,7 @@ func IsMember(ctx *context.APIContext) {
 	//   "404":
 	//     description: user is not a member
 
-	userToCheck := user.GetUserByParams(ctx)
+	userToCheck := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -194,7 +194,7 @@ func IsPublicMember(ctx *context.APIContext) {
 	//   "404":
 	//     description: user is not a public member
 
-	userToCheck := user.GetUserByParams(ctx)
+	userToCheck := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -236,7 +236,7 @@ func PublicizeMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	userToPublicize := user.GetUserByParams(ctx)
+	userToPublicize := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -278,7 +278,7 @@ func ConcealMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	userToConceal := user.GetUserByParams(ctx)
+	userToConceal := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -318,11 +318,11 @@ func DeleteMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	member := user.GetUserByParams(ctx)
+	member := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
-	if err := models.RemoveOrgUser(ctx, ctx.Org.Organization, member); err != nil {
+	if err := org_service.RemoveOrgUser(ctx, ctx.Org.Organization, member); err != nil {
 		ctx.Error(http.StatusInternalServerError, "RemoveOrgUser", err)
 	}
 	ctx.Status(http.StatusNoContent)

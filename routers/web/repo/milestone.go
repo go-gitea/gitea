@@ -10,11 +10,11 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
@@ -25,9 +25,9 @@ import (
 )
 
 const (
-	tplMilestone       base.TplName = "repo/issue/milestones"
-	tplMilestoneNew    base.TplName = "repo/issue/milestone_new"
-	tplMilestoneIssues base.TplName = "repo/issue/milestone_issues"
+	tplMilestone       templates.TplName = "repo/issue/milestones"
+	tplMilestoneNew    templates.TplName = "repo/issue/milestone_new"
+	tplMilestoneIssues templates.TplName = "repo/issue/milestone_issues"
 )
 
 // Milestones render milestones page
@@ -66,12 +66,6 @@ func Milestones(ctx *context.Context) {
 	}
 	ctx.Data["OpenCount"] = stats.OpenCount
 	ctx.Data["ClosedCount"] = stats.ClosedCount
-	linkStr := "%s/milestones?state=%s&q=%s&sort=%s"
-	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Repo.RepoLink, "open",
-		url.QueryEscape(keyword), url.QueryEscape(sortType))
-	ctx.Data["ClosedLink"] = fmt.Sprintf(linkStr, ctx.Repo.RepoLink, "closed",
-		url.QueryEscape(keyword), url.QueryEscape(sortType))
-
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if err := issues_model.MilestoneList(miles).LoadTotalTrackedTimes(ctx); err != nil {
 			ctx.ServerError("LoadTotalTrackedTimes", err)
@@ -79,15 +73,8 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 	for _, m := range miles {
-		m.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Links: markup.Links{
-				Base: ctx.Repo.RepoLink,
-			},
-			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo: ctx.Repo.GitRepo,
-			Repo:    ctx.Repo.Repository,
-			Ctx:     ctx,
-		}, m.Content)
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+		m.RenderedContent, err = markdown.RenderString(rctx, m.Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return
@@ -160,7 +147,7 @@ func EditMilestone(ctx *context.Context) {
 	ctx.Data["PageIsMilestones"] = true
 	ctx.Data["PageIsEditMilestone"] = true
 
-	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":id"))
+	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
 			ctx.NotFound("", nil)
@@ -196,7 +183,7 @@ func EditMilestonePost(ctx *context.Context) {
 		return
 	}
 
-	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":id"))
+	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
 			ctx.NotFound("", nil)
@@ -220,7 +207,7 @@ func EditMilestonePost(ctx *context.Context) {
 // ChangeMilestoneStatus response for change a milestone's status
 func ChangeMilestoneStatus(ctx *context.Context) {
 	var toClose bool
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "open":
 		toClose = false
 	case "close":
@@ -229,7 +216,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 		ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones")
 		return
 	}
-	id := ctx.PathParamInt64(":id")
+	id := ctx.PathParamInt64("id")
 
 	if err := issues_model.ChangeMilestoneStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
@@ -239,7 +226,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.PathParam(":action")))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.PathParam("action")))
 }
 
 // DeleteMilestone delete a milestone
@@ -255,7 +242,7 @@ func DeleteMilestone(ctx *context.Context) {
 
 // MilestoneIssuesAndPulls lists all the issues and pull requests of the milestone
 func MilestoneIssuesAndPulls(ctx *context.Context) {
-	milestoneID := ctx.PathParamInt64(":id")
+	milestoneID := ctx.PathParamInt64("id")
 	projectID := ctx.FormInt64("project")
 	milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 	if err != nil {
@@ -268,15 +255,8 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 		return
 	}
 
-	milestone.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		Links: markup.Links{
-			Base: ctx.Repo.RepoLink,
-		},
-		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo: ctx.Repo.GitRepo,
-		Repo:    ctx.Repo.Repository,
-		Ctx:     ctx,
-	}, milestone.Content)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+	milestone.RenderedContent, err = markdown.RenderString(rctx, milestone.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return

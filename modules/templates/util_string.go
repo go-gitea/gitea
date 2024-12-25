@@ -53,10 +53,14 @@ func (su *StringUtils) Cut(s, sep string) []any {
 	return []any{before, after, found}
 }
 
-func (su *StringUtils) EllipsisString(s string, max int) string {
-	return base.EllipsisString(s, max)
+func (su *StringUtils) EllipsisString(s string, maxLength int) string {
+	return base.EllipsisString(s, maxLength)
 }
 
 func (su *StringUtils) ToUpper(s string) string {
 	return strings.ToUpper(s)
+}
+
+func (su *StringUtils) TrimPrefix(s, prefix string) string {
+	return strings.TrimPrefix(s, prefix)
 }

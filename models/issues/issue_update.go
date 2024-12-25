@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -118,8 +119,8 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 	})
 }
 
-// ChangeIssueStatus changes issue status to open or closed.
-func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed bool) (*Comment, error) {
+// CloseIssue changes issue status to closed.
+func CloseIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
@@ -127,7 +128,80 @@ func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 		return nil, err
 	}
 
-	return ChangeIssuePullStatus(ctx, issue, doer, isClosed, false)
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+
+	comment, err := ChangeIssuePullStatus(ctx, issue, doer, true, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := committer.Commit(); err != nil {
+		return nil, err
+	}
+	return comment, nil
+}
+
+// ReopenIssue changes issue status to open.
+func ReopenIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {
+	if err := issue.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+	if err := issue.LoadPoster(ctx); err != nil {
+		return nil, err
+	}
+
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+
+	comment, err := ChangeIssuePullStatus(ctx, issue, doer, false, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := committer.Commit(); err != nil {
+		return nil, err
+	}
+	return comment, nil
+}
+
+// ChangeIssueTitle changes the title of this issue, as the given user.
+func ChangeIssueTitle(ctx context.Context, issue *Issue, doer *user_model.User, oldTitle string) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	issue.Title, _ = util.SplitStringAtByteN(issue.Title, 255)
+	if err = UpdateIssueCols(ctx, issue, "name"); err != nil {
+		return fmt.Errorf("updateIssueCols: %w", err)
+	}
+
+	if err = issue.LoadRepo(ctx); err != nil {
+		return fmt.Errorf("loadRepo: %w", err)
+	}
+
+	opts := &CreateCommentOptions{
+		Type:     CommentTypeChangeTitle,
+		Doer:     doer,
+		Repo:     issue.Repo,
+		Issue:    issue,
+		OldTitle: oldTitle,
+		NewTitle: issue.Title,
+	}
+	if _, err = CreateComment(ctx, opts); err != nil {
+		return fmt.Errorf("createComment: %w", err)
+	}
+	if err = issue.AddCrossReferences(ctx, doer, true); err != nil {
+		return err
+	}
+
+	return committer.Commit()
 }
 
 // ChangeIssueRef changes the branch of this issue, as the given user.

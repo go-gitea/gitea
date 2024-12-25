@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -169,9 +170,22 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 	return &branch, nil
 }
 
-func GetBranches(ctx context.Context, repoID int64, branchNames []string) ([]*Branch, error) {
+func GetBranches(ctx context.Context, repoID int64, branchNames []string, includeDeleted bool) ([]*Branch, error) {
 	branches := make([]*Branch, 0, len(branchNames))
-	return branches, db.GetEngine(ctx).Where("repo_id=?", repoID).In("name", branchNames).Find(&branches)
+
+	sess := db.GetEngine(ctx).Where("repo_id=?", repoID).In("name", branchNames)
+	if !includeDeleted {
+		sess.And("is_deleted=?", false)
+	}
+	return branches, sess.Find(&branches)
+}
+
+func BranchesToNamesSet(branches []*Branch) container.Set[string] {
+	names := make(container.Set[string], len(branches))
+	for _, branch := range branches {
+		names.Add(branch.Name)
+	}
+	return names
 }
 
 func AddBranches(ctx context.Context, branches []*Branch) error {

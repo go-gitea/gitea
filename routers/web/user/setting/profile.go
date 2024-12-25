@@ -19,10 +19,10 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
@@ -35,10 +35,10 @@ import (
 )
 
 const (
-	tplSettingsProfile      base.TplName = "user/settings/profile"
-	tplSettingsAppearance   base.TplName = "user/settings/appearance"
-	tplSettingsOrganization base.TplName = "user/settings/organization"
-	tplSettingsRepositories base.TplName = "user/settings/repos"
+	tplSettingsProfile      templates.TplName = "user/settings/profile"
+	tplSettingsAppearance   templates.TplName = "user/settings/appearance"
+	tplSettingsOrganization templates.TplName = "user/settings/organization"
+	tplSettingsRepositories templates.TplName = "user/settings/repos"
 )
 
 // Profile render user's profile page
