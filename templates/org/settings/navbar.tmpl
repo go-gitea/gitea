@@ -29,6 +29,9 @@
 		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
+				<a class="{{if .PageIsSharedSettingsRequireAction}}active {{end}}item" href="{{.OrgLink}}/settings/actions/require_action">
+					{{ctx.Locale.Tr "actions.require_action"}}
+				</a>
 				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{.OrgLink}}/settings/actions/runners">
 					{{ctx.Locale.Tr "actions.runners"}}
 				</a>

@@ -40,6 +40,7 @@ import {initSshKeyFormParser} from './features/sshkey-helper.ts';
 import {initUserSettings} from './features/user-settings.ts';
 import {initRepoActivityTopAuthorsChart, initRepoArchiveLinks} from './features/repo-common.ts';
 import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
+import {initRequireActionsSelect} from './features/require-actions-select.js';
 import {initRepoDiffView} from './features/repo-diff.ts';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.ts';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
@@ -172,6 +173,7 @@ onDomReady(() => {
 
     initRepoActivityTopAuthorsChart,
     initRepoArchiveLinks,
+    initRequireActionsSelect,
     initRepoBranchButton,
     initRepoCodeView,
     initBranchSelectorTabs,
