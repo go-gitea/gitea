@@ -106,7 +106,7 @@ func (ctx *Context) JSONTemplate(tmpl templates.TplName) {
 }
 
 // RenderToHTML renders the template content to a HTML string
-func (ctx *Context) RenderToHTML(name templates.TplName, data map[string]any) (template.HTML, error) {
+func (ctx *Context) RenderToHTML(name templates.TplName, data any) (template.HTML, error) {
 	var buf strings.Builder
 	err := ctx.Render.HTML(&buf, 0, name, data, ctx.TemplateContext)
 	return template.HTML(buf.String()), err

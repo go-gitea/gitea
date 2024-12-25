@@ -282,7 +282,7 @@ func Diff(ctx *context.Context) {
 
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
-	commitID := ctx.PathParam(":sha")
+	commitID := ctx.PathParam("sha")
 	var (
 		gitRepo *git.Repository
 		err     error
@@ -427,13 +427,13 @@ func RawDiff(ctx *context.Context) {
 	}
 	if err := git.GetRawDiff(
 		gitRepo,
-		ctx.PathParam(":sha"),
-		git.RawDiffType(ctx.PathParam(":ext")),
+		ctx.PathParam("sha"),
+		git.RawDiffType(ctx.PathParam("ext")),
 		ctx.Resp,
 	); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetRawDiff",
-				errors.New("commit "+ctx.PathParam(":sha")+" does not exist."))
+				errors.New("commit "+ctx.PathParam("sha")+" does not exist."))
 			return
 		}
 		ctx.ServerError("GetRawDiff", err)

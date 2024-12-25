@@ -11,9 +11,10 @@ import (
 	gitea_context "code.gitea.io/gitea/services/context"
 )
 
-func ProcessorHelper() *markup.RenderHelperFuncs {
+func FormalRenderHelperFuncs() *markup.RenderHelperFuncs {
 	return &markup.RenderHelperFuncs{
 		RenderRepoFileCodePreview: renderRepoFileCodePreview,
+		RenderRepoIssueIconTitle:  renderRepoIssueIconTitle,
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
 			mentionedUser, err := user.GetUserByName(ctx, username)
 			if err != nil {

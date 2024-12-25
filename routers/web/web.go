@@ -4,7 +4,6 @@
 package web
 
 import (
-	gocontext "context"
 	"net/http"
 	"strings"
 
@@ -1167,7 +1166,7 @@ func registerRoutes(m *web.Router) {
 			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
 	}, optSignIn, context.RepoAssignment, reqRepoCodeReader)
-	// end "/{username}/{reponame}": find, compare, list (code related)
+	// end "/{username}/{reponame}": repo code: find, compare, list
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/issues/posters", repo.IssuePosters) // it can't use {type:issues|pulls} because it would conflict with other routes like "/pulls/{index}"
@@ -1444,6 +1443,7 @@ func registerRoutes(m *web.Router) {
 		m.Combo("/*").
 			Get(repo.Wiki).
 			Post(context.RepoMustNotBeArchived(), reqSignIn, reqRepoWikiWriter, web.Bind(forms.NewWikiForm{}), repo.WikiPost)
+		m.Get("/blob_excerpt/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
 		m.Get("/commit/{sha:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 		m.Get("/commit/{sha:[a-f0-9]{7,64}}.{ext:patch|diff}", repo.RawDiff)
 		m.Get("/raw/*", repo.WikiRaw)
@@ -1519,28 +1519,6 @@ func registerRoutes(m *web.Router) {
 			m.Get("", repo.Branches)
 		}, repo.MustBeNotEmpty, context.RepoRef())
 
-		m.Group("/blob_excerpt", func() {
-			m.Get("/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
-		}, func(ctx *context.Context) gocontext.CancelFunc {
-			// FIXME: refactor this function, use separate routes for wiki/code
-			if ctx.FormBool("wiki") {
-				ctx.Data["PageIsWiki"] = true
-				repo.MustEnableWiki(ctx)
-				return nil
-			}
-
-			if ctx.Written() {
-				return nil
-			}
-			cancel := context.RepoRef()(ctx)
-			if ctx.Written() {
-				return cancel
-			}
-
-			repo.MustBeNotEmpty(ctx)
-			return cancel
-		})
-
 		m.Group("/media", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.SingleDownloadOrLFS)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.SingleDownloadOrLFS)
@@ -1579,6 +1557,8 @@ func registerRoutes(m *web.Router) {
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RefBlame)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefBlame)
 		}, repo.MustBeNotEmpty)
+
+		m.Get("/blob_excerpt/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
 
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)
