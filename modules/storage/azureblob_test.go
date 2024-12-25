@@ -97,4 +97,5 @@ func Test_azureBlobObject(t *testing.T) {
 	assert.EqualValues(t, 4, read)
 	assert.Equal(t, data[11:15], string(buf2))
 	assert.NoError(t, obj.Close())
+	assert.NoError(t, s.Delete("test.txt"))
 }
