@@ -27,7 +27,7 @@
 				{{end}}
 				<div class="ui{{if not $canAddRemove}} top{{end}} attached segment">
 					<div class="flex-list">
-						{{range .Team.Repos}}
+						{{range $.TeamRepos}}
 							<div class="flex-item tw-items-center">
 								<div class="flex-item-leading">
 									{{template "repo/icon" .}}

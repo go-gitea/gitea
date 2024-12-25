@@ -69,7 +69,7 @@ func TestAggregateJobStatus(t *testing.T) {
 		{[]Status{StatusFailure, StatusBlocked}, StatusFailure},
 
 		// skipped with other status
-		// TODO: need to clarify whether a PR with "skipped" job status is considered as "mergeable" or not.
+		// "all skipped" is also considered as "mergeable" by "services/actions.toCommitStatus", the same as GitHub
 		{[]Status{StatusSkipped}, StatusSkipped},
 		{[]Status{StatusSkipped, StatusSuccess}, StatusSuccess},
 		{[]Status{StatusSkipped, StatusFailure}, StatusFailure},

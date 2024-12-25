@@ -122,7 +122,7 @@ function initRepoSettingsBranches() {
 function initRepoSettingsOptions() {
   if ($('.repository.settings.options').length > 0) {
     // Enable or select internal/external wiki system and issue tracker.
-    $('.enable-system').on('change', function (this: HTMLInputElement) {
+    $('.enable-system').on('change', function (this: HTMLInputElement) { // eslint-disable-line @typescript-eslint/no-deprecated
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
         if (!$(this).data('context')) $($(this).data('context')).addClass('disabled');
@@ -131,7 +131,7 @@ function initRepoSettingsOptions() {
         if (!$(this).data('context')) $($(this).data('context')).removeClass('disabled');
       }
     });
-    $('.enable-system-radio').on('change', function (this: HTMLInputElement) {
+    $('.enable-system-radio').on('change', function (this: HTMLInputElement) { // eslint-disable-line @typescript-eslint/no-deprecated
       if (this.value === 'false') {
         $($(this).data('target')).addClass('disabled');
         if ($(this).data('context') !== undefined) $($(this).data('context')).removeClass('disabled');

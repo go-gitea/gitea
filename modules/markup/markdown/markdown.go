@@ -129,7 +129,8 @@ func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 				Enabled:           setting.Markdown.EnableMath,
 				ParseDollarInline: true,
 				ParseDollarBlock:  true,
-				ParseSquareBlock:  true, // TODO: this is a bad syntax, it should be deprecated in the future (by some config options)
+				ParseSquareBlock:  true, // TODO: this is a bad syntax "\[ ... \]", it conflicts with normal markdown escaping, it should be deprecated in the future (by some config options)
+				// ParseBracketInline: true, // TODO: this is also a bad syntax "\( ... \)", it also conflicts, it should be deprecated in the future
 			}),
 			meta.Meta,
 		),

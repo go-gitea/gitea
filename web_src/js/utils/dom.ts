@@ -7,6 +7,7 @@ type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Ar
 type ElementArg = Element | string | ArrayLikeIterable<Element> | ReturnType<typeof $>;
 type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
+export type DOMEvent<E extends Event, T extends Element = HTMLElement> = E & { target: Partial<T>; };
 
 function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]) {
   if (typeof el === 'string' || el instanceof String) {
@@ -87,7 +88,7 @@ export function queryElemChildren<T extends Element>(parent: Element | ParentNod
 
 // it works like parent.querySelectorAll: all descendants are selected
 // in the future, all "queryElems(document, ...)" should be refactored to use a more specific parent
-export function queryElems<T extends Element>(parent: Element | ParentNode, selector: string, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
+export function queryElems<T extends HTMLElement>(parent: Element | ParentNode, selector: string, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
   return applyElemsCallback<T>(parent.querySelectorAll(selector), fn);
 }
 
