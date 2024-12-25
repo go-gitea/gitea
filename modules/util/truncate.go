@@ -14,6 +14,10 @@ const (
 	asciiEllipsis = "..."
 )
 
+func IsLikelySplitLeftPart(s string) bool {
+	return strings.HasSuffix(s, utf8Ellipsis) || strings.HasSuffix(s, asciiEllipsis)
+}
+
 // SplitStringAtByteN splits a string at byte n accounting for rune boundaries. (Combining characters are not accounted for.)
 func SplitStringAtByteN(input string, n int) (left, right string) {
 	if len(input) <= n {
@@ -37,20 +41,4 @@ func SplitStringAtByteN(input string, n int) (left, right string) {
 	}
 
 	return input[:end] + utf8Ellipsis, utf8Ellipsis + input[end:]
-}
-
-// SplitTrimSpace splits the string at given separator and trims leading and trailing space
-func SplitTrimSpace(input, sep string) []string {
-	// Trim initial leading & trailing space
-	input = strings.TrimSpace(input)
-	// replace CRLF with LF
-	input = strings.ReplaceAll(input, "\r\n", "\n")
-
-	var stringList []string
-	for _, s := range strings.Split(input, sep) {
-		// trim leading and trailing space
-		stringList = append(stringList, strings.TrimSpace(s))
-	}
-
-	return stringList
 }
