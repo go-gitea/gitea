@@ -495,7 +495,7 @@ func CreateOrgRepo(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	opt := web.GetForm(ctx).(*api.CreateRepoOption)
-	org, err := organization.GetOrgByName(ctx, ctx.PathParam(":org"))
+	org, err := organization.GetOrgByName(ctx, ctx.PathParam("org"))
 	if err != nil {
 		if organization.IsErrOrgNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -575,7 +575,7 @@ func GetByID(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo, err := repo_model.GetRepositoryByID(ctx, ctx.PathParamInt64(":id"))
+	repo, err := repo_model.GetRepositoryByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound()
@@ -726,12 +726,11 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	if ctx.Repo.GitRepo == nil && !repo.IsEmpty {
 		var err error
-		ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, repo)
+		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "Unable to OpenRepository", err)
 			return err
 		}
-		defer ctx.Repo.GitRepo.Close()
 	}
 
 	// Default branch only updated if changed and exist or the repository is empty

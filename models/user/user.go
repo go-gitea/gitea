@@ -788,6 +788,21 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 	return committer.Commit()
 }
 
+// ErrDeleteLastAdminUser represents a "DeleteLastAdminUser" kind of error.
+type ErrDeleteLastAdminUser struct {
+	UID int64
+}
+
+// IsErrDeleteLastAdminUser checks if an error is a ErrDeleteLastAdminUser.
+func IsErrDeleteLastAdminUser(err error) bool {
+	_, ok := err.(ErrDeleteLastAdminUser)
+	return ok
+}
+
+func (err ErrDeleteLastAdminUser) Error() string {
+	return fmt.Sprintf("can not delete the last admin user [uid: %d]", err.UID)
+}
+
 // IsLastAdminUser check whether user is the last admin
 func IsLastAdminUser(ctx context.Context, user *User) bool {
 	if user.IsAdmin && CountUsers(ctx, &CountUserFilter{IsAdmin: optional.Some(true)}) <= 1 {

@@ -7,7 +7,6 @@ import {
   initRepoPullRequestUpdate,
 } from './repo-issue.ts';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.ts';
-import {initRepoBranchTagSelector} from '../components/RepoBranchTagSelector.vue';
 import {initRepoCloneButtons} from './repo-common.ts';
 import {initCitationFileCopyContent} from './citation.ts';
 import {initCompLabelEdit} from './comp/LabelEdit.ts';
@@ -20,6 +19,14 @@ import {hideElem, queryElemChildren, showElem} from '../utils/dom.ts';
 import {initRepoIssueCommentEdit} from './repo-issue-edit.ts';
 import {initRepoMilestone} from './repo-milestone.ts';
 import {initRepoNew} from './repo-new.ts';
+import {createApp} from 'vue';
+import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
+
+function initRepoBranchTagSelector(selector: string) {
+  for (const elRoot of document.querySelectorAll(selector)) {
+    createApp(RepoBranchTagSelector, {elRoot}).mount(elRoot);
+  }
+}
 
 export function initBranchSelectorTabs() {
   const elSelectBranch = document.querySelector('.ui.dropdown.select-branch');

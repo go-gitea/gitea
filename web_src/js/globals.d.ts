@@ -14,7 +14,6 @@ declare module '*.vue' {
   export default component;
   // List of named exports from vue components, used to make `tsc` output clean.
   // To actually lint .vue files, `vue-tsc` is used because `tsc` can not parse them.
-  export function initRepoBranchTagSelector(selector: string): void;
   export function initDashboardRepoList(): void;
   export function initRepositoryActionView(): void;
 }
