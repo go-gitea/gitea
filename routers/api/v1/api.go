@@ -596,12 +596,12 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 
 		var err error
 		if assignOrg {
-			ctx.Org.Organization, err = organization.GetOrgByName(ctx, ctx.PathParam(":org"))
+			ctx.Org.Organization, err = organization.GetOrgByName(ctx, ctx.PathParam("org"))
 			if err != nil {
 				if organization.IsErrOrgNotExist(err) {
-					redirectUserID, err := user_model.LookupUserRedirect(ctx, ctx.PathParam(":org"))
+					redirectUserID, err := user_model.LookupUserRedirect(ctx, ctx.PathParam("org"))
 					if err == nil {
-						context.RedirectToUser(ctx.Base, ctx.PathParam(":org"), redirectUserID)
+						context.RedirectToUser(ctx.Base, ctx.PathParam("org"), redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetOrgByName", err)
 					} else {
@@ -616,7 +616,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 		}
 
 		if assignTeam {
-			ctx.Org.Team, err = organization.GetTeamByID(ctx, ctx.PathParamInt64(":teamid"))
+			ctx.Org.Team, err = organization.GetTeamByID(ctx, ctx.PathParamInt64("teamid"))
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
 					ctx.NotFound()

@@ -40,7 +40,7 @@ func (org *Organization) CanReadUnit(ctx *Context, unitType unit.Type) bool {
 }
 
 func GetOrganizationByParams(ctx *Context) {
-	orgName := ctx.PathParam(":org")
+	orgName := ctx.PathParam("org")
 
 	var err error
 
@@ -220,7 +220,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		ctx.Data["NumTeams"] = len(ctx.Org.Teams)
 	}
 
-	teamName := ctx.PathParam(":team")
+	teamName := ctx.PathParam("team")
 	if len(teamName) > 0 {
 		teamExists := false
 		for _, team := range ctx.Org.Teams {

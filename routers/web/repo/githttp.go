@@ -57,8 +57,8 @@ func CorsHandler() func(next http.Handler) http.Handler {
 
 // httpBase implementation git smart HTTP protocol
 func httpBase(ctx *context.Context) *serviceHandler {
-	username := ctx.PathParam(":username")
-	reponame := strings.TrimSuffix(ctx.PathParam(":reponame"), ".git")
+	username := ctx.PathParam("username")
+	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
 
 	if ctx.FormString("go-get") == "1" {
 		context.EarlyResponseForGoGetMeta(ctx)

@@ -331,7 +331,5 @@ func QueryBuild(a ...any) template.URL {
 }
 
 func panicIfDevOrTesting() {
-	if !setting.IsProd || setting.IsInTesting {
-		panic("legacy template functions are for backward compatibility only, do not use them in new code")
-	}
+	setting.PanicInDevOrTesting("legacy template functions are for backward compatibility only, do not use them in new code")
 }

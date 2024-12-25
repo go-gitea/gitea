@@ -16,9 +16,9 @@ import (
 
 // SetDefaultBranch updates the default branch
 func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
-	ownerName := ctx.PathParam(":owner")
-	repoName := ctx.PathParam(":repo")
-	branch := ctx.PathParam(":branch")
+	ownerName := ctx.PathParam("owner")
+	repoName := ctx.PathParam("repo")
+	branch := ctx.PathParam("branch")
 
 	ctx.Repo.Repository.DefaultBranch = branch
 	if err := gitrepo.SetDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch); err != nil {

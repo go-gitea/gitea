@@ -50,7 +50,7 @@ func GetRelease(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	id := ctx.PathParamInt64(":id")
+	id := ctx.PathParamInt64("id")
 	release, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseForRepoByID", err)
@@ -319,7 +319,7 @@ func EditRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.EditReleaseOption)
-	id := ctx.PathParamInt64(":id")
+	id := ctx.PathParamInt64("id")
 	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseForRepoByID", err)
@@ -396,7 +396,7 @@ func DeleteRelease(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	id := ctx.PathParamInt64(":id")
+	id := ctx.PathParamInt64("id")
 	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseForRepoByID", err)

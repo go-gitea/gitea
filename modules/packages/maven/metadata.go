@@ -7,6 +7,7 @@ import (
 	"encoding/xml"
 	"io"
 
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"golang.org/x/net/html/charset"
@@ -31,18 +32,27 @@ type Dependency struct {
 }
 
 type pomStruct struct {
-	XMLName     xml.Name `xml:"project"`
-	GroupID     string   `xml:"groupId"`
-	ArtifactID  string   `xml:"artifactId"`
-	Version     string   `xml:"version"`
-	Name        string   `xml:"name"`
-	Description string   `xml:"description"`
-	URL         string   `xml:"url"`
-	Licenses    []struct {
+	XMLName xml.Name `xml:"project"`
+
+	Parent struct {
+		GroupID    string `xml:"groupId"`
+		ArtifactID string `xml:"artifactId"`
+		Version    string `xml:"version"`
+	} `xml:"parent"`
+
+	GroupID     string `xml:"groupId"`
+	ArtifactID  string `xml:"artifactId"`
+	Version     string `xml:"version"`
+	Name        string `xml:"name"`
+	Description string `xml:"description"`
+	URL         string `xml:"url"`
+
+	Licenses []struct {
 		Name         string `xml:"name"`
 		URL          string `xml:"url"`
 		Distribution string `xml:"distribution"`
 	} `xml:"licenses>license"`
+
 	Dependencies []struct {
 		GroupID    string `xml:"groupId"`
 		ArtifactID string `xml:"artifactId"`
@@ -81,8 +91,16 @@ func ParsePackageMetaData(r io.Reader) (*Metadata, error) {
 		})
 	}
 
+	pomGroupID := pom.GroupID
+	if pomGroupID == "" {
+		// the current module could inherit parent: https://maven.apache.org/pom.html#Inheritance
+		pomGroupID = pom.Parent.GroupID
+	}
+	if pomGroupID == "" {
+		return nil, util.ErrInvalidArgument
+	}
 	return &Metadata{
-		GroupID:      pom.GroupID,
+		GroupID:      pomGroupID,
 		ArtifactID:   pom.ArtifactID,
 		Name:         pom.Name,
 		Description:  pom.Description,

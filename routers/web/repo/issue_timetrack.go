@@ -60,7 +60,7 @@ func DeleteTime(c *context.Context) {
 		return
 	}
 
-	t, err := issues_model.GetTrackedTimeByID(c, c.PathParamInt64(":timeid"))
+	t, err := issues_model.GetTrackedTimeByID(c, c.PathParamInt64("timeid"))
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			c.NotFound("time not found", err)

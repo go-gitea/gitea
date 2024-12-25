@@ -70,7 +70,7 @@ func (a *azureBlobObject) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		offset += a.offset
 	case io.SeekEnd:
-		offset = a.Size - offset
+		offset = a.Size + offset
 	default:
 		return 0, errors.New("Seek: invalid whence")
 	}

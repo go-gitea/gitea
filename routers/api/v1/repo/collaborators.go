@@ -103,7 +103,7 @@ func IsCollaborator(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	user, err := user_model.GetUserByName(ctx, ctx.PathParam(":collaborator"))
+	user, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -163,7 +163,7 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.AddCollaboratorOption)
 
-	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam(":collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -226,7 +226,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam(":collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -274,12 +274,12 @@ func GetRepoPermissions(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if !ctx.Doer.IsAdmin && ctx.Doer.LoginName != ctx.PathParam(":collaborator") && !ctx.IsUserRepoAdmin() {
+	if !ctx.Doer.IsAdmin && ctx.Doer.LoginName != ctx.PathParam("collaborator") && !ctx.IsUserRepoAdmin() {
 		ctx.Error(http.StatusForbidden, "User", "Only admins can query all permissions, repo admins can query all repo permissions, collaborators can query only their own")
 		return
 	}
 
-	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam(":collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "GetUserByName", err)

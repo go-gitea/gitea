@@ -375,7 +375,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := asymkey_service.DeletePublicKey(ctx, ctx.ContextUser, ctx.PathParamInt64(":id")); err != nil {
+	if err := asymkey_service.DeletePublicKey(ctx, ctx.ContextUser, ctx.PathParamInt64("id")); err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
 		} else if asymkey_model.IsErrKeyAccessDenied(err) {

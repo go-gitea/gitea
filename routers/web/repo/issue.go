@@ -181,7 +181,7 @@ func retrieveProjectsInternal(ctx *context.Context, repo *repo_model.Repository)
 
 // GetActionIssue will return the issue which is used in the context.
 func GetActionIssue(ctx *context.Context) *issues_model.Issue {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
 		return nil
@@ -246,7 +246,7 @@ func getActionIssues(ctx *context.Context) issues_model.IssueList {
 
 // GetIssueInfo get an issue of a repository
 func GetIssueInfo(ctx *context.Context) {
-	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.Error(http.StatusNotFound)
@@ -379,7 +379,7 @@ func UpdateIssueContent(ctx *context.Context) {
 
 // UpdateIssueDeadline updates an issue deadline
 func UpdateIssueDeadline(ctx *context.Context) {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("GetIssueByIndex", err)
@@ -506,7 +506,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 		return
 	}
 
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "react":
 		reaction, err := issue_service.CreateIssueReaction(ctx, ctx.Doer, issue, form.Content)
 		if err != nil {
@@ -540,7 +540,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for issue removed: %d/%d", ctx.Repo.Repository.ID, issue.ID)
 	default:
-		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.PathParam(":action")), nil)
+		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.PathParam("action")), nil)
 		return
 	}
 

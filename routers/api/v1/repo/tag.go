@@ -357,7 +357,7 @@ func GetTagProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
-	id := ctx.PathParamInt64(":id")
+	id := ctx.PathParamInt64("id")
 	pt, err := git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedTagByID", err)
@@ -521,7 +521,7 @@ func EditTagProtection(ctx *context.APIContext) {
 	repo := ctx.Repo.Repository
 	form := web.GetForm(ctx).(*api.EditTagProtectionOption)
 
-	id := ctx.PathParamInt64(":id")
+	id := ctx.PathParamInt64("id")
 	pt, err := git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedTagByID", err)
@@ -616,7 +616,7 @@ func DeleteTagProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
-	id := ctx.PathParamInt64(":id")
+	id := ctx.PathParamInt64("id")
 	pt, err := git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedTagByID", err)

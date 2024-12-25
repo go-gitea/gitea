@@ -502,7 +502,7 @@ func PackageSettingsPost(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package file
 func DownloadPackageFile(ctx *context.Context) {
-	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.PathParamInt64(":fileid"))
+	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.PathParamInt64("fileid"))
 	if err != nil {
 		if err == packages_model.ErrPackageFileNotExist {
 			ctx.NotFound("", err)

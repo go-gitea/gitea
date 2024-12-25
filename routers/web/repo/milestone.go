@@ -147,7 +147,7 @@ func EditMilestone(ctx *context.Context) {
 	ctx.Data["PageIsMilestones"] = true
 	ctx.Data["PageIsEditMilestone"] = true
 
-	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":id"))
+	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
 			ctx.NotFound("", nil)
@@ -183,7 +183,7 @@ func EditMilestonePost(ctx *context.Context) {
 		return
 	}
 
-	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":id"))
+	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
 			ctx.NotFound("", nil)
@@ -207,7 +207,7 @@ func EditMilestonePost(ctx *context.Context) {
 // ChangeMilestoneStatus response for change a milestone's status
 func ChangeMilestoneStatus(ctx *context.Context) {
 	var toClose bool
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "open":
 		toClose = false
 	case "close":
@@ -216,7 +216,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 		ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones")
 		return
 	}
-	id := ctx.PathParamInt64(":id")
+	id := ctx.PathParamInt64("id")
 
 	if err := issues_model.ChangeMilestoneStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
@@ -226,7 +226,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.PathParam(":action")))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.PathParam("action")))
 }
 
 // DeleteMilestone delete a milestone
@@ -242,7 +242,7 @@ func DeleteMilestone(ctx *context.Context) {
 
 // MilestoneIssuesAndPulls lists all the issues and pull requests of the milestone
 func MilestoneIssuesAndPulls(ctx *context.Context) {
-	milestoneID := ctx.PathParamInt64(":id")
+	milestoneID := ctx.PathParamInt64("id")
 	projectID := ctx.FormInt64("project")
 	milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 	if err != nil {

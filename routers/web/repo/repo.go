@@ -311,7 +311,7 @@ const (
 // Action response for actions to a repository
 func Action(ctx *context.Context) {
 	var err error
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "watch":
 		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	case "unwatch":
@@ -339,12 +339,12 @@ func Action(ctx *context.Context) {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
 		} else {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam(":action")), err)
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
 			return
 		}
 	}
 
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "watch", "unwatch":
 		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	case "star", "unstar":
@@ -354,17 +354,17 @@ func Action(ctx *context.Context) {
 	// see the `hx-trigger="refreshUserCards ..."` comments in tmpl
 	ctx.RespHeader().Add("hx-trigger", "refreshUserCards")
 
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "watch", "unwatch", "star", "unstar":
 		// we have to reload the repository because NumStars or NumWatching (used in the templates) has just changed
 		ctx.Data["Repository"], err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.Name)
 		if err != nil {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam(":action")), err)
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
 			return
 		}
 	}
 
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "watch", "unwatch":
 		ctx.HTML(http.StatusOK, tplWatchUnwatch)
 		return

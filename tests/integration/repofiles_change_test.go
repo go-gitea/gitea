@@ -248,7 +248,7 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		ctx, _ := contexttest.MockContext(t, "user2/repo1")
-		ctx.SetPathParam(":id", "1")
+		ctx.SetPathParam("id", "1")
 		contexttest.LoadRepo(t, ctx, 1)
 		contexttest.LoadRepoCommit(t, ctx)
 		contexttest.LoadUser(t, ctx, 2)
@@ -285,7 +285,7 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		ctx, _ := contexttest.MockContext(t, "user2/repo1")
-		ctx.SetPathParam(":id", "1")
+		ctx.SetPathParam("id", "1")
 		contexttest.LoadRepo(t, ctx, 1)
 		contexttest.LoadRepoCommit(t, ctx)
 		contexttest.LoadUser(t, ctx, 2)
@@ -319,7 +319,7 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		ctx, _ := contexttest.MockContext(t, "user2/repo1")
-		ctx.SetPathParam(":id", "1")
+		ctx.SetPathParam("id", "1")
 		contexttest.LoadRepo(t, ctx, 1)
 		contexttest.LoadRepoCommit(t, ctx)
 		contexttest.LoadUser(t, ctx, 2)
@@ -370,7 +370,7 @@ func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		ctx, _ := contexttest.MockContext(t, "user2/repo1")
-		ctx.SetPathParam(":id", "1")
+		ctx.SetPathParam("id", "1")
 		contexttest.LoadRepo(t, ctx, 1)
 		contexttest.LoadRepoCommit(t, ctx)
 		contexttest.LoadUser(t, ctx, 2)
@@ -406,7 +406,7 @@ func testDeleteRepoFiles(t *testing.T, u *url.URL) {
 	// setup
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetPathParam(":id", "1")
+	ctx.SetPathParam("id", "1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadRepoCommit(t, ctx)
 	contexttest.LoadUser(t, ctx, 2)
@@ -445,7 +445,7 @@ func testDeleteRepoFilesWithoutBranchNames(t *testing.T, u *url.URL) {
 	// setup
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetPathParam(":id", "1")
+	ctx.SetPathParam("id", "1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadRepoCommit(t, ctx)
 	contexttest.LoadUser(t, ctx, 2)
@@ -475,7 +475,7 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		ctx, _ := contexttest.MockContext(t, "user2/repo1")
-		ctx.SetPathParam(":id", "1")
+		ctx.SetPathParam("id", "1")
 		contexttest.LoadRepo(t, ctx, 1)
 		contexttest.LoadRepoCommit(t, ctx)
 		contexttest.LoadUser(t, ctx, 2)

@@ -280,7 +280,7 @@ func DeleteMilestone(ctx *context.APIContext) {
 
 // getMilestoneByIDOrName get milestone by ID and if not available by name
 func getMilestoneByIDOrName(ctx *context.APIContext) *issues_model.Milestone {
-	mile := ctx.PathParam(":id")
+	mile := ctx.PathParam("id")
 	mileID, _ := strconv.ParseInt(mile, 0, 64)
 
 	if mileID != 0 {

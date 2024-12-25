@@ -449,7 +449,7 @@ func GetTeamMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	u := user.GetUserByParams(ctx)
+	u := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -492,7 +492,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	u := user.GetUserByParams(ctx)
+	u := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -532,7 +532,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	u := user.GetUserByParams(ctx)
+	u := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -645,7 +645,7 @@ func GetTeamRepo(ctx *context.APIContext) {
 
 // getRepositoryByParams get repository by a team's organization ID and repo name
 func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
-	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Org.Team.OrgID, ctx.PathParam(":reponame"))
+	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Org.Team.OrgID, ctx.PathParam("reponame"))
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound()

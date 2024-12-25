@@ -37,6 +37,8 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/vagrant"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
@@ -139,39 +141,33 @@ func CommonRoutes() *web.Router {
 		r.Group("/arch", func() {
 			r.Methods("HEAD,GET", "/repository.key", arch.GetRepositoryKey)
 
-			r.Methods("HEAD,GET,PUT,DELETE", "*", func(ctx *context.Context) {
-				path := strings.Trim(ctx.PathParam("*"), "/")
+			reqPutRepository := web.NewPathProcessor("PUT", "/<repository:*>")
+			reqGetRepoArchFile := web.NewPathProcessor("HEAD,GET", "/<repository:*>/<architecture>/<filename>")
+			reqDeleteRepoNameVerArch := web.NewPathProcessor("DELETE", "/<repository:*>/<name>/<version>/<architecture>")
 
-				if ctx.Req.Method == "PUT" {
+			r.Any("*", func(ctx *context.Context) {
+				chiCtx := chi.RouteContext(ctx.Req.Context())
+				path := ctx.PathParam("*")
+
+				if reqPutRepository.ProcessRequestPath(chiCtx, path) {
 					reqPackageAccess(perm.AccessModeWrite)(ctx)
 					if ctx.Written() {
 						return
 					}
-					ctx.SetPathParam("repository", path)
 					arch.UploadPackageFile(ctx)
 					return
 				}
 
-				pathFields := strings.Split(path, "/")
-				pathFieldsLen := len(pathFields)
-
-				if (ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET") && pathFieldsLen >= 2 {
-					ctx.SetPathParam("repository", strings.Join(pathFields[:pathFieldsLen-2], "/"))
-					ctx.SetPathParam("architecture", pathFields[pathFieldsLen-2])
-					ctx.SetPathParam("filename", pathFields[pathFieldsLen-1])
+				if reqGetRepoArchFile.ProcessRequestPath(chiCtx, path) {
 					arch.GetPackageOrRepositoryFile(ctx)
 					return
 				}
 
-				if ctx.Req.Method == "DELETE" && pathFieldsLen >= 3 {
+				if reqDeleteRepoNameVerArch.ProcessRequestPath(chiCtx, path) {
 					reqPackageAccess(perm.AccessModeWrite)(ctx)
 					if ctx.Written() {
 						return
 					}
-					ctx.SetPathParam("repository", strings.Join(pathFields[:pathFieldsLen-3], "/"))
-					ctx.SetPathParam("name", pathFields[pathFieldsLen-3])
-					ctx.SetPathParam("version", pathFields[pathFieldsLen-2])
-					ctx.SetPathParam("architecture", pathFields[pathFieldsLen-1])
 					arch.DeletePackageVersion(ctx)
 					return
 				}
@@ -465,6 +461,8 @@ func CommonRoutes() *web.Router {
 			r.Post("/api/charts", reqPackageAccess(perm.AccessModeWrite), helm.UploadPackage)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/maven", func() {
+			// FIXME: this path design is not right.
+			// It should be `/.../{groupId}/{artifactId}/{version}`, but not `/.../{groupId}-{artifactId}/{version}`
 			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
 			r.Get("/*", maven.DownloadPackageFile)
 			r.Head("/*", maven.ProvidePackageFileHeader)

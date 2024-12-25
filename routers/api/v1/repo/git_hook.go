@@ -79,7 +79,7 @@ func GetGitHook(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	hookID := ctx.PathParam(":id")
+	hookID := ctx.PathParam("id")
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {
 		if err == git.ErrNotValidHook {
@@ -126,7 +126,7 @@ func EditGitHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.EditGitHookOption)
-	hookID := ctx.PathParam(":id")
+	hookID := ctx.PathParam("id")
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {
 		if err == git.ErrNotValidHook {
@@ -175,7 +175,7 @@ func DeleteGitHook(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	hookID := ctx.PathParam(":id")
+	hookID := ctx.PathParam("id")
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {
 		if err == git.ErrNotValidHook {
