@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/markup/common"
+	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -171,6 +172,10 @@ func linkProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		uri := node.Data[m[0]:m[1]]
+		remaining := node.Data[m[1]:]
+		if util.IsLikelySplitLeftPart(remaining) {
+			return
+		}
 		replaceContent(node, m[0], m[1], createLink(ctx, uri, uri, "" /*link*/))
 		node = node.NextSibling.NextSibling
 	}
