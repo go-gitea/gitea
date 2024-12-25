@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/gitrepo"
+
 	"github.com/stretchr/testify/assert"
 )
 
