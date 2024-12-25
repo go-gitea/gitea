@@ -28,10 +28,10 @@ async function toggleSidebar(visibility) {
   });
 }
 
-async function loadChildren(item?) {
+async function loadChildren(item, recursive?: boolean) {
   const el = document.querySelector('#view-file-tree');
   const apiBaseUrl = el.getAttribute('data-api-base-url');
-  const response = await GET(`${apiBaseUrl}/contents/${item ? item.path : ''}`);
+  const response = await GET(`${apiBaseUrl}/tree/${item ? item.path : ''}?recursive=${recursive ?? false}`);
   const json = await response.json();
   if (json instanceof Array) {
     return json.map((i) => ({
@@ -42,26 +42,6 @@ async function loadChildren(item?) {
     }));
   }
   return null;
-}
-
-async function loadRecursive(treePath) {
-  let root = null;
-  let parent = null;
-  let parentPath = '';
-  for (const i of (`/${treePath}`).split('/')) {
-    const path = `${parentPath}${parentPath ? '/' : ''}${i}`;
-    const result = await loadChildren({path});
-    if (root === null) {
-      root = result;
-      parent = root;
-    } else {
-      parent = parent.find((item) => item.path === path);
-      parent.children = result;
-      parent = result;
-    }
-    parentPath = path;
-  }
-  return root;
 }
 
 async function loadContent(item) {
@@ -84,7 +64,7 @@ export async function initViewFileTreeSidebar() {
   const treePath = fileTree.getAttribute('data-tree-path');
   const selectedItem = ref(treePath);
 
-  const files = await loadRecursive(treePath);
+  const files = await loadChildren({path: treePath}, true);
 
   fileTree.classList.remove('center');
   const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren, loadContent: (item) => {
