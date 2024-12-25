@@ -275,7 +275,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		return err
 	}
 	run.Index = index
-	run.Title, _ = util.SplitStringAtByteN(run.Title, 255)
+	run.Title = util.EllipsisDisplayString(run.Title, 255)
 
 	if err := db.Insert(ctx, run); err != nil {
 		return err
@@ -308,7 +308,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		} else {
 			hasWaiting = true
 		}
-		job.Name, _ = util.SplitStringAtByteN(job.Name, 255)
+		job.Name = util.EllipsisDisplayString(job.Name, 255)
 		runJobs = append(runJobs, &ActionRunJob{
 			RunID:             run.ID,
 			RepoID:            run.RepoID,
@@ -402,7 +402,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 	if len(cols) > 0 {
 		sess.Cols(cols...)
 	}
-	run.Title, _ = util.SplitStringAtByteN(run.Title, 255)
+	run.Title = util.EllipsisDisplayString(run.Title, 255)
 	affected, err := sess.Update(run)
 	if err != nil {
 		return err
