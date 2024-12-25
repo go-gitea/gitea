@@ -206,6 +206,16 @@ func TestRender_links(t *testing.T) {
 	test(
 		"ftps://gitea.com",
 		`<p>ftps://gitea.com</p>`)
+
+	t.Run("LinkSplit", func(t *testing.T) {
+		input, _ := util.SplitStringAtByteN("http://10.1.2.3", 12)
+		assert.Equal(t, "http://10…", input)
+		test(input, "<p>http://10…</p>")
+
+		input, _ = util.SplitStringAtByteN("http://10.1.2.3", 13)
+		assert.Equal(t, "http://10.…", input)
+		test(input, "<p>http://10.…</p>")
+	})
 }
 
 func TestRender_email(t *testing.T) {
