@@ -235,3 +235,9 @@ func checkOverlappedPath(name, path string) {
 	}
 	configuredPaths[path] = name
 }
+
+func PanicInDevOrTesting(msg string, a ...any) {
+	if !IsProd || IsInTesting {
+		panic(fmt.Sprintf(msg, a...))
+	}
+}

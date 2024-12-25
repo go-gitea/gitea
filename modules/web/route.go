@@ -4,13 +4,18 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
+	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/htmlutil"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
@@ -29,12 +34,12 @@ func Bind[T any](_ T) http.HandlerFunc {
 }
 
 // SetForm set the form object
-func SetForm(dataStore middleware.ContextDataStore, obj any) {
+func SetForm(dataStore reqctx.ContextDataProvider, obj any) {
 	dataStore.GetData()["__form"] = obj
 }
 
 // GetForm returns the validate form information
-func GetForm(dataStore middleware.ContextDataStore) any {
+func GetForm(dataStore reqctx.RequestDataStore) any {
 	return dataStore.GetData()["__form"]
 }
 
@@ -180,6 +185,17 @@ func (r *Router) NotFound(h http.HandlerFunc) {
 	r.chiRouter.NotFound(h)
 }
 
+type pathProcessorParam struct {
+	name         string
+	captureGroup int
+}
+
+type PathProcessor struct {
+	methods container.Set[string]
+	re      *regexp.Regexp
+	params  []pathProcessorParam
+}
+
 func (r *Router) normalizeRequestPath(resp http.ResponseWriter, req *http.Request, next http.Handler) {
 	normalized := false
 	normalizedPath := req.URL.EscapedPath()
@@ -235,6 +251,83 @@ func (r *Router) normalizeRequestPath(resp http.ResponseWriter, req *http.Reques
 	}
 
 	next.ServeHTTP(resp, req)
+}
+
+func (p *PathProcessor) ProcessRequestPath(chiCtx *chi.Context, path string) bool {
+	if !p.methods.Contains(chiCtx.RouteMethod) {
+		return false
+	}
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	pathMatches := p.re.FindStringSubmatchIndex(path) // Golang regexp match pairs [start, end, start, end, ...]
+	if pathMatches == nil {
+		return false
+	}
+	var paramMatches [][]int
+	for i := 2; i < len(pathMatches); {
+		paramMatches = append(paramMatches, []int{pathMatches[i], pathMatches[i+1]})
+		pmIdx := len(paramMatches) - 1
+		end := pathMatches[i+1]
+		i += 2
+		for ; i < len(pathMatches); i += 2 {
+			if pathMatches[i] >= end {
+				break
+			}
+			paramMatches[pmIdx] = append(paramMatches[pmIdx], pathMatches[i], pathMatches[i+1])
+		}
+	}
+	for i, pm := range paramMatches {
+		groupIdx := p.params[i].captureGroup * 2
+		chiCtx.URLParams.Add(p.params[i].name, path[pm[groupIdx]:pm[groupIdx+1]])
+	}
+	return true
+}
+
+func NewPathProcessor(methods, pattern string) *PathProcessor {
+	p := &PathProcessor{methods: make(container.Set[string])}
+	for _, method := range strings.Split(methods, ",") {
+		p.methods.Add(strings.TrimSpace(method))
+	}
+	re := []byte{'^'}
+	lastEnd := 0
+	for lastEnd < len(pattern) {
+		start := strings.IndexByte(pattern[lastEnd:], '<')
+		if start == -1 {
+			re = append(re, pattern[lastEnd:]...)
+			break
+		}
+		end := strings.IndexByte(pattern[lastEnd+start:], '>')
+		if end == -1 {
+			panic(fmt.Sprintf("invalid pattern: %s", pattern))
+		}
+		re = append(re, pattern[lastEnd:lastEnd+start]...)
+		partName, partExp, _ := strings.Cut(pattern[lastEnd+start+1:lastEnd+start+end], ":")
+		lastEnd += start + end + 1
+
+		// TODO: it could support to specify a "capture group" for the name, for example: "/<name[2]:(\d)-(\d)>"
+		// it is not used so no need to implement it now
+		param := pathProcessorParam{}
+		if partExp == "*" {
+			re = append(re, "(.*?)/?"...)
+			if lastEnd < len(pattern) {
+				if pattern[lastEnd] == '/' {
+					lastEnd++
+				}
+			}
+		} else {
+			partExp = util.IfZero(partExp, "[^/]+")
+			re = append(re, '(')
+			re = append(re, partExp...)
+			re = append(re, ')')
+		}
+		param.name = partName
+		p.params = append(p.params, param)
+	}
+	re = append(re, '$')
+	reStr := string(re)
+	p.re = regexp.MustCompile(reStr)
+	return p
 }
 
 // Combo delegates requests to Combo

@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -37,11 +38,11 @@ import (
 )
 
 const (
-	tplWikiStart    base.TplName = "repo/wiki/start"
-	tplWikiView     base.TplName = "repo/wiki/view"
-	tplWikiRevision base.TplName = "repo/wiki/revision"
-	tplWikiNew      base.TplName = "repo/wiki/new"
-	tplWikiPages    base.TplName = "repo/wiki/pages"
+	tplWikiStart    templates.TplName = "repo/wiki/start"
+	tplWikiView     templates.TplName = "repo/wiki/view"
+	tplWikiRevision templates.TplName = "repo/wiki/revision"
+	tplWikiNew      templates.TplName = "repo/wiki/new"
+	tplWikiPages    templates.TplName = "repo/wiki/pages"
 )
 
 // MustEnableWiki check if wiki is enabled, if external then redirect

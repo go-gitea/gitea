@@ -25,10 +25,9 @@ const body = computed(() => {
 const root = ref<HTMLElement | null>(null);
 
 onMounted(() => {
-  root.value.addEventListener('ce-load-context-popup', (e: CustomEvent) => {
-    const data: IssuePathInfo = e.detail;
+  root.value.addEventListener('ce-load-context-popup', (e: CustomEventInit<IssuePathInfo>) => {
     if (!loading.value && issue.value === null) {
-      load(data);
+      load(e.detail);
     }
   });
 });
