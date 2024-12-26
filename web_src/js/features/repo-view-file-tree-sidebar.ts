@@ -66,7 +66,7 @@ export async function initViewFileTreeSidebar() {
 
   const files = await loadChildren({path: treePath}, true);
 
-  fileTree.classList.remove('center');
+  fileTree.classList.remove('is-loading');
   const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren, loadContent: (item) => {
     window.history.pushState(null, null, item.htmlUrl);
     selectedItem.value = item.path;

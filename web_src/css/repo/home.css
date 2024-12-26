@@ -62,6 +62,10 @@
   grid-row: 1 / 4;
 }
 
+#view-file-tree.is-loading {
+  aspect-ratio: 5.415; /* the size is about 790 x 145 */
+}
+
 .repo-grid-tree-sidebar .repo-view-file-tree-sidebar {
   display: flex;
   flex-direction: column;
