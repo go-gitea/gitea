@@ -207,12 +207,12 @@ func TestRender_links(t *testing.T) {
 		"ftps://gitea.com",
 		`<p>ftps://gitea.com</p>`)
 
-	t.Run("LinkSplit", func(t *testing.T) {
-		input, _ := util.SplitStringAtByteN("http://10.1.2.3", 12)
+	t.Run("LinkEllipsis", func(t *testing.T) {
+		input := util.EllipsisDisplayString("http://10.1.2.3", 12)
 		assert.Equal(t, "http://10…", input)
 		test(input, "<p>http://10…</p>")
 
-		input, _ = util.SplitStringAtByteN("http://10.1.2.3", 13)
+		input = util.EllipsisDisplayString("http://10.1.2.3", 13)
 		assert.Equal(t, "http://10.…", input)
 		test(input, "<p>http://10.…</p>")
 	})

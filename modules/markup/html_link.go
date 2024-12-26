@@ -173,7 +173,7 @@ func linkProcessor(ctx *RenderContext, node *html.Node) {
 
 		uri := node.Data[m[0]:m[1]]
 		remaining := node.Data[m[1]:]
-		if util.IsLikelySplitLeftPart(remaining) {
+		if util.IsLikelyEllipsisLeftPart(remaining) {
 			return
 		}
 		replaceContent(node, m[0], m[1], createLink(ctx, uri, uri, "" /*link*/))

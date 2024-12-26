@@ -190,9 +190,9 @@ func (u *User) BeforeUpdate() {
 	}
 
 	u.LowerName = strings.ToLower(u.Name)
-	u.Location = base.TruncateString(u.Location, 255)
-	u.Website = base.TruncateString(u.Website, 255)
-	u.Description = base.TruncateString(u.Description, 255)
+	u.Location = util.TruncateRunes(u.Location, 255)
+	u.Website = util.TruncateRunes(u.Website, 255)
+	u.Description = util.TruncateRunes(u.Description, 255)
 }
 
 // AfterLoad is invoked from XORM after filling all the fields of this object.
@@ -501,9 +501,9 @@ func (u *User) GitName() string {
 // ShortName ellipses username to length
 func (u *User) ShortName(length int) string {
 	if setting.UI.DefaultShowFullName && len(u.FullName) > 0 {
-		return base.EllipsisString(u.FullName, length)
+		return util.EllipsisDisplayString(u.FullName, length)
 	}
-	return base.EllipsisString(u.Name, length)
+	return util.EllipsisDisplayString(u.Name, length)
 }
 
 // IsMailable checks if a user is eligible

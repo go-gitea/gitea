@@ -20,12 +20,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm/schemas"
@@ -226,7 +226,7 @@ func (a *Action) GetActUserName(ctx context.Context) string {
 // ShortActUserName gets the action's user name trimmed to max 20
 // chars.
 func (a *Action) ShortActUserName(ctx context.Context) string {
-	return base.EllipsisString(a.GetActUserName(ctx), 20)
+	return util.EllipsisDisplayString(a.GetActUserName(ctx), 20)
 }
 
 // GetActDisplayName gets the action's display name based on DEFAULT_SHOW_FULL_NAME, or falls back to the username if it is blank.
@@ -260,7 +260,7 @@ func (a *Action) GetRepoUserName(ctx context.Context) string {
 // ShortRepoUserName returns the name of the action repository owner
 // trimmed to max 20 chars.
 func (a *Action) ShortRepoUserName(ctx context.Context) string {
-	return base.EllipsisString(a.GetRepoUserName(ctx), 20)
+	return util.EllipsisDisplayString(a.GetRepoUserName(ctx), 20)
 }
 
 // GetRepoName returns the name of the action repository.
@@ -275,7 +275,7 @@ func (a *Action) GetRepoName(ctx context.Context) string {
 // ShortRepoName returns the name of the action repository
 // trimmed to max 33 chars.
 func (a *Action) ShortRepoName(ctx context.Context) string {
-	return base.EllipsisString(a.GetRepoName(ctx), 33)
+	return util.EllipsisDisplayString(a.GetRepoName(ctx), 33)
 }
 
 // GetRepoPath returns the virtual path to the action repository.
