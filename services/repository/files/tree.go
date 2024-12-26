@@ -129,6 +129,54 @@ type TreeEntry struct {
 	Children []*TreeEntry `json:"children"`
 }
 
+/*
+Example 1: (path: /)
+
+	GET /repo/name/tree/
+
+	resp:
+	[{
+	    "name": "d1",
+	    "isFile": false,
+	    "path": "d1"
+	},{
+	    "name": "d2",
+	    "isFile": false,
+	    "path": "d2"
+	},{
+	    "name": "d3",
+	    "isFile": false,
+	    "path": "d3"
+	},{
+	    "name": "f1",
+	    "isFile": true,
+	    "path": "f1"
+	},]
+
+Example 2: (path: d3)
+
+	GET /repo/name/tree/d3
+	resp:
+	[{
+	    "name": "d3d1",
+	    "isFile": false,
+	    "path": "d3/d3d1"
+	}]
+
+Example 3: (path: d3/d3d1)
+
+	GET /repo/name/tree/d3/d3d1
+	resp:
+	[{
+	    "name": "d3d1f1",
+	    "isFile": true,
+	    "path": "d3/d3d1/d3d1f1"
+	},{
+	    "name": "d3d1f1",
+	    "isFile": true,
+	    "path": "d3/d3d1/d3d1f2"
+	}]
+*/
 func GetTreeList(ctx context.Context, repo *repo_model.Repository, treePath string, ref git.RefName, recursive bool) ([]*TreeEntry, error) {
 	if repo.IsEmpty {
 		return nil, nil
@@ -213,6 +261,115 @@ func GetTreeList(ctx context.Context, repo *repo_model.Repository, treePath stri
 
 // GetTreeInformation returns the first level directories and files and all the trees of the path to treePath.
 // If treePath is a directory, list all subdirectories and files of treePath.
+/*
+Example 1: (path: /)
+    GET /repo/name/tree/?recursive=true
+    resp:
+    [{
+        "name": "d1",
+        "isFile": false,
+        "path": "d1"
+    },{
+        "name": "d2",
+        "isFile": false,
+        "path": "d2"
+    },{
+        "name": "d3",
+        "isFile": false,
+        "path": "d3"
+    },{
+        "name": "f1",
+        "isFile": true,
+        "path": "f1"
+    },]
+
+Example 2: (path: d3)
+    GET /repo/name/tree/d3?recursive=true
+    resp:
+    [{
+        "name": "d1",
+        "isFile": false,
+        "path": "d1"
+    },{
+        "name": "d2",
+        "isFile": false,
+        "path": "d2"
+    },{
+        "name": "d3",
+        "isFile": false,
+        "path": "d3",
+        "children": [{
+            "name": "d3d1",
+            "isFile": false,
+            "path": "d3/d3d1"
+        }]
+    },{
+        "name": "f1",
+        "isFile": true,
+        "path": "f1"
+    },]
+
+Example 3: (path: d3/d3d1)
+    GET /repo/name/tree/d3/d3d1?recursive=true
+    resp:
+    [{
+        "name": "d1",
+        "isFile": false,
+        "path": "d1"
+    },{
+        "name": "d2",
+        "isFile": false,
+        "path": "d2"
+    },{
+        "name": "d3",
+        "isFile": false,
+        "path": "d3",
+        "children": [{
+            "name": "d3d1",
+            "isFile": false,
+            "path": "d3/d3d1",
+            "children": [{
+                "name": "d3d1f1",
+                "isFile": true,
+                "path": "d3/d3d1/d3d1f1"
+            },{
+                "name": "d3d1f1",
+                "isFile": true,
+                "path": "d3/d3d1/d3d1f2"
+            }]
+        }]
+    },{
+        "name": "f1",
+        "isFile": true,
+        "path": "f1"
+    },]
+
+Example 4: (path: d2/d2f1)
+    GET /repo/name/tree/d2/d2f1?recursive=true
+    resp:
+    [{
+        "name": "d1",
+        "isFile": false,
+        "path": "d1"
+    },{
+        "name": "d2",
+        "isFile": false,
+        "path": "d2",
+        "children": [{
+            "name": "d2f1",
+            "isFile": true,
+            "path": "d2/d2f1"
+        }]
+    },{
+        "name": "d3",
+        "isFile": false,
+        "path": "d3"
+    },{
+        "name": "f1",
+        "isFile": true,
+        "path": "f1"
+    },]
+*/
 func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePath string, ref git.RefName) ([]*TreeEntry, error) {
 	if repo.IsEmpty {
 		return nil, nil
