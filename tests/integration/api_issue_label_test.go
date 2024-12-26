@@ -118,7 +118,7 @@ func TestAPIAddIssueLabelsWithLabelNames(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 23, RepoID: repo.ID})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6, RepoID: repo.ID})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	repoLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 10, RepoID: repo.ID})
 	orgLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 4, OrgID: owner.ID})

@@ -372,20 +372,3 @@
   created_unix: 1707270422
   updated_unix: 1707270422
   is_locked: false
-
--
-  id: 23
-  repo_id: 3
-  index: 3
-  poster_id: 1
-  original_author_id: 0
-  name: issue23
-  content: content23
-  milestone_id: 0
-  priority: 0
-  is_closed: false
-  is_pull: false
-  num_comments: 0
-  created_unix: 1707270500
-  updated_unix: 1707270500
-  is_locked: false
