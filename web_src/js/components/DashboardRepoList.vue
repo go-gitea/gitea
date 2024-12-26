@@ -91,6 +91,12 @@ const sfc = {
       }${this.privateFilter === 'private' ? '&is_private=true' : ''}${this.privateFilter === 'public' ? '&is_private=false' : ''
       }`;
     },
+    isRepoEmpty() {
+      return !this.isLoading && !this.reposTotalCount;
+    },
+    isOrgEmpty() {
+      return !this.isLoading && !this.organizations.length;
+    },
     repoTypeCount() {
       return this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
     },
@@ -243,7 +249,7 @@ const sfc = {
         if (!this.reposTotalCount) {
           const totalCountSearchURL = `${this.subUrl}/repo/search?count_only=1&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
           response = await GET(totalCountSearchURL);
-          this.reposTotalCount = response.headers.get('X-Total-Count') ?? '?';
+          this.reposTotalCount = parseInt(response.headers.get('X-Total-Count') ?? '0');
         }
 
         response = await GET(searchedURL);
@@ -264,7 +270,7 @@ const sfc = {
             locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
           };
         });
-        const count = response.headers.get('X-Total-Count');
+        const count = parseInt(response.headers.get('X-Total-Count'));
         if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
           this.reposTotalCount = count;
         }
@@ -363,8 +369,8 @@ export default sfc; // activate the IDE's Vue plugin
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
-      <div v-if="isLoading" class="ui attached segment" :class="{'is-loading': isLoading}"/>
-      <div v-if="!isLoading && !repos.length" class="ui attached segment empty-placeholder">
+      <div v-if="isLoading && !reposTotalCount" class="ui attached segment" :class="{'is-loading': isLoading}"/>
+      <div v-if="isRepoEmpty" class="ui attached segment empty-placeholder">
         <svg-icon name="octicon-no-entry" :size="48" class-name="repo-list-icon"/>
         <h2>{{ textNoRepo }}</h2>
         <p>
@@ -378,10 +384,10 @@ export default sfc; // activate the IDE's Vue plugin
           </a>
         </p>
       </div>
-      <div v-if="repos.length" class="ui attached segment repos-search">
+      <div v-if="reposTotalCount" class="ui attached segment repos-search">
         <div class="ui small fluid action left icon input">
           <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
-          <i class="icon loading-icon-3px"><svg-icon name="octicon-search" :size="16"/></i>
+          <i class="icon loading-icon-3px" :class="{'is-loading': isLoading}"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="ui dropdown icon button" :title="textFilter">
             <svg-icon name="octicon-filter" :size="16"/>
             <div class="menu">
@@ -492,7 +498,7 @@ export default sfc; // activate the IDE's Vue plugin
         </a>
       </h4>
       <div v-if="isLoading" class="ui attached segment" :class="{'is-loading': isLoading}"/>
-      <div v-if="!isLoading && !organizations.length" class="ui attached segment empty-placeholder">
+      <div v-if="isOrgEmpty" class="ui attached segment empty-placeholder">
         <svg-icon name="octicon-no-entry" :size="48" class-name="repo-list-icon"/>
         <h2>{{ textNoOrg }}</h2>
         <p v-if="canCreateOrganization">
