@@ -90,7 +90,7 @@ func MembersAction(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "private":
 		if ctx.Doer.ID != member.ID && !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
@@ -131,7 +131,7 @@ func MembersAction(ctx *context.Context) {
 	}
 
 	if err != nil {
-		log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
+		log.Error("Action(%s): %v", ctx.PathParam("action"), err)
 		ctx.JSON(http.StatusOK, map[string]any{
 			"ok":  false,
 			"err": err.Error(),
@@ -140,7 +140,7 @@ func MembersAction(ctx *context.Context) {
 	}
 
 	redirect := ctx.Org.OrgLink + "/members"
-	if ctx.PathParam(":action") == "leave" {
+	if ctx.PathParam("action") == "leave" {
 		redirect = setting.AppSubURL + "/"
 	}
 

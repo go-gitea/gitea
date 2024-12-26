@@ -71,7 +71,7 @@ func Teams(ctx *context.Context) {
 func TeamsAction(ctx *context.Context) {
 	page := ctx.FormString("page")
 	var err error
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "join":
 		if !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
@@ -84,7 +84,7 @@ func TeamsAction(ctx *context.Context) {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			} else {
-				log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
+				log.Error("Action(%s): %v", ctx.PathParam("action"), err)
 				ctx.JSON(http.StatusOK, map[string]any{
 					"ok":  false,
 					"err": err.Error(),
@@ -111,7 +111,7 @@ func TeamsAction(ctx *context.Context) {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			} else {
-				log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
+				log.Error("Action(%s): %v", ctx.PathParam("action"), err)
 				ctx.JSON(http.StatusOK, map[string]any{
 					"ok":  false,
 					"err": err.Error(),
@@ -178,7 +178,7 @@ func TeamsAction(ctx *context.Context) {
 		}
 
 		if err := org_model.RemoveInviteByID(ctx, iid, ctx.Org.Team.ID); err != nil {
-			log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
+			log.Error("Action(%s): %v", ctx.PathParam("action"), err)
 			ctx.ServerError("RemoveInviteByID", err)
 			return
 		}
@@ -192,7 +192,7 @@ func TeamsAction(ctx *context.Context) {
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Flash.Error(ctx.Tr("org.teams.members.blocked_user"))
 		} else {
-			log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
+			log.Error("Action(%s): %v", ctx.PathParam("action"), err)
 			ctx.JSON(http.StatusOK, map[string]any{
 				"ok":  false,
 				"err": err.Error(),
@@ -233,7 +233,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	}
 
 	var err error
-	action := ctx.PathParam(":action")
+	action := ctx.PathParam("action")
 	switch action {
 	case "add":
 		repoName := path.Base(ctx.FormString("repo_name"))
@@ -258,7 +258,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	}
 
 	if err != nil {
-		log.Error("Action(%s): '%s' %v", ctx.PathParam(":action"), ctx.Org.Team.Name, err)
+		log.Error("Action(%s): '%s' %v", ctx.PathParam("action"), ctx.Org.Team.Name, err)
 		ctx.ServerError("TeamsRepoAction", err)
 		return
 	}

@@ -276,7 +276,7 @@ func prepareToRenderDirOrFile(entry *git.TreeEntry) func(ctx *context.Context) {
 
 func handleRepoHomeFeed(ctx *context.Context) bool {
 	if setting.Other.EnableFeed {
-		isFeed, _, showFeedType := feed.GetFeedType(ctx.PathParam(":reponame"), ctx.Req)
+		isFeed, _, showFeedType := feed.GetFeedType(ctx.PathParam("reponame"), ctx.Req)
 		if isFeed {
 			switch {
 			case ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType):
