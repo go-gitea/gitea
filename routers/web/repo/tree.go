@@ -68,12 +68,20 @@ func Tree(ctx *context.Context) {
 	defer closer.Close()
 
 	refName := gitRepo.UnstableGuessRefByShortName(ref)
+	if !recursive {
+		results, err := files_service.GetTreeList(ctx, ctx.Repo.Repository, dir, refName, false)
+		if err != nil {
+			ctx.ServerError("GetTreeList", err)
+			return
+		}
+		ctx.JSON(http.StatusOK, results)
+		return
+	}
 
-	results, err := files_service.GetTreeList(ctx, ctx.Repo.Repository, dir, refName, recursive)
+	results, err := files_service.GetTreeInformation(ctx, ctx.Repo.Repository, dir, refName)
 	if err != nil {
 		ctx.ServerError("GetTreeList", err)
 		return
 	}
-
 	ctx.JSON(http.StatusOK, results)
 }

@@ -210,3 +210,91 @@ func GetTreeList(ctx context.Context, repo *repo_model.Repository, treePath stri
 
 	return treeList, nil
 }
+
+// GetTreeInformation returns the first level directories and files and all the trees of the path to treePath.
+// If treePath is a directory, list all subdirectories and files of treePath.
+func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePath string, ref git.RefName) ([]*TreeEntry, error) {
+	if repo.IsEmpty {
+		return nil, nil
+	}
+	if ref == "" {
+		ref = git.RefNameFromBranch(repo.DefaultBranch)
+	}
+
+	// Check that the path given in opts.treePath is valid (not a git path)
+	cleanTreePath := CleanUploadFileName(treePath)
+	if cleanTreePath == "" && treePath != "" {
+		return nil, ErrFilenameInvalid{
+			Path: treePath,
+		}
+	}
+	treePath = cleanTreePath
+
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	defer closer.Close()
+
+	// Get the commit object for the ref
+	commit, err := gitRepo.GetCommit(ref.String())
+	if err != nil {
+		return nil, err
+	}
+
+	// get root entries
+	rootEntry, err := commit.GetTreeEntryByPath("")
+	if err != nil {
+		return nil, err
+	}
+	rootEntries, err := rootEntry.Tree().ListEntries()
+	if err != nil {
+		return nil, err
+	}
+
+	var treeList []*TreeEntry
+	for _, rootEntry := range rootEntries {
+		treeList = append(treeList, &TreeEntry{
+			Name:   rootEntry.Name(),
+			IsFile: rootEntry.Mode() != git.EntryModeTree,
+			Path:   rootEntry.Name(),
+		})
+	}
+
+	if treePath == "" {
+		return treeList, nil
+	}
+
+	listEntry, err := commit.GetTreeEntryByPath(treePath)
+	if err != nil {
+		return nil, err
+	}
+
+	dir := treePath
+	// list current entry or parent entry if it's a file's children
+	// If the entry is a file, we return a FileContentResponse object
+	if listEntry.IsRegular() {
+		dir = path.Dir(treePath)
+		if dir == "" {
+			return treeList, nil
+		}
+		listEntry, err = commit.GetTreeEntryByPath(dir)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	entries, err := listEntry.Tree().ListEntries()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		treeList = append(treeList, &TreeEntry{
+			Name:   entry.Name(),
+			IsFile: entry.Mode() != git.EntryModeTree,
+			Path:   path.Join(treePath, entry.Name()),
+		})
+	}
+	return treeList, nil
+}
