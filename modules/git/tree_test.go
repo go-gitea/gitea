@@ -25,3 +25,18 @@ func TestSubTree_Issue29101(t *testing.T) {
 		assert.True(t, IsErrNotExist(err))
 	}
 }
+
+func Test_GetTreePathLatestCommit(t *testing.T) {
+	repo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo6_blame"))
+	assert.NoError(t, err)
+	defer repo.Close()
+
+	commitID, err := repo.GetBranchCommitID("master")
+	assert.NoError(t, err)
+	assert.EqualValues(t, "544d8f7a3b15927cddf2299b4b562d6ebd71b6a7", commitID)
+
+	commit, err := repo.GetTreePathLatestCommit("master", "blame.txt")
+	assert.NoError(t, err)
+	assert.NotNil(t, commit)
+	assert.EqualValues(t, "45fb6cbc12f970b04eacd5cd4165edd11c8d7376", commit.ID.String())
+}
