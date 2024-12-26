@@ -177,7 +177,7 @@ func ChangeIssueTitle(ctx context.Context, issue *Issue, doer *user_model.User, 
 	}
 	defer committer.Close()
 
-	issue.Title, _ = util.SplitStringAtByteN(issue.Title, 255)
+	issue.Title = util.EllipsisDisplayString(issue.Title, 255)
 	if err = UpdateIssueCols(ctx, issue, "name"); err != nil {
 		return fmt.Errorf("updateIssueCols: %w", err)
 	}
@@ -440,7 +440,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *Issue, la
 	}
 
 	issue.Index = idx
-	issue.Title, _ = util.SplitStringAtByteN(issue.Title, 255)
+	issue.Title = util.EllipsisDisplayString(issue.Title, 255)
 
 	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,
