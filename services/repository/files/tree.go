@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"sort"
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -126,7 +127,7 @@ type TreeEntry struct {
 	Name     string       `json:"name"`
 	IsFile   bool         `json:"isFile"`
 	Path     string       `json:"path"`
-	Children []*TreeEntry `json:"children"`
+	Children []*TreeEntry `json:"children, omitempty"`
 }
 
 /*
@@ -253,8 +254,11 @@ func GetTreeList(ctx context.Context, repo *repo_model.Repository, treePath stri
 	for _, tree := range treeList {
 		if !tree.IsFile {
 			tree.Children = mapTree[tree.Path]
+			sortTreeEntries(tree.Children)
 		}
 	}
+
+	sortTreeEntries(treeList)
 
 	return treeList, nil
 }
@@ -471,5 +475,17 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 			Path:   path.Join(dir, entry.Name()),
 		})
 	}
+	sortTreeEntries(treeList)
+	sortTreeEntries(parentEntry.Children)
 	return treeList, nil
+}
+
+// sortTreeEntries list directory first and with alpha sequence
+func sortTreeEntries(entries []*TreeEntry) {
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].IsFile != entries[j].IsFile {
+			return !entries[i].IsFile
+		}
+		return entries[i].Name < entries[j].Name
+	})
 }
