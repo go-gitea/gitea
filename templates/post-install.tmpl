@@ -6,14 +6,17 @@
 				<div class="home">
 					<div class="ui stackable middle very relaxed page grid">
 						<div class="sixteen wide center aligned centered column">
+							<h3 class="ui top attached">
+								{{ctx.Locale.Tr "install.installing"}}
+							</h3>
 							<div>
-								<img src="{{AssetUrlPrefix}}/img/loading.png" alt="{{ctx.Locale.Tr "loading"}}">
+								<img src="{{AssetUrlPrefix}}/img/loading.png" alt="{{ctx.Locale.Tr "install.installing"}}">
 							</div>
 						</div>
 					</div>
 					<div class="ui stackable middle very relaxed page grid">
 						<div class="sixteen wide center aligned centered column">
-							<p><a id="goto-user-login" href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "loading"}}</a></p>
+							<p><a id="goto-user-login" href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "install.installing_desc"}}...</a></p>
 						</div>
 					</div>
 				</div>
