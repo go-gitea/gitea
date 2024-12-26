@@ -1701,6 +1701,14 @@ tbody.commit-list {
   white-space: nowrap;
 }
 
+.latest-commit .commit-statuses {
+  margin-right: 6px;
+}
+
+.latest-commit .message-wrapper {
+  max-width: calc(100% - 2.5rem);
+}
+
 /* in the commit list, messages can wrap so we can use inline */
 .commit-list .message-wrapper {
   display: inline;
