@@ -11,6 +11,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestEllipsisGuessDisplayWidth(t *testing.T) {
+	cases := []struct {
+		r    string
+		want int
+	}{
+		{r: "a", want: 1},
+		{r: "é", want: 1},
+		{r: "测", want: 2},
+		{r: "⚽", want: 2},
+		{r: "☁️", want: 3},     // 2 runes, it has a mark
+		{r: "\u200B", want: 1}, // ZWSP
+		{r: "\u3000", want: 2}, // ideographic space
+	}
+	for _, c := range cases {
+		t.Run(c.r, func(t *testing.T) {
+			w := 0
+			for _, r := range c.r {
+				w += ellipsisGuessDisplayWidth(r)
+			}
+			assert.Equal(t, c.want, w, "hex=% x", []byte(c.r))
+		})
+	}
+}
+
 func TestEllipsisString(t *testing.T) {
 	cases := []struct {
 		limit int
@@ -37,6 +61,15 @@ func TestEllipsisString(t *testing.T) {
 		{limit: 7, input: "测试文本", left: "测试…", right: "…文本"},
 		{limit: 8, input: "测试文本", left: "测试文本", right: ""},
 		{limit: 9, input: "测试文本", left: "测试文本", right: ""},
+
+		{limit: 6, input: "测试abc", left: "测…", right: "…试abc"},
+		{limit: 7, input: "测试abc", left: "测试abc", right: ""}, // exactly 7-width
+		{limit: 8, input: "测试abc", left: "测试abc", right: ""},
+
+		{limit: 7, input: "测abc试啊", left: "测ab…", right: "…c试啊"},
+		{limit: 8, input: "测abc试啊", left: "测abc…", right: "…试啊"},
+		{limit: 9, input: "测abc试啊", left: "测abc试啊", right: ""}, // exactly 9-width
+		{limit: 10, input: "测abc试啊", left: "测abc试啊", right: ""},
 	}
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%s(%d)", c.input, c.limit), func(t *testing.T) {
