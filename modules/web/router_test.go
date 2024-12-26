@@ -38,6 +38,10 @@ func TestPathProcessor(t *testing.T) {
 		assert.True(t, p.matchPath(chiCtx, uri), "use pattern %s to process uri %s", pattern, uri)
 		assert.Equal(t, expectedPathParams, chiURLParamsToMap(chiCtx), "use pattern %s to process uri %s", pattern, uri)
 	}
+
+	// the "<...>" is intentionally designed to distinguish from chi's path parameters, because:
+	// 1. their behaviors are totally different, we do not want to mislead developers
+	// 2. we can write regexp in "<name:\w{3,4}>" easily and parse it easily
 	testProcess("/<p1>/<p2>", "/a/b", map[string]string{"p1": "a", "p2": "b"})
 	testProcess("/<p1:*>", "", map[string]string{"p1": ""}) // this is a special case, because chi router could use empty path
 	testProcess("/<p1:*>", "/", map[string]string{"p1": ""})

@@ -37,6 +37,8 @@ func (g *RouterPathGroup) ServeHTTP(resp http.ResponseWriter, req *http.Request)
 	g.r.chiRouter.NotFoundHandler().ServeHTTP(resp, req)
 }
 
+// MatchPath matches the request method, and uses regexp to match the path.
+// The pattern uses "<...>" to define path parameters, for example: "/<name>" (different from chi router)
 func (g *RouterPathGroup) MatchPath(methods, pattern string, h ...any) {
 	g.processors = append(g.processors, newRouterPathMatcher(methods, pattern, h...))
 }
