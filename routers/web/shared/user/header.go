@@ -63,6 +63,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 		IncludePrivate: showPrivate,
 		ListOptions: db.ListOptions{
 			Page:     1,
+			// query one more results (without a separate counting) to see whether we need to add the "show more orgs" link
 			PageSize: setting.UI.User.OrgPagingNum + 1,
 		},
 	})
