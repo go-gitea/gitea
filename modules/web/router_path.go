@@ -16,19 +16,19 @@ import (
 )
 
 type RouterPathGroup struct {
-	r          *Router
-	pathParam  string
-	processors []*routerPathMatcher
+	r         *Router
+	pathParam string
+	matchers  []*routerPathMatcher
 }
 
 func (g *RouterPathGroup) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	chiCtx := chi.RouteContext(req.Context())
 	path := chiCtx.URLParam(g.pathParam)
-	for _, p := range g.processors {
-		if p.matchPath(chiCtx, path) {
-			handler := p.handlerFunc
-			for i := len(p.middlewares) - 1; i >= 0; i-- {
-				handler = p.middlewares[i](handler).ServeHTTP
+	for _, m := range g.matchers {
+		if m.matchPath(chiCtx, path) {
+			handler := m.handlerFunc
+			for i := len(m.middlewares) - 1; i >= 0; i-- {
+				handler = m.middlewares[i](handler).ServeHTTP
 			}
 			handler(resp, req)
 			return
@@ -42,7 +42,7 @@ func (g *RouterPathGroup) ServeHTTP(resp http.ResponseWriter, req *http.Request)
 // It is only designed to resolve some special cases which chi router can't handle.
 // For most cases, it shouldn't be used because it needs to iterate all rules to find the matched one (inefficient).
 func (g *RouterPathGroup) MatchPath(methods, pattern string, h ...any) {
-	g.processors = append(g.processors, newRouterPathMatcher(methods, pattern, h...))
+	g.matchers = append(g.matchers, newRouterPathMatcher(methods, pattern, h...))
 }
 
 type routerPathParam struct {
