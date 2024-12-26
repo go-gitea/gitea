@@ -7,12 +7,13 @@ import (
 	"context"
 	"testing"
 
-	_ "code.gitea.io/gitea/models/actions"
-	_ "code.gitea.io/gitea/models/activities"
-	_ "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/gitrepo"
+
+	_ "code.gitea.io/gitea/models/actions"
+	_ "code.gitea.io/gitea/models/activities"
+	_ "code.gitea.io/gitea/models/perm/access"
 
 	"github.com/stretchr/testify/assert"
 )
