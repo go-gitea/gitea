@@ -335,6 +335,9 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 			labelIDs = append(labelIDs, int64(rv.Float()))
 		case reflect.String:
 			labelNames = append(labelNames, rv.String())
+		default:
+			ctx.Error(http.StatusBadRequest, "InvalidLabel", "a label must be an integer or a string")
+			return nil, nil, fmt.Errorf("invalid label")
 		}
 	}
 	if len(labelIDs) > 0 && len(labelNames) > 0 {
@@ -342,10 +345,19 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return nil, nil, fmt.Errorf("invalid labels")
 	}
 	if len(labelNames) > 0 {
-		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, labelNames)
+		repoLabelIDs, err := issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, labelNames)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetLabelIDsInRepoByNames", err)
 			return nil, nil, err
+		}
+		labelIDs = append(labelIDs, repoLabelIDs...)
+		if ctx.Repo.Owner.IsOrganization() {
+			orgLabelIDs, err := issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo.Owner.ID, labelNames)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetLabelIDsInOrgByNames", err)
+				return nil, nil, err
+			}
+			labelIDs = append(labelIDs, orgLabelIDs...)
 		}
 	}
 
