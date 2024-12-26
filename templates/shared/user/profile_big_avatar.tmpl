@@ -92,6 +92,9 @@
 					</li>
 					{{end}}
 				{{end}}
+					{{if .ShowMoreOrgs}}
+						<li><a style href="{{.ContextUser.HomeLink}}?tab=organizations" data-tooltip-content="{{ctx.Locale.Tr "user.show_more"}}">{{svg "octicon-kebab-horizontal" 28 "dropdown icon"}}</a></li>
+					{{end}}
 				</ul>
 			</li>
 			{{end}}

@@ -12,6 +12,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -256,6 +257,21 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 				ctx.Data["ProfileReadme"] = profileContent
 			}
 		}
+	case "organizations":
+		orgs, count, err := db.FindAndCount[organization.Organization](ctx, organization.FindOrgOptions{
+			UserID:         ctx.ContextUser.ID,
+			IncludePrivate: showPrivate,
+			ListOptions: db.ListOptions{
+				Page:     page,
+				PageSize: pagingNum,
+			},
+		})
+		if err != nil {
+			ctx.ServerError("GetUserOrganizations", err)
+			return
+		}
+		ctx.Data["Cards"] = orgs
+		total = int(count)
 	default: // default to "repositories"
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
