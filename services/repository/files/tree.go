@@ -253,15 +253,21 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 	}
 
 	var treeList []*TreeEntry
+	var parentEntry *TreeEntry
+	fields := strings.SplitN(treePath, "/", 2)
 	for _, rootEntry := range rootEntries {
-		treeList = append(treeList, &TreeEntry{
+		treeEntry := &TreeEntry{
 			Name:   rootEntry.Name(),
 			IsFile: rootEntry.Mode() != git.EntryModeTree,
 			Path:   rootEntry.Name(),
-		})
+		}
+		treeList = append(treeList, treeEntry)
+		if fields[0] == rootEntry.Name() {
+			parentEntry = treeEntry
+		}
 	}
 
-	if treePath == "" {
+	if treePath == "" || parentEntry == nil {
 		return treeList, nil
 	}
 
@@ -284,13 +290,24 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 		}
 	}
 
+	for i := 1; i < len(fields); i++ {
+		parentEntry.Children = []*TreeEntry{
+			{
+				Name:   fields[i],
+				IsFile: false,
+				Path:   path.Join(fields[:i+1]...),
+			},
+		}
+		parentEntry = parentEntry.Children[0]
+	}
+
 	entries, err := listEntry.Tree().ListEntries()
 	if err != nil {
 		return nil, err
 	}
 
 	for _, entry := range entries {
-		treeList = append(treeList, &TreeEntry{
+		parentEntry.Children = append(parentEntry.Children, &TreeEntry{
 			Name:   entry.Name(),
 			IsFile: entry.Mode() != git.EntryModeTree,
 			Path:   path.Join(treePath, entry.Name()),
