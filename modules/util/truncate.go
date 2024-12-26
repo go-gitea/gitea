@@ -5,6 +5,7 @@ package util
 
 import (
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -16,6 +17,30 @@ const (
 
 func IsLikelyEllipsisLeftPart(s string) bool {
 	return strings.HasSuffix(s, utf8Ellipsis) || strings.HasSuffix(s, asciiEllipsis)
+}
+
+func ellipsisGuessDisplayWidth(r rune) int {
+	// To make the truncated string as long as possible,
+	// CJK/emoji chars are considered as 2-ASCII width but not 3-4 bytes width.
+	// Here we only make the best guess (better than counting them in bytes),
+	// it's impossible to 100% correctly determine the width of a rune without a real font and render.
+	//
+	// ATTENTION: the guessed width can't be zero, more details in ellipsisDisplayString's comment
+	if r <= 255 {
+		return 1
+	}
+
+	switch {
+	case r == '\u3000': /* ideographic (CJK) characters, still use 2 */
+		return 2
+	case unicode.Is(unicode.M, r), /* (Mark) */
+		unicode.Is(unicode.Cf, r), /* (Other, format) */
+		unicode.Is(unicode.Cs, r), /* (Other, surrogate) */
+		unicode.Is(unicode.Z /* (Space) */, r):
+		return 1
+	default:
+		return 2
+	}
 }
 
 // EllipsisDisplayString returns a truncated short string for display purpose.
@@ -56,10 +81,7 @@ func ellipsisDisplayString(str string, limit int) (res string, offset int, trunc
 	for i, r := range str {
 		encounterInvalid = encounterInvalid || r == utf8.RuneError
 		pos = i
-		runeWidth := 1
-		if r >= 128 {
-			runeWidth = 2 // CJK/emoji chars are considered as 2-ASCII width
-		}
+		runeWidth := ellipsisGuessDisplayWidth(r)
 		if used+runeWidth+3 > limit {
 			break
 		}
@@ -74,10 +96,7 @@ func ellipsisDisplayString(str string, limit int) (res string, offset int, trunc
 			if nextCnt >= 4 {
 				break
 			}
-			nextWidth++
-			if r >= 128 {
-				nextWidth++ // CJK/emoji chars are considered as 2-ASCII width
-			}
+			nextWidth += ellipsisGuessDisplayWidth(r)
 			nextCnt++
 		}
 		if nextCnt <= 3 && used+nextWidth <= limit {
