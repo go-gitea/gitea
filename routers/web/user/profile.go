@@ -12,6 +12,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -256,6 +257,21 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 				ctx.Data["ProfileReadme"] = profileContent
 			}
 		}
+	case "organizations":
+		orgs, count, err := db.FindAndCount[organization.Organization](ctx, organization.FindOrgOptions{
+			UserID:         ctx.ContextUser.ID,
+			IncludePrivate: showPrivate,
+			ListOptions: db.ListOptions{
+				Page:     page,
+				PageSize: pagingNum,
+			},
+		})
+		if err != nil {
+			ctx.ServerError("GetUserOrganizations", err)
+			return
+		}
+		ctx.Data["Cards"] = orgs
+		total = int(count)
 	default: // default to "repositories"
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
@@ -294,31 +310,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	}
 
 	pager := context.NewPagination(total, pagingNum, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParamString("tab", tab)
-	if tab != "followers" && tab != "following" && tab != "activity" && tab != "projects" {
-		pager.AddParamString("language", language)
-	}
-	if tab == "activity" {
-		if ctx.Data["Date"] != nil {
-			pager.AddParamString("date", fmt.Sprint(ctx.Data["Date"]))
-		}
-	}
-	if archived.Has() {
-		pager.AddParamString("archived", fmt.Sprint(archived.Value()))
-	}
-	if fork.Has() {
-		pager.AddParamString("fork", fmt.Sprint(fork.Value()))
-	}
-	if mirror.Has() {
-		pager.AddParamString("mirror", fmt.Sprint(mirror.Value()))
-	}
-	if template.Has() {
-		pager.AddParamString("template", fmt.Sprint(template.Value()))
-	}
-	if private.Has() {
-		pager.AddParamString("private", fmt.Sprint(private.Value()))
-	}
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 }
 
