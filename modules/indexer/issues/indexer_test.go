@@ -37,6 +37,7 @@ func TestDBSearchIssues(t *testing.T) {
 	t.Run("search issues by ID", searchIssueByID)
 	t.Run("search issues is pr", searchIssueIsPull)
 	t.Run("search issues is closed", searchIssueIsClosed)
+	t.Run("search issues is archived", searchIssueIsArchived)
 	t.Run("search issues by milestone", searchIssueByMilestoneID)
 	t.Run("search issues by label", searchIssueByLabelID)
 	t.Run("search issues by time", searchIssueByTime)
@@ -191,7 +192,7 @@ func searchIssueByID(t *testing.T) {
 		},
 		{
 			// NOTE: This tests no assignees filtering and also ToSearchOptions() to ensure it will set AssigneeID to 0 when it is passed as -1.
-			opts:        *ToSearchOptions("", &issues.IssuesOptions{AssigneeID: -1}),
+			opts:        *ToSearchOptions("", &issues.IssuesOptions{AssigneeID: optional.Some(db.NoConditionID)}),
 			expectedIDs: []int64{22, 21, 16, 15, 14, 13, 12, 11, 20, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2},
 		},
 		{
@@ -287,6 +288,33 @@ func searchIssueIsClosed(t *testing.T) {
 				IsClosed: optional.Some(true),
 			},
 			[]int64{5, 4},
+		},
+	}
+	for _, test := range tests {
+		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		if !assert.NoError(t, err) {
+			return
+		}
+		assert.Equal(t, test.expectedIDs, issueIDs)
+	}
+}
+
+func searchIssueIsArchived(t *testing.T) {
+	tests := []struct {
+		opts        SearchOptions
+		expectedIDs []int64
+	}{
+		{
+			SearchOptions{
+				IsArchived: optional.Some(false),
+			},
+			[]int64{22, 21, 17, 16, 15, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2, 1},
+		},
+		{
+			SearchOptions{
+				IsArchived: optional.Some(true),
+			},
+			[]int64{14},
 		},
 	}
 	for _, test := range tests {

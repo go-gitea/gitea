@@ -6,15 +6,12 @@ package models
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	_ "image/jpeg" // Needed for jpeg support
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -314,49 +311,4 @@ func DoctorUserStarNum(ctx context.Context) (err error) {
 	log.Debug("recalculate Stars number for all user finished")
 
 	return err
-}
-
-// DeleteDeployKey delete deploy keys
-func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error {
-	key, err := asymkey_model.GetDeployKeyByID(ctx, id)
-	if err != nil {
-		if asymkey_model.IsErrDeployKeyNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("GetDeployKeyByID: %w", err)
-	}
-
-	// Check if user has access to delete this key.
-	if !doer.IsAdmin {
-		repo, err := repo_model.GetRepositoryByID(ctx, key.RepoID)
-		if err != nil {
-			return fmt.Errorf("GetRepositoryByID: %w", err)
-		}
-		has, err := access_model.IsUserRepoAdmin(ctx, repo, doer)
-		if err != nil {
-			return fmt.Errorf("GetUserRepoPermission: %w", err)
-		} else if !has {
-			return asymkey_model.ErrKeyAccessDenied{
-				UserID: doer.ID,
-				KeyID:  key.ID,
-				Note:   "deploy",
-			}
-		}
-	}
-
-	if _, err := db.DeleteByID[asymkey_model.DeployKey](ctx, key.ID); err != nil {
-		return fmt.Errorf("delete deploy key [%d]: %w", key.ID, err)
-	}
-
-	// Check if this is the last reference to same key content.
-	has, err := asymkey_model.IsDeployKeyExistByKeyID(ctx, key.KeyID)
-	if err != nil {
-		return err
-	} else if !has {
-		if _, err = db.DeleteByID[asymkey_model.PublicKey](ctx, key.KeyID); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

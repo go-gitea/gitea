@@ -31,12 +31,12 @@ func TestLabel_LoadSelectedLabelsAfterClick(t *testing.T) {
 	// First test : with negative and scope
 	label.LoadSelectedLabelsAfterClick([]int64{1, -8}, []string{"", "scope"})
 	assert.Equal(t, "1", label.QueryString)
-	assert.Equal(t, true, label.IsSelected)
+	assert.True(t, label.IsSelected)
 
 	// Second test : with duplicates
 	label.LoadSelectedLabelsAfterClick([]int64{1, 7, 1, 7, 7}, []string{"", "scope", "", "scope", "scope"})
 	assert.Equal(t, "1,8", label.QueryString)
-	assert.Equal(t, false, label.IsSelected)
+	assert.False(t, label.IsSelected)
 
 	// Third test : empty set
 	label.LoadSelectedLabelsAfterClick([]int64{}, []string{})
@@ -248,7 +248,7 @@ func TestGetLabelsByIssueID(t *testing.T) {
 
 	labels, err = issues_model.GetLabelsByIssueID(db.DefaultContext, unittest.NonexistentID)
 	assert.NoError(t, err)
-	assert.Len(t, labels, 0)
+	assert.Empty(t, labels)
 }
 
 func TestUpdateLabel(t *testing.T) {
@@ -271,7 +271,7 @@ func TestUpdateLabel(t *testing.T) {
 	assert.EqualValues(t, label.Color, newLabel.Color)
 	assert.EqualValues(t, label.Name, newLabel.Name)
 	assert.EqualValues(t, label.Description, newLabel.Description)
-	assert.EqualValues(t, newLabel.ArchivedUnix, 0)
+	assert.EqualValues(t, 0, newLabel.ArchivedUnix)
 	unittest.CheckConsistencyFor(t, &issues_model.Label{}, &repo_model.Repository{})
 }
 

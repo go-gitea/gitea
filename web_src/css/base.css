@@ -1390,8 +1390,9 @@ table th[data-sortt-desc] .svg {
   min-width: 0;
 }
 
-/* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content */
-.ui.dropdown .menu.flex-items-menu > .item {
+/* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content
+the "!important" is necessary to override Fomantic UI menu item styles, meanwhile we should keep the "hidden" items still hidden */
+.ui.dropdown .menu.flex-items-menu > .item:not(.hidden, .filtered, .tw-hidden) {
   display: flex !important;
   align-items: center;
   gap: .5rem;

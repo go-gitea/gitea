@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
+	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository/files"
 )
 
@@ -92,12 +92,12 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 
 	fileResponse, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, opts)
 	if err != nil {
-		if models.IsErrUserCannotCommit(err) || models.IsErrFilePathProtected(err) {
+		if files.IsErrUserCannotCommit(err) || pull_service.IsErrFilePathProtected(err) {
 			ctx.Error(http.StatusForbidden, "Access", err)
 			return
 		}
-		if git_model.IsErrBranchAlreadyExists(err) || models.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
-			models.IsErrFilePathInvalid(err) || models.IsErrRepoFileAlreadyExists(err) {
+		if git_model.IsErrBranchAlreadyExists(err) || files.IsErrFilenameInvalid(err) || pull_service.IsErrSHADoesNotMatch(err) ||
+			files.IsErrFilePathInvalid(err) || files.IsErrRepoFileAlreadyExists(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "Invalid", err)
 			return
 		}

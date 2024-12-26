@@ -109,7 +109,7 @@ func (a *actionNotifier) CreateIssueComment(ctx context.Context, doer *user_mode
 		IsPrivate: issue.Repo.IsPrivate,
 	}
 
-	truncatedContent, truncatedRight := util.SplitStringAtByteN(comment.Content, 200)
+	truncatedContent, truncatedRight := util.EllipsisDisplayStringX(comment.Content, 200)
 	if truncatedRight != "" {
 		// in case the content is in a Latin family language, we remove the last broken word.
 		lastSpaceIdx := strings.LastIndex(truncatedContent, " ")
@@ -417,6 +417,12 @@ func (a *actionNotifier) SyncPushCommits(ctx context.Context, pusher *user_model
 }
 
 func (a *actionNotifier) SyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
+	// ignore pull sync message for pull requests refs
+	// TODO: it's better to have a UI to let users chose
+	if refFullName.IsPull() {
+		return
+	}
+
 	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(ctx),
@@ -431,6 +437,12 @@ func (a *actionNotifier) SyncCreateRef(ctx context.Context, doer *user_model.Use
 }
 
 func (a *actionNotifier) SyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
+	// ignore pull sync message for pull requests refs
+	// TODO: it's better to have a UI to let users chose
+	if refFullName.IsPull() {
+		return
+	}
+
 	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(ctx),

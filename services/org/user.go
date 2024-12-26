@@ -60,7 +60,7 @@ func RemoveOrgUser(ctx context.Context, org *organization.Organization, user *us
 	}
 
 	// Delete all repository accesses and unwatch them.
-	env, err := organization.AccessibleReposEnv(ctx, org, user.ID)
+	env, err := repo_model.AccessibleReposEnv(ctx, org, user.ID)
 	if err != nil {
 		return fmt.Errorf("AccessibleReposEnv: %w", err)
 	}

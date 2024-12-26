@@ -74,9 +74,9 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 		schema, _, _ := strings.Cut(app.OpenURL, ":")
 		var iconHTML template.HTML
 		if schema == "vscode" || schema == "vscodium" || schema == "jetbrains" {
-			iconHTML = svg.RenderHTML(fmt.Sprintf("gitea-%s", schema), 16, "tw-mr-2")
+			iconHTML = svg.RenderHTML(fmt.Sprintf("gitea-%s", schema), 16)
 		} else {
-			iconHTML = svg.RenderHTML("gitea-git", 16, "tw-mr-2") // TODO: it could support user's customized icon in the future
+			iconHTML = svg.RenderHTML("gitea-git", 16) // TODO: it could support user's customized icon in the future
 		}
 		tmplApps = append(tmplApps, map[string]any{
 			"DisplayName": app.DisplayName,
@@ -276,7 +276,7 @@ func prepareToRenderDirOrFile(entry *git.TreeEntry) func(ctx *context.Context) {
 
 func handleRepoHomeFeed(ctx *context.Context) bool {
 	if setting.Other.EnableFeed {
-		isFeed, _, showFeedType := feed.GetFeedType(ctx.PathParam(":reponame"), ctx.Req)
+		isFeed, _, showFeedType := feed.GetFeedType(ctx.PathParam("reponame"), ctx.Req)
 		if isFeed {
 			switch {
 			case ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType):

@@ -33,13 +33,7 @@
 							<h4 class="release-list-title tw-break-anywhere">
 								{{if $.PageIsSingleTag}}{{$release.Title}}{{else}}<a class="muted" href="{{$.RepoLink}}/releases/tag/{{$release.TagName | PathEscapeSegments}}">{{$release.Title}}</a>{{end}}
 								{{template "repo/commit_statuses" dict "Status" $info.CommitStatus "Statuses" $info.CommitStatuses "AdditionalClasses" "tw-flex"}}
-								{{if $release.IsDraft}}
-									<span class="ui yellow label">{{ctx.Locale.Tr "repo.release.draft"}}</span>
-								{{else if $release.IsPrerelease}}
-									<span class="ui orange label">{{ctx.Locale.Tr "repo.release.prerelease"}}</span>
-								{{else if (not $release.IsTag)}}
-									<span class="ui green label">{{ctx.Locale.Tr "repo.release.stable"}}</span>
-								{{end}}
+								{{template "repo/release/label" (dict "Release" $release)}}
 							</h4>
 							<div>
 								{{if and $.CanCreateRelease (not $.PageIsSingleTag)}}

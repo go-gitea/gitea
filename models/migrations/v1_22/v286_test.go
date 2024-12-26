@@ -107,12 +107,12 @@ func Test_RepositoryFormat(t *testing.T) {
 	repo = new(Repository)
 	ok, err := x.ID(2).Get(repo)
 	assert.NoError(t, err)
-	assert.EqualValues(t, true, ok)
+	assert.True(t, ok)
 	assert.EqualValues(t, "sha1", repo.ObjectFormatName)
 
 	repo = new(Repository)
 	ok, err = x.ID(id).Get(repo)
 	assert.NoError(t, err)
-	assert.EqualValues(t, true, ok)
+	assert.True(t, ok)
 	assert.EqualValues(t, "sha256", repo.ObjectFormatName)
 }

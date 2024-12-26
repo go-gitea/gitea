@@ -36,6 +36,21 @@ func init() {
 	db.RegisterModel(new(OrgUser))
 }
 
+// ErrUserHasOrgs represents a "UserHasOrgs" kind of error.
+type ErrUserHasOrgs struct {
+	UID int64
+}
+
+// IsErrUserHasOrgs checks if an error is a ErrUserHasOrgs.
+func IsErrUserHasOrgs(err error) bool {
+	_, ok := err.(ErrUserHasOrgs)
+	return ok
+}
+
+func (err ErrUserHasOrgs) Error() string {
+	return fmt.Sprintf("user still has membership of organizations [uid: %d]", err.UID)
+}
+
 // GetOrganizationCount returns count of membership of organization of the user.
 func GetOrganizationCount(ctx context.Context, u *user_model.User) (int64, error) {
 	return db.GetEngine(ctx).

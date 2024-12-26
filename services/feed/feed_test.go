@@ -41,7 +41,7 @@ func TestGetFeeds(t *testing.T) {
 		OnlyPerformedBy: false,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, actions, 0)
+	assert.Empty(t, actions)
 	assert.Equal(t, int64(0), count)
 }
 
@@ -57,7 +57,7 @@ func TestGetFeedsForRepos(t *testing.T) {
 		IncludePrivate: true,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, actions, 0)
+	assert.Empty(t, actions)
 	assert.Equal(t, int64(0), count)
 
 	// public repo & no login
@@ -119,7 +119,7 @@ func TestGetFeeds2(t *testing.T) {
 		IncludeDeleted:  true,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, actions, 0)
+	assert.Empty(t, actions)
 	assert.Equal(t, int64(0), count)
 }
 

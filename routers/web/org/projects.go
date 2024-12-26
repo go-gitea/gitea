@@ -15,12 +15,12 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	attachment_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/shared/issue"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -28,9 +28,9 @@ import (
 )
 
 const (
-	tplProjects     base.TplName = "org/projects/list"
-	tplProjectsNew  base.TplName = "org/projects/new"
-	tplProjectsView base.TplName = "org/projects/view"
+	tplProjects     templates.TplName = "org/projects/list"
+	tplProjectsNew  templates.TplName = "org/projects/new"
+	tplProjectsView templates.TplName = "org/projects/view"
 )
 
 // MustEnableProjects check if projects are enabled in settings
@@ -196,7 +196,7 @@ func NewProjectPost(ctx *context.Context) {
 // ChangeProjectStatus updates the status of a project between "open" and "close"
 func ChangeProjectStatus(ctx *context.Context) {
 	var toClose bool
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "open":
 		toClose = false
 	case "close":
@@ -205,7 +205,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 		ctx.JSONRedirect(ctx.ContextUser.HomeLink() + "/-/projects")
 		return
 	}
-	id := ctx.PathParamInt64(":id")
+	id := ctx.PathParamInt64("id")
 
 	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, 0, id, toClose); err != nil {
 		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
@@ -216,7 +216,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 
 // DeleteProject delete a project
 func DeleteProject(ctx *context.Context) {
-	p, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
+	p, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
@@ -245,7 +245,7 @@ func RenderEditProject(ctx *context.Context) {
 
 	shared_user.RenderUserHeader(ctx)
 
-	p, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
+	p, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
@@ -269,7 +269,7 @@ func RenderEditProject(ctx *context.Context) {
 // EditProjectPost response for editing a project
 func EditProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateProjectForm)
-	projectID := ctx.PathParamInt64(":id")
+	projectID := ctx.PathParamInt64("id")
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["PageIsViewProjects"] = true
@@ -318,7 +318,7 @@ func EditProjectPost(ctx *context.Context) {
 
 // ViewProject renders the project with board view for a project
 func ViewProject(ctx *context.Context) {
-	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
@@ -334,28 +334,15 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	var labelIDs []int64
-	// 1,-2 means including label 1 and excluding label 2
-	// 0 means issues with no label
-	// blank means labels will not be filtered for issues
-	selectLabels := ctx.FormString("labels")
-	if selectLabels == "" {
-		ctx.Data["AllLabels"] = true
-	} else if selectLabels == "0" {
-		ctx.Data["NoLabel"] = true
+	labelIDs := issue.PrepareFilterIssueLabels(ctx, project.RepoID, project.Owner)
+	if ctx.Written() {
+		return
 	}
-	if len(selectLabels) > 0 {
-		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
-		if err != nil {
-			ctx.Flash.Error(ctx.Tr("invalid_data", selectLabels), true)
-		}
-	}
-
-	assigneeID := ctx.FormInt64("assignee")
+	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
 
 	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns, &issues_model.IssuesOptions{
 		LabelIDs:   labelIDs,
-		AssigneeID: assigneeID,
+		AssigneeID: optional.Some(assigneeID),
 	})
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfColumns", err)
@@ -431,8 +418,6 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
-
-	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["AssigneeID"] = assigneeID
 
 	project.RenderedContent = templates.NewRenderUtils(ctx).MarkdownToHtml(project.Description)
@@ -462,18 +447,18 @@ func DeleteProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
 	}
 
-	pb, err := project_model.GetColumn(ctx, ctx.PathParamInt64(":columnID"))
+	pb, err := project_model.GetColumn(ctx, ctx.PathParamInt64("columnID"))
 	if err != nil {
 		ctx.ServerError("GetProjectColumn", err)
 		return
 	}
-	if pb.ProjectID != ctx.PathParamInt64(":id") {
+	if pb.ProjectID != ctx.PathParamInt64("id") {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
 			"message": fmt.Sprintf("ProjectColumn[%d] is not in Project[%d] as expected", pb.ID, project.ID),
 		})
@@ -487,7 +472,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.DeleteColumnByID(ctx, ctx.PathParamInt64(":columnID")); err != nil {
+	if err := project_model.DeleteColumnByID(ctx, ctx.PathParamInt64("columnID")); err != nil {
 		ctx.ServerError("DeleteProjectColumnByID", err)
 		return
 	}
@@ -499,7 +484,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 func AddColumnToProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditProjectColumnForm)
 
-	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
@@ -527,18 +512,18 @@ func CheckProjectColumnChangePermissions(ctx *context.Context) (*project_model.P
 		return nil, nil
 	}
 
-	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return nil, nil
 	}
 
-	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64(":columnID"))
+	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64("columnID"))
 	if err != nil {
 		ctx.ServerError("GetProjectColumn", err)
 		return nil, nil
 	}
-	if column.ProjectID != ctx.PathParamInt64(":id") {
+	if column.ProjectID != ctx.PathParamInt64("id") {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
 			"message": fmt.Sprintf("ProjectColumn[%d] is not in Project[%d] as expected", column.ID, project.ID),
 		})
@@ -602,7 +587,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
 		return
@@ -612,7 +597,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64(":columnID"))
+	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64("columnID"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectColumn", project_model.IsErrProjectColumnNotExist, err)
 		return

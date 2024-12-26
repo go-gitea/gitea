@@ -7,7 +7,7 @@ export function initRepoNew() {
       const gitignores = $('input[name="gitignores"]').val();
       const license = $('input[name="license"]').val();
       if (gitignores || license) {
-        document.querySelector('input[name="auto_init"]').checked = true;
+        document.querySelector<HTMLInputElement>('input[name="auto_init"]').checked = true;
       }
     });
   }

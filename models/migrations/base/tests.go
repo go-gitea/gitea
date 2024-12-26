@@ -13,9 +13,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/testlogger"
 
 	"github.com/stretchr/testify/require"
@@ -92,10 +92,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, fu
 func MainTest(m *testing.M) {
 	testlogger.Init()
 
-	giteaRoot := base.SetupGiteaRoot()
-	if giteaRoot == "" {
-		testlogger.Fatalf("Environment variable $GITEA_ROOT not set\n")
-	}
+	giteaRoot := test.SetupGiteaRoot()
 	giteaBinary := "gitea"
 	if runtime.GOOS == "windows" {
 		giteaBinary += ".exe"
