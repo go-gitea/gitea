@@ -113,7 +113,7 @@ const sfc = {
     this.changeReposFilter(this.reposFilter);
     fomanticQuery(el.querySelector('.ui.dropdown')).dropdown();
     nextTick(() => {
-      this.$refs.search.focus();
+      this.$refs.search?.focus();
     });
 
     this.textArchivedFilterTitles = {
@@ -340,6 +340,7 @@ const sfc = {
 export function initDashboardRepoList() {
   const el = document.querySelector('#dashboard-repo-list');
   if (el) {
+    el.classList.remove('is-loading');
     createApp(sfc).mount(el);
   }
 }
@@ -362,10 +363,25 @@ export default sfc; // activate the IDE's Vue plugin
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
-      <div class="ui attached segment repos-search">
+      <div v-if="isLoading" class="ui attached segment" :class="{'is-loading': isLoading}"/>
+      <div v-if="!isLoading && !repos.length" class="ui attached segment empty-placeholder">
+        <svg-icon name="octicon-no-entry" :size="48" class-name="repo-list-icon"/>
+        <h2>{{ textNoRepo }}</h2>
+        <p>
+          <a :href="subUrl + '/repo/create'">
+            <svg-icon name="octicon-plus" :size="16" class-name="repo-list-icon"/> {{ textNewRepo }}
+          </a>
+        </p>
+        <p v-if="canCreateMigrations">
+          <a :href="subUrl + '/repo/migrate'">
+            <svg-icon name="octicon-repo-push" :size="16" class-name="repo-list-icon"/> {{ textNewMigrate }}
+          </a>
+        </p>
+      </div>
+      <div v-if="repos.length" class="ui attached segment repos-search">
         <div class="ui small fluid action left icon input">
           <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
-          <i class="icon loading-icon-3px" :class="{'is-loading': isLoading}"><svg-icon name="octicon-search" :size="16"/></i>
+          <i class="icon loading-icon-3px"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="ui dropdown icon button" :title="textFilter">
             <svg-icon name="octicon-filter" :size="16"/>
             <div class="menu">
@@ -475,6 +491,16 @@ export default sfc; // activate the IDE's Vue plugin
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
+      <div v-if="isLoading" class="ui attached segment" :class="{'is-loading': isLoading}"/>
+      <div v-if="!isLoading && !organizations.length" class="ui attached segment empty-placeholder">
+        <svg-icon name="octicon-no-entry" :size="48" class-name="repo-list-icon"/>
+        <h2>{{ textNoOrg }}</h2>
+        <p v-if="canCreateOrganization">
+          <a :href="subUrl + '/org/create'">
+            <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/> {{ textNewOrg }}
+          </a>
+        </p>
+      </div>
       <div v-if="organizations.length" class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">

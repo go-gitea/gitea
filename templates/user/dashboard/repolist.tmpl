@@ -5,10 +5,15 @@ const data = {
 	isMirrorsEnabled: {{.MirrorsEnabled}},
 	isStarsEnabled: {{not .IsDisableStars}},
 
+	canCreateMigrations: {{not .DisableMigrations}},
+
+	textNoOrg: {{ctx.Locale.Tr "org.empty"}},
+	textNoRepo: {{ctx.Locale.Tr "repo.empty"}},
 	textRepository: {{ctx.Locale.Tr "repository"}},
 	textOrganization: {{ctx.Locale.Tr "organization"}},
 	textMyRepos: {{ctx.Locale.Tr "home.my_repos"}},
 	textNewRepo: {{ctx.Locale.Tr "new_repo"}},
+	textNewMigrate: {{ctx.Locale.Tr "new_migrate"}},
 	textSearchRepos: {{ctx.Locale.Tr "search.repo_kind"}},
 	textFilter: {{ctx.Locale.Tr "home.filter"}},
 	textShowArchived: {{ctx.Locale.Tr "home.show_archived"}},
@@ -56,4 +61,4 @@ data.organizationId = {{.ContextUser.ID}};
 window.config.pageData.dashboardRepoList = data;
 </script>
 
-<div id="dashboard-repo-list" class="flex-container-sidebar"></div>
+<div id="dashboard-repo-list" class="flex-container-sidebar is-loading"></div>
