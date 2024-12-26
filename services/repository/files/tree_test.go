@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/contexttest"
 
@@ -49,4 +50,51 @@ func TestGetTreeBySHA(t *testing.T) {
 	}
 
 	assert.EqualValues(t, expectedTree, tree)
+}
+
+func Test_GetTreeList(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx1, _ := contexttest.MockContext(t, "user2/repo1")
+	contexttest.LoadRepo(t, ctx1, 1)
+	contexttest.LoadRepoCommit(t, ctx1)
+	contexttest.LoadUser(t, ctx1, 2)
+	contexttest.LoadGitRepo(t, ctx1)
+	defer ctx1.Repo.GitRepo.Close()
+
+	refName := git.RefNameFromBranch(ctx1.Repo.Repository.DefaultBranch)
+
+	treeList, err := GetTreeList(ctx1, ctx1.Repo.Repository, "", refName, true)
+	assert.NoError(t, err)
+	assert.Len(t, treeList, 1)
+	assert.EqualValues(t, "README.md", treeList[0].Name)
+	assert.EqualValues(t, "README.md", treeList[0].Path)
+	assert.True(t, treeList[0].IsFile)
+	assert.Empty(t, treeList[0].Children)
+
+	ctx2, _ := contexttest.MockContext(t, "org3/repo3")
+	contexttest.LoadRepo(t, ctx2, 3)
+	contexttest.LoadRepoCommit(t, ctx2)
+	contexttest.LoadUser(t, ctx2, 2)
+	contexttest.LoadGitRepo(t, ctx2)
+	defer ctx2.Repo.GitRepo.Close()
+
+	refName = git.RefNameFromBranch(ctx2.Repo.Repository.DefaultBranch)
+
+	treeList, err = GetTreeList(ctx2, ctx2.Repo.Repository, "", refName, true)
+	assert.NoError(t, err)
+	assert.Len(t, treeList, 2)
+	assert.EqualValues(t, "README.md", treeList[0].Name)
+	assert.EqualValues(t, "README.md", treeList[0].Path)
+	assert.True(t, treeList[0].IsFile)
+	assert.Empty(t, treeList[0].Children)
+
+	assert.EqualValues(t, "doc", treeList[1].Name)
+	assert.EqualValues(t, "doc", treeList[1].Path)
+	assert.False(t, treeList[1].IsFile)
+	assert.Len(t, treeList[1].Children, 1)
+
+	assert.EqualValues(t, "doc.md", treeList[1].Children[0].Name)
+	assert.EqualValues(t, "doc/doc.md", treeList[1].Children[0].Path)
+	assert.True(t, treeList[1].Children[0].IsFile)
+	assert.Empty(t, treeList[1].Children[0].Children)
 }

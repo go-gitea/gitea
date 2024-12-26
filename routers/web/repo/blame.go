@@ -46,6 +46,11 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
+	// ctx.Data["RepoPreferences"] = ctx.Session.Get("repoPreferences")
+	ctx.Data["RepoPreferences"] = &preferencesForm{
+		ShowFileViewTreeSidebar: true,
+	}
+
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
 	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
