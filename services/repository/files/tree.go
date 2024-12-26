@@ -441,6 +441,7 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 		if dir == "" {
 			return treeList, nil
 		}
+		fields = fields[:len(fields)-1]
 		listEntry, err = commit.GetTreeEntryByPath(dir)
 		if err != nil {
 			return nil, err
@@ -467,7 +468,7 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 		parentEntry.Children = append(parentEntry.Children, &TreeEntry{
 			Name:   entry.Name(),
 			IsFile: entry.Mode() != git.EntryModeTree,
-			Path:   path.Join(treePath, entry.Name()),
+			Path:   path.Join(dir, entry.Name()),
 		})
 	}
 	return treeList, nil
