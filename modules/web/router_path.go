@@ -39,6 +39,8 @@ func (g *RouterPathGroup) ServeHTTP(resp http.ResponseWriter, req *http.Request)
 
 // MatchPath matches the request method, and uses regexp to match the path.
 // The pattern uses "<...>" to define path parameters, for example: "/<name>" (different from chi router)
+// It is only designed to resolve some special cases which chi router can't handle.
+// For most cases, it shouldn't be used because it needs to iterate all rules to find the matched one (inefficient).
 func (g *RouterPathGroup) MatchPath(methods, pattern string, h ...any) {
 	g.processors = append(g.processors, newRouterPathMatcher(methods, pattern, h...))
 }

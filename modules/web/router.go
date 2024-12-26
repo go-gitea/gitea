@@ -248,6 +248,9 @@ func (r *Router) Combo(pattern string, h ...any) *Combo {
 	return &Combo{r, pattern, h}
 }
 
+// PathGroup creates a group of paths which could be matched by regexp.
+// It is only designed to resolve some special cases which chi router can't handle.
+// For most cases, it shouldn't be used because it needs to iterate all rules to find the matched one (inefficient).
 func (r *Router) PathGroup(pattern string, fn func(g *RouterPathGroup), h ...any) {
 	g := &RouterPathGroup{r: r, pathParam: "*"}
 	fn(g)

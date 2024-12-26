@@ -138,7 +138,7 @@ func CommonRoutes() *web.Router {
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/arch", func() {
 			r.Methods("HEAD,GET", "/repository.key", arch.GetRepositoryKey)
-			r.PathGroup("/*", func(g *web.RouterPathGroup) {
+			r.PathGroup("*", func(g *web.RouterPathGroup) {
 				g.MatchPath("PUT", "/<repository:*>", reqPackageAccess(perm.AccessModeWrite), arch.UploadPackageFile)
 				g.MatchPath("HEAD,GET", "/<repository:*>/<architecture>/<filename>", arch.GetPackageOrRepositoryFile)
 				g.MatchPath("DELETE", "/<repository:*>/<name>/<version>/<architecture>", reqPackageAccess(perm.AccessModeWrite), arch.DeletePackageVersion)

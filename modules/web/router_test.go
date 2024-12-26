@@ -108,7 +108,7 @@ func TestRouter(t *testing.T) {
 					m.Delete("", h())
 				})
 				m.PathGroup("/*", func(g *RouterPathGroup) {
-					g.MatchPath("GET", `/<dir:*>/<file:[a-z]+>`, stopMark("s2"), h("match-path"))
+					g.MatchPath("GET", `/<dir:*>/<file:[a-z]{1,2}>`, stopMark("s2"), h("match-path"))
 				}, stopMark("s1"))
 			})
 		})
