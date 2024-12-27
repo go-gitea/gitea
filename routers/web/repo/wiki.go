@@ -198,6 +198,16 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry, stri
 		ctx.ServerError("PathUnescape", err)
 		return nil, nil, ""
 	}
+	pTree, err := commit.GetTreeEntryByPath(wiki_service.WebDirPathToGitPath(wiki_service.WebPath(p)))
+	if err != nil && !git.IsErrNotExist(err) {
+		ctx.ServerError("SubTree", err)
+		return nil, nil, ""
+	}
+	if pTree != nil && pTree.IsDir() {
+		ctx.Redirect(ctx.Repo.RepoLink + fmt.Sprintf("/wiki/%s?action=_pages", url.QueryEscape(p)))
+		return nil, nil, ""
+	}
+
 	dirPath, pageName := path.Split(p)
 	pageName = strings.TrimSuffix(pageName, ".md")
 	treePath := wiki_service.WebDirPathToGitPath(wiki_service.WebPath(dirPath))
@@ -382,7 +392,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry, stri
 	commitsCount, _ := wikiRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
-	return wikiRepo, entry, p
+	return wikiRepo, entry, pageFilename
 }
 
 func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
