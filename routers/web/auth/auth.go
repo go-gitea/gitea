@@ -689,7 +689,7 @@ func Activate(ctx *context.Context) {
 	}
 
 	// TODO: ctx.Doer/ctx.Data["SignedUser"] could be nil or not the same user as the one being activated
-	user := user_model.VerifyUserActiveCode(ctx, code)
+	user := user_model.VerifyUserTimeLimitCode(ctx, &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}, code)
 	if user == nil { // if code is wrong
 		renderActivationPromptMessage(ctx, ctx.Locale.Tr("auth.invalid_code"))
 		return
@@ -734,7 +734,7 @@ func ActivatePost(ctx *context.Context) {
 	}
 
 	// TODO: ctx.Doer/ctx.Data["SignedUser"] could be nil or not the same user as the one being activated
-	user := user_model.VerifyUserActiveCode(ctx, code)
+	user := user_model.VerifyUserTimeLimitCode(ctx, &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}, code)
 	if user == nil { // if code is wrong
 		renderActivationPromptMessage(ctx, ctx.Locale.Tr("auth.invalid_code"))
 		return
