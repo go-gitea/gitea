@@ -311,17 +311,6 @@ func (u *User) OrganisationLink() string {
 	return setting.AppSubURL + "/org/" + url.PathEscape(u.Name)
 }
 
-// GenerateEmailActivateCode generates an activate code based on user information and given e-mail.
-func (u *User) GenerateEmailActivateCode(email string) string {
-	code := base.CreateTimeLimitCode(
-		fmt.Sprintf("%d%s%s%s%s", u.ID, email, u.LowerName, u.Passwd, u.Rands),
-		setting.Service.ActiveCodeLives, time.Now(), nil)
-
-	// Add tail hex username
-	code += hex.EncodeToString([]byte(u.LowerName))
-	return code
-}
-
 // GetUserFollowers returns range of user's followers.
 func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListOptions) ([]*User, int64, error) {
 	sess := db.GetEngine(ctx).
@@ -864,12 +853,35 @@ func GetVerifyUser(ctx context.Context, code string) (user *User) {
 	return nil
 }
 
-// VerifyUserActiveCode verifies active code when active account
-func VerifyUserActiveCode(ctx context.Context, code string) (user *User) {
+type TimeLimitCodePurpose string
+
+const TimeLimitCodeActivateAccount TimeLimitCodePurpose = "activate_account"
+const TimeLimitCodeActivateEmail TimeLimitCodePurpose = "activate_email"
+const TimeLimitCodeResetPassword TimeLimitCodePurpose = "reset_password"
+
+type TimeLimitCodeOptions struct {
+	Purpose  TimeLimitCodePurpose
+	NewEmail string
+}
+
+func makeTimeLimitCodeHashData(opts *TimeLimitCodeOptions, u *User) string {
+	return fmt.Sprintf("%s|%d|%s|%s|%s|%s", opts.Purpose, u.ID, strings.ToLower(util.IfZero(opts.NewEmail, u.Email)), u.LowerName, u.Passwd, u.Rands)
+}
+
+// GenerateUserTimeLimitCode generates an activate code based on user information and given e-mail.
+func GenerateUserTimeLimitCode(opts *TimeLimitCodeOptions, u *User) string {
+	data := makeTimeLimitCodeHashData(opts, u)
+	code := base.CreateTimeLimitCode(data, setting.Service.ActiveCodeLives, time.Now(), nil)
+	code += hex.EncodeToString([]byte(u.LowerName)) // Add tail hex username
+	return code
+}
+
+// VerifyUserTimeLimitCode verifies active code when active account
+func VerifyUserTimeLimitCode(ctx context.Context, opts *TimeLimitCodeOptions, code string) (user *User) {
 	if user = GetVerifyUser(ctx, code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
-		data := fmt.Sprintf("%d%s%s%s%s", user.ID, user.Email, user.LowerName, user.Passwd, user.Rands)
+		data := makeTimeLimitCodeHashData(opts, user)
 		if base.VerifyTimeLimitCode(time.Now(), data, setting.Service.ActiveCodeLives, prefix) {
 			return user
 		}
