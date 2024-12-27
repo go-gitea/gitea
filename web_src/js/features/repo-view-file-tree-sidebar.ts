@@ -39,6 +39,7 @@ async function loadChildren(item, recursive?: boolean) {
       isFile: i.isFile,
       htmlUrl: i.html_url,
       path: i.path,
+      children: i.children,
     }));
   }
   return null;
