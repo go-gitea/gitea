@@ -30,7 +30,7 @@ func TestRepoCommits(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
-	commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Attr("href")
+	commitURL, exists := doc.doc.Find("#commits-table .commit-id-short").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
 }
@@ -46,7 +46,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 
 	doc := NewHTMLParser(t, resp.Body)
 	// Get first commit URL
-	commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Attr("href")
+	commitURL, exists := doc.doc.Find("#commits-table .commit-id-short").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
 
@@ -64,7 +64,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 
 	doc = NewHTMLParser(t, resp.Body)
 	// Check if commit status is displayed in message column (.tippy-target to ignore the tippy trigger)
-	sel := doc.doc.Find("#commits-table tbody tr td.message .tippy-target .commit-status")
+	sel := doc.doc.Find("#commits-table .message .tippy-target .commit-status")
 	assert.Equal(t, 1, sel.Length())
 	for _, class := range classes {
 		assert.True(t, sel.HasClass(class))
@@ -140,7 +140,7 @@ func TestRepoCommitsStatusParallel(t *testing.T) {
 
 	doc := NewHTMLParser(t, resp.Body)
 	// Get first commit URL
-	commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Attr("href")
+	commitURL, exists := doc.doc.Find("#commits-table .commit-id-short").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
 
@@ -175,7 +175,7 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 
 	doc := NewHTMLParser(t, resp.Body)
 	// Get first commit URL
-	commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Attr("href")
+	commitURL, exists := doc.doc.Find("#commits-table .commit-id-short").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
 
@@ -200,6 +200,6 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 
 	doc = NewHTMLParser(t, resp.Body)
 	// Check that the data-tippy="commit-statuses" (for trigger) and commit-status (svg) are present
-	sel := doc.doc.Find("#commits-table tbody tr td.message [data-tippy=\"commit-statuses\"] .commit-status")
+	sel := doc.doc.Find("#commits-table .message [data-tippy=\"commit-statuses\"] .commit-status")
 	assert.Equal(t, 1, sel.Length())
 }
