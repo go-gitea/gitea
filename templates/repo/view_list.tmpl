@@ -1,7 +1,7 @@
 {{/* use grid layout, still use the old ID because there are many other CSS styles depending on this ID */}}
 <div id="repo-files-table" {{if .HasFilesWithoutLatestCommit}}hx-indicator="#repo-files-table .repo-file-cell.message" hx-trigger="load" hx-swap="morph" hx-post="{{.LastCommitLoaderURL}}"{{end}}>
 	<div class="repo-file-line repo-file-last-commit">
-		<div class="latest-commit">{{template "repo/latest_commit" .}}</div>
+		{{template "repo/latest_commit" .}}
 		<div>{{if and .LatestCommit .LatestCommit.Committer}}{{DateUtils.TimeSince .LatestCommit.Committer.When}}{{end}}</div>
 	</div>
 	{{if .HasParentPath}}
