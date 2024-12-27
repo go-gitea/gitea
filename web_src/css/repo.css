@@ -117,6 +117,7 @@ td .commit-summary {
 .latest-commit {
   display: flex;
   flex: 1;
+  gap: 6px;
   align-items: center;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -125,9 +126,6 @@ td .commit-summary {
 @media (max-width: 767.98px) {
   .latest-commit .sha {
     display: none;
-  }
-  .latest-commit .commit-summary {
-    margin-left: 8px;
   }
 }
 
@@ -1701,8 +1699,8 @@ tbody.commit-list {
   white-space: nowrap;
 }
 
-.latest-commit .commit-statuses {
-  margin-right: 6px;
+.latest-commit .sha.label {
+  margin: 0;
 }
 
 .latest-commit .message-wrapper {
