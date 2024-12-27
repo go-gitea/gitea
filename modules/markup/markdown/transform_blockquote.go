@@ -32,7 +32,8 @@ func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast
 		default: // including "note"
 			octiconName = "info"
 		}
-		_, _ = w.WriteString(string(svg.RenderHTML("octicon-"+octiconName, 16, "attention-icon attention-"+n.AttentionType)))
+		svgHTML := svg.RenderHTML("octicon-"+octiconName, 16, "attention-icon attention-"+n.AttentionType)
+		_, _ = w.WriteString(string(r.renderInternal.ProtectSafeAttrs(svgHTML)))
 	}
 	return ast.WalkContinue, nil
 }
@@ -45,7 +46,7 @@ func (g *ASTTransformer) extractBlockquoteAttentionEmphasis(firstParagraph ast.N
 	if !ok {
 		return "", nil
 	}
-	val1 := string(node1.Text(reader.Source()))
+	val1 := string(node1.Text(reader.Source())) //nolint:staticcheck
 	attentionType := strings.ToLower(val1)
 	if g.attentionTypes.Contains(attentionType) {
 		return attentionType, []ast.Node{node1}
@@ -128,13 +129,13 @@ func (g *ASTTransformer) transformBlockquote(v *ast.Blockquote, reader text.Read
 	}
 
 	// color the blockquote
-	v.SetAttributeString("class", []byte("attention-header attention-"+attentionType))
+	v.SetAttributeString(g.renderInternal.SafeAttr("class"), []byte(g.renderInternal.SafeValue("attention-header attention-"+attentionType)))
 
 	// create an emphasis to make it bold
 	attentionParagraph := ast.NewParagraph()
 	g.applyElementDir(attentionParagraph)
 	emphasis := ast.NewEmphasis(2)
-	emphasis.SetAttributeString("class", []byte("attention-"+attentionType))
+	emphasis.SetAttributeString(g.renderInternal.SafeAttr("class"), []byte(g.renderInternal.SafeValue("attention-"+attentionType)))
 
 	attentionAstString := ast.NewString([]byte(cases.Title(language.English).String(attentionType)))
 

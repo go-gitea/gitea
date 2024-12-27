@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -13,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
 
 	"xorm.io/builder"
@@ -25,8 +27,8 @@ type IssuesOptions struct { //nolint
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	AllPublic          bool    // include also all public repositories
 	RepoCond           builder.Cond
-	AssigneeID         int64
-	PosterID           int64
+	AssigneeID         optional.Option[int64]
+	PosterID           optional.Option[int64]
 	MentionedID        int64
 	ReviewRequestedID  int64
 	ReviewedID         int64
@@ -50,6 +52,19 @@ type IssuesOptions struct { //nolint
 	Org            *organization.Organization // issues permission scope
 	Team           *organization.Team         // issues permission scope
 	User           *user_model.User           // issues permission scope
+}
+
+// Copy returns a copy of the options.
+// Be careful, it's not a deep copy, so `IssuesOptions.RepoIDs = {...}` is OK while `IssuesOptions.RepoIDs[0] = ...` is not.
+func (o *IssuesOptions) Copy(edit ...func(options *IssuesOptions)) *IssuesOptions {
+	if o == nil {
+		return nil
+	}
+	v := *o
+	for _, e := range edit {
+		e(&v)
+	}
+	return &v
 }
 
 // applySorts sort an issues-related session based on the provided
@@ -116,13 +131,29 @@ func applyLabelsCondition(sess *xorm.Session, opts *IssuesOptions) {
 		if opts.LabelIDs[0] == 0 {
 			sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label)")
 		} else {
-			for i, labelID := range opts.LabelIDs {
+			// deduplicate the label IDs for inclusion and exclusion
+			includedLabelIDs := make(container.Set[int64])
+			excludedLabelIDs := make(container.Set[int64])
+			for _, labelID := range opts.LabelIDs {
 				if labelID > 0 {
-					sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
-						fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+					includedLabelIDs.Add(labelID)
 				} else if labelID < 0 { // 0 is not supported here, so just ignore it
-					sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
+					excludedLabelIDs.Add(-labelID)
 				}
+			}
+			// ... and use them in a subquery of the form :
+			//  where (select count(*) from issue_label where issue_id=issue.id and label_id in (2, 4, 6)) = 3
+			// This equality is guaranteed thanks to unique index (issue_id,label_id) on table issue_label.
+			if len(includedLabelIDs) > 0 {
+				subQuery := builder.Select("count(*)").From("issue_label").Where(builder.Expr("issue_id = issue.id")).
+					And(builder.In("label_id", includedLabelIDs.Values()))
+				sess.Where(builder.Eq{strconv.Itoa(len(includedLabelIDs)): subQuery})
+			}
+			// or (select count(*)...) = 0 for excluded labels
+			if len(excludedLabelIDs) > 0 {
+				subQuery := builder.Select("count(*)").From("issue_label").Where(builder.Expr("issue_id = issue.id")).
+					And(builder.In("label_id", excludedLabelIDs.Values()))
+				sess.Where(builder.Eq{"0": subQuery})
 			}
 		}
 	}
@@ -200,15 +231,8 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) {
 		sess.And("issue.is_closed=?", opts.IsClosed.Value())
 	}
 
-	if opts.AssigneeID > 0 {
-		applyAssigneeCondition(sess, opts.AssigneeID)
-	} else if opts.AssigneeID == db.NoConditionID {
-		sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
-	}
-
-	if opts.PosterID > 0 {
-		applyPosterCondition(sess, opts.PosterID)
-	}
+	applyAssigneeCondition(sess, opts.AssigneeID)
+	applyPosterCondition(sess, opts.PosterID)
 
 	if opts.MentionedID > 0 {
 		applyMentionedCondition(sess, opts.MentionedID)
@@ -328,13 +352,27 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 	return cond
 }
 
-func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) {
-	sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
-		And("issue_assignees.assignee_id = ?", assigneeID)
+func applyAssigneeCondition(sess *xorm.Session, assigneeID optional.Option[int64]) {
+	// old logic: 0 is also treated as "not filtering assignee", because the "assignee" was read as FormInt64
+	if !assigneeID.Has() || assigneeID.Value() == 0 {
+		return
+	}
+	if assigneeID.Value() == db.NoConditionID {
+		sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
+	} else {
+		sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+			And("issue_assignees.assignee_id = ?", assigneeID.Value())
+	}
 }
 
-func applyPosterCondition(sess *xorm.Session, posterID int64) {
-	sess.And("issue.poster_id=?", posterID)
+func applyPosterCondition(sess *xorm.Session, posterID optional.Option[int64]) {
+	if !posterID.Has() {
+		return
+	}
+	// poster doesn't need to support db.NoConditionID(-1), so just use the value as-is
+	if posterID.Has() {
+		sess.And("issue.poster_id=?", posterID.Value())
+	}
 }
 
 func applyMentionedCondition(sess *xorm.Session, mentionedID int64) {

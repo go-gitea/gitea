@@ -9,9 +9,9 @@ import (
 
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/markup/common"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/util"
 )
 
 type prefixedIDs struct {
@@ -36,7 +36,7 @@ func (p *prefixedIDs) GenerateWithDefault(value, dft []byte) []byte {
 	if !bytes.HasPrefix(result, []byte("user-content-")) {
 		result = append([]byte("user-content-"), result...)
 	}
-	if p.values.Add(util.BytesToReadOnlyString(result)) {
+	if p.values.Add(util.UnsafeBytesToString(result)) {
 		return result
 	}
 	for i := 1; ; i++ {
@@ -49,7 +49,7 @@ func (p *prefixedIDs) GenerateWithDefault(value, dft []byte) []byte {
 
 // Put puts a given element id to the used ids table.
 func (p *prefixedIDs) Put(value []byte) {
-	p.values.Add(util.BytesToReadOnlyString(value))
+	p.values.Add(util.UnsafeBytesToString(value))
 }
 
 func newPrefixedIDs() *prefixedIDs {

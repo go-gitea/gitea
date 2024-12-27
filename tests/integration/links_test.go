@@ -37,8 +37,6 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user2/repo1/projects",
 		"/user2/repo1/projects/1",
 		"/user2/repo1/releases/tag/delete-tag", // It's the only one existing record on release.yml which has is_tag: true
-		"/assets/img/404.png",
-		"/assets/img/500.png",
 		"/.well-known/security.txt",
 	}
 
@@ -51,18 +49,18 @@ func TestLinksNoLogin(t *testing.T) {
 func TestRedirectsNoLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	redirects := map[string]string{
-		"/user2/repo1/commits/master":                "/user2/repo1/commits/branch/master",
-		"/user2/repo1/src/master":                    "/user2/repo1/src/branch/master",
-		"/user2/repo1/src/master/file.txt":           "/user2/repo1/src/branch/master/file.txt",
-		"/user2/repo1/src/master/directory/file.txt": "/user2/repo1/src/branch/master/directory/file.txt",
-		"/user/avatar/Ghost/-1":                      "/assets/img/avatar_default.png",
-		"/api/v1/swagger":                            "/api/swagger",
+	redirects := []struct{ from, to string }{
+		{"/user2/repo1/commits/master", "/user2/repo1/commits/branch/master"},
+		{"/user2/repo1/src/master", "/user2/repo1/src/branch/master"},
+		{"/user2/repo1/src/master/file.txt", "/user2/repo1/src/branch/master/file.txt"},
+		{"/user2/repo1/src/master/directory/file.txt", "/user2/repo1/src/branch/master/directory/file.txt"},
+		{"/user/avatar/Ghost/-1", "/assets/img/avatar_default.png"},
+		{"/api/v1/swagger", "/api/swagger"},
 	}
-	for link, redirectLink := range redirects {
-		req := NewRequest(t, "GET", link)
+	for _, c := range redirects {
+		req := NewRequest(t, "GET", c.from)
 		resp := MakeRequest(t, req, http.StatusSeeOther)
-		assert.EqualValues(t, path.Join(setting.AppSubURL, redirectLink), test.RedirectURL(resp))
+		assert.EqualValues(t, path.Join(setting.AppSubURL, c.to), test.RedirectURL(resp))
 	}
 }
 

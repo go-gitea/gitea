@@ -31,6 +31,7 @@ type Type string
 // List of supported packages
 const (
 	TypeAlpine    Type = "alpine"
+	TypeArch      Type = "arch"
 	TypeCargo     Type = "cargo"
 	TypeChef      Type = "chef"
 	TypeComposer  Type = "composer"
@@ -55,6 +56,7 @@ const (
 
 var TypeList = []Type{
 	TypeAlpine,
+	TypeArch,
 	TypeCargo,
 	TypeChef,
 	TypeComposer,
@@ -82,6 +84,8 @@ func (pt Type) Name() string {
 	switch pt {
 	case TypeAlpine:
 		return "Alpine"
+	case TypeArch:
+		return "Arch"
 	case TypeCargo:
 		return "Cargo"
 	case TypeChef:
@@ -131,6 +135,8 @@ func (pt Type) SVGName() string {
 	switch pt {
 	case TypeAlpine:
 		return "gitea-alpine"
+	case TypeArch:
+		return "gitea-arch"
 	case TypeCargo:
 		return "gitea-cargo"
 	case TypeChef:
@@ -293,6 +299,21 @@ func FindUnreferencedPackages(ctx context.Context) ([]*Package, error) {
 		// https://stackoverflow.com/questions/4471277/mysql-delete-from-with-subquery-as-condition
 		Where(builder.In("package.id", builder.Select("id").From(in, "temp"))).
 		Find(&ps)
+}
+
+// ErrUserOwnPackages notifies that the user (still) owns the packages.
+type ErrUserOwnPackages struct {
+	UID int64
+}
+
+// IsErrUserOwnPackages checks if an error is an ErrUserOwnPackages.
+func IsErrUserOwnPackages(err error) bool {
+	_, ok := err.(ErrUserOwnPackages)
+	return ok
+}
+
+func (err ErrUserOwnPackages) Error() string {
+	return fmt.Sprintf("user still has ownership of packages [uid: %d]", err.UID)
 }
 
 // HasOwnerPackages tests if a user/org has accessible packages

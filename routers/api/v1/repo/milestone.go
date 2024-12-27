@@ -7,7 +7,6 @@ package repo
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
@@ -155,16 +155,16 @@ func CreateMilestone(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.CreateMilestoneOption)
 
-	if form.Deadline == nil {
-		defaultDeadline, _ := time.ParseInLocation("2006-01-02", "9999-12-31", time.Local)
-		form.Deadline = &defaultDeadline
+	var deadlineUnix int64
+	if form.Deadline != nil {
+		deadlineUnix = form.Deadline.Unix()
 	}
 
 	milestone := &issues_model.Milestone{
 		RepoID:       ctx.Repo.Repository.ID,
 		Name:         form.Title,
 		Content:      form.Description,
-		DeadlineUnix: timeutil.TimeStamp(form.Deadline.Unix()),
+		DeadlineUnix: timeutil.TimeStamp(deadlineUnix),
 	}
 
 	if form.State == "closed" {
@@ -225,9 +225,7 @@ func EditMilestone(ctx *context.APIContext) {
 	if form.Description != nil {
 		milestone.Content = *form.Description
 	}
-	if form.Deadline != nil && !form.Deadline.IsZero() {
-		milestone.DeadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
-	}
+	milestone.DeadlineUnix, _ = common.ParseAPIDeadlineToEndOfDay(form.Deadline)
 
 	oldIsClosed := milestone.IsClosed
 	if form.State != nil {
@@ -282,7 +280,7 @@ func DeleteMilestone(ctx *context.APIContext) {
 
 // getMilestoneByIDOrName get milestone by ID and if not available by name
 func getMilestoneByIDOrName(ctx *context.APIContext) *issues_model.Milestone {
-	mile := ctx.Params(":id")
+	mile := ctx.PathParam("id")
 	mileID, _ := strconv.ParseInt(mile, 0, 64)
 
 	if mileID != 0 {

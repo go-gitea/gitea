@@ -1,0 +1,149 @@
+{{if .Repository.IsDependenciesEnabled ctx}}
+	<div class="divider"></div>
+
+	<div class="ui depending">
+		{{if (and (not .BlockedByDependencies) (not .BlockedByDependenciesNotPermitted) (not .BlockingDependencies) (not .BlockingDependenciesNotPermitted))}}
+			<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.dependency.title"}}</strong></span>
+			<br>
+			<p>
+				{{if .Issue.IsPull}}
+					{{ctx.Locale.Tr "repo.issues.dependency.pr_no_dependencies"}}
+				{{else}}
+					{{ctx.Locale.Tr "repo.issues.dependency.issue_no_dependencies"}}
+				{{end}}
+			</p>
+		{{end}}
+
+		{{if or .BlockingDependencies .BlockingDependenciesNotPermitted}}
+			<span class="text" data-tooltip-content="{{if .Issue.IsPull}}{{ctx.Locale.Tr "repo.issues.dependency.pr_close_blocks"}}{{else}}{{ctx.Locale.Tr "repo.issues.dependency.issue_close_blocks"}}{{end}}">
+				<strong>{{ctx.Locale.Tr "repo.issues.dependency.blocks_short"}}</strong>
+			</span>
+			<div class="ui divided list">
+				{{range .BlockingDependencies}}
+					<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} tw-flex tw-items-center tw-justify-between">
+						<div class="item-left tw-flex tw-justify-center tw-flex-col tw-flex-1 gt-ellipsis">
+							<a class="muted gt-ellipsis" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
+								#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
+							</a>
+							<div class="text small gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">
+								{{.Repository.OwnerName}}/{{.Repository.Name}}
+							</div>
+						</div>
+						<div class="item-right tw-flex tw-items-center tw-m-1">
+							{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
+								<a class="delete-dependency-button ci muted" data-id="{{.Issue.ID}}" data-type="blocking" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
+									{{svg "octicon-trash" 16}}
+								</a>
+							{{end}}
+						</div>
+					</div>
+				{{end}}
+				{{if .BlockingDependenciesNotPermitted}}
+					<div class="item tw-flex tw-items-center tw-justify-between gt-ellipsis">
+						<span>{{ctx.Locale.TrN (len .BlockingDependenciesNotPermitted) "repo.issues.dependency.no_permission_1" "repo.issues.dependency.no_permission_n" (len .BlockingDependenciesNotPermitted)}}</span>
+					</div>
+				{{end}}
+			</div>
+		{{end}}
+
+		{{if or .BlockedByDependencies .BlockedByDependenciesNotPermitted}}
+			<span class="text" data-tooltip-content="{{if .Issue.IsPull}}{{ctx.Locale.Tr "repo.issues.dependency.pr_closing_blockedby"}}{{else}}{{ctx.Locale.Tr "repo.issues.dependency.issue_closing_blockedby"}}{{end}}">
+				<strong>{{ctx.Locale.Tr "repo.issues.dependency.blocked_by_short"}}</strong>
+			</span>
+			<div class="ui divided list">
+				{{range .BlockedByDependencies}}
+					<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} tw-flex tw-items-center tw-justify-between">
+						<div class="item-left tw-flex tw-justify-center tw-flex-col tw-flex-1 gt-ellipsis">
+							<a class="muted gt-ellipsis" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
+								#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
+							</a>
+							<div class="text small gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">
+								{{.Repository.OwnerName}}/{{.Repository.Name}}
+							</div>
+						</div>
+						<div class="item-right tw-flex tw-items-center tw-m-1">
+							{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
+								<a class="delete-dependency-button ci muted" data-id="{{.Issue.ID}}" data-type="blockedBy" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
+									{{svg "octicon-trash" 16}}
+								</a>
+							{{end}}
+						</div>
+					</div>
+				{{end}}
+				{{if $.CanCreateIssueDependencies}}
+					{{range .BlockedByDependenciesNotPermitted}}
+						<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} tw-flex tw-items-center tw-justify-between">
+							<div class="item-left tw-flex tw-justify-center tw-flex-col tw-flex-1 gt-ellipsis">
+								<div class="gt-ellipsis">
+									<span data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.no_permission.can_remove"}}">{{svg "octicon-lock" 16}}</span>
+									<span class="gt-ellipsis" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
+										#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
+									</span>
+								</div>
+								<div class="text small gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">
+									{{.Repository.OwnerName}}/{{.Repository.Name}}
+								</div>
+							</div>
+							<div class="item-right tw-flex tw-items-center tw-m-1">
+								{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
+									<a class="delete-dependency-button ci muted" data-id="{{.Issue.ID}}" data-type="blocking" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
+										{{svg "octicon-trash" 16}}
+									</a>
+								{{end}}
+							</div>
+						</div>
+					{{end}}
+				{{else if .BlockedByDependenciesNotPermitted}}
+					<div class="item tw-flex tw-items-center tw-justify-between gt-ellipsis">
+						<span>{{ctx.Locale.TrN (len .BlockedByDependenciesNotPermitted) "repo.issues.dependency.no_permission_1" "repo.issues.dependency.no_permission_n" (len .BlockedByDependenciesNotPermitted)}}</span>
+					</div>
+				{{end}}
+			</div>
+		{{end}}
+
+		{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
+			<div>
+				<form method="post" action="{{.Issue.Link}}/dependency/add" id="addDependencyForm">
+					{{$.CsrfTokenHtml}}
+					<div class="ui fluid action input">
+						<div class="ui search selection dropdown" id="new-dependency-drop-list" data-issue-id="{{.Issue.ID}}">
+							<input name="newDependency" type="hidden">
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<input type="text" class="search">
+							<div class="default text">{{ctx.Locale.Tr "repo.issues.dependency.add"}}</div>
+						</div>
+						<button class="ui icon button">
+							{{svg "octicon-plus"}}
+						</button>
+					</div>
+				</form>
+			</div>
+		{{end}}
+	</div>
+
+	{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
+		<input type="hidden" id="crossRepoSearch" value="{{.AllowCrossRepositoryDependencies}}">
+
+		<div class="ui g-modal-confirm modal remove-dependency">
+			<div class="header">
+				{{svg "octicon-trash"}}
+				{{ctx.Locale.Tr "repo.issues.dependency.remove_header"}}
+			</div>
+			<div class="content">
+				<form method="post" action="{{.Issue.Link}}/dependency/delete" id="removeDependencyForm">
+					{{$.CsrfTokenHtml}}
+					<input type="hidden" value="" name="removeDependencyID" id="removeDependencyID">
+					<input type="hidden" value="" name="dependencyType" id="dependencyType">
+				</form>
+				<p>{{if .Issue.IsPull}}
+					{{ctx.Locale.Tr "repo.issues.dependency.pr_remove_text"}}
+				{{else}}
+					{{ctx.Locale.Tr "repo.issues.dependency.issue_remove_text"}}
+				{{end}}</p>
+			</div>
+			{{$ModalButtonCancelText := ctx.Locale.Tr "repo.issues.dependency.cancel"}}
+			{{$ModalButtonOkText := ctx.Locale.Tr "repo.issues.dependency.remove"}}
+			{{template "base/modal_actions_confirm" (dict "." . "ModalButtonCancelText" $ModalButtonCancelText "ModalButtonOkText" $ModalButtonOkText)}}
+		</div>
+	{{end}}
+{{end}}

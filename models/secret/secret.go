@@ -5,7 +5,6 @@ package secret
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -22,6 +21,19 @@ import (
 )
 
 // Secret represents a secret
+//
+// It can be:
+//  1. org/user level secret, OwnerID is org/user ID and RepoID is 0
+//  2. repo level secret, OwnerID is 0 and RepoID is repo ID
+//
+// Please note that it's not acceptable to have both OwnerID and RepoID to be non-zero,
+// or it will be complicated to find secrets belonging to a specific owner.
+// For example, conditions like `OwnerID = 1` will also return secret {OwnerID: 1, RepoID: 1},
+// but it's a repo level secret, not an org/user level secret.
+// To avoid this, make it clear with {OwnerID: 0, RepoID: 1} for repo level secrets.
+//
+// Please note that it's not acceptable to have both OwnerID and RepoID to zero, global secrets are not supported.
+// It's for security reasons, admin may be not aware of that the secrets could be stolen by any user when setting them as global.
 type Secret struct {
 	ID          int64
 	OwnerID     int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL"`
@@ -46,6 +58,15 @@ func (err ErrSecretNotFound) Unwrap() error {
 
 // InsertEncryptedSecret Creates, encrypts, and validates a new secret with yet unencrypted data and insert into database
 func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, data string) (*Secret, error) {
+	if ownerID != 0 && repoID != 0 {
+		// It's trying to create a secret that belongs to a repository, but OwnerID has been set accidentally.
+		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
+		ownerID = 0
+	}
+	if ownerID == 0 && repoID == 0 {
+		return nil, fmt.Errorf("%w: ownerID and repoID cannot be both zero, global secrets are not supported", util.ErrInvalidArgument)
+	}
+
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
 	if err != nil {
 		return nil, err
@@ -56,9 +77,6 @@ func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, dat
 		Name:    strings.ToUpper(name),
 		Data:    encrypted,
 	}
-	if err := secret.Validate(); err != nil {
-		return secret, err
-	}
 	return secret, db.Insert(ctx, secret)
 }
 
@@ -66,29 +84,25 @@ func init() {
 	db.RegisterModel(new(Secret))
 }
 
-func (s *Secret) Validate() error {
-	if s.OwnerID == 0 && s.RepoID == 0 {
-		return errors.New("the secret is not bound to any scope")
-	}
-	return nil
-}
-
 type FindSecretsOptions struct {
 	db.ListOptions
-	OwnerID  int64
 	RepoID   int64
+	OwnerID  int64 // it will be ignored if RepoID is set
 	SecretID int64
 	Name     string
 }
 
 func (opts FindSecretsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	if opts.OwnerID > 0 {
+
+	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	if opts.RepoID != 0 { // if RepoID is set
+		// ignore OwnerID and treat it as 0
+		cond = cond.And(builder.Eq{"owner_id": 0})
+	} else {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	}
+
 	if opts.SecretID != 0 {
 		cond = cond.And(builder.Eq{"id": opts.SecretID})
 	}

@@ -47,7 +47,7 @@ func ListIssueLabels(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -163,7 +163,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -178,7 +178,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	label, err := issues_model.GetLabelByID(ctx, ctx.ParamsInt64(":id"))
+	label, err := issues_model.GetLabelByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrLabelNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -285,7 +285,7 @@ func ClearIssueLabels(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -309,7 +309,7 @@ func ClearIssueLabels(ctx *context.APIContext) {
 }
 
 func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption) (*issues_model.Issue, []*issues_model.Label, error) {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -317,6 +317,11 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 		return nil, nil, err
+	}
+
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Error(http.StatusForbidden, "CanWriteIssuesOrPulls", "write permission is required")
+		return nil, nil, fmt.Errorf("permission denied")
 	}
 
 	var (
@@ -330,6 +335,9 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 			labelIDs = append(labelIDs, int64(rv.Float()))
 		case reflect.String:
 			labelNames = append(labelNames, rv.String())
+		default:
+			ctx.Error(http.StatusBadRequest, "InvalidLabel", "a label must be an integer or a string")
+			return nil, nil, fmt.Errorf("invalid label")
 		}
 	}
 	if len(labelIDs) > 0 && len(labelNames) > 0 {
@@ -337,10 +345,19 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return nil, nil, fmt.Errorf("invalid labels")
 	}
 	if len(labelNames) > 0 {
-		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, labelNames)
+		repoLabelIDs, err := issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, labelNames)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetLabelIDsInRepoByNames", err)
 			return nil, nil, err
+		}
+		labelIDs = append(labelIDs, repoLabelIDs...)
+		if ctx.Repo.Owner.IsOrganization() {
+			orgLabelIDs, err := issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo.Owner.ID, labelNames)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetLabelIDsInOrgByNames", err)
+				return nil, nil, err
+			}
+			labelIDs = append(labelIDs, orgLabelIDs...)
 		}
 	}
 
@@ -348,11 +365,6 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByIDs", err)
 		return nil, nil, err
-	}
-
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.Status(http.StatusForbidden)
-		return nil, nil, nil
 	}
 
 	return issue, labels, err

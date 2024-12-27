@@ -17,11 +17,11 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
@@ -32,11 +32,11 @@ import (
 )
 
 const (
-	tplHooks        base.TplName = "repo/settings/webhook/base"
-	tplHookNew      base.TplName = "repo/settings/webhook/new"
-	tplOrgHookNew   base.TplName = "org/settings/hook_new"
-	tplUserHookNew  base.TplName = "user/settings/hook_new"
-	tplAdminHookNew base.TplName = "admin/hook_new"
+	tplHooks        templates.TplName = "repo/settings/webhook/base"
+	tplHookNew      templates.TplName = "repo/settings/webhook/new"
+	tplOrgHookNew   templates.TplName = "org/settings/hook_new"
+	tplUserHookNew  templates.TplName = "user/settings/hook_new"
+	tplAdminHookNew templates.TplName = "admin/hook_new"
 )
 
 // Webhooks render web hooks list page
@@ -64,7 +64,7 @@ type ownerRepoCtx struct {
 	IsSystemWebhook bool
 	Link            string
 	LinkNew         string
-	NewTemplate     base.TplName
+	NewTemplate     templates.TplName
 }
 
 // getOwnerRepoCtx determines whether this is a repo, owner, or admin (both default and system) context.
@@ -99,9 +99,9 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 	if ctx.Data["PageIsAdmin"] == true {
 		return &ownerRepoCtx{
 			IsAdmin:         true,
-			IsSystemWebhook: ctx.Params(":configType") == "system-hooks",
-			Link:            path.Join(setting.AppSubURL, "/admin/hooks"),
-			LinkNew:         path.Join(setting.AppSubURL, "/admin/", ctx.Params(":configType")),
+			IsSystemWebhook: ctx.PathParam("configType") == "system-hooks",
+			Link:            path.Join(setting.AppSubURL, "/-/admin/hooks"),
+			LinkNew:         path.Join(setting.AppSubURL, "/-/admin/", ctx.PathParam("configType")),
 			NewTemplate:     tplAdminHookNew,
 		}, nil
 	}
@@ -110,7 +110,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 }
 
 func checkHookType(ctx *context.Context) string {
-	hookType := strings.ToLower(ctx.Params(":type"))
+	hookType := strings.ToLower(ctx.PathParam("type"))
 	if !util.SliceContainsString(setting.Webhook.Types, hookType, true) {
 		ctx.NotFound("checkHookType", nil)
 		return ""
@@ -592,11 +592,11 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 
 	var w *webhook.Webhook
 	if orCtx.RepoID > 0 {
-		w, err = webhook.GetWebhookByRepoID(ctx, orCtx.RepoID, ctx.ParamsInt64(":id"))
+		w, err = webhook.GetWebhookByRepoID(ctx, orCtx.RepoID, ctx.PathParamInt64("id"))
 	} else if orCtx.OwnerID > 0 {
-		w, err = webhook.GetWebhookByOwnerID(ctx, orCtx.OwnerID, ctx.ParamsInt64(":id"))
+		w, err = webhook.GetWebhookByOwnerID(ctx, orCtx.OwnerID, ctx.PathParamInt64("id"))
 	} else if orCtx.IsAdmin {
-		w, err = webhook.GetSystemOrDefaultWebhook(ctx, ctx.ParamsInt64(":id"))
+		w, err = webhook.GetSystemOrDefaultWebhook(ctx, ctx.PathParamInt64("id"))
 	}
 	if err != nil || w == nil {
 		if webhook.IsErrWebhookNotExist(err) {
@@ -645,7 +645,7 @@ func WebHooksEdit(ctx *context.Context) {
 
 // TestWebhook test if web hook is work fine
 func TestWebhook(ctx *context.Context) {
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64("id")
 	w, err := webhook.GetWebhookByRepoID(ctx, ctx.Repo.Repository.ID, hookID)
 	if err != nil {
 		ctx.Flash.Error("GetWebhookByRepoID: " + err.Error())
@@ -706,7 +706,7 @@ func TestWebhook(ctx *context.Context) {
 
 // ReplayWebhook replays a webhook
 func ReplayWebhook(ctx *context.Context) {
-	hookTaskUUID := ctx.Params(":uuid")
+	hookTaskUUID := ctx.PathParam("uuid")
 
 	orCtx, w := checkWebhook(ctx)
 	if ctx.Written() {

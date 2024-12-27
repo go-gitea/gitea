@@ -49,10 +49,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 	ctx.Data["OpenIDs"] = openIDs
 	if len(ctx.ContextUser.Description) != 0 {
-		content, err := markdown.RenderString(&markup.RenderContext{
-			Metas: map[string]string{"mode": "document"},
-			Ctx:   ctx,
-		}, ctx.ContextUser.Description)
+		content, err := markdown.RenderString(markup.NewRenderContext(ctx).WithMetas(markup.ComposeSimpleDocumentMetas()), ctx.ContextUser.Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return
@@ -64,10 +61,19 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	orgs, err := db.Find[organization.Organization](ctx, organization.FindOrgOptions{
 		UserID:         ctx.ContextUser.ID,
 		IncludePrivate: showPrivate,
+		ListOptions: db.ListOptions{
+			Page: 1,
+			// query one more results (without a separate counting) to see whether we need to add the "show more orgs" link
+			PageSize: setting.UI.User.OrgPagingNum + 1,
+		},
 	})
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)
 		return
+	}
+	if len(orgs) > setting.UI.User.OrgPagingNum {
+		orgs = orgs[:setting.UI.User.OrgPagingNum]
+		ctx.Data["ShowMoreOrgs"] = true
 	}
 	ctx.Data["Orgs"] = orgs
 	ctx.Data["HasOrgsVisible"] = organization.HasOrgsVisible(ctx, orgs, ctx.Doer)
@@ -159,6 +165,18 @@ func LoadHeaderCount(ctx *context.Context) error {
 		return err
 	}
 	ctx.Data["ProjectCount"] = projectCount
+
+	return nil
+}
+
+func RenderOrgHeader(ctx *context.Context) error {
+	if err := LoadHeaderCount(ctx); err != nil {
+		return err
+	}
+
+	_, _, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx, ctx.Doer)
+	defer profileClose()
+	ctx.Data["HasProfileReadme"] = profileReadmeBlob != nil
 
 	return nil
 }

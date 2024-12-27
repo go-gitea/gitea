@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unittest"
@@ -191,4 +192,24 @@ func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gi
 	}
 
 	require.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, repo.ID))
+}
+
+func TestPushPullRefs(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		u.Path = baseAPITestContext.GitPath()
+		u.User = url.UserPassword("user2", userPassword)
+
+		dstPath := t.TempDir()
+		doGitClone(dstPath, u)(t)
+
+		cmd := git.NewCommand(git.DefaultContext, "push", "--delete", "origin", "refs/pull/2/head")
+		stdout, stderr, err := cmd.RunStdString(&git.RunOpts{
+			Dir: dstPath,
+		})
+		assert.Error(t, err)
+		assert.Empty(t, stdout)
+		assert.NotContains(t, stderr, "[deleted]", "stderr: %s", stderr)
+	})
 }

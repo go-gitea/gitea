@@ -1,259 +1,230 @@
-<script>
-import {createApp, nextTick} from 'vue';
-import $ from 'jquery';
-import {SvgIcon} from '../svg.js';
-import {pathEscapeSegments} from '../utils/url.js';
-import {showErrorToast} from '../modules/toast.js';
-import {GET} from '../modules/fetch.js';
+<script lang="ts">
+import {nextTick} from 'vue';
+import {SvgIcon} from '../svg.ts';
+import {showErrorToast} from '../modules/toast.ts';
+import {GET} from '../modules/fetch.ts';
+import {pathEscapeSegments} from '../utils/url.ts';
+import type {GitRefType} from '../types.ts';
+
+type ListItem = {
+  selected: boolean;
+  refShortName: string;
+  refType: GitRefType;
+  rssFeedLink: string;
+};
+
+type SelectedTab = 'branches' | 'tags';
+
+type TabLoadingStates = Record<SelectedTab, '' | 'loading' | 'done'>
 
 const sfc = {
   components: {SvgIcon},
-
-  // no `data()`, at the moment, the `data()` is provided by the init code, which is not ideal and should be fixed in the future
-
+  props: {
+    elRoot: HTMLElement,
+  },
   computed: {
-    filteredItems() {
-      const items = this.items.filter((item) => {
-        return ((this.mode === 'branches' && item.branch) || (this.mode === 'tags' && item.tag)) &&
-          (!this.searchTerm || item.name.toLowerCase().includes(this.searchTerm.toLowerCase()));
+    searchFieldPlaceholder() {
+      return this.selectedTab === 'branches' ? this.textFilterBranch : this.textFilterTag;
+    },
+    filteredItems(): ListItem[] {
+      const searchTermLower = this.searchTerm.toLowerCase();
+      const items = this.allItems.filter((item: ListItem) => {
+        const typeMatched = (this.selectedTab === 'branches' && item.refType === 'branch') || (this.selectedTab === 'tags' && item.refType === 'tag');
+        if (!typeMatched) return false;
+        if (!this.searchTerm) return true; // match all
+        return item.refShortName.toLowerCase().includes(searchTermLower);
       });
 
       // TODO: fix this anti-pattern: side-effects-in-computed-properties
-      this.active = !items.length && this.showCreateNewBranch ? 0 : -1;
+      this.activeItemIndex = !items.length && this.showCreateNewRef ? 0 : -1;
       return items;
     },
     showNoResults() {
-      return !this.filteredItems.length && !this.showCreateNewBranch;
+      if (this.tabLoadingStates[this.selectedTab] !== 'done') return false;
+      return !this.filteredItems.length && !this.showCreateNewRef;
     },
-    showCreateNewBranch() {
-      if (this.disableCreateBranch || !this.searchTerm) {
+    showCreateNewRef() {
+      if (!this.allowCreateNewRef || !this.searchTerm) {
         return false;
       }
-      return !this.items.filter((item) => {
-        return item.name.toLowerCase() === this.searchTerm.toLowerCase();
+      return !this.allItems.filter((item: ListItem) => {
+        return item.refShortName === this.searchTerm; // FIXME: not quite right here, it mixes "branch" and "tag" names
       }).length;
     },
-    formActionUrl() {
-      return `${this.repoLink}/branches/_new/${this.branchNameSubURL}`;
-    },
-    shouldCreateTag() {
-      return this.mode === 'tags';
+    createNewRefFormActionUrl() {
+      return `${this.currentRepoLink}/branches/_new/${this.currentRefType}/${pathEscapeSegments(this.currentRefShortName)}`;
     },
   },
-
   watch: {
-    menuVisible(visible) {
-      if (visible) {
-        this.focusSearchField();
-        this.fetchBranchesOrTags();
-      }
+    menuVisible(visible: boolean) {
+      if (!visible) return;
+      this.focusSearchField();
+      this.loadTabItems();
     },
   },
+  data() {
+    const shouldShowTabBranches = this.elRoot.getAttribute('data-show-tab-branches') === 'true';
+    return {
+      csrfToken: window.config.csrfToken,
+      allItems: [] as ListItem[],
+      selectedTab: (shouldShowTabBranches ? 'branches' : 'tags') as SelectedTab,
+      searchTerm: '',
+      menuVisible: false,
+      activeItemIndex: 0,
+      tabLoadingStates: {} as TabLoadingStates,
 
+      textReleaseCompare: this.elRoot.getAttribute('data-text-release-compare'),
+      textBranches: this.elRoot.getAttribute('data-text-branches'),
+      textTags: this.elRoot.getAttribute('data-text-tags'),
+      textFilterBranch: this.elRoot.getAttribute('data-text-filter-branch'),
+      textFilterTag: this.elRoot.getAttribute('data-text-filter-tag'),
+      textDefaultBranchLabel: this.elRoot.getAttribute('data-text-default-branch-label'),
+      textCreateTag: this.elRoot.getAttribute('data-text-create-tag'),
+      textCreateBranch: this.elRoot.getAttribute('data-text-create-branch'),
+      textCreateRefFrom: this.elRoot.getAttribute('data-text-create-ref-from'),
+      textNoResults: this.elRoot.getAttribute('data-text-no-results'),
+      textViewAllBranches: this.elRoot.getAttribute('data-text-view-all-branches'),
+      textViewAllTags: this.elRoot.getAttribute('data-text-view-all-tags'),
+
+      currentRepoDefaultBranch: this.elRoot.getAttribute('data-current-repo-default-branch'),
+      currentRepoLink: this.elRoot.getAttribute('data-current-repo-link'),
+      currentTreePath: this.elRoot.getAttribute('data-current-tree-path'),
+      currentRefType: this.elRoot.getAttribute('data-current-ref-type'),
+      currentRefShortName: this.elRoot.getAttribute('data-current-ref-short-name'),
+
+      refLinkTemplate: this.elRoot.getAttribute('data-ref-link-template'),
+      refFormActionTemplate: this.elRoot.getAttribute('data-ref-form-action-template'),
+      dropdownFixedText: this.elRoot.getAttribute('data-dropdown-fixed-text'),
+      showTabBranches: shouldShowTabBranches,
+      showTabTags: this.elRoot.getAttribute('data-show-tab-tags') === 'true',
+      allowCreateNewRef: this.elRoot.getAttribute('data-allow-create-new-ref') === 'true',
+      showViewAllRefsEntry: this.elRoot.getAttribute('data-show-view-all-refs-entry') === 'true',
+      enableFeed: this.elRoot.getAttribute('data-enable-feed') === 'true',
+    };
+  },
   beforeMount() {
-    if (this.viewType === 'tree') {
-      this.isViewTree = true;
-      this.refNameText = this.commitIdShort;
-    } else if (this.viewType === 'tag') {
-      this.isViewTag = true;
-      this.refNameText = this.tagName;
-    } else {
-      this.isViewBranch = true;
-      this.refNameText = this.branchName;
-    }
-
-    document.body.addEventListener('click', (event) => {
-      if (this.$el.contains(event.target)) return;
-      if (this.menuVisible) {
-        this.menuVisible = false;
-      }
+    document.body.addEventListener('click', (e) => {
+      if (this.$el.contains(e.target)) return;
+      if (this.menuVisible) this.menuVisible = false;
     });
   },
+
+  mounted() {
+    if (this.refFormActionTemplate) {
+      // if the selector is used in a form and needs to change the form action,
+      // make a mock item and select it to update the form action
+      const item: ListItem = {selected: true, refType: this.currentRefType, refShortName: this.currentRefShortName, rssFeedLink: ''};
+      this.selectItem(item);
+    }
+  },
+
   methods: {
-    selectItem(item) {
-      const prev = this.getSelected();
-      if (prev !== null) {
-        prev.selected = false;
-      }
-      item.selected = true;
-      const url = (item.tag) ? this.tagURLPrefix + item.url + this.tagURLSuffix : this.branchURLPrefix + item.url + this.branchURLSuffix;
-      if (!this.branchForm) {
-        window.location.href = url;
+    selectItem(item: ListItem) {
+      this.menuVisible = false;
+      if (this.refFormActionTemplate) {
+        this.currentRefType = item.refType;
+        this.currentRefShortName = item.refShortName;
+        let actionLink = this.refFormActionTemplate;
+        actionLink = actionLink.replace('{RepoLink}', this.currentRepoLink);
+        actionLink = actionLink.replace('{RefType}', pathEscapeSegments(item.refType));
+        actionLink = actionLink.replace('{RefShortName}', pathEscapeSegments(item.refShortName));
+        this.$el.closest('form').action = actionLink;
       } else {
-        this.isViewTree = false;
-        this.isViewTag = false;
-        this.isViewBranch = false;
-        this.$refs.dropdownRefName.textContent = item.name;
-        if (this.setAction) {
-          document.querySelector(`#${this.branchForm}`)?.setAttribute('action', url);
-        } else {
-          $(`#${this.branchForm} input[name="refURL"]`).val(url);
-        }
-        $(`#${this.branchForm} input[name="ref"]`).val(item.name);
-        if (item.tag) {
-          this.isViewTag = true;
-          $(`#${this.branchForm} input[name="refType"]`).val('tag');
-        } else {
-          this.isViewBranch = true;
-          $(`#${this.branchForm} input[name="refType"]`).val('branch');
-        }
-        if (this.submitForm) {
-          $(`#${this.branchForm}`).trigger('submit');
-        }
-        this.menuVisible = false;
+        let link = this.refLinkTemplate;
+        link = link.replace('{RepoLink}', this.currentRepoLink);
+        link = link.replace('{RefType}', pathEscapeSegments(item.refType));
+        link = link.replace('{RefShortName}', pathEscapeSegments(item.refShortName));
+        link = link.replace('{TreePath}', pathEscapeSegments(this.currentTreePath));
+        window.location.href = link;
       }
     },
-    createNewBranch() {
-      if (!this.showCreateNewBranch) return;
-      $(this.$refs.newBranchForm).trigger('submit');
+    createNewRef() {
+      this.$refs.createNewRefForm?.submit();
     },
     focusSearchField() {
       nextTick(() => {
         this.$refs.searchField.focus();
       });
     },
-    getSelected() {
-      for (let i = 0, j = this.items.length; i < j; ++i) {
-        if (this.items[i].selected) return this.items[i];
-      }
-      return null;
-    },
     getSelectedIndexInFiltered() {
-      for (let i = 0, j = this.filteredItems.length; i < j; ++i) {
+      for (let i = 0; i < this.filteredItems.length; ++i) {
         if (this.filteredItems[i].selected) return i;
       }
       return -1;
     },
-    scrollToActive() {
-      let el = this.$refs[`listItem${this.active}`]; // eslint-disable-line no-jquery/variable-pattern
-      if (!el || !el.length) return;
-      if (Array.isArray(el)) {
-        el = el[0];
-      }
-
-      const cont = this.$refs.scrollContainer;
-      if (el.offsetTop < cont.scrollTop) {
-        cont.scrollTop = el.offsetTop;
-      } else if (el.offsetTop + el.clientHeight > cont.scrollTop + cont.clientHeight) {
-        cont.scrollTop = el.offsetTop + el.clientHeight - cont.clientHeight;
-      }
+    getActiveItem() {
+      const el = this.$refs[`listItem${this.activeItemIndex}`]; // eslint-disable-line no-jquery/variable-pattern
+      return (el && el.length) ? el[0] : null;
     },
-    keydown(event) {
-      if (event.keyCode === 40) { // arrow down
-        event.preventDefault();
+    keydown(e) {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
 
-        if (this.active === -1) {
-          this.active = this.getSelectedIndexInFiltered();
+        if (this.activeItemIndex === -1) {
+          this.activeItemIndex = this.getSelectedIndexInFiltered();
         }
-
-        if (this.active + (this.showCreateNewBranch ? 0 : 1) >= this.filteredItems.length) {
+        const nextIndex = e.key === 'ArrowDown' ? this.activeItemIndex + 1 : this.activeItemIndex - 1;
+        if (nextIndex < 0) {
           return;
         }
-        this.active++;
-        this.scrollToActive();
-      } else if (event.keyCode === 38) { // arrow up
-        event.preventDefault();
-
-        if (this.active === -1) {
-          this.active = this.getSelectedIndexInFiltered();
-        }
-
-        if (this.active <= 0) {
+        if (nextIndex + (this.showCreateNewRef ? 0 : 1) > this.filteredItems.length) {
           return;
         }
-        this.active--;
-        this.scrollToActive();
-      } else if (event.keyCode === 13) { // enter
-        event.preventDefault();
-
-        if (this.active >= this.filteredItems.length) {
-          this.createNewBranch();
-        } else if (this.active >= 0) {
-          this.selectItem(this.filteredItems[this.active]);
-        }
-      } else if (event.keyCode === 27) { // escape
-        event.preventDefault();
+        this.activeItemIndex = nextIndex;
+        this.getActiveItem().scrollIntoView({block: 'nearest'});
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        this.getActiveItem()?.click();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
         this.menuVisible = false;
       }
     },
-    handleTabSwitch(mode) {
-      if (this.isLoading) return;
-      this.mode = mode;
+    handleTabSwitch(selectedTab) {
+      this.selectedTab = selectedTab;
       this.focusSearchField();
-      this.fetchBranchesOrTags();
+      this.loadTabItems();
     },
-    async fetchBranchesOrTags() {
-      if (!['branches', 'tags'].includes(this.mode) || this.isLoading) return;
-      // only fetch when branch/tag list has not been initialized
-      if (this.hasListInitialized[this.mode] ||
-        (this.mode === 'branches' && !this.showBranchesInDropdown) ||
-        (this.mode === 'tags' && this.noTag)
-      ) {
-        return;
-      }
-      this.isLoading = true;
+    async loadTabItems() {
+      const tab = this.selectedTab;
+      if (this.tabLoadingStates[tab] === 'loading' || this.tabLoadingStates[tab] === 'done') return;
+
+      const refType = this.selectedTab === 'branches' ? 'branch' : 'tag';
+      this.tabLoadingStates[tab] = 'loading';
       try {
-        const resp = await GET(`${this.repoLink}/${this.mode}/list`);
+        const url = refType === 'branch' ? `${this.currentRepoLink}/branches/list` : `${this.currentRepoLink}/tags/list`;
+        const resp = await GET(url);
         const {results} = await resp.json();
-        for (const result of results) {
-          let selected = false;
-          if (this.mode === 'branches') {
-            selected = result === this.defaultSelectedRefName;
-          } else {
-            selected = result === (this.release ? this.release.tagName : this.defaultSelectedRefName);
-          }
-          this.items.push({name: result, url: pathEscapeSegments(result), branch: this.mode === 'branches', tag: this.mode === 'tags', selected});
+        for (const refShortName of results) {
+          const item: ListItem = {
+            refType,
+            refShortName,
+            selected: refType === this.currentRefType && refShortName === this.currentRefShortName,
+            rssFeedLink: `${this.currentRepoLink}/rss/${refType}/${pathEscapeSegments(refShortName)}`,
+          };
+          this.allItems.push(item);
         }
-        this.hasListInitialized[this.mode] = true;
+        this.tabLoadingStates[tab] = 'done';
       } catch (e) {
-        showErrorToast(`Network error when fetching ${this.mode}, error: ${e}`);
-      } finally {
-        this.isLoading = false;
+        this.tabLoadingStates[tab] = '';
+        showErrorToast(`Network error when fetching items for ${tab}, error: ${e}`);
+        console.error(e);
       }
     },
   },
 };
 
-export function initRepoBranchTagSelector(selector) {
-  for (const [elIndex, elRoot] of document.querySelectorAll(selector).entries()) {
-    const data = {
-      csrfToken: window.config.csrfToken,
-      items: [],
-      searchTerm: '',
-      refNameText: '',
-      menuVisible: false,
-      release: null,
-
-      isViewTag: false,
-      isViewBranch: false,
-      isViewTree: false,
-
-      active: 0,
-      isLoading: false,
-      // This means whether branch list/tag list has initialized
-      hasListInitialized: {
-        'branches': false,
-        'tags': false,
-      },
-      ...window.config.pageData.branchDropdownDataList[elIndex],
-    };
-
-    const comp = {...sfc, data() { return data }};
-    createApp(comp).mount(elRoot);
-  }
-}
-
 export default sfc; // activate IDE's Vue plugin
 </script>
 <template>
   <div class="ui dropdown custom branch-selector-dropdown ellipsis-items-nowrap">
-    <div class="ui button branch-dropdown-button" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+    <div tabindex="0" class="ui button branch-dropdown-button" @click="menuVisible = !menuVisible">
       <span class="flex-text-block gt-ellipsis">
-        <template v-if="release">{{ textReleaseCompare }}</template>
+        <template v-if="dropdownFixedText">{{ dropdownFixedText }}</template>
         <template v-else>
-          <svg-icon v-if="isViewTag" name="octicon-tag"/>
+          <svg-icon v-if="currentRefType === 'tag'" name="octicon-tag"/>
           <svg-icon v-else name="octicon-git-branch"/>
-          <strong ref="dropdownRefName" class="tw-ml-2 tw-inline-block gt-ellipsis">{{ refNameText }}</strong>
+          <strong ref="dropdownRefName" class="tw-ml-2 tw-inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
         </template>
       </span>
       <svg-icon name="octicon-triangle-down" :size="14" class-name="dropdown icon"/>
@@ -263,57 +234,56 @@ export default sfc; // activate IDE's Vue plugin
         <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
         <input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
       </div>
-      <div v-if="showBranchesInDropdown" class="branch-tag-tab">
-        <a class="branch-tag-item muted" :class="{active: mode === 'branches'}" href="#" @click="handleTabSwitch('branches')">
+      <div v-if="showTabBranches" class="branch-tag-tab">
+        <a class="branch-tag-item muted" :class="{active: selectedTab === 'branches'}" href="#" @click="handleTabSwitch('branches')">
           <svg-icon name="octicon-git-branch" :size="16" class-name="tw-mr-1"/>{{ textBranches }}
         </a>
-        <a v-if="!noTag" class="branch-tag-item muted" :class="{active: mode === 'tags'}" href="#" @click="handleTabSwitch('tags')">
+        <a v-if="showTabTags" class="branch-tag-item muted" :class="{active: selectedTab === 'tags'}" href="#" @click="handleTabSwitch('tags')">
           <svg-icon name="octicon-tag" :size="16" class-name="tw-mr-1"/>{{ textTags }}
         </a>
       </div>
       <div class="branch-tag-divider"/>
       <div class="scrolling menu" ref="scrollContainer">
         <svg-icon name="octicon-rss" symbol-id="svg-symbol-octicon-rss"/>
-        <div class="loading-indicator is-loading" v-if="isLoading"/>
-        <div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active === index}" @click="selectItem(item)" :ref="'listItem' + index">
-          {{ item.name }}
-          <div class="ui label" v-if="item.name===repoDefaultBranch && mode === 'branches'">
+        <div class="loading-indicator is-loading" v-if="tabLoadingStates[selectedTab] === 'loading'"/>
+        <div v-for="(item, index) in filteredItems" :key="item.refShortName" class="item" :class="{selected: item.selected, active: activeItemIndex === index}" @click="selectItem(item)" :ref="'listItem' + index">
+          {{ item.refShortName }}
+          <div class="ui label" v-if="item.refType === 'branch' && item.refShortName === currentRepoDefaultBranch">
             {{ textDefaultBranchLabel }}
           </div>
-          <a v-show="enableFeed && mode === 'branches'" role="button" class="rss-icon" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
+          <a v-if="enableFeed && selectedTab === 'branches'" role="button" class="rss-icon" target="_blank" @click.stop :href="item.rssFeedLink">
             <!-- creating a lot of Vue component is pretty slow, so we use a static SVG here -->
             <svg width="14" height="14" class="svg octicon-rss"><use href="#svg-symbol-octicon-rss"/></svg>
           </a>
         </div>
-        <div class="item" v-if="showCreateNewBranch" :class="{active: active === filteredItems.length}" :ref="'listItem' + filteredItems.length">
-          <a href="#" @click="createNewBranch()">
-            <div v-show="shouldCreateTag">
-              <i class="reference tags icon"/>
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <span v-html="textCreateTag.replace('%s', searchTerm)"/>
-            </div>
-            <div v-show="!shouldCreateTag">
-              <svg-icon name="octicon-git-branch"/>
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <span v-html="textCreateBranch.replace('%s', searchTerm)"/>
-            </div>
-            <div class="text small">
-              <span v-if="isViewBranch || release">{{ textCreateBranchFrom.replace('%s', branchName) }}</span>
-              <span v-else-if="isViewTag">{{ textCreateBranchFrom.replace('%s', tagName) }}</span>
-              <span v-else>{{ textCreateBranchFrom.replace('%s', commitIdShort) }}</span>
-            </div>
-          </a>
-          <form ref="newBranchForm" :action="formActionUrl" method="post">
+        <div class="item" v-if="showCreateNewRef" :class="{active: activeItemIndex === filteredItems.length}" :ref="'listItem' + filteredItems.length" @click="createNewRef()">
+          <div v-if="selectedTab === 'tags'">
+            <svg-icon name="octicon-tag" class="tw-mr-1"/>
+            <span v-text="textCreateTag.replace('%s', searchTerm)"/>
+          </div>
+          <div v-else>
+            <svg-icon name="octicon-git-branch" class="tw-mr-1"/>
+            <span v-text="textCreateBranch.replace('%s', searchTerm)"/>
+          </div>
+          <div class="text small">
+            {{ textCreateRefFrom.replace('%s', currentRefShortName) }}
+          </div>
+          <form ref="createNewRefForm" method="post" :action="createNewRefFormActionUrl">
             <input type="hidden" name="_csrf" :value="csrfToken">
-            <input type="hidden" name="new_branch_name" v-model="searchTerm">
-            <input type="hidden" name="create_tag" v-model="shouldCreateTag">
-            <input type="hidden" name="current_path" v-model="treePath" v-if="treePath">
+            <input type="hidden" name="new_branch_name" :value="searchTerm">
+            <input type="hidden" name="create_tag" :value="String(selectedTab === 'tags')">
+            <input type="hidden" name="current_path" :value="currentTreePath">
           </form>
         </div>
       </div>
-      <div class="message" v-if="showNoResults && !isLoading">
-        {{ noResults }}
+      <div class="message" v-if="showNoResults">
+        {{ textNoResults }}
       </div>
+      <template v-if="showViewAllRefsEntry">
+        <div class="divider tw-m-0"/>
+        <a v-if="selectedTab === 'branches'" class="item" :href="currentRepoLink + '/branches'">{{ textViewAllBranches }}</a>
+        <a v-if="selectedTab === 'tags'" class="item" :href="currentRepoLink + '/tags'">{{ textViewAllTags }}</a>
+      </template>
     </div>
   </div>
 </template>

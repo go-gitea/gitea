@@ -16,7 +16,7 @@ var (
 	// ErrNameEmpty name is empty error
 	ErrNameEmpty = util.SilentWrap{Message: "name is empty", Err: util.ErrInvalidArgument}
 
-	// AlphaDashDotPattern characters prohibited in a user name (anything except A-Za-z0-9_.-)
+	// AlphaDashDotPattern characters prohibited in a username (anything except A-Za-z0-9_.-)
 	AlphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
 

@@ -23,8 +23,8 @@ func cacheableRedirect(ctx *context.Context, location string) {
 
 // AvatarByUserName redirect browser to user avatar of requested size
 func AvatarByUserName(ctx *context.Context) {
-	userName := ctx.Params(":username")
-	size := int(ctx.ParamsInt64(":size"))
+	userName := ctx.PathParam("username")
+	size := int(ctx.PathParamInt64("size"))
 
 	var user *user_model.User
 	if strings.ToLower(userName) != user_model.GhostUserLowerName {
@@ -46,7 +46,7 @@ func AvatarByUserName(ctx *context.Context) {
 
 // AvatarByEmailHash redirects the browser to the email avatar link
 func AvatarByEmailHash(ctx *context.Context) {
-	hash := ctx.Params(":hash")
+	hash := ctx.PathParam("hash")
 	email, err := avatars.GetEmailForHash(ctx, hash)
 	if err != nil {
 		ctx.ServerError("invalid avatar hash: "+hash, err)

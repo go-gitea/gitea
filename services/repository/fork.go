@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -20,6 +21,8 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
+
+	"xorm.io/builder"
 )
 
 // ErrForkAlreadyExist represents a "ForkAlreadyExist" kind of error.
@@ -134,7 +137,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}()
 
 	err = db.WithTx(ctx, func(txCtx context.Context) error {
-		if err = repo_module.CreateRepositoryByExample(txCtx, doer, owner, repo, false, true); err != nil {
+		if err = CreateRepositoryByExample(txCtx, doer, owner, repo, false, true); err != nil {
 			return err
 		}
 
@@ -155,7 +158,6 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
 		if stdout, _, err := cloneCmd.AddDynamicArguments(oldRepoPath, repoPath).
-			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
 			RunStdBytes(&git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
 			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
 			return fmt.Errorf("git clone: %w", err)
@@ -166,7 +168,6 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 
 		if stdout, _, err := git.NewCommand(txCtx, "update-server-info").
-			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
 			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("git update-server-info: %w", err)
@@ -197,6 +198,9 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 	if err := repo_model.CopyLanguageStat(ctx, opts.BaseRepo, repo); err != nil {
 		log.Error("Copy language stat from oldRepo failed: %v", err)
+	}
+	if err := repo_model.CopyLicense(ctx, opts.BaseRepo, repo); err != nil {
+		return nil, err
 	}
 
 	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
@@ -243,4 +247,25 @@ func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Reposit
 	})
 
 	return err
+}
+
+type findForksOptions struct {
+	db.ListOptions
+	RepoID int64
+	Doer   *user_model.User
+}
+
+func (opts findForksOptions) ToConds() builder.Cond {
+	return builder.Eq{"fork_id": opts.RepoID}.And(
+		repo_model.AccessibleRepositoryCondition(opts.Doer, unit.TypeInvalid),
+	)
+}
+
+// FindForks returns all the forks of the repository
+func FindForks(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, listOptions db.ListOptions) ([]*repo_model.Repository, int64, error) {
+	return db.FindAndCount[repo_model.Repository](ctx, findForksOptions{
+		ListOptions: listOptions,
+		RepoID:      repo.ID,
+		Doer:        doer,
+	})
 }

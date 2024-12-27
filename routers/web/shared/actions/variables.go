@@ -40,7 +40,7 @@ func CreateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL str
 }
 
 func UpdateVariable(ctx *context.Context, redirectURL string) {
-	id := ctx.ParamsInt64(":variable_id")
+	id := ctx.PathParamInt64("variable_id")
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
 	if ok, err := actions_service.UpdateVariable(ctx, id, form.Name, form.Data); err != nil || !ok {
@@ -53,7 +53,7 @@ func UpdateVariable(ctx *context.Context, redirectURL string) {
 }
 
 func DeleteVariable(ctx *context.Context, redirectURL string) {
-	id := ctx.ParamsInt64(":variable_id")
+	id := ctx.PathParamInt64("variable_id")
 
 	if err := actions_service.DeleteVariableByID(ctx, id); err != nil {
 		log.Error("Delete variable [%d] failed: %v", id, err)

@@ -61,7 +61,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
@@ -338,7 +338,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	}
 
 	skip := (page - 1) * limit
-	max := page * limit
+	maxNum := page * limit
 
 	deps, err := issue.BlockingDependencies(ctx)
 	if err != nil {
@@ -352,7 +352,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
 
 	for i, depMeta := range deps {
-		if i < skip || i >= max {
+		if i < skip || i >= maxNum {
 			continue
 		}
 
@@ -499,7 +499,7 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 }
 
 func getParamsIssue(ctx *context.APIContext) *issues_model.Issue {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)

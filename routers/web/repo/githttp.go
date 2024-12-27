@@ -57,8 +57,8 @@ func CorsHandler() func(next http.Handler) http.Handler {
 
 // httpBase implementation git smart HTTP protocol
 func httpBase(ctx *context.Context) *serviceHandler {
-	username := ctx.Params(":username")
-	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
+	username := ctx.PathParam("username")
+	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
 
 	if ctx.FormString("go-get") == "1" {
 		context.EarlyResponseForGoGetMeta(ctx)
@@ -395,7 +395,8 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 
 	ctx.Resp.Header().Set("Content-Type", contentType)
 	ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", fi.Size()))
-	ctx.Resp.Header().Set("Last-Modified", fi.ModTime().Format(http.TimeFormat))
+	// http.TimeFormat required a UTC time, refer to https://pkg.go.dev/net/http#TimeFormat
+	ctx.Resp.Header().Set("Last-Modified", fi.ModTime().UTC().Format(http.TimeFormat))
 	http.ServeFile(ctx.Resp, ctx.Req, reqFile)
 }
 
@@ -457,7 +458,6 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 
 	var stderr bytes.Buffer
 	cmd.AddArguments("--stateless-rpc").AddDynamicArguments(h.getRepoDir())
-	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.getRepoDir()))
 	if err := cmd.Run(&git.RunOpts{
 		Dir:               h.getRepoDir(),
 		Env:               append(os.Environ(), h.environ...),
@@ -466,7 +466,7 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 		Stderr:            &stderr,
 		UseContextTimeout: true,
 	}); err != nil {
-		if err.Error() != "signal: killed" {
+		if !git.IsErrCanceledOrKilled(err) {
 			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.getRepoDir(), err, stderr.String())
 		}
 		return
@@ -550,7 +550,7 @@ func GetTextFile(p string) func(*context.Context) {
 		h := httpBase(ctx)
 		if h != nil {
 			setHeaderNoCache(ctx)
-			file := ctx.Params("file")
+			file := ctx.PathParam("file")
 			if file != "" {
 				h.sendFile(ctx, "text/plain", "objects/info/"+file)
 			} else {
@@ -575,7 +575,7 @@ func GetLooseObject(ctx *context.Context) {
 	if h != nil {
 		setHeaderCacheForever(ctx)
 		h.sendFile(ctx, "application/x-git-loose-object", fmt.Sprintf("objects/%s/%s",
-			ctx.Params("head"), ctx.Params("hash")))
+			ctx.PathParam("head"), ctx.PathParam("hash")))
 	}
 }
 
@@ -584,7 +584,7 @@ func GetPackFile(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
 		setHeaderCacheForever(ctx)
-		h.sendFile(ctx, "application/x-git-packed-objects", "objects/pack/pack-"+ctx.Params("file")+".pack")
+		h.sendFile(ctx, "application/x-git-packed-objects", "objects/pack/pack-"+ctx.PathParam("file")+".pack")
 	}
 }
 
@@ -593,6 +593,6 @@ func GetIdxFile(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
 		setHeaderCacheForever(ctx)
-		h.sendFile(ctx, "application/x-git-packed-objects-toc", "objects/pack/pack-"+ctx.Params("file")+".idx")
+		h.sendFile(ctx, "application/x-git-packed-objects-toc", "objects/pack/pack-"+ctx.PathParam("file")+".idx")
 	}
 }

@@ -1,0 +1,36 @@
+{
+  "include": [
+    "*",
+    "tests/e2e/**/*",
+    "tools/**/*",
+    "web_src/js/**/*",
+  ],
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["dom", "dom.iterable", "dom.asynciterable", "esnext"],
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "alwaysStrict": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "stripInternal": true,
+    "strict": false,
+    "strictFunctionTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "exactOptionalPropertyTypes": false,
+    "sourceMap": true,
+    "types": [
+      "vitest/globals",
+      "./web_src/js/globals.d.ts",
+    ],
+  }
+}

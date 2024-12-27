@@ -77,7 +77,7 @@ type Release struct {
 	Target           string
 	TargetBehind     string `xorm:"-"` // to handle non-existing or empty target
 	Title            string
-	Sha1             string `xorm:"VARCHAR(64)"`
+	Sha1             string `xorm:"INDEX VARCHAR(64)"`
 	NumCommits       int64
 	NumCommitsBehind int64              `xorm:"-"`
 	Note             string             `xorm:"TEXT"`
@@ -156,6 +156,7 @@ func IsReleaseExist(ctx context.Context, repoID int64, tagName string) (bool, er
 
 // UpdateRelease updates all columns of a release
 func UpdateRelease(ctx context.Context, rel *Release) error {
+	rel.Title = util.EllipsisDisplayString(rel.Title, 255)
 	_, err := db.GetEngine(ctx).ID(rel.ID).AllCols().Update(rel)
 	return err
 }
@@ -234,6 +235,7 @@ type FindReleasesOptions struct {
 	IsDraft       optional.Option[bool]
 	TagNames      []string
 	HasSha1       optional.Option[bool] // useful to find draft releases which are created with existing tags
+	NamePattern   optional.Option[string]
 }
 
 func (opts FindReleasesOptions) ToConds() builder.Cond {
@@ -261,6 +263,11 @@ func (opts FindReleasesOptions) ToConds() builder.Cond {
 			cond = cond.And(builder.Eq{"sha1": ""})
 		}
 	}
+
+	if opts.NamePattern.Has() && opts.NamePattern.Value() != "" {
+		cond = cond.And(builder.Like{"lower_tag_name", strings.ToLower(opts.NamePattern.Value())})
+	}
+
 	return cond
 }
 
@@ -396,32 +403,6 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	}
 
 	return err
-}
-
-type releaseSorter struct {
-	rels []*Release
-}
-
-func (rs *releaseSorter) Len() int {
-	return len(rs.rels)
-}
-
-func (rs *releaseSorter) Less(i, j int) bool {
-	diffNum := rs.rels[i].NumCommits - rs.rels[j].NumCommits
-	if diffNum != 0 {
-		return diffNum > 0
-	}
-	return rs.rels[i].CreatedUnix > rs.rels[j].CreatedUnix
-}
-
-func (rs *releaseSorter) Swap(i, j int) {
-	rs.rels[i], rs.rels[j] = rs.rels[j], rs.rels[i]
-}
-
-// SortReleases sorts releases by number of commits and created time.
-func SortReleases(rels []*Release) {
-	sorter := &releaseSorter{rels: rels}
-	sort.Sort(sorter)
 }
 
 // UpdateReleasesMigrationsByType updates all migrated repositories' releases from gitServiceType to replace originalAuthorID to posterID
@@ -562,4 +543,18 @@ func InsertReleases(ctx context.Context, rels ...*Release) error {
 	}
 
 	return committer.Commit()
+}
+
+func FindTagsByCommitIDs(ctx context.Context, repoID int64, commitIDs ...string) (map[string][]*Release, error) {
+	releases := make([]*Release, 0, len(commitIDs))
+	if err := db.GetEngine(ctx).Where("repo_id=?", repoID).
+		In("sha1", commitIDs).
+		Find(&releases); err != nil {
+		return nil, err
+	}
+	res := make(map[string][]*Release, len(releases))
+	for _, r := range releases {
+		res[r.Sha1] = append(res[r.Sha1], r)
+	}
+	return res, nil
 }

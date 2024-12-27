@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/stretchr/testify/assert"
@@ -46,10 +47,11 @@ mail@domain.com
 }
 
 var testMetas = map[string]string{
-	"user":     "user13",
-	"repo":     "repo11",
-	"repoPath": "../../tests/gitea-repositories-meta/user13/repo11.git/",
-	"mode":     "comment",
+	"user":                         "user13",
+	"repo":                         "repo11",
+	"repoPath":                     "../../tests/gitea-repositories-meta/user13/repo11.git/",
+	"markdownLineBreakStyle":       "comment",
+	"markupAllowShortIssuePattern": "true",
 }
 
 func TestMain(m *testing.M) {
@@ -57,7 +59,7 @@ func TestMain(m *testing.M) {
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
-	markup.Init(&markup.ProcessorHelper{
+	markup.Init(&markup.RenderHelperFuncs{
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
 			return username == "mention-user"
 		},
@@ -65,11 +67,16 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func newTestRenderUtils() *RenderUtils {
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, translation.ContextKey, &translation.MockLocale{})
+	return NewRenderUtils(ctx)
+}
+
 func TestRenderCommitBody(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	type args struct {
-		ctx   context.Context
-		msg   string
-		metas map[string]string
+		msg string
 	}
 	tests := []struct {
 		name string
@@ -79,7 +86,6 @@ func TestRenderCommitBody(t *testing.T) {
 		{
 			name: "multiple lines",
 			args: args{
-				ctx: context.Background(),
 				msg: "first line\nsecond line",
 			},
 			want: "second line",
@@ -87,7 +93,6 @@ func TestRenderCommitBody(t *testing.T) {
 		{
 			name: "multiple lines with leading newlines",
 			args: args{
-				ctx: context.Background(),
 				msg: "\n\n\n\nfirst line\nsecond line",
 			},
 			want: "second line",
@@ -95,54 +100,52 @@ func TestRenderCommitBody(t *testing.T) {
 		{
 			name: "multiple lines with trailing newlines",
 			args: args{
-				ctx: context.Background(),
 				msg: "first line\nsecond line\n\n\n",
 			},
 			want: "second line",
 		},
 	}
+	ut := newTestRenderUtils()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, RenderCommitBody(tt.args.ctx, tt.args.msg, tt.args.metas), "RenderCommitBody(%v, %v, %v)", tt.args.ctx, tt.args.msg, tt.args.metas)
+			assert.Equalf(t, tt.want, ut.RenderCommitBody(tt.args.msg, nil), "RenderCommitBody(%v, %v)", tt.args.msg, nil)
 		})
 	}
 
 	expected := `/just/a/path.bin
-<a href="https://example.com/file.bin" class="link">https://example.com/file.bin</a>
+<a href="https://example.com/file.bin">https://example.com/file.bin</a>
 [local link](file.bin)
-[remote link](<a href="https://example.com" class="link">https://example.com</a>)
+[remote link](<a href="https://example.com">https://example.com</a>)
 [[local link|file.bin]]
-[[remote link|<a href="https://example.com" class="link">https://example.com</a>]]
+[[remote link|<a href="https://example.com">https://example.com</a>]]
 ![local image](image.jpg)
-![remote image](<a href="https://example.com/image.jpg" class="link">https://example.com/image.jpg</a>)
+![remote image](<a href="https://example.com/image.jpg">https://example.com/image.jpg</a>)
 [[local image|image.jpg]]
-[[remote link|<a href="https://example.com/image.jpg" class="link">https://example.com/image.jpg</a>]]
+[[remote link|<a href="https://example.com/image.jpg">https://example.com/image.jpg</a>]]
 <a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" class="compare"><code class="nohighlight">88fc37a3c0...12fc37a3c0 (hash)</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
 <a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" class="commit"><code class="nohighlight">88fc37a3c0</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" aria-label="thumbs up">👍</span>
-<a href="mailto:mail@domain.com" class="mailto">mail@domain.com</a>
-<a href="/mention-user" class="mention">@mention-user</a> test
+<a href="mailto:mail@domain.com">mail@domain.com</a>
+<a href="/mention-user">@mention-user</a> test
 <a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
   space`
-
-	assert.EqualValues(t, expected, RenderCommitBody(context.Background(), testInput(), testMetas))
+	assert.EqualValues(t, expected, string(newTestRenderUtils().RenderCommitBody(testInput(), testMetas)))
 }
 
 func TestRenderCommitMessage(t *testing.T) {
-	expected := `space <a href="/mention-user" class="mention">@mention-user</a>  `
-
-	assert.EqualValues(t, expected, RenderCommitMessage(context.Background(), testInput(), testMetas))
+	expected := `space <a href="/mention-user" data-markdown-generated-content="">@mention-user</a>  `
+	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessage(testInput(), testMetas))
 }
 
 func TestRenderCommitMessageLinkSubject(t *testing.T) {
-	expected := `<a href="https://example.com/link" class="default-link muted">space </a><a href="/mention-user" class="mention">@mention-user</a>`
-
-	assert.EqualValues(t, expected, RenderCommitMessageLinkSubject(context.Background(), testInput(), "https://example.com/link", testMetas))
+	expected := `<a href="https://example.com/link" class="muted">space </a><a href="/mention-user" data-markdown-generated-content="">@mention-user</a>`
+	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", testMetas))
 }
 
 func TestRenderIssueTitle(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	expected := `  space @mention-user<SPACE><SPACE>
 /just/a/path.bin
 https://example.com/file.bin
@@ -165,16 +168,17 @@ mail@domain.com
   space<SPACE><SPACE>
 `
 	expected = strings.ReplaceAll(expected, "<SPACE>", " ")
-	assert.EqualValues(t, expected, RenderIssueTitle(context.Background(), testInput(), testMetas))
+	assert.EqualValues(t, expected, string(newTestRenderUtils().RenderIssueTitle(testInput(), testMetas)))
 }
 
 func TestRenderMarkdownToHtml(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	expected := `<p>space <a href="/mention-user" rel="nofollow">@mention-user</a><br/>
 /just/a/path.bin
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a>
 <a href="/file.bin" rel="nofollow">local link</a>
 <a href="https://example.com" rel="nofollow">remote link</a>
-<a href="/src/file.bin" rel="nofollow">local link</a>
+<a href="/file.bin" rel="nofollow">local link</a>
 <a href="https://example.com" rel="nofollow">remote link</a>
 <a href="/image.jpg" target="_blank" rel="nofollow noopener"><img src="/image.jpg" alt="local image"/></a>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a>
@@ -190,25 +194,24 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 #123
 space</p>
 `
-	assert.EqualValues(t, expected, RenderMarkdownToHtml(context.Background(), testInput()))
+	assert.Equal(t, expected, string(newTestRenderUtils().MarkdownToHtml(testInput())))
 }
 
 func TestRenderLabels(t *testing.T) {
-	ctx := context.Background()
-	locale := &translation.MockLocale{}
-
+	ut := newTestRenderUtils()
 	label := &issues.Label{ID: 123, Name: "label-name", Color: "label-color"}
 	issue := &issues.Issue{}
 	expected := `/owner/repo/issues?labels=123`
-	assert.Contains(t, RenderLabels(ctx, locale, []*issues.Label{label}, "/owner/repo", issue), expected)
+	assert.Contains(t, ut.RenderLabels([]*issues.Label{label}, "/owner/repo", issue), expected)
 
 	label = &issues.Label{ID: 123, Name: "label-name", Color: "label-color"}
 	issue = &issues.Issue{IsPull: true}
 	expected = `/owner/repo/pulls?labels=123`
-	assert.Contains(t, RenderLabels(ctx, locale, []*issues.Label{label}, "/owner/repo", issue), expected)
+	assert.Contains(t, ut.RenderLabels([]*issues.Label{label}, "/owner/repo", issue), expected)
 }
 
 func TestUserMention(t *testing.T) {
-	rendered := RenderMarkdownToHtml(context.Background(), "@no-such-user @mention-user @mention-user")
+	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
+	rendered := newTestRenderUtils().MarkdownToHtml("@no-such-user @mention-user @mention-user")
 	assert.EqualValues(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
 }

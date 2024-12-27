@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
@@ -41,7 +42,8 @@ func Markup(ctx *context.APIContext) {
 		return
 	}
 
-	common.RenderMarkup(ctx.Base, ctx.Repo, form.Mode, form.Text, form.Context, form.FilePath, form.Wiki)
+	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck
+	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, form.FilePath)
 }
 
 // Markdown render markdown document to HTML
@@ -71,12 +73,8 @@ func Markdown(ctx *context.APIContext) {
 		return
 	}
 
-	mode := "markdown"
-	if form.Mode == "comment" || form.Mode == "gfm" {
-		mode = form.Mode
-	}
-
-	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, "", form.Wiki)
+	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck
+	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, "")
 }
 
 // MarkdownRaw render raw markdown HTML
@@ -101,9 +99,7 @@ func MarkdownRaw(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	defer ctx.Req.Body.Close()
-	if err := markdown.RenderRaw(&markup.RenderContext{
-		Ctx: ctx,
-	}, ctx.Req.Body, ctx.Resp); err != nil {
+	if err := markdown.RenderRaw(markup.NewRenderContext(ctx), ctx.Req.Body, ctx.Resp); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

@@ -21,7 +21,6 @@
   padding: 0.5em 0 0;
   border: none;
   border-top: none;
-  line-height: 1.2;
 }
 
 .edit-content-zone .comment {
@@ -50,14 +49,11 @@
   background: none;
 }
 
-.ui.comments .comment .avatar {
-  width: 30px;
-}
-
 .ui.comments .comment > .content {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
 }
 
 .ui.comments .comment > .avatar ~ .content {

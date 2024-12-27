@@ -229,9 +229,9 @@
 					<dt>{{ctx.Locale.Tr "admin.config.mailer_user"}}</dt>
 					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd>
 					<div class="divider"></div>
-					<dt class="tw-py-1">{{ctx.Locale.Tr "admin.config.send_test_mail"}}</dt>
-					<dd>
-						<form class="ui form ignore-dirty" action="{{AppSubUrl}}/admin/config/test_mail" method="post">
+					<dt class="tw-py-1 tw-flex tw-items-center">{{ctx.Locale.Tr "admin.config.send_test_mail"}}</dt>
+					<dd class="tw-py-0">
+						<form class="ui form ignore-dirty" action="{{AppSubUrl}}/-/admin/config/test_mail" method="post">
 							{{.CsrfTokenHtml}}
 							<div class="ui tiny input">
 								<input type="email" name="email" placeholder="{{ctx.Locale.Tr "admin.config.test_email_placeholder"}}" size="29" required>
@@ -260,6 +260,14 @@
 					<dt>{{ctx.Locale.Tr "admin.config.cache_item_ttl"}}</dt>
 					<dd><code>{{.CacheItemTTL}}</code></dd>
 				{{end}}
+				<div class="divider"></div>
+				<dt class="tw-py-1 tw-flex tw-items-center">{{ctx.Locale.Tr "admin.config.cache_test"}}</dt>
+				<dd class="tw-py-0">
+					<form class="ui form ignore-dirty" action="{{AppSubUrl}}/-/admin/config/test_cache" method="post">
+						{{.CsrfTokenHtml}}
+						<button class="ui tiny primary button">{{ctx.Locale.Tr "test"}}</button>
+					</form>
+				</dd>
 			</dl>
 		</div>
 

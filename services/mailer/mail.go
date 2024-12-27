@@ -18,31 +18,30 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
+	sender_service "code.gitea.io/gitea/services/mailer/sender"
 	"code.gitea.io/gitea/services/mailer/token"
-
-	"gopkg.in/gomail.v2"
 )
 
 const (
-	mailAuthActivate       base.TplName = "auth/activate"
-	mailAuthActivateEmail  base.TplName = "auth/activate_email"
-	mailAuthResetPassword  base.TplName = "auth/reset_passwd"
-	mailAuthRegisterNotify base.TplName = "auth/register_notify"
+	mailAuthActivate       templates.TplName = "auth/activate"
+	mailAuthActivateEmail  templates.TplName = "auth/activate_email"
+	mailAuthResetPassword  templates.TplName = "auth/reset_passwd"
+	mailAuthRegisterNotify templates.TplName = "auth/register_notify"
 
-	mailNotifyCollaborator base.TplName = "notify/collaborator"
+	mailNotifyCollaborator templates.TplName = "notify/collaborator"
 
-	mailRepoTransferNotify base.TplName = "notify/repo_transfer"
+	mailRepoTransferNotify templates.TplName = "notify/repo_transfer"
 
 	// There's no actual limit for subject in RFC 5322
 	mailMaxSubjectRunes = 256
@@ -60,11 +59,11 @@ func SendTestMail(email string) error {
 		// No mail service configured
 		return nil
 	}
-	return gomail.Send(Sender, NewMessage(email, "Gitea Test Email!", "Gitea Test Email!").ToMessage())
+	return sender_service.Send(sender, sender_service.NewMessage(email, "Gitea Test Email!", "Gitea Test Email!"))
 }
 
 // sendUserMail sends a mail to the user
-func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, subject, info string) {
+func sendUserMail(language string, u *user_model.User, tpl templates.TplName, code, subject, info string) {
 	locale := translation.NewLocale(language)
 	data := map[string]any{
 		"locale":            locale,
@@ -82,7 +81,7 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 		return
 	}
 
-	msg := NewMessage(u.Email, subject, content.String())
+	msg := sender_service.NewMessage(u.EmailTo(), subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, %s", u.ID, info)
 
 	SendAsync(msg)
@@ -94,7 +93,8 @@ func SendActivateAccountMail(locale translation.Locale, u *user_model.User) {
 		// No mail service configured
 		return
 	}
-	sendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateEmailActivateCode(u.Email), locale.TrString("mail.activate_account"), "activate account")
+	opts := &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}
+	sendUserMail(locale.Language(), u, mailAuthActivate, user_model.GenerateUserTimeLimitCode(opts, u), locale.TrString("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
@@ -104,7 +104,8 @@ func SendResetPasswordMail(u *user_model.User) {
 		return
 	}
 	locale := translation.NewLocale(u.Language)
-	sendUserMail(u.Language, u, mailAuthResetPassword, u.GenerateEmailActivateCode(u.Email), locale.TrString("mail.reset_password"), "recover account")
+	opts := &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeResetPassword}
+	sendUserMail(u.Language, u, mailAuthResetPassword, user_model.GenerateUserTimeLimitCode(opts, u), locale.TrString("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
@@ -114,11 +115,12 @@ func SendActivateEmailMail(u *user_model.User, email string) {
 		return
 	}
 	locale := translation.NewLocale(u.Language)
+	opts := &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateEmail, NewEmail: email}
 	data := map[string]any{
 		"locale":          locale,
 		"DisplayName":     u.DisplayName(),
 		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
-		"Code":            u.GenerateEmailActivateCode(email),
+		"Code":            user_model.GenerateUserTimeLimitCode(opts, u),
 		"Email":           email,
 		"Language":        locale.Language(),
 	}
@@ -130,7 +132,7 @@ func SendActivateEmailMail(u *user_model.User, email string) {
 		return
 	}
 
-	msg := NewMessage(email, locale.TrString("mail.activate_email"), content.String())
+	msg := sender_service.NewMessage(email, locale.TrString("mail.activate_email"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, activate email", u.ID)
 
 	SendAsync(msg)
@@ -158,7 +160,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		return
 	}
 
-	msg := NewMessage(u.Email, locale.TrString("mail.register_notify"), content.String())
+	msg := sender_service.NewMessage(u.EmailTo(), locale.TrString("mail.register_notify", setting.AppName), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
 	SendAsync(msg)
@@ -189,13 +191,13 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 		return
 	}
 
-	msg := NewMessage(u.Email, subject, content.String())
+	msg := sender_service.NewMessage(u.EmailTo(), subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, add collaborator", u.ID)
 
 	SendAsync(msg)
 }
 
-func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipients []*user_model.User, fromMention bool, info string) ([]*Message, error) {
+func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipients []*user_model.User, fromMention bool, info string) ([]*sender_service.Message, error) {
 	var (
 		subject string
 		link    string
@@ -219,15 +221,9 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	}
 
 	// This is the body of the new issue or comment, not the mail body
-	body, err := markdown.RenderString(&markup.RenderContext{
-		Ctx:  ctx,
-		Repo: ctx.Issue.Repo,
-		Links: markup.Links{
-			AbsolutePrefix: true,
-			Base:           ctx.Issue.Repo.HTMLURL(),
-		},
-		Metas: ctx.Issue.Repo.ComposeMetas(ctx),
-	}, ctx.Content)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx.Context, ctx.Issue.Repo).WithUseAbsoluteLink(true)
+	body, err := markdown.RenderString(rctx,
+		ctx.Content)
 	if err != nil {
 		return nil, err
 	}
@@ -310,11 +306,11 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		return nil, err
 	}
 
-	msgs := make([]*Message, 0, len(recipients))
+	msgs := make([]*sender_service.Message, 0, len(recipients))
 	for _, recipient := range recipients {
-		msg := NewMessageFrom(
+		msg := sender_service.NewMessageFrom(
 			recipient.Email,
-			ctx.Doer.GetCompleteName(),
+			fromDisplayName(ctx.Doer),
 			setting.MailService.FromEmail,
 			subject,
 			mailBody.String(),
@@ -535,4 +531,20 @@ func actionToTemplate(issue *issues_model.Issue, actionType activities_model.Act
 		template = "issue/default"
 	}
 	return typeName, name, template
+}
+
+func fromDisplayName(u *user_model.User) string {
+	if setting.MailService.FromDisplayNameFormatTemplate != nil {
+		var ctx bytes.Buffer
+		err := setting.MailService.FromDisplayNameFormatTemplate.Execute(&ctx, map[string]any{
+			"DisplayName": u.DisplayName(),
+			"AppName":     setting.AppName,
+			"Domain":      setting.Domain,
+		})
+		if err == nil {
+			return mime.QEncoding.Encode("utf-8", ctx.String())
+		}
+		log.Error("fromDisplayName: %w", err)
+	}
+	return u.GetCompleteName()
 }

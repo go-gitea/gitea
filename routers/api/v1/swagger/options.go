@@ -90,6 +90,8 @@ type swaggerParameterBodies struct {
 	// in:body
 	EditRepoOption api.EditRepoOption
 	// in:body
+	UpdateBranchRepoOption api.UpdateBranchRepoOption
+	// in:body
 	TransferRepoOption api.TransferRepoOption
 	// in:body
 	CreateForkOption api.CreateForkOption
@@ -147,6 +149,9 @@ type swaggerParameterBodies struct {
 	EditBranchProtectionOption api.EditBranchProtectionOption
 
 	// in:body
+	UpdateBranchProtectionPriories api.UpdateBranchProtectionPriories
+
+	// in:body
 	CreateOAuth2ApplicationOptions api.CreateOAuth2ApplicationOptions
 
 	// in:body
@@ -169,6 +174,12 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateTagOption api.CreateTagOption
+
+	// in:body
+	CreateTagProtectionOption api.CreateTagProtectionOption
+
+	// in:body
+	EditTagProtectionOption api.EditTagProtectionOption
 
 	// in:body
 	CreateAccessTokenOption api.CreateAccessTokenOption

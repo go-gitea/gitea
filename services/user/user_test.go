@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -18,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	org_service "code.gitea.io/gitea/services/org"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,7 +36,7 @@ func TestDeleteUser(t *testing.T) {
 		if len(ownedRepos) > 0 {
 			err := DeleteUser(db.DefaultContext, user, false)
 			assert.Error(t, err)
-			assert.True(t, models.IsErrUserOwnRepos(err))
+			assert.True(t, repo_model.IsErrUserOwnRepos(err))
 			return
 		}
 
@@ -44,7 +44,7 @@ func TestDeleteUser(t *testing.T) {
 		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&orgUsers, &organization.OrgUser{UID: userID}))
 		for _, orgUser := range orgUsers {
 			org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: orgUser.OrgID})
-			if err := models.RemoveOrgUser(db.DefaultContext, org, user); err != nil {
+			if err := org_service.RemoveOrgUser(db.DefaultContext, org, user); err != nil {
 				assert.True(t, organization.IsErrLastOrgOwner(err))
 				return
 			}
@@ -92,7 +92,7 @@ func TestCreateUser(t *testing.T) {
 		MustChangePassword: false,
 	}
 
-	assert.NoError(t, user_model.CreateUser(db.DefaultContext, user))
+	assert.NoError(t, user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{}))
 
 	assert.NoError(t, DeleteUser(db.DefaultContext, user, false))
 }
@@ -114,12 +114,10 @@ func TestRenameUser(t *testing.T) {
 	})
 
 	t.Run("Non usable username", func(t *testing.T) {
-		usernames := []string{"--diff", "aa.png", ".well-known", "search", "aaa.atom"}
+		usernames := []string{"--diff", ".well-known", "gitea-actions", "aaa.atom", "aa.png"}
 		for _, username := range usernames {
-			t.Run(username, func(t *testing.T) {
-				assert.Error(t, user_model.IsUsableUsername(username))
-				assert.Error(t, RenameUser(db.DefaultContext, user, username))
-			})
+			assert.Error(t, user_model.IsUsableUsername(username), "non-usable username: %s", username)
+			assert.Error(t, RenameUser(db.DefaultContext, user, username), "non-usable username: %s", username)
 		}
 	})
 
@@ -177,7 +175,7 @@ func TestCreateUser_Issue5882(t *testing.T) {
 	for _, v := range tt {
 		setting.Admin.DisableRegularOrgCreation = v.disableOrgCreation
 
-		assert.NoError(t, user_model.CreateUser(db.DefaultContext, v.user))
+		assert.NoError(t, user_model.CreateUser(db.DefaultContext, v.user, &user_model.Meta{}))
 
 		u, err := user_model.GetUserByEmail(db.DefaultContext, v.user.Email)
 		assert.NoError(t, err)

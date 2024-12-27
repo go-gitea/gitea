@@ -55,7 +55,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	var count int
 
 	fingerprint := ctx.FormString("fingerprint")
-	username := ctx.Params("username")
+	username := ctx.PathParam("username")
 
 	if fingerprint != "" {
 		var userID int64 // Unrestricted
@@ -179,7 +179,7 @@ func GetPublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := asymkey_model.GetPublicKeyByID(ctx, ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetPublicKeyByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
@@ -274,7 +274,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 		return
 	}
 
-	id := ctx.ParamsInt64(":id")
+	id := ctx.PathParamInt64("id")
 	externallyManaged, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, id)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {

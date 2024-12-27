@@ -18,8 +18,8 @@ func TestCheckProjectColumnChangePermissions(t *testing.T) {
 	ctx, _ := contexttest.MockContext(t, "user2/-/projects/4/4")
 	contexttest.LoadUser(t, ctx, 2)
 	ctx.ContextUser = ctx.Doer // user2
-	ctx.SetParams(":id", "4")
-	ctx.SetParams(":columnID", "4")
+	ctx.SetPathParam("id", "4")
+	ctx.SetPathParam("columnID", "4")
 
 	project, column := org.CheckProjectColumnChangePermissions(ctx)
 	assert.NotNil(t, project)

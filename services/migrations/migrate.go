@@ -12,10 +12,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -43,16 +43,16 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 	// Remote address can be HTTP/HTTPS/Git URL or local path.
 	u, err := url.Parse(remoteURL)
 	if err != nil {
-		return &models.ErrInvalidCloneAddr{IsURLError: true, Host: remoteURL}
+		return &git.ErrInvalidCloneAddr{IsURLError: true, Host: remoteURL}
 	}
 
 	if u.Scheme == "file" || u.Scheme == "" {
 		if !doer.CanImportLocal() {
-			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsPermissionDenied: true, LocalPath: true}
+			return &git.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsPermissionDenied: true, LocalPath: true}
 		}
 		isAbs := filepath.IsAbs(u.Host + u.Path)
 		if !isAbs {
-			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
+			return &git.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
 		}
 		isDir, err := util.IsDir(u.Host + u.Path)
 		if err != nil {
@@ -60,18 +60,18 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 			return err
 		}
 		if !isDir {
-			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
+			return &git.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
 		}
 
 		return nil
 	}
 
 	if u.Scheme == "git" && u.Port() != "" && (strings.Contains(remoteURL, "%0d") || strings.Contains(remoteURL, "%0a")) {
-		return &models.ErrInvalidCloneAddr{Host: u.Host, IsURLError: true}
+		return &git.ErrInvalidCloneAddr{Host: u.Host, IsURLError: true}
 	}
 
 	if u.Opaque != "" || u.Scheme != "" && u.Scheme != "http" && u.Scheme != "https" && u.Scheme != "git" {
-		return &models.ErrInvalidCloneAddr{Host: u.Host, IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true}
+		return &git.ErrInvalidCloneAddr{Host: u.Host, IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true}
 	}
 
 	hostName, _, err := net.SplitHostPort(u.Host)
@@ -95,12 +95,12 @@ func checkByAllowBlockList(hostName string, addrList []net.IP) error {
 	}
 	var blockedError error
 	if blockList.MatchHostName(hostName) || ipBlocked {
-		blockedError = &models.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
+		blockedError = &git.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
 	}
 	// if we have an allow-list, check the allow-list before return to get the more accurate error
 	if !allowList.IsEmpty() {
 		if !allowList.MatchHostName(hostName) && !ipAllowed {
-			return &models.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
+			return &git.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
 		}
 	}
 	// otherwise, we always follow the blocked list
@@ -498,10 +498,6 @@ func Init() error {
 	}
 	// TODO: at the moment, if ALLOW_LOCALNETWORKS=false, ALLOWED_DOMAINS=domain.com, and domain.com has IP 127.0.0.1, then it's still allowed.
 	// if we want to block such case, the private&loopback should be added to the blockList when ALLOW_LOCALNETWORKS=false
-
-	if setting.Proxy.Enabled && setting.Proxy.ProxyURLFixed != nil {
-		allowList.AppendPattern(setting.Proxy.ProxyURLFixed.Host)
-	}
 
 	return nil
 }

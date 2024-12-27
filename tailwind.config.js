@@ -36,7 +36,7 @@ export default {
     '!./modules/{public,options,templates}/bindata.go',
     './{build,models,modules,routers,services}/**/*.go',
     './templates/**/*.tmpl',
-    './web_src/js/**/*.{js,vue}',
+    './web_src/js/**/*.{ts,js,vue}',
   ].filter(Boolean),
   blocklist: [
     // classes that don't work without CSS variables from "@tailwind base" which we don't use

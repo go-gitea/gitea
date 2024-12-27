@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -41,80 +42,93 @@ func SearchIssues(ctx *context.APIContext) {
 	// parameters:
 	// - name: state
 	//   in: query
-	//   description: whether issue is open or closed
+	//   description: State of the issue
 	//   type: string
+	//   enum: [open, closed, all]
+	//   default: open
 	// - name: labels
 	//   in: query
-	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
+	//   description: Comma-separated list of label names. Fetch only issues that have any of these labels. Non existent labels are discarded.
 	//   type: string
 	// - name: milestones
 	//   in: query
-	//   description: comma separated list of milestone names. Fetch only issues that have any of this milestones. Non existent are discarded
+	//   description: Comma-separated list of milestone names. Fetch only issues that have any of these milestones. Non existent milestones are discarded.
 	//   type: string
 	// - name: q
 	//   in: query
-	//   description: search string
+	//   description: Search string
 	//   type: string
 	// - name: priority_repo_id
 	//   in: query
-	//   description: repository to prioritize in the results
+	//   description: Repository ID to prioritize in the results
 	//   type: integer
 	//   format: int64
 	// - name: type
 	//   in: query
-	//   description: filter by type (issues / pulls) if set
+	//   description: Filter by issue type
 	//   type: string
+	//   enum: [issues, pulls]
 	// - name: since
 	//   in: query
-	//   description: Only show notifications updated after the given time. This is a timestamp in RFC 3339 format
+	//   description: Only show issues updated after the given time (RFC 3339 format)
 	//   type: string
 	//   format: date-time
-	//   required: false
 	// - name: before
 	//   in: query
-	//   description: Only show notifications updated before the given time. This is a timestamp in RFC 3339 format
+	//   description: Only show issues updated before the given time (RFC 3339 format)
 	//   type: string
 	//   format: date-time
-	//   required: false
 	// - name: assigned
 	//   in: query
-	//   description: filter (issues / pulls) assigned to you, default is false
+	//   description: Filter issues or pulls assigned to the authenticated user
 	//   type: boolean
+	//   default: false
 	// - name: created
 	//   in: query
-	//   description: filter (issues / pulls) created by you, default is false
+	//   description: Filter issues or pulls created by the authenticated user
 	//   type: boolean
+	//   default: false
 	// - name: mentioned
 	//   in: query
-	//   description: filter (issues / pulls) mentioning you, default is false
+	//   description: Filter issues or pulls mentioning the authenticated user
 	//   type: boolean
+	//   default: false
 	// - name: review_requested
 	//   in: query
-	//   description: filter pulls requesting your review, default is false
+	//   description: Filter pull requests where the authenticated user's review was requested
 	//   type: boolean
+	//   default: false
 	// - name: reviewed
 	//   in: query
-	//   description: filter pulls reviewed by you, default is false
+	//   description: Filter pull requests reviewed by the authenticated user
 	//   type: boolean
+	//   default: false
 	// - name: owner
 	//   in: query
-	//   description: filter by owner
+	//   description: Filter by repository owner
 	//   type: string
 	// - name: team
 	//   in: query
-	//   description: filter by team (requires organization owner parameter to be provided)
+	//   description: Filter by team (requires organization owner parameter)
 	//   type: string
 	// - name: page
 	//   in: query
-	//   description: page number of results to return (1-based)
+	//   description: Page number of results to return (1-based)
 	//   type: integer
+	//   minimum: 1
+	//   default: 1
 	// - name: limit
 	//   in: query
-	//   description: page size of results
+	//   description: Number of items per page
 	//   type: integer
+	//   minimum: 0
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
@@ -149,7 +163,7 @@ func SearchIssues(ctx *context.APIContext) {
 			Actor:   ctx.Doer,
 		}
 		if ctx.IsSigned {
-			opts.Private = true
+			opts.Private = !ctx.PublicOnly
 			opts.AllLimited = true
 		}
 		if ctx.FormString("owner") != "" {
@@ -599,7 +613,7 @@ func GetIssue(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -719,7 +733,7 @@ func CreateIssue(ctx *context.APIContext) {
 	}
 
 	if form.Closed {
-		if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, "", true); err != nil {
+		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 			if issues_model.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
 				return
@@ -779,7 +793,7 @@ func EditIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	form := web.GetForm(ctx).(*api.EditIssueOption)
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -833,10 +847,16 @@ func EditIssue(ctx *context.APIContext) {
 	if (form.Deadline != nil || form.RemoveDeadline != nil) && canWrite {
 		var deadlineUnix timeutil.TimeStamp
 
-		if (form.RemoveDeadline == nil || !*form.RemoveDeadline) && !form.Deadline.IsZero() {
-			deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-				23, 59, 59, 0, form.Deadline.Location())
-			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
+		if form.RemoveDeadline == nil || !*form.RemoveDeadline {
+			if form.Deadline == nil {
+				ctx.Error(http.StatusBadRequest, "", "The due_date cannot be empty")
+				return
+			}
+			if !form.Deadline.IsZero() {
+				deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
+					23, 59, 59, 0, form.Deadline.Location())
+				deadlineUnix = timeutil.TimeStamp(deadline.Unix())
+			}
 		}
 
 		if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
@@ -891,12 +911,10 @@ func EditIssue(ctx *context.APIContext) {
 				return
 			}
 		}
-		if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, "", api.StateClosed == api.StateType(*form.State)); err != nil {
-			if issues_model.IsErrDependenciesLeft(err) {
-				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
-				return
-			}
-			ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
+
+		state := api.StateType(*form.State)
+		closeOrReopenIssue(ctx, issue, state)
+		if ctx.Written() {
 			return
 		}
 	}
@@ -942,7 +960,7 @@ func DeleteIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
@@ -998,7 +1016,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.EditDeadlineOption)
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -1013,18 +1031,34 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 		return
 	}
 
-	var deadlineUnix timeutil.TimeStamp
-	var deadline time.Time
-	if form.Deadline != nil && !form.Deadline.IsZero() {
-		deadline = time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-			23, 59, 59, 0, time.Local)
-		deadlineUnix = timeutil.TimeStamp(deadline.Unix())
-	}
-
+	deadlineUnix, _ := common.ParseAPIDeadlineToEndOfDay(form.Deadline)
 	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: &deadline})
+	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: deadlineUnix.AsTimePtr()})
+}
+
+func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType) {
+	if state != api.StateOpen && state != api.StateClosed {
+		ctx.Error(http.StatusPreconditionFailed, "UnknownIssueStateError", fmt.Sprintf("unknown state: %s", state))
+		return
+	}
+
+	if state == api.StateClosed && !issue.IsClosed {
+		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
+			if issues_model.IsErrDependenciesLeft(err) {
+				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue or pull request because it still has open dependencies")
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "CloseIssue", err)
+			return
+		}
+	} else if state == api.StateOpen && issue.IsClosed {
+		if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
+			ctx.Error(http.StatusInternalServerError, "ReopenIssue", err)
+			return
+		}
+	}
 }

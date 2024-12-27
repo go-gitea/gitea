@@ -22,17 +22,31 @@
   overflow-wrap: anywhere;
 }
 
-.toast-close,
-.toast-icon {
-  color: currentcolor;
+.toast-close {
   border-radius: var(--border-radius);
-  background: transparent;
-  border: none;
-  display: flex;
   width: 30px;
   height: 30px;
   justify-content: center;
+}
+
+.toast-icon {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
   align-items: center;
+  justify-content: center;
+}
+
+.toast-duplicate-number::before {
+  content: "(";
+}
+.toast-duplicate-number {
+  display: inline-block;
+  margin-right: 5px;
+  user-select: none;
+}
+.toast-duplicate-number::after {
+  content: ")";
 }
 
 .toast-close:hover {

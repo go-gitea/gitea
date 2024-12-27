@@ -14,8 +14,8 @@ import (
 
 // UpdatePublicKeyInRepo update public key and deploy key updates
 func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
-	keyID := ctx.ParamsInt64(":id")
-	repoID := ctx.ParamsInt64(":repoid")
+	keyID := ctx.PathParamInt64("id")
+	repoID := ctx.PathParamInt64("repoid")
 	if err := asymkey_model.UpdatePublicKeyUpdated(ctx, keyID); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),

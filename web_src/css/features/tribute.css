@@ -17,7 +17,6 @@
 .tribute-container li span.fullname {
   font-weight: var(--font-weight-normal);
   font-size: 0.8rem;
-  margin-left: 3px;
 }
 
 .tribute-container li.highlight,
@@ -29,14 +28,5 @@
 .tribute-item {
   display: flex;
   align-items: center;
-}
-
-.tribute-item .emoji,
-.tribute-item img[src*="/avatar/"] {
-  margin-right: 0.5rem;
-}
-
-.tribute-container img {
-  width: 1.5rem !important;
-  height: 1.5rem !important;
+  gap: 6px;
 }

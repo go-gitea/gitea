@@ -17,8 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	gitea_context "code.gitea.io/gitea/services/context"
 
+	"github.com/42wim/httpsig"
 	ap "github.com/go-ap/activitypub"
-	"github.com/go-fed/httpsig"
 )
 
 func getPublicKeyFromResponse(b []byte, keyID *url.URL) (p crypto.PublicKey, err error) {

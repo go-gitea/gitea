@@ -9,22 +9,22 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/context"
 )
 
 var (
-	tplSettingsApplications          base.TplName = "admin/applications/list"
-	tplSettingsOauth2ApplicationEdit base.TplName = "admin/applications/oauth2_edit"
+	tplSettingsApplications          templates.TplName = "admin/applications/list"
+	tplSettingsOauth2ApplicationEdit templates.TplName = "admin/applications/oauth2_edit"
 )
 
 func newOAuth2CommonHandlers() *user_setting.OAuth2CommonHandlers {
 	return &user_setting.OAuth2CommonHandlers{
 		OwnerID:            0,
-		BasePathList:       fmt.Sprintf("%s/admin/applications", setting.AppSubURL),
-		BasePathEditPrefix: fmt.Sprintf("%s/admin/applications/oauth2", setting.AppSubURL),
+		BasePathList:       fmt.Sprintf("%s/-/admin/applications", setting.AppSubURL),
+		BasePathEditPrefix: fmt.Sprintf("%s/-/admin/applications/oauth2", setting.AppSubURL),
 		TplAppEdit:         tplSettingsOauth2ApplicationEdit,
 	}
 }

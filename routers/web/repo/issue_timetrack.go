@@ -5,6 +5,7 @@ package repo
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // AddTimeManually tracks time manually
@@ -26,19 +28,16 @@ func AddTimeManually(c *context.Context) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
-	url := issue.Link()
 
 	if c.HasError() {
-		c.Flash.Error(c.GetErrMsg())
-		c.Redirect(url)
+		c.JSONError(c.GetErrMsg())
 		return
 	}
 
 	total := time.Duration(form.Hours)*time.Hour + time.Duration(form.Minutes)*time.Minute
 
 	if total <= 0 {
-		c.Flash.Error(c.Tr("repo.issues.add_time_sum_to_small"))
-		c.Redirect(url, http.StatusSeeOther)
+		c.JSONError(c.Tr("repo.issues.add_time_sum_to_small"))
 		return
 	}
 
@@ -47,7 +46,7 @@ func AddTimeManually(c *context.Context) {
 		return
 	}
 
-	c.Redirect(url, http.StatusSeeOther)
+	c.JSONRedirect("")
 }
 
 // DeleteTime deletes tracked time
@@ -61,7 +60,7 @@ func DeleteTime(c *context.Context) {
 		return
 	}
 
-	t, err := issues_model.GetTrackedTimeByID(c, c.ParamsInt64(":timeid"))
+	t, err := issues_model.GetTrackedTimeByID(c, c.PathParamInt64("timeid"))
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			c.NotFound("time not found", err)
@@ -83,5 +82,38 @@ func DeleteTime(c *context.Context) {
 	}
 
 	c.Flash.Success(c.Tr("repo.issues.del_time_history", util.SecToTime(t.Time)))
-	c.Redirect(issue.Link())
+	c.JSONRedirect("")
+}
+
+func UpdateIssueTimeEstimate(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+		ctx.Error(http.StatusForbidden)
+		return
+	}
+
+	timeStr := strings.TrimSpace(ctx.FormString("time_estimate"))
+
+	total, err := util.TimeEstimateParse(timeStr)
+	if err != nil {
+		ctx.JSONError(ctx.Tr("repo.issues.time_estimate_invalid"))
+		return
+	}
+
+	// No time changed
+	if issue.TimeEstimate == total {
+		ctx.JSONRedirect("")
+		return
+	}
+
+	if err := issue_service.ChangeTimeEstimate(ctx, issue, ctx.Doer, total); err != nil {
+		ctx.ServerError("ChangeTimeEstimate", err)
+		return
+	}
+
+	ctx.JSONRedirect("")
 }

@@ -47,19 +47,19 @@
 							{{if .UpdatedUnix}}
 								<div class="flex-text-block">
 									{{svg "octicon-clock"}}
-									{{ctx.Locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix ctx.Locale)}}
+									{{ctx.Locale.Tr "repo.milestones.update_ago" (DateUtils.TimeSince .UpdatedUnix)}}
 								</div>
 							{{end}}
 							<div class="flex-text-block">
 								{{if .IsClosed}}
-									{{$closedDate:= TimeSinceUnix .ClosedDateUnix ctx.Locale}}
+									{{$closedDate:= DateUtils.TimeSince .ClosedDateUnix}}
 									{{svg "octicon-clock" 14}}
 									{{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
 								{{else}}
 									{{if .DeadlineString}}
 										<span class="flex-text-inline {{if .IsOverdue}}text red{{end}}">
 											{{svg "octicon-calendar" 14}}
-											{{DateTime "short" .DeadlineString}}
+											{{DateUtils.AbsoluteShort (.DeadlineString|DateUtils.ParseLegacy)}}
 										</span>
 									{{else}}
 										{{svg "octicon-calendar" 14}}

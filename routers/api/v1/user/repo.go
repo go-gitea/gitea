@@ -111,7 +111,6 @@ func ListMyRepos(ctx *context.APIContext) {
 		IncludeDescription: true,
 	}
 
-	var err error
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchRepository", err)

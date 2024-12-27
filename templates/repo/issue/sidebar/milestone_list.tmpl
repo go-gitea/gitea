@@ -1,0 +1,54 @@
+{{$pageMeta := .}}
+{{$data := .MilestonesData}}
+{{$issueMilestone := NIL}}{{if and $pageMeta.Issue $pageMeta.Issue.Milestone}}{{$issueMilestone = $pageMeta.Issue.Milestone}}{{end}}
+<div class="divider"></div>
+<div class="issue-sidebar-combo" data-selection-mode="single" data-update-algo="all"
+		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/milestone?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
+>
+	<input class="combo-value" name="milestone_id" type="hidden" value="{{$data.SelectedMilestoneID}}">
+	<div class="ui dropdown {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
+		<a class="text muted">
+			<strong>{{ctx.Locale.Tr "repo.issues.new.milestone"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
+		</a>
+		<div class="menu">
+			{{if and (not $data.OpenMilestones) (not $data.ClosedMilestones)}}
+				<div class="item disabled">{{ctx.Locale.Tr "repo.issues.new.no_items"}}</div>
+			{{else}}
+				<div class="ui icon search input">
+					<i class="icon">{{svg "octicon-search"}}</i>
+					<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_milestones"}}">
+				</div>
+				<div class="divider"></div>
+				<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_milestone"}}</div>
+				<div class="scrolling menu">
+					{{if $data.OpenMilestones}}
+						<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_open"}}</div>
+						{{range $data.OpenMilestones}}
+							<a class="item muted" data-value="{{.ID}}" href="{{$pageMeta.RepoLink}}/issues?milestone={{.ID}}">
+								{{svg "octicon-milestone" 18}} {{.Name}}
+							</a>
+						{{end}}
+					{{end}}
+					{{if and $data.OpenMilestones $data.ClosedMilestones}}<div class="divider"></div>{{end}}
+					{{if $data.ClosedMilestones}}
+						<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_closed"}}</div>
+						{{range $data.ClosedMilestones}}
+							<a class="item muted" data-value="{{.ID}}" href="{{$pageMeta.RepoLink}}/issues?milestone={{.ID}}">
+								{{svg "octicon-milestone" 18}} {{.Name}}
+							</a>
+						{{end}}
+					{{end}}
+				</div>
+			{{end}}
+		</div>
+	</div>
+
+	<div class="ui list">
+		<span class="item empty-list {{if $issueMilestone}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_milestone"}}</span>
+		{{if $issueMilestone}}
+			<a class="item muted" href="{{$pageMeta.RepoLink}}/milestone/{{$issueMilestone.ID}}">
+				{{svg "octicon-milestone" 18}} {{$issueMilestone.Name}}
+			</a>
+		{{end}}
+	</div>
+</div>

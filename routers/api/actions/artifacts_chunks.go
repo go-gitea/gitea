@@ -123,6 +123,54 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 	return chunksMap, nil
 }
 
+func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blist *BlockList) ([]*chunkFileItem, error) {
+	storageDir := fmt.Sprintf("tmpv4%d", runID)
+	var chunks []*chunkFileItem
+	chunkMap := map[string]*chunkFileItem{}
+	dummy := &chunkFileItem{}
+	for _, name := range blist.Latest {
+		chunkMap[name] = dummy
+	}
+	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
+		baseName := filepath.Base(fpath)
+		if !strings.HasPrefix(baseName, "block-") {
+			return nil
+		}
+		// when read chunks from storage, it only contains storage dir and basename,
+		// no matter the subdirectory setting in storage config
+		item := chunkFileItem{Path: storageDir + "/" + baseName, ArtifactID: artifactID}
+		var size int64
+		var b64chunkName string
+		if _, err := fmt.Sscanf(baseName, "block-%d-%d-%s", &item.RunID, &size, &b64chunkName); err != nil {
+			return fmt.Errorf("parse content range error: %v", err)
+		}
+		rchunkName, err := base64.URLEncoding.DecodeString(b64chunkName)
+		if err != nil {
+			return fmt.Errorf("failed to parse chunkName: %v", err)
+		}
+		chunkName := string(rchunkName)
+		item.End = item.Start + size - 1
+		if _, ok := chunkMap[chunkName]; ok {
+			chunkMap[chunkName] = &item
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	for i, name := range blist.Latest {
+		chunk, ok := chunkMap[name]
+		if !ok || chunk.Path == "" {
+			return nil, fmt.Errorf("missing Chunk (%d/%d): %s", i, len(blist.Latest), name)
+		}
+		chunks = append(chunks, chunk)
+		if i > 0 {
+			chunk.Start = chunkMap[blist.Latest[i-1]].End + 1
+			chunk.End += chunk.Start
+		}
+	}
+	return chunks, nil
+}
+
 func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int64, artifactName string) error {
 	// read all db artifacts by name
 	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
@@ -230,7 +278,7 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		rawChecksum := hash.Sum(nil)
 		actualChecksum := hex.EncodeToString(rawChecksum)
 		if !strings.HasSuffix(checksum, actualChecksum) {
-			return fmt.Errorf("update artifact error checksum is invalid")
+			return fmt.Errorf("update artifact error checksum is invalid %v vs %v", checksum, actualChecksum)
 		}
 	}
 

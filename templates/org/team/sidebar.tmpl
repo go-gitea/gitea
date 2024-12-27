@@ -61,11 +61,11 @@
 								{{if (not $unit.Type.UnitGlobalDisabled)}}
 									<tr>
 										<td><strong>{{ctx.Locale.Tr $unit.NameKey}}</strong></td>
-										<td>{{if eq ($.Team.UnitAccessMode $.Context $unit.Type) 0 -}}
+										<td>{{if eq ($.Team.UnitAccessMode ctx $unit.Type) 0 -}}
 										{{ctx.Locale.Tr "org.teams.none_access"}}
-										{{- else if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1) -}}
+										{{- else if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode ctx $unit.Type) 1) -}}
 										{{ctx.Locale.Tr "org.teams.read_access"}}
-										{{- else if eq ($.Team.UnitAccessMode $.Context $unit.Type) 2 -}}
+										{{- else if eq ($.Team.UnitAccessMode ctx $unit.Type) 2 -}}
 										{{ctx.Locale.Tr "org.teams.write_access"}}
 										{{- end}}</td>
 									</tr>

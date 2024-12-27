@@ -9,74 +9,34 @@ import (
 	"html/template"
 	"io"
 	"net/http"
-	"net/url"
-	"strconv"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/reqctx"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
-
-	"github.com/go-chi/chi/v5"
 )
 
-type contextValuePair struct {
-	key     any
-	valueFn func() any
-}
+type BaseContextKeyType struct{}
+
+var BaseContextKey BaseContextKeyType
 
 type Base struct {
-	originCtx     context.Context
-	contextValues []contextValuePair
+	context.Context
+	reqctx.RequestDataStore
 
 	Resp ResponseWriter
 	Req  *http.Request
 
 	// Data is prepared by ContextDataStore middleware, this field only refers to the pre-created/prepared ContextData.
 	// Although it's mainly used for MVC templates, sometimes it's also used to pass data between middlewares/handler
-	Data middleware.ContextData
+	Data reqctx.ContextData
 
 	// Locale is mainly for Web context, although the API context also uses it in some cases: message response, form validation
 	Locale translation.Locale
-}
-
-func (b *Base) Deadline() (deadline time.Time, ok bool) {
-	return b.originCtx.Deadline()
-}
-
-func (b *Base) Done() <-chan struct{} {
-	return b.originCtx.Done()
-}
-
-func (b *Base) Err() error {
-	return b.originCtx.Err()
-}
-
-func (b *Base) Value(key any) any {
-	for _, pair := range b.contextValues {
-		if pair.key == key {
-			return pair.valueFn()
-		}
-	}
-	return b.originCtx.Value(key)
-}
-
-func (b *Base) AppendContextValueFunc(key any, valueFn func() any) any {
-	b.contextValues = append(b.contextValues, contextValuePair{key, valueFn})
-	return b
-}
-
-func (b *Base) AppendContextValue(key, value any) any {
-	b.contextValues = append(b.contextValues, contextValuePair{key, func() any { return value }})
-	return b
-}
-
-func (b *Base) GetData() middleware.ContextData {
-	return b.Data
 }
 
 // AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
@@ -142,89 +102,6 @@ func (b *Base) RemoteAddr() string {
 	return b.Req.RemoteAddr
 }
 
-// Params returns the param on route
-func (b *Base) Params(p string) string {
-	s, _ := url.PathUnescape(chi.URLParam(b.Req, strings.TrimPrefix(p, ":")))
-	return s
-}
-
-func (b *Base) PathParamRaw(p string) string {
-	return chi.URLParam(b.Req, strings.TrimPrefix(p, ":"))
-}
-
-// ParamsInt64 returns the param on route as int64
-func (b *Base) ParamsInt64(p string) int64 {
-	v, _ := strconv.ParseInt(b.Params(p), 10, 64)
-	return v
-}
-
-// SetParams set params into routes
-func (b *Base) SetParams(k, v string) {
-	chiCtx := chi.RouteContext(b)
-	chiCtx.URLParams.Add(strings.TrimPrefix(k, ":"), url.PathEscape(v))
-}
-
-// FormString returns the first value matching the provided key in the form as a string
-func (b *Base) FormString(key string) string {
-	return b.Req.FormValue(key)
-}
-
-// FormStrings returns a string slice for the provided key from the form
-func (b *Base) FormStrings(key string) []string {
-	if b.Req.Form == nil {
-		if err := b.Req.ParseMultipartForm(32 << 20); err != nil {
-			return nil
-		}
-	}
-	if v, ok := b.Req.Form[key]; ok {
-		return v
-	}
-	return nil
-}
-
-// FormTrim returns the first value for the provided key in the form as a space trimmed string
-func (b *Base) FormTrim(key string) string {
-	return strings.TrimSpace(b.Req.FormValue(key))
-}
-
-// FormInt returns the first value for the provided key in the form as an int
-func (b *Base) FormInt(key string) int {
-	v, _ := strconv.Atoi(b.Req.FormValue(key))
-	return v
-}
-
-// FormInt64 returns the first value for the provided key in the form as an int64
-func (b *Base) FormInt64(key string) int64 {
-	v, _ := strconv.ParseInt(b.Req.FormValue(key), 10, 64)
-	return v
-}
-
-// FormBool returns true if the value for the provided key in the form is "1", "true" or "on"
-func (b *Base) FormBool(key string) bool {
-	s := b.Req.FormValue(key)
-	v, _ := strconv.ParseBool(s)
-	v = v || strings.EqualFold(s, "on")
-	return v
-}
-
-// FormOptionalBool returns an optional.Some(true) or optional.Some(false) if the value
-// for the provided key exists in the form else it returns optional.None[bool]()
-func (b *Base) FormOptionalBool(key string) optional.Option[bool] {
-	value := b.Req.FormValue(key)
-	if len(value) == 0 {
-		return optional.None[bool]()
-	}
-	s := b.Req.FormValue(key)
-	v, _ := strconv.ParseBool(s)
-	v = v || strings.EqualFold(s, "on")
-	return optional.Some(v)
-}
-
-func (b *Base) SetFormString(key, value string) {
-	_ = b.Req.FormValue(key) // force parse form
-	b.Req.Form.Set(key, value)
-}
-
 // PlainTextBytes renders bytes as plain text
 func (b *Base) plainTextInternal(skip, status int, bs []byte) {
 	statusPrefix := status / 100
@@ -286,13 +163,6 @@ func (b *Base) ServeContent(r io.ReadSeeker, opts *ServeHeaderOptions) {
 	http.ServeContent(b.Resp, b.Req, opts.Filename, opts.LastModified, r)
 }
 
-// Close frees all resources hold by Context
-func (b *Base) cleanUp() {
-	if b.Req != nil && b.Req.MultipartForm != nil {
-		_ = b.Req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
-	}
-}
-
 func (b *Base) Tr(msg string, args ...any) template.HTML {
 	return b.Locale.Tr(msg, args...)
 }
@@ -301,16 +171,28 @@ func (b *Base) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
 	return b.Locale.TrN(cnt, key1, keyN, args...)
 }
 
-func NewBaseContext(resp http.ResponseWriter, req *http.Request) (b *Base, closeFunc func()) {
-	b = &Base{
-		originCtx: req.Context(),
-		Req:       req,
-		Resp:      WrapResponseWriter(resp),
-		Locale:    middleware.Locale(resp, req),
-		Data:      middleware.GetContextData(req.Context()),
+func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {
+	ds := reqctx.GetRequestDataStore(req.Context())
+	b := &Base{
+		Context:          req.Context(),
+		RequestDataStore: ds,
+		Req:              req,
+		Resp:             WrapResponseWriter(resp),
+		Locale:           middleware.Locale(resp, req),
+		Data:             ds.GetData(),
 	}
 	b.Req = b.Req.WithContext(b)
-	b.AppendContextValue(translation.ContextKey, b.Locale)
-	b.AppendContextValue(httplib.RequestContextKey, b.Req)
-	return b, b.cleanUp
+	ds.SetContextValue(BaseContextKey, b)
+	ds.SetContextValue(translation.ContextKey, b.Locale)
+	ds.SetContextValue(httplib.RequestContextKey, b.Req)
+	return b
+}
+
+func NewBaseContextForTest(resp http.ResponseWriter, req *http.Request) *Base {
+	if !setting.IsInTesting {
+		panic("This function is only for testing")
+	}
+	ctx := reqctx.NewRequestContextForTest(req.Context())
+	*req = *req.WithContext(ctx)
+	return NewBaseContext(resp, req)
 }

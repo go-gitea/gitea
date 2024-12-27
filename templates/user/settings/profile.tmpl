@@ -12,20 +12,24 @@
 						<span class="text red tw-hidden" id="name-change-prompt"> {{ctx.Locale.Tr "settings.change_username_prompt"}}</span>
 						<span class="text red tw-hidden" id="name-change-redirect-prompt"> {{ctx.Locale.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
-					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) .IsReverseProxy}}disabled{{end}} maxlength="40">
-					{{if or (not .SignedUser.IsLocal) .IsReverseProxy}}
+					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) ($.UserDisabledFeatures.Contains "change_username") .IsReverseProxy}}disabled{{end}} maxlength="40">
+					{{if or (not .SignedUser.IsLocal) ($.UserDisabledFeatures.Contains "change_username") .IsReverseProxy}}
 					<p class="help text blue">{{ctx.Locale.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{ctx.Locale.Tr "settings.full_name"}}</label>
-					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}" maxlength="100">
+					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}" {{if ($.UserDisabledFeatures.Contains "change_full_name")}}disabled{{end}} maxlength="100">
+					{{if ($.UserDisabledFeatures.Contains "change_full_name")}}
+					<p class="help text blue">{{ctx.Locale.Tr "settings.password_full_name_disabled"}}</p>
+					{{end}}
 				</div>
 				<div class="field {{if .Err_Email}}error{{end}}">
 					<label>{{ctx.Locale.Tr "email"}}</label>
 					<p id="signed-user-email">{{.SignedUser.Email}}</p>
 				</div>
 				<div class="field {{if .Err_Description}}error{{end}}">
+					{{/* it is rendered as markdown, but the length is limited, so at the moment we do not use the markdown editor here */}}
 					<label for="description">{{ctx.Locale.Tr "user.user_bio"}}</label>
 					<textarea id="description" name="description" rows="2" placeholder="{{ctx.Locale.Tr "settings.biography_placeholder"}}" maxlength="255">{{.SignedUser.Description}}</textarea>
 				</div>
@@ -122,6 +126,11 @@
 				<div class="inline field tw-pl-4">
 					<label for="new-avatar">{{ctx.Locale.Tr "settings.choose_new_avatar"}}</label>
 					<input id="new-avatar" name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+				</div>
+
+				<div class="field tw-pl-4 cropper-panel tw-hidden">
+					<div>{{ctx.Locale.Tr "settings.cropper_prompt"}}</div>
+					<div class="cropper-wrapper"><img class="cropper-source" src alt></div>
 				</div>
 
 				<div class="field">

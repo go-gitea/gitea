@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
-	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 )
@@ -224,7 +223,7 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 		return
 	}
 
-	mirrorName := ctx.Params(":name")
+	mirrorName := ctx.PathParam("name")
 	// Get push mirror of a specific repo by remoteName
 	pushMirror, exist, err := db.Get[repo_model.PushMirror](ctx, repo_model.PushMirrorOptions{
 		RepoID:     ctx.Repo.Repository.ID,
@@ -325,7 +324,7 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 		return
 	}
 
-	remoteName := ctx.Params(":name")
+	remoteName := ctx.PathParam("name")
 	// Delete push mirror on repo by name.
 	err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{RepoID: ctx.Repo.Repository.ID, RemoteName: remoteName})
 	if err != nil {
@@ -344,7 +343,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 		return
 	}
 
-	address, err := forms.ParseRemoteAddr(mirrorOption.RemoteAddress, mirrorOption.RemoteUsername, mirrorOption.RemotePassword)
+	address, err := git.ParseRemoteAddr(mirrorOption.RemoteAddress, mirrorOption.RemoteUsername, mirrorOption.RemotePassword)
 	if err == nil {
 		err = migrations.IsMigrateURLAllowed(address, ctx.ContextUser)
 	}
@@ -397,8 +396,8 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 }
 
 func HandleRemoteAddressError(ctx *context.APIContext, err error) {
-	if models.IsErrInvalidCloneAddr(err) {
-		addrErr := err.(*models.ErrInvalidCloneAddr)
+	if git.IsErrInvalidCloneAddr(err) {
+		addrErr := err.(*git.ErrInvalidCloneAddr)
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.Error(http.StatusBadRequest, "CreatePushMirror", "Invalid mirror protocol")

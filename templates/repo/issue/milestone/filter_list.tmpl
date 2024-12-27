@@ -1,5 +1,5 @@
 <!-- Sort -->
-<div class="list-header-sort ui small dropdown type jump item">
+<div class="item ui small dropdown jump">
 	<span class="text">
 		{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 	</span>
@@ -11,5 +11,6 @@
 		<a class="{{if eq .SortType "mostcomplete"}}active {{end}}item" href="?sort=mostcomplete&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_complete"}}</a>
 		<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="?sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
 		<a class="{{if eq .SortType "leastissues"}}active {{end}}item" href="?sort=leastissues&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
+		<a class="{{if eq .SortType "name"}}active {{end}}item" href="{{$.Link}}?sort=name&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.name"}}</a>
 	</div>
 </div>

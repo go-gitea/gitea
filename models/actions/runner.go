@@ -23,14 +23,25 @@ import (
 )
 
 // ActionRunner represents runner machines
+//
+// It can be:
+//  1. global runner, OwnerID is 0 and RepoID is 0
+//  2. org/user level runner, OwnerID is org/user ID and RepoID is 0
+//  3. repo level runner, OwnerID is 0 and RepoID is repo ID
+//
+// Please note that it's not acceptable to have both OwnerID and RepoID to be non-zero,
+// or it will be complicated to find runners belonging to a specific owner.
+// For example, conditions like `OwnerID = 1` will also return runner {OwnerID: 1, RepoID: 1},
+// but it's a repo level runner, not an org/user level runner.
+// To avoid this, make it clear with {OwnerID: 0, RepoID: 1} for repo level runners.
 type ActionRunner struct {
 	ID          int64
 	UUID        string                 `xorm:"CHAR(36) UNIQUE"`
 	Name        string                 `xorm:"VARCHAR(255)"`
 	Version     string                 `xorm:"VARCHAR(64)"`
-	OwnerID     int64                  `xorm:"index"` // org level runner, 0 means system
+	OwnerID     int64                  `xorm:"index"`
 	Owner       *user_model.User       `xorm:"-"`
-	RepoID      int64                  `xorm:"index"` // repo level runner, if OwnerID also is zero, then it's a global
+	RepoID      int64                  `xorm:"index"`
 	Repo        *repo_model.Repository `xorm:"-"`
 	Description string                 `xorm:"TEXT"`
 	Base        int                    // 0 native 1 docker 2 virtual machine
@@ -157,7 +168,7 @@ func init() {
 type FindRunnerOptions struct {
 	db.ListOptions
 	RepoID        int64
-	OwnerID       int64
+	OwnerID       int64 // it will be ignored if RepoID is set
 	Sort          string
 	Filter        string
 	IsOnline      optional.Option[bool]
@@ -174,8 +185,7 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
 		}
 		cond = cond.And(c)
-	}
-	if opts.OwnerID > 0 {
+	} else if opts.OwnerID > 0 { // OwnerID is ignored if RepoID is set
 		c := builder.NewCond().And(builder.Eq{"owner_id": opts.OwnerID})
 		if opts.WithAvailable {
 			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
@@ -242,6 +252,7 @@ func GetRunnerByID(ctx context.Context, id int64) (*ActionRunner, error) {
 // UpdateRunner updates runner's information.
 func UpdateRunner(ctx context.Context, r *ActionRunner, cols ...string) error {
 	e := db.GetEngine(ctx)
+	r.Name = util.EllipsisDisplayString(r.Name, 255)
 	var err error
 	if len(cols) == 0 {
 		_, err = e.ID(r.ID).AllCols().Update(r)
@@ -263,6 +274,12 @@ func DeleteRunner(ctx context.Context, id int64) error {
 
 // CreateRunner creates new runner.
 func CreateRunner(ctx context.Context, t *ActionRunner) error {
+	if t.OwnerID != 0 && t.RepoID != 0 {
+		// It's trying to create a runner that belongs to a repository, but OwnerID has been set accidentally.
+		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
+		t.OwnerID = 0
+	}
+	t.Name = util.EllipsisDisplayString(t.Name, 255)
 	return db.Insert(ctx, t)
 }
 

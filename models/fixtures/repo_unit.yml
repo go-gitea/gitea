@@ -712,3 +712,24 @@
   type: 3
   config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
   created_unix: 946684810
+
+-
+  id: 108
+  repo_id: 62
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 109
+  repo_id: 62
+  type: 2
+  config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
+  created_unix: 946684810
+
+-
+  id: 110
+  repo_id: 62
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
+  created_unix: 946684810

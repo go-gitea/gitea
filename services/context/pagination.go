@@ -6,6 +6,7 @@ package context
 import (
 	"fmt"
 	"html/template"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -30,6 +31,18 @@ func NewPagination(total, pagingNum, current, numPages int) *Pagination {
 func (p *Pagination) AddParamString(key, value string) {
 	urlParam := fmt.Sprintf("%s=%v", url.QueryEscape(key), url.QueryEscape(value))
 	p.urlParams = append(p.urlParams, urlParam)
+}
+
+func (p *Pagination) AddParamFromRequest(req *http.Request) {
+	for key, values := range req.URL.Query() {
+		if key == "page" || len(values) == 0 {
+			continue
+		}
+		for _, value := range values {
+			urlParam := fmt.Sprintf("%s=%v", key, url.QueryEscape(value))
+			p.urlParams = append(p.urlParams, urlParam)
+		}
+	}
 }
 
 // GetParams returns the configured URL params

@@ -65,7 +65,7 @@ func goGet(ctx *context.Context) {
 		insecure = "--insecure "
 	}
 
-	goGetImport := context.ComposeGoGetImport(ownerName, trimmedRepoName)
+	goGetImport := context.ComposeGoGetImport(ctx, ownerName, trimmedRepoName)
 
 	var cloneURL string
 	if setting.Repository.GoGetCloneURLProtocol == "ssh" {

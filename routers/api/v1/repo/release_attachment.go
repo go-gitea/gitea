@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/attachment"
+	attachment_service "code.gitea.io/gitea/services/attachment"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/convert"
@@ -72,12 +72,12 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	releaseID := ctx.ParamsInt64(":id")
+	releaseID := ctx.PathParamInt64("id")
 	if !checkReleaseMatchRepo(ctx, releaseID) {
 		return
 	}
 
-	attachID := ctx.ParamsInt64(":attachment_id")
+	attachID := ctx.PathParamInt64("attachment_id")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
@@ -126,7 +126,7 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	releaseID := ctx.ParamsInt64(":id")
+	releaseID := ctx.PathParamInt64("id")
 	release, err := repo_model.GetReleaseByID(ctx, releaseID)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
@@ -199,7 +199,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Check if release exists an load release
-	releaseID := ctx.ParamsInt64(":id")
+	releaseID := ctx.PathParamInt64("id")
 	if !checkReleaseMatchRepo(ctx, releaseID) {
 		return
 	}
@@ -234,7 +234,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment.UploadAttachment(ctx, content, setting.Repository.Release.AllowedTypes, size, &repo_model.Attachment{
+	attach, err := attachment_service.UploadAttachment(ctx, content, setting.Repository.Release.AllowedTypes, size, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
@@ -291,18 +291,20 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
 
 	// Check if release exists an load release
-	releaseID := ctx.ParamsInt64(":id")
+	releaseID := ctx.PathParamInt64("id")
 	if !checkReleaseMatchRepo(ctx, releaseID) {
 		return
 	}
 
-	attachID := ctx.ParamsInt64(":attachment_id")
+	attachID := ctx.PathParamInt64("attachment_id")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
@@ -322,8 +324,13 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 		attach.Name = form.Name
 	}
 
-	if err := repo_model.UpdateAttachment(ctx, attach); err != nil {
+	if err := attachment_service.UpdateAttachment(ctx, setting.Repository.Release.AllowedTypes, attach); err != nil {
+		if upload.IsErrFileTypeForbidden(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", attach)
+		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
 }
@@ -365,12 +372,12 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	// Check if release exists an load release
-	releaseID := ctx.ParamsInt64(":id")
+	releaseID := ctx.PathParamInt64("id")
 	if !checkReleaseMatchRepo(ctx, releaseID) {
 		return
 	}
 
-	attachID := ctx.ParamsInt64(":attachment_id")
+	attachID := ctx.PathParamInt64("attachment_id")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {

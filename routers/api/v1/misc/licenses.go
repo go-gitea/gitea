@@ -55,7 +55,7 @@ func GetLicenseTemplateInfo(ctx *context.APIContext) {
 	//     "$ref": "#/responses/LicenseTemplateInfo"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	name := util.PathJoinRelX(ctx.Params("name"))
+	name := util.PathJoinRelX(ctx.PathParam("name"))
 
 	text, err := options.License(name)
 	if err != nil {

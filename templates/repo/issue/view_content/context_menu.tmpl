@@ -5,29 +5,29 @@
 	<div class="menu">
 		{{$referenceUrl := ""}}
 		{{if .issue}}
-			{{$referenceUrl = printf "%s#%s" .ctxData.Issue.Link .item.HashTag}}
+			{{$referenceUrl = printf "%s#%s" ctx.RootData.Issue.Link .item.HashTag}}
 		{{else}}
-			{{$referenceUrl = printf "%s/files#%s" .ctxData.Issue.Link .item.HashTag}}
+			{{$referenceUrl = printf "%s/files#%s" ctx.RootData.Issue.Link .item.HashTag}}
 		{{end}}
 		<div class="item context js-aria-clickable" data-clipboard-text-type="url" data-clipboard-text="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.issues.context.copy_link"}}</div>
-		{{if .ctxData.IsSigned}}
+		{{if ctx.RootData.IsSigned}}
 			{{$needDivider := false}}
-			{{if not .ctxData.Repository.IsArchived}}
+			{{if not ctx.RootData.Repository.IsArchived}}
 				{{$needDivider = true}}
 				<div class="item context js-aria-clickable quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.quote_reply"}}</div>
-				{{if not .ctxData.UnitIssuesGlobalDisabled}}
+				{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
 					<div class="item context js-aria-clickable reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</div>
 				{{end}}
-				{{if or .ctxData.Permission.IsAdmin .IsCommentPoster .ctxData.HasIssuesOrPullsWritePermission}}
+				{{if or ctx.RootData.Permission.IsAdmin .IsCommentPoster ctx.RootData.HasIssuesOrPullsWritePermission}}
 					<div class="divider"></div>
 					<div class="item context js-aria-clickable edit-content">{{ctx.Locale.Tr "repo.issues.context.edit"}}</div>
 					{{if .delete}}
-						<div class="item context js-aria-clickable delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctxData.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
+						<div class="item context js-aria-clickable delete-comment" data-comment-id={{.item.HashTag}} data-url="{{ctx.RootData.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
 					{{end}}
 				{{end}}
 			{{end}}
-			{{$canUserBlock := call .ctxData.CanBlockUser .ctxData.SignedUser .item.Poster}}
-			{{$canOrgBlock := and .ctxData.Repository.Owner.IsOrganization (call .ctxData.CanBlockUser .ctxData.Repository.Owner .item.Poster)}}
+			{{$canUserBlock := call ctx.RootData.CanBlockUser ctx.RootData.SignedUser .item.Poster}}
+			{{$canOrgBlock := and ctx.RootData.Repository.Owner.IsOrganization (call ctx.RootData.CanBlockUser ctx.RootData.Repository.Owner .item.Poster)}}
 			{{if or $canOrgBlock $canUserBlock}}
 				{{if $needDivider}}
 					<div class="divider"></div>
@@ -36,7 +36,7 @@
 				<div class="item context js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="{{.item.Poster.Name}}" data-modal-modal-blockee-name="{{.item.Poster.GetDisplayName}}" data-modal-modal-form.action="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.user"}}</div>
 				{{end}}
 				{{if $canOrgBlock}}
-				<div class="item context js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="{{.item.Poster.Name}}" data-modal-modal-blockee-name="{{.item.Poster.GetDisplayName}}" data-modal-modal-form.action="{{.ctxData.Repository.Owner.OrganisationLink}}/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.org"}}</div>
+				<div class="item context js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="{{.item.Poster.Name}}" data-modal-modal-blockee-name="{{.item.Poster.GetDisplayName}}" data-modal-modal-form.action="{{ctx.RootData.Repository.Owner.OrganisationLink}}/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.org"}}</div>
 				{{end}}
 			{{end}}
 		{{end}}

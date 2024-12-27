@@ -101,8 +101,8 @@ func init() {
 	})
 }
 
-func ArtifactsRoutes(prefix string) *web.Route {
-	m := web.NewRoute()
+func ArtifactsRoutes(prefix string) *web.Router {
+	m := web.NewRouter()
 	m.Use(ArtifactContexter())
 
 	r := artifactRoutes{
@@ -126,11 +126,10 @@ func ArtifactsRoutes(prefix string) *web.Route {
 func ArtifactContexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			base, baseCleanUp := context.NewBaseContext(resp, req)
-			defer baseCleanUp()
+			base := context.NewBaseContext(resp, req)
 
 			ctx := &ArtifactContext{Base: base}
-			ctx.AppendContextValue(artifactContextKey, ctx)
+			ctx.SetContextValue(artifactContextKey, ctx)
 
 			// action task call server api with Bearer ACTIONS_RUNTIME_TOKEN
 			// we should verify the ACTIONS_RUNTIME_TOKEN
@@ -425,7 +424,7 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 	for _, artifact := range artifacts {
 		var downloadURL string
 		if setting.Actions.ArtifactStorage.ServeDirect() {
-			u, err := ar.fs.URL(artifact.StoragePath, artifact.ArtifactName)
+			u, err := ar.fs.URL(artifact.StoragePath, artifact.ArtifactName, nil)
 			if err != nil && !errors.Is(err, storage.ErrURLNotSupported) {
 				log.Error("Error getting serve direct url: %v", err)
 			}
@@ -457,7 +456,7 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	artifactID := ctx.ParamsInt64("artifact_id")
+	artifactID := ctx.PathParamInt64("artifact_id")
 	artifact, exist, err := db.GetByID[actions.ActionArtifact](ctx, artifactID)
 	if err != nil {
 		log.Error("Error getting artifact: %v", err)

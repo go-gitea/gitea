@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   nightly-binary:
-    runs-on: nscloud
+    runs-on: namespace-profile-gitea-release-binary
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
@@ -22,7 +22,7 @@ jobs:
           check-latest: true
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
       - run: make deps-frontend deps-backend
@@ -58,7 +58,7 @@ jobs:
         run: |
           aws s3 sync dist/release s3://${{ secrets.AWS_S3_BUCKET }}/gitea/${{ steps.clean_name.outputs.branch }} --no-progress
   nightly-docker-rootful:
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-gitea-release-docker
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
@@ -95,7 +95,7 @@ jobs:
           push: true
           tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}
   nightly-docker-rootless:
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-gitea-release-docker
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions

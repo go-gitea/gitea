@@ -41,7 +41,7 @@ func GetBlob(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	sha := ctx.Params("sha")
+	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
 		ctx.Error(http.StatusBadRequest, "", "sha not provided")
 		return

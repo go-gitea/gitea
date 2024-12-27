@@ -33,39 +33,18 @@ const (
 	TypeActions                     // 10 Actions
 )
 
-// Value returns integer value for unit type
+// Value returns integer value for unit type (used by template)
 func (u Type) Value() int {
 	return int(u)
 }
 
-func (u Type) String() string {
-	switch u {
-	case TypeCode:
-		return "TypeCode"
-	case TypeIssues:
-		return "TypeIssues"
-	case TypePullRequests:
-		return "TypePullRequests"
-	case TypeReleases:
-		return "TypeReleases"
-	case TypeWiki:
-		return "TypeWiki"
-	case TypeExternalWiki:
-		return "TypeExternalWiki"
-	case TypeExternalTracker:
-		return "TypeExternalTracker"
-	case TypeProjects:
-		return "TypeProjects"
-	case TypePackages:
-		return "TypePackages"
-	case TypeActions:
-		return "TypeActions"
-	}
-	return fmt.Sprintf("Unknown Type %d", u)
-}
-
 func (u Type) LogString() string {
-	return fmt.Sprintf("<UnitType:%d:%s>", u, u.String())
+	unit, ok := Units[u]
+	unitName := "unknown"
+	if ok {
+		unitName = unit.NameKey
+	}
+	return fmt.Sprintf("<UnitType:%d:%s>", u, unitName)
 }
 
 var (
@@ -101,6 +80,27 @@ var (
 		TypePullRequests,
 	}
 
+	// DefaultMirrorRepoUnits contains the default unit types for mirrors
+	DefaultMirrorRepoUnits = []Type{
+		TypeCode,
+		TypeIssues,
+		TypeReleases,
+		TypeWiki,
+		TypeProjects,
+		TypePackages,
+	}
+
+	// DefaultTemplateRepoUnits contains the default unit types for templates
+	DefaultTemplateRepoUnits = []Type{
+		TypeCode,
+		TypeIssues,
+		TypePullRequests,
+		TypeReleases,
+		TypeWiki,
+		TypeProjects,
+		TypePackages,
+	}
+
 	// NotAllowedDefaultRepoUnits contains units that can't be default
 	NotAllowedDefaultRepoUnits = []Type{
 		TypeExternalWiki,
@@ -133,7 +133,7 @@ func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
 		units = make([]Type, 0, len(settingDefaultUnits))
 		for _, settingUnit := range settingDefaultUnits {
 			if !settingUnit.CanBeDefault() {
-				log.Warn("Not allowed as default unit: %s", settingUnit.String())
+				log.Warn("Not allowed as default unit: %s", settingUnit.LogString())
 				continue
 			}
 			units = append(units, settingUnit)
@@ -168,6 +168,7 @@ func LoadUnitConfig() error {
 	if len(DefaultRepoUnits) == 0 {
 		return errors.New("no default repository units found")
 	}
+	// default fork repo units
 	setDefaultForkRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultForkRepoUnits...)
 	if len(invalidKeys) > 0 {
 		log.Warn("Invalid keys in default fork repo units: %s", strings.Join(invalidKeys, ", "))
@@ -175,6 +176,24 @@ func LoadUnitConfig() error {
 	DefaultForkRepoUnits = validateDefaultRepoUnits(DefaultForkRepoUnits, setDefaultForkRepoUnits)
 	if len(DefaultForkRepoUnits) == 0 {
 		return errors.New("no default fork repository units found")
+	}
+	// default mirror repo units
+	setDefaultMirrorRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultMirrorRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in default mirror repo units: %s", strings.Join(invalidKeys, ", "))
+	}
+	DefaultMirrorRepoUnits = validateDefaultRepoUnits(DefaultMirrorRepoUnits, setDefaultMirrorRepoUnits)
+	if len(DefaultMirrorRepoUnits) == 0 {
+		return errors.New("no default mirror repository units found")
+	}
+	// default template repo units
+	setDefaultTemplateRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultTemplateRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in default template repo units: %s", strings.Join(invalidKeys, ", "))
+	}
+	DefaultTemplateRepoUnits = validateDefaultRepoUnits(DefaultTemplateRepoUnits, setDefaultTemplateRepoUnits)
+	if len(DefaultTemplateRepoUnits) == 0 {
+		return errors.New("no default template repository units found")
 	}
 	return nil
 }

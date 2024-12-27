@@ -1,22 +1,27 @@
-<script>
-import {SvgIcon} from '../svg.js';
+<script lang="ts" setup>
+import {SvgIcon} from '../svg.ts';
 import {
   Chart,
   Tooltip,
   BarElement,
   LinearScale,
   TimeScale,
+  type ChartOptions,
+  type ChartData,
 } from 'chart.js';
-import {GET} from '../modules/fetch.js';
+import {GET} from '../modules/fetch.ts';
 import {Bar} from 'vue-chartjs';
 import {
   startDaysBetween,
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
-} from '../utils/time.js';
-import {chartJsColors} from '../utils/color.js';
-import {sleep} from '../utils.js';
+  type DayData,
+  type DayDataObject,
+} from '../utils/time.ts';
+import {chartJsColors} from '../utils/color.ts';
+import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
+import {onMounted, ref} from 'vue';
 
 const {pageData} = window.config;
 
@@ -30,95 +35,91 @@ Chart.register(
   Tooltip,
 );
 
-export default {
-  components: {Bar, SvgIcon},
-  props: {
-    locale: {
-      type: Object,
-      required: true,
-    },
-  },
-  data: () => ({
-    isLoading: false,
-    errorText: '',
-    repoLink: pageData.repoLink || [],
-    data: [],
-  }),
-  mounted() {
-    this.fetchGraphData();
-  },
-  methods: {
-    async fetchGraphData() {
-      this.isLoading = true;
-      try {
-        let response;
-        do {
-          response = await GET(`${this.repoLink}/activity/recent-commits/data`);
-          if (response.status === 202) {
-            await sleep(1000); // wait for 1 second before retrying
-          }
-        } while (response.status === 202);
-        if (response.ok) {
-          const data = await response.json();
-          const start = Object.values(data)[0].week;
-          const end = firstStartDateAfterDate(new Date());
-          const startDays = startDaysBetween(start, end);
-          this.data = fillEmptyStartDaysWithZeroes(startDays, data).slice(-52);
-          this.errorText = '';
-        } else {
-          this.errorText = response.statusText;
-        }
-      } catch (err) {
-        this.errorText = err.message;
-      } finally {
-        this.isLoading = false;
+defineProps<{
+  locale: {
+    loadingTitle: string;
+    loadingTitleFailed: string;
+    loadingInfo: string;
+  };
+}>();
+
+const isLoading = ref(false);
+const errorText = ref('');
+const repoLink = ref(pageData.repoLink || []);
+const data = ref<DayData[]>([]);
+
+onMounted(() => {
+  fetchGraphData();
+});
+
+async function fetchGraphData() {
+  isLoading.value = true;
+  try {
+    let response: Response;
+    do {
+      response = await GET(`${repoLink.value}/activity/recent-commits/data`);
+      if (response.status === 202) {
+        await sleep(1000); // wait for 1 second before retrying
       }
-    },
+    } while (response.status === 202);
+    if (response.ok) {
+      const dayDataObj: DayDataObject = await response.json();
+      const start = Object.values(dayDataObj)[0].week;
+      const end = firstStartDateAfterDate(new Date());
+      const startDays = startDaysBetween(start, end);
+      data.value = fillEmptyStartDaysWithZeroes(startDays, dayDataObj).slice(-52);
+      errorText.value = '';
+    } else {
+      errorText.value = response.statusText;
+    }
+  } catch (err) {
+    errorText.value = err.message;
+  } finally {
+    isLoading.value = false;
+  }
+}
 
-    toGraphData(data) {
-      return {
-        datasets: [
-          {
-            data: data.map((i) => ({x: i.week, y: i.commits})),
-            label: 'Commits',
-            backgroundColor: chartJsColors['commits'],
-            borderWidth: 0,
-            tension: 0.3,
-          },
-        ],
-      };
-    },
+function toGraphData(data: DayData[]): ChartData<'bar'> {
+  return {
+    datasets: [
+      {
+        // @ts-expect-error -- bar chart expects one-dimensional data, but apparently x/y still works
+        data: data.map((i) => ({x: i.week, y: i.commits})),
+        label: 'Commits',
+        backgroundColor: chartJsColors['commits'],
+        borderWidth: 0,
+        tension: 0.3,
+      },
+    ],
+  };
+}
 
-    getOptions() {
-      return {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: true,
-        scales: {
-          x: {
-            type: 'time',
-            grid: {
-              display: false,
-            },
-            time: {
-              minUnit: 'week',
-            },
-            ticks: {
-              maxRotation: 0,
-              maxTicksLimit: 52,
-            },
-          },
-          y: {
-            ticks: {
-              maxTicksLimit: 6,
-            },
-          },
-        },
-      };
+const options: ChartOptions<'bar'> = {
+  responsive: true,
+  maintainAspectRatio: false,
+  scales: {
+    x: {
+      type: 'time',
+      grid: {
+        display: false,
+      },
+      time: {
+        minUnit: 'week',
+      },
+      ticks: {
+        maxRotation: 0,
+        maxTicksLimit: 52,
+      },
+    },
+    y: {
+      ticks: {
+        maxTicksLimit: 6,
+      },
     },
   },
-};
+} satisfies ChartOptions;
 </script>
+
 <template>
   <div>
     <div class="ui header tw-flex tw-items-center tw-justify-between">
@@ -137,7 +138,7 @@ export default {
       </div>
       <Bar
         v-memo="data" v-if="data.length !== 0"
-        :data="toGraphData(data)" :options="getOptions()"
+        :data="toGraphData(data)" :options="options"
       />
     </div>
   </div>
