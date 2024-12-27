@@ -11,7 +11,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
+	"github.com/uptrace/opentelemetry-go-extra/otelsql"
+	"go.opentelemetry.io/otel/attribute"
+	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 	"xorm.io/xorm"
+	"xorm.io/xorm/core"
 	"xorm.io/xorm/names"
 )
 
@@ -30,15 +34,36 @@ func newXORMEngine() (*xorm.Engine, error) {
 	}
 
 	var engine *xorm.Engine
+	engineName := setting.Database.Type.String()
 
 	if setting.Database.Type.IsPostgreSQL() && len(setting.Database.Schema) > 0 {
 		// OK whilst we sort out our schema issues - create a schema aware postgres
 		registerPostgresSchemaDriver()
-		engine, err = xorm.NewEngine("postgresschema", connStr)
-	} else {
-		engine, err = xorm.NewEngine(setting.Database.Type.String(), connStr)
+		engineName = "postgresschema"
 	}
 
+	var semconvDBSystem attribute.KeyValue
+	switch setting.Database.Type {
+	case "sqlite3":
+		semconvDBSystem = semconv.DBSystemSqlite
+	case "mysql":
+		semconvDBSystem = semconv.DBSystemMySQL
+	case "postgres":
+		semconvDBSystem = semconv.DBSystemPostgreSQL
+	case "mssql":
+		semconvDBSystem = semconv.DBSystemMSSQL
+	default:
+		return nil, fmt.Errorf("unsupported database type: %s", setting.Database.Type)
+	}
+
+	db, err := otelsql.Open(engineName, connStr,
+		otelsql.WithAttributes(semconvDBSystem),
+		otelsql.WithDBName(setting.Database.Name))
+	if err != nil {
+		return engine, err
+	}
+	xormCore := core.FromDB(db)
+	engine, err = xorm.NewEngineWithDB(engineName, connStr, xormCore)
 	if err != nil {
 		return nil, err
 	}
