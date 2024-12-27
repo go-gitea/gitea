@@ -728,6 +728,7 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 
 	u.LowerName = strings.ToLower(u.Name)
 	u.AvatarEmail = u.Email
+	u.Email = strings.ToLower(u.Email)
 	if u.Rands, err = GetUserSalt(); err != nil {
 		return err
 	}

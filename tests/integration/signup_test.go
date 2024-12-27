@@ -151,3 +151,28 @@ func TestSignupEmailActive(t *testing.T) {
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "test-user-1"})
 	assert.True(t, user.IsActive)
 }
+
+func TestSignUpWithUppercaseEmail(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Service.RegisterEmailConfirm, true)()
+
+	req := NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
+		"user_name": "Upper-user-1",
+		"email":     "Upper-email-1@example.com",
+		"password":  "password1",
+		"retype":    "password1",
+	})
+	MakeRequest(t, req, http.StatusOK)
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "Upper-user-1"})
+	session := loginUserWithPassword(t, "Upper-user-1", "password1")
+	activationCode := user.GenerateEmailActivateCode(user.Email)
+	req = NewRequestWithValues(t, "POST", "/user/activate", map[string]string{
+		"code":     activationCode,
+		"password": "password1",
+	})
+	resp := session.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, "/", test.RedirectURL(resp))
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "Upper-user-1"})
+	assert.True(t, user.IsActive)
+}
