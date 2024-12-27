@@ -486,10 +486,10 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 
 	// Activate/deactivate a user's primary email address and account
 	if addr.IsPrimary {
-		user, exist, err := db.Get[User](ctx, builder.Eq{"id": userID, "email": strings.ToLower(email)})
+		user, exist, err := db.Get[User](ctx, builder.Eq{"id": userID})
 		if err != nil {
 			return err
-		} else if !exist {
+		} else if !exist || !strings.EqualFold(user.Email, email) {
 			return fmt.Errorf("no user with ID: %d and Email: %s", userID, email)
 		}
 
