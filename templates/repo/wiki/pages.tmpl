@@ -16,7 +16,7 @@
 				{{range .Pages}}
 					<tr>
 						<td>
-							{{if .IsDir}}{{svg "octicon-file-directory"}}{{else}}{{svg "octicon-file"}}{{end}}
+							{{if .IsDir}}{{svg "octicon-file-directory-fill"}}{{else}}{{svg "octicon-file"}}{{end}}
 							<a href="{{$.RepoLink}}/wiki/{{.SubURL}}{{if .IsDir}}?action=_pages{{end}}">{{.Name}}</a>
 							<a class="wiki-git-entry" href="{{$.RepoLink}}/wiki/{{.SubURL}}{{if .IsDir}}?action=_pages{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.wiki.original_git_entry_tooltip"}}">{{svg "octicon-chevron-right"}}</a>
 						</td>

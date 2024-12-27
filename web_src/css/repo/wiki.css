@@ -11,6 +11,10 @@
   display: inline-block;
 }
 
+.repository.wiki .wiki-pages-list .svg.octicon-file-directory-fill {
+  color: var(--color-primary);
+}
+
 .repository.wiki .markup {
   overflow: visible;
 }
