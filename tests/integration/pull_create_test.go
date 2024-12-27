@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
@@ -224,5 +225,23 @@ func TestPullCreatePrFromBaseToFork(t *testing.T) {
 		// check the redirected URL
 		url := test.RedirectURL(resp)
 		assert.Regexp(t, "^/user1/repo1/pulls/[0-9]*$", url)
+	})
+}
+
+func TestCreateAgitPullWithReadPermission(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		dstPath := t.TempDir()
+
+		u.Path = "user2/repo1.git"
+		u.User = url.UserPassword("user4", userPassword)
+
+		t.Run("Clone", doGitClone(dstPath, u))
+
+		t.Run("add commit", doGitAddSomeCommits(dstPath, "master"))
+
+		t.Run("do agit pull create", func(t *testing.T) {
+			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic=" + "test-topic").Run(&git.RunOpts{Dir: dstPath})
+			assert.NoError(t, err)
+		})
 	})
 }
