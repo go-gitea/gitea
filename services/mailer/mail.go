@@ -93,7 +93,8 @@ func SendActivateAccountMail(locale translation.Locale, u *user_model.User) {
 		// No mail service configured
 		return
 	}
-	sendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateEmailActivateCode(u.Email), locale.TrString("mail.activate_account"), "activate account")
+	opts := &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}
+	sendUserMail(locale.Language(), u, mailAuthActivate, user_model.GenerateUserTimeLimitCode(opts, u), locale.TrString("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
@@ -103,7 +104,8 @@ func SendResetPasswordMail(u *user_model.User) {
 		return
 	}
 	locale := translation.NewLocale(u.Language)
-	sendUserMail(u.Language, u, mailAuthResetPassword, u.GenerateEmailActivateCode(u.Email), locale.TrString("mail.reset_password"), "recover account")
+	opts := &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeResetPassword}
+	sendUserMail(u.Language, u, mailAuthResetPassword, user_model.GenerateUserTimeLimitCode(opts, u), locale.TrString("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
@@ -113,11 +115,12 @@ func SendActivateEmailMail(u *user_model.User, email string) {
 		return
 	}
 	locale := translation.NewLocale(u.Language)
+	opts := &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateEmail, NewEmail: email}
 	data := map[string]any{
 		"locale":          locale,
 		"DisplayName":     u.DisplayName(),
 		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
-		"Code":            u.GenerateEmailActivateCode(email),
+		"Code":            user_model.GenerateUserTimeLimitCode(opts, u),
 		"Email":           email,
 		"Language":        locale.Language(),
 	}
