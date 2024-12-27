@@ -9,7 +9,6 @@ import (
 
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -98,14 +97,7 @@ func getBlobForEntry(ctx *context.Context) (*git.Blob, *time.Time) {
 		return nil, nil
 	}
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, ctx.Repo.Repository)
-	if err != nil {
-		ctx.ServerError("RepositoryFromContextOrOpen", err)
-		return nil, nil
-	}
-	defer closer.Close()
-
-	latestCommit, err := gitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
+	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetTreePathLatestCommit", err)
 		return nil, nil

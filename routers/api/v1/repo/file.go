@@ -241,14 +241,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEn
 		return nil, nil, nil
 	}
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, ctx.Repo.Repository)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "RepositoryFromContextOrOpen", err)
-		return nil, nil, nil
-	}
-	defer closer.Close()
-
-	latestCommit, err := gitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
+	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTreePathLatestCommit", err)
 		return nil, nil, nil
