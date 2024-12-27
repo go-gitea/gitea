@@ -180,7 +180,7 @@ func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName wiki_
 	return wikiContentsByEntry(ctx, entry), entry, gitFilename, noEntry
 }
 
-func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
+func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry, string) {
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
 		if wikiRepo != nil {
@@ -189,14 +189,14 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		if !git.IsErrNotExist(err) {
 			ctx.ServerError("GetBranchCommit", err)
 		}
-		return nil, nil
+		return nil, nil, ""
 	}
 
 	reqPath := util.PathJoinRelX(ctx.PathParamRaw("*"))
 	p, err := url.PathUnescape(reqPath)
 	if err != nil {
 		ctx.ServerError("PathUnescape", err)
-		return nil, nil
+		return nil, nil, ""
 	}
 	dirPath, pageName := path.Split(p)
 	pageName = strings.TrimSuffix(pageName, ".md")
@@ -204,7 +204,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	tree, err := commit.SubTree(treePath)
 	if err != nil {
 		ctx.ServerError("SubTree", err)
-		return nil, nil
+		return nil, nil, ""
 	}
 
 	// Get page list.
@@ -214,7 +214,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 			wikiRepo.Close()
 		}
 		ctx.ServerError("ListEntries", err)
-		return nil, nil
+		return nil, nil, ""
 	}
 	pages := make([]PageMeta, 0, len(entries))
 	for _, entry := range entries {
@@ -230,7 +230,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 				wikiRepo.Close()
 			}
 			ctx.ServerError("WikiFilenameToName", err)
-			return nil, nil
+			return nil, nil, ""
 		} else if wikiName == "_Sidebar" || wikiName == "_Footer" {
 			continue
 		}
@@ -246,6 +246,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	// get requested page name
 	if len(pageName) == 0 {
 		pageName = "Home"
+		p = "Home.md"
 	}
 
 	_, displayName := wiki_service.WebPathToUserTitle(wiki_service.WebPath(pageName))
@@ -269,7 +270,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
-		return nil, nil
+		return nil, nil, ""
 	}
 
 	// get filecontent
@@ -278,7 +279,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
-		return nil, nil
+		return nil, nil, ""
 	}
 
 	var sidebarContent []byte
@@ -288,7 +289,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 			if wikiRepo != nil {
 				wikiRepo.Close()
 			}
-			return nil, nil
+			return nil, nil, ""
 		}
 	} else {
 		sidebarContent = data
@@ -301,7 +302,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 			if wikiRepo != nil {
 				wikiRepo.Close()
 			}
-			return nil, nil
+			return nil, nil, ""
 		}
 	} else {
 		footerContent = data
@@ -334,7 +335,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 			wikiRepo.Close()
 		}
 		ctx.ServerError("Render", err)
-		return nil, nil
+		return nil, nil, ""
 	}
 
 	if rctx.SidebarTocNode != nil {
@@ -355,7 +356,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 				wikiRepo.Close()
 			}
 			ctx.ServerError("Render", err)
-			return nil, nil
+			return nil, nil, ""
 		}
 		ctx.Data["sidebarPresent"] = sidebarContent != nil
 	} else {
@@ -370,7 +371,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 				wikiRepo.Close()
 			}
 			ctx.ServerError("Render", err)
-			return nil, nil
+			return nil, nil, ""
 		}
 		ctx.Data["footerPresent"] = footerContent != nil
 	} else {
@@ -381,7 +382,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	commitsCount, _ := wikiRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
-	return wikiRepo, entry
+	return wikiRepo, entry, p
 }
 
 func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
@@ -573,7 +574,7 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 
-	wikiRepo, entry := renderViewPage(ctx)
+	wikiRepo, entry, wikiPath := renderViewPage(ctx)
 	defer func() {
 		if wikiRepo != nil {
 			wikiRepo.Close()
@@ -588,7 +589,6 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 
-	wikiPath := entry.Name()
 	if markup.DetectMarkupTypeByFileName(wikiPath) != markdown.MarkupName {
 		ext := strings.ToUpper(filepath.Ext(wikiPath))
 		ctx.Data["FormatWarning"] = fmt.Sprintf("%s rendering is not supported at the moment. Rendered as Markdown.", ext)
