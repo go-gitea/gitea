@@ -9,47 +9,48 @@ so this template should be kept as small as possbile, DO NOT put large component
 {{- $commit := $.Commit -}}
 {{- $commitBaseLink := $.CommitBaseLink -}}
 {{- $verification := $.CommitSignVerification -}}
+
 {{- $extraClass := "" -}}
 {{- $verified := false -}}
-{{- $trusted := false -}}
 {{- $signingUser := NIL -}}
 {{- $signingEmail := "" -}}
 {{- $msgReasonPrefix := "" -}}
 {{- $msgReason := "" -}}
 {{- $msgSigningKey := "" -}}
 
-{{- $signingUser = $verification.SigningUser -}}
-{{- $signingEmail = $verification.SigningEmail -}}
-{{- $extraClass = print $extraClass " commit-is-signed" -}}
-{{- if $verification.Verified -}}
-	{{- /* reason is "{name} / {key-id}" */ -}}
-	{{- $msgReason = $verification.Reason -}}
-	{{- $verified = true -}}
-	{{- if eq $verification.TrustStatus "trusted" -}}
-		{{- $extraClass = print $extraClass " sign-trusted" -}}
-		{{- $trusted = true -}}
-	{{- else if eq $verification.TrustStatus "untrusted" -}}
-		{{- $extraClass = print $extraClass " sign-untrusted" -}}
-		{{- $msgReasonPrefix = ctx.Locale.Tr "repo.commits.signed_by_untrusted_user" -}}
+{{- if $verification -}}
+	{{- $signingUser = $verification.SigningUser -}}
+	{{- $signingEmail = $verification.SigningEmail -}}
+	{{- $extraClass = print $extraClass " commit-is-signed" -}}
+	{{- if $verification.Verified -}}
+		{{- /* reason is "{name} / {key-id}" */ -}}
+		{{- $msgReason = $verification.Reason -}}
+		{{- $verified = true -}}
+		{{- if eq $verification.TrustStatus "trusted" -}}
+			{{- $extraClass = print $extraClass " sign-trusted" -}}
+		{{- else if eq $verification.TrustStatus "untrusted" -}}
+			{{- $extraClass = print $extraClass " sign-untrusted" -}}
+			{{- $msgReasonPrefix = ctx.Locale.Tr "repo.commits.signed_by_untrusted_user" -}}
+		{{- else -}}
+			{{- $extraClass = print $extraClass " sign-unmatched" -}}
+			{{- $msgReasonPrefix = ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched" -}}
+		{{- end -}}
 	{{- else -}}
-		{{- $extraClass = print $extraClass " sign-unmatched" -}}
-		{{- $msgReasonPrefix = ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched" -}}
+		{{- if $verification.Warning -}}
+			{{- $extraClass = print $extraClass " sign-warning" -}}
+		{{- end -}}
+		{{- $msgReason = ctx.Locale.Tr $verification.Reason -}}{{- /* dirty part: it is the translation key ..... */ -}}
 	{{- end -}}
-{{- else -}}
-	{{- if $verification.Warning -}}
-		{{- $extraClass = print $extraClass " sign-warning" -}}
+
+	{{- if $msgReasonPrefix -}}
+		{{- $msgReason = print $msgReasonPrefix ": " $msgReason -}}
 	{{- end -}}
-	{{- $msgReason = ctx.Locale.Tr $verification.Reason -}}{{- /* dirty part: it is the translation key ..... */ -}}
-{{- end -}}
 
-{{- if $msgReasonPrefix -}}
-	{{- $msgReason = print $msgReasonPrefix ": " $msgReason -}}
-{{- end -}}
-
-{{- if $verification.SigningSSHKey -}}
-	{{- $msgSigningKey = print (ctx.Locale.Tr "repo.commits.ssh_key_fingerprint") ": " $verification.SigningSSHKey.Fingerprint -}}
-{{- else if $verification.SigningKey -}}
-	{{- $msgSigningKey = print (ctx.Locale.Tr "repo.commits.gpg_key_id") ": " $verification.SigningKey.PaddedKeyID -}}
+	{{- if $verification.SigningSSHKey -}}
+		{{- $msgSigningKey = print (ctx.Locale.Tr "repo.commits.ssh_key_fingerprint") ": " $verification.SigningSSHKey.Fingerprint -}}
+	{{- else if $verification.SigningKey -}}
+		{{- $msgSigningKey = print (ctx.Locale.Tr "repo.commits.gpg_key_id") ": " $verification.SigningKey.PaddedKeyID -}}
+	{{- end -}}
 {{- end -}}
 
 {{- if $commit -}}
