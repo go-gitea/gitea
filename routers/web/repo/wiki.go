@@ -731,6 +731,7 @@ func WikiPages(ctx *context.Context) {
 	}
 	ctx.Data["Pages"] = pages
 	ctx.Data["PageDir"] = ctx.PathParamRaw("*")
+	ctx.Data["ParentPageDir"] = path.Dir(ctx.PathParamRaw("*"))
 
 	ctx.HTML(http.StatusOK, tplWikiPages)
 }

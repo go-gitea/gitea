@@ -13,6 +13,15 @@
 		{{if .IsRepositoryAdmin}}<div>{{ctx.Locale.Tr "repo.default_branch"}}: {{.Repository.DefaultWikiBranch}}</div>{{end}}
 		<table class="ui table wiki-pages-list">
 			<tbody>
+				{{if .PageDir}}
+					<tr>
+						<td>
+							{{svg "octicon-file-directory-fill"}}
+							<a href="{{.RepoLink}}/wiki/{{.ParentPageDir}}?action=_pages">..</a>
+						</td>
+						<td></td>
+					</tr>
+				{{end}}
 				{{range .Pages}}
 					<tr>
 						<td>
