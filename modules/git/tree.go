@@ -71,5 +71,5 @@ func (repo *Repository) GetTreePathLatestCommit(refName, treePath string) (*Comm
 	if err != nil {
 		return nil, err
 	}
-	return repo.GetCommit(stdout)
+	return repo.GetCommit(strings.TrimSpace(stdout))
 }
