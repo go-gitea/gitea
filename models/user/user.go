@@ -868,7 +868,8 @@ func makeTimeLimitCodeHashData(opts *TimeLimitCodeOptions, u *User) string {
 	return fmt.Sprintf("%s|%d|%s|%s|%s|%s", opts.Purpose, u.ID, strings.ToLower(util.IfZero(opts.NewEmail, u.Email)), u.LowerName, u.Passwd, u.Rands)
 }
 
-// GenerateUserTimeLimitCode generates an activate code based on user information and given e-mail.
+// GenerateUserTimeLimitCode generates a time-limit code based on user information and given e-mail.
+// TODO: need to use cache or db to store it to make sure a code can only be consumed once
 func GenerateUserTimeLimitCode(opts *TimeLimitCodeOptions, u *User) string {
 	data := makeTimeLimitCodeHashData(opts, u)
 	code := base.CreateTimeLimitCode(data, setting.Service.ActiveCodeLives, time.Now(), nil)
@@ -876,7 +877,7 @@ func GenerateUserTimeLimitCode(opts *TimeLimitCodeOptions, u *User) string {
 	return code
 }
 
-// VerifyUserTimeLimitCode verifies active code when active account
+// VerifyUserTimeLimitCode verifies the time-limit code
 func VerifyUserTimeLimitCode(ctx context.Context, opts *TimeLimitCodeOptions, code string) (user *User) {
 	if user = GetVerifyUser(ctx, code); user != nil {
 		// time limit code
