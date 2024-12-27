@@ -204,7 +204,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry, stri
 		return nil, nil, ""
 	}
 	if pTree != nil && pTree.IsDir() {
-		ctx.Redirect(ctx.Repo.RepoLink + fmt.Sprintf("/wiki/%s?action=_pages", url.QueryEscape(p)))
+		ctx.Redirect(ctx.Repo.RepoLink + fmt.Sprintf("/wiki/%s?action=_pages", p))
 		return nil, nil, ""
 	}
 
@@ -213,9 +213,10 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry, stri
 	treePath := wiki_service.WebDirPathToGitPath(wiki_service.WebPath(dirPath))
 	tree, err := commit.SubTree(treePath)
 	if err != nil {
-		ctx.ServerError("SubTree", err)
+		ctx.NotFoundOrServerError("SubTree", git.IsErrNotExist, err)
 		return nil, nil, ""
 	}
+	ctx.Data["dirPath"] = dirPath
 
 	// Get page list.
 	entries, err := tree.ListEntries()
@@ -247,11 +248,13 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry, stri
 		_, displayName := wiki_service.WebPathToUserTitle(wikiName)
 		pages = append(pages, PageMeta{
 			Name:         displayName,
-			SubURL:       wiki_service.WebPathToURLPath(wikiName),
+			SubURL:       wiki_service.WebPathToURLPath(wiki_service.WebPath(dirPath) + wikiName),
 			GitEntryName: entry.Name(),
 		})
 	}
 	ctx.Data["Pages"] = pages
+	ctx.Data["PageURL"] = wiki_service.WebPathToURLPath(wiki_service.WebPath(p))
+	ctx.Data["PageDir"] = wiki_service.WebPathToURLPath(wiki_service.WebPath(dirPath))
 
 	// get requested page name
 	if len(pageName) == 0 {
@@ -260,7 +263,6 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry, stri
 	}
 
 	_, displayName := wiki_service.WebPathToUserTitle(wiki_service.WebPath(pageName))
-	ctx.Data["PageURL"] = wiki_service.WebPathToURLPath(wiki_service.WebPath(pageName))
 	ctx.Data["old_title"] = displayName
 	ctx.Data["Title"] = displayName
 	ctx.Data["title"] = displayName
@@ -489,13 +491,14 @@ func renderEditPage(ctx *context.Context) {
 	}
 
 	// get requested pagename
-	pageName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
+	pageName := wiki_service.WebPath(util.PathJoinRelX(ctx.PathParamRaw("*")))
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}
 
 	_, displayName := wiki_service.WebPathToUserTitle(pageName)
 	ctx.Data["PageURL"] = wiki_service.WebPathToURLPath(pageName)
+	ctx.Data["PageDir"] = wiki_service.WebPathToURLPath(wiki_service.WebPath(path.Dir(string(pageName))))
 	ctx.Data["old_title"] = displayName
 	ctx.Data["Title"] = displayName
 	ctx.Data["title"] = displayName
@@ -727,6 +730,7 @@ func WikiPages(ctx *context.Context) {
 		})
 	}
 	ctx.Data["Pages"] = pages
+	ctx.Data["PageDir"] = ctx.PathParamRaw("*")
 
 	ctx.HTML(http.StatusOK, tplWikiPages)
 }
@@ -810,7 +814,7 @@ func NewWikiPost(ctx *context.Context) {
 		return
 	}
 
-	wikiName := wiki_service.UserTitleToWebPath("", form.Title)
+	wikiName := wiki_service.UserTitleToWebPath(ctx.PathParam("*"), form.Title)
 
 	if len(form.Message) == 0 {
 		form.Message = ctx.Locale.TrString("repo.editor.add", form.Title)
@@ -861,8 +865,9 @@ func EditWikiPost(ctx *context.Context) {
 		return
 	}
 
-	oldWikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
-	newWikiName := wiki_service.UserTitleToWebPath("", form.Title)
+	p := util.PathJoinRelX(ctx.PathParamRaw("*"))
+	oldWikiName := wiki_service.WebPath(p)
+	newWikiName := wiki_service.UserTitleToWebPath(path.Dir(p), form.Title)
 
 	if len(form.Message) == 0 {
 		form.Message = ctx.Locale.TrString("repo.editor.update", form.Title)
@@ -880,7 +885,7 @@ func EditWikiPost(ctx *context.Context) {
 
 // DeleteWikiPagePost delete wiki page
 func DeleteWikiPagePost(ctx *context.Context) {
-	wikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
+	wikiName := wiki_service.WebPath(util.PathJoinRelX(ctx.PathParamRaw("*")))
 	if len(wikiName) == 0 {
 		wikiName = "Home"
 	}
