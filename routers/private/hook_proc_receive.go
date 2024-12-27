@@ -4,9 +4,12 @@
 package private
 
 import (
+	"errors"
 	"net/http"
 
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
@@ -27,6 +30,14 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 	if err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
+		} else if errors.Is(err, issues_model.ErrMustCollaborator) {
+			ctx.JSON(http.StatusUnauthorized, private.Response{
+				Err: err.Error(), UserMsg: string(ctx.Tr("repo.pulls.new.must_collaborator")),
+			})
+		} else if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.JSON(http.StatusUnauthorized, private.Response{
+				Err: err.Error(), UserMsg: string(ctx.Tr("repo.pulls.new.blocked_user")),
+			})
 		} else {
 			log.Error(err.Error())
 			ctx.JSON(http.StatusInternalServerError, private.Response{
