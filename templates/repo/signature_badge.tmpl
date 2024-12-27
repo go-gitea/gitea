@@ -1,91 +1,56 @@
-{{$base_classes := "signature-badge show-modal tw-cursor-pointer tw-rounded tw-border tw-px-2 tw-py-0"}}
-{{$verified_colors := "tw-border-success-border tw-bg-success-bg tw-text-success-text"}}
-{{$unverified_colors := "tw-border-warning-border tw-bg-warning-bg tw-text-warning-text"}}
-{{if and .verification.Verified (eq .verification.TrustStatus "trusted")}}
-	<div class="{{$base_classes}} {{$verified_colors}}" data-modal="#{{.shortsha}}-verification-modal">Verified</div>
+{{$verification := $.CommitSignVerification}}
+{{$extraClass := ""}}
+{{$verified := false}}
+{{$trusted := false}}
+{{$signingUser := NIL}}
+{{$signingEmail := ""}}
+{{$msgReasonPrefix := ""}}
+{{$msgReason := ""}}
+{{$msgSigningKey := ""}}
+
+{{$signingUser = $verification.SigningUser}}
+{{$signingEmail = $verification.SigningEmail}}
+{{$extraClass = print $extraClass " commit-is-signed"}}
+{{if $verification.Verified}}
+	{{/* reason is "{name} / {key-id}" */}}
+	{{$verified := true}}
+	{{if eq $verification.TrustStatus "trusted"}}
+		{{$extraClass = print $extraClass " sign-trusted"}}
+		{{$trusted = true}}
+	{{else if eq $verification.TrustStatus "untrusted"}}
+		{{$extraClass = print $extraClass " sign-untrusted"}}
+		{{$msgReasonPrefix = ctx.Locale.Tr "repo.commits.signed_by_untrusted_user"}}
+	{{else}}
+		{{$extraClass = print $extraClass " sign-unmatched"}}
+		{{$msgReasonPrefix = ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}
+	{{end}}
 {{else}}
-	<div class="{{$base_classes}} {{$unverified_colors}}" data-modal="#{{.shortsha}}-verification-modal">Unverified</div>
+	{{if $verification.Warning}}
+		{{$extraClass = print $extraClass " sign-warning"}}
+	{{end}}
+	{{$msgReason = ctx.Locale.Tr $verification.Reason}}{{/* dirty part: it is the translation key ..... */}}
 {{end}}
-<div class="ui small modal" id="{{.shortsha}}-verification-modal">
-	<div class="header tw-flex tw-items-center tw-gap-2">
-		{{if and .verification.Verified (eq .verification.TrustStatus "trusted")}}
-			{{svg "octicon-verified" 20}}
-			{{ctx.Locale.Tr "verified_commit"}}
+
+{{if $msgReasonPrefix}}
+	{{$msgReason = print $msgReasonPrefix ": " $msgReason}}
+{{end}}
+
+{{if $verification.SigningSSHKey}}
+	{{$msgSigningKey := print (ctx.Locale.Tr "repo.commits.ssh_key_fingerprint") ": " $verification.SigningSSHKey.Fingerprint}}
+{{else if $verification.SigningKey}}
+	{{$msgSigningKey := print (ctx.Locale.Tr "repo.commits.gpg_key_id") ": " $verification.SigningKey.PaddedKeyID}}
+{{end}}
+
+<div class="ui label commit-sign-badge {{$extraClass}}">
+	{{if $verified}}
+		{{if and $signingUser $signingUser.ID}}
+			<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-lock"}}</span>
+			<span data-tooltip-content="{{$msgSigningKey}}">{{ctx.AvatarUtils.Avatar $signingUser 16}}</span>
 		{{else}}
-			{{svg "octicon-unverified" 20}}
-			{{ctx.Locale.Tr "unverified_commit"}}
+			<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-lock-cog"}}</span>
+			<span data-tooltip-content="{{$msgSigningKey}}">{{ctx.AvatarUtils.AvatarByEmail $signingEmail "" 16}}</span>
 		{{end}}
-	</div>
-	<div class="content">
-		<div class="tw-flex tw-flex-wrap tw-items-center">
-			{{if .verification.Verified}}
-				{{if ne .verification.SigningUser.ID 0}}
-					<span class="tw-mr-2">
-						{{if eq .verification.TrustStatus "trusted"}}
-							{{ctx.Locale.Tr "repo.commits.signed_by"}}:
-						{{else if eq .verification.TrustStatus "untrusted"}}
-							{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user"}}:
-						{{else}}
-							{{ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:
-						{{end}}
-					</span>
-					<span class="tw-inline-flex tw-items-center tw-gap-2">
-						{{ctx.AvatarUtils.Avatar .verification.SigningUser 16}}
-						<a href="{{.verification.SigningUser.HomeLink}}"><strong>{{.verification.SigningUser.GetDisplayName}}</strong></a>
-					</span>
-				{{else}}
-					<span title="{{ctx.Locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16}}</span>
-					<span>{{ctx.Locale.Tr "repo.commits.signed_by"}}:</span>
-					<span class="tw-inline-flex tw-items-center tw-gap-2">
-						{{ctx.AvatarUtils.AvatarByEmail .verification.SigningEmail "" 16}}
-						<strong>{{.verification.SigningUser.GetDisplayName}}</strong>
-					</span>
-				{{end}}
-			{{else}}
-				<span>{{ctx.Locale.Tr .verification.Reason}}</span>
-			{{end}}
-		</div>
-		<div class="tw-flex tw-items-center tw-gap-2">
-			{{if .verification.Verified}}
-				{{if ne .verification.SigningUser.ID 0}}
-					{{if .verification.SigningSSHKey}}
-						<span>{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
-						{{.verification.SigningSSHKey.Fingerprint}}
-					{{else}}
-						<span>{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
-						{{.verification.SigningKey.PaddedKeyID}}
-					{{end}}
-				{{else}}
-					{{if .verification.SigningSSHKey}}
-						<span data-tooltip-content="{{ctx.Locale.Tr "gpg.default_key"}}">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
-						{{.verification.SigningSSHKey.Fingerprint}}
-					{{else}}
-						<span data-tooltip-content="{{ctx.Locale.Tr "gpg.default_key"}}">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
-						{{.verification.SigningKey.PaddedKeyID}}
-					{{end}}
-				{{end}}
-			{{else if .verification.Warning}}
-				{{if .verification.SigningSSHKey}}
-					<span>{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
-					{{.verification.SigningSSHKey.Fingerprint}}
-				{{else}}
-					<span>{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
-					{{.verification.SigningKey.PaddedKeyID}}
-				{{end}}
-			{{else}}
-				{{if .verification.SigningKey}}
-					{{if ne .verification.SigningKey.KeyID ""}}
-						<span>{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
-						{{.verification.SigningKey.PaddedKeyID}}
-					{{end}}
-				{{end}}
-				{{if .verification.SigningSSHKey}}
-					{{if ne .verification.SigningSSHKey.Fingerprint ""}}
-						<span>{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
-						{{.verification.SigningSSHKey.Fingerprint}}
-					{{end}}
-				{{end}}
-			{{end}}
-		</div>
-	</div>
+	{{else}}
+		<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-unlock"}}</span>
+	{{end}}
 </div>

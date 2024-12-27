@@ -1,3 +1,4 @@
+<div class="latest-commit">
 {{if not .LatestCommit}}
 	…
 {{else}}
@@ -14,19 +15,21 @@
 			<span class="author-wrapper" title="{{.LatestCommit.Author.Name}}"><strong>{{.LatestCommit.Author.Name}}</strong></span>
 		{{end}}
 	{{end}}
+
+	<a rel="nofollow" class="ui label commit-id-short" href="{{.RepoLink}}/commit/{{PathEscape .LatestCommit.ID.String}}">{{ShortSha .LatestCommit.ID.String}}</a>
+
+	{{if .LatestCommitVerification}}
+		{{template "repo/signature_badge" dict "CommitSignVerification" .LatestCommitVerification}}
+	{{end}}
+
+	{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses}}
+
 	{{$commitLink:= printf "%s/commit/%s" .RepoLink (PathEscape .LatestCommit.ID.String)}}
-	<span class="grey commit-summary" title="{{.LatestCommit.Summary}}">
-		<span class="message-wrapper">{{RenderCommitMessageLinkSubject $.Context .LatestCommit.Message $commitLink ($.Repository.ComposeMetas ctx)}}</span>
+	<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .LatestCommit.Message $commitLink ($.Repository.ComposeMetas ctx)}}</span>
 		{{if IsMultilineCommitMessage .LatestCommit.Message}}
 			<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
-			{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses}}
-			<pre class="commit-body tw-hidden">{{RenderCommitBody $.Context .LatestCommit.Message ($.Repository.ComposeMetas ctx)}}</pre>
-		{{else}}
-			{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses}}
+			<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .LatestCommit.Message ($.Repository.ComposeMetas ctx)}}</pre>
 		{{end}}
 	</span>
-	{{if .LatestCommit.Signature}}
-		{{template "repo/signature_badge" dict "root" $ "verification" .LatestCommitVerification "shortsha" (ShortSha .LatestCommit.ID.String)}}
-	{{end}}
-	<a rel="nofollow" class="commit-hash-link tw-p-2" href="{{.RepoLink}}/commit/{{PathEscape .LatestCommit.ID.String}}">{{ShortSha .LatestCommit.ID.String}}</a>
 {{end}}
+</div>

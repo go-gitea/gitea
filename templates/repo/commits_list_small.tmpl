@@ -3,7 +3,7 @@
 {{range .comment.Commits}}
 	{{$tag := printf "%s-%d" $.comment.HashTag $index}}
 	{{$index = Eval $index "+" 1}}
-	<div class="singular-commit" id="{{$tag}}">
+	<div class="flex-text-block" id="{{$tag}}">{{/*singular-commit*/}}
 		<span class="badge badge-commit">{{svg "octicon-git-commit"}}</span>
 		{{if .User}}
 			<a class="avatar" href="{{.User.HomeLink}}">{{ctx.AvatarUtils.Avatar .User 20}}</a>
@@ -23,10 +23,10 @@
 
 		<span class="tw-flex tw-items-center tw-gap-2">
 			{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
-			{{if .Signature}}
-				{{template "repo/signature_badge" dict "root" $.root "verification" .Verification}}
+			<a href="{{$commitLink}}" rel="nofollow" class="ui label commit-id-short">{{ShortSha .ID.String}}</a>
+			{{if .Verification}}
+				{{template "repo/signature_badge" dict "CommitSignVerification" .Verification}}
 			{{end}}
-			<a href="{{$commitLink}}" rel="nofollow" class="commit-hash-link tw-p-2 hover:tw-bg-hover hover:tw-no-underline tw-rounded-lg">{{ShortSha .ID.String}}</a>
 		</span>
 	</div>
 	{{if IsMultilineCommitMessage .Message}}
