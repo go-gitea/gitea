@@ -50,9 +50,21 @@
   width: 300px;
 }
 
+.issue-sidebar-combo .ui.dropdown .item:not(.checked) .item-check-mark {
+  visibility: hidden;
+}
+
 .issue-content-right .dropdown > .menu {
   max-width: 270px;
   min-width: 0;
+  max-height: 500px;
+  overflow-x: auto;
+}
+
+.issue-content-right .dropdown > .menu .item-secondary-info small {
+  display: block;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 @media (max-width: 767.98px) {
@@ -60,41 +72,6 @@
   .issue-content-right {
     width: 100%;
   }
-}
-
-.repository .issue-content-right .ui.list .dependency {
-  padding: 0;
-  white-space: nowrap;
-}
-
-.repository .issue-content-right .ui.list .title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.repository .issue-content-right #deadlineForm input {
-  width: 12.8rem;
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
-  border-right: 0;
-  white-space: nowrap;
-}
-
-.repository .filter.menu.labels .label-filter .menu .info {
-  display: inline-block;
-  padding: 0.5rem 0;
-  font-size: 12px;
-  width: 100%;
-  white-space: nowrap;
-  margin-left: 10px;
-  margin-right: 8px;
-  text-align: left;
-}
-
-.repository .filter.menu.labels .label-filter .menu .info code {
-  border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
-  padding: 1px 2px;
-  font-size: 11px;
 }
 
 /* make all issue filter dropdown menus popup leftward, to avoid go out the viewport (right side) */
@@ -113,10 +90,6 @@
   left: 0;
 }
 
-.repository .select-label .desc {
-  padding-left: 23px;
-}
-
 /* For the secondary pointing menu, respect its own border-bottom */
 /* style reference: https://semantic-ui.com/collections/menu.html#pointing */
 .repository .ui.tabs.container .ui.menu:not(.secondary.pointing) {
@@ -128,45 +101,12 @@
   margin-bottom: 12px;
 }
 
-.repository .clone-panel {
-  display: flex;
+.commit-summary {
   flex: 1;
-}
-
-.repository.wiki .clone-panel {
-  flex: 0;
-}
-
-.repository.wiki .clone-panel input {
-  width: 20ch;
-}
-
-.repository .clone-panel #repo-clone-url {
-  border-radius: 0;
-  flex: 1;
-}
-
-.repository .ui.action.input.clone-panel > button + button,
-.repository .ui.action.input.clone-panel > button + input {
-  margin-left: -1px; /* make the borders overlap to avoid double borders */
-}
-
-.repository .clone-panel > button:first-of-type {
-  border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
-}
-
-.repository .clone-panel > button:last-of-type {
-  border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
-}
-
-.repository .clone-panel .dropdown .menu {
-  right: 0 !important;
-  left: auto !important;
-}
-
-.repository .repo-description {
-  font-size: 16px;
-  margin-bottom: 5px;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .commit-header .commit-summary,
@@ -177,178 +117,23 @@ td .commit-summary {
 .latest-commit {
   display: flex;
   flex: 1;
-  gap: 4px;
   align-items: center;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-left: 2px;
-}
-
-.latest-commit .commit-summary {
-  overflow: hidden;
-  display: flex;
-  gap: 4px;
-  margin: 0 2px;
-}
-
-.author-wrapper {
-  max-width: 180px;
-  flex-shrink: 0;
-}
-
-.message-wrapper, .author-wrapper {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  overflow-wrap: anywhere;
-  white-space: nowrap;
-}
-
-.latest-commit .commit-summary[data-expanded="true"] {
-  display: block;
-}
-
-.latest-commit .commit-summary[data-expanded="true"] .message-wrapper {
-  white-space: normal;
 }
 
 @media (max-width: 767.98px) {
-  .latest-commit .commit-hash-link,
-  .latest-commit .signature-badge {
+  .latest-commit .sha {
     display: none;
+  }
+  .latest-commit .commit-summary {
+    margin-left: 8px;
   }
 }
 
 .repo-path {
   display: flex;
   overflow-wrap: anywhere;
-}
-
-/* this is what limits the commit table width to a value that works on all viewport sizes */
-#repo-files-table th:first-of-type {
-  max-width: calc(calc(min(100vw, 1280px)) - 145px - calc(2 * var(--page-margin-x)));
-}
-
-.repository.file.list #repo-files-table thead th {
-  font-weight: var(--font-weight-normal);
-}
-
-.repository.file.list #repo-files-table tbody .svg {
-  margin-left: 3px;
-  margin-right: 5px;
-}
-
-.repository.file.list #repo-files-table tbody .svg.octicon-reply {
-  margin-right: 10px;
-}
-
-.repository.file.list #repo-files-table tbody .svg.octicon-file-directory-fill,
-.repository.file.list #repo-files-table tbody .svg.octicon-file-submodule {
-  color: var(--color-primary);
-}
-
-.repository.file.list #repo-files-table tbody .svg.octicon-file,
-.repository.file.list #repo-files-table tbody .svg.octicon-file-symlink-file,
-.repository.file.list #repo-files-table tbody .svg.octicon-file-directory-symlink {
-  color: var(--color-secondary-dark-7);
-}
-
-.repository.file.list #repo-files-table td {
-  padding-top: 0;
-  padding-bottom: 0;
-  overflow: initial;
-}
-
-.repository.file.list #repo-files-table td.name {
-  width: 33%;
-  max-width: calc(100vw - 140px);
-}
-
-@media (min-width: 1201px) {
-  .repository.file.list #repo-files-table td.name {
-    max-width: 150px;
-  }
-}
-
-@media (min-width: 992px) and (max-width: 1200px) {
-  .repository.file.list #repo-files-table td.name {
-    max-width: 200px;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 991.98px) {
-  .repository.file.list #repo-files-table td.name {
-    max-width: 300px;
-  }
-}
-
-.repository.file.list #repo-files-table td.message {
-  color: var(--color-text-light-1);
-  width: 66%;
-}
-
-@media (min-width: 1201px) {
-  .repository.file.list #repo-files-table td.message {
-    max-width: 400px;
-  }
-}
-
-@media (min-width: 992px) and (max-width: 1200px) {
-  .repository.file.list #repo-files-table td.message {
-    max-width: 350px;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 991.98px) {
-  .repository.file.list #repo-files-table td.message {
-    max-width: 250px;
-  }
-}
-
-.repository.file.list #repo-files-table td.age {
-  color: var(--color-text-light-1);
-}
-
-.repository.file.list #repo-files-table td .truncate {
-  display: inline-block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  width: 100%;
-  padding-top: 8px;
-  padding-bottom: 8px;
-}
-
-.repository.file.list #repo-files-table td a {
-  padding-top: 8px;
-  padding-bottom: 8px;
-}
-
-.repository.file.list #repo-files-table td .at {
-  margin-left: 3px;
-  margin-right: 3px;
-}
-
-.repository.file.list #repo-files-table td > * {
-  vertical-align: middle;
-}
-
-.repository.file.list #repo-files-table tr:last-of-type td:first-child {
-  border-bottom-left-radius: var(--border-radius);
-}
-
-.repository.file.list #repo-files-table tr:last-of-type td:last-child {
-  border-bottom-right-radius: var(--border-radius);
-}
-
-.repository.file.list #repo-files-table tr:hover {
-  background-color: var(--color-hover);
-}
-
-.repository.file.list #repo-files-table tr.has-parent a {
-  display: inline-block;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  width: calc(100% - 1.25rem);
 }
 
 .repository.file.list .non-diff-file-content .header .icon {
@@ -446,14 +231,6 @@ td .commit-summary {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-.repository.file.list .sidebar {
-  padding-left: 0;
-}
-
-.repository.file.list .sidebar .svg {
-  width: 16px;
-}
-
 .repo-editor-header {
   width: 100%;
 }
@@ -470,14 +247,12 @@ td .commit-summary {
 }
 
 .repository.file.editor .commit-form-wrapper {
-  padding-left: 64px;
+  padding-left: 48px;
 }
 
 .repository.file.editor .commit-form-wrapper .commit-avatar {
   float: left;
-  margin-left: -64px;
-  width: 3em;
-  height: auto;
+  margin-left: -48px;
 }
 
 .repository.file.editor .commit-form-wrapper .commit-form {
@@ -545,14 +320,6 @@ td .commit-summary {
   min-width: 100px;
 }
 
-.repository.new.issue .comment.form .comment .avatar {
-  width: 3em;
-}
-
-.repository.new.issue .comment.form .content {
-  margin-left: 4em;
-}
-
 .repository.new.issue .comment.form .content::before,
 .repository.new.issue .comment.form .content::after {
   right: 100%;
@@ -579,11 +346,6 @@ td .commit-summary {
 
 .repository.new.issue .comment.form .content .markup {
   font-size: 14px;
-}
-
-.repository.new.issue .comment.form .issue-content-right .filter.menu {
-  max-height: 500px;
-  overflow-x: auto;
 }
 
 .repository.view.issue .instruct-toggle {
@@ -852,11 +614,6 @@ td .commit-summary {
   height: 30px !important;
 }
 
-.singular-commit .shabox .sha.label {
-  margin: 0;
-  border: 1px solid var(--color-light-border);
-}
-
 .repository.view.issue .comment-list .timeline-item.event > .commit-status-link {
   float: right;
   margin-right: 8px;
@@ -1008,7 +765,7 @@ td .commit-summary {
 }
 
 .repository.view.issue .comment-list .code-comment .comment-content {
-  margin-left: 36px;
+  margin-left: 24px;
 }
 
 .repository.view.issue .comment-list .comment > .avatar {
@@ -1172,57 +929,23 @@ td .commit-summary {
   padding: 5px 10px;
 }
 
-.repository #repo-files-table .sha.label,
-.repository #repo-file-commit-box .sha.label,
-.repository #rev-list .sha.label,
-.repository .timeline-item.commits-list .singular-commit .sha.label {
-  border: 1px solid var(--color-light-border);
+.repository #commits-table td:not(.message) {
+  white-space: nowrap;
+}
+.repository #commits-table thead .sha {
+  width: 200px;
 }
 
-.repository #repo-files-table .sha.label .ui.signature.avatar,
-.repository #repo-file-commit-box .sha.label .ui.signature.avatar,
-.repository #rev-list .sha.label .ui.signature.avatar,
-.repository .timeline-item.commits-list .singular-commit .sha.label .ui.signature.avatar {
-  height: 16px;
-  margin-bottom: 0;
-  width: 16px;
+.repository #commits-table thead .shatd {
+  text-align: center;
 }
 
-.repository #repo-files-table .sha.label .detail.icon,
-.repository #repo-file-commit-box .sha.label .detail.icon,
-.repository #rev-list .sha.label .detail.icon,
-.repository .timeline-item.commits-list .singular-commit .sha.label .detail.icon {
-  background: var(--color-light);
-  margin: -6px -10px -4px 0;
-  padding: 5px 4px 5px 6px;
-  border-left: 1px solid var(--color-light-border);
-  border-top: 0;
-  border-right: 0;
-  border-bottom: 0;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
+.repository #commits-table td.sha .sha.label {
+  margin: 0;
 }
 
-.repository #repo-files-table .sha.label .detail.icon img,
-.repository #repo-file-commit-box .sha.label .detail.icon img,
-.repository #rev-list .sha.label .detail.icon img,
-.repository .timeline-item.commits-list .singular-commit .sha.label .detail.icon img {
-  margin-right: 0;
-}
-
-.repository #repo-files-table .sha.label .detail.icon .svg,
-.repository #repo-file-commit-box .sha.label .detail.icon .svg,
-.repository #rev-list .sha.label .detail.icon .svg,
-.repository .timeline-item.commits-list .singular-commit .sha.label .detail.icon .svg {
-  margin: 0 0.25em 0 0;
-}
-
-.repository #repo-files-table .sha.label .detail.icon > div,
-.repository #repo-file-commit-box .sha.label .detail.icon > div,
-.repository #rev-list .sha.label .detail.icon > div,
-.repository .timeline-item.commits-list .singular-commit .sha.label .detail.icon > div {
-  display: flex;
-  align-items: center;
+.repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n) {
+  background-color: var(--color-light) !important;
 }
 
 .repository .data-table {
@@ -1533,14 +1256,6 @@ td .commit-summary {
   font-weight: var(--font-weight-normal);
 }
 
-.repository.quickstart .guide #repo-clone-url {
-  border-radius: 0;
-  padding: 5px 10px;
-  font-size: 1.2em;
-  line-height: 1.4;
-  flex: 1
-}
-
 .empty-placeholder {
   display: flex;
   flex-direction: column;
@@ -1614,7 +1329,7 @@ td .commit-summary {
 
 .repository .repository-summary .sub-menu .item {
   flex: 1;
-  height: 30px;
+  height: 33px; /* match search bar height, need to be improved in the future to use some consistent methods */
   line-height: var(--line-height-default);
   display: flex;
   align-items: center;
@@ -1626,16 +1341,6 @@ td .commit-summary {
 
 .repository .repository-summary .sub-menu .item.active {
   background: var(--color-secondary);
-}
-
-.repository .repository-summary .segment.language-stats {
-  display: flex;
-  gap: 2px;
-  padding: 0;
-  height: 10px;
-  white-space: nowrap;
-  border-radius: 0 0 3px 3px !important;
-  overflow: hidden;
 }
 
 #cite-repo-modal #citation-panel {
@@ -1699,8 +1404,6 @@ td .commit-summary {
 }
 
 .user-cards .list .item .avatar {
-  width: 48px;
-  height: 48px;
   float: left;
   display: block;
   margin-right: 10px;
@@ -1887,17 +1590,6 @@ td .commit-summary {
   padding: 1em;
 }
 
-.edit-label.modal .form .column,
-.new-label.modal .form .column {
-  padding-right: 0;
-}
-
-.edit-label.modal .form .buttons,
-.new-label.modal .form .buttons {
-  margin-left: auto;
-  padding-top: 15px;
-}
-
 .stats-table {
   display: table;
   width: 100%;
@@ -1965,30 +1657,18 @@ td .commit-summary {
   display: flex;
   align-items: center;
   gap: 8px;
-  justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 .repo-button-row-left,
 .repo-button-row-right {
   display: flex;
-  flex: 1;
   align-items: center;
   gap: 0.5rem;
 }
 
-.repo-button-row-right {
-  justify-content: flex-end;
-}
-
-.repo-button-row[data-is-homepage="false"] .repo-button-row-right {
-  flex-grow: 0;
-}
-
-@media (max-width: 991px) {
-  .repository:not(.wiki) .repo-button-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.repo-button-row-left {
+  flex: 1;
 }
 
 .repo-button-row .button {
@@ -2002,14 +1682,61 @@ td .commit-summary {
   padding-right: 22px !important; /* normal buttons have !important paddings, so we need to override it for dropdown (Add File) icons */
 }
 
-.repo-button-row input {
-  height: 30px;
+tbody.commit-list {
+  vertical-align: baseline;
 }
 
-@media (max-width: 600px) {
-  .repo-button-row-left {
-    flex-wrap: wrap;
+.message-wrapper,
+.author-wrapper {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.author-wrapper {
+  max-width: 180px;
+  align-self: center;
+  white-space: nowrap;
+}
+
+/* in the commit list, messages can wrap so we can use inline */
+.commit-list .message-wrapper {
+  display: inline;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767.98px) {
+  tr.commit-list {
+    width: 100%;
   }
+  .author-wrapper {
+    max-width: 80px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+  tr.commit-list {
+    width: 723px;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1200px) {
+  tr.commit-list {
+    width: 933px;
+  }
+}
+
+@media (min-width: 1201px) {
+  tr.commit-list {
+    width: 1127px;
+  }
+}
+
+.commit-list .commit-status-link {
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .commit-body {
@@ -2048,6 +1775,7 @@ td .commit-summary {
   font-weight: var(--font-weight-normal);
   cursor: pointer;
   margin: 0;
+  display: inline-block !important;
 }
 
 #new-dependency-drop-list.ui.selection.dropdown {
@@ -2193,12 +1921,6 @@ td .commit-summary {
 
 .title_wip_desc {
   margin-top: 1em;
-}
-
-.sidebar-item-link {
-  display: inline-flex;
-  align-items: center;
-  word-break: break-all;
 }
 
 .diff-file-header {
@@ -2380,25 +2102,6 @@ td .commit-summary {
 }
 
 @media (max-width: 767.98px) {
-  .repository.file.list #repo-files-table .entry,
-  .repository.file.list #repo-files-table .commit-list {
-    align-items: center;
-    display: flex !important;
-    padding-top: 4px;
-    padding-bottom: 4px;
-  }
-  .repository.file.list #repo-files-table .entry td.age,
-  .repository.file.list #repo-files-table .commit-list td.age,
-  .repository.file.list #repo-files-table .entry th.age,
-  .repository.file.list #repo-files-table .commit-list th.age {
-    margin-left: auto;
-  }
-  .repository.file.list #repo-files-table .entry td.message,
-  .repository.file.list #repo-files-table .commit-list td.message,
-  .repository.file.list #repo-files-table .entry span.commit-summary,
-  .repository.file.list #repo-files-table .commit-list tr span.commit-summary {
-    display: none !important;
-  }
   .repository.view.issue .comment-list .timeline,
   .repository.view.issue .comment-list .timeline-item {
     margin-left: 0;
@@ -2572,9 +2275,9 @@ td .commit-summary {
 /* FIXME: These media selectors are not ideal (just keep them from old code).
     There are many different pages, some need the max-width while some others don't,
     they should be tested and improved in the future. */
-@media (min-width: 768px) and (max-width: 991.98px) {
+@media (min-width: 768px) and (max-width: 1235px) {
   .branch-selector-dropdown .branch-dropdown-button {
-    max-width: 185px;
+    max-width: 301px;
   }
 }
 

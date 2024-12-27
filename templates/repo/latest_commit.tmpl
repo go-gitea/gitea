@@ -1,8 +1,8 @@
 {{if not .LatestCommit}}
-	<div class="ui active tiny slow centered inline">…</div>
+	…
 {{else}}
 	{{if .LatestCommitUser}}
-		{{ctx.AvatarUtils.Avatar .LatestCommitUser 24}}
+		{{ctx.AvatarUtils.Avatar .LatestCommitUser 24 "tw-mr-1"}}
 		{{if and .LatestCommitUser.FullName DefaultShowFullName}}
 			<a class="muted author-wrapper" title="{{.LatestCommitUser.FullName}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 		{{else}}

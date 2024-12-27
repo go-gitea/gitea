@@ -23,7 +23,6 @@
   --height-loading: 16rem;
   --min-height-textarea: 132px; /* padding + 6 lines + border = calc(1.57142em + 6lh + 2px), but lh is not fully supported */
   --tab-size: 4;
-  --font-size-mono: 0.95em; /* compensate for monospace fonts being usually slightly larger */
   --checkbox-size: 15px; /* height and width of checkbox and radio inputs */
   --page-spacing: 16px; /* space between page elements */
   --page-margin-x: 32px; /* minimum space on left and right side of page */
@@ -86,7 +85,7 @@ code,
 kbd,
 samp,
 .tw-font-mono {
-  font-size: var(--font-size-mono);
+  font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
 }
 
 b,
@@ -752,16 +751,6 @@ input:-webkit-autofill:active,
   display: inline-block; /* not sure whether it is still needed */
 }
 
-.commit-hash-link {
-  color: inherit;
-  font-family: var(--fonts-monospace);
-  font-size: var(--font-size-mono);
-}
-
-.commit-hash-link:hover {
-  color: inherit;
-}
-
 .ui .button.truncate {
   display: inline-block;
   max-width: 100%;
@@ -1292,7 +1281,6 @@ table th[data-sortt-desc] .svg {
   font-weight: var(--font-weight-semibold) !important;
   line-height: 6px !important;
   vertical-align: middle !important;
-  flex-shrink: 0;
 }
 
 .truncated-item-name {

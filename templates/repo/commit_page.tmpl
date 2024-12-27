@@ -55,14 +55,17 @@
 										</div>
 										<div class="content">
 											<p id="cherry-pick-content" class="branch-dropdown"></p>
-											{{template "repo/branch_dropdown" dict "root" .
-												"noTag" true "disableCreateBranch" true
-												"branchForm" "branch-dropdown-form"
-												"branchURLPrefix" (printf "%s/_cherrypick/%s/" $.RepoLink .CommitID) "branchURLSuffix" ""
-												"setAction" true "submitForm" true}}
-											<form method="get" action="{{$.RepoLink}}/_cherrypick/{{.CommitID}}/{{if $.BranchName}}{{PathEscapeSegments $.BranchName}}{{else}}{{PathEscapeSegments $.Repository.DefaultBranch}}{{end}}" id="branch-dropdown-form">
-												<input type="hidden" name="ref" value="{{if $.BranchName}}{{$.BranchName}}{{else}}{{$.Repository.DefaultBranch}}{{end}}">
-												<input type="hidden" name="refType" value="branch">
+
+											<form method="get">
+												{{/*FIXME: CurrentRefShortName seems not making sense here (old code),
+												because the "commit page" has no "$.BranchName" info, so only using DefaultBranch should be enough */}}
+												{{template "repo/branch_dropdown" dict
+													"Repository" .Repository
+													"ShowTabBranches" true
+													"CurrentRefType" "branch"
+													"CurrentRefShortName" (or $.BranchName $.Repository.DefaultBranch)
+													"RefFormActionTemplate" (print "{RepoLink}/_cherrypick/" .CommitID "/{RefShortName}")
+												}}
 												<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br>
 												<button type="submit" id="cherry-pick-submit" class="ui primary button"></button>
 											</form>
@@ -124,7 +127,7 @@
 				{{end}}
 			</div>
 			{{if IsMultilineCommitMessage .Commit.Message}}
-				<pre class="commit-body">{{RenderCommitBody $.Context .Commit.Message ($.Repository.ComposeMetas ctx)}}</pre>
+				<pre class="commit-body">{{ctx.RenderUtils.RenderCommitBody .Commit.Message ($.Repository.ComposeMetas ctx)}}</pre>
 			{{end}}
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
@@ -141,7 +144,7 @@
 						{{ctx.AvatarUtils.AvatarByEmail .Commit.Author.Email .Commit.Author.Email 20}}
 						<strong>{{.Commit.Author.Name}}</strong>
 					{{end}}
-					<span class="text grey" id="authored-time">{{TimeSince .Commit.Author.When ctx.Locale}}</span>
+					<span class="text grey tw-ml-2" id="authored-time">{{DateUtils.TimeSince .Commit.Author.When}}</span>
 					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
 						<span class="text grey">{{ctx.Locale.Tr "repo.diff.committed_by"}}</span>
 						{{if ne .Verification.CommittingUser.ID 0}}
@@ -173,7 +176,7 @@
 		</div>
 		{{if .NoteRendered}}
 			<div class="ui top attached header segment git-notes">
-				{{svg "octicon-note" 16}}
+				{{svg "octicon-note" 16 "tw-mr-2"}}
 				{{ctx.Locale.Tr "repo.diff.git-notes"}}:
 				{{if .NoteAuthor}}
 					<a href="{{.NoteAuthor.HomeLink}}">
@@ -186,7 +189,7 @@
 				{{else}}
 					<strong>{{.NoteCommit.Author.Name}}</strong>
 				{{end}}
-				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When ctx.Locale}}</span>
+				<span class="text grey" id="note-authored-time">{{DateUtils.TimeSince .NoteCommit.Author.When}}</span>
 			</div>
 			<div class="ui bottom attached info segment git-notes">
 				<pre class="commit-body">{{.NoteRendered | SanitizeHTML}}</pre>
