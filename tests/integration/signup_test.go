@@ -4,12 +4,12 @@
 package integration
 
 import (
-	"code.gitea.io/gitea/models/db"
 	"fmt"
 	"net/http"
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -133,7 +133,6 @@ func TestSignupEmailActive(t *testing.T) {
 	assert.Equal(t, "EmAiL-changed@example.com", user.Email)
 
 	// access "user/activate" with a valid activation code, then get the "verify password" page
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "Test-User-1"})
 	resp = session.MakeRequest(t, NewRequest(t, "GET", "/user/activate?code="+activationCode), http.StatusOK)
 	assert.Contains(t, resp.Body.String(), `<input id="verify-password"`)
 

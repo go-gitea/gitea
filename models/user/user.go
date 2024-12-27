@@ -855,9 +855,11 @@ func GetVerifyUser(ctx context.Context, code string) (user *User) {
 
 type TimeLimitCodePurpose string
 
-const TimeLimitCodeActivateAccount TimeLimitCodePurpose = "activate_account"
-const TimeLimitCodeActivateEmail TimeLimitCodePurpose = "activate_email"
-const TimeLimitCodeResetPassword TimeLimitCodePurpose = "reset_password"
+const (
+	TimeLimitCodeActivateAccount TimeLimitCodePurpose = "activate_account"
+	TimeLimitCodeActivateEmail   TimeLimitCodePurpose = "activate_email"
+	TimeLimitCodeResetPassword   TimeLimitCodePurpose = "reset_password"
+)
 
 type TimeLimitCodeOptions struct {
 	Purpose  TimeLimitCodePurpose
