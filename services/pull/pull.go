@@ -122,7 +122,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		issue.Index = idx
-		issue.Title, _ = util.SplitStringAtByteN(issue.Title, 255)
+		issue.Title = util.EllipsisDisplayString(issue.Title, 255)
 
 		if err = issues_model.NewIssueWithIndex(ctx, issue.Poster, issues_model.NewIssueOptions{
 			Repo:        repo,

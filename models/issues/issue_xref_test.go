@@ -78,7 +78,7 @@ func changeIssueTitle(ctx context.Context, issue *issues_model.Issue, doer *user
 	}
 	defer committer.Close()
 
-	issue.Title, _ = util.SplitStringAtByteN(issue.Title, 255)
+	issue.Title = util.EllipsisDisplayString(issue.Title, 255)
 	if err = issues_model.UpdateIssueCols(ctx, issue, "name"); err != nil {
 		return fmt.Errorf("updateIssueCols: %w", err)
 	}

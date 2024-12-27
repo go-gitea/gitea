@@ -40,7 +40,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 		}
 
 		issue.Index = idx
-		issue.Title, _ = util.SplitStringAtByteN(issue.Title, 255)
+		issue.Title = util.EllipsisDisplayString(issue.Title, 255)
 
 		if err = issues_model.NewIssueWithIndex(ctx, issue.Poster, issues_model.NewIssueOptions{
 			Repo:        repo,
@@ -104,7 +104,7 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 		}
 	}
 
-	issue.Title, _ = util.SplitStringAtByteN(issue.Title, 255)
+	issue.Title = util.EllipsisDisplayString(issue.Title, 255)
 	if err := issues_model.UpdateIssueCols(ctx, issue, "name"); err != nil {
 		return fmt.Errorf("updateIssueCols: %w", err)
 	}
