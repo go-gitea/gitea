@@ -16,11 +16,7 @@
 		{{end}}
 	{{end}}
 
-	<a rel="nofollow" class="ui label commit-id-short" href="{{.RepoLink}}/commit/{{PathEscape .LatestCommit.ID.String}}">{{ShortSha .LatestCommit.ID.String}}</a>
-
-	{{if .LatestCommitVerification}}
-		{{template "repo/signature_badge" dict "CommitSignVerification" .LatestCommitVerification}}
-	{{end}}
+	{{template "repo/commit_sign_badge" dict "Commit" .LatestCommit "CommitBaseLink" (print .RepoLink "/commit") "CommitSignVerification" .LatestCommitVerification}}
 
 	{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses}}
 

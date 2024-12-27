@@ -5,11 +5,7 @@
 				{{if $commit.OnlyRelation}}
 					<span></span>
 				{{else}}
-					<a class="ui label commit-id-short" href="{{$.RepoLink}}/commit/{{$commit.Rev|PathEscape}}" rel="nofollow">{{ShortSha $commit.Commit.ID.String}}</a>
-
-					{{- if $commit.Verification -}}
-						{{template "repo/signature_badge" dict "CommitSignVerification" $commit.Verification}}
-					{{- end -}}
+					{{template "repo/commit_sign_badge" dict "Commit" $commit.Commit "CommitBaseLink" (print $.RepoLink "/commit") "CommitSignVerification" $commit.Verification}}
 
 					<span class="message tw-inline-block gt-ellipsis">
 						<span>{{ctx.RenderUtils.RenderCommitMessage $commit.Subject ($.Repository.ComposeMetas ctx)}}</span>

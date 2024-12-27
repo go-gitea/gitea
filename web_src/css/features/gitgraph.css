@@ -60,6 +60,11 @@
   gap: 0.25em;
 }
 
+#git-graph-container li .ui.label.commit-id-short {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
 #git-graph-container li .node-relation {
   font-family: var(--fonts-monospace);
 }

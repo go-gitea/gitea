@@ -29,18 +29,15 @@
 						</div>
 					</td>
 					<td class="sha">
-						{{$commitShaLink := ""}}
+						{{$commitBaseLink := ""}}
 						{{if $.PageIsWiki}}
-							{{$commitShaLink = (printf "%s/wiki/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
+							{{$commitBaseLink = printf "%s/wiki/commit" $commitRepoLink}}
 						{{else if $.PageIsPullCommits}}
-							{{$commitShaLink = (printf "%s/pulls/%d/commits/%s" $commitRepoLink $.Issue.Index (PathEscape .ID.String))}}
+							{{$commitBaseLink = printf "%s/pulls/%d/commits" $commitRepoLink $.Issue.Index}}
 						{{else if $.Reponame}}
-							{{$commitShaLink = (printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
+							{{$commitBaseLink = printf "%s/commit" $commitRepoLink}}
 						{{end}}
-						<a {{if $commitShaLink}}href="{{$commitShaLink}}"{{end}} class="ui label commit-id-short">{{ShortSha .ID.String}}</a>
-						{{if .Verification}}
-							{{template "repo/signature_badge" dict "CommitSignVerification" .Verification}}
-						{{end}}
+						{{template "repo/commit_sign_badge" dict "Commit" . "CommitBaseLink" $commitBaseLink "CommitSignVerification" .Verification}}
 					</td>
 					<td class="message">
 						<span class="message-wrapper">
