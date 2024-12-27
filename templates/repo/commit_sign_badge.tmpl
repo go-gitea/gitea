@@ -2,7 +2,9 @@
 * Commit
 * CommitBaseLink
 * CommitSignVerification
-If you'd like to modify this template, you could test it on the devtest page
+If you'd like to modify this template, you could test it on the devtest page.
+ATTENTION: this template could be re-rendered many times (on the graph and commit list page),
+so this template should be kept as small as possbile, DO NOT put large components like modal/dialog into it.
 */}}
 {{- $commit := $.Commit -}}
 {{- $commitBaseLink := $.CommitBaseLink -}}
@@ -55,19 +57,21 @@ If you'd like to modify this template, you could test it on the devtest page
 	{{- ShortSha $commit.ID.String -}}
 {{- end -}}
 	<span class="ui label commit-sign-badge {{$extraClass}}">
-	  {{- if $verified -}}
-		  {{- if and $signingUser $signingUser.ID -}}
-			  <span data-tooltip-content="{{$msgReason}}">{{svg "gitea-lock"}}</span>
-			  <span data-tooltip-content="{{$msgSigningKey}}">{{ctx.AvatarUtils.Avatar $signingUser 16}}</span>
-		  {{- else -}}
-			  <span data-tooltip-content="{{$msgReason}}">{{svg "gitea-lock-cog"}}</span>
-			  <span data-tooltip-content="{{$msgSigningKey}}">{{ctx.AvatarUtils.AvatarByEmail $signingEmail "" 16}}</span>
-		  {{- end -}}
-	  {{- else -}}
-		  <span data-tooltip-content="{{$msgReason}}">{{svg "gitea-unlock"}}</span>
-	  {{- end -}}
-  </span>
+		{{- if $verified -}}
+			{{- if and $signingUser $signingUser.ID -}}
+				<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-lock"}}</span>
+				<span data-tooltip-content="{{$msgSigningKey}}">{{ctx.AvatarUtils.Avatar $signingUser 16}}</span>
+			{{- else -}}
+				<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-lock-cog"}}</span>
+				<span data-tooltip-content="{{$msgSigningKey}}">{{ctx.AvatarUtils.AvatarByEmail $signingEmail "" 16}}</span>
+			{{- end -}}
+		{{- else -}}
+			<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-unlock"}}</span>
+		{{- end -}}
+	</span>
 
 {{- if $commit -}}
 </a>
 {{- end -}}
+
+{{- /* This template should be kept as small as possbile, DO NOT put large components like modal/dialog into it. */ -}}
