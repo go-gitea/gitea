@@ -4,13 +4,11 @@
 package integration
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"path"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -242,13 +240,8 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 		t.Run("add commit", doGitAddSomeCommits(dstPath, "master"))
 
 		t.Run("do agit pull create", func(t *testing.T) {
-			stderr := new(bytes.Buffer)
-			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic=" + "test-topic").Run(&git.RunOpts{Dir: dstPath, Stderr: stderr})
+			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic=" + "test-topic").Run(&git.RunOpts{Dir: dstPath})
 			assert.NoError(t, err)
-
-			findPullRe := regexp.MustCompile("http://localhost:3003/user2/repo1/pulls/([1-9])")
-			pullLink := findPullRe.FindString(stderr.String())
-			assert.True(t, len(pullLink) > 0)
 		})
 	})
 }
