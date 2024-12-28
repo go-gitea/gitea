@@ -64,7 +64,8 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}
 
 	// user should be a collaborator or a member of the organization for base repo
-	if !issue.Poster.IsAdmin {
+	canCreate := issue.Poster.IsAdmin || pr.Flow == issues_model.PullRequestFlowAGit
+	if !canCreate {
 		canCreate, err := repo_model.IsOwnerMemberCollaborator(ctx, repo, issue.Poster.ID)
 		if err != nil {
 			return err
