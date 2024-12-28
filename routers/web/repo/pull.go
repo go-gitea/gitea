@@ -1356,7 +1356,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.pulls.push_rejected"),
 				"Summary": ctx.Tr("repo.pulls.new.blocked_user"),
-				"Details": "",
 			})
 			if err != nil {
 				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
@@ -1367,7 +1366,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.pulls.push_rejected"),
 				"Summary": ctx.Tr("repo.pulls.new.must_collaborator"),
-				"Details": "",
 			})
 			if err != nil {
 				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
