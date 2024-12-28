@@ -30,6 +30,9 @@ async function tryOnEditContent(e) {
 
   const saveAndRefresh = async (e) => {
     e.preventDefault();
+    // we are already in a form, do not bubble up to the document otherwise there will be other "form submit handlers"
+    // at the moment, the form submit event conflicts with initRepoDiffConversationForm (global '.conversation-holder form' event handler)
+    e.stopPropagation();
     renderContent.classList.add('is-loading');
     showElem(renderContent);
     hideElem(editContentZone);

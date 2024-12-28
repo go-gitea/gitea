@@ -928,7 +928,8 @@ strong.attention-caution, svg.attention-caution {
   color: var(--color-red-dark-1);
 }
 
-.center:not(.popup) {
+/* FIXME: this is a longstanding dirty patch since 2015, it only makes the pages more messy and shouldn't be used */
+.center {
   text-align: center;
 }
 
