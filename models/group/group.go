@@ -19,6 +19,7 @@ type Group struct {
 	Name        string           `xorm:"INDEX NOT NULL"`
 	DisplayName string           `xorm:"TEXT"`
 	Description string           `xorm:"TEXT"`
+	Avatar      string              `xorm:"VARCHAR(64)"`
 
 	ParentGroupID int64     `xorm:"INDEX DEFAULT NULL"`
 	Subgroups     GroupList `xorm:"-"`
