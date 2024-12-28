@@ -3,6 +3,7 @@ package group
 import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"context"
 	"errors"
@@ -20,6 +21,8 @@ type Group struct {
 	Name        string           `xorm:"INDEX NOT NULL"`
 	FullName    string           `xorm:"TEXT"` // displayed in places like navigation menus
 	Description string           `xorm:"TEXT"`
+	IsPrivate   bool
+	Visibility  structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 	Avatar      string              `xorm:"VARCHAR(64)"`
 
 	ParentGroupID int64     `xorm:"INDEX DEFAULT NULL"`
