@@ -12,7 +12,9 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/git"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
@@ -80,6 +82,30 @@ func testPullCreateDirectly(t *testing.T, session *TestSession, baseRepoOwner, b
 		"title": title,
 	})
 	resp = session.MakeRequest(t, req, http.StatusOK)
+	return resp
+}
+
+func testPullCreateFailure(t *testing.T, session *TestSession, baseRepoOwner, baseRepoName, baseBranch, headRepoOwner, headRepoName, headBranch, title string) *httptest.ResponseRecorder {
+	headCompare := headBranch
+	if headRepoOwner != "" {
+		if headRepoName != "" {
+			headCompare = fmt.Sprintf("%s/%s:%s", headRepoOwner, headRepoName, headBranch)
+		} else {
+			headCompare = fmt.Sprintf("%s:%s", headRepoOwner, headBranch)
+		}
+	}
+	req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/compare/%s...%s", baseRepoOwner, baseRepoName, baseBranch, headCompare))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	// Submit the form for creating the pull
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+	assert.True(t, exists, "The template has changed")
+	req = NewRequestWithValues(t, "POST", link, map[string]string{
+		"_csrf": htmlDoc.GetCSRF(),
+		"title": title,
+	})
+	resp = session.MakeRequest(t, req, http.StatusInternalServerError)
 	return resp
 }
 
@@ -243,5 +269,56 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic=" + "test-topic").Run(&git.RunOpts{Dir: dstPath})
 			assert.NoError(t, err)
 		})
+	})
+}
+
+/*
+Setup: user2 has repository, user1 forks it
+---
+
+1. User2 blocks User1
+2. User1 adds changes to fork
+3. User1 attempts to create a pull request
+4. User1 sees alert that the action is not allowed because of the block
+*/
+func TestCreatePullWhenBlocked(t *testing.T) {
+	RepoOwner := "user2"
+	ForkOwner := "user1"
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		// Setup
+		// User1 forks repo1 from User2
+		sessionFork := loginUser(t, ForkOwner)
+		testRepoFork(t, sessionFork, RepoOwner, "repo1", ForkOwner, "repo1", "")
+
+		// 1. User2 blocks user1
+		// sessionBase := loginUser(t, "user2")
+		token := getUserToken(t, RepoOwner, auth_model.AccessTokenScopeWriteUser)
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/blocks/%s", ForkOwner)).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+		req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/blocks/%s", ForkOwner)).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+		req = NewRequest(t, "GET", "/api/v1/user/blocks").
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var users []api.User
+		DecodeJSON(t, resp, &users)
+
+		assert.Len(t, users, 1)
+
+		// 2. User1 adds changes to fork
+		testEditFile(t, sessionFork, ForkOwner, "repo1", "master", "README.md", "Hello, World (Edited)\n")
+
+		// 3. User1 attempts to create a pull request
+		testPullCreateFailure(t, sessionFork, RepoOwner, "repo1", "master", ForkOwner, "repo1", "master", "This is a pull title")
+
+		// Teardown
+		// Unblock user
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/blocks/%s", RepoOwner)).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
 	})
 }
