@@ -1591,7 +1591,7 @@ td .commit-summary {
   align-items: center;
 }
 
-.labels-list .label {
+.labels-list .label, .scope-parent > .label {
   padding: 0 6px;
   min-height: 20px;
   line-height: 1.3; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
