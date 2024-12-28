@@ -38,6 +38,8 @@ function initRepoDiffFileViewToggle() {
 }
 
 function initRepoDiffConversationForm() {
+  // FIXME: there could be various different form in a conversation-holder (for example: reply form, edit form).
+  // This listener is for "reply form" only, it should clearly distinguish different forms in the future.
   addDelegatedEventListener<HTMLFormElement, SubmitEvent>(document, 'submit', '.conversation-holder form', async (form, e) => {
     e.preventDefault();
     const textArea = form.querySelector<HTMLTextAreaElement>('textarea');
