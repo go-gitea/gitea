@@ -10,6 +10,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"strconv"
 	"xorm.io/builder"
 )
 
@@ -30,6 +32,11 @@ type Group struct {
 	ParentGroupID int64     `xorm:"INDEX DEFAULT NULL"`
 	ParentGroup   *Group    `xorm:"-"`
 	Subgroups     GroupList `xorm:"-"`
+}
+
+// GroupLink returns the link to this group
+func (g *Group) GroupLink() string {
+	return setting.AppSubURL + "/" + url.PathEscape(g.OwnerName) + "/groups/" + strconv.FormatInt(g.ID, 10)
 }
 
 func (Group) TableName() string { return "repo_group" }
