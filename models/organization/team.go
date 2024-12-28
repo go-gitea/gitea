@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -78,9 +77,8 @@ type Team struct {
 	LowerName               string
 	Name                    string
 	Description             string
-	AccessMode              perm.AccessMode          `xorm:"'authorize'"`
-	Repos                   []*repo_model.Repository `xorm:"-"`
-	Members                 []*user_model.User       `xorm:"-"`
+	AccessMode              perm.AccessMode    `xorm:"'authorize'"`
+	Members                 []*user_model.User `xorm:"-"`
 	NumRepos                int
 	NumMembers              int
 	Units                   []*TeamUnit `xorm:"-"`
@@ -153,17 +151,6 @@ func (t *Team) IsMember(ctx context.Context, userID int64) bool {
 		return false
 	}
 	return isMember
-}
-
-// LoadRepositories returns paginated repositories in team of organization.
-func (t *Team) LoadRepositories(ctx context.Context) (err error) {
-	if t.Repos != nil {
-		return nil
-	}
-	t.Repos, err = GetTeamRepositories(ctx, &SearchTeamRepoOptions{
-		TeamID: t.ID,
-	})
-	return err
 }
 
 // LoadMembers returns paginated members in team of organization.

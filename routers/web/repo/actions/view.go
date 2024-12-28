@@ -205,8 +205,11 @@ func ViewPost(ctx *context_module.Context) {
 		}
 	}
 
+	// TODO: "ComposeMetas" (usually for comment) is not quite right, but it is still the same as what template "RenderCommitMessage" does.
+	// need to be refactored together in the future
 	metas := ctx.Repo.Repository.ComposeMetas(ctx)
 
+	// the title for the "run" is from the commit message
 	resp.State.Run.Title = run.Title
 	resp.State.Run.TitleHTML = templates.NewRenderUtils(ctx).RenderCommitMessage(run.Title, metas)
 	resp.State.Run.Link = run.Link()

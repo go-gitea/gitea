@@ -11,27 +11,27 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
-	tplBranch base.TplName = "repo/branch/list"
+	tplBranch templates.TplName = "repo/branch/list"
 )
 
 // Branches render repository branch page
@@ -203,14 +203,14 @@ func CreateBranch(ctx *context.Context) {
 		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
-		if models.IsErrProtectedTagName(err) {
+		if release_service.IsErrProtectedTagName(err) {
 			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 			return
 		}
 
-		if models.IsErrTagAlreadyExists(err) {
-			e := err.(models.ErrTagAlreadyExists)
+		if release_service.IsErrTagAlreadyExists(err) {
+			e := err.(release_service.ErrTagAlreadyExists)
 			ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 			return
@@ -267,7 +267,7 @@ func MergeUpstream(ctx *context.Context) {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.JSONError(ctx.Tr("error.not_found"))
 			return
-		} else if models.IsErrMergeConflicts(err) {
+		} else if pull_service.IsErrMergeConflicts(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.merge_conflict"))
 			return
 		}

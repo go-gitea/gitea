@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	source_service "code.gitea.io/gitea/services/auth/source"
@@ -31,7 +32,12 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		return nil, user_model.ErrUserNotExist{Name: loginName}
 	}
 	// Fallback.
+	// FIXME: this fallback would cause problems when the "Username" attribute is not set and a user inputs their email.
+	// In this case, the email would be used as the username, and will cause the "CreateUser" failure for the first login.
 	if sr.Username == "" {
+		if strings.Contains(userName, "@") {
+			log.Error("No username in search result (Username Attribute is not set properly?), using email as username might cause problems")
+		}
 		sr.Username = userName
 	}
 	if sr.Mail == "" {

@@ -15,9 +15,9 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/auth/pam"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -33,9 +33,9 @@ import (
 )
 
 const (
-	tplAuths    base.TplName = "admin/auth/list"
-	tplAuthNew  base.TplName = "admin/auth/new"
-	tplAuthEdit base.TplName = "admin/auth/edit"
+	tplAuths    templates.TplName = "admin/auth/list"
+	tplAuthNew  templates.TplName = "admin/auth/new"
+	tplAuthEdit templates.TplName = "admin/auth/edit"
 )
 
 var (
@@ -337,7 +337,7 @@ func EditAuthSource(ctx *context.Context) {
 	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
-	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64(":authid"))
+	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64("authid"))
 	if err != nil {
 		ctx.ServerError("auth.GetSourceByID", err)
 		return
@@ -371,7 +371,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
-	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64(":authid"))
+	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64("authid"))
 	if err != nil {
 		ctx.ServerError("auth.GetSourceByID", err)
 		return
@@ -442,7 +442,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 
 // DeleteAuthSource response for deleting an auth source
 func DeleteAuthSource(ctx *context.Context) {
-	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64(":authid"))
+	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64("authid"))
 	if err != nil {
 		ctx.ServerError("auth.GetSourceByID", err)
 		return
@@ -454,7 +454,7 @@ func DeleteAuthSource(ctx *context.Context) {
 		} else {
 			ctx.Flash.Error(fmt.Sprintf("auth_service.DeleteSource: %v", err))
 		}
-		ctx.JSONRedirect(setting.AppSubURL + "/-/admin/auths/" + url.PathEscape(ctx.PathParam(":authid")))
+		ctx.JSONRedirect(setting.AppSubURL + "/-/admin/auths/" + url.PathEscape(ctx.PathParam("authid")))
 		return
 	}
 	log.Trace("Authentication deleted by admin(%s): %d", ctx.Doer.Name, source.ID)

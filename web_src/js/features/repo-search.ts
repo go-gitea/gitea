@@ -1,8 +1,10 @@
+import type {DOMEvent} from '../utils/dom.ts';
+
 export function initRepositorySearch() {
   const repositorySearchForm = document.querySelector<HTMLFormElement>('#repo-search-form');
   if (!repositorySearchForm) return;
 
-  repositorySearchForm.addEventListener('change', (e: Event & {target: HTMLFormElement}) => {
+  repositorySearchForm.addEventListener('change', (e: DOMEvent<Event, HTMLInputElement>) => {
     e.preventDefault();
 
     const params = new URLSearchParams();

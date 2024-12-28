@@ -10,6 +10,8 @@ import (
 	"sort"
 	"time"
 
+	"code.gitea.io/gitea/modules/gtprof"
+
 	"github.com/google/pprof/profile"
 )
 
@@ -202,7 +204,7 @@ func (pm *Manager) ProcessStacktraces(flat, noSystem bool) ([]*Process, int, int
 
 		// Add the non-process associated labels from the goroutine sample to the Stack
 		for name, value := range sample.Label {
-			if name == DescriptionPProfLabel || name == PIDPProfLabel || (!flat && name == PPIDPProfLabel) || name == ProcessTypePProfLabel {
+			if name == gtprof.LabelProcessDescription || name == gtprof.LabelPid || (!flat && name == gtprof.LabelPpid) || name == gtprof.LabelProcessType {
 				continue
 			}
 
@@ -224,7 +226,7 @@ func (pm *Manager) ProcessStacktraces(flat, noSystem bool) ([]*Process, int, int
 		var process *Process
 
 		// Try to get the PID from the goroutine labels
-		if pidvalue, ok := sample.Label[PIDPProfLabel]; ok && len(pidvalue) == 1 {
+		if pidvalue, ok := sample.Label[gtprof.LabelPid]; ok && len(pidvalue) == 1 {
 			pid := IDType(pidvalue[0])
 
 			// Now try to get the process from our map
@@ -238,20 +240,20 @@ func (pm *Manager) ProcessStacktraces(flat, noSystem bool) ([]*Process, int, int
 
 				// get the parent PID
 				ppid := IDType("")
-				if value, ok := sample.Label[PPIDPProfLabel]; ok && len(value) == 1 {
+				if value, ok := sample.Label[gtprof.LabelPpid]; ok && len(value) == 1 {
 					ppid = IDType(value[0])
 				}
 
 				// format the description
 				description := "(dead process)"
-				if value, ok := sample.Label[DescriptionPProfLabel]; ok && len(value) == 1 {
+				if value, ok := sample.Label[gtprof.LabelProcessDescription]; ok && len(value) == 1 {
 					description = value[0] + " " + description
 				}
 
 				// override the type of the process to "code" but add the old type as a label on the first stack
 				ptype := NoneProcessType
-				if value, ok := sample.Label[ProcessTypePProfLabel]; ok && len(value) == 1 {
-					stack.Labels = append(stack.Labels, &Label{Name: ProcessTypePProfLabel, Value: value[0]})
+				if value, ok := sample.Label[gtprof.LabelProcessType]; ok && len(value) == 1 {
+					stack.Labels = append(stack.Labels, &Label{Name: gtprof.LabelProcessType, Value: value[0]})
 				}
 				process = &Process{
 					PID:         pid,

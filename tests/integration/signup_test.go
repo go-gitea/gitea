@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -99,34 +100,39 @@ func TestSignupEmailActive(t *testing.T) {
 
 	// try to sign up and send the activation email
 	req := NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
-		"user_name": "test-user-1",
-		"email":     "email-1@example.com",
+		"user_name": "Test-User-1",
+		"email":     "EmAiL-1@example.com",
 		"password":  "password1",
 		"retype":    "password1",
 	})
 	resp := MakeRequest(t, req, http.StatusOK)
-	assert.Contains(t, resp.Body.String(), `A new confirmation email has been sent to <b>email-1@example.com</b>.`)
+	assert.Contains(t, resp.Body.String(), `A new confirmation email has been sent to <b>EmAiL-1@example.com</b>.`)
 
 	// access "user/activate" means trying to re-send the activation email
 	session := loginUserWithPassword(t, "test-user-1", "password1")
 	resp = session.MakeRequest(t, NewRequest(t, "GET", "/user/activate"), http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "You have already requested an activation email recently")
 
-	// access anywhere else will see a "Activate Your Account" prompt, and there is a chance to change email
+	// access anywhere else will see an "Activate Your Account" prompt, and there is a chance to change email
 	resp = session.MakeRequest(t, NewRequest(t, "GET", "/user/issues"), http.StatusOK)
 	assert.Contains(t, resp.Body.String(), `<input id="change-email" name="change_email" `)
 
 	// post to "user/activate" with a new email
 	session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/activate", map[string]string{"change_email": "email-changed@example.com"}), http.StatusSeeOther)
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "test-user-1"})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "Test-User-1"})
 	assert.Equal(t, "email-changed@example.com", user.Email)
 	email := unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{Email: "email-changed@example.com"})
 	assert.False(t, email.IsActivated)
 	assert.True(t, email.IsPrimary)
 
+	// generate an activation code from lower-cased email
+	activationCode := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}, user)
+	// and update the user email to case-sensitive, it shouldn't affect the verification later
+	_, _ = db.Exec(db.DefaultContext, "UPDATE `user` SET email=? WHERE id=?", "EmAiL-changed@example.com", user.ID)
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "Test-User-1"})
+	assert.Equal(t, "EmAiL-changed@example.com", user.Email)
+
 	// access "user/activate" with a valid activation code, then get the "verify password" page
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "test-user-1"})
-	activationCode := user.GenerateEmailActivateCode(user.Email)
 	resp = session.MakeRequest(t, NewRequest(t, "GET", "/user/activate?code="+activationCode), http.StatusOK)
 	assert.Contains(t, resp.Body.String(), `<input id="verify-password"`)
 
@@ -138,7 +144,7 @@ func TestSignupEmailActive(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), `Your password does not match`)
 	assert.Contains(t, resp.Body.String(), `<input id="verify-password"`)
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "test-user-1"})
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "Test-User-1"})
 	assert.False(t, user.IsActive)
 
 	// then use a correct password, the user should be activated
@@ -148,6 +154,6 @@ func TestSignupEmailActive(t *testing.T) {
 	})
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "/", test.RedirectURL(resp))
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "test-user-1"})
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "Test-User-1"})
 	assert.True(t, user.IsActive)
 }

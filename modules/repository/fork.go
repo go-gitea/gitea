@@ -12,6 +12,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// CanUserForkBetweenOwners returns true if user can fork between owners.
+// By default, a user can fork a repository from another owner, but not from themselves.
+// Many users really like to fork their own repositories, so add an experimental setting to allow this.
 func CanUserForkBetweenOwners(id1, id2 int64) bool {
 	if id1 != id2 {
 		return true

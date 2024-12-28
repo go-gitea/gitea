@@ -61,7 +61,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
@@ -499,7 +499,7 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 }
 
 func getParamsIssue(ctx *context.APIContext) *issues_model.Issue {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
