@@ -102,7 +102,7 @@ func (g *Group) LoadOwner(ctx context.Context) error {
 func (g *Group) GetGroupByID(ctx context.Context, id int64) (*Group, error) {
 	group := new(Group)
 
-	has, err := db.GetEngine(ctx).ID(id).Get(g)
+	has, err := db.GetEngine(ctx).ID(id).Get(group)
 	if err != nil {
 		return nil, err
 	} else if !has {
