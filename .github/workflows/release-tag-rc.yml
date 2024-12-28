@@ -21,6 +21,9 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+      - uses: mlugg/setup-zig@v1
+        with:
+          version: 0.12.1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
