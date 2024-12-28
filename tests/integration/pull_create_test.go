@@ -104,7 +104,7 @@ func testPullCreateFailure(t *testing.T, session *TestSession, baseRepoOwner, ba
 		"_csrf": htmlDoc.GetCSRF(),
 		"title": title,
 	})
-	resp = session.MakeRequest(t, req, http.StatusInternalServerError)
+	resp = session.MakeRequest(t, req, http.StatusBadRequest)
 	return resp
 }
 
