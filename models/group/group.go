@@ -12,8 +12,9 @@ import (
 
 // Group represents a group of repositories for a user or organization
 type Group struct {
-	ID          int64            `xorm:"pk autoincr"`
-	OwnerID     int64            `xorm:"UNIQUE(s) index NOT NULL"`
+	ID          int64 `xorm:"pk autoincr"`
+	OwnerID     int64 `xorm:"UNIQUE(s) index NOT NULL"`
+	OwnerName   string
 	Owner       *user_model.User `xorm:"-"`
 	LowerName   string           `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name        string           `xorm:"INDEX NOT NULL"`
