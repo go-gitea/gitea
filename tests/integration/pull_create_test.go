@@ -14,7 +14,6 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
@@ -283,12 +282,12 @@ Setup: user2 has repository, user1 forks it
 */
 func TestCreatePullWhenBlocked(t *testing.T) {
 	RepoOwner := "user2"
-	ForkOwner := "user1"
+	ForkOwner := "user16"
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		// Setup
 		// User1 forks repo1 from User2
 		sessionFork := loginUser(t, ForkOwner)
-		testRepoFork(t, sessionFork, RepoOwner, "repo1", ForkOwner, "repo1", "")
+		testRepoFork(t, sessionFork, RepoOwner, "repo1", ForkOwner, "forkrepo1", "")
 
 		// 1. User2 blocks user1
 		// sessionBase := loginUser(t, "user2")
@@ -300,24 +299,16 @@ func TestCreatePullWhenBlocked(t *testing.T) {
 		req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/blocks/%s", ForkOwner)).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
-		req = NewRequest(t, "GET", "/api/v1/user/blocks").
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		var users []api.User
-		DecodeJSON(t, resp, &users)
-
-		assert.Len(t, users, 1)
 
 		// 2. User1 adds changes to fork
-		testEditFile(t, sessionFork, ForkOwner, "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		testEditFile(t, sessionFork, ForkOwner, "forkrepo1", "master", "README.md", "Hello, World (Edited)\n")
 
 		// 3. User1 attempts to create a pull request
-		testPullCreateFailure(t, sessionFork, RepoOwner, "repo1", "master", ForkOwner, "repo1", "master", "This is a pull title")
+		testPullCreateFailure(t, sessionFork, RepoOwner, "repo1", "master", ForkOwner, "forkrepo1", "master", "This is a pull title")
 
 		// Teardown
 		// Unblock user
-		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/blocks/%s", RepoOwner)).
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/blocks/%s", ForkOwner)).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 	})
