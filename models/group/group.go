@@ -44,6 +44,8 @@ func (Group) TableName() string { return "repo_group" }
 
 func init() {
 	db.RegisterModel(new(Group))
+	db.RegisterModel(new(GroupTeam))
+	db.RegisterModel(new(GroupUnit))
 }
 
 func (g *Group) doLoadSubgroups(ctx context.Context, recursive bool, cond builder.Cond, currentLevel int) error {
