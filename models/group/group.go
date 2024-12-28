@@ -2,6 +2,7 @@ package group
 
 import (
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -45,7 +46,7 @@ func init() {
 	db.RegisterModel(new(Group))
 }
 
-func (g *Group) doLoadSubgroups(ctx context.Context, recursive bool, currentLevel int) error {
+func (g *Group) doLoadSubgroups(ctx context.Context, recursive bool, cond builder.Cond, currentLevel int) error {
 	if currentLevel >= 20 {
 		return ErrGroupTooDeep{
 			g.ID,
@@ -55,15 +56,13 @@ func (g *Group) doLoadSubgroups(ctx context.Context, recursive bool, currentLeve
 		return nil
 	}
 	var err error
-	g.Subgroups, err = FindGroups(ctx, &FindGroupsOptions{
-		ParentGroupID: g.ID,
-	})
+	g.Subgroups, err = FindGroupsByCond(ctx, cond, g.ID)
 	if err != nil {
 		return err
 	}
 	if recursive {
 		for _, group := range g.Subgroups {
-			err = group.doLoadSubgroups(ctx, recursive, currentLevel+1)
+			err = group.doLoadSubgroups(ctx, recursive, cond, currentLevel+1)
 			if err != nil {
 				return err
 			}
@@ -73,8 +72,14 @@ func (g *Group) doLoadSubgroups(ctx context.Context, recursive bool, currentLeve
 }
 
 func (g *Group) LoadSubgroups(ctx context.Context, recursive bool) error {
-	err := g.doLoadSubgroups(ctx, recursive, 0)
-	return err
+	fgo := &FindGroupsOptions{
+		ParentGroupID: g.ID,
+	}
+	return g.doLoadSubgroups(ctx, recursive, fgo.ToConds(), 0)
+}
+
+func (g *Group) LoadAccessibleSubgroups(ctx context.Context, recursive bool, doer *user_model.User) error {
+	return g.doLoadSubgroups(ctx, recursive, AccessibleGroupCondition(doer, unit.TypeInvalid), 0)
 }
 
 func (g *Group) LoadAttributes(ctx context.Context) error {
