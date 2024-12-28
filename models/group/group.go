@@ -18,7 +18,7 @@ type Group struct {
 	Owner       *user_model.User `xorm:"-"`
 	LowerName   string           `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name        string           `xorm:"INDEX NOT NULL"`
-	DisplayName string           `xorm:"TEXT"`
+	FullName    string           `xorm:"TEXT"` // displayed in places like navigation menus
 	Description string           `xorm:"TEXT"`
 	Avatar      string              `xorm:"VARCHAR(64)"`
 
