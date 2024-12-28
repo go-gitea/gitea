@@ -1303,10 +1303,9 @@ func (c *Comment) HasOriginalAuthor() bool {
 func CountCommentsBuilder(issueID int64) *builder.Builder {
 	return builder.Select("count(*)").From("comment").Where(builder.Eq{
 		"issue_id": issueID,
-	}.And(builder.Or(
-		builder.Eq{"type": CommentTypeComment},
-		builder.Eq{"type": CommentTypeReview},
-		builder.Eq{"type": CommentTypeCode},
+	}.And(builder.In("type",
+		CommentTypeComment,
+		CommentTypeReview,
 	)).And(builder.Neq{
 		"invalidated": true,
 	}))

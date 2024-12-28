@@ -6,6 +6,7 @@ package models
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	_ "image/jpeg" // Needed for jpeg support
@@ -106,7 +107,8 @@ func userStatsCorrectNumRepos(ctx context.Context, id int64) error {
 }
 
 func repoStatsCorrectIssueNumComments(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "UPDATE `issue` SET num_comments=(SELECT COUNT(*) FROM `comment` WHERE issue_id=? AND (type=0 or type=22)) WHERE id=?", id)
+	return StatsCorrectSQL(ctx, fmt.Sprintf("UPDATE `issue` SET num_comments=(SELECT COUNT(*) FROM `comment` WHERE issue_id=? AND (type=%d or type=%d)) WHERE id=?",
+		issues_model.CommentTypeComment, issues_model.CommentTypeReview), id)
 }
 
 func repoStatsCorrectNumIssues(ctx context.Context, id int64) error {
@@ -198,7 +200,8 @@ func CheckRepoStats(ctx context.Context) error {
 		},
 		// Issue.NumComments
 		{
-			statsQuery("SELECT `issue`.id FROM `issue` WHERE `issue`.num_comments!=(SELECT COUNT(*) FROM `comment` WHERE issue_id=`issue`.id AND (type=0 OR type=22))"),
+			statsQuery(fmt.Sprintf("SELECT `issue`.id FROM `issue` WHERE `issue`.num_comments!=(SELECT COUNT(*) FROM `comment` WHERE issue_id=`issue`.id AND (type=%d OR type=%d))",
+				issues_model.CommentTypeComment, issues_model.CommentTypeReview)),
 			repoStatsCorrectIssueNumComments,
 			"issue count 'num_comments'",
 		},
