@@ -28,6 +28,7 @@ func Test_GetForkedRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
 	repo, err = repo_model.GetForkedRepo(db.DefaultContext, 13, repo.ID)
-	assert.NoError(t, err)
+	assert.Error(t, err)
+	assert.True(t, repo_model.IsErrRepoNotExist(err))
 	assert.Nil(t, repo)
 }
