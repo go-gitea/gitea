@@ -118,7 +118,7 @@ test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
 });
 
 test('file detection', () => {
-  for (const name of ['a.jpg', '/a.jpeg', '.file.png', '.webp', 'file.svg']) {
+  for (const name of ['a.avif', 'a.jpg', '/a.jpeg', '.file.png', '.webp', 'file.svg']) {
     expect(isImageFile({name})).toBeTruthy();
   }
   for (const name of ['', 'a.jpg.x', '/path.png/x', 'webp']) {

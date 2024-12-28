@@ -43,7 +43,7 @@ func TestTest(t *testing.T) {
 	elapsed, err := Test()
 	assert.NoError(t, err)
 	// mem cache should take from 300ns up to 1ms on modern hardware ...
-	assert.Less(t, elapsed, SlowCacheThreshold)
+	assert.Less(t, elapsed, time.Millisecond)
 }
 
 func TestGetCache(t *testing.T) {

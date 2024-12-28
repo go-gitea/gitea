@@ -24,15 +24,27 @@ func TestAPICompareBranches(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	repoName := "repo20"
+	t.Run("CompareBranches", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
 
-	req := NewRequestf(t, "GET", "/api/v1/repos/user2/%s/compare/add-csv...remove-files-b", repoName).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
+		var apiResp *api.Compare
+		DecodeJSON(t, resp, &apiResp)
 
-	var apiResp *api.Compare
-	DecodeJSON(t, resp, &apiResp)
+		assert.Equal(t, 2, apiResp.TotalCommits)
+		assert.Len(t, apiResp.Commits, 2)
+	})
 
-	assert.Equal(t, 2, apiResp.TotalCommits)
-	assert.Len(t, apiResp.Commits, 2)
+	t.Run("CompareCommits", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/808038d2f71b0ab02099...c8e31bc7688741a5287f").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var apiResp *api.Compare
+		DecodeJSON(t, resp, &apiResp)
+
+		assert.Equal(t, 1, apiResp.TotalCommits)
+		assert.Len(t, apiResp.Commits, 1)
+	})
 }

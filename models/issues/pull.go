@@ -572,6 +572,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *Iss
 	}
 
 	issue.Index = idx
+	issue.Title = util.EllipsisDisplayString(issue.Title, 255)
 
 	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,

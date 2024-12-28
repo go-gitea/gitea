@@ -1,5 +1,5 @@
-import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
+import {fomanticQuery} from '../../modules/fomantic/base.ts';
 
 const {appSubUrl} = window.config;
 const looksLikeEmailAddressCheck = /^\S+@\S+$/;
@@ -10,7 +10,7 @@ export function initCompSearchUserBox() {
 
   const allowEmailInput = searchUserBox.getAttribute('data-allow-email') === 'true';
   const allowEmailDescription = searchUserBox.getAttribute('data-allow-email-description') ?? undefined;
-  $(searchUserBox).search({
+  fomanticQuery(searchUserBox).search({
     minCharacters: 2,
     apiSettings: {
       url: `${appSubUrl}/user/search_candidates?q={query}`,

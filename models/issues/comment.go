@@ -114,6 +114,8 @@ const (
 
 	CommentTypePin   // 36 pin Issue
 	CommentTypeUnpin // 37 unpin Issue
+
+	CommentTypeChangeTimeEstimate // 38 Change time estimate
 )
 
 var commentStrings = []string{
@@ -155,6 +157,7 @@ var commentStrings = []string{
 	"pull_cancel_scheduled_merge",
 	"pin",
 	"unpin",
+	"change_time_estimate",
 }
 
 func (t CommentType) String() string {
@@ -1108,7 +1111,7 @@ func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, 
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
 
-	if opts.Page != 0 {
+	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, opts)
 	}
 

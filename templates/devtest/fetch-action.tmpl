@@ -1,4 +1,4 @@
-{{template "base/head" .}}
+{{template "devtest/devtest-header"}}
 <div class="page-content devtest ui container">
 	{{template "base/alert" .}}
 	<div>
@@ -11,6 +11,7 @@
 			<button class="link-action" data-url="fetch-action-test?k=1">test action</button>
 			<button class="link-action" data-url="fetch-action-test?k=1" data-modal-confirm="confirm?">test with confirm</button>
 			<button class="ui red button link-action" data-url="fetch-action-test?k=1" data-modal-confirm="confirm?">test with risky confirm</button>
+			<button class="ui button link-action" data-url="fetch-action-test?k=1" data-modal-confirm-header="confirm header" data-modal-confirm-content="confirm content">test with confirm header</button>
 		</div>
 	</div>
 	<div>
@@ -41,4 +42,4 @@
 		border: 1px red dashed; /* show the border for demo purpose */
 	}
 </style>
-{{template "base/footer" .}}
+{{template "devtest/devtest-footer"}}

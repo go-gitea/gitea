@@ -93,11 +93,6 @@
   margin-right: 15px;
 }
 
-.page-content.organization #org-info {
-  overflow-wrap: anywhere;
-  flex: 1;
-}
-
 .page-content.organization #org-info .ui.header {
   display: flex;
   align-items: center;

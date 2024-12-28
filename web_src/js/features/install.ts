@@ -22,9 +22,9 @@ function initPreInstall() {
     mssql: '127.0.0.1:1433',
   };
 
-  const dbHost = document.querySelector('#db_host');
-  const dbUser = document.querySelector('#db_user');
-  const dbName = document.querySelector('#db_name');
+  const dbHost = document.querySelector<HTMLInputElement>('#db_host');
+  const dbUser = document.querySelector<HTMLInputElement>('#db_user');
+  const dbName = document.querySelector<HTMLInputElement>('#db_name');
 
   // Database type change detection.
   document.querySelector('#db_type').addEventListener('change', function () {
@@ -48,12 +48,12 @@ function initPreInstall() {
   });
   document.querySelector('#db_type').dispatchEvent(new Event('change'));
 
-  const appUrl = document.querySelector('#app_url');
+  const appUrl = document.querySelector<HTMLInputElement>('#app_url');
   if (appUrl.value.includes('://localhost')) {
     appUrl.value = window.location.href;
   }
 
-  const domain = document.querySelector('#domain');
+  const domain = document.querySelector<HTMLInputElement>('#domain');
   if (domain.value.trim() === 'localhost') {
     domain.value = window.location.hostname;
   }
@@ -61,43 +61,43 @@ function initPreInstall() {
   // TODO: better handling of exclusive relations.
   document.querySelector('#offline-mode input').addEventListener('change', function () {
     if (this.checked) {
-      document.querySelector('#disable-gravatar input').checked = true;
-      document.querySelector('#federated-avatar-lookup input').checked = false;
+      document.querySelector<HTMLInputElement>('#disable-gravatar input').checked = true;
+      document.querySelector<HTMLInputElement>('#federated-avatar-lookup input').checked = false;
     }
   });
   document.querySelector('#disable-gravatar input').addEventListener('change', function () {
     if (this.checked) {
-      document.querySelector('#federated-avatar-lookup input').checked = false;
+      document.querySelector<HTMLInputElement>('#federated-avatar-lookup input').checked = false;
     } else {
-      document.querySelector('#offline-mode input').checked = false;
+      document.querySelector<HTMLInputElement>('#offline-mode input').checked = false;
     }
   });
   document.querySelector('#federated-avatar-lookup input').addEventListener('change', function () {
     if (this.checked) {
-      document.querySelector('#disable-gravatar input').checked = false;
-      document.querySelector('#offline-mode input').checked = false;
+      document.querySelector<HTMLInputElement>('#disable-gravatar input').checked = false;
+      document.querySelector<HTMLInputElement>('#offline-mode input').checked = false;
     }
   });
   document.querySelector('#enable-openid-signin input').addEventListener('change', function () {
     if (this.checked) {
-      if (!document.querySelector('#disable-registration input').checked) {
-        document.querySelector('#enable-openid-signup input').checked = true;
+      if (!document.querySelector<HTMLInputElement>('#disable-registration input').checked) {
+        document.querySelector<HTMLInputElement>('#enable-openid-signup input').checked = true;
       }
     } else {
-      document.querySelector('#enable-openid-signup input').checked = false;
+      document.querySelector<HTMLInputElement>('#enable-openid-signup input').checked = false;
     }
   });
   document.querySelector('#disable-registration input').addEventListener('change', function () {
     if (this.checked) {
-      document.querySelector('#enable-captcha input').checked = false;
-      document.querySelector('#enable-openid-signup input').checked = false;
+      document.querySelector<HTMLInputElement>('#enable-captcha input').checked = false;
+      document.querySelector<HTMLInputElement>('#enable-openid-signup input').checked = false;
     } else {
-      document.querySelector('#enable-openid-signup input').checked = true;
+      document.querySelector<HTMLInputElement>('#enable-openid-signup input').checked = true;
     }
   });
   document.querySelector('#enable-captcha input').addEventListener('change', function () {
     if (this.checked) {
-      document.querySelector('#disable-registration input').checked = false;
+      document.querySelector<HTMLInputElement>('#disable-registration input').checked = false;
     }
   });
 }

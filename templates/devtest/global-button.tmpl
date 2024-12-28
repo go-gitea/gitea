@@ -1,0 +1,16 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container">
+	<div>
+		<h1>Show/Hide panel</h1>
+		<div>
+			<!-- to test Space/Enter also works on non-button buttons with children -->
+			<div tabindex="0" class="ui button show-panel toggle" data-panel="#devtest-panel-show-hide"><span>Toggle panel 1</span></div>
+			<span tabindex="0" class="ui button show-panel" data-panel="#devtest-panel-show-hide"><span>Show panel 1</span></span>
+		</div>
+		<div id="devtest-panel-show-hide">
+			<div>Panel 1 content</div>
+			<div class="ui button hide-panel" data-panel-closest="div">Hide panel 1</div>
+		</div>
+	</div>
+</div>
+{{template "devtest/devtest-footer"}}

@@ -86,7 +86,9 @@ type CreatePullRequestOption struct {
 	Milestone int64    `json:"milestone"`
 	Labels    []int64  `json:"labels"`
 	// swagger:strfmt date-time
-	Deadline *time.Time `json:"due_date"`
+	Deadline      *time.Time `json:"due_date"`
+	Reviewers     []string   `json:"reviewers"`
+	TeamReviewers []string   `json:"team_reviewers"`
 }
 
 // EditPullRequestOption options when modify pull request

@@ -53,8 +53,8 @@ func parseLegacy(datetime string) time.Time {
 	return t
 }
 
-func anyToTime(any any) (t time.Time, isZero bool) {
-	switch v := any.(type) {
+func anyToTime(value any) (t time.Time, isZero bool) {
+	switch v := value.(type) {
 	case nil:
 		// it is zero
 	case *time.Time:
@@ -72,7 +72,7 @@ func anyToTime(any any) (t time.Time, isZero bool) {
 	case int64:
 		t = timeutil.TimeStamp(v).AsTime()
 	default:
-		panic(fmt.Sprintf("Unsupported time type %T", any))
+		panic(fmt.Sprintf("Unsupported time type %T", value))
 	}
 	return t, t.IsZero() || t.Unix() == 0
 }

@@ -1,13 +1,22 @@
 <script lang="ts">
 import {createApp, nextTick} from 'vue';
-import $ from 'jquery';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
+type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning';
+
+type CommitStatusMap = {
+  [status in CommitStatus]: {
+    name: string,
+    color: string,
+  };
+};
+
 // make sure this matches templates/repo/commit_status.tmpl
-const commitStatus = {
+const commitStatus: CommitStatusMap = {
   pending: {name: 'octicon-dot-fill', color: 'yellow'},
   success: {name: 'octicon-check', color: 'green'},
   error: {name: 'gitea-exclamation', color: 'red'},
@@ -102,7 +111,7 @@ const sfc = {
   mounted() {
     const el = document.querySelector('#dashboard-repo-list');
     this.changeReposFilter(this.reposFilter);
-    $(el).find('.dropdown').dropdown();
+    fomanticQuery(el.querySelector('.ui.dropdown')).dropdown();
     nextTick(() => {
       this.$refs.search.focus();
     });
@@ -281,18 +290,18 @@ const sfc = {
       return 'octicon-repo';
     },
 
-    statusIcon(status) {
+    statusIcon(status: CommitStatus) {
       return commitStatus[status].name;
     },
 
-    statusColor(status) {
+    statusColor(status: CommitStatus) {
       return commitStatus[status].color;
     },
 
     reposFilterKeyControl(e) {
       switch (e.key) {
         case 'Enter':
-          document.querySelector('.repo-owner-name-list li.active a')?.click();
+          document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();
           break;
         case 'ArrowUp':
           if (this.activeIndex > 0) {
@@ -471,7 +480,7 @@ export default sfc; // activate the IDE's Vue plugin
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
-              <div class="text truncate">{{ org.name }}</div>
+              <div class="text truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
               <div><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}

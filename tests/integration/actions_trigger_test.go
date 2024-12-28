@@ -145,7 +145,8 @@ func TestPullRequestTargetEvent(t *testing.T) {
 			BaseRepo:   baseRepo,
 			Type:       issues_model.PullRequestGitea,
 		}
-		err = pull_service.NewPullRequest(git.DefaultContext, baseRepo, pullIssue, nil, nil, pullRequest, nil)
+		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
+		err = pull_service.NewPullRequest(git.DefaultContext, prOpts)
 		assert.NoError(t, err)
 
 		// load and compare ActionRun
@@ -199,7 +200,8 @@ func TestPullRequestTargetEvent(t *testing.T) {
 			BaseRepo:   baseRepo,
 			Type:       issues_model.PullRequestGitea,
 		}
-		err = pull_service.NewPullRequest(git.DefaultContext, baseRepo, pullIssue, nil, nil, pullRequest, nil)
+		prOpts = &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
+		err = pull_service.NewPullRequest(git.DefaultContext, prOpts)
 		assert.NoError(t, err)
 
 		// the new pull request cannot trigger actions, so there is still only 1 record

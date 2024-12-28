@@ -34,6 +34,7 @@ type ProtectedBranch struct {
 	RepoID                        int64                  `xorm:"UNIQUE(s)"`
 	Repo                          *repo_model.Repository `xorm:"-"`
 	RuleName                      string                 `xorm:"'branch_name' UNIQUE(s)"` // a branch name or a glob match to branch name
+	Priority                      int64                  `xorm:"NOT NULL DEFAULT 0"`
 	globRule                      glob.Glob              `xorm:"-"`
 	isPlainName                   bool                   `xorm:"-"`
 	CanPush                       bool                   `xorm:"NOT NULL DEFAULT false"`
@@ -413,19 +414,50 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	}
 	protectBranch.ApprovalsWhitelistTeamIDs = whitelist
 
-	// Make sure protectBranch.ID is not 0 for whitelists
+	// Looks like it's a new rule
 	if protectBranch.ID == 0 {
+		// as it's a new rule and if priority was not set, we need to calc it.
+		if protectBranch.Priority == 0 {
+			var lowestPrio int64
+			// because of mssql we can not use builder or save xorm syntax, so raw sql it is
+			if _, err := db.GetEngine(ctx).SQL(`SELECT MAX(priority) FROM protected_branch WHERE repo_id = ?`, protectBranch.RepoID).
+				Get(&lowestPrio); err != nil {
+				return err
+			}
+			log.Trace("Create new ProtectedBranch at repo[%d] and detect current lowest priority '%d'", protectBranch.RepoID, lowestPrio)
+			protectBranch.Priority = lowestPrio + 1
+		}
+
 		if _, err = db.GetEngine(ctx).Insert(protectBranch); err != nil {
 			return fmt.Errorf("Insert: %v", err)
 		}
 		return nil
 	}
 
+	// update the rule
 	if _, err = db.GetEngine(ctx).ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
 		return fmt.Errorf("Update: %v", err)
 	}
 
 	return nil
+}
+
+func UpdateProtectBranchPriorities(ctx context.Context, repo *repo_model.Repository, ids []int64) error {
+	prio := int64(1)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, id := range ids {
+			if _, err := db.GetEngine(ctx).
+				ID(id).Where("repo_id = ?", repo.ID).
+				Cols("priority").
+				Update(&ProtectedBranch{
+					Priority: prio,
+				}); err != nil {
+				return err
+			}
+			prio++
+		}
+		return nil
+	})
 }
 
 // updateApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with

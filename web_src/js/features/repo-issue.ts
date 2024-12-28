@@ -1,120 +1,132 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {createTippy, showTemporaryTooltip} from '../modules/tippy.ts';
-import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
+import {
+  addDelegatedEventListener,
+  createElementFromHTML,
+  hideElem,
+  queryElems,
+  showElem,
+  toggleElem,
+  type DOMEvent,
+} from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {toAbsoluteUrl} from '../utils.ts';
+import {parseIssuePageInfo, toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
-import {updateIssuesMeta} from './repo-common.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 
 const {appSubUrl} = window.config;
 
-export function initRepoIssueTimeTracking() {
-  $(document).on('click', '.issue-add-time', () => {
-    $('.issue-start-time-modal').modal({
-      duration: 200,
-      onApprove() {
-        $('#add_time_manual_form').trigger('submit');
-      },
-    }).modal('show');
-    $('.issue-start-time-modal input').on('keydown', (e) => {
-      if (e.key === 'Enter') {
-        $('#add_time_manual_form').trigger('submit');
-      }
-    });
-  });
-  $(document).on('click', '.issue-start-time, .issue-stop-time', () => {
-    $('#toggle_stopwatch_form').trigger('submit');
-  });
-  $(document).on('click', '.issue-cancel-time', () => {
-    $('#cancel_stopwatch_form').trigger('submit');
-  });
-  $(document).on('click', 'button.issue-delete-time', function () {
-    const sel = `.issue-delete-time-modal[data-id="${$(this).data('id')}"]`;
-    $(sel).modal({
-      duration: 200,
-      onApprove() {
-        $(`${sel} form`).trigger('submit');
-      },
-    }).modal('show');
-  });
-}
-
-/**
- * @param {HTMLElement} item
- */
-function excludeLabel(item) {
-  const href = item.getAttribute('href');
-  const id = item.getAttribute('data-label-id');
-
-  const regStr = `labels=((?:-?[0-9]+%2c)*)(${id})((?:%2c-?[0-9]+)*)&`;
-  const newStr = 'labels=$1-$2$3&';
-
-  window.location.assign(href.replace(new RegExp(regStr), newStr));
-}
-
 export function initRepoIssueSidebarList() {
-  const repolink = $('#repolink').val();
-  const repoId = $('#repoId').val();
+  const issuePageInfo = parseIssuePageInfo();
   const crossRepoSearch = $('#crossRepoSearch').val();
-  const tp = $('#type').val();
-  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&type=${tp}`;
+  let issueSearchUrl = `${issuePageInfo.repoLink}/issues/search?q={query}&type=${issuePageInfo.issueDependencySearchType}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
+    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}`;
   }
-  $('#new-dependency-drop-list')
-    .dropdown({
-      apiSettings: {
-        url: issueSearchUrl,
-        onResponse(response) {
-          const filteredResponse = {success: true, results: []};
-          const currIssueId = $('#new-dependency-drop-list').data('issue-id');
-          // Parse the response from the api to work with our dropdown
-          $.each(response, (_i, issue) => {
-            // Don't list current issue in the dependency list.
-            if (issue.id === currIssueId) {
-              return;
-            }
-            filteredResponse.results.push({
-              name: `<div class="gt-ellipsis">#${issue.number} ${htmlEscape(issue.title)}</div>
+  fomanticQuery('#new-dependency-drop-list').dropdown({
+    fullTextSearch: true,
+    apiSettings: {
+      url: issueSearchUrl,
+      onResponse(response) {
+        const filteredResponse = {success: true, results: []};
+        const currIssueId = $('#new-dependency-drop-list').data('issue-id');
+        // Parse the response from the api to work with our dropdown
+        $.each(response, (_i, issue) => {
+          // Don't list current issue in the dependency list.
+          if (issue.id === currIssueId) {
+            return;
+          }
+          filteredResponse.results.push({
+            name: `<div class="gt-ellipsis">#${issue.number} ${htmlEscape(issue.title)}</div>
 <div class="text small tw-break-anywhere">${htmlEscape(issue.repository.full_name)}</div>`,
-              value: issue.id,
-            });
+            value: issue.id,
           });
-          return filteredResponse;
-        },
-        cache: false,
+        });
+        return filteredResponse;
       },
+      cache: false,
+    },
+  });
+}
 
-      fullTextSearch: true,
-    });
+function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
+  const url = new URL(window.location.href);
+  const showArchivedLabels = url.searchParams.get('archived_labels') === 'true';
+  const queryLabels = url.searchParams.get('labels') || '';
+  const selectedLabelIds = new Set<string>();
+  for (const id of queryLabels ? queryLabels.split(',') : []) {
+    selectedLabelIds.add(`${Math.abs(parseInt(id))}`); // "labels" contains negative ids, which are excluded
+  }
 
-  $('.menu a.label-filter-item').each(function () {
-    $(this).on('click', function (e) {
-      if (e.altKey) {
-        e.preventDefault();
-        excludeLabel(this);
-      }
+  const excludeLabel = (e: MouseEvent|KeyboardEvent, item: Element) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const labelId = item.getAttribute('data-label-id');
+    let labelIds: string[] = queryLabels ? queryLabels.split(',') : [];
+    labelIds = labelIds.filter((id) => Math.abs(parseInt(id)) !== Math.abs(parseInt(labelId)));
+    labelIds.push(`-${labelId}`);
+    url.searchParams.set('labels', labelIds.join(','));
+    window.location.assign(url);
+  };
+
+  // alt(or option) + click to exclude label
+  queryElems(elDropdown, '.label-filter-query-item', (el) => {
+    el.addEventListener('click', (e: MouseEvent) => {
+      if (e.altKey) excludeLabel(e, el);
     });
   });
-
-  $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
+  // alt(or option) + enter to exclude selected label
+  elDropdown.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.altKey && e.key === 'Enter') {
-      const selectedItem = document.querySelector('.menu .ui.dropdown.label-filter .menu .item.selected');
-      if (selectedItem) {
-        excludeLabel(selectedItem);
-      }
+      const selectedItem = elDropdown.querySelector('.label-filter-query-item.selected');
+      if (selectedItem) excludeLabel(e, selectedItem);
     }
   });
-  $('.ui.dropdown.label-filter, .ui.dropdown.select-label').dropdown('setting', {'hideDividers': 'empty'}).dropdown('refreshItems');
+  // no "labels" query parameter means "all issues"
+  elDropdown.querySelector('.label-filter-query-default').classList.toggle('selected', queryLabels === '');
+  // "labels=0" query parameter means "issues without label"
+  elDropdown.querySelector('.label-filter-query-not-set').classList.toggle('selected', queryLabels === '0');
+
+  // prepare to process "archived" labels
+  const elShowArchivedLabel = elDropdown.querySelector('.label-filter-archived-toggle');
+  if (!elShowArchivedLabel) return;
+  const elShowArchivedInput = elShowArchivedLabel.querySelector<HTMLInputElement>('input');
+  elShowArchivedInput.checked = showArchivedLabels;
+  const archivedLabels = elDropdown.querySelectorAll('.item[data-is-archived]');
+  // if no archived labels, hide the toggle and return
+  if (!archivedLabels.length) {
+    hideElem(elShowArchivedLabel);
+    return;
+  }
+
+  // show the archived labels if the toggle is checked or the label is selected
+  for (const label of archivedLabels) {
+    toggleElem(label, showArchivedLabels || selectedLabelIds.has(label.getAttribute('data-label-id')));
+  }
+  // update the url when the toggle is changed and reload
+  elShowArchivedInput.addEventListener('input', () => {
+    if (elShowArchivedInput.checked) {
+      url.searchParams.set('archived_labels', 'true');
+    } else {
+      url.searchParams.delete('archived_labels');
+    }
+    window.location.assign(url);
+  });
+}
+
+export function initRepoIssueFilterItemLabel() {
+  // the "label-filter" is used in 2 templates: projects/view, issue/filter_list (issue list page including the milestone page)
+  queryElems(document, '.ui.dropdown.label-filter', initRepoIssueLabelFilter);
 }
 
 export function initRepoIssueCommentDelete() {
   // Delete comment
-  document.addEventListener('click', async (e) => {
+  document.addEventListener('click', async (e: DOMEvent<MouseEvent>) => {
     if (!e.target.matches('.delete-comment')) return;
     e.preventDefault();
 
@@ -133,7 +145,7 @@ export function initRepoIssueCommentDelete() {
           const counter = document.querySelector('#review-box .review-comments-counter');
           let num = parseInt(counter?.getAttribute('data-pending-comment-number')) - 1 || 0;
           num = Math.max(num, 0);
-          counter.setAttribute('data-pending-comment-number', num);
+          counter.setAttribute('data-pending-comment-number', String(num));
           counter.textContent = String(num);
         }
 
@@ -189,7 +201,7 @@ export function initRepoIssueDependencyDelete() {
 
 export function initRepoIssueCodeCommentCancel() {
   // Cancel inline code comment
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
     if (!e.target.matches('.cancel-code-comment')) return;
 
     const form = e.target.closest('form');
@@ -211,7 +223,7 @@ export function initRepoPullRequestUpdate() {
     e.preventDefault();
     const redirect = this.getAttribute('data-redirect');
     this.classList.add('is-loading');
-    let response;
+    let response: Response;
     try {
       response = await POST(this.getAttribute('data-do'));
     } catch (error) {
@@ -219,7 +231,7 @@ export function initRepoPullRequestUpdate() {
     } finally {
       this.classList.remove('is-loading');
     }
-    let data;
+    let data: Record<string, any>;
     try {
       data = await response?.json(); // the response is probably not a JSON
     } catch (error) {
@@ -258,12 +270,14 @@ export function initRepoPullRequestMergeInstruction() {
 export function initRepoPullRequestAllowMaintainerEdit() {
   const wrapper = document.querySelector('#allow-edits-from-maintainers');
   if (!wrapper) return;
-  const checkbox = wrapper.querySelector('input[type="checkbox"]');
+  const checkbox = wrapper.querySelector<HTMLInputElement>('input[type="checkbox"]');
   checkbox.addEventListener('input', async () => {
     const url = `${wrapper.getAttribute('data-url')}/set_allow_maintainer_edit`;
     wrapper.classList.add('is-loading');
     try {
-      const resp = await POST(url, {data: new URLSearchParams({allow_maintainer_edit: checkbox.checked})});
+      const resp = await POST(url, {data: new URLSearchParams({
+        allow_maintainer_edit: String(checkbox.checked),
+      })});
       if (!resp.ok) {
         throw new Error('Failed to update maintainer edit permission');
       }
@@ -312,7 +326,7 @@ export function initRepoIssueWipTitle() {
 
     const $issueTitle = $('#issue_title');
     $issueTitle.trigger('focus');
-    const value = $issueTitle.val().trim().toUpperCase();
+    const value = ($issueTitle.val() as string).trim().toUpperCase();
 
     const wipPrefixes = $('.title_wip_desc').data('wip-prefixes');
     for (const prefix of wipPrefixes) {
@@ -328,18 +342,7 @@ export function initRepoIssueWipTitle() {
 export function initRepoIssueComments() {
   if (!$('.repository.view.issue .timeline').length) return;
 
-  $('.re-request-review').on('click', async function (e) {
-    e.preventDefault();
-    const url = this.getAttribute('data-update-url');
-    const issueId = this.getAttribute('data-issue-id');
-    const id = this.getAttribute('data-id');
-    const isChecked = this.classList.contains('checked');
-
-    await updateIssuesMeta(url, isChecked ? 'detach' : 'attach', issueId, id);
-    window.location.reload();
-  });
-
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
     const urlTarget = document.querySelector(':target');
     if (!urlTarget) return;
 
@@ -428,11 +431,6 @@ export function initRepoPullRequestReview() {
     await handleReply(this);
   });
 
-  const elReviewBox = document.querySelector('.review-box-panel');
-  if (elReviewBox) {
-    initComboMarkdownEditor(elReviewBox.querySelector('.combo-markdown-editor'));
-  }
-
   // The following part is only for diff views
   if (!$('.repository.pull.diff').length) return;
 
@@ -457,21 +455,19 @@ export function initRepoPullRequestReview() {
     });
   }
 
-  $(document).on('click', '.add-code-comment', async function (e) {
-    if (e.target.classList.contains('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
+  addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
     e.preventDefault();
 
-    const isSplit = this.closest('.code-diff')?.classList.contains('code-diff-split');
-    const side = this.getAttribute('data-side');
-    const idx = this.getAttribute('data-idx');
-    const path = this.closest('[data-path]')?.getAttribute('data-path');
-    const tr = this.closest('tr');
+    const isSplit = el.closest('.code-diff')?.classList.contains('code-diff-split');
+    const side = el.getAttribute('data-side');
+    const idx = el.getAttribute('data-idx');
+    const path = el.closest('[data-path]')?.getAttribute('data-path');
+    const tr = el.closest('tr');
     const lineType = tr.getAttribute('data-line-type');
 
-    const ntr = tr.nextElementSibling;
-    let $ntr = $(ntr);
+    let ntr = tr.nextElementSibling;
     if (!ntr?.classList.contains('add-comment')) {
-      $ntr = $(`
+      ntr = createElementFromHTML(`
         <tr class="add-comment" data-line-type="${lineType}">
           ${isSplit ? `
             <td class="add-comment-left" colspan="4"></td>
@@ -480,31 +476,25 @@ export function initRepoPullRequestReview() {
             <td class="add-comment-left add-comment-right" colspan="5"></td>
           `}
         </tr>`);
-      $(tr).after($ntr);
+      tr.after(ntr);
     }
-
-    const $td = $ntr.find(`.add-comment-${side}`);
-    const $commentCloud = $td.find('.comment-code-cloud');
-    if (!$commentCloud.length && !$ntr.find('button[name="pending_review"]').length) {
-      try {
-        const response = await GET(this.closest('[data-new-comment-url]')?.getAttribute('data-new-comment-url'));
-        const html = await response.text();
-        $td.html(html);
-        $td.find("input[name='line']").val(idx);
-        $td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
-        $td.find("input[name='path']").val(path);
-        const editor = await initComboMarkdownEditor($td[0].querySelector('.combo-markdown-editor'));
-        editor.focus();
-      } catch (error) {
-        console.error(error);
-      }
+    const td = ntr.querySelector(`.add-comment-${side}`);
+    const commentCloud = td.querySelector('.comment-code-cloud');
+    if (!commentCloud && !ntr.querySelector('button[name="pending_review"]')) {
+      const response = await GET(el.closest('[data-new-comment-url]')?.getAttribute('data-new-comment-url'));
+      td.innerHTML = await response.text();
+      td.querySelector<HTMLInputElement>("input[name='line']").value = idx;
+      td.querySelector<HTMLInputElement>("input[name='side']").value = (side === 'left' ? 'previous' : 'proposed');
+      td.querySelector<HTMLInputElement>("input[name='path']").value = path;
+      const editor = await initComboMarkdownEditor(td.querySelector<HTMLElement>('.combo-markdown-editor'));
+      editor.focus();
     }
   });
 }
 
 export function initRepoIssueReferenceIssue() {
   // Reference issue
-  $(document).on('click', '.reference-issue', function (event) {
+  $(document).on('click', '.reference-issue', function (e) {
     const target = this.getAttribute('data-target');
     const content = document.querySelector(`#${target}`)?.textContent ?? '';
     const poster = this.getAttribute('data-poster-username');
@@ -514,7 +504,7 @@ export function initRepoIssueReferenceIssue() {
     const textarea = modal.querySelector('textarea[name="content"]');
     textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
     $(modal).modal('show');
-    event.preventDefault();
+    e.preventDefault();
   });
 }
 
@@ -544,7 +534,7 @@ export function initRepoIssueWipToggle() {
 
 export function initRepoIssueTitleEdit() {
   const issueTitleDisplay = document.querySelector('#issue-title-display');
-  const issueTitleEditor = document.querySelector('#issue-title-editor');
+  const issueTitleEditor = document.querySelector<HTMLFormElement>('#issue-title-editor');
   if (!issueTitleEditor) return;
 
   const issueTitleInput = issueTitleEditor.querySelector('input');
@@ -570,7 +560,8 @@ export function initRepoIssueTitleEdit() {
   const prTargetUpdateUrl = pullDescEditor?.getAttribute('data-target-update-url');
 
   const editSaveButton = issueTitleEditor.querySelector('.ui.primary.button');
-  editSaveButton.addEventListener('click', async () => {
+  issueTitleEditor.addEventListener('submit', async (e) => {
+    e.preventDefault();
     const newTitle = issueTitleInput.value.trim();
     try {
       if (newTitle && newTitle !== oldTitle) {
@@ -589,6 +580,7 @@ export function initRepoIssueTitleEdit() {
           }
         }
       }
+      ignoreAreYouSure(issueTitleEditor);
       window.location.reload();
     } catch (error) {
       console.error(error);
@@ -598,7 +590,7 @@ export function initRepoIssueTitleEdit() {
 }
 
 export function initRepoIssueBranchSelect() {
-  document.querySelector('#branch-select')?.addEventListener('click', (e) => {
+  document.querySelector<HTMLElement>('#branch-select')?.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
     const el = e.target.closest('.item[data-branch]');
     if (!el) return;
     const pullTargetBranch = document.querySelector('#pull-target-branch');
@@ -637,10 +629,10 @@ function initIssueTemplateCommentEditors($commentForm) {
   // * new issue with issue template
   const $comboFields = $commentForm.find('.combo-editor-dropzone');
 
-  const initCombo = async (elCombo) => {
+  const initCombo = async (elCombo: HTMLElement) => {
     const $formField = $(elCombo.querySelector('.form-field-real'));
-    const dropzoneContainer = elCombo.querySelector('.form-field-dropzone');
-    const markdownEditor = elCombo.querySelector('.combo-markdown-editor');
+    const dropzoneContainer = elCombo.querySelector<HTMLElement>('.form-field-dropzone');
+    const markdownEditor = elCombo.querySelector<HTMLElement>('.combo-markdown-editor');
 
     const editor = await initComboMarkdownEditor(markdownEditor);
     editor.container.addEventListener(ComboMarkdownEditor.EventEditorContentChanged, () => $formField.val(editor.value()));
@@ -663,19 +655,6 @@ function initIssueTemplateCommentEditors($commentForm) {
 
   for (const el of $comboFields) {
     initCombo(el);
-  }
-}
-
-// This function used to show and hide archived label on issue/pr
-//  page in the sidebar where we select the labels
-//  If we have any archived label tagged to issue and pr. We will show that
-//  archived label with checked classed otherwise we will hide it
-//  with the help of this function.
-//  This function runs globally.
-export function initArchivedLabelHandler() {
-  if (!document.querySelector('.archived-label-hint')) return;
-  for (const label of document.querySelectorAll('[data-is-archived]')) {
-    toggleElem(label, label.classList.contains('checked'));
   }
 }
 

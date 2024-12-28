@@ -12,7 +12,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   mutationObserver: MutationObserver;
   lastWidth: number;
 
-  updateItems = throttle(100, () => { // eslint-disable-line unicorn/consistent-function-scoping -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/2088
+  updateItems = throttle(100, () => {
     if (!this.tippyContent) {
       const div = document.createElement('div');
       div.classList.add('tippy-target');

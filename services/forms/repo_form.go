@@ -6,10 +6,8 @@ package forms
 
 import (
 	"net/http"
-	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/setting"
@@ -90,27 +88,6 @@ func (f *MigrateRepoForm) Validate(req *http.Request, errs binding.Errors) bindi
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// ParseRemoteAddr checks if given remote address is valid,
-// and returns composed URL with needed username and password.
-func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, error) {
-	remoteAddr = strings.TrimSpace(remoteAddr)
-	// Remote address can be HTTP/HTTPS/Git URL or local path.
-	if strings.HasPrefix(remoteAddr, "http://") ||
-		strings.HasPrefix(remoteAddr, "https://") ||
-		strings.HasPrefix(remoteAddr, "git://") {
-		u, err := url.Parse(remoteAddr)
-		if err != nil {
-			return "", &models.ErrInvalidCloneAddr{IsURLError: true, Host: remoteAddr}
-		}
-		if len(authUsername)+len(authPassword) > 0 {
-			u.User = url.UserPassword(authUsername, authPassword)
-		}
-		remoteAddr = u.String()
-	}
-
-	return remoteAddr, nil
-}
-
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
 	RepoName               string `binding:"Required;AlphaDashDot;MaxSize(100)"`
@@ -122,7 +99,7 @@ type RepoSettingForm struct {
 	MirrorPassword         string
 	LFS                    bool   `form:"mirror_lfs"`
 	LFSEndpoint            string `form:"mirror_lfs_endpoint"`
-	PushMirrorID           string
+	PushMirrorID           int64
 	PushMirrorAddress      string
 	PushMirrorUsername     string
 	PushMirrorPassword     string
@@ -226,6 +203,10 @@ type ProtectBranchForm struct {
 func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type ProtectBranchPriorityForm struct {
+	IDs []int64
 }
 
 //  __      __      ___.   .__                   __
@@ -447,10 +428,10 @@ type CreateIssueForm struct {
 	Title               string `binding:"Required;MaxSize(255)"`
 	LabelIDs            string `form:"label_ids"`
 	AssigneeIDs         string `form:"assignee_ids"`
+	ReviewerIDs         string `form:"reviewer_ids"`
 	Ref                 string `form:"ref"`
 	MilestoneID         int64
 	ProjectID           int64
-	AssigneeID          int64
 	Content             string
 	Files               []string
 	AllowMaintainerEdit bool

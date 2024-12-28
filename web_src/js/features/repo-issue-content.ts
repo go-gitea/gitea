@@ -3,8 +3,8 @@ import {svg} from '../svg.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showElem} from '../utils/dom.ts';
+import {parseIssuePageInfo} from '../utils.ts';
 
-const {appSubUrl} = window.config;
 let i18nTextEdited;
 let i18nTextOptions;
 let i18nTextDeleteFromHistory;
@@ -121,15 +121,14 @@ function showContentHistoryMenu(issueBaseUrl, $item, commentId) {
 }
 
 export async function initRepoIssueContentHistory() {
-  const issueIndex = $('#issueIndex').val();
-  if (!issueIndex) return;
+  const issuePageInfo = parseIssuePageInfo();
+  if (!issuePageInfo.issueNumber) return;
 
   const $itemIssue = $('.repository.issue .timeline-item.comment.first'); // issue(PR) main content
   const $comments = $('.repository.issue .comment-list .comment'); // includes: issue(PR) comments, review comments, code comments
   if (!$itemIssue.length && !$comments.length) return;
 
-  const repoLink = $('#repolink').val();
-  const issueBaseUrl = `${appSubUrl}/${repoLink}/issues/${issueIndex}`;
+  const issueBaseUrl = `${issuePageInfo.repoLink}/issues/${issuePageInfo.issueNumber}`;
 
   try {
     const response = await GET(`${issueBaseUrl}/content-history/overview`);

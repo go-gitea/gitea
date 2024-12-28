@@ -67,30 +67,36 @@ func (e RepoRefNotFoundError) Is(err error) bool {
 	return ok
 }
 
-// NewRequest creates an archival request, based on the URI.  The
-// resulting ArchiveRequest is suitable for being passed to ArchiveRepository()
-// if it's determined that the request still needs to be satisfied.
-func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest, error) {
-	r := &ArchiveRequest{
-		RepoID: repoID,
-	}
-
-	var ext string
+func ParseFileName(uri string) (ext string, tp git.ArchiveType, err error) {
 	switch {
 	case strings.HasSuffix(uri, ".zip"):
 		ext = ".zip"
-		r.Type = git.ZIP
+		tp = git.ZIP
 	case strings.HasSuffix(uri, ".tar.gz"):
 		ext = ".tar.gz"
-		r.Type = git.TARGZ
+		tp = git.TARGZ
 	case strings.HasSuffix(uri, ".bundle"):
 		ext = ".bundle"
-		r.Type = git.BUNDLE
+		tp = git.BUNDLE
 	default:
-		return nil, ErrUnknownArchiveFormat{RequestFormat: uri}
+		return "", 0, ErrUnknownArchiveFormat{RequestFormat: uri}
+	}
+	return ext, tp, nil
+}
+
+// NewRequest creates an archival request, based on the URI.  The
+// resulting ArchiveRequest is suitable for being passed to Await()
+// if it's determined that the request still needs to be satisfied.
+func NewRequest(repoID int64, repo *git.Repository, refName string, fileType git.ArchiveType) (*ArchiveRequest, error) {
+	if fileType < git.ZIP || fileType > git.BUNDLE {
+		return nil, ErrUnknownArchiveFormat{RequestFormat: fileType.String()}
 	}
 
-	r.refName = strings.TrimSuffix(uri, ext)
+	r := &ArchiveRequest{
+		RepoID:  repoID,
+		refName: refName,
+		Type:    fileType,
+	}
 
 	// Get corresponding commit.
 	commitID, err := repo.ConvertToGitID(r.refName)
@@ -151,13 +157,14 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 	}
 }
 
+// doArchive satisfies the ArchiveRequest being passed in.  Processing
+// will occur in a separate goroutine, as this phase may take a while to
+// complete.  If the archive already exists, doArchive will not do
+// anything.  In all cases, the caller should be examining the *ArchiveRequest
+// being returned for completion, as it may be different than the one they passed
+// in.
 func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
-	txCtx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-	ctx, _, finished := process.GetManager().AddContext(txCtx, fmt.Sprintf("ArchiveRequest[%d]: %s", r.RepoID, r.GetArchiveName()))
+	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("ArchiveRequest[%d]: %s", r.RepoID, r.GetArchiveName()))
 	defer finished()
 
 	archiver, err := repo_model.GetRepoArchiver(ctx, r.RepoID, r.Type, r.CommitID)
@@ -192,7 +199,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 				return nil, err
 			}
 		}
-		return archiver, committer.Commit()
+		return archiver, nil
 	}
 
 	if !errors.Is(err, os.ErrNotExist) {
@@ -261,17 +268,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 		}
 	}
 
-	return archiver, committer.Commit()
-}
-
-// ArchiveRepository satisfies the ArchiveRequest being passed in.  Processing
-// will occur in a separate goroutine, as this phase may take a while to
-// complete.  If the archive already exists, ArchiveRepository will not do
-// anything.  In all cases, the caller should be examining the *ArchiveRequest
-// being returned for completion, as it may be different than the one they passed
-// in.
-func ArchiveRepository(ctx context.Context, request *ArchiveRequest) (*repo_model.RepoArchiver, error) {
-	return doArchive(ctx, request)
+	return archiver, nil
 }
 
 var archiverQueue *queue.WorkerPoolQueue[*ArchiveRequest]
@@ -281,8 +278,10 @@ func Init(ctx context.Context) error {
 	handler := func(items ...*ArchiveRequest) []*ArchiveRequest {
 		for _, archiveReq := range items {
 			log.Trace("ArchiverData Process: %#v", archiveReq)
-			if _, err := doArchive(ctx, archiveReq); err != nil {
+			if archiver, err := doArchive(ctx, archiveReq); err != nil {
 				log.Error("Archive %v failed: %v", archiveReq, err)
+			} else {
+				log.Trace("ArchiverData Success: %#v", archiver)
 			}
 		}
 		return nil

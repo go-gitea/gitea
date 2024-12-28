@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -76,8 +77,8 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		log.Trace("Basic Authorization: Attempting login with username as token")
 	}
 
-	// check oauth2 token
-	uid := CheckOAuthAccessToken(req.Context(), authToken)
+	// get oauth2 token's user's ID
+	_, uid := GetOAuthAccessTokenScopeAndUserID(req.Context(), authToken)
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
 
@@ -141,6 +142,15 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	if skipper, ok := source.Cfg.(LocalTwoFASkipper); !ok || !skipper.IsSkipLocalTwoFA() {
+		// Check if the user has webAuthn registration
+		hasWebAuthn, err := auth_model.HasWebAuthnRegistrationsByUID(req.Context(), u.ID)
+		if err != nil {
+			return nil, err
+		}
+		if hasWebAuthn {
+			return nil, errors.New("Basic authorization is not allowed while webAuthn enrolled")
+		}
+
 		if err := validateTOTP(req, u); err != nil {
 			return nil, err
 		}

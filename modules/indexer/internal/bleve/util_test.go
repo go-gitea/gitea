@@ -35,6 +35,14 @@ func TestBleveGuessFuzzinessByKeyword(t *testing.T) {
 			Input:     "갃갃갃",
 			Fuzziness: 0,
 		},
+		{
+			Input:     "repo1",
+			Fuzziness: 0,
+		},
+		{
+			Input:     "avocado.md",
+			Fuzziness: 0,
+		},
 	}
 
 	for _, scenario := range scenarios {

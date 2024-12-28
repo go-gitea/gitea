@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -41,8 +41,20 @@ func getPullWorkingLockKey(prID int64) string {
 	return fmt.Sprintf("pull_working_%d", prID)
 }
 
+type NewPullRequestOptions struct {
+	Repo            *repo_model.Repository
+	Issue           *issues_model.Issue
+	LabelIDs        []int64
+	AttachmentUUIDs []string
+	PullRequest     *issues_model.PullRequest
+	AssigneeIDs     []int64
+	Reviewers       []*user_model.User
+	TeamReviewers   []*organization.Team
+}
+
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, pr *issues_model.PullRequest, assigneeIDs []int64) error {
+func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
+	repo, issue, labelIDs, uuids, pr, assigneeIDs := opts.Repo, opts.Issue, opts.LabelIDs, opts.AttachmentUUIDs, opts.PullRequest, opts.AssigneeIDs
 	if err := issue.LoadPoster(ctx); err != nil {
 		return err
 	}
@@ -52,7 +64,8 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	}
 
 	// user should be a collaborator or a member of the organization for base repo
-	if !issue.Poster.IsAdmin {
+	canCreate := issue.Poster.IsAdmin || pr.Flow == issues_model.PullRequestFlowAGit
+	if !canCreate {
 		canCreate, err := repo_model.IsOwnerMemberCollaborator(ctx, repo, issue.Poster.ID)
 		if err != nil {
 			return err
@@ -197,8 +210,40 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 		}
 		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
 	}
-
+	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
+	for _, reviewer := range opts.Reviewers {
+		if _, err = issue_service.ReviewRequest(ctx, pr.Issue, issue.Poster, &permDoer, reviewer, true); err != nil {
+			return err
+		}
+	}
+	for _, teamReviewer := range opts.TeamReviewers {
+		if _, err = issue_service.TeamReviewRequest(ctx, pr.Issue, issue.Poster, teamReviewer, true); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+// ErrPullRequestHasMerged represents a "PullRequestHasMerged"-error
+type ErrPullRequestHasMerged struct {
+	ID         int64
+	IssueID    int64
+	HeadRepoID int64
+	BaseRepoID int64
+	HeadBranch string
+	BaseBranch string
+}
+
+// IsErrPullRequestHasMerged checks if an error is a ErrPullRequestHasMerged.
+func IsErrPullRequestHasMerged(err error) bool {
+	_, ok := err.(ErrPullRequestHasMerged)
+	return ok
+}
+
+// Error does pretty-printing :D
+func (err ErrPullRequestHasMerged) Error() string {
+	return fmt.Sprintf("pull request has merged [id: %d, issue_id: %d, head_repo_id: %d, base_repo_id: %d, head_branch: %s, base_branch: %s]",
+		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
 }
 
 // ChangeTargetBranch changes the target branch of this pull request, as the given user.
@@ -224,7 +269,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	}
 
 	if pr.HasMerged {
-		return models.ErrPullRequestHasMerged{
+		return ErrPullRequestHasMerged{
 			ID:         pr.ID,
 			IssueID:    pr.Index,
 			HeadRepoID: pr.HeadRepoID,
@@ -631,7 +676,7 @@ func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int6
 		if err = pr.Issue.LoadRepo(ctx); err != nil {
 			errs = append(errs, err)
 		} else if err = ChangeTargetBranch(ctx, pr, doer, targetBranch); err != nil &&
-			!issues_model.IsErrIssueIsClosed(err) && !models.IsErrPullRequestHasMerged(err) &&
+			!issues_model.IsErrIssueIsClosed(err) && !IsErrPullRequestHasMerged(err) &&
 			!issues_model.IsErrPullRequestAlreadyExists(err) {
 			errs = append(errs, err)
 		}
@@ -662,7 +707,7 @@ func CloseBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, 
 
 	var errs errlist
 	for _, pr := range prs {
-		if err = issue_service.ChangeStatus(ctx, pr.Issue, doer, "", true); err != nil && !issues_model.IsErrPullWasClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
+		if err = issue_service.CloseIssue(ctx, pr.Issue, doer, ""); err != nil && !issues_model.IsErrPullWasClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
 			errs = append(errs, err)
 		}
 	}
@@ -696,7 +741,7 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 			if pr.BaseRepoID == repo.ID {
 				continue
 			}
-			if err = issue_service.ChangeStatus(ctx, pr.Issue, doer, "", true); err != nil && !issues_model.IsErrPullWasClosed(err) {
+			if err = issue_service.CloseIssue(ctx, pr.Issue, doer, ""); err != nil && !issues_model.IsErrPullWasClosed(err) {
 				errs = append(errs, err)
 			}
 		}

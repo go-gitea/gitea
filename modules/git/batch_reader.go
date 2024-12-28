@@ -7,10 +7,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"math"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -32,7 +30,6 @@ type WriteCloserError interface {
 func ensureValidGitRepository(ctx context.Context, repoPath string) error {
 	stderr := strings.Builder{}
 	err := NewCommand(ctx, "rev-parse").
-		SetDescription(fmt.Sprintf("%s rev-parse [repo_path: %s]", GitExecutable, repoPath)).
 		Run(&RunOpts{
 			Dir:    repoPath,
 			Stderr: &stderr,
@@ -62,13 +59,9 @@ func catFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 		cancel()
 	}()
 
-	_, filename, line, _ := runtime.Caller(2)
-	filename = strings.TrimPrefix(filename, callerPrefix)
-
 	go func() {
 		stderr := strings.Builder{}
 		err := NewCommand(ctx, "cat-file", "--batch-check").
-			SetDescription(fmt.Sprintf("%s cat-file --batch-check [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
 			Run(&RunOpts{
 				Dir:    repoPath,
 				Stdin:  batchStdinReader,
@@ -114,13 +107,9 @@ func catFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 		cancel()
 	}()
 
-	_, filename, line, _ := runtime.Caller(2)
-	filename = strings.TrimPrefix(filename, callerPrefix)
-
 	go func() {
 		stderr := strings.Builder{}
 		err := NewCommand(ctx, "cat-file", "--batch").
-			SetDescription(fmt.Sprintf("%s cat-file --batch [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
 			Run(&RunOpts{
 				Dir:    repoPath,
 				Stdin:  batchStdinReader,
@@ -146,9 +135,8 @@ func catFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 }
 
 // ReadBatchLine reads the header line from cat-file --batch
-// We expect:
-// <sha> SP <type> SP <size> LF
-// sha is a hex encoded here
+// We expect: <oid> SP <type> SP <size> LF
+// then leaving the rest of the stream "<contents> LF" to be read
 func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err error) {
 	typ, err = rd.ReadString('\n')
 	if err != nil {
@@ -319,13 +307,6 @@ func ParseTreeLine(objectFormat ObjectFormat, rd *bufio.Reader, modeBuf, fnameBu
 	}
 	sha = shaBuf
 	return mode, fname, sha, n, err
-}
-
-var callerPrefix string
-
-func init() {
-	_, filename, _, _ := runtime.Caller(0)
-	callerPrefix = strings.TrimSuffix(filename, "modules/git/batch_reader.go")
 }
 
 func DiscardFull(rd *bufio.Reader, discard int64) error {

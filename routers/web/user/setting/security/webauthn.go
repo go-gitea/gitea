@@ -51,7 +51,8 @@ func WebAuthnRegister(ctx *context.Context) {
 		return
 	}
 
-	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration((*wa.User)(ctx.Doer), webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
+	webAuthnUser := wa.NewWebAuthnUser(ctx, ctx.Doer)
+	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration(webAuthnUser, webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
 		ResidentKey: protocol.ResidentKeyRequirementRequired,
 	}))
 	if err != nil {
@@ -92,7 +93,8 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	}()
 
 	// Verify that the challenge succeeded
-	cred, err := wa.WebAuthn.FinishRegistration((*wa.User)(ctx.Doer), *sessionData, ctx.Req)
+	webAuthnUser := wa.NewWebAuthnUser(ctx, ctx.Doer)
+	cred, err := wa.WebAuthn.FinishRegistration(webAuthnUser, *sessionData, ctx.Req)
 	if err != nil {
 		if pErr, ok := err.(*protocol.Error); ok {
 			log.Error("Unable to finish registration due to error: %v\nDevInfo: %s", pErr, pErr.DevInfo)
