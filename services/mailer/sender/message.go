@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/jaytaylor/html2text"
 	gomail "github.com/wneessen/go-mail"
@@ -54,7 +54,7 @@ func (m *Message) ToMessage() *gomail.Msg {
 
 	plainBody, err := html2text.FromString(m.Body)
 	if err != nil || setting.MailService.SendAsPlainText {
-		if strings.Contains(base.TruncateString(m.Body, 100), "<html>") {
+		if strings.Contains(util.TruncateRunes(m.Body, 100), "<html>") {
 			log.Warn("Mail contains HTML but configured to send as plain text.")
 		}
 		msg.SetBodyString("text/plain", plainBody)

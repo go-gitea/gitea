@@ -12,9 +12,7 @@
 
 	{{if not .ReadmeInList}}
 		<div id="repo-file-commit-box" class="ui segment list-header tw-mb-4 tw-flex tw-justify-between">
-			<div class="latest-commit">
-				{{template "repo/latest_commit" .}}
-			</div>
+			{{template "repo/latest_commit" .}}
 			{{if .LatestCommit}}
 				{{if .LatestCommit.Committer}}
 					<div class="text grey age">

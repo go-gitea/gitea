@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -52,7 +51,7 @@ func GetRunnerToken(ctx context.Context, token string) (*ActionRunnerToken, erro
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, fmt.Errorf(`runner token "%s...": %w`, base.TruncateString(token, 3), util.ErrNotExist)
+		return nil, fmt.Errorf(`runner token "%s...": %w`, util.TruncateRunes(token, 3), util.ErrNotExist)
 	}
 	return &runnerToken, nil
 }

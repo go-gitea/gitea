@@ -1,0 +1,13 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container">
+	<div>
+		<h1>Commit Sign Badges</h1>
+		{{range $commit := .MockCommits}}
+			<div class="flex-text-block tw-my-2">
+				{{template "repo/commit_sign_badge" dict "Commit" $commit "CommitBaseLink" "/devtest/commit" "CommitSignVerification" $commit.Verification}}
+				{{template "repo/commit_sign_badge" dict "CommitSignVerification" $commit.Verification}}
+			</div>
+		{{end}}
+	</div>
+</div>
+{{template "devtest/devtest-footer"}}

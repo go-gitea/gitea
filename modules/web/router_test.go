@@ -27,17 +27,21 @@ func chiURLParamsToMap(chiCtx *chi.Context) map[string]string {
 		}
 		m[key] = pathParams.Values[i]
 	}
-	return m
+	return util.Iif(len(m) == 0, nil, m)
 }
 
 func TestPathProcessor(t *testing.T) {
 	testProcess := func(pattern, uri string, expectedPathParams map[string]string) {
 		chiCtx := chi.NewRouteContext()
 		chiCtx.RouteMethod = "GET"
-		p := NewPathProcessor("GET", pattern)
-		assert.True(t, p.ProcessRequestPath(chiCtx, uri), "use pattern %s to process uri %s", pattern, uri)
+		p := newRouterPathMatcher("GET", pattern, http.NotFound)
+		assert.True(t, p.matchPath(chiCtx, uri), "use pattern %s to process uri %s", pattern, uri)
 		assert.Equal(t, expectedPathParams, chiURLParamsToMap(chiCtx), "use pattern %s to process uri %s", pattern, uri)
 	}
+
+	// the "<...>" is intentionally designed to distinguish from chi's path parameters, because:
+	// 1. their behaviors are totally different, we do not want to mislead developers
+	// 2. we can write regexp in "<name:\w{3,4}>" easily and parse it easily
 	testProcess("/<p1>/<p2>", "/a/b", map[string]string{"p1": "a", "p2": "b"})
 	testProcess("/<p1:*>", "", map[string]string{"p1": ""}) // this is a special case, because chi router could use empty path
 	testProcess("/<p1:*>", "/", map[string]string{"p1": ""})
@@ -67,24 +71,31 @@ func TestRouter(t *testing.T) {
 		}
 	}
 
+	stopMark := func(optMark ...string) func(resp http.ResponseWriter, req *http.Request) {
+		mark := util.OptionalArg(optMark, "")
+		return func(resp http.ResponseWriter, req *http.Request) {
+			if stop := req.FormValue("stop"); stop != "" && (mark == "" || mark == stop) {
+				h(stop)(resp, req)
+				resp.WriteHeader(http.StatusOK)
+			}
+		}
+	}
+
 	r := NewRouter()
+	r.NotFound(h("not-found:/"))
 	r.Get("/{username}/{reponame}/{type:issues|pulls}", h("list-issues-a")) // this one will never be called
 	r.Group("/{username}/{reponame}", func() {
 		r.Get("/{type:issues|pulls}", h("list-issues-b"))
 		r.Group("", func() {
 			r.Get("/{type:issues|pulls}/{index}", h("view-issue"))
-		}, func(resp http.ResponseWriter, req *http.Request) {
-			if stop := req.FormValue("stop"); stop != "" {
-				h(stop)(resp, req)
-				resp.WriteHeader(http.StatusOK)
-			}
-		})
+		}, stopMark())
 		r.Group("/issues/{index}", func() {
 			r.Post("/update", h("update-issue"))
 		})
 	})
 
 	m := NewRouter()
+	m.NotFound(h("not-found:/api/v1"))
 	r.Mount("/api/v1", m)
 	m.Group("/repos", func() {
 		m.Group("/{username}/{reponame}", func() {
@@ -96,11 +107,14 @@ func TestRouter(t *testing.T) {
 					m.Patch("", h())
 					m.Delete("", h())
 				})
+				m.PathGroup("/*", func(g *RouterPathGroup) {
+					g.MatchPath("GET", `/<dir:*>/<file:[a-z]{1,2}>`, stopMark("s2"), h("match-path"))
+				}, stopMark("s1"))
 			})
 		})
 	})
 
-	testRoute := func(methodPath string, expected resultStruct) {
+	testRoute := func(t *testing.T, methodPath string, expected resultStruct) {
 		t.Run(methodPath, func(t *testing.T) {
 			res = resultStruct{}
 			methodPathFields := strings.Fields(methodPath)
@@ -111,24 +125,24 @@ func TestRouter(t *testing.T) {
 		})
 	}
 
-	t.Run("Root Router", func(t *testing.T) {
-		testRoute("GET /the-user/the-repo/other", resultStruct{})
-		testRoute("GET /the-user/the-repo/pulls", resultStruct{
+	t.Run("RootRouter", func(t *testing.T) {
+		testRoute(t, "GET /the-user/the-repo/other", resultStruct{method: "GET", handlerMark: "not-found:/"})
+		testRoute(t, "GET /the-user/the-repo/pulls", resultStruct{
 			method:      "GET",
 			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "type": "pulls"},
 			handlerMark: "list-issues-b",
 		})
-		testRoute("GET /the-user/the-repo/issues/123", resultStruct{
+		testRoute(t, "GET /the-user/the-repo/issues/123", resultStruct{
 			method:      "GET",
 			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "type": "issues", "index": "123"},
 			handlerMark: "view-issue",
 		})
-		testRoute("GET /the-user/the-repo/issues/123?stop=hijack", resultStruct{
+		testRoute(t, "GET /the-user/the-repo/issues/123?stop=hijack", resultStruct{
 			method:      "GET",
 			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "type": "issues", "index": "123"},
 			handlerMark: "hijack",
 		})
-		testRoute("POST /the-user/the-repo/issues/123/update", resultStruct{
+		testRoute(t, "POST /the-user/the-repo/issues/123/update", resultStruct{
 			method:      "POST",
 			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "index": "123"},
 			handlerMark: "update-issue",
@@ -136,29 +150,55 @@ func TestRouter(t *testing.T) {
 	})
 
 	t.Run("Sub Router", func(t *testing.T) {
-		testRoute("GET /api/v1/repos/the-user/the-repo/branches", resultStruct{
+		testRoute(t, "GET /api/v1/other", resultStruct{method: "GET", handlerMark: "not-found:/api/v1"})
+		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches", resultStruct{
 			method:     "GET",
 			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo"},
 		})
 
-		testRoute("POST /api/v1/repos/the-user/the-repo/branches", resultStruct{
+		testRoute(t, "POST /api/v1/repos/the-user/the-repo/branches", resultStruct{
 			method:     "POST",
 			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo"},
 		})
 
-		testRoute("GET /api/v1/repos/the-user/the-repo/branches/master", resultStruct{
+		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/master", resultStruct{
 			method:     "GET",
 			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo", "name": "master"},
 		})
 
-		testRoute("PATCH /api/v1/repos/the-user/the-repo/branches/master", resultStruct{
+		testRoute(t, "PATCH /api/v1/repos/the-user/the-repo/branches/master", resultStruct{
 			method:     "PATCH",
 			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo", "name": "master"},
 		})
 
-		testRoute("DELETE /api/v1/repos/the-user/the-repo/branches/master", resultStruct{
+		testRoute(t, "DELETE /api/v1/repos/the-user/the-repo/branches/master", resultStruct{
 			method:     "DELETE",
 			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo", "name": "master"},
+		})
+	})
+
+	t.Run("MatchPath", func(t *testing.T) {
+		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1/d2/fn", resultStruct{
+			method:      "GET",
+			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1/d2/fn", "dir": "d1/d2", "file": "fn"},
+			handlerMark: "match-path",
+		})
+		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1/d2/000", resultStruct{
+			method:      "GET",
+			pathParams:  map[string]string{"reponame": "the-repo", "username": "the-user", "*": "d1/d2/000"},
+			handlerMark: "not-found:/api/v1",
+		})
+
+		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1/d2/fn?stop=s1", resultStruct{
+			method:      "GET",
+			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1/d2/fn"},
+			handlerMark: "s1",
+		})
+
+		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1/d2/fn?stop=s2", resultStruct{
+			method:      "GET",
+			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1/d2/fn", "dir": "d1/d2", "file": "fn"},
+			handlerMark: "s2",
 		})
 	})
 }

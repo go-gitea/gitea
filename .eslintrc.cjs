@@ -674,7 +674,7 @@ module.exports = {
     'no-this-before-super': [2],
     'no-throw-literal': [2],
     'no-undef-init': [2],
-    'no-undef': [0],
+    'no-undef': [2], // it is still needed by eslint & IDE to prompt undefined names in real time
     'no-undefined': [0],
     'no-underscore-dangle': [0],
     'no-unexpected-multiline': [2],

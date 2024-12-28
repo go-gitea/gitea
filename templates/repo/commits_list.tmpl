@@ -28,33 +28,15 @@
 						</div>
 					</td>
 					<td class="sha">
-						{{$class := "ui sha label"}}
-						{{if .Signature}}
-							{{$class = (print $class " isSigned")}}
-							{{if .Verification.Verified}}
-								{{if eq .Verification.TrustStatus "trusted"}}
-									{{$class = (print $class " isVerified")}}
-								{{else if eq .Verification.TrustStatus "untrusted"}}
-									{{$class = (print $class " isVerifiedUntrusted")}}
-								{{else}}
-									{{$class = (print $class " isVerifiedUnmatched")}}
-								{{end}}
-							{{else if .Verification.Warning}}
-								{{$class = (print $class " isWarning")}}
-							{{end}}
-						{{end}}
-						{{$commitShaLink := ""}}
+						{{$commitBaseLink := ""}}
 						{{if $.PageIsWiki}}
-							{{$commitShaLink = (printf "%s/wiki/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
+							{{$commitBaseLink = printf "%s/wiki/commit" $commitRepoLink}}
 						{{else if $.PageIsPullCommits}}
-							{{$commitShaLink = (printf "%s/pulls/%d/commits/%s" $commitRepoLink $.Issue.Index (PathEscape .ID.String))}}
+							{{$commitBaseLink = printf "%s/pulls/%d/commits" $commitRepoLink $.Issue.Index}}
 						{{else if $.Reponame}}
-							{{$commitShaLink = (printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
+							{{$commitBaseLink = printf "%s/commit" $commitRepoLink}}
 						{{end}}
-						<a {{if $commitShaLink}}href="{{$commitShaLink}}"{{end}} class="{{$class}}">
-							<span class="shortsha">{{ShortSha .ID.String}}</span>
-							{{if .Signature}}{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}{{end}}
-						</a>
+						{{template "repo/commit_sign_badge" dict "Commit" . "CommitBaseLink" $commitBaseLink "CommitSignVerification" .Verification}}
 					</td>
 					<td class="message">
 						<span class="message-wrapper">

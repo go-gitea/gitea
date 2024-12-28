@@ -4,18 +4,14 @@
 package web
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
-	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
@@ -45,7 +41,7 @@ func GetForm(dataStore reqctx.RequestDataStore) any {
 
 // Router defines a route based on chi's router
 type Router struct {
-	chiRouter      chi.Router
+	chiRouter      *chi.Mux
 	curGroupPrefix string
 	curMiddlewares []any
 }
@@ -97,16 +93,21 @@ func isNilOrFuncNil(v any) bool {
 	return r.Kind() == reflect.Func && r.IsNil()
 }
 
-func (r *Router) wrapMiddlewareAndHandler(h []any) ([]func(http.Handler) http.Handler, http.HandlerFunc) {
-	handlerProviders := make([]func(http.Handler) http.Handler, 0, len(r.curMiddlewares)+len(h)+1)
-	for _, m := range r.curMiddlewares {
+func wrapMiddlewareAndHandler(curMiddlewares, h []any) ([]func(http.Handler) http.Handler, http.HandlerFunc) {
+	handlerProviders := make([]func(http.Handler) http.Handler, 0, len(curMiddlewares)+len(h)+1)
+	for _, m := range curMiddlewares {
 		if !isNilOrFuncNil(m) {
 			handlerProviders = append(handlerProviders, toHandlerProvider(m))
 		}
 	}
-	for _, m := range h {
+	if len(h) == 0 {
+		panic("no endpoint handler provided")
+	}
+	for i, m := range h {
 		if !isNilOrFuncNil(m) {
 			handlerProviders = append(handlerProviders, toHandlerProvider(m))
+		} else if i == len(h)-1 {
+			panic("endpoint handler can't be nil")
 		}
 	}
 	middlewares := handlerProviders[:len(handlerProviders)-1]
@@ -121,7 +122,7 @@ func (r *Router) wrapMiddlewareAndHandler(h []any) ([]func(http.Handler) http.Ha
 // Methods adds the same handlers for multiple http "methods" (separated by ",").
 // If any method is invalid, the lower level router will panic.
 func (r *Router) Methods(methods, pattern string, h ...any) {
-	middlewares, handlerFunc := r.wrapMiddlewareAndHandler(h)
+	middlewares, handlerFunc := wrapMiddlewareAndHandler(r.curMiddlewares, h)
 	fullPattern := r.getPattern(pattern)
 	if strings.Contains(methods, ",") {
 		methods := strings.Split(methods, ",")
@@ -141,7 +142,7 @@ func (r *Router) Mount(pattern string, subRouter *Router) {
 
 // Any delegate requests for all methods
 func (r *Router) Any(pattern string, h ...any) {
-	middlewares, handlerFunc := r.wrapMiddlewareAndHandler(h)
+	middlewares, handlerFunc := wrapMiddlewareAndHandler(r.curMiddlewares, h)
 	r.chiRouter.With(middlewares...).HandleFunc(r.getPattern(pattern), handlerFunc)
 }
 
@@ -183,17 +184,6 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 // NotFound defines a handler to respond whenever a route could not be found.
 func (r *Router) NotFound(h http.HandlerFunc) {
 	r.chiRouter.NotFound(h)
-}
-
-type pathProcessorParam struct {
-	name         string
-	captureGroup int
-}
-
-type PathProcessor struct {
-	methods container.Set[string]
-	re      *regexp.Regexp
-	params  []pathProcessorParam
 }
 
 func (r *Router) normalizeRequestPath(resp http.ResponseWriter, req *http.Request, next http.Handler) {
@@ -253,121 +243,16 @@ func (r *Router) normalizeRequestPath(resp http.ResponseWriter, req *http.Reques
 	next.ServeHTTP(resp, req)
 }
 
-func (p *PathProcessor) ProcessRequestPath(chiCtx *chi.Context, path string) bool {
-	if !p.methods.Contains(chiCtx.RouteMethod) {
-		return false
-	}
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
-	pathMatches := p.re.FindStringSubmatchIndex(path) // Golang regexp match pairs [start, end, start, end, ...]
-	if pathMatches == nil {
-		return false
-	}
-	var paramMatches [][]int
-	for i := 2; i < len(pathMatches); {
-		paramMatches = append(paramMatches, []int{pathMatches[i], pathMatches[i+1]})
-		pmIdx := len(paramMatches) - 1
-		end := pathMatches[i+1]
-		i += 2
-		for ; i < len(pathMatches); i += 2 {
-			if pathMatches[i] >= end {
-				break
-			}
-			paramMatches[pmIdx] = append(paramMatches[pmIdx], pathMatches[i], pathMatches[i+1])
-		}
-	}
-	for i, pm := range paramMatches {
-		groupIdx := p.params[i].captureGroup * 2
-		chiCtx.URLParams.Add(p.params[i].name, path[pm[groupIdx]:pm[groupIdx+1]])
-	}
-	return true
-}
-
-func NewPathProcessor(methods, pattern string) *PathProcessor {
-	p := &PathProcessor{methods: make(container.Set[string])}
-	for _, method := range strings.Split(methods, ",") {
-		p.methods.Add(strings.TrimSpace(method))
-	}
-	re := []byte{'^'}
-	lastEnd := 0
-	for lastEnd < len(pattern) {
-		start := strings.IndexByte(pattern[lastEnd:], '<')
-		if start == -1 {
-			re = append(re, pattern[lastEnd:]...)
-			break
-		}
-		end := strings.IndexByte(pattern[lastEnd+start:], '>')
-		if end == -1 {
-			panic(fmt.Sprintf("invalid pattern: %s", pattern))
-		}
-		re = append(re, pattern[lastEnd:lastEnd+start]...)
-		partName, partExp, _ := strings.Cut(pattern[lastEnd+start+1:lastEnd+start+end], ":")
-		lastEnd += start + end + 1
-
-		// TODO: it could support to specify a "capture group" for the name, for example: "/<name[2]:(\d)-(\d)>"
-		// it is not used so no need to implement it now
-		param := pathProcessorParam{}
-		if partExp == "*" {
-			re = append(re, "(.*?)/?"...)
-			if lastEnd < len(pattern) {
-				if pattern[lastEnd] == '/' {
-					lastEnd++
-				}
-			}
-		} else {
-			partExp = util.IfZero(partExp, "[^/]+")
-			re = append(re, '(')
-			re = append(re, partExp...)
-			re = append(re, ')')
-		}
-		param.name = partName
-		p.params = append(p.params, param)
-	}
-	re = append(re, '$')
-	reStr := string(re)
-	p.re = regexp.MustCompile(reStr)
-	return p
-}
-
 // Combo delegates requests to Combo
 func (r *Router) Combo(pattern string, h ...any) *Combo {
 	return &Combo{r, pattern, h}
 }
 
-// Combo represents a tiny group routes with same pattern
-type Combo struct {
-	r       *Router
-	pattern string
-	h       []any
-}
-
-// Get delegates Get method
-func (c *Combo) Get(h ...any) *Combo {
-	c.r.Get(c.pattern, append(c.h, h...)...)
-	return c
-}
-
-// Post delegates Post method
-func (c *Combo) Post(h ...any) *Combo {
-	c.r.Post(c.pattern, append(c.h, h...)...)
-	return c
-}
-
-// Delete delegates Delete method
-func (c *Combo) Delete(h ...any) *Combo {
-	c.r.Delete(c.pattern, append(c.h, h...)...)
-	return c
-}
-
-// Put delegates Put method
-func (c *Combo) Put(h ...any) *Combo {
-	c.r.Put(c.pattern, append(c.h, h...)...)
-	return c
-}
-
-// Patch delegates Patch method
-func (c *Combo) Patch(h ...any) *Combo {
-	c.r.Patch(c.pattern, append(c.h, h...)...)
-	return c
+// PathGroup creates a group of paths which could be matched by regexp.
+// It is only designed to resolve some special cases which chi router can't handle.
+// For most cases, it shouldn't be used because it needs to iterate all rules to find the matched one (inefficient).
+func (r *Router) PathGroup(pattern string, fn func(g *RouterPathGroup), h ...any) {
+	g := &RouterPathGroup{r: r, pathParam: "*"}
+	fn(g)
+	r.Any(pattern, append(h, g.ServeHTTP)...)
 }

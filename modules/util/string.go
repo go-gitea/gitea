@@ -3,7 +3,10 @@
 
 package util
 
-import "unsafe"
+import (
+	"strings"
+	"unsafe"
+)
 
 func isSnakeCaseUpper(c byte) bool {
 	return 'A' <= c && c <= 'Z'
@@ -94,4 +97,16 @@ func UnsafeBytesToString(b []byte) string {
 // UnsafeStringToBytes uses Go's unsafe package to convert a string to a byte slice.
 func UnsafeStringToBytes(s string) []byte {
 	return unsafe.Slice(unsafe.StringData(s), len(s))
+}
+
+// SplitTrimSpace splits the string at given separator and trims leading and trailing space
+func SplitTrimSpace(input, sep string) []string {
+	input = strings.TrimSpace(input)
+	var stringList []string
+	for _, s := range strings.Split(input, sep) {
+		if s = strings.TrimSpace(s); s != "" {
+			stringList = append(stringList, s)
+		}
+	}
+	return stringList
 }

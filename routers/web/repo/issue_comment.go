@@ -154,25 +154,28 @@ func NewComment(ctx *context.Context) {
 			if pr != nil {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
-				isClosed := form.Status == "close"
-				if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, "", isClosed); err != nil {
-					log.Error("ChangeStatus: %v", err)
-
-					if issues_model.IsErrDependenciesLeft(err) {
-						if issue.IsPull {
-							ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
-						} else {
-							ctx.JSONError(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
+				if form.Status == "close" && !issue.IsClosed {
+					if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
+						log.Error("CloseIssue: %v", err)
+						if issues_model.IsErrDependenciesLeft(err) {
+							if issue.IsPull {
+								ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+							} else {
+								ctx.JSONError(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
+							}
+							return
 						}
-						return
+					} else {
+						if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
+							ctx.ServerError("stopTimerIfAvailable", err)
+							return
+						}
+						log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 					}
-				} else {
-					if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
-						ctx.ServerError("CreateOrStopIssueStopwatch", err)
-						return
+				} else if form.Status == "reopen" && issue.IsClosed {
+					if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
+						log.Error("ReopenIssue: %v", err)
 					}
-
-					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 				}
 			}
 		}

@@ -16,11 +16,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/dustin/go-humanize"
 )
@@ -35,7 +35,7 @@ func EncodeSha256(str string) string {
 // ShortSha is basically just truncating.
 // It is DEPRECATED and will be removed in the future.
 func ShortSha(sha1 string) string {
-	return TruncateString(sha1, 10)
+	return util.TruncateRunes(sha1, 10)
 }
 
 // BasicAuthDecode decode basic auth string
@@ -114,27 +114,6 @@ func CreateTimeLimitCode[T time.Time | string](data string, minutes int, startTi
 // FileSize calculates the file size and generate user-friendly string.
 func FileSize(s int64) string {
 	return humanize.IBytes(uint64(s))
-}
-
-// EllipsisString returns a truncated short string,
-// it appends '...' in the end of the length of string is too large.
-func EllipsisString(str string, length int) string {
-	if length <= 3 {
-		return "..."
-	}
-	if utf8.RuneCountInString(str) <= length {
-		return str
-	}
-	return string([]rune(str)[:length-3]) + "..."
-}
-
-// TruncateString returns a truncated string with given limit,
-// it returns input string if length is not reached limit.
-func TruncateString(str string, limit int) string {
-	if utf8.RuneCountInString(str) < limit {
-		return str
-	}
-	return string([]rune(str)[:limit])
 }
 
 // StringsToInt64s converts a slice of string to a slice of int64.

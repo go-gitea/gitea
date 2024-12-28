@@ -69,7 +69,7 @@ func (s *Service) Register(
 	labels := req.Msg.Labels
 
 	// create new runner
-	name, _ := util.SplitStringAtByteN(req.Msg.Name, 255)
+	name := util.EllipsisDisplayString(req.Msg.Name, 255)
 	runner := &actions_model.ActionRunner{
 		UUID:        gouuid.New().String(),
 		Name:        name,

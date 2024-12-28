@@ -109,7 +109,7 @@ func (a *actionNotifier) CreateIssueComment(ctx context.Context, doer *user_mode
 		IsPrivate: issue.Repo.IsPrivate,
 	}
 
-	truncatedContent, truncatedRight := util.SplitStringAtByteN(comment.Content, 200)
+	truncatedContent, truncatedRight := util.EllipsisDisplayStringX(comment.Content, 200)
 	if truncatedRight != "" {
 		// in case the content is in a Latin family language, we remove the last broken word.
 		lastSpaceIdx := strings.LastIndex(truncatedContent, " ")
