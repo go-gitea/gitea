@@ -3,6 +3,8 @@ package group
 import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"context"
@@ -134,6 +136,19 @@ func FindGroups(ctx context.Context, opts *FindGroupsOptions) (GroupList, error)
 		sess = db.SetSessionPagination(sess, opts)
 	}
 	groups := make([]*Group, 0, 10)
+	return groups, sess.
+		Asc("repo_group.id").
+		Find(&groups)
+}
+
+func FindGroupsByCond(ctx context.Context, cond builder.Cond, parentGroupID int64) (GroupList, error) {
+	if parentGroupID > 0 {
+		cond = cond.And(builder.Eq{"repo_group.id": parentGroupID})
+	} else {
+		cond = cond.And(builder.IsNull{"repo_group.id"})
+	}
+	sess := db.GetEngine(ctx).Where(cond)
+	groups := make([]*Group, 0)
 	return groups, sess.
 		Asc("repo_group.id").
 		Find(&groups)
