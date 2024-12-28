@@ -22,6 +22,7 @@ type Group struct {
 	Avatar      string              `xorm:"VARCHAR(64)"`
 
 	ParentGroupID int64     `xorm:"INDEX DEFAULT NULL"`
+	ParentGroup   *Group    `xorm:"-"`
 	Subgroups     GroupList `xorm:"-"`
 }
 
@@ -68,6 +69,18 @@ func (g *Group) LoadAttributes(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	return g.LoadParentGroup(ctx)
+}
+
+func (g *Group) LoadParentGroup(ctx context.Context) error {
+	if g.ParentGroup != nil {
+		return nil
+	}
+	parentGroup, err := GetGroupByID(ctx, g.ParentGroupID)
+	if err != nil {
+		return err
+	}
+	g.ParentGroup = parentGroup
 	return nil
 }
 
