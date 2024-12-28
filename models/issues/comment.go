@@ -1306,9 +1306,7 @@ func CountCommentsBuilder(issueID int64) *builder.Builder {
 	}.And(builder.In("type",
 		CommentTypeComment,
 		CommentTypeReview,
-	)).And(builder.Neq{
-		"invalidated": true,
-	}))
+	)))
 }
 
 func UpdateIssueNumComments(ctx context.Context, issueID int64) error {
