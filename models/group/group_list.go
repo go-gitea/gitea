@@ -58,10 +58,8 @@ func AccessibleGroupCondition(user *user_model.User, unitType unit.Type) builder
 		if user == nil || user.ID <= 0 {
 			orgVisibilityLimit = append(orgVisibilityLimit, structs.VisibleTypeLimited)
 		}
-		// 1. Be able to see all non-private groups that either:
 		cond = cond.Or(builder.And(
 			builder.Eq{"`repo_group`.is_private": false},
-			// 2. Aren't in an private organisation or limited organisation if we're not logged in
 			builder.NotIn("`repo_group`.owner_id", builder.Select("id").From("`user`").Where(
 				builder.And(
 					builder.Eq{"type": user_model.UserTypeOrganization},
@@ -69,15 +67,11 @@ func AccessibleGroupCondition(user *user_model.User, unitType unit.Type) builder
 			))))
 	}
 	if user != nil {
-		// 2. Be able to see all repositories that we have unit independent access to
-		// 3. Be able to see all repositories through team membership(s)
 		if unitType == unit.TypeInvalid {
-			// Regardless of UnitType
 			cond = cond.Or(
 				UserOrgTeamGroupCond("`repo_group`.id", user.ID),
 			)
 		} else {
-			// For a specific UnitType
 			cond = cond.Or(
 				userOrgTeamUnitGroupCond("`repo_group`.id", user.ID, unitType),
 			)
