@@ -161,6 +161,42 @@ func FindGroupsByCond(ctx context.Context, cond builder.Cond, parentGroupID int6
 		Find(&groups)
 }
 
+// GetParentGroupChain returns a slice containing a group and its ancestors
+func GetParentGroupChain(ctx context.Context, groupID int64) (GroupList, error) {
+	groupList := make([]*Group, 0, 20)
+	currentGroupID := groupID
+	for {
+		if currentGroupID < 1 {
+			break
+		}
+		if len(groupList) >= 20 {
+			return nil, ErrGroupTooDeep{currentGroupID}
+		}
+		currentGroup, err := GetGroupByID(ctx, currentGroupID)
+		if err != nil {
+			return nil, err
+		}
+		groupList = append(groupList, currentGroup)
+		currentGroupID = currentGroup.ParentGroupID
+	}
+	return groupList, nil
+}
+
+// ParentGroupCond returns a condition matching a group and its ancestors
+func ParentGroupCond(idStr string, groupID int64) builder.Cond {
+	groupList, err := GetParentGroupChain(db.DefaultContext, groupID)
+	if err != nil {
+		log.Info("Error building group cond: %w", err)
+		return builder.NotIn(idStr)
+	}
+	return builder.In(
+		idStr,
+		util.SliceMap[*Group, int64](groupList, func(it *Group) int64 {
+			return it.ID
+		}),
+	)
+}
+
 type ErrGroupNotExist struct {
 	ID int64
 }
