@@ -37,8 +37,6 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/vagrant"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
-
-	"github.com/go-chi/chi/v5"
 )
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
@@ -140,39 +138,10 @@ func CommonRoutes() *web.Router {
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/arch", func() {
 			r.Methods("HEAD,GET", "/repository.key", arch.GetRepositoryKey)
-
-			reqPutRepository := web.NewPathProcessor("PUT", "/<repository:*>")
-			reqGetRepoArchFile := web.NewPathProcessor("HEAD,GET", "/<repository:*>/<architecture>/<filename>")
-			reqDeleteRepoNameVerArch := web.NewPathProcessor("DELETE", "/<repository:*>/<name>/<version>/<architecture>")
-
-			r.Any("*", func(ctx *context.Context) {
-				chiCtx := chi.RouteContext(ctx.Req.Context())
-				path := ctx.PathParam("*")
-
-				if reqPutRepository.ProcessRequestPath(chiCtx, path) {
-					reqPackageAccess(perm.AccessModeWrite)(ctx)
-					if ctx.Written() {
-						return
-					}
-					arch.UploadPackageFile(ctx)
-					return
-				}
-
-				if reqGetRepoArchFile.ProcessRequestPath(chiCtx, path) {
-					arch.GetPackageOrRepositoryFile(ctx)
-					return
-				}
-
-				if reqDeleteRepoNameVerArch.ProcessRequestPath(chiCtx, path) {
-					reqPackageAccess(perm.AccessModeWrite)(ctx)
-					if ctx.Written() {
-						return
-					}
-					arch.DeletePackageVersion(ctx)
-					return
-				}
-
-				ctx.Status(http.StatusNotFound)
+			r.PathGroup("*", func(g *web.RouterPathGroup) {
+				g.MatchPath("PUT", "/<repository:*>", reqPackageAccess(perm.AccessModeWrite), arch.UploadPackageFile)
+				g.MatchPath("HEAD,GET", "/<repository:*>/<architecture>/<filename>", arch.GetPackageOrRepositoryFile)
+				g.MatchPath("DELETE", "/<repository:*>/<name>/<version>/<architecture>", reqPackageAccess(perm.AccessModeWrite), arch.DeletePackageVersion)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
