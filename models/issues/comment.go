@@ -1321,6 +1321,7 @@ func UpdateIssueNumComments(ctx context.Context, issueID int64) error {
 	_, err := db.GetEngine(ctx).
 		SetExpr("num_comments", countCommentsBuilder).
 		ID(issueID).
+		NoAutoTime().
 		Update(new(Issue))
 	return err
 }
