@@ -34,11 +34,6 @@ var (
 	fixturesDir string
 )
 
-// FixturesDir returns the fixture directory
-func FixturesDir() string {
-	return fixturesDir
-}
-
 func fatalTestError(fmtStr string, args ...any) {
 	_, _ = fmt.Fprintf(os.Stderr, fmtStr, args...)
 	os.Exit(1)
