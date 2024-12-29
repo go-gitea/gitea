@@ -430,8 +430,6 @@ func CommonRoutes() *web.Router {
 			r.Post("/api/charts", reqPackageAccess(perm.AccessModeWrite), helm.UploadPackage)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/maven", func() {
-			// FIXME: this path design is not right.
-			// It should be `/.../{groupId}/{artifactId}/{version}`, but not `/.../{groupId}-{artifactId}/{version}`
 			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
 			r.Get("/*", maven.DownloadPackageFile)
 			r.Head("/*", maven.ProvidePackageFileHeader)
