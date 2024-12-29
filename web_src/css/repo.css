@@ -123,6 +123,12 @@ td .commit-summary {
   gap: 0.25em;
 }
 
+@media (max-width: 767.98px) {
+  .latest-commit .commit-id-short {
+    display: none;
+  }
+}
+
 .repo-path {
   display: flex;
   overflow-wrap: anywhere;
@@ -1668,6 +1674,10 @@ tbody.commit-list {
   max-width: 180px;
   align-self: center;
   white-space: nowrap;
+}
+
+.latest-commit .message-wrapper {
+  max-width: calc(100% - 2.5rem);
 }
 
 /* in the commit list, messages can wrap so we can use inline */
