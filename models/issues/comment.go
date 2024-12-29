@@ -197,6 +197,19 @@ func (t CommentType) HasMailReplySupport() bool {
 	return false
 }
 
+func (t CommentType) CountedAsConversation() bool {
+	for _, ct := range ConversationCountedCommentType() {
+		if t == ct {
+			return true
+		}
+	}
+	return false
+}
+
+func ConversationCountedCommentType() []any {
+	return []any{CommentTypeComment, CommentTypeReview}
+}
+
 // RoleInRepo presents the user's participation in the repo
 type RoleInRepo string
 
@@ -1182,7 +1195,7 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	if comment.Type == CommentTypeComment || comment.Type == CommentTypeReview {
+	if comment.Type.CountedAsConversation() {
 		if err := UpdateIssueNumComments(ctx, comment.IssueID); err != nil {
 			return err
 		}
@@ -1303,10 +1316,7 @@ func (c *Comment) HasOriginalAuthor() bool {
 func CountCommentsBuilder(issueID int64) *builder.Builder {
 	return builder.Select("count(*)").From("comment").Where(builder.Eq{
 		"issue_id": issueID,
-	}.And(builder.In("type",
-		CommentTypeComment,
-		CommentTypeReview,
-	)))
+	}.And(builder.In("type", ConversationCountedCommentType()...)))
 }
 
 func UpdateIssueNumComments(ctx context.Context, issueID int64) error {

@@ -108,7 +108,7 @@ func userStatsCorrectNumRepos(ctx context.Context, id int64) error {
 
 func repoStatsCorrectIssueNumComments(ctx context.Context, id int64) error {
 	return StatsCorrectSQL(ctx, fmt.Sprintf("UPDATE `issue` SET num_comments=(SELECT COUNT(*) FROM `comment` WHERE issue_id=? AND (type=%d or type=%d)) WHERE id=?",
-		issues_model.CommentTypeComment, issues_model.CommentTypeReview), id)
+		issues_model.ConversationCountedCommentType()...), id)
 }
 
 func repoStatsCorrectNumIssues(ctx context.Context, id int64) error {
@@ -201,7 +201,7 @@ func CheckRepoStats(ctx context.Context) error {
 		// Issue.NumComments
 		{
 			statsQuery(fmt.Sprintf("SELECT `issue`.id FROM `issue` WHERE `issue`.num_comments!=(SELECT COUNT(*) FROM `comment` WHERE issue_id=`issue`.id AND (type=%d OR type=%d))",
-				issues_model.CommentTypeComment, issues_model.CommentTypeReview)),
+				issues_model.ConversationCountedCommentType()...)),
 			repoStatsCorrectIssueNumComments,
 			"issue count 'num_comments'",
 		},
