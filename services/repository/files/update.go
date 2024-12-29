@@ -151,7 +151,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 				BranchName: opts.NewBranch,
 			}
 		}
-		if err != nil && !git.IsErrBranchNotExist(err) {
+		if err != nil && !git_model.IsErrBranchNotExist(err) {
 			return nil, err
 		}
 	} else if err := VerifyBranchProtection(ctx, repo, doer, opts.OldBranch, treePaths); err != nil {

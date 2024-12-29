@@ -142,7 +142,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	defer gitRepo.Close()
 
 	baseBranch, err := git_model.GetNonDeletedBranch(ctx, pr.BaseRepoID, pr.BaseBranch)
-	if err != nil && !git.IsErrBranchNotExist(err) {
+	if err != nil && !git_model.IsErrBranchNotExist(err) {
 		log.Error("GetBranch[%s]: %v", pr.BaseBranch, err)
 		return nil
 	}
@@ -195,7 +195,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		defer headGitRepo.Close()
 
 		headBranch, err := git_model.GetNonDeletedBranch(ctx, pr.HeadRepoID, pr.HeadBranch)
-		if err != nil && !git.IsErrBranchNotExist(err) {
+		if err != nil && !git_model.IsErrBranchNotExist(err) {
 			log.Error("GetBranch[%s]: %v", pr.HeadBranch, err)
 			return nil
 		}

@@ -60,7 +60,7 @@ func GetBranch(ctx *context.APIContext) {
 
 	branch, err := git_model.GetNonDeletedBranch(ctx, ctx.Repo.Repository.ID, branchName)
 	if err != nil {
-		if git.IsErrBranchNotExist(err) {
+		if git_model.IsErrBranchNotExist(err) {
 			ctx.NotFound(err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetBranch", err)
@@ -261,7 +261,11 @@ func CreateBranch(ctx *context.APIContext) {
 
 	branch, err := git_model.GetNonDeletedBranch(ctx, ctx.Repo.Repository.ID, opt.BranchName)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetBranch", err)
+		if git_model.IsErrBranchNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetBranch", err)
+		}
 		return
 	}
 

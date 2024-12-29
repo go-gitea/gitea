@@ -75,7 +75,7 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 				BranchName: opts.NewBranch,
 			}
 		}
-		if err != nil && !git.IsErrBranchNotExist(err) {
+		if err != nil && !git_model.IsErrBranchNotExist(err) {
 			return err
 		}
 	} else {
