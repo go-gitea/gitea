@@ -1,12 +1,10 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//nolint:forbidigo
 package unittest
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -37,7 +35,7 @@ func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
 	} else {
 		fixtureOptionFiles = testfixtures.Files(opts.Files...)
 	}
-	dialect := "unknown"
+	var dialect string
 	switch e.Dialect().URI().DBType {
 	case schemas.POSTGRES:
 		dialect = "postgres"
@@ -48,8 +46,7 @@ func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
 	case schemas.SQLITE:
 		dialect = "sqlite3"
 	default:
-		fmt.Println("Unsupported RDBMS for integration tests")
-		os.Exit(1)
+		return fmt.Errorf("unsupported RDBMS for integration tests: %q", e.Dialect().URI().DBType)
 	}
 	loaderOptions := []func(loader *testfixtures.Loader) error{
 		testfixtures.Database(e.DB().DB),
@@ -69,9 +66,7 @@ func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
 
 	// register the dummy hash algorithm function used in the test fixtures
 	_ = hash.Register("dummy", hash.NewDummyHasher)
-
 	setting.PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
-
 	return err
 }
 
@@ -87,7 +82,7 @@ func LoadFixtures(engine ...*xorm.Engine) error {
 		time.Sleep(200 * time.Millisecond)
 	}
 	if err != nil {
-		fmt.Printf("LoadFixtures failed after retries: %v\n", err)
+		return fmt.Errorf("LoadFixtures failed after retries: %w", err)
 	}
 	// Now if we're running postgres we need to tell it to update the sequences
 	if e.Dialect().URI().DBType == schemas.POSTGRES {
@@ -108,21 +103,18 @@ func LoadFixtures(engine ...*xorm.Engine) error {
 	     AND T.relname = PGT.tablename
 	 ORDER BY S.relname;`)
 		if err != nil {
-			fmt.Printf("Failed to generate sequence update: %v\n", err)
-			return err
+			return fmt.Errorf("failed to generate sequence update: %w", err)
 		}
 		for _, r := range results {
 			for _, value := range r {
 				_, err = e.Exec(value)
 				if err != nil {
-					fmt.Printf("Failed to update sequence: %s Error: %v\n", value, err)
-					return err
+					return fmt.Errorf("failed to update sequence: %s, error: %w", value, err)
 				}
 			}
 		}
 	}
 	_ = hash.Register("dummy", hash.NewDummyHasher)
 	setting.PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
-
-	return err
+	return nil
 }

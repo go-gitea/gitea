@@ -332,7 +332,7 @@ func TestLDAPUserSyncWithGroupFilter(t *testing.T) {
 
 	// Assert members of LDAP group "cn=git" are added
 	for _, gitLDAPUser := range te.gitLDAPUsers {
-		unittest.BeanExists(t, &user_model.User{
+		unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: gitLDAPUser.UserName,
 		})
 	}

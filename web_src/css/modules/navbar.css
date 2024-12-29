@@ -103,11 +103,11 @@
 #navbar .ui.dropdown .navbar-profile-admin {
   display: block;
   position: absolute;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: var(--font-weight-bold);
   color: var(--color-nav-bg);
   background: var(--color-primary);
-  padding: 2px 4px;
+  padding: 2px 3px;
   border-radius: 10px;
   top: -1px;
   left: 18px;
