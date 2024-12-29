@@ -5,14 +5,14 @@ const repoPrivateHint = document.querySelector<HTMLInputElement>('#repo_name_pri
 export function initRepoCreate() {
   repoName?.addEventListener('input', () => {
     if (repoName?.value === '.profile') {
-      repoPublicHint.style.display = 'inline-block';
+      repoPublicHint.classList.remove('tw-hidden');
     } else {
-      repoPublicHint.style.display = 'none';
+      repoPublicHint.classList.add('tw-hidden');
     }
     if (repoName?.value === '.profile-private') {
-      repoPrivateHint.style.display = 'inline-block';
+      repoPrivateHint.classList.remove('tw-hidden');
     } else {
-      repoPrivateHint.style.display = 'none';
+      repoPrivateHint.classList.add('tw-hidden');
     }
   });
 }
