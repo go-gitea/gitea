@@ -853,7 +853,7 @@ func GetUniquePatchBranchName(ctx *context.Context) string {
 	for i := 1; i <= 1000; i++ {
 		branchName := fmt.Sprintf("%s%d", prefix, i)
 		if _, err := git_model.GetNonDeletedBranch(ctx, ctx.Repo.Repository.ID, branchName); err != nil {
-			if git.IsErrBranchNotExist(err) {
+			if git_model.IsErrBranchNotExist(err) {
 				return branchName
 			}
 			log.Error("GetUniquePatchBranchName: %v", err)
