@@ -366,7 +366,7 @@
 					{{if not .OriginalAuthor}}
 					{{/* Some timeline avatars need a offset to correctly align with their speech bubble.
 						The condition depends on whether the comment has contents/attachments or reviews */}}
-					<a class="timeline-avatar{{if or .Content .Attachments (and .Review .Review.CodeComments)}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+					<a class="timeline-avatar{{if or .Content .Attachments (and .Review .Review.Content)}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
 						{{ctx.AvatarUtils.Avatar .Poster 40}}
 					</a>
 					{{end}}
