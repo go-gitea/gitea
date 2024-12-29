@@ -110,7 +110,3 @@ func SplitTrimSpace(input, sep string) []string {
 	}
 	return stringList
 }
-
-func StringPointer(s string) *string {
-	return &s
-}
