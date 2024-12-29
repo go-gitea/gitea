@@ -11,7 +11,8 @@ export function initRepoNew() {
   const updateUiAutoInit = () => {
     inputAutoInit.checked = Boolean(inputGitIgnores.value || inputLicense.value);
   };
-  form.addEventListener('change', updateUiAutoInit);
+  inputGitIgnores.addEventListener('change', updateUiAutoInit);
+  inputLicense.addEventListener('change', updateUiAutoInit);
   updateUiAutoInit();
 
   const inputRepoName = form.querySelector<HTMLInputElement>('input[name="repo_name"]');
