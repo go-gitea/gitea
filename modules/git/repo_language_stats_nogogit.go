@@ -73,12 +73,6 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	firstExcludedLanguageSize := int64(0)
 
 	if err := tree.IterateEntriesWithSize(func(f *TreeEntry) error {
-		select {
-		case <-repo.Ctx.Done():
-			return repo.Ctx.Err()
-		default:
-		}
-
 		contentBuf.Reset()
 		content = contentBuf.Bytes()
 

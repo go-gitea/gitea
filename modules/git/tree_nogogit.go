@@ -127,7 +127,7 @@ func (t *Tree) iterateEntriesRecursive(ctx context.Context, f func(entry *TreeEn
 	reader, writer := io.Pipe()
 	done := make(chan error)
 
-	go func(done chan error, writer *io.PipeWriter, reader *io.PipeReader) {
+	go func(t *Tree, done chan error, writer *io.PipeWriter) {
 		runErr := NewCommand(t.repo.Ctx, "ls-tree", "-t", "-r").
 			AddArguments(extraArgs...).
 			AddDynamicArguments(t.ID.String()).
@@ -137,10 +137,9 @@ func (t *Tree) iterateEntriesRecursive(ctx context.Context, f func(entry *TreeEn
 			})
 
 		_ = writer.Close()
-		_ = reader.Close()
 
 		done <- runErr
-	}(done, writer, reader)
+	}(t, done, writer)
 
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
@@ -150,13 +149,15 @@ func (t *Tree) iterateEntriesRecursive(ctx context.Context, f func(entry *TreeEn
 
 		data := scanner.Bytes()
 		if err := iterateTreeEntries(data, t, func(entry *TreeEntry) error {
+			if err := f(entry); err != nil {
+				return err
+			}
+
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
 			case runErr := <-done:
 				return runErr
-			default:
-				return f(entry)
 			}
 		}); err != nil {
 			return err
@@ -166,5 +167,5 @@ func (t *Tree) iterateEntriesRecursive(ctx context.Context, f func(entry *TreeEn
 }
 
 func (t *Tree) IterateEntriesWithSize(f func(*TreeEntry) error) error {
-	return t.iterateEntriesRecursive(context.Background(), f, TrustedCmdArgs{"--long"})
+	return t.iterateEntriesRecursive(t.repo.Ctx, f, TrustedCmdArgs{"--long"})
 }
