@@ -13,22 +13,22 @@ import (
 	"code.gitea.io/gitea/modules/options"
 )
 
-type licenseValues struct {
+type LicenseValues struct {
 	Owner string
 	Email string
 	Repo  string
 	Year  string
 }
 
-func getLicense(name string, values *licenseValues) ([]byte, error) {
+func GetLicense(name string, values *LicenseValues) ([]byte, error) {
 	data, err := options.License(name)
 	if err != nil {
-		return nil, fmt.Errorf("GetRepoInitFile[%s]: %w", name, err)
+		return nil, fmt.Errorf("GetLicense[%s]: %w", name, err)
 	}
 	return fillLicensePlaceholder(name, values, data), nil
 }
 
-func fillLicensePlaceholder(name string, values *licenseValues, origin []byte) []byte {
+func fillLicensePlaceholder(name string, values *LicenseValues, origin []byte) []byte {
 	placeholder := getLicensePlaceholder(name)
 
 	scanner := bufio.NewScanner(bytes.NewReader(origin))

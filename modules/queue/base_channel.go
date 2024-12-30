@@ -120,7 +120,7 @@ func (q *baseChannel) RemoveAll(ctx context.Context) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	for q.c != nil && len(q.c) > 0 {
+	for len(q.c) > 0 {
 		<-q.c
 	}
 

@@ -7,9 +7,10 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	organization_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 
 	"xorm.io/builder"
 )
@@ -18,11 +19,11 @@ type ReviewList []*Review
 
 // LoadReviewers loads reviewers
 func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
-	reviewerIds := make([]int64, len(reviews))
+	reviewerIDs := make([]int64, len(reviews))
 	for i := 0; i < len(reviews); i++ {
-		reviewerIds[i] = reviews[i].ReviewerID
+		reviewerIDs[i] = reviews[i].ReviewerID
 	}
-	reviewers, err := user_model.GetPossibleUserByIDs(ctx, reviewerIds)
+	reviewers, err := user_model.GetPossibleUserByIDs(ctx, reviewerIDs)
 	if err != nil {
 		return err
 	}
@@ -37,13 +38,35 @@ func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
 	return nil
 }
 
-func (reviews ReviewList) LoadIssues(ctx context.Context) error {
-	issueIds := container.Set[int64]{}
-	for i := 0; i < len(reviews); i++ {
-		issueIds.Add(reviews[i].IssueID)
+// LoadReviewersTeams loads reviewers teams
+func (reviews ReviewList) LoadReviewersTeams(ctx context.Context) error {
+	reviewersTeamsIDs := make([]int64, 0)
+	for _, review := range reviews {
+		if review.ReviewerTeamID != 0 {
+			reviewersTeamsIDs = append(reviewersTeamsIDs, review.ReviewerTeamID)
+		}
 	}
 
-	issues, err := GetIssuesByIDs(ctx, issueIds.Values())
+	teamsMap, err := organization_model.GetTeamsByIDs(ctx, reviewersTeamsIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, review := range reviews {
+		if review.ReviewerTeamID != 0 {
+			review.ReviewerTeam = teamsMap[review.ReviewerTeamID]
+		}
+	}
+
+	return nil
+}
+
+func (reviews ReviewList) LoadIssues(ctx context.Context) error {
+	issueIDs := container.FilterSlice(reviews, func(review *Review) (int64, bool) {
+		return review.IssueID, true
+	})
+
+	issues, err := GetIssuesByIDs(ctx, issueIDs)
 	if err != nil {
 		return err
 	}
@@ -64,11 +87,11 @@ func (reviews ReviewList) LoadIssues(ctx context.Context) error {
 // FindReviewOptions represent possible filters to find reviews
 type FindReviewOptions struct {
 	db.ListOptions
-	Type         ReviewType
+	Types        []ReviewType
 	IssueID      int64
 	ReviewerID   int64
 	OfficialOnly bool
-	Dismissed    util.OptionalBool
+	Dismissed    optional.Option[bool]
 }
 
 func (opts *FindReviewOptions) toCond() builder.Cond {
@@ -79,14 +102,14 @@ func (opts *FindReviewOptions) toCond() builder.Cond {
 	if opts.ReviewerID > 0 {
 		cond = cond.And(builder.Eq{"reviewer_id": opts.ReviewerID})
 	}
-	if opts.Type != ReviewTypeUnknown {
-		cond = cond.And(builder.Eq{"type": opts.Type})
+	if len(opts.Types) > 0 {
+		cond = cond.And(builder.In("type", opts.Types))
 	}
 	if opts.OfficialOnly {
 		cond = cond.And(builder.Eq{"official": true})
 	}
-	if !opts.Dismissed.IsNone() {
-		cond = cond.And(builder.Eq{"dismissed": opts.Dismissed.IsTrue()})
+	if opts.Dismissed.Has() {
+		cond = cond.And(builder.Eq{"dismissed": opts.Dismissed.Value()})
 	}
 	return cond
 }
@@ -126,16 +149,16 @@ func FindLatestReviews(ctx context.Context, opts FindReviewOptions) (ReviewList,
 }
 
 // CountReviews returns count of reviews passing FindReviewOptions
-func CountReviews(opts FindReviewOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(opts.toCond()).Count(&Review{})
+func CountReviews(ctx context.Context, opts FindReviewOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.toCond()).Count(&Review{})
 }
 
 // GetReviewersFromOriginalAuthorsByIssueID gets the latest review of each original authors for a pull request
-func GetReviewersFromOriginalAuthorsByIssueID(issueID int64) (ReviewList, error) {
+func GetReviewersFromOriginalAuthorsByIssueID(ctx context.Context, issueID int64) (ReviewList, error) {
 	reviews := make([]*Review, 0, 10)
 
 	// Get latest review of each reviewer, sorted in order they were made
-	if err := db.GetEngine(db.DefaultContext).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id <> 0 GROUP BY issue_id, original_author_id) ORDER BY review.updated_unix ASC",
+	if err := db.GetEngine(ctx).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id <> 0 GROUP BY issue_id, original_author_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Find(&reviews); err != nil {
 		return nil, err
@@ -145,10 +168,10 @@ func GetReviewersFromOriginalAuthorsByIssueID(issueID int64) (ReviewList, error)
 }
 
 // GetReviewsByIssueID gets the latest review of each reviewer for a pull request
-func GetReviewsByIssueID(issueID int64) (ReviewList, error) {
+func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, error) {
 	reviews := make([]*Review, 0, 10)
 
-	sess := db.GetEngine(db.DefaultContext)
+	sess := db.GetEngine(ctx)
 
 	// Get latest review of each reviewer, sorted in order they were made
 	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",

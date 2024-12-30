@@ -37,7 +37,7 @@ func TestUndoDeleteBranch(t *testing.T) {
 		htmlDoc, name := branchAction(t, ".restore-branch-button")
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.positive.message").Text(),
-			translation.NewLocale("en-US").Tr("repo.branch.restore_success", name),
+			translation.NewLocale("en-US").TrString("repo.branch.restore_success", name),
 		)
 	})
 }
@@ -46,7 +46,7 @@ func deleteBranch(t *testing.T) {
 	htmlDoc, name := branchAction(t, ".delete-branch-button")
 	assert.Contains(t,
 		htmlDoc.doc.Find(".ui.positive.message").Text(),
-		translation.NewLocale("en-US").Tr("repo.branch.deletion_success", name),
+		translation.NewLocale("en-US").TrString("repo.branch.deletion_success", name),
 	)
 }
 

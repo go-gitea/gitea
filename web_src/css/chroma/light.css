@@ -1,3 +1,4 @@
+/* https://github.com/alecthomas/chroma/blob/6428fb4e65f3c1493491571c8a6a8f1add1da822/types.go#L208 */
 .chroma .bp { color: #999999; } /* NameBuiltinPseudo */
 .chroma .c { color: #6a737d; } /* Comment */
 .chroma .c1 { color: #6a737d; } /* CommentSingle */
@@ -55,20 +56,21 @@
 .chroma .p {} /* Punctuation */
 .chroma .py {} /* NameProperty */
 .chroma .s { color: #106303; } /* LiteralString */
-.chroma .s1 { color: #cc7a00; } /* LiteralStringSingle */
+.chroma .s1 { color: #106303; } /* LiteralStringSingle */
 .chroma .s2 { color: #106303; } /* LiteralStringDouble */
-.chroma .sa { color: #106303; } /* LiteralStringAffix */
+.chroma .sa { color: #cc7a00; } /* LiteralStringAffix */
 .chroma .sb { color: #106303; } /* LiteralStringBacktick */
-.chroma .sc { color: #106303; } /* LiteralStringChar */
+.chroma .sc { color: #cc7a00; } /* LiteralStringChar */
 .chroma .sd { color: #106303; } /* LiteralStringDoc */
-.chroma .se { color: #106303; } /* LiteralStringEscape */
+.chroma .se { color: #994400; } /* LiteralStringEscape */
 .chroma .sh { color: #106303; } /* LiteralStringHeredoc */
-.chroma .si { color: #106303; } /* LiteralStringInterpol */
-.chroma .sr { color: #22863a; } /* LiteralStringRegex */
-.chroma .ss { color: #106303; } /* LiteralStringSymbol */
+.chroma .si { color: #cc7a00; } /* LiteralStringInterpol */
+.chroma .sr { color: #4c4dbc; } /* LiteralStringRegex */
+.chroma .ss { color: #994400; } /* LiteralStringSymbol */
 .chroma .sx { color: #106303; } /* LiteralStringOther */
 .chroma .vc { color: #008080; } /* NameVariableClass */
 .chroma .vg { color: #008080; } /* NameVariableGlobal */
 .chroma .vi { color: #008080; } /* NameVariableInstance */
 .chroma .vm {} /* NameVariableMagic */
 .chroma .w { color: #bbbbbb; } /* TextWhitespace */
+.chroma .err {/* not styled because Chroma uses it on too many things like JSX */} /* Error */

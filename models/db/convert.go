@@ -14,27 +14,32 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-// ConvertUtf8ToUtf8mb4 converts database and tables from utf8 to utf8mb4 if it's mysql and set ROW_FORMAT=dynamic
-func ConvertUtf8ToUtf8mb4() error {
-	if x.Dialect().URI().DBType != schemas.MYSQL {
+// ConvertDatabaseTable converts database and tables from utf8 to utf8mb4 if it's mysql and set ROW_FORMAT=dynamic
+func ConvertDatabaseTable() error {
+	if xormEngine.Dialect().URI().DBType != schemas.MYSQL {
 		return nil
 	}
 
-	_, err := x.Exec(fmt.Sprintf("ALTER DATABASE `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci", setting.Database.Name))
+	r, err := CheckCollations(xormEngine)
 	if err != nil {
 		return err
 	}
 
-	tables, err := x.DBMetas()
+	_, err = xormEngine.Exec(fmt.Sprintf("ALTER DATABASE `%s` CHARACTER SET utf8mb4 COLLATE %s", setting.Database.Name, r.ExpectedCollation))
+	if err != nil {
+		return err
+	}
+
+	tables, err := xormEngine.DBMetas()
 	if err != nil {
 		return err
 	}
 	for _, table := range tables {
-		if _, err := x.Exec(fmt.Sprintf("ALTER TABLE `%s` ROW_FORMAT=dynamic;", table.Name)); err != nil {
+		if _, err := xormEngine.Exec(fmt.Sprintf("ALTER TABLE `%s` ROW_FORMAT=dynamic", table.Name)); err != nil {
 			return err
 		}
 
-		if _, err := x.Exec(fmt.Sprintf("ALTER TABLE `%s` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;", table.Name)); err != nil {
+		if _, err := xormEngine.Exec(fmt.Sprintf("ALTER TABLE `%s` CONVERT TO CHARACTER SET utf8mb4 COLLATE %s", table.Name, r.ExpectedCollation)); err != nil {
 			return err
 		}
 	}
@@ -44,11 +49,11 @@ func ConvertUtf8ToUtf8mb4() error {
 
 // ConvertVarcharToNVarchar converts database and tables from varchar to nvarchar if it's mssql
 func ConvertVarcharToNVarchar() error {
-	if x.Dialect().URI().DBType != schemas.MSSQL {
+	if xormEngine.Dialect().URI().DBType != schemas.MSSQL {
 		return nil
 	}
 
-	sess := x.NewSession()
+	sess := xormEngine.NewSession()
 	defer sess.Close()
 	res, err := sess.QuerySliceString(`SELECT 'ALTER TABLE ' + OBJECT_NAME(SC.object_id) + ' MODIFY SC.name NVARCHAR(' + CONVERT(VARCHAR(5),SC.max_length) + ')'
 FROM SYS.columns SC

@@ -6,19 +6,21 @@ package unittest
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	system_model "code.gitea.io/gitea/models/system"
+	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -32,27 +34,30 @@ var (
 	fixturesDir string
 )
 
-// FixturesDir returns the fixture directory
-func FixturesDir() string {
-	return fixturesDir
-}
-
 func fatalTestError(fmtStr string, args ...any) {
 	_, _ = fmt.Fprintf(os.Stderr, fmtStr, args...)
 	os.Exit(1)
 }
 
 // InitSettings initializes config provider and load common settings for tests
-func InitSettings(extraConfigs ...string) {
+func InitSettings() {
+	setting.IsInTesting = true
+	log.OsExiter = func(code int) {
+		if code != 0 {
+			// non-zero exit code (log.Fatal) shouldn't occur during testing, if it happens, show a full stacktrace for more details
+			panic(fmt.Errorf("non-zero exit code during testing: %d", code))
+		}
+		os.Exit(0)
+	}
 	if setting.CustomConf == "" {
 		setting.CustomConf = filepath.Join(setting.CustomPath, "conf/app-unittest-tmp.ini")
 		_ = os.Remove(setting.CustomConf)
 	}
-	setting.InitCfgProvider(setting.CustomConf, strings.Join(extraConfigs, "\n"))
+	setting.InitCfgProvider(setting.CustomConf)
 	setting.LoadCommonSettings()
 
 	if err := setting.PrepareAppDataPath(); err != nil {
-		log.Fatalf("Can not prepare APP_DATA_PATH: %v", err)
+		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
 	}
 	// register the dummy hash algorithm function used in the test fixtures
 	_ = hash.Register("dummy", hash.NewDummyHasher)
@@ -62,38 +67,50 @@ func InitSettings(extraConfigs ...string) {
 
 // TestOptions represents test options
 type TestOptions struct {
-	GiteaRootPath string
-	FixtureFiles  []string
-	SetUp         func() error // SetUp will be executed before all tests in this package
-	TearDown      func() error // TearDown will be executed after all tests in this package
+	FixtureFiles []string
+	SetUp        func() error // SetUp will be executed before all tests in this package
+	TearDown     func() error // TearDown will be executed after all tests in this package
 }
 
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
-func MainTest(m *testing.M, testOpts *TestOptions) {
-	setting.CustomPath = filepath.Join(testOpts.GiteaRootPath, "custom")
+func MainTest(m *testing.M, testOpts ...*TestOptions) {
+	searchDir, _ := os.Getwd()
+	for searchDir != "" {
+		if _, err := os.Stat(filepath.Join(searchDir, "go.mod")); err == nil {
+			break // The "go.mod" should be the one for Gitea repository
+		}
+		if dir := filepath.Dir(searchDir); dir == searchDir {
+			searchDir = "" // reaches the root of filesystem
+		} else {
+			searchDir = dir
+		}
+	}
+	if searchDir == "" {
+		panic("The tests should run in a Gitea repository, there should be a 'go.mod' in the root")
+	}
+
+	giteaRoot = searchDir
+	setting.CustomPath = filepath.Join(giteaRoot, "custom")
 	InitSettings()
 
-	var err error
-
-	giteaRoot = testOpts.GiteaRootPath
-	fixturesDir = filepath.Join(testOpts.GiteaRootPath, "models", "fixtures")
-
+	fixturesDir = filepath.Join(giteaRoot, "models", "fixtures")
 	var opts FixturesOptions
-	if len(testOpts.FixtureFiles) == 0 {
+	if len(testOpts) == 0 || len(testOpts[0].FixtureFiles) == 0 {
 		opts.Dir = fixturesDir
 	} else {
-		for _, f := range testOpts.FixtureFiles {
+		for _, f := range testOpts[0].FixtureFiles {
 			if len(f) != 0 {
 				opts.Files = append(opts.Files, filepath.Join(fixturesDir, f))
 			}
 		}
 	}
 
-	if err = CreateTestEngine(opts); err != nil {
+	if err := CreateTestEngine(opts); err != nil {
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
 
+	setting.IsInTesting = true
 	setting.AppURL = "https://try.gitea.io/"
 	setting.RunUser = "runuser"
 	setting.SSH.User = "sshuser"
@@ -112,8 +129,8 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		fatalTestError("TempDir: %v\n", err)
 	}
 	setting.AppDataPath = appDataPath
-	setting.AppWorkPath = testOpts.GiteaRootPath
-	setting.StaticRootPath = testOpts.GiteaRootPath
+	setting.AppWorkPath = giteaRoot
+	setting.StaticRootPath = giteaRoot
 	setting.GravatarSource = "https://secure.gravatar.com/avatar/"
 
 	setting.Attachment.Storage.Path = filepath.Join(setting.AppDataPath, "attachments")
@@ -134,53 +151,32 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	setting.IncomingEmail.ReplyToAddress = "incoming+%{token}@localhost"
 
+	config.SetDynGetter(system.NewDatabaseDynKeyGetter())
+
+	if err = cache.Init(); err != nil {
+		fatalTestError("cache.Init: %v\n", err)
+	}
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
-	if err = system_model.Init(db.DefaultContext); err != nil {
-		fatalTestError("models.Init: %v\n", err)
-	}
-
-	if err = util.RemoveAll(repoRootPath); err != nil {
-		fatalTestError("util.RemoveAll: %v\n", err)
-	}
-	if err = CopyDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
-		fatalTestError("util.CopyDir: %v\n", err)
+	if err = SyncDirs(filepath.Join(giteaRoot, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+		fatalTestError("util.SyncDirs: %v\n", err)
 	}
 
 	if err = git.InitFull(context.Background()); err != nil {
 		fatalTestError("git.Init: %v\n", err)
 	}
-	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
-	if err != nil {
-		fatalTestError("unable to read the new repo root: %v\n", err)
-	}
-	for _, ownerDir := range ownerDirs {
-		if !ownerDir.Type().IsDir() {
-			continue
-		}
-		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
-		if err != nil {
-			fatalTestError("unable to read the new repo root: %v\n", err)
-		}
-		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
-		}
-	}
 
-	if testOpts.SetUp != nil {
-		if err := testOpts.SetUp(); err != nil {
+	if len(testOpts) > 0 && testOpts[0].SetUp != nil {
+		if err := testOpts[0].SetUp(); err != nil {
 			fatalTestError("set up failed: %v\n", err)
 		}
 	}
 
 	exitStatus := m.Run()
 
-	if testOpts.TearDown != nil {
-		if err := testOpts.TearDown(); err != nil {
+	if len(testOpts) > 0 && testOpts[0].TearDown != nil {
+		if err := testOpts[0].TearDown(); err != nil {
 			fatalTestError("tear down failed: %v\n", err)
 		}
 	}
@@ -205,7 +201,7 @@ func CreateTestEngine(opts FixturesOptions) error {
 	x, err := xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown driver") {
-			return fmt.Errorf(`sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify%s%w`, "\n", err)
+			return fmt.Errorf(`sqlite3 requires: -tags sqlite,sqlite_unlock_notify%s%w`, "\n", err)
 		}
 		return err
 	}
@@ -232,24 +228,7 @@ func PrepareTestDatabase() error {
 // by tests that use the above MainTest(..) function.
 func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
-	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	metaPath := filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")
-	assert.NoError(t, CopyDir(metaPath, setting.RepoRootPath))
-	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
-	assert.NoError(t, err)
-	for _, ownerDir := range ownerDirs {
-		if !ownerDir.Type().IsDir() {
-			continue
-		}
-		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
-		assert.NoError(t, err)
-		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
-		}
-	}
-
-	base.SetupGiteaRoot() // Makes sure GITEA_ROOT is set
+	assert.NoError(t, SyncDirs(metaPath, setting.RepoRootPath))
+	test.SetupGiteaRoot() // Makes sure GITEA_ROOT is set
 }

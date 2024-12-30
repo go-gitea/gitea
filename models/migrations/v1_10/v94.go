@@ -11,7 +11,7 @@ func AddStatusCheckColumnsForProtectedBranches(x *xorm.Engine) error {
 		StatusCheckContexts []string `xorm:"JSON TEXT"`
 	}
 
-	if err := x.Sync2(new(ProtectedBranch)); err != nil {
+	if err := x.Sync(new(ProtectedBranch)); err != nil {
 		return err
 	}
 

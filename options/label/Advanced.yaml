@@ -14,12 +14,12 @@ labels:
   - name: "Kind/Testing"
     color: 795548
     description: Issue or pull request related to testing
-  - name: "Kind/Breaking"
-    color: c62828
-    description: Breaking change that won't be backward compatible
   - name: "Kind/Documentation"
     color: 37474f
     description: Documentation changes
+  - name: "Compat/Breaking"
+    color: c62828
+    description: Breaking change that won't be backward compatible
   - name: "Reviewed/Duplicate"
     exclusive: true
     color: 616161

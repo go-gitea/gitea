@@ -9,18 +9,18 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 const (
-	tplLabels base.TplName = "repo/issue/labels"
+	tplLabels templates.TplName = "repo/issue/labels"
 )
 
 // Labels render issue's labels page
@@ -53,11 +53,11 @@ func InitializeLabels(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 }
 
-// RetrieveLabels find all the labels of a repository and organization
-func RetrieveLabels(ctx *context.Context) {
+// RetrieveLabelsForList find all the labels of a repository and organization, it is only used by "/labels" page to list all labels
+func RetrieveLabelsForList(ctx *context.Context) {
 	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), db.ListOptions{})
 	if err != nil {
-		ctx.ServerError("RetrieveLabels.GetLabels", err)
+		ctx.ServerError("RetrieveLabelsForList.GetLabels", err)
 		return
 	}
 
@@ -84,7 +84,7 @@ func RetrieveLabels(ctx *context.Context) {
 			return
 		}
 		if ctx.Doer != nil {
-			ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.Doer.ID)
+			ctx.Org.IsOwner, err = org.IsOwnedBy(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("org.IsOwnedBy", err)
 				return
@@ -137,12 +137,13 @@ func UpdateLabel(ctx *context.Context) {
 		}
 		return
 	}
-
 	l.Name = form.Title
 	l.Exclusive = form.Exclusive
 	l.Description = form.Description
 	l.Color = form.Color
-	if err := issues_model.UpdateLabel(l); err != nil {
+
+	l.SetArchived(form.IsArchived)
+	if err := issues_model.UpdateLabel(ctx, l); err != nil {
 		ctx.ServerError("UpdateLabel", err)
 		return
 	}
@@ -151,7 +152,7 @@ func UpdateLabel(ctx *context.Context) {
 
 // DeleteLabel delete a label
 func DeleteLabel(ctx *context.Context) {
-	if err := issues_model.DeleteLabel(ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
+	if err := issues_model.DeleteLabel(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteLabel: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.issues.label_deletion_success"))
@@ -170,7 +171,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 	switch action := ctx.FormString("action"); action {
 	case "clear":
 		for _, issue := range issues {
-			if err := issue_service.ClearLabels(issue, ctx.Doer); err != nil {
+			if err := issue_service.ClearLabels(ctx, issue, ctx.Doer); err != nil {
 				ctx.ServerError("ClearLabels", err)
 				return
 			}
@@ -205,14 +206,14 @@ func UpdateIssueLabel(ctx *context.Context) {
 
 		if action == "attach" {
 			for _, issue := range issues {
-				if err = issue_service.AddLabel(issue, ctx.Doer, label); err != nil {
+				if err = issue_service.AddLabel(ctx, issue, ctx.Doer, label); err != nil {
 					ctx.ServerError("AddLabel", err)
 					return
 				}
 			}
 		} else {
 			for _, issue := range issues {
-				if err = issue_service.RemoveLabel(issue, ctx.Doer, label); err != nil {
+				if err = issue_service.RemoveLabel(ctx, issue, ctx.Doer, label); err != nil {
 					ctx.ServerError("RemoveLabel", err)
 					return
 				}

@@ -40,10 +40,10 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 	assert.NoError(t, err)
 
 	// Setup ssh wrapper
-	os.Setenv("GIT_SSH", path.Join(tmpDir, "ssh"))
-	os.Setenv("GIT_SSH_COMMAND",
+	t.Setenv("GIT_SSH", path.Join(tmpDir, "ssh"))
+	t.Setenv("GIT_SSH_COMMAND",
 		"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i \""+keyFile+"\"")
-	os.Setenv("GIT_SSH_VARIANT", "ssh")
+	t.Setenv("GIT_SSH_VARIANT", "ssh")
 
 	callback(keyFile)
 }
@@ -57,12 +57,10 @@ func createSSHUrl(gitPath string, u *url.URL) *url.URL {
 	return &u2
 }
 
-func onGiteaRunTB(t testing.TB, callback func(testing.TB, *url.URL), prepare ...bool) {
-	if len(prepare) == 0 || prepare[0] {
-		defer tests.PrepareTestEnv(t, 1)()
-	}
+func onGiteaRun[T testing.TB](t T, callback func(T, *url.URL)) {
+	defer tests.PrepareTestEnv(t, 1)()
 	s := http.Server{
-		Handler: c,
+		Handler: testWebRoutes,
 	}
 
 	u, err := url.Parse(setting.AppURL)
@@ -87,12 +85,6 @@ func onGiteaRunTB(t testing.TB, callback func(testing.TB, *url.URL), prepare ...
 	// Started by config go ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
 
 	callback(t, u)
-}
-
-func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bool) {
-	onGiteaRunTB(t, func(t testing.TB, u *url.URL) {
-		callback(t.(*testing.T), u)
-	}, prepare...)
 }
 
 func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
@@ -128,7 +120,7 @@ func doGitCloneFail(u *url.URL) func(*testing.T) {
 func doGitInitTestRepository(dstPath string) func(*testing.T) {
 	return func(t *testing.T) {
 		// Init repository in dstPath
-		assert.NoError(t, git.InitRepository(git.DefaultContext, dstPath, false))
+		assert.NoError(t, git.InitRepository(git.DefaultContext, dstPath, false, git.Sha1ObjectFormat.Name()))
 		// forcibly set default branch to master
 		_, _, err := git.NewCommand(git.DefaultContext, "symbolic-ref", "HEAD", git.BranchPrefix+"master").RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
@@ -165,6 +157,24 @@ func doGitPushTestRepositoryFail(dstPath string, args ...string) func(*testing.T
 	return func(t *testing.T) {
 		_, _, err := git.NewCommand(git.DefaultContext, "push").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.Error(t, err)
+	}
+}
+
+func doGitAddSomeCommits(dstPath, branch string) func(*testing.T) {
+	return func(t *testing.T) {
+		doGitCheckoutBranch(dstPath, branch)(t)
+
+		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, fmt.Sprintf("file-%s.txt", branch)), []byte(fmt.Sprintf("file %s", branch)), 0o644))
+		assert.NoError(t, git.AddChanges(dstPath, true))
+		signature := git.Signature{
+			Email: "test@test.test",
+			Name:  "test",
+		}
+		assert.NoError(t, git.CommitChanges(dstPath, git.CommitChangesOptions{
+			Committer: &signature,
+			Author:    &signature,
+			Message:   fmt.Sprintf("update %s", branch),
+		}))
 	}
 }
 

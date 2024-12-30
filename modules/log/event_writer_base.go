@@ -90,7 +90,7 @@ func (b *EventWriterBaseImpl) Run(ctx context.Context) {
 
 			if exprRegexp != nil {
 				fileLineCaller := fmt.Sprintf("%s:%d:%s", event.Origin.Filename, event.Origin.Line, event.Origin.Caller)
-				matched := exprRegexp.Match([]byte(fileLineCaller)) || exprRegexp.Match([]byte(event.Origin.MsgSimpleText))
+				matched := exprRegexp.MatchString(fileLineCaller) || exprRegexp.MatchString(event.Origin.MsgSimpleText)
 				if !matched {
 					continue
 				}

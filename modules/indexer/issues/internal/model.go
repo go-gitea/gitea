@@ -4,9 +4,11 @@
 package internal
 
 import (
+	"strconv"
+
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // IndexerData data stored in the issue indexer
@@ -23,11 +25,12 @@ type IndexerData struct {
 	// Fields used for filtering
 	IsPull             bool               `json:"is_pull"`
 	IsClosed           bool               `json:"is_closed"`
+	IsArchived         bool               `json:"is_archived"`
 	LabelIDs           []int64            `json:"label_ids"`
 	NoLabel            bool               `json:"no_label"` // True if LabelIDs is empty
 	MilestoneID        int64              `json:"milestone_id"`
 	ProjectID          int64              `json:"project_id"`
-	ProjectBoardID     int64              `json:"project_board_id"`
+	ProjectColumnID    int64              `json:"project_board_id"` // the key should be kept as project_board_id to keep compatible
 	PosterID           int64              `json:"poster_id"`
 	AssigneeID         int64              `json:"assignee_id"`
 	MentionIDs         []int64            `json:"mention_ids"`
@@ -56,15 +59,32 @@ type SearchResult struct {
 	Hits  []Match
 }
 
-// SearchOptions represents search options
+// SearchOptions represents search options.
+//
+// It has a slightly different design from database query options.
+// In database query options, a field is never a pointer, so it could be confusing when it's zero value:
+// Do you want to find data with a field value of 0, or do you not specify the field in the options?
+// To avoid this confusion, db introduced db.NoConditionID(-1).
+// So zero value means the field is not specified in the search options, and db.NoConditionID means "== 0" or "id NOT IN (SELECT id FROM ...)"
+// It's still not ideal, it trapped developers many times.
+// And sometimes -1 could be a valid value, like issue ID, negative numbers indicate exclusion.
+// Since db.NoConditionID is for "db" (the package name is db), it makes sense not to use it in the indexer:
+// Why do bleve/elasticsearch/meilisearch indexers need to know about db.NoConditionID?
+// So in SearchOptions, we use pointer for fields which could be not specified,
+// and always use the value to filter if it's not nil, even if it's zero or negative.
+// It can handle almost all cases, if there is an exception, we can add a new field, like NoLabelOnly.
+// Unfortunately, we still use db for the indexer and have to convert between db.NoConditionID and nil for legacy reasons.
 type SearchOptions struct {
 	Keyword string // keyword to search
+
+	IsFuzzyKeyword bool // if false the levenshtein distance is 0
 
 	RepoIDs   []int64 // repository IDs which the issues belong to
 	AllPublic bool    // if include all public repositories
 
-	IsPull   util.OptionalBool // if the issues is a pull request
-	IsClosed util.OptionalBool // if the issues is closed
+	IsPull     optional.Option[bool] // if the issues is a pull request
+	IsClosed   optional.Option[bool] // if the issues is closed
+	IsArchived optional.Option[bool] // if the repo is archived
 
 	IncludedLabelIDs    []int64 // labels the issues have
 	ExcludedLabelIDs    []int64 // labels the issues don't have
@@ -73,26 +93,45 @@ type SearchOptions struct {
 
 	MilestoneIDs []int64 // milestones the issues have
 
-	ProjectID      *int64 // project the issues belong to
-	ProjectBoardID *int64 // project board the issues belong to
+	ProjectID       optional.Option[int64] // project the issues belong to
+	ProjectColumnID optional.Option[int64] // project column the issues belong to
 
-	PosterID *int64 // poster of the issues
+	PosterID optional.Option[int64] // poster of the issues
 
-	AssigneeID *int64 // assignee of the issues, zero means no assignee
+	AssigneeID optional.Option[int64] // assignee of the issues, zero means no assignee
 
-	MentionID *int64 // mentioned user of the issues
+	MentionID optional.Option[int64] // mentioned user of the issues
 
-	ReviewedID        *int64 // reviewer of the issues
-	ReviewRequestedID *int64 // requested reviewer of the issues
+	ReviewedID        optional.Option[int64] // reviewer of the issues
+	ReviewRequestedID optional.Option[int64] // requested reviewer of the issues
 
-	SubscriberID *int64 // subscriber of the issues
+	SubscriberID optional.Option[int64] // subscriber of the issues
 
-	UpdatedAfterUnix  *int64
-	UpdatedBeforeUnix *int64
+	UpdatedAfterUnix  optional.Option[int64]
+	UpdatedBeforeUnix optional.Option[int64]
 
-	db.Paginator
+	Paginator *db.ListOptions
 
 	SortBy SortBy // sort by field
+}
+
+// Copy returns a copy of the options.
+// Be careful, it's not a deep copy, so `SearchOptions.RepoIDs = {...}` is OK while `SearchOptions.RepoIDs[0] = ...` is not.
+func (o *SearchOptions) Copy(edit ...func(options *SearchOptions)) *SearchOptions {
+	if o == nil {
+		return nil
+	}
+	v := *o
+	for _, e := range edit {
+		e(&v)
+	}
+	return &v
+}
+
+// used for optimized issue index based search
+func (o *SearchOptions) IsKeywordNumeric() bool {
+	_, err := strconv.Atoi(o.Keyword)
+	return err == nil
 }
 
 type SortBy string

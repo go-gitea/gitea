@@ -34,7 +34,7 @@ func validateArtifactName(ctx *ArtifactContext, artifactName string) bool {
 
 func validateRunID(ctx *ArtifactContext) (*actions.ActionTask, int64, bool) {
 	task := ctx.ActionTask
-	runID := ctx.ParamsInt64("run_id")
+	runID := ctx.PathParamInt64("run_id")
 	if task.Job.RunID != runID {
 		log.Error("Error runID not match")
 		ctx.Error(http.StatusBadRequest, "run-id does not match")
@@ -43,8 +43,19 @@ func validateRunID(ctx *ArtifactContext) (*actions.ActionTask, int64, bool) {
 	return task, runID, true
 }
 
+func validateRunIDV4(ctx *ArtifactContext, rawRunID string) (*actions.ActionTask, int64, bool) { //nolint:unparam
+	task := ctx.ActionTask
+	runID, err := strconv.ParseInt(rawRunID, 10, 64)
+	if err != nil || task.Job.RunID != runID {
+		log.Error("Error runID not match")
+		ctx.Error(http.StatusBadRequest, "run-id does not match")
+		return nil, 0, false
+	}
+	return task, runID, true
+}
+
 func validateArtifactHash(ctx *ArtifactContext, artifactName string) bool {
-	paramHash := ctx.Params("artifact_hash")
+	paramHash := ctx.PathParam("artifact_hash")
 	// use artifact name to create upload url
 	artifactHash := fmt.Sprintf("%x", md5.Sum([]byte(artifactName)))
 	if paramHash == artifactHash {
@@ -58,7 +69,8 @@ func validateArtifactHash(ctx *ArtifactContext, artifactName string) bool {
 func parseArtifactItemPath(ctx *ArtifactContext) (string, string, bool) {
 	// itemPath is generated from upload-artifact action
 	// it's formatted as {artifact_name}/{artfict_path_in_runner}
-	itemPath := util.PathJoinRel(ctx.Req.URL.Query().Get("itemPath"))
+	// act_runner in host mode on Windows, itemPath is joined by Windows slash '\'
+	itemPath := util.PathJoinRelX(ctx.Req.URL.Query().Get("itemPath"))
 	artifactName := strings.Split(itemPath, "/")[0]
 	artifactPath := strings.TrimPrefix(itemPath, artifactName+"/")
 	if !validateArtifactHash(ctx, artifactName) {
@@ -72,11 +84,11 @@ func parseArtifactItemPath(ctx *ArtifactContext) (string, string, bool) {
 
 // getUploadFileSize returns the size of the file to be uploaded.
 // The raw size is the size of the file as reported by the header X-TFS-FileLength.
-func getUploadFileSize(ctx *ArtifactContext) (int64, int64, error) {
+func getUploadFileSize(ctx *ArtifactContext) (int64, int64) {
 	contentLength := ctx.Req.ContentLength
 	xTfsLength, _ := strconv.ParseInt(ctx.Req.Header.Get(artifactXTfsFileLengthHeader), 10, 64)
 	if xTfsLength > 0 {
-		return xTfsLength, contentLength, nil
+		return xTfsLength, contentLength
 	}
-	return contentLength, contentLength, nil
+	return contentLength, contentLength
 }

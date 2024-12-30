@@ -114,7 +114,7 @@ func showWebStartupMessage(msg string) {
 	log.Info("* WorkPath: %s", setting.AppWorkPath)
 	log.Info("* CustomPath: %s", setting.CustomPath)
 	log.Info("* ConfigFile: %s", setting.CustomConf)
-	log.Info("%s", msg)
+	log.Info("%s", msg) // show startup message
 }
 
 func serveInstall(ctx *cli.Context) error {
@@ -208,8 +208,8 @@ func serveInstalled(ctx *cli.Context) error {
 	}
 
 	// Set up Chi routes
-	c := routers.NormalRoutes()
-	err := listen(c, true)
+	webRoutes := routers.NormalRoutes()
+	err := listen(webRoutes, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	log.GetManager().Close()

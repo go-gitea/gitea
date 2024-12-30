@@ -43,7 +43,7 @@ Ensure you are running in the correct environment or set the correct configurati
 	req := httplib.NewRequest(url, method).
 		SetContext(ctx).
 		Header("X-Real-IP", getClientIP()).
-		Header("Authorization", fmt.Sprintf("Bearer %s", setting.InternalToken)).
+		Header("X-Gitea-Internal-Auth", fmt.Sprintf("Bearer %s", setting.InternalToken)).
 		SetTLSClientConfig(&tls.Config{
 			InsecureSkipVerify: true,
 			ServerName:         setting.Domain,

@@ -23,5 +23,5 @@ func AddUploaderIDForAttachment(x *xorm.Engine) error {
 		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 	}
 
-	return x.Sync2(new(Attachment))
+	return x.Sync(new(Attachment))
 }

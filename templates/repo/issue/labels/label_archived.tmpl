@@ -1,0 +1,5 @@
+{{if .IsArchived}}
+	<span class="ui label basic small" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.label_archive_tooltip"}}">
+		{{ctx.Locale.Tr "archived"}}
+	</span>
+{{end}}

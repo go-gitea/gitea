@@ -13,5 +13,5 @@ func AddAllowMaintainerEdit(x *xorm.Engine) error {
 		AllowMaintainerEdit bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync2(new(PullRequest))
+	return x.Sync(new(PullRequest))
 }

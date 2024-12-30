@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"bytes"
 	"os"
 	"regexp"
 	"strconv"
@@ -96,7 +97,7 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 
 // decodeEnvironmentKey decode the environment key to section and key
 // The environment key is in the form of GITEA__SECTION__KEY or GITEA__SECTION__KEY__FILE
-func decodeEnvironmentKey(prefixGitea, suffixFile, envKey string) (ok bool, section, key string, useFileValue bool) {
+func decodeEnvironmentKey(prefixGitea, suffixFile, envKey string) (ok bool, section, key string, useFileValue bool) { //nolint:unparam
 	if !strings.HasPrefix(envKey, prefixGitea) {
 		return false, "", "", false
 	}
@@ -131,6 +132,11 @@ func EnvironmentToConfig(cfg ConfigProvider, envs []string) (changed bool) {
 				log.Error("Error reading file for %s : %v", envKey, envValue, err)
 				continue
 			}
+			if bytes.HasSuffix(fileContent, []byte("\r\n")) {
+				fileContent = fileContent[:len(fileContent)-2]
+			} else if bytes.HasSuffix(fileContent, []byte("\n")) {
+				fileContent = fileContent[:len(fileContent)-1]
+			}
 			keyValue = string(fileContent)
 		}
 
@@ -143,8 +149,9 @@ func EnvironmentToConfig(cfg ConfigProvider, envs []string) (changed bool) {
 				continue
 			}
 		}
-		key := section.Key(keyName)
+		key := ConfigSectionKey(section, keyName)
 		if key == nil {
+			changed = true
 			key, err = section.NewKey(keyName, keyValue)
 			if err != nil {
 				log.Error("Error creating key: %s in section: %s with value: %s : %v", keyName, sectionName, keyValue, err)

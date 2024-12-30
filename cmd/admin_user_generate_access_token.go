@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -42,7 +43,7 @@ var microcmdUserGenerateAccessToken = &cli.Command{
 
 func runGenerateAccessToken(c *cli.Context) error {
 	if !c.IsSet("username") {
-		return fmt.Errorf("You must provide a username to generate a token for")
+		return errors.New("You must provide a username to generate a token for")
 	}
 
 	ctx, cancel := installSignals()
@@ -63,12 +64,12 @@ func runGenerateAccessToken(c *cli.Context) error {
 		UID:  user.ID,
 	}
 
-	exist, err := auth_model.AccessTokenByNameExists(t)
+	exist, err := auth_model.AccessTokenByNameExists(ctx, t)
 	if err != nil {
 		return err
 	}
 	if exist {
-		return fmt.Errorf("access token name has been used already")
+		return errors.New("access token name has been used already")
 	}
 
 	// make sure the scopes are valid
@@ -79,7 +80,7 @@ func runGenerateAccessToken(c *cli.Context) error {
 	t.Scope = accessTokenScope
 
 	// create the token
-	if err := auth_model.NewAccessToken(t); err != nil {
+	if err := auth_model.NewAccessToken(ctx, t); err != nil {
 		return err
 	}
 

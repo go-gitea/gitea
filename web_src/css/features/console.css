@@ -4,9 +4,8 @@
   background: var(--color-console-bg);
   color: var(--color-console-fg);
   font-family: var(--fonts-monospace);
-  border-radius: 5px;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  border-radius: var(--border-radius);
+  overflow-wrap: anywhere;
 }
 
 .console img { max-width: 100%; }

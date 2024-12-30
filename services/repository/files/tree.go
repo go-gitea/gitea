@@ -8,18 +8,37 @@ import (
 	"fmt"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
+
+// ErrSHANotFound represents a "SHADoesNotMatch" kind of error.
+type ErrSHANotFound struct {
+	SHA string
+}
+
+// IsErrSHANotFound checks if an error is a ErrSHANotFound.
+func IsErrSHANotFound(err error) bool {
+	_, ok := err.(ErrSHANotFound)
+	return ok
+}
+
+func (err ErrSHANotFound) Error() string {
+	return fmt.Sprintf("sha not found [%s]", err.SHA)
+}
+
+func (err ErrSHANotFound) Unwrap() error {
+	return util.ErrNotExist
+}
 
 // GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
 func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, sha string, page, perPage int, recursive bool) (*api.GitTreeResponse, error) {
 	gitTree, err := gitRepo.GetTree(sha)
 	if err != nil || gitTree == nil {
-		return nil, models.ErrSHANotFound{
+		return nil, ErrSHANotFound{ // TODO: this error has never been catch outside of this function
 			SHA: sha,
 		}
 	}
@@ -37,19 +56,21 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	}
 	apiURL := repo.APIURL()
 	apiURLLen := len(apiURL)
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+	hashLen := objectFormat.FullLength()
 
-	// 51 is len(sha1) + len("/git/blobs/"). 40 + 11.
-	blobURL := make([]byte, apiURLLen+51)
+	const gitBlobsPath = "/git/blobs/"
+	blobURL := make([]byte, apiURLLen+hashLen+len(gitBlobsPath))
 	copy(blobURL, apiURL)
-	copy(blobURL[apiURLLen:], "/git/blobs/")
+	copy(blobURL[apiURLLen:], []byte(gitBlobsPath))
 
-	// 51 is len(sha1) + len("/git/trees/"). 40 + 11.
-	treeURL := make([]byte, apiURLLen+51)
+	const gitTreePath = "/git/trees/"
+	treeURL := make([]byte, apiURLLen+hashLen+len(gitTreePath))
 	copy(treeURL, apiURL)
-	copy(treeURL[apiURLLen:], "/git/trees/")
+	copy(treeURL[apiURLLen:], []byte(gitTreePath))
 
-	// 40 is the size of the sha1 hash in hexadecimal format.
-	copyPos := len(treeURL) - git.SHAFullLength
+	// copyPos is at the start of the hash
+	copyPos := len(treeURL) - hashLen
 
 	if perPage <= 0 || perPage > setting.API.DefaultGitTreesPerPage {
 		perPage = setting.API.DefaultGitTreesPerPage

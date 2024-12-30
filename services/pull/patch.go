@@ -13,12 +13,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -35,15 +35,25 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 		return err
 	}
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer closer.Close()
 
-	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, pr.GetGitRefName(), w, patch, binary); err != nil {
-		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
-		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+	compareArg := pr.MergeBase + "..." + pr.GetGitRefName()
+	switch {
+	case patch:
+		err = gitRepo.GetPatch(compareArg, w)
+	case binary:
+		err = gitRepo.GetDiffBinary(compareArg, w)
+	default:
+		err = gitRepo.GetDiff(compareArg, w)
+	}
+
+	if err != nil {
+		log.Error("unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		return fmt.Errorf("unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	return nil
 }
@@ -62,14 +72,19 @@ func TestPatch(pr *issues_model.PullRequest) error {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("TestPatch: %s", pr))
 	defer finished()
 
-	// Clone base repo.
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
-		log.Error("createTemporaryRepoForPR %-v: %v", pr, err)
+		if !git_model.IsErrBranchNotExist(err) {
+			log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
+		}
 		return err
 	}
 	defer cancel()
 
+	return testPatch(ctx, prCtx, pr)
+}
+
+func testPatch(ctx context.Context, prCtx *prContext, pr *issues_model.PullRequest) error {
 	gitRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
@@ -122,8 +137,9 @@ func (e *errMergeConflict) Error() string {
 	return fmt.Sprintf("conflict detected at: %s", e.filename)
 }
 
-func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, gitRepo *git.Repository) error {
+func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, filesToRemove *[]string, filesToAdd *[]git.IndexObjectInfo) error {
 	log.Trace("Attempt to merge:\n%v", file)
+
 	switch {
 	case file.stage1 != nil && (file.stage2 == nil || file.stage3 == nil):
 		// 1. Deleted in one or both:
@@ -135,14 +151,13 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		}
 
 		// Not a genuine conflict and we can simply remove the file from the index
-		return gitRepo.RemoveFilesFromIndex(file.stage1.path)
+		*filesToRemove = append(*filesToRemove, file.stage1.path)
+		return nil
 	case file.stage1 == nil && file.stage2 != nil && (file.stage3 == nil || file.stage2.SameAs(file.stage3)):
 		// 2. Added in ours but not in theirs or identical in both
 		//
 		// Not a genuine conflict just add to the index
-		if err := gitRepo.AddObjectToIndex(file.stage2.mode, git.MustIDFromString(file.stage2.sha), file.stage2.path); err != nil {
-			return err
-		}
+		*filesToAdd = append(*filesToAdd, git.IndexObjectInfo{Mode: file.stage2.mode, Object: git.MustIDFromString(file.stage2.sha), Filename: file.stage2.path})
 		return nil
 	case file.stage1 == nil && file.stage2 != nil && file.stage3 != nil && file.stage2.sha == file.stage3.sha && file.stage2.mode != file.stage3.mode:
 		// 3. Added in both with the same sha but the modes are different
@@ -153,7 +168,8 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		// 4. Added in theirs but not ours:
 		//
 		// Not a genuine conflict just add to the index
-		return gitRepo.AddObjectToIndex(file.stage3.mode, git.MustIDFromString(file.stage3.sha), file.stage3.path)
+		*filesToAdd = append(*filesToAdd, git.IndexObjectInfo{Mode: file.stage3.mode, Object: git.MustIDFromString(file.stage3.sha), Filename: file.stage3.path})
+		return nil
 	case file.stage1 == nil:
 		// 5. Created by new in both
 		//
@@ -214,7 +230,8 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 			return err
 		}
 		hash = strings.TrimSpace(hash)
-		return gitRepo.AddObjectToIndex(file.stage2.mode, git.MustIDFromString(hash), file.stage2.path)
+		*filesToAdd = append(*filesToAdd, git.IndexObjectInfo{Mode: file.stage2.mode, Object: git.MustIDFromString(hash), Filename: file.stage2.path})
+		return nil
 	default:
 		if file.stage1 != nil {
 			return &errMergeConflict{file.stage1.path}
@@ -237,6 +254,9 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 		log.Error("Unable to run read-tree -m! Error: %v", err)
 		return false, nil, fmt.Errorf("unable to run read-tree -m! Error: %w", err)
 	}
+
+	var filesToRemove []string
+	var filesToAdd []git.IndexObjectInfo
 
 	// Then we use git ls-files -u to list the unmerged files and collate the triples in unmergedfiles
 	unmerged := make(chan *unmergedFile)
@@ -263,7 +283,7 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 		}
 
 		// OK now we have the unmerged file triplet attempt to merge it
-		if err := attemptMerge(ctx, file, gitPath, gitRepo); err != nil {
+		if err := attemptMerge(ctx, file, gitPath, &filesToRemove, &filesToAdd); err != nil {
 			if conflictErr, ok := err.(*errMergeConflict); ok {
 				log.Trace("Conflict: %s in %s", conflictErr.filename, description)
 				conflict = true
@@ -276,6 +296,15 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 			return false, nil, err
 		}
 	}
+
+	// Add and remove files in one command, as this is slow with many files otherwise
+	if err := gitRepo.RemoveFilesFromIndex(filesToRemove...); err != nil {
+		return false, nil, err
+	}
+	if err := gitRepo.AddObjectsToIndex(filesToAdd...); err != nil {
+		return false, nil, err
+	}
+
 	return conflict, conflictedFiles, nil
 }
 
@@ -335,7 +364,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		_ = util.Remove(tmpPatchFile.Name())
 	}()
 
-	if err := gitRepo.GetDiffBinary(pr.MergeBase, "tracking", tmpPatchFile); err != nil {
+	if err := gitRepo.GetDiffBinary(pr.MergeBase+"...tracking", tmpPatchFile); err != nil {
 		tmpPatchFile.Close()
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 		return false, fmt.Errorf("unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
@@ -376,7 +405,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		cmdApply.AddArguments("--ignore-whitespace")
 	}
 	is3way := false
-	if git.CheckGitVersionAtLeast("2.32.0") == nil {
+	if git.DefaultFeatures().CheckVersionAtLeast("2.32.0") {
 		cmdApply.AddArguments("--3way")
 		is3way = true
 	}
@@ -482,12 +511,35 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	return false, nil
 }
 
+// ErrFilePathProtected represents a "FilePathProtected" kind of error.
+type ErrFilePathProtected struct {
+	Message string
+	Path    string
+}
+
+// IsErrFilePathProtected checks if an error is an ErrFilePathProtected.
+func IsErrFilePathProtected(err error) bool {
+	_, ok := err.(ErrFilePathProtected)
+	return ok
+}
+
+func (err ErrFilePathProtected) Error() string {
+	if err.Message != "" {
+		return err.Message
+	}
+	return fmt.Sprintf("path is protected and can not be changed [path: %s]", err.Path)
+}
+
+func (err ErrFilePathProtected) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // CheckFileProtection check file Protection
-func CheckFileProtection(repo *git.Repository, oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string) ([]string, error) {
+func CheckFileProtection(repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string) ([]string, error) {
 	if len(patterns) == 0 {
 		return nil, nil
 	}
-	affectedFiles, err := git.GetAffectedFiles(repo, oldCommitID, newCommitID, env)
+	affectedFiles, err := git.GetAffectedFiles(repo, branchName, oldCommitID, newCommitID, env)
 	if err != nil {
 		return nil, err
 	}
@@ -505,7 +557,7 @@ func CheckFileProtection(repo *git.Repository, oldCommitID, newCommitID string, 
 		}
 	}
 	if len(changedProtectedFiles) > 0 {
-		err = models.ErrFilePathProtected{
+		err = ErrFilePathProtected{
 			Path: changedProtectedFiles[0],
 		}
 	}
@@ -513,11 +565,11 @@ func CheckFileProtection(repo *git.Repository, oldCommitID, newCommitID string, 
 }
 
 // CheckUnprotectedFiles check if the commit only touches unprotected files
-func CheckUnprotectedFiles(repo *git.Repository, oldCommitID, newCommitID string, patterns []glob.Glob, env []string) (bool, error) {
+func CheckUnprotectedFiles(repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, env []string) (bool, error) {
 	if len(patterns) == 0 {
 		return false, nil
 	}
-	affectedFiles, err := git.GetAffectedFiles(repo, oldCommitID, newCommitID, env)
+	affectedFiles, err := git.GetAffectedFiles(repo, branchName, oldCommitID, newCommitID, env)
 	if err != nil {
 		return false, err
 	}
@@ -554,8 +606,8 @@ func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest,
 		return nil
 	}
 
-	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.MergeBase, "tracking", pb.GetProtectedFilePatterns(), 10, os.Environ())
-	if err != nil && !models.IsErrFilePathProtected(err) {
+	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.HeadBranch, pr.MergeBase, "tracking", pb.GetProtectedFilePatterns(), 10, os.Environ())
+	if err != nil && !IsErrFilePathProtected(err) {
 		return err
 	}
 	return nil

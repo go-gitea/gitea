@@ -14,11 +14,11 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -52,12 +52,23 @@ func ListForks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	forks, err := repo_model.GetForks(ctx.Repo.Repository, utils.GetListOptions(ctx))
+	forks, total, err := repo_service.FindForks(ctx, ctx.Repo.Repository, ctx.Doer, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetForks", err)
+		ctx.Error(http.StatusInternalServerError, "FindForks", err)
 		return
 	}
+	if err := repo_model.RepositoryList(forks).LoadOwners(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadOwners", err)
+		return
+	}
+	if err := repo_model.RepositoryList(forks).LoadUnits(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadUnits", err)
+		return
+	}
+
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
 		permission, err := access_model.GetUserRepoPermission(ctx, fork, ctx.Doer)
@@ -68,7 +79,7 @@ func ListForks(ctx *context.APIContext) {
 		apiForks[i] = convert.ToRepo(ctx, fork, permission)
 	}
 
-	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumForks))
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, apiForks)
 }
 
@@ -99,6 +110,8 @@ func CreateFork(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Repository"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description: The repository with the same name already exists.
 	//   "422":
@@ -119,7 +132,7 @@ func CreateFork(ctx *context.APIContext) {
 			}
 			return
 		}
-		isMember, err := org.IsOrgMember(ctx.Doer.ID)
+		isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
@@ -145,6 +158,8 @@ func CreateFork(ctx *context.APIContext) {
 	if err != nil {
 		if errors.Is(err, util.ErrAlreadyExist) || repo_model.IsErrReachLimitOfRepo(err) {
 			ctx.Error(http.StatusConflict, "ForkRepository", err)
+		} else if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "ForkRepository", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "ForkRepository", err)
 		}

@@ -4,10 +4,9 @@
 package avatar
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"strconv"
-
-	"github.com/minio/sha256-simd"
 )
 
 // HashAvatar will generate a unique string, which ensures that when there's a

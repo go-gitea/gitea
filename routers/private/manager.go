@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/graceful/releasereopen"
 	"code.gitea.io/gitea/modules/log"
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 )
 
 // ReloadTemplates reloads all the templates
@@ -88,8 +88,8 @@ func SetLogSQL(ctx *context.PrivateContext) {
 
 // RemoveLogger removes a logger
 func RemoveLogger(ctx *context.PrivateContext) {
-	logger := ctx.Params("logger")
-	writer := ctx.Params("writer")
+	logger := ctx.PathParam("logger")
+	writer := ctx.PathParam("writer")
 	err := log.GetManager().GetLogger(logger).RemoveWriter(writer)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{

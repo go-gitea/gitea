@@ -6,14 +6,12 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -21,7 +19,7 @@ import (
 func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
 
-	repos, count, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 		Actor:       u,
 		Private:     private,
 		ListOptions: opts,
@@ -44,7 +42,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
 		}
-		if ctx.IsSigned && ctx.Doer.IsAdmin || permission.UnitAccessMode(unit_model.TypeCode) >= perm.AccessModeRead {
+		if ctx.IsSigned && ctx.Doer.IsAdmin || permission.HasAnyUnitAccess() {
 			apiRepos = append(apiRepos, convert.ToRepo(ctx, repos[i], permission))
 		}
 	}
@@ -78,6 +76,8 @@ func ListUserRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	private := ctx.IsSigned
 	listUserRepos(ctx, ctx.ContextUser, private)
@@ -111,7 +111,6 @@ func ListMyRepos(ctx *context.APIContext) {
 		IncludeDescription: true,
 	}
 
-	var err error
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchRepository", err)
@@ -160,6 +159,8 @@ func ListOrgRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listUserRepos(ctx, ctx.Org.Organization.AsUser(), ctx.IsSigned)
 }

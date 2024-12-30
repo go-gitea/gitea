@@ -32,7 +32,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 		graphCmd.AddArguments("--all")
 	}
 
-	graphCmd.AddArguments("-C", "-M", "--date=iso").
+	graphCmd.AddArguments("-C", "-M", "--date=iso-strict").
 		AddOptionFormat("-n %d", setting.UI.GraphMaxCommitNum*page).
 		AddOptionFormat("--pretty=format:%s", format)
 

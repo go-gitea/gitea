@@ -108,8 +108,8 @@ func GetLanguageStats(ctx context.Context, repo *Repository) (LanguageStatList, 
 }
 
 // GetTopLanguageStats returns the top language statistics for a repository
-func GetTopLanguageStats(repo *Repository, limit int) (LanguageStatList, error) {
-	stats, err := GetLanguageStats(db.DefaultContext, repo)
+func GetTopLanguageStats(ctx context.Context, repo *Repository, limit int) (LanguageStatList, error) {
+	stats, err := GetLanguageStats(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -140,8 +140,8 @@ func GetTopLanguageStats(repo *Repository, limit int) (LanguageStatList, error) 
 }
 
 // UpdateLanguageStats updates the language statistics for repository
-func UpdateLanguageStats(repo *Repository, commitID string, stats map[string]int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func UpdateLanguageStats(ctx context.Context, repo *Repository, commitID string, stats map[string]int64) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -212,8 +212,8 @@ func UpdateLanguageStats(repo *Repository, commitID string, stats map[string]int
 }
 
 // CopyLanguageStat Copy originalRepo language stat information to destRepo (use for forked repo)
-func CopyLanguageStat(originalRepo, destRepo *Repository) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func CopyLanguageStat(ctx context.Context, originalRepo, destRepo *Repository) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

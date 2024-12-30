@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -58,7 +59,7 @@ func main() {
 
 	// use old en-US as the base, and copy the new translations to the old locales
 	enUsOld := inisOld["options/locale/locale_en-US.ini"]
-	brokenWarned := map[string]bool{}
+	brokenWarned := make(container.Set[string])
 	for path, iniOld := range inisOld {
 		if iniOld == enUsOld {
 			continue
@@ -77,7 +78,7 @@ func main() {
 					broken := oldStr != "" && strings.Count(oldStr, "%") != strings.Count(newStr, "%")
 					broken = broken || strings.Contains(oldStr, "\n") || strings.Contains(oldStr, "\n")
 					if broken {
-						brokenWarned[secOld.Name()+"."+keyEnUs.Name()] = true
+						brokenWarned.Add(secOld.Name() + "." + keyEnUs.Name())
 						fmt.Println("----")
 						fmt.Printf("WARNING: skip broken locale: %s , [%s] %s\n", path, secEnUS.Name(), keyEnUs.Name())
 						fmt.Printf("\told: %s\n", strings.ReplaceAll(oldStr, "\n", "\\n"))
@@ -103,7 +104,7 @@ func main() {
 				broken = broken || strings.HasPrefix(str, "`\"")
 				broken = broken || strings.Count(str, `"`)%2 == 1
 				broken = broken || strings.Count(str, "`")%2 == 1
-				if broken && !brokenWarned[sec.Name()+"."+key.Name()] {
+				if broken && !brokenWarned.Contains(sec.Name()+"."+key.Name()) {
 					fmt.Printf("WARNING: found broken locale: %s , [%s] %s\n", path, sec.Name(), key.Name())
 					fmt.Printf("\tstr: %s\n", strings.ReplaceAll(str, "\n", "\\n"))
 					fmt.Println("----")

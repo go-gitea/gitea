@@ -157,9 +157,9 @@ func runViewDo(c *cli.Context) error {
 	}
 
 	if len(matchedAssetFiles) == 0 {
-		return fmt.Errorf("no files matched the given pattern")
+		return errors.New("no files matched the given pattern")
 	} else if len(matchedAssetFiles) > 1 {
-		return fmt.Errorf("too many files matched the given pattern, try to be more specific")
+		return errors.New("too many files matched the given pattern, try to be more specific")
 	}
 
 	data, err := matchedAssetFiles[0].fs.ReadFile(matchedAssetFiles[0].name)
@@ -180,7 +180,7 @@ func runExtractDo(c *cli.Context) error {
 	}
 
 	if c.NArg() == 0 {
-		return fmt.Errorf("a list of pattern of files to extract is mandatory (e.g. '**' for all)")
+		return errors.New("a list of pattern of files to extract is mandatory (e.g. '**' for all)")
 	}
 
 	destdir := "."

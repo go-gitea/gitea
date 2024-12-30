@@ -11,16 +11,18 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // IdentityOptions for a person's identity like an author or committer
@@ -39,7 +41,7 @@ type ChangeRepoFile struct {
 	Operation     string
 	TreePath      string
 	FromTreePath  string
-	ContentReader io.Reader
+	ContentReader io.ReadSeeker
 	SHA           string
 	Options       *RepoFileOptions
 }
@@ -63,8 +65,33 @@ type RepoFileOptions struct {
 	executable   bool
 }
 
+// ErrRepoFileDoesNotExist represents a "RepoFileDoesNotExist" kind of error.
+type ErrRepoFileDoesNotExist struct {
+	Path string
+	Name string
+}
+
+// IsErrRepoFileDoesNotExist checks if an error is a ErrRepoDoesNotExist.
+func IsErrRepoFileDoesNotExist(err error) bool {
+	_, ok := err.(ErrRepoFileDoesNotExist)
+	return ok
+}
+
+func (err ErrRepoFileDoesNotExist) Error() string {
+	return fmt.Sprintf("repository file does not exist [path: %s]", err.Path)
+}
+
+func (err ErrRepoFileDoesNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ChangeRepoFiles adds, updates or removes multiple files in the given repository
 func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *ChangeRepoFilesOptions) (*structs.FilesResponse, error) {
+	err := repo.MustNotBeArchived()
+	if err != nil {
+		return nil, err
+	}
+
 	// If no branch name is set, assume default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -73,7 +100,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		opts.NewBranch = opts.OldBranch
 	}
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -94,14 +121,14 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		// Check that the path given in opts.treePath is valid (not a git path)
 		treePath := CleanUploadFileName(file.TreePath)
 		if treePath == "" {
-			return nil, models.ErrFilenameInvalid{
+			return nil, ErrFilenameInvalid{
 				Path: file.TreePath,
 			}
 		}
 		// If there is a fromTreePath (we are copying it), also clean it up
 		fromTreePath := CleanUploadFileName(file.FromTreePath)
 		if fromTreePath == "" && file.FromTreePath != "" {
-			return nil, models.ErrFilenameInvalid{
+			return nil, ErrFilenameInvalid{
 				Path: file.FromTreePath,
 			}
 		}
@@ -137,11 +164,11 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 
 	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("NewTemporaryUploadRepository failed: %v", err)
 	}
 	defer t.Close()
 	hasOldBranch := true
-	if err := t.Clone(opts.OldBranch); err != nil {
+	if err := t.Clone(opts.OldBranch, true); err != nil {
 		for _, file := range opts.Files {
 			if file.Operation == "delete" {
 				return nil, err
@@ -150,7 +177,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
 			return nil, err
 		}
-		if err := t.Init(); err != nil {
+		if err := t.Init(repo.ObjectFormatName); err != nil {
 			return nil, err
 		}
 		hasOldBranch = false
@@ -179,7 +206,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 				}
 			}
 			if !inFilelist {
-				return nil, models.ErrRepoFileDoesNotExist{
+				return nil, ErrRepoFileDoesNotExist{
 					Path: file.TreePath,
 				}
 			}
@@ -197,16 +224,15 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		if opts.LastCommitID == "" {
 			opts.LastCommitID = commit.ID.String()
 		} else {
-			lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+			lastCommitID, err := t.gitRepo.ConvertToGitID(opts.LastCommitID)
 			if err != nil {
 				return nil, fmt.Errorf("ConvertToSHA1: Invalid last commit ID: %w", err)
 			}
 			opts.LastCommitID = lastCommitID.String()
-
 		}
 
 		for _, file := range opts.Files {
-			if err := handleCheckErrors(file, commit, opts, repo); err != nil {
+			if err := handleCheckErrors(file, commit, opts); err != nil {
 				return nil, err
 			}
 		}
@@ -263,14 +289,73 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	if repo.IsEmpty {
-		_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: repo.ID, IsEmpty: false, DefaultBranch: opts.NewBranch}, "is_empty", "default_branch")
+		if isEmpty, err := gitRepo.IsEmpty(); err == nil && !isEmpty {
+			_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: repo.ID, IsEmpty: false, DefaultBranch: opts.NewBranch}, "is_empty", "default_branch")
+		}
 	}
 
 	return filesResponse, nil
 }
 
+// ErrRepoFileAlreadyExists represents a "RepoFileAlreadyExist" kind of error.
+type ErrRepoFileAlreadyExists struct {
+	Path string
+}
+
+// IsErrRepoFileAlreadyExists checks if an error is a ErrRepoFileAlreadyExists.
+func IsErrRepoFileAlreadyExists(err error) bool {
+	_, ok := err.(ErrRepoFileAlreadyExists)
+	return ok
+}
+
+func (err ErrRepoFileAlreadyExists) Error() string {
+	return fmt.Sprintf("repository file already exists [path: %s]", err.Path)
+}
+
+func (err ErrRepoFileAlreadyExists) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
+// ErrFilePathInvalid represents a "FilePathInvalid" kind of error.
+type ErrFilePathInvalid struct {
+	Message string
+	Path    string
+	Name    string
+	Type    git.EntryMode
+}
+
+// IsErrFilePathInvalid checks if an error is an ErrFilePathInvalid.
+func IsErrFilePathInvalid(err error) bool {
+	_, ok := err.(ErrFilePathInvalid)
+	return ok
+}
+
+func (err ErrFilePathInvalid) Error() string {
+	if err.Message != "" {
+		return err.Message
+	}
+	return fmt.Sprintf("path is invalid [path: %s]", err.Path)
+}
+
+func (err ErrFilePathInvalid) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
+// ErrSHAOrCommitIDNotProvided represents a "SHAOrCommitIDNotProvided" kind of error.
+type ErrSHAOrCommitIDNotProvided struct{}
+
+// IsErrSHAOrCommitIDNotProvided checks if an error is a ErrSHAOrCommitIDNotProvided.
+func IsErrSHAOrCommitIDNotProvided(err error) bool {
+	_, ok := err.(ErrSHAOrCommitIDNotProvided)
+	return ok
+}
+
+func (err ErrSHAOrCommitIDNotProvided) Error() string {
+	return "a SHA or commit ID must be proved when updating a file"
+}
+
 // handles the check for various issues for ChangeRepoFiles
-func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRepoFilesOptions, repo *repo_model.Repository) error {
+func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRepoFilesOptions) error {
 	if file.Operation == "update" || file.Operation == "delete" {
 		fromEntry, err := commit.GetTreeEntryByPath(file.Options.fromTreePath)
 		if err != nil {
@@ -279,7 +364,7 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 		if file.SHA != "" {
 			// If a SHA was given and the SHA given doesn't match the SHA of the fromTreePath, throw error
 			if file.SHA != fromEntry.ID.String() {
-				return models.ErrSHADoesNotMatch{
+				return pull_service.ErrSHADoesNotMatch{
 					Path:       file.Options.treePath,
 					GivenSHA:   file.SHA,
 					CurrentSHA: fromEntry.ID.String(),
@@ -292,7 +377,7 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 				if changed, err := commit.FileChangedSinceCommit(file.Options.treePath, opts.LastCommitID); err != nil {
 					return err
 				} else if changed {
-					return models.ErrCommitIDDoesNotMatch{
+					return ErrCommitIDDoesNotMatch{
 						GivenCommitID:   opts.LastCommitID,
 						CurrentCommitID: opts.LastCommitID,
 					}
@@ -302,7 +387,7 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 		} else {
 			// When updating a file, a lastCommitID or SHA needs to be given to make sure other commits
 			// haven't been made. We throw an error if one wasn't provided.
-			return models.ErrSHAOrCommitIDNotProvided{}
+			return ErrSHAOrCommitIDNotProvided{}
 		}
 		file.Options.executable = fromEntry.IsExecutable()
 	}
@@ -325,7 +410,7 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 			}
 			if index < len(treePathParts)-1 {
 				if !entry.IsDir() {
-					return models.ErrFilePathInvalid{
+					return ErrFilePathInvalid{
 						Message: fmt.Sprintf("a file exists where you’re trying to create a subdirectory [path: %s]", subTreePath),
 						Path:    subTreePath,
 						Name:    part,
@@ -333,14 +418,14 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 					}
 				}
 			} else if entry.IsLink() {
-				return models.ErrFilePathInvalid{
+				return ErrFilePathInvalid{
 					Message: fmt.Sprintf("a symbolic link exists where you’re trying to create a subdirectory [path: %s]", subTreePath),
 					Path:    subTreePath,
 					Name:    part,
 					Type:    git.EntryModeSymlink,
 				}
 			} else if entry.IsDir() {
-				return models.ErrFilePathInvalid{
+				return ErrFilePathInvalid{
 					Message: fmt.Sprintf("a directory exists where you’re trying to create a file [path: %s]", subTreePath),
 					Path:    subTreePath,
 					Name:    part,
@@ -348,11 +433,10 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 				}
 			} else if file.Options.fromTreePath != file.Options.treePath || file.Operation == "create" {
 				// The entry shouldn't exist if we are creating new file or moving to a new path
-				return models.ErrRepoFileAlreadyExists{
+				return ErrRepoFileAlreadyExists{
 					Path: file.Options.treePath,
 				}
 			}
-
 		}
 	}
 
@@ -370,7 +454,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 	if file.Operation == "create" {
 		for _, indexFile := range filesInIndex {
 			if indexFile == file.TreePath {
-				return models.ErrRepoFileAlreadyExists{
+				return ErrRepoFileAlreadyExists{
 					Path: file.TreePath,
 				}
 			}
@@ -431,7 +515,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 
 	if lfsMetaObject != nil {
 		// We have an LFS object - create it
-		lfsMetaObject, err = git_model.NewLFSMetaObject(ctx, lfsMetaObject)
+		lfsMetaObject, err = git_model.NewLFSMetaObject(ctx, lfsMetaObject.RepositoryID, lfsMetaObject.Pointer)
 		if err != nil {
 			return err
 		}
@@ -440,6 +524,10 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 			return err
 		}
 		if !exist {
+			_, err := file.ContentReader.Seek(0, io.SeekStart)
+			if err != nil {
+				return err
+			}
 			if err := contentStore.Put(lfsMetaObject.Pointer, file.ContentReader); err != nil {
 				if _, err2 := git_model.RemoveLFSMetaObjectByOid(ctx, repoID, lfsMetaObject.Oid); err2 != nil {
 					return fmt.Errorf("unable to remove failed inserted LFS object %s: %v (Prev Error: %w)", lfsMetaObject.Oid, err2, err)
@@ -469,12 +557,12 @@ func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, do
 				isUnprotectedFile = protectedBranch.IsUnprotectedFile(globUnprotected, treePath)
 			}
 			if !canUserPush && !isUnprotectedFile {
-				return models.ErrUserCannotCommit{
+				return ErrUserCannotCommit{
 					UserName: doer.LowerName,
 				}
 			}
 			if protectedBranch.IsProtectedFile(globProtected, treePath) {
-				return models.ErrFilePathProtected{
+				return pull_service.ErrFilePathProtected{
 					Path: treePath,
 				}
 			}
@@ -485,7 +573,7 @@ func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, do
 				if !asymkey_service.IsErrWontSign(err) {
 					return err
 				}
-				return models.ErrUserCannotCommit{
+				return ErrUserCannotCommit{
 					UserName: doer.LowerName,
 				}
 			}

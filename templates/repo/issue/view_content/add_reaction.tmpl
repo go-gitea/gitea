@@ -1,11 +1,9 @@
-{{if .ctxData.IsSigned}}
+{{if ctx.RootData.IsSigned}}
 <div class="item action ui dropdown jump pointing top right select-reaction" data-action-url="{{.ActionURL}}">
-	<a class="add-reaction muted">
-		{{svg "octicon-smiley"}}
-	</a>
-	<div class="menu reactions-menu">
+	<a class="muted">{{svg "octicon-smiley"}}</a>
+	<div class="menu">
 		{{range $value := AllowedReactions}}
-			<a class="item reaction" data-tooltip-content="{{$value}}" aria-label="{{$value}}" data-reaction-content="{{$value}}">{{ReactionToEmoji $value}}</a>
+		<a class="item emoji comment-reaction-button" data-tooltip-content="{{$value}}" aria-label="{{$value}}" data-reaction-content="{{$value}}">{{ReactionToEmoji $value}}</a>
 		{{end}}
 	</div>
 </div>

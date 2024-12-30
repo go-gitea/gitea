@@ -12,5 +12,5 @@ func AddOriginalAuthorOnMigratedReleases(x *xorm.Engine) error {
 		OriginalAuthorID int64 `xorm:"index"`
 	}
 
-	return x.Sync2(new(Release))
+	return x.Sync(new(Release))
 }

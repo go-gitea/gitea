@@ -22,6 +22,7 @@ func ToAPIRelease(ctx context.Context, repo *repo_model.Repository, r *repo_mode
 		HTMLURL:      r.HTMLURL(),
 		TarURL:       r.TarURL(),
 		ZipURL:       r.ZipURL(),
+		UploadURL:    r.APIUploadURL(),
 		IsDraft:      r.IsDraft,
 		IsPrerelease: r.IsPrerelease,
 		CreatedAt:    r.CreatedUnix.AsTime(),

@@ -4,12 +4,12 @@
 package hash
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/minio/sha256-simd"
 	"golang.org/x/crypto/pbkdf2"
 )
 

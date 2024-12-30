@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -27,15 +28,13 @@ func TestViewRepo(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	noDescription := htmlDoc.doc.Find("#repo-desc").Children()
 	repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
 	repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
 
-	assert.True(t, noDescription.HasClass("no-description"))
 	assert.True(t, repoTopics.HasClass("repo-topic"))
 	assert.True(t, repoSummary.HasClass("repository-menu"))
 
-	req = NewRequest(t, "GET", "/user3/repo3")
+	req = NewRequest(t, "GET", "/org3/repo3")
 	MakeRequest(t, req, http.StatusNotFound)
 
 	session = loginUser(t, "user1")
@@ -45,12 +44,12 @@ func TestViewRepo(t *testing.T) {
 func testViewRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/user3/repo3")
+	req := NewRequest(t, "GET", "/org3/repo3")
 	session := loginUser(t, "user2")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	files := htmlDoc.doc.Find("#repo-files-table  > TBODY > TR")
+	files := htmlDoc.doc.Find("#repo-files-table .repo-file-item")
 
 	type file struct {
 		fileName   string
@@ -62,7 +61,7 @@ func testViewRepo(t *testing.T) {
 	var items []file
 
 	files.Each(func(i int, s *goquery.Selection) {
-		tds := s.Find("td")
+		tds := s.Find(".repo-file-cell")
 		var f file
 		tds.Each(func(i int, s *goquery.Selection) {
 			if i == 0 {
@@ -76,7 +75,7 @@ func testViewRepo(t *testing.T) {
 		})
 
 		// convert "2017-06-14 21:54:21 +0800" to "Wed, 14 Jun 2017 13:54:21 UTC"
-		htmlTimeString, _ := s.Find("relative-time.time-since").Attr("datetime")
+		htmlTimeString, _ := s.Find("relative-time").Attr("datetime")
 		htmlTime, _ := time.Parse(time.RFC3339, htmlTimeString)
 		f.commitTime = htmlTime.In(time.Local).Format(time.RFC1123)
 		items = append(items, f)
@@ -116,7 +115,7 @@ func TestViewRepo2(t *testing.T) {
 func TestViewRepo3(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/user3/repo3")
+	req := NewRequest(t, "GET", "/org3/repo3")
 	session := loginUser(t, "user4")
 	session.MakeRequest(t, req, http.StatusOK)
 }
@@ -128,10 +127,10 @@ func TestViewRepo1CloneLinkAnonymous(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("#repo-clone-https").Attr("data-link")
+	link, exists := htmlDoc.doc.Find(".repo-clone-https").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
 	assert.Equal(t, setting.AppURL+"user2/repo1.git", link)
-	_, exists = htmlDoc.doc.Find("#repo-clone-ssh").Attr("data-link")
+	_, exists = htmlDoc.doc.Find(".repo-clone-ssh").Attr("data-link")
 	assert.False(t, exists)
 }
 
@@ -144,10 +143,10 @@ func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("#repo-clone-https").Attr("data-link")
+	link, exists := htmlDoc.doc.Find(".repo-clone-https").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
 	assert.Equal(t, setting.AppURL+"user2/repo1.git", link)
-	link, exists = htmlDoc.doc.Find("#repo-clone-ssh").Attr("data-link")
+	link, exists = htmlDoc.doc.Find(".repo-clone-ssh").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
 	sshURL := fmt.Sprintf("ssh://%s@%s:%d/user2/repo1.git", setting.SSH.User, setting.SSH.Domain, setting.SSH.Port)
 	assert.Equal(t, sshURL, link)
@@ -162,7 +161,7 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	files := htmlDoc.doc.Find("#repo-files-table > TBODY > TR > TD.name > SPAN.truncate")
+	files := htmlDoc.doc.Find("#repo-files-table .repo-file-cell.name")
 	items := files.Map(func(i int, s *goquery.Selection) string {
 		cls, _ := s.Find("SVG").Attr("class")
 		file := strings.Trim(s.Find("A").Text(), " \t\n")
@@ -176,30 +175,6 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	assert.Equal(t, "link_link: svg octicon-file-symlink-file", items[4])
 }
 
-// TestViewAsRepoAdmin tests PR #2167
-func TestViewAsRepoAdmin(t *testing.T) {
-	for user, expectedNoDescription := range map[string]bool{
-		"user2": true,
-		"user4": false,
-	} {
-		defer tests.PrepareTestEnv(t)()
-
-		session := loginUser(t, user)
-
-		req := NewRequest(t, "GET", "/user2/repo1.git")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		noDescription := htmlDoc.doc.Find("#repo-desc").Children()
-		repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
-		repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
-
-		assert.Equal(t, expectedNoDescription, noDescription.HasClass("no-description"))
-		assert.True(t, repoTopics.HasClass("repo-topic"))
-		assert.True(t, repoSummary.HasClass("repository-menu"))
-	}
-}
-
 // TestViewFileInRepo repo description, topics and summary should not be displayed when viewing a file
 func TestViewFileInRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
@@ -210,7 +185,7 @@ func TestViewFileInRepo(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	description := htmlDoc.doc.Find("#repo-desc")
+	description := htmlDoc.doc.Find(".repo-description")
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
 
@@ -229,7 +204,7 @@ func TestBlameFileInRepo(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	description := htmlDoc.doc.Find("#repo-desc")
+	description := htmlDoc.doc.Find(".repo-description")
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
 
@@ -248,12 +223,12 @@ func TestViewRepoDirectory(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	description := htmlDoc.doc.Find("#repo-desc")
+	description := htmlDoc.doc.Find(".repo-description")
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
 
 	repoFilesTable := htmlDoc.doc.Find("#repo-files-table")
-	assert.NotZero(t, len(repoFilesTable.Nodes))
+	assert.NotEmpty(t, repoFilesTable.Nodes)
 
 	assert.Zero(t, description.Length())
 	assert.Zero(t, repoTopics.Length())
@@ -301,6 +276,10 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 	check("txt", "/user2/readme-test/src/branch/txt/", "README.txt", "plain-text", "My spoon is too big.")
 	check("plain", "/user2/readme-test/src/branch/plain/", "README", "plain-text", "Birken my stocks gee howdy")
 	check("i18n", "/user2/readme-test/src/branch/i18n/", "README.zh.md", "markdown", "蛋糕是一个谎言")
+
+	// using HEAD ref
+	check("branch-HEAD", "/user2/readme-test/src/branch/HEAD/", "README.md", "markdown", "The cake is a lie.")
+	check("commit-HEAD", "/user2/readme-test/src/commit/HEAD/", "README.md", "markdown", "The cake is a lie.")
 
 	// viewing different subdirectories
 	check("subdir", "/user2/readme-test/src/branch/subdir/libcake", "README.md", "markdown", "Four pints of sugar.")
@@ -443,4 +422,13 @@ func TestGeneratedSourceLink(t *testing.T) {
 		assert.True(t, exists)
 		assert.Equal(t, "/user27/repo49/src/commit/aacbdfe9e1c4b47f60abe81849045fa4e96f1d75/test/test.txt", dataURL)
 	})
+}
+
+func TestViewCommit(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	req := NewRequest(t, "GET", "/user2/repo1/commit/0123456789012345678901234567890123456789")
+	req.Header.Add("Accept", "text/html")
+	resp := MakeRequest(t, req, http.StatusNotFound)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "non-existing commit should render 404 page")
 }

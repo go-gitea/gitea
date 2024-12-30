@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{{.Badge.Width}}" height="18"
+	role="img" aria-label="{{.Badge.Label.Text}}: {{.Badge.Message.Text}}">
+	<title>{{.Badge.Label.Text}}: {{.Badge.Message.Text}}</title>
+	<linearGradient id="s" x2="0" y2="100%">
+		<stop offset="0" stop-color="#fff" stop-opacity=".7" />
+		<stop offset=".1" stop-color="#aaa" stop-opacity=".1" />
+		<stop offset=".9" stop-color="#000" stop-opacity=".3" />
+		<stop offset="1" stop-color="#000" stop-opacity=".5" />
+	</linearGradient>
+	<clipPath id="r">
+		<rect width="{{.Badge.Width}}" height="18" rx="4" fill="#fff" />
+	</clipPath>
+	<g clip-path="url(#r)">
+		<rect width="{{.Badge.Label.Width}}" height="18" fill="#555" />
+		<rect x="{{.Badge.Label.Width}}" width="{{.Badge.Message.Width}}" height="18" fill="{{.Badge.Color}}" />
+		<rect width="{{.Badge.Width}}" height="18" fill="url(#s)" />
+	</g>
+	<g fill="#fff" text-anchor="middle" font-family="Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision"
+		font-size="{{.Badge.FontSize}}"><text aria-hidden="true" x="{{.Badge.Label.X}}" y="140" fill="#010101" fill-opacity=".3"
+			transform="scale(.1)" textLength="{{.Badge.Label.TextLength}}">{{.Badge.Label.Text}}</text><text x="{{.Badge.Label.X}}" y="130"
+			transform="scale(.1)" fill="#fff" textLength="{{.Badge.Label.TextLength}}">{{.Badge.Label.Text}}</text><text aria-hidden="true"
+			x="{{.Badge.Message.X}}" y="140" fill="#010101" fill-opacity=".3" transform="scale(.1)"
+			textLength="{{.Badge.Message.TextLength}}">{{.Badge.Message.Text}}</text><text x="{{.Badge.Message.X}}" y="130" transform="scale(.1)"
+			fill="#fff" textLength="{{.Badge.Message.TextLength}}">{{.Badge.Message.Text}}</text></g>
+</svg>
