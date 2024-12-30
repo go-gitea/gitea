@@ -56,9 +56,7 @@ func TestOrgProfile(t *testing.T) {
 }
 
 func testOrgProfile(t *testing.T, u *url.URL) {
-	// html #user-content-public (markdown title of public profile)
-	// html #user-content-private (markdown title of private profile)
-	// html #org-home-view-as-dropdown (indicate whether the view as dropdown menu is present)
+	// selectors: "[data-profile-view-as-member=true/false]", "#org-home-view-as-dropdown" (indicate whether the view as dropdown menu is present)
 
 	// PART 1: Test Both Private and Public
 	createTestProfile(t, "org3", user.RepoNameProfile, "Public Readme")
