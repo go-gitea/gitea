@@ -6,7 +6,6 @@ package models
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	_ "image/jpeg" // Needed for jpeg support
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"xorm.io/builder"
 )
 
 // Init initialize model
@@ -25,7 +25,7 @@ func Init(ctx context.Context) error {
 }
 
 type repoChecker struct {
-	querySQL   func(ctx context.Context) ([]map[string][]byte, error)
+	querySQL   func(ctx context.Context) ([]int64, error)
 	correctSQL func(ctx context.Context, id int64) error
 	desc       string
 }
@@ -36,8 +36,7 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 		log.Error("Select %s: %v", checker.desc, err)
 		return
 	}
-	for _, result := range results {
-		id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
+	for _, id := range results {
 		select {
 		case <-ctx.Done():
 			log.Warn("CheckRepoStats: Cancelled before checking %s for with id=%d", checker.desc, id)
@@ -52,8 +51,10 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 	}
 }
 
-func StatsCorrectSQL(ctx context.Context, sql string, id int64) error {
-	_, err := db.GetEngine(ctx).Exec(sql, id, id)
+func StatsCorrectSQL(ctx context.Context, sql any, ids ...any) error {
+	args := []any{sql}
+	args = append(args, ids...)
+	_, err := db.GetEngine(ctx).Exec(args...)
 	return err
 }
 
@@ -107,8 +108,14 @@ func userStatsCorrectNumRepos(ctx context.Context, id int64) error {
 }
 
 func repoStatsCorrectIssueNumComments(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, fmt.Sprintf("UPDATE `issue` SET num_comments=(SELECT COUNT(*) FROM `comment` WHERE issue_id=? AND (type=%d or type=%d)) WHERE id=?",
-		issues_model.ConversationCountedCommentType()...), id)
+	return StatsCorrectSQL(ctx,
+		builder.Update(builder.Eq{
+			"num_comments": builder.Select("COUNT(*)").From("`comment`").Where(
+				builder.Eq{"issue_id": id}.And(
+					builder.In("type", issues_model.ConversationCountedCommentType()),
+				)),
+		}).From("`issue`").Where(builder.Eq{"id": id}),
+	)
 }
 
 func repoStatsCorrectNumIssues(ctx context.Context, id int64) error {
@@ -127,9 +134,12 @@ func repoStatsCorrectNumClosedPulls(ctx context.Context, id int64) error {
 	return repo_model.UpdateRepoIssueNumbers(ctx, id, true, true)
 }
 
-func statsQuery(sql string, args ...any) func(context.Context) ([]map[string][]byte, error) {
-	return func(ctx context.Context) ([]map[string][]byte, error) {
-		return db.GetEngine(ctx).Query(append([]any{sql}, args...)...)
+// statsQuery returns a function that queries the database for a list of IDs
+// sql could be a string or a *builder.Builder
+func statsQuery(sql any, args ...any) func(context.Context) ([]int64, error) {
+	return func(ctx context.Context) ([]int64, error) {
+		var ids []int64
+		return ids, db.GetEngine(ctx).SQL(sql, args...).Find(&ids)
 	}
 }
 
@@ -200,8 +210,16 @@ func CheckRepoStats(ctx context.Context) error {
 		},
 		// Issue.NumComments
 		{
-			statsQuery("SELECT `issue`.id FROM `issue` WHERE `issue`.num_comments!=(SELECT COUNT(*) FROM `comment` WHERE issue_id=`issue`.id AND (type=? OR type=?))",
-				issues_model.ConversationCountedCommentType()...),
+			statsQuery(builder.Select("`issue`.id").From("`issue`").Where(
+				builder.Neq{
+					"`issue`.num_comments": builder.Select("COUNT(*)").From("`comment`").Where(
+						builder.Expr("issue_id = `issue`.id").And(
+							builder.In("type", issues_model.ConversationCountedCommentType()),
+						),
+					),
+				},
+			),
+			),
 			repoStatsCorrectIssueNumComments,
 			"issue count 'num_comments'",
 		},

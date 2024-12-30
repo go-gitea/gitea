@@ -208,8 +208,8 @@ func (t CommentType) CountedAsConversation() bool {
 
 // ConversationCountedCommentType returns the comment types that are counted as a conversation
 // The returned types are []any rather than []CommentType to allow for easy use as xorm args
-func ConversationCountedCommentType() []any {
-	return []any{CommentTypeComment, CommentTypeReview}
+func ConversationCountedCommentType() []CommentType {
+	return []CommentType{CommentTypeComment, CommentTypeReview}
 }
 
 // RoleInRepo presents the user's participation in the repo
@@ -1318,7 +1318,7 @@ func (c *Comment) HasOriginalAuthor() bool {
 func UpdateIssueNumComments(ctx context.Context, issueID int64) error {
 	countCommentsBuilder := builder.Select("count(*)").From("comment").Where(builder.Eq{
 		"issue_id": issueID,
-	}.And(builder.In("type", ConversationCountedCommentType()...)))
+	}.And(builder.In("type", ConversationCountedCommentType())))
 
 	_, err := db.GetEngine(ctx).
 		SetExpr("num_comments", countCommentsBuilder).
