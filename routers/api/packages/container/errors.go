@@ -58,7 +58,7 @@ func (e *namedError) WithStatusCode(statusCode int) *namedError {
 }
 
 // WithDetail creates a new instance of the error with detail
-func (e *namedError) WithDetail(detail interface{}) *namedError {
+func (e *namedError) WithDetail(detail any) *namedError {
 	return &namedError{
 		Code:       e.Code,
 		StatusCode: e.StatusCode,
