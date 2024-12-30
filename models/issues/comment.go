@@ -207,7 +207,6 @@ func (t CommentType) CountedAsConversation() bool {
 }
 
 // ConversationCountedCommentType returns the comment types that are counted as a conversation
-// The returned types are []any rather than []CommentType to allow for easy use as xorm args
 func ConversationCountedCommentType() []CommentType {
 	return []CommentType{CommentTypeComment, CommentTypeReview}
 }
