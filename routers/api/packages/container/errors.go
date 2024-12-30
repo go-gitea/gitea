@@ -32,7 +32,7 @@ type namedError struct {
 	Code       string
 	StatusCode int
 	Message    string
-	Detail     interface{}
+	Detail     any
 }
 
 func (e *namedError) Error() string {

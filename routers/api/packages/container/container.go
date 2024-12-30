@@ -99,9 +99,9 @@ func apiError(ctx *context.Context, status int, err error) {
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#error-codes
 func apiErrorDefined(ctx *context.Context, err *namedError) {
 	type ContainerError struct {
-		Code    string      `json:"code"`
-		Message string      `json:"message"`
-		Detail  interface{} `json:"detail,omitempty"`
+		Code    string `json:"code"`
+		Message string `json:"message"`
+		Detail  any    `json:"detail,omitempty"`
 	}
 
 	type ContainerErrors struct {
