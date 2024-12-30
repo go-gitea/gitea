@@ -13,12 +13,12 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/web/shared/user"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func getCreateProfileReadmeFileOptions(profileType string) api.CreateFileOptions {
-	content := fmt.Sprintf("# %s", profileType)
+func getCreateProfileReadmeFileOptions(content string) api.CreateFileOptions {
 	contentEncoded := base64.StdEncoding.EncodeToString([]byte(content))
 	return api.CreateFileOptions{
 		FileOptions: api.FileOptions{
@@ -34,27 +34,19 @@ func getCreateProfileReadmeFileOptions(profileType string) api.CreateFileOptions
 	}
 }
 
-func createTestProfile(t *testing.T, orgName, profileType string) {
-	repoName := ".profile"
-	isPrivate := false
-	if profileType == "Private" {
-		repoName = ".profile-private"
-		isPrivate = true
-	}
+func createTestProfile(t *testing.T, orgName, profileRepoName, readmeContent string) {
+	isPrivate := profileRepoName == user.RepoNameProfilePrivate
 
-	ctx := NewAPITestContext(t, "user1", repoName, auth_model.AccessTokenScopeAll)
+	ctx := NewAPITestContext(t, "user1", profileRepoName, auth_model.AccessTokenScopeAll)
 	session := loginUser(t, "user1")
 	tokenAdmin := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 
 	// create repo
-	t.Run("CreateOrganization"+profileType+"ProfileRepo", doAPICreateOrganizationRepository(ctx, orgName, &api.CreateRepoOption{
-		Name:    repoName,
-		Private: isPrivate,
-	}))
+	doAPICreateOrganizationRepository(ctx, orgName, &api.CreateRepoOption{Name: profileRepoName, Private: isPrivate})(t)
 
 	// create readme
-	createFileOptions := getCreateProfileReadmeFileOptions(profileType)
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", orgName, repoName, "README.md"), &createFileOptions).
+	createFileOptions := getCreateProfileReadmeFileOptions(readmeContent)
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", orgName, profileRepoName, "README.md"), &createFileOptions).
 		AddTokenAuth(tokenAdmin)
 	MakeRequest(t, req, http.StatusCreated)
 }
@@ -69,8 +61,8 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 	// html #profile_view_as_dropdown (indicate whether the view as dropdown menu is present)
 
 	// PART 1: Test Both Private and Public
-	createTestProfile(t, "org3", "Public")
-	createTestProfile(t, "org3", "Private")
+	createTestProfile(t, "org3", user.RepoNameProfile, "Public Readme")
+	createTestProfile(t, "org3", user.RepoNameProfilePrivate, "Private Readme")
 
 	// Anonymous User
 	req := NewRequest(t, "GET", "org3")
@@ -122,8 +114,8 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 	assert.EqualValues(t, 1, profileDivs.Length())
 
 	// PART 2: Each org has either one of private pr public profile
-	createTestProfile(t, "org41", "Public")
-	createTestProfile(t, "org42", "Private")
+	createTestProfile(t, "org41", user.RepoNameProfile, "Public Readme")
+	createTestProfile(t, "org42", user.RepoNameProfilePrivate, "Private Readme")
 
 	// Anonymous User
 	req = NewRequest(t, "GET", "/org41")

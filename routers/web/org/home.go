@@ -4,7 +4,6 @@
 package org
 
 import (
-	html_template "html/template"
 	"net/http"
 	"path"
 	"strings"
@@ -111,13 +110,6 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
-	currentURL := ctx.Req.URL
-	queryParams := currentURL.Query()
-	queryParams.Set("view_as", "member")
-	ctx.Data["QueryForMember"] = html_template.URL(queryParams.Encode())
-	queryParams.Set("view_as", "public")
-	ctx.Data["QueryForPublic"] = html_template.URL(queryParams.Encode())
-
 	err = shared_user.RenderOrgHeader(ctx)
 	if err != nil {
 		ctx.ServerError("RenderOrgHeader", err)
@@ -185,12 +177,15 @@ type prepareOrgProfileReadmeOptions struct {
 }
 
 func prepareOrgProfileReadme(ctx *context.Context, opts prepareOrgProfileReadmeOptions) bool {
-	profileRepoName := util.Iif(opts.viewAsPrivate, ".profile-private", ".profile")
+	profileRepoName := util.Iif(opts.viewAsPrivate, shared_user.RepoNameProfilePrivate, shared_user.RepoNameProfile)
 	profileDbRepo, profileGitRepo, profileReadme, profileClose := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer, profileRepoName)
 	defer profileClose()
 
-	// FIXME: need to use fixed keys
-	// ctx.Data[fmt.Sprintf("Has%sProfileReadme", profileType)] = profileReadme != nil
+	if opts.viewAsPrivate {
+		ctx.Data["HasPrivateProfileReadme"] = profileReadme != nil
+	} else {
+		ctx.Data["HasPublicProfileReadme"] = profileReadme != nil
+	}
 
 	if profileGitRepo == nil || profileReadme == nil || opts.viewRepositories {
 		return false

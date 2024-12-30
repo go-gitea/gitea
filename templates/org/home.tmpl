@@ -8,12 +8,19 @@
 				{{if or .ProfileReadmeContent}}
 					{{if and .ShowMemberAndTeamTab .HasPublicProfileReadme .HasPrivateProfileReadme}}
 					<div class="ui small secondary filter menu">
-						<div id="profile_view_as_dropdown" class="item ui small dropdown jump" style="padding-bottom: 1em;">
-							{{svg "octicon-eye" 14 "view as icon"}}<span class="text">View as: {{if not .IsViewerMember}}{{ctx.Locale.Tr "settings.visibility.public"}}{{else}}{{ctx.Locale.Tr "org.members.member"}}{{end}}</span>
+						<div id="profile_view_as_dropdown" class="item ui small dropdown jump">
+							<span class="text">
+								{{svg "octicon-eye" 14}}
+								View as: {{if not .IsViewerMember}}{{ctx.Locale.Tr "settings.visibility.public"}}{{else}}{{ctx.Locale.Tr "org.members.member"}}{{end}}
+							</span>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
-								<a href="{{$.Org.HomeLink}}?{{.QueryForPublic}}" class="{{if not .IsViewerMember}}active {{end}}item"><input hidden type="radio" {{if not .IsViewerMember}}checked{{end}}> {{ctx.Locale.Tr "settings.visibility.public"}} {{if not .IsViewerMember}}{{svg "octicon-check" 14 "check icon"}}{{end}}</a>
-								<a href="{{$.Org.HomeLink}}?{{.QueryForMember}}" class="{{if .IsViewerMember}}active {{end}}item"><input hidden type="radio" {{if .IsViewerMember}}checked{{end}}> {{ctx.Locale.Tr "org.members.member"}} {{if .IsViewerMember}}{{svg "octicon-check" 14 "check icon"}}{{end}}</a>
+								<a href="{{QueryBuild $.CurrentURL "view_as" "public"}}" class="item {{if not .IsViewerMember}}selected{{end}}">
+									{{svg "octicon-check" 14 (Iif (not .IsViewerMember) "" "tw-invisible")}} {{ctx.Locale.Tr "settings.visibility.public"}}
+								</a>
+								<a href="{{QueryBuild $.CurrentURL "view_as" "member"}}" class="item {{if .IsViewerMember}}selected{{end}}">
+									{{svg "octicon-check" 14 (Iif .IsViewerMember "" "tw-invisible")}}  {{ctx.Locale.Tr "org.members.member"}}
+								</a>
 							</div>
 						</div>
 					</div>

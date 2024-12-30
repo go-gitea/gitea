@@ -118,3 +118,39 @@ func TestTemplateEscape(t *testing.T) {
 		assert.Equal(t, `<a k="&#34;">&lt;&gt;</a>`, actual)
 	})
 }
+
+func TestQueryBuild(t *testing.T) {
+	t.Run("construct", func(t *testing.T) {
+		assert.Equal(t, "", string(QueryBuild()))
+		assert.Equal(t, "", string(QueryBuild("a", nil, "b", false, "c", 0, "d", "")))
+		assert.Equal(t, "a=1&b=true", string(QueryBuild("a", 1, "b", "true")))
+		assert.Equal(t, "?k=1", string(QueryBuild("?", "k", 1)))
+		assert.Equal(t, "path?a=b&k=1", string(QueryBuild("path?a=b", "k", 1)))
+		assert.Equal(t, "&k=1", string(QueryBuild("&", "k", 1)))
+		assert.Equal(t, "&a=b&k=1", string(QueryBuild("&a=b", "k", 1)))
+	})
+	t.Run("replace", func(t *testing.T) {
+		assert.Equal(t, "a=1&c=d&e=f", string(QueryBuild("a=b&c=d&e=f", "a", 1)))
+		assert.Equal(t, "a=b&c=1&e=f", string(QueryBuild("a=b&c=d&e=f", "c", 1)))
+		assert.Equal(t, "a=b&c=d&e=1", string(QueryBuild("a=b&c=d&e=f", "e", 1)))
+		assert.Equal(t, "a=b&c=d&e=f&k=1", string(QueryBuild("a=b&c=d&e=f", "k", 1)))
+	})
+	t.Run("replace-&", func(t *testing.T) {
+		assert.Equal(t, "&a=1&c=d&e=f", string(QueryBuild("&a=b&c=d&e=f", "a", 1)))
+		assert.Equal(t, "&a=b&c=1&e=f", string(QueryBuild("&a=b&c=d&e=f", "c", 1)))
+		assert.Equal(t, "&a=b&c=d&e=1", string(QueryBuild("&a=b&c=d&e=f", "e", 1)))
+		assert.Equal(t, "&a=b&c=d&e=f&k=1", string(QueryBuild("&a=b&c=d&e=f", "k", 1)))
+	})
+	t.Run("delete", func(t *testing.T) {
+		assert.Equal(t, "c=d&e=f", string(QueryBuild("a=b&c=d&e=f", "a", "")))
+		assert.Equal(t, "a=b&e=f", string(QueryBuild("a=b&c=d&e=f", "c", "")))
+		assert.Equal(t, "a=b&c=d", string(QueryBuild("a=b&c=d&e=f", "e", "")))
+		assert.Equal(t, "a=b&c=d&e=f", string(QueryBuild("a=b&c=d&e=f", "k", "")))
+	})
+	t.Run("delete-&", func(t *testing.T) {
+		assert.Equal(t, "&c=d&e=f", string(QueryBuild("&a=b&c=d&e=f", "a", "")))
+		assert.Equal(t, "&a=b&e=f", string(QueryBuild("&a=b&c=d&e=f", "c", "")))
+		assert.Equal(t, "&a=b&c=d", string(QueryBuild("&a=b&c=d&e=f", "e", "")))
+		assert.Equal(t, "&a=b&c=d&e=f", string(QueryBuild("&a=b&c=d&e=f", "k", "")))
+	})
+}

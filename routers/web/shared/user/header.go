@@ -4,7 +4,6 @@
 package user
 
 import (
-	"code.gitea.io/gitea/modules/util"
 	"net/url"
 
 	"code.gitea.io/gitea/models/db"
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -171,6 +171,11 @@ func LoadHeaderCount(ctx *context.Context) error {
 	return nil
 }
 
+const (
+	RepoNameProfilePrivate = ".profile-private"
+	RepoNameProfile        = ".profile"
+)
+
 func RenderOrgHeader(ctx *context.Context) error {
 	if err := LoadHeaderCount(ctx); err != nil {
 		return err
@@ -182,8 +187,7 @@ func RenderOrgHeader(ctx *context.Context) error {
 	ctx.Data["HasPublicProfileReadme"] = profileReadmeBlob != nil
 
 	// FIXME: only do database query, do not open it
-	// FIXME: use a const for ".profile-private"
-	_, _, profileReadmeBlob, profileClose = FindOwnerProfileReadme(ctx, ctx.Doer, ".profile-private")
+	_, _, profileReadmeBlob, profileClose = FindOwnerProfileReadme(ctx, ctx.Doer, RepoNameProfilePrivate)
 	defer profileClose()
 	ctx.Data["HasPrivateProfileReadme"] = profileReadmeBlob != nil
 
