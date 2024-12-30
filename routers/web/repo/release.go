@@ -186,7 +186,7 @@ func Releases(ctx *context.Context) {
 
 	numReleases := ctx.Data["NumReleases"].(int64)
 	pager := context.NewPagination(int(numReleases), listOptions.PageSize, listOptions.Page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplReleasesList)
 }
@@ -240,7 +240,7 @@ func TagsList(ctx *context.Context) {
 	ctx.Data["TagCount"] = count
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
 	ctx.HTML(http.StatusOK, tplTagsList)
