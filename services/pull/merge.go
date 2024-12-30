@@ -639,7 +639,7 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		pr.MergerID = doer.ID
 
 		var merged bool
-		if merged, err = pr.SetMerged(ctx); err != nil {
+		if merged, err = SetMerged(ctx, pr); err != nil {
 			return err
 		} else if !merged {
 			return fmt.Errorf("SetMerged failed")
@@ -655,4 +655,63 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commitID)
 
 	return handleCloseCrossReferences(ctx, pr, doer)
+}
+
+// SetMerged sets a pull request to merged and closes the corresponding issue
+func SetMerged(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
+	if pr.HasMerged {
+		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
+	}
+	if pr.MergedCommitID == "" || pr.MergedUnix == 0 || pr.Merger == nil {
+		return false, fmt.Errorf("unable to merge PullRequest[%d], some required fields are empty", pr.Index)
+	}
+
+	pr.HasMerged = true
+	sess := db.GetEngine(ctx)
+
+	if _, err := sess.Exec("UPDATE `issue` SET `repo_id` = `repo_id` WHERE `id` = ?", pr.IssueID); err != nil {
+		return false, err
+	}
+
+	if _, err := sess.Exec("UPDATE `pull_request` SET `issue_id` = `issue_id` WHERE `id` = ?", pr.ID); err != nil {
+		return false, err
+	}
+
+	pr.Issue = nil
+	if err := pr.LoadIssue(ctx); err != nil {
+		return false, err
+	}
+
+	if tmpPr, err := issues_model.GetPullRequestByID(ctx, pr.ID); err != nil {
+		return false, err
+	} else if tmpPr.HasMerged {
+		if pr.Issue.IsClosed {
+			return false, nil
+		}
+		return false, fmt.Errorf("PullRequest[%d] already merged but it's associated issue [%d] is not closed", pr.Index, pr.IssueID)
+	} else if pr.Issue.IsClosed {
+		return false, fmt.Errorf("PullRequest[%d] already closed", pr.Index)
+	}
+
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
+		return false, err
+	}
+
+	if err := pr.Issue.Repo.LoadOwner(ctx); err != nil {
+		return false, err
+	}
+
+	if _, err := issues_model.ChangeIssueStatus(ctx, pr.Issue, pr.Merger, true, true); err != nil {
+		return false, fmt.Errorf("ChangeIssueStatus: %w", err)
+	}
+
+	// reset the conflicted files as there cannot be any if we're merged
+	pr.ConflictedFiles = []string{}
+
+	// We need to save all of the data used to compute this merge as it may have already been changed by TestPatch. FIXME: need to set some state to prevent TestPatch from running whilst we are merging.
+	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix, conflicted_files").Update(pr); err != nil {
+		return false, fmt.Errorf("failed to update pr[%d]: %w", pr.ID, err)
+	}
+
+	return true, nil
 }
