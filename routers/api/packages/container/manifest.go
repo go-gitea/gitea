@@ -57,7 +57,7 @@ func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packag
 	}
 
 	if index.SchemaVersion != 2 {
-		return "", errUnsupported.WithMessage("Schema version is not supported")
+		return "", errUnsupported.WithDetail("Schema version is not supported")
 	}
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
@@ -67,7 +67,7 @@ func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packag
 	if !isValidMediaType(mci.MediaType) {
 		mci.MediaType = index.MediaType
 		if !isValidMediaType(mci.MediaType) {
-			return "", errManifestInvalid.WithMessage("MediaType not recognized")
+			return "", errManifestInvalid.WithDetail("MediaType not recognized")
 		}
 	}
 
