@@ -59,6 +59,10 @@ func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *is
 		}
 	}
 
+	if issue.MilestoneID == 0 {
+		issue.Milestone = nil
+	}
+
 	return nil
 }
 

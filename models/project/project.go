@@ -256,7 +256,7 @@ func NewProject(ctx context.Context, p *Project) error {
 		return util.NewInvalidArgumentErrorf("project type is not valid")
 	}
 
-	p.Title, _ = util.SplitStringAtByteN(p.Title, 255)
+	p.Title = util.EllipsisDisplayString(p.Title, 255)
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if err := db.Insert(ctx, p); err != nil {
@@ -311,7 +311,7 @@ func UpdateProject(ctx context.Context, p *Project) error {
 		p.CardType = CardTypeTextOnly
 	}
 
-	p.Title, _ = util.SplitStringAtByteN(p.Title, 255)
+	p.Title = util.EllipsisDisplayString(p.Title, 255)
 	_, err := db.GetEngine(ctx).ID(p.ID).Cols(
 		"title",
 		"description",

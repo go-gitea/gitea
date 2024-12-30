@@ -20,7 +20,6 @@ func loadTimeFrom(rootCfg ConfigProvider) {
 		if err != nil {
 			log.Fatal("Load time zone failed: %v", err)
 		}
-		log.Info("Default UI Location is %v", zone)
 	}
 	if DefaultUILocation == nil {
 		DefaultUILocation = time.Local

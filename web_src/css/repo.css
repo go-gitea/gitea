@@ -120,14 +120,12 @@ td .commit-summary {
   align-items: center;
   overflow: hidden;
   text-overflow: ellipsis;
+  gap: 0.25em;
 }
 
 @media (max-width: 767.98px) {
-  .latest-commit .sha {
+  .latest-commit .commit-id-short {
     display: none;
-  }
-  .latest-commit .commit-summary {
-    margin-left: 8px;
   }
 }
 
@@ -605,15 +603,6 @@ td .commit-summary {
   margin-right: 0.25em;
 }
 
-.singular-commit {
-  display: flex;
-  align-items: center;
-}
-
-.singular-commit .badge {
-  height: 30px !important;
-}
-
 .repository.view.issue .comment-list .timeline-item.event > .commit-status-link {
   float: right;
   margin-right: 8px;
@@ -934,14 +923,6 @@ td .commit-summary {
 }
 .repository #commits-table thead .sha {
   width: 200px;
-}
-
-.repository #commits-table thead .shatd {
-  text-align: center;
-}
-
-.repository #commits-table td.sha .sha.label {
-  margin: 0;
 }
 
 .repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n) {
@@ -1440,12 +1421,6 @@ td .commit-summary {
   padding-top: 15px;
 }
 
-.commit-header-row {
-  min-height: 50px !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
-
 .commit-header-buttons {
   display: flex;
   gap: 4px;
@@ -1622,7 +1597,7 @@ td .commit-summary {
   align-items: center;
 }
 
-.labels-list .label {
+.labels-list .label, .scope-parent > .label {
   padding: 0 6px;
   min-height: 20px;
   line-height: 1.3; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
@@ -1699,6 +1674,10 @@ tbody.commit-list {
   max-width: 180px;
   align-self: center;
   white-space: nowrap;
+}
+
+.latest-commit .message-wrapper {
+  max-width: calc(100% - 2.5rem);
 }
 
 /* in the commit list, messages can wrap so we can use inline */
@@ -2127,18 +2106,6 @@ tbody.commit-list {
   .repository.view.issue .comment-list .timeline .timeline-avatar,
   .repository.view.issue .comment-list .timeline .comment-header-right .role-label {
     display: none;
-  }
-  .commit-header-row .ui.horizontal.list {
-    width: 100%;
-    overflow-x: auto;
-    margin-top: 2px;
-  }
-  .commit-header-row .ui.horizontal.list .item {
-    align-items: center;
-    display: flex;
-  }
-  .commit-header-row .author {
-    padding: 3px 0;
   }
   .commit-header h3 {
     flex-basis: auto !important;
