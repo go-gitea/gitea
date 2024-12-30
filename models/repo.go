@@ -127,9 +127,9 @@ func repoStatsCorrectNumClosedPulls(ctx context.Context, id int64) error {
 	return repo_model.UpdateRepoIssueNumbers(ctx, id, true, true)
 }
 
-func statsQuery(args ...any) func(context.Context) ([]map[string][]byte, error) {
+func statsQuery(sql string, args ...any) func(context.Context) ([]map[string][]byte, error) {
 	return func(ctx context.Context) ([]map[string][]byte, error) {
-		return db.GetEngine(ctx).Query(args...)
+		return db.GetEngine(ctx).Query(append([]any{sql}, args...)...)
 	}
 }
 
@@ -200,8 +200,8 @@ func CheckRepoStats(ctx context.Context) error {
 		},
 		// Issue.NumComments
 		{
-			statsQuery(fmt.Sprintf("SELECT `issue`.id FROM `issue` WHERE `issue`.num_comments!=(SELECT COUNT(*) FROM `comment` WHERE issue_id=`issue`.id AND (type=%d OR type=%d))",
-				issues_model.ConversationCountedCommentType()...)),
+			statsQuery("SELECT `issue`.id FROM `issue` WHERE `issue`.num_comments!=(SELECT COUNT(*) FROM `comment` WHERE issue_id=`issue`.id AND (type=? OR type=?))",
+				issues_model.ConversationCountedCommentType()...),
 			repoStatsCorrectIssueNumComments,
 			"issue count 'num_comments'",
 		},
