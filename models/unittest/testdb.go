@@ -28,11 +28,7 @@ import (
 	"xorm.io/xorm/names"
 )
 
-// giteaRoot a path to the gitea root
-var (
-	giteaRoot   string
-	fixturesDir string
-)
+var giteaRoot string
 
 func fatalTestError(fmtStr string, args ...any) {
 	_, _ = fmt.Fprintf(os.Stderr, fmtStr, args...)
@@ -74,39 +70,14 @@ type TestOptions struct {
 
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
-func MainTest(m *testing.M, testOpts ...*TestOptions) {
-	searchDir, _ := os.Getwd()
-	for searchDir != "" {
-		if _, err := os.Stat(filepath.Join(searchDir, "go.mod")); err == nil {
-			break // The "go.mod" should be the one for Gitea repository
-		}
-		if dir := filepath.Dir(searchDir); dir == searchDir {
-			searchDir = "" // reaches the root of filesystem
-		} else {
-			searchDir = dir
-		}
-	}
-	if searchDir == "" {
-		panic("The tests should run in a Gitea repository, there should be a 'go.mod' in the root")
-	}
-
-	giteaRoot = searchDir
+func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
+	testOpts := util.OptionalArg(testOptsArg, &TestOptions{})
+	giteaRoot = test.SetupGiteaRoot()
 	setting.CustomPath = filepath.Join(giteaRoot, "custom")
 	InitSettings()
 
-	fixturesDir = filepath.Join(giteaRoot, "models", "fixtures")
-	var opts FixturesOptions
-	if len(testOpts) == 0 || len(testOpts[0].FixtureFiles) == 0 {
-		opts.Dir = fixturesDir
-	} else {
-		for _, f := range testOpts[0].FixtureFiles {
-			if len(f) != 0 {
-				opts.Files = append(opts.Files, filepath.Join(fixturesDir, f))
-			}
-		}
-	}
-
-	if err := CreateTestEngine(opts); err != nil {
+	fixturesOpts := FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: testOpts.FixtureFiles}
+	if err := CreateTestEngine(fixturesOpts); err != nil {
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
 
@@ -167,16 +138,16 @@ func MainTest(m *testing.M, testOpts ...*TestOptions) {
 		fatalTestError("git.Init: %v\n", err)
 	}
 
-	if len(testOpts) > 0 && testOpts[0].SetUp != nil {
-		if err := testOpts[0].SetUp(); err != nil {
+	if testOpts.SetUp != nil {
+		if err := testOpts.SetUp(); err != nil {
 			fatalTestError("set up failed: %v\n", err)
 		}
 	}
 
 	exitStatus := m.Run()
 
-	if len(testOpts) > 0 && testOpts[0].TearDown != nil {
-		if err := testOpts[0].TearDown(); err != nil {
+	if testOpts.TearDown != nil {
+		if err := testOpts.TearDown(); err != nil {
 			fatalTestError("tear down failed: %v\n", err)
 		}
 	}
