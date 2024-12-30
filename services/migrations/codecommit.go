@@ -14,11 +14,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/codecommit"
 	"github.com/aws/aws-sdk-go-v2/service/codecommit/types"
-	"github.com/aws/aws-sdk-go/aws"
 )
 
 var (
@@ -94,7 +94,7 @@ func (c *CodeCommitDownloader) SetContext(ctx context.Context) {
 // GetRepoInfo returns a repository information
 func (c *CodeCommitDownloader) GetRepoInfo() (*base.Repository, error) {
 	output, err := c.codeCommitClient.GetRepository(c.ctx, &codecommit.GetRepositoryInput{
-		RepositoryName: aws.String(c.repoName),
+		RepositoryName: util.ToPointer(c.repoName),
 	})
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func (c *CodeCommitDownloader) GetComments(commentable base.Commentable) ([]*bas
 	for {
 		resp, err := c.codeCommitClient.GetCommentsForPullRequest(c.ctx, &codecommit.GetCommentsForPullRequestInput{
 			NextToken:     nextToken,
-			PullRequestId: aws.String(strconv.FormatInt(commentable.GetForeignIndex(), 10)),
+			PullRequestId: util.ToPointer(strconv.FormatInt(commentable.GetForeignIndex(), 10)),
 		})
 		if err != nil {
 			return nil, false, err
@@ -171,7 +171,7 @@ func (c *CodeCommitDownloader) GetPullRequests(page, perPage int) ([]*base.PullR
 	prs := make([]*base.PullRequest, 0, len(batch))
 	for _, id := range batch {
 		output, err := c.codeCommitClient.GetPullRequest(c.ctx, &codecommit.GetPullRequestInput{
-			PullRequestId: aws.String(id),
+			PullRequestId: util.ToPointer(id),
 		})
 		if err != nil {
 			return nil, false, err
@@ -243,7 +243,7 @@ func (c *CodeCommitDownloader) getAllPullRequestIDs() ([]string, error) {
 
 	for {
 		output, err := c.codeCommitClient.ListPullRequests(c.ctx, &codecommit.ListPullRequestsInput{
-			RepositoryName: aws.String(c.repoName),
+			RepositoryName: util.ToPointer(c.repoName),
 			NextToken:      nextToken,
 		})
 		if err != nil {
