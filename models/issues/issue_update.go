@@ -405,19 +405,10 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 		return err
 	}
 
-	if len(opts.Attachments) > 0 {
-		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
-		if err != nil {
-			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)
-		}
-
-		for i := 0; i < len(attachments); i++ {
-			attachments[i].IssueID = opts.Issue.ID
-			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
-				return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
-			}
-		}
+	if err := UpdateIssueAttachments(ctx, opts.Issue.ID, opts.Attachments); err != nil {
+		return err
 	}
+
 	if err = opts.Issue.LoadAttributes(ctx); err != nil {
 		return err
 	}
