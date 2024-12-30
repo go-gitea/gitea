@@ -6,19 +6,21 @@ package unittest
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-testfixtures/testfixtures/v3"
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
-var fixturesLoader *testfixtures.Loader
+type FixturesLoader interface {
+	Load() error
+}
+
+var fixturesLoader FixturesLoader
 
 // GetXORMEngine gets the XORM engine
 func GetXORMEngine(engine ...*xorm.Engine) (x *xorm.Engine) {
@@ -31,38 +33,7 @@ func GetXORMEngine(engine ...*xorm.Engine) (x *xorm.Engine) {
 // InitFixtures initialize test fixtures for a test database
 func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
 	e := GetXORMEngine(engine...)
-	var fixtureOptionFiles func(*testfixtures.Loader) error
-	if opts.Dir != "" {
-		fixtureOptionFiles = testfixtures.Directory(opts.Dir)
-	} else {
-		fixtureOptionFiles = testfixtures.Files(opts.Files...)
-	}
-	dialect := "unknown"
-	switch e.Dialect().URI().DBType {
-	case schemas.POSTGRES:
-		dialect = "postgres"
-	case schemas.MYSQL:
-		dialect = "mysql"
-	case schemas.MSSQL:
-		dialect = "mssql"
-	case schemas.SQLITE:
-		dialect = "sqlite3"
-	default:
-		fmt.Println("Unsupported RDBMS for integration tests")
-		os.Exit(1)
-	}
-	loaderOptions := []func(loader *testfixtures.Loader) error{
-		testfixtures.Database(e.DB().DB),
-		testfixtures.Dialect(dialect),
-		testfixtures.DangerousSkipTestDatabaseCheck(),
-		fixtureOptionFiles,
-	}
-
-	if e.Dialect().URI().DBType == schemas.POSTGRES {
-		loaderOptions = append(loaderOptions, testfixtures.SkipResetSequences())
-	}
-
-	fixturesLoader, err = testfixtures.New(loaderOptions...)
+	fixturesLoader, err = NewFixturesLoader(e, opts)
 	if err != nil {
 		return err
 	}
