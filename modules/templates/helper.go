@@ -272,8 +272,16 @@ func isQueryParamEmpty(v any) bool {
 // It omits the nil, false, zero int/int64 and empty string values,
 // because they are default empty values for "ctx.FormXxx" calls.
 // If 0 or false need to be included, use string values: "0" and "false".
+// Build rules:
+// * Even parameters: always build as query string: a=b&c=d
+// * Odd parameters:
+// * * {"/anything", param-pairs...} => "/?param-paris"
+// * * {"anything?old-params", new-param-pairs...} => "anything?old-params&new-param-paris"
+// * * Otherwise: {"old&params", new-param-pairs...} => "old&params&new-param-paris"
+// * * Other behaviors are undefined yet.
 func QueryBuild(a ...any) template.URL {
 	var reqPath, s string
+	hasTrailingSep := false
 	if len(a)%2 == 1 {
 		if v, ok := a[0].(string); ok {
 			s = v
@@ -282,9 +290,15 @@ func QueryBuild(a ...any) template.URL {
 		} else {
 			panic("QueryBuild: invalid argument")
 		}
-		if s1, s2, ok := strings.Cut(s, "?"); ok {
-			reqPath = s1 + "?"
-			s = s2
+		hasTrailingSep = s != "&" && strings.HasSuffix(s, "&")
+		if strings.HasPrefix(s, "/") || strings.Contains(s, "?") {
+			if s1, s2, ok := strings.Cut(s, "?"); ok {
+				reqPath = s1 + "?"
+				s = s2
+			} else {
+				reqPath += s + "?"
+				s = ""
+			}
 		}
 	}
 	for i := len(a) % 2; i < len(a); i += 2 {
@@ -327,11 +341,21 @@ func QueryBuild(a ...any) template.URL {
 			s = s[:pos1] + s[pos2:]
 		}
 	}
-	if s != "" && s != "&" && s[len(s)-1] == '&' {
+	if s != "" && s[len(s)-1] == '&' && !hasTrailingSep {
 		s = s[:len(s)-1]
 	}
 	if reqPath != "" {
-		s = reqPath + s
+		if s == "" {
+			s = reqPath
+			if s != "?" {
+				s = s[:len(s)-1]
+			}
+		} else {
+			if s[0] == '&' {
+				s = s[1:]
+			}
+			s = reqPath + s
+		}
 	}
 	return template.URL(s)
 }
