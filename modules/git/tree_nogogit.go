@@ -99,16 +99,16 @@ func (t *Tree) listEntriesRecursive(ctx context.Context, extraArgs TrustedCmdArg
 	}
 
 	t.entriesRecursive = make([]*TreeEntry, 0)
-	err := t.iterateEntriesRecursive(func(entry *TreeEntry) error {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
+	if err := t.iterateEntriesRecursive(ctx, func(entry *TreeEntry) error {
 		t.entriesRecursive = append(t.entriesRecursive, entry)
 		return nil
-	}, extraArgs)
-	return t.entriesRecursive, err
+	}, extraArgs); err != nil {
+		t.entriesRecursive = nil
+		return nil, err
+	}
+
+	t.entriesRecursiveParsed = true
+	return t.entriesRecursive, nil
 }
 
 // ListEntriesRecursiveFast returns all entries of current tree recursively including all subtrees, no size
@@ -123,11 +123,7 @@ func (t *Tree) ListEntriesRecursiveWithSize(ctx context.Context) (Entries, error
 
 // iterateEntriesRecursive returns iterate entries of current tree recursively including all subtrees
 // extraArgs could be "-l" to get the size, which is slower
-func (t *Tree) iterateEntriesRecursive(f func(entry *TreeEntry) error, extraArgs TrustedCmdArgs) error {
-	if t.entriesRecursiveParsed {
-		return nil
-	}
-
+func (t *Tree) iterateEntriesRecursive(ctx context.Context, f func(entry *TreeEntry) error, extraArgs TrustedCmdArgs) error {
 	reader, writer := io.Pipe()
 	done := make(chan error)
 
@@ -151,9 +147,12 @@ func (t *Tree) iterateEntriesRecursive(f func(entry *TreeEntry) error, extraArgs
 		if err := scanner.Err(); err != nil {
 			return err
 		}
+
 		data := scanner.Bytes()
 		if err := iterateTreeEntries(data, t, func(entry *TreeEntry) error {
 			select {
+			case <-ctx.Done():
+				return ctx.Err()
 			case runErr := <-done:
 				return runErr
 			default:
@@ -163,10 +162,9 @@ func (t *Tree) iterateEntriesRecursive(f func(entry *TreeEntry) error, extraArgs
 			return err
 		}
 	}
-	t.entriesRecursiveParsed = true
 	return nil
 }
 
 func (t *Tree) IterateEntriesWithSize(f func(*TreeEntry) error) error {
-	return t.iterateEntriesRecursive(f, TrustedCmdArgs{"--long"})
+	return t.iterateEntriesRecursive(context.Background(), f, TrustedCmdArgs{"--long"})
 }
