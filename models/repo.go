@@ -109,14 +109,7 @@ func userStatsCorrectNumRepos(ctx context.Context, id int64) error {
 }
 
 func repoStatsCorrectIssueNumComments(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx,
-		builder.Update(builder.Eq{
-			"num_comments": builder.Select("COUNT(*)").From("`comment`").Where(
-				builder.Eq{"issue_id": id}.And(
-					builder.In("type", issues_model.ConversationCountedCommentType()),
-				)),
-		}).From("`issue`").Where(builder.Eq{"id": id}),
-	)
+	return StatsCorrectSQL(ctx, issues_model.UpdateIssueNumCommentsBuilder(id))
 }
 
 func repoStatsCorrectNumIssues(ctx context.Context, id int64) error {

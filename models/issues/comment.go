@@ -1315,16 +1315,18 @@ func (c *Comment) HasOriginalAuthor() bool {
 	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
 }
 
-func UpdateIssueNumComments(ctx context.Context, issueID int64) error {
-	countCommentsBuilder := builder.Select("count(*)").From("comment").Where(builder.Eq{
-		"issue_id": issueID,
-	}.And(builder.In("type", ConversationCountedCommentType())))
+func UpdateIssueNumCommentsBuilder(issueID int64) *builder.Builder {
+	subQuery := builder.Select("COUNT(*)").From("`comment`").Where(
+		builder.Eq{"issue_id": issueID}.And(
+			builder.In("`type`", ConversationCountedCommentType()),
+		))
 
-	_, err := db.GetEngine(ctx).
-		SetExpr("num_comments", countCommentsBuilder).
-		ID(issueID).
-		NoAutoTime().
-		Update(new(Issue))
+	return builder.Update(builder.Eq{"num_comments": subQuery}).
+		From("`issue`").Where(builder.Eq{"id": issueID})
+}
+
+func UpdateIssueNumComments(ctx context.Context, issueID int64) error {
+	_, err := db.GetEngine(ctx).Exec(UpdateIssueNumCommentsBuilder(issueID))
 	return err
 }
 
