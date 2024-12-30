@@ -16,15 +16,15 @@ var (
 	errManifestBlobUnknown     = &namedError{Code: "MANIFEST_BLOB_UNKNOWN", StatusCode: http.StatusNotFound, Message: "blob unknown to registry"}
 	errManifestInvalid         = &namedError{Code: "MANIFEST_INVALID", StatusCode: http.StatusBadRequest, Message: "manifest invalid"}
 	errManifestUnknown         = &namedError{Code: "MANIFEST_UNKNOWN", StatusCode: http.StatusNotFound, Message: "manifest unknown"}
-	errManifestUnverified      = &namedError{Code: "MANIFEST_UNVERIFIED", StatusCode: http.StatusBadRequest, Message: "manifest failed signature verification"}
+	errManifestUnverified      = &namedError{Code: "MANIFEST_UNVERIFIED", StatusCode: http.StatusBadRequest, Message: "manifest failed signature verification"} //nolint:unused
 	errNameInvalid             = &namedError{Code: "NAME_INVALID", StatusCode: http.StatusBadRequest, Message: "invalid repository name"}
 	errNameUnknown             = &namedError{Code: "NAME_UNKNOWN", StatusCode: http.StatusNotFound, Message: "repository name not known to registry"}
-	errPaginationNumberInvalid = &namedError{Code: "PAGINATION_NUMBER_INVALID", StatusCode: http.StatusBadRequest, Message: "invalid number of results requested"}
-	errRangeInvalid            = &namedError{Code: "RANGE_INVALID", StatusCode: http.StatusBadRequest, Message: "invalid content range"}
+	errPaginationNumberInvalid = &namedError{Code: "PAGINATION_NUMBER_INVALID", StatusCode: http.StatusBadRequest, Message: "invalid number of results requested"} //nolint:unused
+	errRangeInvalid            = &namedError{Code: "RANGE_INVALID", StatusCode: http.StatusBadRequest, Message: "invalid content range"}                           //nolint:unused
 	errSizeInvalid             = &namedError{Code: "SIZE_INVALID", StatusCode: http.StatusBadRequest, Message: "provided length did not match content length"}
 	errTagInvalid              = &namedError{Code: "TAG_INVALID", StatusCode: http.StatusBadRequest, Message: "manifest tag did not match URI"}
 	errUnauthorized            = &namedError{Code: "UNAUTHORIZED", StatusCode: http.StatusUnauthorized, Message: "authentication required"}
-	errDenied                  = &namedError{Code: "DENIED", StatusCode: http.StatusForbidden, Message: "requested access to the resource is denied"}
+	errDenied                  = &namedError{Code: "DENIED", StatusCode: http.StatusForbidden, Message: "requested access to the resource is denied"} //nolint:unused
 	errUnsupported             = &namedError{Code: "UNSUPPORTED", StatusCode: http.StatusMethodNotAllowed, Message: "The operation is unsupported"}
 )
 
