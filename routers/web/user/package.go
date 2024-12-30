@@ -128,8 +128,7 @@ func ListPackages(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParamString("q", query)
-	pager.AddParamString("type", packageType)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)
@@ -348,11 +347,6 @@ func ListPackageVersions(ctx *context.Context) {
 	ctx.Data["Query"] = query
 	ctx.Data["Sort"] = sort
 
-	pagerParams := map[string]string{
-		"q":    query,
-		"sort": sort,
-	}
-
 	var (
 		total int64
 		pvs   []*packages_model.PackageVersion
@@ -361,7 +355,6 @@ func ListPackageVersions(ctx *context.Context) {
 	case packages_model.TypeContainer:
 		tagged := ctx.FormTrim("tagged")
 
-		pagerParams["tagged"] = tagged
 		ctx.Data["Tagged"] = tagged
 
 		pvs, total, err = container_model.SearchImageTags(ctx, &container_model.ImageTagsSearchOptions{
@@ -407,9 +400,7 @@ func ListPackageVersions(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	for k, v := range pagerParams {
-		pager.AddParamString(k, v)
-	}
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackageVersionList)

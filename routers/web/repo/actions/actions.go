@@ -6,7 +6,6 @@ package actions
 import (
 	"bytes"
 	stdCtx "context"
-	"fmt"
 	"net/http"
 	"slices"
 	"strings"
@@ -262,10 +261,7 @@ func List(ctx *context.Context) {
 	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx)
 
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParamString("workflow", workflowID)
-	pager.AddParamString("actor", fmt.Sprint(actorID))
-	pager.AddParamString("status", fmt.Sprint(status))
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 

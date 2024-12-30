@@ -64,7 +64,7 @@
   name: job2
   attempt: 1
   job_id: job2
-  needs: [job1]
+  needs: '["job1"]'
   task_id: 51
   status: 5
   started: 1683636528

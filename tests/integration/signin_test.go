@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testLoginFailed(t *testing.T, username, password, message string) {
@@ -42,7 +44,7 @@ func TestSignin(t *testing.T) {
 	user.Name = "testuser"
 	user.LowerName = strings.ToLower(user.Name)
 	user.ID = 0
-	unittest.AssertSuccessfulInsert(t, user)
+	require.NoError(t, db.Insert(db.DefaultContext, user))
 
 	samples := []struct {
 		username string
