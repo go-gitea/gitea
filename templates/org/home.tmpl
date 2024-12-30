@@ -5,7 +5,7 @@
 	<div class="ui container">
 		<div class="ui mobile reversed stackable grid">
 			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
-				{{if or .PublicProfileReadme .PrivateProfileReadme}}
+				{{if or .ProfileReadmeContent}}
 					{{if and .ShowMemberAndTeamTab .HasPublicProfileReadme .HasPrivateProfileReadme}}
 					<div class="ui small secondary filter menu">
 						<div id="profile_view_as_dropdown" class="item ui small dropdown jump" style="padding-bottom: 1em;">
@@ -19,11 +19,8 @@
 					</div>
 					{{end}}
 				{{end}}
-				{{if .PrivateProfileReadme}}
-					<div id="readme_profile" class="markup">{{.PrivateProfileReadme}}</div>
-				{{end}}
-				{{if .PublicProfileReadme}}
-					<div id="readme_profile" class="markup">{{.PublicProfileReadme}}</div>
+				{{if .ProfileReadmeContent}}
+					<div id="readme_profile" class="markup">{{.ProfileReadmeContent}}</div>
 				{{end}}
 				{{template "shared/repo_search" .}}
 				{{template "explore/repo_list" .}}
