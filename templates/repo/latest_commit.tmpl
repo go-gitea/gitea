@@ -1,8 +1,9 @@
+<div class="latest-commit">
 {{if not .LatestCommit}}
 	…
 {{else}}
 	{{if .LatestCommitUser}}
-		{{ctx.AvatarUtils.Avatar .LatestCommitUser 24 "tw-mr-1"}}
+		{{ctx.AvatarUtils.Avatar .LatestCommitUser 24}}
 		{{if and .LatestCommitUser.FullName DefaultShowFullName}}
 			<a class="muted author-wrapper" title="{{.LatestCommitUser.FullName}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 		{{else}}
@@ -10,17 +11,15 @@
 		{{end}}
 	{{else}}
 		{{if .LatestCommit.Author}}
-			{{ctx.AvatarUtils.AvatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24 "tw-mr-1"}}
+			{{ctx.AvatarUtils.AvatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
 			<span class="author-wrapper" title="{{.LatestCommit.Author.Name}}"><strong>{{.LatestCommit.Author.Name}}</strong></span>
 		{{end}}
 	{{end}}
-	<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified}} isVerified{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}Untrusted{{else}}Unmatched{{end}}{{else if .LatestCommitVerification.Warning}} isWarning{{end}}{{end}}" href="{{.RepoLink}}/commit/{{PathEscape .LatestCommit.ID.String}}">
-		<span class="shortsha">{{ShortSha .LatestCommit.ID.String}}</span>
-		{{if .LatestCommit.Signature}}
-			{{template "repo/shabox_badge" dict "root" $ "verification" .LatestCommitVerification}}
-		{{end}}
-	</a>
+
+	{{template "repo/commit_sign_badge" dict "Commit" .LatestCommit "CommitBaseLink" (print .RepoLink "/commit") "CommitSignVerification" .LatestCommitVerification}}
+
 	{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses}}
+
 	{{$commitLink:= printf "%s/commit/%s" .RepoLink (PathEscape .LatestCommit.ID.String)}}
 	<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .LatestCommit.Message $commitLink ($.Repository.ComposeMetas ctx)}}</span>
 		{{if IsMultilineCommitMessage .LatestCommit.Message}}
@@ -29,3 +28,4 @@
 		{{end}}
 	</span>
 {{end}}
+</div>

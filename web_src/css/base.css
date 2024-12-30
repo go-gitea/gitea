@@ -742,13 +742,8 @@ input:-webkit-autofill:active,
   font-family: var(--fonts-monospace);
   font-size: 13px;
   font-weight: var(--font-weight-normal);
-  margin: 0 6px;
-  padding: 5px 10px;
+  padding: 3px 5px;
   flex-shrink: 0;
-}
-
-.ui .sha.label .shortsha {
-  display: inline-block; /* not sure whether it is still needed */
 }
 
 .ui .button.truncate {
@@ -933,7 +928,8 @@ strong.attention-caution, svg.attention-caution {
   color: var(--color-red-dark-1);
 }
 
-.center:not(.popup) {
+/* FIXME: this is a longstanding dirty patch since 2015, it only makes the pages more messy and shouldn't be used */
+.center {
   text-align: center;
 }
 
