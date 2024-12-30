@@ -45,6 +45,24 @@ func TestCreateComment(t *testing.T) {
 	unittest.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
 }
 
+func Test_UpdateCommentAttachment(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 1})
+	attachment := repo_model.Attachment{
+		Name: "test.txt",
+	}
+	assert.NoError(t, db.Insert(db.DefaultContext, &attachment))
+
+	err := issues_model.UpdateCommentAttachments(db.DefaultContext, comment, []string{attachment.UUID})
+	assert.NoError(t, err)
+
+	attachment2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: attachment.ID})
+	assert.EqualValues(t, attachment.Name, attachment2.Name)
+	assert.EqualValues(t, comment.ID, attachment2.CommentID)
+	assert.EqualValues(t, comment.IssueID, attachment2.IssueID)
+}
+
 func TestFetchCodeComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

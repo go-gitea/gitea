@@ -602,7 +602,7 @@ func updateAttachments(ctx *context.Context, item any, files []string) error {
 		case *issues_model.Issue:
 			err = issues_model.UpdateIssueAttachments(ctx, content.ID, files)
 		case *issues_model.Comment:
-			err = content.UpdateAttachments(ctx, files)
+			err = issues_model.UpdateCommentAttachments(ctx, content, files)
 		default:
 			return fmt.Errorf("unknown Type: %T", content)
 		}
