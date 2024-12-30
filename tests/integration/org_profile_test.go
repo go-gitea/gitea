@@ -69,7 +69,7 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	profileDivs := htmlDoc.doc.Find("#user-content-public")
+	profileDivs := htmlDoc.doc.Find("[data-profile-view-as-member=false]")
 	assert.EqualValues(t, 1, profileDivs.Length())
 
 	dropDownDiv := htmlDoc.doc.Find("#org-home-view-as-dropdown")
@@ -81,7 +81,7 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
 
-	profileDivs = htmlDoc.doc.Find("#user-content-public")
+	profileDivs = htmlDoc.doc.Find("[data-profile-view-as-member=false]")
 	assert.EqualValues(t, 1, profileDivs.Length())
 
 	dropDownDiv = htmlDoc.doc.Find("#org-home-view-as-dropdown")
@@ -93,7 +93,7 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
 
-	profileDivs = htmlDoc.doc.Find("#user-content-public")
+	profileDivs = htmlDoc.doc.Find("[data-profile-view-as-member=false]")
 	assert.EqualValues(t, 1, profileDivs.Length())
 
 	dropDownDiv = htmlDoc.doc.Find("#org-home-view-as-dropdown")
@@ -103,14 +103,14 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
 
-	profileDivs = htmlDoc.doc.Find("#user-content-private")
+	profileDivs = htmlDoc.doc.Find("[data-profile-view-as-member=true]")
 	assert.EqualValues(t, 1, profileDivs.Length())
 
 	req = NewRequest(t, "GET", "/org3?view_as=public")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
 
-	profileDivs = htmlDoc.doc.Find("#user-content-public")
+	profileDivs = htmlDoc.doc.Find("[data-profile-view-as-member=false]")
 	assert.EqualValues(t, 1, profileDivs.Length())
 
 	// PART 2: Each org has either one of private pr public profile
@@ -121,7 +121,7 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 	req = NewRequest(t, "GET", "/org41")
 	resp = MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	profileDivs = htmlDoc.doc.Find("#user-content-public")
+	profileDivs = htmlDoc.doc.Find("[data-profile-view-as-member=false]")
 	assert.EqualValues(t, 1, profileDivs.Length())
 	dropDownDiv = htmlDoc.doc.Find("#org-home-view-as-dropdown")
 	assert.EqualValues(t, 0, dropDownDiv.Length())
@@ -129,9 +129,9 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 	req = NewRequest(t, "GET", "/org42")
 	resp = MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	profileDivs = htmlDoc.doc.Find("#user-content-public")
+	profileDivs = htmlDoc.doc.Find("[data-profile-view-as-member=false]")
 	assert.EqualValues(t, 0, profileDivs.Length())
-	profileDivs = htmlDoc.doc.Find("#user-content-public")
+	profileDivs = htmlDoc.doc.Find("[data-profile-view-as-member=false]")
 	assert.EqualValues(t, 0, profileDivs.Length())
 	dropDownDiv = htmlDoc.doc.Find("#org-home-view-as-dropdown")
 	assert.EqualValues(t, 0, dropDownDiv.Length())
@@ -140,7 +140,7 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 	req = NewRequest(t, "GET", "/org41")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	profileDivs = htmlDoc.doc.Find("#user-content-public")
+	profileDivs = htmlDoc.doc.Find("[data-profile-view-as-member=false]")
 	assert.EqualValues(t, 1, profileDivs.Length())
 	dropDownDiv = htmlDoc.doc.Find("#org-home-view-as-dropdown")
 	assert.EqualValues(t, 0, dropDownDiv.Length())
@@ -148,7 +148,7 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 	req = NewRequest(t, "GET", "/org42")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	profileDivs = htmlDoc.doc.Find("#user-content-private")
+	profileDivs = htmlDoc.doc.Find("[data-profile-view-as-member=true]")
 	assert.EqualValues(t, 1, profileDivs.Length())
 	dropDownDiv = htmlDoc.doc.Find("#org-home-view-as-dropdown")
 	assert.EqualValues(t, 0, dropDownDiv.Length())

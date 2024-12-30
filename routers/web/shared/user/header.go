@@ -142,7 +142,7 @@ func RenderUserHeader(ctx *context.Context) {
 	prepareContextForCommonProfile(ctx)
 
 	_, profileReadmeBlob := FindOwnerProfileReadme(ctx, ctx.Doer)
-	ctx.Data["HasPublicProfileReadme"] = profileReadmeBlob != nil
+	ctx.Data["HasUserProfileReadme"] = profileReadmeBlob != nil
 }
 
 func LoadHeaderCount(ctx *context.Context) error {
@@ -184,18 +184,24 @@ const (
 	RepoNameProfile        = ".profile"
 )
 
-func RenderOrgHeader(ctx *context.Context) error {
-	if err := LoadHeaderCount(ctx); err != nil {
-		return err
+type PrepareOrgHeaderResult struct {
+	ProfilePublicRepo        *repo_model.Repository
+	ProfilePublicReadmeBlob  *git.Blob
+	ProfilePrivateRepo       *repo_model.Repository
+	ProfilePrivateReadmeBlob *git.Blob
+	HasOrgProfileReadme      bool
+}
+
+func PrepareOrgHeader(ctx *context.Context) (result *PrepareOrgHeaderResult, err error) {
+	if err = LoadHeaderCount(ctx); err != nil {
+		return nil, err
 	}
 
-	// FIXME: only do database query, do not open it
-	_, profileReadmeBlob := FindOwnerProfileReadme(ctx, ctx.Doer)
-	ctx.Data["HasPublicProfileReadme"] = profileReadmeBlob != nil
-
-	// FIXME: only do database query, do not open it
-	_, profileReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer, RepoNameProfilePrivate)
-	ctx.Data["HasPrivateProfileReadme"] = profileReadmeBlob != nil
-
-	return nil
+	result = &PrepareOrgHeaderResult{}
+	result.ProfilePublicRepo, result.ProfilePublicReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer)
+	result.ProfilePrivateRepo, result.ProfilePrivateReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer, RepoNameProfilePrivate)
+	result.HasOrgProfileReadme = result.ProfilePublicReadmeBlob != nil || result.ProfilePrivateReadmeBlob != nil
+	ctx.Data["HasOrgProfileReadme"] = result.HasOrgProfileReadme // many pages need it to show the "overview" tab
+	ctx.Data["ShowOrgProfileReadmeSelector"] = result.ProfilePublicReadmeBlob != nil && result.ProfilePrivateReadmeBlob != nil
+	return result, nil
 }

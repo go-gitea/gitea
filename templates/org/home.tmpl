@@ -6,7 +6,7 @@
 		<div class="ui mobile reversed stackable grid">
 			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
 				{{if .ProfileReadmeContent}}
-					<div id="readme_profile" class="markup">{{.ProfileReadmeContent}}</div>
+					<div id="readme_profile" class="markup" data-profile-view-as-member="{{.IsViewingOrgAsMember}}">{{.ProfileReadmeContent}}</div>
 				{{end}}
 				{{template "shared/repo_search" .}}
 				{{template "explore/repo_list" .}}
@@ -25,26 +25,26 @@
 					<div class="divider"></div>
 				{{end}}
 
-				{{if and .ShowMemberAndTeamTab .HasPublicProfileReadme .HasPrivateProfileReadme}}
+				{{if and .ShowMemberAndTeamTab .ShowOrgProfileReadmeSelector}}
 				<div class="tw-my-4">
 					<div id="org-home-view-as-dropdown" class="ui dropdown jump">
 							<span class="text">
 								{{svg "octicon-eye"}}
-								View as: {{if not .IsViewerMember}}{{ctx.Locale.Tr "settings.visibility.public"}}{{else}}{{ctx.Locale.Tr "org.members.member"}}{{end}}
+								View as: {{if not .IsViewingOrgAsMember}}{{ctx.Locale.Tr "settings.visibility.public"}}{{else}}{{ctx.Locale.Tr "org.members.member"}}{{end}}
 							</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							{{/* TODO: does it really need to use CurrentURL with query parameters? Why not construct a new link with clear parameters */}}
-							<a href="{{QueryBuild $.CurrentURL "view_as" "public"}}" class="item {{if not .IsViewerMember}}selected{{end}}">
-								{{svg "octicon-check" 14 (Iif (not .IsViewerMember) "" "tw-invisible")}} {{ctx.Locale.Tr "settings.visibility.public"}}
+							<a href="{{QueryBuild $.CurrentURL "view_as" "public"}}" class="item {{if not .IsViewingOrgAsMember}}selected{{end}}">
+								{{svg "octicon-check" 14 (Iif (not .IsViewingOrgAsMember) "" "tw-invisible")}} {{ctx.Locale.Tr "settings.visibility.public"}}
 							</a>
-							<a href="{{QueryBuild $.CurrentURL "view_as" "member"}}" class="item {{if .IsViewerMember}}selected{{end}}">
-								{{svg "octicon-check" 14 (Iif .IsViewerMember "" "tw-invisible")}}  {{ctx.Locale.Tr "org.members.member"}}
+							<a href="{{QueryBuild $.CurrentURL "view_as" "member"}}" class="item {{if .IsViewingOrgAsMember}}selected{{end}}">
+								{{svg "octicon-check" 14 (Iif .IsViewingOrgAsMember "" "tw-invisible")}}  {{ctx.Locale.Tr "org.members.member"}}
 							</a>
 						</div>
 					</div>
 					<div class="tw-my-2">
-						{{if .IsViewerMember}}{{ctx.Locale.Tr "org.view_as_member_hint"}}{{else}}{{ctx.Locale.Tr "org.view_as_public_hint"}}{{end}}
+						{{if .IsViewingOrgAsMember}}{{ctx.Locale.Tr "org.view_as_member_hint"}}{{else}}{{ctx.Locale.Tr "org.view_as_public_hint"}}{{end}}
 					</div>
 				</div>
 				{{end}}

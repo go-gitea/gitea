@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -21,9 +22,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-const (
-	tplOrgHome templates.TplName = "org/home"
-)
+const tplOrgHome templates.TplName = "org/home"
 
 // Home show organization home page
 func Home(ctx *context.Context) {
@@ -110,29 +109,13 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
-	err = shared_user.RenderOrgHeader(ctx)
+	prepareResult, err := shared_user.PrepareOrgHeader(ctx)
 	if err != nil {
-		ctx.ServerError("RenderOrgHeader", err)
+		ctx.ServerError("PrepareOrgHeader", err)
 		return
 	}
-	isBothProfilesExist := ctx.Data["HasPublicProfileReadme"] == true && ctx.Data["HasPrivateProfileReadme"] == true
 
-	isViewerMember := ctx.FormString("view_as")
-	ctx.Data["IsViewerMember"] = isViewerMember == "member"
-
-	viewAsPrivate := isViewerMember == "member"
-
-	if !isBothProfilesExist {
-		if !prepareOrgProfileReadme(ctx, prepareOrgProfileReadmeOptions{viewRepositories: viewRepositories}) {
-			if !prepareOrgProfileReadme(ctx, prepareOrgProfileReadmeOptions{viewRepositories: viewRepositories, viewAsPrivate: true}) {
-				ctx.Data["PageIsViewRepositories"] = true
-			}
-		}
-	} else {
-		if !prepareOrgProfileReadme(ctx, prepareOrgProfileReadmeOptions{viewRepositories: viewRepositories, viewAsPrivate: viewAsPrivate}) {
-			ctx.Data["PageIsViewRepositories"] = true
-		}
-	}
+	ctx.Data["HasPrivateProfileReadme"] = viewRepositories || !prepareOrgProfileReadme(ctx, prepareResult)
 
 	var (
 		repos []*repo_model.Repository
@@ -171,36 +154,45 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }
 
-type prepareOrgProfileReadmeOptions struct {
-	viewRepositories bool
-	viewAsPrivate    bool
-}
+func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.PrepareOrgHeaderResult) bool {
+	viewAs := ctx.FormString("view_as")
+	viewAsMember := viewAs == "member"
 
-func prepareOrgProfileReadme(ctx *context.Context, opts prepareOrgProfileReadmeOptions) bool {
-	profileRepoName := util.Iif(opts.viewAsPrivate, shared_user.RepoNameProfilePrivate, shared_user.RepoNameProfile)
-	profileDbRepo, profileReadme := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer, profileRepoName)
-
-	if opts.viewAsPrivate {
-		ctx.Data["HasPrivateProfileReadme"] = profileReadme != nil
+	var profileRepo *repo_model.Repository
+	var readmeBlob *git.Blob
+	if viewAsMember {
+		if prepareResult.ProfilePrivateReadmeBlob != nil {
+			profileRepo, readmeBlob = prepareResult.ProfilePrivateRepo, prepareResult.ProfilePrivateReadmeBlob
+		} else {
+			profileRepo, readmeBlob = prepareResult.ProfilePublicRepo, prepareResult.ProfilePublicReadmeBlob
+			viewAsMember = false
+		}
 	} else {
-		ctx.Data["HasPublicProfileReadme"] = profileReadme != nil
+		if prepareResult.ProfilePublicReadmeBlob != nil {
+			profileRepo, readmeBlob = prepareResult.ProfilePublicRepo, prepareResult.ProfilePublicReadmeBlob
+		} else {
+			profileRepo, readmeBlob = prepareResult.ProfilePrivateRepo, prepareResult.ProfilePrivateReadmeBlob
+			viewAsMember = true
+		}
 	}
-
-	if profileReadme == nil || opts.viewRepositories {
+	if readmeBlob == nil {
 		return false
 	}
 
-	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
-		log.Error("failed to GetBlobContent for %s profile readme: %v", profileRepoName, err)
-	} else {
-		rctx := renderhelper.NewRenderContextRepoFile(ctx, profileDbRepo, renderhelper.RepoFileOptions{
-			CurrentRefPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
-		})
-		if profileContent, err := markdown.RenderString(rctx, bytes); err != nil {
-			log.Error("failed to RenderString for %s profile readme: %v", profileRepoName, err)
-		} else {
-			ctx.Data["ProfileReadmeContent"] = profileContent
-		}
+	readmeBytes, err := readmeBlob.GetBlobContent(setting.UI.MaxDisplayFileSize)
+	if err != nil {
+		log.Error("failed to GetBlobContent for %q profile (view as %q) readme: %v", ctx.ContextUser.Name, viewAs, err)
+		return false
 	}
+
+	rctx := renderhelper.NewRenderContextRepoFile(ctx, profileRepo, renderhelper.RepoFileOptions{
+		CurrentRefPath: path.Join("branch", util.PathEscapeSegments(profileRepo.DefaultBranch)),
+	})
+	ctx.Data["ProfileReadmeContent"], err = markdown.RenderString(rctx, readmeBytes)
+	if err != nil {
+		log.Error("failed to GetBlobContent for %q profile (view as %q) readme: %v", ctx.ContextUser.Name, viewAs, err)
+		return false
+	}
+	ctx.Data["IsViewingOrgAsMember"] = viewAsMember
 	return true
 }
