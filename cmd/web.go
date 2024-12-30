@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 
@@ -115,6 +116,16 @@ func showWebStartupMessage(msg string) {
 	log.Info("* CustomPath: %s", setting.CustomPath)
 	log.Info("* ConfigFile: %s", setting.CustomConf)
 	log.Info("%s", msg) // show startup message
+
+	if setting.CORSConfig.Enabled {
+		log.Info("CORS Service Enabled")
+	}
+	if setting.DefaultUILocation != time.Local {
+		log.Info("Default UI Location is %v", setting.DefaultUILocation.String())
+	}
+	if setting.MailService != nil {
+		log.Info("Mail Service Enabled: RegisterEmailConfirm=%v, Service.EnableNotifyMail=%v", setting.Service.RegisterEmailConfirm, setting.Service.EnableNotifyMail)
+	}
 }
 
 func serveInstall(ctx *cli.Context) error {
