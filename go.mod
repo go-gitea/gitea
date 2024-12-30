@@ -28,7 +28,6 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.0
 	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.7.3
 	github.com/alecthomas/chroma/v2 v2.14.0
-	github.com/aws/aws-sdk-go v1.55.5
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.42
 	github.com/aws/aws-sdk-go-v2/service/codecommit v1.27.3
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
