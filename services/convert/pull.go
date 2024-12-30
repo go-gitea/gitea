@@ -206,7 +206,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			endCommitID   string
 		)
 
-		if git.IsErrBranchNotExist(err) {
+		if git_model.IsErrBranchNotExist(err) {
 			headCommitID, err := headGitRepo.GetRefCommitID(apiPullRequest.Head.Ref)
 			if err != nil && !git.IsErrNotExist(err) {
 				log.Error("GetCommit[%s]: %v", pr.HeadBranch, err)

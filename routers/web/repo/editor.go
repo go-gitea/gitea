@@ -324,7 +324,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		} else if files_service.IsErrRepoFileAlreadyExists(err) {
 			ctx.Data["Err_TreePath"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_already_exists", form.TreePath), tplEditFile, &form)
-		} else if git.IsErrBranchNotExist(err) {
+		} else if git_model.IsErrBranchNotExist(err) {
 			// For when a user adds/updates a file to a branch that no longer exists
 			if branchErr, ok := err.(git.ErrBranchNotExist); ok {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_does_not_exist", branchErr.Name), tplEditFile, &form)
@@ -526,7 +526,7 @@ func DeleteFilePost(ctx *context.Context) {
 			} else {
 				ctx.ServerError("DeleteRepoFile", err)
 			}
-		} else if git.IsErrBranchNotExist(err) {
+		} else if git_model.IsErrBranchNotExist(err) {
 			// For when a user deletes a file to a branch that no longer exists
 			if branchErr, ok := err.(git.ErrBranchNotExist); ok {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_does_not_exist", branchErr.Name), tplDeleteFile, &form)

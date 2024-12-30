@@ -886,7 +886,7 @@ func DeleteFile(ctx *context.APIContext) {
 	}
 
 	if filesResponse, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, opts); err != nil {
-		if git.IsErrBranchNotExist(err) || files_service.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
+		if git_model.IsErrBranchNotExist(err) || files_service.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteFile", err)
 			return
 		} else if git_model.IsErrBranchAlreadyExists(err) ||

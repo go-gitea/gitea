@@ -152,7 +152,7 @@ func DeleteBranch(ctx *context.APIContext) {
 
 	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
-		case git.IsErrBranchNotExist(err):
+		case git_model.IsErrBranchNotExist(err):
 			ctx.NotFound(err)
 		case errors.Is(err, repo_service.ErrBranchIsDefault):
 			ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))

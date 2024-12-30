@@ -1049,7 +1049,7 @@ func MergePullRequest(ctx *context.APIContext) {
 			}
 			if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch); err != nil {
 				switch {
-				case git.IsErrBranchNotExist(err):
+				case git_model.IsErrBranchNotExist(err):
 					ctx.NotFound(err)
 				case errors.Is(err, repo_service.ErrBranchIsDefault):
 					ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
