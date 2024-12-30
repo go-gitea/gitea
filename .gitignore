@@ -117,3 +117,6 @@ prime/
 
 # Manpage
 /man
+
+# IntelliJ Gateway
+.uuid
