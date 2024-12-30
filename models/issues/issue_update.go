@@ -34,7 +34,7 @@ func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
 	return nil
 }
 
-func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed, isMergePull bool) (*Comment, error) {
+func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed, isMergePull bool) (*Comment, error) {
 	// Reload the issue
 	currentIssue, err := GetIssueByID(ctx, issue.ID)
 	if err != nil {
@@ -134,7 +134,7 @@ func CloseIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comm
 	}
 	defer committer.Close()
 
-	comment, err := changeIssueStatus(ctx, issue, doer, true, false)
+	comment, err := ChangeIssueStatus(ctx, issue, doer, true, false)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func ReopenIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Com
 	}
 	defer committer.Close()
 
-	comment, err := changeIssueStatus(ctx, issue, doer, false, false)
+	comment, err := ChangeIssueStatus(ctx, issue, doer, false, false)
 	if err != nil {
 		return nil, err
 	}
