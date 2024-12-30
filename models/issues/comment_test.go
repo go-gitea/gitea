@@ -97,3 +97,12 @@ func TestMigrate_InsertIssueComments(t *testing.T) {
 
 	unittest.CheckConsistencyFor(t, &issues_model.Issue{})
 }
+
+func Test_UpdateIssueNumComments(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+
+	assert.NoError(t, issues_model.UpdateIssueNumComments(db.DefaultContext, issue2.ID))
+	issue2 = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	assert.EqualValues(t, 1, issue2.NumComments)
+}
