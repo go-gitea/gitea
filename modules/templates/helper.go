@@ -286,7 +286,6 @@ func QueryBuild(a ...any) template.URL {
 			reqPath = s1 + "?"
 			s = s2
 		}
-
 	}
 	for i := len(a) % 2; i < len(a); i += 2 {
 		k, ok := a[i].(string)

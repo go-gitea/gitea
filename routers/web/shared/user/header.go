@@ -103,37 +103,45 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 }
 
-func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProfileRepoName ...string) (profileDbRepo *repo_model.Repository, profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {
-	profileRepoName := util.OptionalArg(optProfileRepoName, ".profile")
+func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProfileRepoName ...string) (profileDbRepo *repo_model.Repository, profileReadmeBlob *git.Blob) {
+	profileRepoName := util.OptionalArg(optProfileRepoName, RepoNameProfile)
 	profileDbRepo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, profileRepoName)
-	if err == nil {
-		perm, err := access_model.GetUserRepoPermission(ctx, profileDbRepo, doer)
-		if err == nil && !profileDbRepo.IsEmpty && perm.CanRead(unit.TypeCode) {
-			if profileGitRepo, err = gitrepo.OpenRepository(ctx, profileDbRepo); err != nil {
-				log.Error("FindOwnerProfileReadme failed to OpenRepository: %v", err)
-			} else {
-				if commit, err := profileGitRepo.GetBranchCommit(profileDbRepo.DefaultBranch); err != nil {
-					log.Error("FindOwnerProfileReadme failed to GetBranchCommit: %v", err)
-				} else {
-					profileReadmeBlob, _ = commit.GetBlobByPath("README.md")
-				}
-			}
+	if err != nil {
+		if !repo_model.IsErrRepoNotExist(err) {
+			log.Error("FindOwnerProfileReadme failed to GetRepositoryByName: %v", err)
 		}
-	} else if !repo_model.IsErrRepoNotExist(err) {
+		return nil, nil
+	}
+
+	perm, err := access_model.GetUserRepoPermission(ctx, profileDbRepo, doer)
+	if err != nil {
 		log.Error("FindOwnerProfileReadme failed to GetRepositoryByName: %v", err)
+		return nil, nil
 	}
-	return profileDbRepo, profileGitRepo, profileReadmeBlob, func() {
-		if profileGitRepo != nil {
-			_ = profileGitRepo.Close()
-		}
+	if profileDbRepo.IsEmpty || !perm.CanRead(unit.TypeCode) {
+		return nil, nil
 	}
+
+	profileGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, profileDbRepo)
+	if err != nil {
+		log.Error("FindOwnerProfileReadme failed to OpenRepository: %v", err)
+		return nil, nil
+	}
+
+	commit, err := profileGitRepo.GetBranchCommit(profileDbRepo.DefaultBranch)
+	if err != nil {
+		log.Error("FindOwnerProfileReadme failed to GetBranchCommit: %v", err)
+		return nil, nil
+	}
+
+	profileReadmeBlob, _ = commit.GetBlobByPath("README.md") // no need to handle this error
+	return profileDbRepo, profileReadmeBlob
 }
 
 func RenderUserHeader(ctx *context.Context) {
 	prepareContextForCommonProfile(ctx)
 
-	_, _, profileReadmeBlob, profileClose := FindOwnerProfileReadme(ctx, ctx.Doer)
-	defer profileClose()
+	_, profileReadmeBlob := FindOwnerProfileReadme(ctx, ctx.Doer)
 	ctx.Data["HasPublicProfileReadme"] = profileReadmeBlob != nil
 }
 
@@ -182,13 +190,11 @@ func RenderOrgHeader(ctx *context.Context) error {
 	}
 
 	// FIXME: only do database query, do not open it
-	_, _, profileReadmeBlob, profileClose := FindOwnerProfileReadme(ctx, ctx.Doer)
-	defer profileClose()
+	_, profileReadmeBlob := FindOwnerProfileReadme(ctx, ctx.Doer)
 	ctx.Data["HasPublicProfileReadme"] = profileReadmeBlob != nil
 
 	// FIXME: only do database query, do not open it
-	_, _, profileReadmeBlob, profileClose = FindOwnerProfileReadme(ctx, ctx.Doer, RepoNameProfilePrivate)
-	defer profileClose()
+	_, profileReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer, RepoNameProfilePrivate)
 	ctx.Data["HasPrivateProfileReadme"] = profileReadmeBlob != nil
 
 	return nil

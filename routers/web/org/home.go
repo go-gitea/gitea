@@ -178,8 +178,7 @@ type prepareOrgProfileReadmeOptions struct {
 
 func prepareOrgProfileReadme(ctx *context.Context, opts prepareOrgProfileReadmeOptions) bool {
 	profileRepoName := util.Iif(opts.viewAsPrivate, shared_user.RepoNameProfilePrivate, shared_user.RepoNameProfile)
-	profileDbRepo, profileGitRepo, profileReadme, profileClose := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer, profileRepoName)
-	defer profileClose()
+	profileDbRepo, profileReadme := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer, profileRepoName)
 
 	if opts.viewAsPrivate {
 		ctx.Data["HasPrivateProfileReadme"] = profileReadme != nil
@@ -187,7 +186,7 @@ func prepareOrgProfileReadme(ctx *context.Context, opts prepareOrgProfileReadmeO
 		ctx.Data["HasPublicProfileReadme"] = profileReadme != nil
 	}
 
-	if profileGitRepo == nil || profileReadme == nil || opts.viewRepositories {
+	if profileReadme == nil || opts.viewRepositories {
 		return false
 	}
 

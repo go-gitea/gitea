@@ -74,8 +74,7 @@ func userProfile(ctx *context.Context) {
 		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
 	}
 
-	profileDbRepo, _ /*profileGitRepo*/, profileReadmeBlob, profileClose := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer)
-	defer profileClose()
+	profileDbRepo, profileReadmeBlob := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer)
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	prepareUserProfileTabData(ctx, showPrivate, profileDbRepo, profileReadmeBlob)

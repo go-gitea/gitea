@@ -8,7 +8,7 @@
 				{{if or .ProfileReadmeContent}}
 					{{if and .ShowMemberAndTeamTab .HasPublicProfileReadme .HasPrivateProfileReadme}}
 					<div class="ui small secondary filter menu">
-						<div id="profile_view_as_dropdown" class="item ui small dropdown jump">
+						<div id="org-home-view-as-dropdown" class="item ui small dropdown jump">
 							<span class="text">
 								{{svg "octicon-eye" 14}}
 								View as: {{if not .IsViewerMember}}{{ctx.Locale.Tr "settings.visibility.public"}}{{else}}{{ctx.Locale.Tr "org.members.member"}}{{end}}
