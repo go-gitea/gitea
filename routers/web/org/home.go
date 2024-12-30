@@ -115,7 +115,8 @@ func home(ctx *context.Context, viewRepositories bool) {
 		return
 	}
 
-	ctx.Data["HasPrivateProfileReadme"] = viewRepositories || !prepareOrgProfileReadme(ctx, prepareResult)
+	// if no profile readme, it still means "view repositories"
+	ctx.Data["PageIsViewRepositories"] = viewRepositories || !prepareOrgProfileReadme(ctx, prepareResult)
 
 	var (
 		repos []*repo_model.Repository
@@ -181,7 +182,7 @@ func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.Pr
 
 	readmeBytes, err := readmeBlob.GetBlobContent(setting.UI.MaxDisplayFileSize)
 	if err != nil {
-		log.Error("failed to GetBlobContent for %q profile (view as %q) readme: %v", ctx.ContextUser.Name, viewAs, err)
+		log.Error("failed to GetBlobContent for profile %q (view as %q) readme: %v", profileRepo.FullName(), viewAs, err)
 		return false
 	}
 
@@ -190,7 +191,7 @@ func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.Pr
 	})
 	ctx.Data["ProfileReadmeContent"], err = markdown.RenderString(rctx, readmeBytes)
 	if err != nil {
-		log.Error("failed to GetBlobContent for %q profile (view as %q) readme: %v", ctx.ContextUser.Name, viewAs, err)
+		log.Error("failed to GetBlobContent for profile %q (view as %q) readme: %v", profileRepo.FullName(), viewAs, err)
 		return false
 	}
 	ctx.Data["IsViewingOrgAsMember"] = viewAsMember
