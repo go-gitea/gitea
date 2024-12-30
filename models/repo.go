@@ -60,15 +60,15 @@ func StatsCorrectSQL(ctx context.Context, sql any, ids ...any) error {
 }
 
 func repoStatsCorrectNumWatches(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "UPDATE `repository` SET num_watches=(SELECT COUNT(*) FROM `watch` WHERE repo_id=? AND mode<>2) WHERE id=?", id)
+	return StatsCorrectSQL(ctx, "UPDATE `repository` SET num_watches=(SELECT COUNT(*) FROM `watch` WHERE repo_id=? AND mode<>2) WHERE id=?", id, id)
 }
 
 func repoStatsCorrectNumStars(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "UPDATE `repository` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE repo_id=?) WHERE id=?", id)
+	return StatsCorrectSQL(ctx, "UPDATE `repository` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE repo_id=?) WHERE id=?", id, id)
 }
 
 func labelStatsCorrectNumIssues(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "UPDATE `label` SET num_issues=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=?) WHERE id=?", id)
+	return StatsCorrectSQL(ctx, "UPDATE `label` SET num_issues=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=?) WHERE id=?", id, id)
 }
 
 func labelStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
@@ -105,7 +105,7 @@ func milestoneStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
 }
 
 func userStatsCorrectNumRepos(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "UPDATE `user` SET num_repos=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?) WHERE id=?", id)
+	return StatsCorrectSQL(ctx, "UPDATE `user` SET num_repos=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?) WHERE id=?", id, id)
 }
 
 func repoStatsCorrectIssueNumComments(ctx context.Context, id int64) error {
