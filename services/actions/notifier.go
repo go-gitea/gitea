@@ -95,7 +95,7 @@ func (n *actionsNotifier) notifyIssueChangeWithTitleOrContent(ctx context.Contex
 	newNotifyInputFromIssue(issue, webhook_module.HookEventIssues).
 		WithDoer(doer).
 		WithPayload(&api.IssuePayload{
-			Action:     action,
+			Action:     api.HookIssueEdited,
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
