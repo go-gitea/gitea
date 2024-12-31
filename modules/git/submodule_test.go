@@ -4,6 +4,8 @@
 package git
 
 import (
+	"context"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -11,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRepository_GetSubmoduleCommits(t *testing.T) {
+func TestGetTemplateSubmoduleCommits(t *testing.T) {
 	testRepoPath := filepath.Join(testReposDir, "repo4_submodules")
 	submodules, err := GetTemplateSubmoduleCommits(DefaultContext, testRepoPath)
 	require.NoError(t, err)
@@ -23,4 +25,24 @@ func TestRepository_GetSubmoduleCommits(t *testing.T) {
 
 	assert.EqualValues(t, "libtest", submodules[1].Path)
 	assert.EqualValues(t, "1234567890123456789012345678901234567890", submodules[1].Commit)
+}
+
+func TestAddTemplateSubmoduleIndexes(t *testing.T) {
+	ctx := context.Background()
+	tmpDir := t.TempDir()
+	var err error
+	_, _, err = NewCommand(ctx, "init").RunStdString(&RunOpts{Dir: tmpDir})
+	require.NoError(t, err)
+	_ = os.Mkdir(filepath.Join(tmpDir, "new-dir"), 0755)
+	err = AddTemplateSubmoduleIndexes(ctx, tmpDir, []TemplateSubmoduleCommit{{Path: "new-dir", Commit: "1234567890123456789012345678901234567890"}})
+	require.NoError(t, err)
+	_, _, err = NewCommand(ctx, "add", "--all").RunStdString(&RunOpts{Dir: tmpDir})
+	require.NoError(t, err)
+	_, _, err = NewCommand(ctx, "-c", "user.name=a", "-c", "user.email=b", "commit", "-m=test").RunStdString(&RunOpts{Dir: tmpDir})
+	require.NoError(t, err)
+	submodules, err := GetTemplateSubmoduleCommits(DefaultContext, tmpDir)
+	require.NoError(t, err)
+	assert.Len(t, submodules, 1)
+	assert.EqualValues(t, "new-dir", submodules[0].Path)
+	assert.EqualValues(t, "1234567890123456789012345678901234567890", submodules[0].Commit)
 }
