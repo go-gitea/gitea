@@ -400,11 +400,10 @@ func NewIssuePost(ctx *context.Context) {
 		if err == nil {
 			// to reduce load the content from database again, we just set the owner/repo here
 			if project.Type == project_model.TypeOrganization {
-				project.Owner = ctx.Repo.Owner
+				ctx.JSONRedirect(project_model.ProjectLinkForOrg(ctx.Repo.Owner, project.ID))
 			} else {
-				project.Repo = ctx.Repo.Repository
+				ctx.JSONRedirect(project_model.ProjectLinkForRepo(repo, project.ID))
 			}
-			ctx.JSONRedirect(project.Link(ctx))
 			return
 		}
 	}
