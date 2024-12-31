@@ -126,6 +126,14 @@ func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	return err
 }
 
+func ProjectLinkForOrg(org *user_model.User, projectID int64) string { //nolint
+	return fmt.Sprintf("%s/-/projects/%d", org.HomeLink(), projectID)
+}
+
+func ProjectLinkForRepo(repo *repo_model.Repository, projectID int64) string { //nolint
+	return fmt.Sprintf("%s/projects/%d", repo.Link(), projectID)
+}
+
 // Link returns the project's relative URL.
 func (p *Project) Link(ctx context.Context) string {
 	if p.OwnerID > 0 {
@@ -134,7 +142,7 @@ func (p *Project) Link(ctx context.Context) string {
 			log.Error("LoadOwner: %v", err)
 			return ""
 		}
-		return fmt.Sprintf("%s/-/projects/%d", p.Owner.HomeLink(), p.ID)
+		return ProjectLinkForOrg(p.Owner, p.ID)
 	}
 	if p.RepoID > 0 {
 		err := p.LoadRepo(ctx)
@@ -142,7 +150,7 @@ func (p *Project) Link(ctx context.Context) string {
 			log.Error("LoadRepo: %v", err)
 			return ""
 		}
-		return fmt.Sprintf("%s/projects/%d", p.Repo.Link(), p.ID)
+		return ProjectLinkForRepo(p.Repo, p.ID)
 	}
 	return ""
 }
