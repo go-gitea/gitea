@@ -1,3 +1,6 @@
+// Copyright 2024 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package git
 
 import (
@@ -13,11 +16,11 @@ func TestRepository_GetSubmoduleCommits(t *testing.T) {
 	submodules, err := GetTemplateSubmoduleCommits(DefaultContext, testRepoPath)
 	require.NoError(t, err)
 
-	assert.EqualValues(t, len(submodules), 2)
+	assert.Len(t, submodules, 2)
 
-	assert.EqualValues(t, submodules[0].Path, "<°)))><")
-	assert.EqualValues(t, submodules[0].Commit, "d2932de67963f23d43e1c7ecf20173e92ee6c43c")
+	assert.EqualValues(t, "<°)))><", submodules[0].Path)
+	assert.EqualValues(t, "d2932de67963f23d43e1c7ecf20173e92ee6c43c", submodules[0].Commit)
 
-	assert.EqualValues(t, submodules[1].Path, "libtest")
-	assert.EqualValues(t, submodules[1].Commit, "1234567890123456789012345678901234567890")
+	assert.EqualValues(t, "libtest", submodules[1].Path)
+	assert.EqualValues(t, "1234567890123456789012345678901234567890", submodules[1].Commit)
 }
