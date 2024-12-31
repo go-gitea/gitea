@@ -47,14 +47,9 @@ func (reviews ReviewList) LoadReviewersTeams(ctx context.Context) error {
 		}
 	}
 
-	teamsMap := make(map[int64]*organization_model.Team, 0)
-	for _, teamID := range reviewersTeamsIDs {
-		team, err := organization_model.GetTeamByID(ctx, teamID)
-		if err != nil {
-			return err
-		}
-
-		teamsMap[teamID] = team
+	teamsMap, err := organization_model.GetTeamsByIDs(ctx, reviewersTeamsIDs)
+	if err != nil {
+		return err
 	}
 
 	for _, review := range reviews {

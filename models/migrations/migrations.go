@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_22"
 	"code.gitea.io/gitea/models/migrations/v1_23"
+	"code.gitea.io/gitea/models/migrations/v1_24"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -368,7 +369,10 @@ func prepareMigrationTasks() []*migration {
 		newMigration(308, "Add index(user_id, is_deleted) for action table", v1_23.AddNewIndexForUserDashboard),
 		newMigration(309, "Improve Notification table indices", v1_23.ImproveNotificationTableIndices),
 		newMigration(310, "Add Priority to ProtectedBranch", v1_23.AddPriorityToProtectedBranch),
-		newMigration(310, "Remove repository column num_watches", v1_23.RemoveRepoNumWatches),
+		newMigration(311, "Add TimeEstimate to Issue table", v1_23.AddTimeEstimateColumnToIssueTable),
+
+		// Gitea 1.23.0-rc0 ends at migration ID number 311 (database version 312)
+		newMigration(312, "Remove repository column num_watches", v1_24.RemoveRepoNumWatches),
 	}
 	return preparedMigrations
 }

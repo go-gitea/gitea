@@ -1,5 +1,5 @@
 <script lang="ts">
-import {createApp, nextTick} from 'vue';
+import {nextTick} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {GET} from '../modules/fetch.ts';
@@ -17,11 +17,11 @@ type SelectedTab = 'branches' | 'tags';
 
 type TabLoadingStates = Record<SelectedTab, '' | 'loading' | 'done'>
 
-let currentElRoot: HTMLElement;
-
 const sfc = {
   components: {SvgIcon},
-
+  props: {
+    elRoot: HTMLElement,
+  },
   computed: {
     searchFieldPlaceholder() {
       return this.selectedTab === 'branches' ? this.textFilterBranch : this.textFilterTag;
@@ -55,18 +55,15 @@ const sfc = {
       return `${this.currentRepoLink}/branches/_new/${this.currentRefType}/${pathEscapeSegments(this.currentRefShortName)}`;
     },
   },
-
   watch: {
-    menuVisible(visible) {
+    menuVisible(visible: boolean) {
       if (!visible) return;
       this.focusSearchField();
       this.loadTabItems();
     },
   },
-
   data() {
-    const elRoot = currentElRoot;
-    const shouldShowTabBranches = elRoot.getAttribute('data-show-tab-branches') === 'true';
+    const shouldShowTabBranches = this.elRoot.getAttribute('data-show-tab-branches') === 'true';
     return {
       csrfToken: window.config.csrfToken,
       allItems: [] as ListItem[],
@@ -76,43 +73,51 @@ const sfc = {
       activeItemIndex: 0,
       tabLoadingStates: {} as TabLoadingStates,
 
-      textReleaseCompare: elRoot.getAttribute('data-text-release-compare'),
-      textBranches: elRoot.getAttribute('data-text-branches'),
-      textTags: elRoot.getAttribute('data-text-tags'),
-      textFilterBranch: elRoot.getAttribute('data-text-filter-branch'),
-      textFilterTag: elRoot.getAttribute('data-text-filter-tag'),
-      textDefaultBranchLabel: elRoot.getAttribute('data-text-default-branch-label'),
-      textCreateTag: elRoot.getAttribute('data-text-create-tag'),
-      textCreateBranch: elRoot.getAttribute('data-text-create-branch'),
-      textCreateRefFrom: elRoot.getAttribute('data-text-create-ref-from'),
-      textNoResults: elRoot.getAttribute('data-text-no-results'),
-      textViewAllBranches: elRoot.getAttribute('data-text-view-all-branches'),
-      textViewAllTags: elRoot.getAttribute('data-text-view-all-tags'),
+      textReleaseCompare: this.elRoot.getAttribute('data-text-release-compare'),
+      textBranches: this.elRoot.getAttribute('data-text-branches'),
+      textTags: this.elRoot.getAttribute('data-text-tags'),
+      textFilterBranch: this.elRoot.getAttribute('data-text-filter-branch'),
+      textFilterTag: this.elRoot.getAttribute('data-text-filter-tag'),
+      textDefaultBranchLabel: this.elRoot.getAttribute('data-text-default-branch-label'),
+      textCreateTag: this.elRoot.getAttribute('data-text-create-tag'),
+      textCreateBranch: this.elRoot.getAttribute('data-text-create-branch'),
+      textCreateRefFrom: this.elRoot.getAttribute('data-text-create-ref-from'),
+      textNoResults: this.elRoot.getAttribute('data-text-no-results'),
+      textViewAllBranches: this.elRoot.getAttribute('data-text-view-all-branches'),
+      textViewAllTags: this.elRoot.getAttribute('data-text-view-all-tags'),
 
-      currentRepoDefaultBranch: elRoot.getAttribute('data-current-repo-default-branch'),
-      currentRepoLink: elRoot.getAttribute('data-current-repo-link'),
-      currentTreePath: elRoot.getAttribute('data-current-tree-path'),
-      currentRefType: elRoot.getAttribute('data-current-ref-type'),
-      currentRefShortName: elRoot.getAttribute('data-current-ref-short-name'),
+      currentRepoDefaultBranch: this.elRoot.getAttribute('data-current-repo-default-branch'),
+      currentRepoLink: this.elRoot.getAttribute('data-current-repo-link'),
+      currentTreePath: this.elRoot.getAttribute('data-current-tree-path'),
+      currentRefType: this.elRoot.getAttribute('data-current-ref-type'),
+      currentRefShortName: this.elRoot.getAttribute('data-current-ref-short-name'),
 
-      refLinkTemplate: elRoot.getAttribute('data-ref-link-template'),
-      refFormActionTemplate: elRoot.getAttribute('data-ref-form-action-template'),
-      dropdownFixedText: elRoot.getAttribute('data-dropdown-fixed-text'),
+      refLinkTemplate: this.elRoot.getAttribute('data-ref-link-template'),
+      refFormActionTemplate: this.elRoot.getAttribute('data-ref-form-action-template'),
+      dropdownFixedText: this.elRoot.getAttribute('data-dropdown-fixed-text'),
       showTabBranches: shouldShowTabBranches,
-      showTabTags: elRoot.getAttribute('data-show-tab-tags') === 'true',
-      allowCreateNewRef: elRoot.getAttribute('data-allow-create-new-ref') === 'true',
-      showViewAllRefsEntry: elRoot.getAttribute('data-show-view-all-refs-entry') === 'true',
-
-      enableFeed: elRoot.getAttribute('data-enable-feed') === 'true',
+      showTabTags: this.elRoot.getAttribute('data-show-tab-tags') === 'true',
+      allowCreateNewRef: this.elRoot.getAttribute('data-allow-create-new-ref') === 'true',
+      showViewAllRefsEntry: this.elRoot.getAttribute('data-show-view-all-refs-entry') === 'true',
+      enableFeed: this.elRoot.getAttribute('data-enable-feed') === 'true',
     };
   },
-
   beforeMount() {
     document.body.addEventListener('click', (e) => {
       if (this.$el.contains(e.target)) return;
       if (this.menuVisible) this.menuVisible = false;
     });
   },
+
+  mounted() {
+    if (this.refFormActionTemplate) {
+      // if the selector is used in a form and needs to change the form action,
+      // make a mock item and select it to update the form action
+      const item: ListItem = {selected: true, refType: this.currentRefType, refShortName: this.currentRefShortName, rssFeedLink: ''};
+      this.selectItem(item);
+    }
+  },
+
   methods: {
     selectItem(item: ListItem) {
       this.menuVisible = false;
@@ -208,16 +213,6 @@ const sfc = {
     },
   },
 };
-
-export function initRepoBranchTagSelector(selector) {
-  for (const elRoot of document.querySelectorAll(selector)) {
-    // it is very hacky, but it is the only way to pass the elRoot to the "data()" function
-    // it could be improved in the future to do more rewriting.
-    currentElRoot = elRoot;
-    const comp = {...sfc};
-    createApp(comp).mount(elRoot);
-  }
-}
 
 export default sfc; // activate IDE's Vue plugin
 </script>

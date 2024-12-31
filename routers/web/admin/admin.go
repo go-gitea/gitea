@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/updatechecker"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
@@ -31,14 +32,14 @@ import (
 )
 
 const (
-	tplDashboard    base.TplName = "admin/dashboard"
-	tplSystemStatus base.TplName = "admin/system_status"
-	tplSelfCheck    base.TplName = "admin/self_check"
-	tplCron         base.TplName = "admin/cron"
-	tplQueue        base.TplName = "admin/queue"
-	tplStacktrace   base.TplName = "admin/stacktrace"
-	tplQueueManage  base.TplName = "admin/queue_manage"
-	tplStats        base.TplName = "admin/stats"
+	tplDashboard    templates.TplName = "admin/dashboard"
+	tplSystemStatus templates.TplName = "admin/system_status"
+	tplSelfCheck    templates.TplName = "admin/self_check"
+	tplCron         templates.TplName = "admin/cron"
+	tplQueue        templates.TplName = "admin/queue"
+	tplStacktrace   templates.TplName = "admin/stacktrace"
+	tplQueueManage  templates.TplName = "admin/queue_manage"
+	tplStats        templates.TplName = "admin/stats"
 )
 
 var sysStatus struct {

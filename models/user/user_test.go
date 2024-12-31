@@ -201,7 +201,7 @@ func TestNewGitSig(t *testing.T) {
 		assert.NotContains(t, sig.Name, "<")
 		assert.NotContains(t, sig.Name, ">")
 		assert.NotContains(t, sig.Name, "\n")
-		assert.NotEqual(t, len(strings.TrimSpace(sig.Name)), 0)
+		assert.NotEmpty(t, strings.TrimSpace(sig.Name))
 	}
 }
 
@@ -216,7 +216,7 @@ func TestDisplayName(t *testing.T) {
 		if len(strings.TrimSpace(user.FullName)) == 0 {
 			assert.Equal(t, user.Name, displayName)
 		}
-		assert.NotEqual(t, len(strings.TrimSpace(displayName)), 0)
+		assert.NotEmpty(t, strings.TrimSpace(displayName))
 	}
 }
 
@@ -322,15 +322,15 @@ func TestGetMaileableUsersByIDs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	if len(results) > 1 {
-		assert.Equal(t, results[0].ID, 1)
+		assert.Equal(t, 1, results[0].ID)
 	}
 
 	results, err = user_model.GetMaileableUsersByIDs(db.DefaultContext, []int64{1, 4}, true)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
 	if len(results) > 2 {
-		assert.Equal(t, results[0].ID, 1)
-		assert.Equal(t, results[1].ID, 4)
+		assert.Equal(t, 1, results[0].ID)
+		assert.Equal(t, 4, results[1].ID)
 	}
 }
 
@@ -499,7 +499,7 @@ func Test_ValidateUser(t *testing.T) {
 		{ID: 2, Visibility: structs.VisibleTypePrivate}: true,
 	}
 	for kase, expected := range kases {
-		assert.EqualValues(t, expected, nil == user_model.ValidateUser(kase), fmt.Sprintf("case: %+v", kase))
+		assert.EqualValues(t, expected, nil == user_model.ValidateUser(kase), "case: %+v", kase)
 	}
 }
 
@@ -570,11 +570,11 @@ func TestDisabledUserFeatures(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	assert.Len(t, setting.Admin.UserDisabledFeatures.Values(), 0)
+	assert.Empty(t, setting.Admin.UserDisabledFeatures.Values())
 
 	// no features should be disabled with a plain login type
 	assert.LessOrEqual(t, user.LoginType, auth.Plain)
-	assert.Len(t, user_model.DisabledFeaturesWithLoginType(user).Values(), 0)
+	assert.Empty(t, user_model.DisabledFeaturesWithLoginType(user).Values())
 	for _, f := range testValues.Values() {
 		assert.False(t, user_model.IsFeatureDisabledWithLoginType(user, f))
 	}
@@ -600,5 +600,5 @@ func TestGetInactiveUsers(t *testing.T) {
 	interval := time.Now().Unix() - 1730468968 + 3600*24
 	users, err = user_model.GetInactiveUsers(db.DefaultContext, time.Duration(interval*int64(time.Second)))
 	assert.NoError(t, err)
-	assert.Len(t, users, 0)
+	assert.Empty(t, users)
 }

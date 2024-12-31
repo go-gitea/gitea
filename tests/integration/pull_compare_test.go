@@ -40,7 +40,7 @@ func TestPullCompare(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	editButtonCount := doc.doc.Find(".diff-file-header-actions a[href*='/_edit/']").Length()
-	assert.Greater(t, editButtonCount, 0, "Expected to find a button to edit a file in the PR diff view but there were none")
+	assert.Positive(t, editButtonCount, "Expected to find a button to edit a file in the PR diff view but there were none")
 
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		defer tests.PrepareTestEnv(t)()
@@ -58,7 +58,7 @@ func TestPullCompare(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)
 		editButtonCount := doc.doc.Find(".diff-file-header-actions a[href*='/_edit/']").Length()
-		assert.Greater(t, editButtonCount, 0, "Expected to find a button to edit a file in the PR diff view but there were none")
+		assert.Positive(t, editButtonCount, "Expected to find a button to edit a file in the PR diff view but there were none")
 
 		repoForked := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -71,7 +71,7 @@ func TestPullCompare(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		doc = NewHTMLParser(t, resp.Body)
 		editButtonCount = doc.doc.Find(".diff-file-header-actions a[href*='/_edit/']").Length()
-		assert.EqualValues(t, editButtonCount, 0, "Expected not to find a button to edit a file in the PR diff view because head repository has been deleted")
+		assert.EqualValues(t, 0, editButtonCount, "Expected not to find a button to edit a file in the PR diff view because head repository has been deleted")
 	})
 }
 

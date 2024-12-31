@@ -125,8 +125,11 @@ type Issue struct {
 	IsPull            bool             `xorm:"INDEX"` // Indicates whether is a pull request or not.
 	PullRequest       *PullRequest     `xorm:"-"`
 	NumComments       int
-	Ref               string
-	PinOrder          int `xorm:"DEFAULT 0"`
+
+	// TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl"
+	Ref string
+
+	PinOrder int `xorm:"DEFAULT 0"`
 
 	DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
 
@@ -147,6 +150,9 @@ type Issue struct {
 
 	// For view issue page.
 	ShowRole RoleDescriptor `xorm:"-"`
+
+	// Time estimate
+	TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
 var (
@@ -933,4 +939,29 @@ func insertIssue(ctx context.Context, issue *Issue) error {
 	}
 
 	return nil
+}
+
+// ChangeIssueTimeEstimate changes the plan time of this issue, as the given user.
+func ChangeIssueTimeEstimate(ctx context.Context, issue *Issue, doer *user_model.User, timeEstimate int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := UpdateIssueCols(ctx, &Issue{ID: issue.ID, TimeEstimate: timeEstimate}, "time_estimate"); err != nil {
+			return fmt.Errorf("updateIssueCols: %w", err)
+		}
+
+		if err := issue.LoadRepo(ctx); err != nil {
+			return fmt.Errorf("loadRepo: %w", err)
+		}
+
+		opts := &CreateCommentOptions{
+			Type:    CommentTypeChangeTimeEstimate,
+			Doer:    doer,
+			Repo:    issue.Repo,
+			Issue:   issue,
+			Content: fmt.Sprintf("%d", timeEstimate),
+		}
+		if _, err := CreateComment(ctx, opts); err != nil {
+			return fmt.Errorf("createComment: %w", err)
+		}
+		return nil
+	})
 }

@@ -26,11 +26,10 @@ import {initPdfViewer} from './render/pdf.ts';
 import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
 import {
   initRepoIssueReferenceRepositorySearch,
-  initRepoIssueTimeTracking,
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
-  initRepoPullRequestReview, initRepoIssueSidebarList,
+  initRepoPullRequestReview, initRepoIssueSidebarList, initRepoIssueFilterItemLabel,
 } from './features/repo-issue.ts';
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
@@ -182,9 +181,9 @@ onDomReady(() => {
     initRepoGraphGit,
     initRepoIssueContentHistory,
     initRepoIssueList,
+    initRepoIssueFilterItemLabel,
     initRepoIssueSidebarList,
     initRepoIssueReferenceRepositorySearch,
-    initRepoIssueTimeTracking,
     initRepoIssueWipTitle,
     initRepoMigration,
     initRepoMigrationStatusChecker,

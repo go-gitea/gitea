@@ -49,7 +49,11 @@ export type DayData = {
   commits: number,
 }
 
-export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayData[]): DayData[] {
+export type DayDataObject = {
+  [timestamp: string]: DayData,
+}
+
+export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayDataObject): DayData[] {
   const result = {};
 
   for (const startDay of startDays) {

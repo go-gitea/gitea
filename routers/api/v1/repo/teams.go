@@ -42,7 +42,7 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
-	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository)
+	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -221,7 +221,7 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 }
 
 func getTeamByParam(ctx *context.APIContext) *organization.Team {
-	team, err := organization.GetTeam(ctx, ctx.Repo.Owner.ID, ctx.PathParam(":team"))
+	team, err := organization.GetTeam(ctx, ctx.Repo.Owner.ID, ctx.PathParam("team"))
 	if err != nil {
 		if organization.IsErrTeamNotExist(err) {
 			ctx.Error(http.StatusNotFound, "TeamNotExit", err)

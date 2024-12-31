@@ -41,7 +41,7 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateID, templateOw
 	link, exists = htmlDoc.doc.Find("form.ui.form[action^=\"/repo/create\"]").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	_, exists = htmlDoc.doc.Find(fmt.Sprintf(".owner.dropdown .item[data-value=\"%d\"]", generateOwner.ID)).Attr("data-value")
-	assert.True(t, exists, fmt.Sprintf("Generate owner '%s' is not present in select box", generateOwnerName))
+	assert.True(t, exists, "Generate owner '%s' is not present in select box", generateOwnerName)
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf":         htmlDoc.GetCSRF(),
 		"uid":           fmt.Sprintf("%d", generateOwner.ID),

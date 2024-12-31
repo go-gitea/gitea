@@ -248,6 +248,18 @@ func GetPackageByID(ctx context.Context, packageID int64) (*Package, error) {
 	return p, nil
 }
 
+// UpdatePackageNameByID updates the package's name, it is only for internal usage, for example: rename some legacy packages
+func UpdatePackageNameByID(ctx context.Context, ownerID int64, packageType Type, packageID int64, name string) error {
+	var cond builder.Cond = builder.Eq{
+		"package.id":          packageID,
+		"package.owner_id":    ownerID,
+		"package.type":        packageType,
+		"package.is_internal": false,
+	}
+	_, err := db.GetEngine(ctx).Where(cond).Update(&Package{Name: name, LowerName: strings.ToLower(name)})
+	return err
+}
+
 // GetPackageByName gets a package by name
 func GetPackageByName(ctx context.Context, ownerID int64, packageType Type, name string) (*Package, error) {
 	var cond builder.Cond = builder.Eq{
@@ -299,6 +311,21 @@ func FindUnreferencedPackages(ctx context.Context) ([]*Package, error) {
 		// https://stackoverflow.com/questions/4471277/mysql-delete-from-with-subquery-as-condition
 		Where(builder.In("package.id", builder.Select("id").From(in, "temp"))).
 		Find(&ps)
+}
+
+// ErrUserOwnPackages notifies that the user (still) owns the packages.
+type ErrUserOwnPackages struct {
+	UID int64
+}
+
+// IsErrUserOwnPackages checks if an error is an ErrUserOwnPackages.
+func IsErrUserOwnPackages(err error) bool {
+	_, ok := err.(ErrUserOwnPackages)
+	return ok
+}
+
+func (err ErrUserOwnPackages) Error() string {
+	return fmt.Sprintf("user still has ownership of packages [uid: %d]", err.UID)
 }
 
 // HasOwnerPackages tests if a user/org has accessible packages

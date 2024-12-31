@@ -13,13 +13,10 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 const (
@@ -386,81 +383,6 @@ func TestColorPreview(t *testing.T) {
 	}
 }
 
-func TestMathBlock(t *testing.T) {
-	const nl = "\n"
-	testcases := []struct {
-		testcase string
-		expected string
-	}{
-		{
-			"$a$",
-			`<p><code class="language-math is-loading">a</code></p>` + nl,
-		},
-		{
-			"$ a $",
-			`<p><code class="language-math is-loading">a</code></p>` + nl,
-		},
-		{
-			"$a$ $b$",
-			`<p><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
-		},
-		{
-			`\(a\) \(b\)`,
-			`<p><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
-		},
-		{
-			`$a$.`,
-			`<p><code class="language-math is-loading">a</code>.</p>` + nl,
-		},
-		{
-			`.$a$`,
-			`<p>.$a$</p>` + nl,
-		},
-		{
-			`$a a$b b$`,
-			`<p>$a a$b b$</p>` + nl,
-		},
-		{
-			`a a$b b`,
-			`<p>a a$b b</p>` + nl,
-		},
-		{
-			`a$b $a a$b b$`,
-			`<p>a$b $a a$b b$</p>` + nl,
-		},
-		{
-			"a$x$",
-			`<p>a$x$</p>` + nl,
-		},
-		{
-			"$x$a",
-			`<p>$x$a</p>` + nl,
-		},
-		{
-			"$$a$$",
-			`<pre class="code-block is-loading"><code class="chroma language-math display">a</code></pre>` + nl,
-		},
-		{
-			"$a$ ($b$) [$c$] {$d$}",
-			`<p><code class="language-math is-loading">a</code> (<code class="language-math is-loading">b</code>) [$c$] {$d$}</p>` + nl,
-		},
-		{
-			"$$a$$ test",
-			`<p><code class="language-math display is-loading">a</code> test</p>` + nl,
-		},
-		{
-			"test $$a$$",
-			`<p>test <code class="language-math display is-loading">a</code></p>` + nl,
-		},
-	}
-
-	for _, test := range testcases {
-		res, err := markdown.RenderString(markup.NewTestRenderContext(), test.testcase)
-		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
-		assert.Equal(t, template.HTML(test.expected), res, "Unexpected result in testcase %q", test.testcase)
-	}
-}
-
 func TestTaskList(t *testing.T) {
 	testcases := []struct {
 		testcase string
@@ -550,57 +472,4 @@ space</p>
 	result, err := markdown.RenderString(markup.NewTestRenderContext(localMetas), input)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, string(result))
-}
-
-func TestAttention(t *testing.T) {
-	defer svg.MockIcon("octicon-info")()
-	defer svg.MockIcon("octicon-light-bulb")()
-	defer svg.MockIcon("octicon-report")()
-	defer svg.MockIcon("octicon-alert")()
-	defer svg.MockIcon("octicon-stop")()
-
-	renderAttention := func(attention, icon string) string {
-		tmpl := `<blockquote class="attention-header attention-{attention}"><p><svg class="attention-icon attention-{attention} svg {icon}" width="16" height="16"></svg><strong class="attention-{attention}">{Attention}</strong></p>`
-		tmpl = strings.ReplaceAll(tmpl, "{attention}", attention)
-		tmpl = strings.ReplaceAll(tmpl, "{icon}", icon)
-		tmpl = strings.ReplaceAll(tmpl, "{Attention}", cases.Title(language.English).String(attention))
-		return tmpl
-	}
-
-	test := func(input, expected string) {
-		result, err := markdown.RenderString(markup.NewTestRenderContext(), input)
-		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(result)))
-	}
-
-	test(`
-> [!NOTE]
-> text
-`, renderAttention("note", "octicon-info")+"\n<p>text</p>\n</blockquote>")
-
-	test(`> [!note]`, renderAttention("note", "octicon-info")+"\n</blockquote>")
-	test(`> [!tip]`, renderAttention("tip", "octicon-light-bulb")+"\n</blockquote>")
-	test(`> [!important]`, renderAttention("important", "octicon-report")+"\n</blockquote>")
-	test(`> [!warning]`, renderAttention("warning", "octicon-alert")+"\n</blockquote>")
-	test(`> [!caution]`, renderAttention("caution", "octicon-stop")+"\n</blockquote>")
-
-	// escaped by mdformat
-	test(`> \[!NOTE\]`, renderAttention("note", "octicon-info")+"\n</blockquote>")
-
-	// legacy GitHub style
-	test(`> **warning**`, renderAttention("warning", "octicon-alert")+"\n</blockquote>")
-}
-
-func BenchmarkSpecializedMarkdown(b *testing.B) {
-	// 240856	      4719 ns/op
-	for i := 0; i < b.N; i++ {
-		markdown.SpecializedMarkdown(&markup.RenderContext{})
-	}
-}
-
-func BenchmarkMarkdownRender(b *testing.B) {
-	// 23202	     50840 ns/op
-	for i := 0; i < b.N; i++ {
-		_, _ = markdown.RenderString(markup.NewTestRenderContext(), "https://example.com\n- a\n- b\n")
-	}
 }

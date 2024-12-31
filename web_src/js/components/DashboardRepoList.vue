@@ -6,8 +6,17 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
+type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning';
+
+type CommitStatusMap = {
+  [status in CommitStatus]: {
+    name: string,
+    color: string,
+  };
+};
+
 // make sure this matches templates/repo/commit_status.tmpl
-const commitStatus = {
+const commitStatus: CommitStatusMap = {
   pending: {name: 'octicon-dot-fill', color: 'yellow'},
   success: {name: 'octicon-check', color: 'green'},
   error: {name: 'gitea-exclamation', color: 'red'},
@@ -281,18 +290,18 @@ const sfc = {
       return 'octicon-repo';
     },
 
-    statusIcon(status) {
+    statusIcon(status: CommitStatus) {
       return commitStatus[status].name;
     },
 
-    statusColor(status) {
+    statusColor(status: CommitStatus) {
       return commitStatus[status].color;
     },
 
     reposFilterKeyControl(e) {
       switch (e.key) {
         case 'Enter':
-          document.querySelector('.repo-owner-name-list li.active a')?.click();
+          document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();
           break;
         case 'ArrowUp':
           if (this.activeIndex > 0) {

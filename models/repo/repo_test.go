@@ -144,8 +144,8 @@ func TestGetRepositoryByURL(t *testing.T) {
 			assert.NotNil(t, repo)
 			assert.NoError(t, err)
 
-			assert.Equal(t, repo.ID, int64(2))
-			assert.Equal(t, repo.OwnerID, int64(2))
+			assert.Equal(t, int64(2), repo.ID)
+			assert.Equal(t, int64(2), repo.OwnerID)
 		}
 
 		test(t, "https://try.gitea.io/user2/repo2")
@@ -159,8 +159,8 @@ func TestGetRepositoryByURL(t *testing.T) {
 			assert.NotNil(t, repo)
 			assert.NoError(t, err)
 
-			assert.Equal(t, repo.ID, int64(2))
-			assert.Equal(t, repo.OwnerID, int64(2))
+			assert.Equal(t, int64(2), repo.ID)
+			assert.Equal(t, int64(2), repo.OwnerID)
 		}
 
 		test(t, "git+ssh://sshuser@try.gitea.io/user2/repo2")
@@ -177,8 +177,8 @@ func TestGetRepositoryByURL(t *testing.T) {
 			assert.NotNil(t, repo)
 			assert.NoError(t, err)
 
-			assert.Equal(t, repo.ID, int64(2))
-			assert.Equal(t, repo.OwnerID, int64(2))
+			assert.Equal(t, int64(2), repo.ID)
+			assert.Equal(t, int64(2), repo.OwnerID)
 		}
 
 		test(t, "sshuser@try.gitea.io:user2/repo2")

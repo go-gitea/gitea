@@ -195,7 +195,9 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 	var reviews issues_model.ReviewList
 
 	if d.Issue == nil {
-		posterID = ctx.Doer.ID
+		if ctx.Doer != nil {
+			posterID = ctx.Doer.ID
+		}
 	} else {
 		posterID = d.Issue.PosterID
 		if d.Issue.OriginalAuthorID > 0 {

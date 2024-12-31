@@ -39,7 +39,7 @@ func TestHandlePullRequestMerging(t *testing.T) {
 	}, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, []*repo_module.PushUpdateOptions{
 		{NewCommitID: "01234567"},
 	})
-	assert.Equal(t, 0, len(resp.Body.String()))
+	assert.Empty(t, resp.Body.String())
 	pr, err = issues_model.GetPullRequestByID(db.DefaultContext, pr.ID)
 	assert.NoError(t, err)
 	assert.True(t, pr.HasMerged)

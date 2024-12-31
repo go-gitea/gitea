@@ -65,7 +65,7 @@ func Test_detectLicense(t *testing.T) {
 	result, err := detectLicense(strings.NewReader(tests[2].arg + tests[3].arg + tests[4].arg))
 	assert.NoError(t, err)
 	t.Run("multiple licenses test", func(t *testing.T) {
-		assert.Equal(t, 3, len(result))
+		assert.Len(t, result, 3)
 		assert.Contains(t, result, tests[2].want[0])
 		assert.Contains(t, result, tests[3].want[0])
 		assert.Contains(t, result, tests[4].want[0])

@@ -42,8 +42,10 @@ depend = gitea
 provides = common
 provides = gitea
 optdepend = hex
+replaces = gogs
 checkdepend = common
 makedepend = cmake
+conflict = ninja
 backup = usr/bin/paket1`)
 }
 
@@ -120,6 +122,14 @@ func TestParsePackageInfo(t *testing.T) {
 		assert.ErrorIs(t, err, ErrInvalidName)
 	})
 
+	t.Run("Regexp", func(t *testing.T) {
+		assert.Regexp(t, versionPattern, "1.2_3~4+5")
+		assert.Regexp(t, versionPattern, "1:2_3~4+5")
+		assert.NotRegexp(t, versionPattern, "a:1.0.0-1")
+		assert.NotRegexp(t, versionPattern, "0.0.1/1-1")
+		assert.NotRegexp(t, versionPattern, "1.0.0 -1")
+	})
+
 	t.Run("InvalidVersion", func(t *testing.T) {
 		data := createPKGINFOContent(packageName, "")
 
@@ -149,8 +159,10 @@ func TestParsePackageInfo(t *testing.T) {
 		assert.ElementsMatch(t, []string{"group"}, p.FileMetadata.Groups)
 		assert.ElementsMatch(t, []string{"common", "gitea"}, p.FileMetadata.Provides)
 		assert.ElementsMatch(t, []string{"common", "gitea"}, p.FileMetadata.Depends)
+		assert.ElementsMatch(t, []string{"gogs"}, p.FileMetadata.Replaces)
 		assert.ElementsMatch(t, []string{"hex"}, p.FileMetadata.OptDepends)
 		assert.ElementsMatch(t, []string{"common"}, p.FileMetadata.CheckDepends)
+		assert.ElementsMatch(t, []string{"ninja"}, p.FileMetadata.Conflicts)
 		assert.ElementsMatch(t, []string{"cmake"}, p.FileMetadata.MakeDepends)
 		assert.ElementsMatch(t, []string{"usr/bin/paket1"}, p.FileMetadata.Backup)
 	})

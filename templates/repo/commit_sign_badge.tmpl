@@ -1,0 +1,78 @@
+{{/* Template attributes:
+* Commit
+* CommitBaseLink
+* CommitSignVerification
+If you'd like to modify this template, you could test it on the devtest page.
+ATTENTION: this template could be re-rendered many times (on the graph and commit list page),
+so this template should be kept as small as possbile, DO NOT put large components like modal/dialog into it.
+*/}}
+{{- $commit := $.Commit -}}
+{{- $commitBaseLink := $.CommitBaseLink -}}
+{{- $verification := $.CommitSignVerification -}}
+
+{{- $extraClass := "" -}}
+{{- $verified := false -}}
+{{- $signingUser := NIL -}}
+{{- $signingEmail := "" -}}
+{{- $msgReasonPrefix := "" -}}
+{{- $msgReason := "" -}}
+{{- $msgSigningKey := "" -}}
+
+{{- if $verification -}}
+	{{- $signingUser = $verification.SigningUser -}}
+	{{- $signingEmail = $verification.SigningEmail -}}
+	{{- $extraClass = print $extraClass " commit-is-signed" -}}
+	{{- if $verification.Verified -}}
+		{{- /* reason is "{name} / {key-id}" */ -}}
+		{{- $msgReason = $verification.Reason -}}
+		{{- $verified = true -}}
+		{{- if eq $verification.TrustStatus "trusted" -}}
+			{{- $extraClass = print $extraClass " sign-trusted" -}}
+		{{- else if eq $verification.TrustStatus "untrusted" -}}
+			{{- $extraClass = print $extraClass " sign-untrusted" -}}
+			{{- $msgReasonPrefix = ctx.Locale.Tr "repo.commits.signed_by_untrusted_user" -}}
+		{{- else -}}
+			{{- $extraClass = print $extraClass " sign-unmatched" -}}
+			{{- $msgReasonPrefix = ctx.Locale.Tr "repo.commits.signed_by_untrusted_user_unmatched" -}}
+		{{- end -}}
+	{{- else -}}
+		{{- if $verification.Warning -}}
+			{{- $extraClass = print $extraClass " sign-warning" -}}
+		{{- end -}}
+		{{- $msgReason = ctx.Locale.Tr $verification.Reason -}}{{- /* dirty part: it is the translation key ..... */ -}}
+	{{- end -}}
+
+	{{- if $msgReasonPrefix -}}
+		{{- $msgReason = print $msgReasonPrefix ": " $msgReason -}}
+	{{- end -}}
+
+	{{- if $verification.SigningSSHKey -}}
+		{{- $msgSigningKey = print (ctx.Locale.Tr "repo.commits.ssh_key_fingerprint") ": " $verification.SigningSSHKey.Fingerprint -}}
+	{{- else if $verification.SigningKey -}}
+		{{- $msgSigningKey = print (ctx.Locale.Tr "repo.commits.gpg_key_id") ": " $verification.SigningKey.PaddedKeyID -}}
+	{{- end -}}
+{{- end -}}
+
+{{- if $commit -}}
+<a {{if $commitBaseLink}}href="{{$commitBaseLink}}/{{$commit.ID}}"{{end}} class="ui label commit-id-short {{$extraClass}}" rel="nofollow">
+	{{- ShortSha $commit.ID.String -}}
+{{- end -}}
+	<span class="ui label commit-sign-badge {{$extraClass}}">
+		{{- if $verified -}}
+			{{- if and $signingUser $signingUser.ID -}}
+				<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-lock"}}</span>
+				<span data-tooltip-content="{{$msgSigningKey}}">{{ctx.AvatarUtils.Avatar $signingUser 16}}</span>
+			{{- else -}}
+				<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-lock-cog"}}</span>
+				<span data-tooltip-content="{{$msgSigningKey}}">{{ctx.AvatarUtils.AvatarByEmail $signingEmail "" 16}}</span>
+			{{- end -}}
+		{{- else -}}
+			<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-unlock"}}</span>
+		{{- end -}}
+	</span>
+
+{{- if $commit -}}
+</a>
+{{- end -}}
+
+{{- /* This template should be kept as small as possbile, DO NOT put large components like modal/dialog into it. */ -}}

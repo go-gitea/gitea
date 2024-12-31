@@ -6,6 +6,7 @@ package repo
 
 import (
 	"bytes"
+	gocontext "context"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -36,11 +38,11 @@ import (
 )
 
 const (
-	tplWikiStart    base.TplName = "repo/wiki/start"
-	tplWikiView     base.TplName = "repo/wiki/view"
-	tplWikiRevision base.TplName = "repo/wiki/revision"
-	tplWikiNew      base.TplName = "repo/wiki/new"
-	tplWikiPages    base.TplName = "repo/wiki/pages"
+	tplWikiStart    templates.TplName = "repo/wiki/start"
+	tplWikiView     templates.TplName = "repo/wiki/view"
+	tplWikiRevision templates.TplName = "repo/wiki/revision"
+	tplWikiNew      templates.TplName = "repo/wiki/new"
+	tplWikiPages    templates.TplName = "repo/wiki/pages"
 )
 
 // MustEnableWiki check if wiki is enabled, if external then redirect
@@ -438,8 +440,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(ctx, commitsHistory, ctx.Repo.Repository)
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParamString("action", "_revision")
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	return wikiRepo, entry
@@ -645,22 +646,32 @@ func WikiPages(ctx *context.Context) {
 		return
 	}
 
-	entries, err := commit.ListEntries()
+	treePath := "" // To support list sub folders' pages in the future
+	tree, err := commit.SubTree(treePath)
+	if err != nil {
+		ctx.ServerError("SubTree", err)
+		return
+	}
+
+	allEntries, err := tree.ListEntries()
 	if err != nil {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
+	allEntries.CustomSort(base.NaturalSortLess)
+
+	entries, _, err := allEntries.GetCommitsInfo(gocontext.Context(ctx), commit, treePath)
+	if err != nil {
+		ctx.ServerError("GetCommitsInfo", err)
+		return
+	}
+
 	pages := make([]PageMeta, 0, len(entries))
 	for _, entry := range entries {
-		if !entry.IsRegular() {
+		if !entry.Entry.IsRegular() {
 			continue
 		}
-		c, err := wikiRepo.GetCommitByPath(entry.Name())
-		if err != nil {
-			ctx.ServerError("GetCommit", err)
-			return
-		}
-		wikiName, err := wiki_service.GitPathToWebPath(entry.Name())
+		wikiName, err := wiki_service.GitPathToWebPath(entry.Entry.Name())
 		if err != nil {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
@@ -672,8 +683,8 @@ func WikiPages(ctx *context.Context) {
 		pages = append(pages, PageMeta{
 			Name:         displayName,
 			SubURL:       wiki_service.WebPathToURLPath(wikiName),
-			GitEntryName: entry.Name(),
-			UpdatedUnix:  timeutil.TimeStamp(c.Author.When.Unix()),
+			GitEntryName: entry.Entry.Name(),
+			UpdatedUnix:  timeutil.TimeStamp(entry.Commit.Author.When.Unix()),
 		})
 	}
 	ctx.Data["Pages"] = pages

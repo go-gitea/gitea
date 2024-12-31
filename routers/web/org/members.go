@@ -9,9 +9,9 @@ import (
 
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	org_service "code.gitea.io/gitea/services/org"
@@ -19,7 +19,7 @@ import (
 
 const (
 	// tplMembers template for organization members page
-	tplMembers base.TplName = "org/member/members"
+	tplMembers templates.TplName = "org/member/members"
 )
 
 // Members render organization users page
@@ -54,9 +54,9 @@ func Members(ctx *context.Context) {
 		return
 	}
 
-	err = shared_user.RenderOrgHeader(ctx)
+	_, err = shared_user.PrepareOrgHeader(ctx)
 	if err != nil {
-		ctx.ServerError("RenderOrgHeader", err)
+		ctx.ServerError("PrepareOrgHeader", err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func MembersAction(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "private":
 		if ctx.Doer.ID != member.ID && !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
@@ -131,7 +131,7 @@ func MembersAction(ctx *context.Context) {
 	}
 
 	if err != nil {
-		log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
+		log.Error("Action(%s): %v", ctx.PathParam("action"), err)
 		ctx.JSON(http.StatusOK, map[string]any{
 			"ok":  false,
 			"err": err.Error(),
@@ -140,7 +140,7 @@ func MembersAction(ctx *context.Context) {
 	}
 
 	redirect := ctx.Org.OrgLink + "/members"
-	if ctx.PathParam(":action") == "leave" {
+	if ctx.PathParam("action") == "leave" {
 		redirect = setting.AppSubURL + "/"
 	}
 

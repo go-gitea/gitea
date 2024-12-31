@@ -79,11 +79,11 @@ func TestPullRequestsNewest(t *testing.T) {
 func TestLoadRequestedReviewers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	assert.NoError(t, pull.LoadIssue(db.DefaultContext))
 	issue := pull.Issue
 	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
-	assert.Len(t, pull.RequestedReviewers, 0)
+	assert.Empty(t, pull.RequestedReviewers)
 
 	user1, err := user_model.GetUserByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
@@ -93,7 +93,7 @@ func TestLoadRequestedReviewers(t *testing.T) {
 	assert.NotNil(t, comment)
 
 	assert.NoError(t, pull.LoadRequestedReviewers(db.DefaultContext))
-	assert.Len(t, pull.RequestedReviewers, 1)
+	assert.Len(t, pull.RequestedReviewers, 6)
 
 	comment, err = issues_model.RemoveReviewRequest(db.DefaultContext, issue, user1, &user_model.User{})
 	assert.NoError(t, err)
@@ -232,22 +232,6 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 	assert.Equal(t, "master", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
 	unittest.CheckConsistencyFor(t, pr)
-}
-
-func TestPullRequestList_LoadAttributes(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	prs := []*issues_model.PullRequest{
-		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}),
-		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}),
-	}
-	assert.NoError(t, issues_model.PullRequestList(prs).LoadAttributes(db.DefaultContext))
-	for _, pr := range prs {
-		assert.NotNil(t, pr.Issue)
-		assert.Equal(t, pr.IssueID, pr.Issue.ID)
-	}
-
-	assert.NoError(t, issues_model.PullRequestList([]*issues_model.PullRequest{}).LoadAttributes(db.DefaultContext))
 }
 
 // TODO TestAddTestPullRequestTask

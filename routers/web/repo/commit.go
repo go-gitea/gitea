@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -34,10 +35,10 @@ import (
 )
 
 const (
-	tplCommits    base.TplName = "repo/commits"
-	tplGraph      base.TplName = "repo/graph"
-	tplGraphDiv   base.TplName = "repo/graph/div"
-	tplCommitPage base.TplName = "repo/commit_page"
+	tplCommits    templates.TplName = "repo/commits"
+	tplGraph      templates.TplName = "repo/graph"
+	tplGraphDiv   templates.TplName = "repo/graph/div"
+	tplCommitPage templates.TplName = "repo/commit_page"
 )
 
 // RefCommits render commits page
@@ -100,9 +101,8 @@ func Commits(ctx *context.Context) {
 	ctx.Data["CommitCount"] = commitsCount
 
 	pager := context.NewPagination(int(commitsCount), pageSize, page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
-	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
@@ -139,7 +139,6 @@ func Graph(ctx *context.Context) {
 	if err != nil {
 		log.Warn("GetCommitGraphsCount error for generate graph exclude prs: %t branches: %s in %-v, Will Ignore branches and try again. Underlying Error: %v", hidePRRefs, branches, ctx.Repo.Repository, err)
 		realBranches = []string{}
-		branches = []string{}
 		graphCommitsCount, err = ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, realBranches, files)
 		if err != nil {
 			ctx.ServerError("GetCommitGraphsCount", err)
@@ -175,14 +174,7 @@ func Graph(ctx *context.Context) {
 	ctx.Data["CommitCount"] = commitsCount
 
 	paginator := context.NewPagination(int(graphCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
-	paginator.AddParamString("mode", mode)
-	paginator.AddParamString("hide-pr-refs", fmt.Sprint(hidePRRefs))
-	for _, branch := range branches {
-		paginator.AddParamString("branch", branch)
-	}
-	for _, file := range files {
-		paginator.AddParamString("file", file)
-	}
+	paginator.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = paginator
 	if ctx.FormBool("div-only") {
 		ctx.HTML(http.StatusOK, tplGraphDiv)
@@ -219,8 +211,6 @@ func SearchCommits(ctx *context.Context) {
 	}
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-	ctx.Data["RefName"] = ctx.Repo.RefName
-	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
@@ -264,9 +254,8 @@ func FileHistory(ctx *context.Context) {
 	ctx.Data["CommitCount"] = commitsCount
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
-	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
@@ -285,7 +274,7 @@ func Diff(ctx *context.Context) {
 
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
-	commitID := ctx.PathParam(":sha")
+	commitID := ctx.PathParam("sha")
 	var (
 		gitRepo *git.Repository
 		err     error
@@ -430,13 +419,13 @@ func RawDiff(ctx *context.Context) {
 	}
 	if err := git.GetRawDiff(
 		gitRepo,
-		ctx.PathParam(":sha"),
-		git.RawDiffType(ctx.PathParam(":ext")),
+		ctx.PathParam("sha"),
+		git.RawDiffType(ctx.PathParam("ext")),
 		ctx.Resp,
 	); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetRawDiff",
-				errors.New("commit "+ctx.PathParam(":sha")+" does not exist."))
+				errors.New("commit "+ctx.PathParam("sha")+" does not exist."))
 			return
 		}
 		ctx.ServerError("GetRawDiff", err)
