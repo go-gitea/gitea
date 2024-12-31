@@ -5,7 +5,6 @@
 package context
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -14,7 +13,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
@@ -35,9 +33,10 @@ type APIContext struct {
 
 	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
 
-	Repo    *Repository
-	Org     *APIOrganization
-	Package *Package
+	Repo       *Repository
+	Org        *APIOrganization
+	Package    *Package
+	PublicOnly bool // Whether the request is for a public endpoint
 }
 
 func init() {
@@ -212,17 +211,15 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 func APIContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			base, baseCleanUp := NewBaseContext(w, req)
+			base := NewBaseContext(w, req)
 			ctx := &APIContext{
 				Base:  base,
 				Cache: cache.GetCache(),
 				Repo:  &Repository{PullRequest: &PullRequest{}},
 				Org:   &APIOrganization{},
 			}
-			defer baseCleanUp()
 
-			ctx.Base.AppendContextValue(apiContextKey, ctx)
-			ctx.Base.AppendContextValueFunc(gitrepo.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
+			ctx.SetContextValue(apiContextKey, ctx)
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
@@ -267,31 +264,22 @@ func (ctx *APIContext) NotFound(objs ...any) {
 
 // ReferencesGitRepo injects the GitRepo into the Context
 // you can optional skip the IsEmpty check
-func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context.CancelFunc) {
-	return func(ctx *APIContext) (cancel context.CancelFunc) {
+func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) {
+	return func(ctx *APIContext) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty && !(len(allowEmpty) != 0 && allowEmpty[0]) {
-			return nil
+			return
 		}
 
 		// For API calls.
 		if ctx.Repo.GitRepo == nil {
-			gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
+			var err error
+			ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, fmt.Sprintf("Open Repository %v failed", ctx.Repo.Repository.FullName()), err)
-				return cancel
-			}
-			ctx.Repo.GitRepo = gitRepo
-			// We opened it, we should close it
-			return func() {
-				// If it's been set to nil then assume someone else has closed it.
-				if ctx.Repo.GitRepo != nil {
-					_ = ctx.Repo.GitRepo.Close()
-				}
+				return
 			}
 		}
-
-		return cancel
 	}
 }
 
@@ -305,24 +293,8 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			return
 		}
 
-		if ref := ctx.FormTrim("ref"); len(ref) > 0 {
-			commit, err := ctx.Repo.GitRepo.GetCommit(ref)
-			if err != nil {
-				if git.IsErrNotExist(err) {
-					ctx.NotFound()
-				} else {
-					ctx.Error(http.StatusInternalServerError, "GetCommit", err)
-				}
-				return
-			}
-			ctx.Repo.Commit = commit
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			ctx.Repo.TreePath = ctx.Params("*")
-			next.ServeHTTP(w, req)
-			return
-		}
-
-		refName := getRefName(ctx.Base, ctx.Repo, RepoRefAny)
+		// NOTICE: the "ref" here for internal usage only (e.g. woodpecker)
+		refName, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.FormTrim("ref"))
 		var err error
 
 		if ctx.Repo.GitRepo.IsBranchExist(refName) {
@@ -347,7 +319,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				return
 			}
 		} else {
-			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.Params("*")))
+			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.PathParam("*")))
 			return
 		}
 

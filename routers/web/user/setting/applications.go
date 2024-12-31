@@ -9,21 +9,23 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/base"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
 const (
-	tplSettingsApplications base.TplName = "user/settings/applications"
+	tplSettingsApplications templates.TplName = "user/settings/applications"
 )
 
 // Applications render manage access token page
 func Applications(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.applications")
 	ctx.Data["PageIsSettingsApplications"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	loadApplicationsData(ctx)
 
@@ -35,6 +37,7 @@ func ApplicationsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewAccessTokenForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	if ctx.HasError() {
 		loadApplicationsData(ctx)

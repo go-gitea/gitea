@@ -69,6 +69,10 @@ var microcmdUserCreate = &cli.Command{
 }
 
 func runCreateUser(c *cli.Context) error {
+	// this command highly depends on the many setting options (create org, visibility, etc.), so it must have a full setting load first
+	// duplicate setting loading should be safe at the moment, but it should be refactored & improved in the future.
+	setting.LoadSettings()
+
 	if err := argsSet(c, "email"); err != nil {
 		return err
 	}
@@ -158,7 +162,7 @@ func runCreateUser(c *cli.Context) error {
 		IsRestricted: restricted,
 	}
 
-	if err := user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %w", err)
 	}
 

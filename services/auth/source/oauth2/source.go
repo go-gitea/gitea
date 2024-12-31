@@ -36,7 +36,7 @@ func (source *Source) FromDB(bs []byte) error {
 	return json.UnmarshalHandleDoubleEncode(bs, &source)
 }
 
-// ToDB exports an SMTPConfig to a serialized format.
+// ToDB exports an OAuth2Config to a serialized format.
 func (source *Source) ToDB() ([]byte, error) {
 	return json.Marshal(source)
 }

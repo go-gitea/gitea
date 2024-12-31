@@ -17,7 +17,7 @@ import tailwindcssNesting from 'tailwindcss/nesting/index.js';
 import postcssNesting from 'postcss-nesting';
 
 const {EsbuildPlugin} = EsBuildLoader;
-const {SourceMapDevToolPlugin, DefinePlugin} = webpack;
+const {SourceMapDevToolPlugin, DefinePlugin, EnvironmentPlugin} = webpack;
 const formatLicenseText = (licenseText) => wrapAnsi(licenseText || '', 80).trim();
 
 const glob = (pattern) => fastGlob.sync(pattern, {
@@ -76,26 +76,26 @@ export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
-      fileURLToPath(new URL('web_src/js/jquery.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/globals.ts', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/semantic.js', import.meta.url)),
-      fileURLToPath(new URL('web_src/js/index.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/index.ts', import.meta.url)),
       fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
       fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
     ],
     webcomponents: [
-      fileURLToPath(new URL('web_src/js/webcomponents/index.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/webcomponents/index.ts', import.meta.url)),
     ],
     swagger: [
-      fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/standalone/swagger.ts', import.meta.url)),
       fileURLToPath(new URL('web_src/css/standalone/swagger.css', import.meta.url)),
     ],
     'eventsource.sharedworker': [
-      fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.ts', import.meta.url)),
     ],
     ...(!isProduction && {
       devtest: [
-        fileURLToPath(new URL('web_src/js/standalone/devtest.js', import.meta.url)),
+        fileURLToPath(new URL('web_src/js/standalone/devtest.ts', import.meta.url)),
         fileURLToPath(new URL('web_src/css/standalone/devtest.css', import.meta.url)),
       ],
     }),
@@ -153,6 +153,19 @@ export default {
         ],
       },
       {
+        test: /\.ts$/i,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: 'esbuild-loader',
+            options: {
+              loader: 'ts',
+              target: 'es2020',
+            },
+          },
+        ],
+      },
+      {
         test: /\.css$/i,
         use: [
           {
@@ -195,13 +208,14 @@ export default {
     ],
   },
   plugins: [
-    new webpack.ProvidePlugin({ // for htmx extensions
-      htmx: 'htmx.org',
-    }),
     new DefinePlugin({
       __VUE_OPTIONS_API__: true, // at the moment, many Vue components still use the Vue Options API
       __VUE_PROD_DEVTOOLS__: false, // do not enable devtools support in production
       __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false, // https://github.com/vuejs/vue-cli/pull/7443
+    }),
+    // all environment variables used in bundled js via process.env must be declared here
+    new EnvironmentPlugin({
+      TEST: 'false',
     }),
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({

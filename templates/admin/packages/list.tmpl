@@ -5,7 +5,7 @@
 			{{ctx.Locale.Tr "admin.packages.total_size" (FileSize .TotalBlobSize)}},
 			{{ctx.Locale.Tr "admin.packages.unreferenced_size" (FileSize .TotalUnreferencedBlobSize)}})
 			<div class="ui right">
-				<form method="post" action="{{AppSubUrl}}/admin/packages/cleanup">
+				<form method="post" action="{{AppSubUrl}}/-/admin/packages/cleanup">
 					{{.CsrfTokenHtml}}
 					<button class="ui primary tiny button">{{ctx.Locale.Tr "admin.packages.cleanup"}}</button>
 				</form>
@@ -71,7 +71,7 @@
 							{{end}}
 							</td>
 							<td>{{FileSize .CalculateBlobSize}}</td>
-							<td>{{DateTime "short" .Version.CreatedUnix}}</td>
+							<td>{{DateUtils.AbsoluteShort .Version.CreatedUnix}}</td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.Version.ID}}" data-name="{{.Package.Name}}" data-data-version="{{.Version.Version}}">{{svg "octicon-trash"}}</a></td>
 						</tr>
 					{{end}}

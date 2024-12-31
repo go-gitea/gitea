@@ -12,25 +12,27 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
+	feed_service "code.gitea.io/gitea/services/feed"
 )
 
 const (
-	tplProfileBigAvatar base.TplName = "shared/user/profile_big_avatar"
-	tplFollowUnfollow   base.TplName = "org/follow_unfollow"
+	tplProfileBigAvatar templates.TplName = "shared/user/profile_big_avatar"
+	tplFollowUnfollow   templates.TplName = "org/follow_unfollow"
 )
 
 // OwnerProfile render profile page for a user or a organization (aka, repo owner)
@@ -54,7 +56,7 @@ func OwnerProfile(ctx *context.Context) {
 func userProfile(ctx *context.Context) {
 	// check view permissions
 	if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
-		ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
+		ctx.NotFound("user", fmt.Errorf("%s", ctx.ContextUser.Name))
 		return
 	}
 
@@ -72,17 +74,16 @@ func userProfile(ctx *context.Context) {
 		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
 	}
 
-	profileDbRepo, profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
-	defer profileClose()
+	profileDbRepo, profileReadmeBlob := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer)
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-	prepareUserProfileTabData(ctx, showPrivate, profileDbRepo, profileGitRepo, profileReadmeBlob)
+	prepareUserProfileTabData(ctx, showPrivate, profileDbRepo, profileReadmeBlob)
 	// call PrepareContextForProfileBigAvatar later to avoid re-querying the NumFollowers & NumFollowing
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	ctx.HTML(http.StatusOK, tplProfile)
 }
 
-func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDbRepo *repo_model.Repository, profileGitRepo *git.Repository, profileReadme *git.Blob) {
+func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDbRepo *repo_model.Repository, profileReadme *git.Blob) {
 	// if there is a profile readme, default to "overview" page, otherwise, default to "repositories" page
 	// if there is not a profile readme, the overview tab should be treated as the repositories tab
 	tab := ctx.FormString("tab")
@@ -94,7 +95,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		}
 	}
 	ctx.Data["TabName"] = tab
-	ctx.Data["HasProfileReadme"] = profileReadme != nil
+	ctx.Data["HasUserProfileReadme"] = profileReadme != nil
 
 	page := ctx.FormInt("page")
 	if page <= 0 {
@@ -110,32 +111,12 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		orderBy db.SearchOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.FormString("sort")
-	switch ctx.FormString("sort") {
-	case "newest":
-		orderBy = db.SearchOrderByNewest
-	case "oldest":
-		orderBy = db.SearchOrderByOldest
-	case "recentupdate":
-		orderBy = db.SearchOrderByRecentUpdated
-	case "leastupdate":
-		orderBy = db.SearchOrderByLeastUpdated
-	case "reversealphabetically":
-		orderBy = db.SearchOrderByAlphabeticallyReverse
-	case "alphabetically":
-		orderBy = db.SearchOrderByAlphabetically
-	case "moststars":
-		orderBy = db.SearchOrderByStarsReverse
-	case "feweststars":
-		orderBy = db.SearchOrderByStars
-	case "mostforks":
-		orderBy = db.SearchOrderByForksReverse
-	case "fewestforks":
-		orderBy = db.SearchOrderByForks
-	default:
-		ctx.Data["SortType"] = "recentupdate"
-		orderBy = db.SearchOrderByRecentUpdated
+	sortOrder := ctx.FormString("sort")
+	if _, ok := repo_model.OrderByFlatMap[sortOrder]; !ok {
+		sortOrder = setting.UI.ExploreDefaultSort // TODO: add new default sort order for user home?
 	}
+	ctx.Data["SortType"] = sortOrder
+	orderBy = repo_model.OrderByFlatMap[sortOrder]
 
 	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
@@ -187,7 +168,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	case "activity":
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
-		items, count, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
+		items, count, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
 			IncludePrivate:  showPrivate,
@@ -266,25 +247,30 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 			log.Error("failed to GetBlobContent: %v", err)
 		} else {
-			if profileContent, err := markdown.RenderString(&markup.RenderContext{
-				Ctx:     ctx,
-				GitRepo: profileGitRepo,
-				Links: markup.Links{
-					// Give the repo link to the markdown render for the full link of media element.
-					// the media link usually be like /[user]/[repoName]/media/branch/[branchName],
-					// 	Eg. /Tom/.profile/media/branch/main
-					// The branch shown on the profile page is the default branch, this need to be in sync with doc, see:
-					//	https://docs.gitea.com/usage/profile-readme
-					Base:       profileDbRepo.Link(),
-					BranchPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
-				},
-				Metas: map[string]string{"mode": "document"},
-			}, bytes); err != nil {
+			rctx := renderhelper.NewRenderContextRepoFile(ctx, profileDbRepo, renderhelper.RepoFileOptions{
+				CurrentRefPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
+			})
+			if profileContent, err := markdown.RenderString(rctx, bytes); err != nil {
 				log.Error("failed to RenderString: %v", err)
 			} else {
-				ctx.Data["ProfileReadme"] = profileContent
+				ctx.Data["ProfileReadmeContent"] = profileContent
 			}
 		}
+	case "organizations":
+		orgs, count, err := db.FindAndCount[organization.Organization](ctx, organization.FindOrgOptions{
+			UserID:         ctx.ContextUser.ID,
+			IncludePrivate: showPrivate,
+			ListOptions: db.ListOptions{
+				Page:     page,
+				PageSize: pagingNum,
+			},
+		})
+		if err != nil {
+			ctx.ServerError("GetUserOrganizations", err)
+			return
+		}
+		ctx.Data["Cards"] = orgs
+		total = int(count)
 	default: // default to "repositories"
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
@@ -323,16 +309,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	}
 
 	pager := context.NewPagination(total, pagingNum, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParamString("tab", tab)
-	if tab != "followers" && tab != "following" && tab != "activity" && tab != "projects" {
-		pager.AddParamString("language", language)
-	}
-	if tab == "activity" {
-		if ctx.Data["Date"] != nil {
-			pager.AddParamString("date", fmt.Sprint(ctx.Data["Date"]))
-		}
-	}
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 }
 

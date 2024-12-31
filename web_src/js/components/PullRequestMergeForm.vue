@@ -1,84 +1,83 @@
-<script>
-import {SvgIcon} from '../svg.js';
-import {toggleElem} from '../utils/dom.js';
+<script lang="ts" setup>
+import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
+import {SvgIcon} from '../svg.ts';
+import {toggleElem} from '../utils/dom.ts';
 
 const {csrfToken, pageData} = window.config;
 
-export default {
-  components: {SvgIcon},
-  data: () => ({
-    csrfToken,
-    mergeForm: pageData.pullRequestMergeForm,
+const mergeForm = ref(pageData.pullRequestMergeForm);
 
-    mergeTitleFieldValue: '',
-    mergeMessageFieldValue: '',
-    deleteBranchAfterMerge: false,
-    autoMergeWhenSucceed: false,
+const mergeTitleFieldValue = ref('');
+const mergeMessageFieldValue = ref('');
+const deleteBranchAfterMerge = ref(false);
+const autoMergeWhenSucceed = ref(false);
 
-    mergeStyle: '',
-    mergeStyleDetail: { // dummy only, these values will come from one of the mergeForm.mergeStyles
-      hideMergeMessageTexts: false,
-      textDoMerge: '',
-      mergeTitleFieldText: '',
-      mergeMessageFieldText: '',
-      hideAutoMerge: false,
-    },
-    mergeStyleAllowedCount: 0,
+const mergeStyle = ref('');
+const mergeStyleDetail = ref({
+  hideMergeMessageTexts: false,
+  textDoMerge: '',
+  mergeTitleFieldText: '',
+  mergeMessageFieldText: '',
+  hideAutoMerge: false,
+});
 
-    showMergeStyleMenu: false,
-    showActionForm: false,
-  }),
-  computed: {
-    mergeButtonStyleClass() {
-      if (this.mergeForm.allOverridableChecksOk) return 'primary';
-      return this.autoMergeWhenSucceed ? 'primary' : 'red';
-    },
-    forceMerge() {
-      return this.mergeForm.canMergeNow && !this.mergeForm.allOverridableChecksOk;
-    },
-  },
-  watch: {
-    mergeStyle(val) {
-      this.mergeStyleDetail = this.mergeForm.mergeStyles.find((e) => e.name === val);
-      for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
-        toggleElem(elem, elem.getAttribute('data-pull-merge-style') === val);
-      }
-    },
-  },
-  created() {
-    this.mergeStyleAllowedCount = this.mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
+const mergeStyleAllowedCount = ref(0);
 
-    let mergeStyle = this.mergeForm.mergeStyles.find((e) => e.allowed && e.name === this.mergeForm.defaultMergeStyle)?.name;
-    if (!mergeStyle) mergeStyle = this.mergeForm.mergeStyles.find((e) => e.allowed)?.name;
-    this.switchMergeStyle(mergeStyle, !this.mergeForm.canMergeNow);
-  },
-  mounted() {
-    document.addEventListener('mouseup', this.hideMergeStyleMenu);
-  },
-  unmounted() {
-    document.removeEventListener('mouseup', this.hideMergeStyleMenu);
-  },
-  methods: {
-    hideMergeStyleMenu() {
-      this.showMergeStyleMenu = false;
-    },
-    toggleActionForm(show) {
-      this.showActionForm = show;
-      if (!show) return;
-      this.deleteBranchAfterMerge = this.mergeForm.defaultDeleteBranchAfterMerge;
-      this.mergeTitleFieldValue = this.mergeStyleDetail.mergeTitleFieldText;
-      this.mergeMessageFieldValue = this.mergeStyleDetail.mergeMessageFieldText;
-    },
-    switchMergeStyle(name, autoMerge = false) {
-      this.mergeStyle = name;
-      this.autoMergeWhenSucceed = autoMerge;
-    },
-    clearMergeMessage() {
-      this.mergeMessageFieldValue = this.mergeForm.defaultMergeMessage;
-    },
-  },
-};
+const showMergeStyleMenu = ref(false);
+const showActionForm = ref(false);
+
+const mergeButtonStyleClass = computed(() => {
+  if (mergeForm.value.allOverridableChecksOk) return 'primary';
+  return autoMergeWhenSucceed.value ? 'primary' : 'red';
+});
+
+const forceMerge = computed(() => {
+  return mergeForm.value.canMergeNow && !mergeForm.value.allOverridableChecksOk;
+});
+
+watch(mergeStyle, (val) => {
+  mergeStyleDetail.value = mergeForm.value.mergeStyles.find((e) => e.name === val);
+  for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
+    toggleElem(elem, elem.getAttribute('data-pull-merge-style') === val);
+  }
+});
+
+onMounted(() => {
+  mergeStyleAllowedCount.value = mergeForm.value.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
+
+  let mergeStyle = mergeForm.value.mergeStyles.find((e) => e.allowed && e.name === mergeForm.value.defaultMergeStyle)?.name;
+  if (!mergeStyle) mergeStyle = mergeForm.value.mergeStyles.find((e) => e.allowed)?.name;
+  switchMergeStyle(mergeStyle, !mergeForm.value.canMergeNow);
+
+  document.addEventListener('mouseup', hideMergeStyleMenu);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('mouseup', hideMergeStyleMenu);
+});
+
+function hideMergeStyleMenu() {
+  showMergeStyleMenu.value = false;
+}
+
+function toggleActionForm(show: boolean) {
+  showActionForm.value = show;
+  if (!show) return;
+  deleteBranchAfterMerge.value = mergeForm.value.defaultDeleteBranchAfterMerge;
+  mergeTitleFieldValue.value = mergeStyleDetail.value.mergeTitleFieldText;
+  mergeMessageFieldValue.value = mergeStyleDetail.value.mergeMessageFieldText;
+}
+
+function switchMergeStyle(name, autoMerge = false) {
+  mergeStyle.value = name;
+  autoMergeWhenSucceed.value = autoMerge;
+}
+
+function clearMergeMessage() {
+  mergeMessageFieldValue.value = mergeForm.value.defaultMergeMessage;
+}
 </script>
+
 <template>
   <!--
   if this component is shown, either the user is an admin (can do a merge without checks), or they are a writer who has the permission to do a merge
@@ -148,7 +147,7 @@ export default {
             </template>
           </span>
         </button>
-        <div class="ui dropdown icon button" @click.stop="showMergeStyleMenu = !showMergeStyleMenu" v-if="mergeStyleAllowedCount>1">
+        <div class="ui dropdown icon button" @click.stop="showMergeStyleMenu = !showMergeStyleMenu">
           <svg-icon name="octicon-triangle-down" :size="14"/>
           <div class="menu" :class="{'show':showMergeStyleMenu}">
             <template v-for="msd in mergeForm.mergeStyles">
@@ -186,6 +185,7 @@ export default {
     </div>
   </div>
 </template>
+
 <style scoped>
 /* to keep UI the same, at the moment we are still using some Fomantic UI styles, but we do not use their scripts, so we need to fine tune some styles */
 .ui.dropdown .menu.show {

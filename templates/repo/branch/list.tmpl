@@ -20,14 +20,17 @@
 						<tr>
 							<td>
 								<div class="flex-text-block">
-									{{if .DefaultBranchBranch.IsProtected}}{{svg "octicon-shield-lock"}}{{end}}
 									<a class="gt-ellipsis" href="{{.RepoLink}}/src/branch/{{PathEscapeSegments .DefaultBranchBranch.DBBranch.Name}}">{{.DefaultBranchBranch.DBBranch.Name}}</a>
-									<button class="btn interact-fg tw-px-1" data-clipboard-text="{{.DefaultBranchBranch.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
+									{{if .DefaultBranchBranch.IsProtected}}
+										<span data-tooltip-content="{{ctx.Locale.Tr "repo.settings.protected_branch"}}">{{svg "octicon-shield-lock"}}</span>
+									{{end}}
+									<button class="btn interact-fg tw-px-1" data-clipboard-text="{{.DefaultBranchBranch.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_branch"}}">{{svg "octicon-copy" 14}}</button>
 									{{template "repo/commit_statuses" dict "Status" (index $.CommitStatus .DefaultBranchBranch.DBBranch.CommitID) "Statuses" (index $.CommitStatuses .DefaultBranchBranch.DBBranch.CommitID)}}
 								</div>
-								<p class="info tw-flex tw-items-center tw-my-1">{{svg "octicon-git-commit" 16 "tw-mr-1"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.DBBranch.CommitID}}">{{ShortSha .DefaultBranchBranch.DBBranch.CommitID}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.DBBranch.CommitMessage (.Repository.ComposeMetas ctx)}}</span> · {{ctx.Locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.DBBranch.CommitTime.AsTime ctx.Locale}}{{if .DefaultBranchBranch.DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "user" .DefaultBranchBranch.DBBranch.Pusher}}{{template "shared/user/namelink" .DefaultBranchBranch.DBBranch.Pusher}}{{end}}</p>
+								<p class="info tw-flex tw-items-center tw-my-1">{{svg "octicon-git-commit" 16 "tw-mr-1"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.DBBranch.CommitID}}">{{ShortSha .DefaultBranchBranch.DBBranch.CommitID}}</a> · <span class="commit-message">{{ctx.RenderUtils.RenderCommitMessage .DefaultBranchBranch.DBBranch.CommitMessage (.Repository.ComposeMetas ctx)}}</span> · {{ctx.Locale.Tr "org.repo_updated"}} {{DateUtils.TimeSince .DefaultBranchBranch.DBBranch.CommitTime}}{{if .DefaultBranchBranch.DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "user" .DefaultBranchBranch.DBBranch.Pusher}}{{template "shared/user/namelink" .DefaultBranchBranch.DBBranch.Pusher}}{{end}}</p>
 							</td>
-							<td class="right aligned middle aligned overflow-visible">
+							{{/* FIXME: here and below, the tw-overflow-visible is not quite right but it is still needed the moment: to show the important buttons when the width is narrow */}}
+							<td class="right aligned middle aligned tw-overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
 									<button class="btn interact-bg show-create-branch-modal tw-p-2"
 										data-modal="#create-branch-modal"
@@ -39,7 +42,7 @@
 									</button>
 								{{end}}
 								{{if .EnableFeed}}
-									<a role="button" class="btn interact-bg tw-p-2" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranchBranch.DBBranch.Name}}">{{svg "octicon-rss"}}</a>
+									<a role="button" class="btn interact-bg tw-p-2" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranchBranch.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss"}}</a>
 								{{end}}
 								{{if not $.DisableDownloadSourceArchives}}
 									<div class="ui dropdown btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.download" ($.DefaultBranchBranch.DBBranch.Name)}}">
@@ -88,17 +91,19 @@
 							{{if .DBBranch.IsDeleted}}
 								<div class="flex-text-block">
 									<span class="gt-ellipsis">{{.DBBranch.Name}}</span>
-									<button class="btn interact-fg tw-px-1" data-clipboard-text="{{.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
+									<button class="btn interact-fg tw-px-1" data-clipboard-text="{{.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_branch"}}">{{svg "octicon-copy" 14}}</button>
 								</div>
-								<p class="info">{{ctx.Locale.Tr "repo.branch.deleted_by" .DBBranch.DeletedBy.Name}} {{TimeSinceUnix .DBBranch.DeletedUnix ctx.Locale}}</p>
+								<p class="info">{{ctx.Locale.Tr "repo.branch.deleted_by" .DBBranch.DeletedBy.Name}} {{DateUtils.TimeSince .DBBranch.DeletedUnix}}</p>
 							{{else}}
 								<div class="flex-text-block">
-									{{if .IsProtected}}{{svg "octicon-shield-lock"}}{{end}}
 									<a class="gt-ellipsis" href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .DBBranch.Name}}">{{.DBBranch.Name}}</a>
-									<button class="btn interact-fg tw-px-1" data-clipboard-text="{{.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
+									{{if .IsProtected}}
+										<span data-tooltip-content="{{ctx.Locale.Tr "repo.settings.protected_branch"}}">{{svg "octicon-shield-lock"}}</span>
+									{{end}}
+									<button class="btn interact-fg tw-px-1" data-clipboard-text="{{.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_branch"}}">{{svg "octicon-copy" 14}}</button>
 									{{template "repo/commit_statuses" dict "Status" (index $.CommitStatus .DBBranch.CommitID) "Statuses" (index $.CommitStatuses .DBBranch.CommitID)}}
 								</div>
-								<p class="info tw-flex tw-items-center tw-my-1">{{svg "octicon-git-commit" 16 "tw-mr-1"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .DBBranch.CommitID}}">{{ShortSha .DBBranch.CommitID}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DBBranch.CommitMessage ($.Repository.ComposeMetas ctx)}}</span> · {{ctx.Locale.Tr "org.repo_updated"}} {{TimeSince .DBBranch.CommitTime.AsTime ctx.Locale}}{{if .DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "user" .DBBranch.Pusher}} &nbsp;{{template "shared/user/namelink" .DBBranch.Pusher}}{{end}}</p>
+								<p class="info tw-flex tw-items-center tw-my-1">{{svg "octicon-git-commit" 16 "tw-mr-1"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .DBBranch.CommitID}}">{{ShortSha .DBBranch.CommitID}}</a> · <span class="commit-message">{{ctx.RenderUtils.RenderCommitMessage .DBBranch.CommitMessage ($.Repository.ComposeMetas ctx)}}</span> · {{ctx.Locale.Tr "org.repo_updated"}} {{DateUtils.TimeSince .DBBranch.CommitTime}}{{if .DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "user" .DBBranch.Pusher}} &nbsp;{{template "shared/user/namelink" .DBBranch.Pusher}}{{end}}</p>
 							{{end}}
 							</td>
 							<td class="two wide ui">
@@ -144,7 +149,8 @@
 									{{end}}
 								{{end}}
 							</td>
-							<td class="three wide right aligned overflow-visible">
+							{{/* FIXME: here and above, the tw-overflow-visible is not quite right */}}
+							<td class="three wide right aligned tw-overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .DBBranch.IsDeleted)}}
 									<button class="btn interact-bg tw-p-2 show-modal show-create-branch-modal"
 										data-branch-from="{{.DBBranch.Name}}"
@@ -156,7 +162,7 @@
 									</button>
 								{{end}}
 								{{if $.EnableFeed}}
-									<a role="button" class="btn interact-bg tw-p-2" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DBBranch.Name}}">{{svg "octicon-rss"}}</a>
+									<a role="button" class="btn interact-bg tw-p-2" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss"}}</a>
 								{{end}}
 								{{if and (not .DBBranch.IsDeleted) (not $.DisableDownloadSourceArchives)}}
 									<div class="ui dropdown btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.download" (.DBBranch.Name)}}">
@@ -236,7 +242,7 @@
 	<div class="header">
 		{{ctx.Locale.Tr "repo.settings.rename_branch"}}
 	</div>
-	<form class="ui form" action="{{$.Repository.Link}}/settings/rename_branch" method="post">
+	<form class="ui form" action="{{$.Repository.Link}}/branches/rename" method="post">
 		<div class="content">
 			{{.CsrfTokenHtml}}
 			<div class="field default-branch-warning">

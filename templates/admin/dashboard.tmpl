@@ -2,14 +2,14 @@
 	<div class="admin-setting-content">
 		{{if .NeedUpdate}}
 			<div class="ui negative message flash-error">
-				<p>{{ctx.Locale.Tr "admin.dashboard.new_version_hint" .RemoteVersion AppVer}}</p>
+				<p>{{ctx.Locale.Tr "admin.dashboard.new_version_hint" .RemoteVersion AppVer "https://blog.gitea.com"}}</p>
 			</div>
 		{{end}}
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.dashboard.maintenance_operations"}}
 		</h4>
 		<div class="ui attached table segment">
-			<form method="post" action="{{AppSubUrl}}/admin">
+			<form method="post" action="{{AppSubUrl}}/-/admin">
 				{{.CsrfTokenHtml}}
 				<table class="ui very basic table tw-mt-0 tw-px-4">
 					<tbody>
@@ -76,9 +76,11 @@
 			{{ctx.Locale.Tr "admin.dashboard.system_status"}}
 		</h4>
 		{{/* TODO: make these stats work in multi-server deployments, likely needs per-server stats in DB */}}
-		<div class="no-loading-indicator tw-hidden"></div>
-		<div hx-get="{{$.Link}}/system_status" hx-swap="morph:innerHTML" hx-trigger="every 5s" hx-indicator=".no-loading-indicator" class="ui attached table segment">
-			{{template "admin/system_status" .}}
+		<div class="ui attached table segment">
+			<div class="no-loading-indicator tw-hidden"></div>
+			<div hx-get="{{$.Link}}/system_status" hx-swap="morph:innerHTML" hx-trigger="every 5s" hx-indicator=".no-loading-indicator">
+				{{template "admin/system_status" .}}
+			</div>
 		</div>
 	</div>
 {{template "admin/layout_footer" .}}

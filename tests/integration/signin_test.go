@@ -9,19 +9,21 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testLoginFailed(t *testing.T, username, password, message string) {
 	session := emptyTestSession(t)
 	req := NewRequestWithValues(t, "POST", "/user/login", map[string]string{
-		"_csrf":     GetCSRF(t, session, "/user/login"),
 		"user_name": username,
 		"password":  password,
 	})
@@ -42,7 +44,7 @@ func TestSignin(t *testing.T) {
 	user.Name = "testuser"
 	user.LowerName = strings.ToLower(user.Name)
 	user.ID = 0
-	unittest.AssertSuccessfulInsert(t, user)
+	require.NoError(t, db.Insert(db.DefaultContext, user))
 
 	samples := []struct {
 		username string
@@ -68,7 +70,6 @@ func TestSigninWithRememberMe(t *testing.T) {
 
 	session := emptyTestSession(t)
 	req := NewRequestWithValues(t, "POST", "/user/login", map[string]string{
-		"_csrf":     GetCSRF(t, session, "/user/login"),
 		"user_name": user.Name,
 		"password":  userPassword,
 		"remember":  "on",
@@ -92,4 +93,32 @@ func TestSigninWithRememberMe(t *testing.T) {
 	// With session the settings page should be reachable
 	req = NewRequest(t, "GET", "/user/settings")
 	session.MakeRequest(t, req, http.StatusOK)
+}
+
+func TestEnablePasswordSignInForm(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	t.Run("EnablePasswordSignInForm=false", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		defer test.MockVariableValue(&setting.Service.EnablePasswordSignInForm, false)()
+
+		req := NewRequest(t, "GET", "/user/login")
+		resp := MakeRequest(t, req, http.StatusOK)
+		NewHTMLParser(t, resp.Body).AssertElement(t, "form[action='/user/login']", false)
+
+		req = NewRequest(t, "POST", "/user/login")
+		MakeRequest(t, req, http.StatusForbidden)
+	})
+
+	t.Run("EnablePasswordSignInForm=true", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		defer test.MockVariableValue(&setting.Service.EnablePasswordSignInForm, true)()
+
+		req := NewRequest(t, "GET", "/user/login")
+		resp := MakeRequest(t, req, http.StatusOK)
+		NewHTMLParser(t, resp.Body).AssertElement(t, "form[action='/user/login']", true)
+
+		req = NewRequest(t, "POST", "/user/login")
+		MakeRequest(t, req, http.StatusOK)
+	})
 }

@@ -11,10 +11,10 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -26,9 +26,9 @@ import (
 
 var (
 	// tplMustChangePassword template for updating a user's password
-	tplMustChangePassword base.TplName = "user/auth/change_passwd"
-	tplForgotPassword     base.TplName = "user/auth/forgot_passwd"
-	tplResetPassword      base.TplName = "user/auth/reset_passwd"
+	tplMustChangePassword templates.TplName = "user/auth/change_passwd"
+	tplForgotPassword     templates.TplName = "user/auth/forgot_passwd"
+	tplResetPassword      templates.TplName = "user/auth/reset_passwd"
 )
 
 // ForgotPasswd render the forget password page
@@ -113,7 +113,7 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 	}
 
 	// Fail early, don't frustrate the user
-	u := user_model.VerifyUserActiveCode(ctx, code)
+	u := user_model.VerifyUserTimeLimitCode(ctx, &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeResetPassword}, code)
 	if u == nil {
 		ctx.Flash.Error(ctx.Tr("auth.invalid_code_forgot_password", fmt.Sprintf("%s/user/forgot_password", setting.AppSubURL)), true)
 		return nil, nil
@@ -212,7 +212,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		case errors.Is(err, password.ErrComplexity):
 			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplResetPassword, nil)
 		case errors.Is(err, password.ErrIsPwned):
-			ctx.RenderWithErr(ctx.Tr("auth.password_pwned"), tplResetPassword, nil)
+			ctx.RenderWithErr(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplResetPassword, nil)
 		case password.IsErrIsPwnedRequest(err):
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplResetPassword, nil)
 		default:
@@ -295,7 +295,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplMustChangePassword, &form)
 		case errors.Is(err, password.ErrIsPwned):
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_pwned"), tplMustChangePassword, &form)
+			ctx.RenderWithErr(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplMustChangePassword, &form)
 		case password.IsErrIsPwnedRequest(err):
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplMustChangePassword, &form)

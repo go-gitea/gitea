@@ -4,24 +4,30 @@
 		<a class="{{if .PageIsSettingsProfile}}active {{end}}item" href="{{AppSubUrl}}/user/settings">
 			{{ctx.Locale.Tr "settings.profile"}}
 		</a>
+		{{if not (and ($.UserDisabledFeatures.Contains "manage_credentials" "deletion") (not $.EnableNotifyMail))}}
 		<a class="{{if .PageIsSettingsAccount}}active {{end}}item" href="{{AppSubUrl}}/user/settings/account">
 			{{ctx.Locale.Tr "settings.account"}}
 		</a>
+		{{end}}
 		<a class="{{if .PageIsSettingsAppearance}}active {{end}}item" href="{{AppSubUrl}}/user/settings/appearance">
 			{{ctx.Locale.Tr "settings.appearance"}}
 		</a>
+		{{if not ($.UserDisabledFeatures.Contains "manage_mfa" "manage_credentials")}}
 		<a class="{{if .PageIsSettingsSecurity}}active {{end}}item" href="{{AppSubUrl}}/user/settings/security">
 			{{ctx.Locale.Tr "settings.security"}}
 		</a>
+		{{end}}
 		<a class="{{if .PageIsSettingsBlockedUsers}}active {{end}}item" href="{{AppSubUrl}}/user/settings/blocked_users">
 			{{ctx.Locale.Tr "user.block.list"}}
 		</a>
 		<a class="{{if .PageIsSettingsApplications}}active {{end}}item" href="{{AppSubUrl}}/user/settings/applications">
 			{{ctx.Locale.Tr "settings.applications"}}
 		</a>
+		{{if not ($.UserDisabledFeatures.Contains "manage_ssh_keys" "manage_gpg_keys")}}
 		<a class="{{if .PageIsSettingsKeys}}active {{end}}item" href="{{AppSubUrl}}/user/settings/keys">
 			{{ctx.Locale.Tr "settings.ssh_gpg_keys"}}
 		</a>
+		{{end}}
 		{{if .EnableActions}}
 		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>

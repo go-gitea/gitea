@@ -1,11 +1,61 @@
-<script>
-import {SvgIcon} from '../svg.js';
+<script lang="ts">
+import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
-import {toggleElem} from '../utils/dom.js';
-import {formatDatetime} from '../utils/time.js';
-import {renderAnsi} from '../render/ansi.js';
-import {GET, POST, DELETE} from '../modules/fetch.js';
+import {createElementFromAttrs, toggleElem} from '../utils/dom.ts';
+import {formatDatetime} from '../utils/time.ts';
+import {renderAnsi} from '../render/ansi.ts';
+import {POST, DELETE} from '../modules/fetch.ts';
+
+// see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
+type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
+
+type LogLine = {
+  index: number;
+  timestamp: number;
+  message: string;
+};
+
+const LogLinePrefixesGroup = ['::group::', '##[group]'];
+const LogLinePrefixesEndGroup = ['::endgroup::', '##[endgroup]'];
+
+type LogLineCommand = {
+  name: 'group' | 'endgroup',
+  prefix: string,
+}
+
+function parseLineCommand(line: LogLine): LogLineCommand | null {
+  for (const prefix of LogLinePrefixesGroup) {
+    if (line.message.startsWith(prefix)) {
+      return {name: 'group', prefix};
+    }
+  }
+  for (const prefix of LogLinePrefixesEndGroup) {
+    if (line.message.startsWith(prefix)) {
+      return {name: 'endgroup', prefix};
+    }
+  }
+  return null;
+}
+
+function isLogElementInViewport(el: HTMLElement): boolean {
+  const rect = el.getBoundingClientRect();
+  return rect.top >= 0 && rect.bottom <= window.innerHeight; // only check height but not width
+}
+
+type LocaleStorageOptions = {
+  autoScroll: boolean;
+  expandRunning: boolean;
+};
+
+function getLocaleStorageOptions(): LocaleStorageOptions {
+  try {
+    const optsJson = localStorage.getItem('actions-view-options');
+    if (optsJson) return JSON.parse(optsJson);
+  } catch {}
+  // if no options in localStorage, or failed to parse, return default options
+  return {autoScroll: true, expandRunning: false};
+}
 
 const sfc = {
   name: 'RepoActionView',
@@ -20,10 +70,20 @@ const sfc = {
     locale: Object,
   },
 
+  watch: {
+    optionAlwaysAutoScroll() {
+      this.saveLocaleStorageOptions();
+    },
+    optionAlwaysExpandRunning() {
+      this.saveLocaleStorageOptions();
+    },
+  },
+
   data() {
+    const {autoScroll, expandRunning} = getLocaleStorageOptions();
     return {
       // internal state
-      loading: false,
+      loadingAbortController: null,
       intervalID: null,
       currentJobStepsStates: [],
       artifacts: [],
@@ -34,11 +94,14 @@ const sfc = {
         'log-time-stamp': false,
         'log-time-seconds': false,
       },
+      optionAlwaysAutoScroll: autoScroll ?? false,
+      optionAlwaysExpandRunning: expandRunning ?? false,
 
       // provided by backend
       run: {
         link: '',
         title: '',
+        titleHTML: '',
         status: '',
         canCancel: false,
         canApprove: false,
@@ -89,7 +152,7 @@ const sfc = {
     // load job data and then auto-reload periodically
     // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
     await this.loadJob();
-    this.intervalID = setInterval(this.loadJob, 1000);
+    this.intervalID = setInterval(() => this.loadJob(), 1000);
     document.body.addEventListener('click', this.closeDropdown);
     this.hashChangeListener();
     window.addEventListener('hashchange', this.hashChangeListener);
@@ -110,39 +173,55 @@ const sfc = {
   },
 
   methods: {
-    // get the active container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
-    getLogsContainer(idx) {
-      const el = this.$refs.logs[idx];
+    saveLocaleStorageOptions() {
+      const opts: LocaleStorageOptions = {autoScroll: this.optionAlwaysAutoScroll, expandRunning: this.optionAlwaysExpandRunning};
+      localStorage.setItem('actions-view-options', JSON.stringify(opts));
+    },
+
+    // get the job step logs container ('.job-step-logs')
+    getJobStepLogsContainer(stepIndex: number): HTMLElement {
+      return this.$refs.logs[stepIndex];
+    },
+
+    // get the active logs container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
+    getActiveLogsContainer(stepIndex: number): HTMLElement {
+      const el = this.getJobStepLogsContainer(stepIndex);
       return el._stepLogsActiveContainer ?? el;
     },
     // begin a log group
-    beginLogGroup(idx) {
-      const el = this.$refs.logs[idx];
-
-      const elJobLogGroup = document.createElement('div');
-      elJobLogGroup.classList.add('job-log-group');
-
-      const elJobLogGroupSummary = document.createElement('div');
-      elJobLogGroupSummary.classList.add('job-log-group-summary');
-
-      const elJobLogList = document.createElement('div');
-      elJobLogList.classList.add('job-log-list');
-
-      elJobLogGroup.append(elJobLogGroupSummary);
-      elJobLogGroup.append(elJobLogList);
+    beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
+      const el = this.$refs.logs[stepIndex];
+      const elJobLogGroupSummary = createElementFromAttrs('summary', {class: 'job-log-group-summary'},
+        this.createLogLine(stepIndex, startTime, {
+          index: line.index,
+          timestamp: line.timestamp,
+          message: line.message.substring(cmd.prefix.length),
+        }),
+      );
+      const elJobLogList = createElementFromAttrs('div', {class: 'job-log-list'});
+      const elJobLogGroup = createElementFromAttrs('details', {class: 'job-log-group'},
+        elJobLogGroupSummary,
+        elJobLogList,
+      );
+      el.append(elJobLogGroup);
       el._stepLogsActiveContainer = elJobLogList;
     },
     // end a log group
-    endLogGroup(idx) {
-      const el = this.$refs.logs[idx];
+    endLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
+      const el = this.$refs.logs[stepIndex];
       el._stepLogsActiveContainer = null;
+      el.append(this.createLogLine(stepIndex, startTime, {
+        index: line.index,
+        timestamp: line.timestamp,
+        message: line.message.substring(cmd.prefix.length),
+      }));
     },
 
     // show/hide the step logs for a step
-    toggleStepLogs(idx) {
+    toggleStepLogs(idx: number) {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
-        this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
+        this.loadJobForce(); // try to load the data immediately instead of waiting for next timer interval
       }
     },
     // cancel a run
@@ -154,62 +233,62 @@ const sfc = {
       POST(`${this.run.link}/approve`);
     },
 
-    createLogLine(line, startTime, stepIndex) {
-      const div = document.createElement('div');
-      div.classList.add('job-log-line');
-      div.setAttribute('id', `jobstep-${stepIndex}-${line.index}`);
-      div._jobLogTime = line.timestamp;
+    createLogLine(stepIndex: number, startTime: number, line: LogLine) {
+      const lineNum = createElementFromAttrs('a', {class: 'line-num muted', href: `#jobstep-${stepIndex}-${line.index}`},
+        String(line.index),
+      );
 
-      const lineNumber = document.createElement('a');
-      lineNumber.classList.add('line-num', 'muted');
-      lineNumber.textContent = line.index;
-      lineNumber.setAttribute('href', `#jobstep-${stepIndex}-${line.index}`);
-      div.append(lineNumber);
+      const logTimeStamp = createElementFromAttrs('span', {class: 'log-time-stamp'},
+        formatDatetime(new Date(line.timestamp * 1000)), // for "Show timestamps"
+      );
 
-      // for "Show timestamps"
-      const logTimeStamp = document.createElement('span');
-      logTimeStamp.className = 'log-time-stamp';
-      const date = new Date(parseFloat(line.timestamp * 1000));
-      const timeStamp = formatDatetime(date);
-      logTimeStamp.textContent = timeStamp;
+      const logMsg = createElementFromAttrs('span', {class: 'log-msg'});
+      logMsg.innerHTML = renderAnsi(line.message);
+
+      const seconds = Math.floor(line.timestamp - startTime);
+      const logTimeSeconds = createElementFromAttrs('span', {class: 'log-time-seconds'},
+        `${seconds}s`, // for "Show seconds"
+      );
+
       toggleElem(logTimeStamp, this.timeVisible['log-time-stamp']);
-      // for "Show seconds"
-      const logTimeSeconds = document.createElement('span');
-      logTimeSeconds.className = 'log-time-seconds';
-      const seconds = Math.floor(parseFloat(line.timestamp) - parseFloat(startTime));
-      logTimeSeconds.textContent = `${seconds}s`;
       toggleElem(logTimeSeconds, this.timeVisible['log-time-seconds']);
 
-      const logMessage = document.createElement('span');
-      logMessage.className = 'log-msg';
-      logMessage.innerHTML = renderAnsi(line.message);
-      div.append(logTimeStamp);
-      div.append(logMessage);
-      div.append(logTimeSeconds);
-
-      return div;
+      return createElementFromAttrs('div', {id: `jobstep-${stepIndex}-${line.index}`, class: 'job-log-line'},
+        lineNum, logTimeStamp, logMsg, logTimeSeconds,
+      );
     },
 
-    appendLogs(stepIndex, logLines, startTime) {
+    shouldAutoScroll(stepIndex: number): boolean {
+      if (!this.optionAlwaysAutoScroll) return false;
+      const el = this.getJobStepLogsContainer(stepIndex);
+      // if the logs container is empty, then auto-scroll if the step is expanded
+      if (!el.lastChild) return this.currentJobStepsStates[stepIndex].expanded;
+      return isLogElementInViewport(el.lastChild);
+    },
+
+    appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
       for (const line of logLines) {
-        // TODO: group support: ##[group]GroupTitle , ##[endgroup]
-        const el = this.getLogsContainer(stepIndex);
-        el.append(this.createLogLine(line, startTime, stepIndex));
+        const el = this.getActiveLogsContainer(stepIndex);
+        const cmd = parseLineCommand(line);
+        if (cmd?.name === 'group') {
+          this.beginLogGroup(stepIndex, startTime, line, cmd);
+          continue;
+        } else if (cmd?.name === 'endgroup') {
+          this.endLogGroup(stepIndex, startTime, line, cmd);
+          continue;
+        }
+        el.append(this.createLogLine(stepIndex, startTime, line));
       }
     },
 
-    async fetchArtifacts() {
-      const resp = await GET(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
-      return await resp.json();
-    },
-
-    async deleteArtifact(name) {
+    async deleteArtifact(name: string) {
       if (!window.confirm(this.locale.confirmDeleteArtifact.replace('%s', name))) return;
+      // TODO: should escape the "name"?
       await DELETE(`${this.run.link}/artifacts/${name}`);
-      await this.loadJob();
+      await this.loadJobForce();
     },
 
-    async fetchJob() {
+    async fetchJobData(abortController: AbortController) {
       const logCursors = this.currentJobStepsStates.map((it, idx) => {
         // cursor is used to indicate the last position of the logs
         // it's only used by backend, frontend just reads it and passes it back, it and can be any type.
@@ -217,61 +296,81 @@ const sfc = {
         return {step: idx, cursor: it.cursor, expanded: it.expanded};
       });
       const resp = await POST(`${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`, {
+        signal: abortController.signal,
         data: {logCursors},
       });
       return await resp.json();
     },
 
+    async loadJobForce() {
+      this.loadingAbortController?.abort();
+      this.loadingAbortController = null;
+      await this.loadJob();
+    },
+
     async loadJob() {
-      if (this.loading) return;
+      if (this.loadingAbortController) return;
+      const abortController = new AbortController();
+      this.loadingAbortController = abortController;
       try {
-        this.loading = true;
+        const isFirstLoad = !this.run.status;
+        const job = await this.fetchJobData(abortController);
+        if (this.loadingAbortController !== abortController) return;
 
-        let job, artifacts;
-        try {
-          [job, artifacts] = await Promise.all([
-            this.fetchJob(),
-            this.fetchArtifacts(), // refresh artifacts if upload-artifact step done
-          ]);
-        } catch (err) {
-          if (err instanceof TypeError) return; // avoid network error while unloading page
-          throw err;
-        }
-
-        this.artifacts = artifacts['artifacts'] || [];
-
-        // save the state to Vue data, then the UI will be updated
+        this.artifacts = job.artifacts || [];
         this.run = job.state.run;
         this.currentJob = job.state.currentJob;
 
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
+          const expanded = isFirstLoad && this.optionAlwaysExpandRunning && this.currentJob.steps[i].status === 'running';
           if (!this.currentJobStepsStates[i]) {
             // initial states for job steps
-            this.currentJobStepsStates[i] = {cursor: null, expanded: false};
+            this.currentJobStepsStates[i] = {cursor: null, expanded};
           }
         }
-        // append logs to the UI
-        for (const logs of job.logs.stepsLog) {
-          // save the cursor, it will be passed to backend next time
-          this.currentJobStepsStates[logs.step].cursor = logs.cursor;
-          this.appendLogs(logs.step, logs.lines, logs.started);
+
+        // find the step indexes that need to auto-scroll
+        const autoScrollStepIndexes = new Map<number, boolean>();
+        for (const logs of job.logs.stepsLog ?? []) {
+          if (autoScrollStepIndexes.has(logs.step)) continue;
+          autoScrollStepIndexes.set(logs.step, this.shouldAutoScroll(logs.step));
         }
 
+        // append logs to the UI
+        for (const logs of job.logs.stepsLog ?? []) {
+          // save the cursor, it will be passed to backend next time
+          this.currentJobStepsStates[logs.step].cursor = logs.cursor;
+          this.appendLogs(logs.step, logs.started, logs.lines);
+        }
+
+        // auto-scroll to the last log line of the last step
+        let autoScrollJobStepElement: HTMLElement;
+        for (let stepIndex = 0; stepIndex < this.currentJob.steps.length; stepIndex++) {
+          if (!autoScrollStepIndexes.get(stepIndex)) continue;
+          autoScrollJobStepElement = this.getJobStepLogsContainer(stepIndex);
+        }
+        autoScrollJobStepElement?.lastElementChild.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+
+        // clear the interval timer if the job is done
         if (this.run.done && this.intervalID) {
           clearInterval(this.intervalID);
           this.intervalID = null;
         }
+      } catch (e) {
+        // avoid network error while unloading page, and ignore "abort" error
+        if (e instanceof TypeError || abortController.signal.aborted) return;
+        throw e;
       } finally {
-        this.loading = false;
+        if (this.loadingAbortController === abortController) this.loadingAbortController = null;
       }
     },
 
-    isDone(status) {
+    isDone(status: RunStatus) {
       return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
     },
 
-    isExpandable(status) {
+    isExpandable(status: RunStatus) {
       return ['success', 'running', 'failure', 'cancelled'].includes(status);
     },
 
@@ -279,7 +378,7 @@ const sfc = {
       if (this.menuVisible) this.menuVisible = false;
     },
 
-    toggleTimeDisplay(type) {
+    toggleTimeDisplay(type: string) {
       this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
       for (const el of this.$refs.steps.querySelectorAll(`.log-time-${type}`)) {
         toggleElem(el, this.timeVisible[`log-time-${type}`]);
@@ -292,7 +391,7 @@ const sfc = {
       const outerEl = document.querySelector('.full.height');
       const actionBodyEl = document.querySelector('.action-view-body');
       const headerEl = document.querySelector('#navbar');
-      const contentEl = document.querySelector('.page-content.repository');
+      const contentEl = document.querySelector('.page-content');
       const footerEl = document.querySelector('.page-footer');
       toggleElem(headerEl, !this.isFullScreen);
       toggleElem(contentEl, !this.isFullScreen);
@@ -330,7 +429,7 @@ export function initRepositoryActionView() {
 
   // TODO: the parent element's full height doesn't work well now,
   // but we can not pollute the global style at the moment, only fix the height problem for pages with this component
-  const parentFullHeight = document.querySelector('body > div.full.height');
+  const parentFullHeight = document.querySelector<HTMLElement>('body > div.full.height');
   if (parentFullHeight) parentFullHeight.style.paddingBottom = '0';
 
   const view = createApp(sfc, {
@@ -362,6 +461,8 @@ export function initRepositoryActionView() {
         skipped: el.getAttribute('data-locale-status-skipped'),
         blocked: el.getAttribute('data-locale-status-blocked'),
       },
+      logsAlwaysAutoScroll: el.getAttribute('data-locale-logs-always-auto-scroll'),
+      logsAlwaysExpandRunning: el.getAttribute('data-locale-logs-always-expand-running'),
     },
   });
   view.mount(el);
@@ -373,9 +474,8 @@ export function initRepositoryActionView() {
       <div class="action-info-summary">
         <div class="action-info-summary-title">
           <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
-          <h2 class="action-info-summary-title-text">
-            {{ run.title }}
-          </h2>
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
         <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
           {{ locale.approve }}
@@ -383,7 +483,7 @@ export function initRepositoryActionView() {
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button tw-mr-0 tw-whitespace-nowrap link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
+        <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
@@ -399,7 +499,8 @@ export function initRepositoryActionView() {
           <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
         </template>
         <span class="ui label tw-max-w-full" v-if="run.commit.shortSHA">
-          <a class="gt-ellipsis" :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
+          <span v-if="run.commit.branch.isDeleted" class="gt-ellipsis tw-line-through" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</span>
+          <a v-else class="gt-ellipsis" :href="run.commit.branch.link" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</a>
         </span>
       </div>
     </div>
@@ -464,6 +565,17 @@ export function initRepositoryActionView() {
                   <i class="icon"><SvgIcon :name="isFullScreen ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
                   {{ locale.showFullScreen }}
                 </a>
+
+                <div class="divider"/>
+                <a class="item" @click="optionAlwaysAutoScroll = !optionAlwaysAutoScroll">
+                  <i class="icon"><SvgIcon :name="optionAlwaysAutoScroll ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
+                  {{ locale.logsAlwaysAutoScroll }}
+                </a>
+                <a class="item" @click="optionAlwaysExpandRunning = !optionAlwaysExpandRunning">
+                  <i class="icon"><SvgIcon :name="optionAlwaysExpandRunning ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
+                  {{ locale.logsAlwaysExpandRunning }}
+                </a>
+
                 <div class="divider"/>
                 <a :class="['item', !currentJob.steps.length ? 'disabled' : '']" :href="run.link+'/jobs/'+jobIndex+'/logs'" target="_blank">
                   <i class="icon"><SvgIcon name="octicon-download"/></i>
@@ -520,13 +632,20 @@ export function initRepositoryActionView() {
 
 .action-info-summary-title {
   display: flex;
+  align-items: center;
+  gap: 0.5em;
 }
 
 .action-info-summary-title-text {
   font-size: 20px;
-  margin: 0 0 0 8px;
+  margin: 0;
   flex: 1;
   overflow-wrap: anywhere;
+}
+
+.action-info-summary .ui.button {
+  margin: 0;
+  white-space: nowrap;
 }
 
 .action-commit-summary {
@@ -797,7 +916,7 @@ export function initRepositoryActionView() {
 }
 </style>
 
-<style>
+<style> /* eslint-disable-line vue-scoped-css/enforce-style-type */
 /* some elements are not managed by vue, so we need to use global style */
 .job-status-rotate {
   animation: job-status-rotate-keyframes 1s linear infinite;
@@ -856,11 +975,12 @@ export function initRepositoryActionView() {
   white-space: nowrap;
 }
 
-.job-step-section .job-step-logs .job-log-line .log-msg {
+.job-step-logs .job-log-line .log-msg {
   flex: 1;
   word-break: break-all;
   white-space: break-spaces;
   margin-left: 10px;
+  overflow-wrap: anywhere;
 }
 
 /* selectors here are intentionally exact to only match fullscreen */
@@ -881,15 +1001,18 @@ export function initRepositoryActionView() {
   border-radius: 0;
 }
 
-/* TODO: group support
-
-.job-log-group {
-
+.job-log-group .job-log-list .job-log-line .log-msg {
+  margin-left: 2em;
 }
+
 .job-log-group-summary {
-
+  position: relative;
 }
-.job-log-list {
 
-} */
+.job-log-group-summary > .job-log-line {
+  position: absolute;
+  inset: 0;
+  z-index: -1; /* to avoid hiding the triangle of the "details" element */
+  overflow: hidden;
+}
 </style>

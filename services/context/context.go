@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
@@ -32,7 +31,7 @@ import (
 // Render represents a template render
 type Render interface {
 	TemplateLookup(tmpl string, templateCtx context.Context) (templates.TemplateExecutor, error)
-	HTML(w io.Writer, status int, name string, data any, templateCtx context.Context) error
+	HTML(w io.Writer, status int, name templates.TplName, data any, templateCtx context.Context) error
 }
 
 // Context represents context of a request.
@@ -65,6 +64,9 @@ type Context struct {
 type TemplateContext map[string]any
 
 func init() {
+	web.RegisterResponseStatusProvider[*Base](func(req *http.Request) web_types.ResponseStatusProvider {
+		return req.Context().Value(BaseContextKey).(*Base)
+	})
 	web.RegisterResponseStatusProvider[*Context](func(req *http.Request) web_types.ResponseStatusProvider {
 		return req.Context().Value(WebContextKey).(*Context)
 	})
@@ -100,6 +102,7 @@ func NewTemplateContextForWeb(ctx *Context) TemplateContext {
 	tmplCtx := NewTemplateContext(ctx)
 	tmplCtx["Locale"] = ctx.Base.Locale
 	tmplCtx["AvatarUtils"] = templates.NewAvatarUtils(ctx)
+	tmplCtx["RenderUtils"] = templates.NewRenderUtils(ctx)
 	tmplCtx["RootData"] = ctx.Data
 	tmplCtx["Consts"] = map[string]any{
 		"RepoUnitTypeCode":            unit.TypeCode,
@@ -138,10 +141,8 @@ func Contexter() func(next http.Handler) http.Handler {
 	csrfOpts := CsrfOptions{
 		Secret:         hex.EncodeToString(setting.GetGeneralTokenSigningSecret()),
 		Cookie:         setting.CSRFCookieName,
-		SetCookie:      true,
 		Secure:         setting.SessionConfig.Secure,
 		CookieHTTPOnly: setting.CSRFCookieHTTPOnly,
-		Header:         "X-Csrf-Token",
 		CookieDomain:   setting.SessionConfig.Domain,
 		CookiePath:     setting.SessionConfig.CookiePath,
 		SameSite:       setting.SessionConfig.SameSite,
@@ -151,12 +152,9 @@ func Contexter() func(next http.Handler) http.Handler {
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			base, baseCleanUp := NewBaseContext(resp, req)
-			defer baseCleanUp()
+			base := NewBaseContext(resp, req)
 			ctx := NewWebContext(base, rnd, session.GetContextSession(req))
-
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
-			ctx.Data["Context"] = ctx // TODO: use "ctx" in template and remove this
 			ctx.Data["CurrentURL"] = setting.AppSubURL + req.URL.RequestURI()
 			ctx.Data["Link"] = ctx.Link
 
@@ -164,10 +162,8 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.PageData = map[string]any{}
 			ctx.Data["PageData"] = ctx.PageData
 
-			ctx.Base.AppendContextValue(WebContextKey, ctx)
-			ctx.Base.AppendContextValueFunc(gitrepo.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
-
-			ctx.Csrf = PrepareCSRFProtector(csrfOpts, ctx)
+			ctx.Base.SetContextValue(WebContextKey, ctx)
+			ctx.Csrf = NewCSRFProtector(csrfOpts)
 
 			// Get the last flash message from cookie
 			lastFlashCookie := middleware.GetSiteCookie(ctx.Req, CookieNameFlash)
@@ -204,22 +200,13 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["SystemConfig"] = setting.Config()
-			ctx.Data["CsrfToken"] = ctx.Csrf.GetToken()
-			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
 
 			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 			ctx.Data["DisableStars"] = setting.Repository.DisableStars
-			ctx.Data["EnableActions"] = setting.Actions.Enabled
+			ctx.Data["EnableActions"] = setting.Actions.Enabled && !unit.TypeActions.UnitGlobalDisabled()
 
 			ctx.Data["ManifestData"] = setting.ManifestData
-
-			ctx.Data["UnitWikiGlobalDisabled"] = unit.TypeWiki.UnitGlobalDisabled()
-			ctx.Data["UnitIssuesGlobalDisabled"] = unit.TypeIssues.UnitGlobalDisabled()
-			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
-			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
-			ctx.Data["UnitActionsGlobalDisabled"] = unit.TypeActions.UnitGlobalDisabled()
-
 			ctx.Data["AllLangs"] = translation.AllLangs()
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)

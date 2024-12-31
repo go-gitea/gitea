@@ -36,25 +36,15 @@ import (
 
 const minDBVersion = 70 // Gitea 1.5.3
 
-// Migration describes on migration from lower version to high version
-type Migration interface {
-	Description() string
-	Migrate(*xorm.Engine) error
-}
-
 type migration struct {
+	idNumber    int64 // DB version is "the last migration's idNumber" + 1
 	description string
 	migrate     func(*xorm.Engine) error
 }
 
-// NewMigration creates a new migration
-func NewMigration(desc string, fn func(*xorm.Engine) error) Migration {
-	return &migration{desc, fn}
-}
-
-// Description returns the migration's description
-func (m *migration) Description() string {
-	return m.description
+// newMigration creates a new migration
+func newMigration(idNumber int64, desc string, fn func(*xorm.Engine) error) *migration {
+	return &migration{idNumber, desc, fn}
 }
 
 // Migrate executes the migration
@@ -65,532 +55,322 @@ func (m *migration) Migrate(x *xorm.Engine) error {
 // Version describes the version table. Should have only one row with id==1
 type Version struct {
 	ID      int64 `xorm:"pk autoincr"`
-	Version int64
+	Version int64 // DB version is "the last migration's idNumber" + 1
 }
 
 // Use noopMigration when there is a migration that has been no-oped
 var noopMigration = func(_ *xorm.Engine) error { return nil }
 
+var preparedMigrations []*migration
+
 // This is a sequence of migrations. Add new migrations to the bottom of the list.
 // If you want to "retire" a migration, remove it from the top of the list and
 // update minDBVersion accordingly
-var migrations = []Migration{
-	// Gitea 1.5.0 ends at v69
+func prepareMigrationTasks() []*migration {
+	if preparedMigrations != nil {
+		return preparedMigrations
+	}
+	preparedMigrations = []*migration{
+		// Gitea 1.5.0 ends at database version 69
 
-	// v70 -> v71
-	NewMigration("add issue_dependencies", v1_6.AddIssueDependencies),
-	// v71 -> v72
-	NewMigration("protect each scratch token", v1_6.AddScratchHash),
-	// v72 -> v73
-	NewMigration("add review", v1_6.AddReview),
+		newMigration(70, "add issue_dependencies", v1_6.AddIssueDependencies),
+		newMigration(71, "protect each scratch token", v1_6.AddScratchHash),
+		newMigration(72, "add review", v1_6.AddReview),
 
-	// Gitea 1.6.0 ends at v73
+		// Gitea 1.6.0 ends at database version 73
 
-	// v73 -> v74
-	NewMigration("add must_change_password column for users table", v1_7.AddMustChangePassword),
-	// v74 -> v75
-	NewMigration("add approval whitelists to protected branches", v1_7.AddApprovalWhitelistsToProtectedBranches),
-	// v75 -> v76
-	NewMigration("clear nonused data which not deleted when user was deleted", v1_7.ClearNonusedData),
+		newMigration(73, "add must_change_password column for users table", v1_7.AddMustChangePassword),
+		newMigration(74, "add approval whitelists to protected branches", v1_7.AddApprovalWhitelistsToProtectedBranches),
+		newMigration(75, "clear nonused data which not deleted when user was deleted", v1_7.ClearNonusedData),
 
-	// Gitea 1.7.0 ends at v76
+		// Gitea 1.7.0 ends at database version 76
 
-	// v76 -> v77
-	NewMigration("add pull request rebase with merge commit", v1_8.AddPullRequestRebaseWithMerge),
-	// v77 -> v78
-	NewMigration("add theme to users", v1_8.AddUserDefaultTheme),
-	// v78 -> v79
-	NewMigration("rename repo is_bare to repo is_empty", v1_8.RenameRepoIsBareToIsEmpty),
-	// v79 -> v80
-	NewMigration("add can close issues via commit in any branch", v1_8.AddCanCloseIssuesViaCommitInAnyBranch),
-	// v80 -> v81
-	NewMigration("add is locked to issues", v1_8.AddIsLockedToIssues),
-	// v81 -> v82
-	NewMigration("update U2F counter type", v1_8.ChangeU2FCounterType),
+		newMigration(76, "add pull request rebase with merge commit", v1_8.AddPullRequestRebaseWithMerge),
+		newMigration(77, "add theme to users", v1_8.AddUserDefaultTheme),
+		newMigration(78, "rename repo is_bare to repo is_empty", v1_8.RenameRepoIsBareToIsEmpty),
+		newMigration(79, "add can close issues via commit in any branch", v1_8.AddCanCloseIssuesViaCommitInAnyBranch),
+		newMigration(80, "add is locked to issues", v1_8.AddIsLockedToIssues),
+		newMigration(81, "update U2F counter type", v1_8.ChangeU2FCounterType),
 
-	// Gitea 1.8.0 ends at v82
+		// Gitea 1.8.0 ends at database version 82
 
-	// v82 -> v83
-	NewMigration("hot fix for wrong release sha1 on release table", v1_9.FixReleaseSha1OnReleaseTable),
-	// v83 -> v84
-	NewMigration("add uploader id for table attachment", v1_9.AddUploaderIDForAttachment),
-	// v84 -> v85
-	NewMigration("add table to store original imported gpg keys", v1_9.AddGPGKeyImport),
-	// v85 -> v86
-	NewMigration("hash application token", v1_9.HashAppToken),
-	// v86 -> v87
-	NewMigration("add http method to webhook", v1_9.AddHTTPMethodToWebhook),
-	// v87 -> v88
-	NewMigration("add avatar field to repository", v1_9.AddAvatarFieldToRepository),
+		newMigration(82, "hot fix for wrong release sha1 on release table", v1_9.FixReleaseSha1OnReleaseTable),
+		newMigration(83, "add uploader id for table attachment", v1_9.AddUploaderIDForAttachment),
+		newMigration(84, "add table to store original imported gpg keys", v1_9.AddGPGKeyImport),
+		newMigration(85, "hash application token", v1_9.HashAppToken),
+		newMigration(86, "add http method to webhook", v1_9.AddHTTPMethodToWebhook),
+		newMigration(87, "add avatar field to repository", v1_9.AddAvatarFieldToRepository),
 
-	// Gitea 1.9.0 ends at v88
+		// Gitea 1.9.0 ends at database version 88
 
-	// v88 -> v89
-	NewMigration("add commit status context field to commit_status", v1_10.AddCommitStatusContext),
-	// v89 -> v90
-	NewMigration("add original author/url migration info to issues, comments, and repo ", v1_10.AddOriginalMigrationInfo),
-	// v90 -> v91
-	NewMigration("change length of some repository columns", v1_10.ChangeSomeColumnsLengthOfRepo),
-	// v91 -> v92
-	NewMigration("add index on owner_id of repository and type, review_id of comment", v1_10.AddIndexOnRepositoryAndComment),
-	// v92 -> v93
-	NewMigration("remove orphaned repository index statuses", v1_10.RemoveLingeringIndexStatus),
-	// v93 -> v94
-	NewMigration("add email notification enabled preference to user", v1_10.AddEmailNotificationEnabledToUser),
-	// v94 -> v95
-	NewMigration("add enable_status_check, status_check_contexts to protected_branch", v1_10.AddStatusCheckColumnsForProtectedBranches),
-	// v95 -> v96
-	NewMigration("add table columns for cross referencing issues", v1_10.AddCrossReferenceColumns),
-	// v96 -> v97
-	NewMigration("delete orphaned attachments", v1_10.DeleteOrphanedAttachments),
-	// v97 -> v98
-	NewMigration("add repo_admin_change_team_access to user", v1_10.AddRepoAdminChangeTeamAccessColumnForUser),
-	// v98 -> v99
-	NewMigration("add original author name and id on migrated release", v1_10.AddOriginalAuthorOnMigratedReleases),
-	// v99 -> v100
-	NewMigration("add task table and status column for repository table", v1_10.AddTaskTable),
-	// v100 -> v101
-	NewMigration("update migration repositories' service type", v1_10.UpdateMigrationServiceTypes),
-	// v101 -> v102
-	NewMigration("change length of some external login users columns", v1_10.ChangeSomeColumnsLengthOfExternalLoginUser),
+		newMigration(88, "add commit status context field to commit_status", v1_10.AddCommitStatusContext),
+		newMigration(89, "add original author/url migration info to issues, comments, and repo ", v1_10.AddOriginalMigrationInfo),
+		newMigration(90, "change length of some repository columns", v1_10.ChangeSomeColumnsLengthOfRepo),
+		newMigration(91, "add index on owner_id of repository and type, review_id of comment", v1_10.AddIndexOnRepositoryAndComment),
+		newMigration(92, "remove orphaned repository index statuses", v1_10.RemoveLingeringIndexStatus),
+		newMigration(93, "add email notification enabled preference to user", v1_10.AddEmailNotificationEnabledToUser),
+		newMigration(94, "add enable_status_check, status_check_contexts to protected_branch", v1_10.AddStatusCheckColumnsForProtectedBranches),
+		newMigration(95, "add table columns for cross referencing issues", v1_10.AddCrossReferenceColumns),
+		newMigration(96, "delete orphaned attachments", v1_10.DeleteOrphanedAttachments),
+		newMigration(97, "add repo_admin_change_team_access to user", v1_10.AddRepoAdminChangeTeamAccessColumnForUser),
+		newMigration(98, "add original author name and id on migrated release", v1_10.AddOriginalAuthorOnMigratedReleases),
+		newMigration(99, "add task table and status column for repository table", v1_10.AddTaskTable),
+		newMigration(100, "update migration repositories' service type", v1_10.UpdateMigrationServiceTypes),
+		newMigration(101, "change length of some external login users columns", v1_10.ChangeSomeColumnsLengthOfExternalLoginUser),
 
-	// Gitea 1.10.0 ends at v102
+		// Gitea 1.10.0 ends at database version 102
 
-	// v102 -> v103
-	NewMigration("update migration repositories' service type", v1_11.DropColumnHeadUserNameOnPullRequest),
-	// v103 -> v104
-	NewMigration("Add WhitelistDeployKeys to protected branch", v1_11.AddWhitelistDeployKeysToBranches),
-	// v104 -> v105
-	NewMigration("remove unnecessary columns from label", v1_11.RemoveLabelUneededCols),
-	// v105 -> v106
-	NewMigration("add includes_all_repositories to teams", v1_11.AddTeamIncludesAllRepositories),
-	// v106 -> v107
-	NewMigration("add column `mode` to table watch", v1_11.AddModeColumnToWatch),
-	// v107 -> v108
-	NewMigration("Add template options to repository", v1_11.AddTemplateToRepo),
-	// v108 -> v109
-	NewMigration("Add comment_id on table notification", v1_11.AddCommentIDOnNotification),
-	// v109 -> v110
-	NewMigration("add can_create_org_repo to team", v1_11.AddCanCreateOrgRepoColumnForTeam),
-	// v110 -> v111
-	NewMigration("change review content type to text", v1_11.ChangeReviewContentToText),
-	// v111 -> v112
-	NewMigration("update branch protection for can push and whitelist enable", v1_11.AddBranchProtectionCanPushAndEnableWhitelist),
-	// v112 -> v113
-	NewMigration("remove release attachments which repository deleted", v1_11.RemoveAttachmentMissedRepo),
-	// v113 -> v114
-	NewMigration("new feature: change target branch of pull requests", v1_11.FeatureChangeTargetBranch),
-	// v114 -> v115
-	NewMigration("Remove authentication credentials from stored URL", v1_11.SanitizeOriginalURL),
-	// v115 -> v116
-	NewMigration("add user_id prefix to existing user avatar name", v1_11.RenameExistingUserAvatarName),
-	// v116 -> v117
-	NewMigration("Extend TrackedTimes", v1_11.ExtendTrackedTimes),
+		newMigration(102, "update migration repositories' service type", v1_11.DropColumnHeadUserNameOnPullRequest),
+		newMigration(103, "Add WhitelistDeployKeys to protected branch", v1_11.AddWhitelistDeployKeysToBranches),
+		newMigration(104, "remove unnecessary columns from label", v1_11.RemoveLabelUneededCols),
+		newMigration(105, "add includes_all_repositories to teams", v1_11.AddTeamIncludesAllRepositories),
+		newMigration(106, "add column `mode` to table watch", v1_11.AddModeColumnToWatch),
+		newMigration(107, "Add template options to repository", v1_11.AddTemplateToRepo),
+		newMigration(108, "Add comment_id on table notification", v1_11.AddCommentIDOnNotification),
+		newMigration(109, "add can_create_org_repo to team", v1_11.AddCanCreateOrgRepoColumnForTeam),
+		newMigration(110, "change review content type to text", v1_11.ChangeReviewContentToText),
+		newMigration(111, "update branch protection for can push and whitelist enable", v1_11.AddBranchProtectionCanPushAndEnableWhitelist),
+		newMigration(112, "remove release attachments which repository deleted", v1_11.RemoveAttachmentMissedRepo),
+		newMigration(113, "new feature: change target branch of pull requests", v1_11.FeatureChangeTargetBranch),
+		newMigration(114, "Remove authentication credentials from stored URL", v1_11.SanitizeOriginalURL),
+		newMigration(115, "add user_id prefix to existing user avatar name", v1_11.RenameExistingUserAvatarName),
+		newMigration(116, "Extend TrackedTimes", v1_11.ExtendTrackedTimes),
 
-	// Gitea 1.11.0 ends at v117
+		// Gitea 1.11.0 ends at database version 117
 
-	// v117 -> v118
-	NewMigration("Add block on rejected reviews branch protection", v1_12.AddBlockOnRejectedReviews),
-	// v118 -> v119
-	NewMigration("Add commit id and stale to reviews", v1_12.AddReviewCommitAndStale),
-	// v119 -> v120
-	NewMigration("Fix migrated repositories' git service type", v1_12.FixMigratedRepositoryServiceType),
-	// v120 -> v121
-	NewMigration("Add owner_name on table repository", v1_12.AddOwnerNameOnRepository),
-	// v121 -> v122
-	NewMigration("add is_restricted column for users table", v1_12.AddIsRestricted),
-	// v122 -> v123
-	NewMigration("Add Require Signed Commits to ProtectedBranch", v1_12.AddRequireSignedCommits),
-	// v123 -> v124
-	NewMigration("Add original information for reactions", v1_12.AddReactionOriginals),
-	// v124 -> v125
-	NewMigration("Add columns to user and repository", v1_12.AddUserRepoMissingColumns),
-	// v125 -> v126
-	NewMigration("Add some columns on review for migration", v1_12.AddReviewMigrateInfo),
-	// v126 -> v127
-	NewMigration("Fix topic repository count", v1_12.FixTopicRepositoryCount),
-	// v127 -> v128
-	NewMigration("add repository code language statistics", v1_12.AddLanguageStats),
-	// v128 -> v129
-	NewMigration("fix merge base for pull requests", v1_12.FixMergeBase),
-	// v129 -> v130
-	NewMigration("remove dependencies from deleted repositories", v1_12.PurgeUnusedDependencies),
-	// v130 -> v131
-	NewMigration("Expand webhooks for more granularity", v1_12.ExpandWebhooks),
-	// v131 -> v132
-	NewMigration("Add IsSystemWebhook column to webhooks table", v1_12.AddSystemWebhookColumn),
-	// v132 -> v133
-	NewMigration("Add Branch Protection Protected Files Column", v1_12.AddBranchProtectionProtectedFilesColumn),
-	// v133 -> v134
-	NewMigration("Add EmailHash Table", v1_12.AddEmailHashTable),
-	// v134 -> v135
-	NewMigration("Refix merge base for merged pull requests", v1_12.RefixMergeBase),
-	// v135 -> v136
-	NewMigration("Add OrgID column to Labels table", v1_12.AddOrgIDLabelColumn),
-	// v136 -> v137
-	NewMigration("Add CommitsAhead and CommitsBehind Column to PullRequest Table", v1_12.AddCommitDivergenceToPulls),
-	// v137 -> v138
-	NewMigration("Add Branch Protection Block Outdated Branch", v1_12.AddBlockOnOutdatedBranch),
-	// v138 -> v139
-	NewMigration("Add ResolveDoerID to Comment table", v1_12.AddResolveDoerIDCommentColumn),
-	// v139 -> v140
-	NewMigration("prepend refs/heads/ to issue refs", v1_12.PrependRefsHeadsToIssueRefs),
+		newMigration(117, "Add block on rejected reviews branch protection", v1_12.AddBlockOnRejectedReviews),
+		newMigration(118, "Add commit id and stale to reviews", v1_12.AddReviewCommitAndStale),
+		newMigration(119, "Fix migrated repositories' git service type", v1_12.FixMigratedRepositoryServiceType),
+		newMigration(120, "Add owner_name on table repository", v1_12.AddOwnerNameOnRepository),
+		newMigration(121, "add is_restricted column for users table", v1_12.AddIsRestricted),
+		newMigration(122, "Add Require Signed Commits to ProtectedBranch", v1_12.AddRequireSignedCommits),
+		newMigration(123, "Add original information for reactions", v1_12.AddReactionOriginals),
+		newMigration(124, "Add columns to user and repository", v1_12.AddUserRepoMissingColumns),
+		newMigration(125, "Add some columns on review for migration", v1_12.AddReviewMigrateInfo),
+		newMigration(126, "Fix topic repository count", v1_12.FixTopicRepositoryCount),
+		newMigration(127, "add repository code language statistics", v1_12.AddLanguageStats),
+		newMigration(128, "fix merge base for pull requests", v1_12.FixMergeBase),
+		newMigration(129, "remove dependencies from deleted repositories", v1_12.PurgeUnusedDependencies),
+		newMigration(130, "Expand webhooks for more granularity", v1_12.ExpandWebhooks),
+		newMigration(131, "Add IsSystemWebhook column to webhooks table", v1_12.AddSystemWebhookColumn),
+		newMigration(132, "Add Branch Protection Protected Files Column", v1_12.AddBranchProtectionProtectedFilesColumn),
+		newMigration(133, "Add EmailHash Table", v1_12.AddEmailHashTable),
+		newMigration(134, "Refix merge base for merged pull requests", v1_12.RefixMergeBase),
+		newMigration(135, "Add OrgID column to Labels table", v1_12.AddOrgIDLabelColumn),
+		newMigration(136, "Add CommitsAhead and CommitsBehind Column to PullRequest Table", v1_12.AddCommitDivergenceToPulls),
+		newMigration(137, "Add Branch Protection Block Outdated Branch", v1_12.AddBlockOnOutdatedBranch),
+		newMigration(138, "Add ResolveDoerID to Comment table", v1_12.AddResolveDoerIDCommentColumn),
+		newMigration(139, "prepend refs/heads/ to issue refs", v1_12.PrependRefsHeadsToIssueRefs),
 
-	// Gitea 1.12.0 ends at v140
+		// Gitea 1.12.0 ends at database version 140
 
-	// v140 -> v141
-	NewMigration("Save detected language file size to database instead of percent", v1_13.FixLanguageStatsToSaveSize),
-	// v141 -> v142
-	NewMigration("Add KeepActivityPrivate to User table", v1_13.AddKeepActivityPrivateUserColumn),
-	// v142 -> v143
-	NewMigration("Ensure Repository.IsArchived is not null", v1_13.SetIsArchivedToFalse),
-	// v143 -> v144
-	NewMigration("recalculate Stars number for all user", v1_13.RecalculateStars),
-	// v144 -> v145
-	NewMigration("update Matrix Webhook http method to 'PUT'", v1_13.UpdateMatrixWebhookHTTPMethod),
-	// v145 -> v146
-	NewMigration("Increase Language field to 50 in LanguageStats", v1_13.IncreaseLanguageField),
-	// v146 -> v147
-	NewMigration("Add projects info to repository table", v1_13.AddProjectsInfo),
-	// v147 -> v148
-	NewMigration("create review for 0 review id code comments", v1_13.CreateReviewsForCodeComments),
-	// v148 -> v149
-	NewMigration("remove issue dependency comments who refer to non existing issues", v1_13.PurgeInvalidDependenciesComments),
-	// v149 -> v150
-	NewMigration("Add Created and Updated to Milestone table", v1_13.AddCreatedAndUpdatedToMilestones),
-	// v150 -> v151
-	NewMigration("add primary key to repo_topic", v1_13.AddPrimaryKeyToRepoTopic),
-	// v151 -> v152
-	NewMigration("set default password algorithm to Argon2", v1_13.SetDefaultPasswordToArgon2),
-	// v152 -> v153
-	NewMigration("add TrustModel field to Repository", v1_13.AddTrustModelToRepository),
-	// v153 > v154
-	NewMigration("add Team review request support", v1_13.AddTeamReviewRequestSupport),
-	// v154 > v155
-	NewMigration("add timestamps to Star, Label, Follow, Watch and Collaboration", v1_13.AddTimeStamps),
+		newMigration(140, "Save detected language file size to database instead of percent", v1_13.FixLanguageStatsToSaveSize),
+		newMigration(141, "Add KeepActivityPrivate to User table", v1_13.AddKeepActivityPrivateUserColumn),
+		newMigration(142, "Ensure Repository.IsArchived is not null", v1_13.SetIsArchivedToFalse),
+		newMigration(143, "recalculate Stars number for all user", v1_13.RecalculateStars),
+		newMigration(144, "update Matrix Webhook http method to 'PUT'", v1_13.UpdateMatrixWebhookHTTPMethod),
+		newMigration(145, "Increase Language field to 50 in LanguageStats", v1_13.IncreaseLanguageField),
+		newMigration(146, "Add projects info to repository table", v1_13.AddProjectsInfo),
+		newMigration(147, "create review for 0 review id code comments", v1_13.CreateReviewsForCodeComments),
+		newMigration(148, "remove issue dependency comments who refer to non existing issues", v1_13.PurgeInvalidDependenciesComments),
+		newMigration(149, "Add Created and Updated to Milestone table", v1_13.AddCreatedAndUpdatedToMilestones),
+		newMigration(150, "add primary key to repo_topic", v1_13.AddPrimaryKeyToRepoTopic),
+		newMigration(151, "set default password algorithm to Argon2", v1_13.SetDefaultPasswordToArgon2),
+		newMigration(152, "add TrustModel field to Repository", v1_13.AddTrustModelToRepository),
+		newMigration(153, "add Team review request support", v1_13.AddTeamReviewRequestSupport),
+		newMigration(154, "add timestamps to Star, Label, Follow, Watch and Collaboration", v1_13.AddTimeStamps),
 
-	// Gitea 1.13.0 ends at v155
+		// Gitea 1.13.0 ends at database version 155
 
-	// v155 -> v156
-	NewMigration("add changed_protected_files column for pull_request table", v1_14.AddChangedProtectedFilesPullRequestColumn),
-	// v156 -> v157
-	NewMigration("fix publisher ID for tag releases", v1_14.FixPublisherIDforTagReleases),
-	// v157 -> v158
-	NewMigration("ensure repo topics are up-to-date", v1_14.FixRepoTopics),
-	// v158 -> v159
-	NewMigration("code comment replies should have the commitID of the review they are replying to", v1_14.UpdateCodeCommentReplies),
-	// v159 -> v160
-	NewMigration("update reactions constraint", v1_14.UpdateReactionConstraint),
-	// v160 -> v161
-	NewMigration("Add block on official review requests branch protection", v1_14.AddBlockOnOfficialReviewRequests),
-	// v161 -> v162
-	NewMigration("Convert task type from int to string", v1_14.ConvertTaskTypeToString),
-	// v162 -> v163
-	NewMigration("Convert webhook task type from int to string", v1_14.ConvertWebhookTaskTypeToString),
-	// v163 -> v164
-	NewMigration("Convert topic name from 25 to 50", v1_14.ConvertTopicNameFrom25To50),
-	// v164 -> v165
-	NewMigration("Add scope and nonce columns to oauth2_grant table", v1_14.AddScopeAndNonceColumnsToOAuth2Grant),
-	// v165 -> v166
-	NewMigration("Convert hook task type from char(16) to varchar(16) and trim the column", v1_14.ConvertHookTaskTypeToVarcharAndTrim),
-	// v166 -> v167
-	NewMigration("Where Password is Valid with Empty String delete it", v1_14.RecalculateUserEmptyPWD),
-	// v167 -> v168
-	NewMigration("Add user redirect", v1_14.AddUserRedirect),
-	// v168 -> v169
-	NewMigration("Recreate user table to fix default values", v1_14.RecreateUserTableToFixDefaultValues),
-	// v169 -> v170
-	NewMigration("Update DeleteBranch comments to set the old_ref to the commit_sha", v1_14.CommentTypeDeleteBranchUseOldRef),
-	// v170 -> v171
-	NewMigration("Add Dismissed to Review table", v1_14.AddDismissedReviewColumn),
-	// v171 -> v172
-	NewMigration("Add Sorting to ProjectBoard table", v1_14.AddSortingColToProjectBoard),
-	// v172 -> v173
-	NewMigration("Add sessions table for go-chi/session", v1_14.AddSessionTable),
-	// v173 -> v174
-	NewMigration("Add time_id column to Comment", v1_14.AddTimeIDCommentColumn),
-	// v174 -> v175
-	NewMigration("Create repo transfer table", v1_14.AddRepoTransfer),
-	// v175 -> v176
-	NewMigration("Fix Postgres ID Sequences broken by recreate-table", v1_14.FixPostgresIDSequences),
-	// v176 -> v177
-	NewMigration("Remove invalid labels from comments", v1_14.RemoveInvalidLabels),
-	// v177 -> v178
-	NewMigration("Delete orphaned IssueLabels", v1_14.DeleteOrphanedIssueLabels),
+		newMigration(155, "add changed_protected_files column for pull_request table", v1_14.AddChangedProtectedFilesPullRequestColumn),
+		newMigration(156, "fix publisher ID for tag releases", v1_14.FixPublisherIDforTagReleases),
+		newMigration(157, "ensure repo topics are up-to-date", v1_14.FixRepoTopics),
+		newMigration(158, "code comment replies should have the commitID of the review they are replying to", v1_14.UpdateCodeCommentReplies),
+		newMigration(159, "update reactions constraint", v1_14.UpdateReactionConstraint),
+		newMigration(160, "Add block on official review requests branch protection", v1_14.AddBlockOnOfficialReviewRequests),
+		newMigration(161, "Convert task type from int to string", v1_14.ConvertTaskTypeToString),
+		newMigration(162, "Convert webhook task type from int to string", v1_14.ConvertWebhookTaskTypeToString),
+		newMigration(163, "Convert topic name from 25 to 50", v1_14.ConvertTopicNameFrom25To50),
+		newMigration(164, "Add scope and nonce columns to oauth2_grant table", v1_14.AddScopeAndNonceColumnsToOAuth2Grant),
+		newMigration(165, "Convert hook task type from char(16) to varchar(16) and trim the column", v1_14.ConvertHookTaskTypeToVarcharAndTrim),
+		newMigration(166, "Where Password is Valid with Empty String delete it", v1_14.RecalculateUserEmptyPWD),
+		newMigration(167, "Add user redirect", v1_14.AddUserRedirect),
+		newMigration(168, "Recreate user table to fix default values", v1_14.RecreateUserTableToFixDefaultValues),
+		newMigration(169, "Update DeleteBranch comments to set the old_ref to the commit_sha", v1_14.CommentTypeDeleteBranchUseOldRef),
+		newMigration(170, "Add Dismissed to Review table", v1_14.AddDismissedReviewColumn),
+		newMigration(171, "Add Sorting to ProjectBoard table", v1_14.AddSortingColToProjectBoard),
+		newMigration(172, "Add sessions table for go-chi/session", v1_14.AddSessionTable),
+		newMigration(173, "Add time_id column to Comment", v1_14.AddTimeIDCommentColumn),
+		newMigration(174, "Create repo transfer table", v1_14.AddRepoTransfer),
+		newMigration(175, "Fix Postgres ID Sequences broken by recreate-table", v1_14.FixPostgresIDSequences),
+		newMigration(176, "Remove invalid labels from comments", v1_14.RemoveInvalidLabels),
+		newMigration(177, "Delete orphaned IssueLabels", v1_14.DeleteOrphanedIssueLabels),
 
-	// Gitea 1.14.0 ends at v178
+		// Gitea 1.14.0 ends at database version 178
 
-	// v178 -> v179
-	NewMigration("Add LFS columns to Mirror", v1_15.AddLFSMirrorColumns),
-	// v179 -> v180
-	NewMigration("Convert avatar url to text", v1_15.ConvertAvatarURLToText),
-	// v180 -> v181
-	NewMigration("Delete credentials from past migrations", v1_15.DeleteMigrationCredentials),
-	// v181 -> v182
-	NewMigration("Always save primary email on email address table", v1_15.AddPrimaryEmail2EmailAddress),
-	// v182 -> v183
-	NewMigration("Add issue resource index table", v1_15.AddIssueResourceIndexTable),
-	// v183 -> v184
-	NewMigration("Create PushMirror table", v1_15.CreatePushMirrorTable),
-	// v184 -> v185
-	NewMigration("Rename Task errors to message", v1_15.RenameTaskErrorsToMessage),
-	// v185 -> v186
-	NewMigration("Add new table repo_archiver", v1_15.AddRepoArchiver),
-	// v186 -> v187
-	NewMigration("Create protected tag table", v1_15.CreateProtectedTagTable),
-	// v187 -> v188
-	NewMigration("Drop unneeded webhook related columns", v1_15.DropWebhookColumns),
-	// v188 -> v189
-	NewMigration("Add key is verified to gpg key", v1_15.AddKeyIsVerified),
+		newMigration(178, "Add LFS columns to Mirror", v1_15.AddLFSMirrorColumns),
+		newMigration(179, "Convert avatar url to text", v1_15.ConvertAvatarURLToText),
+		newMigration(180, "Delete credentials from past migrations", v1_15.DeleteMigrationCredentials),
+		newMigration(181, "Always save primary email on email address table", v1_15.AddPrimaryEmail2EmailAddress),
+		newMigration(182, "Add issue resource index table", v1_15.AddIssueResourceIndexTable),
+		newMigration(183, "Create PushMirror table", v1_15.CreatePushMirrorTable),
+		newMigration(184, "Rename Task errors to message", v1_15.RenameTaskErrorsToMessage),
+		newMigration(185, "Add new table repo_archiver", v1_15.AddRepoArchiver),
+		newMigration(186, "Create protected tag table", v1_15.CreateProtectedTagTable),
+		newMigration(187, "Drop unneeded webhook related columns", v1_15.DropWebhookColumns),
+		newMigration(188, "Add key is verified to gpg key", v1_15.AddKeyIsVerified),
 
-	// Gitea 1.15.0 ends at v189
+		// Gitea 1.15.0 ends at database version 189
 
-	// v189 -> v190
-	NewMigration("Unwrap ldap.Sources", v1_16.UnwrapLDAPSourceCfg),
-	// v190 -> v191
-	NewMigration("Add agit flow pull request support", v1_16.AddAgitFlowPullRequest),
-	// v191 -> v192
-	NewMigration("Alter issue/comment table TEXT fields to LONGTEXT", v1_16.AlterIssueAndCommentTextFieldsToLongText),
-	// v192 -> v193
-	NewMigration("RecreateIssueResourceIndexTable to have a primary key instead of an unique index", v1_16.RecreateIssueResourceIndexTable),
-	// v193 -> v194
-	NewMigration("Add repo id column for attachment table", v1_16.AddRepoIDForAttachment),
-	// v194 -> v195
-	NewMigration("Add Branch Protection Unprotected Files Column", v1_16.AddBranchProtectionUnprotectedFilesColumn),
-	// v195 -> v196
-	NewMigration("Add table commit_status_index", v1_16.AddTableCommitStatusIndex),
-	// v196 -> v197
-	NewMigration("Add Color to ProjectBoard table", v1_16.AddColorColToProjectBoard),
-	// v197 -> v198
-	NewMigration("Add renamed_branch table", v1_16.AddRenamedBranchTable),
-	// v198 -> v199
-	NewMigration("Add issue content history table", v1_16.AddTableIssueContentHistory),
-	// v199 -> v200
-	NewMigration("No-op (remote version is using AppState now)", noopMigration),
-	// v200 -> v201
-	NewMigration("Add table app_state", v1_16.AddTableAppState),
-	// v201 -> v202
-	NewMigration("Drop table remote_version (if exists)", v1_16.DropTableRemoteVersion),
-	// v202 -> v203
-	NewMigration("Create key/value table for user settings", v1_16.CreateUserSettingsTable),
-	// v203 -> v204
-	NewMigration("Add Sorting to ProjectIssue table", v1_16.AddProjectIssueSorting),
-	// v204 -> v205
-	NewMigration("Add key is verified to ssh key", v1_16.AddSSHKeyIsVerified),
-	// v205 -> v206
-	NewMigration("Migrate to higher varchar on user struct", v1_16.MigrateUserPasswordSalt),
-	// v206 -> v207
-	NewMigration("Add authorize column to team_unit table", v1_16.AddAuthorizeColForTeamUnit),
-	// v207 -> v208
-	NewMigration("Add webauthn table and migrate u2f data to webauthn - NO-OPED", v1_16.AddWebAuthnCred),
-	// v208 -> v209
-	NewMigration("Use base32.HexEncoding instead of base64 encoding for cred ID as it is case insensitive - NO-OPED", v1_16.UseBase32HexForCredIDInWebAuthnCredential),
-	// v209 -> v210
-	NewMigration("Increase WebAuthentication CredentialID size to 410 - NO-OPED", v1_16.IncreaseCredentialIDTo410),
-	// v210 -> v211
-	NewMigration("v208 was completely broken - remigrate", v1_16.RemigrateU2FCredentials),
+		newMigration(189, "Unwrap ldap.Sources", v1_16.UnwrapLDAPSourceCfg),
+		newMigration(190, "Add agit flow pull request support", v1_16.AddAgitFlowPullRequest),
+		newMigration(191, "Alter issue/comment table TEXT fields to LONGTEXT", v1_16.AlterIssueAndCommentTextFieldsToLongText),
+		newMigration(192, "RecreateIssueResourceIndexTable to have a primary key instead of an unique index", v1_16.RecreateIssueResourceIndexTable),
+		newMigration(193, "Add repo id column for attachment table", v1_16.AddRepoIDForAttachment),
+		newMigration(194, "Add Branch Protection Unprotected Files Column", v1_16.AddBranchProtectionUnprotectedFilesColumn),
+		newMigration(195, "Add table commit_status_index", v1_16.AddTableCommitStatusIndex),
+		newMigration(196, "Add Color to ProjectBoard table", v1_16.AddColorColToProjectBoard),
+		newMigration(197, "Add renamed_branch table", v1_16.AddRenamedBranchTable),
+		newMigration(198, "Add issue content history table", v1_16.AddTableIssueContentHistory),
+		newMigration(199, "No-op (remote version is using AppState now)", noopMigration),
+		newMigration(200, "Add table app_state", v1_16.AddTableAppState),
+		newMigration(201, "Drop table remote_version (if exists)", v1_16.DropTableRemoteVersion),
+		newMigration(202, "Create key/value table for user settings", v1_16.CreateUserSettingsTable),
+		newMigration(203, "Add Sorting to ProjectIssue table", v1_16.AddProjectIssueSorting),
+		newMigration(204, "Add key is verified to ssh key", v1_16.AddSSHKeyIsVerified),
+		newMigration(205, "Migrate to higher varchar on user struct", v1_16.MigrateUserPasswordSalt),
+		newMigration(206, "Add authorize column to team_unit table", v1_16.AddAuthorizeColForTeamUnit),
+		newMigration(207, "Add webauthn table and migrate u2f data to webauthn - NO-OPED", v1_16.AddWebAuthnCred),
+		newMigration(208, "Use base32.HexEncoding instead of base64 encoding for cred ID as it is case insensitive - NO-OPED", v1_16.UseBase32HexForCredIDInWebAuthnCredential),
+		newMigration(209, "Increase WebAuthentication CredentialID size to 410 - NO-OPED", v1_16.IncreaseCredentialIDTo410),
+		newMigration(210, "v208 was completely broken - remigrate", v1_16.RemigrateU2FCredentials),
 
-	// Gitea 1.16.2 ends at v211
+		// Gitea 1.16.2 ends at database version 211
 
-	// v211 -> v212
-	NewMigration("Create ForeignReference table", v1_17.CreateForeignReferenceTable),
-	// v212 -> v213
-	NewMigration("Add package tables", v1_17.AddPackageTables),
-	// v213 -> v214
-	NewMigration("Add allow edits from maintainers to PullRequest table", v1_17.AddAllowMaintainerEdit),
-	// v214 -> v215
-	NewMigration("Add auto merge table", v1_17.AddAutoMergeTable),
-	// v215 -> v216
-	NewMigration("allow to view files in PRs", v1_17.AddReviewViewedFiles),
-	// v216 -> v217
-	NewMigration("No-op (Improve Action table indices v1)", noopMigration),
-	// v217 -> v218
-	NewMigration("Alter hook_task table TEXT fields to LONGTEXT", v1_17.AlterHookTaskTextFieldsToLongText),
-	// v218 -> v219
-	NewMigration("Improve Action table indices v2", v1_17.ImproveActionTableIndices),
-	// v219 -> v220
-	NewMigration("Add sync_on_commit column to push_mirror table", v1_17.AddSyncOnCommitColForPushMirror),
-	// v220 -> v221
-	NewMigration("Add container repository property", v1_17.AddContainerRepositoryProperty),
-	// v221 -> v222
-	NewMigration("Store WebAuthentication CredentialID as bytes and increase size to at least 1024", v1_17.StoreWebauthnCredentialIDAsBytes),
-	// v222 -> v223
-	NewMigration("Drop old CredentialID column", v1_17.DropOldCredentialIDColumn),
-	// v223 -> v224
-	NewMigration("Rename CredentialIDBytes column to CredentialID", v1_17.RenameCredentialIDBytes),
+		newMigration(211, "Create ForeignReference table", v1_17.CreateForeignReferenceTable),
+		newMigration(212, "Add package tables", v1_17.AddPackageTables),
+		newMigration(213, "Add allow edits from maintainers to PullRequest table", v1_17.AddAllowMaintainerEdit),
+		newMigration(214, "Add auto merge table", v1_17.AddAutoMergeTable),
+		newMigration(215, "allow to view files in PRs", v1_17.AddReviewViewedFiles),
+		newMigration(216, "No-op (Improve Action table indices v1)", noopMigration),
+		newMigration(217, "Alter hook_task table TEXT fields to LONGTEXT", v1_17.AlterHookTaskTextFieldsToLongText),
+		newMigration(218, "Improve Action table indices v2", v1_17.ImproveActionTableIndices),
+		newMigration(219, "Add sync_on_commit column to push_mirror table", v1_17.AddSyncOnCommitColForPushMirror),
+		newMigration(220, "Add container repository property", v1_17.AddContainerRepositoryProperty),
+		newMigration(221, "Store WebAuthentication CredentialID as bytes and increase size to at least 1024", v1_17.StoreWebauthnCredentialIDAsBytes),
+		newMigration(222, "Drop old CredentialID column", v1_17.DropOldCredentialIDColumn),
+		newMigration(223, "Rename CredentialIDBytes column to CredentialID", v1_17.RenameCredentialIDBytes),
 
-	// Gitea 1.17.0 ends at v224
+		// Gitea 1.17.0 ends at database version 224
 
-	// v224 -> v225
-	NewMigration("Add badges to users", v1_18.CreateUserBadgesTable),
-	// v225 -> v226
-	NewMigration("Alter gpg_key/public_key content TEXT fields to MEDIUMTEXT", v1_18.AlterPublicGPGKeyContentFieldsToMediumText),
-	// v226 -> v227
-	NewMigration("Conan and generic packages do not need to be semantically versioned", v1_18.FixPackageSemverField),
-	// v227 -> v228
-	NewMigration("Create key/value table for system settings", v1_18.CreateSystemSettingsTable),
-	// v228 -> v229
-	NewMigration("Add TeamInvite table", v1_18.AddTeamInviteTable),
-	// v229 -> v230
-	NewMigration("Update counts of all open milestones", v1_18.UpdateOpenMilestoneCounts),
-	// v230 -> v231
-	NewMigration("Add ConfidentialClient column (default true) to OAuth2Application table", v1_18.AddConfidentialClientColumnToOAuth2ApplicationTable),
+		newMigration(224, "Add badges to users", v1_18.CreateUserBadgesTable),
+		newMigration(225, "Alter gpg_key/public_key content TEXT fields to MEDIUMTEXT", v1_18.AlterPublicGPGKeyContentFieldsToMediumText),
+		newMigration(226, "Conan and generic packages do not need to be semantically versioned", v1_18.FixPackageSemverField),
+		newMigration(227, "Create key/value table for system settings", v1_18.CreateSystemSettingsTable),
+		newMigration(228, "Add TeamInvite table", v1_18.AddTeamInviteTable),
+		newMigration(229, "Update counts of all open milestones", v1_18.UpdateOpenMilestoneCounts),
+		newMigration(230, "Add ConfidentialClient column (default true) to OAuth2Application table", v1_18.AddConfidentialClientColumnToOAuth2ApplicationTable),
 
-	// Gitea 1.18.0 ends at v231
+		// Gitea 1.18.0 ends at database version 231
 
-	// v231 -> v232
-	NewMigration("Add index for hook_task", v1_19.AddIndexForHookTask),
-	// v232 -> v233
-	NewMigration("Alter package_version.metadata_json to LONGTEXT", v1_19.AlterPackageVersionMetadataToLongText),
-	// v233 -> v234
-	NewMigration("Add header_authorization_encrypted column to webhook table", v1_19.AddHeaderAuthorizationEncryptedColWebhook),
-	// v234 -> v235
-	NewMigration("Add package cleanup rule table", v1_19.CreatePackageCleanupRuleTable),
-	// v235 -> v236
-	NewMigration("Add index for access_token", v1_19.AddIndexForAccessToken),
-	// v236 -> v237
-	NewMigration("Create secrets table", v1_19.CreateSecretsTable),
-	// v237 -> v238
-	NewMigration("Drop ForeignReference table", v1_19.DropForeignReferenceTable),
-	// v238 -> v239
-	NewMigration("Add updated unix to LFSMetaObject", v1_19.AddUpdatedUnixToLFSMetaObject),
-	// v239 -> v240
-	NewMigration("Add scope for access_token", v1_19.AddScopeForAccessTokens),
-	// v240 -> v241
-	NewMigration("Add actions tables", v1_19.AddActionsTables),
-	// v241 -> v242
-	NewMigration("Add card_type column to project table", v1_19.AddCardTypeToProjectTable),
-	// v242 -> v243
-	NewMigration("Alter gpg_key_import content TEXT field to MEDIUMTEXT", v1_19.AlterPublicGPGKeyImportContentFieldToMediumText),
-	// v243 -> v244
-	NewMigration("Add exclusive label", v1_19.AddExclusiveLabel),
+		newMigration(231, "Add index for hook_task", v1_19.AddIndexForHookTask),
+		newMigration(232, "Alter package_version.metadata_json to LONGTEXT", v1_19.AlterPackageVersionMetadataToLongText),
+		newMigration(233, "Add header_authorization_encrypted column to webhook table", v1_19.AddHeaderAuthorizationEncryptedColWebhook),
+		newMigration(234, "Add package cleanup rule table", v1_19.CreatePackageCleanupRuleTable),
+		newMigration(235, "Add index for access_token", v1_19.AddIndexForAccessToken),
+		newMigration(236, "Create secrets table", v1_19.CreateSecretsTable),
+		newMigration(237, "Drop ForeignReference table", v1_19.DropForeignReferenceTable),
+		newMigration(238, "Add updated unix to LFSMetaObject", v1_19.AddUpdatedUnixToLFSMetaObject),
+		newMigration(239, "Add scope for access_token", v1_19.AddScopeForAccessTokens),
+		newMigration(240, "Add actions tables", v1_19.AddActionsTables),
+		newMigration(241, "Add card_type column to project table", v1_19.AddCardTypeToProjectTable),
+		newMigration(242, "Alter gpg_key_import content TEXT field to MEDIUMTEXT", v1_19.AlterPublicGPGKeyImportContentFieldToMediumText),
+		newMigration(243, "Add exclusive label", v1_19.AddExclusiveLabel),
 
-	// Gitea 1.19.0 ends at v244
+		// Gitea 1.19.0 ends at database version 244
 
-	// v244 -> v245
-	NewMigration("Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
-	// v245 -> v246
-	NewMigration("Rename Webhook org_id to owner_id", v1_20.RenameWebhookOrgToOwner),
-	// v246 -> v247
-	NewMigration("Add missed column owner_id for project table", v1_20.AddNewColumnForProject),
-	// v247 -> v248
-	NewMigration("Fix incorrect project type", v1_20.FixIncorrectProjectType),
-	// v248 -> v249
-	NewMigration("Add version column to action_runner table", v1_20.AddVersionToActionRunner),
-	// v249 -> v250
-	NewMigration("Improve Action table indices v3", v1_20.ImproveActionTableIndices),
-	// v250 -> v251
-	NewMigration("Change Container Metadata", v1_20.ChangeContainerMetadataMultiArch),
-	// v251 -> v252
-	NewMigration("Fix incorrect owner team unit access mode", v1_20.FixIncorrectOwnerTeamUnitAccessMode),
-	// v252 -> v253
-	NewMigration("Fix incorrect admin team unit access mode", v1_20.FixIncorrectAdminTeamUnitAccessMode),
-	// v253 -> v254
-	NewMigration("Fix ExternalTracker and ExternalWiki accessMode in owner and admin team", v1_20.FixExternalTrackerAndExternalWikiAccessModeInOwnerAndAdminTeam),
-	// v254 -> v255
-	NewMigration("Add ActionTaskOutput table", v1_20.AddActionTaskOutputTable),
-	// v255 -> v256
-	NewMigration("Add ArchivedUnix Column", v1_20.AddArchivedUnixToRepository),
-	// v256 -> v257
-	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
-	// v257 -> v258
-	NewMigration("Add Actions Artifact table", v1_20.CreateActionArtifactTable),
-	// v258 -> v259
-	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
-	// v259 -> v260
-	NewMigration("Convert scoped access tokens", v1_20.ConvertScopedAccessTokens),
+		newMigration(244, "Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
+		newMigration(245, "Rename Webhook org_id to owner_id", v1_20.RenameWebhookOrgToOwner),
+		newMigration(246, "Add missed column owner_id for project table", v1_20.AddNewColumnForProject),
+		newMigration(247, "Fix incorrect project type", v1_20.FixIncorrectProjectType),
+		newMigration(248, "Add version column to action_runner table", v1_20.AddVersionToActionRunner),
+		newMigration(249, "Improve Action table indices v3", v1_20.ImproveActionTableIndices),
+		newMigration(250, "Change Container Metadata", v1_20.ChangeContainerMetadataMultiArch),
+		newMigration(251, "Fix incorrect owner team unit access mode", v1_20.FixIncorrectOwnerTeamUnitAccessMode),
+		newMigration(252, "Fix incorrect admin team unit access mode", v1_20.FixIncorrectAdminTeamUnitAccessMode),
+		newMigration(253, "Fix ExternalTracker and ExternalWiki accessMode in owner and admin team", v1_20.FixExternalTrackerAndExternalWikiAccessModeInOwnerAndAdminTeam),
+		newMigration(254, "Add ActionTaskOutput table", v1_20.AddActionTaskOutputTable),
+		newMigration(255, "Add ArchivedUnix Column", v1_20.AddArchivedUnixToRepository),
+		newMigration(256, "Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
+		newMigration(257, "Add Actions Artifact table", v1_20.CreateActionArtifactTable),
+		newMigration(258, "Add PinOrder Column", v1_20.AddPinOrderToIssue),
+		newMigration(259, "Convert scoped access tokens", v1_20.ConvertScopedAccessTokens),
 
-	// Gitea 1.20.0 ends at 260
+		// Gitea 1.20.0 ends at database version 260
 
-	// v260 -> v261
-	NewMigration("Drop custom_labels column of action_runner table", v1_21.DropCustomLabelsColumnOfActionRunner),
-	// v261 -> v262
-	NewMigration("Add variable table", v1_21.CreateVariableTable),
-	// v262 -> v263
-	NewMigration("Add TriggerEvent to action_run table", v1_21.AddTriggerEventToActionRun),
-	// v263 -> v264
-	NewMigration("Add git_size and lfs_size columns to repository table", v1_21.AddGitSizeAndLFSSizeToRepositoryTable),
-	// v264 -> v265
-	NewMigration("Add branch table", v1_21.AddBranchTable),
-	// v265 -> v266
-	NewMigration("Alter Actions Artifact table", v1_21.AlterActionArtifactTable),
-	// v266 -> v267
-	NewMigration("Reduce commit status", v1_21.ReduceCommitStatus),
-	// v267 -> v268
-	NewMigration("Add action_tasks_version table", v1_21.CreateActionTasksVersionTable),
-	// v268 -> v269
-	NewMigration("Update Action Ref", v1_21.UpdateActionsRefIndex),
-	// v269 -> v270
-	NewMigration("Drop deleted branch table", v1_21.DropDeletedBranchTable),
-	// v270 -> v271
-	NewMigration("Fix PackageProperty typo", v1_21.FixPackagePropertyTypo),
-	// v271 -> v272
-	NewMigration("Allow archiving labels", v1_21.AddArchivedUnixColumInLabelTable),
-	// v272 -> v273
-	NewMigration("Add Version to ActionRun table", v1_21.AddVersionToActionRunTable),
-	// v273 -> v274
-	NewMigration("Add Action Schedule Table", v1_21.AddActionScheduleTable),
-	// v274 -> v275
-	NewMigration("Add Actions artifacts expiration date", v1_21.AddExpiredUnixColumnInActionArtifactTable),
-	// v275 -> v276
-	NewMigration("Add ScheduleID for ActionRun", v1_21.AddScheduleIDForActionRun),
-	// v276 -> v277
-	NewMigration("Add RemoteAddress to mirrors", v1_21.AddRemoteAddressToMirrors),
-	// v277 -> v278
-	NewMigration("Add Index to issue_user.issue_id", v1_21.AddIndexToIssueUserIssueID),
-	// v278 -> v279
-	NewMigration("Add Index to comment.dependent_issue_id", v1_21.AddIndexToCommentDependentIssueID),
-	// v279 -> v280
-	NewMigration("Add Index to action.user_id", v1_21.AddIndexToActionUserID),
+		newMigration(260, "Drop custom_labels column of action_runner table", v1_21.DropCustomLabelsColumnOfActionRunner),
+		newMigration(261, "Add variable table", v1_21.CreateVariableTable),
+		newMigration(262, "Add TriggerEvent to action_run table", v1_21.AddTriggerEventToActionRun),
+		newMigration(263, "Add git_size and lfs_size columns to repository table", v1_21.AddGitSizeAndLFSSizeToRepositoryTable),
+		newMigration(264, "Add branch table", v1_21.AddBranchTable),
+		newMigration(265, "Alter Actions Artifact table", v1_21.AlterActionArtifactTable),
+		newMigration(266, "Reduce commit status", v1_21.ReduceCommitStatus),
+		newMigration(267, "Add action_tasks_version table", v1_21.CreateActionTasksVersionTable),
+		newMigration(268, "Update Action Ref", v1_21.UpdateActionsRefIndex),
+		newMigration(269, "Drop deleted branch table", v1_21.DropDeletedBranchTable),
+		newMigration(270, "Fix PackageProperty typo", v1_21.FixPackagePropertyTypo),
+		newMigration(271, "Allow archiving labels", v1_21.AddArchivedUnixColumInLabelTable),
+		newMigration(272, "Add Version to ActionRun table", v1_21.AddVersionToActionRunTable),
+		newMigration(273, "Add Action Schedule Table", v1_21.AddActionScheduleTable),
+		newMigration(274, "Add Actions artifacts expiration date", v1_21.AddExpiredUnixColumnInActionArtifactTable),
+		newMigration(275, "Add ScheduleID for ActionRun", v1_21.AddScheduleIDForActionRun),
+		newMigration(276, "Add RemoteAddress to mirrors", v1_21.AddRemoteAddressToMirrors),
+		newMigration(277, "Add Index to issue_user.issue_id", v1_21.AddIndexToIssueUserIssueID),
+		newMigration(278, "Add Index to comment.dependent_issue_id", v1_21.AddIndexToCommentDependentIssueID),
+		newMigration(279, "Add Index to action.user_id", v1_21.AddIndexToActionUserID),
 
-	// Gitea 1.21.0 ends at 280
+		// Gitea 1.21.0 ends at database version 280
 
-	// v280 -> v281
-	NewMigration("Rename user themes", v1_22.RenameUserThemes),
-	// v281 -> v282
-	NewMigration("Add auth_token table", v1_22.CreateAuthTokenTable),
-	// v282 -> v283
-	NewMigration("Add Index to pull_auto_merge.doer_id", v1_22.AddIndexToPullAutoMergeDoerID),
-	// v283 -> v284
-	NewMigration("Add combined Index to issue_user.uid and issue_id", v1_22.AddCombinedIndexToIssueUser),
-	// v284 -> v285
-	NewMigration("Add ignore stale approval column on branch table", v1_22.AddIgnoreStaleApprovalsColumnToProtectedBranchTable),
-	// v285 -> v286
-	NewMigration("Add PreviousDuration to ActionRun", v1_22.AddPreviousDurationToActionRun),
-	// v286 -> v287
-	NewMigration("Add support for SHA256 git repositories", v1_22.AdjustDBForSha256),
-	// v287 -> v288
-	NewMigration("Use Slug instead of ID for Badges", v1_22.UseSlugInsteadOfIDForBadges),
-	// v288 -> v289
-	NewMigration("Add user_blocking table", v1_22.AddUserBlockingTable),
-	// v289 -> v290
-	NewMigration("Add default_wiki_branch to repository table", v1_22.AddDefaultWikiBranch),
-	// v290 -> v291
-	NewMigration("Add PayloadVersion to HookTask", v1_22.AddPayloadVersionToHookTaskTable),
-	// v291 -> v292
-	NewMigration("Add Index to attachment.comment_id", v1_22.AddCommentIDIndexofAttachment),
-	// v292 -> v293
-	NewMigration("Ensure every project has exactly one default column - No Op", noopMigration),
-	// v293 -> v294
-	NewMigration("Ensure every project has exactly one default column", v1_22.CheckProjectColumnsConsistency),
+		newMigration(280, "Rename user themes", v1_22.RenameUserThemes),
+		newMigration(281, "Add auth_token table", v1_22.CreateAuthTokenTable),
+		newMigration(282, "Add Index to pull_auto_merge.doer_id", v1_22.AddIndexToPullAutoMergeDoerID),
+		newMigration(283, "Add combined Index to issue_user.uid and issue_id", v1_22.AddCombinedIndexToIssueUser),
+		newMigration(284, "Add ignore stale approval column on branch table", v1_22.AddIgnoreStaleApprovalsColumnToProtectedBranchTable),
+		newMigration(285, "Add PreviousDuration to ActionRun", v1_22.AddPreviousDurationToActionRun),
+		newMigration(286, "Add support for SHA256 git repositories", v1_22.AdjustDBForSha256),
+		newMigration(287, "Use Slug instead of ID for Badges", v1_22.UseSlugInsteadOfIDForBadges),
+		newMigration(288, "Add user_blocking table", v1_22.AddUserBlockingTable),
+		newMigration(289, "Add default_wiki_branch to repository table", v1_22.AddDefaultWikiBranch),
+		newMigration(290, "Add PayloadVersion to HookTask", v1_22.AddPayloadVersionToHookTaskTable),
+		newMigration(291, "Add Index to attachment.comment_id", v1_22.AddCommentIDIndexofAttachment),
+		newMigration(292, "Ensure every project has exactly one default column - No Op", noopMigration),
+		newMigration(293, "Ensure every project has exactly one default column", v1_22.CheckProjectColumnsConsistency),
 
-	// Gitea 1.22.0-rc0 ends at 294
+		// Gitea 1.22.0-rc0 ends at database version 294
 
-	// v294 -> v295
-	NewMigration("Add unique index for project issue table", v1_22.AddUniqueIndexForProjectIssue),
-	// v295 -> v296
-	NewMigration("Add commit status summary table", v1_22.AddCommitStatusSummary),
-	// v296 -> v297
-	NewMigration("Add missing field of commit status summary table", v1_22.AddCommitStatusSummary2),
-	// v297 -> v298
-	NewMigration("Add everyone_access_mode for repo_unit", v1_22.AddRepoUnitEveryoneAccessMode),
-	// v298 -> v299
-	NewMigration("Drop wrongly created table o_auth2_application", v1_22.DropWronglyCreatedTable),
+		newMigration(294, "Add unique index for project issue table", v1_22.AddUniqueIndexForProjectIssue),
+		newMigration(295, "Add commit status summary table", v1_22.AddCommitStatusSummary),
+		newMigration(296, "Add missing field of commit status summary table", v1_22.AddCommitStatusSummary2),
+		newMigration(297, "Add everyone_access_mode for repo_unit", v1_22.AddRepoUnitEveryoneAccessMode),
+		newMigration(298, "Drop wrongly created table o_auth2_application", v1_22.DropWronglyCreatedTable),
 
-	// Gitea 1.22.0-rc1 ends at 299
+		// Gitea 1.22.0-rc1 ends at migration ID number 298 (database version 299)
 
-	// v299 -> v300
-	NewMigration("Add content version to issue and comment table", v1_23.AddContentVersionToIssueAndComment),
+		newMigration(299, "Add content version to issue and comment table", v1_23.AddContentVersionToIssueAndComment),
+		newMigration(300, "Add force-push branch protection support", v1_23.AddForcePushBranchProtection),
+		newMigration(301, "Add skip_secondary_authorization option to oauth2 application table", v1_23.AddSkipSecondaryAuthColumnToOAuth2ApplicationTable),
+		newMigration(302, "Add index to action_task stopped log_expired", v1_23.AddIndexToActionTaskStoppedLogExpired),
+		newMigration(303, "Add metadata column for comment table", v1_23.AddCommentMetaDataColumn),
+		newMigration(304, "Add index for release sha1", v1_23.AddIndexForReleaseSha1),
+		newMigration(305, "Add Repository Licenses", v1_23.AddRepositoryLicenses),
+		newMigration(306, "Add BlockAdminMergeOverride to ProtectedBranch", v1_23.AddBlockAdminMergeOverrideBranchProtection),
+		newMigration(307, "Fix milestone deadline_unix when there is no due date", v1_23.FixMilestoneNoDueDate),
+		newMigration(308, "Add index(user_id, is_deleted) for action table", v1_23.AddNewIndexForUserDashboard),
+		newMigration(309, "Improve Notification table indices", v1_23.ImproveNotificationTableIndices),
+		newMigration(310, "Add Priority to ProtectedBranch", v1_23.AddPriorityToProtectedBranch),
+		newMigration(311, "Add TimeEstimate to Issue table", v1_23.AddTimeEstimateColumnToIssueTable),
+	}
+	return preparedMigrations
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -610,9 +390,20 @@ func GetCurrentDBVersion(x *xorm.Engine) (int64, error) {
 	return currentVersion.Version, nil
 }
 
-// ExpectedVersion returns the expected db version
-func ExpectedVersion() int64 {
-	return int64(minDBVersion + len(migrations))
+func calcDBVersion(migrations []*migration) int64 {
+	dbVer := int64(minDBVersion + len(migrations))
+	if migrations[0].idNumber != minDBVersion {
+		panic("migrations should start at minDBVersion")
+	}
+	if dbVer != migrations[len(migrations)-1].idNumber+1 {
+		panic("migrations are not in order")
+	}
+	return dbVer
+}
+
+// ExpectedDBVersion returns the expected db version
+func ExpectedDBVersion() int64 {
+	return calcDBVersion(prepareMigrationTasks())
 }
 
 // EnsureUpToDate will check if the db is at the correct version
@@ -623,24 +414,35 @@ func EnsureUpToDate(x *xorm.Engine) error {
 	}
 
 	if currentDB < 0 {
-		return fmt.Errorf("Database has not been initialized")
+		return fmt.Errorf("database has not been initialized")
 	}
 
 	if minDBVersion > currentDB {
 		return fmt.Errorf("DB version %d (<= %d) is too old for auto-migration. Upgrade to Gitea 1.6.4 first then upgrade to this version", currentDB, minDBVersion)
 	}
 
-	expected := ExpectedVersion()
+	expectedDB := ExpectedDBVersion()
 
-	if currentDB != expected {
-		return fmt.Errorf(`Current database version %d is not equal to the expected version %d. Please run "gitea [--config /path/to/app.ini] migrate" to update the database version`, currentDB, expected)
+	if currentDB != expectedDB {
+		return fmt.Errorf(`current database version %d is not equal to the expected version %d. Please run "gitea [--config /path/to/app.ini] migrate" to update the database version`, currentDB, expectedDB)
 	}
 
 	return nil
 }
 
+func getPendingMigrations(curDBVer int64, migrations []*migration) []*migration {
+	return migrations[curDBVer-minDBVersion:]
+}
+
+func migrationIDNumberToDBVersion(idNumber int64) int64 {
+	return idNumber + 1
+}
+
 // Migrate database to current version
 func Migrate(x *xorm.Engine) error {
+	migrations := prepareMigrationTasks()
+	maxDBVer := calcDBVersion(migrations)
+
 	// Set a new clean the default mapper to GonicMapper as that is the default for Gitea.
 	x.SetMapper(names.GonicMapper{})
 	if err := x.Sync(new(Version)); err != nil {
@@ -652,29 +454,29 @@ func Migrate(x *xorm.Engine) error {
 	if err != nil {
 		return fmt.Errorf("get: %w", err)
 	} else if !has {
-		// If the version record does not exist we think
-		// it is a fresh installation and we can skip all migrations.
+		// If the version record does not exist, it is a fresh installation, and we can skip all migrations.
+		// XORM model framework will create all tables when initializing.
 		currentVersion.ID = 0
-		currentVersion.Version = int64(minDBVersion + len(migrations))
-
+		currentVersion.Version = maxDBVer
 		if _, err = x.InsertOne(currentVersion); err != nil {
 			return fmt.Errorf("insert: %w", err)
 		}
 	}
 
-	v := currentVersion.Version
-	if minDBVersion > v {
+	curDBVer := currentVersion.Version
+	// Outdated Gitea database version is not supported
+	if curDBVer < minDBVersion {
 		log.Fatal(`Gitea no longer supports auto-migration from your previously installed version.
 Please try upgrading to a lower version first (suggested v1.6.4), then upgrade to this version.`)
 		return nil
 	}
 
 	// Downgrading Gitea's database version not supported
-	if int(v-minDBVersion) > len(migrations) {
-		msg := fmt.Sprintf("Your database (migration version: %d) is for a newer Gitea, you can not use the newer database for this old Gitea release (%d).", v, minDBVersion+len(migrations))
+	if maxDBVer < curDBVer {
+		msg := fmt.Sprintf("Your database (migration version: %d) is for a newer Gitea, you can not use the newer database for this old Gitea release (%d).", curDBVer, maxDBVer)
 		msg += "\nGitea will exit to keep your database safe and unchanged. Please use the correct Gitea release, do not change the migration version manually (incorrect manual operation may lose data)."
 		if !setting.IsProd {
-			msg += fmt.Sprintf("\nIf you are in development and really know what you're doing, you can force changing the migration version by executing: UPDATE version SET version=%d WHERE id=1;", minDBVersion+len(migrations))
+			msg += fmt.Sprintf("\nIf you are in development and really know what you're doing, you can force changing the migration version by executing: UPDATE version SET version=%d WHERE id=1;", maxDBVer)
 		}
 		log.Fatal("Migration Error: %s", msg)
 		return nil
@@ -688,14 +490,14 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 	}
 
 	// Migrate
-	for i, m := range migrations[v-minDBVersion:] {
-		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
+	for _, m := range getPendingMigrations(curDBVer, migrations) {
+		log.Info("Migration[%d]: %s", m.idNumber, m.description)
 		// Reset the mapper between each migration - migrations are not supposed to depend on each other
 		x.SetMapper(names.GonicMapper{})
 		if err = m.Migrate(x); err != nil {
-			return fmt.Errorf("migration[%d]: %s failed: %w", v+int64(i), m.Description(), err)
+			return fmt.Errorf("migration[%d]: %s failed: %w", m.idNumber, m.description, err)
 		}
-		currentVersion.Version = v + int64(i) + 1
+		currentVersion.Version = migrationIDNumberToDBVersion(m.idNumber)
 		if _, err = x.ID(1).Update(currentVersion); err != nil {
 			return err
 		}

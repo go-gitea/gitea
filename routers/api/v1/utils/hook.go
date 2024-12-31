@@ -100,7 +100,7 @@ func checkCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) 
 func AddSystemHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	hook, ok := addHook(ctx, form, 0, 0)
 	if ok {
-		h, err := webhook_service.ToHook(setting.AppSubURL+"/admin", hook)
+		h, err := webhook_service.ToHook(setting.AppSubURL+"/-/admin", hook)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
 			return
@@ -268,7 +268,7 @@ func EditSystemHook(ctx *context.APIContext, form *api.EditHookOption, hookID in
 		ctx.Error(http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err)
 		return
 	}
-	h, err := webhook_service.ToHook(setting.AppURL+"/admin", updated)
+	h, err := webhook_service.ToHook(setting.AppURL+"/-/admin", updated)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
 		return

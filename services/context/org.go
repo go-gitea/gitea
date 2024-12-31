@@ -26,7 +26,6 @@ type Organization struct {
 	Organization     *organization.Organization
 	OrgLink          string
 	CanCreateOrgRepo bool
-	PublicMemberOnly bool // Only display public members
 
 	Team  *organization.Team
 	Teams []*organization.Team
@@ -41,7 +40,7 @@ func (org *Organization) CanReadUnit(ctx *Context, unitType unit.Type) bool {
 }
 
 func GetOrganizationByParams(ctx *Context) {
-	orgName := ctx.Params(":org")
+	orgName := ctx.PathParam("org")
 
 	var err error
 
@@ -176,10 +175,10 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Data["OrgLink"] = ctx.Org.OrgLink
 
 	// Member
-	ctx.Org.PublicMemberOnly = ctx.Doer == nil || !ctx.Org.IsMember && !ctx.Doer.IsAdmin
 	opts := &organization.FindOrgMembersOpts{
-		OrgID:      org.ID,
-		PublicOnly: ctx.Org.PublicMemberOnly,
+		Doer:         ctx.Doer,
+		OrgID:        org.ID,
+		IsDoerMember: ctx.Org.IsMember,
 	}
 	ctx.Data["NumMembers"], err = organization.CountOrgMembers(ctx, opts)
 	if err != nil {
@@ -221,7 +220,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		ctx.Data["NumTeams"] = len(ctx.Org.Teams)
 	}
 
-	teamName := ctx.Params(":team")
+	teamName := ctx.PathParam("team")
 	if len(teamName) > 0 {
 		teamExists := false
 		for _, team := range ctx.Org.Teams {
@@ -260,10 +259,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 
 	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	if len(ctx.ContextUser.Description) != 0 {
-		content, err := markdown.RenderString(&markup.RenderContext{
-			Metas: map[string]string{"mode": "document"},
-			Ctx:   ctx,
-		}, ctx.ContextUser.Description)
+		content, err := markdown.RenderString(markup.NewRenderContext(ctx), ctx.ContextUser.Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return

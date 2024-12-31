@@ -8,25 +8,26 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/base"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
 	// tplExploreCode explore code page template
-	tplExploreCode base.TplName = "explore/code"
+	tplExploreCode templates.TplName = "explore/code"
 )
 
 // Code render explore code page
 func Code(ctx *context.Context) {
-	if !setting.Indexer.RepoIndexerEnabled {
+	if !setting.Indexer.RepoIndexerEnabled || setting.Service.Explore.DisableCodePage {
 		ctx.Redirect(setting.AppSubURL + "/explore")
 		return
 	}
 
-	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
+	ctx.Data["UsersPageIsDisabled"] = setting.Service.Explore.DisableUsersPage
+	ctx.Data["OrganizationsPageIsDisabled"] = setting.Service.Explore.DisableOrganizationsPage
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
@@ -136,8 +137,7 @@ func Code(ctx *context.Context) {
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParamString("l", language)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplExploreCode)

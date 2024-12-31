@@ -113,7 +113,7 @@ var cases = []*testIndexerCase{
 			},
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			assert.Equal(t, len(data), int(result.Total))
 		},
 	},
@@ -176,7 +176,7 @@ var cases = []*testIndexerCase{
 			IsPull: optional.Some(false),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.False(t, data[v.ID].IsPull)
 			}
@@ -192,7 +192,7 @@ var cases = []*testIndexerCase{
 			IsPull: optional.Some(true),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.True(t, data[v.ID].IsPull)
 			}
@@ -208,7 +208,7 @@ var cases = []*testIndexerCase{
 			IsClosed: optional.Some(false),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.False(t, data[v.ID].IsClosed)
 			}
@@ -224,7 +224,7 @@ var cases = []*testIndexerCase{
 			IsClosed: optional.Some(true),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.True(t, data[v.ID].IsClosed)
 			}
@@ -274,7 +274,7 @@ var cases = []*testIndexerCase{
 			MilestoneIDs: []int64{1, 2, 6},
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.Contains(t, []int64{1, 2, 6}, data[v.ID].MilestoneID)
 			}
@@ -292,7 +292,7 @@ var cases = []*testIndexerCase{
 			MilestoneIDs: []int64{0},
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.Equal(t, int64(0), data[v.ID].MilestoneID)
 			}
@@ -310,7 +310,7 @@ var cases = []*testIndexerCase{
 			ProjectID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.Equal(t, int64(1), data[v.ID].ProjectID)
 			}
@@ -328,7 +328,7 @@ var cases = []*testIndexerCase{
 			ProjectID: optional.Some(int64(0)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.Equal(t, int64(0), data[v.ID].ProjectID)
 			}
@@ -346,7 +346,7 @@ var cases = []*testIndexerCase{
 			ProjectColumnID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.Equal(t, int64(1), data[v.ID].ProjectColumnID)
 			}
@@ -364,7 +364,7 @@ var cases = []*testIndexerCase{
 			ProjectColumnID: optional.Some(int64(0)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.Equal(t, int64(0), data[v.ID].ProjectColumnID)
 			}
@@ -382,7 +382,7 @@ var cases = []*testIndexerCase{
 			PosterID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.Equal(t, int64(1), data[v.ID].PosterID)
 			}
@@ -400,7 +400,7 @@ var cases = []*testIndexerCase{
 			AssigneeID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.Equal(t, int64(1), data[v.ID].AssigneeID)
 			}
@@ -418,7 +418,7 @@ var cases = []*testIndexerCase{
 			AssigneeID: optional.Some(int64(0)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.Equal(t, int64(0), data[v.ID].AssigneeID)
 			}
@@ -436,7 +436,7 @@ var cases = []*testIndexerCase{
 			MentionID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.Contains(t, data[v.ID].MentionIDs, int64(1))
 			}
@@ -454,7 +454,7 @@ var cases = []*testIndexerCase{
 			ReviewedID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.Contains(t, data[v.ID].ReviewedIDs, int64(1))
 			}
@@ -472,7 +472,7 @@ var cases = []*testIndexerCase{
 			ReviewRequestedID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.Contains(t, data[v.ID].ReviewRequestedIDs, int64(1))
 			}
@@ -490,7 +490,7 @@ var cases = []*testIndexerCase{
 			SubscriberID: optional.Some(int64(1)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.Contains(t, data[v.ID].SubscriberIDs, int64(1))
 			}
@@ -509,7 +509,7 @@ var cases = []*testIndexerCase{
 			UpdatedBeforeUnix: optional.Some(int64(30)),
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 5, len(result.Hits))
+			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
 				assert.GreaterOrEqual(t, data[v.ID].UpdatedUnix, int64(20))
 				assert.LessOrEqual(t, data[v.ID].UpdatedUnix, int64(30))

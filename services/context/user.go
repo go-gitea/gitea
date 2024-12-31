@@ -33,7 +33,7 @@ func UserAssignmentWeb() func(ctx *Context) {
 // UserIDAssignmentAPI returns a middleware to handle context-user assignment for api routes
 func UserIDAssignmentAPI() func(ctx *APIContext) {
 	return func(ctx *APIContext) {
-		userID := ctx.ParamsInt64(":user-id")
+		userID := ctx.PathParamInt64("user-id")
 
 		if ctx.IsSigned && ctx.Doer.ID == userID {
 			ctx.ContextUser = ctx.Doer
@@ -59,7 +59,7 @@ func UserAssignmentAPI() func(ctx *APIContext) {
 }
 
 func userAssignment(ctx *Base, doer *user_model.User, errCb func(int, string, any)) (contextUser *user_model.User) {
-	username := ctx.Params(":username")
+	username := ctx.PathParam("username")
 
 	if doer != nil && doer.LowerName == strings.ToLower(username) {
 		contextUser = doer

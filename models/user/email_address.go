@@ -357,8 +357,8 @@ func VerifyActiveEmailCode(ctx context.Context, code, email string) *EmailAddres
 	if user := GetVerifyUser(ctx, code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
-		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
-
+		opts := &TimeLimitCodeOptions{Purpose: TimeLimitCodeActivateEmail, NewEmail: email}
+		data := makeTimeLimitCodeHashData(opts, user)
 		if base.VerifyTimeLimitCode(time.Now(), data, setting.Service.ActiveCodeLives, prefix) {
 			emailAddress := &EmailAddress{UID: user.ID, Email: email}
 			if has, _ := db.GetEngine(ctx).Get(emailAddress); has {
@@ -395,6 +395,7 @@ type SearchEmailOptions struct {
 
 // SearchEmailResult is an e-mail address found in the user or email_address table
 type SearchEmailResult struct {
+	ID          int64
 	UID         int64
 	Email       string
 	IsActivated bool
@@ -485,10 +486,10 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 
 	// Activate/deactivate a user's primary email address and account
 	if addr.IsPrimary {
-		user, exist, err := db.Get[User](ctx, builder.Eq{"id": userID, "email": email})
+		user, exist, err := db.Get[User](ctx, builder.Eq{"id": userID})
 		if err != nil {
 			return err
-		} else if !exist {
+		} else if !exist || !strings.EqualFold(user.Email, email) {
 			return fmt.Errorf("no user with ID: %d and Email: %s", userID, email)
 		}
 

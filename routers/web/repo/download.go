@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"path"
 	"time"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -55,7 +54,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 
 		if setting.LFS.Storage.ServeDirect() {
 			// If we have a signed url (S3, object storage, blob storage), redirect to this directly.
-			u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name())
+			u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name(), nil)
 			if u != nil && err == nil {
 				ctx.Redirect(u.String())
 				return nil
@@ -82,7 +81,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 	return common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified)
 }
 
-func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified *time.Time) {
+func getBlobForEntry(ctx *context.Context) (*git.Blob, *time.Time) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -98,19 +97,14 @@ func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified *time.T
 		return nil, nil
 	}
 
-	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:])
+	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
 	if err != nil {
-		ctx.ServerError("GetCommitsInfo", err)
+		ctx.ServerError("GetTreePathLatestCommit", err)
 		return nil, nil
 	}
+	lastModified := &latestCommit.Committer.When
 
-	if len(info) == 1 {
-		// Not Modified
-		lastModified = &info[0].Commit.Committer.When
-	}
-	blob = entry.Blob()
-
-	return blob, lastModified
+	return entry.Blob(), lastModified
 }
 
 // SingleDownload download a file by repos path
@@ -139,7 +133,7 @@ func SingleDownloadOrLFS(ctx *context.Context) {
 
 // DownloadByID download a file by sha1 ID
 func DownloadByID(ctx *context.Context) {
-	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.Params("sha"))
+	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetBlob", nil)
@@ -155,7 +149,7 @@ func DownloadByID(ctx *context.Context) {
 
 // DownloadByIDOrLFS download a file by sha1 ID taking account of LFS
 func DownloadByIDOrLFS(ctx *context.Context) {
-	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.Params("sha"))
+	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetBlob", nil)

@@ -162,7 +162,7 @@ func AddTopic(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
 
-	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
+	topicName := strings.TrimSpace(strings.ToLower(ctx.PathParam("topic")))
 
 	if !repo_model.ValidateTopic(topicName) {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
@@ -229,7 +229,7 @@ func DeleteTopic(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
 
-	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
+	topicName := strings.TrimSpace(strings.ToLower(ctx.PathParam("topic")))
 
 	if !repo_model.ValidateTopic(topicName) {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{

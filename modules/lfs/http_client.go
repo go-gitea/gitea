@@ -16,9 +16,10 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/proxy"
-)
+	"code.gitea.io/gitea/modules/setting"
 
-const httpBatchSize = 20
+	"golang.org/x/sync/errgroup"
+)
 
 // HTTPClient is used to communicate with the LFS server
 // https://github.com/git-lfs/git-lfs/blob/main/docs/api/batch.md
@@ -30,7 +31,7 @@ type HTTPClient struct {
 
 // BatchSize returns the preferred size of batchs to process
 func (c *HTTPClient) BatchSize() int {
-	return httpBatchSize
+	return setting.LFSClient.BatchSize
 }
 
 func newHTTPClient(endpoint *url.URL, httpTransport *http.Transport) *HTTPClient {
@@ -71,7 +72,10 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 
 	url := fmt.Sprintf("%s/objects/batch", c.endpoint)
 
-	request := &BatchRequest{operation, c.transferNames(), nil, objects}
+	// `ref` is an "optional object describing the server ref that the objects belong to"
+	// but some (incorrect) lfs servers require it, so maybe adding an empty ref here doesn't break the correct ones.
+	// https://github.com/git-lfs/git-lfs/blob/a32a02b44bf8a511aa14f047627c49e1a7fd5021/docs/api/batch.md?plain=1#L37
+	request := &BatchRequest{operation, c.transferNames(), &Reference{}, objects}
 	payload := new(bytes.Buffer)
 	err := json.NewEncoder(payload).Encode(request)
 	if err != nil {
@@ -114,6 +118,7 @@ func (c *HTTPClient) Upload(ctx context.Context, objects []Pointer, callback Upl
 	return c.performOperation(ctx, objects, nil, callback)
 }
 
+// performOperation takes a slice of LFS object pointers, batches them, and performs the upload/download operations concurrently in each batch
 func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc DownloadCallback, uc UploadCallback) error {
 	if len(objects) == 0 {
 		return nil
@@ -134,68 +139,90 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 		return fmt.Errorf("TransferAdapter not found: %s", result.Transfer)
 	}
 
+	if setting.LFSClient.BatchOperationConcurrency <= 0 {
+		panic("BatchOperationConcurrency must be greater than 0, forgot to init?")
+	}
+	errGroup, groupCtx := errgroup.WithContext(ctx)
+	errGroup.SetLimit(setting.LFSClient.BatchOperationConcurrency)
 	for _, object := range result.Objects {
-		if object.Error != nil {
-			objectError := errors.New(object.Error.Message)
-			log.Trace("Error on object %v: %v", object.Pointer, objectError)
-			if uc != nil {
-				if _, err := uc(object.Pointer, objectError); err != nil {
-					return err
-				}
-			} else {
-				if err := dc(object.Pointer, nil, objectError); err != nil {
-					return err
-				}
-			}
-			continue
-		}
-
-		if uc != nil {
-			if len(object.Actions) == 0 {
-				log.Trace("%v already present on server", object.Pointer)
-				continue
-			}
-
-			link, ok := object.Actions["upload"]
-			if !ok {
-				log.Debug("%+v", object)
-				return errors.New("missing action 'upload'")
-			}
-
-			content, err := uc(object.Pointer, nil)
-			if err != nil {
-				return err
-			}
-
-			err = transferAdapter.Upload(ctx, link, object.Pointer, content)
-			if err != nil {
-				return err
-			}
-
-			link, ok = object.Actions["verify"]
-			if ok {
-				if err := transferAdapter.Verify(ctx, link, object.Pointer); err != nil {
-					return err
-				}
-			}
-		} else {
-			link, ok := object.Actions["download"]
-			if !ok {
-				log.Debug("%+v", object)
-				return errors.New("missing action 'download'")
-			}
-
-			content, err := transferAdapter.Download(ctx, link)
-			if err != nil {
-				return err
-			}
-
-			if err := dc(object.Pointer, content, nil); err != nil {
-				return err
-			}
-		}
+		errGroup.Go(func() error {
+			return performSingleOperation(groupCtx, object, dc, uc, transferAdapter)
+		})
 	}
 
+	// only the first error is returned, preserving legacy behavior before concurrency
+	return errGroup.Wait()
+}
+
+// performSingleOperation performs an LFS upload or download operation on a single object
+func performSingleOperation(ctx context.Context, object *ObjectResponse, dc DownloadCallback, uc UploadCallback, transferAdapter TransferAdapter) error {
+	// the response from a lfs batch api request for this specific object id contained an error
+	if object.Error != nil {
+		log.Trace("Error on object %v: %v", object.Pointer, object.Error)
+
+		// this was an 'upload' request inside the batch request
+		if uc != nil {
+			if _, err := uc(object.Pointer, object.Error); err != nil {
+				return err
+			}
+		} else {
+			// this was NOT an 'upload' request inside the batch request, meaning it must be a 'download' request
+			if err := dc(object.Pointer, nil, object.Error); err != nil {
+				return err
+			}
+		}
+		// if the callback returns no err, then the error could be ignored, and the operations should continue
+		return nil
+	}
+
+	// the response from an lfs batch api request contained necessary upload/download fields to act upon
+	if uc != nil {
+		if len(object.Actions) == 0 {
+			log.Trace("%v already present on server", object.Pointer)
+			return nil
+		}
+
+		link, ok := object.Actions["upload"]
+		if !ok {
+			return errors.New("missing action 'upload'")
+		}
+
+		content, err := uc(object.Pointer, nil)
+		if err != nil {
+			return err
+		}
+
+		err = transferAdapter.Upload(ctx, link, object.Pointer, content)
+		if err != nil {
+			return err
+		}
+
+		link, ok = object.Actions["verify"]
+		if ok {
+			if err := transferAdapter.Verify(ctx, link, object.Pointer); err != nil {
+				return err
+			}
+		}
+	} else {
+		link, ok := object.Actions["download"]
+		if !ok {
+			// no actions block in response, try legacy response schema
+			link, ok = object.Links["download"]
+		}
+		if !ok {
+			log.Debug("%+v", object)
+			return errors.New("missing action 'download'")
+		}
+
+		content, err := transferAdapter.Download(ctx, link)
+		if err != nil {
+			return err
+		}
+
+		if err := dc(object.Pointer, content, nil); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -212,6 +239,7 @@ func createRequest(ctx context.Context, method, url string, headers map[string]s
 		req.Header.Set(key, value)
 	}
 	req.Header.Set("Accept", AcceptHeader)
+	req.Header.Set("User-Agent", UserAgentHeader)
 
 	return req, nil
 }

@@ -290,8 +290,22 @@ Gitea or set your environment appropriately.`, "")
 	return nil
 }
 
+// runHookUpdate avoid to do heavy operations on update hook because it will be
+// invoked for every ref update which does not like pre-receive and post-receive
 func runHookUpdate(c *cli.Context) error {
+	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
+		return nil
+	}
+
 	// Update is empty and is kept only for backwards compatibility
+	if len(os.Args) < 3 {
+		return nil
+	}
+	refName := git.RefName(os.Args[len(os.Args)-3])
+	if refName.IsPull() {
+		// ignore update to refs/pull/xxx/head, so we don't need to output any information
+		os.Exit(1)
+	}
 	return nil
 }
 
@@ -528,14 +542,14 @@ Gitea or set your environment appropriately.`, "")
 
 	index := bytes.IndexByte(rs.Data, byte(0))
 	if index >= len(rs.Data) {
-		return fail(ctx, "Protocol: format error", "pkt-line: format error "+fmt.Sprint(rs.Data))
+		return fail(ctx, "Protocol: format error", "pkt-line: format error %s", rs.Data)
 	}
 
 	if index < 0 {
 		if len(rs.Data) == 10 && rs.Data[9] == '\n' {
 			index = 9
 		} else {
-			return fail(ctx, "Protocol: format error", "pkt-line: format error "+fmt.Sprint(rs.Data))
+			return fail(ctx, "Protocol: format error", "pkt-line: format error %s", rs.Data)
 		}
 	}
 
@@ -577,8 +591,9 @@ Gitea or set your environment appropriately.`, "")
 	// S: ... ...
 	// S: flush-pkt
 	hookOptions := private.HookOptions{
-		UserName: pusherName,
-		UserID:   pusherID,
+		UserName:       pusherName,
+		UserID:         pusherID,
+		GitPushOptions: make(map[string]string),
 	}
 	hookOptions.OldCommitIDs = make([]string, 0, hookBatchSize)
 	hookOptions.NewCommitIDs = make([]string, 0, hookBatchSize)
@@ -603,8 +618,6 @@ Gitea or set your environment appropriately.`, "")
 		hookOptions.RefFullNames = append(hookOptions.RefFullNames, git.RefName(t[2]))
 	}
 
-	hookOptions.GitPushOptions = make(map[string]string)
-
 	if hasPushOptions {
 		for {
 			rs, err = readPktLine(ctx, reader, pktLineTypeUnknow)
@@ -615,11 +628,7 @@ Gitea or set your environment appropriately.`, "")
 			if rs.Type == pktLineTypeFlush {
 				break
 			}
-
-			kv := strings.SplitN(string(rs.Data), "=", 2)
-			if len(kv) == 2 {
-				hookOptions.GitPushOptions[kv[0]] = kv[1]
-			}
+			hookOptions.GitPushOptions.AddFromKeyValue(string(rs.Data))
 		}
 	}
 

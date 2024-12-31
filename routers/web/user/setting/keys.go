@@ -11,8 +11,8 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
@@ -20,16 +20,22 @@ import (
 )
 
 const (
-	tplSettingsKeys base.TplName = "user/settings/keys"
+	tplSettingsKeys templates.TplName = "user/settings/keys"
 )
 
 // Keys render user's SSH/GPG public keys page
 func Keys(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys, setting.UserFeatureManageGPGKeys) {
+		ctx.NotFound("Not Found", fmt.Errorf("keys setting is not allowed to be changed"))
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("settings.ssh_gpg_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
 	ctx.Data["AllowPrincipals"] = setting.SSH.AuthorizedPrincipalsEnabled
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	loadKeysData(ctx)
 
@@ -44,6 +50,7 @@ func KeysPost(ctx *context.Context) {
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
 	ctx.Data["AllowPrincipals"] = setting.SSH.AuthorizedPrincipalsEnabled
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	if ctx.HasError() {
 		loadKeysData(ctx)

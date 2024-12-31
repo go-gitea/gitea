@@ -18,7 +18,7 @@ func TestDummyHasher(t *testing.T) {
 	password, salt := "password", "ZogKvWdyEx"
 
 	hash, err := dummy.Hash(password, salt)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, hash, salt+":"+password)
 
 	assert.True(t, dummy.VerifyPassword(password, hash, salt))

@@ -21,7 +21,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/perm"
+	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -77,12 +77,12 @@ func CheckAcceptMediaType(ctx *context.Context) {
 	}
 }
 
-var rangeHeaderRegexp = regexp.MustCompile(`bytes=(\d+)\-(\d*).*`)
+var rangeHeaderRegexp = regexp.MustCompile(`bytes=(\d+)-(\d*).*`)
 
 // DownloadHandler gets the content from the content store
 func DownloadHandler(ctx *context.Context) {
 	rc := getRequestContext(ctx)
-	p := lfs_module.Pointer{Oid: ctx.Params("oid")}
+	p := lfs_module.Pointer{Oid: ctx.PathParam("oid")}
 
 	meta := getAuthenticatedMeta(ctx, rc, p, false)
 	if meta == nil {
@@ -137,7 +137,7 @@ func DownloadHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(contentLength, 10))
 	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
 
-	filename := ctx.Params("filename")
+	filename := ctx.PathParam("filename")
 	if len(filename) > 0 {
 		decodedFilename, err := base64.RawURLEncoding.DecodeString(filename)
 		if err == nil {
@@ -176,6 +176,11 @@ func BatchHandler(ctx *context.Context) {
 
 	repository := getAuthenticatedRepository(ctx, rc, isUpload)
 	if repository == nil {
+		return
+	}
+
+	if setting.LFS.MaxBatchSize != 0 && len(br.Objects) > setting.LFS.MaxBatchSize {
+		writeStatus(ctx, http.StatusRequestEntityTooLarge)
 		return
 	}
 
@@ -272,9 +277,9 @@ func BatchHandler(ctx *context.Context) {
 func UploadHandler(ctx *context.Context) {
 	rc := getRequestContext(ctx)
 
-	p := lfs_module.Pointer{Oid: ctx.Params("oid")}
+	p := lfs_module.Pointer{Oid: ctx.PathParam("oid")}
 	var err error
-	if p.Size, err = strconv.ParseInt(ctx.Params("size"), 10, 64); err != nil {
+	if p.Size, err = strconv.ParseInt(ctx.PathParam("size"), 10, 64); err != nil {
 		writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
 	}
 
@@ -384,8 +389,8 @@ func decodeJSON(req *http.Request, v any) error {
 
 func getRequestContext(ctx *context.Context) *requestContext {
 	return &requestContext{
-		User:          ctx.Params("username"),
-		Repo:          strings.TrimSuffix(ctx.Params("reponame"), ".git"),
+		User:          ctx.PathParam("username"),
+		Repo:          strings.TrimSuffix(ctx.PathParam("reponame"), ".git"),
 		Authorization: ctx.Req.Header.Get("Authorization"),
 	}
 }
@@ -455,7 +460,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 			var link *lfs_module.Link
 			if setting.LFS.Storage.ServeDirect() {
 				// If we have a signed url (S3, object storage), redirect to this directly.
-				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid)
+				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid, nil)
 				if u != nil && err == nil {
 					// Presigned url does not need the Authorization header
 					// https://github.com/go-gitea/gitea/issues/21525
@@ -502,11 +507,11 @@ func writeStatusMessage(ctx *context.Context, status int, message string) {
 }
 
 // authenticate uses the authorization string to determine whether
-// or not to proceed. This server assumes an HTTP Basic auth format.
+// to proceed. This server assumes an HTTP Basic auth format.
 func authenticate(ctx *context.Context, repository *repo_model.Repository, authorization string, requireSigned, requireWrite bool) bool {
-	accessMode := perm.AccessModeRead
+	accessMode := perm_model.AccessModeRead
 	if requireWrite {
-		accessMode = perm.AccessModeWrite
+		accessMode = perm_model.AccessModeWrite
 	}
 
 	if ctx.Data["IsActionsToken"] == true {
@@ -521,9 +526,9 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		}
 
 		if task.IsForkPullRequest {
-			return accessMode <= perm.AccessModeRead
+			return accessMode <= perm_model.AccessModeRead
 		}
-		return accessMode <= perm.AccessModeWrite
+		return accessMode <= perm_model.AccessModeWrite
 	}
 
 	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
@@ -548,7 +553,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	return true
 }
 
-func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
+func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repository, mode perm_model.AccessMode) (*user_model.User, error) {
 	if !strings.Contains(tokenSHA, ".") {
 		return nil, nil
 	}
@@ -571,7 +576,7 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
-	if mode == perm.AccessModeWrite && claims.Op != "upload" {
+	if mode == perm_model.AccessModeWrite && claims.Op != "upload" {
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
@@ -583,7 +588,7 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 	return u, nil
 }
 
-func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
+func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Repository, mode perm_model.AccessMode) (*user_model.User, error) {
 	if authorization == "" {
 		return nil, fmt.Errorf("no token")
 	}
@@ -603,6 +608,6 @@ func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Rep
 }
 
 func requireAuth(ctx *context.Context) {
-	ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
+	ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="gitea-lfs"`)
 	writeStatus(ctx, http.StatusUnauthorized)
 }

@@ -63,7 +63,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	sha := ctx.Params(":sha")
+	sha := ctx.PathParam("sha")
 	if !git.IsValidRefPattern(sha) {
 		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
 		return
@@ -195,7 +195,7 @@ func GetAllCommits(ctx *context.APIContext) {
 			// get commit specified by sha
 			baseCommit, err = ctx.Repo.GitRepo.GetCommit(sha)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+				ctx.NotFoundOrServerError("GetCommit", git.IsErrNotExist, err)
 				return
 			}
 		}
@@ -312,8 +312,8 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/string"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	sha := ctx.Params(":sha")
-	diffType := git.RawDiffType(ctx.Params(":diffType"))
+	sha := ctx.PathParam("sha")
+	diffType := git.RawDiffType(ctx.PathParam("diffType"))
 
 	if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
 		if git.IsErrNotExist(err) {
@@ -325,11 +325,11 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	}
 }
 
-// GetCommitPullRequest returns the pull request of the commit
+// GetCommitPullRequest returns the merged pull request of the commit
 func GetCommitPullRequest(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/commits/{sha}/pull repository repoGetCommitPullRequest
 	// ---
-	// summary: Get the pull request of the commit
+	// summary: Get the merged pull request of the commit
 	// produces:
 	// - application/json
 	// parameters:
@@ -354,7 +354,7 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pr, err := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo.Repository.ID, ctx.Params(":sha"))
+	pr, err := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo.Repository.ID, ctx.PathParam("sha"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.Error(http.StatusNotFound, "GetPullRequestByMergedCommit", err)

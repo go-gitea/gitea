@@ -68,9 +68,9 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string, any)) 
 		return pkg
 	}
 
-	packageType := ctx.Params("type")
-	name := ctx.Params("name")
-	version := ctx.Params("version")
+	packageType := ctx.PathParam("type")
+	name := ctx.PathParam("name")
+	version := ctx.PathParam("version")
 	if packageType != "" && name != "" && version != "" {
 		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pkg.Owner.ID, packages_model.Type(packageType), name, version)
 		if err != nil {
@@ -153,12 +153,10 @@ func PackageContexter() func(next http.Handler) http.Handler {
 	renderer := templates.HTMLRenderer()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			base, baseCleanUp := NewBaseContext(resp, req)
-			defer baseCleanUp()
-
+			base := NewBaseContext(resp, req)
 			// it is still needed when rendering 500 page in a package handler
 			ctx := NewWebContext(base, renderer, nil)
-			ctx.Base.AppendContextValue(WebContextKey, ctx)
+			ctx.SetContextValue(WebContextKey, ctx)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}

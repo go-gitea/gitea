@@ -45,7 +45,7 @@ func ListHooks(ctx *context.APIContext) {
 	}
 	hooks := make([]*api.Hook, len(sysHooks))
 	for i, hook := range sysHooks {
-		h, err := webhook_service.ToHook(setting.AppURL+"/admin", hook)
+		h, err := webhook_service.ToHook(setting.AppURL+"/-/admin", hook)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
 			return
@@ -73,7 +73,7 @@ func GetHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64("id")
 	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -83,7 +83,7 @@ func GetHook(ctx *context.APIContext) {
 		}
 		return
 	}
-	h, err := webhook_service.ToHook("/admin/", hook)
+	h, err := webhook_service.ToHook("/-/admin/", hook)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
 		return
@@ -142,7 +142,7 @@ func EditHook(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.EditHookOption)
 
 	// TODO in body params
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64("id")
 	utils.EditSystemHook(ctx, form, hookID)
 }
 
@@ -164,7 +164,7 @@ func DeleteHook(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64("id")
 	if err := webhook.DeleteDefaultSystemWebhook(ctx, hookID); err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.NotFound()

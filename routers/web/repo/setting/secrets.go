@@ -7,8 +7,9 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/base"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	shared "code.gitea.io/gitea/routers/web/shared/secrets"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
@@ -16,9 +17,9 @@ import (
 
 const (
 	// TODO: Separate secrets from runners when layout is ready
-	tplRepoSecrets base.TplName = "repo/settings/actions"
-	tplOrgSecrets  base.TplName = "org/settings/actions"
-	tplUserSecrets base.TplName = "user/settings/actions"
+	tplRepoSecrets templates.TplName = "repo/settings/actions"
+	tplOrgSecrets  templates.TplName = "org/settings/actions"
+	tplUserSecrets templates.TplName = "user/settings/actions"
 )
 
 type secretsCtx struct {
@@ -27,7 +28,7 @@ type secretsCtx struct {
 	IsRepo          bool
 	IsOrg           bool
 	IsUser          bool
-	SecretsTemplate base.TplName
+	SecretsTemplate templates.TplName
 	RedirectLink    string
 }
 
@@ -74,6 +75,7 @@ func Secrets(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageType"] = "secrets"
 	ctx.Data["PageIsSharedSettingsSecrets"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	sCtx, err := getSecretsCtx(ctx)
 	if err != nil {

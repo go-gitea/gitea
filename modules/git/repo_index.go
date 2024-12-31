@@ -50,25 +50,35 @@ func (repo *Repository) readTreeToIndex(id ObjectID, indexFilename ...string) er
 }
 
 // ReadTreeToTemporaryIndex reads a treeish to a temporary index file
-func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename, tmpDir string, cancel context.CancelFunc, err error) {
-	tmpDir, err = os.MkdirTemp("", "index")
-	if err != nil {
-		return filename, tmpDir, cancel, err
-	}
+func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (tmpIndexFilename, tmpDir string, cancel context.CancelFunc, err error) {
+	defer func() {
+		// if error happens and there is a cancel function, do clean up
+		if err != nil && cancel != nil {
+			cancel()
+			cancel = nil
+		}
+	}()
 
-	filename = filepath.Join(tmpDir, ".tmp-index")
-	cancel = func() {
-		err := util.RemoveAll(tmpDir)
-		if err != nil {
-			log.Error("failed to remove tmp index file: %v", err)
+	removeDirFn := func(dir string) func() { // it can't use the return value "tmpDir" directly because it is empty when error occurs
+		return func() {
+			if err := util.RemoveAll(dir); err != nil {
+				log.Error("failed to remove tmp index dir: %v", err)
+			}
 		}
 	}
-	err = repo.ReadTreeToIndex(treeish, filename)
+
+	tmpDir, err = os.MkdirTemp("", "index")
 	if err != nil {
-		defer cancel()
-		return "", "", func() {}, err
+		return "", "", nil, err
 	}
-	return filename, tmpDir, cancel, err
+
+	tmpIndexFilename = filepath.Join(tmpDir, ".tmp-index")
+	cancel = removeDirFn(tmpDir)
+	err = repo.ReadTreeToIndex(treeish, tmpIndexFilename)
+	if err != nil {
+		return "", "", cancel, err
+	}
+	return tmpIndexFilename, tmpDir, cancel, err
 }
 
 // EmptyIndex empties the index
@@ -104,12 +114,33 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 	buffer := new(bytes.Buffer)
 	for _, file := range filenames {
 		if file != "" {
-			buffer.WriteString("0 ")
-			buffer.WriteString(objectFormat.EmptyObjectID().String())
-			buffer.WriteByte('\t')
-			buffer.WriteString(file)
-			buffer.WriteByte('\000')
+			// using format: mode SP type SP sha1 TAB path
+			buffer.WriteString("0 blob " + objectFormat.EmptyObjectID().String() + "\t" + file + "\000")
 		}
+	}
+	return cmd.Run(&RunOpts{
+		Dir:    repo.Path,
+		Stdin:  bytes.NewReader(buffer.Bytes()),
+		Stdout: stdout,
+		Stderr: stderr,
+	})
+}
+
+type IndexObjectInfo struct {
+	Mode     string
+	Object   ObjectID
+	Filename string
+}
+
+// AddObjectsToIndex adds the provided object hashes to the index at the provided filenames
+func (repo *Repository) AddObjectsToIndex(objects ...IndexObjectInfo) error {
+	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "-z", "--index-info")
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	buffer := new(bytes.Buffer)
+	for _, object := range objects {
+		// using format: mode SP type SP sha1 TAB path
+		buffer.WriteString(object.Mode + " blob " + object.Object.String() + "\t" + object.Filename + "\000")
 	}
 	return cmd.Run(&RunOpts{
 		Dir:    repo.Path,
@@ -121,9 +152,7 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 
 // AddObjectToIndex adds the provided object hash to the index at the provided filename
 func (repo *Repository) AddObjectToIndex(mode string, object ObjectID, filename string) error {
-	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments(mode, object.String(), filename)
-	_, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
-	return err
+	return repo.AddObjectsToIndex(IndexObjectInfo{Mode: mode, Object: object, Filename: filename})
 }
 
 // WriteTree writes the current index as a tree to the object db and returns its hash

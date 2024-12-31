@@ -57,7 +57,7 @@ func GetHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	hook, err := utils.GetOwnerHook(ctx, ctx.Doer.ID, ctx.ParamsInt64("id"))
+	hook, err := utils.GetOwnerHook(ctx, ctx.Doer.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		return
 	}
@@ -129,7 +129,7 @@ func EditHook(ctx *context.APIContext) {
 		ctx,
 		ctx.Doer,
 		web.GetForm(ctx).(*api.EditHookOption),
-		ctx.ParamsInt64("id"),
+		ctx.PathParamInt64("id"),
 	)
 }
 
@@ -154,6 +154,6 @@ func DeleteHook(ctx *context.APIContext) {
 	utils.DeleteOwnerHook(
 		ctx,
 		ctx.Doer,
-		ctx.ParamsInt64("id"),
+		ctx.PathParamInt64("id"),
 	)
 }

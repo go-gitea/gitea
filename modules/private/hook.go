@@ -7,11 +7,9 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -23,25 +21,6 @@ const (
 	GitQuarantinePath               = "GIT_QUARANTINE_PATH"
 	GitPushOptionCount              = "GIT_PUSH_OPTION_COUNT"
 )
-
-// GitPushOptions is a wrapper around a map[string]string
-type GitPushOptions map[string]string
-
-// GitPushOptions keys
-const (
-	GitPushOptionRepoPrivate  = "repo.private"
-	GitPushOptionRepoTemplate = "repo.template"
-)
-
-// Bool checks for a key in the map and parses as a boolean
-func (g GitPushOptions) Bool(key string) optional.Option[bool] {
-	if val, ok := g[key]; ok {
-		if b, err := strconv.ParseBool(val); err == nil {
-			return optional.Some(b)
-		}
-	}
-	return optional.None[bool]()
-}
 
 // HookOptions represents the options for the Hook calls
 type HookOptions struct {

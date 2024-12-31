@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/common"
@@ -42,9 +43,9 @@ import (
 )
 
 const (
-	tplCompare     base.TplName = "repo/diff/compare"
-	tplBlobExcerpt base.TplName = "repo/diff/blob_excerpt"
-	tplDiffBox     base.TplName = "repo/diff/box"
+	tplCompare     templates.TplName = "repo/diff/compare"
+	tplBlobExcerpt templates.TplName = "repo/diff/blob_excerpt"
+	tplDiffBox     templates.TplName = "repo/diff/box"
 )
 
 // setCompareContext sets context data.
@@ -149,7 +150,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			return csvReader, reader, err
 		}
 
-		baseReader, baseBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, RelativePath: diffFile.OldName}, baseBlob)
+		baseReader, baseBlobCloser, err := csvReaderFromCommit(markup.NewRenderContext(ctx).WithRelativePath(diffFile.OldName), baseBlob)
 		if baseBlobCloser != nil {
 			defer baseBlobCloser.Close()
 		}
@@ -161,7 +162,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			return CsvDiffResult{nil, "unable to load file"}
 		}
 
-		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, RelativePath: diffFile.Name}, headBlob)
+		headReader, headBlobCloser, err := csvReaderFromCommit(markup.NewRenderContext(ctx).WithRelativePath(diffFile.Name), headBlob)
 		if headBlobCloser != nil {
 			defer headBlobCloser.Close()
 		}
@@ -203,7 +204,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	// 5. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}:{:headBranch}
 	// 6. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}/{:headRepoName}:{:headBranch}
 	//
-	// Here we obtain the infoPath "{:baseBranch}...[{:headOwner}/{:headRepoName}:]{:headBranch}" as ctx.Params("*")
+	// Here we obtain the infoPath "{:baseBranch}...[{:headOwner}/{:headRepoName}:]{:headBranch}" as ctx.PathParam("*")
 	// with the :baseRepo in ctx.Repo.
 	//
 	// Note: Generally :headRepoName is not provided here - we are only passed :headOwner.
@@ -225,7 +226,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		err        error
 	)
 
-	infoPath = ctx.Params("*")
+	infoPath = ctx.PathParam("*")
 	var infos []string
 	if infoPath == "" {
 		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
@@ -611,6 +612,8 @@ func PrepareCompareDiff(
 		maxLines, maxFiles = -1, -1
 	}
 
+	fileOnly := ctx.FormBool("file-only")
+
 	diff, err := gitdiff.GetDiff(ctx, ci.HeadGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     beforeCommitID,
@@ -621,6 +624,7 @@ func PrepareCompareDiff(
 			MaxFiles:           maxFiles,
 			WhitespaceBehavior: whitespaceBehavior,
 			DirectComparison:   ci.DirectComparison,
+			FileOnly:           fileOnly,
 		}, ctx.FormStrings("files")...)
 	if err != nil {
 		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
@@ -643,7 +647,7 @@ func PrepareCompareDiff(
 		return false
 	}
 
-	commits := git_model.ConvertFromGitCommit(ctx, ci.CompareInfo.Commits, ci.HeadRepo)
+	commits := processGitCommits(ctx, ci.CompareInfo.Commits)
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 
@@ -660,7 +664,7 @@ func PrepareCompareDiff(
 	}
 	if len(title) > 255 {
 		var trailer string
-		title, trailer = util.SplitStringAtByteN(title, 255)
+		title, trailer = util.EllipsisDisplayStringX(title, 255)
 		if len(trailer) > 0 {
 			if ctx.Data["content"] != nil {
 				ctx.Data["content"] = fmt.Sprintf("%s\n\n%s", trailer, ctx.Data["content"])
@@ -785,9 +789,13 @@ func CompareDiff(ctx *context.Context) {
 
 		if !nothingToCompare {
 			// Setup information for new form.
-			RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
+			pageMetaData := retrieveRepoIssueMetaData(ctx, ctx.Repo.Repository, nil, true)
 			if ctx.Written() {
 				return
+			}
+			_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates, pageMetaData)
+			if len(templateErrs) > 0 {
+				ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
 			}
 		}
 	}
@@ -801,11 +809,6 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + separator + base.ShortSha(afterCommitID)
 
 	ctx.Data["IsDiffCompare"] = true
-	_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
-
-	if len(templateErrs) > 0 {
-		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
-	}
 
 	if content, ok := ctx.Data["content"].(string); ok && content != "" {
 		// If a template content is set, prepend the "content". In this case that's only
@@ -850,7 +853,7 @@ func CompareDiff(ctx *context.Context) {
 
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
-	commitID := ctx.Params("sha")
+	commitID := ctx.PathParam("sha")
 	lastLeft := ctx.FormInt("last_left")
 	lastRight := ctx.FormInt("last_right")
 	idxLeft := ctx.FormInt("left")
@@ -861,7 +864,7 @@ func ExcerptBlob(ctx *context.Context) {
 	direction := ctx.FormString("direction")
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
-	if ctx.FormBool("wiki") {
+	if ctx.Data["PageIsWiki"] == true {
 		var err error
 		gitRepo, err = gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 		if err != nil {

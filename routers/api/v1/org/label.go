@@ -139,7 +139,7 @@ func GetLabel(ctx *context.APIContext) {
 		label *issues_model.Label
 		err   error
 	)
-	strID := ctx.Params(":id")
+	strID := ctx.PathParam("id")
 	if intID, err2 := strconv.ParseInt(strID, 10, 64); err2 != nil {
 		label, err = issues_model.GetLabelInOrgByName(ctx, ctx.Org.Organization.ID, strID)
 	} else {
@@ -190,7 +190,7 @@ func EditLabel(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.EditLabelOption)
-	l, err := issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
+	l, err := issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrOrgLabelNotExist(err) {
 			ctx.NotFound()
@@ -249,7 +249,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := issues_model.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.ParamsInt64(":id")); err != nil {
+	if err := issues_model.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.PathParamInt64("id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteLabel", err)
 		return
 	}

@@ -6,6 +6,8 @@ package math
 import (
 	"bytes"
 
+	giteaUtil "code.gitea.io/gitea/modules/util"
+
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
@@ -13,13 +15,19 @@ import (
 )
 
 type blockParser struct {
-	parseDollars bool
+	parseDollars    bool
+	parseSquare     bool
+	endBytesDollars []byte
+	endBytesSquare  []byte
 }
 
 // NewBlockParser creates a new math BlockParser
-func NewBlockParser(parseDollarBlocks bool) parser.BlockParser {
+func NewBlockParser(parseDollars, parseSquare bool) parser.BlockParser {
 	return &blockParser{
-		parseDollars: parseDollarBlocks,
+		parseDollars:    parseDollars,
+		parseSquare:     parseSquare,
+		endBytesDollars: []byte{'$', '$'},
+		endBytesSquare:  []byte{'\\', ']'},
 	}
 }
 
@@ -34,7 +42,7 @@ func (b *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Contex
 	var dollars bool
 	if b.parseDollars && line[pos] == '$' && line[pos+1] == '$' {
 		dollars = true
-	} else if line[pos] == '\\' && line[pos+1] == '[' {
+	} else if b.parseSquare && line[pos] == '\\' && line[pos+1] == '[' {
 		if len(line[pos:]) >= 3 && line[pos+2] == '!' && bytes.Contains(line[pos:], []byte(`\]`)) {
 			// do not process escaped attention block: "> \[!NOTE\]"
 			return nil, parser.NoChildren
@@ -47,22 +55,31 @@ func (b *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Contex
 	node := NewBlock(dollars, pos)
 
 	// Now we need to check if the ending block is on the segment...
-	endBytes := []byte{'\\', ']'}
-	if dollars {
-		endBytes = []byte{'$', '$'}
-	}
+	endBytes := giteaUtil.Iif(dollars, b.endBytesDollars, b.endBytesSquare)
 	idx := bytes.Index(line[pos+2:], endBytes)
 	if idx >= 0 {
-		segment.Stop = segment.Start + idx + 2
-		reader.Advance(segment.Len() - 1)
-		segment.Start += 2
+		// for case: "$$ ... $$ any other text" (this case will be handled by the inline parser)
+		for i := pos + 2 + idx + 2; i < len(line); i++ {
+			if line[i] != ' ' && line[i] != '\n' {
+				return nil, parser.NoChildren
+			}
+		}
+		segment.Start += pos + 2
+		segment.Stop = segment.Start + idx
 		node.Lines().Append(segment)
 		node.Closed = true
+		node.Inline = true
 		return node, parser.Close | parser.NoChildren
 	}
 
-	reader.Advance(segment.Len() - 1)
-	segment.Start += 2
+	// for case "\[ ... ]" (no close marker on the same line)
+	for i := pos + 2 + idx + 2; i < len(line); i++ {
+		if line[i] != ' ' && line[i] != '\n' {
+			return nil, parser.NoChildren
+		}
+	}
+
+	segment.Start += pos + 2
 	node.Lines().Append(segment)
 	return node, parser.NoChildren
 }
@@ -75,29 +92,20 @@ func (b *blockParser) Continue(node ast.Node, reader text.Reader, pc parser.Cont
 	}
 
 	line, segment := reader.PeekLine()
-	w, pos := util.IndentWidth(line, 0)
+	w, pos := util.IndentWidth(line, reader.LineOffset())
 	if w < 4 {
-		if block.Dollars {
-			i := pos
-			for ; i < len(line) && line[i] == '$'; i++ {
-			}
-			length := i - pos
-			if length >= 2 && util.IsBlank(line[i:]) {
-				reader.Advance(segment.Stop - segment.Start - segment.Padding)
-				block.Closed = true
+		endBytes := giteaUtil.Iif(block.Dollars, b.endBytesDollars, b.endBytesSquare)
+		if bytes.HasPrefix(line[pos:], endBytes) && util.IsBlank(line[pos+len(endBytes):]) {
+			if util.IsBlank(line[pos+len(endBytes):]) {
+				newline := giteaUtil.Iif(line[len(line)-1] != '\n', 0, 1)
+				reader.Advance(segment.Stop - segment.Start - newline + segment.Padding)
 				return parser.Close
 			}
-		} else if len(line[pos:]) > 1 && line[pos] == '\\' && line[pos+1] == ']' && util.IsBlank(line[pos+2:]) {
-			reader.Advance(segment.Stop - segment.Start - segment.Padding)
-			block.Closed = true
-			return parser.Close
 		}
 	}
-
-	pos, padding := util.IndentPosition(line, 0, block.Indent)
-	seg := text.NewSegmentPadding(segment.Start+pos, segment.Stop, padding)
+	start := segment.Start + giteaUtil.Iif(pos > block.Indent, block.Indent, pos)
+	seg := text.NewSegmentPadding(start, segment.Stop, segment.Padding)
 	node.Lines().Append(seg)
-	reader.AdvanceAndSetPadding(segment.Stop-segment.Start-pos-1, padding)
 	return parser.Continue | parser.NoChildren
 }
 

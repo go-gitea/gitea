@@ -12,13 +12,11 @@
 
 	{{if not .ReadmeInList}}
 		<div id="repo-file-commit-box" class="ui segment list-header tw-mb-4 tw-flex tw-justify-between">
-			<div class="latest-commit">
-				{{template "repo/latest_commit" .}}
-			</div>
+			{{template "repo/latest_commit" .}}
 			{{if .LatestCommit}}
 				{{if .LatestCommit.Committer}}
 					<div class="text grey age">
-						{{TimeSince .LatestCommit.Committer.When ctx.Locale}}
+						{{DateUtils.TimeSince .LatestCommit.Committer.When}}
 					</div>
 				{{end}}
 			{{end}}
@@ -29,7 +27,7 @@
 		<div class="file-header-left tw-flex tw-items-center tw-py-2 tw-pr-4">
 			{{if .ReadmeInList}}
 				{{svg "octicon-book" 16 "tw-mr-2"}}
-				<strong><a class="default-link muted" href="#readme">{{.FileName}}</a></strong>
+				<strong><a class="muted" href="#readme">{{.FileName}}</a></strong>
 			{{else}}
 				{{template "repo/file_info" .}}
 			{{end}}
@@ -56,21 +54,21 @@
 						<button class="ui mini basic button escape-button">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 					{{end}}
 				</div>
-				<a download href="{{$.RawFileLink}}"><span class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.download_file"}}">{{svg "octicon-download"}}</span></a>
-				<a id="copy-content" class="btn-octicon {{if not .CanCopyContent}} disabled{{end}}"{{if or .IsImageFile (and .HasSourceRenderedToggle (not .IsDisplayingSource))}} data-link="{{$.RawFileLink}}"{{end}} data-tooltip-content="{{if .CanCopyContent}}{{ctx.Locale.Tr "copy_content"}}{{else}}{{ctx.Locale.Tr "copy_type_unsupported"}}{{end}}">{{svg "octicon-copy" 14}}</a>
+				<a download class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.download_file"}}" href="{{$.RawFileLink}}">{{svg "octicon-download"}}</a>
+				<a id="copy-content" class="btn-octicon {{if not .CanCopyContent}} disabled{{end}}"{{if or .IsImageFile (and .HasSourceRenderedToggle (not .IsDisplayingSource))}} data-link="{{$.RawFileLink}}"{{end}} data-tooltip-content="{{if .CanCopyContent}}{{ctx.Locale.Tr "copy_content"}}{{else}}{{ctx.Locale.Tr "copy_type_unsupported"}}{{end}}">{{svg "octicon-copy"}}</a>
 				{{if .EnableFeed}}
 				<a class="btn-octicon" href="{{$.FeedURL}}/rss/{{$.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
-					{{svg "octicon-rss" 14}}
+					{{svg "octicon-rss"}}
 				</a>
 				{{end}}
 				{{if .Repository.CanEnableEditor}}
 					{{if .CanEditFile}}
-						<a href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon" data-tooltip-content="{{.EditFileTooltip}}">{{svg "octicon-pencil"}}</span></a>
+						<a class="btn-octicon" data-tooltip-content="{{.EditFileTooltip}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-pencil"}}</a>
 					{{else}}
 						<span class="btn-octicon disabled" data-tooltip-content="{{.EditFileTooltip}}">{{svg "octicon-pencil"}}</span>
 					{{end}}
 					{{if .CanDeleteFile}}
-						<a href="{{.RepoLink}}/_delete/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon btn-octicon-danger"  data-tooltip-content="{{.DeleteFileTooltip}}">{{svg "octicon-trash"}}</span></a>
+						<a class="btn-octicon btn-octicon-danger" data-tooltip-content="{{.DeleteFileTooltip}}" href="{{.RepoLink}}/_delete/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-trash"}}</a>
 					{{else}}
 						<span class="btn-octicon disabled" data-tooltip-content="{{.DeleteFileTooltip}}">{{svg "octicon-trash"}}</span>
 					{{end}}

@@ -75,6 +75,34 @@ func TestAPIListIssues(t *testing.T) {
 	}
 }
 
+func TestAPIListIssuesPublicOnly(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo1.OwnerID})
+
+	session := loginUser(t, owner1.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner1.Name, repo1.Name))
+	link.RawQuery = url.Values{"state": {"all"}}.Encode()
+	req := NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	owner2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo2.OwnerID})
+
+	session = loginUser(t, owner2.Name)
+	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
+	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner2.Name, repo2.Name))
+	link.RawQuery = url.Values{"state": {"all"}}.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+
+	publicOnlyToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopePublicOnly)
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(publicOnlyToken)
+	MakeRequest(t, req, http.StatusForbidden)
+}
+
 func TestAPICreateIssue(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	const body, title = "apiTestBody", "apiTestTitle"
@@ -116,6 +144,18 @@ func TestAPICreateIssue(t *testing.T) {
 
 func TestAPICreateIssueParallel(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
+	// FIXME: There seems to be a bug in github.com/mattn/go-sqlite3 with sqlite_unlock_notify, when doing concurrent writes to the same database,
+	// some requests may get stuck in "go-sqlite3.(*SQLiteRows).Next", "go-sqlite3.(*SQLiteStmt).exec" and "go-sqlite3.unlock_notify_wait",
+	// because the "unlock_notify_wait" never returns and the internal lock never gets releases.
+	//
+	// The trigger is: a previous test created issues and made the real issue indexer queue start processing, then this test does concurrent writing.
+	// Adding this "Sleep" makes go-sqlite3 "finish" some internal operations before concurrent writes and then won't get stuck.
+	// To reproduce: make a new test run these 2 tests enough times:
+	// > func TestBug() { for i := 0; i < 100; i++ { testAPICreateIssue(t); testAPICreateIssueParallel(t) } }
+	// Usually the test gets stuck in fewer than 10 iterations without this "sleep".
+	time.Sleep(time.Second)
+
 	const body, title = "apiTestBody", "apiTestTitle"
 
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -212,7 +252,7 @@ func TestAPIEditIssue(t *testing.T) {
 	assert.Equal(t, api.StateClosed, apiIssue.State)
 	assert.Equal(t, milestone, apiIssue.Milestone.ID)
 	assert.Equal(t, body, apiIssue.Body)
-	assert.True(t, apiIssue.Deadline == nil)
+	assert.Nil(t, apiIssue.Deadline)
 	assert.Equal(t, title, apiIssue.Title)
 
 	// in database
@@ -242,6 +282,12 @@ func TestAPISearchIssues(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, expectedIssueCount)
+
+	publicOnlyToken := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopePublicOnly)
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(publicOnlyToken)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 15) // 15 public issues
 
 	since := "2000-01-01T00:50:01+00:00" // 946687801
 	before := time.Unix(999307200, 0).Format(time.RFC3339)

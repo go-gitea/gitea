@@ -5,24 +5,10 @@ package repo
 
 import (
 	"net/url"
-	"sort"
 
-	"code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/services/context"
 )
-
-func MakeSelfOnTop(doer *user.User, users []*user.User) []*user.User {
-	if doer != nil {
-		sort.Slice(users, func(i, j int) bool {
-			if users[i].ID == users[j].ID {
-				return false
-			}
-			return users[i].ID == doer.ID // if users[i] is self, put it before others, so less=true
-		})
-	}
-	return users
-}
 
 func HandleGitError(ctx *context.Context, msg string, err error) {
 	if git.IsErrNotExist(err) {

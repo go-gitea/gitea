@@ -13,7 +13,7 @@
 			<div class="flex-item-main">
 				<div class="flex-item-header">
 					<div class="flex-item-title">
-						<a class="tw-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji $.Context .Title | RenderCodeBlock}}</a>
+						<a class="tw-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 						{{if .IsPull}}
 							{{if (index $.CommitStatuses .PullRequest.ID)}}
 								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID)}}
@@ -21,34 +21,14 @@
 						{{end}}
 						<span class="labels-list tw-ml-1">
 							{{range .Labels}}
-								<a href="?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{RenderLabel $.Context ctx.Locale .}}</a>
+								<a href="?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.RenderUtils.RenderLabel .}}</a>
 							{{end}}
 						</span>
 					</div>
-					{{if or .TotalTrackedTime .Assignees .NumComments}}
-					<div class="flex-item-trailing">
-						{{if .TotalTrackedTime}}
-						<div class="text grey flex-text-block">
-								{{svg "octicon-clock" 16}}
-								{{.TotalTrackedTime | Sec2Time}}
-						</div>
-						{{end}}
-						{{if .Assignees}}
-						<div class="text grey">
-							{{range .Assignees}}
-								<a class="ui assignee tw-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
-									{{ctx.AvatarUtils.Avatar . 20}}
-								</a>
-							{{end}}
-						</div>
-						{{end}}
-						{{if .NumComments}}
-						<div class="text grey">
-							<a class="tw-no-underline muted flex-text-block" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-								{{svg "octicon-comment" 16}}{{.NumComments}}
-							</a>
-						</div>
-						{{end}}
+					{{if .TotalTrackedTime}}
+					<div class="text grey flex-text-block">
+							{{svg "octicon-clock" 16}}
+							{{.TotalTrackedTime | Sec2Time}}
 					</div>
 					{{end}}
 				</div>
@@ -60,7 +40,7 @@
 							#{{.Index}}
 						{{end}}
 					</a>
-					{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
+					{{$timeStr := DateUtils.TimeSince .GetLastEventTimestamp}}
 					{{if .OriginalAuthor}}
 						{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor}}
 					{{else if gt .Poster.ID 0}}
@@ -99,7 +79,7 @@
 							<span class="gt-ellipsis">{{.Project.Title}}</span>
 						</a>
 					{{end}}
-					{{if .Ref}}
+					{{if .Ref}}{{/* TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl" */}}
 						<a class="ref flex-text-inline tw-max-w-[300px]" {{if $.RepoLink}}href="{{index $.IssueRefURLs .ID}}"{{else}}href="{{.Repo.Link}}{{index $.IssueRefURLs .ID}}"{{end}}>
 							{{svg "octicon-git-branch" 14}}
 							<span class="gt-ellipsis">{{index $.IssueRefEndNames .ID}}</span>
@@ -117,7 +97,7 @@
 						<span class="due-date flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
 							<span{{if .IsOverdue}} class="text red"{{end}}>
 								{{svg "octicon-calendar" 14}}
-								{{DateTime "short" (.DeadlineUnix.FormatDate)}}
+								{{DateUtils.AbsoluteShort .DeadlineUnix}}
 							</span>
 						</span>
 					{{end}}
@@ -152,6 +132,26 @@
 					{{end}}
 				</div>
 			</div>
+			{{if or .Assignees .NumComments}}
+			<div class="flex-item-trailing">
+				{{if .Assignees}}
+				<div class="text grey">
+					{{range .Assignees}}
+						<a class="ui assignee tw-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
+							{{ctx.AvatarUtils.Avatar . 20}}
+						</a>
+					{{end}}
+				</div>
+				{{end}}
+				{{if .NumComments}}
+				<div class="text grey">
+					<a class="tw-no-underline muted flex-text-block" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+						{{svg "octicon-comment" 16}}{{.NumComments}}
+					</a>
+				</div>
+				{{end}}
+			</div>
+			{{end}}
 		</div>
 	{{end}}
 	{{if .IssueIndexerUnavailable}}

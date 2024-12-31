@@ -75,7 +75,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.NotFound("Timetracker is disabled")
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
@@ -181,7 +181,7 @@ func AddTime(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.AddTimeOption)
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
@@ -264,7 +264,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
@@ -337,7 +337,7 @@ func DeleteTime(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
@@ -356,7 +356,7 @@ func DeleteTime(ctx *context.APIContext) {
 		return
 	}
 
-	time, err := issues_model.GetTrackedTimeByID(ctx, ctx.ParamsInt64(":id"))
+	time, err := issues_model.GetTrackedTimeByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			ctx.NotFound(err)
@@ -422,7 +422,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 		return
 	}
-	user, err := user_model.GetUserByName(ctx, ctx.Params(":timetrackingusername"))
+	user, err := user_model.GetUserByName(ctx, ctx.PathParam("timetrackingusername"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound(err)

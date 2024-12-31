@@ -1,7 +1,12 @@
 <div class="ui container">
 	<overflow-menu class="ui secondary pointing tabular borderless menu tw-mb-4">
 		<div class="overflow-menu-items">
-			<a class="{{if .PageIsViewRepositories}}active {{end}}item" href="{{$.Org.HomeLink}}">
+			{{if .HasOrgProfileReadme}}
+				<a class="{{if .PageIsViewOverview}}active {{end}}item" href="{{$.Org.HomeLink}}">
+					{{svg "octicon-info"}} {{ctx.Locale.Tr "user.overview"}}
+				</a>
+			{{end}}
+			<a class="{{if .PageIsViewRepositories}}active {{end}}item" href="{{$.Org.HomeLink}}{{if .HasOrgProfileReadme}}/-/repositories{{end}}">
 				{{svg "octicon-repo"}} {{ctx.Locale.Tr "user.repositories"}}
 				{{if .RepoCount}}
 					<div class="ui small label">{{.RepoCount}}</div>

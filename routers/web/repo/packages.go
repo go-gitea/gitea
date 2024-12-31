@@ -9,14 +9,14 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplPackagesList base.TplName = "repo/packages"
+	tplPackagesList templates.TplName = "repo/packages"
 )
 
 // Packages displays a list of all packages in the repository
@@ -70,8 +70,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["RepositoryAccessMap"] = map[int64]bool{ctx.Repo.Repository.ID: true} // There is only the current repository
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParamString("q", query)
-	pager.AddParamString("type", packageType)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)

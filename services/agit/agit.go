@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -24,10 +23,10 @@ import (
 // ProcReceive handle proc receive work
 func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *private.HookOptions) ([]private.HookProcReceiveRefResult, error) {
 	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
+	forcePush := opts.GitPushOptions.Bool(private.GitPushOptionForcePush)
 	topicBranch := opts.GitPushOptions["topic"]
-	forcePush, _ := strconv.ParseBool(opts.GitPushOptions["force-push"])
 	title := strings.TrimSpace(opts.GitPushOptions["title"])
-	description := strings.TrimSpace(opts.GitPushOptions["description"]) // TODO: Add more options?
+	description := strings.TrimSpace(opts.GitPushOptions["description"])
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 	userName := strings.ToLower(opts.UserName)
 
@@ -56,19 +55,19 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		baseBranchName := opts.RefFullNames[i].ForBranchName()
-		curentTopicBranch := ""
+		currentTopicBranch := ""
 		if !gitRepo.IsBranchExist(baseBranchName) {
 			// try match refs/for/<target-branch>/<topic-branch>
 			for p, v := range baseBranchName {
 				if v == '/' && gitRepo.IsBranchExist(baseBranchName[:p]) && p != len(baseBranchName)-1 {
-					curentTopicBranch = baseBranchName[p+1:]
+					currentTopicBranch = baseBranchName[p+1:]
 					baseBranchName = baseBranchName[:p]
 					break
 				}
 			}
 		}
 
-		if len(topicBranch) == 0 && len(curentTopicBranch) == 0 {
+		if len(topicBranch) == 0 && len(currentTopicBranch) == 0 {
 			results = append(results, private.HookProcReceiveRefResult{
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      opts.OldCommitIDs[i],
@@ -78,18 +77,18 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
-		if len(curentTopicBranch) == 0 {
-			curentTopicBranch = topicBranch
+		if len(currentTopicBranch) == 0 {
+			currentTopicBranch = topicBranch
 		}
 
 		// because different user maybe want to use same topic,
 		// So it's better to make sure the topic branch name
-		// has user name prefix
+		// has username prefix
 		var headBranch string
-		if !strings.HasPrefix(curentTopicBranch, userName+"/") {
-			headBranch = userName + "/" + curentTopicBranch
+		if !strings.HasPrefix(currentTopicBranch, userName+"/") {
+			headBranch = userName + "/" + currentTopicBranch
 		} else {
-			headBranch = curentTopicBranch
+			headBranch = currentTopicBranch
 		}
 
 		pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, repo.ID, headBranch, baseBranchName, issues_model.PullRequestFlowAGit)
@@ -138,8 +137,12 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				Type:         issues_model.PullRequestGitea,
 				Flow:         issues_model.PullRequestFlowAGit,
 			}
-
-			if err := pull_service.NewPullRequest(ctx, repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {
+			prOpts := &pull_service.NewPullRequestOptions{
+				Repo:        repo,
+				Issue:       prIssue,
+				PullRequest: pr,
+			}
+			if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 				return nil, err
 			}
 
@@ -178,7 +181,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
-		if !forcePush {
+		if !forcePush.Value() {
 			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").
 				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).
 				RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})

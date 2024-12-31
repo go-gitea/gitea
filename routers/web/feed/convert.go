@@ -13,8 +13,8 @@ import (
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -48,29 +48,23 @@ func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
 	return act.GetRepoAbsoluteLink(ctx) + "/releases/tag/" + util.PathEscapeSegments(act.GetBranch())
 }
 
-// renderMarkdown creates a minimal markdown render context from an action.
-// If rendering fails, the original markdown text is returned
-func renderMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
-	markdownCtx := &markup.RenderContext{
-		Ctx: ctx,
-		Links: markup.Links{
-			Base: act.GetRepoLink(ctx),
-		},
-		Type: markdown.MarkupName,
-		Metas: map[string]string{
-			"user": act.GetRepoUserName(ctx),
-			"repo": act.GetRepoName(ctx),
-		},
+// renderCommentMarkdown renders the comment markdown to html
+func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
+	act.LoadRepo(ctx)
+	if act.Repo == nil {
+		return ""
 	}
-	markdown, err := markdown.RenderString(markdownCtx, content)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, act.Repo).WithUseAbsoluteLink(true)
+	rendered, err := markdown.RenderString(rctx, content)
 	if err != nil {
-		return templates.SanitizeHTML(content) // old code did so: use SanitizeHTML to render in tmpl
+		return ""
 	}
-	return markdown
+	return rendered
 }
 
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
 func feedActionsToFeedItems(ctx *context.Context, actions activities_model.ActionList) (items []*feeds.Item, err error) {
+	renderUtils := templates.NewRenderUtils(ctx)
 	for _, act := range actions {
 		act.LoadActUser(ctx)
 
@@ -83,7 +77,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 		link := &feeds.Link{Href: act.GetCommentHTMLURL(ctx)}
 
 		// title
-		title = act.ActUser.DisplayName() + " "
+		title = act.ActUser.GetDisplayName() + " "
 		var titleExtra template.HTML
 		switch act.OpType {
 		case activities_model.ActionCreateRepo:
@@ -215,7 +209,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 					desc += fmt.Sprintf("<a href=\"%s\">%s</a>\n%s",
 						html.EscapeString(fmt.Sprintf("%s/commit/%s", act.GetRepoAbsoluteLink(ctx), commit.Sha1)),
 						commit.Sha1,
-						templates.RenderCommitMessage(ctx, commit.Message, nil),
+						renderUtils.RenderCommitMessage(commit.Message, nil),
 					)
 				}
 
@@ -227,12 +221,12 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 
 			case activities_model.ActionCreateIssue, activities_model.ActionCreatePullRequest:
 				desc = strings.Join(act.GetIssueInfos(), "#")
-				content = renderMarkdown(ctx, act, act.GetIssueContent(ctx))
+				content = renderCommentMarkdown(ctx, act, act.GetIssueContent(ctx))
 			case activities_model.ActionCommentIssue, activities_model.ActionApprovePullRequest, activities_model.ActionRejectPullRequest, activities_model.ActionCommentPull:
 				desc = act.GetIssueTitle(ctx)
 				comment := act.GetIssueInfos()[1]
 				if len(comment) != 0 {
-					desc += "\n\n" + string(renderMarkdown(ctx, act, comment))
+					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, comment))
 				}
 			case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 				desc = act.GetIssueInfos()[1]
@@ -252,7 +246,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			Description: desc,
 			IsPermaLink: "false",
 			Author: &feeds.Author{
-				Name:  act.ActUser.DisplayName(),
+				Name:  act.ActUser.GetDisplayName(),
 				Email: act.ActUser.GetEmail(),
 			},
 			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(act.ID, 10), link.Href),
@@ -296,14 +290,9 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 		}
 
 		link := &feeds.Link{Href: rel.HTMLURL()}
-		content, err = markdown.RenderString(&markup.RenderContext{
-			Ctx:  ctx,
-			Repo: rel.Repo,
-			Links: markup.Links{
-				Base: rel.Repo.Link(),
-			},
-			Metas: rel.Repo.ComposeMetas(ctx),
-		}, rel.Note)
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, rel.Repo).WithUseAbsoluteLink(true)
+		content, err = markdown.RenderString(rctx,
+			rel.Note)
 		if err != nil {
 			return nil, err
 		}
@@ -313,7 +302,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 			Link:    link,
 			Created: rel.CreatedUnix.AsTime(),
 			Author: &feeds.Author{
-				Name:  rel.Publisher.DisplayName(),
+				Name:  rel.Publisher.GetDisplayName(),
 				Email: rel.Publisher.GetEmail(),
 			},
 			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(rel.ID, 10), link.Href),

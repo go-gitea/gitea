@@ -75,7 +75,8 @@ func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag s
 		w.Header().Set("Etag", etag)
 	}
 	if lastModified != nil && !lastModified.IsZero() {
-		w.Header().Set("Last-Modified", lastModified.Format(http.TimeFormat))
+		// http.TimeFormat required a UTC time, refer to https://pkg.go.dev/net/http#TimeFormat
+		w.Header().Set("Last-Modified", lastModified.UTC().Format(http.TimeFormat))
 	}
 
 	if len(etag) > 0 {

@@ -9,19 +9,20 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sitemap"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
 	// tplExploreUsers explore users page template
-	tplExploreUsers base.TplName = "explore/users"
+	tplExploreUsers templates.TplName = "explore/users"
 )
 
 var nullByte = []byte{0x00}
@@ -31,10 +32,10 @@ func isKeywordValid(keyword string) bool {
 }
 
 // RenderUserSearch render user search page
-func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, tplName base.TplName) {
+func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, tplName templates.TplName) {
 	// Sitemap index for sitemap paths
-	opts.Page = int(ctx.ParamsInt64("idx"))
-	isSitemap := ctx.Params("idx") != ""
+	opts.Page = int(ctx.PathParamInt64("idx"))
+	isSitemap := ctx.PathParam("idx") != ""
 	if opts.Page <= 1 {
 		opts.Page = ctx.FormInt("page")
 	}
@@ -119,10 +120,7 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
-	for paramKey, paramVal := range opts.ExtraParamStrings {
-		pager.AddParamString(paramKey, paramVal)
-	}
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplName)
@@ -131,9 +129,11 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 // Users render explore users page
 func Users(ctx *context.Context) {
 	if setting.Service.Explore.DisableUsersPage {
-		ctx.Redirect(setting.AppSubURL + "/explore/repos")
+		ctx.Redirect(setting.AppSubURL + "/explore")
 		return
 	}
+	ctx.Data["OrganizationsPageIsDisabled"] = setting.Service.Explore.DisableOrganizationsPage
+	ctx.Data["CodePageIsDisabled"] = setting.Service.Explore.DisableCodePage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreUsers"] = true
@@ -147,7 +147,7 @@ func Users(ctx *context.Context) {
 	)
 	sortOrder := ctx.FormString("sort")
 	if sortOrder == "" {
-		sortOrder = "newest"
+		sortOrder = util.Iif(supportedSortOrders.Contains(setting.UI.ExploreDefaultSort), setting.UI.ExploreDefaultSort, "newest")
 		ctx.SetFormString("sort", sortOrder)
 	}
 

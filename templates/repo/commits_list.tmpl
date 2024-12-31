@@ -28,41 +28,23 @@
 						</div>
 					</td>
 					<td class="sha">
-						{{$class := "ui sha label"}}
-						{{if .Signature}}
-							{{$class = (print $class " isSigned")}}
-							{{if .Verification.Verified}}
-								{{if eq .Verification.TrustStatus "trusted"}}
-									{{$class = (print $class " isVerified")}}
-								{{else if eq .Verification.TrustStatus "untrusted"}}
-									{{$class = (print $class " isVerifiedUntrusted")}}
-								{{else}}
-									{{$class = (print $class " isVerifiedUnmatched")}}
-								{{end}}
-							{{else if .Verification.Warning}}
-								{{$class = (print $class " isWarning")}}
-							{{end}}
-						{{end}}
-						{{$commitShaLink := ""}}
+						{{$commitBaseLink := ""}}
 						{{if $.PageIsWiki}}
-							{{$commitShaLink = (printf "%s/wiki/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
+							{{$commitBaseLink = printf "%s/wiki/commit" $commitRepoLink}}
 						{{else if $.PageIsPullCommits}}
-							{{$commitShaLink = (printf "%s/pulls/%d/commits/%s" $commitRepoLink $.Issue.Index (PathEscape .ID.String))}}
+							{{$commitBaseLink = printf "%s/pulls/%d/commits" $commitRepoLink $.Issue.Index}}
 						{{else if $.Reponame}}
-							{{$commitShaLink = (printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
+							{{$commitBaseLink = printf "%s/commit" $commitRepoLink}}
 						{{end}}
-						<a {{if $commitShaLink}}href="{{$commitShaLink}}"{{end}} class="{{$class}}">
-							<span class="shortsha">{{ShortSha .ID.String}}</span>
-							{{if .Signature}}{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}{{end}}
-						</a>
+						{{template "repo/commit_sign_badge" dict "Commit" . "CommitBaseLink" $commitBaseLink "CommitSignVerification" .Verification}}
 					</td>
 					<td class="message">
 						<span class="message-wrapper">
 						{{if $.PageIsWiki}}
-							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | RenderEmoji $.Context}}</span>
+							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | ctx.RenderUtils.RenderEmoji}}</span>
 						{{else}}
 							{{$commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
-							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.Context .Message $commitLink ($.Repository.ComposeMetas ctx)}}</span>
+							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .Message $commitLink ($.Repository.ComposeMetas ctx)}}</span>
 						{{end}}
 						</span>
 						{{if IsMultilineCommitMessage .Message}}
@@ -70,13 +52,18 @@
 						{{end}}
 						{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 						{{if IsMultilineCommitMessage .Message}}
-						<pre class="commit-body tw-hidden">{{RenderCommitBody $.Context .Message ($.Repository.ComposeMetas ctx)}}</pre>
+						<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .Message ($.Repository.ComposeMetas ctx)}}</pre>
+						{{end}}
+						{{if $.CommitsTagsMap}}
+							{{range (index $.CommitsTagsMap .ID.String)}}
+								{{- template "repo/tag/name" dict "RepoLink" $.Repository.Link "TagName" .TagName "IsRelease" (not .IsTag) -}}
+							{{end}}
 						{{end}}
 					</td>
 					{{if .Committer}}
-						<td class="text right aligned">{{TimeSince .Committer.When ctx.Locale}}</td>
+						<td class="text right aligned">{{DateUtils.TimeSince .Committer.When}}</td>
 					{{else}}
-						<td class="text right aligned">{{TimeSince .Author.When ctx.Locale}}</td>
+						<td class="text right aligned">{{DateUtils.TimeSince .Author.When}}</td>
 					{{end}}
 					<td class="text right aligned tw-py-0">
 						<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>

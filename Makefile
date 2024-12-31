@@ -23,20 +23,20 @@ SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
-XGO_VERSION := go-1.22.x
+XGO_VERSION := go-1.23.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.6.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.0
-GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
-MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.5.1
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@db51e79a0e37c572d8b59ae0c58bf2bbbbe53285
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.0.3
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.7.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
+GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.12
+MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.6.0
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.31.0
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
-GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.15.3
+GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.17.0
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -137,16 +137,16 @@ TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
-TEST_TAGS ?= sqlite sqlite_unlock_notify
+TEST_TAGS ?= $(TAGS_SPLIT) sqlite sqlite_unlock_notify
 
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
 GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
-ESLINT_FILES := web_src/js tools *.js tests/e2e
+ESLINT_FILES := web_src/js tools *.js *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
-SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) docs/content templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.js *.md *.yml *.yaml *.toml))
+SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.js *.md *.yml *.yaml *.toml))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
 
 GO_SOURCES := $(wildcard *.go)
@@ -179,6 +179,7 @@ TEST_PGSQL_DBNAME ?= testgitea
 TEST_PGSQL_USERNAME ?= postgres
 TEST_PGSQL_PASSWORD ?= postgres
 TEST_PGSQL_SCHEMA ?= gtestschema
+TEST_MINIO_ENDPOINT ?= minio:9000
 TEST_MSSQL_HOST ?= mssql:1433
 TEST_MSSQL_DBNAME ?= gitea
 TEST_MSSQL_USERNAME ?= sa
@@ -375,11 +376,13 @@ lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
 
 .PHONY: lint-js
 lint-js: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue $(ESLINT_FILES)
+	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
+	npx vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue $(ESLINT_FILES) --fix
+	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
+	npx vue-tsc
 
 .PHONY: lint-css
 lint-css: node_modules
@@ -395,7 +398,7 @@ lint-swagger: node_modules
 
 .PHONY: lint-md
 lint-md: node_modules
-	npx markdownlint docs *.md
+	npx markdownlint *.md
 
 .PHONY: lint-spell
 lint-spell:
@@ -572,6 +575,7 @@ generate-ini-pgsql:
 		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
 		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
 		-e 's|{{TEST_PGSQL_SCHEMA}}|${TEST_PGSQL_SCHEMA}|g' \
+		-e 's|{{TEST_MINIO_ENDPOINT}}|${TEST_MINIO_ENDPOINT}|g' \
 		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
 		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
 		-e 's|{{TEST_TYPE}}|$(or $(TEST_TYPE),integration)|g' \
@@ -795,29 +799,29 @@ $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-docs release-check
+release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-check
 
 $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
 
 .PHONY: release-windows
 release-windows: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq (,$(findstring gogit,$(TAGS)))
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo gogit $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo gogit $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
 endif
 
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
 
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
 
 .PHONY: release-freebsd
 release-freebsd: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'freebsd/amd64' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets 'freebsd/amd64' -out gitea-$(VERSION) .
 
 .PHONY: release-copy
 release-copy: | $(DIST_DIRS)
@@ -841,10 +845,6 @@ release-sources: | $(DIST_DIRS)
 	tar $(addprefix $(EXCL),$(TAR_EXCLUDES)) $(TRANSFORM) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
-.PHONY: release-docs
-release-docs: | $(DIST_DIRS) docs
-	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs .
-
 .PHONY: deps
 deps: deps-frontend deps-backend deps-tools deps-py
 
@@ -860,18 +860,19 @@ deps-backend:
 
 .PHONY: deps-tools
 deps-tools:
-	$(GO) install $(AIR_PACKAGE)
-	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
-	$(GO) install $(GOFUMPT_PACKAGE)
-	$(GO) install $(GOLANGCI_LINT_PACKAGE)
-	$(GO) install $(GXZ_PACKAGE)
-	$(GO) install $(MISSPELL_PACKAGE)
-	$(GO) install $(SWAGGER_PACKAGE)
-	$(GO) install $(XGO_PACKAGE)
-	$(GO) install $(GO_LICENSES_PACKAGE)
-	$(GO) install $(GOVULNCHECK_PACKAGE)
-	$(GO) install $(ACTIONLINT_PACKAGE)
-	$(GO) install $(GOPLS_PACKAGE)
+	$(GO) install $(AIR_PACKAGE) & \
+	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE) & \
+	$(GO) install $(GOFUMPT_PACKAGE) & \
+	$(GO) install $(GOLANGCI_LINT_PACKAGE) & \
+	$(GO) install $(GXZ_PACKAGE) & \
+	$(GO) install $(MISSPELL_PACKAGE) & \
+	$(GO) install $(SWAGGER_PACKAGE) & \
+	$(GO) install $(XGO_PACKAGE) & \
+	$(GO) install $(GO_LICENSES_PACKAGE) & \
+	$(GO) install $(GOVULNCHECK_PACKAGE) & \
+	$(GO) install $(ACTIONLINT_PACKAGE) & \
+	$(GO) install $(GOPLS_PACKAGE) & \
+	wait
 
 node_modules: package-lock.json
 	npm install --no-save
@@ -888,6 +889,8 @@ update: update-js update-py
 update-js: node-check | node_modules
 	npx updates -u -f package.json
 	rm -rf node_modules package-lock.json
+	npm install --package-lock
+	npx nolyfill install
 	npm install --package-lock
 	@touch node_modules
 
@@ -967,7 +970,7 @@ generate-gitignore:
 
 .PHONY: generate-images
 generate-images: | node_modules
-	npm install --no-save fabric@6.0.0-beta20 imagemin-zopfli@7
+	npm install --no-save fabric@6 imagemin-zopfli@7
 	node tools/generate-images.js $(TAGS)
 
 .PHONY: generate-manpage

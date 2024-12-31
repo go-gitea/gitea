@@ -1,0 +1,132 @@
+{{$pageMeta := .}}
+{{$data := .ReviewersData}}
+{{$repoOwnerName := $pageMeta.Repository.OwnerName}}
+{{$hasCandidates := or $data.Reviewers $data.TeamReviewers}}
+<div class="issue-sidebar-combo" data-selection-mode="multiple" data-update-algo="diff"
+		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/request_review?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
+>
+	<input type="hidden" class="combo-value" name="reviewer_ids">{{/* match CreateIssueForm */}}
+	<div class="ui dropdown {{if or (not $hasCandidates) (not $data.CanChooseReviewer)}}disabled{{end}}">
+		<a class="text muted">
+			<strong>{{ctx.Locale.Tr "repo.issues.review.reviewers"}}</strong> {{if $data.CanChooseReviewer}}{{svg "octicon-gear"}}{{end}}
+		</a>
+		<div class="menu flex-items-menu">
+			{{if $hasCandidates}}
+				<div class="ui icon search input">
+					<i class="icon">{{svg "octicon-search"}}</i>
+					<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_reviewers"}}">
+				</div>
+			{{end}}
+			<div class="scrolling menu flex-items-menu">
+				{{range $data.Reviewers}}
+					{{if .User}}
+						<a class="item muted {{if .Requested}}checked{{end}}" href="{{.User.HomeLink}}" data-value="{{.ItemID}}" data-can-change="{{.CanChange}}"
+							{{if not .CanChange}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+							<span class="item-check-mark">{{svg "octicon-check"}}</span>
+							{{ctx.AvatarUtils.Avatar .User 20}} {{template "repo/search_name" .User}}
+						</a>
+					{{end}}
+				{{end}}
+				{{if $data.TeamReviewers}}
+					{{if $data.Reviewers}}<div class="divider"></div>{{end}}
+					{{range $data.TeamReviewers}}
+						{{if .Team}}
+							<a class="item muted {{if .Requested}}checked{{end}}" href="#" data-value="{{.ItemID}}" data-can-change="{{.CanChange}}"
+								{{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+								<span class="item-check-mark">{{svg "octicon-check"}}</span>
+								{{svg "octicon-people" 20}} {{$repoOwnerName}}/{{.Team.Name}}
+							</a>
+						{{end}}
+					{{end}}
+				{{end}}
+			</div>
+		</div>
+	</div>
+
+	<div class="ui relaxed list flex-items-block tw-my-4">
+		<span class="item empty-list {{if or $data.OriginalReviews $data.CurrentPullReviewers}}tw-hidden{{end}}">
+			{{ctx.Locale.Tr "repo.issues.new.no_reviewers"}}
+		</span>
+		{{range $data.CurrentPullReviewers}}
+			<div class="item">
+				<div class="flex-text-inline tw-flex-1">
+					{{if .User}}
+						<a class="muted flex-text-inline" href="{{.User.HomeLink}}">{{ctx.AvatarUtils.Avatar .User 20}} {{.User.GetDisplayName}}</a>
+					{{else if .Team}}
+						{{svg "octicon-people" 20}} {{$repoOwnerName}}/{{.Team.Name}}
+					{{end}}
+				</div>
+				<div class="flex-text-inline">
+					{{if .CanBeDismissed}}
+						<a href="#" class="ui muted icon show-modal" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dismiss_review"}}"
+							data-modal="#issue-sidebar-dismiss-review-modal" data-modal-reviewer-id="{{.Review.ID}}">
+							{{svg "octicon-x" 20}}
+						</a>
+					{{end}}
+					{{if .Review.Stale}}
+						<span data-tooltip-content="{{ctx.Locale.Tr "repo.issues.is_stale"}}">{{svg "octicon-hourglass" 16}}</span>
+					{{end}}
+					{{if and .CanChange $data.CanChooseReviewer}}
+						{{if .Requested}}
+							<a href="#" class="ui muted icon link-action"
+								data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review"}}"
+								data-url="{{$pageMeta.RepoLink}}/issues/request_review?action=detach&issue_ids={{$pageMeta.Issue.ID}}&id={{.ItemID}}">
+								{{svg "octicon-trash"}}
+							</a>
+						{{else}}
+							<a href="#" class="ui muted icon link-action"
+								data-tooltip-content="{{ctx.Locale.Tr "repo.issues.re_request_review"}}"
+								data-url="{{$pageMeta.RepoLink}}/issues/request_review?action=attach&issue_ids={{$pageMeta.Issue.ID}}&id={{.ItemID}}">
+								{{svg "octicon-sync"}}
+							</a>
+						{{end}}
+					{{end}}
+					<span {{if .Review.TooltipContent}}data-tooltip-content="{{ctx.Locale.Tr .Review.TooltipContent}}"{{end}}>
+						{{svg (printf "octicon-%s" .Review.Type.Icon) 16 (printf "text %s" (.Review.HTMLTypeColorName))}}
+					</span>
+				</div>
+			</div>
+		{{end}}
+		{{range $data.OriginalReviews}}
+			<div class="item">
+				<div class="flex-text-inline tw-flex-1">
+					{{$originalURLHostname := $pageMeta.Repository.GetOriginalURLHostname}}
+					{{$originalURL := $pageMeta.Repository.OriginalURL}}
+					<a class="muted flex-text-inline" href="{{$originalURL}}" data-tooltip-content="{{ctx.Locale.Tr "repo.migrated_from_fake" $originalURLHostname}}">
+						{{svg (MigrationIcon $originalURLHostname) 20}} {{.OriginalAuthor}}
+					</a>
+				</div>
+				<div class="flex-text-inline">
+					<span {{if .TooltipContent}}data-tooltip-content="{{ctx.Locale.Tr .TooltipContent}}"{{end}}>
+						{{svg (printf "octicon-%s" .Type.Icon) 16 (printf "text %s" (.HTMLTypeColorName))}}
+					</span>
+				</div>
+			</div>
+		{{end}}
+	</div>
+
+	{{if $data.CurrentPullReviewers}}
+	<div class="ui small modal" id="issue-sidebar-dismiss-review-modal">
+		<div class="header">
+			{{ctx.Locale.Tr "repo.issues.dismiss_review"}}
+		</div>
+		<div class="content">
+			<div class="ui warning message">
+				{{ctx.Locale.Tr "repo.issues.dismiss_review_warning"}}
+			</div>
+			<form class="ui form" action="{{$pageMeta.RepoLink}}/issues/dismiss_review" method="post">
+				{{ctx.RootData.CsrfTokenHtml}}
+				<input type="hidden" class="reviewer-id" name="review_id">
+				<div class="field">
+					<label for="issue-sidebar-dismiss-review-message">{{ctx.Locale.Tr "action.review_dismissed_reason"}}</label>
+					<input id="issue-sidebar-dismiss-review-message" name="message">
+				</div>
+				<div class="text right actions">
+					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+					<button class="ui red button" type="submit">{{ctx.Locale.Tr "ok"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	{{end}}
+</div>

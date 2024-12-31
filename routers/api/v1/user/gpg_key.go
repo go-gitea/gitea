@@ -116,7 +116,7 @@ func GetGPGKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := asymkey_model.GetGPGKeyForUserByID(ctx, ctx.Doer.ID, ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetGPGKeyForUserByID(ctx, ctx.Doer.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if asymkey_model.IsErrGPGKeyNotExist(err) {
 			ctx.NotFound()
@@ -280,7 +280,7 @@ func DeleteGPGKey(ctx *context.APIContext) {
 		return
 	}
 
-	if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.ParamsInt64(":id")); err != nil {
+	if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.PathParamInt64("id")); err != nil {
 		if asymkey_model.IsErrGPGKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {

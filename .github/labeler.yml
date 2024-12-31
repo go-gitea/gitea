@@ -70,8 +70,14 @@ modifies/go:
       - any-glob-to-any-file:
           - "**/*.go"
 
-modifies/js:
+modifies/frontend:
   - changed-files:
       - any-glob-to-any-file:
           - "**/*.js"
+          - "**/*.ts"
           - "**/*.vue"
+
+docs-update-needed:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "custom/conf/app.example.ini"

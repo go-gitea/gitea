@@ -51,7 +51,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	comment, err := issues_model.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
+	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)
@@ -188,7 +188,7 @@ func DeleteIssueCommentReaction(ctx *context.APIContext) {
 }
 
 func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOption, isCreateType bool) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
+	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)
@@ -295,7 +295,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -419,7 +419,7 @@ func DeleteIssueReaction(ctx *context.APIContext) {
 }
 
 func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, isCreateType bool) {
-	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()

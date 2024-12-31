@@ -109,7 +109,7 @@ func GetHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64("id")
 	hook, err := utils.GetRepoHook(ctx, repo.Repository.ID, hookID)
 	if err != nil {
 		return
@@ -168,7 +168,7 @@ func TestHook(ctx *context.APIContext) {
 		ref = r
 	}
 
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64("id")
 	hook, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID)
 	if err != nil {
 		return
@@ -263,7 +263,7 @@ func EditHook(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.EditHookOption)
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64("id")
 	utils.EditRepoHook(ctx, form, hookID)
 }
 
@@ -296,7 +296,7 @@ func DeleteHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
+	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id")); err != nil {
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {

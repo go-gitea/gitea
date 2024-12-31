@@ -48,7 +48,7 @@ func testPrivateActivityDoSomethingForActionEntries(t *testing.T) {
 func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 	session := loginUser(t, privateActivityTestUser)
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf":                 GetCSRF(t, session, "/user/settings"),
+		"_csrf":                 GetUserCSRFToken(t, session),
 		"name":                  privateActivityTestUser,
 		"email":                 privateActivityTestUser + "@example.com",
 		"language":              "en-US",

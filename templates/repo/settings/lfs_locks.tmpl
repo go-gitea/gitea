@@ -30,12 +30,12 @@
 								{{end}}
 							</td>
 							<td>
-								<a href="{{$.Owner.HomeLink}}">
-									{{ctx.AvatarUtils.Avatar $.Owner}}
-									{{$.Owner.DisplayName}}
+								<a href="{{$lock.Owner.HomeLink}}">
+									{{ctx.AvatarUtils.Avatar $lock.Owner}}
+									{{$lock.Owner.DisplayName}}
 								</a>
 							</td>
-							<td>{{TimeSince .Created ctx.Locale}}</td>
+							<td>{{DateUtils.TimeSince .Created}}</td>
 							<td class="right aligned">
 								<form action="{{$.LFSFilesLink}}/locks/{{$lock.ID}}/unlock" method="post">
 									{{$.CsrfTokenHtml}}

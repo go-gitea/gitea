@@ -9,6 +9,10 @@ _test
 
 # IntelliJ
 .idea
+
+# IntelliJ Gateway
+.uuid
+
 # Goland's output filename can not be set manually
 /go_build_*
 /gitea_*
@@ -28,6 +32,7 @@ _testmain.go
 *.exe
 *.test
 *.prof
+*.tsbuildinfo
 
 *coverage.out
 coverage.all
@@ -107,6 +112,9 @@ prime/
 *.snap-build
 *_source.tar.bz2
 .DS_Store
+
+# nix-direnv generated files
+.direnv/
 
 # Make evidence files
 /.make_evidence

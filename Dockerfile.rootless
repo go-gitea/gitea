@@ -1,12 +1,12 @@
 # Build stage
-FROM docker.io/library/golang:1.22-alpine3.20 AS build-env
+FROM docker.io/library/golang:1.23-alpine3.21 AS build-env
 
 ARG GOPROXY
-ENV GOPROXY ${GOPROXY:-direct}
+ENV GOPROXY=${GOPROXY:-direct}
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
-ENV TAGS "bindata timetzdata $TAGS"
+ENV TAGS="bindata timetzdata $TAGS"
 ARG CGO_EXTRA_CFLAGS
 
 #Build deps
@@ -39,7 +39,7 @@ RUN chmod 755 /tmp/local/usr/local/bin/docker-entrypoint.sh \
               /go/src/code.gitea.io/gitea/environment-to-ini
 RUN chmod 644 /go/src/code.gitea.io/gitea/contrib/autocompletion/bash_autocomplete
 
-FROM docker.io/library/alpine:3.20
+FROM docker.io/library/alpine:3.21
 LABEL maintainer="maintainers@gitea.io"
 
 EXPOSE 2222 3000
@@ -75,14 +75,14 @@ COPY --from=build-env /go/src/code.gitea.io/gitea/contrib/autocompletion/bash_au
 
 # git:git
 USER 1000:1000
-ENV GITEA_WORK_DIR /var/lib/gitea
-ENV GITEA_CUSTOM /var/lib/gitea/custom
-ENV GITEA_TEMP /tmp/gitea
-ENV TMPDIR /tmp/gitea
+ENV GITEA_WORK_DIR=/var/lib/gitea
+ENV GITEA_CUSTOM=/var/lib/gitea/custom
+ENV GITEA_TEMP=/tmp/gitea
+ENV TMPDIR=/tmp/gitea
 
 # TODO add to docs the ability to define the ini to load (useful to test and revert a config)
-ENV GITEA_APP_INI /etc/gitea/app.ini
-ENV HOME "/var/lib/gitea/git"
+ENV GITEA_APP_INI=/etc/gitea/app.ini
+ENV HOME="/var/lib/gitea/git"
 VOLUME ["/var/lib/gitea", "/etc/gitea"]
 WORKDIR /var/lib/gitea
 
