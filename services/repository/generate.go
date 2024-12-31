@@ -210,9 +210,9 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	}
 
 	// Get active submodules from the template
-	submodules, err := git.GetSubmoduleCommits(ctx, tmpDir)
+	submodules, err := git.GetTemplateSubmoduleCommits(ctx, tmpDir)
 	if err != nil {
-		return fmt.Errorf("GetSubmoduleCommits: %w", err)
+		return fmt.Errorf("GetTemplateSubmoduleCommits: %w", err)
 	}
 
 	if err = util.RemoveAll(filepath.Join(tmpDir, ".git")); err != nil {
@@ -242,7 +242,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return fmt.Errorf("git remote add: %w", err)
 	}
 
-	if err = git.AddSubmoduleIndexes(ctx, tmpDir, submodules); err != nil {
+	if err = git.AddTemplateSubmoduleIndexes(ctx, tmpDir, submodules); err != nil {
 		return fmt.Errorf("failed to add submodules: %v", err)
 	}
 

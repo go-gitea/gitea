@@ -10,7 +10,7 @@ import (
 
 func TestRepository_GetSubmoduleCommits(t *testing.T) {
 	testRepoPath := filepath.Join(testReposDir, "repo4_submodules")
-	submodules, err := GetSubmoduleCommits(DefaultContext, testRepoPath)
+	submodules, err := GetTemplateSubmoduleCommits(DefaultContext, testRepoPath)
 	require.NoError(t, err)
 
 	assert.EqualValues(t, len(submodules), 2)
