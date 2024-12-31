@@ -325,50 +325,50 @@ textarea:focus,
   margin: 0;
 }
 
-.repository.new.repo form,
+.repository.new-repo form,
 .repository.new.migrate form,
 .repository.new.fork form {
   margin: auto;
 }
 
-.repository.new.repo form .ui.message,
+.repository.new-repo form .ui.message,
 .repository.new.migrate form .ui.message,
 .repository.new.fork form .ui.message {
   text-align: center;
 }
 
 @media (min-width: 768px) {
-  .repository.new.repo form,
+  .repository.new-repo form,
   .repository.new.migrate form,
   .repository.new.fork form {
     width: 800px !important;
   }
-  .repository.new.repo form .header,
+  .repository.new-repo form .header,
   .repository.new.migrate form .header,
   .repository.new.fork form .header {
     padding-left: 280px !important;
   }
-  .repository.new.repo form .inline.field > label,
+  .repository.new-repo form .inline.field > label,
   .repository.new.migrate form .inline.field > label,
   .repository.new.fork form .inline.field > label {
     text-align: right;
     width: 250px !important;
     word-wrap: break-word;
   }
-  .repository.new.repo form .help,
+  .repository.new-repo form .help,
   .repository.new.migrate form .help,
   .repository.new.fork form .help {
     margin-left: 265px !important;
   }
-  .repository.new.repo form .optional .title,
+  .repository.new-repo form .optional .title,
   .repository.new.migrate form .optional .title,
   .repository.new.fork form .optional .title {
     margin-left: 250px !important;
   }
-  .repository.new.repo form .inline.field > input,
+  .repository.new-repo form .inline.field > input,
   .repository.new.migrate form .inline.field > input,
   .repository.new.fork form .inline.field > input,
-  .repository.new.repo form .inline.field > textarea,
+  .repository.new-repo form .inline.field > textarea,
   .repository.new.migrate form .inline.field > textarea,
   .repository.new.fork form .inline.field > textarea {
     width: 50%;
@@ -376,32 +376,32 @@ textarea:focus,
 }
 
 @media (max-width: 767.98px) {
-  .repository.new.repo form .optional .title,
+  .repository.new-repo form .optional .title,
   .repository.new.migrate form .optional .title,
   .repository.new.fork form .optional .title {
     margin-left: 15px;
   }
-  .repository.new.repo form .inline.field > label,
+  .repository.new-repo form .inline.field > label,
   .repository.new.migrate form .inline.field > label,
   .repository.new.fork form .inline.field > label {
     display: block;
   }
 }
 
-.repository.new.repo form .dropdown .text,
+.repository.new-repo form .dropdown .text,
 .repository.new.migrate form .dropdown .text,
 .repository.new.fork form .dropdown .text {
   margin-right: 0 !important;
 }
 
-.repository.new.repo form .header,
+.repository.new-repo form .header,
 .repository.new.migrate form .header,
 .repository.new.fork form .header {
   padding-left: 0 !important;
   text-align: center;
 }
 
-.repository.new.repo form .selection.dropdown,
+.repository.new-repo form .selection.dropdown,
 .repository.new.migrate form .selection.dropdown,
 .repository.new.fork form .selection.dropdown,
 .repository.new.fork form .field a {
@@ -410,22 +410,22 @@ textarea:focus,
 }
 
 @media (max-width: 767.98px) {
-  .repository.new.repo form label,
+  .repository.new-repo form label,
   .repository.new.migrate form label,
   .repository.new.fork form label,
-  .repository.new.repo form .inline.field > input,
+  .repository.new-repo form .inline.field > input,
   .repository.new.migrate form .inline.field > input,
   .repository.new.fork form .inline.field > input,
   .repository.new.fork form .field a,
-  .repository.new.repo form .selection.dropdown,
+  .repository.new-repo form .selection.dropdown,
   .repository.new.migrate form .selection.dropdown,
   .repository.new.fork form .selection.dropdown {
     width: 100% !important;
   }
-  .repository.new.repo form .field button,
+  .repository.new-repo form .field button,
   .repository.new.migrate form .field button,
   .repository.new.fork form .field button,
-  .repository.new.repo form .field a,
+  .repository.new-repo form .field a,
   .repository.new.migrate form .field a {
     margin-bottom: 1em;
     width: 100%;
@@ -433,17 +433,17 @@ textarea:focus,
 }
 
 @media (min-width: 768px) {
-  .repository.new.repo .ui.form #auto-init {
+  .repository.new-repo .ui.form #auto-init {
     margin-left: 265px !important;
   }
 }
 
-.repository.new.repo .ui.form .selection.dropdown:not(.owner) {
+.repository.new-repo .ui.form .selection.dropdown:not(.owner) {
   width: 50% !important;
 }
 
 @media (max-width: 767.98px) {
-  .repository.new.repo .ui.form .selection.dropdown:not(.owner) {
+  .repository.new-repo .ui.form .selection.dropdown:not(.owner) {
     width: 100% !important;
   }
 }
