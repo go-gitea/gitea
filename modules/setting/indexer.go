@@ -97,7 +97,7 @@ func IndexerGlobFromString(globstr string) []*GlobMatcher {
 		expr = strings.TrimSpace(expr)
 		if expr != "" {
 			if g, err := GlobMatcherCompile(expr, '.', '/'); err != nil {
-				log.Info("Invalid glob expression '%s' (skipped): %v", expr, err)
+				log.Warn("Invalid glob expression '%s' (skipped): %v", expr, err)
 			} else {
 				extarr = append(extarr, g)
 			}
