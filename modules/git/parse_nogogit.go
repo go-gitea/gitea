@@ -31,12 +31,18 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 		}
 
 		line := data[pos:posEnd]
-		entry, err := parseLsTreeLine(line)
+		lsTreeLine, err := parseLsTreeLine(line)
 		if err != nil {
 			return nil, err
 		}
-		entry.ptree = ptree
-
+		entry := &TreeEntry{
+			ptree:     ptree,
+			ID:        lsTreeLine.ID,
+			entryMode: lsTreeLine.EntryMode,
+			name:      lsTreeLine.Name,
+			size:      lsTreeLine.Size.Value(),
+			sized:     lsTreeLine.Size.Has(),
+		}
 		pos = posEnd + 1
 		entries = append(entries, entry)
 	}

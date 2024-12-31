@@ -8,11 +8,20 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"code.gitea.io/gitea/modules/optional"
 )
 
 var sepSpace = []byte{' '}
 
-func parseLsTreeLine(line []byte) (*TreeEntry, error) {
+type LsTreeEntry struct {
+	ID        ObjectID
+	EntryMode EntryMode
+	Name      string
+	Size      optional.Option[int64]
+}
+
+func parseLsTreeLine(line []byte) (*LsTreeEntry, error) {
 	// expect line to be of the form:
 	// <mode> <type> <sha> <space-padded-size>\t<filename>
 	// <mode> <type> <sha>\t<filename>
@@ -23,7 +32,7 @@ func parseLsTreeLine(line []byte) (*TreeEntry, error) {
 		return nil, fmt.Errorf("invalid ls-tree output (no tab): %q", line)
 	}
 
-	entry := new(TreeEntry)
+	entry := new(LsTreeEntry)
 
 	entryAttrs := line[:posTab]
 	entryName := line[posTab+1:]
@@ -33,21 +42,21 @@ func parseLsTreeLine(line []byte) (*TreeEntry, error) {
 	entryObjectID, entryAttrs, _ := bytes.Cut(entryAttrs, sepSpace)
 	if len(entryAttrs) > 0 {
 		entrySize := entryAttrs // the last field is the space-padded-size
-		entry.size, _ = strconv.ParseInt(strings.TrimSpace(string(entrySize)), 10, 64)
-		entry.sized = true
+		size, _ := strconv.ParseInt(strings.TrimSpace(string(entrySize)), 10, 64)
+		entry.Size = optional.Some(size)
 	}
 
 	switch string(entryMode) {
 	case "100644":
-		entry.entryMode = EntryModeBlob
+		entry.EntryMode = EntryModeBlob
 	case "100755":
-		entry.entryMode = EntryModeExec
+		entry.EntryMode = EntryModeExec
 	case "120000":
-		entry.entryMode = EntryModeSymlink
+		entry.EntryMode = EntryModeSymlink
 	case "160000":
-		entry.entryMode = EntryModeCommit
+		entry.EntryMode = EntryModeCommit
 	case "040000", "040755": // git uses 040000 for tree object, but some users may get 040755 for unknown reasons
-		entry.entryMode = EntryModeTree
+		entry.EntryMode = EntryModeTree
 	default:
 		return nil, fmt.Errorf("unknown type: %v", string(entryMode))
 	}
@@ -58,12 +67,12 @@ func parseLsTreeLine(line []byte) (*TreeEntry, error) {
 	}
 
 	if len(entryName) > 0 && entryName[0] == '"' {
-		entry.name, err = strconv.Unquote(string(entryName))
+		entry.Name, err = strconv.Unquote(string(entryName))
 		if err != nil {
 			return nil, fmt.Errorf("invalid ls-tree output (invalid name): %q, err: %w", line, err)
 		}
 	} else {
-		entry.name = string(entryName)
+		entry.Name = string(entryName)
 	}
 	return entry, nil
 }
