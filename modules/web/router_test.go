@@ -183,6 +183,11 @@ func TestRouter(t *testing.T) {
 			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1/d2/fn", "dir": "d1/d2", "file": "fn"},
 			handlerMark: "match-path",
 		})
+		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1%2fd2/fn", resultStruct{
+			method:      "GET",
+			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1%2fd2/fn", "dir": "d1%2fd2", "file": "fn"},
+			handlerMark: "match-path",
+		})
 		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1/d2/000", resultStruct{
 			method:      "GET",
 			pathParams:  map[string]string{"reponame": "the-repo", "username": "the-user", "*": "d1/d2/000"},
