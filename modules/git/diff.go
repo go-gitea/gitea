@@ -271,7 +271,17 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 }
 
 // GetAffectedFiles returns the affected files between two commits
-func GetAffectedFiles(repo *Repository, oldCommitID, newCommitID string, env []string) ([]string, error) {
+func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID string, env []string) ([]string, error) {
+	if oldCommitID == emptySha1ObjectID.String() || oldCommitID == emptySha256ObjectID.String() {
+		startCommitID, err := repo.GetCommitBranchStart(env, branchName, newCommitID)
+		if err != nil {
+			return nil, err
+		}
+		if startCommitID == "" {
+			return nil, fmt.Errorf("cannot find the start commit of %s", newCommitID)
+		}
+		oldCommitID = startCommitID
+	}
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		log.Error("Unable to create os.Pipe for %s", repo.Path)

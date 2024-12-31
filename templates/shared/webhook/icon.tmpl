@@ -3,7 +3,7 @@
 	{{$size = .Size}}
 {{end}}
 {{if eq .HookType "gitea"}}
-	<img width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/gitea.svg">
+	{{svg "gitea-gitea" $size "img"}}
 {{else if eq .HookType "gogs"}}
 	<img width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/gogs.ico">
 {{else if eq .HookType "slack"}}

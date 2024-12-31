@@ -7,17 +7,25 @@
   display: flex;
   align-items: center;
   padding-bottom: 10px;
-  gap: .5rem;
   flex-wrap: wrap;
 }
 
 .combo-markdown-editor .markdown-toolbar-group {
   display: flex;
+  border-left: 1px solid var(--color-secondary);
+  padding: 0 0.5em;
 }
 
+.combo-markdown-editor .markdown-toolbar-group:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
 .combo-markdown-editor .markdown-toolbar-group:last-child {
   flex: 1;
   justify-content: flex-end;
+  border-right: none;
+  border-left: 0;
+  padding-right: 0;
 }
 
 .combo-markdown-editor .markdown-toolbar-button {
@@ -33,17 +41,34 @@
   color: var(--color-primary);
 }
 
+.combo-markdown-editor md-header {
+  position: relative;
+}
+.combo-markdown-editor md-header::after {
+  font-size: 10px;
+  position: absolute;
+  top: 7px;
+}
+.combo-markdown-editor md-header[level="1"]::after {
+  content: "1";
+}
+.combo-markdown-editor md-header[level="2"]::after {
+  content: "2";
+}
+.combo-markdown-editor md-header[level="3"]::after {
+  content: "3";
+}
+
 .ui.form .combo-markdown-editor textarea.markdown-text-editor,
 .combo-markdown-editor textarea.markdown-text-editor {
   display: block;
   width: 100%;
-  min-height: 200px;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - var(--min-height-textarea));
   resize: vertical;
 }
 
 .combo-markdown-editor .CodeMirror-scroll {
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - var(--min-height-textarea));
 }
 
 /* use the same styles as markup/content.css */
@@ -71,6 +96,11 @@
   font-size: 0.85em;
 }
 
+.combo-markdown-editor .ui.tab.markup[data-tab-panel="markdown-previewer"] {
+  border-bottom: 1px solid var(--color-secondary);
+  padding-bottom: 1rem;
+}
+
 text-expander {
   display: block;
   position: relative;
@@ -83,9 +113,10 @@ text-expander .suggestions {
   margin-top: 24px;
   list-style: none;
   background: var(--color-box-body);
-  border-radius: 5px;
+  border-radius: var(--border-radius);
   border: 1px solid var(--color-secondary);
   box-shadow: 0 .5rem 1rem var(--color-shadow);
+  z-index: 100; /* needs to be > 20 to be on top of dropzone's .dz-details */
 }
 
 text-expander .suggestions li {
@@ -101,15 +132,15 @@ text-expander .suggestions li + li {
 }
 
 text-expander .suggestions li:first-child {
-  border-radius: 4px 4px 0 0;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
 text-expander .suggestions li:last-child {
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 text-expander .suggestions li:only-child {
-  border-radius: 4px;
+  border-radius: var(--border-radius);
 }
 
 text-expander .suggestions li:hover {

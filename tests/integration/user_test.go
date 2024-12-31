@@ -5,6 +5,7 @@ package integration
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -33,7 +34,7 @@ func TestRenameUsername(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf":    GetCSRF(t, session, "/user/settings"),
+		"_csrf":    GetUserCSRFToken(t, session),
 		"name":     "newUsername",
 		"email":    "user2@example.com",
 		"language": "en-US",
@@ -77,7 +78,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 		t.Logf("Testing username %s", invalidUsername)
 
 		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"_csrf": GetCSRF(t, session, "/user/settings"),
+			"_csrf": GetUserCSRFToken(t, session),
 			"name":  invalidUsername,
 			"email": "user2@example.com",
 		})
@@ -85,7 +86,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			translation.NewLocale("en-US").Tr("form.username_error"),
+			translation.NewLocale("en-US").TrString("form.username_error"),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})
@@ -97,45 +98,15 @@ func TestRenameReservedUsername(t *testing.T) {
 
 	reservedUsernames := []string{
 		// ".", "..", ".well-known", // The names are not only reserved but also invalid
-		"admin",
 		"api",
-		"assets",
-		"attachments",
-		"avatar",
-		"avatars",
-		"captcha",
-		"commits",
-		"debug",
-		"error",
-		"explore",
-		"favicon.ico",
-		"ghost",
-		"issues",
-		"login",
-		"manifest.json",
-		"metrics",
-		"milestones",
-		"new",
-		"notifications",
-		"org",
-		"pulls",
-		"raw",
-		"repo",
-		"repo-avatars",
-		"robots.txt",
-		"search",
-		"serviceworker.js",
-		"ssh_info",
-		"swagger.v1.json",
-		"user",
-		"v2",
+		"name.keys",
 	}
 
 	session := loginUser(t, "user2")
+	locale := translation.NewLocale("en-US")
 	for _, reservedUsername := range reservedUsernames {
-		t.Logf("Testing username %s", reservedUsername)
 		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"_csrf":    GetCSRF(t, session, "/user/settings"),
+			"_csrf":    GetUserCSRFToken(t, session),
 			"name":     reservedUsername,
 			"email":    "user2@example.com",
 			"language": "en-US",
@@ -145,11 +116,12 @@ func TestRenameReservedUsername(t *testing.T) {
 		req = NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		assert.Contains(t,
-			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			translation.NewLocale("en-US").Tr("user.form.name_reserved", reservedUsername),
-		)
-
+		actualMsg := strings.TrimSpace(htmlDoc.doc.Find(".ui.negative.message").Text())
+		expectedMsg := locale.TrString("user.form.name_reserved", reservedUsername)
+		if strings.Contains(reservedUsername, ".") {
+			expectedMsg = locale.TrString("user.form.name_pattern_not_allowed", reservedUsername)
+		}
+		assert.Equal(t, expectedMsg, actualMsg)
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: reservedUsername})
 	}
 }
@@ -243,6 +215,8 @@ func testExportUserGPGKeys(t *testing.T, user, expected string) {
 }
 
 func TestGetUserRss(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
 	user34 := "the_34-user.with.all.allowedChars"
 	req := NewRequestf(t, "GET", "/%s.rss", user34)
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -253,6 +227,13 @@ func TestGetUserRss(t *testing.T) {
 		description, _ := rssDoc.ChildrenFiltered("description").Html()
 		assert.EqualValues(t, "&lt;p dir=&#34;auto&#34;&gt;some &lt;a href=&#34;https://commonmark.org/&#34; rel=&#34;nofollow&#34;&gt;commonmark&lt;/a&gt;!&lt;/p&gt;\n", description)
 	}
+
+	req = NewRequestf(t, "GET", "/non-existent-user.rss")
+	MakeRequest(t, req, http.StatusNotFound)
+
+	session := loginUser(t, "user2")
+	req = NewRequestf(t, "GET", "/non-existent-user.rss")
+	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestListStopWatches(t *testing.T) {
@@ -262,7 +243,7 @@ func TestListStopWatches(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	req := NewRequestf(t, "GET", "/user/stopwatches")
+	req := NewRequest(t, "GET", "/user/stopwatches")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiWatches []*api.StopWatch
 	DecodeJSON(t, resp, &apiWatches)
@@ -274,7 +255,7 @@ func TestListStopWatches(t *testing.T) {
 		assert.EqualValues(t, issue.Title, apiWatches[0].IssueTitle)
 		assert.EqualValues(t, repo.Name, apiWatches[0].RepoName)
 		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
-		assert.Greater(t, apiWatches[0].Seconds, int64(0))
+		assert.Positive(t, apiWatches[0].Seconds)
 	}
 }
 
@@ -284,7 +265,7 @@ func TestUserLocationMapLink(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf":    GetCSRF(t, session, "/user/settings"),
+		"_csrf":    GetUserCSRFToken(t, session),
 		"name":     "user2",
 		"email":    "user@example.com",
 		"language": "en-US",

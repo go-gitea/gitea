@@ -21,6 +21,7 @@
   border: 1px solid var(--color-secondary);
   box-shadow: none;
   word-wrap: break-word;
+  border-radius: var(--border-radius);
 }
 
 .ui.card {

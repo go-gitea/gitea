@@ -20,5 +20,5 @@ func AddReviewViewedFiles(x *xorm.Engine) error {
 		UpdatedUnix  timeutil.TimeStamp          `xorm:"updated"`
 	}
 
-	return x.Sync2(new(ReviewState))
+	return x.Sync(new(ReviewState))
 }

@@ -9,20 +9,27 @@ import (
 
 // PullRequest represents a pull request
 type PullRequest struct {
-	ID                 int64      `json:"id"`
-	URL                string     `json:"url"`
-	Index              int64      `json:"number"`
-	Poster             *User      `json:"user"`
-	Title              string     `json:"title"`
-	Body               string     `json:"body"`
-	Labels             []*Label   `json:"labels"`
-	Milestone          *Milestone `json:"milestone"`
-	Assignee           *User      `json:"assignee"`
-	Assignees          []*User    `json:"assignees"`
-	RequestedReviewers []*User    `json:"requested_reviewers"`
-	State              StateType  `json:"state"`
-	IsLocked           bool       `json:"is_locked"`
-	Comments           int        `json:"comments"`
+	ID                      int64      `json:"id"`
+	URL                     string     `json:"url"`
+	Index                   int64      `json:"number"`
+	Poster                  *User      `json:"user"`
+	Title                   string     `json:"title"`
+	Body                    string     `json:"body"`
+	Labels                  []*Label   `json:"labels"`
+	Milestone               *Milestone `json:"milestone"`
+	Assignee                *User      `json:"assignee"`
+	Assignees               []*User    `json:"assignees"`
+	RequestedReviewers      []*User    `json:"requested_reviewers"`
+	RequestedReviewersTeams []*Team    `json:"requested_reviewers_teams"`
+	State                   StateType  `json:"state"`
+	Draft                   bool       `json:"draft"`
+	IsLocked                bool       `json:"is_locked"`
+	Comments                int        `json:"comments"`
+	// number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
+	ReviewComments int `json:"review_comments"`
+	Additions      int `json:"additions"`
+	Deletions      int `json:"deletions"`
+	ChangedFiles   int `json:"changed_files"`
 
 	HTMLURL  string `json:"html_url"`
 	DiffURL  string `json:"diff_url"`
@@ -79,13 +86,15 @@ type CreatePullRequestOption struct {
 	Milestone int64    `json:"milestone"`
 	Labels    []int64  `json:"labels"`
 	// swagger:strfmt date-time
-	Deadline *time.Time `json:"due_date"`
+	Deadline      *time.Time `json:"due_date"`
+	Reviewers     []string   `json:"reviewers"`
+	TeamReviewers []string   `json:"team_reviewers"`
 }
 
 // EditPullRequestOption options when modify pull request
 type EditPullRequestOption struct {
 	Title     string   `json:"title"`
-	Body      string   `json:"body"`
+	Body      *string  `json:"body"`
 	Base      string   `json:"base"`
 	Assignee  string   `json:"assignee"`
 	Assignees []string `json:"assignees"`

@@ -34,5 +34,5 @@ func AddTaskTable(x *xorm.Engine) error {
 		Status int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	return x.Sync2(new(Task), new(Repository))
+	return x.Sync(new(Task), new(Repository))
 }

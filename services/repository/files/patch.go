@@ -8,15 +8,35 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
+
+// ErrUserCannotCommit represents "UserCannotCommit" kind of error.
+type ErrUserCannotCommit struct {
+	UserName string
+}
+
+// IsErrUserCannotCommit checks if an error is an ErrUserCannotCommit.
+func IsErrUserCannotCommit(err error) bool {
+	_, ok := err.(ErrUserCannotCommit)
+	return ok
+}
+
+func (err ErrUserCannotCommit) Error() string {
+	return fmt.Sprintf("user cannot commit to repo [user: %s]", err.UserName)
+}
+
+func (err ErrUserCannotCommit) Unwrap() error {
+	return util.ErrPermissionDenied
+}
 
 // ApplyDiffPatchOptions holds the repository diff patch update options
 type ApplyDiffPatchOptions struct {
@@ -42,7 +62,7 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 		opts.NewBranch = opts.OldBranch
 	}
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return err
 	}
@@ -73,7 +93,7 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 		if protectedBranch != nil {
 			protectedBranch.Repo = repo
 			if !protectedBranch.CanUserPush(ctx, doer) {
-				return models.ErrUserCannotCommit{
+				return ErrUserCannotCommit{
 					UserName: doer.LowerName,
 				}
 			}
@@ -84,7 +104,7 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 				if !asymkey_service.IsErrWontSign(err) {
 					return err
 				}
-				return models.ErrUserCannotCommit{
+				return ErrUserCannotCommit{
 					UserName: doer.LowerName,
 				}
 			}
@@ -95,6 +115,11 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 
 // ApplyDiffPatch applies a patch to the given repository
 func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
+	err := repo.MustNotBeArchived()
+	if err != nil {
+		return nil, err
+	}
+
 	if err := opts.Validate(ctx, repo, doer); err != nil {
 		return nil, err
 	}
@@ -105,10 +130,10 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 
 	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("NewTemporaryUploadRepository failed: %v", err)
 	}
 	defer t.Close()
-	if err := t.Clone(opts.OldBranch); err != nil {
+	if err := t.Clone(opts.OldBranch, true); err != nil {
 		return nil, err
 	}
 	if err := t.SetDefaultIndex(); err != nil {
@@ -125,13 +150,13 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
 	} else {
-		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+		lastCommitID, err := t.gitRepo.ConvertToGitID(opts.LastCommitID)
 		if err != nil {
 			return nil, fmt.Errorf("ApplyPatch: Invalid last commit ID: %w", err)
 		}
 		opts.LastCommitID = lastCommitID.String()
 		if commit.ID.String() != opts.LastCommitID {
-			return nil, models.ErrCommitIDDoesNotMatch{
+			return nil, ErrCommitIDDoesNotMatch{
 				GivenCommitID:   opts.LastCommitID,
 				CurrentCommitID: opts.LastCommitID,
 			}
@@ -142,7 +167,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	stderr := &strings.Builder{}
 
 	cmdApply := git.NewCommand(ctx, "apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary")
-	if git.CheckGitVersionAtLeast("2.32") == nil {
+	if git.DefaultFeatures().CheckVersionAtLeast("2.32") {
 		cmdApply.AddArguments("-3")
 	}
 

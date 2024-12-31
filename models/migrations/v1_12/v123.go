@@ -13,5 +13,5 @@ func AddReactionOriginals(x *xorm.Engine) error {
 		OriginalAuthor   string
 	}
 
-	return x.Sync2(new(Reaction))
+	return x.Sync(new(Reaction))
 }

@@ -10,7 +10,7 @@ import (
 )
 
 // NewTree create a new tree according the repository and tree id
-func NewTree(repo *Repository, id SHA1) *Tree {
+func NewTree(repo *Repository, id ObjectID) *Tree {
 	return &Tree{
 		ID:   id,
 		repo: repo,
@@ -61,4 +61,15 @@ func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error
 	}
 
 	return filelist, err
+}
+
+// GetTreePathLatestCommitID returns the latest commit of a tree path
+func (repo *Repository) GetTreePathLatestCommit(refName, treePath string) (*Commit, error) {
+	stdout, _, err := NewCommand(repo.Ctx, "rev-list", "-1").
+		AddDynamicArguments(refName).AddDashesAndList(treePath).
+		RunStdString(&RunOpts{Dir: repo.Path})
+	if err != nil {
+		return nil, err
+	}
+	return repo.GetCommit(strings.TrimSpace(stdout))
 }

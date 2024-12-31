@@ -12,5 +12,5 @@ func AddUserDefaultTheme(x *xorm.Engine) error {
 		Theme string `xorm:"VARCHAR(30) NOT NULL DEFAULT ''"`
 	}
 
-	return x.Sync2(new(User))
+	return x.Sync(new(User))
 }

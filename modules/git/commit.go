@@ -21,18 +21,18 @@ import (
 // Commit represents a git commit.
 type Commit struct {
 	Tree
-	ID            SHA1 // The ID of this commit object
+	ID            ObjectID // The ID of this commit object
 	Author        *Signature
 	Committer     *Signature
 	CommitMessage string
-	Signature     *CommitGPGSignature
+	Signature     *CommitSignature
 
-	Parents        []SHA1 // SHA1 strings
-	submoduleCache *ObjectCache
+	Parents        []ObjectID // ID strings
+	submoduleCache *ObjectCache[*SubModule]
 }
 
-// CommitGPGSignature represents a git commit signature part.
-type CommitGPGSignature struct {
+// CommitSignature represents a git commit signature part.
+type CommitSignature struct {
 	Signature string
 	Payload   string // TODO check if can be reconstruct from the rest of commit information to not have duplicate data
 }
@@ -43,15 +43,16 @@ func (c *Commit) Message() string {
 }
 
 // Summary returns first line of commit message.
+// The string is forced to be valid UTF8
 func (c *Commit) Summary() string {
-	return strings.Split(strings.TrimSpace(c.CommitMessage), "\n")[0]
+	return strings.ToValidUTF8(strings.Split(strings.TrimSpace(c.CommitMessage), "\n")[0], "?")
 }
 
 // ParentID returns oid of n-th parent (0-based index).
 // It returns nil if no such parent exists.
-func (c *Commit) ParentID(n int) (SHA1, error) {
+func (c *Commit) ParentID(n int) (ObjectID, error) {
 	if n >= len(c.Parents) {
-		return SHA1{}, ErrNotExist{"", ""}
+		return nil, ErrNotExist{"", ""}
 	}
 	return c.Parents[n], nil
 }
@@ -208,9 +209,9 @@ func (c *Commit) CommitsBefore() ([]*Commit, error) {
 }
 
 // HasPreviousCommit returns true if a given commitHash is contained in commit's parents
-func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
+func (c *Commit) HasPreviousCommit(objectID ObjectID) (bool, error) {
 	this := c.ID.String()
-	that := commitHash.String()
+	that := objectID.String()
 
 	if this == that {
 		return false, nil
@@ -231,9 +232,14 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 
 // IsForcePush returns true if a push from oldCommitHash to this is a force push
 func (c *Commit) IsForcePush(oldCommitID string) (bool, error) {
-	if oldCommitID == EmptySHA {
+	objectFormat, err := c.repo.GetObjectFormat()
+	if err != nil {
+		return false, err
+	}
+	if oldCommitID == objectFormat.EmptyObjectID().String() {
 		return false, nil
 	}
+
 	oldCommit, err := c.repo.GetCommit(oldCommitID)
 	if err != nil {
 		return false, err
@@ -305,7 +311,7 @@ func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error)
 	return c.repo.GetFilesChangedBetween(pastCommit, c.ID.String())
 }
 
-// FileChangedSinceCommit Returns true if the file given has changed since the the past commit
+// FileChangedSinceCommit Returns true if the file given has changed since the past commit
 // YOU MUST ENSURE THAT pastCommit is a valid commit ID.
 func (c *Commit) FileChangedSinceCommit(filename, pastCommit string) (bool, error) {
 	return c.repo.FileChangedBetweenCommits(filename, pastCommit, c.ID.String())
@@ -350,70 +356,10 @@ func (c *Commit) GetFileContent(filename string, limit int) (string, error) {
 	return string(bytes), nil
 }
 
-// GetSubModules get all the sub modules of current revision git tree
-func (c *Commit) GetSubModules() (*ObjectCache, error) {
-	if c.submoduleCache != nil {
-		return c.submoduleCache, nil
-	}
-
-	entry, err := c.GetTreeEntryByPath(".gitmodules")
-	if err != nil {
-		if _, ok := err.(ErrNotExist); ok {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	rd, err := entry.Blob().DataAsync()
-	if err != nil {
-		return nil, err
-	}
-
-	defer rd.Close()
-	scanner := bufio.NewScanner(rd)
-	c.submoduleCache = newObjectCache()
-	var ismodule bool
-	var path string
-	for scanner.Scan() {
-		if strings.HasPrefix(scanner.Text(), "[submodule") {
-			ismodule = true
-			continue
-		}
-		if ismodule {
-			fields := strings.Split(scanner.Text(), "=")
-			k := strings.TrimSpace(fields[0])
-			if k == "path" {
-				path = strings.TrimSpace(fields[1])
-			} else if k == "url" {
-				c.submoduleCache.Set(path, &SubModule{path, strings.TrimSpace(fields[1])})
-				ismodule = false
-			}
-		}
-	}
-
-	return c.submoduleCache, nil
-}
-
-// GetSubModule get the sub module according entryname
-func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
-	modules, err := c.GetSubModules()
-	if err != nil {
-		return nil, err
-	}
-
-	if modules != nil {
-		module, has := modules.Get(entryname)
-		if has {
-			return module.(*SubModule), nil
-		}
-	}
-	return nil, nil
-}
-
 // GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
 func (c *Commit) GetBranchName() (string, error) {
 	cmd := NewCommand(c.repo.Ctx, "name-rev")
-	if CheckGitVersionAtLeast("2.13.0") == nil {
+	if DefaultFeatures().CheckVersionAtLeast("2.13.0") {
 		cmd.AddArguments("--exclude", "refs/tags/*")
 	}
 	cmd.AddArguments("--name-only", "--no-undefined").AddDynamicArguments(c.ID.String())
@@ -458,7 +404,7 @@ func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
 		_, _ = rd.Discard(1)
 	}
 	for {
-		modifier, err := rd.ReadSlice('\x00')
+		modifier, err := rd.ReadString('\x00')
 		if err != nil {
 			if err != io.EOF {
 				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
@@ -495,7 +441,7 @@ func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*Commi
 	}()
 
 	stderr := new(bytes.Buffer)
-	err := NewCommand(ctx, "log", "--name-status", "-c", "--pretty=format:", "--parents", "--no-renames", "-z", "-1").AddDynamicArguments(commitID).Run(&RunOpts{
+	err := NewCommand(ctx, "log", "--name-status", "-m", "--pretty=format:", "--first-parent", "--no-renames", "-z", "-1").AddDynamicArguments(commitID).Run(&RunOpts{
 		Dir:    repoPath,
 		Stdout: w,
 		Stderr: stderr,
@@ -527,4 +473,18 @@ func (c *Commit) GetRepositoryDefaultPublicGPGKey(forceUpdate bool) (*GPGSetting
 		return nil, nil
 	}
 	return c.repo.GetDefaultPublicGPGKey(forceUpdate)
+}
+
+func IsStringLikelyCommitID(objFmt ObjectFormat, s string, minLength ...int) bool {
+	minLen := util.OptionalArg(minLength, objFmt.FullLength())
+	if len(s) < minLen || len(s) > objFmt.FullLength() {
+		return false
+	}
+	for _, c := range s {
+		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+		if !isHex {
+			return false
+		}
+	}
+	return true
 }

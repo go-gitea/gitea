@@ -23,8 +23,8 @@ func AddGitSizeAndLFSSizeToRepositoryTable(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Sync2(new(Repository)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := sess.Sync(new(Repository)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 
 	_, err := sess.Exec(`UPDATE repository SET lfs_size=(SELECT SUM(size) FROM lfs_meta_object WHERE lfs_meta_object.repository_id=repository.ID) WHERE EXISTS (SELECT 1 FROM lfs_meta_object WHERE lfs_meta_object.repository_id=repository.ID)`)
@@ -32,7 +32,12 @@ func AddGitSizeAndLFSSizeToRepositoryTable(x *xorm.Engine) error {
 		return err
 	}
 
-	_, err = sess.Exec(`UPDATE repository SET git_size = size - lfs_size`)
+	_, err = sess.Exec(`UPDATE repository SET size = 0 WHERE size IS NULL`)
+	if err != nil {
+		return err
+	}
+
+	_, err = sess.Exec(`UPDATE repository SET git_size = size - lfs_size WHERE size > lfs_size`)
 	if err != nil {
 		return err
 	}

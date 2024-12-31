@@ -4,7 +4,7 @@
 package integration
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"net/http"
 	"net/url"
 	"testing"
@@ -18,7 +18,7 @@ import (
 func StringWithCharset(length int, charset string) string {
 	b := make([]byte, length)
 	for i := range b {
-		b[i] = charset[rand.Intn(len(charset))]
+		b[i] = charset[rand.IntN(len(charset))]
 	}
 	return string(b)
 }
@@ -37,7 +37,7 @@ func BenchmarkRepoBranchCommit(b *testing.B) {
 				b.ResetTimer()
 				b.Run("CreateBranch", func(b *testing.B) {
 					b.StopTimer()
-					branchName := StringWithCharset(5+rand.Intn(10), "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+					branchName := StringWithCharset(5+rand.IntN(10), "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 					b.StartTimer()
 					for i := 0; i < b.N; i++ {
 						b.Run("new_"+branchName, func(b *testing.B) {

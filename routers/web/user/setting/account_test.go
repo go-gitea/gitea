@@ -9,8 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/contexttest"
 	"code.gitea.io/gitea/services/forms"
 
 	"github.com/stretchr/testify/assert"
@@ -83,9 +83,9 @@ func TestChangePassword(t *testing.T) {
 		t.Run(req.OldPassword+"__"+req.NewPassword, func(t *testing.T) {
 			unittest.PrepareTestEnv(t)
 			setting.PasswordComplexity = req.PasswordComplexity
-			ctx, _ := test.MockContext(t, "user/settings/security")
-			test.LoadUser(t, ctx, 2)
-			test.LoadRepo(t, ctx, 1)
+			ctx, _ := contexttest.MockContext(t, "user/settings/security")
+			contexttest.LoadUser(t, ctx, 2)
+			contexttest.LoadRepo(t, ctx, 1)
 
 			web.SetForm(ctx, &forms.ChangePasswordForm{
 				OldPassword: req.OldPassword,

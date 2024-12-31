@@ -59,7 +59,7 @@ func checkIfNoneMatchIsValid(req *http.Request, etag string) bool {
 	ifNoneMatch := req.Header.Get("If-None-Match")
 	if len(ifNoneMatch) > 0 {
 		for _, item := range strings.Split(ifNoneMatch, ",") {
-			item = strings.TrimSpace(item)
+			item = strings.TrimPrefix(strings.TrimSpace(item), "W/") // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag#directives
 			if item == etag {
 				return true
 			}
@@ -75,7 +75,8 @@ func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag s
 		w.Header().Set("Etag", etag)
 	}
 	if lastModified != nil && !lastModified.IsZero() {
-		w.Header().Set("Last-Modified", lastModified.Format(http.TimeFormat))
+		// http.TimeFormat required a UTC time, refer to https://pkg.go.dev/net/http#TimeFormat
+		w.Header().Set("Last-Modified", lastModified.UTC().Format(http.TimeFormat))
 	}
 
 	if len(etag) > 0 {

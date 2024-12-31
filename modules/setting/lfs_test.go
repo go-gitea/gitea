@@ -99,3 +99,32 @@ STORAGE_TYPE = minio
 	assert.EqualValues(t, "gitea", LFS.Storage.MinioConfig.Bucket)
 	assert.EqualValues(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
 }
+
+func Test_LFSClientServerConfigs(t *testing.T) {
+	iniStr := `
+[server]
+LFS_MAX_BATCH_SIZE = 100
+[lfs_client]
+# will default to 20
+BATCH_SIZE = 0
+`
+	cfg, err := NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.EqualValues(t, 100, LFS.MaxBatchSize)
+	assert.EqualValues(t, 20, LFSClient.BatchSize)
+	assert.EqualValues(t, 8, LFSClient.BatchOperationConcurrency)
+
+	iniStr = `
+[lfs_client]
+BATCH_SIZE = 50
+BATCH_OPERATION_CONCURRENCY = 10
+`
+	cfg, err = NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.EqualValues(t, 50, LFSClient.BatchSize)
+	assert.EqualValues(t, 10, LFSClient.BatchOperationConcurrency)
+}

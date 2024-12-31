@@ -28,9 +28,9 @@ func init() {
 }
 
 // GetUserOpenIDs returns all openid addresses that belongs to given user.
-func GetUserOpenIDs(uid int64) ([]*UserOpenID, error) {
+func GetUserOpenIDs(ctx context.Context, uid int64) ([]*UserOpenID, error) {
 	openids := make([]*UserOpenID, 0, 5)
-	if err := db.GetEngine(db.DefaultContext).
+	if err := db.GetEngine(ctx).
 		Where("uid=?", uid).
 		Asc("id").
 		Find(&openids); err != nil {
@@ -82,16 +82,16 @@ func AddUserOpenID(ctx context.Context, openid *UserOpenID) error {
 }
 
 // DeleteUserOpenID deletes an openid address of given user.
-func DeleteUserOpenID(openid *UserOpenID) (err error) {
+func DeleteUserOpenID(ctx context.Context, openid *UserOpenID) (err error) {
 	var deleted int64
 	// ask to check UID
 	address := UserOpenID{
 		UID: openid.UID,
 	}
 	if openid.ID > 0 {
-		deleted, err = db.GetEngine(db.DefaultContext).ID(openid.ID).Delete(&address)
+		deleted, err = db.GetEngine(ctx).ID(openid.ID).Delete(&address)
 	} else {
-		deleted, err = db.GetEngine(db.DefaultContext).
+		deleted, err = db.GetEngine(ctx).
 			Where("openid=?", openid.URI).
 			Delete(&address)
 	}
@@ -105,7 +105,7 @@ func DeleteUserOpenID(openid *UserOpenID) (err error) {
 }
 
 // ToggleUserOpenIDVisibility toggles visibility of an openid address of given user.
-func ToggleUserOpenIDVisibility(id int64) (err error) {
-	_, err = db.GetEngine(db.DefaultContext).Exec("update `user_open_id` set `show` = not `show` where `id` = ?", id)
+func ToggleUserOpenIDVisibility(ctx context.Context, id int64) (err error) {
+	_, err = db.GetEngine(ctx).Exec("update `user_open_id` set `show` = not `show` where `id` = ?", id)
 	return err
 }

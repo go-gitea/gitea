@@ -6,10 +6,13 @@ package repository
 import (
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -82,4 +85,14 @@ func TestListUnadoptedRepositories_ListOptions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 2, count)
 	assert.Equal(t, unadoptedList[1], repoNames[0])
+}
+
+func TestAdoptRepository(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.RepoRootPath, "user2", "repo1.git"), filepath.Join(setting.RepoRootPath, "user2", "test-adopt.git")))
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	_, err := AdoptRepository(db.DefaultContext, user2, user2, CreateRepoOptions{Name: "test-adopt"})
+	assert.NoError(t, err)
+	repoTestAdopt := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "test-adopt"})
+	assert.Equal(t, "sha1", repoTestAdopt.ObjectFormatName)
 }

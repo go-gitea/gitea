@@ -114,7 +114,7 @@ func readArmoredSign(r io.Reader) (body io.Reader, err error) {
 		return nil, err
 	}
 	if block.Type != openpgp.SignatureType {
-		return nil, fmt.Errorf("expected '" + openpgp.SignatureType + "', got: " + block.Type)
+		return nil, fmt.Errorf("expected '%s', got: %s", openpgp.SignatureType, block.Type)
 	}
 	return block.Body, nil
 }
@@ -133,4 +133,14 @@ func extractSignature(s string) (*packet.Signature, error) {
 		return nil, fmt.Errorf("Packet is not a signature")
 	}
 	return sig, nil
+}
+
+func tryGetKeyIDFromSignature(sig *packet.Signature) string {
+	if sig.IssuerKeyId != nil && (*sig.IssuerKeyId) != 0 {
+		return fmt.Sprintf("%016X", *sig.IssuerKeyId)
+	}
+	if len(sig.IssuerFingerprint) > 0 {
+		return fmt.Sprintf("%016X", sig.IssuerFingerprint[12:20])
+	}
+	return ""
 }

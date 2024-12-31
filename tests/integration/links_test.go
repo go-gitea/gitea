@@ -36,8 +36,7 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user2/repo1/",
 		"/user2/repo1/projects",
 		"/user2/repo1/projects/1",
-		"/assets/img/404.png",
-		"/assets/img/500.png",
+		"/user2/repo1/releases/tag/delete-tag", // It's the only one existing record on release.yml which has is_tag: true
 		"/.well-known/security.txt",
 	}
 
@@ -50,18 +49,18 @@ func TestLinksNoLogin(t *testing.T) {
 func TestRedirectsNoLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	redirects := map[string]string{
-		"/user2/repo1/commits/master":                "/user2/repo1/commits/branch/master",
-		"/user2/repo1/src/master":                    "/user2/repo1/src/branch/master",
-		"/user2/repo1/src/master/file.txt":           "/user2/repo1/src/branch/master/file.txt",
-		"/user2/repo1/src/master/directory/file.txt": "/user2/repo1/src/branch/master/directory/file.txt",
-		"/user/avatar/Ghost/-1":                      "/assets/img/avatar_default.png",
-		"/api/v1/swagger":                            "/api/swagger",
+	redirects := []struct{ from, to string }{
+		{"/user2/repo1/commits/master", "/user2/repo1/commits/branch/master"},
+		{"/user2/repo1/src/master", "/user2/repo1/src/branch/master"},
+		{"/user2/repo1/src/master/file.txt", "/user2/repo1/src/branch/master/file.txt"},
+		{"/user2/repo1/src/master/directory/file.txt", "/user2/repo1/src/branch/master/directory/file.txt"},
+		{"/user/avatar/Ghost/-1", "/assets/img/avatar_default.png"},
+		{"/api/v1/swagger", "/api/swagger"},
 	}
-	for link, redirectLink := range redirects {
-		req := NewRequest(t, "GET", link)
+	for _, c := range redirects {
+		req := NewRequest(t, "GET", c.from)
 		resp := MakeRequest(t, req, http.StatusSeeOther)
-		assert.EqualValues(t, path.Join(setting.AppSubURL, redirectLink), test.RedirectURL(resp))
+		assert.EqualValues(t, path.Join(setting.AppSubURL, c.to), test.RedirectURL(resp))
 	}
 }
 
@@ -159,6 +158,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"/releases/new",
 		//"/wiki/_pages",
 		"/wiki/?action=_new",
+		"/activity",
 	}
 
 	for _, repo := range apiRepos {
@@ -173,4 +173,36 @@ func TestLinksLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	testLinksAsUser("user2", t)
+}
+
+func TestRepoLinks(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// repo1 has enabled almost features, so we can test most links
+	repoLink := "/user2/repo1"
+	links := []string{
+		"/actions",
+		"/packages",
+		"/projects",
+	}
+
+	// anonymous user
+	for _, link := range links {
+		req := NewRequest(t, "GET", repoLink+link)
+		MakeRequest(t, req, http.StatusOK)
+	}
+
+	// admin/owner user
+	session := loginUser(t, "user1")
+	for _, link := range links {
+		req := NewRequest(t, "GET", repoLink+link)
+		session.MakeRequest(t, req, http.StatusOK)
+	}
+
+	// non-admin non-owner user
+	session = loginUser(t, "user2")
+	for _, link := range links {
+		req := NewRequest(t, "GET", repoLink+link)
+		session.MakeRequest(t, req, http.StatusOK)
+	}
 }

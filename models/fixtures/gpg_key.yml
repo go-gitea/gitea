@@ -1,1 +1,23 @@
-[] # empty
+-
+  id: 5
+  owner_id: 36
+  key_id: B15431642629B826
+  primary_key_id:
+  content: xsDNBGTrY3UBDAC2HLBqmMplAV15qSnC7g1c4dV406f5EHNhFr95Nup2My6b2eafTlvedv77s8PT/I7F3fy4apOZs5A7w2SsPlLMcQ3ev4uGOsxRtkq5RLy1Yb6SNueX0Da2UVKR5KTC5Q6BWaqxwS0IjKOLZ/xz0Pbe/ClV3bZSKBEY2omkVo3Z0HZ771vB2clPRvGJ/IdeKOsZ3ZytSFXfyiJBdARmeSPmydXLil8+Ibq5iLAeow5PK8hK1TCOnKHzLWNqcNq70tyjoHvcGi70iGjoVEEUgPCLLuU8WmzTJwlvA3BuDzjtaO7TLo/jdE6iqkHtMSS8x+43sAH6hcFRCWAVh/0Uq7n36uGDfNxGnX3YrmX3LR9x5IsBES1rGGWbpxio4o5GIf/Xd+JgDd9rzJCqRuZ3/sW/TxK38htWaVNZV0kMkHUCTc1ctzWpCm635hbFCHBhPYIp+/z206khkAKDbz/CNuU91Wazsh7KO07wrwDtxfDDbInJ8TfHE2TGjzjQzgChfmcAEQEAAQ==
+  verified: true
+  can_sign: true
+  can_encrypt_comms: true
+  can_encrypt_storage: true
+  can_certify: true
+
+-
+  id: 6
+  owner_id: 36
+  key_id: EE3AF48454AFD619
+  primary_key_id: B15431642629B826
+  content: zsDNBGTrY3UBDADsHrzuOicQaPdUQm0+0UNrs92cESm/j/4yBBUk+sfLZAo6J99c4eh4nAQzzZ7al080rYKB0G+7xoRz1eHcQH6zrVcqB8KYtf/sdY47WaMiMyxM+kTSvzp7tsv7QuSQZ0neUEXRyYMz5ttBfIjWUd+3NDItuHyB+MtNWlS3zXgaUbe5VifqKaNmzN0Ye4yXTKcpypE3AOqPVz+iIFv3c6TmsqLHJaR4VoicCleAqLyF/28WsJO7M9dDW+EM3MZVnsVpycTURyHAJGfSk10waQZAaRwmarCN/q0KEJ+aEAK/SRliUneBZoMO5hY5iBeG432tofwaQqAahPv9uXIb1n2JEMKwnMlMA9UGD1AcDbywfj1m/ZGBBw95i4Ekkfn43RvV3THr7uJU/dRqqP+iic4MwpUrOxqELW/kmeHXlBcNbZZhEEvwRoW7U2/9eeuog4nRleRJ0pi/xOP9wmxkKjaIPIK3phdBtEpVk4w/UTAWNdyIIrFggukeAnZFyGJwlm8AEQEAAQ==
+  verified: true
+  can_sign: true
+  can_encrypt_comms: true
+  can_encrypt_storage: true
+  can_certify: true

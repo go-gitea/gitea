@@ -4,6 +4,8 @@
 package stats
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
@@ -28,14 +30,14 @@ func Init() error {
 		return err
 	}
 
-	go populateRepoIndexer()
+	go populateRepoIndexer(db.DefaultContext)
 
 	return nil
 }
 
 // populateRepoIndexer populate the repo indexer with pre-existing data. This
 // should only be run when the indexer is created for the first time.
-func populateRepoIndexer() {
+func populateRepoIndexer(ctx context.Context) {
 	log.Info("Populating the repo stats indexer with existing repositories")
 
 	isShutdown := graceful.GetManager().IsShutdown()
@@ -62,7 +64,7 @@ func populateRepoIndexer() {
 			return
 		default:
 		}
-		ids, err := repo_model.GetUnindexedRepos(repo_model.RepoIndexerTypeStats, maxRepoID, 0, 50)
+		ids, err := repo_model.GetUnindexedRepos(ctx, repo_model.RepoIndexerTypeStats, maxRepoID, 0, 50)
 		if err != nil {
 			log.Error("populateRepoIndexer: %v", err)
 			return

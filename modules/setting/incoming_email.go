@@ -38,12 +38,12 @@ func loadIncomingEmailFrom(rootCfg ConfigProvider) {
 		return
 	}
 
-	if err := checkReplyToAddress(IncomingEmail.ReplyToAddress); err != nil {
+	if err := checkReplyToAddress(); err != nil {
 		log.Fatal("Invalid incoming_mail.REPLY_TO_ADDRESS (%s): %v", IncomingEmail.ReplyToAddress, err)
 	}
 }
 
-func checkReplyToAddress(address string) error {
+func checkReplyToAddress() error {
 	parsed, err := mail.ParseAddress(IncomingEmail.ReplyToAddress)
 	if err != nil {
 		return err

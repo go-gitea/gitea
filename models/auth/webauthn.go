@@ -12,8 +12,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"xorm.io/xorm"
 )
 
 // ErrWebAuthnCredentialNotExist represents a "ErrWebAuthnCRedentialNotExist" kind of error.
@@ -67,11 +67,7 @@ func (cred WebAuthnCredential) TableName() string {
 }
 
 // UpdateSignCount will update the database value of SignCount
-func (cred *WebAuthnCredential) UpdateSignCount() error {
-	return cred.updateSignCount(db.DefaultContext)
-}
-
-func (cred *WebAuthnCredential) updateSignCount(ctx context.Context) error {
+func (cred *WebAuthnCredential) UpdateSignCount(ctx context.Context) error {
 	_, err := db.GetEngine(ctx).ID(cred.ID).Cols("sign_count").Update(cred)
 	return err
 }
@@ -87,21 +83,40 @@ func (cred *WebAuthnCredential) BeforeUpdate() {
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (cred *WebAuthnCredential) AfterLoad(session *xorm.Session) {
+func (cred *WebAuthnCredential) AfterLoad() {
 	cred.LowerName = strings.ToLower(cred.Name)
 }
 
 // WebAuthnCredentialList is a list of *WebAuthnCredential
 type WebAuthnCredentialList []*WebAuthnCredential
 
+// newCredentialFlagsFromAuthenticatorFlags is copied from https://github.com/go-webauthn/webauthn/pull/337
+// to convert protocol.AuthenticatorFlags to webauthn.CredentialFlags
+func newCredentialFlagsFromAuthenticatorFlags(flags protocol.AuthenticatorFlags) webauthn.CredentialFlags {
+	return webauthn.CredentialFlags{
+		UserPresent:    flags.HasUserPresent(),
+		UserVerified:   flags.HasUserVerified(),
+		BackupEligible: flags.HasBackupEligible(),
+		BackupState:    flags.HasBackupState(),
+	}
+}
+
 // ToCredentials will convert all WebAuthnCredentials to webauthn.Credentials
-func (list WebAuthnCredentialList) ToCredentials() []webauthn.Credential {
+func (list WebAuthnCredentialList) ToCredentials(defaultAuthFlags ...protocol.AuthenticatorFlags) []webauthn.Credential {
+	// TODO: at the moment, Gitea doesn't store or check the flags
+	// so we need to use the default flags from the authenticator to make the login validation pass
+	// In the future, we should:
+	// 1. store the flags when registering the credential
+	// 2. provide the stored flags when converting the credentials (for login)
+	// 3. for old users, still use this fallback to the default flags
+	defAuthFlags := util.OptionalArg(defaultAuthFlags)
 	creds := make([]webauthn.Credential, 0, len(list))
 	for _, cred := range list {
 		creds = append(creds, webauthn.Credential{
 			ID:              cred.CredentialID,
 			PublicKey:       cred.PublicKey,
 			AttestationType: cred.AttestationType,
+			Flags:           newCredentialFlagsFromAuthenticatorFlags(defAuthFlags),
 			Authenticator: webauthn.Authenticator{
 				AAGUID:       cred.AAGUID,
 				SignCount:    cred.SignCount,
@@ -113,30 +128,18 @@ func (list WebAuthnCredentialList) ToCredentials() []webauthn.Credential {
 }
 
 // GetWebAuthnCredentialsByUID returns all WebAuthn credentials of the given user
-func GetWebAuthnCredentialsByUID(uid int64) (WebAuthnCredentialList, error) {
-	return getWebAuthnCredentialsByUID(db.DefaultContext, uid)
-}
-
-func getWebAuthnCredentialsByUID(ctx context.Context, uid int64) (WebAuthnCredentialList, error) {
+func GetWebAuthnCredentialsByUID(ctx context.Context, uid int64) (WebAuthnCredentialList, error) {
 	creds := make(WebAuthnCredentialList, 0)
 	return creds, db.GetEngine(ctx).Where("user_id = ?", uid).Find(&creds)
 }
 
 // ExistsWebAuthnCredentialsForUID returns if the given user has credentials
-func ExistsWebAuthnCredentialsForUID(uid int64) (bool, error) {
-	return existsWebAuthnCredentialsByUID(db.DefaultContext, uid)
-}
-
-func existsWebAuthnCredentialsByUID(ctx context.Context, uid int64) (bool, error) {
+func ExistsWebAuthnCredentialsForUID(ctx context.Context, uid int64) (bool, error) {
 	return db.GetEngine(ctx).Where("user_id = ?", uid).Exist(&WebAuthnCredential{})
 }
 
 // GetWebAuthnCredentialByName returns WebAuthn credential by id
-func GetWebAuthnCredentialByName(uid int64, name string) (*WebAuthnCredential, error) {
-	return getWebAuthnCredentialByName(db.DefaultContext, uid, name)
-}
-
-func getWebAuthnCredentialByName(ctx context.Context, uid int64, name string) (*WebAuthnCredential, error) {
+func GetWebAuthnCredentialByName(ctx context.Context, uid int64, name string) (*WebAuthnCredential, error) {
 	cred := new(WebAuthnCredential)
 	if found, err := db.GetEngine(ctx).Where("user_id = ? AND lower_name = ?", uid, strings.ToLower(name)).Get(cred); err != nil {
 		return nil, err
@@ -147,11 +150,7 @@ func getWebAuthnCredentialByName(ctx context.Context, uid int64, name string) (*
 }
 
 // GetWebAuthnCredentialByID returns WebAuthn credential by id
-func GetWebAuthnCredentialByID(id int64) (*WebAuthnCredential, error) {
-	return getWebAuthnCredentialByID(db.DefaultContext, id)
-}
-
-func getWebAuthnCredentialByID(ctx context.Context, id int64) (*WebAuthnCredential, error) {
+func GetWebAuthnCredentialByID(ctx context.Context, id int64) (*WebAuthnCredential, error) {
 	cred := new(WebAuthnCredential)
 	if found, err := db.GetEngine(ctx).ID(id).Get(cred); err != nil {
 		return nil, err
@@ -162,16 +161,12 @@ func getWebAuthnCredentialByID(ctx context.Context, id int64) (*WebAuthnCredenti
 }
 
 // HasWebAuthnRegistrationsByUID returns whether a given user has WebAuthn registrations
-func HasWebAuthnRegistrationsByUID(uid int64) (bool, error) {
-	return db.GetEngine(db.DefaultContext).Where("user_id = ?", uid).Exist(&WebAuthnCredential{})
+func HasWebAuthnRegistrationsByUID(ctx context.Context, uid int64) (bool, error) {
+	return db.GetEngine(ctx).Where("user_id = ?", uid).Exist(&WebAuthnCredential{})
 }
 
 // GetWebAuthnCredentialByCredID returns WebAuthn credential by credential ID
-func GetWebAuthnCredentialByCredID(userID int64, credID []byte) (*WebAuthnCredential, error) {
-	return getWebAuthnCredentialByCredID(db.DefaultContext, userID, credID)
-}
-
-func getWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID []byte) (*WebAuthnCredential, error) {
+func GetWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID []byte) (*WebAuthnCredential, error) {
 	cred := new(WebAuthnCredential)
 	if found, err := db.GetEngine(ctx).Where("user_id = ? AND credential_id = ?", userID, credID).Get(cred); err != nil {
 		return nil, err
@@ -182,11 +177,7 @@ func getWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID []b
 }
 
 // CreateCredential will create a new WebAuthnCredential from the given Credential
-func CreateCredential(userID int64, name string, cred *webauthn.Credential) (*WebAuthnCredential, error) {
-	return createCredential(db.DefaultContext, userID, name, cred)
-}
-
-func createCredential(ctx context.Context, userID int64, name string, cred *webauthn.Credential) (*WebAuthnCredential, error) {
+func CreateCredential(ctx context.Context, userID int64, name string, cred *webauthn.Credential) (*WebAuthnCredential, error) {
 	c := &WebAuthnCredential{
 		UserID:          userID,
 		Name:            name,
@@ -205,18 +196,14 @@ func createCredential(ctx context.Context, userID int64, name string, cred *weba
 }
 
 // DeleteCredential will delete WebAuthnCredential
-func DeleteCredential(id, userID int64) (bool, error) {
-	return deleteCredential(db.DefaultContext, id, userID)
-}
-
-func deleteCredential(ctx context.Context, id, userID int64) (bool, error) {
+func DeleteCredential(ctx context.Context, id, userID int64) (bool, error) {
 	had, err := db.GetEngine(ctx).ID(id).Where("user_id = ?", userID).Delete(&WebAuthnCredential{})
 	return had > 0, err
 }
 
-// WebAuthnCredentials implementns the webauthn.User interface
-func WebAuthnCredentials(userID int64) ([]webauthn.Credential, error) {
-	dbCreds, err := GetWebAuthnCredentialsByUID(userID)
+// WebAuthnCredentials implements the webauthn.User interface
+func WebAuthnCredentials(ctx context.Context, userID int64) ([]webauthn.Credential, error) {
+	dbCreds, err := GetWebAuthnCredentialsByUID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

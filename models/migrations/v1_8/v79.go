@@ -15,7 +15,7 @@ func AddCanCloseIssuesViaCommitInAnyBranch(x *xorm.Engine) error {
 		CloseIssuesViaCommitInAnyBranch bool  `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	if err := x.Sync2(new(Repository)); err != nil {
+	if err := x.Sync(new(Repository)); err != nil {
 		return err
 	}
 

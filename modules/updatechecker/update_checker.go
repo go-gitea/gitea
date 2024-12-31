@@ -4,6 +4,7 @@
 package updatechecker
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -58,31 +59,31 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 		return err
 	}
 
-	return UpdateRemoteVersion(respData.Latest.Version)
+	return UpdateRemoteVersion(req.Context(), respData.Latest.Version)
 }
 
 // UpdateRemoteVersion updates the latest available version of Gitea
-func UpdateRemoteVersion(version string) (err error) {
-	return system.AppState.Set(&CheckerState{LatestVersion: version})
+func UpdateRemoteVersion(ctx context.Context, version string) (err error) {
+	return system.AppState.Set(ctx, &CheckerState{LatestVersion: version})
 }
 
 // GetRemoteVersion returns the current remote version (or currently installed version if fail to fetch from DB)
-func GetRemoteVersion() string {
+func GetRemoteVersion(ctx context.Context) string {
 	item := new(CheckerState)
-	if err := system.AppState.Get(item); err != nil {
+	if err := system.AppState.Get(ctx, item); err != nil {
 		return ""
 	}
 	return item.LatestVersion
 }
 
 // GetNeedUpdate returns true whether a newer version of Gitea is available
-func GetNeedUpdate() bool {
+func GetNeedUpdate(ctx context.Context) bool {
 	curVer, err := version.NewVersion(setting.AppVer)
 	if err != nil {
 		// return false to fail silently
 		return false
 	}
-	remoteVerStr := GetRemoteVersion()
+	remoteVerStr := GetRemoteVersion(ctx)
 	if remoteVerStr == "" {
 		// no remote version is known
 		return false

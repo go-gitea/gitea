@@ -35,14 +35,16 @@ func TestAPIUpdateUserAvatar(t *testing.T) {
 		Image: base64.StdEncoding.EncodeToString(avatar),
 	}
 
-	req := NewRequestWithJSON(t, "POST", "/api/v1/user/avatar?token="+token, &opts)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/user/avatar", &opts).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	opts = api.UpdateUserAvatarOption{
 		Image: "Invalid",
 	}
 
-	req = NewRequestWithJSON(t, "POST", "/api/v1/user/avatar?token="+token, &opts)
+	req = NewRequestWithJSON(t, "POST", "/api/v1/user/avatar", &opts).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test what happens if you use a file that is not an image
@@ -56,7 +58,8 @@ func TestAPIUpdateUserAvatar(t *testing.T) {
 		Image: base64.StdEncoding.EncodeToString(text),
 	}
 
-	req = NewRequestWithJSON(t, "POST", "/api/v1/user/avatar?token="+token, &opts)
+	req = NewRequestWithJSON(t, "POST", "/api/v1/user/avatar", &opts).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusInternalServerError)
 }
 
@@ -67,6 +70,7 @@ func TestAPIDeleteUserAvatar(t *testing.T) {
 	session := loginUser(t, normalUsername)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
 
-	req := NewRequest(t, "DELETE", "/api/v1/user/avatar?token="+token)
+	req := NewRequest(t, "DELETE", "/api/v1/user/avatar").
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 }

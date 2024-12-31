@@ -2,12 +2,12 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user activate">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
-			<form class="ui form">
+			<form class="ui form tw-max-w-2xl tw-m-auto">
 				<h2 class="ui top attached header">
-					{{.locale.Tr "auth.prohibit_login"}}
+					{{ctx.Locale.Tr "auth.prohibit_login"}}
 				</h2>
 				<div class="ui attached segment">
-					<p>{{.locale.Tr "auth.prohibit_login_desc"}}</p>
+					<p>{{ctx.Locale.Tr "auth.prohibit_login_desc"}}</p>
 				</div>
 			</form>
 		</div>

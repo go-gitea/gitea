@@ -43,6 +43,8 @@ var (
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
 		DefaultForkRepoUnits                    []string
+		DefaultMirrorRepoUnits                  []string
+		DefaultTemplateRepoUnits                []string
 		PrefixArchiveFiles                      bool
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
@@ -51,6 +53,7 @@ var (
 		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
 		AllowForkWithoutMaximumLimit            bool
+		AllowForkIntoSameOwner                  bool
 
 		// Repository editor settings
 		Editor struct {
@@ -85,6 +88,7 @@ var (
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
+			RetargetChildrenOnMerge                  bool
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -160,6 +164,8 @@ var (
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
 		DefaultForkRepoUnits:                    []string{},
+		DefaultMirrorRepoUnits:                  []string{},
+		DefaultTemplateRepoUnits:                []string{},
 		PrefixArchiveFiles:                      true,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
@@ -184,7 +190,7 @@ var (
 			Enabled:      true,
 			TempPath:     "data/tmp/uploads",
 			AllowedTypes: "",
-			FileMaxSize:  3,
+			FileMaxSize:  50,
 			MaxFiles:     5,
 		},
 
@@ -209,6 +215,7 @@ var (
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
+			RetargetChildrenOnMerge                  bool
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -223,6 +230,7 @@ var (
 			DefaultMergeMessageOfficialApproversOnly: true,
 			PopulateSquashCommentWithCommitMessages:  false,
 			AddCoCommitterTrailers:                   true,
+			RetargetChildrenOnMerge:                  true,
 		},
 
 		// Issue settings
@@ -282,6 +290,9 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	} else {
 		RepoRootPath = filepath.Clean(RepoRootPath)
 	}
+
+	checkOverlappedPath("[repository].ROOT", RepoRootPath)
+
 	defaultDetectedCharsetsOrder := make([]string, 0, len(Repository.DetectedCharsetsOrder))
 	for _, charset := range Repository.DetectedCharsetsOrder {
 		defaultDetectedCharsetsOrder = append(defaultDetectedCharsetsOrder, strings.ToLower(strings.TrimSpace(charset)))

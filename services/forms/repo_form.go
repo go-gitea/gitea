@@ -6,27 +6,18 @@ package forms
 
 import (
 	"net/http"
-	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/webhook"
 
 	"gitea.com/go-chi/binding"
 )
-
-// _______________________________________    _________.______________________ _______________.___.
-// \______   \_   _____/\______   \_____  \  /   _____/|   \__    ___/\_____  \\______   \__  |   |
-//  |       _/|    __)_  |     ___//   |   \ \_____  \ |   | |    |    /   |   \|       _//   |   |
-//  |    |   \|        \ |    |   /    |    \/        \|   | |    |   /    |    \    |   \\____   |
-//  |____|_  /_______  / |____|   \_______  /_______  /|___| |____|   \_______  /____|_  // ______|
-//         \/        \/                   \/        \/                        \/       \/ \/
 
 // CreateRepoForm form for creating repository
 type CreateRepoForm struct {
@@ -50,7 +41,9 @@ type CreateRepoForm struct {
 	Avatar          bool
 	Labels          bool
 	ProtectedBranch bool
-	TrustModel      string
+
+	ForkSingleBranch string
+	ObjectFormatName string
 }
 
 // Validate validates the fields
@@ -84,33 +77,15 @@ type MigrateRepoForm struct {
 	PullRequests   bool   `json:"pull_requests"`
 	Releases       bool   `json:"releases"`
 	MirrorInterval string `json:"mirror_interval"`
+
+	AWSAccessKeyID     string `json:"aws_access_key_id"`
+	AWSSecretAccessKey string `json:"aws_secret_access_key"`
 }
 
 // Validate validates the fields
 func (f *MigrateRepoForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// ParseRemoteAddr checks if given remote address is valid,
-// and returns composed URL with needed username and password.
-func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, error) {
-	remoteAddr = strings.TrimSpace(remoteAddr)
-	// Remote address can be HTTP/HTTPS/Git URL or local path.
-	if strings.HasPrefix(remoteAddr, "http://") ||
-		strings.HasPrefix(remoteAddr, "https://") ||
-		strings.HasPrefix(remoteAddr, "git://") {
-		u, err := url.Parse(remoteAddr)
-		if err != nil {
-			return "", &models.ErrInvalidCloneAddr{IsURLError: true, Host: remoteAddr}
-		}
-		if len(authUsername)+len(authPassword) > 0 {
-			u.User = url.UserPassword(authUsername, authPassword)
-		}
-		remoteAddr = u.String()
-	}
-
-	return remoteAddr, nil
 }
 
 // RepoSettingForm form for changing repository settings
@@ -124,7 +99,7 @@ type RepoSettingForm struct {
 	MirrorPassword         string
 	LFS                    bool   `form:"mirror_lfs"`
 	LFSEndpoint            string `form:"mirror_lfs_endpoint"`
-	PushMirrorID           string
+	PushMirrorID           int64
 	PushMirrorAddress      string
 	PushMirrorUsername     string
 	PushMirrorPassword     string
@@ -138,6 +113,8 @@ type RepoSettingForm struct {
 	EnableCode                            bool
 	EnableWiki                            bool
 	EnableExternalWiki                    bool
+	DefaultWikiBranch                     string
+	DefaultWikiEveryoneAccess             string
 	ExternalWikiURL                       string
 	EnableIssues                          bool
 	EnableExternalTracker                 bool
@@ -147,6 +124,7 @@ type RepoSettingForm struct {
 	ExternalTrackerRegexpPattern          string
 	EnableCloseIssuesViaCommitInAnyBranch bool
 	EnableProjects                        bool
+	ProjectsMode                          string
 	EnableReleases                        bool
 	EnablePackages                        bool
 	EnablePulls                           bool
@@ -156,6 +134,7 @@ type RepoSettingForm struct {
 	PullsAllowRebase                      bool
 	PullsAllowRebaseMerge                 bool
 	PullsAllowSquash                      bool
+	PullsAllowFastForwardOnly             bool
 	PullsAllowManualMerge                 bool
 	PullsDefaultMergeStyle                string
 	EnableAutodetectManualMerge           bool
@@ -196,6 +175,10 @@ type ProtectBranchForm struct {
 	WhitelistUsers                string
 	WhitelistTeams                string
 	WhitelistDeployKeys           bool
+	EnableForcePush               string
+	ForcePushAllowlistUsers       string
+	ForcePushAllowlistTeams       string
+	ForcePushAllowlistDeployKeys  bool
 	EnableMergeWhitelist          bool
 	MergeWhitelistUsers           string
 	MergeWhitelistTeams           string
@@ -209,15 +192,21 @@ type ProtectBranchForm struct {
 	BlockOnOfficialReviewRequests bool
 	BlockOnOutdatedBranch         bool
 	DismissStaleApprovals         bool
+	IgnoreStaleApprovals          bool
 	RequireSignedCommits          bool
 	ProtectedFilePatterns         string
 	UnprotectedFilePatterns       string
+	BlockAdminMergeOverride       bool
 }
 
 // Validate validates the fields
 func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type ProtectBranchPriorityForm struct {
+	IDs []int64
 }
 
 //  __      __      ___.   .__                   __
@@ -317,7 +306,7 @@ func (f *NewSlackHookForm) Validate(req *http.Request, errs binding.Errors) bind
 		errs = append(errs, binding.Error{
 			FieldNames:     []string{"Channel"},
 			Classification: "",
-			Message:        ctx.Tr("repo.settings.add_webhook.invalid_channel_name"),
+			Message:        ctx.Locale.TrString("repo.settings.add_webhook.invalid_channel_name"),
 		})
 	}
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
@@ -353,6 +342,7 @@ func (f *NewDingtalkHookForm) Validate(req *http.Request, errs binding.Errors) b
 type NewTelegramHookForm struct {
 	BotToken string `binding:"Required"`
 	ChatID   string `binding:"Required"`
+	ThreadID string
 	WebhookForm
 }
 
@@ -438,10 +428,10 @@ type CreateIssueForm struct {
 	Title               string `binding:"Required;MaxSize(255)"`
 	LabelIDs            string `form:"label_ids"`
 	AssigneeIDs         string `form:"assignee_ids"`
+	ReviewerIDs         string `form:"reviewer_ids"`
 	Ref                 string `form:"ref"`
 	MilestoneID         int64
 	ProjectID           int64
-	AssigneeID          int64
 	Content             string
 	Files               []string
 	AllowMaintainerEdit bool
@@ -504,44 +494,20 @@ func (i IssueLockForm) HasValidReason() bool {
 	return false
 }
 
-// __________                   __               __
-// \______   \_______  ____    |__| ____   _____/  |_  ______
-//  |     ___/\_  __ \/  _ \   |  |/ __ \_/ ___\   __\/  ___/
-//  |    |     |  | \(  <_> )  |  \  ___/\  \___|  |  \___ \
-//  |____|     |__|   \____/\__|  |\___  >\___  >__| /____  >
-//                         \______|    \/     \/          \/
-
 // CreateProjectForm form for creating a project
 type CreateProjectForm struct {
-	Title     string `binding:"Required;MaxSize(100)"`
-	Content   string
-	BoardType project_model.BoardType
-	CardType  project_model.CardType
+	Title        string `binding:"Required;MaxSize(100)"`
+	Content      string
+	TemplateType project_model.TemplateType
+	CardType     project_model.CardType
 }
 
-// UserCreateProjectForm is a from for creating an individual or organization
-// form.
-type UserCreateProjectForm struct {
-	Title     string `binding:"Required;MaxSize(100)"`
-	Content   string
-	BoardType project_model.BoardType
-	CardType  project_model.CardType
-	UID       int64 `binding:"Required"`
-}
-
-// EditProjectBoardForm is a form for editing a project board
-type EditProjectBoardForm struct {
+// EditProjectColumnForm is a form for editing a project column
+type EditProjectColumnForm struct {
 	Title   string `binding:"Required;MaxSize(100)"`
 	Sorting int8
 	Color   string `binding:"MaxSize(7)"`
 }
-
-//    _____  .__.__                   __
-//   /     \ |__|  |   ____   _______/  |_  ____   ____   ____
-//  /  \ /  \|  |  | _/ __ \ /  ___/\   __\/  _ \ /    \_/ __ \
-// /    Y    \  |  |_\  ___/ \___ \  |  | (  <_> )   |  \  ___/
-// \____|__  /__|____/\___  >____  > |__|  \____/|___|  /\___  >
-//         \/             \/     \/                   \/     \/
 
 // CreateMilestoneForm form for creating milestone
 type CreateMilestoneForm struct {
@@ -556,18 +522,12 @@ func (f *CreateMilestoneForm) Validate(req *http.Request, errs binding.Errors) b
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// .____          ___.          .__
-// |    |   _____ \_ |__   ____ |  |
-// |    |   \__  \ | __ \_/ __ \|  |
-// |    |___ / __ \| \_\ \  ___/|  |__
-// |_______ (____  /___  /\___  >____/
-//         \/    \/    \/     \/
-
 // CreateLabelForm form for creating label
 type CreateLabelForm struct {
 	ID          int64
 	Title       string `binding:"Required;MaxSize(50)" locale:"repo.issues.label_title"`
 	Exclusive   bool   `form:"exclusive"`
+	IsArchived  bool   `form:"is_archived"`
 	Description string `binding:"MaxSize(200)" locale:"repo.issues.label_description"`
 	Color       string `binding:"Required;MaxSize(7)" locale:"repo.issues.label_color"`
 }
@@ -589,19 +549,12 @@ func (f *InitializeLabelsForm) Validate(req *http.Request, errs binding.Errors) 
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// __________      .__  .__    __________                                     __
-// \______   \__ __|  | |  |   \______   \ ____  ________ __   ____   _______/  |_
-//  |     ___/  |  \  | |  |    |       _// __ \/ ____/  |  \_/ __ \ /  ___/\   __\
-//  |    |   |  |  /  |_|  |__  |    |   \  ___< <_|  |  |  /\  ___/ \___ \  |  |
-//  |____|   |____/|____/____/  |____|_  /\___  >__   |____/  \___  >____  > |__|
-//                                     \/     \/   |__|           \/     \/
-
 // MergePullRequestForm form for merging Pull Request
 // swagger:model MergePullRequestOption
 type MergePullRequestForm struct {
 	// required: true
-	// enum: merge,rebase,rebase-merge,squash,manually-merged
-	Do                     string `binding:"Required;In(merge,rebase,rebase-merge,squash,manually-merged)"`
+	// enum: merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged
+	Do                     string `binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
 	MergeTitleField        string
 	MergeMessageField      string
 	MergeCommitID          string // only used for manually-merged
@@ -627,6 +580,7 @@ type CodeCommentForm struct {
 	SingleReview   bool   `form:"single_review"`
 	Reply          int64  `form:"reply"`
 	LatestCommitID string
+	Files          []string
 }
 
 // Validate validates the fields

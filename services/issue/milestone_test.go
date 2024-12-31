@@ -6,6 +6,7 @@ package issue
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -22,7 +23,8 @@ func TestChangeMilestoneAssign(t *testing.T) {
 
 	oldMilestoneID := issue.MilestoneID
 	issue.MilestoneID = 2
-	assert.NoError(t, ChangeMilestoneAssign(issue, doer, oldMilestoneID))
+	assert.NoError(t, issue.LoadMilestone(db.DefaultContext))
+	assert.NoError(t, ChangeMilestoneAssign(db.DefaultContext, issue, doer, oldMilestoneID))
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{
 		IssueID:        issue.ID,
 		Type:           issues_model.CommentTypeMilestone,
@@ -30,4 +32,11 @@ func TestChangeMilestoneAssign(t *testing.T) {
 		OldMilestoneID: oldMilestoneID,
 	})
 	unittest.CheckConsistencyFor(t, &issues_model.Milestone{}, &issues_model.Issue{})
+	assert.NotNil(t, issue.Milestone)
+
+	oldMilestoneID = issue.MilestoneID
+	issue.MilestoneID = 0
+	assert.NoError(t, ChangeMilestoneAssign(db.DefaultContext, issue, doer, oldMilestoneID))
+	assert.EqualValues(t, 0, issue.MilestoneID)
+	assert.Nil(t, issue.Milestone)
 }

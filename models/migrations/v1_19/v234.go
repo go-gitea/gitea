@@ -24,5 +24,5 @@ func CreatePackageCleanupRuleTable(x *xorm.Engine) error {
 		UpdatedUnix   timeutil.TimeStamp `xorm:"updated NOT NULL DEFAULT 0"`
 	}
 
-	return x.Sync2(new(PackageCleanupRule))
+	return x.Sync(new(PackageCleanupRule))
 }

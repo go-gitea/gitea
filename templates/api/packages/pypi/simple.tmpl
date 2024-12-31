@@ -4,11 +4,12 @@
 		<title>Links for {{.PackageDescriptor.Package.Name}}</title>
 	</head>
 	<body>
+		{{- /* PEP 503 – Simple Repository API: https://peps.python.org/pep-0503/ */ -}}
 		<h1>Links for {{.PackageDescriptor.Package.Name}}</h1>
 		{{range .PackageDescriptors}}
-			{{$p := .}}
+			{{$pd := .}}
 			{{range .Files}}
-				<a href="{{$.RegistryURL}}/files/{{$p.Package.LowerName}}/{{$p.Version.Version}}/{{.File.Name}}#sha256-{{.Blob.HashSHA256}}"{{if $p.Metadata.RequiresPython}} data-requires-python="{{$p.Metadata.RequiresPython}}"{{end}}>{{.File.Name}}</a><br>
+				<a href="{{$.RegistryURL}}/files/{{$pd.Package.LowerName}}/{{$pd.Version.Version}}/{{.File.Name}}#sha256={{.Blob.HashSHA256}}"{{if $pd.Metadata.RequiresPython}} data-requires-python="{{$pd.Metadata.RequiresPython}}"{{end}}>{{.File.Name}}</a><br>
 			{{end}}
 		{{end}}
 	</body>
