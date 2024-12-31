@@ -6,6 +6,7 @@ package pull
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -635,24 +636,6 @@ func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
 	return err
 }
 
-type errlist []error
-
-func (errs errlist) Error() string {
-	if len(errs) > 0 {
-		var buf strings.Builder
-		for i, err := range errs {
-			if i > 0 {
-				buf.WriteString(", ")
-			}
-			buf.WriteString(err.Error())
-		}
-		return buf.String()
-	}
-	return ""
-}
-
-var _ error = &errlist{}
-
 // retargetBranchPulls change target branch for all pull requests whose base branch is the branch
 // Both branch and targetBranch must be in the same repo (for security reasons)
 func retargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch, targetBranch string) error {
@@ -665,7 +648,7 @@ func retargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int6
 		return err
 	}
 
-	var errs errlist
+	var errs []error
 	for _, pr := range prs {
 		if err = pr.Issue.LoadRepo(ctx); err != nil {
 			errs = append(errs, err)
@@ -675,11 +658,7 @@ func retargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int6
 			errs = append(errs, err)
 		}
 	}
-
-	if len(errs) > 0 {
-		return errs
-	}
-	return nil
+	return errors.Join(errs...)
 }
 
 // AdjustPullsCausedByBranchDeleted close all the pull requests who's head branch is the branch
@@ -700,7 +679,7 @@ func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User
 		return err
 	}
 
-	var errs errlist
+	var errs []error
 	for _, pr := range prs {
 		if err = issue_service.CloseIssue(ctx, pr.Issue, doer, ""); err != nil && !issues_model.IsErrPullWasClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
 			errs = append(errs, err)
@@ -718,7 +697,7 @@ func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User
 			log.Error("retargetBranchPulls failed: %v", err)
 			errs = append(errs, err)
 		}
-		return errs
+		return errors.Join(errs...)
 	}
 
 	// branch as base branch
@@ -747,10 +726,7 @@ func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User
 			}
 		}
 	}
-	if len(errs) > 0 {
-		return errs
-	}
-	return nil
+	return errors.Join(errs...)
 }
 
 // CloseRepoBranchesPulls close all pull requests which head branches are in the given repository, but only whose base repo is not in the given repository
@@ -760,7 +736,7 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 		return err
 	}
 
-	var errs errlist
+	var errs []error
 	for _, branch := range branches {
 		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch.Name)
 		if err != nil {
@@ -783,10 +759,7 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 		}
 	}
 
-	if len(errs) > 0 {
-		return errs
-	}
-	return nil
+	return errors.Join(errs...)
 }
 
 var commitMessageTrailersPattern = regexp.MustCompile(`(?:^|\n\n)(?:[\w-]+[ \t]*:[^\n]+\n*(?:[ \t]+[^\n]+\n*)*)+$`)
