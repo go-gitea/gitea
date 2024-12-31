@@ -39,8 +39,9 @@ export function parseIssueHref(href: string): IssuePathInfo {
 
 export function parseIssueNewHref(href: string): IssuePathInfo {
   const path = (href || '').replace(/[#?].*$/, '');
-  const [_, ownerName, repoName, pathType, indexString] = /([^/]+)\/([^/]+)\/(issues|pulls)\/new/.exec(path) || [];
-  return {ownerName, repoName, pathType, indexString};
+  const [_, ownerName, repoName, pathTypeField] = /([^/]+)\/([^/]+)\/(issues\/new|compare\/.+\.\.\.)/.exec(path) || [];
+  const pathType = pathTypeField.startsWith('issues/new') ? 'issues' : 'pulls';
+  return {ownerName, repoName, pathType};
 }
 
 export function parseIssuePageInfo(): IssuePageInfo {
