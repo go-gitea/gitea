@@ -1,3 +1,9 @@
+.page-content.install.post-install {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
 .page-content.install .install-config-container {
   max-width: 900px;
   margin: auto;
@@ -52,4 +58,8 @@
   width: 70%;
   text-align: left;
   margin: 10px auto;
+}
+
+.page-content.install .loading img {
+  width: 128px;
 }
