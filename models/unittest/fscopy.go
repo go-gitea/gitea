@@ -67,7 +67,7 @@ func SyncDirs(srcPath, destPath string) error {
 	}
 
 	// find and delete all untracked files
-	destFiles, err := util.StatDir(destPath, true)
+	destFiles, err := util.ListDirRecursively(destPath, &util.ListDirOptions{IncludeDir: true})
 	if err != nil {
 		return err
 	}
@@ -86,13 +86,13 @@ func SyncDirs(srcPath, destPath string) error {
 	}
 
 	// sync src files to dest
-	srcFiles, err := util.StatDir(srcPath, true)
+	srcFiles, err := util.ListDirRecursively(srcPath, &util.ListDirOptions{IncludeDir: true})
 	if err != nil {
 		return err
 	}
 	for _, srcFile := range srcFiles {
 		destFilePath := filepath.Join(destPath, srcFile)
-		// util.StatDir appends a slash to the directory name
+		// util.ListDirRecursively appends a slash to the directory name
 		if strings.HasSuffix(srcFile, "/") {
 			err = os.MkdirAll(destFilePath, os.ModePerm)
 		} else {
