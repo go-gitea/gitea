@@ -15,12 +15,19 @@ export function initRepoNew() {
   updateUiAutoInit();
 
   const inputRepoName = form.querySelector<HTMLInputElement>('input[name="repo_name"]');
+  const inputPrivate = form.querySelector<HTMLInputElement>('input[name="private"]');
   const updateUiRepoName = () => {
     const helps = form.querySelectorAll(`.help[data-help-for-repo-name]`);
     hideElem(helps);
     let help = form.querySelector(`.help[data-help-for-repo-name="${CSS.escape(inputRepoName.value)}"]`);
     if (!help) help = form.querySelector(`.help[data-help-for-repo-name=""]`);
     showElem(help);
+    const repoNamePreferPrivate = {'.profile': false, '.profile-private': true};
+    const preferPrivate = repoNamePreferPrivate[inputRepoName.value];
+    // inputPrivate might be disabled because site admin "force private"
+    if (preferPrivate !== undefined && !inputPrivate.closest('.disabled, [disabled]')) {
+      inputPrivate.checked = preferPrivate;
+    }
   };
   inputRepoName.addEventListener('input', updateUiRepoName);
   updateUiRepoName();
