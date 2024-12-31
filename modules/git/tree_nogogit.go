@@ -158,6 +158,8 @@ func (t *Tree) iterateEntriesRecursive(ctx context.Context, f func(entry *TreeEn
 				return ctx.Err()
 			case runErr := <-done:
 				return runErr
+			default:
+				return nil
 			}
 		}); err != nil {
 			return err
@@ -166,6 +168,6 @@ func (t *Tree) iterateEntriesRecursive(ctx context.Context, f func(entry *TreeEn
 	return nil
 }
 
-func (t *Tree) IterateEntriesWithSize(f func(*TreeEntry) error) error {
+func (t *Tree) IterateEntriesRecursiveWithSize(f func(*TreeEntry) error) error {
 	return t.iterateEntriesRecursive(t.repo.Ctx, f, TrustedCmdArgs{"--long"})
 }

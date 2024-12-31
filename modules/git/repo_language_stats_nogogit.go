@@ -72,7 +72,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	firstExcludedLanguage := ""
 	firstExcludedLanguageSize := int64(0)
 
-	if err := tree.IterateEntriesWithSize(func(f *TreeEntry) error {
+	if err := tree.IterateEntriesRecursiveWithSize(func(f *TreeEntry) error {
 		contentBuf.Reset()
 		content = contentBuf.Bytes()
 
