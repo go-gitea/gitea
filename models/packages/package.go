@@ -248,6 +248,18 @@ func GetPackageByID(ctx context.Context, packageID int64) (*Package, error) {
 	return p, nil
 }
 
+// UpdatePackageNameByID updates the package's name, it is only for internal usage, for example: rename some legacy packages
+func UpdatePackageNameByID(ctx context.Context, ownerID int64, packageType Type, packageID int64, name string) error {
+	var cond builder.Cond = builder.Eq{
+		"package.id":          packageID,
+		"package.owner_id":    ownerID,
+		"package.type":        packageType,
+		"package.is_internal": false,
+	}
+	_, err := db.GetEngine(ctx).Where(cond).Update(&Package{Name: name, LowerName: strings.ToLower(name)})
+	return err
+}
+
 // GetPackageByName gets a package by name
 func GetPackageByName(ctx context.Context, ownerID int64, packageType Type, name string) (*Package, error) {
 	var cond builder.Cond = builder.Eq{
