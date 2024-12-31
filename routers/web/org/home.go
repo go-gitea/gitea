@@ -179,6 +179,9 @@ func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.Pr
 		return false
 	}
 
+	ctx.Data["HasOrgProfileWiki"] = profileRepo.HasWiki()
+	ctx.Data["OrgProfileRepo"] = profileRepo
+
 	readmeBytes, err := readmeBlob.GetBlobContent(setting.UI.MaxDisplayFileSize)
 	if err != nil {
 		log.Error("failed to GetBlobContent for profile %q (view as %q) readme: %v", profileRepo.FullName(), viewAs, err)

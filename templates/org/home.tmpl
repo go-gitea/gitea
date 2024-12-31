@@ -16,12 +16,13 @@
 			{{if .ShowMemberAndTeamTab}}
 			<div class="ui five wide column">
 				{{if .CanCreateOrgRepo}}
-					<div class="flex-text-block tw-flex-wrap tw-justify-end tw-mb-4">
+					<div class="center aligned tw-mb-4">
 						<a class="ui primary button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{ctx.Locale.Tr "new_repo"}}</a>
 						{{if not .DisableNewPullMirrors}}
 							<a class="ui primary button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{ctx.Locale.Tr "new_migrate"}}</a>
 						{{end}}
 					</div>
+					<div class="divider"></div>
 				{{end}}
 
 				{{if and .ShowMemberAndTeamTab .ShowOrgProfileReadmeSelector}}
@@ -43,6 +44,12 @@
 					<div class="tw-my-2">
 						{{if .IsViewingOrgAsMember}}{{ctx.Locale.Tr "org.view_as_member_hint"}}{{else}}{{ctx.Locale.Tr "org.view_as_public_hint"}}{{end}}
 					</div>
+					{{if .HasOrgProfileWiki}}
+					{{/* FIXME:  the "view as" affects the "wiki link", it can't be in the menu tab. Need to figure out some better UI/UX solutions. */}}
+					<a class="tw-my-2" href="{{$.OrgProfileRepo.Link}}/wiki">
+						{{svg "octicon-book"}} {{ctx.Locale.Tr "repo.wiki"}}
+					</a>
+					{{end}}
 				</div>
 				{{end}}
 
@@ -55,7 +62,7 @@
 						{{$isMember := .IsOrganizationMember}}
 						{{range .Members}}
 							{{if or $isMember (call $.IsPublicMember .ID)}}
-								<a href="{{.HomeLink}}" data-tooltip-content="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">{{ctx.AvatarUtils.Avatar . 24}}</a>
+								<a href="{{.HomeLink}}" title="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">{{ctx.AvatarUtils.Avatar . 48}}</a>
 							{{end}}
 						{{end}}
 					</div>
