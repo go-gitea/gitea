@@ -197,6 +197,20 @@ func (t CommentType) HasMailReplySupport() bool {
 	return false
 }
 
+func (t CommentType) CountedAsConversation() bool {
+	for _, ct := range ConversationCountedCommentType() {
+		if t == ct {
+			return true
+		}
+	}
+	return false
+}
+
+// ConversationCountedCommentType returns the comment types that are counted as a conversation
+func ConversationCountedCommentType() []CommentType {
+	return []CommentType{CommentTypeComment, CommentTypeReview}
+}
+
 // RoleInRepo presents the user's participation in the repo
 type RoleInRepo string
 
@@ -893,7 +907,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 		fallthrough
 	case CommentTypeComment:
-		if _, err = db.Exec(ctx, "UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
+		if err := UpdateIssueNumComments(ctx, opts.Issue.ID); err != nil {
 			return err
 		}
 		fallthrough
@@ -1182,8 +1196,8 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	if comment.Type == CommentTypeComment {
-		if _, err := e.ID(comment.IssueID).Decr("num_comments").Update(new(Issue)); err != nil {
+	if comment.Type.CountedAsConversation() {
+		if err := UpdateIssueNumComments(ctx, comment.IssueID); err != nil {
 			return err
 		}
 	}
@@ -1300,6 +1314,21 @@ func (c *Comment) HasOriginalAuthor() bool {
 	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
 }
 
+func UpdateIssueNumCommentsBuilder(issueID int64) *builder.Builder {
+	subQuery := builder.Select("COUNT(*)").From("`comment`").Where(
+		builder.Eq{"issue_id": issueID}.And(
+			builder.In("`type`", ConversationCountedCommentType()),
+		))
+
+	return builder.Update(builder.Eq{"num_comments": subQuery}).
+		From("`issue`").Where(builder.Eq{"id": issueID})
+}
+
+func UpdateIssueNumComments(ctx context.Context, issueID int64) error {
+	_, err := db.GetEngine(ctx).Exec(UpdateIssueNumCommentsBuilder(issueID))
+	return err
+}
+
 // InsertIssueComments inserts many comments of issues.
 func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 	if len(comments) == 0 {
@@ -1332,8 +1361,7 @@ func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 	}
 
 	for _, issueID := range issueIDs {
-		if _, err := db.Exec(ctx, "UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
-			issueID, CommentTypeComment, issueID); err != nil {
+		if err := UpdateIssueNumComments(ctx, issueID); err != nil {
 			return err
 		}
 	}
