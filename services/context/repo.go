@@ -1027,7 +1027,7 @@ func GitHookService() func(ctx *Context) {
 // canWriteAsMaintainer check if the doer can write to a branch as a maintainer
 func canWriteAsMaintainer(ctx *Context) bool {
 	branchName := getRefNameFromPath(ctx.Repo, ctx.PathParam("*"), func(branchName string) bool {
-		return issues_model.CanMaintainerWriteToBranch(ctx, ctx.Repo.Permission, branchName, ctx.Doer)
+		return issues_model.CanMaintainerWriteToHeadBranch(ctx, ctx.Repo.Repository.ID, branchName, ctx.Doer)
 	})
 	return len(branchName) > 0
 }
