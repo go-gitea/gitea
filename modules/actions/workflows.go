@@ -56,17 +56,16 @@ func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 		return nil, err
 	}
 
-	entries, err := tree.ListEntriesRecursiveFast(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	ret := make(git.Entries, 0, len(entries))
-	for _, entry := range entries {
+	ret := make(git.Entries, 0, 5)
+	if err := tree.IterateEntriesRecursive(context.Background(), func(entry *git.TreeEntry) error {
 		if strings.HasSuffix(entry.Name(), ".yml") || strings.HasSuffix(entry.Name(), ".yaml") {
 			ret = append(ret, entry)
 		}
+		return nil
+	}, nil); err != nil {
+		return nil, err
 	}
+
 	return ret, nil
 }
 

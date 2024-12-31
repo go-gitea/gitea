@@ -72,7 +72,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	firstExcludedLanguage := ""
 	firstExcludedLanguageSize := int64(0)
 
-	if err := tree.IterateEntriesRecursiveWithSize(func(f *TreeEntry) error {
+	if err := tree.IterateEntriesRecursive(repo.Ctx, func(f *TreeEntry) error {
 		contentBuf.Reset()
 		content = contentBuf.Bytes()
 
@@ -190,7 +190,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			firstExcludedLanguageSize += f.Size()
 		}
 		return nil
-	}); err != nil {
+	}, TrustedCmdArgs{"--long"}); err != nil { // add --long to get size
 		return sizes, err
 	}
 

@@ -99,7 +99,7 @@ func (t *Tree) listEntriesRecursive(ctx context.Context, extraArgs TrustedCmdArg
 	}
 
 	t.entriesRecursive = make([]*TreeEntry, 0)
-	if err := t.iterateEntriesRecursive(ctx, func(entry *TreeEntry) error {
+	if err := t.IterateEntriesRecursive(ctx, func(entry *TreeEntry) error {
 		t.entriesRecursive = append(t.entriesRecursive, entry)
 		return nil
 	}, extraArgs); err != nil {
@@ -121,9 +121,9 @@ func (t *Tree) ListEntriesRecursiveWithSize(ctx context.Context) (Entries, error
 	return t.listEntriesRecursive(ctx, TrustedCmdArgs{"--long"})
 }
 
-// iterateEntriesRecursive returns iterate entries of current tree recursively including all subtrees
+// IterateEntriesRecursive returns iterate entries of current tree recursively including all subtrees
 // extraArgs could be "-l" to get the size, which is slower
-func (t *Tree) iterateEntriesRecursive(ctx context.Context, f func(entry *TreeEntry) error, extraArgs TrustedCmdArgs) error {
+func (t *Tree) IterateEntriesRecursive(ctx context.Context, f func(entry *TreeEntry) error, extraArgs TrustedCmdArgs) error {
 	reader, writer := io.Pipe()
 	done := make(chan error)
 
@@ -166,8 +166,4 @@ func (t *Tree) iterateEntriesRecursive(ctx context.Context, f func(entry *TreeEn
 		}
 	}
 	return nil
-}
-
-func (t *Tree) IterateEntriesRecursiveWithSize(f func(*TreeEntry) error) error {
-	return t.iterateEntriesRecursive(t.repo.Ctx, f, TrustedCmdArgs{"--long"})
 }
