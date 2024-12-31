@@ -396,8 +396,16 @@ func NewIssuePost(ctx *context.Context) {
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	if ctx.FormString("redirect_after_creation") == "project" && projectID > 0 {
-		ctx.JSONRedirect(ctx.Repo.RepoLink + "/projects/" + strconv.FormatInt(projectID, 10))
-	} else {
-		ctx.JSONRedirect(issue.Link())
+		project, err := project_model.GetProjectByID(ctx, projectID)
+		if err == nil {
+			if project.Type == project_model.TypeOrganization {
+				project.Owner = ctx.Repo.Owner
+			} else {
+				project.Repo = ctx.Repo.Repository
+			}
+			ctx.JSONRedirect(project.Link(ctx))
+			return
+		}
 	}
+	ctx.JSONRedirect(issue.Link())
 }
