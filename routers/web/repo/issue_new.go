@@ -398,7 +398,6 @@ func NewIssuePost(ctx *context.Context) {
 	if ctx.FormString("redirect_after_creation") == "project" && projectID > 0 {
 		project, err := project_model.GetProjectByID(ctx, projectID)
 		if err == nil {
-			// to reduce load the content from database again, we just set the owner/repo here
 			if project.Type == project_model.TypeOrganization {
 				ctx.JSONRedirect(project_model.ProjectLinkForOrg(ctx.Repo.Owner, project.ID))
 			} else {
