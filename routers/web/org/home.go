@@ -116,13 +116,12 @@ func home(ctx *context.Context, viewRepositories bool) {
 	}
 
 	// if no profile readme, it still means "view repositories"
-	ctx.Data["PageIsViewRepositories"] = viewRepositories || !prepareOrgProfileReadme(ctx, prepareResult)
+	isViewOverview := !viewRepositories && prepareOrgProfileReadme(ctx, prepareResult)
+	ctx.Data["PageIsViewRepositories"] = !isViewOverview
+	ctx.Data["PageIsViewOverview"] = isViewOverview
+	ctx.Data["ShowOrgProfileReadmeSelector"] = isViewOverview && prepareResult.ProfilePublicReadmeBlob != nil && prepareResult.ProfilePrivateReadmeBlob != nil
 
-	var (
-		repos []*repo_model.Repository
-		count int64
-	)
-	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
@@ -156,7 +155,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 }
 
 func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.PrepareOrgHeaderResult) bool {
-	viewAs := ctx.FormString("view_as")
+	viewAs := ctx.FormString("view_as", util.Iif(ctx.Org.IsMember, "member", "public"))
 	viewAsMember := viewAs == "member"
 
 	var profileRepo *repo_model.Repository

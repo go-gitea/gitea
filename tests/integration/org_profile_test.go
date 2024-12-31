@@ -82,10 +82,10 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 
 	// Site Admin
 	session = loginUser(t, "user1")
-	req = NewRequest(t, "GET", "org3")
+	req = NewRequest(t, "GET", "/org3")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	bodyString = util.UnsafeBytesToString(resp.Body.Bytes())
-	assert.Contains(t, bodyString, contentPublicReadme)
+	assert.Contains(t, bodyString, contentPrivateReadme) // as an org member, default to show the private profile
 	assert.Contains(t, bodyString, `id="org-home-view-as-dropdown"`)
 
 	req = NewRequest(t, "GET", "/org3?view_as=member")

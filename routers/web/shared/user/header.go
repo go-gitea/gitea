@@ -202,6 +202,5 @@ func PrepareOrgHeader(ctx *context.Context) (result *PrepareOrgHeaderResult, err
 	result.ProfilePrivateRepo, result.ProfilePrivateReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer, RepoNameProfilePrivate)
 	result.HasOrgProfileReadme = result.ProfilePublicReadmeBlob != nil || result.ProfilePrivateReadmeBlob != nil
 	ctx.Data["HasOrgProfileReadme"] = result.HasOrgProfileReadme // many pages need it to show the "overview" tab
-	ctx.Data["ShowOrgProfileReadmeSelector"] = result.ProfilePublicReadmeBlob != nil && result.ProfilePrivateReadmeBlob != nil
 	return result, nil
 }
