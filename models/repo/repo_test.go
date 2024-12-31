@@ -217,3 +217,15 @@ func TestComposeSSHCloneURL(t *testing.T) {
 	setting.SSH.Port = 123
 	assert.Equal(t, "ssh://git@[::1]:123/user/repo.git", ComposeSSHCloneURL("user", "repo"))
 }
+
+func TestIsUsableRepoName(t *testing.T) {
+	assert.NoError(t, IsUsableRepoName("a"))
+	assert.NoError(t, IsUsableRepoName("-1_."))
+	assert.NoError(t, IsUsableRepoName(".profile"))
+
+	assert.Error(t, IsUsableRepoName("-"))
+	assert.Error(t, IsUsableRepoName("🌞"))
+	assert.Error(t, IsUsableRepoName("the..repo"))
+	assert.Error(t, IsUsableRepoName("foo.wiki"))
+	assert.Error(t, IsUsableRepoName("foo.git"))
+}
