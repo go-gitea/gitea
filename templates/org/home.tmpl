@@ -28,10 +28,8 @@
 				{{if and .ShowMemberAndTeamTab .ShowOrgProfileReadmeSelector}}
 				<div class="tw-my-4">
 					<div id="org-home-view-as-dropdown" class="ui dropdown jump">
-							<span class="text">
-								{{svg "octicon-eye"}}
-								View as: {{if not .IsViewingOrgAsMember}}{{ctx.Locale.Tr "settings.visibility.public"}}{{else}}{{ctx.Locale.Tr "org.members.member"}}{{end}}
-							</span>
+						{{- $viewAsRole := Iif (.IsViewingOrgAsMember) (ctx.Locale.Tr "org.members.member") (ctx.Locale.Tr "settings.visibility.public") -}}
+						<span class="text">{{svg "octicon-eye"}} {{ctx.Locale.Tr "org.view_as_role" $viewAsRole}}</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							{{/* TODO: does it really need to use CurrentURL with query parameters? Why not construct a new link with clear parameters */}}
