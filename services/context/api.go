@@ -274,7 +274,7 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) {
 		// For API calls.
 		if ctx.Repo.GitRepo == nil {
 			var err error
-			ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx, ctx.Repo.Repository)
+			ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, fmt.Sprintf("Open Repository %v failed", ctx.Repo.Repository.FullName()), err)
 				return
