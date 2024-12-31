@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/common"
@@ -42,9 +43,9 @@ import (
 )
 
 const (
-	tplCompare     base.TplName = "repo/diff/compare"
-	tplBlobExcerpt base.TplName = "repo/diff/blob_excerpt"
-	tplDiffBox     base.TplName = "repo/diff/box"
+	tplCompare     templates.TplName = "repo/diff/compare"
+	tplBlobExcerpt templates.TplName = "repo/diff/blob_excerpt"
+	tplDiffBox     templates.TplName = "repo/diff/box"
 )
 
 // setCompareContext sets context data.
@@ -663,7 +664,7 @@ func PrepareCompareDiff(
 	}
 	if len(title) > 255 {
 		var trailer string
-		title, trailer = util.SplitStringAtByteN(title, 255)
+		title, trailer = util.EllipsisDisplayStringX(title, 255)
 		if len(trailer) > 0 {
 			if ctx.Data["content"] != nil {
 				ctx.Data["content"] = fmt.Sprintf("%s\n\n%s", trailer, ctx.Data["content"])
@@ -863,7 +864,7 @@ func ExcerptBlob(ctx *context.Context) {
 	direction := ctx.FormString("direction")
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
-	if ctx.FormBool("wiki") {
+	if ctx.Data["PageIsWiki"] == true {
 		var err error
 		gitRepo, err = gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 		if err != nil {

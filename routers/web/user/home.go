@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/shared/issue"
@@ -46,16 +47,16 @@ import (
 )
 
 const (
-	tplDashboard  base.TplName = "user/dashboard/dashboard"
-	tplIssues     base.TplName = "user/dashboard/issues"
-	tplMilestones base.TplName = "user/dashboard/milestones"
-	tplProfile    base.TplName = "user/profile"
+	tplDashboard  templates.TplName = "user/dashboard/dashboard"
+	tplIssues     templates.TplName = "user/dashboard/issues"
+	tplMilestones templates.TplName = "user/dashboard/milestones"
+	tplProfile    templates.TplName = "user/profile"
 )
 
 // getDashboardContextUser finds out which context user dashboard is being viewed as .
 func getDashboardContextUser(ctx *context.Context) *user_model.User {
 	ctxUser := ctx.Doer
-	orgName := ctx.PathParam(":org")
+	orgName := ctx.PathParam("org")
 	if len(orgName) > 0 {
 		ctxUser = ctx.Org.Organization.AsUser()
 		ctx.Data["Teams"] = ctx.Org.Teams
@@ -138,7 +139,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Feeds"] = feeds
 
 	pager := context.NewPagination(int(count), setting.UI.FeedPagingNum, page, 5)
-	pager.AddParamString("date", date)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplDashboard)
@@ -329,10 +330,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	pager := context.NewPagination(pagerCount, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParamString("q", keyword)
-	pager.AddParamString("repos", reposQuery)
-	pager.AddParamString("sort", sortType)
-	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplMilestones)

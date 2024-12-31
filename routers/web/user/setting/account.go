@@ -15,10 +15,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/auth"
@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	tplSettingsAccount base.TplName = "user/settings/account"
+	tplSettingsAccount templates.TplName = "user/settings/account"
 )
 
 // Account renders change user's password, user's email and user suicide page

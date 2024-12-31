@@ -6,7 +6,6 @@ package actions
 import (
 	"bytes"
 	stdCtx "context"
-	"fmt"
 	"net/http"
 	"slices"
 	"strings"
@@ -17,12 +16,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
@@ -33,8 +32,8 @@ import (
 )
 
 const (
-	tplListActions base.TplName = "repo/actions/list"
-	tplViewActions base.TplName = "repo/actions/view"
+	tplListActions templates.TplName = "repo/actions/list"
+	tplViewActions templates.TplName = "repo/actions/view"
 )
 
 type Workflow struct {
@@ -262,10 +261,7 @@ func List(ctx *context.Context) {
 	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx)
 
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParamString("workflow", workflowID)
-	pager.AddParamString("actor", fmt.Sprint(actorID))
-	pager.AddParamString("status", fmt.Sprint(status))
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 

@@ -265,13 +265,13 @@ func combineLabelComments(issue *issues_model.Issue) {
 
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
-	if ctx.PathParam(":type") == "issues" {
+	if ctx.PathParam("type") == "issues" {
 		// If issue was requested we check if repo has external tracker and redirect
 		extIssueUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 		if err == nil && extIssueUnit != nil {
 			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
 				metas := ctx.Repo.Repository.ComposeMetas(ctx)
-				metas["index"] = ctx.PathParam(":index")
+				metas["index"] = ctx.PathParam("index")
 				res, err := vars.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas)
 				if err != nil {
 					log.Error("unable to expand template vars for issue url. issue: %s, err: %v", metas["index"], err)
@@ -287,7 +287,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("GetIssueByIndex", err)
@@ -301,10 +301,10 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	// Make sure type and URL matches.
-	if ctx.PathParam(":type") == "issues" && issue.IsPull {
+	if ctx.PathParam("type") == "issues" && issue.IsPull {
 		ctx.Redirect(issue.Link())
 		return
-	} else if ctx.PathParam(":type") == "pulls" && !issue.IsPull {
+	} else if ctx.PathParam("type") == "pulls" && !issue.IsPull {
 		ctx.Redirect(issue.Link())
 		return
 	}

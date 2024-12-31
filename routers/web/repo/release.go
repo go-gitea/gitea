@@ -16,12 +16,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/feed"
@@ -33,9 +33,9 @@ import (
 )
 
 const (
-	tplReleasesList base.TplName = "repo/release/list"
-	tplReleaseNew   base.TplName = "repo/release/new"
-	tplTagsList     base.TplName = "repo/tag/list"
+	tplReleasesList templates.TplName = "repo/release/list"
+	tplReleaseNew   templates.TplName = "repo/release/new"
+	tplTagsList     templates.TplName = "repo/tag/list"
 )
 
 // calReleaseNumCommitsBehind calculates given release has how many commits behind release target.
@@ -186,7 +186,7 @@ func Releases(ctx *context.Context) {
 
 	numReleases := ctx.Data["NumReleases"].(int64)
 	pager := context.NewPagination(int(numReleases), listOptions.PageSize, listOptions.Page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplReleasesList)
 }
@@ -240,7 +240,7 @@ func TagsList(ctx *context.Context) {
 	ctx.Data["TagCount"] = count
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
 	ctx.HTML(http.StatusOK, tplTagsList)
