@@ -733,7 +733,7 @@
 						<span class="field">
 							{{if .CodeIndexerStatus}}
 								<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.CodeIndexerStatus.CommitSha}}">
-									<span class="shortsha">{{ShortSha .CodeIndexerStatus.CommitSha}}</span>
+									{{ShortSha .CodeIndexerStatus.CommitSha}}
 								</a>
 							{{else}}
 									<span>{{ctx.Locale.Tr "repo.settings.admin_indexer_unindexed"}}</span>
@@ -752,7 +752,7 @@
 					<span class="field">
 						{{if and .StatsIndexerStatus .StatsIndexerStatus.CommitSha}}
 							<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.StatsIndexerStatus.CommitSha}}">
-								<span class="shortsha">{{ShortSha .StatsIndexerStatus.CommitSha}}</span>
+								{{ShortSha .StatsIndexerStatus.CommitSha}}
 							</a>
 						{{else}}
 							<span>{{ctx.Locale.Tr "repo.settings.admin_indexer_unindexed"}}</span>

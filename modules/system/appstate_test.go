@@ -13,9 +13,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		FixtureFiles: []string{""}, // load nothing
-	})
+	unittest.MainTest(m, &unittest.TestOptions{FixtureFiles: []string{ /* load nothing */ }})
 }
 
 type testItem1 struct {
@@ -36,8 +34,6 @@ func (*testItem2) Name() string {
 }
 
 func TestAppStateDB(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
 	as := &DBStore{}
 
 	item1 := new(testItem1)
