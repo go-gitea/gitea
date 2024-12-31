@@ -44,6 +44,12 @@
 					<div class="tw-my-2">
 						{{if .IsViewingOrgAsMember}}{{ctx.Locale.Tr "org.view_as_member_hint"}}{{else}}{{ctx.Locale.Tr "org.view_as_public_hint"}}{{end}}
 					</div>
+					{{if .HasOrgProfileWiki}}
+					{{/* FIXME:  the "view as" affects the "wiki link", it can't be in the menu tab. Need to figure out some better UI/UX solutions. */}}
+					<a class="tw-my-2" href="{{$.OrgProfileRepo.Link}}/wiki">
+						{{svg "octicon-book"}} {{ctx.Locale.Tr "repo.wiki"}}
+					</a>
+					{{end}}
 				</div>
 				{{end}}
 
