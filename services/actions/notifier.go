@@ -58,15 +58,15 @@ func (n *actionsNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 // IssueChangeContent notifies change content of issue
 func (n *actionsNotifier) IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
 	ctx = withMethod(ctx, "IssueChangeContent")
-	n.notifyIssueChangeWithTitleOrContent(ctx, doer, issue, api.HookIssueEdited)
+	n.notifyIssueChangeWithTitleOrContent(ctx, doer, issue)
 }
 
 func (n *actionsNotifier) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 	ctx = withMethod(ctx, "IssueChangeTitle")
-	n.notifyIssueChangeWithTitleOrContent(ctx, doer, issue, api.HookIssueEdited)
+	n.notifyIssueChangeWithTitleOrContent(ctx, doer, issue)
 }
 
-func (n *actionsNotifier) notifyIssueChangeWithTitleOrContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, action api.HookIssueAction) {
+func (n *actionsNotifier) notifyIssueChangeWithTitleOrContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
 	var err error
 	if err = issue.LoadRepo(ctx); err != nil {
 		log.Error("LoadRepo: %v", err)
@@ -82,7 +82,7 @@ func (n *actionsNotifier) notifyIssueChangeWithTitleOrContent(ctx context.Contex
 		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequest).
 			WithDoer(doer).
 			WithPayload(&api.PullRequestPayload{
-				Action:      action,
+				Action:      api.HookIssueEdited,
 				Index:       issue.Index,
 				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
 				Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
