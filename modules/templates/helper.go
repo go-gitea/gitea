@@ -9,7 +9,6 @@ import (
 	"html"
 	"html/template"
 	"net/url"
-	"reflect"
 	"strings"
 	"time"
 
@@ -42,7 +41,7 @@ func NewFuncMap() template.FuncMap {
 		"HTMLFormat":   htmlutil.HTMLFormat,
 		"HTMLEscape":   htmlEscape,
 		"QueryEscape":  queryEscape,
-		"QueryBuild":   queryBuild,
+		"QueryBuild":   QueryBuild,
 		"JSEscape":     jsEscapeSafe,
 		"SanitizeHTML": SanitizeHTML,
 		"URLJoin":      util.URLJoin,
@@ -69,7 +68,7 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// time / number / format
 		"FileSize": base.FileSize,
-		"CountFmt": base.FormatNumberSI,
+		"CountFmt": countFmt,
 		"Sec2Time": util.SecToTime,
 
 		"TimeEstimateString": timeEstimateString,
@@ -239,29 +238,8 @@ func iif(condition any, vals ...any) any {
 }
 
 func isTemplateTruthy(v any) bool {
-	if v == nil {
-		return false
-	}
-
-	rv := reflect.ValueOf(v)
-	switch rv.Kind() {
-	case reflect.Bool:
-		return rv.Bool()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return rv.Int() != 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return rv.Uint() != 0
-	case reflect.Float32, reflect.Float64:
-		return rv.Float() != 0
-	case reflect.Complex64, reflect.Complex128:
-		return rv.Complex() != 0
-	case reflect.String, reflect.Slice, reflect.Array, reflect.Map:
-		return rv.Len() > 0
-	case reflect.Struct:
-		return true
-	default:
-		return !rv.IsNil()
-	}
+	truth, _ := template.IsTrue(v)
+	return truth
 }
 
 // evalTokens evaluates the expression by tokens and returns the result, see the comment of eval.Expr for details.
@@ -286,32 +264,27 @@ func userThemeName(user *user_model.User) string {
 	return setting.UI.DefaultTheme
 }
 
-func timeEstimateString(timeSec any) string {
-	v, _ := util.ToInt64(timeSec)
-	if v == 0 {
-		return ""
-	}
-	return util.TimeEstimateString(v)
-}
-
-func queryBuild(a ...any) template.URL {
+// QueryBuild builds a query string from a list of key-value pairs.
+// It omits the nil and empty strings, but it doesn't omit other zero values,
+// because the zero value of number types may have a meaning.
+func QueryBuild(a ...any) template.URL {
 	var s string
 	if len(a)%2 == 1 {
 		if v, ok := a[0].(string); ok {
 			if v == "" || (v[0] != '?' && v[0] != '&') {
-				panic("queryBuild: invalid argument")
+				panic("QueryBuild: invalid argument")
 			}
 			s = v
 		} else if v, ok := a[0].(template.URL); ok {
 			s = string(v)
 		} else {
-			panic("queryBuild: invalid argument")
+			panic("QueryBuild: invalid argument")
 		}
 	}
 	for i := len(a) % 2; i < len(a); i += 2 {
 		k, ok := a[i].(string)
 		if !ok {
-			panic("queryBuild: invalid argument")
+			panic("QueryBuild: invalid argument")
 		}
 		var v string
 		if va, ok := a[i+1].(string); ok {
@@ -358,7 +331,5 @@ func queryBuild(a ...any) template.URL {
 }
 
 func panicIfDevOrTesting() {
-	if !setting.IsProd || setting.IsInTesting {
-		panic("legacy template functions are for backward compatibility only, do not use them in new code")
-	}
+	setting.PanicInDevOrTesting("legacy template functions are for backward compatibility only, do not use them in new code")
 }

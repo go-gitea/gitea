@@ -4,22 +4,24 @@
   grid-template-rows: auto auto 1fr;
 }
 
-.repo-grid-filelist-sidebar .repo-home-filelist {
+.repo-home-filelist {
   min-width: 0;
   grid-column: 1;
   grid-row: 1 / 4;
 }
 
-.repo-grid-filelist-sidebar .repo-home-sidebar-top {
+.repo-home-sidebar-top {
   grid-column: 2;
   grid-row: 1;
   padding-left: 1em;
 }
-.repo-grid-filelist-sidebar .repo-home-sidebar-bottom {
+
+.repo-home-sidebar-bottom {
   grid-column: 2;
   grid-row: 2;
   padding-left: 1em;
 }
+
 .repo-home-sidebar-bottom .flex-list > :first-child {
   border-top: 1px solid var(--color-secondary); /* same to .flex-list > .flex-item + .flex-item */
 }
@@ -29,16 +31,16 @@
     grid-template-columns: 100%;
     grid-template-rows: auto auto auto;
   }
-  .repo-grid-filelist-sidebar .repo-home-filelist {
+  .repo-home-filelist {
     grid-column: 1;
     grid-row: 2;
   }
-  .repo-grid-filelist-sidebar .repo-home-sidebar-top {
+  .repo-home-sidebar-top {
     grid-column: 1;
     grid-row: 1;
     padding-left: 0;
   }
-  .repo-grid-filelist-sidebar .repo-home-sidebar-bottom {
+  .repo-home-sidebar-bottom {
     grid-column: 1;
     grid-row: 3;
     padding-left: 0;

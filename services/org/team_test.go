@@ -121,7 +121,7 @@ func TestDeleteTeam(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	accessMode, err := access_model.AccessLevel(db.DefaultContext, user, repo)
 	assert.NoError(t, err)
-	assert.True(t, accessMode < perm.AccessModeWrite)
+	assert.Less(t, accessMode, perm.AccessModeWrite)
 }
 
 func TestAddTeamMember(t *testing.T) {
@@ -189,9 +189,12 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 
 	testTeamRepositories := func(teamID int64, repoIDs []int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, team.LoadRepositories(db.DefaultContext), "%s: GetRepositories", team.Name)
-		assert.Len(t, team.Repos, team.NumRepos, "%s: len repo", team.Name)
-		assert.Len(t, team.Repos, len(repoIDs), "%s: repo count", team.Name)
+		repos, err := repo_model.GetTeamRepositories(db.DefaultContext, &repo_model.SearchTeamRepoOptions{
+			TeamID: team.ID,
+		})
+		assert.NoError(t, err, "%s: GetTeamRepositories", team.Name)
+		assert.Len(t, repos, team.NumRepos, "%s: len repo", team.Name)
+		assert.Len(t, repos, len(repoIDs), "%s: repo count", team.Name)
 		for i, rid := range repoIDs {
 			if rid > 0 {
 				assert.True(t, repo_service.HasRepository(db.DefaultContext, team, rid), "%s: HasRepository(%d) %d", rid, i)
@@ -310,5 +313,5 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 			assert.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, rid), "DeleteRepository %d", i)
 		}
 	}
-	assert.NoError(t, organization.DeleteOrganization(db.DefaultContext, org), "DeleteOrganization")
+	assert.NoError(t, DeleteOrganization(db.DefaultContext, org, false), "DeleteOrganization")
 }

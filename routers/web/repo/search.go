@@ -8,14 +8,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
-const tplSearch base.TplName = "repo/search"
+const tplSearch templates.TplName = "repo/search"
 
 func indexSettingToGitGrepPathspecList() (list []string) {
 	for _, expr := range setting.Indexer.IncludePatterns {
@@ -108,8 +108,7 @@ func Search(ctx *context.Context) {
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParamString("l", language)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplSearch)

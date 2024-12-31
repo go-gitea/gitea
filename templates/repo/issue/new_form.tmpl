@@ -47,7 +47,8 @@
 	</div>
 
 	<div class="issue-content-right ui segment">
-		{{template "repo/issue/branch_selector_field" $}}
+		{{template "repo/issue/branch_selector_field" $}}{{/* TODO: RemoveIssueRef: template "repo/issue/branch_selector_field" $*/}}
+
 		{{if .PageIsComparePull}}
 			{{template "repo/issue/sidebar/reviewer_list" $.IssuePageMetaData}}
 			<div class="divider"></div>

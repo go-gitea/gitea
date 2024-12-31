@@ -1,5 +1,5 @@
 import {updateIssuesMeta} from './repo-common.ts';
-import {toggleElem, hideElem, isElemHidden, queryElems} from '../utils/dom.ts';
+import {toggleElem, isElemHidden, queryElems} from '../utils/dom.ts';
 import {htmlEscape} from 'escape-goat';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {showErrorToast} from '../modules/toast.ts';
@@ -95,43 +95,67 @@ function initRepoIssueListCheckboxes() {
 function initDropdownUserRemoteSearch(el: Element) {
   let searchUrl = el.getAttribute('data-search-url');
   const actionJumpUrl = el.getAttribute('data-action-jump-url');
-  const selectedUserId = el.getAttribute('data-selected-user-id');
-  if (!searchUrl.includes('?')) searchUrl += '?';
+  let selectedUsername = el.getAttribute('data-selected-username') || '';
   const $searchDropdown = fomanticQuery(el);
+  const elMenu = el.querySelector('.menu');
+  const elSearchInput = el.querySelector<HTMLInputElement>('.ui.search input');
+  const elItemFromInput = el.querySelector('.menu > .item-from-input');
+
   $searchDropdown.dropdown('setting', {
     fullTextSearch: true,
     selectOnKeydown: false,
-    apiSettings: {
+    action: (_text, value) => {
+      window.location.href = actionJumpUrl.replace('{username}', encodeURIComponent(value));
+    },
+  });
+
+  const selectUsername = (username: string) => {
+    queryElems(elMenu, '.item.active, .item.selected', (el) => el.classList.remove('active', 'selected'));
+    elMenu.querySelector(`.item[data-value="${CSS.escape(username)}"]`)?.classList.add('selected');
+  };
+
+  type ProcessedResult = {value: string, name: string};
+  const processedResults: ProcessedResult[] = []; // to be used by dropdown to generate menu items
+  const syncItemFromInput = () => {
+    const inputVal = elSearchInput.value.trim();
+    elItemFromInput.setAttribute('data-value', inputVal);
+    elItemFromInput.textContent = inputVal;
+    const showItemFromInput = !processedResults.length && inputVal !== '';
+    toggleElem(elItemFromInput, showItemFromInput);
+    selectUsername(showItemFromInput ? inputVal : selectedUsername);
+  };
+
+  elSearchInput.value = selectedUsername;
+  if (!searchUrl) {
+    elSearchInput.addEventListener('input', syncItemFromInput);
+  } else {
+    if (!searchUrl.includes('?')) searchUrl += '?';
+    $searchDropdown.dropdown('setting', 'apiSettings', {
       cache: false,
       url: `${searchUrl}&q={query}`,
       onResponse(resp) {
         // the content is provided by backend IssuePosters handler
-        const processedResults = []; // to be used by dropdown to generate menu items
+        processedResults.length = 0;
         for (const item of resp.results) {
           let html = `<img class="ui avatar tw-align-middle" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt="" width="20" height="20"><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
           if (item.full_name) html += `<span class="search-fullname tw-ml-2">${htmlEscape(item.full_name)}</span>`;
+          if (selectedUsername.toLowerCase() === item.username.toLowerCase()) selectedUsername = item.username;
           processedResults.push({value: item.username, name: html});
         }
         resp.results = processedResults;
         return resp;
       },
-    },
-    action: (_text, value) => {
-      window.location.href = actionJumpUrl.replace('{username}', encodeURIComponent(value));
-    },
-    onShow: () => {
-      $searchDropdown.dropdown('filter', ' '); // trigger a search on first show
-    },
-  });
+    });
+    $searchDropdown.dropdown('setting', 'onShow', () => $searchDropdown.dropdown('filter', ' ')); // trigger a search on first show
+  }
 
   // we want to generate the dropdown menu items by ourselves, replace its internal setup functions
   const dropdownSetup = {...$searchDropdown.dropdown('internal', 'setup')};
   const dropdownTemplates = $searchDropdown.dropdown('setting', 'templates');
   $searchDropdown.dropdown('internal', 'setup', dropdownSetup);
   dropdownSetup.menu = function (values) {
-    const menu = $searchDropdown.find('> .menu')[0];
     // remove old dynamic items
-    for (const el of menu.querySelectorAll(':scope > .dynamic-item')) {
+    for (const el of elMenu.querySelectorAll(':scope > .dynamic-item')) {
       el.remove();
     }
 
@@ -143,16 +167,11 @@ function initDropdownUserRemoteSearch(el: Element) {
       }
       const div = document.createElement('div');
       div.classList.add('divider', 'dynamic-item');
-      menu.append(div, ...newMenuItems);
+      elMenu.append(div, ...newMenuItems);
     }
     $searchDropdown.dropdown('refresh');
     // defer our selection to the next tick, because dropdown will set the selection item after this `menu` function
-    setTimeout(() => {
-      for (const el of menu.querySelectorAll('.item.active, .item.selected')) {
-        el.classList.remove('active', 'selected');
-      }
-      menu.querySelector(`.item[data-value="${selectedUserId}"]`)?.classList.add('selected');
-    }, 0);
+    setTimeout(() => syncItemFromInput(), 0);
   };
 }
 
@@ -203,44 +222,13 @@ async function initIssuePinSort() {
   });
 }
 
-function initArchivedLabelFilter() {
-  const archivedLabelEl = document.querySelector<HTMLInputElement>('#archived-filter-checkbox');
-  if (!archivedLabelEl) return;
-
-  const url = new URL(window.location.href);
-  const archivedLabels = document.querySelectorAll('[data-is-archived]');
-
-  if (!archivedLabels.length) {
-    hideElem('.archived-label-filter');
-    return;
-  }
-  const selectedLabels = (url.searchParams.get('labels') || '')
-    .split(',')
-    .map((id) => parseInt(id) < 0 ? `${~id + 1}` : id); // selectedLabels contains -ve ids, which are excluded so convert any -ve value id to +ve
-
-  const archivedElToggle = () => {
-    for (const label of archivedLabels) {
-      const id = label.getAttribute('data-label-id');
-      toggleElem(label, archivedLabelEl.checked || selectedLabels.includes(id));
-    }
-  };
-
-  archivedElToggle();
-  archivedLabelEl.addEventListener('change', () => {
-    archivedElToggle();
-    if (archivedLabelEl.checked) {
-      url.searchParams.set('archived', 'true');
-    } else {
-      url.searchParams.delete('archived');
-    }
-    window.location.href = url.href;
-  });
-}
-
 export function initRepoIssueList() {
-  if (!document.querySelector('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list')) return;
-  initRepoIssueListCheckboxes();
-  queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
-  initIssuePinSort();
-  initArchivedLabelFilter();
+  if (document.querySelector('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list')) {
+    initRepoIssueListCheckboxes();
+    queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
+    initIssuePinSort();
+  } else if (document.querySelector('.page-content.dashboard.issues')) {
+    // user or org home: issue list, pull request list
+    queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
+  }
 }

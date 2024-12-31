@@ -26,17 +26,17 @@ COMMA := ,
 XGO_VERSION := go-1.23.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.0.3
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.7.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.60.3
-GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
-MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.5.1
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
+GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.12
+MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.6.0
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.31.0
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
-GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.15.3
+GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.17.0
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -377,12 +377,12 @@ lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
 .PHONY: lint-js
 lint-js: node_modules
 	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
-#	npx vue-tsc
+	npx vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules
 	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
-#	npx vue-tsc
+	npx vue-tsc
 
 .PHONY: lint-css
 lint-css: node_modules
@@ -450,10 +450,6 @@ lint-templates: .venv node_modules
 .PHONY: lint-yaml
 lint-yaml: .venv
 	@poetry run yamllint .
-
-.PHONY: tsc
-tsc:
-	npx vue-tsc
 
 .PHONY: watch
 watch:
@@ -810,22 +806,22 @@ $(DIST_DIRS):
 
 .PHONY: release-windows
 release-windows: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq (,$(findstring gogit,$(TAGS)))
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo gogit $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo gogit $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
 endif
 
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
 
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
 
 .PHONY: release-freebsd
 release-freebsd: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'freebsd/amd64' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets 'freebsd/amd64' -out gitea-$(VERSION) .
 
 .PHONY: release-copy
 release-copy: | $(DIST_DIRS)

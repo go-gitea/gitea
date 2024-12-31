@@ -21,7 +21,7 @@ func TestRepoAssignees(t *testing.T) {
 	users, err := repo_model.GetRepoAssignees(db.DefaultContext, repo2)
 	assert.NoError(t, err)
 	assert.Len(t, users, 1)
-	assert.Equal(t, users[0].ID, int64(2))
+	assert.Equal(t, int64(2), users[0].ID)
 
 	repo21 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 21})
 	users, err = repo_model.GetRepoAssignees(db.DefaultContext, repo21)

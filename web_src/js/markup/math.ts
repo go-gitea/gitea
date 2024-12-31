@@ -1,9 +1,14 @@
 import {displayError} from './common.ts';
 
-function targetElement(el: Element) {
-  // The target element is either the current element if it has the
-  // `is-loading` class or the pre that contains it
-  return el.classList.contains('is-loading') ? el : el.closest('pre');
+function targetElement(el: Element): {target: Element, displayAsBlock: boolean} {
+  // The target element is either the parent "code block with loading indicator", or itself
+  // It is designed to work for 2 cases (guaranteed by backend code):
+  // * <pre class="code-block is-loading"><code class="language-math display">...</code></pre>
+  // * <code class="language-math">...</code>
+  return {
+    target: el.closest('.code-block.is-loading') ?? el,
+    displayAsBlock: el.classList.contains('display'),
+  };
 }
 
 export async function renderMath(): Promise<void> {
@@ -20,7 +25,7 @@ export async function renderMath(): Promise<void> {
   const MAX_EXPAND = 1000;
 
   for (const el of els) {
-    const target = targetElement(el);
+    const {target, displayAsBlock} = targetElement(el);
     if (target.hasAttribute('data-render-done')) continue;
     const source = el.textContent;
 
@@ -28,16 +33,12 @@ export async function renderMath(): Promise<void> {
       displayError(target, new Error(`Math source of ${source.length} characters exceeds the maximum allowed length of ${MAX_CHARS}.`));
       continue;
     }
-
-    const displayMode = el.classList.contains('display');
-    const nodeName = displayMode ? 'p' : 'span';
-
     try {
-      const tempEl = document.createElement(nodeName);
+      const tempEl = document.createElement(displayAsBlock ? 'p' : 'span');
       katex.render(source, tempEl, {
         maxSize: MAX_SIZE,
         maxExpand: MAX_EXPAND,
-        displayMode,
+        displayMode: displayAsBlock, // katex: true for display (block) mode, false for inline mode
       });
       target.replaceWith(tempEl);
     } catch (error) {

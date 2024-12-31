@@ -36,11 +36,14 @@
 				</thead>
 				<tbody>
 					{{range .PackageDescriptor.Metadata.Manifests}}
-					<tr>
-						<td><a href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .Digest}}">{{.Digest}}</a></td>
-						<td>{{.Platform}}</td>
-						<td>{{FileSize .Size}}</td>
-					</tr>
+						{{/* "unknown/unknown" is attestation-manifest, so we should skip it */}}
+						{{if ne .Platform "unknown/unknown"}}
+						<tr>
+							<td><a class="tw-font-mono" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .Digest}}">{{StringUtils.TrimPrefix .Digest "sha256:" | ShortSha}}</a></td>
+							<td>{{.Platform}}</td>
+							<td>{{FileSize .Size}}</td>
+						</tr>
+						{{end}}
 					{{end}}
 				</tbody>
 			</table>

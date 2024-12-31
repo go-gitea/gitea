@@ -39,8 +39,9 @@ export function parseIssueHref(href: string): IssuePathInfo {
 
 export function parseIssueNewHref(href: string): IssuePathInfo {
   const path = (href || '').replace(/[#?].*$/, '');
-  const [_, ownerName, repoName, pathType, indexString] = /([^/]+)\/([^/]+)\/(issues|pulls)\/new/.exec(path) || [];
-  return {ownerName, repoName, pathType, indexString};
+  const [_, ownerName, repoName, pathTypeField] = /([^/]+)\/([^/]+)\/(issues\/new|compare\/.+\.\.\.)/.exec(path) || [];
+  const pathType = pathTypeField.startsWith('issues/new') ? 'issues' : 'pulls';
+  return {ownerName, repoName, pathType};
 }
 
 export function parseIssuePageInfo(): IssuePageInfo {
@@ -134,16 +135,16 @@ export function toAbsoluteUrl(url: string): string {
   return `${window.location.origin}${url}`;
 }
 
-// Encode an ArrayBuffer into a URLEncoded base64 string.
-export function encodeURLEncodedBase64(arrayBuffer: ArrayBuffer): string {
-  return encode(arrayBuffer)
+// Encode an Uint8Array into a URLEncoded base64 string.
+export function encodeURLEncodedBase64(uint8Array: Uint8Array): string {
+  return encode(uint8Array)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
 }
 
-// Decode a URLEncoded base64 to an ArrayBuffer.
-export function decodeURLEncodedBase64(base64url: string): ArrayBuffer {
+// Decode a URLEncoded base64 to an Uint8Array.
+export function decodeURLEncodedBase64(base64url: string): Uint8Array {
   return decode(base64url
     .replace(/_/g, '/')
     .replace(/-/g, '+'));

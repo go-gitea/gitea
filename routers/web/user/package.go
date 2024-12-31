@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
@@ -24,6 +23,7 @@ import (
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	packages_helper "code.gitea.io/gitea/routers/api/packages/helper"
@@ -34,10 +34,10 @@ import (
 )
 
 const (
-	tplPackagesList       base.TplName = "user/overview/packages"
-	tplPackagesView       base.TplName = "package/view"
-	tplPackageVersionList base.TplName = "user/overview/package_versions"
-	tplPackagesSettings   base.TplName = "package/settings"
+	tplPackagesList       templates.TplName = "user/overview/packages"
+	tplPackagesView       templates.TplName = "package/view"
+	tplPackageVersionList templates.TplName = "user/overview/package_versions"
+	tplPackagesSettings   templates.TplName = "package/settings"
 )
 
 // ListPackages displays a list of all packages of the context user
@@ -128,8 +128,7 @@ func ListPackages(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParamString("q", query)
-	pager.AddParamString("type", packageType)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)
@@ -348,11 +347,6 @@ func ListPackageVersions(ctx *context.Context) {
 	ctx.Data["Query"] = query
 	ctx.Data["Sort"] = sort
 
-	pagerParams := map[string]string{
-		"q":    query,
-		"sort": sort,
-	}
-
 	var (
 		total int64
 		pvs   []*packages_model.PackageVersion
@@ -361,7 +355,6 @@ func ListPackageVersions(ctx *context.Context) {
 	case packages_model.TypeContainer:
 		tagged := ctx.FormTrim("tagged")
 
-		pagerParams["tagged"] = tagged
 		ctx.Data["Tagged"] = tagged
 
 		pvs, total, err = container_model.SearchImageTags(ctx, &container_model.ImageTagsSearchOptions{
@@ -407,9 +400,7 @@ func ListPackageVersions(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	for k, v := range pagerParams {
-		pager.AddParamString(k, v)
-	}
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackageVersionList)
@@ -502,7 +493,7 @@ func PackageSettingsPost(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package file
 func DownloadPackageFile(ctx *context.Context) {
-	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.PathParamInt64(":fileid"))
+	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.PathParamInt64("fileid"))
 	if err != nil {
 		if err == packages_model.ErrPackageFileNotExist {
 			ctx.NotFound("", err)

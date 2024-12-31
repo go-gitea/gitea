@@ -16,16 +16,18 @@ import (
 
 type blockParser struct {
 	parseDollars    bool
+	parseSquare     bool
 	endBytesDollars []byte
-	endBytesBracket []byte
+	endBytesSquare  []byte
 }
 
 // NewBlockParser creates a new math BlockParser
-func NewBlockParser(parseDollarBlocks bool) parser.BlockParser {
+func NewBlockParser(parseDollars, parseSquare bool) parser.BlockParser {
 	return &blockParser{
-		parseDollars:    parseDollarBlocks,
+		parseDollars:    parseDollars,
+		parseSquare:     parseSquare,
 		endBytesDollars: []byte{'$', '$'},
-		endBytesBracket: []byte{'\\', ']'},
+		endBytesSquare:  []byte{'\\', ']'},
 	}
 }
 
@@ -40,7 +42,7 @@ func (b *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Contex
 	var dollars bool
 	if b.parseDollars && line[pos] == '$' && line[pos+1] == '$' {
 		dollars = true
-	} else if line[pos] == '\\' && line[pos+1] == '[' {
+	} else if b.parseSquare && line[pos] == '\\' && line[pos+1] == '[' {
 		if len(line[pos:]) >= 3 && line[pos+2] == '!' && bytes.Contains(line[pos:], []byte(`\]`)) {
 			// do not process escaped attention block: "> \[!NOTE\]"
 			return nil, parser.NoChildren
@@ -53,10 +55,10 @@ func (b *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Contex
 	node := NewBlock(dollars, pos)
 
 	// Now we need to check if the ending block is on the segment...
-	endBytes := giteaUtil.Iif(dollars, b.endBytesDollars, b.endBytesBracket)
+	endBytes := giteaUtil.Iif(dollars, b.endBytesDollars, b.endBytesSquare)
 	idx := bytes.Index(line[pos+2:], endBytes)
 	if idx >= 0 {
-		// for case $$ ... $$ any other text
+		// for case: "$$ ... $$ any other text" (this case will be handled by the inline parser)
 		for i := pos + 2 + idx + 2; i < len(line); i++ {
 			if line[i] != ' ' && line[i] != '\n' {
 				return nil, parser.NoChildren
@@ -68,6 +70,13 @@ func (b *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Contex
 		node.Closed = true
 		node.Inline = true
 		return node, parser.Close | parser.NoChildren
+	}
+
+	// for case "\[ ... ]" (no close marker on the same line)
+	for i := pos + 2 + idx + 2; i < len(line); i++ {
+		if line[i] != ' ' && line[i] != '\n' {
+			return nil, parser.NoChildren
+		}
 	}
 
 	segment.Start += pos + 2
@@ -85,7 +94,7 @@ func (b *blockParser) Continue(node ast.Node, reader text.Reader, pc parser.Cont
 	line, segment := reader.PeekLine()
 	w, pos := util.IndentWidth(line, reader.LineOffset())
 	if w < 4 {
-		endBytes := giteaUtil.Iif(block.Dollars, b.endBytesDollars, b.endBytesBracket)
+		endBytes := giteaUtil.Iif(block.Dollars, b.endBytesDollars, b.endBytesSquare)
 		if bytes.HasPrefix(line[pos:], endBytes) && util.IsBlank(line[pos+len(endBytes):]) {
 			if util.IsBlank(line[pos+len(endBytes):]) {
 				newline := giteaUtil.Iif(line[len(line)-1] != '\n', 0, 1)

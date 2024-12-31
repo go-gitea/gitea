@@ -40,7 +40,7 @@ func TestFindOrgs(t *testing.T) {
 		IncludePrivate: false,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, orgs, 0)
+	assert.Empty(t, orgs)
 
 	total, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
 		UserID:         4,

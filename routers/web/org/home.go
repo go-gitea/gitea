@@ -4,7 +4,6 @@
 package org
 
 import (
-	"fmt"
 	"net/http"
 	"path"
 	"strings"
@@ -13,29 +12,29 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplOrgHome base.TplName = "org/home"
+	tplOrgHome templates.TplName = "org/home"
 )
 
 // Home show organization home page
 func Home(ctx *context.Context) {
-	uname := ctx.PathParam(":username")
+	uname := ctx.PathParam("username")
 
 	if strings.HasSuffix(uname, ".keys") || strings.HasSuffix(uname, ".gpg") {
 		ctx.NotFound("", nil)
 		return
 	}
 
-	ctx.SetPathParam(":org", uname)
+	ctx.SetPathParam("org", uname)
 	context.HandleOrgAssignment(ctx)
 	if ctx.Written() {
 		return
@@ -146,23 +145,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["Total"] = count
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParamString("language", language)
-	if archived.Has() {
-		pager.AddParamString("archived", fmt.Sprint(archived.Value()))
-	}
-	if fork.Has() {
-		pager.AddParamString("fork", fmt.Sprint(fork.Value()))
-	}
-	if mirror.Has() {
-		pager.AddParamString("mirror", fmt.Sprint(mirror.Value()))
-	}
-	if template.Has() {
-		pager.AddParamString("template", fmt.Sprint(template.Value()))
-	}
-	if private.Has() {
-		pager.AddParamString("private", fmt.Sprint(private.Value()))
-	}
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplOrgHome)

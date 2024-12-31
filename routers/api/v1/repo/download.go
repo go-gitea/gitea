@@ -28,13 +28,12 @@ func DownloadArchive(ctx *context.APIContext) {
 	}
 
 	if ctx.Repo.GitRepo == nil {
-		gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
+		var err error
+		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return
 		}
-		ctx.Repo.GitRepo = gitRepo
-		defer gitRepo.Close()
 	}
 
 	r, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"), tp)

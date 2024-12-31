@@ -21,11 +21,11 @@ import (
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
@@ -34,14 +34,14 @@ import (
 )
 
 const (
-	mailAuthActivate       base.TplName = "auth/activate"
-	mailAuthActivateEmail  base.TplName = "auth/activate_email"
-	mailAuthResetPassword  base.TplName = "auth/reset_passwd"
-	mailAuthRegisterNotify base.TplName = "auth/register_notify"
+	mailAuthActivate       templates.TplName = "auth/activate"
+	mailAuthActivateEmail  templates.TplName = "auth/activate_email"
+	mailAuthResetPassword  templates.TplName = "auth/reset_passwd"
+	mailAuthRegisterNotify templates.TplName = "auth/register_notify"
 
-	mailNotifyCollaborator base.TplName = "notify/collaborator"
+	mailNotifyCollaborator templates.TplName = "notify/collaborator"
 
-	mailRepoTransferNotify base.TplName = "notify/repo_transfer"
+	mailRepoTransferNotify templates.TplName = "notify/repo_transfer"
 
 	// There's no actual limit for subject in RFC 5322
 	mailMaxSubjectRunes = 256
@@ -63,7 +63,7 @@ func SendTestMail(email string) error {
 }
 
 // sendUserMail sends a mail to the user
-func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, subject, info string) {
+func sendUserMail(language string, u *user_model.User, tpl templates.TplName, code, subject, info string) {
 	locale := translation.NewLocale(language)
 	data := map[string]any{
 		"locale":            locale,
@@ -93,7 +93,8 @@ func SendActivateAccountMail(locale translation.Locale, u *user_model.User) {
 		// No mail service configured
 		return
 	}
-	sendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateEmailActivateCode(u.Email), locale.TrString("mail.activate_account"), "activate account")
+	opts := &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}
+	sendUserMail(locale.Language(), u, mailAuthActivate, user_model.GenerateUserTimeLimitCode(opts, u), locale.TrString("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
@@ -103,7 +104,8 @@ func SendResetPasswordMail(u *user_model.User) {
 		return
 	}
 	locale := translation.NewLocale(u.Language)
-	sendUserMail(u.Language, u, mailAuthResetPassword, u.GenerateEmailActivateCode(u.Email), locale.TrString("mail.reset_password"), "recover account")
+	opts := &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeResetPassword}
+	sendUserMail(u.Language, u, mailAuthResetPassword, user_model.GenerateUserTimeLimitCode(opts, u), locale.TrString("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
@@ -113,11 +115,12 @@ func SendActivateEmailMail(u *user_model.User, email string) {
 		return
 	}
 	locale := translation.NewLocale(u.Language)
+	opts := &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateEmail, NewEmail: email}
 	data := map[string]any{
 		"locale":          locale,
 		"DisplayName":     u.DisplayName(),
 		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
-		"Code":            u.GenerateEmailActivateCode(email),
+		"Code":            user_model.GenerateUserTimeLimitCode(opts, u),
 		"Email":           email,
 		"Language":        locale.Language(),
 	}
