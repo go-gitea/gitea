@@ -1,8 +1,8 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository new repo">
+<div role="main" aria-label="{{.Title}}" class="page-content repository new-repo">
 	<div class="ui middle very relaxed page one column grid">
 		<div class="column">
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form new-repo-form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<h3 class="ui top attached header">
 					{{ctx.Locale.Tr "new_repo"}}
@@ -44,8 +44,11 @@
 					<div class="inline required field {{if .Err_RepoName}}error{{end}}">
 						<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
 						<input id="repo_name" name="repo_name" value="{{.repo_name}}" autofocus required maxlength="100">
-						<span class="help">{{ctx.Locale.Tr "repo.repo_name_helper"}}</span>
+						<span class="help" data-help-for-repo-name>{{ctx.Locale.Tr "repo.repo_name_helper"}}</span>
+						<span class="help tw-hidden" data-help-for-repo-name=".profile">{{ctx.Locale.Tr "repo.repo_name_profile_public_hint"}}</span>
+						<span class="help tw-hidden" data-help-for-repo-name=".profile-private">{{ctx.Locale.Tr "repo.repo_name_profile_private_hint"}}</span>
 					</div>
+
 					<div class="inline field">
 						<label>{{ctx.Locale.Tr "repo.visibility"}}</label>
 						<div class="ui checkbox">

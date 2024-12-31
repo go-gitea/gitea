@@ -203,6 +203,7 @@ func statDir(dirPath, recPath string, includeDir, isDirOnly, followSymlinks bool
 //
 // Slice does not include given path itself.
 // If subdirectories is enabled, they will have suffix '/'.
+// FIXME: it doesn't like dot-files, for example: "owner/.profile.git"
 func StatDir(rootPath string, includeDir ...bool) ([]string, error) {
 	if isDir, err := IsDir(rootPath); err != nil {
 		return nil, err
