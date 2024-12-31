@@ -639,6 +639,10 @@ func InsertReviews(ctx context.Context, reviews []*Review) error {
 				return err
 			}
 		}
+
+		if err := UpdateIssueNumComments(ctx, review.IssueID); err != nil {
+			return err
+		}
 	}
 
 	return committer.Commit()

@@ -34,7 +34,7 @@ func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
 	return nil
 }
 
-func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed, isMergePull bool) (*Comment, error) {
+func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed, isMergePull bool) (*Comment, error) {
 	// Reload the issue
 	currentIssue, err := GetIssueByID(ctx, issue.ID)
 	if err != nil {
@@ -134,7 +134,7 @@ func CloseIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comm
 	}
 	defer committer.Close()
 
-	comment, err := changeIssueStatus(ctx, issue, doer, true, false)
+	comment, err := ChangeIssueStatus(ctx, issue, doer, true, false)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func ReopenIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Com
 	}
 	defer committer.Close()
 
-	comment, err := changeIssueStatus(ctx, issue, doer, false, false)
+	comment, err := ChangeIssueStatus(ctx, issue, doer, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -405,19 +405,10 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 		return err
 	}
 
-	if len(opts.Attachments) > 0 {
-		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
-		if err != nil {
-			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)
-		}
-
-		for i := 0; i < len(attachments); i++ {
-			attachments[i].IssueID = opts.Issue.ID
-			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
-				return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
-			}
-		}
+	if err := UpdateIssueAttachments(ctx, opts.Issue.ID, opts.Attachments); err != nil {
+		return err
 	}
+
 	if err = opts.Issue.LoadAttributes(ctx); err != nil {
 		return err
 	}
