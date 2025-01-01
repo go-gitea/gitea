@@ -19,9 +19,9 @@
 					{{svg "octicon-file-submodule"}}
 					{{$refURL := $subModuleFile.RefURL AppUrl $.Repository.FullName $.SSHDomain}} {{/* FIXME: the usage of AppUrl seems incorrect, it would be fixed in the future, use AppSubUrl instead */}}
 					{{if $refURL}}
-						<a class="muted" href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{PathEscape $subModuleFile.RefID}}">{{ShortSha $subModuleFile.RefID}}</a>
+						<a class="muted" href="{{$refURL}}">{{$entry.Name}}</a> <span class="at">@</span> <a href="{{$refURL}}/commit/{{PathEscape $subModuleFile.RefID}}">{{ShortSha $subModuleFile.RefID}}</a>
 					{{else}}
-						{{$entry.Name}}<span class="at">@</span>{{ShortSha $subModuleFile.RefID}}
+						{{$entry.Name}} <span class="at">@</span> {{ShortSha $subModuleFile.RefID}}
 					{{end}}
 				{{else}}
 					{{if $entry.IsDir}}
