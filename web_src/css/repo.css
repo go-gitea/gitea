@@ -825,10 +825,6 @@ td .commit-summary {
   height: 10px;
 }
 
-.repository.compare.pull .show-form-container {
-  text-align: left;
-}
-
 .repository .choose.branch {
   display: flex;
   align-items: center;
@@ -864,11 +860,6 @@ td .commit-summary {
   border-right-color: var(--color-box-body);
   border-width: 8px;
   margin-top: -8px;
-}
-
-.repository.compare.pull .pullrequest-form {
-  margin-top: 16px;
-  margin-bottom: 16px;
 }
 
 .repository.compare.pull .markup {
