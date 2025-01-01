@@ -131,14 +131,8 @@ func NewFuncMap() template.FuncMap {
 		"EnableTimetracking": func() bool {
 			return setting.Service.EnableTimetracking
 		},
-		"DisableGitHooks": func() bool {
-			return setting.DisableGitHooks
-		},
 		"DisableWebhooks": func() bool {
 			return setting.DisableWebhooks
-		},
-		"DisableImportLocal": func() bool {
-			return !setting.ImportLocalPaths
 		},
 		"UserThemeName": userThemeName,
 		"NotificationSettings": func() map[string]any {
