@@ -33,7 +33,7 @@ func TestAddTemplateSubmoduleIndexes(t *testing.T) {
 	var err error
 	_, _, err = NewCommand(ctx, "init").RunStdString(&RunOpts{Dir: tmpDir})
 	require.NoError(t, err)
-	_ = os.Mkdir(filepath.Join(tmpDir, "new-dir"), 0755)
+	_ = os.Mkdir(filepath.Join(tmpDir, "new-dir"), 0o755)
 	err = AddTemplateSubmoduleIndexes(ctx, tmpDir, []TemplateSubmoduleCommit{{Path: "new-dir", Commit: "1234567890123456789012345678901234567890"}})
 	require.NoError(t, err)
 	_, _, err = NewCommand(ctx, "add", "--all").RunStdString(&RunOpts{Dir: tmpDir})
