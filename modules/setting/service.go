@@ -41,11 +41,13 @@ var Service = struct {
 	AllowOnlyInternalRegistration           bool
 	AllowOnlyExternalRegistration           bool
 	ShowRegistrationButton                  bool
+	EnablePasswordSignInForm                bool
 	ShowMilestonesDashboardPage             bool
 	RequireSignInView                       bool
 	EnableNotifyMail                        bool
 	EnableBasicAuth                         bool
 	EnableReverseProxyAuth                  bool
+	EnableReverseProxyAuthAPI               bool
 	EnableReverseProxyAutoRegister          bool
 	EnableReverseProxyEmail                 bool
 	EnableReverseProxyFullName              bool
@@ -89,8 +91,10 @@ var Service = struct {
 
 	// Explore page settings
 	Explore struct {
-		RequireSigninView bool `ini:"REQUIRE_SIGNIN_VIEW"`
-		DisableUsersPage  bool `ini:"DISABLE_USERS_PAGE"`
+		RequireSigninView        bool `ini:"REQUIRE_SIGNIN_VIEW"`
+		DisableUsersPage         bool `ini:"DISABLE_USERS_PAGE"`
+		DisableOrganizationsPage bool `ini:"DISABLE_ORGANIZATIONS_PAGE"`
+		DisableCodePage          bool `ini:"DISABLE_CODE_PAGE"`
 	} `ini:"service.explore"`
 }{
 	AllowedUserVisibilityModesSlice: []bool{true, true, true},
@@ -156,7 +160,9 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.ShowMilestonesDashboardPage = sec.Key("SHOW_MILESTONES_DASHBOARD_PAGE").MustBool(true)
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
 	Service.EnableBasicAuth = sec.Key("ENABLE_BASIC_AUTHENTICATION").MustBool(true)
+	Service.EnablePasswordSignInForm = sec.Key("ENABLE_PASSWORD_SIGNIN_FORM").MustBool(true)
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
+	Service.EnableReverseProxyAuthAPI = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION_API").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
 	Service.EnableReverseProxyEmail = sec.Key("ENABLE_REVERSE_PROXY_EMAIL").MustBool()
 	Service.EnableReverseProxyFullName = sec.Key("ENABLE_REVERSE_PROXY_FULL_NAME").MustBool()
@@ -223,7 +229,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)
 	sec.Key("VALID_SITE_URL_SCHEMES").MustString("http,https")
 	Service.ValidSiteURLSchemes = sec.Key("VALID_SITE_URL_SCHEMES").Strings(",")
-	schemes := make([]string, len(Service.ValidSiteURLSchemes))
+	schemes := make([]string, 0, len(Service.ValidSiteURLSchemes))
 	for _, scheme := range Service.ValidSiteURLSchemes {
 		scheme = strings.ToLower(strings.TrimSpace(scheme))
 		if scheme != "" {

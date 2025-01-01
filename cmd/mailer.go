@@ -45,6 +45,6 @@ func runSendMail(c *cli.Context) error {
 	if extra.HasError() {
 		return handleCliResponseExtra(extra)
 	}
-	_, _ = fmt.Printf("Sent %s email(s) to all users\n", respText)
+	_, _ = fmt.Printf("Sent %s email(s) to all users\n", respText.Text)
 	return nil
 }

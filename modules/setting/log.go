@@ -185,13 +185,22 @@ func InitLoggersForTest() {
 	initAllLoggers()
 }
 
+var initLoggerDisabled bool
+
 // initAllLoggers creates all the log services
 func initAllLoggers() {
+	if initLoggerDisabled {
+		return
+	}
 	initManagedLoggers(log.GetManager(), CfgProvider)
 
 	golog.SetFlags(0)
 	golog.SetPrefix("")
 	golog.SetOutput(log.LoggerToWriter(log.GetLogger(log.DEFAULT).Info))
+}
+
+func DisableLoggerInit() {
+	initLoggerDisabled = true
 }
 
 func initManagedLoggers(manager *log.LoggerManager, cfg ConfigProvider) {

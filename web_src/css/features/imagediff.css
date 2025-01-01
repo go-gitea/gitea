@@ -1,6 +1,14 @@
+.image-diff-tabs {
+  min-height: 60px;
+
+}
+.image-diff-tabs.is-loading .tab {
+  display: none;
+}
+
 .image-diff-container {
   text-align: center;
-  padding: 1em 0;
+  padding: 0.5em 0 1em;
 }
 
 .image-diff-container img {
@@ -31,6 +39,7 @@
 
 .image-diff-container .diff-swipe {
   margin: auto;
+  padding: 1em 0;
 }
 
 .image-diff-container .diff-swipe .swipe-frame {
@@ -89,7 +98,7 @@
 }
 
 .image-diff-container .diff-overlay .overlay-frame {
-  margin: 0 auto;
+  margin: 1em auto 0;
   position: relative;
 }
 

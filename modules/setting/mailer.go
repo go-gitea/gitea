@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/mail"
 	"strings"
+	"text/template"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -18,14 +19,15 @@ import (
 // Mailer represents mail service.
 type Mailer struct {
 	// Mailer
-	Name                 string `ini:"NAME"`
-	From                 string `ini:"FROM"`
-	EnvelopeFrom         string `ini:"ENVELOPE_FROM"`
-	OverrideEnvelopeFrom bool   `ini:"-"`
-	FromName             string `ini:"-"`
-	FromEmail            string `ini:"-"`
-	SendAsPlainText      bool   `ini:"SEND_AS_PLAIN_TEXT"`
-	SubjectPrefix        string `ini:"SUBJECT_PREFIX"`
+	Name                 string              `ini:"NAME"`
+	From                 string              `ini:"FROM"`
+	EnvelopeFrom         string              `ini:"ENVELOPE_FROM"`
+	OverrideEnvelopeFrom bool                `ini:"-"`
+	FromName             string              `ini:"-"`
+	FromEmail            string              `ini:"-"`
+	SendAsPlainText      bool                `ini:"SEND_AS_PLAIN_TEXT"`
+	SubjectPrefix        string              `ini:"SUBJECT_PREFIX"`
+	OverrideHeader       map[string][]string `ini:"-"`
 
 	// SMTP sender
 	Protocol             string `ini:"PROTOCOL"`
@@ -45,6 +47,10 @@ type Mailer struct {
 	SendmailArgs        []string      `ini:"-"`
 	SendmailTimeout     time.Duration `ini:"SENDMAIL_TIMEOUT"`
 	SendmailConvertCRLF bool          `ini:"SENDMAIL_CONVERT_CRLF"`
+
+	// Customization
+	FromDisplayNameFormat         string             `ini:"FROM_DISPLAY_NAME_FORMAT"`
+	FromDisplayNameFormatTemplate *template.Template `ini:"-"`
 }
 
 // MailService the global mailer
@@ -151,6 +157,12 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 		log.Fatal("Unable to map [mailer] section on to MailService. Error: %v", err)
 	}
 
+	overrideHeader := rootCfg.Section("mailer.override_header").Keys()
+	MailService.OverrideHeader = make(map[string][]string)
+	for _, key := range overrideHeader {
+		MailService.OverrideHeader[key.Name()] = key.Strings(",")
+	}
+
 	// Infer SMTPPort if not set
 	if MailService.SMTPPort == "" {
 		switch MailService.Protocol {
@@ -219,6 +231,16 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 		log.Error("no mailer.FROM provided, email system may not work.")
 	}
 
+	MailService.FromDisplayNameFormatTemplate, _ = template.New("mailFrom").Parse("{{ .DisplayName }}")
+	if MailService.FromDisplayNameFormat != "" {
+		template, err := template.New("mailFrom").Parse(MailService.FromDisplayNameFormat)
+		if err != nil {
+			log.Error("mailer.FROM_DISPLAY_NAME_FORMAT is no valid template: %v", err)
+		} else {
+			MailService.FromDisplayNameFormatTemplate = template
+		}
+	}
+
 	switch MailService.EnvelopeFrom {
 	case "":
 		MailService.OverrideEnvelopeFrom = false
@@ -233,8 +255,6 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 		MailService.OverrideEnvelopeFrom = true
 		MailService.EnvelopeFrom = parsed.Address
 	}
-
-	log.Info("Mail Service Enabled")
 }
 
 func loadRegisterMailFrom(rootCfg ConfigProvider) {
@@ -245,7 +265,6 @@ func loadRegisterMailFrom(rootCfg ConfigProvider) {
 		return
 	}
 	Service.RegisterEmailConfirm = true
-	log.Info("Register Mail Service Enabled")
 }
 
 func loadNotifyMailFrom(rootCfg ConfigProvider) {
@@ -256,7 +275,6 @@ func loadNotifyMailFrom(rootCfg ConfigProvider) {
 		return
 	}
 	Service.EnableNotifyMail = true
-	log.Info("Notify Mail Service Enabled")
 }
 
 func tryResolveAddr(addr string) []net.IPAddr {

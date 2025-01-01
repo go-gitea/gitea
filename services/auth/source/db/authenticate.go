@@ -4,9 +4,9 @@
 package db
 
 import (
+	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -43,7 +43,7 @@ func (err ErrUserPasswordInvalid) Unwrap() error {
 }
 
 // Authenticate authenticates the provided user against the DB
-func Authenticate(user *user_model.User, login, password string) (*user_model.User, error) {
+func Authenticate(ctx context.Context, user *user_model.User, login, password string) (*user_model.User, error) {
 	if user == nil {
 		return nil, user_model.ErrUserNotExist{Name: login}
 	}
@@ -61,7 +61,7 @@ func Authenticate(user *user_model.User, login, password string) (*user_model.Us
 		if err := user.SetPassword(password); err != nil {
 			return nil, err
 		}
-		if err := user_model.UpdateUserCols(db.DefaultContext, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+		if err := user_model.UpdateUserCols(ctx, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 			return nil, err
 		}
 	}

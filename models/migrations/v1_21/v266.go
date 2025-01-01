@@ -18,9 +18,6 @@ func ReduceCommitStatus(x *xorm.Engine) error {
 	if _, err := sess.Exec(`UPDATE commit_status SET state='pending' WHERE state='running'`); err != nil {
 		return err
 	}
-	if _, err := sess.Exec(`UPDATE commit_status SET state='failure' WHERE state='warning'`); err != nil {
-		return err
-	}
 
 	return sess.Commit()
 }

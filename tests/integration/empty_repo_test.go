@@ -10,10 +10,10 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -25,6 +25,17 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func testAPINewFile(t *testing.T, session *TestSession, user, repo, branch, treePath, content string) *httptest.ResponseRecorder {
+	url := fmt.Sprintf("/%s/%s/_new/%s", user, repo, branch)
+	req := NewRequestWithValues(t, "POST", url, map[string]string{
+		"_csrf":         GetUserCSRFToken(t, session),
+		"commit_choice": "direct",
+		"tree_path":     treePath,
+		"content":       content,
+	})
+	return session.MakeRequest(t, req, http.StatusSeeOther)
+}
 
 func TestEmptyRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
@@ -46,16 +57,13 @@ func TestEmptyRepo(t *testing.T) {
 func TestEmptyRepoAddFile(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	err := user_model.UpdateUserCols(db.DefaultContext, &user_model.User{ID: 30, ProhibitLogin: false}, "prohibit_login")
-	assert.NoError(t, err)
-
 	session := loginUser(t, "user30")
 	req := NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body).Find(`input[name="commit_choice"]`)
 	assert.Empty(t, doc.AttrOr("checked", "_no_"))
 	req = NewRequestWithValues(t, "POST", "/user30/empty/_new/"+setting.Repository.DefaultBranch, map[string]string{
-		"_csrf":         GetCSRF(t, session, "/user/settings"),
+		"_csrf":         GetUserCSRFToken(t, session),
 		"commit_choice": "direct",
 		"tree_path":     "test-file.md",
 		"content":       "newly-added-test-file",
@@ -73,9 +81,6 @@ func TestEmptyRepoAddFile(t *testing.T) {
 func TestEmptyRepoUploadFile(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	err := user_model.UpdateUserCols(db.DefaultContext, &user_model.User{ID: 30, ProhibitLogin: false}, "prohibit_login")
-	assert.NoError(t, err)
-
 	session := loginUser(t, "user30")
 	req := NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -84,7 +89,7 @@ func TestEmptyRepoUploadFile(t *testing.T) {
 
 	body := &bytes.Buffer{}
 	mpForm := multipart.NewWriter(body)
-	_ = mpForm.WriteField("_csrf", GetCSRF(t, session, "/user/settings"))
+	_ = mpForm.WriteField("_csrf", GetUserCSRFToken(t, session))
 	file, _ := mpForm.CreateFormFile("file", "uploaded-file.txt")
 	_, _ = io.Copy(file, bytes.NewBufferString("newly-uploaded-test-file"))
 	_ = mpForm.Close()
@@ -96,7 +101,7 @@ func TestEmptyRepoUploadFile(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), &respMap))
 
 	req = NewRequestWithValues(t, "POST", "/user30/empty/_upload/"+setting.Repository.DefaultBranch, map[string]string{
-		"_csrf":         GetCSRF(t, session, "/user/settings"),
+		"_csrf":         GetUserCSRFToken(t, session),
 		"commit_choice": "direct",
 		"files":         respMap["uuid"],
 		"tree_path":     "",
@@ -113,20 +118,16 @@ func TestEmptyRepoUploadFile(t *testing.T) {
 func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	err := user_model.UpdateUserCols(db.DefaultContext, &user_model.User{ID: 30, ProhibitLogin: false}, "prohibit_login")
-	assert.NoError(t, err)
-
 	session := loginUser(t, "user30")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	url := fmt.Sprintf("/api/v1/repos/user30/empty/contents/new-file.txt?token=%s", token)
-	req := NewRequestWithJSON(t, "POST", url, &api.CreateFileOptions{
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user30/empty/contents/new-file.txt", &api.CreateFileOptions{
 		FileOptions: api.FileOptions{
 			NewBranchName: "new_branch",
 			Message:       "init",
 		},
 		ContentBase64: base64.StdEncoding.EncodeToString([]byte("newly-added-api-file")),
-	})
+	}).AddTokenAuth(token)
 
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var fileResponse api.FileResponse
@@ -138,7 +139,8 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "newly-added-api-file")
 
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user30/empty?token=%s", token))
+	req = NewRequest(t, "GET", "/api/v1/repos/user30/empty").
+		AddTokenAuth(token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	var apiRepo api.Repository
 	DecodeJSON(t, resp, &apiRepo)

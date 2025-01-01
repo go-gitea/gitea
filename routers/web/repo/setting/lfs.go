@@ -15,10 +15,8 @@ import (
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/pipeline"
 	"code.gitea.io/gitea/modules/lfs"
@@ -26,16 +24,18 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplSettingsLFS         base.TplName = "repo/settings/lfs"
-	tplSettingsLFSLocks    base.TplName = "repo/settings/lfs_locks"
-	tplSettingsLFSFile     base.TplName = "repo/settings/lfs_file"
-	tplSettingsLFSFileFind base.TplName = "repo/settings/lfs_file_find"
-	tplSettingsLFSPointers base.TplName = "repo/settings/lfs_pointers"
+	tplSettingsLFS         templates.TplName = "repo/settings/lfs"
+	tplSettingsLFSLocks    templates.TplName = "repo/settings/lfs_locks"
+	tplSettingsLFSFile     templates.TplName = "repo/settings/lfs_file"
+	tplSettingsLFSFileFind templates.TplName = "repo/settings/lfs_file_find"
+	tplSettingsLFSPointers templates.TplName = "repo/settings/lfs_pointers"
 )
 
 // LFSFiles shows a repository's LFS files
@@ -95,6 +95,11 @@ func LFSLocks(ctx *context.Context) {
 		ctx.ServerError("LFSLocks", err)
 		return
 	}
+	if err := lfsLocks.LoadAttributes(ctx); err != nil {
+		ctx.ServerError("LFSLocks", err)
+		return
+	}
+
 	ctx.Data["LFSLocks"] = lfsLocks
 
 	if len(lfsLocks) == 0 {
@@ -236,7 +241,7 @@ func LFSUnlock(ctx *context.Context) {
 		ctx.NotFound("LFSUnlock", nil)
 		return
 	}
-	_, err := git_model.DeleteLFSLockByID(ctx, ctx.ParamsInt64("lid"), ctx.Repo.Repository, ctx.Doer, true)
+	_, err := git_model.DeleteLFSLockByID(ctx, ctx.PathParamInt64("lid"), ctx.Repo.Repository, ctx.Doer, true)
 	if err != nil {
 		ctx.ServerError("LFSUnlock", err)
 		return
@@ -251,7 +256,7 @@ func LFSFileGet(ctx *context.Context) {
 		return
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
-	oid := ctx.Params("oid")
+	oid := ctx.PathParam("oid")
 
 	p := lfs.Pointer{Oid: oid}
 	if !p.IsValid() {
@@ -287,25 +292,23 @@ func LFSFileGet(ctx *context.Context) {
 
 	st := typesniffer.DetectContentType(buf)
 	ctx.Data["IsTextFile"] = st.IsText()
-	isRepresentableAsText := st.IsRepresentableAsText()
-
-	fileSize := meta.Size
 	ctx.Data["FileSize"] = meta.Size
 	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s/%s.git/info/lfs/objects/%s/%s", setting.AppURL, url.PathEscape(ctx.Repo.Repository.OwnerName), url.PathEscape(ctx.Repo.Repository.Name), url.PathEscape(meta.Oid), "direct")
 	switch {
-	case isRepresentableAsText:
-		if st.IsSvgImage() {
-			ctx.Data["IsImageFile"] = true
-		}
-
-		if fileSize >= setting.UI.MaxDisplayFileSize {
+	case st.IsRepresentableAsText():
+		if meta.Size >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
 			break
 		}
 
-		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+		if st.IsSvgImage() {
+			ctx.Data["IsImageFile"] = true
+		}
+
+		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
 		// Building code view blocks with line number on server side.
+		// FIXME: the logic is not right here: it first calls EscapeControlReader then calls HTMLEscapeString: double-escaping
 		escapedContent := &bytes.Buffer{}
 		ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, escapedContent, ctx.Locale)
 
@@ -338,6 +341,8 @@ func LFSFileGet(ctx *context.Context) {
 		ctx.Data["IsAudioFile"] = true
 	case st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage()):
 		ctx.Data["IsImageFile"] = true
+	default:
+		// TODO: the logic is not the same as "renderFile" in "view.go"
 	}
 	ctx.HTML(http.StatusOK, tplSettingsLFSFile)
 }
@@ -348,7 +353,7 @@ func LFSDelete(ctx *context.Context) {
 		ctx.NotFound("LFSDelete", nil)
 		return
 	}
-	oid := ctx.Params("oid")
+	oid := ctx.PathParam("oid")
 	p := lfs.Pointer{Oid: oid}
 	if !p.IsValid() {
 		ctx.NotFound("LFSDelete", nil)
@@ -388,20 +393,21 @@ func LFSFileFind(ctx *context.Context) {
 	sha := ctx.FormString("sha")
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
-	var hash git.SHA1
+	objectFormat := ctx.Repo.GetObjectFormat()
+	var objectID git.ObjectID
 	if len(sha) == 0 {
 		pointer := lfs.Pointer{Oid: oid, Size: size}
-		hash = git.ComputeBlobHash([]byte(pointer.StringContent()))
-		sha = hash.String()
+		objectID = git.ComputeBlobHash(objectFormat, []byte(pointer.StringContent()))
+		sha = objectID.String()
 	} else {
-		hash = git.MustIDFromString(sha)
+		objectID = git.MustIDFromString(sha)
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 	ctx.Data["Oid"] = oid
 	ctx.Data["Size"] = size
 	ctx.Data["SHA"] = sha
 
-	results, err := pipeline.FindLFSFile(ctx.Repo.GitRepo, hash)
+	results, err := pipeline.FindLFSFile(ctx.Repo.GitRepo, objectID)
 	if err != nil && err != io.EOF {
 		log.Error("Failure in FindLFSFile: %v", err)
 		ctx.ServerError("LFSFind: FindLFSFile.", err)

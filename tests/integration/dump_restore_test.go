@@ -237,7 +237,7 @@ func (c *compareDump) assertLoadFiles(beforeFilename, afterFilename string, t re
 		//
 		// Given []Something{} create afterPtr, beforePtr []*Something{}
 		//
-		sliceType := reflect.SliceOf(reflect.PtrTo(t.Elem()))
+		sliceType := reflect.SliceOf(reflect.PointerTo(t.Elem()))
 		beforeSlice := reflect.MakeSlice(sliceType, 0, 10)
 		beforePtr = reflect.New(beforeSlice.Type())
 		beforePtr.Elem().Set(beforeSlice)

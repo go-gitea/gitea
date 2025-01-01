@@ -8,13 +8,13 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	repo_service "code.gitea.io/gitea/services/repository"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 	user_service "code.gitea.io/gitea/services/user"
@@ -70,8 +70,8 @@ func registerRewriteAllPublicKeys() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
-	}, func(_ context.Context, _ *user_model.User, _ Config) error {
-		return asymkey_model.RewriteAllPublicKeys()
+	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+		return asymkey_service.RewriteAllPublicKeys(ctx)
 	})
 }
 
@@ -80,8 +80,8 @@ func registerRewriteAllPrincipalKeys() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
-	}, func(_ context.Context, _ *user_model.User, _ Config) error {
-		return asymkey_model.RewriteAllPrincipalKeys(db.DefaultContext)
+	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+		return asymkey_service.RewriteAllPrincipalKeys(ctx)
 	})
 }
 
@@ -135,7 +135,7 @@ func registerDeleteOldActions() {
 		OlderThan: 365 * 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		return activities_model.DeleteOldActions(olderThanConfig.OlderThan)
+		return activities_model.DeleteOldActions(ctx, olderThanConfig.OlderThan)
 	})
 }
 
@@ -167,7 +167,7 @@ func registerDeleteOldSystemNotices() {
 		OlderThan: 365 * 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		return system.DeleteOldSystemNotices(olderThanConfig.OlderThan)
+		return system.DeleteOldSystemNotices(ctx, olderThanConfig.OlderThan)
 	})
 }
 
@@ -213,6 +213,16 @@ func registerGCLFS() {
 	})
 }
 
+func registerRebuildIssueIndexer() {
+	RegisterTaskFatal("rebuild_issue_indexer", &BaseConfig{
+		Enabled:    false,
+		RunAtStart: false,
+		Schedule:   "@annually",
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		return issue_indexer.PopulateIssueIndexer(ctx)
+	})
+}
+
 func initExtendedTasks() {
 	registerDeleteInactiveUsers()
 	registerDeleteRepositoryArchives()
@@ -227,4 +237,5 @@ func initExtendedTasks() {
 	registerUpdateGiteaChecker()
 	registerDeleteOldSystemNotices()
 	registerGCLFS()
+	registerRebuildIssueIndexer()
 }

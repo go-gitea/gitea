@@ -20,9 +20,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: "..",
-	})
+	unittest.MainTest(m)
 }
 
 func makePathOutput(workPath, customPath, customConf string) string {
@@ -30,7 +28,7 @@ func makePathOutput(workPath, customPath, customConf string) string {
 }
 
 func newTestApp(testCmdAction func(ctx *cli.Context) error) *cli.App {
-	app := NewMainApp("version", "version-extra")
+	app := NewMainApp(AppVersion{})
 	testCmd := &cli.Command{Name: "test-cmd", Action: testCmdAction}
 	prepareSubcommandWithConfig(testCmd, appGlobalFlags())
 	app.Commands = append(app.Commands, testCmd)

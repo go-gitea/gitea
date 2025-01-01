@@ -1,0 +1,2 @@
+@import "./theme-gitea-light-protanopia-deuteranopia.css" (prefers-color-scheme: light);
+@import "./theme-gitea-dark-protanopia-deuteranopia.css" (prefers-color-scheme: dark);

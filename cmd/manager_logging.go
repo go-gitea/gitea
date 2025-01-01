@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -249,7 +250,7 @@ func runAddFileLogger(c *cli.Context) error {
 	if c.IsSet("filename") {
 		vals["filename"] = c.String("filename")
 	} else {
-		return fmt.Errorf("filename must be set when creating a file logger")
+		return errors.New("filename must be set when creating a file logger")
 	}
 	if c.IsSet("rotate") {
 		vals["rotate"] = c.Bool("rotate")

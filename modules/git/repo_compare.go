@@ -233,58 +233,46 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 	return numFiles, totalAdditions, totalDeletions, err
 }
 
-// GetDiffOrPatch generates either diff or formatted patch data between given revisions
-func (repo *Repository) GetDiffOrPatch(base, head string, w io.Writer, patch, binary bool) error {
-	if patch {
-		return repo.GetPatch(base, head, w)
-	}
-	if binary {
-		return repo.GetDiffBinary(base, head, w)
-	}
-	return repo.GetDiff(base, head, w)
-}
-
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
-func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
-	return NewCommand(repo.Ctx, "diff", "-p").AddDynamicArguments(base, head).Run(&RunOpts{
-		Dir:    repo.Path,
-		Stdout: w,
-	})
+func (repo *Repository) GetDiff(compareArg string, w io.Writer) error {
+	stderr := new(bytes.Buffer)
+	return NewCommand(repo.Ctx, "diff", "-p").AddDynamicArguments(compareArg).
+		Run(&RunOpts{
+			Dir:    repo.Path,
+			Stdout: w,
+			Stderr: stderr,
+		})
 }
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
-func (repo *Repository) GetDiffBinary(base, head string, w io.Writer) error {
-	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram").AddDynamicArguments(base, head).Run(&RunOpts{
+func (repo *Repository) GetDiffBinary(compareArg string, w io.Writer) error {
+	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram").AddDynamicArguments(compareArg).Run(&RunOpts{
 		Dir:    repo.Path,
 		Stdout: w,
 	})
 }
 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
-func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
+func (repo *Repository) GetPatch(compareArg string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
-	err := NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddDynamicArguments(base + "..." + head).
+	return NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
 			Stderr: stderr,
 		})
-	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
-		return NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddDynamicArguments(base, head).
-			Run(&RunOpts{
-				Dir:    repo.Path,
-				Stdout: w,
-			})
-	}
-	return err
 }
 
 // GetFilesChangedBetween returns a list of all files that have been changed between the given commits
 // If base is undefined empty SHA (zeros), it only returns the files changed in the head commit
 // If base is the SHA of an empty tree (EmptyTreeSHA), it returns the files changes from the initial commit to the head commit
 func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, error) {
+	objectFormat, err := repo.GetObjectFormat()
+	if err != nil {
+		return nil, err
+	}
 	cmd := NewCommand(repo.Ctx, "diff-tree", "--name-only", "--root", "--no-commit-id", "-r", "-z")
-	if base == EmptySHA {
+	if base == objectFormat.EmptyObjectID().String() {
 		cmd.AddDynamicArguments(head)
 	} else {
 		cmd.AddDynamicArguments(base, head)
@@ -301,21 +289,6 @@ func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, err
 	}
 
 	return split, err
-}
-
-// GetDiffFromMergeBase generates and return patch data from merge base to head
-func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) error {
-	stderr := new(bytes.Buffer)
-	err := NewCommand(repo.Ctx, "diff", "-p", "--binary").AddDynamicArguments(base + "..." + head).
-		Run(&RunOpts{
-			Dir:    repo.Path,
-			Stdout: w,
-			Stderr: stderr,
-		})
-	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
-		return repo.GetDiffBinary(base, head, w)
-	}
-	return err
 }
 
 // ReadPatchCommit will check if a diff patch exists and return stats

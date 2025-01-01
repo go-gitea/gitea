@@ -30,7 +30,7 @@ func GetQueueSettings(rootCfg ConfigProvider, name string) (QueueSettings, error
 	queueSettingsDefault := QueueSettings{
 		Type:    "level",         // dummy, channel, level, redis
 		Datadir: "queues/common", // relative to AppDataPath
-		Length:  100,             // queue length before a channel queue will block
+		Length:  100000,          // queue length before a channel queue will block
 
 		QueueName:   "_queue",
 		SetName:     "_unique",

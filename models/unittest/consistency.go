@@ -47,8 +47,7 @@ func checkForConsistency(t assert.TestingT, bean any) {
 	assert.NoError(t, err)
 	f := consistencyCheckMap[tb.Name]
 	if f == nil {
-		assert.Fail(t, "unknown bean type: %#v", bean)
-		return
+		assert.FailNow(t, "unknown bean type: %#v", bean)
 	}
 	f(t, bean)
 }

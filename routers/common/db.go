@@ -10,8 +10,10 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 
 	"xorm.io/xorm"
 )
@@ -35,7 +37,7 @@ func InitDBEngine(ctx context.Context) (err error) {
 		log.Info("Backing off for %d seconds", int64(setting.Database.DBConnectBackoff/time.Second))
 		time.Sleep(setting.Database.DBConnectBackoff)
 	}
-	db.HasEngine = true
+	config.SetDynGetter(system_model.NewDatabaseDynKeyGetter())
 	return nil
 }
 
@@ -49,7 +51,7 @@ func migrateWithSetting(x *xorm.Engine) error {
 	} else if current < 0 {
 		// execute migrations when the database isn't initialized even if AutoMigration is false
 		return migrations.Migrate(x)
-	} else if expected := migrations.ExpectedVersion(); current != expected {
+	} else if expected := migrations.ExpectedDBVersion(); current != expected {
 		log.Fatal(`"database.AUTO_MIGRATION" is disabled, but current database version %d is not equal to the expected version %d.`+
 			`You can set "database.AUTO_MIGRATION" to true or migrate manually by running "gitea [--config /path/to/app.ini] migrate"`, current, expected)
 	}

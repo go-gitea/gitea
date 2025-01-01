@@ -8,7 +8,7 @@ import (
 	"sort"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/optional"
 
 	"github.com/gobwas/glob"
 )
@@ -28,6 +28,13 @@ func (rules ProtectedBranchRules) sort() {
 	sort.Slice(rules, func(i, j int) bool {
 		rules[i].loadGlob()
 		rules[j].loadGlob()
+
+		// if priority differ, use that to sort
+		if rules[i].Priority != rules[j].Priority {
+			return rules[i].Priority < rules[j].Priority
+		}
+
+		// now we sort the old way
 		if rules[i].isPlainName != rules[j].isPlainName {
 			return rules[i].isPlainName // plain name comes first, so plain name means "less"
 		}
@@ -56,7 +63,7 @@ func FindAllMatchedBranches(ctx context.Context, repoID int64, ruleName string) 
 				Page:     page,
 			},
 			RepoID:          repoID,
-			IsDeletedBranch: util.OptionalBoolFalse,
+			IsDeletedBranch: optional.Some(false),
 		})
 		if err != nil {
 			return nil, err

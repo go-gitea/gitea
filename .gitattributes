@@ -1,5 +1,6 @@
 * text=auto eol=lf
 *.tmpl linguist-language=Handlebars
+*.pb.go linguist-generated
 /assets/*.json linguist-generated
 /public/assets/img/svg/*.svg linguist-generated
 /templates/swagger/v1_json.tmpl linguist-generated

@@ -13,10 +13,9 @@ import (
 type Event struct {
 	Time time.Time
 
-	GoroutinePid string
-	Caller       string
-	Filename     string
-	Line         int
+	Caller   string
+	Filename string
+	Line     int
 
 	Level Level
 
@@ -110,10 +109,10 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 			buf = append(buf, ' ')
 		}
 		if flags&(Ltime|Lmicroseconds) != 0 {
-			hour, min, sec := t.Clock()
+			hour, minNum, sec := t.Clock()
 			buf = itoa(buf, hour, 2)
 			buf = append(buf, ':')
-			buf = itoa(buf, min, 2)
+			buf = itoa(buf, minNum, 2)
 			buf = append(buf, ':')
 			buf = itoa(buf, sec, 2)
 			if flags&Lmicroseconds != 0 {
@@ -125,7 +124,6 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 		if mode.Colorize {
 			buf = append(buf, resetBytes...)
 		}
-
 	}
 	if flags&(Lshortfile|Llongfile) != 0 {
 		if mode.Colorize {
@@ -219,17 +217,16 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 	}
 
 	if flags&Lgopid == Lgopid {
-		if event.GoroutinePid != "" {
-			buf = append(buf, '[')
-			if mode.Colorize {
-				buf = append(buf, ColorBytes(FgHiYellow)...)
-			}
-			buf = append(buf, event.GoroutinePid...)
-			if mode.Colorize {
-				buf = append(buf, resetBytes...)
-			}
-			buf = append(buf, ']', ' ')
+		deprecatedGoroutinePid := "no-gopid" // use a dummy value to avoid breaking the log format
+		buf = append(buf, '[')
+		if mode.Colorize {
+			buf = append(buf, ColorBytes(FgHiYellow)...)
 		}
+		buf = append(buf, deprecatedGoroutinePid...)
+		if mode.Colorize {
+			buf = append(buf, resetBytes...)
+		}
+		buf = append(buf, ']', ' ')
 	}
 	buf = append(buf, msg...)
 
