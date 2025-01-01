@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -48,7 +49,7 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 	}
 }
 
-func getExpectedFileResponseForUpdate(commitID, treePath, lastCommitSHA string) *api.FileResponse {
+func getExpectedFileResponseForUpdate(commitID, treePath, lastCommitSHA string, lastCommitWhen time.Time) *api.FileResponse {
 	sha := "08bd14b2e2852529157324de9c226b3364e76136"
 	encoding := "base64"
 	content := "VGhpcyBpcyB1cGRhdGVkIHRleHQ="
@@ -58,18 +59,19 @@ func getExpectedFileResponseForUpdate(commitID, treePath, lastCommitSHA string) 
 	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + treePath
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
-			Name:          filepath.Base(treePath),
-			Path:          treePath,
-			SHA:           sha,
-			LastCommitSHA: lastCommitSHA,
-			Type:          "file",
-			Size:          20,
-			Encoding:      &encoding,
-			Content:       &content,
-			URL:           &selfURL,
-			HTMLURL:       &htmlURL,
-			GitURL:        &gitURL,
-			DownloadURL:   &downloadURL,
+			Name:           filepath.Base(treePath),
+			Path:           treePath,
+			SHA:            sha,
+			LastCommitSHA:  lastCommitSHA,
+			LastCommitWhen: lastCommitWhen,
+			Type:           "file",
+			Size:           20,
+			Encoding:       &encoding,
+			Content:        &content,
+			URL:            &selfURL,
+			HTMLURL:        &htmlURL,
+			GitURL:         &gitURL,
+			DownloadURL:    &downloadURL,
 			Links: &api.FileLinksResponse{
 				Self:    &selfURL,
 				GitURL:  &gitURL,
@@ -138,7 +140,7 @@ func TestAPIUpdateFile(t *testing.T) {
 			gitRepo, _ := gitrepo.OpenRepository(stdCtx.Background(), repo1)
 			commitID, _ := gitRepo.GetBranchCommitID(updateFileOptions.NewBranchName)
 			lasCommit, _ := gitRepo.GetCommitByPath(treePath)
-			expectedFileResponse := getExpectedFileResponseForUpdate(commitID, treePath, lasCommit.ID.String())
+			expectedFileResponse := getExpectedFileResponseForUpdate(commitID, treePath, lasCommit.ID.String(), lasCommit.Committer.When)
 			var fileResponse api.FileResponse
 			DecodeJSON(t, resp, &fileResponse)
 			assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
