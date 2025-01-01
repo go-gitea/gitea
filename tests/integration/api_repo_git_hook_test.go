@@ -25,7 +25,7 @@ func TestAPIGitHooks(t *testing.T) {
 	defer test.MockVariableValue(&setting.DisableGitHooks, false)()
 
 	const testHookContent = `#!/bin/bash
-echo "Hello, World!"
+echo "TestGitHookScript"
 `
 
 	t.Run("ListGitHooks", func(t *testing.T) {
