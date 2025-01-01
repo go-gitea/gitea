@@ -165,11 +165,7 @@ func NewMainApp(appVer AppVersion) *cli.App {
 	app.Commands = append(app.Commands, subCmdWithConfig...)
 	app.Commands = append(app.Commands, subCmdStandalone...)
 
-	err := os.Unsetenv("XDG_CONFIG_HOME") // unset if set as HOME is managed by gitea
-	if err != nil {
-		fmt.Printf("error unsetting XDG_CONFIG_HOME")
-	}
-
+	_ = os.Unsetenv("XDG_CONFIG_HOME") // unset if set as HOME is managed by gitea
 	return app
 }
 
