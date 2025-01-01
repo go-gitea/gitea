@@ -206,43 +206,6 @@ func (evt *Event) Inputs() []WorkflowDispatchInput {
 	return evt.inputs
 }
 
-func parseWorkflowDispatchInputs(inputs map[string]interface{}) ([]WorkflowDispatchInput, error) {
-	var results []WorkflowDispatchInput
-	for name, input := range inputs {
-		inputMap, ok := input.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid input: %v", input)
-		}
-		input := WorkflowDispatchInput{
-			Name: name,
-		}
-		if desc, ok := inputMap["description"].(string); ok {
-			input.Description = desc
-		}
-		if required, ok := inputMap["required"].(bool); ok {
-			input.Required = required
-		}
-		if defaultVal, ok := inputMap["default"].(string); ok {
-			input.Default = defaultVal
-		}
-		if inputType, ok := inputMap["type"].(string); ok {
-			input.Type = inputType
-		}
-		if options, ok := inputMap["options"].([]string); ok {
-			input.Options = options
-		} else if options, ok := inputMap["options"].([]interface{}); ok {
-			for _, option := range options {
-				if opt, ok := option.(string); ok {
-					input.Options = append(input.Options, opt)
-				}
-			}
-		}
-
-		results = append(results, input)
-	}
-	return results, nil
-}
-
 // Helper to convert actionlint errors
 func acErrToError(acErrs []*actionlint.Error) []error {
 	errs := make([]error, len(acErrs))
@@ -337,6 +300,16 @@ func GetEventsFromContent(content []byte) ([]*Event, error) {
 		events = append(events, event)
 	}
 	return events, nil
+}
+
+func ValidateWorkflow(content []byte) error {
+	_, errs := actionlint.Parse(content)
+	err := make([]error, len(errs))
+	for _, e := range errs {
+		err = append(err, fmt.Errorf("%d:%d: %s", e.Line, e.Column, e.Message))
+	}
+	return errors.Join(err...)
+
 }
 
 // parseMappingNode parse a mapping node and preserve order.
