@@ -24,8 +24,15 @@ func ParseTreeEntries(data []byte) ([]*TreeEntry, error) {
 var sepSpace = []byte{' '}
 
 func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
-	var err error
 	entries := make([]*TreeEntry, 0, bytes.Count(data, []byte{'\n'})+1)
+	return entries, iterateTreeEntries(data, ptree, func(entry *TreeEntry) error {
+		entries = append(entries, entry)
+		return nil
+	})
+}
+
+func iterateTreeEntries(data []byte, ptree *Tree, f func(entry *TreeEntry) error) error {
+	var err error
 	for pos := 0; pos < len(data); {
 		// expect line to be of the form:
 		// <mode> <type> <sha> <space-padded-size>\t<filename>
@@ -39,7 +46,7 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 		line := data[pos:posEnd]
 		posTab := bytes.IndexByte(line, '\t')
 		if posTab == -1 {
-			return nil, fmt.Errorf("invalid ls-tree output (no tab): %q", line)
+			return fmt.Errorf("invalid ls-tree output (no tab): %q", line)
 		}
 
 		entry := new(TreeEntry)
@@ -69,27 +76,29 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 		case "040000", "040755": // git uses 040000 for tree object, but some users may get 040755 for unknown reasons
 			entry.entryMode = EntryModeTree
 		default:
-			return nil, fmt.Errorf("unknown type: %v", string(entryMode))
+			return fmt.Errorf("unknown type: %v", string(entryMode))
 		}
 
 		entry.ID, err = NewIDFromString(string(entryObjectID))
 		if err != nil {
-			return nil, fmt.Errorf("invalid ls-tree output (invalid object id): %q, err: %w", line, err)
+			return fmt.Errorf("invalid ls-tree output (invalid object id): %q, err: %w", line, err)
 		}
 
 		if len(entryName) > 0 && entryName[0] == '"' {
 			entry.name, err = strconv.Unquote(string(entryName))
 			if err != nil {
-				return nil, fmt.Errorf("invalid ls-tree output (invalid name): %q, err: %w", line, err)
+				return fmt.Errorf("invalid ls-tree output (invalid name): %q, err: %w", line, err)
 			}
 		} else {
 			entry.name = string(entryName)
 		}
 
 		pos = posEnd + 1
-		entries = append(entries, entry)
+		if err := f(entry); err != nil {
+			return err
+		}
 	}
-	return entries, nil
+	return nil
 }
 
 func catBatchParseTreeEntries(objectFormat ObjectFormat, ptree *Tree, rd *bufio.Reader, sz int64) ([]*TreeEntry, error) {
