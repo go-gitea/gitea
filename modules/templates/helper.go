@@ -134,9 +134,6 @@ func NewFuncMap() template.FuncMap {
 		"DisableWebhooks": func() bool {
 			return setting.DisableWebhooks
 		},
-		"DisableImportLocal": func() bool {
-			return !setting.ImportLocalPaths
-		},
 		"UserThemeName": userThemeName,
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
