@@ -245,9 +245,8 @@ func GetEventsFromContent(content []byte) ([]*Event, error) {
 	events := make([]*Event, 0, len(wf.On))
 	for _, acEvent := range wf.On {
 		event := &Event{
-			Name:      acEvent.EventName(),
-			acts:      map[string][]string{},
-			schedules: []map[string]string{},
+			Name: acEvent.EventName(),
+			acts: map[string][]string{},
 		}
 		switch e := acEvent.(type) {
 		case *actionlint.ScheduledEvent:
