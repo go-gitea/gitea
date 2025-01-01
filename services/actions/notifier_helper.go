@@ -19,6 +19,7 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
@@ -28,7 +29,6 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
 
-	"code.gitea.io/gitea/modules/actions/jobparser"
 	"github.com/nektos/act/pkg/model"
 )
 

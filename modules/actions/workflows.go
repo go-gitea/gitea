@@ -7,12 +7,12 @@ import (
 	"io"
 	"strings"
 
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
-	"code.gitea.io/gitea/modules/actions/jobparser"
 	"github.com/gobwas/glob"
 	"github.com/nektos/act/pkg/model"
 	"github.com/nektos/act/pkg/workflowpattern"
@@ -167,12 +167,12 @@ func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*D
 	return wfs, nil
 }
 
-func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggeredEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {
-	if !canGithubEventMatch(evt.Name, triggeredEvent) {
+func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {
+	if !canGithubEventMatch(evt.Name, triggedEvent) {
 		return false
 	}
 
-	switch triggeredEvent {
+	switch triggedEvent {
 	case // events with no activity types
 		webhook_module.HookEventCreate,
 		webhook_module.HookEventDelete,
@@ -180,7 +180,7 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggeredEvent w
 		webhook_module.HookEventWiki,
 		webhook_module.HookEventSchedule:
 		if len(evt.Acts()) != 0 {
-			log.Warn("Ignore unsupported %s event arguments %v", triggeredEvent, evt.Acts())
+			log.Warn("Ignore unsupported %s event arguments %v", triggedEvent, evt.Acts())
 		}
 		// no special filter parameters for these events, just return true if name matched
 		return true
@@ -230,7 +230,7 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggeredEvent w
 		return matchPackageEvent(payload.(*api.PackagePayload), evt)
 
 	default:
-		log.Warn("unsupported event %q", triggeredEvent)
+		log.Warn("unsupported event %q", triggedEvent)
 		return false
 	}
 }

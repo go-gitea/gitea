@@ -1,3 +1,6 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package jobparser
 
 import (
@@ -19,7 +22,7 @@ func NewExpressionEvaluator(interpreter exprparser.Interpreter) *ExpressionEvalu
 	return &ExpressionEvaluator{interpreter: interpreter}
 }
 
-func (ee ExpressionEvaluator) evaluate(in string, defaultStatusCheck exprparser.DefaultStatusCheck) (interface{}, error) {
+func (ee ExpressionEvaluator) evaluate(in string, defaultStatusCheck exprparser.DefaultStatusCheck) (any, error) {
 	evaluated, err := ee.interpreter.Evaluate(in, defaultStatusCheck)
 
 	return evaluated, err
@@ -33,7 +36,7 @@ func (ee ExpressionEvaluator) evaluateScalarYamlNode(node *yaml.Node) error {
 	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
 		return nil
 	}
-	expr, _ := rewriteSubExpression(in, false)
+	expr := rewriteSubExpression(in, false)
 	res, err := ee.evaluate(expr, exprparser.DefaultStatusCheckNone)
 	if err != nil {
 		return err
@@ -103,7 +106,7 @@ func (ee ExpressionEvaluator) Interpolate(in string) string {
 		return in
 	}
 
-	expr, _ := rewriteSubExpression(in, true)
+	expr := rewriteSubExpression(in, true)
 	evaluated, err := ee.evaluate(expr, exprparser.DefaultStatusCheckNone)
 	if err != nil {
 		return ""
@@ -121,9 +124,9 @@ func escapeFormatString(in string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(in, "{", "{{"), "}", "}}")
 }
 
-func rewriteSubExpression(in string, forceFormat bool) (string, error) {
+func rewriteSubExpression(in string, forceFormat bool) string {
 	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
-		return in, nil
+		return in
 	}
 
 	strPattern := regexp.MustCompile("(?:''|[^'])*'")
@@ -177,9 +180,9 @@ func rewriteSubExpression(in string, forceFormat bool) (string, error) {
 	}
 
 	if len(results) == 1 && formatOut == "{0}" && !forceFormat {
-		return in, nil
+		return in
 	}
 
 	out := fmt.Sprintf("format('%s', %s)", strings.ReplaceAll(formatOut, "'", "''"), strings.Join(results, ", "))
-	return out, nil
+	return out
 }

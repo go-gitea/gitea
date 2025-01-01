@@ -25,6 +25,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -39,7 +40,6 @@ import (
 	context_module "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 
-	"code.gitea.io/gitea/modules/actions/jobparser"
 	"github.com/nektos/act/pkg/model"
 	"xorm.io/builder"
 )

@@ -1,3 +1,6 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package jobparser
 
 import (
@@ -5,9 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
 	"github.com/stretchr/testify/require"
-
 	"gopkg.in/yaml.v3"
 )
 

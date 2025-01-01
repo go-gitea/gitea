@@ -13,13 +13,12 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
-
-	"code.gitea.io/gitea/modules/actions/jobparser"
 )
 
 // CreateCommitStatus creates a commit status for the given job.

@@ -1,3 +1,6 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package jobparser
 
 import (
@@ -82,7 +85,7 @@ type Job struct {
 	Defaults       Defaults                  `yaml:"defaults,omitempty"`
 	Outputs        map[string]string         `yaml:"outputs,omitempty"`
 	Uses           string                    `yaml:"uses,omitempty"`
-	With           map[string]interface{}    `yaml:"with,omitempty"`
+	With           map[string]any            `yaml:"with,omitempty"`
 	RawSecrets     yaml.Node                 `yaml:"secrets,omitempty"`
 }
 
@@ -198,14 +201,6 @@ func (evt *Event) Acts() map[string][]string {
 	return evt.acts
 }
 
-func (evt *Event) Schedules() []map[string]string {
-	return evt.schedules
-}
-
-func (evt *Event) Inputs() []WorkflowDispatchInput {
-	return evt.inputs
-}
-
 // Helper to convert actionlint errors
 func acErrToError(acErrs []*actionlint.Error) []error {
 	errs := make([]error, len(acErrs))
@@ -214,6 +209,7 @@ func acErrToError(acErrs []*actionlint.Error) []error {
 	}
 	return errs
 }
+
 func acStringToString(strs []*actionlint.String) []string {
 	strings := make([]string, len(strs))
 	for _, v := range strs {
@@ -221,6 +217,7 @@ func acStringToString(strs []*actionlint.String) []string {
 	}
 	return strings
 }
+
 func typeToString(typ actionlint.WorkflowDispatchEventInputType) string {
 	switch typ {
 	case actionlint.WorkflowDispatchEventInputTypeString:
@@ -235,7 +232,6 @@ func typeToString(typ actionlint.WorkflowDispatchEventInputType) string {
 		return "number"
 	default:
 		return ""
-
 	}
 }
 
@@ -309,7 +305,6 @@ func ValidateWorkflow(content []byte) error {
 		err = append(err, fmt.Errorf("%d:%d: %s", e.Line, e.Column, e.Message))
 	}
 	return errors.Join(err...)
-
 }
 
 // parseMappingNode parse a mapping node and preserve order.

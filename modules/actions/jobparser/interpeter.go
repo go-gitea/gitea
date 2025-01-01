@@ -1,3 +1,6 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package jobparser
 
 import (
@@ -12,12 +15,12 @@ import (
 func NewInterpeter(
 	jobID string,
 	job *model.Job,
-	matrix map[string]interface{},
+	matrix map[string]any,
 	gitCtx *model.GithubContext,
 	results map[string]*JobResult,
 	vars map[string]string,
 ) exprparser.Interpreter {
-	strategy := make(map[string]interface{})
+	strategy := make(map[string]any)
 	if job.Strategy != nil {
 		strategy["fail-fast"] = job.Strategy.FailFast
 		strategy["max-parallel"] = job.Strategy.MaxParallel

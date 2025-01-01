@@ -1,12 +1,13 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package jobparser
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/nektos/act/pkg/model"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -277,66 +278,66 @@ func TestParseMappingNode(t *testing.T) {
 	tests := []struct {
 		input   string
 		scalars []string
-		datas   []interface{}
+		datas   []any
 	}{
 		{
 			input:   "on:\n  push:\n    branches:\n      - master",
 			scalars: []string{"push"},
-			datas: []interface{}{
-				map[string]interface{}{
-					"branches": []interface{}{"master"},
+			datas: []any{
+				map[string]any{
+					"branches": []any{"master"},
 				},
 			},
 		},
 		{
 			input:   "on:\n  branch_protection_rule:\n    types: [created, deleted]",
 			scalars: []string{"branch_protection_rule"},
-			datas: []interface{}{
-				map[string]interface{}{
-					"types": []interface{}{"created", "deleted"},
+			datas: []any{
+				map[string]any{
+					"types": []any{"created", "deleted"},
 				},
 			},
 		},
 		{
 			input:   "on:\n  project:\n    types: [created, deleted]\n  milestone:\n    types: [opened, deleted]",
 			scalars: []string{"project", "milestone"},
-			datas: []interface{}{
-				map[string]interface{}{
-					"types": []interface{}{"created", "deleted"},
+			datas: []any{
+				map[string]any{
+					"types": []any{"created", "deleted"},
 				},
-				map[string]interface{}{
-					"types": []interface{}{"opened", "deleted"},
+				map[string]any{
+					"types": []any{"opened", "deleted"},
 				},
 			},
 		},
 		{
 			input:   "on:\n  pull_request:\n    types:\n      - opened\n    branches:\n      - 'releases/**'",
 			scalars: []string{"pull_request"},
-			datas: []interface{}{
-				map[string]interface{}{
-					"types":    []interface{}{"opened"},
-					"branches": []interface{}{"releases/**"},
+			datas: []any{
+				map[string]any{
+					"types":    []any{"opened"},
+					"branches": []any{"releases/**"},
 				},
 			},
 		},
 		{
 			input:   "on:\n  push:\n    branches:\n      - main\n  pull_request:\n    types:\n      - opened\n    branches:\n      - '**'",
 			scalars: []string{"push", "pull_request"},
-			datas: []interface{}{
-				map[string]interface{}{
-					"branches": []interface{}{"main"},
+			datas: []any{
+				map[string]any{
+					"branches": []any{"main"},
 				},
-				map[string]interface{}{
-					"types":    []interface{}{"opened"},
-					"branches": []interface{}{"**"},
+				map[string]any{
+					"types":    []any{"opened"},
+					"branches": []any{"**"},
 				},
 			},
 		},
 		{
 			input:   "on:\n  schedule:\n    - cron: '20 6 * * *'",
 			scalars: []string{"schedule"},
-			datas: []interface{}{
-				[]interface{}{map[string]interface{}{
+			datas: []any{
+				[]any{map[string]any{
 					"cron": "20 6 * * *",
 				}},
 			},
@@ -348,10 +349,10 @@ func TestParseMappingNode(t *testing.T) {
 			workflow, err := model.ReadWorkflow(strings.NewReader(test.input))
 			assert.NoError(t, err)
 
-			scalars, datas, err := parseMappingNode[interface{}](&workflow.RawOn)
+			scalars, datas, err := parseMappingNode[any](&workflow.RawOn)
 			assert.NoError(t, err)
-			assert.EqualValues(t, test.scalars, scalars, fmt.Sprintf("%#v", scalars))
-			assert.EqualValues(t, test.datas, datas, fmt.Sprintf("%#v", datas))
+			assert.EqualValues(t, test.scalars, scalars, "%#v", scalars)
+			assert.EqualValues(t, test.datas, datas, "%#v", datas)
 		})
 	}
 }
