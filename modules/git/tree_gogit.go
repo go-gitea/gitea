@@ -7,7 +7,6 @@
 package git
 
 import (
-	"context"
 	"io"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -58,7 +57,25 @@ func (t *Tree) ListEntries() (Entries, error) {
 }
 
 // ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees
-func (t *Tree) ListEntriesRecursiveWithSize(ctx context.Context) (Entries, error) {
+func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
+	var entries []*TreeEntry
+	if err := t.IterateEntriesRecursive(func(entry *TreeEntry) error {
+		entries = append(entries, convertedEntry)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return entries, nil
+}
+
+// ListEntriesRecursiveFast is the alias of ListEntriesRecursiveWithSize for the gogit version
+func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
+	return t.ListEntriesRecursiveWithSize()
+}
+
+// IterateEntriesRecursive returns iterate entries of current tree recursively including all subtrees
+// extraArgs could be "-l" to get the size, which is slower
+func (t *Tree) IterateEntriesRecursive(f func(entry *TreeEntry) error, extraArgs TrustedCmdArgs) error {
 	if t.gogitTree == nil {
 		err := t.loadTreeObject()
 		if err != nil {
@@ -66,7 +83,6 @@ func (t *Tree) ListEntriesRecursiveWithSize(ctx context.Context) (Entries, error
 		}
 	}
 
-	var entries []*TreeEntry
 	seen := map[plumbing.Hash]bool{}
 	walker := object.NewTreeWalker(t.gogitTree, true, seen)
 	for {
@@ -87,13 +103,10 @@ func (t *Tree) ListEntriesRecursiveWithSize(ctx context.Context) (Entries, error
 			ptree:          t,
 			fullName:       fullName,
 		}
-		entries = append(entries, convertedEntry)
+		if err := f(convertedEntry); err != nil {
+			return nil, err
+		}
 	}
 
-	return entries, nil
-}
-
-// ListEntriesRecursiveFast is the alias of ListEntriesRecursiveWithSize for the gogit version
-func (t *Tree) ListEntriesRecursiveFast(ctx context.Context) (Entries, error) {
-	return t.ListEntriesRecursiveWithSize(ctx)
+	return nil
 }

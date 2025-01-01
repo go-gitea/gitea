@@ -7,7 +7,6 @@ package git
 
 import (
 	"bufio"
-	"context"
 	"io"
 	"strings"
 )
@@ -93,13 +92,13 @@ func (t *Tree) ListEntries() (Entries, error) {
 
 // listEntriesRecursive returns all entries of current tree recursively including all subtrees
 // extraArgs could be "-l" to get the size, which is slower
-func (t *Tree) listEntriesRecursive(ctx context.Context, extraArgs TrustedCmdArgs) (Entries, error) {
+func (t *Tree) listEntriesRecursive(extraArgs TrustedCmdArgs) (Entries, error) {
 	if t.entriesRecursiveParsed {
 		return t.entriesRecursive, nil
 	}
 
 	t.entriesRecursive = make([]*TreeEntry, 0)
-	if err := t.IterateEntriesRecursive(ctx, func(entry *TreeEntry) error {
+	if err := t.IterateEntriesRecursive(func(entry *TreeEntry) error {
 		t.entriesRecursive = append(t.entriesRecursive, entry)
 		return nil
 	}, extraArgs); err != nil {
@@ -112,18 +111,18 @@ func (t *Tree) listEntriesRecursive(ctx context.Context, extraArgs TrustedCmdArg
 }
 
 // ListEntriesRecursiveFast returns all entries of current tree recursively including all subtrees, no size
-func (t *Tree) ListEntriesRecursiveFast(ctx context.Context) (Entries, error) {
-	return t.listEntriesRecursive(ctx, nil)
+func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
+	return t.listEntriesRecursive(nil)
 }
 
 // ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees, with size
-func (t *Tree) ListEntriesRecursiveWithSize(ctx context.Context) (Entries, error) {
-	return t.listEntriesRecursive(ctx, TrustedCmdArgs{"--long"})
+func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
+	return t.listEntriesRecursive(TrustedCmdArgs{"--long"})
 }
 
 // IterateEntriesRecursive returns iterate entries of current tree recursively including all subtrees
 // extraArgs could be "-l" to get the size, which is slower
-func (t *Tree) IterateEntriesRecursive(ctx context.Context, f func(entry *TreeEntry) error, extraArgs TrustedCmdArgs) error {
+func (t *Tree) IterateEntriesRecursive(f func(entry *TreeEntry) error, extraArgs TrustedCmdArgs) error {
 	reader, writer := io.Pipe()
 	done := make(chan error)
 
@@ -154,8 +153,8 @@ func (t *Tree) IterateEntriesRecursive(ctx context.Context, f func(entry *TreeEn
 			}
 
 			select {
-			case <-ctx.Done():
-				return ctx.Err()
+			case <-t.repo.Ctx.Done():
+				return t.repo.Ctx.Err()
 			case runErr := <-done:
 				return runErr
 			default:

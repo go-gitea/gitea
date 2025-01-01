@@ -5,7 +5,6 @@ package actions
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"strings"
 
@@ -57,7 +56,7 @@ func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 	}
 
 	ret := make(git.Entries, 0, 5)
-	if err := tree.IterateEntriesRecursive(context.Background(), func(entry *git.TreeEntry) error {
+	if err := tree.IterateEntriesRecursive(func(entry *git.TreeEntry) error {
 		if strings.HasSuffix(entry.Name(), ".yml") || strings.HasSuffix(entry.Name(), ".yaml") {
 			ret = append(ret, entry)
 		}
