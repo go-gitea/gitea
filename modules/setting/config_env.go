@@ -166,3 +166,8 @@ func EnvironmentToConfig(cfg ConfigProvider, envs []string) (changed bool) {
 	}
 	return changed
 }
+
+// InitGiteaEnvVars initilises the environment for gitea
+func InitGiteaEnvVars() {
+	_ = os.Unsetenv("XDG_CONFIG_HOME") // unset if set as HOME is managed by gitea
+}
