@@ -9,270 +9,85 @@ import (
 
 	"github.com/nektos/act/pkg/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
-// func TestParseRawOn(t *testing.T) {
-// 	kases := []struct {
-// 		input  string
-// 		result []*Event
-// 	}{
-// 		{
-// 			input: "on: issue_comment",
-// 			result: []*Event{
-// 				{
-// 					Name: "issue_comment",
-// 				},
-// 			},
-// 		},
-// 		{
-// 			input: "on:\n  push",
-// 			result: []*Event{
-// 				{
-// 					Name: "push",
-// 				},
-// 			},
-// 		},
+func TestGetEvents(t *testing.T) {
+	content := `
+name: My Workflow
 
-// 		{
-// 			input: "on:\n  - push\n  - pull_request",
-// 			result: []*Event{
-// 				{
-// 					Name: "push",
-// 				},
-// 				{
-// 					Name: "pull_request",
-// 				},
-// 			},
-// 		},
-// 		{
-// 			input: "on:\n  push:\n    branches:\n      - master",
-// 			result: []*Event{
-// 				{
-// 					Name: "push",
-// 					acts: map[string][]string{
-// 						"branches": {
-// 							"master",
-// 						},
-// 					},
-// 				},
-// 			},
-// 		},
-// 		{
-// 			input: "on:\n  branch_protection_rule:\n    types: [created, deleted]",
-// 			result: []*Event{
-// 				{
-// 					Name: "branch_protection_rule",
-// 					acts: map[string][]string{
-// 						"types": {
-// 							"created",
-// 							"deleted",
-// 						},
-// 					},
-// 				},
-// 			},
-// 		},
-// 		{
-// 			input: "on:\n  project:\n    types: [created, deleted]\n  milestone:\n    types: [opened, deleted]",
-// 			result: []*Event{
-// 				{
-// 					Name: "project",
-// 					acts: map[string][]string{
-// 						"types": {
-// 							"created",
-// 							"deleted",
-// 						},
-// 					},
-// 				},
-// 				{
-// 					Name: "milestone",
-// 					acts: map[string][]string{
-// 						"types": {
-// 							"opened",
-// 							"deleted",
-// 						},
-// 					},
-// 				},
-// 			},
-// 		},
-// 		{
-// 			input: "on:\n  pull_request:\n    types:\n      - opened\n    branches:\n      - 'releases/**'",
-// 			result: []*Event{
-// 				{
-// 					Name: "pull_request",
-// 					acts: map[string][]string{
-// 						"types": {
-// 							"opened",
-// 						},
-// 						"branches": {
-// 							"releases/**",
-// 						},
-// 					},
-// 				},
-// 			},
-// 		},
-// 		{
-// 			input: "on:\n  push:\n    branches:\n      - main\n  pull_request:\n    types:\n      - opened\n    branches:\n      - '**'",
-// 			result: []*Event{
-// 				{
-// 					Name: "push",
-// 					acts: map[string][]string{
-// 						"branches": {
-// 							"main",
-// 						},
-// 					},
-// 				},
-// 				{
-// 					Name: "pull_request",
-// 					acts: map[string][]string{
-// 						"types": {
-// 							"opened",
-// 						},
-// 						"branches": {
-// 							"**",
-// 						},
-// 					},
-// 				},
-// 			},
-// 		},
-// 		{
-// 			input: "on:\n  push:\n    branches:\n      - 'main'\n      - 'releases/**'",
-// 			result: []*Event{
-// 				{
-// 					Name: "push",
-// 					acts: map[string][]string{
-// 						"branches": {
-// 							"main",
-// 							"releases/**",
-// 						},
-// 					},
-// 				},
-// 			},
-// 		},
-// 		{
-// 			input: "on:\n  push:\n    tags:\n      - v1.**",
-// 			result: []*Event{
-// 				{
-// 					Name: "push",
-// 					acts: map[string][]string{
-// 						"tags": {
-// 							"v1.**",
-// 						},
-// 					},
-// 				},
-// 			},
-// 		},
-// 		{
-// 			input: "on: [pull_request, workflow_dispatch]",
-// 			result: []*Event{
-// 				{
-// 					Name: "pull_request",
-// 				},
-// 				{
-// 					Name: "workflow_dispatch",
-// 				},
-// 			},
-// 		},
-// 		{
-// 			input: "on:\n  schedule:\n    - cron: '20 6 * * *'",
-// 			result: []*Event{
-// 				{
-// 					Name: "schedule",
-// 					schedules: []map[string]string{
-// 						{
-// 							"cron": "20 6 * * *",
-// 						},
-// 					},
-// 				},
-// 			},
-// 		},
-// 		{
-// 			input: `on:
-//   workflow_dispatch:
-//     inputs:
-//       logLevel:
-//         description: 'Log level'
-//         required: true
-//         default: 'warning'
-//         type: choice
-//         options:
-//         - info
-//         - warning
-//         - debug
-//       tags:
-//         description: 'Test scenario tags'
-//         required: false
-//         type: boolean
-//       environment:
-//         description: 'Environment to run tests against'
-//         type: environment
-//         required: true
-//   push:
-// `,
-// 			result: []*Event{
-// 				{
-// 					Name: "workflow_dispatch",
-// 					inputs: []WorkflowDispatchInput{
-// 						{
-// 							Name:        "logLevel",
-// 							Description: "Log level",
-// 							Required:    true,
-// 							Default:     "warning",
-// 							Type:        "choice",
-// 							Options:     []string{"info", "warning", "debug"},
-// 						},
-// 						{
-// 							Name:        "tags",
-// 							Description: "Test scenario tags",
-// 							Required:    false,
-// 							Type:        "boolean",
-// 						},
-// 						{
-// 							Name:        "environment",
-// 							Description: "Environment to run tests against",
-// 							Type:        "environment",
-// 							Required:    true,
-// 						},
-// 					},
-// 				},
-// 				{
-// 					Name: "push",
-// 				},
-// 			},
-// 		},
-// 	}
-// 	for _, kase := range kases {
-// 		t.Run(kase.input, func(t *testing.T) {
-// 			origin, err := model.ReadWorkflow(strings.NewReader(kase.input))
-// 			assert.NoError(t, err)
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      my_variable1:
+        description: 'first variable'
+        required: true
+        type: string
+      my_variable2:
+        description: 'second variable'
+        required: false
+        type: number
+        default: 4
 
-// 			events, err := ParseRawOn(&origin.RawOn)
-// 			assert.NoError(t, err)
-// 			assert.EqualValues(t, kase.result, events, fmt.Sprintf("%#v", events))
-// 		})
-// 	}
-// }
+jobs:
+  example:
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 0
+`
+	expected := make([]*Event, 3)
+	expected[0] = &Event{acts: map[string][]string{"branches": {"main"}}, Name: "push"}
+	expected[1] = &Event{Name: "schedule", schedules: []map[string]string{{"cron": "0 0 * * *"}}}
+	expected[2] = &Event{
+		Name: "workflow_dispatch",
+		inputs: []WorkflowDispatchInput{
+			{
+				Name:        "my_variable1",
+				Description: "first variable",
+				Required:    true,
+				Type:        "string",
+			},
+			{
+				Name:        "my_variable2",
+				Type:        "number",
+				Description: "second variable",
+				Default:     "4",
+			},
+		},
+	}
+	actual, err := GetEventsFromContent([]byte(content))
+	require.NoError(t, err)
+	assert.Len(t, actual, 3)
+	assert.Equal(t, expected, actual)
+	//Toggler
+}
 
-// func TestSingleWorkflow_SetJob(t *testing.T) {
-// 	t.Run("erase needs", func(t *testing.T) {
-// 		content := ReadTestdata(t, "erase_needs.in.yaml")
-// 		want := ReadTestdata(t, "erase_needs.out.yaml")
-// 		swf, err := Parse(content)
-// 		require.NoError(t, err)
-// 		builder := &strings.Builder{}
-// 		for _, v := range swf {
-// 			id, job := v.Job()
-// 			require.NoError(t, v.SetJob(id, job.EraseNeeds()))
+func TestSingleWorkflow_SetJob(t *testing.T) {
+	t.Run("erase needs", func(t *testing.T) {
+		content := ReadTestdata(t, "erase_needs.in.yaml")
+		want := ReadTestdata(t, "erase_needs.out.yaml")
+		swf, err := Parse(content)
+		require.NoError(t, err)
+		builder := &strings.Builder{}
+		for _, v := range swf {
+			id, job := v.Job()
+			require.NoError(t, v.SetJob(id, job.EraseNeeds()))
 
-// 			if builder.Len() > 0 {
-// 				builder.WriteString("---\n")
-// 			}
-// 			encoder := yaml.NewEncoder(builder)
-// 			encoder.SetIndent(2)
-// 			require.NoError(t, encoder.Encode(v))
-// 		}
-// 		assert.Equal(t, string(want), builder.String())
-// 	})
-// }
+			if builder.Len() > 0 {
+				builder.WriteString("---\n")
+			}
+			encoder := yaml.NewEncoder(builder)
+			encoder.SetIndent(2)
+			require.NoError(t, encoder.Encode(v))
+		}
+		assert.Equal(t, string(want), builder.String())
+	})
+}
 
 func TestParseMappingNode(t *testing.T) {
 	tests := []struct {

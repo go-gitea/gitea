@@ -204,16 +204,19 @@ func (evt *Event) Acts() map[string][]string {
 // Helper to convert actionlint errors
 func acErrToError(acErrs []*actionlint.Error) []error {
 	errs := make([]error, len(acErrs))
-	for _, err := range acErrs {
-		errs = append(errs, err)
+	for i, err := range acErrs {
+		errs[i] = err
 	}
 	return errs
 }
 
 func acStringToString(strs []*actionlint.String) []string {
+	if len(strs) == 0 {
+		return nil
+	}
 	strings := make([]string, len(strs))
-	for _, v := range strs {
-		strings = append(strings, v.Value)
+	for i, v := range strs {
+		strings[i] = v.Value
 	}
 	return strings
 }
@@ -246,29 +249,39 @@ func GetEventsFromContent(content []byte) ([]*Event, error) {
 	for _, acEvent := range wf.On {
 		event := &Event{
 			Name: acEvent.EventName(),
-			acts: map[string][]string{},
 		}
 		switch e := acEvent.(type) {
 		case *actionlint.ScheduledEvent:
 			schedules := make([]map[string]string, len(e.Cron))
-			for _, c := range e.Cron {
-				schedules = append(schedules, map[string]string{"cron": c.Value})
+			for i, c := range e.Cron {
+				schedules[i] = map[string]string{"cron": c.Value}
 			}
 			event.schedules = schedules
 		case *actionlint.WorkflowDispatchEvent:
 			inputs := make([]WorkflowDispatchInput, len(e.Inputs))
+			i := 0
 			for keyword, v := range e.Inputs {
-				inputs = append(inputs, WorkflowDispatchInput{
-					Name:        keyword,
-					Required:    v.Required.Value,
-					Description: v.Description.Value,
-					Default:     v.Default.Value,
-					Options:     acStringToString(v.Options),
-					Type:        typeToString(v.Type),
-				})
+				wdi := WorkflowDispatchInput{
+					Name: keyword,
+
+					Options: acStringToString(v.Options),
+					Type:    typeToString(v.Type),
+				}
+				if v.Required != nil {
+					wdi.Required = v.Required.Value
+				}
+				if v.Description != nil {
+					wdi.Description = v.Description.Value
+				}
+				if v.Default != nil {
+					wdi.Default = v.Default.Value
+				}
+				inputs[i] = wdi
+				i++
 			}
 			event.inputs = inputs
 		case *actionlint.WebhookEvent:
+			event.acts = map[string][]string{}
 			if e.Branches != nil {
 				event.acts[e.Branches.Name.Value] = acStringToString(e.Branches.Values)
 			}
@@ -290,7 +303,6 @@ func GetEventsFromContent(content []byte) ([]*Event, error) {
 			if e.Types != nil {
 				event.acts["types"] = acStringToString(e.Types)
 			}
-			// if e.
 		}
 		events = append(events, event)
 	}

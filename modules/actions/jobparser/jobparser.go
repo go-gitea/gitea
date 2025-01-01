@@ -54,7 +54,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 				job.Name = id
 			}
 			job.Strategy.RawMatrix = encodeMatrix(matrix)
-			evaluator := NewExpressionEvaluator(NewInterpeter(id, origin.GetJob(id), matrix, pc.gitContext, results, pc.vars))
+			evaluator := NewExpressionEvaluator(NewInterpreter(id, origin.GetJob(id), matrix, pc.gitContext, results, pc.vars))
 			job.Name = nameWithMatrix(job.Name, matrix, evaluator)
 			runsOn := origin.GetJob(id).RunsOn()
 			for i, v := range runsOn {

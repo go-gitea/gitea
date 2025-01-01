@@ -9,10 +9,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// NewInterpeter returns an interpeter used in the server,
+// NewInterpreter returns an interpreter used in the server,
 // need github, needs, strategy, matrix, inputs context only,
 // see https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability
-func NewInterpeter(
+func NewInterpreter(
 	jobID string,
 	job *model.Job,
 	matrix map[string]any,
@@ -78,7 +78,7 @@ func NewInterpeter(
 	return exprparser.NewInterpeter(ee, config)
 }
 
-// JobResult is the minimum requirement of job results for Interpeter
+// JobResult is the minimum requirement of job results for Interpreter
 type JobResult struct {
 	Needs   []string
 	Result  string
