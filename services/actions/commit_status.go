@@ -19,7 +19,7 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 
-	"github.com/nektos/act/pkg/jobparser"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 )
 
 // CreateCommitStatus creates a commit status for the given job.

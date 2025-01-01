@@ -4,7 +4,6 @@
 package actions
 
 import (
-	"bytes"
 	"io"
 	"strings"
 
@@ -13,8 +12,8 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"github.com/gobwas/glob"
-	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 	"github.com/nektos/act/pkg/workflowpattern"
 	"gopkg.in/yaml.v3"
@@ -82,23 +81,10 @@ func GetContentFromEntry(entry *git.TreeEntry) ([]byte, error) {
 	return content, nil
 }
 
-func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
-	workflow, err := model.ReadWorkflow(bytes.NewReader(content))
-	if err != nil {
-		return nil, err
-	}
-	events, err := jobparser.ParseRawOn(&workflow.RawOn)
-	if err != nil {
-		return nil, err
-	}
-
-	return events, nil
-}
-
 func DetectWorkflows(
 	gitRepo *git.Repository,
 	commit *git.Commit,
-	triggedEvent webhook_module.HookEventType,
+	triggeredEvent webhook_module.HookEventType,
 	payload api.Payloader,
 	detectSchedule bool,
 ) ([]*DetectedWorkflow, []*DetectedWorkflow, error) {
@@ -116,13 +102,13 @@ func DetectWorkflows(
 		}
 
 		// one workflow may have multiple events
-		events, err := GetEventsFromContent(content)
+		events, err := jobparser.GetEventsFromContent(content)
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
 			continue
 		}
 		for _, evt := range events {
-			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
+			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggeredEvent)
 			if evt.IsSchedule() {
 				if detectSchedule {
 					dwf := &DetectedWorkflow{
@@ -132,7 +118,7 @@ func DetectWorkflows(
 					}
 					schedules = append(schedules, dwf)
 				}
-			} else if detectMatched(gitRepo, commit, triggedEvent, payload, evt) {
+			} else if detectMatched(gitRepo, commit, triggeredEvent, payload, evt) {
 				dwf := &DetectedWorkflow{
 					EntryName:    entry.Name(),
 					TriggerEvent: evt,
@@ -160,7 +146,7 @@ func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*D
 		}
 
 		// one workflow may have multiple events
-		events, err := GetEventsFromContent(content)
+		events, err := jobparser.GetEventsFromContent(content)
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
 			continue
@@ -181,12 +167,12 @@ func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*D
 	return wfs, nil
 }
 
-func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {
-	if !canGithubEventMatch(evt.Name, triggedEvent) {
+func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggeredEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {
+	if !canGithubEventMatch(evt.Name, triggeredEvent) {
 		return false
 	}
 
-	switch triggedEvent {
+	switch triggeredEvent {
 	case // events with no activity types
 		webhook_module.HookEventCreate,
 		webhook_module.HookEventDelete,
@@ -194,7 +180,7 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent web
 		webhook_module.HookEventWiki,
 		webhook_module.HookEventSchedule:
 		if len(evt.Acts()) != 0 {
-			log.Warn("Ignore unsupported %s event arguments %v", triggedEvent, evt.Acts())
+			log.Warn("Ignore unsupported %s event arguments %v", triggeredEvent, evt.Acts())
 		}
 		// no special filter parameters for these events, just return true if name matched
 		return true
@@ -244,7 +230,7 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent web
 		return matchPackageEvent(payload.(*api.PackagePayload), evt)
 
 	default:
-		log.Warn("unsupported event %q", triggedEvent)
+		log.Warn("unsupported event %q", triggeredEvent)
 		return false
 	}
 }

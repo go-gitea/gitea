@@ -28,7 +28,7 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
 
-	"github.com/nektos/act/pkg/jobparser"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"github.com/nektos/act/pkg/model"
 )
 

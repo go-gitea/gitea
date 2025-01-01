@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/queue"
 
-	"github.com/nektos/act/pkg/jobparser"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"xorm.io/builder"
 )
 

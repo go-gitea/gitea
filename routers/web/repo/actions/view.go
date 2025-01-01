@@ -39,7 +39,7 @@ import (
 	context_module "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 
-	"github.com/nektos/act/pkg/jobparser"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"github.com/nektos/act/pkg/model"
 	"xorm.io/builder"
 )
