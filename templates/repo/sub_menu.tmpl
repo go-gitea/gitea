@@ -8,11 +8,6 @@
 			<a class="item muted {{if .PageIsBranches}}active{{end}}" href="{{.RepoLink}}/branches">
 				{{svg "octicon-git-branch"}} <b>{{ctx.Locale.PrettyNumber .BranchesCount}}</b> {{ctx.Locale.TrN .BranchesCount "repo.branch" "repo.branches"}}
 			</a>
-			{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
-				<a class="item muted {{if .PageIsTagList}}active{{end}}" href="{{.RepoLink}}/tags">
-					{{svg "octicon-tag"}} <b>{{ctx.Locale.PrettyNumber .NumTags}}</b> {{ctx.Locale.TrN .NumTags "repo.tag" "repo.tags"}}
-				</a>
-			{{end}}
 			<span class="item not-mobile" {{if not (eq .Repository.Size 0)}}data-tooltip-placement="top" data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>
 				{{$fileSizeFormatted := FileSize .Repository.Size}}{{/* the formatted string is always "{val} {unit}" */}}
 				{{$fileSizeFields := StringUtils.Split $fileSizeFormatted " "}}

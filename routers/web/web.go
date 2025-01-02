@@ -876,6 +876,11 @@ func registerRoutes(m *web.Router) {
 			m.Post("", org.TeamInvitePost)
 		})
 
+		// require member permissions
+		m.Group("/{org}/view", func() {
+			m.Get("", org.View)
+		}, context.OrgAssignment(false, false, false, false))
+
 		m.Group("/{org}", func() {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/dashboard/{team}", user.Dashboard)
@@ -1150,6 +1155,10 @@ func registerRoutes(m *web.Router) {
 
 	// user/org home, including rss feeds
 	m.Get("/{username}/{reponame}", optSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home)
+
+	m.Group("/{username}/{reponame}/view", func() {
+		m.Get("", repo.View) // user/org viewing home
+	}, optSignIn, context.RepoAssignment, context.RepoRef(), repo.MustBeNotEmpty)
 
 	// TODO: maybe it should relax the permission to allow "any access"
 	m.Post("/{username}/{reponame}/markup", optSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki), web.Bind(structs.MarkupOption{}), misc.Markup)
