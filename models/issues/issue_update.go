@@ -74,7 +74,7 @@ func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, 
 	issue.ClosedUnix = timeutil.TimeStampNow()
 
 	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix").
-		Where("is_closed == ?", false).
+		Where("is_closed = ?", false).
 		Update(issue); err != nil {
 		return nil, err
 	} else if cnt != 1 {
@@ -113,7 +113,7 @@ func setIssueAsReopen(ctx context.Context, issue *Issue, doer *user_model.User) 
 	issue.ClosedUnix = 0
 
 	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix").
-		Where("is_closed == ?", true).
+		Where("is_closed = ?", true).
 		Update(issue); err != nil {
 		return nil, err
 	} else if cnt != 1 {
