@@ -88,18 +88,6 @@ func TestMain(m *testing.M) {
 	tests.InitTest(true)
 	testWebRoutes = routers.NormalRoutes()
 
-	os.Unsetenv("GIT_AUTHOR_NAME")
-	os.Unsetenv("GIT_AUTHOR_EMAIL")
-	os.Unsetenv("GIT_AUTHOR_DATE")
-	os.Unsetenv("GIT_COMMITTER_NAME")
-	os.Unsetenv("GIT_COMMITTER_EMAIL")
-	os.Unsetenv("GIT_COMMITTER_DATE")
-
-	// Avoid loading the default system config. On MacOS, this config
-	// sets the osxkeychain credential helper, which will cause tests
-	// to freeze with a dialog.
-	os.Setenv("GIT_CONFIG_NOSYSTEM", "true")
-
 	err := unittest.InitFixtures(
 		unittest.FixturesOptions{
 			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
