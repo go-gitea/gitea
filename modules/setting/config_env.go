@@ -177,7 +177,10 @@ func InitGiteaEnvVars() {
 	// But git would try "XDG_CONFIG_HOME/git/config" first if "HOME/.gitconfig" does not exist,
 	// then our git.InitFull would still write to "XDG_CONFIG_HOME/git/config" if XDG_CONFIG_HOME is set.
 	_ = os.Unsetenv("XDG_CONFIG_HOME")
+}
 
+func InitGiteaEnvVarsForTesting() {
+	InitGiteaEnvVars()
 	_ = os.Unsetenv("GIT_AUTHOR_NAME")
 	_ = os.Unsetenv("GIT_AUTHOR_EMAIL")
 	_ = os.Unsetenv("GIT_AUTHOR_DATE")
