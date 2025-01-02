@@ -15,6 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/indexer/code/bleve"
 	"code.gitea.io/gitea/modules/indexer/code/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	_ "code.gitea.io/gitea/models"
 	_ "code.gitea.io/gitea/models/actions"
@@ -279,7 +281,7 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 
 func TestBleveIndexAndSearch(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-
+	defer test.MockVariableValue(&setting.Indexer.TypeBleveMaxFuzzniess, 2)()
 	dir := t.TempDir()
 
 	idx := bleve.NewIndexer(dir)
