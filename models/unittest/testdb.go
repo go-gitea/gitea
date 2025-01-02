@@ -60,6 +60,12 @@ func InitSettings() {
 
 	setting.PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
 	setting.InitGiteaEnvVars()
+
+	// Avoid loading the git's system config.
+	// On macOS, system config sets the osxkeychain credential helper, which will cause tests to freeze with a dialog.
+	// But we do not set it in production at the moment, because it might be a "breaking" change,
+	// more details are in "modules/git.commonBaseEnvs".
+	_ = os.Setenv("GIT_CONFIG_NOSYSTEM", "true")
 }
 
 // TestOptions represents test options
