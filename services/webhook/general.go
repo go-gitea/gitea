@@ -28,6 +28,10 @@ func htmlLinkFormatter(url, text string) string {
 	return fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(url), html.EscapeString(text))
 }
 
+func markdownFormatter(url, text string) string {
+	return fmt.Sprintf("[%s](%s)", text, url)
+}
+
 // getPullRequestInfo gets the information for a pull request
 func getPullRequestInfo(p *api.PullRequestPayload) (title, link, by, operator, operateResult, assignees string) {
 	title = fmt.Sprintf("[PullRequest-%s #%d]: %s\n%s", p.Repository.FullName, p.PullRequest.Index, p.Action, p.PullRequest.Title)
@@ -305,6 +309,24 @@ func getPackagePayloadInfo(p *api.PackagePayload, linkFormatter linkFormatter, w
 	}
 
 	return text, color
+}
+
+func getCommitStatusPayloadInfo(p *api.CommitStatusPayload, linkFormatter linkFormatter, _ bool) (string, int) {
+	refLink := linkFormatter(p.Commit.URL, p.Commit.ID[:10])
+	var color int
+	switch p.State {
+	case api.CommitStatusSuccess:
+		color = greenColor
+	case api.CommitStatusPending:
+		color = greyColor
+	case api.CommitStatusWarning:
+		color = yellowColor
+	default:
+		color = redColor
+	}
+
+	repoLink := linkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
+	return fmt.Sprintf("%s Commit %s status changed to %s", repoLink, refLink, p.State.String()), color
 }
 
 // ToHook convert models.Webhook to api.Hook
