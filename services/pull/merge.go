@@ -637,6 +637,8 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		pr.Status = issues_model.PullRequestStatusManuallyMerged
 		pr.Merger = doer
 		pr.MergerID = doer.ID
+		// reset the conflicted files as there cannot be any if we're merged
+		pr.ConflictedFiles = []string{}
 
 		var merged bool
 		if merged, err = SetMerged(ctx, pr); err != nil {
@@ -667,30 +669,16 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest) (bool, error) 
 	}
 
 	pr.HasMerged = true
-	sess := db.GetEngine(ctx)
 
-	if _, err := sess.Exec("UPDATE `issue` SET `repo_id` = `repo_id` WHERE `id` = ?", pr.IssueID); err != nil {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
 		return false, err
 	}
-
-	if _, err := sess.Exec("UPDATE `pull_request` SET `issue_id` = `issue_id` WHERE `id` = ?", pr.ID); err != nil {
-		return false, err
-	}
+	defer committer.Close()
 
 	pr.Issue = nil
 	if err := pr.LoadIssue(ctx); err != nil {
 		return false, err
-	}
-
-	if tmpPr, err := issues_model.GetPullRequestByID(ctx, pr.ID); err != nil {
-		return false, err
-	} else if tmpPr.HasMerged {
-		if pr.Issue.IsClosed {
-			return false, nil
-		}
-		return false, fmt.Errorf("PullRequest[%d] already merged but it's associated issue [%d] is not closed", pr.Index, pr.IssueID)
-	} else if pr.Issue.IsClosed {
-		return false, fmt.Errorf("PullRequest[%d] already closed", pr.Index)
 	}
 
 	if err := pr.Issue.LoadRepo(ctx); err != nil {
@@ -701,16 +689,22 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest) (bool, error) 
 		return false, err
 	}
 
-	if _, err := issues_model.ChangeIssueStatus(ctx, pr.Issue, pr.Merger, true, true); err != nil {
+	if _, err := issues_model.SetIssueAsReopen(ctx, pr.Issue, pr.Merger, true); err != nil {
 		return false, fmt.Errorf("ChangeIssueStatus: %w", err)
 	}
 
-	// reset the conflicted files as there cannot be any if we're merged
-	pr.ConflictedFiles = []string{}
-
 	// We need to save all of the data used to compute this merge as it may have already been changed by TestPatch. FIXME: need to set some state to prevent TestPatch from running whilst we are merging.
-	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix, conflicted_files").Update(pr); err != nil {
+	if cnt, err := db.GetEngine(ctx).Where("id = ?", pr.ID).
+		And("has_merged = ?", false).
+		Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix, conflicted_files").
+		Update(pr); err != nil {
 		return false, fmt.Errorf("failed to update pr[%d]: %w", pr.ID, err)
+	} else if cnt != 1 {
+		return false, issues_model.ErrIssueAlreadyChanged
+	}
+
+	if err := committer.Commit(); err != nil {
+		return false, err
 	}
 
 	return true, nil

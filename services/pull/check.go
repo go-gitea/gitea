@@ -299,6 +299,8 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 	}
 	pr.Merger = merger
 	pr.MergerID = merger.ID
+	// reset the conflicted files as there cannot be any if we're merged
+	pr.ConflictedFiles = []string{}
 
 	if merged, err := SetMerged(ctx, pr); err != nil {
 		log.Error("%-v setMerged : %v", pr, err)

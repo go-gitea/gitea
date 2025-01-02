@@ -363,6 +363,8 @@ func handlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.H
 	pr.MergedUnix = timeutil.TimeStampNow()
 	pr.Merger = pusher
 	pr.MergerID = pusher.ID
+	// reset the conflicted files as there cannot be any if we're merged
+	pr.ConflictedFiles = []string{}
 	err = db.WithTx(ctx, func(ctx context.Context) error {
 		// Removing an auto merge pull and ignore if not exist
 		if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
