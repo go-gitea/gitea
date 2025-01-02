@@ -633,16 +633,8 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 			return fmt.Errorf("Wrong commit ID")
 		}
 
-		pr.MergedCommitID = commitID
-		pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
-		pr.Status = issues_model.PullRequestStatusManuallyMerged
-		pr.Merger = doer
-		pr.MergerID = doer.ID
-		// reset the conflicted files as there cannot be any if we're merged
-		pr.ConflictedFiles = []string{}
-
 		var merged bool
-		if merged, err = SetMerged(ctx, pr); err != nil {
+		if merged, err = SetMerged(ctx, pr, commitID, timeutil.TimeStamp(commit.Author.When.Unix()), doer, issues_model.PullRequestStatusManuallyMerged); err != nil {
 			return err
 		} else if !merged {
 			return fmt.Errorf("SetMerged failed")
@@ -661,15 +653,23 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 }
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
-func SetMerged(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
+func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID string, mergedTimeStamp timeutil.TimeStamp, merger *user_model.User, mergeStatus issues_model.PullRequestStatus) (bool, error) {
 	if pr.HasMerged {
 		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	}
+
+	pr.HasMerged = true
+	pr.MergedCommitID = mergedCommitID
+	pr.MergedUnix = mergedTimeStamp
+	pr.Merger = merger
+	pr.MergerID = merger.ID
+	pr.Status = mergeStatus
+	// reset the conflicted files as there cannot be any if we're merged
+	pr.ConflictedFiles = []string{}
+
 	if pr.MergedCommitID == "" || pr.MergedUnix == 0 || pr.Merger == nil {
 		return false, fmt.Errorf("unable to merge PullRequest[%d], some required fields are empty", pr.Index)
 	}
-
-	pr.HasMerged = true
 
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {

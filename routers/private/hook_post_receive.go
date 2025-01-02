@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	timeutil "code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	gitea_context "code.gitea.io/gitea/services/context"
@@ -357,13 +357,7 @@ func handlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.H
 		return
 	}
 
-	pr.MergedCommitID = updates[len(updates)-1].NewCommitID
-	pr.MergedUnix = timeutil.TimeStampNow()
-	pr.Merger = pusher
-	pr.MergerID = pusher.ID
-	// reset the conflicted files as there cannot be any if we're merged
-	pr.ConflictedFiles = []string{}
-	if _, err := pull_service.SetMerged(ctx, pr); err != nil {
+	if _, err := pull_service.SetMerged(ctx, pr, updates[len(updates)-1].NewCommitID, timeutil.TimeStampNow(), pusher, pr.Status); err != nil {
 		log.Error("Failed to update PR to merged: %v", err)
 		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "Failed to update PR to merged"})
 	}
