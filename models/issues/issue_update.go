@@ -34,8 +34,9 @@ func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
 
 // ErrIssueWasClosed is used when close a closed issue
 type ErrIssueWasClosed struct {
-	ID    int64
-	Index int64
+	ID     int64
+	Index  int64
+	IsPull bool
 }
 
 // IsErrIssueWasClosed checks if an error is a ErrIssueWasClosed.
@@ -45,34 +46,14 @@ func IsErrIssueWasClosed(err error) bool {
 }
 
 func (err ErrIssueWasClosed) Error() string {
-	return fmt.Sprintf("Issue [%d] %d was already closed", err.ID, err.Index)
+	return fmt.Sprintf("%s [%d] %d was already closed", util.Iif(err.IsPull, "Pull Request", "Issue"), err.ID, err.Index)
 }
 
-// ErrPullWasClosed is used close a closed pull request
-type ErrPullWasClosed struct {
-	ID    int64
-	Index int64
-}
-
-// IsErrPullWasClosed checks if an error is a ErrErrPullWasClosed.
-func IsErrPullWasClosed(err error) bool {
-	_, ok := err.(ErrPullWasClosed)
-	return ok
-}
-
-func (err ErrPullWasClosed) Error() string {
-	return fmt.Sprintf("Pull request [%d] %d was already closed", err.ID, err.Index)
-}
-
-func closeIssue(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
+func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
 	if issue.IsClosed {
-		if !issue.IsPull {
-			return nil, ErrIssueWasClosed{
-				ID: issue.ID,
-			}
-		}
-		return nil, ErrPullWasClosed{
-			ID: issue.ID,
+		return nil, ErrIssueWasClosed{
+			ID:     issue.ID,
+			IsPull: issue.IsPull,
 		}
 	}
 
@@ -105,8 +86,9 @@ func closeIssue(ctx context.Context, issue *Issue, doer *user_model.User, isMerg
 
 // ErrIssueWasOpened is used when reopen an opened issue
 type ErrIssueWasOpened struct {
-	ID    int64
-	Index int64
+	ID     int64
+	IsPull bool
+	Index  int64
 }
 
 // IsErrIssueWasOpened checks if an error is a ErrIssueWasOpened.
@@ -116,34 +98,14 @@ func IsErrIssueWasOpened(err error) bool {
 }
 
 func (err ErrIssueWasOpened) Error() string {
-	return fmt.Sprintf("Issue [%d] %d was already opened", err.ID, err.Index)
+	return fmt.Sprintf("%s [%d] %d was already opened", util.Iif(err.IsPull, "Pull Request", "Issue"), err.ID, err.Index)
 }
 
-// ErrPullWasOpened is used reopen an opened pull request
-type ErrPullWasOpened struct {
-	ID    int64
-	Index int64
-}
-
-// ErrPullWasOpened checks if an error is a ErrPullWasOpened.
-func IsErrPullWasOpened(err error) bool {
-	_, ok := err.(ErrPullWasOpened)
-	return ok
-}
-
-func (err ErrPullWasOpened) Error() string {
-	return fmt.Sprintf("Pull request [%d] %d was already opened", err.ID, err.Index)
-}
-
-func SetIssueAsReopen(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
+func setIssueAsReopen(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {
 	if !issue.IsClosed {
-		if !issue.IsPull {
-			return nil, ErrIssueWasOpened{
-				ID: issue.ID,
-			}
-		}
-		return nil, ErrPullWasOpened{
-			ID: issue.ID,
+		return nil, ErrIssueWasOpened{
+			ID:     issue.ID,
+			IsPull: issue.IsPull,
 		}
 	}
 
@@ -207,7 +169,7 @@ func CloseIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comm
 	}
 	defer committer.Close()
 
-	comment, err := closeIssue(ctx, issue, doer, false)
+	comment, err := SetIssueAsClosed(ctx, issue, doer, false)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +194,7 @@ func ReopenIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Com
 	}
 	defer committer.Close()
 
-	comment, err := SetIssueAsReopen(ctx, issue, doer, false)
+	comment, err := setIssueAsReopen(ctx, issue, doer)
 	if err != nil {
 		return nil, err
 	}

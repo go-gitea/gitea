@@ -8,11 +8,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
@@ -365,17 +363,7 @@ func handlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.H
 	pr.MergerID = pusher.ID
 	// reset the conflicted files as there cannot be any if we're merged
 	pr.ConflictedFiles = []string{}
-	err = db.WithTx(ctx, func(ctx context.Context) error {
-		// Removing an auto merge pull and ignore if not exist
-		if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
-			return fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", opts.PullRequestID, err)
-		}
-		if _, err := pull_service.SetMerged(ctx, pr); err != nil {
-			return fmt.Errorf("SetMerged failed: %s/%s Error: %v", ownerName, repoName, err)
-		}
-		return nil
-	})
-	if err != nil {
+	if _, err := pull_service.SetMerged(ctx, pr); err != nil {
 		log.Error("Failed to update PR to merged: %v", err)
 		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "Failed to update PR to merged"})
 	}
