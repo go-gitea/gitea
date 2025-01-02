@@ -1,5 +1,13 @@
 <div class="ui center segment tw-py-8">
 	<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}" aria-hidden="true">
-	<h2>{{ctx.Locale.Tr "guide.welcome"}}</h2>
-	<p>{{ctx.Locale.Tr "guide.welcome_desc"}}</p>
+	<h2>{{AppName}}</h2>
+	<div>
+		<a href="/explore/repos">
+			{{ctx.Locale.Tr "guide.explore_repos"}}
+		</a>
+		<span>·</span>
+		<a href="/explore/users">
+			{{ctx.Locale.Tr "guide.explore_users"}}
+		</a>
+	</div>
 </div>
