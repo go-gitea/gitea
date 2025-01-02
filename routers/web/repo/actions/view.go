@@ -562,6 +562,9 @@ func Approve(ctx *context_module.Context) {
 		for _, job := range jobs {
 			blockJobByConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, job)
 			if err != nil {
+				if actions_model.IsErrUnevaluatedConcurrency(err) {
+					continue
+				}
 				return err
 			}
 			if len(job.Needs) == 0 && job.Status.IsBlocked() && !blockJobByConcurrency {
