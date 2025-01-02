@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 )
@@ -102,7 +101,7 @@ func Search(ctx *context.Context) {
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
-	pager.AddParamString("l", language)
+	pager.AddParamString("l", prepareSearch.Language)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplSearch)
