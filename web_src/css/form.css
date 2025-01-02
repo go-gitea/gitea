@@ -483,7 +483,7 @@ textarea:focus,
     margin-bottom: 1em;
     width: 100%;
   }
-  .new.org .ui.form .field input {
+  .new.org .ui.form .field input:not([type="checkbox"], [type="radio"]) {
     width: 100% !important;
   }
 }
