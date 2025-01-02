@@ -217,7 +217,7 @@ var (
 			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
 		}{
-			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
+			WorkInProgressPrefixes: []string{"Draft:", "DRAFT:", "[Draft]", "[DRAFT]", "WIP:", "[WIP]"},
 			// Same as GitHub. See
 			// https://help.github.com/articles/closing-issues-via-commit-messages
 			CloseKeywords:                            strings.Split("close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved", ","),

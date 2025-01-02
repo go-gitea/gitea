@@ -1,0 +1,10 @@
+{{template "repo/view/head" .}}
+<div class="tw-h-dvh tw-flex tw-flex-col tw-justify-center tw-items-center tw-relative tw-bg-red tw-p-8">
+    <h1>{{.Title}}</h1>
+    <form class="ui form ignore-dirty">
+        <div class="tw-w-96">
+            {{template "shared/search/focused_combo" dict "Value" .Keyword}}
+        </div>
+    </form>
+</div>
+{{template "repo/view/footer" .}}
