@@ -32,7 +32,50 @@ func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
 	return err
 }
 
+// ErrIssueWasClosed is used when close a closed issue
+type ErrIssueWasClosed struct {
+	ID    int64
+	Index int64
+}
+
+// IsErrIssueWasClosed checks if an error is a ErrIssueWasClosed.
+func IsErrIssueWasClosed(err error) bool {
+	_, ok := err.(ErrIssueWasClosed)
+	return ok
+}
+
+func (err ErrIssueWasClosed) Error() string {
+	return fmt.Sprintf("Issue [%d] %d was already closed", err.ID, err.Index)
+}
+
+// ErrPullWasClosed is used close a closed pull request
+type ErrPullWasClosed struct {
+	ID    int64
+	Index int64
+}
+
+// IsErrPullWasClosed checks if an error is a ErrErrPullWasClosed.
+func IsErrPullWasClosed(err error) bool {
+	_, ok := err.(ErrPullWasClosed)
+	return ok
+}
+
+func (err ErrPullWasClosed) Error() string {
+	return fmt.Sprintf("Pull request [%d] %d was already closed", err.ID, err.Index)
+}
+
 func closeIssue(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
+	if issue.IsClosed {
+		if !issue.IsPull {
+			return nil, ErrIssueWasClosed{
+				ID: issue.ID,
+			}
+		}
+		return nil, ErrPullWasClosed{
+			ID: issue.ID,
+		}
+	}
+
 	// Check for open dependencies
 	if issue.Repo.IsDependenciesEnabled(ctx) {
 		// only check if dependencies are enabled and we're about to close an issue, otherwise reopening an issue would fail when there are unsatisfied dependencies
@@ -60,7 +103,50 @@ func closeIssue(ctx context.Context, issue *Issue, doer *user_model.User, isMerg
 	return updateIssueNumbers(ctx, issue, doer, util.Iif(isMergePull, CommentTypeMergePull, CommentTypeClose))
 }
 
+// ErrIssueWasOpened is used when reopen an opened issue
+type ErrIssueWasOpened struct {
+	ID    int64
+	Index int64
+}
+
+// IsErrIssueWasOpened checks if an error is a ErrIssueWasOpened.
+func IsErrIssueWasOpened(err error) bool {
+	_, ok := err.(ErrIssueWasOpened)
+	return ok
+}
+
+func (err ErrIssueWasOpened) Error() string {
+	return fmt.Sprintf("Issue [%d] %d was already opened", err.ID, err.Index)
+}
+
+// ErrPullWasOpened is used reopen an opened pull request
+type ErrPullWasOpened struct {
+	ID    int64
+	Index int64
+}
+
+// ErrPullWasOpened checks if an error is a ErrPullWasOpened.
+func IsErrPullWasOpened(err error) bool {
+	_, ok := err.(ErrPullWasOpened)
+	return ok
+}
+
+func (err ErrPullWasOpened) Error() string {
+	return fmt.Sprintf("Pull request [%d] %d was already opened", err.ID, err.Index)
+}
+
 func SetIssueAsReopen(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
+	if !issue.IsClosed {
+		if !issue.IsPull {
+			return nil, ErrIssueWasOpened{
+				ID: issue.ID,
+			}
+		}
+		return nil, ErrPullWasOpened{
+			ID: issue.ID,
+		}
+	}
+
 	issue.IsClosed = false
 	issue.ClosedUnix = 0
 

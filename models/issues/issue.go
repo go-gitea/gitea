@@ -78,22 +78,6 @@ func (err ErrNewIssueInsert) Error() string {
 	return err.OriginalError.Error()
 }
 
-// ErrIssueWasClosed is used when close a closed issue
-type ErrIssueWasClosed struct {
-	ID    int64
-	Index int64
-}
-
-// IsErrIssueWasClosed checks if an error is a ErrIssueWasClosed.
-func IsErrIssueWasClosed(err error) bool {
-	_, ok := err.(ErrIssueWasClosed)
-	return ok
-}
-
-func (err ErrIssueWasClosed) Error() string {
-	return fmt.Sprintf("Issue [%d] %d was already closed", err.ID, err.Index)
-}
-
 var ErrIssueAlreadyChanged = util.NewInvalidArgumentErrorf("the issue is already changed")
 
 // Issue represents an issue or pull request of repository.
