@@ -59,7 +59,7 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls?) {
     copyPermalink.setAttribute('data-url', link);
   };
 
-  if ($selectionStartEls) {
+  if ($selectionStartEls && $selectionStartEls[0]) {
     let a = parseInt($selectionEndEl[0].getAttribute('rel').slice(1));
     let b = parseInt($selectionStartEls[0].getAttribute('rel').slice(1));
     let c;
