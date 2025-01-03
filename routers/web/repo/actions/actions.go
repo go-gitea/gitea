@@ -32,8 +32,9 @@ import (
 )
 
 const (
-	tplListActions templates.TplName = "repo/actions/list"
-	tplViewActions templates.TplName = "repo/actions/view"
+	tplListActions           templates.TplName = "repo/actions/list"
+	tplDispatchInputsActions templates.TplName = "repo/actions/workflow_dispatch_inputs"
+	tplViewActions           templates.TplName = "repo/actions/view"
 )
 
 type Workflow struct {
@@ -62,6 +63,14 @@ func MustEnableActions(ctx *context.Context) {
 }
 
 func List(ctx *context.Context) {
+	renderListAndWorkflowDispatchTemplate(ctx, tplListActions, false)
+}
+
+func WorkflowDispatchInputs(ctx *context.Context) {
+	renderListAndWorkflowDispatchTemplate(ctx, tplDispatchInputsActions, true)
+}
+
+func renderListAndWorkflowDispatchTemplate(ctx *context.Context, tplName templates.TplName, inputsOnly bool) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
 	workflowID := ctx.FormString("workflow")
@@ -75,10 +84,34 @@ func List(ctx *context.Context) {
 		ctx.ServerError("IsEmpty", err)
 		return
 	} else if !empty {
-		commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-		if err != nil {
-			ctx.ServerError("GetBranchCommit", err)
-			return
+		var commit *git.Commit
+		if inputsOnly {
+			ref := ctx.FormString("ref")
+			if len(ref) == 0 {
+				ctx.ServerError("ref", nil)
+				return
+			}
+			// get target commit of run from specified ref
+			refName := git.RefName(ref)
+			var err error
+			if refName.IsTag() {
+				commit, err = ctx.Repo.GitRepo.GetTagCommit(refName.TagName())
+			} else if refName.IsBranch() {
+				commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName.BranchName())
+			} else {
+				ctx.ServerError("git_ref_name_error", nil)
+				return
+			}
+			if err != nil {
+				ctx.ServerError("target_ref_not_exist", err)
+				return
+			}
+		} else {
+			commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+			if err != nil {
+				ctx.ServerError("GetBranchCommit", err)
+				return
+			}
 		}
 		entries, err := actions.ListWorkflows(commit)
 		if err != nil {
@@ -207,65 +240,67 @@ func List(ctx *context.Context) {
 		}
 	}
 
-	// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
-	// they will be 0 by default, which indicates get all status or actors
-	ctx.Data["CurActor"] = actorID
-	ctx.Data["CurStatus"] = status
-	if actorID > 0 || status > int(actions_model.StatusUnknown) {
-		ctx.Data["IsFiltered"] = true
+	if !inputsOnly {
+		// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
+		// they will be 0 by default, which indicates get all status or actors
+		ctx.Data["CurActor"] = actorID
+		ctx.Data["CurStatus"] = status
+		if actorID > 0 || status > int(actions_model.StatusUnknown) {
+			ctx.Data["IsFiltered"] = true
+		}
+
+		opts := actions_model.FindRunOptions{
+			ListOptions: db.ListOptions{
+				Page:     page,
+				PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
+			},
+			RepoID:        ctx.Repo.Repository.ID,
+			WorkflowID:    workflowID,
+			TriggerUserID: actorID,
+		}
+
+		// if status is not StatusUnknown, it means user has selected a status filter
+		if actions_model.Status(status) != actions_model.StatusUnknown {
+			opts.Status = []actions_model.Status{actions_model.Status(status)}
+		}
+
+		runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
+		if err != nil {
+			ctx.ServerError("FindAndCount", err)
+			return
+		}
+
+		for _, run := range runs {
+			run.Repo = ctx.Repo.Repository
+		}
+
+		if err := actions_model.RunList(runs).LoadTriggerUser(ctx); err != nil {
+			ctx.ServerError("LoadTriggerUser", err)
+			return
+		}
+
+		if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, runs); err != nil {
+			log.Error("LoadIsRefDeleted", err)
+		}
+
+		ctx.Data["Runs"] = runs
+
+		actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.ServerError("GetActors", err)
+			return
+		}
+		ctx.Data["Actors"] = shared_user.MakeSelfOnTop(ctx.Doer, actors)
+
+		ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx)
+
+		pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
+		pager.AddParamFromRequest(ctx.Req)
+		ctx.Data["Page"] = pager
+		ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 	}
 
-	opts := actions_model.FindRunOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
-		},
-		RepoID:        ctx.Repo.Repository.ID,
-		WorkflowID:    workflowID,
-		TriggerUserID: actorID,
-	}
-
-	// if status is not StatusUnknown, it means user has selected a status filter
-	if actions_model.Status(status) != actions_model.StatusUnknown {
-		opts.Status = []actions_model.Status{actions_model.Status(status)}
-	}
-
-	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
-	if err != nil {
-		ctx.ServerError("FindAndCount", err)
-		return
-	}
-
-	for _, run := range runs {
-		run.Repo = ctx.Repo.Repository
-	}
-
-	if err := actions_model.RunList(runs).LoadTriggerUser(ctx); err != nil {
-		ctx.ServerError("LoadTriggerUser", err)
-		return
-	}
-
-	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, runs); err != nil {
-		log.Error("LoadIsRefDeleted", err)
-	}
-
-	ctx.Data["Runs"] = runs
-
-	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.ServerError("GetActors", err)
-		return
-	}
-	ctx.Data["Actors"] = shared_user.MakeSelfOnTop(ctx.Doer, actors)
-
-	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx)
-
-	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
-	pager.AddParamFromRequest(ctx.Req)
-	ctx.Data["Page"] = pager
-	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
-
-	ctx.HTML(http.StatusOK, tplListActions)
+	ctx.HTML(http.StatusOK, tplName)
 }
 
 // loadIsRefDeleted loads the IsRefDeleted field for each run in the list.
