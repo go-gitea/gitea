@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -60,13 +61,15 @@ func (err ErrRepoIsArchived) Error() string {
 }
 
 var (
-	reservedRepoNames    = []string{".", "..", "-"}
-	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
+	validRepoNamePattern   = regexp.MustCompile(`[-.\w]+`)
+	invalidRepoNamePattern = regexp.MustCompile(`[.]{2,}`)
+	reservedRepoNames      = []string{".", "..", "-"}
+	reservedRepoPatterns   = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
 )
 
-// IsUsableRepoName returns true when repository is usable
+// IsUsableRepoName returns true when name is usable
 func IsUsableRepoName(name string) error {
-	if db.AlphaDashDotPattern.MatchString(name) {
+	if !validRepoNamePattern.MatchString(name) || invalidRepoNamePattern.MatchString(name) {
 		// Note: usually this error is normally caught up earlier in the UI
 		return db.ErrNameCharsNotAllowed{Name: name}
 	}

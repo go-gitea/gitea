@@ -131,14 +131,8 @@ func NewFuncMap() template.FuncMap {
 		"EnableTimetracking": func() bool {
 			return setting.Service.EnableTimetracking
 		},
-		"DisableGitHooks": func() bool {
-			return setting.DisableGitHooks
-		},
 		"DisableWebhooks": func() bool {
 			return setting.DisableWebhooks
-		},
-		"DisableImportLocal": func() bool {
-			return !setting.ImportLocalPaths
 		},
 		"UserThemeName": userThemeName,
 		"NotificationSettings": func() map[string]any {
@@ -264,21 +258,41 @@ func userThemeName(user *user_model.User) string {
 	return setting.UI.DefaultTheme
 }
 
+func isQueryParamEmpty(v any) bool {
+	return v == nil || v == false || v == 0 || v == int64(0) || v == ""
+}
+
 // QueryBuild builds a query string from a list of key-value pairs.
-// It omits the nil and empty strings, but it doesn't omit other zero values,
-// because the zero value of number types may have a meaning.
+// It omits the nil, false, zero int/int64 and empty string values,
+// because they are default empty values for "ctx.FormXxx" calls.
+// If 0 or false need to be included, use string values: "0" and "false".
+// Build rules:
+// * Even parameters: always build as query string: a=b&c=d
+// * Odd parameters:
+// * * {"/anything", param-pairs...} => "/?param-paris"
+// * * {"anything?old-params", new-param-pairs...} => "anything?old-params&new-param-paris"
+// * * Otherwise: {"old&params", new-param-pairs...} => "old&params&new-param-paris"
+// * * Other behaviors are undefined yet.
 func QueryBuild(a ...any) template.URL {
-	var s string
+	var reqPath, s string
+	hasTrailingSep := false
 	if len(a)%2 == 1 {
 		if v, ok := a[0].(string); ok {
-			if v == "" || (v[0] != '?' && v[0] != '&') {
-				panic("QueryBuild: invalid argument")
-			}
 			s = v
 		} else if v, ok := a[0].(template.URL); ok {
 			s = string(v)
 		} else {
 			panic("QueryBuild: invalid argument")
+		}
+		hasTrailingSep = s != "&" && strings.HasSuffix(s, "&")
+		if strings.HasPrefix(s, "/") || strings.Contains(s, "?") {
+			if s1, s2, ok := strings.Cut(s, "?"); ok {
+				reqPath = s1 + "?"
+				s = s2
+			} else {
+				reqPath += s + "?"
+				s = ""
+			}
 		}
 	}
 	for i := len(a) % 2; i < len(a); i += 2 {
@@ -290,19 +304,16 @@ func QueryBuild(a ...any) template.URL {
 		if va, ok := a[i+1].(string); ok {
 			v = va
 		} else if a[i+1] != nil {
-			v = fmt.Sprint(a[i+1])
+			if !isQueryParamEmpty(a[i+1]) {
+				v = fmt.Sprint(a[i+1])
+			}
 		}
 		// pos1 to pos2 is the "k=v&" part, "&" is optional
 		pos1 := strings.Index(s, "&"+k+"=")
 		if pos1 != -1 {
 			pos1++
-		} else {
-			pos1 = strings.Index(s, "?"+k+"=")
-			if pos1 != -1 {
-				pos1++
-			} else if strings.HasPrefix(s, k+"=") {
-				pos1 = 0
-			}
+		} else if strings.HasPrefix(s, k+"=") {
+			pos1 = 0
 		}
 		pos2 := len(s)
 		if pos1 == -1 {
@@ -315,7 +326,7 @@ func QueryBuild(a ...any) template.URL {
 		}
 		if v != "" {
 			sep := ""
-			hasPrefixSep := pos1 == 0 || (pos1 <= len(s) && (s[pos1-1] == '?' || s[pos1-1] == '&'))
+			hasPrefixSep := pos1 == 0 || (pos1 <= len(s) && s[pos1-1] == '&')
 			if !hasPrefixSep {
 				sep = "&"
 			}
@@ -324,8 +335,21 @@ func QueryBuild(a ...any) template.URL {
 			s = s[:pos1] + s[pos2:]
 		}
 	}
-	if s != "" && s != "&" && s[len(s)-1] == '&' {
+	if s != "" && s[len(s)-1] == '&' && !hasTrailingSep {
 		s = s[:len(s)-1]
+	}
+	if reqPath != "" {
+		if s == "" {
+			s = reqPath
+			if s != "?" {
+				s = s[:len(s)-1]
+			}
+		} else {
+			if s[0] == '&' {
+				s = s[1:]
+			}
+			s = reqPath + s
+		}
 	}
 	return template.URL(s)
 }

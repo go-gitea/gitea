@@ -35,7 +35,6 @@ import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit
 import {initRepoTopicBar} from './features/repo-home.ts';
 import {initViewFileTreeSidebar} from './features/repo-view-file-tree-sidebar.ts';
 import {initAdminCommon} from './features/admin/common.ts';
-import {initRepoTemplateSearch} from './features/repo-template.ts';
 import {initRepoCodeView} from './features/repo-code.ts';
 import {initSshKeyFormParser} from './features/sshkey-helper.ts';
 import {initUserSettings} from './features/user-settings.ts';
@@ -194,7 +193,6 @@ onDomReady(() => {
     initRepoPullRequestReview,
     initRepoRelease,
     initRepoReleaseNew,
-    initRepoTemplateSearch,
     initRepoTopicBar,
     initViewFileTreeSidebar,
     initRepoWikiForm,

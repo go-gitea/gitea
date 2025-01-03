@@ -27,7 +27,7 @@ func RepoAssignment(ctx *gitea_context.PrivateContext) {
 		return
 	}
 
-	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx, repo)
+	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{

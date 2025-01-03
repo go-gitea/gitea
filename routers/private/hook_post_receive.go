@@ -368,7 +368,7 @@ func handlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.H
 		if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
 			return fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", opts.PullRequestID, err)
 		}
-		if _, err := pr.SetMerged(ctx); err != nil {
+		if _, err := pull_service.SetMerged(ctx, pr); err != nil {
 			return fmt.Errorf("SetMerged failed: %s/%s Error: %v", ownerName, repoName, err)
 		}
 		return nil
