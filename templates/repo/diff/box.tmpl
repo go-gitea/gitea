@@ -195,6 +195,28 @@
 											{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
 										{{end}}
 									</div>
+								{{else if and $file.IsSubmodule $file.SubmoduleInfo}}
+									<div class="ui message">
+										{{$subModule := $file.SubmoduleInfo}}
+										{{$refURL := $subModule.RefURL $.Repository.FullName}}
+										{{svg "octicon-file-submodule"}}
+
+										{{if $file.IsDeleted}}
+											{{ctx.Locale.Tr "repo.diff.submodule_deleted" $file.Name (ShortSha $subModule.RefID)}}
+										{{else if $file.IsCreated}}
+											{{if $refURL}}
+												{{ctx.Locale.Tr "repo.diff.submodule_added_link" $refURL $file.Name (ShortSha $subModule.RefID) (PathEscape $subModule.RefID)}}
+											{{else}}
+												{{ctx.Locale.Tr "repo.diff.submodule_added" $file.Name (ShortSha $subModule.RefID)}}
+											{{end}}
+										{{else}}
+											{{if $refURL}}
+												{{ctx.Locale.Tr "repo.diff.submodule_updated_link" $refURL $file.Name (ShortSha $subModule.PreviousRefID) (PathEscape $subModule.PreviousRefID) (ShortSha $subModule.RefID) (PathEscape $subModule.RefID)}}
+											{{else}}
+												{{ctx.Locale.Tr "repo.diff.submodule_updated" $file.Name (ShortSha $subModule.PreviousRefID) (ShortSha $subModule.RefID)}}
+											{{end}}
+										{{end}}
+									</div>
 								{{else}}
 									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
 										{{if $.IsSplitStyle}}

@@ -372,6 +372,7 @@ type DiffFile struct {
 	Language                  string
 	Mode                      string
 	OldMode                   string
+	SubmoduleInfo             *SubmoduleInfo
 }
 
 // GetType returns type of diff file.
@@ -915,6 +916,17 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 				}
 			}
 			curSection.Lines = append(curSection.Lines, diffLine)
+
+			// Parse submodule additions
+			if curFile.IsSubmodule {
+				if curFile.SubmoduleInfo == nil {
+					curFile.SubmoduleInfo = &SubmoduleInfo{}
+				}
+
+				if ref, found := bytes.CutPrefix(lineBytes, []byte("+Subproject commit ")); found {
+					curFile.SubmoduleInfo.NewRefID = string(bytes.TrimSpace(ref))
+				}
+			}
 		case '-':
 			curFileLinesCount++
 			curFile.Deletion++
@@ -936,6 +948,17 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 				lastLeftIdx = len(curSection.Lines)
 			}
 			curSection.Lines = append(curSection.Lines, diffLine)
+
+			// Parse submodule deletion
+			if curFile.IsSubmodule {
+				if curFile.SubmoduleInfo == nil {
+					curFile.SubmoduleInfo = &SubmoduleInfo{}
+				}
+
+				if ref, found := bytes.CutPrefix(lineBytes, []byte("-Subproject commit ")); found {
+					curFile.SubmoduleInfo.PreviousRefID = string(bytes.TrimSpace(ref))
+				}
+			}
 		case ' ':
 			curFileLinesCount++
 			if maxLines > -1 && curFileLinesCount >= maxLines {
@@ -1192,6 +1215,14 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 				if language.Has() {
 					diffFile.Language = language.Value()
 				}
+			}
+		}
+
+		// Populate Submodule URLs
+		if diffFile.IsSubmodule && diffFile.SubmoduleInfo != nil {
+			err := diffFile.SubmoduleInfo.PopulateURL(diffFile, beforeCommit, commit)
+			if err != nil {
+				return nil, err
 			}
 		}
 
