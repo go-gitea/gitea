@@ -101,7 +101,7 @@
 
 						{{if not $isTreePathRoot}}
 							{{$treeNameIdxLast := Eval $treeNamesLen "-" 1}}
-							<span class="breadcrumb repo-path tw-ml-1">
+							<span id="repo_path" class="breadcrumb repo-path tw-ml-1">
 								<a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
 								{{- range $i, $v := .TreeNames -}}
 									<span class="breadcrumb-divider">/</span>
@@ -122,25 +122,16 @@
 							{{template "repo/clone_panel" .}}
 						{{end}}
 						{{if and (not $isTreePathRoot) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home), TODO: split the templates, avoid using "if" tricks */}}
-							<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
+							<a id="path_history" class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
 								{{svg "octicon-history" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_history"}}
 							</a>
 						{{end}}
 					</div>
 				</div>
-				{{if .IsViewFile}}
-					{{template "repo/view_file" .}}
-				{{else if .IsBlame}}
-					{{template "repo/blame" .}}
-				{{else}}{{/* IsViewDirectory */}}
-					{{if $isTreePathRoot}}
-						{{template "repo/code/upstream_diverging_info" .}}
-					{{end}}
-					{{template "repo/view_list" .}}
-					{{if and .ReadmeExist (or .IsMarkup .IsPlainText)}}
-						{{template "repo/view_file" .}}
-					{{end}}
-				{{end}}
+
+				<div id="path_content">
+					{{template "repo/home_content" .}}
+				</div>
 			</div>
 
 			{{if $showSidebar}}
