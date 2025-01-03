@@ -357,6 +357,8 @@ func handlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.H
 		return
 	}
 
+	// FIXME: Maybe we need a `PullRequestStatusMerged` status for PRs that are merged, currently we use the previous status
+	// here to keep it as before, that maybe PullRequestStatusMergeable
 	if _, err := pull_service.SetMerged(ctx, pr, updates[len(updates)-1].NewCommitID, timeutil.TimeStampNow(), pusher, pr.Status); err != nil {
 		log.Error("Failed to update PR to merged: %v", err)
 		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "Failed to update PR to merged"})
