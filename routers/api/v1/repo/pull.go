@@ -417,6 +417,8 @@ func CreatePullRequest(ctx *context.APIContext) {
 			ctx.NotFound("GetRepositoryByOwnerAndName")
 		case errors.Is(err, util.ErrInvalidArgument):
 			ctx.NotFound("ParseComparePathParams")
+		case git.IsErrNotExist(err):
+			ctx.NotFound("ParseComparePathParams")
 		default:
 			ctx.ServerError("GetRepositoryByOwnerAndName", err)
 		}

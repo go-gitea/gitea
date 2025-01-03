@@ -30,6 +30,10 @@ func (cr *CompareRouter) DirectComparison() bool {
 	return cr.DotTimes == 2
 }
 
+func (cr *CompareRouter) CompareDots() string {
+	return strings.Repeat(".", cr.DotTimes)
+}
+
 func parseBase(base string) (string, int) {
 	parts := strings.SplitN(base, "^", 2)
 	if len(parts) == 1 {

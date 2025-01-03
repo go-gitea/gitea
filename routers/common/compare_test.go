@@ -414,6 +414,26 @@ func Test_ParseComparePathParams(t *testing.T) {
 				IsHeadCommit: true,
 			},
 		},
+		{
+			repoName: "repo1",
+			hasClose: true,
+			router:   "user12/repo10:master",
+			compareInfo: &CompareInfo{
+				CompareRouter: &CompareRouter{
+					BaseOriRef:    repo11.DefaultBranch,
+					BaseFullRef:   git.RefNameFromBranch(repo11.DefaultBranch),
+					HeadOwnerName: "user12",
+					HeadRepoName:  "repo10",
+					HeadOriRef:    "master",
+					HeadFullRef:   git.RefNameFromBranch("master"),
+					DotTimes:      3,
+				},
+				BaseRepo:    repo1,
+				HeadUser:    repo10.Owner,
+				HeadRepo:    repo10,
+				HeadGitRepo: gitRepo10,
+			},
+		},
 	}
 
 	for _, kase := range kases {

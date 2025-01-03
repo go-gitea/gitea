@@ -554,11 +554,8 @@ func CompareDiff(ctx *context.Context) {
 	}
 	beforeCommitID := ctx.Data["BeforeCommitID"].(string)
 	afterCommitID := ctx.Data["AfterCommitID"].(string)
+	separator := ci.CompareDots()
 
-	separator := "..."
-	if ci.DirectComparison() {
-		separator = ".."
-	}
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + separator + base.ShortSha(afterCommitID)
 
 	ctx.Data["IsDiffCompare"] = true

@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -68,6 +69,8 @@ func CompareDiff(ctx *context.APIContext) {
 		case repo_model.IsErrRepoNotExist(err):
 			ctx.NotFound("GetRepositoryByOwnerAndName")
 		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.NotFound("ParseComparePathParams")
+		case git.IsErrNotExist(err):
 			ctx.NotFound("ParseComparePathParams")
 		default:
 			ctx.ServerError("GetRepositoryByOwnerAndName", err)
