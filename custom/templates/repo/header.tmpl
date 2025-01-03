@@ -59,7 +59,7 @@
 						{{svg "octicon-device-desktop" 16}}
 					</a>
 					<!-- TODO: add end if enabled check -->
-					{{if $.EnableFeed}}
+					{{if and $.IsAdmin $.EnableFeed}}
 					{{/* An extra div-element is not necessary here, as this button does not secretly contain two buttons. */}}
 					<a class="ui compact small basic button" href="{{$.RepoLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
 						{{svg "octicon-rss" 16}}
@@ -69,7 +69,7 @@
 					{{if not $.DisableStars}}
 					{{template "repo/star_unstar" $}}
 					{{end}}
-					{{if and (not .IsEmpty) ($.Permission.IsOwner)}}
+					{{if and $.IsAdmin (not .IsEmpty)}}
 						<div class="ui labeled button
 							{{if or (not $.IsSigned) (and (not $.CanSignedUserFork) (not $.UserAndOrgForks))}}
 								disabled

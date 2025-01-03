@@ -13,7 +13,7 @@
 					{{svg "octicon-device-desktop" 24}}
 				</a>
 				<!-- TODO: add end if enabled check -->
-				{{if .EnableFeed}}
+				{{if and .IsAdmin .EnableFeed}}
 					<a class="ui basic label button tw-mr-0" href="{{.Org.HomeLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
 						{{svg "octicon-rss" 24}}
 					</a>

@@ -41,7 +41,7 @@
 							"AllowCreateNewRef" .CanCreateBranch
 							"ShowViewAllRefsEntry" true
 						}}
-						{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
+						{{if and .IsAdmin .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 							{{$cmpBranch := ""}}
 							{{if ne .Repository.ID .BaseRepo.ID}}
 								{{$cmpBranch = printf "%s/%s:" (.Repository.OwnerName|PathEscape) (.Repository.Name|PathEscape)}}
@@ -57,26 +57,6 @@
 						<!-- Show go to file if on home page -->
 						{{if $isTreePathRoot}}
 							<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{ctx.Locale.Tr "repo.find_file.go_to_file"}}</a>
-						{{end}}
-
-						{{if and .CanWriteCode .IsViewBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
-							<button class="ui dropdown basic compact jump button"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
-								{{ctx.Locale.Tr "repo.editor.add_file"}}
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="menu">
-									<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-										{{ctx.Locale.Tr "repo.editor.new_file"}}
-									</a>
-									{{if .RepositoryUploadEnabled}}
-									<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-										{{ctx.Locale.Tr "repo.editor.upload_file"}}
-									</a>
-									{{end}}
-									<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-										{{ctx.Locale.Tr "repo.editor.patch"}}
-									</a>
-								</div>
-							</button>
 						{{end}}
 
 						{{if and $isTreePathRoot .Repository.IsTemplate}}
@@ -103,9 +83,9 @@
 					</div>
 
 					<div class="repo-button-row-right">
-						<!-- Only show clone panel in repository home page -->
-						{{if $isTreePathRoot}}
-							{{template "repo/clone_panel" .}}
+						<!-- Only show add panel in repository home page -->
+						{{if and .CanWriteCode .IsViewBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
+							{{template "repo/add_panel" .}}
 						{{end}}
 						{{if and (not $isTreePathRoot) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home), TODO: split the templates, avoid using "if" tricks */}}
 							<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">

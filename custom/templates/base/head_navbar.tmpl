@@ -99,7 +99,7 @@
 				</div>
 			</a>
 
-			{{if $.Permission.IsOwner}}
+			{{if .IsAdmin}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
 				<span class="text">
 					{{svg "octicon-plus"}}

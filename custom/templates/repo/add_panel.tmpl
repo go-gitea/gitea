@@ -1,0 +1,22 @@
+<button class="ui dropdown primary compact jump button"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+	<span>{{svg "octicon-plus" 16}}</span>
+	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+	<div class="menu">
+		<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+			{{ctx.Locale.Tr "repo.editor.new_file"}}
+		</a>
+		{{if .RepositoryUploadEnabled}}
+		<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+			{{ctx.Locale.Tr "repo.editor.upload_file"}}
+		</a>
+		{{end}}
+		<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+			{{ctx.Locale.Tr "repo.editor.new_directory"}}
+		</a>
+		{{if $.IsAdmin}}
+		<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+			{{ctx.Locale.Tr "repo.editor.patch"}}
+		</a>
+		{{end}}
+	</div>
+</button>
