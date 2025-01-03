@@ -170,6 +170,20 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 	return &branch, nil
 }
 
+func GetNonDeletedBranch(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
+	b, err := GetBranch(ctx, repoID, branchName)
+	if err != nil {
+		return nil, err
+	}
+	if b.IsDeleted {
+		return nil, ErrBranchNotExist{
+			RepoID:     repoID,
+			BranchName: branchName,
+		}
+	}
+	return b, nil
+}
+
 func GetBranches(ctx context.Context, repoID int64, branchNames []string, includeDeleted bool) ([]*Branch, error) {
 	branches := make([]*Branch, 0, len(branchNames))
 

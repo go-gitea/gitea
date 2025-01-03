@@ -324,7 +324,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		} else if files_service.IsErrRepoFileAlreadyExists(err) {
 			ctx.Data["Err_TreePath"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_already_exists", form.TreePath), tplEditFile, &form)
-		} else if git.IsErrBranchNotExist(err) {
+		} else if git_model.IsErrBranchNotExist(err) {
 			// For when a user adds/updates a file to a branch that no longer exists
 			if branchErr, ok := err.(git.ErrBranchNotExist); ok {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_does_not_exist", branchErr.Name), tplEditFile, &form)
@@ -526,7 +526,7 @@ func DeleteFilePost(ctx *context.Context) {
 			} else {
 				ctx.ServerError("DeleteRepoFile", err)
 			}
-		} else if git.IsErrBranchNotExist(err) {
+		} else if git_model.IsErrBranchNotExist(err) {
 			// For when a user deletes a file to a branch that no longer exists
 			if branchErr, ok := err.(git.ErrBranchNotExist); ok {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_does_not_exist", branchErr.Name), tplDeleteFile, &form)
@@ -654,7 +654,7 @@ func UploadFilePost(ctx *context.Context) {
 	}
 
 	if oldBranchName != branchName {
-		if _, err := ctx.Repo.GitRepo.GetBranch(branchName); err == nil {
+		if _, err := git_model.GetNonDeletedBranch(ctx, ctx.Repo.Repository.ID, branchName); err == nil {
 			ctx.Data["Err_NewBranchName"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), tplUploadFile, &form)
 			return
@@ -852,8 +852,8 @@ func GetUniquePatchBranchName(ctx *context.Context) string {
 	prefix := ctx.Doer.LowerName + "-patch-"
 	for i := 1; i <= 1000; i++ {
 		branchName := fmt.Sprintf("%s%d", prefix, i)
-		if _, err := ctx.Repo.GitRepo.GetBranch(branchName); err != nil {
-			if git.IsErrBranchNotExist(err) {
+		if _, err := git_model.GetNonDeletedBranch(ctx, ctx.Repo.Repository.ID, branchName); err != nil {
+			if git_model.IsErrBranchNotExist(err) {
 				return branchName
 			}
 			log.Error("GetUniquePatchBranchName: %v", err)

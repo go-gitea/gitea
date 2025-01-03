@@ -1511,7 +1511,7 @@ func deleteBranch(ctx *context.Context, pr *issues_model.PullRequest, gitRepo *g
 
 	if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, gitRepo, pr.HeadBranch); err != nil {
 		switch {
-		case git.IsErrBranchNotExist(err):
+		case git_model.IsErrBranchNotExist(err):
 			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		case errors.Is(err, repo_service.ErrBranchIsDefault):
 			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))

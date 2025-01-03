@@ -58,9 +58,9 @@ func GetBranch(ctx *context.APIContext) {
 
 	branchName := ctx.PathParam("*")
 
-	branch, err := ctx.Repo.GitRepo.GetBranch(branchName)
+	branch, err := git_model.GetNonDeletedBranch(ctx, ctx.Repo.Repository.ID, branchName)
 	if err != nil {
-		if git.IsErrBranchNotExist(err) {
+		if git_model.IsErrBranchNotExist(err) {
 			ctx.NotFound(err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetBranch", err)
@@ -68,7 +68,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	c, err := branch.GetCommit()
+	c, err := ctx.Repo.GitRepo.GetCommit(branch.CommitID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 		return
@@ -152,7 +152,7 @@ func DeleteBranch(ctx *context.APIContext) {
 
 	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
-		case git.IsErrBranchNotExist(err):
+		case git_model.IsErrBranchNotExist(err):
 			ctx.NotFound(err)
 		case errors.Is(err, repo_service.ErrBranchIsDefault):
 			ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
@@ -259,13 +259,17 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branch, err := ctx.Repo.GitRepo.GetBranch(opt.BranchName)
+	branch, err := git_model.GetNonDeletedBranch(ctx, ctx.Repo.Repository.ID, opt.BranchName)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetBranch", err)
+		if git_model.IsErrBranchNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetBranch", err)
+		}
 		return
 	}
 
-	commit, err := branch.GetCommit()
+	commit, err := ctx.Repo.GitRepo.GetCommit(branch.CommitID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 		return
