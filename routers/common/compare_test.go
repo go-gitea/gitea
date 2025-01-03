@@ -314,6 +314,26 @@ func Test_ParseComparePathParams(t *testing.T) {
 			},
 		},
 		{
+			repoName: "repo11",
+			hasClose: true,
+			router:   "user12/repo10:master",
+			compareInfo: &CompareInfo{
+				CompareRouter: &CompareRouter{
+					BaseOriRef:    repo11.DefaultBranch,
+					BaseFullRef:   git.RefNameFromBranch(repo11.DefaultBranch),
+					HeadOwnerName: "user12",
+					HeadRepoName:  "repo10",
+					HeadOriRef:    "master",
+					HeadFullRef:   git.RefNameFromBranch("master"),
+					DotTimes:      3,
+				},
+				BaseRepo:    repo11,
+				HeadUser:    repo10.Owner,
+				HeadRepo:    repo10,
+				HeadGitRepo: gitRepo10,
+			},
+		},
+		{
 			repoName: "repo1",
 			router:   "master...v1.1",
 			compareInfo: &CompareInfo{
@@ -406,6 +426,11 @@ func Test_ParseComparePathParams(t *testing.T) {
 			} else if kase.repoName == "repo10" {
 				baseRepo = repo10
 				baseGitRepo = gitRepo10
+			} else if kase.repoName == "repo11" {
+				baseRepo = repo11
+				baseGitRepo = gitRepo11
+			} else {
+				t.Fatalf("unknown repo name: %s", kase.router)
 			}
 			r, err := ParseComparePathParams(context.Background(), kase.router, baseRepo, baseGitRepo)
 			assert.NoError(t, err)
