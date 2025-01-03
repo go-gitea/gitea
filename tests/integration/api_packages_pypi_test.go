@@ -236,5 +236,4 @@ func TestPackagePyPI(t *testing.T) {
 			}
 		}
 	})
-
 }
