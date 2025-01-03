@@ -112,6 +112,7 @@
   commit_message: 'first commit'
   commit_time: 978307100
   pusher_id: 1
+  is_deleted: false
 
 -
   id: 18
@@ -121,6 +122,7 @@
   commit_message: 'Initial commit'
   commit_time: 1489956479
   pusher_id: 1
+  is_deleted: false
 
 -
   id: 19
@@ -140,6 +142,7 @@
   commit_message: 'add WoW File'
   commit_time: 1579200695
   pusher_id: 1
+  is_deleted: false
 
 -
   id: 21
