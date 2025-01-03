@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/renderhelper"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -27,8 +28,6 @@ import (
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
 	files_service "code.gitea.io/gitea/services/repository/files"
-
-	"github.com/nektos/act/pkg/model"
 )
 
 func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
@@ -75,7 +74,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		if err != nil {
 			log.Error("actions.GetContentFromEntry: %v", err)
 		}
-		_, workFlowErr := model.ReadWorkflow(bytes.NewReader(content))
+		workFlowErr := jobparser.ValidateWorkflow(content)
 		if workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}

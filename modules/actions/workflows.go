@@ -4,17 +4,16 @@
 package actions
 
 import (
-	"bytes"
 	"io"
 	"strings"
 
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/gobwas/glob"
-	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 	"github.com/nektos/act/pkg/workflowpattern"
 	"gopkg.in/yaml.v3"
@@ -82,23 +81,10 @@ func GetContentFromEntry(entry *git.TreeEntry) ([]byte, error) {
 	return content, nil
 }
 
-func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
-	workflow, err := model.ReadWorkflow(bytes.NewReader(content))
-	if err != nil {
-		return nil, err
-	}
-	events, err := jobparser.ParseRawOn(&workflow.RawOn)
-	if err != nil {
-		return nil, err
-	}
-
-	return events, nil
-}
-
 func DetectWorkflows(
 	gitRepo *git.Repository,
 	commit *git.Commit,
-	triggedEvent webhook_module.HookEventType,
+	triggeredEvent webhook_module.HookEventType,
 	payload api.Payloader,
 	detectSchedule bool,
 ) ([]*DetectedWorkflow, []*DetectedWorkflow, error) {
@@ -116,13 +102,13 @@ func DetectWorkflows(
 		}
 
 		// one workflow may have multiple events
-		events, err := GetEventsFromContent(content)
+		events, err := jobparser.GetEventsFromContent(content)
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
 			continue
 		}
 		for _, evt := range events {
-			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
+			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggeredEvent)
 			if evt.IsSchedule() {
 				if detectSchedule {
 					dwf := &DetectedWorkflow{
@@ -132,7 +118,7 @@ func DetectWorkflows(
 					}
 					schedules = append(schedules, dwf)
 				}
-			} else if detectMatched(gitRepo, commit, triggedEvent, payload, evt) {
+			} else if detectMatched(gitRepo, commit, triggeredEvent, payload, evt) {
 				dwf := &DetectedWorkflow{
 					EntryName:    entry.Name(),
 					TriggerEvent: evt,
@@ -160,7 +146,7 @@ func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*D
 		}
 
 		// one workflow may have multiple events
-		events, err := GetEventsFromContent(content)
+		events, err := jobparser.GetEventsFromContent(content)
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
 			continue
