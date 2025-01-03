@@ -16,6 +16,8 @@
 
 		{{template "repo/code/recently_pushed_new_branches" .}}
 
+		<div id="rich-text-editor"></div>
+
 		{{$treeNamesLen := len .TreeNames}}
 		{{$isTreePathRoot := eq $treeNamesLen 0}}
 		{{$showSidebar := and $isTreePathRoot (not .HideRepoInfo) (not .IsBlame)}}
