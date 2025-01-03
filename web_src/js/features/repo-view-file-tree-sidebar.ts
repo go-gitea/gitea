@@ -29,9 +29,11 @@ async function toggleSidebar(visibility) {
 }
 
 async function loadChildren(item, recursive?: boolean) {
-  const el = document.querySelector('#view-file-tree');
-  const apiBaseUrl = el.getAttribute('data-api-base-url');
-  const response = await GET(`${apiBaseUrl}/tree/${item ? item.path : ''}?ref=&recursive=${recursive ?? false}`);
+  const fileTree = document.querySelector('#view-file-tree');
+  const apiBaseUrl = fileTree.getAttribute('data-api-base-url');
+  const refType = fileTree.getAttribute('data-current-ref-type');
+  const refName = fileTree.getAttribute('data-current-ref-short-name');
+  const response = await GET(`${apiBaseUrl}/tree/${item ? item.path : ''}?ref=${refType}/${refName}&recursive=${recursive ?? false}`);
   const json = await response.json();
   if (json instanceof Array) {
     return json.map((i) => ({
@@ -64,15 +66,18 @@ export async function initViewFileTreeSidebar() {
   });
 
   const fileTree = document.querySelector('#view-file-tree');
+  const baseUrl = fileTree.getAttribute('data-api-base-url');
   const treePath = fileTree.getAttribute('data-tree-path');
-  const basePath = window.location.href.replace(treePath, '');
+  const refType = fileTree.getAttribute('data-current-ref-type');
+  const refName = fileTree.getAttribute('data-current-ref-short-name');
+
   const selectedItem = ref(treePath);
 
   const files = await loadChildren({path: treePath}, true);
 
   fileTree.classList.remove('is-loading');
   const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren, loadContent: (item) => {
-    window.history.pushState(null, null, `${basePath}${item.path}`);
+    window.history.pushState(null, null, `${baseUrl}/src/${refType}/${refName}/${item.path}`);
     selectedItem.value = item.path;
     loadContent(item);
   }});

@@ -8,7 +8,7 @@
 {{$hasAndShowTreeSidebar := and $hasTreeSidebar $showTreeSidebar}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository file list {{if .IsBlame}}blame{{end}}">
 	{{template "repo/header" .}}
-	<div class="ui container {{if .IsBlame}}fluid padded{{end}}">
+	<div class="ui container {{if or $hasTreeSidebar .IsBlame}}fluid padded{{end}}">
 		{{template "base/alert" .}}
 
 		{{if .Repository.IsArchived}}

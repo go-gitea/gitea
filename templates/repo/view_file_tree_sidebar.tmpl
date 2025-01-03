@@ -1,3 +1,10 @@
+{{$branchDropdownCurrentRefType := "branch"}}
+{{$branchDropdownCurrentRefShortName := .BranchName}}
+{{if .IsViewTag}}
+	{{$branchDropdownCurrentRefType = "tag"}}
+	{{$branchDropdownCurrentRefShortName = .TagName}}
+{{end}}
+
 <div class="view-file-tree-sidebar-top">
 	<div class="sidebar-header">
 		<button class="hide-tree-sidebar-button ui compact basic button icon" title="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
@@ -6,12 +13,6 @@
 		<b> Files</b>
 	</div>
 	<div class="sidebar-ref">
-		{{$branchDropdownCurrentRefType := "branch"}}
-		{{$branchDropdownCurrentRefShortName := .BranchName}}
-		{{if .IsViewTag}}
-			{{$branchDropdownCurrentRefType = "tag"}}
-			{{$branchDropdownCurrentRefShortName = .TagName}}
-		{{end}}
 		{{template "repo/branch_dropdown" dict
 			"Repository" .Repository
 			"ShowTabBranches" true
@@ -59,5 +60,10 @@
 	</div>
 </div>
 <div class="view-file-tree-sidebar-bottom">
-	<div id="view-file-tree" class="is-loading" data-api-base-url="{{.RepoLink}}" data-tree-path="{{$.TreePath}}"></div>
+	<div id="view-file-tree" class="is-loading"
+		data-api-base-url="{{.RepoLink}}"
+		data-tree-path="{{$.TreePath}}"
+		data-current-ref-type="{{$branchDropdownCurrentRefType}}"
+		data-current-ref-short-name="{{$branchDropdownCurrentRefShortName}}"
+	></div>
 </div>
