@@ -127,7 +127,7 @@ type TreeEntry struct {
 	Name     string       `json:"name"`
 	IsFile   bool         `json:"isFile"`
 	Path     string       `json:"path"`
-	Children []*TreeEntry `json:"children, omitempty"`
+	Children []*TreeEntry `json:"children,omitempty"`
 }
 
 /*
