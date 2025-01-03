@@ -39,7 +39,7 @@ func TestPackagePyPI(t *testing.T) {
 
 	root := fmt.Sprintf("/api/packages/%s/pypi", user.Name)
 
-	createBasicMultipartFile := func(packageName, filename, content string) (body *bytes.Buffer, writer *multipart.Writer) {
+	createBasicMultipartFile := func(filename, packageName, content string) (body *bytes.Buffer, writer *multipart.Writer, closer func() error) {
 		body = &bytes.Buffer{}
 		writer = multipart.NewWriter(body)
 		part, _ := writer.CreateFormFile("content", filename)
@@ -53,10 +53,10 @@ func TestPackagePyPI(t *testing.T) {
 		writer.WriteField("sha256_digest", hashSHA256)
 		writer.WriteField("requires_python", "3.6")
 
-		return
+		return body, writer, writer.Close
 	}
 
-	upload := func(t *testing.T, body *bytes.Buffer, contentType string, expectedStatus int) {
+	uploadHelper := func(t *testing.T, body *bytes.Buffer, contentType string, expectedStatus int) {
 		req := NewRequestWithBody(t, "POST", root, body).
 			SetHeader("Content-Type", contentType).
 			AddBasicAuth(user.Name)
@@ -64,14 +64,14 @@ func TestPackagePyPI(t *testing.T) {
 	}
 
 	uploadFile := func(t *testing.T, filename, content string, expectedStatus int) {
-		body, writer := createBasicMultipartFile(packageName, filename, content)
+		body, writer, closeFunc := createBasicMultipartFile(filename, packageName, content)
 
 		writer.WriteField("project_urls", "DOCUMENTATION , https://readthedocs.org")
 		writer.WriteField("project_urls", fmt.Sprintf("Home-page, %s", projectURL))
 
-		_ = writer.Close()
+		_ = closeFunc()
 
-		upload(t, body, writer.FormDataContentType(), expectedStatus)
+		uploadHelper(t, body, writer.FormDataContentType(), expectedStatus)
 	}
 
 	t.Run("Upload", func(t *testing.T) {
@@ -152,13 +152,13 @@ func TestPackagePyPI(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		pkgName := "homepage-package"
-		body, writer := createBasicMultipartFile(pkgName, "test.whl", content)
+		body, writer, closeFunc := createBasicMultipartFile("test.whl", pkgName, content)
 
 		writer.WriteField("home_page", projectURL)
 
-		_ = writer.Close()
+		_ = closeFunc()
 
-		upload(t, body, writer.FormDataContentType(), http.StatusCreated)
+		uploadHelper(t, body, writer.FormDataContentType(), http.StatusCreated)
 
 		pvs, err := packages.GetVersionsByPackageName(db.DefaultContext, user.ID, packages.TypePyPI, pkgName)
 		assert.NoError(t, err)
@@ -174,11 +174,11 @@ func TestPackagePyPI(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		pkgName := "no-project-url-or-homepage-package"
-		body, writer := createBasicMultipartFile(pkgName, "test.whl", content)
+		body, writer, closeFunc := createBasicMultipartFile("test.whl", pkgName, content)
 
-		_ = writer.Close()
+		_ = closeFunc()
 
-		upload(t, body, writer.FormDataContentType(), http.StatusCreated)
+		uploadHelper(t, body, writer.FormDataContentType(), http.StatusCreated)
 
 		pvs, err := packages.GetVersionsByPackageName(db.DefaultContext, user.ID, packages.TypePyPI, pkgName)
 		assert.NoError(t, err)

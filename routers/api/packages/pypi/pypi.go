@@ -143,21 +143,23 @@ func UploadPackageFile(ctx *context.Context) {
 	// Ensure ctx.Req.Form exists.
 	_ = ctx.Req.ParseForm()
 
-	// TODO: Home-page is a deprecated metadata field. Remove this form lookup once it's no longer apart of the spec.
-	homepageURL := ctx.Req.FormValue("home_page")
-	if len(homepageURL) == 0 {
-		projectURLs := ctx.Req.Form["project_urls"]
-		for _, purl := range projectURLs {
-			label, url, found := strings.Cut(purl, ",")
-			if !found {
-				continue
-			}
-			if normalizeLabel(label) != "homepage" {
-				continue
-			}
-			homepageURL = strings.TrimSpace(url)
-			break
+	var homepageURL string
+	projectURLs := ctx.Req.Form["project_urls"]
+	for _, purl := range projectURLs {
+		label, url, found := strings.Cut(purl, ",")
+		if !found {
+			continue
 		}
+		if normalizeLabel(label) != "homepage" {
+			continue
+		}
+		homepageURL = strings.TrimSpace(url)
+		break
+	}
+
+	if len(homepageURL) == 0 {
+		// TODO: Home-page is a deprecated metadata field. Remove this branch once it's no longer apart of the spec.
+		homepageURL = ctx.Req.FormValue("home_page")
 	}
 
 	if !validation.IsValidURL(homepageURL) {
