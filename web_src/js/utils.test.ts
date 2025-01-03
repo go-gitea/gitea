@@ -49,6 +49,7 @@ test('parseIssueNewHref', () => {
   expect(parseIssueNewHref('/owner/repo/issues/new')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues'});
   expect(parseIssueNewHref('/owner/repo/issues/new?query')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues'});
   expect(parseIssueNewHref('/sub/owner/repo/issues/new#hash')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues'});
+  expect(parseIssueNewHref('/sub/owner/repo/compare/feature/branch-1...fix/branch-2')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'pulls'});
 });
 
 test('parseUrl', () => {

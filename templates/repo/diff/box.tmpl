@@ -36,10 +36,7 @@
 			{{template "repo/diff/options_dropdown" .}}
 			{{if .PageIsPullFiles}}
 				<div id="diff-commit-select" data-issuelink="{{$.Issue.Link}}" data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}" data-filter_changes_by_commit="{{ctx.Locale.Tr "repo.pulls.filter_changes_by_commit"}}">
-					{{/*
-						the following will be replaced by vue component
-						but this avoids any loading artifacts till the vue component is initialized
-					*/}}
+					{{/* the following will be replaced by vue component, but this avoids any loading artifacts till the vue component is initialized */}}
 					<div class="ui jump dropdown basic button custom">
 						{{svg "octicon-git-commit"}}
 					</div>
@@ -238,7 +235,7 @@
 
 	{{if and (not $.Repository.IsArchived) (not .DiffNotAvailable)}}
 		<template id="issue-comment-editor-template">
-			<div class="ui form comment">
+			<form class="ui form comment">
 				{{template "shared/combomarkdowneditor" (dict
 					"CustomInit" true
 					"MarkdownPreviewInRepo" $.Repository
@@ -255,7 +252,7 @@
 					<button class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
 					<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
 				</div>
-			</div>
+			</form>
 		</template>
 	{{end}}
 	{{if (not .DiffNotAvailable)}}

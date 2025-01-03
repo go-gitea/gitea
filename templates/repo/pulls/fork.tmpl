@@ -2,13 +2,13 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository new fork">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
-			<form class="ui form" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
-				<h3 class="ui top attached header">
-					{{ctx.Locale.Tr "new_fork"}}
-				</h3>
-				<div class="ui attached segment">
-					{{template "base/alert" .}}
+			<h3 class="ui top attached header">
+				{{ctx.Locale.Tr "new_fork"}}
+			</h3>
+			<div class="ui attached segment">
+				{{template "base/alert" .}}
+				<form class="ui form left-right-form" action="{{.Link}}" method="post">
+					{{.CsrfTokenHtml}}
 					<div class="inline required field {{if .Err_Owner}}error{{end}}">
 						<label>{{ctx.Locale.Tr "repo.owner"}}</label>
 						<div class="ui selection owner dropdown">
@@ -80,8 +80,8 @@
 							{{ctx.Locale.Tr "repo.fork_repo"}}
 						</button>
 					</div>
-				</div>
-			</form>
+				</form>
+			</div>
 		</div>
 	</div>
 </div>

@@ -68,7 +68,7 @@ func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
 
 	// Loop through each schedule row
 	for _, row := range rows {
-		row.Title, _ = util.SplitStringAtByteN(row.Title, 255)
+		row.Title = util.EllipsisDisplayString(row.Title, 255)
 		// Create new schedule row
 		if err = db.Insert(ctx, row); err != nil {
 			return err

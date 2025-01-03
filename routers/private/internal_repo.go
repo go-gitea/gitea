@@ -18,8 +18,8 @@ import (
 
 // RepoAssignment assigns the repository and git repository to the private context
 func RepoAssignment(ctx *gitea_context.PrivateContext) {
-	ownerName := ctx.PathParam(":owner")
-	repoName := ctx.PathParam(":repo")
+	ownerName := ctx.PathParam("owner")
+	repoName := ctx.PathParam("repo")
 
 	repo := loadRepository(ctx, ownerName, repoName)
 	if ctx.Written() {
@@ -27,7 +27,7 @@ func RepoAssignment(ctx *gitea_context.PrivateContext) {
 		return
 	}
 
-	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx, repo)
+	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{

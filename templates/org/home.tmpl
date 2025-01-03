@@ -5,8 +5,8 @@
 	<div class="ui container">
 		<div class="ui mobile reversed stackable grid">
 			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
-				{{if .ProfileReadme}}
-					<div id="readme_profile" class="markup">{{.ProfileReadme}}</div>
+				{{if .ProfileReadmeContent}}
+					<div id="readme_profile" class="markup" data-profile-view-as-member="{{.IsViewingOrgAsMember}}">{{.ProfileReadmeContent}}</div>
 				{{end}}
 				{{template "shared/repo_search" .}}
 				{{template "explore/repo_list" .}}
@@ -24,6 +24,29 @@
 					</div>
 					<div class="divider"></div>
 				{{end}}
+
+				{{if and .ShowMemberAndTeamTab .ShowOrgProfileReadmeSelector}}
+				<div class="tw-my-4">
+					<div id="org-home-view-as-dropdown" class="ui dropdown jump">
+						{{- $viewAsRole := Iif (.IsViewingOrgAsMember) (ctx.Locale.Tr "org.members.member") (ctx.Locale.Tr "settings.visibility.public") -}}
+						<span class="text">{{svg "octicon-eye"}} {{ctx.Locale.Tr "org.view_as_role" $viewAsRole}}</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							{{/* TODO: does it really need to use CurrentURL with query parameters? Why not construct a new link with clear parameters */}}
+							<a href="?view_as=public" class="item {{if not .IsViewingOrgAsMember}}selected{{end}}">
+								{{svg "octicon-check" 14 (Iif (not .IsViewingOrgAsMember) "" "tw-invisible")}} {{ctx.Locale.Tr "settings.visibility.public"}}
+							</a>
+							<a href="?view_as=member" class="item {{if .IsViewingOrgAsMember}}selected{{end}}">
+								{{svg "octicon-check" 14 (Iif .IsViewingOrgAsMember "" "tw-invisible")}}  {{ctx.Locale.Tr "org.members.member"}}
+							</a>
+						</div>
+					</div>
+					<div class="tw-my-2">
+						{{if .IsViewingOrgAsMember}}{{ctx.Locale.Tr "org.view_as_member_hint"}}{{else}}{{ctx.Locale.Tr "org.view_as_public_hint"}}{{end}}
+					</div>
+				</div>
+				{{end}}
+
 				{{if .NumMembers}}
 					<h4 class="ui top attached header tw-flex">
 						<strong class="tw-flex-1">{{ctx.Locale.Tr "org.members"}}</strong>

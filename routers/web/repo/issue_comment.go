@@ -154,25 +154,28 @@ func NewComment(ctx *context.Context) {
 			if pr != nil {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
-				isClosed := form.Status == "close"
-				if err := issue_service.ChangeStatus(ctx, issue, ctx.Doer, "", isClosed); err != nil {
-					log.Error("ChangeStatus: %v", err)
-
-					if issues_model.IsErrDependenciesLeft(err) {
-						if issue.IsPull {
-							ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
-						} else {
-							ctx.JSONError(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
+				if form.Status == "close" && !issue.IsClosed {
+					if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
+						log.Error("CloseIssue: %v", err)
+						if issues_model.IsErrDependenciesLeft(err) {
+							if issue.IsPull {
+								ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+							} else {
+								ctx.JSONError(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
+							}
+							return
 						}
-						return
+					} else {
+						if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
+							ctx.ServerError("stopTimerIfAvailable", err)
+							return
+						}
+						log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 					}
-				} else {
-					if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
-						ctx.ServerError("CreateOrStopIssueStopwatch", err)
-						return
+				} else if form.Status == "reopen" && issue.IsClosed {
+					if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
+						log.Error("ReopenIssue: %v", err)
 					}
-
-					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 				}
 			}
 		}
@@ -209,7 +212,7 @@ func NewComment(ctx *context.Context) {
 
 // UpdateCommentContent change comment of issue's content
 func UpdateCommentContent(ctx *context.Context) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64(":id"))
+	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
 		return
@@ -287,7 +290,7 @@ func UpdateCommentContent(ctx *context.Context) {
 
 // DeleteComment delete comment of issue
 func DeleteComment(ctx *context.Context) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64(":id"))
+	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
 		return
@@ -322,7 +325,7 @@ func DeleteComment(ctx *context.Context) {
 // ChangeCommentReaction create a reaction for comment
 func ChangeCommentReaction(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.ReactionForm)
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64(":id"))
+	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
 		return
@@ -366,7 +369,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		return
 	}
 
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "react":
 		reaction, err := issue_service.CreateCommentReaction(ctx, ctx.Doer, comment, form.Content)
 		if err != nil {
@@ -400,7 +403,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for comment removed: %d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID)
 	default:
-		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.PathParam(":action")), nil)
+		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.PathParam("action")), nil)
 		return
 	}
 
@@ -427,7 +430,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 // GetCommentAttachments returns attachments for the comment
 func GetCommentAttachments(ctx *context.Context) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64(":id"))
+	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
 		return

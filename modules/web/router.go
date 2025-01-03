@@ -41,7 +41,7 @@ func GetForm(dataStore reqctx.RequestDataStore) any {
 
 // Router defines a route based on chi's router
 type Router struct {
-	chiRouter      chi.Router
+	chiRouter      *chi.Mux
 	curGroupPrefix string
 	curMiddlewares []any
 }
@@ -93,16 +93,21 @@ func isNilOrFuncNil(v any) bool {
 	return r.Kind() == reflect.Func && r.IsNil()
 }
 
-func (r *Router) wrapMiddlewareAndHandler(h []any) ([]func(http.Handler) http.Handler, http.HandlerFunc) {
-	handlerProviders := make([]func(http.Handler) http.Handler, 0, len(r.curMiddlewares)+len(h)+1)
-	for _, m := range r.curMiddlewares {
+func wrapMiddlewareAndHandler(curMiddlewares, h []any) ([]func(http.Handler) http.Handler, http.HandlerFunc) {
+	handlerProviders := make([]func(http.Handler) http.Handler, 0, len(curMiddlewares)+len(h)+1)
+	for _, m := range curMiddlewares {
 		if !isNilOrFuncNil(m) {
 			handlerProviders = append(handlerProviders, toHandlerProvider(m))
 		}
 	}
-	for _, m := range h {
+	if len(h) == 0 {
+		panic("no endpoint handler provided")
+	}
+	for i, m := range h {
 		if !isNilOrFuncNil(m) {
 			handlerProviders = append(handlerProviders, toHandlerProvider(m))
+		} else if i == len(h)-1 {
+			panic("endpoint handler can't be nil")
 		}
 	}
 	middlewares := handlerProviders[:len(handlerProviders)-1]
@@ -117,7 +122,7 @@ func (r *Router) wrapMiddlewareAndHandler(h []any) ([]func(http.Handler) http.Ha
 // Methods adds the same handlers for multiple http "methods" (separated by ",").
 // If any method is invalid, the lower level router will panic.
 func (r *Router) Methods(methods, pattern string, h ...any) {
-	middlewares, handlerFunc := r.wrapMiddlewareAndHandler(h)
+	middlewares, handlerFunc := wrapMiddlewareAndHandler(r.curMiddlewares, h)
 	fullPattern := r.getPattern(pattern)
 	if strings.Contains(methods, ",") {
 		methods := strings.Split(methods, ",")
@@ -137,7 +142,7 @@ func (r *Router) Mount(pattern string, subRouter *Router) {
 
 // Any delegate requests for all methods
 func (r *Router) Any(pattern string, h ...any) {
-	middlewares, handlerFunc := r.wrapMiddlewareAndHandler(h)
+	middlewares, handlerFunc := wrapMiddlewareAndHandler(r.curMiddlewares, h)
 	r.chiRouter.With(middlewares...).HandleFunc(r.getPattern(pattern), handlerFunc)
 }
 
@@ -243,39 +248,11 @@ func (r *Router) Combo(pattern string, h ...any) *Combo {
 	return &Combo{r, pattern, h}
 }
 
-// Combo represents a tiny group routes with same pattern
-type Combo struct {
-	r       *Router
-	pattern string
-	h       []any
-}
-
-// Get delegates Get method
-func (c *Combo) Get(h ...any) *Combo {
-	c.r.Get(c.pattern, append(c.h, h...)...)
-	return c
-}
-
-// Post delegates Post method
-func (c *Combo) Post(h ...any) *Combo {
-	c.r.Post(c.pattern, append(c.h, h...)...)
-	return c
-}
-
-// Delete delegates Delete method
-func (c *Combo) Delete(h ...any) *Combo {
-	c.r.Delete(c.pattern, append(c.h, h...)...)
-	return c
-}
-
-// Put delegates Put method
-func (c *Combo) Put(h ...any) *Combo {
-	c.r.Put(c.pattern, append(c.h, h...)...)
-	return c
-}
-
-// Patch delegates Patch method
-func (c *Combo) Patch(h ...any) *Combo {
-	c.r.Patch(c.pattern, append(c.h, h...)...)
-	return c
+// PathGroup creates a group of paths which could be matched by regexp.
+// It is only designed to resolve some special cases which chi router can't handle.
+// For most cases, it shouldn't be used because it needs to iterate all rules to find the matched one (inefficient).
+func (r *Router) PathGroup(pattern string, fn func(g *RouterPathGroup), h ...any) {
+	g := &RouterPathGroup{r: r, pathParam: "*"}
+	fn(g)
+	r.Any(pattern, append(h, g.ServeHTTP)...)
 }
