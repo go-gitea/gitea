@@ -46,23 +46,6 @@ func (err ErrIssueNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrIssueIsClosed represents a "IssueIsClosed" kind of error.
-type ErrIssueIsClosed struct {
-	ID     int64
-	RepoID int64
-	Index  int64
-}
-
-// IsErrIssueIsClosed checks if an error is a ErrIssueNotExist.
-func IsErrIssueIsClosed(err error) bool {
-	_, ok := err.(ErrIssueIsClosed)
-	return ok
-}
-
-func (err ErrIssueIsClosed) Error() string {
-	return fmt.Sprintf("issue is closed [id: %d, repo_id: %d, index: %d]", err.ID, err.RepoID, err.Index)
-}
-
 // ErrNewIssueInsert is used when the INSERT statement in newIssue fails
 type ErrNewIssueInsert struct {
 	OriginalError error

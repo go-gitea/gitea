@@ -32,27 +32,30 @@ func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
 	return err
 }
 
-// ErrIssueWasClosed is used when close a closed issue
-type ErrIssueWasClosed struct {
+// ErrIssueIsClosed is used when close a closed issue
+type ErrIssueIsClosed struct {
 	ID     int64
+	RepoID int64
 	Index  int64
 	IsPull bool
 }
 
-// IsErrIssueWasClosed checks if an error is a ErrIssueWasClosed.
-func IsErrIssueWasClosed(err error) bool {
-	_, ok := err.(ErrIssueWasClosed)
+// IsErrIssueIsClosed checks if an error is a ErrIssueIsClosed.
+func IsErrIssueIsClosed(err error) bool {
+	_, ok := err.(ErrIssueIsClosed)
 	return ok
 }
 
-func (err ErrIssueWasClosed) Error() string {
-	return fmt.Sprintf("%s [%d] %d was already closed", util.Iif(err.IsPull, "Pull Request", "Issue"), err.ID, err.Index)
+func (err ErrIssueIsClosed) Error() string {
+	return fmt.Sprintf("%s [id: %d, repo_id: %d, index: %d] is already closed", util.Iif(err.IsPull, "Pull Request", "Issue"), err.ID, err.RepoID, err.Index)
 }
 
 func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
 	if issue.IsClosed {
-		return nil, ErrIssueWasClosed{
+		return nil, ErrIssueIsClosed{
 			ID:     issue.ID,
+			RepoID: issue.RepoID,
+			Index:  issue.Index,
 			IsPull: issue.IsPull,
 		}
 	}
@@ -84,27 +87,30 @@ func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, 
 	return updateIssueNumbers(ctx, issue, doer, util.Iif(isMergePull, CommentTypeMergePull, CommentTypeClose))
 }
 
-// ErrIssueWasOpened is used when reopen an opened issue
-type ErrIssueWasOpened struct {
+// ErrIssueIsOpen is used when reopen an opened issue
+type ErrIssueIsOpen struct {
 	ID     int64
+	RepoID int64
 	IsPull bool
 	Index  int64
 }
 
-// IsErrIssueWasOpened checks if an error is a ErrIssueWasOpened.
-func IsErrIssueWasOpened(err error) bool {
-	_, ok := err.(ErrIssueWasOpened)
+// IsErrIssueIsOpen checks if an error is a ErrIssueIsOpen.
+func IsErrIssueIsOpen(err error) bool {
+	_, ok := err.(ErrIssueIsOpen)
 	return ok
 }
 
-func (err ErrIssueWasOpened) Error() string {
-	return fmt.Sprintf("%s [%d] %d was already opened", util.Iif(err.IsPull, "Pull Request", "Issue"), err.ID, err.Index)
+func (err ErrIssueIsOpen) Error() string {
+	return fmt.Sprintf("%s [id: %d, repo_id: %d, index: %d] is already open", util.Iif(err.IsPull, "Pull Request", "Issue"), err.ID, err.RepoID, err.Index)
 }
 
 func setIssueAsReopen(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {
 	if !issue.IsClosed {
-		return nil, ErrIssueWasOpened{
+		return nil, ErrIssueIsOpen{
 			ID:     issue.ID,
+			RepoID: issue.RepoID,
+			Index:  issue.Index,
 			IsPull: issue.IsPull,
 		}
 	}
