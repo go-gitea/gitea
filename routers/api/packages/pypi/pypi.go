@@ -147,8 +147,8 @@ func UploadPackageFile(ctx *context.Context) {
 	homepageURL := ctx.Req.FormValue("home_page")
 	if len(homepageURL) == 0 {
 		projectURLs := ctx.Req.Form["project_urls"]
-		for _, url := range projectURLs {
-			label, url, found := strings.Cut(url, ",")
+		for _, purl := range projectURLs {
+			label, url, found := strings.Cut(purl, ",")
 			if !found {
 				continue
 			}

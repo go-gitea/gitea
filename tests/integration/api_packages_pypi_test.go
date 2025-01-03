@@ -32,6 +32,7 @@ func TestPackagePyPI(t *testing.T) {
 	packageVersion := "1!1.0.1+r1234"
 	packageAuthor := "KN4CK3R"
 	packageDescription := "Test Description"
+	projectURL := "https://example.com"
 
 	content := "test"
 	hashSHA256 := "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
@@ -51,6 +52,8 @@ func TestPackagePyPI(t *testing.T) {
 		writer.WriteField("description", packageDescription)
 		writer.WriteField("sha256_digest", hashSHA256)
 		writer.WriteField("requires_python", "3.6")
+		writer.WriteField("project_urls", "DOCUMENTATION , https://readthedocs.org")
+		writer.WriteField("project_urls", fmt.Sprintf("Home-page, %s", projectURL))
 
 		_ = writer.Close()
 
@@ -74,6 +77,7 @@ func TestPackagePyPI(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Nil(t, pd.SemVer)
 		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
+		assert.Equal(t, projectURL, pd.Metadata.(*pypi.Metadata).ProjectURL)
 		assert.Equal(t, packageName, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
 
