@@ -91,6 +91,12 @@ const sfc = {
       }${this.privateFilter === 'private' ? '&is_private=true' : ''}${this.privateFilter === 'public' ? '&is_private=false' : ''
       }`;
     },
+    isRepoEmpty() {
+      return !this.isLoading && !this.reposTotalCount;
+    },
+    isOrgEmpty() {
+      return !this.isLoading && !this.organizations.length;
+    },
     repoTypeCount() {
       return this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
     },
@@ -113,7 +119,7 @@ const sfc = {
     this.changeReposFilter(this.reposFilter);
     fomanticQuery(el.querySelector('.ui.dropdown')).dropdown();
     nextTick(() => {
-      this.$refs.search.focus();
+      this.$refs.search?.focus();
     });
 
     this.textArchivedFilterTitles = {
@@ -243,7 +249,7 @@ const sfc = {
         if (!this.reposTotalCount) {
           const totalCountSearchURL = `${this.subUrl}/repo/search?count_only=1&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
           response = await GET(totalCountSearchURL);
-          this.reposTotalCount = response.headers.get('X-Total-Count') ?? '?';
+          this.reposTotalCount = parseInt(response.headers.get('X-Total-Count') ?? '0');
         }
 
         response = await GET(searchedURL);
@@ -264,7 +270,7 @@ const sfc = {
             locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
           };
         });
-        const count = response.headers.get('X-Total-Count');
+        const count = parseInt(response.headers.get('X-Total-Count'));
         if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
           this.reposTotalCount = count;
         }
@@ -340,6 +346,7 @@ const sfc = {
 export function initDashboardRepoList() {
   const el = document.querySelector('#dashboard-repo-list');
   if (el) {
+    el.classList.remove('is-loading');
     createApp(sfc).mount(el);
   }
 }
@@ -362,7 +369,22 @@ export default sfc; // activate the IDE's Vue plugin
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
-      <div class="ui attached segment repos-search">
+      <div v-if="isLoading && !reposTotalCount" class="ui attached segment" :class="{'is-loading': isLoading}"/>
+      <div v-if="isRepoEmpty" class="ui attached segment empty-placeholder">
+        <svg-icon name="octicon-no-entry" :size="48" class-name="repo-list-icon"/>
+        <h2>{{ textNoRepo }}</h2>
+        <p>
+          <a :href="subUrl + '/repo/create'">
+            <svg-icon name="octicon-plus" :size="16" class-name="repo-list-icon"/> {{ textNewRepo }}
+          </a>
+        </p>
+        <p v-if="canCreateMigrations">
+          <a :href="subUrl + '/repo/migrate'">
+            <svg-icon name="octicon-repo-push" :size="16" class-name="repo-list-icon"/> {{ textNewMigrate }}
+          </a>
+        </p>
+      </div>
+      <div v-if="reposTotalCount" class="ui attached segment repos-search">
         <div class="ui small fluid action left icon input">
           <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
           <i class="icon loading-icon-3px" :class="{'is-loading': isLoading}"><svg-icon name="octicon-search" :size="16"/></i>
@@ -475,6 +497,16 @@ export default sfc; // activate the IDE's Vue plugin
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
+      <div v-if="isLoading" class="ui attached segment" :class="{'is-loading': isLoading}"/>
+      <div v-if="isOrgEmpty" class="ui attached segment empty-placeholder">
+        <svg-icon name="octicon-no-entry" :size="48" class-name="repo-list-icon"/>
+        <h2>{{ textNoOrg }}</h2>
+        <p v-if="canCreateOrganization">
+          <a :href="subUrl + '/org/create'">
+            <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/> {{ textNewOrg }}
+          </a>
+        </p>
+      </div>
       <div v-if="organizations.length" class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
