@@ -51,7 +51,7 @@ var defaultTransformers = []transformer{
 	{Name: "TITLE", Transform: util.ToTitleCase},
 }
 
-func generateExpansion(src string, templateRepo, generateRepo *repo_model.Repository, sanitizeFileName bool) string {
+func generateExpansion(ctx context.Context, src string, templateRepo, generateRepo *repo_model.Repository, sanitizeFileName bool) string {
 	year, month, day := time.Now().Date()
 	expansions := []expansion{
 		{Name: "YEAR", Value: strconv.Itoa(year), Transformers: nil},
@@ -66,10 +66,10 @@ func generateExpansion(src string, templateRepo, generateRepo *repo_model.Reposi
 		{Name: "TEMPLATE_OWNER", Value: templateRepo.OwnerName, Transformers: defaultTransformers},
 		{Name: "REPO_LINK", Value: generateRepo.Link(), Transformers: nil},
 		{Name: "TEMPLATE_LINK", Value: templateRepo.Link(), Transformers: nil},
-		{Name: "REPO_HTTPS_URL", Value: generateRepo.CloneLink().HTTPS, Transformers: nil},
-		{Name: "TEMPLATE_HTTPS_URL", Value: templateRepo.CloneLink().HTTPS, Transformers: nil},
-		{Name: "REPO_SSH_URL", Value: generateRepo.CloneLink().SSH, Transformers: nil},
-		{Name: "TEMPLATE_SSH_URL", Value: templateRepo.CloneLink().SSH, Transformers: nil},
+		{Name: "REPO_HTTPS_URL", Value: generateRepo.CloneLinkGeneral(ctx).HTTPS, Transformers: nil},
+		{Name: "TEMPLATE_HTTPS_URL", Value: templateRepo.CloneLinkGeneral(ctx).HTTPS, Transformers: nil},
+		{Name: "REPO_SSH_URL", Value: generateRepo.CloneLinkGeneral(ctx).SSH, Transformers: nil},
+		{Name: "TEMPLATE_SSH_URL", Value: templateRepo.CloneLinkGeneral(ctx).SSH, Transformers: nil},
 	}
 
 	expansionMap := make(map[string]string)
@@ -138,7 +138,7 @@ func readGiteaTemplateFile(tmpDir string) (*GiteaTemplate, error) {
 	return &GiteaTemplate{Path: gtPath, Content: content}, nil
 }
 
-func processGiteaTemplateFile(tmpDir string, templateRepo, generateRepo *repo_model.Repository, giteaTemplateFile *GiteaTemplate) error {
+func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, generateRepo *repo_model.Repository, giteaTemplateFile *GiteaTemplate) error {
 	if err := util.Remove(giteaTemplateFile.Path); err != nil {
 		return fmt.Errorf("remove .giteatemplate: %w", err)
 	}
@@ -163,12 +163,12 @@ func processGiteaTemplateFile(tmpDir string, templateRepo, generateRepo *repo_mo
 					return err
 				}
 
-				generatedContent := []byte(generateExpansion(string(content), templateRepo, generateRepo, false))
+				generatedContent := []byte(generateExpansion(ctx, string(content), templateRepo, generateRepo, false))
 				if err := os.WriteFile(path, generatedContent, 0o644); err != nil {
 					return err
 				}
 
-				substPath := filepath.FromSlash(filepath.Join(tmpDirSlash, generateExpansion(base, templateRepo, generateRepo, true)))
+				substPath := filepath.FromSlash(filepath.Join(tmpDirSlash, generateExpansion(ctx, base, templateRepo, generateRepo, true)))
 
 				// Create parent subdirectories if needed or continue silently if it exists
 				if err = os.MkdirAll(filepath.Dir(substPath), 0o755); err != nil {
@@ -226,7 +226,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	}
 
 	if giteaTemplateFile != nil {
-		err = processGiteaTemplateFile(tmpDir, templateRepo, generateRepo, giteaTemplateFile)
+		err = processGiteaTemplateFile(ctx, tmpDir, templateRepo, generateRepo, giteaTemplateFile)
 		if err != nil {
 			return err
 		}
