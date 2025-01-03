@@ -693,6 +693,7 @@ input:-webkit-autofill:active,
 
 .ui.dropdown .menu > .header {
   font-size: 0.8em;
+  text-transform: none; /* reset fomantic's "uppercase" */
 }
 
 .ui .text.left {
