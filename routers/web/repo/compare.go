@@ -204,6 +204,8 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 			ctx.NotFound("GetRepositoryByOwnerAndName", nil)
 		case errors.Is(err, util.ErrInvalidArgument):
 			ctx.NotFound("ParseComparePathParams", nil)
+		case git.IsErrNotExist(err):
+			ctx.NotFound("ParseComparePathParams", nil)
 		default:
 			ctx.ServerError("GetRepositoryByOwnerAndName", err)
 		}
