@@ -169,7 +169,7 @@ func findHeadRepoFromRootBase(ctx context.Context, baseRepo *repo_model.Reposito
 		return nil, nil
 	}
 	// test if we are lucky
-	repo, err := repo_model.GetUserFork(ctx, headUserID, baseRepo.ID)
+	repo, err := repo_model.GetUserFork(ctx, baseRepo.ID, headUserID)
 	if err != nil {
 		return nil, err
 	}
