@@ -260,9 +260,9 @@ func TestComposeSSHCloneURL(t *testing.T) {
 	setting.SSH.Domain = "domain"
 	setting.SSH.Port = 22
 	setting.Repository.UseCompatSSHURI = false
-	assert.Equal(t, "git@domain:user/repo.git", ComposeSSHCloneURL(nil, "user", "repo"))
+	assert.Equal(t, "git@domain:user/repo.git", ComposeSSHCloneURL(&user_model.User{Name: "doer"}, "user", "repo"))
 	setting.Repository.UseCompatSSHURI = true
-	assert.Equal(t, "ssh://git@domain/user/repo.git", ComposeSSHCloneURL(nil, "user", "repo"))
+	assert.Equal(t, "ssh://git@domain/user/repo.git", ComposeSSHCloneURL(&user_model.User{Name: "doer"}, "user", "repo"))
 	// test SSH_DOMAIN while use non-standard SSH port
 	setting.SSH.Port = 123
 	setting.Repository.UseCompatSSHURI = false
@@ -277,6 +277,13 @@ func TestComposeSSHCloneURL(t *testing.T) {
 	assert.Equal(t, "git@[::1]:user/repo.git", ComposeSSHCloneURL(nil, "user", "repo"))
 	setting.SSH.Port = 123
 	assert.Equal(t, "ssh://git@[::1]:123/user/repo.git", ComposeSSHCloneURL(nil, "user", "repo"))
+
+	setting.SSH.User = "(DOER_USERNAME)"
+	setting.SSH.Domain = "domain"
+	setting.SSH.Port = 22
+	assert.Equal(t, "doer@domain:user/repo.git", ComposeSSHCloneURL(&user_model.User{Name: "doer"}, "user", "repo"))
+	setting.SSH.Port = 123
+	assert.Equal(t, "ssh://doer@domain:123/user/repo.git", ComposeSSHCloneURL(&user_model.User{Name: "doer"}, "user", "repo"))
 }
 
 func TestIsUsableRepoName(t *testing.T) {
