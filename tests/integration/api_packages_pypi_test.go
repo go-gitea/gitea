@@ -39,9 +39,9 @@ func TestPackagePyPI(t *testing.T) {
 
 	root := fmt.Sprintf("/api/packages/%s/pypi", user.Name)
 
-	uploadFile := func(t *testing.T, filename, content string, expectedStatus int) {
-		body := &bytes.Buffer{}
-		writer := multipart.NewWriter(body)
+	createBasicMultipartFile := func(packageName, filename, content string) (body *bytes.Buffer, writer *multipart.Writer) {
+		body = &bytes.Buffer{}
+		writer = multipart.NewWriter(body)
 		part, _ := writer.CreateFormFile("content", filename)
 		_, _ = io.Copy(part, strings.NewReader(content))
 
@@ -52,15 +52,26 @@ func TestPackagePyPI(t *testing.T) {
 		writer.WriteField("description", packageDescription)
 		writer.WriteField("sha256_digest", hashSHA256)
 		writer.WriteField("requires_python", "3.6")
+
+		return
+	}
+
+	upload := func(t *testing.T, body *bytes.Buffer, contentType string, expectedStatus int) {
+		req := NewRequestWithBody(t, "POST", root, body).
+			SetHeader("Content-Type", contentType).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, expectedStatus)
+	}
+
+	uploadFile := func(t *testing.T, filename, content string, expectedStatus int) {
+		body, writer := createBasicMultipartFile(packageName, filename, content)
+
 		writer.WriteField("project_urls", "DOCUMENTATION , https://readthedocs.org")
 		writer.WriteField("project_urls", fmt.Sprintf("Home-page, %s", projectURL))
 
 		_ = writer.Close()
 
-		req := NewRequestWithBody(t, "POST", root, body).
-			SetHeader("Content-Type", writer.FormDataContentType()).
-			AddBasicAuth(user.Name)
-		MakeRequest(t, req, expectedStatus)
+		upload(t, body, writer.FormDataContentType(), expectedStatus)
 	}
 
 	t.Run("Upload", func(t *testing.T) {
@@ -137,6 +148,48 @@ func TestPackagePyPI(t *testing.T) {
 		uploadFile(t, "test.tar.gz", content, http.StatusConflict)
 	})
 
+	t.Run("UploadUsingDeprecatedHomepageMetadata", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		pkgName := "homepage-package"
+		body, writer := createBasicMultipartFile(pkgName, "test.whl", content)
+
+		writer.WriteField("home_page", projectURL)
+
+		_ = writer.Close()
+
+		upload(t, body, writer.FormDataContentType(), http.StatusCreated)
+
+		pvs, err := packages.GetVersionsByPackageName(db.DefaultContext, user.ID, packages.TypePyPI, pkgName)
+		assert.NoError(t, err)
+		assert.Len(t, pvs, 1)
+
+		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+		assert.NoError(t, err)
+		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
+		assert.Equal(t, projectURL, pd.Metadata.(*pypi.Metadata).ProjectURL)
+	})
+
+	t.Run("UploadWithoutAnyHomepageURLMetadata", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		pkgName := "no-project-url-or-homepage-package"
+		body, writer := createBasicMultipartFile(pkgName, "test.whl", content)
+
+		_ = writer.Close()
+
+		upload(t, body, writer.FormDataContentType(), http.StatusCreated)
+
+		pvs, err := packages.GetVersionsByPackageName(db.DefaultContext, user.ID, packages.TypePyPI, pkgName)
+		assert.NoError(t, err)
+		assert.Len(t, pvs, 1)
+
+		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+		assert.NoError(t, err)
+		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
+		assert.Empty(t, pd.Metadata.(*pypi.Metadata).ProjectURL)
+	})
+
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
@@ -151,7 +204,7 @@ func TestPackagePyPI(t *testing.T) {
 		downloadFile("test.whl")
 		downloadFile("test.tar.gz")
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypePyPI)
+		pvs, err := packages.GetVersionsByPackageName(db.DefaultContext, user.ID, packages.TypePyPI, packageName)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(2), pvs[0].DownloadCount)
@@ -183,4 +236,5 @@ func TestPackagePyPI(t *testing.T) {
 			}
 		}
 	})
+
 }
