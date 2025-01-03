@@ -38,11 +38,6 @@ textarea,
   color: var(--color-input-text);
 }
 
-/* fix fomantic small dropdown having inconsistent padding with input */
-.ui.small.selection.dropdown {
-  padding: .67857143em 1.6em .67857143em 1em;
-}
-
 input:hover,
 textarea:hover,
 .ui.input input:hover,
@@ -109,56 +104,14 @@ textarea:focus,
   color: var(--color-input-text);
 }
 
-/* match <select> padding to <input> */
-.ui.form select {
-  padding: 0.67857143em 1em;
+.ui.form .field > .selection.dropdown {
+  min-width: 14em; /* matches the default min width */
 }
 
 .form .help {
   color: var(--color-secondary-dark-5);
   padding-bottom: 0.6em;
   display: inline-block;
-}
-
-#create-page-form form {
-  margin: auto;
-}
-
-#create-page-form form .ui.message {
-  text-align: center;
-}
-
-@media (min-width: 768px) {
-  #create-page-form form {
-    width: 800px !important;
-  }
-  #create-page-form form .header {
-    padding-left: 280px !important;
-  }
-  #create-page-form form .inline.field > label {
-    text-align: right;
-    width: 250px !important;
-    word-wrap: break-word;
-  }
-  #create-page-form form .help {
-    margin-left: 265px !important;
-  }
-  #create-page-form form .optional .title {
-    margin-left: 250px !important;
-  }
-  #create-page-form form .inline.field > input,
-  #create-page-form form .inline.field > textarea {
-    width: 50%;
-  }
-}
-
-@media (max-width: 767.98px) {
-  #create-page-form form .optional .title {
-    margin-left: 15px;
-  }
-  #create-page-form form .inline.field > label {
-    display: block;
-  }
 }
 
 .m-captcha-style {
@@ -187,7 +140,7 @@ textarea:focus,
 }
 
 @media (max-height: 575px) {
-  #rc-imageselect,
+  #rc-imageselect, /* google recaptcha */
   .g-recaptcha-style,
   .h-captcha-style {
     transform: scale(0.77);
@@ -195,295 +148,40 @@ textarea:focus,
   }
 }
 
-.user.forgot.password form,
-.user.reset.password form,
-.user.signup form {
-  margin: auto;
-  width: 700px !important;
-}
-
-.user.activate form .ui.message,
-.user.forgot.password form .ui.message,
-.user.reset.password form .ui.message,
-.user.link-account form .ui.message,
-.user.signin form .ui.message,
-.user.signup form .ui.message {
-  text-align: center;
-}
-
-@media (min-width: 768px) {
-  .user.activate form,
-  .user.forgot.password form,
-  .user.reset.password form,
-  .user.link-account form,
-  .user.signin form,
-  .user.signup form {
-    width: 800px !important;
-  }
-  .user.activate form .header,
-  .user.forgot.password form .header,
-  .user.reset.password form .header,
-  .user.link-account form .header,
-  .user.signin form .header,
-  .user.signup form .header {
-    padding-left: 280px !important;
-  }
-  .user.activate form .inline.field > label {
-    text-align: right;
-    width: 250px !important;
-    word-wrap: break-word;
-  }
-  .user.activate form .help,
-  .user.forgot.password form .help,
-  .user.reset.password form .help,
-  .user.link-account form .help,
-  .user.signin form .help,
-  .user.signup form .help {
-    margin-left: 265px !important;
-  }
-  .user.activate form .optional .title,
-  .user.forgot.password form .optional .title,
-  .user.reset.password form .optional .title,
-  .user.link-account form .optional .title,
-  .user.signin form .optional .title,
-  .user.signup form .optional .title {
-    margin-left: 250px !important;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .user.activate form .optional .title,
-  .user.forgot.password form .optional .title,
-  .user.reset.password form .optional .title,
-  .user.link-account form .optional .title,
-  .user.signin form .optional .title,
-  .user.signup form .optional .title {
-    margin-left: 15px;
-  }
-  .user.activate form .inline.field > label,
-  .user.forgot.password form .inline.field > label,
-  .user.reset.password form .inline.field > label,
-  .user.link-account form .inline.field > label,
-  .user.signin form .inline.field > label,
-  .user.signup form .inline.field > label {
-    display: block;
-  }
-}
-
-.user.activate form .header,
-.user.forgot.password form .header,
-.user.reset.password form .header,
-.user.link-account form .header,
-.user.signin form .header,
-.user.signup form .header {
-  padding-left: 0 !important;
-  text-align: center;
-}
-
-.user.activate form .inline.field > label,
-.user.forgot.password form .inline.field > label,
-.user.reset.password form .inline.field > label,
-.user.link-account form .inline.field > label,
-.user.signin form .inline.field > label,
-.user.signup form .inline.field > label {
-  width: 200px;
-}
-
-@media (max-width: 767.98px) {
-  .user.activate form .inline.field > label,
-  .user.forgot.password form .inline.field > label,
-  .user.reset.password form .inline.field > label,
-  .user.link-account form .inline.field > label,
-  .user.signin form .inline.field > label,
-  .user.signup form .inline.field > label {
-    width: 100% !important;
-  }
-}
-
-.user.activate form input[type="number"],
-.user.forgot.password form input[type="number"],
-.user.reset.password form input[type="number"],
-.user.link-account form input[type="number"],
-.user.signin form input[type="number"],
-.user.signup form input[type="number"] {
-  -moz-appearance: textfield;
-}
-
-.user.activate form input::-webkit-outer-spin-button,
-.user.forgot.password form input::-webkit-outer-spin-button,
-.user.reset.password form input::-webkit-outer-spin-button,
-.user.link-account form input::-webkit-outer-spin-button,
-.user.signin form input::-webkit-outer-spin-button,
-.user.signup form input::-webkit-outer-spin-button,
-.user.activate form input::-webkit-inner-spin-button,
-.user.forgot.password form input::-webkit-inner-spin-button,
-.user.reset.password form input::-webkit-inner-spin-button,
-.user.link-account form input::-webkit-inner-spin-button,
-.user.signin form input::-webkit-inner-spin-button,
-.user.signup form input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.repository.new-repo form,
-.repository.new.migrate form,
-.repository.new.fork form {
-  margin: auto;
-}
-
-.repository.new-repo form .ui.message,
-.repository.new.migrate form .ui.message,
-.repository.new.fork form .ui.message {
-  text-align: center;
-}
-
-@media (min-width: 768px) {
-  .repository.new-repo form,
-  .repository.new.migrate form,
-  .repository.new.fork form {
-    width: 800px !important;
-  }
-  .repository.new-repo form .header,
-  .repository.new.migrate form .header,
-  .repository.new.fork form .header {
-    padding-left: 280px !important;
-  }
-  .repository.new-repo form .inline.field > label,
-  .repository.new.migrate form .inline.field > label,
-  .repository.new.fork form .inline.field > label {
-    text-align: right;
-    width: 250px !important;
-    word-wrap: break-word;
-  }
-  .repository.new-repo form .help,
-  .repository.new.migrate form .help,
-  .repository.new.fork form .help {
-    margin-left: 265px !important;
-  }
-  .repository.new-repo form .optional .title,
-  .repository.new.migrate form .optional .title,
-  .repository.new.fork form .optional .title {
-    margin-left: 250px !important;
-  }
-  .repository.new-repo form .inline.field > input,
-  .repository.new.migrate form .inline.field > input,
-  .repository.new.fork form .inline.field > input,
-  .repository.new-repo form .inline.field > textarea,
-  .repository.new.migrate form .inline.field > textarea,
-  .repository.new.fork form .inline.field > textarea {
-    width: 50%;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .repository.new-repo form .optional .title,
-  .repository.new.migrate form .optional .title,
-  .repository.new.fork form .optional .title {
-    margin-left: 15px;
-  }
-  .repository.new-repo form .inline.field > label,
-  .repository.new.migrate form .inline.field > label,
-  .repository.new.fork form .inline.field > label {
-    display: block;
-  }
-}
-
-.repository.new-repo form .dropdown .text,
-.repository.new.migrate form .dropdown .text,
-.repository.new.fork form .dropdown .text {
-  margin-right: 0 !important;
-}
-
-.repository.new-repo form .header,
-.repository.new.migrate form .header,
-.repository.new.fork form .header {
-  padding-left: 0 !important;
-  text-align: center;
-}
-
-.repository.new-repo form .selection.dropdown,
-.repository.new.migrate form .selection.dropdown,
-.repository.new.fork form .selection.dropdown,
-.repository.new.fork form .field a {
-  vertical-align: middle;
-  width: 50% !important;
-}
-
-@media (max-width: 767.98px) {
-  .repository.new-repo form label,
-  .repository.new.migrate form label,
-  .repository.new.fork form label,
-  .repository.new-repo form .inline.field > input,
-  .repository.new.migrate form .inline.field > input,
-  .repository.new.fork form .inline.field > input,
-  .repository.new.fork form .field a,
-  .repository.new-repo form .selection.dropdown,
-  .repository.new.migrate form .selection.dropdown,
-  .repository.new.fork form .selection.dropdown {
-    width: 100% !important;
-  }
-  .repository.new-repo form .field button,
-  .repository.new.migrate form .field button,
-  .repository.new.fork form .field button,
-  .repository.new-repo form .field a,
-  .repository.new.migrate form .field a {
-    margin-bottom: 1em;
-    width: 100%;
-  }
-}
-
-@media (min-width: 768px) {
-  .repository.new-repo .ui.form #auto-init {
-    margin-left: 265px !important;
-  }
-}
-
-.repository.new-repo .ui.form .selection.dropdown:not(.owner) {
-  width: 50% !important;
-}
-
-@media (max-width: 767.98px) {
-  .repository.new-repo .ui.form .selection.dropdown:not(.owner) {
-    width: 100% !important;
-  }
-}
-
-/* form fields with additional content besides their label, used on login form
- * use like <div class="field"><label/><a/><input/></div> */
-.form-field-content-aside-label {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-.form-field-content-aside-label > *:nth-child(2) {
+.ui.form.left-right-form .inline.field > label {
   text-align: right;
-}
-.form-field-content-aside-label input {
-  grid-column: span 2;
-}
-
-.ui.form .field > .selection.dropdown {
-  min-width: 14em; /* matches the default min width */
+  width: 250px;
+  margin-right: 10px;
 }
 
-.new.webhook form .help {
-  margin-left: 25px;
+.ui.form.left-right-form .inline.field > .help {
+  margin-left: calc(250px + 15px);
 }
 
-.new.webhook .events.fields .column {
-  padding-left: 40px;
+.ui.form.left-right-form .inline.field input:not([type="checkbox"], [type="radio"]),
+.ui.form.left-right-form .inline.field .ui.dropdown,
+.ui.form.left-right-form .inline.field textarea {
+  width: 50%;
 }
 
-.githook textarea {
-  font-family: var(--fonts-monospace);
+.ui.form.left-right-form .inline.field .inline-right {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.5em;
 }
 
 @media (max-width: 767.98px) {
-  .new.org .ui.form .field button,
-  .new.org .ui.form .field a {
-    margin-bottom: 1em;
+  .ui.form.left-right-form .inline.field > label {
     width: 100%;
+    margin: 0;
+    text-align: left;
   }
-  .new.org .ui.form .field input {
-    width: 100% !important;
+  .ui.form.left-right-form .inline.field > .help {
+    margin: 0;
+  }
+  .ui.form.left-right-form .inline.field input:not([type="checkbox"], [type="radio"]),
+  .ui.form.left-right-form .inline.field .ui.dropdown,
+  .ui.form.left-right-form .inline.field textarea {
+    width: 100%;
   }
 }

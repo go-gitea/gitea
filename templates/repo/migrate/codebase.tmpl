@@ -2,15 +2,15 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository new migrate">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
-			<form class="ui form" action="{{.Link}}" method="post">
-				{{template "base/disable_form_autofill"}}
-				{{.CsrfTokenHtml}}
-				<h3 class="ui top attached header">
-					{{ctx.Locale.Tr "repo.migrate.migrate" .service.Title}}
-					<input id="service_type" type="hidden" name="service" value="{{.service}}">
-				</h3>
-				<div class="ui attached segment">
-					{{template "base/alert" .}}
+			<h3 class="ui top attached header">
+				{{ctx.Locale.Tr "repo.migrate.migrate" .service.Title}}
+				<input id="service_type" type="hidden" name="service" value="{{.service}}">
+			</h3>
+			<div class="ui attached segment">
+				{{template "base/alert" .}}
+				<form class="ui form left-right-form" action="{{.Link}}" method="post">
+					{{template "base/disable_form_autofill"}}
+					{{.CsrfTokenHtml}}
 					<div class="inline required field {{if .Err_CloneAddr}}error{{end}}">
 						<label for="clone_addr">{{ctx.Locale.Tr "repo.migrate.clone_address"}}</label>
 						<input id="clone_addr" name="clone_addr" value="{{.clone_addr}}" autofocus required>
@@ -108,8 +108,8 @@
 							{{ctx.Locale.Tr "repo.migrate_repo"}}
 						</button>
 					</div>
-				</div>
-			</form>
+				</form>
+			</div>
 		</div>
 	</div>
 </div>
