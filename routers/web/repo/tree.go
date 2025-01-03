@@ -56,7 +56,7 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 }
 
 func Tree(ctx *context.Context) {
-	dir := ctx.PathParam("*")
+	treePath := ctx.PathParam("*")
 	ref := ctx.FormTrim("ref")
 	recursive := ctx.FormBool("recursive")
 
@@ -70,9 +70,9 @@ func Tree(ctx *context.Context) {
 	refName := gitRepo.UnstableGuessRefByShortName(ref)
 	var results []*files_service.TreeEntry
 	if !recursive {
-		results, err = files_service.GetTreeList(ctx, ctx.Repo.Repository, dir, refName, false)
+		results, err = files_service.GetTreeList(ctx, ctx.Repo.Repository, treePath, refName, false)
 	} else {
-		results, err = files_service.GetTreeInformation(ctx, ctx.Repo.Repository, dir, refName)
+		results, err = files_service.GetTreeInformation(ctx, ctx.Repo.Repository, treePath, refName)
 	}
 	if err != nil {
 		ctx.ServerError("GetTreeInformation", err)

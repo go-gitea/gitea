@@ -416,14 +416,19 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 	var treeList []*TreeEntry
 	var parentEntry *TreeEntry
 	fields := strings.SplitN(treePath, "/", 2)
-	for _, rootEntry := range rootEntries {
+	for _, entry := range rootEntries {
 		treeEntry := &TreeEntry{
-			Name:   rootEntry.Name(),
-			IsFile: rootEntry.Mode() != git.EntryModeTree,
-			Path:   rootEntry.Name(),
+			Name:   entry.Name(),
+			IsFile: entry.Mode() != git.EntryModeTree,
+			Path:   entry.Name(),
 		}
 		treeList = append(treeList, treeEntry)
-		if fields[0] == rootEntry.Name() {
+		if fields[0] == entry.Name() {
+			if len(fields) == 1 {
+				if treeEntry.IsFile {
+					return treeList, nil
+				}
+			}
 			parentEntry = treeEntry
 		}
 	}
