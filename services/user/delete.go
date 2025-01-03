@@ -31,18 +31,6 @@ import (
 func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error) {
 	e := db.GetEngine(ctx)
 
-	// ***** START: Watch *****
-	watchedRepoIDs, err := db.FindIDs(ctx, "watch", "watch.repo_id",
-		builder.Eq{"watch.user_id": u.ID}.
-			And(builder.Neq{"watch.mode": repo_model.WatchModeDont}))
-	if err != nil {
-		return fmt.Errorf("get all watches: %w", err)
-	}
-	if err = db.DecrByIDs(ctx, watchedRepoIDs, "num_watches", new(repo_model.Repository)); err != nil {
-		return fmt.Errorf("decrease repository num_watches: %w", err)
-	}
-	// ***** END: Watch *****
-
 	// ***** START: Star *****
 	starredRepoIDs, err := db.FindIDs(ctx, "star", "star.repo_id",
 		builder.Eq{"star.uid": u.ID})
