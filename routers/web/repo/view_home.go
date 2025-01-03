@@ -379,5 +379,9 @@ func Home(ctx *context.Context) {
 		}
 	}
 
-	ctx.HTML(http.StatusOK, tplRepoHome)
+	if ctx.FormBool("only_content") {
+		ctx.HTML(http.StatusOK, tplRepoHomeContent)
+	} else {
+		ctx.HTML(http.StatusOK, tplRepoHome)
+	}
 }
