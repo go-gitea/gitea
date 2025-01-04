@@ -9,9 +9,10 @@
 		<div class="ui field {{if .Required}}required{{end}}">
 			{{if eq .Type "choice"}}
 				<label>{{or .Description .Name}}:</label>
-				<select class="ui selection type dropdown" name="{{.Name}}">
+				{{/* htmx won't initalize the fomantic dropdown, so it is a standard "select" input */}}
+				<select class="ui selection dropdown" name="{{.Name}}">
 					{{range .Options}}
-					<option value="{{.}}" {{if eq $item.Default .}}selected{{end}} >{{.}}</option>
+						<option value="{{.}}" {{if eq $item.Default .}}selected{{end}}>{{.}}</option>
 					{{end}}
 				</select>
 			{{else if eq .Type "boolean"}}
