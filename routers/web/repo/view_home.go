@@ -240,6 +240,11 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 		return
 	}
 
+	if v, ok := ctx.Data["BranchesCount"]; ok && v.(int64) == 0 {
+		ctx.HTML(http.StatusOK, tplRepoEMPTY)
+		return
+	}
+
 	// the repo is not really empty, so we should update the modal in database
 	// such problem may be caused by:
 	// 1) an error occurs during pushing/receiving.  2) the user replaces an empty git repo manually
