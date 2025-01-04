@@ -261,12 +261,9 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 		return
 	}
 
-	// the repo is not really empty, so we should update the modal in database
-	// such problem may be caused by:
-	// 1) an error occurs during pushing/receiving.  2) the user replaces an empty git repo manually
-	// and even more: the IsEmpty flag is deeply broken and should be removed with the UI changed to manage to cope with empty repos.
-	// it's possible for a repository to be non-empty by that flag but still 500
-	// because there are no branches - only tags -or the default branch is non-extant as it has been 0-pushed.
+	// The repo is not really empty, so we should update the model in database, such problem may be caused by:
+	// 1) an error occurs during pushing/receiving.
+	// 2) the user replaces an empty git repo manually.
 	updateContextRepoEmptyAndStatus(ctx, false, repo_model.RepositoryReady)
 	if err := repo_module.UpdateRepoSize(ctx, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("UpdateRepoSize", err)
