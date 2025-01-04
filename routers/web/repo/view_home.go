@@ -305,6 +305,11 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	// ctx.Data["RepoPreferences"] = ctx.Session.Get("repoPreferences")
+	ctx.Data["RepoPreferences"] = &preferencesForm{
+		ShowFileViewTreeSidebar: true,
+	}
+
 	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
 	if len(ctx.Repo.Repository.Description) > 0 {
 		title += ": " + ctx.Repo.Repository.Description
@@ -374,5 +379,9 @@ func Home(ctx *context.Context) {
 		}
 	}
 
-	ctx.HTML(http.StatusOK, tplRepoHome)
+	if ctx.FormBool("only_content") {
+		ctx.HTML(http.StatusOK, tplRepoHomeContent)
+	} else {
+		ctx.HTML(http.StatusOK, tplRepoHome)
+	}
 }

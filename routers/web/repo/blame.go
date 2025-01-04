@@ -46,6 +46,11 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
+	// ctx.Data["RepoPreferences"] = ctx.Session.Get("repoPreferences")
+	ctx.Data["RepoPreferences"] = &preferencesForm{
+		ShowFileViewTreeSidebar: true,
+	}
+
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
 	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
@@ -91,9 +96,16 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileName"] = blob.Name()
 
+	var tplName templates.TplName
+	if ctx.FormBool("only_content") {
+		tplName = tplRepoHomeContent
+	} else {
+		tplName = tplRepoHome
+	}
+
 	if fileSize >= setting.UI.MaxDisplayFileSize {
 		ctx.Data["IsFileTooLarge"] = true
-		ctx.HTML(http.StatusOK, tplRepoHome)
+		ctx.HTML(http.StatusOK, tplName)
 		return
 	}
 
@@ -121,7 +133,7 @@ func RefBlame(ctx *context.Context) {
 
 	renderBlame(ctx, result.Parts, commitNames)
 
-	ctx.HTML(http.StatusOK, tplRepoHome)
+	ctx.HTML(http.StatusOK, tplName)
 }
 
 type blameResult struct {
