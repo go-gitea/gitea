@@ -279,6 +279,8 @@ func (repo *Repository) IsBroken() bool {
 }
 
 // MarkAsBrokenEmpty marks the repo as broken and empty
+// FIXME: the status "broken" and "is_empty" were abused,
+// The code always set them together, no way to distinguish whether a repo is really "empty" or "broken"
 func (repo *Repository) MarkAsBrokenEmpty() {
 	repo.Status = RepositoryBroken
 	repo.IsEmpty = true
