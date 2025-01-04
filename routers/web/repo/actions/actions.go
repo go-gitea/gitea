@@ -105,6 +105,7 @@ func WorkflowDispatchInputs(ctx *context.Context) {
 func prepareWorkflowDispatchTemplate(ctx *context.Context, commit *git.Commit) (workflows []Workflow) {
 	workflowID := ctx.FormString("workflow")
 	ctx.Data["CurWorkflow"] = workflowID
+	ctx.Data["CurWorkflowExists"] = false
 
 	var curWorkflow *model.Workflow
 
@@ -182,6 +183,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, commit *git.Commit) (
 
 		if workflow.Entry.Name() == workflowID {
 			curWorkflow = wf
+			ctx.Data["CurWorkflowExists"] = true
 		}
 	}
 

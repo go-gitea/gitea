@@ -1,37 +1,41 @@
 {{if not .WorkflowDispatchConfig}}
-	<div class="ui red info message tw-flex tw-justify-between tw-items-center">
-		<span class="ui text middle">{{ctx.Locale.Tr "actions.workflow.not_found" $.CurWorkflow}}</span>
+	<div class="ui red message">
+		{{/* TODO: Technically this error is also shown if no workflow_dispatch is defined. However we need to know if the workflow exist like in #33098 (comment) to render a different error text.
+		A: does the newly added "CurWorkflowExists" help? */}}
+		{{ctx.Locale.Tr "actions.workflow.not_found" $.CurWorkflow}}
 	</div>
 {{else}}
 	{{range $item := .WorkflowDispatchConfig.Inputs}}
-	<div class="ui field {{if .Required}}required{{end}}">
-		{{if eq .Type "choice"}}
-			<label>{{Iif .Description .Description .Name}}:</label>
-			<select class="ui selection type dropdown" name="{{.Name}}">
-				{{range .Options}}
-				<option value="{{.}}" {{if eq $item.Default .}}selected{{end}} >{{.}}</option>
-				{{end}}
-			</select>
-		{{else if eq .Type "boolean"}}
-			<div class="ui inline checkbox">
-				<label>{{Iif .Description .Description .Name}}</label>
-				<input type="checkbox" name="{{.Name}}" {{if eq .Default "true"}}checked{{end}}>
-			</div>
-		{{else if eq .Type "number"}}
-			<label>{{Iif .Description .Description .Name}}:</label>
-			<input name="{{.Name}}" value="{{.Default}}" {{if .Required}}required{{end}}>
-		{{else}}
-			<label>{{Iif .Description .Description .Name}}:</label>
-			<input name="{{.Name}}" value="{{.Default}}" {{if .Required}}required{{end}}>
-		{{end}}
-	</div>
+		<div class="ui field {{if .Required}}required{{end}}">
+			{{if eq .Type "choice"}}
+				<label>{{or .Description .Name}}:</label>
+				<select class="ui selection type dropdown" name="{{.Name}}">
+					{{range .Options}}
+					<option value="{{.}}" {{if eq $item.Default .}}selected{{end}} >{{.}}</option>
+					{{end}}
+				</select>
+			{{else if eq .Type "boolean"}}
+				<div class="ui inline checkbox">
+					<label>{{or .Description .Name}}</label>
+					<input type="checkbox" name="{{.Name}}" {{if eq .Default "true"}}checked{{end}}>
+				</div>
+			{{else if eq .Type "number"}}
+				<label>{{or .Description .Name}}:</label>
+				<input name="{{.Name}}" value="{{.Default}}" {{if .Required}}required{{end}}>
+			{{else}}
+				<label>{{or .Description .Name}}:</label>
+				<input name="{{.Name}}" value="{{.Default}}" {{if .Required}}required{{end}}>
+			{{end}}
+		</div>
 	{{end}}
-	<button class="ui tiny primary button" type="submit">Submit</button>
+	<div class="ui field">
+		<button class="ui tiny primary button" type="submit">Submit</button>
+	</div>
 {{end}}
 {{range .workflows}}
 	{{if and .ErrMsg (eq .Entry.Name $.CurWorkflow)}}
-		<span data-tooltip-content="{{.ErrMsg}}">
-			{{svg "octicon-alert" 16 "text red"}}
-		</span>
+		<div class="ui field">
+			<div>{{svg "octicon-alert" 16 "text red"}} {{.ErrMsg}}</div>
+		</div>
 	{{end}}
 {{end}}
