@@ -11,6 +11,8 @@ import (
 	"path"
 	"regexp"
 	"strings"
+
+	"code.gitea.io/gitea/modules/setting"
 )
 
 var scpSyntax = regexp.MustCompile(`^([a-zA-Z0-9_]+@)?([a-zA-Z0-9._-]+):(.*)$`)
@@ -101,8 +103,8 @@ func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
 
 // RefURL guesses and returns reference URL.
 // FIXME: template passes AppURL as urlPrefix, it needs to figure out the correct approach (no hard-coded AppURL anymore)
-func (sf *CommitSubModuleFile) RefURL(urlPrefix, repoFullName, sshDomain string) string {
-	return getRefURL(sf.refURL, urlPrefix, repoFullName, sshDomain)
+func (sf *CommitSubModuleFile) RefURL(repoFullName string) string {
+	return getRefURL(sf.refURL, setting.AppURL, repoFullName, setting.SSH.Domain)
 }
 
 // RefID returns reference ID.
