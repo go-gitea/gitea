@@ -1434,7 +1434,7 @@ func registerRoutes(m *web.Router) {
 		m.Group("/workflows/{workflow_name}", func() {
 			m.Get("/badge.svg", actions.GetWorkflowBadge)
 		})
-	}, optSignIn, context.RepoAssignment, reqRepoActionsReader, actions.MustEnableActions)
+	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoActionsReader, actions.MustEnableActions)
 	// end "/{username}/{reponame}/actions"
 
 	m.Group("/{username}/{reponame}/wiki", func() {

@@ -63,140 +63,130 @@ func MustEnableActions(ctx *context.Context) {
 }
 
 func List(ctx *context.Context) {
-	renderListAndWorkflowDispatchTemplate(ctx, tplListActions, false)
+	ctx.Data["Title"] = ctx.Tr("actions.actions")
+	ctx.Data["PageIsActions"] = true
+
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	if err != nil {
+		ctx.ServerError("GetBranchCommit", err)
+		return
+	}
+	prepareWorkflowDispatchTemplate(ctx, commit)
+	ctx.HTML(http.StatusOK, tplListActions)
 }
 
 func WorkflowDispatchInputs(ctx *context.Context) {
-	renderListAndWorkflowDispatchTemplate(ctx, tplDispatchInputsActions, true)
+	ref := ctx.FormString("ref")
+	if ref == "" {
+		ctx.NotFound("WorkflowDispatchInputs: no ref", nil)
+		return
+	}
+	// get target commit of run from specified ref
+	refName := git.RefName(ref)
+	var commit *git.Commit
+	var err error
+	if refName.IsTag() {
+		commit, err = ctx.Repo.GitRepo.GetTagCommit(refName.TagName())
+	} else if refName.IsBranch() {
+		commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName.BranchName())
+	} else {
+		ctx.ServerError("UnsupportedRefType", nil)
+		return
+	}
+	if err != nil {
+		ctx.ServerError("GetTagCommit/GetBranchCommit", err)
+		return
+	}
+	workflows := prepareWorkflowDispatchTemplate(ctx, commit)
+	prepareWorkflowList(ctx, workflows)
+	ctx.HTML(http.StatusOK, tplDispatchInputsActions)
 }
 
-func renderListAndWorkflowDispatchTemplate(ctx *context.Context, tplName templates.TplName, inputsOnly bool) {
-	ctx.Data["Title"] = ctx.Tr("actions.actions")
-	ctx.Data["PageIsActions"] = true
+func prepareWorkflowDispatchTemplate(ctx *context.Context, commit *git.Commit) (workflows []Workflow) {
 	workflowID := ctx.FormString("workflow")
-	actorID := ctx.FormInt64("actor")
-	status := ctx.FormInt("status")
 	ctx.Data["CurWorkflow"] = workflowID
 
-	var workflows []Workflow
 	var curWorkflow *model.Workflow
-	if empty, err := ctx.Repo.GitRepo.IsEmpty(); err != nil {
-		ctx.ServerError("IsEmpty", err)
+
+	entries, err := actions.ListWorkflows(commit)
+	if err != nil {
+		ctx.ServerError("ListWorkflows", err)
 		return
-	} else if !empty {
-		var commit *git.Commit
-		if inputsOnly {
-			ref := ctx.FormString("ref")
-			if len(ref) == 0 {
-				ctx.ServerError("ref", nil)
-				return
-			}
-			// get target commit of run from specified ref
-			refName := git.RefName(ref)
-			var err error
-			if refName.IsTag() {
-				commit, err = ctx.Repo.GitRepo.GetTagCommit(refName.TagName())
-			} else if refName.IsBranch() {
-				commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName.BranchName())
-			} else {
-				ctx.ServerError("git_ref_name_error", nil)
-				return
-			}
-			if err != nil {
-				ctx.ServerError("target_ref_not_exist", err)
-				return
-			}
-		} else {
-			commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-			if err != nil {
-				ctx.ServerError("GetBranchCommit", err)
-				return
-			}
-		}
-		entries, err := actions.ListWorkflows(commit)
+	}
+
+	// Get all runner labels
+	runners, err := db.Find[actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
+		RepoID:        ctx.Repo.Repository.ID,
+		IsOnline:      optional.Some(true),
+		WithAvailable: true,
+	})
+	if err != nil {
+		ctx.ServerError("FindRunners", err)
+		return
+	}
+	allRunnerLabels := make(container.Set[string])
+	for _, r := range runners {
+		allRunnerLabels.AddMultiple(r.AgentLabels...)
+	}
+
+	workflows = make([]Workflow, 0, len(entries))
+	for _, entry := range entries {
+		workflow := Workflow{Entry: *entry}
+		content, err := actions.GetContentFromEntry(entry)
 		if err != nil {
-			ctx.ServerError("ListWorkflows", err)
+			ctx.ServerError("GetContentFromEntry", err)
 			return
 		}
-
-		// Get all runner labels
-		runners, err := db.Find[actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
-			RepoID:        ctx.Repo.Repository.ID,
-			IsOnline:      optional.Some(true),
-			WithAvailable: true,
-		})
+		wf, err := model.ReadWorkflow(bytes.NewReader(content))
 		if err != nil {
-			ctx.ServerError("FindRunners", err)
-			return
+			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
+			workflows = append(workflows, workflow)
+			continue
 		}
-		allRunnerLabels := make(container.Set[string])
-		for _, r := range runners {
-			allRunnerLabels.AddMultiple(r.AgentLabels...)
-		}
-
-		workflows = make([]Workflow, 0, len(entries))
-		for _, entry := range entries {
-			workflow := Workflow{Entry: *entry}
-			content, err := actions.GetContentFromEntry(entry)
-			if err != nil {
-				ctx.ServerError("GetContentFromEntry", err)
-				return
-			}
-			wf, err := model.ReadWorkflow(bytes.NewReader(content))
-			if err != nil {
-				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
-				workflows = append(workflows, workflow)
+		// The workflow must contain at least one job without "needs". Otherwise, a deadlock will occur and no jobs will be able to run.
+		hasJobWithoutNeeds := false
+		// Check whether you have matching runner and a job without "needs"
+		emptyJobsNumber := 0
+		for _, j := range wf.Jobs {
+			if j == nil {
+				emptyJobsNumber++
 				continue
 			}
-			// The workflow must contain at least one job without "needs". Otherwise, a deadlock will occur and no jobs will be able to run.
-			hasJobWithoutNeeds := false
-			// Check whether have matching runner and a job without "needs"
-			emptyJobsNumber := 0
-			for _, j := range wf.Jobs {
-				if j == nil {
-					emptyJobsNumber++
+			if !hasJobWithoutNeeds && len(j.Needs()) == 0 {
+				hasJobWithoutNeeds = true
+			}
+			runsOnList := j.RunsOn()
+			for _, ro := range runsOnList {
+				if strings.Contains(ro, "${{") {
+					// Skip if it contains expressions.
+					// The expressions could be very complex and could not be evaluated here,
+					// so just skip it, it's OK since it's just a tooltip message.
 					continue
 				}
-				if !hasJobWithoutNeeds && len(j.Needs()) == 0 {
-					hasJobWithoutNeeds = true
-				}
-				runsOnList := j.RunsOn()
-				for _, ro := range runsOnList {
-					if strings.Contains(ro, "${{") {
-						// Skip if it contains expressions.
-						// The expressions could be very complex and could not be evaluated here,
-						// so just skip it, it's OK since it's just a tooltip message.
-						continue
-					}
-					if !allRunnerLabels.Contains(ro) {
-						workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", ro)
-						break
-					}
-				}
-				if workflow.ErrMsg != "" {
+				if !allRunnerLabels.Contains(ro) {
+					workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", ro)
 					break
 				}
 			}
-			if !hasJobWithoutNeeds {
-				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job_without_needs")
-			}
-			if emptyJobsNumber == len(wf.Jobs) {
-				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job")
-			}
-			workflows = append(workflows, workflow)
-
-			if workflow.Entry.Name() == workflowID {
-				curWorkflow = wf
+			if workflow.ErrMsg != "" {
+				break
 			}
 		}
+		if !hasJobWithoutNeeds {
+			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job_without_needs")
+		}
+		if emptyJobsNumber == len(wf.Jobs) {
+			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job")
+		}
+		workflows = append(workflows, workflow)
+
+		if workflow.Entry.Name() == workflowID {
+			curWorkflow = wf
+		}
 	}
+
 	ctx.Data["workflows"] = workflows
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
-
-	page := ctx.FormInt("page")
-	if page <= 0 {
-		page = 1
-	}
 
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
 	ctx.Data["ActionsConfig"] = actionsConfig
@@ -239,68 +229,75 @@ func renderListAndWorkflowDispatchTemplate(ctx *context.Context, tplName templat
 			}
 		}
 	}
+	return workflows
+}
 
-	if !inputsOnly {
-		// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
-		// they will be 0 by default, which indicates get all status or actors
-		ctx.Data["CurActor"] = actorID
-		ctx.Data["CurStatus"] = status
-		if actorID > 0 || status > int(actions_model.StatusUnknown) {
-			ctx.Data["IsFiltered"] = true
-		}
-
-		opts := actions_model.FindRunOptions{
-			ListOptions: db.ListOptions{
-				Page:     page,
-				PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
-			},
-			RepoID:        ctx.Repo.Repository.ID,
-			WorkflowID:    workflowID,
-			TriggerUserID: actorID,
-		}
-
-		// if status is not StatusUnknown, it means user has selected a status filter
-		if actions_model.Status(status) != actions_model.StatusUnknown {
-			opts.Status = []actions_model.Status{actions_model.Status(status)}
-		}
-
-		runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
-		if err != nil {
-			ctx.ServerError("FindAndCount", err)
-			return
-		}
-
-		for _, run := range runs {
-			run.Repo = ctx.Repo.Repository
-		}
-
-		if err := actions_model.RunList(runs).LoadTriggerUser(ctx); err != nil {
-			ctx.ServerError("LoadTriggerUser", err)
-			return
-		}
-
-		if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, runs); err != nil {
-			log.Error("LoadIsRefDeleted", err)
-		}
-
-		ctx.Data["Runs"] = runs
-
-		actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
-		if err != nil {
-			ctx.ServerError("GetActors", err)
-			return
-		}
-		ctx.Data["Actors"] = shared_user.MakeSelfOnTop(ctx.Doer, actors)
-
-		ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx)
-
-		pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
-		pager.AddParamFromRequest(ctx.Req)
-		ctx.Data["Page"] = pager
-		ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
+func prepareWorkflowList(ctx *context.Context, workflows []Workflow) {
+	actorID := ctx.FormInt64("actor")
+	status := ctx.FormInt("status")
+	workflowID := ctx.FormString("workflow")
+	page := ctx.FormInt("page")
+	if page <= 0 {
+		page = 1
 	}
 
-	ctx.HTML(http.StatusOK, tplName)
+	// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
+	// they will be 0 by default, which indicates get all status or actors
+	ctx.Data["CurActor"] = actorID
+	ctx.Data["CurStatus"] = status
+	if actorID > 0 || status > int(actions_model.StatusUnknown) {
+		ctx.Data["IsFiltered"] = true
+	}
+
+	opts := actions_model.FindRunOptions{
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
+		},
+		RepoID:        ctx.Repo.Repository.ID,
+		WorkflowID:    workflowID,
+		TriggerUserID: actorID,
+	}
+
+	// if status is not StatusUnknown, it means user has selected a status filter
+	if actions_model.Status(status) != actions_model.StatusUnknown {
+		opts.Status = []actions_model.Status{actions_model.Status(status)}
+	}
+
+	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
+	if err != nil {
+		ctx.ServerError("FindAndCount", err)
+		return
+	}
+
+	for _, run := range runs {
+		run.Repo = ctx.Repo.Repository
+	}
+
+	if err := actions_model.RunList(runs).LoadTriggerUser(ctx); err != nil {
+		ctx.ServerError("LoadTriggerUser", err)
+		return
+	}
+
+	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, runs); err != nil {
+		log.Error("LoadIsRefDeleted", err)
+	}
+
+	ctx.Data["Runs"] = runs
+
+	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetActors", err)
+		return
+	}
+	ctx.Data["Actors"] = shared_user.MakeSelfOnTop(ctx.Doer, actors)
+
+	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx)
+
+	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
+	pager.AddParamFromRequest(ctx.Req)
+	ctx.Data["Page"] = pager
+	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 }
 
 // loadIsRefDeleted loads the IsRefDeleted field for each run in the list.
