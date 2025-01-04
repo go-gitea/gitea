@@ -336,8 +336,13 @@ a.label,
   border-color: var(--color-secondary);
 }
 
+.ui.dropdown .menu > .header {
+  text-transform: none; /* reset fomantic's "uppercase" */
+}
+
 .ui.dropdown .menu > .header:not(.ui) {
   color: var(--color-text);
+  font-size: 0.95em; /* reset fomantic's small font-size */
 }
 
 .ui.dropdown .menu > .item {
@@ -689,10 +694,6 @@ input:-webkit-autofill:active,
 }
 .ui.floating.dropdown .menu {
   box-shadow: 0 6px 18px var(--color-shadow) !important;
-}
-
-.ui.dropdown .menu > .header {
-  font-size: 0.8em;
 }
 
 .ui .text.left {
