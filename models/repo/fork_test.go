@@ -13,21 +13,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetUserFork(t *testing.T) {
+func Test_GetForkedRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// User13 has repo 11 forked from repo10
 	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 10)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
-	repo, err = repo_model.GetUserFork(db.DefaultContext, repo.ID, 13)
+	repo, err = repo_model.GetForkedRepo(db.DefaultContext, 13, repo.ID)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
 
 	repo, err = repo_model.GetRepositoryByID(db.DefaultContext, 9)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
-	repo, err = repo_model.GetUserFork(db.DefaultContext, repo.ID, 13)
-	assert.NoError(t, err)
+	repo, err = repo_model.GetForkedRepo(db.DefaultContext, 13, repo.ID)
+	assert.Error(t, err)
+	assert.True(t, repo_model.IsErrRepoNotExist(err))
 	assert.Nil(t, repo)
 }
