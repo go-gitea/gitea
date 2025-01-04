@@ -71,7 +71,8 @@ func List(ctx *context.Context) {
 		ctx.ServerError("GetBranchCommit", err)
 		return
 	}
-	prepareWorkflowDispatchTemplate(ctx, commit)
+	workflows := prepareWorkflowDispatchTemplate(ctx, commit)
+	prepareWorkflowList(ctx, workflows)
 	ctx.HTML(http.StatusOK, tplListActions)
 }
 
@@ -97,8 +98,7 @@ func WorkflowDispatchInputs(ctx *context.Context) {
 		ctx.ServerError("GetTagCommit/GetBranchCommit", err)
 		return
 	}
-	workflows := prepareWorkflowDispatchTemplate(ctx, commit)
-	prepareWorkflowList(ctx, workflows)
+	prepareWorkflowDispatchTemplate(ctx, commit)
 	ctx.HTML(http.StatusOK, tplDispatchInputsActions)
 }
 
