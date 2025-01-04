@@ -282,9 +282,6 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		return false
 	}
 
-	pr.MergedCommitID = commit.ID.String()
-	pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
-	pr.Status = issues_model.PullRequestStatusManuallyMerged
 	merger, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
 
 	// When the commit author is unknown set the BaseRepo owner as merger
@@ -297,10 +294,8 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		}
 		merger = pr.BaseRepo.Owner
 	}
-	pr.Merger = merger
-	pr.MergerID = merger.ID
 
-	if merged, err := SetMerged(ctx, pr); err != nil {
+	if merged, err := SetMerged(ctx, pr, commit.ID.String(), timeutil.TimeStamp(commit.Author.When.Unix()), merger, issues_model.PullRequestStatusManuallyMerged); err != nil {
 		log.Error("%-v setMerged : %v", pr, err)
 		return false
 	} else if !merged {

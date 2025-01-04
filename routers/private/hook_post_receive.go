@@ -8,11 +8,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
@@ -22,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	timeutil "code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	gitea_context "code.gitea.io/gitea/services/context"
@@ -359,21 +357,9 @@ func handlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.H
 		return
 	}
 
-	pr.MergedCommitID = updates[len(updates)-1].NewCommitID
-	pr.MergedUnix = timeutil.TimeStampNow()
-	pr.Merger = pusher
-	pr.MergerID = pusher.ID
-	err = db.WithTx(ctx, func(ctx context.Context) error {
-		// Removing an auto merge pull and ignore if not exist
-		if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
-			return fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", opts.PullRequestID, err)
-		}
-		if _, err := pull_service.SetMerged(ctx, pr); err != nil {
-			return fmt.Errorf("SetMerged failed: %s/%s Error: %v", ownerName, repoName, err)
-		}
-		return nil
-	})
-	if err != nil {
+	// FIXME: Maybe we need a `PullRequestStatusMerged` status for PRs that are merged, currently we use the previous status
+	// here to keep it as before, that maybe PullRequestStatusMergeable
+	if _, err := pull_service.SetMerged(ctx, pr, updates[len(updates)-1].NewCommitID, timeutil.TimeStampNow(), pusher, pr.Status); err != nil {
 		log.Error("Failed to update PR to merged: %v", err)
 		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "Failed to update PR to merged"})
 	}
