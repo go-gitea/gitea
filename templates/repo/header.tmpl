@@ -162,7 +162,7 @@
 						</a>
 					{{end}}
 
-					{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
+					{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions) (not .IsEmptyRepo)}}
 						<a class="{{if .PageIsActions}}active {{end}}item" href="{{.RepoLink}}/actions">
 							{{svg "octicon-play"}} {{ctx.Locale.Tr "actions.actions"}}
 							{{if .Repository.NumOpenActionRuns}}
