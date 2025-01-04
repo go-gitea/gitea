@@ -15,10 +15,11 @@
 					{{end}}
 				</select>
 			{{else if eq .Type "boolean"}}
-				<div class="ui inline checkbox">
-					<label>{{or .Description .Name}}</label>
+				{{/* htmx doesn't trigger our JS code to attach fomantic label to checkbox, so here we use standard checkbox */}}
+				<label class="tw-flex flex-text-inline">
 					<input type="checkbox" name="{{.Name}}" {{if eq .Default "true"}}checked{{end}}>
-				</div>
+					{{or .Description .Name}}
+				</label>
 			{{else if eq .Type "number"}}
 				<label>{{or .Description .Name}}:</label>
 				<input name="{{.Name}}" value="{{.Default}}" {{if .Required}}required{{end}}>
