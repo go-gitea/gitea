@@ -26,6 +26,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
+
+	_ "github.com/ncruces/go-sqlite3/vfs/memdb" // for testing: sqlite3 vfs=memdb
 )
 
 var giteaRoot string
@@ -170,7 +172,7 @@ type FixturesOptions struct {
 
 // CreateTestEngine creates a memory database and loads the fixture data from fixturesDir
 func CreateTestEngine(opts FixturesOptions) error {
-	x, err := xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
+	x, err := xorm.NewEngine("sqlite3", "file:/data.db?vfs=memdb&_txlock=immediate")
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown driver") {
 			return fmt.Errorf(`sqlite3 requires: -tags sqlite,sqlite_unlock_notify%s%w`, "\n", err)
