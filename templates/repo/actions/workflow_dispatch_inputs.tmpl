@@ -1,5 +1,5 @@
 {{if not .WorkflowDispatchConfig}}
-	<div class="ui red message">
+	<div class="ui error message">
 		{{/* TODO: Technically this error is also shown if no workflow_dispatch is defined. However we need to know if the workflow exist like in #33098 (comment) to render a different error text.
 		A: does the newly added "CurWorkflowExists" help? */}}
 		{{ctx.Locale.Tr "actions.workflow.not_found" $.CurWorkflow}}

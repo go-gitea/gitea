@@ -71,8 +71,17 @@ func List(ctx *context.Context) {
 		ctx.ServerError("GetBranchCommit", err)
 		return
 	}
+
 	workflows := prepareWorkflowDispatchTemplate(ctx, commit)
+	if ctx.Written() {
+		return
+	}
+
 	prepareWorkflowList(ctx, workflows)
+	if ctx.Written() {
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplListActions)
 }
 
@@ -99,6 +108,9 @@ func WorkflowDispatchInputs(ctx *context.Context) {
 		return
 	}
 	prepareWorkflowDispatchTemplate(ctx, commit)
+	if ctx.Written() {
+		return
+	}
 	ctx.HTML(http.StatusOK, tplDispatchInputsActions)
 }
 
@@ -112,7 +124,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, commit *git.Commit) (
 	entries, err := actions.ListWorkflows(commit)
 	if err != nil {
 		ctx.ServerError("ListWorkflows", err)
-		return
+		return nil
 	}
 
 	// Get all runner labels
@@ -123,7 +135,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, commit *git.Commit) (
 	})
 	if err != nil {
 		ctx.ServerError("FindRunners", err)
-		return
+		return nil
 	}
 	allRunnerLabels := make(container.Set[string])
 	for _, r := range runners {
@@ -136,7 +148,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, commit *git.Commit) (
 		content, err := actions.GetContentFromEntry(entry)
 		if err != nil {
 			ctx.ServerError("GetContentFromEntry", err)
-			return
+			return nil
 		}
 		wf, err := model.ReadWorkflow(bytes.NewReader(content))
 		if err != nil {
@@ -213,7 +225,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, commit *git.Commit) (
 				branches, err := git_model.FindBranchNames(ctx, branchOpts)
 				if err != nil {
 					ctx.ServerError("FindBranchNames", err)
-					return
+					return nil
 				}
 				// always put default branch on the top if it exists
 				if slices.Contains(branches, ctx.Repo.Repository.DefaultBranch) {
@@ -225,7 +237,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, commit *git.Commit) (
 				tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 				if err != nil {
 					ctx.ServerError("GetTagNamesByRepoID", err)
-					return
+					return nil
 				}
 				ctx.Data["Tags"] = tags
 			}
