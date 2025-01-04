@@ -50,6 +50,7 @@ function selectRange(range: string): Element {
   if (!start) return null;
   const stop = rangeFields[1] || start;
 
+  // format is i.e. 'L14-L26'
   let startLineNum = parseInt(start.substring(1));
   let stopLineNum = parseInt(stop.substring(1));
   if (startLineNum > stopLineNum) {
