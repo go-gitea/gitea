@@ -12,6 +12,7 @@ function changeHash(hash: string) {
   }
 }
 
+// it selects the code lines defined by range: `L1-L3` (3 lines) or `L2` (singe line)
 function selectRange(range: string): Element {
   for (const el of document.querySelectorAll('.code-view tr.active')) el.classList.remove('active');
   const elLineNums = document.querySelectorAll(`.code-view td.lines-num span[data-line-number]`);
