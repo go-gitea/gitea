@@ -32,8 +32,9 @@ import (
 )
 
 const (
-	tplListActions templates.TplName = "repo/actions/list"
-	tplViewActions templates.TplName = "repo/actions/view"
+	tplListActions           templates.TplName = "repo/actions/list"
+	tplDispatchInputsActions templates.TplName = "repo/actions/workflow_dispatch_inputs"
+	tplViewActions           templates.TplName = "repo/actions/view"
 )
 
 type Workflow struct {

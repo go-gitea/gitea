@@ -5,6 +5,7 @@ package actions
 
 import (
 	"archive/zip"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"errors"
@@ -812,13 +813,8 @@ func Run(ctx *context_module.Context) {
 		return
 	}
 
-	// get workflow entry from default branch commit
-	defaultBranchCommit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
-	entries, err := actions.ListWorkflows(defaultBranchCommit)
+	// get workflow entry from runTargetCommit
+	entries, err := actions.ListWorkflows(runTargetCommit)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -927,4 +923,74 @@ func Run(ctx *context_module.Context) {
 
 	ctx.Flash.Success(ctx.Tr("actions.workflow.run_success", workflowID))
 	ctx.Redirect(redirectURL)
+}
+
+func DispatchInputs(ctx *context_module.Context) {
+	workflowID := ctx.FormString("workflow")
+	if len(workflowID) == 0 {
+		ctx.ServerError("workflow", nil)
+		return
+	}
+
+	ref := ctx.FormString("ref")
+	if len(ref) == 0 {
+		ctx.ServerError("ref", nil)
+		return
+	}
+
+	// get target commit of run from specified ref
+	refName := git.RefName(ref)
+	var runTargetCommit *git.Commit
+	var err error
+	if refName.IsTag() {
+		runTargetCommit, err = ctx.Repo.GitRepo.GetTagCommit(refName.TagName())
+	} else if refName.IsBranch() {
+		runTargetCommit, err = ctx.Repo.GitRepo.GetBranchCommit(refName.BranchName())
+	} else {
+		ctx.Flash.Error(ctx.Tr("form.git_ref_name_error", ref))
+		return
+	}
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("form.target_ref_not_exist", ref))
+		return
+	}
+
+	// get workflow entry from runTargetCommit
+	entries, err := actions.ListWorkflows(runTargetCommit)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	var curWorkflow *model.Workflow
+
+	// find workflow from commit
+	for _, entry := range entries {
+		if entry.Name() == workflowID {
+			content, err := actions.GetContentFromEntry(entry)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return
+			}
+			curWorkflow, err = model.ReadWorkflow(bytes.NewReader(content))
+			if err != nil {
+				ctx.ServerError("workflow", err)
+				return
+			}
+			break
+		}
+	}
+
+	if curWorkflow == nil {
+		ctx.Flash.Error(ctx.Tr("actions.workflow.not_found", workflowID))
+		return
+	}
+
+	workflowDispatchConfig := workflowDispatchConfig(curWorkflow)
+	if workflowDispatchConfig == nil {
+		return
+	}
+	ctx.Data["WorkflowDispatchConfig"] = workflowDispatchConfig
+
+	ctx.HTML(http.StatusOK, tplDispatchInputsActions)
 }
