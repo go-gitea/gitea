@@ -325,9 +325,9 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 
 	var cloneURL string
 	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(username, reponame)
+		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, username, reponame)
 	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(username, reponame)
+		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, username, reponame)
 	}
 	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(ctx, username, reponame), cloneURL)
 	htmlMeta := fmt.Sprintf(`<meta name="go-import" content="%s">`, html.EscapeString(goImportContent))
@@ -564,7 +564,7 @@ func RepoAssignment(ctx *Context) {
 	// If multiple forks are available or if the user can fork to another account, but there is already a fork: open selection dialog
 	ctx.Data["ShowForkModal"] = len(userAndOrgForks) > 1 || (canSignedUserFork && len(userAndOrgForks) > 0)
 
-	ctx.Data["RepoCloneLink"] = repo.CloneLink()
+	ctx.Data["RepoCloneLink"] = repo.CloneLink(ctx, ctx.Doer)
 
 	cloneButtonShowHTTPS := !setting.Repository.DisableHTTPGit
 	cloneButtonShowSSH := !setting.SSH.Disabled && (ctx.IsSigned || setting.SSH.ExposeAnonymous)

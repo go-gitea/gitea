@@ -1449,7 +1449,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/raw/*", repo.WikiRaw)
 	}, optSignIn, context.RepoAssignment, repo.MustEnableWiki, reqRepoWikiReader, func(ctx *context.Context) {
 		ctx.Data["PageIsWiki"] = true
-		ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.WikiCloneLink()
+		ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.WikiCloneLink(ctx, ctx.Doer)
 	})
 	// end "/{username}/{reponame}/wiki"
 

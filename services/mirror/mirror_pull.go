@@ -32,7 +32,7 @@ const gitShortEmptySha = "0000000"
 
 // UpdateAddress writes new address to Git repository and database
 func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error {
-	u, err := giturl.Parse(addr)
+	u, err := giturl.ParseGitURL(addr)
 	if err != nil {
 		return fmt.Errorf("invalid addr: %v", err)
 	}

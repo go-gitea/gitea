@@ -21,7 +21,7 @@ func (err ErrWrongURLFormat) Error() string {
 // GitURL represents a git URL
 type GitURL struct {
 	*stdurl.URL
-	extraMark int // 0 no extra 1 scp 2 file path with no prefix
+	extraMark int // 0: standard URL with scheme, 1: scp short syntax (no scheme), 2: file path with no prefix
 }
 
 // String returns the URL's string
@@ -38,8 +38,11 @@ func (u *GitURL) String() string {
 	}
 }
 
-// Parse parse all kinds of git URL
-func Parse(remote string) (*GitURL, error) {
+// ParseGitURL parse all kinds of git URL:
+// * Full URL: http://git@host/path, http://git@host:port/path
+// * SCP short syntax: git@host:/path
+// * File path: /dir/repo/path
+func ParseGitURL(remote string) (*GitURL, error) {
 	if strings.Contains(remote, "://") {
 		u, err := stdurl.Parse(remote)
 		if err != nil {
