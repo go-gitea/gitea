@@ -560,7 +560,14 @@ func Approve(ctx *context_module.Context) {
 			return err
 		}
 		for _, job := range jobs {
-			if len(job.Needs) == 0 && job.Status.IsBlocked() {
+			blockJobByConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, job)
+			if err != nil {
+				if actions_model.IsErrUnevaluatedConcurrency(err) {
+					continue
+				}
+				return err
+			}
+			if len(job.Needs) == 0 && job.Status.IsBlocked() && !blockJobByConcurrency {
 				job.Status = actions_model.StatusWaiting
 				_, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
 				if err != nil {
@@ -914,7 +921,7 @@ func Run(ctx *context_module.Context) {
 	}
 
 	// Insert the action run and its associated jobs into the database
-	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+	if err := actions_service.InsertRun(ctx, run, workflows); err != nil {
 		ctx.ServerError("workflow", err)
 		return
 	}
