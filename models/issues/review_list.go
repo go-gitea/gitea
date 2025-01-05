@@ -155,7 +155,7 @@ func CountReviews(ctx context.Context, opts FindReviewOptions) (int64, error) {
 	return db.GetEngine(ctx).Where(opts.toCond()).Count(&Review{})
 }
 
-var allowedReivewTypes = []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest}
+var countedReivewTypes = []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest}
 
 // GetReviewsByIssueID gets the latest review of each reviewer for a pull request
 func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, ReviewList, error) {
@@ -169,11 +169,11 @@ func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, Review
 	// filter them in memory to get the latest review of each reviewer
 	// Since the reviews should not be too many for one issue, less than 100 commonly, it's acceptable to do this in memory
 	// And since there are too less indexes in review table, it will be very slow to filter in the database
-	reviewersMap := make(map[int64][]*Review) // key is reviewer id
-	originalReviewersMap := make(map[int64][]*Review)
-	reviewTeamsMap := make(map[int64][]*Review)
+	reviewersMap := make(map[int64][]*Review)         // key is reviewer id
+	originalReviewersMap := make(map[int64][]*Review) // key is original author id
+	reviewTeamsMap := make(map[int64][]*Review)       // key is reviewer team id
 	for _, review := range reviews {
-		if review.ReviewerTeamID == 0 && slices.Contains(allowedReivewTypes, review.Type) && !review.Dismissed {
+		if review.ReviewerTeamID == 0 && slices.Contains(countedReivewTypes, review.Type) && !review.Dismissed {
 			if review.OriginalAuthorID != 0 {
 				originalReviewersMap[review.OriginalAuthorID] = append(originalReviewersMap[review.OriginalAuthorID], review)
 			} else {
@@ -184,27 +184,29 @@ func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, Review
 		}
 	}
 
-	mergedReviews := make([]*Review, 0, 10)
+	individualReviews := make([]*Review, 0, 10)
 	for _, reviews := range reviewersMap {
-		mergedReviews = append(mergedReviews, reviews[len(reviews)-1])
+		individualReviews = append(individualReviews, reviews[len(reviews)-1])
 	}
-	sort.Slice(mergedReviews, func(i, j int) bool {
-		return mergedReviews[i].UpdatedUnix < mergedReviews[j].UpdatedUnix
+	sort.Slice(individualReviews, func(i, j int) bool {
+		return individualReviews[i].UpdatedUnix < individualReviews[j].UpdatedUnix
 	})
 
-	originalReviewers := make([]*Review, 0, 10)
+	originalReviews := make([]*Review, 0, 10)
 	for _, reviews := range originalReviewersMap {
-		originalReviewers = append(originalReviewers, reviews[len(reviews)-1])
+		originalReviews = append(originalReviews, reviews[len(reviews)-1])
 	}
+	sort.Slice(originalReviews, func(i, j int) bool {
+		return originalReviews[i].UpdatedUnix < originalReviews[j].UpdatedUnix
+	})
 
 	teamReviewRequests := make([]*Review, 0, 5)
 	for _, reviews := range reviewTeamsMap {
 		teamReviewRequests = append(teamReviewRequests, reviews[len(reviews)-1])
 	}
-
 	sort.Slice(teamReviewRequests, func(i, j int) bool {
 		return teamReviewRequests[i].UpdatedUnix < teamReviewRequests[j].UpdatedUnix
 	})
 
-	return append(mergedReviews, teamReviewRequests...), originalReviewers, nil
+	return append(individualReviews, teamReviewRequests...), originalReviews, nil
 }
