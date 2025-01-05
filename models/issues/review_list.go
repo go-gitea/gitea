@@ -206,5 +206,5 @@ func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, Review
 		return teamReviewRequests[i].UpdatedUnix < teamReviewRequests[j].UpdatedUnix
 	})
 
-	return append(teamReviewRequests, teamReviewRequests...), originalReviewers, nil
+	return append(mergedReviews, teamReviewRequests...), originalReviewers, nil
 }
