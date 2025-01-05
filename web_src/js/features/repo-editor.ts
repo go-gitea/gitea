@@ -1,5 +1,5 @@
 import {htmlEscape} from 'escape-goat';
-import {createCodeEditor} from './codeeditor.ts';
+// import {createCodeEditor} from './codeeditor.ts';
 import {hideElem, queryElems, showElem, createElementFromHTML} from '../utils/dom.ts';
 import {initMarkupContent} from '../markup/content.ts';
 import {attachRefIssueContextPopup} from './contextpopup.ts';
@@ -8,6 +8,8 @@ import {initDropzone} from './dropzone.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {applyAreYouSure, ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {Editor} from '@tiptap/vue-3';
+import StarterKit from '@tiptap/starter-kit';
 
 function initEditPreviewTab(elForm: HTMLFormElement) {
   const elTabMenu = elForm.querySelector('.repo-editor-menu');
@@ -35,11 +37,31 @@ function initEditPreviewTab(elForm: HTMLFormElement) {
 }
 
 export function initRepoEditor() {
+  console.log('A');
   const dropzoneUpload = document.querySelector<HTMLElement>('.page-content.repository.editor.upload .dropzone');
   if (dropzoneUpload) initDropzone(dropzoneUpload);
+  console.log('B');
+
+  const richTextEditorMount = document.querySelector<HTMLElement>('#rich-text-editor');
+  if (!richTextEditorMount) return;
+  console.log('C');
 
   const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
   if (!editArea) return;
+  console.log('D');
+
+  const editor = new Editor({
+    element: richTextEditorMount,
+    content: editArea.value,
+    extensions: [StarterKit],
+    editable: true,
+  });
+
+  const onUpdate = () => {
+    editArea.value = editor.getHTML();
+  };
+
+  editor.on('update', onUpdate);
 
   for (const el of queryElems<HTMLInputElement>(document, '.js-quick-pull-choice-option')) {
     el.addEventListener('input', () => {
@@ -148,7 +170,7 @@ export function initRepoEditor() {
   initEditPreviewTab(elForm);
 
   (async () => {
-    const editor = await createCodeEditor(editArea, filenameInput);
+    // const editor = await createCodeEditor(editArea, filenameInput);
 
     // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
     // to enable or disable the commit button
@@ -174,14 +196,16 @@ export function initRepoEditor() {
 
     // Update the editor from query params, if available,
     // only after the dirtyFileClass initialization
-    const params = new URLSearchParams(window.location.search);
-    const value = params.get('value');
-    if (value) {
-      editor.setValue(value);
-    }
+    // const params = new URLSearchParams(window.location.search);
+    // const value = params.get('value');
+    // if (value) {
+    //   editor.setValue(value);
+    // }
 
     commitButton?.addEventListener('click', async (e) => {
       // A modal which asks if an empty file should be committed
+      console.log('CLICK');
+      console.log(editArea.value);
       if (!editArea.value) {
         e.preventDefault();
         if (await confirmModal({

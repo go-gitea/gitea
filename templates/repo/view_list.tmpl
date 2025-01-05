@@ -6,7 +6,7 @@
 	</div>
 	{{if .HasParentPath}}
 	<a class="repo-file-line parent-link silenced" href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">
-		{{svg "octicon-chevron-left"}} {{svg "octicon-file-directory-fill"}}
+		{{svg "octicon-file-directory-fill"}} ..
 	</a>
 	{{end}}
 	{{range $item := .Files}}

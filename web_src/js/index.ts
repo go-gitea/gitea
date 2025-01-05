@@ -55,7 +55,6 @@ import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts'
 import {initCopyContent} from './features/copycontent.ts';
 import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
-import {initTipTapRichTextEditor} from './features/tiptap-rich-text-editor.ts';
 import {initGlobalTooltips} from './modules/tippy.ts';
 import {initGiteaFomantic} from './modules/fomantic.ts';
 import {initSubmitEventPolyfill, onDomReady} from './utils/dom.ts';
@@ -133,8 +132,6 @@ onDomReady(() => {
     initGlobalFormDirtyLeaveConfirm,
     initGlobalComboMarkdownEditor,
     initGlobalDeleteButton,
-
-    initTipTapRichTextEditor,
 
     initCommonOrganization,
     initCommonIssueListQuickGoto,
