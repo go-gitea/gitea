@@ -168,6 +168,7 @@ func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, Review
 
 	// filter them in memory to get the latest review of each reviewer
 	// Since the reviewes should not be too many for one issue, less than 100 commonly, it's acceptable to do this in memory
+	// And since there are too less indexes in review table, it will be very slow to filter in the database
 	reviewersMap := make(map[int64][]*Review) // key is reviewer id
 	originalReviewersMap := make(map[int64][]*Review)
 	reviewTeamsMap := make(map[int64][]*Review)
