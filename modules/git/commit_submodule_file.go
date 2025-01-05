@@ -31,10 +31,14 @@ func NewCommitSubModuleFile(refURL, refID string) *CommitSubModuleFile {
 	}
 }
 
-func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
+func getRefURL(refURL, repoFullName string) string {
 	if refURL == "" {
 		return ""
 	}
+
+	// FIXME: use a more generic way to handle the domain and subpath
+	urlPrefix := setting.AppURL
+	sshDomain := setting.SSH.Domain
 
 	refURI := strings.TrimSuffix(refURL, ".git")
 
@@ -102,9 +106,8 @@ func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
 }
 
 // RefURL guesses and returns reference URL.
-// FIXME: template passes AppURL as urlPrefix, it needs to figure out the correct approach (no hard-coded AppURL anymore)
 func (sf *CommitSubModuleFile) RefURL(repoFullName string) string {
-	return getRefURL(sf.refURL, setting.AppURL, repoFullName, setting.SSH.Domain)
+	return getRefURL(sf.refURL, repoFullName)
 }
 
 // RefID returns reference ID.

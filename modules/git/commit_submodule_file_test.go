@@ -6,6 +6,9 @@ package git
 import (
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,6 +40,10 @@ func TestCommitSubModuleFileGetRefURL(t *testing.T) {
 	}
 
 	for _, kase := range kases {
-		assert.EqualValues(t, kase.expect, getRefURL(kase.refURL, kase.prefixURL, kase.parentPath, kase.SSHDomain))
+		t.Run(kase.refURL, func(t *testing.T) {
+			defer test.MockVariableValue(&setting.AppURL, kase.prefixURL)()
+			defer test.MockVariableValue(&setting.SSH.Domain, kase.SSHDomain)()
+			assert.EqualValues(t, kase.expect, getRefURL(kase.refURL, kase.parentPath))
+		})
 	}
 }
