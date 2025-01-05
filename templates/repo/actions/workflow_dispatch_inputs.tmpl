@@ -1,5 +1,5 @@
 {{if not .WorkflowDispatchConfig}}
-	<div class="ui error message tw-flex tw-justify-between tw-items-center">
+	<div class="ui error message tw-block">{{/* using "ui message" in "ui form" needs to force to display */}}
 		{{if not .CurWorkflowExists}}
 			{{ctx.Locale.Tr "actions.workflow.not_found" $.CurWorkflow}}
 		{{else}}
