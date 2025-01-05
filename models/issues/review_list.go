@@ -5,6 +5,8 @@ package issues
 
 import (
 	"context"
+	"slices"
+	"sort"
 
 	"code.gitea.io/gitea/models/db"
 	organization_model "code.gitea.io/gitea/models/organization"
@@ -153,43 +155,55 @@ func CountReviews(ctx context.Context, opts FindReviewOptions) (int64, error) {
 	return db.GetEngine(ctx).Where(opts.toCond()).Count(&Review{})
 }
 
-// GetReviewersFromOriginalAuthorsByIssueID gets the latest review of each original authors for a pull request
-func GetReviewersFromOriginalAuthorsByIssueID(ctx context.Context, issueID int64) (ReviewList, error) {
-	reviews := make([]*Review, 0, 10)
-
-	// Get latest review of each reviewer, sorted in order they were made
-	if err := db.GetEngine(ctx).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id <> 0 GROUP BY issue_id, original_author_id) ORDER BY review.updated_unix ASC",
-		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
-		Find(&reviews); err != nil {
-		return nil, err
-	}
-
-	return reviews, nil
-}
+var allowedReivewTypes = []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest}
 
 // GetReviewsByIssueID gets the latest review of each reviewer for a pull request
-func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, error) {
+func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, ReviewList, error) {
 	reviews := make([]*Review, 0, 10)
 
-	sess := db.GetEngine(ctx)
+	// Get all reviews for the issue id
+	if err := db.GetEngine(ctx).Where("issue_id=?", issueID).OrderBy("updated_unix ASC").Find(&reviews); err != nil {
+		return nil, nil, err
+	}
 
-	// Get latest review of each reviewer, sorted in order they were made
-	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
-		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, false).
-		Find(&reviews); err != nil {
-		return nil, err
+	// filter them in memory to get the latest review of each reviewer
+	// Since the reviewes should not be too many for one issue, less than 100 commonly, it's acceptable to do this in memory
+	reviewersMap := make(map[int64][]*Review) // key is reviewer id
+	originalReviewersMap := make(map[int64][]*Review)
+	reviewTeamsMap := make(map[int64][]*Review)
+	for _, review := range reviews {
+		if review.ReviewerTeamID == 0 && slices.Contains(allowedReivewTypes, review.Type) && !review.Dismissed {
+			if review.OriginalAuthorID != 0 {
+				originalReviewersMap[review.OriginalAuthorID] = append(originalReviewersMap[review.OriginalAuthorID], review)
+			} else {
+				reviewersMap[review.ReviewerID] = append(reviewersMap[review.ReviewerID], review)
+			}
+		} else if review.ReviewerTeamID != 0 && review.OriginalAuthorID == 0 {
+			reviewTeamsMap[review.ReviewerTeamID] = append(reviewTeamsMap[review.ReviewerTeamID], review)
+		}
+	}
+
+	mergedReviews := make([]*Review, 0, 10)
+	for _, reviews := range reviewersMap {
+		mergedReviews = append(mergedReviews, reviews[len(reviews)-1])
+	}
+	sort.Slice(mergedReviews, func(i, j int) bool {
+		return mergedReviews[i].UpdatedUnix < mergedReviews[j].UpdatedUnix
+	})
+
+	originalReviewers := make([]*Review, 0, 10)
+	for _, reviews := range originalReviewersMap {
+		originalReviewers = append(originalReviewers, reviews[len(reviews)-1])
 	}
 
 	teamReviewRequests := make([]*Review, 0, 5)
-	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id <> 0 AND original_author_id = 0 GROUP BY issue_id, reviewer_team_id) ORDER BY review.updated_unix ASC",
-		issueID).
-		Find(&teamReviewRequests); err != nil {
-		return nil, err
+	for _, reviews := range reviewTeamsMap {
+		teamReviewRequests = append(teamReviewRequests, reviews[len(reviews)-1])
 	}
 
-	if len(teamReviewRequests) > 0 {
-		reviews = append(reviews, teamReviewRequests...)
-	}
+	sort.Slice(teamReviewRequests, func(i, j int) bool {
+		return teamReviewRequests[i].UpdatedUnix < teamReviewRequests[j].UpdatedUnix
+	})
 
-	return reviews, nil
+	return append(teamReviewRequests, teamReviewRequests...), originalReviewers, nil
 }
