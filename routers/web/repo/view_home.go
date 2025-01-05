@@ -223,16 +223,37 @@ func prepareRecentlyPushedNewBranches(ctx *context.Context) {
 	}
 }
 
+func updateContextRepoEmptyAndStatus(ctx *context.Context, empty bool, status repo_model.RepositoryStatus) {
+	ctx.Repo.Repository.IsEmpty = empty
+	if ctx.Repo.Repository.Status == repo_model.RepositoryReady || ctx.Repo.Repository.Status == repo_model.RepositoryBroken {
+		ctx.Repo.Repository.Status = status // only handle ready and broken status, leave other status as-is
+	}
+	if err := repo_model.UpdateRepositoryCols(ctx, ctx.Repo.Repository, "is_empty", "status"); err != nil {
+		ctx.ServerError("updateContextRepoEmptyAndStatus: UpdateRepositoryCols", err)
+		return
+	}
+}
+
 func handleRepoEmptyOrBroken(ctx *context.Context) {
 	showEmpty := true
-	var err error
 	if ctx.Repo.GitRepo != nil {
-		showEmpty, err = ctx.Repo.GitRepo.IsEmpty()
+		reallyEmpty, err := ctx.Repo.GitRepo.IsEmpty()
 		if err != nil {
+			showEmpty = true // the repo is broken
+			updateContextRepoEmptyAndStatus(ctx, true, repo_model.RepositoryBroken)
 			log.Error("GitRepo.IsEmpty: %v", err)
-			ctx.Repo.Repository.Status = repo_model.RepositoryBroken
-			showEmpty = true
 			ctx.Flash.Error(ctx.Tr("error.occurred"), true)
+		} else if reallyEmpty {
+			showEmpty = true // the repo is really empty
+			updateContextRepoEmptyAndStatus(ctx, true, repo_model.RepositoryReady)
+		} else if ctx.Repo.Commit == nil {
+			showEmpty = true // it is not really empty, but there is no branch
+			// at the moment, other repo units like "actions" are not able to handle such case,
+			// so we just mark the repo as empty to prevent from displaying these units.
+			updateContextRepoEmptyAndStatus(ctx, true, repo_model.RepositoryReady)
+		} else {
+			// the repo is actually not empty and has branches, need to update the database later
+			showEmpty = false
 		}
 	}
 	if showEmpty {
@@ -240,18 +261,11 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 		return
 	}
 
-	// the repo is not really empty, so we should update the modal in database
-	// such problem may be caused by:
-	// 1) an error occurs during pushing/receiving.  2) the user replaces an empty git repo manually
-	// and even more: the IsEmpty flag is deeply broken and should be removed with the UI changed to manage to cope with empty repos.
-	// it's possible for a repository to be non-empty by that flag but still 500
-	// because there are no branches - only tags -or the default branch is non-extant as it has been 0-pushed.
-	ctx.Repo.Repository.IsEmpty = false
-	if err = repo_model.UpdateRepositoryCols(ctx, ctx.Repo.Repository, "is_empty"); err != nil {
-		ctx.ServerError("UpdateRepositoryCols", err)
-		return
-	}
-	if err = repo_module.UpdateRepoSize(ctx, ctx.Repo.Repository); err != nil {
+	// The repo is not really empty, so we should update the model in database, such problem may be caused by:
+	// 1) an error occurs during pushing/receiving.
+	// 2) the user replaces an empty git repo manually.
+	updateContextRepoEmptyAndStatus(ctx, false, repo_model.RepositoryReady)
+	if err := repo_module.UpdateRepoSize(ctx, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("UpdateRepoSize", err)
 		return
 	}
