@@ -138,7 +138,8 @@ func CommonRoutes() *web.Router {
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/arch", func() {
 			r.Methods("HEAD,GET", "/repository.key", arch.GetRepositoryKey)
-			r.PathGroup("*", func(g *web.RouterPathGroup) {
+			r.Methods("PUT", "" /* no repository */, reqPackageAccess(perm.AccessModeWrite), arch.UploadPackageFile)
+			r.PathGroup("/*", func(g *web.RouterPathGroup) {
 				g.MatchPath("PUT", "/<repository:*>", reqPackageAccess(perm.AccessModeWrite), arch.UploadPackageFile)
 				g.MatchPath("HEAD,GET", "/<repository:*>/<architecture>/<filename>", arch.GetPackageOrRepositoryFile)
 				g.MatchPath("DELETE", "/<repository:*>/<name>/<version>/<architecture>", reqPackageAccess(perm.AccessModeWrite), arch.DeletePackageVersion)
@@ -698,150 +699,28 @@ func ContainerRoutes() *web.Router {
 	})
 	r.Get("/_catalog", container.ReqContainerAccess, container.GetRepositoryList)
 	r.Group("/{username}", func() {
-		r.Group("/{image}", func() {
-			r.Group("/blobs/uploads", func() {
-				r.Post("", container.InitiateUploadBlob)
-				r.Group("/{uuid}", func() {
-					r.Get("", container.GetUploadBlob)
-					r.Patch("", container.UploadBlob)
-					r.Put("", container.EndUploadBlob)
-					r.Delete("", container.CancelUploadBlob)
-				})
-			}, reqPackageAccess(perm.AccessModeWrite))
-			r.Group("/blobs/{digest}", func() {
-				r.Head("", container.HeadBlob)
-				r.Get("", container.GetBlob)
-				r.Delete("", reqPackageAccess(perm.AccessModeWrite), container.DeleteBlob)
-			})
-			r.Group("/manifests/{reference}", func() {
-				r.Put("", reqPackageAccess(perm.AccessModeWrite), container.UploadManifest)
-				r.Head("", container.HeadManifest)
-				r.Get("", container.GetManifest)
-				r.Delete("", reqPackageAccess(perm.AccessModeWrite), container.DeleteManifest)
-			})
-			r.Get("/tags/list", container.GetTagList)
-		}, container.VerifyImageName)
-
-		var (
-			blobsUploadsPattern = regexp.MustCompile(`\A(.+)/blobs/uploads/([a-zA-Z0-9-_.=]+)\z`)
-			blobsPattern        = regexp.MustCompile(`\A(.+)/blobs/([^/]+)\z`)
-			manifestsPattern    = regexp.MustCompile(`\A(.+)/manifests/([^/]+)\z`)
-		)
-
-		// Manual mapping of routes because {image} can contain slashes which chi does not support
-		r.Methods("HEAD,GET,POST,PUT,PATCH,DELETE", "/*", func(ctx *context.Context) {
-			path := ctx.PathParam("*")
-			isHead := ctx.Req.Method == "HEAD"
-			isGet := ctx.Req.Method == "GET"
-			isPost := ctx.Req.Method == "POST"
-			isPut := ctx.Req.Method == "PUT"
-			isPatch := ctx.Req.Method == "PATCH"
-			isDelete := ctx.Req.Method == "DELETE"
-
-			if isPost && strings.HasSuffix(path, "/blobs/uploads") {
-				reqPackageAccess(perm.AccessModeWrite)(ctx)
-				if ctx.Written() {
-					return
-				}
-
-				ctx.SetPathParam("image", path[:len(path)-14])
-				container.VerifyImageName(ctx)
-				if ctx.Written() {
-					return
-				}
-
-				container.InitiateUploadBlob(ctx)
-				return
-			}
-			if isGet && strings.HasSuffix(path, "/tags/list") {
-				ctx.SetPathParam("image", path[:len(path)-10])
-				container.VerifyImageName(ctx)
-				if ctx.Written() {
-					return
-				}
-
-				container.GetTagList(ctx)
-				return
-			}
-
-			m := blobsUploadsPattern.FindStringSubmatch(path)
-			if len(m) == 3 && (isGet || isPut || isPatch || isDelete) {
-				reqPackageAccess(perm.AccessModeWrite)(ctx)
-				if ctx.Written() {
-					return
-				}
-
-				ctx.SetPathParam("image", m[1])
-				container.VerifyImageName(ctx)
-				if ctx.Written() {
-					return
-				}
-
-				ctx.SetPathParam("uuid", m[2])
-
-				if isGet {
+		r.PathGroup("/*", func(g *web.RouterPathGroup) {
+			g.MatchPath("POST", "/<image:*>/blobs/uploads", reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, container.InitiateUploadBlob)
+			g.MatchPath("GET", "/<image:*>/tags/list", container.VerifyImageName, container.GetTagList)
+			g.MatchPath("GET,PATCH,PUT,DELETE", `/<image:*>/blobs/uploads/<uuid:[-.=\w]+>`, reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, func(ctx *context.Context) {
+				if ctx.Req.Method == http.MethodGet {
 					container.GetUploadBlob(ctx)
-				} else if isPatch {
+				} else if ctx.Req.Method == http.MethodPatch {
 					container.UploadBlob(ctx)
-				} else if isPut {
+				} else if ctx.Req.Method == http.MethodPut {
 					container.EndUploadBlob(ctx)
-				} else {
+				} else /* DELETE */ {
 					container.CancelUploadBlob(ctx)
 				}
-				return
-			}
-			m = blobsPattern.FindStringSubmatch(path)
-			if len(m) == 3 && (isHead || isGet || isDelete) {
-				ctx.SetPathParam("image", m[1])
-				container.VerifyImageName(ctx)
-				if ctx.Written() {
-					return
-				}
+			})
+			g.MatchPath("HEAD", `/<image:*>/blobs/<digest>`, container.VerifyImageName, container.HeadBlob)
+			g.MatchPath("GET", `/<image:*>/blobs/<digest>`, container.VerifyImageName, container.GetBlob)
+			g.MatchPath("DELETE", `/<image:*>/blobs/<digest>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteBlob)
 
-				ctx.SetPathParam("digest", m[2])
-
-				if isHead {
-					container.HeadBlob(ctx)
-				} else if isGet {
-					container.GetBlob(ctx)
-				} else {
-					reqPackageAccess(perm.AccessModeWrite)(ctx)
-					if ctx.Written() {
-						return
-					}
-					container.DeleteBlob(ctx)
-				}
-				return
-			}
-			m = manifestsPattern.FindStringSubmatch(path)
-			if len(m) == 3 && (isHead || isGet || isPut || isDelete) {
-				ctx.SetPathParam("image", m[1])
-				container.VerifyImageName(ctx)
-				if ctx.Written() {
-					return
-				}
-
-				ctx.SetPathParam("reference", m[2])
-
-				if isHead {
-					container.HeadManifest(ctx)
-				} else if isGet {
-					container.GetManifest(ctx)
-				} else {
-					reqPackageAccess(perm.AccessModeWrite)(ctx)
-					if ctx.Written() {
-						return
-					}
-					if isPut {
-						container.UploadManifest(ctx)
-					} else {
-						container.DeleteManifest(ctx)
-					}
-				}
-				return
-			}
-
-			ctx.Status(http.StatusNotFound)
+			g.MatchPath("HEAD", `/<image:*>/manifests/<reference>`, container.VerifyImageName, container.HeadManifest)
+			g.MatchPath("GET", `/<image:*>/manifests/<reference>`, container.VerifyImageName, container.GetManifest)
+			g.MatchPath("PUT", `/<image:*>/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.UploadManifest)
+			g.MatchPath("DELETE", `/<image:*>/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteManifest)
 		})
 	}, container.ReqContainerAccess, context.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 
