@@ -413,9 +413,29 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 		return nil, err
 	}
 
-	var treeList []*TreeEntry
+	var dir string
+	var lastDirEntry *git.TreeEntry
+	if treePath == "" {
+		dir = treePath
+		lastDirEntry = rootEntry
+	} else {
+		lastDirEntry, err = commit.GetTreeEntryByPath(treePath)
+		if err != nil {
+			return nil, err
+		}
+		dir = treePath
+		if lastDirEntry.IsRegular() {
+			dir = path.Dir(treePath)
+			lastDirEntry, err = commit.GetTreeEntryByPath(dir)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	treeList := make([]*TreeEntry, 0, len(rootEntries))
+	fields := strings.Split(dir, "/")
 	var parentEntry *TreeEntry
-	fields := strings.SplitN(treePath, "/", 2)
 	for _, entry := range rootEntries {
 		treeEntry := &TreeEntry{
 			Name:   entry.Name(),
@@ -423,38 +443,13 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 			Path:   entry.Name(),
 		}
 		treeList = append(treeList, treeEntry)
-		if fields[0] == entry.Name() {
-			if len(fields) == 1 {
-				if treeEntry.IsFile {
-					return treeList, nil
-				}
-			}
+		if dir != "" && fields[0] == entry.Name() {
 			parentEntry = treeEntry
 		}
 	}
 
-	if treePath == "" || parentEntry == nil {
+	if dir == "" || parentEntry == nil {
 		return treeList, nil
-	}
-
-	listEntry, err := commit.GetTreeEntryByPath(treePath)
-	if err != nil {
-		return nil, err
-	}
-
-	dir := treePath
-	// list current entry or parent entry if it's a file's children
-	// If the entry is a file, we return a FileContentResponse object
-	if listEntry.IsRegular() {
-		dir = path.Dir(treePath)
-		if dir == "" {
-			return treeList, nil
-		}
-		fields = fields[:len(fields)-1]
-		listEntry, err = commit.GetTreeEntryByPath(dir)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	for i := 1; i < len(fields); i++ {
@@ -468,7 +463,7 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 		parentEntry = parentEntry.Children[0]
 	}
 
-	entries, err := listEntry.Tree().ListEntries()
+	entries, err := lastDirEntry.Tree().ListEntries()
 	if err != nil {
 		return nil, err
 	}
