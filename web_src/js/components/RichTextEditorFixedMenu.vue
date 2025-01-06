@@ -4,9 +4,8 @@ import '@tiptap/starter-kit';
 import '@tiptap/extension-underline';
 import '@tiptap/extension-link';
 import '@tiptap/extension-text-align';
-// TODO: add checklist
-// import '@tiptap/extension-task-item';
-// import '@tiptap/extension-task-list';
+import '@tiptap/extension-task-item';
+import '@tiptap/extension-task-list';
 import {SvgIcon} from '../svg.ts';
 import {ref} from 'vue';
 
@@ -84,7 +83,6 @@ function toggleLink() {
           :class="{'is-active': editor.isActive('underline')}"
         >
           underline
-          <!-- <svg-icon name="octicon-italic"/> -->
         </button>
         <button
           type="button"
@@ -120,6 +118,15 @@ function toggleLink() {
           <svg-icon name="octicon-list-ordered"/>
         </button>
         <button
+          v-if="props.enableCheckList"
+          type="button"
+          @click="editor.chain().focus().toggleTaskList().run()"
+          :disabled="!editor.can().chain().focus().toggleTaskList().run()"
+          :class="{'is-active': editor.isActive('taskList')}"
+        >
+          <svg-icon name="remix-list-check-3"/>
+        </button>
+        <button
           type="button"
           @click="editor.chain().focus().toggleBlockquote().run()"
           :disabled="!editor.can().chain().focus().toggleBlockquote().run()"
@@ -142,7 +149,7 @@ function toggleLink() {
             @click="isOpen = true"
             @blur="isOpen = false"
           >
-            alignment
+            <svg-icon name="remix-align-left"/>
           </button>
           <div v-if="isOpen" class="dropdown-menu tw-flex tw-flex-row tw-shadow-md">
             <button
@@ -151,7 +158,7 @@ function toggleLink() {
               :disabled="!editor.can().chain().focus().setTextAlign('left').run()"
               :class="{'is-active': editor.isActive({ textAlign: 'left' })}"
             >
-              left
+              <svg-icon name="remix-align-left"/>
             </button>
             <button
               type="button"
@@ -159,7 +166,7 @@ function toggleLink() {
               :disabled="!editor.can().chain().focus().setTextAlign('center').run()"
               :class="{'is-active': editor.isActive({ textAlign: 'center' })}"
             >
-              center
+              <svg-icon name="remix-align-center"/>
             </button>
             <button
               type="button"
@@ -167,7 +174,7 @@ function toggleLink() {
               :disabled="!editor.can().chain().focus().setTextAlign('right').run()"
               :class="{'is-active': editor.isActive({ textAlign: 'right' })}"
             >
-              right
+              <svg-icon name="remix-align-right"/>
             </button>
             <button
               type="button"
@@ -175,20 +182,10 @@ function toggleLink() {
               :disabled="!editor.can().chain().focus().setTextAlign('justify').run()"
               :class="{'is-active': editor.isActive({ textAlign: 'justify' })}"
             >
-              justify
+              <svg-icon name="remix-align-justify"/>
             </button>
           </div>
         </div>
-        <!--
-        TODO: add checklist
-        <button
-          v-if="props.enableCheckList"
-          type="button"
-          @click="editor.chain().focus().toggleTaskList().run()"
-          :class="{'is-active': editor.isActive('link')}"
-        >
-          <svg-icon name="octicon-tasklist"/>
-        </button> -->
       </div>
     </div>
   </div>
@@ -203,17 +200,18 @@ button {
 button:hover {
     background: var(--color-hover);
 }
-.control-group {
+/* .control-group {
     background: transparent;
     padding: 6px;
-}
+    display: flex;
+} */
 .button-group {
     background: var(--color-box-header);
     border-radius: 25px;
     padding: 5px 10px 5px 10px;
 }
 .is-active {
-  background: var(--color-active);
+    background: var(--color-active);
 }
 button .is-active:hover {
     background: var(--color-active);
@@ -228,5 +226,29 @@ button .is-active:hover {
 }
 .button-menu {
   display: inline-block;
+}
+/* Task list specific styles */
+ul[data-type="taskList"] {
+  list-style: none;
+  margin-left: 0;
+  padding: 0;
+  li {
+    align-items: flex-start;
+    display: flex;
+    > label {
+      flex: 0 0 auto;
+      margin-right: 0.5rem;
+      user-select: none;
+    }
+    > div {
+      flex: 1 1 auto;
+    }
+  }
+  input[type="checkbox"] {
+    cursor: pointer;
+  }
+  ul[data-type="taskList"] {
+    margin: 0;
+  }
 }
 </style>

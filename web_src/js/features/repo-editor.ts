@@ -15,9 +15,8 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
-// TODO: add checklist
-// import TaskItem from '@tiptap/extension-task-item';
-// import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import TaskList from '@tiptap/extension-task-list';
 
 function initEditPreviewTab(elForm: HTMLFormElement) {
   const elTabMenu = elForm.querySelector('.repo-editor-menu');
@@ -71,8 +70,10 @@ export function initRepoEditor() {
       TextAlign.configure({
         alignments: ['left', 'center', 'right', 'justify'],
       }),
-      // TaskItem,
-      // TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+      TaskList,
     ],
     editable: true,
   });

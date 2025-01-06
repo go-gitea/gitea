@@ -5,3 +5,14 @@
 .ProseMirror:focus {
     outline: none;
 }
+
+.sticky-editor-menu {
+    position: sticky;
+    top: 10px;
+    z-index: 1;
+    background: transparent;
+    padding: 6px;
+    /* align-content: center;
+    display: flex;
+    justify-content: center; */
+}

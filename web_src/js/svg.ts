@@ -74,6 +74,11 @@ import octiconTrash from '../../public/assets/img/svg/octicon-trash.svg';
 import octiconTriangleDown from '../../public/assets/img/svg/octicon-triangle-down.svg';
 import octiconX from '../../public/assets/img/svg/octicon-x.svg';
 import octiconXCircleFill from '../../public/assets/img/svg/octicon-x-circle-fill.svg';
+import remixAlignLeft from '../../public/assets/img/svg/remix-align-left.svg';
+import remixAlignCenter from '../../public/assets/img/svg/remix-align-center.svg';
+import remixAlignRight from '../../public/assets/img/svg/remix-align-right.svg';
+import remixAlignJustify from '../../public/assets/img/svg/remix-align-justify.svg';
+import remixListCheck3 from '../../public/assets/img/svg/remix-list-check-3.svg';
 
 const svgs = {
   'gitea-double-chevron-left': giteaDoubleChevronLeft,
@@ -150,6 +155,11 @@ const svgs = {
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
   'octicon-x-circle-fill': octiconXCircleFill,
+  'remix-align-left': remixAlignLeft,
+  'remix-align-center': remixAlignCenter,
+  'remix-align-right': remixAlignRight,
+  'remix-align-justify': remixAlignJustify,
+  'remix-list-check-3': remixListCheck3,
 };
 
 export type SvgName = keyof typeof svgs;

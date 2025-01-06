@@ -41,7 +41,7 @@
 					<div id="rich-text-editor" class="ui active tab tw-rounded-b" data-tab="write">
 						<textarea id="edit_area" name="content" class="tw-hidden" style="display:none;"
 						data-id="repo-{{.Repository.Name}}-{{.TreePath}}">{{.FileContent}}</textarea>
-						<div id="rich-text-editor-fixed-menu" class="" style="position: sticky; top: 10px; z-index: 1;"></div>
+						<div id="rich-text-editor-fixed-menu" class="sticky-editor-menu"></div>
 					</div>
 					<div class="ui tab markup tw-px-4 tw-py-3" data-tab="preview">
 						{{ctx.Locale.Tr "loading"}}
