@@ -301,23 +301,17 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 	pr.Merger = merger
 	pr.MergerID = merger.ID
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		log.Error("%-v db.TxContext: %v", pr, err)
-		return false
-	}
-	defer committer.Close()
-	if merged, err := pr.SetMerged(ctx); err != nil {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if merged, err := pr.SetMerged(ctx); err != nil {
+			return err
+		} else if !merged {
+			return errors.New("setMerged failed")
+		}
+		return nil
+	}); err != nil {
 		log.Error("%-v setMerged : %v", pr, err)
 		return false
-	} else if !merged {
-		return false
 	}
-	if err := committer.Commit(); err != nil {
-		log.Error("%-v committer.Commit: %v", pr, err)
-		return false
-	}
-	committer.Close()
 
 	notify_service.MergePullRequest(ctx, merger, pr)
 
