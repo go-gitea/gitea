@@ -62,7 +62,7 @@ func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
 	if err := t.IterateEntriesRecursive(func(entry *TreeEntry) error {
 		entries = append(entries, convertedEntry)
 		return nil
-	}); err != nil {
+	}, nil); err != nil {
 		return nil, err
 	}
 	return entries, nil
