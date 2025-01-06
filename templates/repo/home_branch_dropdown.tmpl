@@ -1,0 +1,18 @@
+{{$branchDropdownCurrentRefType := "branch"}}
+{{$branchDropdownCurrentRefShortName := .ctxData.BranchName}}
+{{if .ctxData.IsViewTag}}
+	{{$branchDropdownCurrentRefType = "tag"}}
+	{{$branchDropdownCurrentRefShortName = .ctxData.TagName}}
+{{end}}
+{{template "repo/branch_dropdown" dict
+	"Repository" .ctxData.Repository
+	"ShowTabBranches" true
+	"ShowTabTags" true
+	"CurrentRefType" $branchDropdownCurrentRefType
+	"CurrentRefShortName" $branchDropdownCurrentRefShortName
+	"CurrentTreePath" .ctxData.TreePath
+	"RefLinkTemplate" "{RepoLink}/src/{RefType}/{RefShortName}/{TreePath}"
+	"AllowCreateNewRef" .ctxData.CanCreateBranch
+	"ShowViewAllRefsEntry" true
+	"ContainerClasses" .containerClasses
+}}
