@@ -620,9 +620,18 @@ func TestPullRequestCommitStatusEvent(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addFileResp)
 		sha = addFileResp.Commit.SHA
-		// wait for the commit finished
-		time.Sleep(500 * time.Millisecond)
-		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+		assert.Eventually(t, func() bool {
+			latestCommitStatuses, _, err := git_model.GetLatestCommitStatus(db.DefaultContext, repo.ID, sha, db.ListOptionsAll)
+			assert.NoError(t, err)
+			if len(latestCommitStatuses) == 0 {
+				return false
+			}
+			if latestCommitStatuses[0].State == api.CommitStatusPending {
+				insertFakeStatus(t, repo, sha, latestCommitStatuses[0].TargetURL, latestCommitStatuses[0].Context)
+				return true
+			}
+			return false
+		}, 1*time.Second, 100*time.Millisecond)
 
 		// milestoned
 		milestone := &issues_model.Milestone{
@@ -655,17 +664,19 @@ func TestPullRequestCommitStatusEvent(t *testing.T) {
 }
 
 func checkCommitStatusAndInsertFakeStatus(t *testing.T, repo *repo_model.Repository, sha string) {
-	// check current commit status
 	latestCommitStatuses, _, err := git_model.GetLatestCommitStatus(db.DefaultContext, repo.ID, sha, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, latestCommitStatuses, 1)
 	assert.Equal(t, api.CommitStatusPending, latestCommitStatuses[0].State)
 
-	// insert fake commit status
-	err = commitstatus_service.CreateCommitStatus(db.DefaultContext, repo, user_model.NewActionsUser(), sha, &git_model.CommitStatus{
+	insertFakeStatus(t, repo, sha, latestCommitStatuses[0].TargetURL, latestCommitStatuses[0].Context)
+}
+
+func insertFakeStatus(t *testing.T, repo *repo_model.Repository, sha, targetURL, context string) {
+	err := commitstatus_service.CreateCommitStatus(db.DefaultContext, repo, user_model.NewActionsUser(), sha, &git_model.CommitStatus{
 		State:     api.CommitStatusSuccess,
-		TargetURL: latestCommitStatuses[0].TargetURL,
-		Context:   latestCommitStatuses[0].Context,
+		TargetURL: targetURL,
+		Context:   context,
 	})
 	assert.NoError(t, err)
 }
