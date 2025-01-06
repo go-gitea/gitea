@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {POST} from '../modules/fetch.ts';
 import {queryElems, toggleElem} from '../utils/dom.ts';
 import {initIssueSidebarComboList} from './repo-issue-sidebar-combolist.ts';
@@ -9,9 +8,8 @@ function initBranchSelector() {
   if (!elSelectBranch) return;
 
   const urlUpdateIssueRef = elSelectBranch.getAttribute('data-url-update-issueref');
-  const $selectBranch = $(elSelectBranch);
-  const $branchMenu = $selectBranch.find('.reference-list-menu');
-  $branchMenu.find('.item:not(.no-select)').on('click', async function (e) {
+  const elBranchMenu = elSelectBranch.querySelector('.reference-list-menu');
+  queryElems(elBranchMenu, '.item:not(.no-select)', (el) => el.addEventListener('click', async function (e) {
     e.preventDefault();
     const selectedValue = this.getAttribute('data-id'); // eg: "refs/heads/my-branch"
     const selectedText = this.getAttribute('data-name'); // eg: "my-branch"
@@ -29,7 +27,7 @@ function initBranchSelector() {
       document.querySelector<HTMLInputElement>(selectedHiddenSelector).value = selectedValue;
       elSelectBranch.querySelector('.text-branch-name').textContent = selectedText;
     }
-  });
+  }));
 }
 
 function initRepoIssueDue() {
