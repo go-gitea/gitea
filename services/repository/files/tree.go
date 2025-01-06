@@ -408,7 +408,7 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 	if err != nil {
 		return nil, err
 	}
-	rootEntries, err := rootEntry.Tree().ListEntries()
+	rootEntries, err := commit.ListEntries()
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +470,11 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 		parentEntry = parentEntry.Children[0]
 	}
 
-	entries, err := lastDirEntry.Tree().ListEntries()
+	tree, err := commit.Tree.SubTree(dir)
+	if err != nil {
+		return nil, err
+	}
+	entries, err := tree.ListEntries()
 	if err != nil {
 		return nil, err
 	}
