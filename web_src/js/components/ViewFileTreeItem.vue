@@ -71,11 +71,6 @@ const doLoadFileContent = () => {
   </div>
 </template>
 <style scoped>
-a, a:hover {
-  text-decoration: none;
-  color: var(--color-text);
-}
-
 .sub-items {
   display: flex;
   flex-direction: column;
