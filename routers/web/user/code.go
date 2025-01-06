@@ -11,6 +11,7 @@ import (
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/routers/common"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 )
@@ -34,20 +35,11 @@ func CodeSearch(ctx *context.Context) {
 	}
 
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore.code")
-
-	language := ctx.FormTrim("l")
-	keyword := ctx.FormTrim("q")
-
-	isFuzzy := ctx.FormOptionalBool("fuzzy").ValueOrDefault(true)
-
-	ctx.Data["Keyword"] = keyword
-	ctx.Data["Language"] = language
-	ctx.Data["IsFuzzy"] = isFuzzy
 	ctx.Data["IsCodePage"] = true
 
-	if keyword == "" {
+	prepareSearch := common.PrepareCodeSearch(ctx)
+	if prepareSearch.Keyword == "" {
 		ctx.HTML(http.StatusOK, tplUserCode)
 		return
 	}
@@ -77,9 +69,9 @@ func CodeSearch(ctx *context.Context) {
 	if len(repoIDs) > 0 {
 		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
 			RepoIDs:        repoIDs,
-			Keyword:        keyword,
-			IsKeywordFuzzy: isFuzzy,
-			Language:       language,
+			Keyword:        prepareSearch.Keyword,
+			IsKeywordFuzzy: prepareSearch.IsFuzzy,
+			Language:       prepareSearch.Language,
 			Paginator: &db.ListOptions{
 				Page:     page,
 				PageSize: setting.UI.RepoSearchPagingNum,

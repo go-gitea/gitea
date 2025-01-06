@@ -18,9 +18,9 @@
 				<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required tabindex="1">
 			</div>
 			{{if or (not .DisablePassword) .LinkAccountMode}}
-			<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}} form-field-content-aside-label">
-				<label for="password">{{ctx.Locale.Tr "password"}}</label>
-				<div>
+			<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
+				<div class="tw-flex tw-mb-1">
+					<label for="password" class="tw-flex-1">{{ctx.Locale.Tr "password"}}</label>
 					<a href="{{AppSubUrl}}/user/forgot_password" tabindex="4">{{ctx.Locale.Tr "auth.forgot_password"}}</a>
 				</div>
 				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="current-password" required tabindex="2">

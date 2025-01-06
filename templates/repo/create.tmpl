@@ -2,20 +2,20 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository new-repo">
 	<div class="ui middle very relaxed page one column grid">
 		<div class="column">
-			<form class="ui form new-repo-form" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
-				<h3 class="ui top attached header">
-					{{ctx.Locale.Tr "new_repo"}}
-				</h3>
-				<div class="ui attached segment">
-					{{template "base/alert" .}}
-					{{template "repo/create_helper" .}}
+			<h3 class="ui top attached header">
+				{{ctx.Locale.Tr "new_repo"}}
+			</h3>
+			<div class="ui attached segment">
+				{{template "base/alert" .}}
+				{{template "repo/create_helper" .}}
 
-					{{if not .CanCreateRepo}}
-						<div class="ui negative message">
-							<p>{{ctx.Locale.TrN .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .MaxCreationLimit}}</p>
-						</div>
-					{{end}}
+				{{if not .CanCreateRepo}}
+				<div class="ui negative message">
+					<p>{{ctx.Locale.TrN .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .MaxCreationLimit}}</p>
+				</div>
+				{{end}}
+				<form class="ui form left-right-form new-repo-form" action="{{.Link}}" method="post">
+					{{.CsrfTokenHtml}}
 					<div class="inline required field {{if .Err_Owner}}error{{end}}">
 						<label>{{ctx.Locale.Tr "repo.owner"}}</label>
 						<div class="ui selection owner dropdown">
@@ -69,7 +69,7 @@
 					<div class="inline field">
 						<label>{{ctx.Locale.Tr "repo.template"}}</label>
 						<div id="repo_template_search" class="ui search selection dropdown">
-							<input type="hidden" id="repo_template" name="repo_template" value="{{.repo_template}}">
+							<input type="hidden" id="repo_template" name="repo_template" value="{{or .repo_template ""}}">
 							<div class="default text">{{.repo_template_name}}</div>
 							<div class="menu">
 							</div>
@@ -178,6 +178,7 @@
 							<span class="help">{{ctx.Locale.Tr "repo.readme_helper_desc"}}</span>
 						</div>
 						<div class="inline field">
+							<label></label>
 							<div class="ui checkbox" id="auto-init">
 								<input name="auto_init" type="checkbox" {{if .auto_init}}checked{{end}}>
 								<label>{{ctx.Locale.Tr "repo.auto_init"}}</label>
@@ -191,7 +192,7 @@
 						<div class="inline field">
 							<label>{{ctx.Locale.Tr "repo.object_format"}}</label>
 							<div class="ui selection owner dropdown">
-								<input type="hidden" id="object_format_name" name="object_format_name" value="{{.DefaultObjectFormat.Name}}" required>
+								<input type="hidden" id="object_format_name" name="object_format_name" value="{{or .object_format_name .DefaultObjectFormat.Name}}" required>
 								<div class="default text">{{.DefaultObjectFormat.Name}}</div>
 								<div class="menu">
 									{{range .SupportedObjectFormats}}
@@ -216,8 +217,8 @@
 							{{ctx.Locale.Tr "repo.create_repo"}}
 						</button>
 					</div>
-				</div>
-			</form>
+				</form>
+			</div>
 		</div>
 	</div>
 </div>

@@ -9,23 +9,17 @@ import "code.gitea.io/gitea/modules/log"
 
 // TreeEntry the leaf in the git tree
 type TreeEntry struct {
-	ID ObjectID
-
+	ID    ObjectID
 	ptree *Tree
 
 	entryMode EntryMode
 	name      string
-
-	size     int64
-	sized    bool
-	fullName string
+	size      int64
+	sized     bool
 }
 
 // Name returns the name of the entry
 func (te *TreeEntry) Name() string {
-	if te.fullName != "" {
-		return te.fullName
-	}
 	return te.name
 }
 

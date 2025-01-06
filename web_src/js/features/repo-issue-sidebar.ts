@@ -5,7 +5,7 @@ import {initIssueSidebarComboList} from './repo-issue-sidebar-combolist.ts';
 
 function initBranchSelector() {
   // TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl"
-  const elSelectBranch = document.querySelector('.ui.dropdown.select-branch');
+  const elSelectBranch = document.querySelector('.ui.dropdown.select-branch.branch-selector-dropdown');
   if (!elSelectBranch) return;
 
   const urlUpdateIssueRef = elSelectBranch.getAttribute('data-url-update-issueref');

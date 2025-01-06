@@ -17,7 +17,7 @@ func NewTree(repo *Repository, id ObjectID) *Tree {
 	}
 }
 
-// SubTree get a sub tree by the sub dir path
+// SubTree get a subtree by the sub dir path
 func (t *Tree) SubTree(rpath string) (*Tree, error) {
 	if len(rpath) == 0 {
 		return t, nil
@@ -63,7 +63,7 @@ func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error
 	return filelist, err
 }
 
-// GetTreePathLatestCommitID returns the latest commit of a tree path
+// GetTreePathLatestCommit returns the latest commit of a tree path
 func (repo *Repository) GetTreePathLatestCommit(refName, treePath string) (*Commit, error) {
 	stdout, _, err := NewCommand(repo.Ctx, "rev-list", "-1").
 		AddDynamicArguments(refName).AddDashesAndList(treePath).

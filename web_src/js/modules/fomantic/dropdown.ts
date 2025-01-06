@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import {generateAriaId} from './base.ts';
 import type {FomanticInitFunction} from '../../types.ts';
+import {queryElems} from '../../utils/dom.ts';
 
 const ariaPatchKey = '_giteaAriaPatchDropdown';
 const fomanticDropdownFn = $.fn.dropdown;
@@ -9,6 +10,7 @@ const fomanticDropdownFn = $.fn.dropdown;
 export function initAriaDropdownPatch() {
   if ($.fn.dropdown === ariaDropdownFn) throw new Error('initAriaDropdownPatch could only be called once');
   $.fn.dropdown = ariaDropdownFn;
+  $.fn.fomanticExt.onResponseKeepSelectedItem = onResponseKeepSelectedItem;
   (ariaDropdownFn as FomanticInitFunction).settings = fomanticDropdownFn.settings;
 }
 
@@ -350,4 +352,20 @@ export function hideScopedEmptyDividers(container: Element) {
     if (!item.matches('.divider')) continue;
     if (item.nextElementSibling?.matches('.divider')) hideDivider(item);
   }
+}
+
+function onResponseKeepSelectedItem(dropdown: typeof $|HTMLElement, selectedValue: string) {
+  // There is a bug in fomantic dropdown when using "apiSettings" to fetch data
+  // * when there is a selected item, the dropdown insists on hiding the selected one from the list:
+  // * in the "filter" function: ('[data-value="'+value+'"]').addClass(className.filtered)
+  //
+  // When user selects one item, and click the dropdown again,
+  // then the dropdown only shows other items and will select another (wrong) one.
+  // It can't be easily fix by using setTimeout(patch, 0) in `onResponse` because the `onResponse` is called before another `setTimeout(..., timeLeft)`
+  // Fortunately, the "timeLeft" is controlled by "loadingDuration" which is always zero at the moment, so we can use `setTimeout(..., 10)`
+  const elDropdown = (dropdown instanceof HTMLElement) ? dropdown : dropdown[0];
+  setTimeout(() => {
+    queryElems(elDropdown, `.menu .item[data-value="${CSS.escape(selectedValue)}"].filtered`, (el) => el.classList.remove('filtered'));
+    $(elDropdown).dropdown('set selected', selectedValue ?? '');
+  }, 10);
 }
