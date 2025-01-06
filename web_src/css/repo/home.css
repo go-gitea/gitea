@@ -70,6 +70,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.25em;
+  max-height: 100vh;
+  overflow: hidden;
 }
 
 .repo-grid-tree-sidebar .view-file-tree-sidebar-top {
@@ -88,6 +90,11 @@
 .repo-grid-tree-sidebar .view-file-tree-sidebar-top .sidebar-ref {
   display: flex;
   gap: 0.25em;
+}
+
+.repo-grid-tree-sidebar .view-file-tree-sidebar-bottom {
+  flex: 1;
+  overflow: auto;
 }
 
 @media (max-width: 767.98px) {

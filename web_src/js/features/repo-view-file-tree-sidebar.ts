@@ -5,7 +5,7 @@ import ViewFileTree from '../components/ViewFileTree.vue';
 import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
 import {initGlobalDropdown} from './common-page.ts';
 
-async function toggleSidebar(visibility) {
+async function toggleSidebar(visibility, isSigned) {
   const sidebarEl = document.querySelector('.repo-view-file-tree-sidebar');
   const showBtnEl = document.querySelector('.show-tree-sidebar-button');
   const containerClassList = sidebarEl.parentElement.classList;
@@ -13,6 +13,8 @@ async function toggleSidebar(visibility) {
   containerClassList.toggle('repo-grid-filelist-only', !visibility);
   toggleElem(sidebarEl, visibility);
   toggleElem(showBtnEl, !visibility);
+
+  if (!isSigned) return;
 
   // save to session
   await PUT('/repo/preferences', {
@@ -49,7 +51,7 @@ async function loadContent() {
 
 function reloadContentScript() {
   document.querySelector('.repo-home-filelist .show-tree-sidebar-button').addEventListener('click', () => {
-    toggleSidebar(true);
+    toggleSidebar(true, document.querySelector('.repo-view-file-tree-sidebar').hasAttribute('data-is-signed'));
   });
   const refSelectorEl = document.querySelector('.repo-home-filelist .js-branch-tag-selector');
   if (refSelectorEl) {
@@ -62,11 +64,13 @@ export async function initViewFileTreeSidebar() {
   const sidebarElement = document.querySelector('.repo-view-file-tree-sidebar');
   if (!sidebarElement) return;
 
+  const isSigned = sidebarElement.hasAttribute('data-is-signed');
+
   document.querySelector('.hide-tree-sidebar-button').addEventListener('click', () => {
-    toggleSidebar(false);
+    toggleSidebar(false, isSigned);
   });
   document.querySelector('.repo-home-filelist .show-tree-sidebar-button').addEventListener('click', () => {
-    toggleSidebar(true);
+    toggleSidebar(true, isSigned);
   });
 
   const fileTree = document.querySelector('#view-file-tree');

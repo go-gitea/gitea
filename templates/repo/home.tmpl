@@ -24,7 +24,7 @@
 
 		<div class="{{Iif $showSidebar "repo-grid-filelist-sidebar" (Iif $showTreeSidebar "repo-grid-tree-sidebar" "repo-grid-filelist-only")}}">
 			{{if $hasTreeSidebar}}
-				<div class="repo-view-file-tree-sidebar not-mobile {{if $hideTreeSidebar}}tw-hidden{{end}}">{{template "repo/view_file_tree_sidebar" .}}</div>
+				<div class="repo-view-file-tree-sidebar not-mobile {{if $hideTreeSidebar}}tw-hidden{{end}}" {{if .IsSigned}} data-is-signed {{end}}>{{template "repo/view_file_tree_sidebar" .}}</div>
 			{{end}}
 
 			<div class="repo-home-filelist">
