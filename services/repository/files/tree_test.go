@@ -83,20 +83,21 @@ func Test_GetTreeList(t *testing.T) {
 	treeList, err = GetTreeList(ctx2, ctx2.Repo.Repository, "", refName, true)
 	assert.NoError(t, err)
 	assert.Len(t, treeList, 2)
-	assert.EqualValues(t, "README.md", treeList[0].Name)
-	assert.EqualValues(t, "README.md", treeList[0].Path)
-	assert.True(t, treeList[0].IsFile)
-	assert.Empty(t, treeList[0].Children)
 
-	assert.EqualValues(t, "doc", treeList[1].Name)
-	assert.EqualValues(t, "doc", treeList[1].Path)
-	assert.False(t, treeList[1].IsFile)
-	assert.Len(t, treeList[1].Children, 1)
+	assert.EqualValues(t, "doc", treeList[0].Name)
+	assert.EqualValues(t, "doc", treeList[0].Path)
+	assert.False(t, treeList[0].IsFile)
+	assert.Len(t, treeList[0].Children, 1)
 
-	assert.EqualValues(t, "doc.md", treeList[1].Children[0].Name)
-	assert.EqualValues(t, "doc/doc.md", treeList[1].Children[0].Path)
-	assert.True(t, treeList[1].Children[0].IsFile)
-	assert.Empty(t, treeList[1].Children[0].Children)
+	assert.EqualValues(t, "doc.md", treeList[0].Children[0].Name)
+	assert.EqualValues(t, "doc/doc.md", treeList[0].Children[0].Path)
+	assert.True(t, treeList[0].Children[0].IsFile)
+	assert.Empty(t, treeList[0].Children[0].Children)
+
+	assert.EqualValues(t, "README.md", treeList[1].Name)
+	assert.EqualValues(t, "README.md", treeList[1].Path)
+	assert.True(t, treeList[1].IsFile)
+	assert.Empty(t, treeList[1].Children)
 }
 
 func Test_GetTreeInformation(t *testing.T) {
