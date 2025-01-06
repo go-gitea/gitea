@@ -427,6 +427,7 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 		if lastDirEntry.IsRegular() {
 			// path.Dir cannot correctly handle .xxx file
 			dir, _ = path.Split(treePath)
+			dir = strings.TrimRight(dir, "/")
 			if dir == "" {
 				lastDirEntry = rootEntry
 			} else {

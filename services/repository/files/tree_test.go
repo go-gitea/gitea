@@ -139,14 +139,15 @@ func Test_GetTreeInformation(t *testing.T) {
 	treeList, err = GetTreeInformation(ctx2, ctx2.Repo.Repository, "", refName)
 	assert.NoError(t, err)
 	assert.Len(t, treeList, 2)
-	assert.EqualValues(t, "README.md", treeList[0].Name)
-	assert.EqualValues(t, "README.md", treeList[0].Path)
-	assert.True(t, treeList[0].IsFile)
+
+	assert.EqualValues(t, "doc", treeList[0].Name)
+	assert.EqualValues(t, "doc", treeList[0].Path)
+	assert.False(t, treeList[0].IsFile)
 	assert.Empty(t, treeList[0].Children)
 
-	assert.EqualValues(t, "doc", treeList[1].Name)
-	assert.EqualValues(t, "doc", treeList[1].Path)
-	assert.False(t, treeList[1].IsFile)
+	assert.EqualValues(t, "README.md", treeList[1].Name)
+	assert.EqualValues(t, "README.md", treeList[1].Path)
+	assert.True(t, treeList[1].IsFile)
 	assert.Empty(t, treeList[1].Children)
 
 	treeList, err = GetTreeInformation(ctx2, ctx2.Repo.Repository, "doc", refName)
