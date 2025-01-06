@@ -224,25 +224,14 @@ func prepareRecentlyPushedNewBranches(ctx *context.Context) {
 }
 
 func updateContextRepoEmptyAndStatus(ctx *context.Context, empty bool, status repo_model.RepositoryStatus) {
-	needsUpdate := false
-
-	if empty != ctx.Repo.Repository.IsEmpty {
-		ctx.Repo.Repository.IsEmpty = empty
-		needsUpdate = true
+	repo := ctx.Repo.Repository
+	repo.IsEmpty = empty
+	if repo.Status == repo_model.RepositoryReady || repo.Status == repo_model.RepositoryBroken {
+		repo.Status = status // only handle ready and broken status, leave other status as-is
 	}
-
-	if ctx.Repo.Repository.Status == repo_model.RepositoryReady || ctx.Repo.Repository.Status == repo_model.RepositoryBroken {
-		if status != ctx.Repo.Repository.Status {
-			ctx.Repo.Repository.Status = status // only handle ready and broken status, leave other status as-is
-			needsUpdate = true
-		}
-	}
-
-	if needsUpdate {
-		if err := repo_model.UpdateRepositoryCols(ctx, ctx.Repo.Repository, "is_empty", "status"); err != nil {
-			ctx.ServerError("updateContextRepoEmptyAndStatus: UpdateRepositoryCols", err)
-			return
-		}
+	if _, err := db.GetEngine(ctx).ID(repo.ID).Cols("is_empty", "status").NoAutoTime().Update(repo); err != nil {
+		ctx.ServerError("updateContextRepoEmptyAndStatus: UpdateRepositoryCols", err)
+		return
 	}
 }
 
