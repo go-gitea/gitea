@@ -46,13 +46,13 @@ import (
 )
 
 const (
-	tplRepoEMPTY    		templates.TplName = "repo/empty"
-	tplRepoHome     		templates.TplName = "repo/home"
-	tplRepoHomeContent  templates.TplName = "repo/home_content"
-	tplRepoViewList 		templates.TplName = "repo/view_list"
-	tplWatchers     		templates.TplName = "repo/watchers"
-	tplForks        		templates.TplName = "repo/forks"
-	tplMigrating    		templates.TplName = "repo/migrate/migrating"
+	tplRepoEMPTY       templates.TplName = "repo/empty"
+	tplRepoHome        templates.TplName = "repo/home"
+	tplRepoHomeContent templates.TplName = "repo/home_content"
+	tplRepoViewList    templates.TplName = "repo/view_list"
+	tplWatchers        templates.TplName = "repo/watchers"
+	tplForks           templates.TplName = "repo/forks"
+	tplMigrating       templates.TplName = "repo/migrate/migrating"
 )
 
 type fileInfo struct {
