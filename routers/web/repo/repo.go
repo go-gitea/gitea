@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -770,9 +771,10 @@ func UpdatePreferences(ctx *context.Context) {
 		ctx.ServerError("DecodePreferencesForm", err)
 		return
 	}
-	// if err := ctx.Session.Set("repoPreferences", form); err != nil {
-	// 	ctx.ServerError("Session.Set", err)
-	// 	return
-	// }
+	if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyShowFileViewTreeSidebar,
+		strconv.FormatBool(form.ShowFileViewTreeSidebar)); err != nil {
+		log.Error("SetUserSetting: %v", err)
+	}
+
 	ctx.JSONOK()
 }

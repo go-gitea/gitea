@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -305,9 +307,17 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	// ctx.Data["RepoPreferences"] = ctx.Session.Get("repoPreferences")
+	showFileViewTreeSidebar := true
+	if ctx.Doer != nil {
+		v, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyShowFileViewTreeSidebar, "true")
+		if err != nil {
+			log.Error("GetUserSetting: %v", err)
+		} else {
+			showFileViewTreeSidebar, _ = strconv.ParseBool(v)
+		}
+	}
 	ctx.Data["RepoPreferences"] = &preferencesForm{
-		ShowFileViewTreeSidebar: true,
+		ShowFileViewTreeSidebar: showFileViewTreeSidebar,
 	}
 
 	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
