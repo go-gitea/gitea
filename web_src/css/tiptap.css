@@ -1,0 +1,7 @@
+.tiptap {
+    padding: 8px;
+}
+
+.ProseMirror:focus {
+    outline: none;
+}

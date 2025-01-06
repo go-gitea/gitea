@@ -8,8 +8,16 @@ import {initDropzone} from './dropzone.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {applyAreYouSure, ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import RichTextEditorFixedMenu from '../components/RichTextEditorFixedMenu.vue';
+import {createApp} from 'vue';
 import {Editor} from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
+import Underline from '@tiptap/extension-underline';
+import Link from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align';
+// TODO: add checklist
+// import TaskItem from '@tiptap/extension-task-item';
+// import TaskList from '@tiptap/extension-task-list';
 
 function initEditPreviewTab(elForm: HTMLFormElement) {
   const elTabMenu = elForm.querySelector('.repo-editor-menu');
@@ -37,28 +45,48 @@ function initEditPreviewTab(elForm: HTMLFormElement) {
 }
 
 export function initRepoEditor() {
-  console.log('A');
   const dropzoneUpload = document.querySelector<HTMLElement>('.page-content.repository.editor.upload .dropzone');
   if (dropzoneUpload) initDropzone(dropzoneUpload);
-  console.log('B');
 
   const richTextEditorMount = document.querySelector<HTMLElement>('#rich-text-editor');
   if (!richTextEditorMount) return;
-  console.log('C');
 
   const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
   if (!editArea) return;
-  console.log('D');
+
+  const fixedMenu = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor #rich-text-editor-fixed-menu');
+  if (!fixedMenu) return;
 
   const editor = new Editor({
     element: richTextEditorMount,
     content: editArea.value,
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      Link.configure({
+        openOnClick: false,
+        linkOnPaste: true,
+        defaultProtocol: 'https',
+      }),
+      Underline,
+      TextAlign.configure({
+        alignments: ['left', 'center', 'right', 'justify'],
+      }),
+      // TaskItem,
+      // TaskList,
+    ],
     editable: true,
   });
 
+  createApp(RichTextEditorFixedMenu, {
+    editor: editor,
+    enableLink: true,
+    enableUnderline: true,
+    enableCheckList: false,
+    enableTextAlign: true,
+  }).mount(fixedMenu);
+
   const onUpdate = () => {
-    editArea.value = editor.getHTML();
+    editArea.value = JSON.stringify(editor.getJSON());
   };
 
   editor.on('update', onUpdate);

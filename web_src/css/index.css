@@ -82,6 +82,8 @@
 @import "./review.css";
 @import "./actions.css";
 
+@import "./tiptap.css";
+
 @import "./helpers.css";
 
 @tailwind utilities;
