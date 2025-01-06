@@ -897,10 +897,8 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 					refName = brs[0].Name
 				} else if len(brs) == 0 {
 					log.Error("No branches in non-empty repository %s", ctx.Repo.GitRepo.Path)
-					ctx.Repo.Repository.MarkAsBrokenEmpty()
 				} else {
 					log.Error("GetBranches error: %v", err)
-					ctx.Repo.Repository.MarkAsBrokenEmpty()
 				}
 			}
 			ctx.Repo.RefName = refName
@@ -911,7 +909,6 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 			} else if strings.Contains(err.Error(), "fatal: not a git repository") || strings.Contains(err.Error(), "object does not exist") {
 				// if the repository is broken, we can continue to the handler code, to show "Settings -> Delete Repository" for end users
 				log.Error("GetBranchCommit: %v", err)
-				ctx.Repo.Repository.MarkAsBrokenEmpty()
 			} else {
 				ctx.ServerError("GetBranchCommit", err)
 				return

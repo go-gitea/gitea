@@ -1412,6 +1412,7 @@ func registerRoutes(m *web.Router) {
 		m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
 		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
 		m.Post("/run", reqRepoActionsWriter, actions.Run)
+		m.Get("/workflow-dispatch-inputs", reqRepoActionsWriter, actions.WorkflowDispatchInputs)
 
 		m.Group("/runs/{run}", func() {
 			m.Combo("").
@@ -1433,7 +1434,7 @@ func registerRoutes(m *web.Router) {
 		m.Group("/workflows/{workflow_name}", func() {
 			m.Get("/badge.svg", actions.GetWorkflowBadge)
 		})
-	}, optSignIn, context.RepoAssignment, reqRepoActionsReader, actions.MustEnableActions)
+	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoActionsReader, actions.MustEnableActions)
 	// end "/{username}/{reponame}/actions"
 
 	m.Group("/{username}/{reponame}/wiki", func() {

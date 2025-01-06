@@ -1,12 +1,8 @@
-import $ from 'jquery';
 import {svg} from '../svg.ts';
-import {invertFileFolding} from './file-fold.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {clippie} from 'clippie';
 import {toAbsoluteUrl} from '../utils.ts';
-
-export const singleAnchorRegex = /^#(L|n)([1-9][0-9]*)$/;
-export const rangeAnchorRegex = /^#(L[1-9][0-9]*)-(L[1-9][0-9]*)$/;
+import {addDelegatedEventListener} from '../utils/dom.ts';
 
 function changeHash(hash: string) {
   if (window.history.pushState) {
@@ -16,20 +12,11 @@ function changeHash(hash: string) {
   }
 }
 
-function isBlame() {
-  return Boolean(document.querySelector('div.blame'));
-}
+// it selects the code lines defined by range: `L1-L3` (3 lines) or `L2` (singe line)
+function selectRange(range: string): Element {
+  for (const el of document.querySelectorAll('.code-view tr.active')) el.classList.remove('active');
+  const elLineNums = document.querySelectorAll(`.code-view td.lines-num span[data-line-number]`);
 
-function getLineEls() {
-  return document.querySelectorAll(`.code-view td.lines-code${isBlame() ? '.blame-code' : ''}`);
-}
-
-function selectRange($linesEls, $selectionEndEl, $selectionStartEls?) {
-  for (const el of $linesEls) {
-    el.closest('tr').classList.remove('active');
-  }
-
-  // add hashchange to permalink
   const refInNewIssue = document.querySelector('a.ref-in-new-issue');
   const copyPermalink = document.querySelector('a.copy-line-permalink');
   const viewGitBlame = document.querySelector('a.view_git_blame');
@@ -59,37 +46,30 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls?) {
     copyPermalink.setAttribute('data-url', link);
   };
 
-  if ($selectionStartEls) {
-    let a = parseInt($selectionEndEl[0].getAttribute('rel').slice(1));
-    let b = parseInt($selectionStartEls[0].getAttribute('rel').slice(1));
-    let c;
-    if (a !== b) {
-      if (a > b) {
-        c = a;
-        a = b;
-        b = c;
-      }
-      const classes = [];
-      for (let i = a; i <= b; i++) {
-        classes.push(`[rel=L${i}]`);
-      }
-      $linesEls.filter(classes.join(',')).each(function () {
-        this.closest('tr').classList.add('active');
-      });
-      changeHash(`#L${a}-L${b}`);
+  const rangeFields = range ? range.split('-') : [];
+  const start = rangeFields[0] ?? '';
+  if (!start) return null;
+  const stop = rangeFields[1] || start;
 
-      updateIssueHref(`L${a}-L${b}`);
-      updateViewGitBlameFragment(`L${a}-L${b}`);
-      updateCopyPermalinkUrl(`L${a}-L${b}`);
-      return;
-    }
+  // format is i.e. 'L14-L26'
+  let startLineNum = parseInt(start.substring(1));
+  let stopLineNum = parseInt(stop.substring(1));
+  if (startLineNum > stopLineNum) {
+    const tmp = startLineNum;
+    startLineNum = stopLineNum;
+    stopLineNum = tmp;
+    range = `${stop}-${start}`;
   }
-  $selectionEndEl[0].closest('tr').classList.add('active');
-  changeHash(`#${$selectionEndEl[0].getAttribute('rel')}`);
 
-  updateIssueHref($selectionEndEl[0].getAttribute('rel'));
-  updateViewGitBlameFragment($selectionEndEl[0].getAttribute('rel'));
-  updateCopyPermalinkUrl($selectionEndEl[0].getAttribute('rel'));
+  const first = elLineNums[startLineNum - 1] ?? null;
+  for (let i = startLineNum - 1; i <= stopLineNum - 1 && i < elLineNums.length; i++) {
+    elLineNums[i].closest('tr').classList.add('active');
+  }
+  changeHash(`#${range}`);
+  updateIssueHref(range);
+  updateViewGitBlameFragment(range);
+  updateCopyPermalinkUrl(range);
+  return first;
 }
 
 function showLineButton() {
@@ -103,6 +83,8 @@ function showLineButton() {
 
   // find active row and add button
   const tr = document.querySelector('.code-view tr.active');
+  if (!tr) return;
+
   const td = tr.querySelector('td.lines-num');
   const btn = document.createElement('button');
   btn.classList.add('code-line-button', 'ui', 'basic', 'button');
@@ -128,62 +110,36 @@ function showLineButton() {
 }
 
 export function initRepoCodeView() {
-  if ($('.code-view .lines-num').length > 0) {
-    $(document).on('click', '.lines-num span', function (e) {
-      const linesEls = getLineEls();
-      const selectedEls = Array.from(linesEls).filter((el) => {
-        return el.matches(`[rel=${this.getAttribute('id')}]`);
-      });
+  if (!document.querySelector('.code-view .lines-num')) return;
 
-      let from;
-      if (e.shiftKey) {
-        from = Array.from(linesEls).filter((el) => {
-          return el.closest('tr').classList.contains('active');
-        });
-      }
-      selectRange($(linesEls), $(selectedEls), from ? $(from) : null);
-      window.getSelection().removeAllRanges();
-      showLineButton();
-    });
-
-    $(window).on('hashchange', () => {
-      let m = rangeAnchorRegex.exec(window.location.hash);
-      const $linesEls = $(getLineEls());
-      let $first;
-      if (m) {
-        $first = $linesEls.filter(`[rel=${m[1]}]`);
-        if ($first.length) {
-          selectRange($linesEls, $first, $linesEls.filter(`[rel=${m[2]}]`));
-
-          // show code view menu marker (don't show in blame page)
-          if (!isBlame()) {
-            showLineButton();
-          }
-
-          $('html, body').scrollTop($first.offset().top - 200);
-          return;
-        }
-      }
-      m = singleAnchorRegex.exec(window.location.hash);
-      if (m) {
-        $first = $linesEls.filter(`[rel=L${m[2]}]`);
-        if ($first.length) {
-          selectRange($linesEls, $first);
-
-          // show code view menu marker (don't show in blame page)
-          if (!isBlame()) {
-            showLineButton();
-          }
-
-          $('html, body').scrollTop($first.offset().top - 200);
-        }
-      }
-    }).trigger('hashchange');
-  }
-  $(document).on('click', '.fold-file', ({currentTarget}) => {
-    invertFileFolding(currentTarget.closest('.file-content'), currentTarget);
+  let selRangeStart: string;
+  addDelegatedEventListener(document, 'click', '.lines-num span', (el: HTMLElement, e: KeyboardEvent) => {
+    if (!selRangeStart || !e.shiftKey) {
+      selRangeStart = el.getAttribute('id');
+      selectRange(selRangeStart);
+    } else {
+      const selRangeStop = el.getAttribute('id');
+      selectRange(`${selRangeStart}-${selRangeStop}`);
+    }
+    window.getSelection().removeAllRanges();
+    showLineButton();
   });
-  $(document).on('click', '.copy-line-permalink', async ({currentTarget}) => {
-    await clippie(toAbsoluteUrl(currentTarget.getAttribute('data-url')));
+
+  const onHashChange = () => {
+    if (!window.location.hash) return;
+    const range = window.location.hash.substring(1);
+    const first = selectRange(range);
+    if (first) {
+      // set scrollRestoration to 'manual' when there is a hash in url, so that the scroll position will not be remembered after refreshing
+      if (window.history.scrollRestoration !== 'manual') window.history.scrollRestoration = 'manual';
+      first.scrollIntoView({block: 'start'});
+      showLineButton();
+    }
+  };
+  onHashChange();
+  window.addEventListener('hashchange', onHashChange);
+
+  addDelegatedEventListener(document, 'click', '.copy-line-permalink', (el) => {
+    clippie(toAbsoluteUrl(el.getAttribute('data-url')));
   });
 }
