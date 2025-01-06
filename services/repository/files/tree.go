@@ -425,10 +425,15 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 		}
 		dir = treePath
 		if lastDirEntry.IsRegular() {
-			dir = path.Dir(treePath)
-			lastDirEntry, err = commit.GetTreeEntryByPath(dir)
-			if err != nil {
-				return nil, err
+			// path.Dir cannot correctly handle .xxx file
+			dir, _ = path.Split(treePath)
+			if dir == "" {
+				lastDirEntry = rootEntry
+			} else {
+				lastDirEntry, err = commit.GetTreeEntryByPath(dir)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -448,6 +453,7 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 		}
 	}
 
+	sortTreeEntries(treeList)
 	if dir == "" || parentEntry == nil {
 		return treeList, nil
 	}
@@ -475,7 +481,6 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 			Path:   path.Join(dir, entry.Name()),
 		})
 	}
-	sortTreeEntries(treeList)
 	sortTreeEntries(parentEntry.Children)
 	return treeList, nil
 }
