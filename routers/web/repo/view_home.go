@@ -250,6 +250,7 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 			showEmpty = true // it is not really empty, but there is no branch
 			// at the moment, other repo units like "actions" are not able to handle such case,
 			// so we just mark the repo as empty to prevent from displaying these units.
+			ctx.Data["RepoHasContentsWithoutBranch"] = true
 			updateContextRepoEmptyAndStatus(ctx, true, repo_model.RepositoryReady)
 		} else {
 			// the repo is actually not empty and has branches, need to update the database later
