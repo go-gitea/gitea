@@ -404,38 +404,21 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 	}
 
 	// get root entries
-	rootEntry, err := commit.GetTreeEntryByPath("")
-	if err != nil {
-		return nil, err
-	}
 	rootEntries, err := commit.ListEntries()
 	if err != nil {
 		return nil, err
 	}
 
-	var dir string
-	var lastDirEntry *git.TreeEntry
-	if treePath == "" {
-		dir = treePath
-		lastDirEntry = rootEntry
-	} else {
-		lastDirEntry, err = commit.GetTreeEntryByPath(treePath)
+	dir := treePath
+	if dir != "" {
+		lastDirEntry, err := commit.GetTreeEntryByPath(treePath)
 		if err != nil {
 			return nil, err
 		}
-		dir = treePath
 		if lastDirEntry.IsRegular() {
 			// path.Dir cannot correctly handle .xxx file
 			dir, _ = path.Split(treePath)
 			dir = strings.TrimRight(dir, "/")
-			if dir == "" {
-				lastDirEntry = rootEntry
-			} else {
-				lastDirEntry, err = commit.GetTreeEntryByPath(dir)
-				if err != nil {
-					return nil, err
-				}
-			}
 		}
 	}
 
