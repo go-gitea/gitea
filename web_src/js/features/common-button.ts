@@ -1,4 +1,4 @@
-import {POST} from '../modules/fetch.ts';
+import {DELETE, POST} from '../modules/fetch.ts';
 import {addDelegatedEventListener, hideElem, queryElems, showElem, toggleElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {camelize} from 'vue';
@@ -62,7 +62,10 @@ export function initGlobalDeleteButton(): void {
             }
           }
 
-          const response = await POST(btn.getAttribute('data-url'), {data: postData});
+          const method = btn.getAttribute('data-method')?.toUpperCase() || 'POST';
+          const response = method === 'DELETE'
+            ? await DELETE(btn.getAttribute('data-url'))
+            : await POST(btn.getAttribute('data-url'), {data: postData});
           if (response.ok) {
             const data = await response.json();
             window.location.href = data.redirect;
