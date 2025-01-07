@@ -201,9 +201,9 @@
 									<div class="tw-p-3">{{svg "octicon-file-submodule"}} {{$submoduleDiffInfo := $file.SubmoduleDiffInfo -}}
 										{{- $submoduleName := $submoduleDiffInfo.SubmoduleRepoLinkHTML ctx -}}
 										{{- if $file.IsDeleted -}}
-											{{- ctx.Locale.Tr "repo.diff.submodule_deleted" $submoduleName ($submoduleDiffInfo.PreviousRefIDLinkHTML ctx) -}}
+											{{- ctx.Locale.Tr "repo.diff.submodule_deleted" $submoduleName ($submoduleDiffInfo.CommitRefIDLinkHTML ctx $submoduleDiffInfo.PreviousRefID) -}}
 										{{- else if $file.IsCreated -}}
-											{{- ctx.Locale.Tr "repo.diff.submodule_added" $submoduleName ($submoduleDiffInfo.NewRefIDLinkHTML ctx) -}}
+											{{- ctx.Locale.Tr "repo.diff.submodule_added" $submoduleName ($submoduleDiffInfo.CommitRefIDLinkHTML ctx $submoduleDiffInfo.NewRefID) -}}
 										{{- else -}}
 											{{- ctx.Locale.Tr "repo.diff.submodule_updated" $submoduleName ($submoduleDiffInfo.CompareRefIDLinkHTML ctx) -}}
 										{{end}}

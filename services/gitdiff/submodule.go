@@ -40,20 +40,12 @@ func (si *SubmoduleDiffInfo) PopulateURL(diffFile *DiffFile, leftCommit, rightCo
 	}
 }
 
-func (si *SubmoduleDiffInfo) PreviousRefIDLinkHTML(ctx context.Context) template.HTML {
-	webLink := si.SubmoduleFile.SubmoduleWebLink(ctx, si.PreviousRefID)
+func (si *SubmoduleDiffInfo) CommitRefIDLinkHTML(ctx context.Context, commitID string) template.HTML {
+	webLink := si.SubmoduleFile.SubmoduleWebLink(ctx, commitID)
 	if webLink == nil {
-		return htmlutil.HTMLFormat("%s", base.ShortSha(si.PreviousRefID))
+		return htmlutil.HTMLFormat("%s", base.ShortSha(commitID))
 	}
-	return htmlutil.HTMLFormat(`<a href="%s">%s</a>`, webLink.CommitWebLink, base.ShortSha(si.PreviousRefID))
-}
-
-func (si *SubmoduleDiffInfo) NewRefIDLinkHTML(ctx context.Context) template.HTML {
-	webLink := si.SubmoduleFile.SubmoduleWebLink(ctx, si.NewRefID)
-	if webLink == nil {
-		return htmlutil.HTMLFormat("%s", base.ShortSha(si.NewRefID))
-	}
-	return htmlutil.HTMLFormat(`<a href="%s">%s</a>`, webLink.CommitWebLink, base.ShortSha(si.NewRefID))
+	return htmlutil.HTMLFormat(`<a href="%s">%s</a>`, webLink.CommitWebLink, base.ShortSha(commitID))
 }
 
 func (si *SubmoduleDiffInfo) CompareRefIDLinkHTML(ctx context.Context) template.HTML {

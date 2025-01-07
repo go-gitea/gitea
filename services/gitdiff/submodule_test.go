@@ -4,10 +4,12 @@
 package gitdiff
 
 import (
+	"context"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -217,5 +219,18 @@ index 0000000..68972a9
 }
 
 func TestSubmoduleInfo(t *testing.T) {
-	// TODO: test NewRefIDLinkHTML PreviousRefIDLinkHTML SubmoduleRepoLinkHTML after we get the unifed "RefURL" function
+	sdi := &SubmoduleDiffInfo{
+		SubmoduleName: "name",
+		PreviousRefID: "aaaa",
+		NewRefID:      "bbbb",
+	}
+	ctx := context.Background()
+	assert.EqualValues(t, "1111", sdi.CommitRefIDLinkHTML(ctx, "1111"))
+	assert.EqualValues(t, "aaaa...bbbb", sdi.CompareRefIDLinkHTML(ctx))
+	assert.EqualValues(t, "name", sdi.SubmoduleRepoLinkHTML(ctx))
+
+	sdi.SubmoduleFile = git.NewCommitSubmoduleFile("https://github.com/owner/repo", "1234")
+	assert.EqualValues(t, `<a href="https://github.com/owner/repo/commit/1111">1111</a>`, sdi.CommitRefIDLinkHTML(ctx, "1111"))
+	assert.EqualValues(t, `<a href="https://github.com/owner/repo/compare/aaaa...bbbb">aaaa...bbbb</a>`, sdi.CompareRefIDLinkHTML(ctx))
+	assert.EqualValues(t, `<a href="https://github.com/owner/repo">name</a>`, sdi.SubmoduleRepoLinkHTML(ctx))
 }
