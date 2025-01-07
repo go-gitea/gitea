@@ -447,8 +447,9 @@ func SettingsPost(ctx *context.Context) {
 
 		if form.EnableCode && !unit_model.TypeCode.UnitGlobalDisabled() {
 			units = append(units, repo_model.RepoUnit{
-				RepoID: repo.ID,
-				Type:   unit_model.TypeCode,
+				RepoID:             repo.ID,
+				Type:               unit_model.TypeCode,
+				EveryoneAccessMode: perm.ParseAccessMode(form.DefaultCodeEveryoneAccess, perm.AccessModeNone, perm.AccessModeRead),
 			})
 		} else if !unit_model.TypeCode.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeCode)
@@ -524,6 +525,7 @@ func SettingsPost(ctx *context.Context) {
 					AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
 					EnableDependencies:               form.EnableIssueDependencies,
 				},
+				EveryoneAccessMode: perm.ParseAccessMode(form.DefaultIssuesEveryoneAccess, perm.AccessModeNone, perm.AccessModeRead),
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
 		} else {
