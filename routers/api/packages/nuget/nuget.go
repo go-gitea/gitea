@@ -259,7 +259,7 @@ func RegistrationLeafV2(ctx *context.Context) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -288,7 +288,7 @@ func RegistrationLeafV3(ctx *context.Context) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -418,7 +418,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -671,7 +671,7 @@ func DownloadSymbolFile(ctx *context.Context) {
 
 	s, u, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -699,7 +699,7 @@ func DeletePackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}

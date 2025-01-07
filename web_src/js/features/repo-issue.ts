@@ -373,10 +373,6 @@ export async function handleReply(el) {
 
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
-    // set scrollRestoration to 'manual' when there is a hash in url, so that the scroll position will not be remembered after refreshing
-    if (window.history.scrollRestoration !== 'manual') {
-      window.history.scrollRestoration = 'manual';
-    }
     const commentDiv = document.querySelector(window.location.hash);
     if (commentDiv) {
       // get the name of the parent id
@@ -384,14 +380,6 @@ export function initRepoPullRequestReview() {
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
         const ancestorDiffBox = commentDiv.closest('.diff-file-box');
-        // on pages like conversation, there is no diff header
-        const diffHeader = ancestorDiffBox?.querySelector('.diff-file-header');
-
-        // offset is for scrolling
-        let offset = 30;
-        if (diffHeader) {
-          offset += $('.diff-detail-box').outerHeight() + $(diffHeader).outerHeight();
-        }
 
         hideElem(`#show-outdated-${id}`);
         showElem(`#code-comments-${id}, #code-preview-${id}, #hide-outdated-${id}`);
@@ -399,12 +387,11 @@ export function initRepoPullRequestReview() {
         if (ancestorDiffBox?.getAttribute('data-folded') === 'true') {
           setFileFolding(ancestorDiffBox, ancestorDiffBox.querySelector('.fold-file'), false);
         }
-
-        window.scrollTo({
-          top: $(commentDiv).offset().top - offset,
-          behavior: 'instant',
-        });
       }
+      // set scrollRestoration to 'manual' when there is a hash in url, so that the scroll position will not be remembered after refreshing
+      if (window.history.scrollRestoration !== 'manual') window.history.scrollRestoration = 'manual';
+      // wait for a while because some elements (eg: image, editor, etc.) may change the viewport's height.
+      setTimeout(() => commentDiv.scrollIntoView({block: 'start'}), 100);
     }
   }
 

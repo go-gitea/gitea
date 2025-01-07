@@ -4,18 +4,23 @@
 package repo
 
 import (
+	"context"
+	"net/http"
+	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -127,65 +132,121 @@ func TestMetas(t *testing.T) {
 	assert.Equal(t, ",owners,team1,", metas["teams"])
 }
 
+func TestParseRepositoryURLPathSegments(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "https://localhost:3000")()
+
+	ctxURL, _ := url.Parse("https://gitea")
+	ctxReq := &http.Request{URL: ctxURL, Header: http.Header{}}
+	ctxReq.Host = ctxURL.Host
+	ctxReq.Header.Add("X-Forwarded-Proto", ctxURL.Scheme)
+	ctx := context.WithValue(context.Background(), httplib.RequestContextKey, ctxReq)
+	cases := []struct {
+		input                          string
+		ownerName, repoName, remaining string
+	}{
+		{input: "/user/repo"},
+
+		{input: "https://localhost:3000/user/repo", ownerName: "user", repoName: "repo"},
+		{input: "https://external:3000/user/repo"},
+
+		{input: "https://localhost:3000/user/repo.git/other", ownerName: "user", repoName: "repo", remaining: "/other"},
+
+		{input: "https://gitea/user/repo", ownerName: "user", repoName: "repo"},
+		{input: "https://gitea:3333/user/repo"},
+
+		{input: "ssh://try.gitea.io:2222/user/repo", ownerName: "user", repoName: "repo"},
+		{input: "ssh://external:2222/user/repo"},
+
+		{input: "git+ssh://user@try.gitea.io/user/repo.git", ownerName: "user", repoName: "repo"},
+		{input: "git+ssh://user@external/user/repo.git"},
+
+		{input: "root@try.gitea.io:user/repo.git", ownerName: "user", repoName: "repo"},
+		{input: "root@gitea:user/repo.git", ownerName: "user", repoName: "repo"},
+		{input: "root@external:user/repo.git"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.input, func(t *testing.T) {
+			ret := parseRepositoryURL(ctx, c.input)
+			assert.Equal(t, c.ownerName, ret.OwnerName)
+			assert.Equal(t, c.repoName, ret.RepoName)
+			assert.Equal(t, c.remaining, ret.RemainingPath)
+		})
+	}
+
+	t.Run("WithSubpath", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.AppURL, "https://localhost:3000/subpath")()
+		defer test.MockVariableValue(&setting.AppSubURL, "/subpath")()
+		cases = []struct {
+			input                          string
+			ownerName, repoName, remaining string
+		}{
+			{input: "https://localhost:3000/user/repo"},
+			{input: "https://localhost:3000/subpath/user/repo.git/other", ownerName: "user", repoName: "repo", remaining: "/other"},
+
+			{input: "ssh://try.gitea.io:2222/user/repo", ownerName: "user", repoName: "repo"},
+			{input: "ssh://external:2222/user/repo"},
+
+			{input: "git+ssh://user@try.gitea.io/user/repo.git", ownerName: "user", repoName: "repo"},
+			{input: "git+ssh://user@external/user/repo.git"},
+
+			{input: "root@try.gitea.io:user/repo.git", ownerName: "user", repoName: "repo"},
+			{input: "root@external:user/repo.git"},
+		}
+
+		for _, c := range cases {
+			t.Run(c.input, func(t *testing.T) {
+				ret := parseRepositoryURL(ctx, c.input)
+				assert.Equal(t, c.ownerName, ret.OwnerName)
+				assert.Equal(t, c.repoName, ret.RepoName)
+				assert.Equal(t, c.remaining, ret.RemainingPath)
+			})
+		}
+	})
+}
+
 func TestGetRepositoryByURL(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	t.Run("InvalidPath", func(t *testing.T) {
 		repo, err := GetRepositoryByURL(db.DefaultContext, "something")
-
 		assert.Nil(t, repo)
 		assert.Error(t, err)
 	})
 
+	testRepo2 := func(t *testing.T, url string) {
+		repo, err := GetRepositoryByURL(db.DefaultContext, url)
+		require.NoError(t, err)
+		assert.EqualValues(t, 2, repo.ID)
+		assert.EqualValues(t, 2, repo.OwnerID)
+	}
+
 	t.Run("ValidHttpURL", func(t *testing.T) {
-		test := func(t *testing.T, url string) {
-			repo, err := GetRepositoryByURL(db.DefaultContext, url)
-
-			assert.NotNil(t, repo)
-			assert.NoError(t, err)
-
-			assert.Equal(t, int64(2), repo.ID)
-			assert.Equal(t, int64(2), repo.OwnerID)
-		}
-
-		test(t, "https://try.gitea.io/user2/repo2")
-		test(t, "https://try.gitea.io/user2/repo2.git")
+		testRepo2(t, "https://try.gitea.io/user2/repo2")
+		testRepo2(t, "https://try.gitea.io/user2/repo2.git")
 	})
 
 	t.Run("ValidGitSshURL", func(t *testing.T) {
-		test := func(t *testing.T, url string) {
-			repo, err := GetRepositoryByURL(db.DefaultContext, url)
+		testRepo2(t, "git+ssh://sshuser@try.gitea.io/user2/repo2")
+		testRepo2(t, "git+ssh://sshuser@try.gitea.io/user2/repo2.git")
 
-			assert.NotNil(t, repo)
-			assert.NoError(t, err)
-
-			assert.Equal(t, int64(2), repo.ID)
-			assert.Equal(t, int64(2), repo.OwnerID)
-		}
-
-		test(t, "git+ssh://sshuser@try.gitea.io/user2/repo2")
-		test(t, "git+ssh://sshuser@try.gitea.io/user2/repo2.git")
-
-		test(t, "git+ssh://try.gitea.io/user2/repo2")
-		test(t, "git+ssh://try.gitea.io/user2/repo2.git")
+		testRepo2(t, "git+ssh://try.gitea.io/user2/repo2")
+		testRepo2(t, "git+ssh://try.gitea.io/user2/repo2.git")
 	})
 
 	t.Run("ValidImplicitSshURL", func(t *testing.T) {
-		test := func(t *testing.T, url string) {
-			repo, err := GetRepositoryByURL(db.DefaultContext, url)
+		testRepo2(t, "sshuser@try.gitea.io:user2/repo2")
+		testRepo2(t, "sshuser@try.gitea.io:user2/repo2.git")
 
-			assert.NotNil(t, repo)
-			assert.NoError(t, err)
-
+		testRelax := func(t *testing.T, url string) {
+			repo, err := GetRepositoryByURLRelax(db.DefaultContext, url)
+			require.NoError(t, err)
 			assert.Equal(t, int64(2), repo.ID)
 			assert.Equal(t, int64(2), repo.OwnerID)
 		}
-
-		test(t, "sshuser@try.gitea.io:user2/repo2")
-		test(t, "sshuser@try.gitea.io:user2/repo2.git")
-
-		test(t, "try.gitea.io:user2/repo2")
-		test(t, "try.gitea.io:user2/repo2.git")
+		// TODO: it doesn't seem to be common git ssh URL, should we really support this?
+		testRelax(t, "try.gitea.io:user2/repo2")
+		testRelax(t, "try.gitea.io:user2/repo2.git")
 	})
 }
 
@@ -199,23 +260,30 @@ func TestComposeSSHCloneURL(t *testing.T) {
 	setting.SSH.Domain = "domain"
 	setting.SSH.Port = 22
 	setting.Repository.UseCompatSSHURI = false
-	assert.Equal(t, "git@domain:user/repo.git", ComposeSSHCloneURL("user", "repo"))
+	assert.Equal(t, "git@domain:user/repo.git", ComposeSSHCloneURL(&user_model.User{Name: "doer"}, "user", "repo"))
 	setting.Repository.UseCompatSSHURI = true
-	assert.Equal(t, "ssh://git@domain/user/repo.git", ComposeSSHCloneURL("user", "repo"))
+	assert.Equal(t, "ssh://git@domain/user/repo.git", ComposeSSHCloneURL(&user_model.User{Name: "doer"}, "user", "repo"))
 	// test SSH_DOMAIN while use non-standard SSH port
 	setting.SSH.Port = 123
 	setting.Repository.UseCompatSSHURI = false
-	assert.Equal(t, "ssh://git@domain:123/user/repo.git", ComposeSSHCloneURL("user", "repo"))
+	assert.Equal(t, "ssh://git@domain:123/user/repo.git", ComposeSSHCloneURL(nil, "user", "repo"))
 	setting.Repository.UseCompatSSHURI = true
-	assert.Equal(t, "ssh://git@domain:123/user/repo.git", ComposeSSHCloneURL("user", "repo"))
+	assert.Equal(t, "ssh://git@domain:123/user/repo.git", ComposeSSHCloneURL(nil, "user", "repo"))
 
 	// test IPv6 SSH_DOMAIN
 	setting.Repository.UseCompatSSHURI = false
 	setting.SSH.Domain = "::1"
 	setting.SSH.Port = 22
-	assert.Equal(t, "git@[::1]:user/repo.git", ComposeSSHCloneURL("user", "repo"))
+	assert.Equal(t, "git@[::1]:user/repo.git", ComposeSSHCloneURL(nil, "user", "repo"))
 	setting.SSH.Port = 123
-	assert.Equal(t, "ssh://git@[::1]:123/user/repo.git", ComposeSSHCloneURL("user", "repo"))
+	assert.Equal(t, "ssh://git@[::1]:123/user/repo.git", ComposeSSHCloneURL(nil, "user", "repo"))
+
+	setting.SSH.User = "(DOER_USERNAME)"
+	setting.SSH.Domain = "domain"
+	setting.SSH.Port = 22
+	assert.Equal(t, "doer@domain:user/repo.git", ComposeSSHCloneURL(&user_model.User{Name: "doer"}, "user", "repo"))
+	setting.SSH.Port = 123
+	assert.Equal(t, "ssh://doer@domain:123/user/repo.git", ComposeSSHCloneURL(&user_model.User{Name: "doer"}, "user", "repo"))
 }
 
 func TestIsUsableRepoName(t *testing.T) {

@@ -70,7 +70,7 @@
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu">
-					<div class="ui header">
+					<div class="header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
 
@@ -130,7 +130,7 @@
 				{{/* do not localize it, here it needs the fixed length (width) to make UI comfortable */}}
 				{{if .IsAdmin}}<span class="navbar-profile-admin">admin</span>{{end}}
 				<div class="menu user-menu">
-					<div class="ui header">
+					<div class="header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
 
