@@ -155,9 +155,10 @@ func CountReviews(ctx context.Context, opts FindReviewOptions) (int64, error) {
 	return db.GetEngine(ctx).Where(opts.toCond()).Count(&Review{})
 }
 
-var countedReivewTypes = []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest}
-
 // GetReviewsByIssueID gets the latest review of each reviewer for a pull request
+// The first returned parameter is the latest review of each individual reviewer or team
+// The second returned parameter is the latest review of each original author which is migrated from other systems
+// The reviews are sorted by updated time
 func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, ReviewList, error) {
 	reviews := make([]*Review, 0, 10)
 
@@ -173,7 +174,7 @@ func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, Review
 	originalReviewersMap := make(map[int64][]*Review) // key is original author id
 	reviewTeamsMap := make(map[int64][]*Review)       // key is reviewer team id
 	for _, review := range reviews {
-		if review.ReviewerTeamID == 0 && slices.Contains(countedReivewTypes, review.Type) && !review.Dismissed {
+		if review.ReviewerTeamID == 0 && slices.Contains([]ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest}, review.Type) && !review.Dismissed {
 			if review.OriginalAuthorID != 0 {
 				originalReviewersMap[review.OriginalAuthorID] = append(originalReviewersMap[review.OriginalAuthorID], review)
 			} else {
