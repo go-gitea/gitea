@@ -20,7 +20,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
-	gitUrl "code.gitea.io/gitea/modules/git/url"
+	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -806,7 +806,7 @@ func parseRepositoryURL(ctx context.Context, repoURL string) (ret struct {
 		}
 	}
 
-	parsed, err := gitUrl.ParseGitURL(repoURL)
+	parsed, err := giturl.ParseGitURL(repoURL)
 	if err != nil {
 		return ret
 	}
