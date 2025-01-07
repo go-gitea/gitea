@@ -54,8 +54,8 @@ require (
 	github.com/go-chi/cors v1.2.1
 	github.com/go-co-op/gocron v1.37.0
 	github.com/go-enry/go-enry/v2 v2.9.1
-	github.com/go-git/go-billy/v5 v5.6.0
-	github.com/go-git/go-git/v5 v5.13.0
+	github.com/go-git/go-billy/v5 v5.6.1
+	github.com/go-git/go-git/v5 v5.13.1
 	github.com/go-ldap/ldap/v3 v3.4.8
 	github.com/go-redsync/redsync/v4 v4.13.0
 	github.com/go-sql-driver/mysql v1.8.1
@@ -186,7 +186,7 @@ require (
 	github.com/couchbase/gomemcached v0.3.2 // indirect
 	github.com/couchbase/goutils v0.1.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
-	github.com/cyphar/filepath-securejoin v0.3.4 // indirect
+	github.com/cyphar/filepath-securejoin v0.3.6 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
