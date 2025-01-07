@@ -159,7 +159,7 @@ func CountReviews(ctx context.Context, opts FindReviewOptions) (int64, error) {
 // The first returned parameter is the latest review of each individual reviewer or team
 // The second returned parameter is the latest review of each original author which is migrated from other systems
 // The reviews are sorted by updated time
-func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, ReviewList, error) {
+func GetReviewsByIssueID(ctx context.Context, issueID int64) (latestReviews ReviewList, migratedOriginalReviews ReviewList, err error) { //nolint
 	reviews := make([]*Review, 0, 10)
 
 	// Get all reviews for the issue id
