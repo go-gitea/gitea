@@ -435,3 +435,10 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 }
 
 type ActionRunIndex db.ResourceIndex
+
+// DeleteRunByID delete action_run.
+func DeleteRunByID(ctx context.Context, id int64) error {
+	var run ActionRun
+	_, err := db.GetEngine(ctx).Where("id=?", id).Delete(&run)
+	return err
+}
