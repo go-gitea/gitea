@@ -35,18 +35,19 @@
 				<div class="run-list-item-right">
 					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince .Updated}}</div>
 					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
-					{{ if and (ne .Status 6) (ne .Status 5) }}
+					{{if and (ne .Status 6) (ne .Status 5)}}
 						<div class="run-list-meta">
 							<button
 								class="ui red tiny button delete-button name"
 								data-modal-id="modal-delete-workflow"
-								data-url="actions/run/{{.ID}}"
+								data-url="actions/runs/{{.ID}}"
 								data-datarepo_id="{{.RepoID}}"
 								data-name="Delete workflow run {{.ID}}"
+								data-method="delete"
 								name="Delete Workflow {{.ID}}">Delete Workflow
 							</button>
           	</div>
-          {{ end }}
+          {{end}}
 				</div>
 			</div>
 		</div>
