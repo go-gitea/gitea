@@ -17,7 +17,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
@@ -55,13 +54,6 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, baseRepo)
-
-		// enable actions
-		err = repo_service.UpdateRepositoryUnits(db.DefaultContext, baseRepo, []repo_model.RepoUnit{{
-			RepoID: baseRepo.ID,
-			Type:   unit_model.TypeActions,
-		}}, nil)
-		assert.NoError(t, err)
 
 		// add user4 as the collaborator
 		ctx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
@@ -232,13 +224,6 @@ func TestSkipCI(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, repo)
 
-		// enable actions
-		err = repo_service.UpdateRepositoryUnits(db.DefaultContext, repo, []repo_model.RepoUnit{{
-			RepoID: repo.ID,
-			Type:   unit_model.TypeActions,
-		}}, nil)
-		assert.NoError(t, err)
-
 		// add workflow file to the repo
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
@@ -358,13 +343,6 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, repo)
 
-		// enable actions
-		err = repo_service.UpdateRepositoryUnits(db.DefaultContext, repo, []repo_model.RepoUnit{{
-			RepoID: repo.ID,
-			Type:   unit_model.TypeActions,
-		}}, nil)
-		assert.NoError(t, err)
-
 		// add workflow file to the repo
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
@@ -474,13 +452,6 @@ func TestPullRequestCommitStatusEvent(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, repo)
-
-		// enable actions
-		err = repo_service.UpdateRepositoryUnits(db.DefaultContext, repo, []repo_model.RepoUnit{{
-			RepoID: repo.ID,
-			Type:   unit_model.TypeActions,
-		}}, nil)
-		assert.NoError(t, err)
 
 		// add user4 as the collaborator
 		ctx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
