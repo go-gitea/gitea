@@ -35,9 +35,32 @@
 				<div class="run-list-item-right">
 					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince .Updated}}</div>
 					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
+					{{ if and (ne .Status 6) (ne .Status 5) }}
+						<div class="run-list-meta">
+							<button
+								class="ui red tiny button delete-button name"
+								data-modal-id="modal-delete-workflow"
+								data-url="actions/run/{{.ID}}"
+								data-datarepo_id="{{.RepoID}}"
+								data-name="Delete workflow run {{.ID}}"
+								name="Delete Workflow {{.ID}}">Delete Workflow
+							</button>
+          	</div>
+          {{ end }}
 				</div>
 			</div>
 		</div>
 	{{end}}
+</div>
+
+<div class="ui g-modal-confirm delete modal" id="modal-delete-workflow">
+  <div class="header">
+    <i class="trash icon"></i>
+    <span class="name"></span>
+  </div>
+  <div class="content">
+    <p>Are you sure you want to permanently delete this workflow run? This action cannot be undone.</p>
+  </div>
+  {{template "base/modal_actions_confirm" .}}
 </div>
 {{template "base/paginate" .}}
