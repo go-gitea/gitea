@@ -472,8 +472,11 @@ func AllowLFSFiltersArgs() TrustedCmdArgs {
 // see: https://github.com/go-gitea/gitea/issues/32889#issuecomment-2571848216
 // Should not add sapce in the end, sometimes git will add a `:`.
 func IsRemoteNotExistError(err error) bool {
+	// for git < 2.30
 	prefix := "exit status 128 - fatal: No such remote"
-	if DefaultFeatures().NewExitStatusForRemoteNotExist {
+
+	// for git >= 2.30
+	if DefaultFeatures().CheckVersionAtLeast("2.30") {
 		prefix = "exit status 2 - error: No such remote"
 	}
 	return strings.HasPrefix(err.Error(), prefix)

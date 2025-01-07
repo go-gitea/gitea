@@ -26,11 +26,10 @@ const RequiredVersion = "2.0.0" // the minimum Git version required
 type Features struct {
 	gitVersion *version.Version
 
-	UsingGogit                     bool
-	SupportProcReceive             bool           // >= 2.29
-	SupportHashSha256              bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
-	SupportedObjectFormats         []ObjectFormat // sha1, sha256
-	NewExitStatusForRemoteNotExist bool           // >= 2.30
+	UsingGogit             bool
+	SupportProcReceive     bool           // >= 2.29
+	SupportHashSha256      bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
+	SupportedObjectFormats []ObjectFormat // sha1, sha256
 }
 
 var (
@@ -78,7 +77,6 @@ func loadGitVersionFeatures() (*Features, error) {
 	if features.SupportHashSha256 {
 		features.SupportedObjectFormats = append(features.SupportedObjectFormats, Sha256ObjectFormat)
 	}
-	features.NewExitStatusForRemoteNotExist = features.CheckVersionAtLeast("2.30")
 	return features, nil
 }
 
