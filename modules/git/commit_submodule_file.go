@@ -25,10 +25,14 @@ func NewCommitSubmoduleFile(refURL, refID string) *CommitSubmoduleFile {
 }
 
 func (sf *CommitSubmoduleFile) RefID() string {
-	return sf.refID
+	return sf.refID // this function is only used in templates
 }
 
+// SubmoduleWebLink tries to make some web links for a submodule, it also works on "nil" receiver
 func (sf *CommitSubmoduleFile) SubmoduleWebLink(ctx context.Context, optCommitID ...string) *SubmoduleWebLink {
+	if sf == nil {
+		return nil
+	}
 	if !sf.parsed {
 		sf.parsed = true
 		parsedURL, err := giturl.ParseRepositoryURL(ctx, sf.refURL)

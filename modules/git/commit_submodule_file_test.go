@@ -24,4 +24,7 @@ func TestCommitSubmoduleLink(t *testing.T) {
 	wl = sf.SubmoduleWebLink(context.Background(), "1111", "2222")
 	assert.Equal(t, "https://github.com/user/repo", wl.RepoWebLink)
 	assert.Equal(t, "https://github.com/user/repo/compare/1111...2222", wl.CommitWebLink)
+
+	wl = (*CommitSubmoduleFile)(nil).SubmoduleWebLink(context.Background())
+	assert.Nil(t, wl)
 }

@@ -199,7 +199,7 @@
 									</div>
 								{{else if $file.SubmoduleDiffInfo}}
 									<div class="tw-p-3">{{svg "octicon-file-submodule"}} {{$submoduleDiffInfo := $file.SubmoduleDiffInfo -}}
-										{{- $submoduleName := ($submoduleDiffInfo.SubmoduleRepoLinkHTML ctx) -}}
+										{{- $submoduleName := $submoduleDiffInfo.SubmoduleRepoLinkHTML ctx -}}
 										{{- if $file.IsDeleted -}}
 											{{- ctx.Locale.Tr "repo.diff.submodule_deleted" $submoduleName ($submoduleDiffInfo.PreviousRefIDLinkHTML ctx) -}}
 										{{- else if $file.IsCreated -}}

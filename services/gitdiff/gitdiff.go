@@ -1212,10 +1212,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 
 		// Populate Submodule URLs
 		if diffFile.SubmoduleDiffInfo != nil {
-			err := diffFile.SubmoduleDiffInfo.PopulateURL(diffFile, beforeCommit, commit)
-			if err != nil {
-				return nil, err
-			}
+			diffFile.SubmoduleDiffInfo.PopulateURL(diffFile, beforeCommit, commit)
 		}
 
 		if !isVendored.Has() {
