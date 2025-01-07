@@ -467,3 +467,14 @@ func AllowLFSFiltersArgs() TrustedCmdArgs {
 	}
 	return filteredLFSGlobalArgs[:j]
 }
+
+// IsRemoteNotExistError returns the prefix of the error message when a remote does not exist.
+// see: https://github.com/go-gitea/gitea/issues/32889#issuecomment-2571848216
+// Should not add sapce in the end, sometimes git will add a `:`.
+func IsRemoteNotExistError(err error) bool {
+	prefix := "exit status 128 - fatal: No such remote"
+	if DefaultFeatures().NewExitStatusForRemoteNotExist {
+		prefix = "exit status 2 - error: No such remote"
+	}
+	return strings.HasPrefix(err.Error(), prefix)
+}

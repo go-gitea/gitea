@@ -276,7 +276,7 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 	}
 
 	_, _, err := git.NewCommand(ctx, "remote", "rm", "origin").RunStdString(&git.RunOpts{Dir: repoPath})
-	if err != nil && !strings.HasPrefix(err.Error(), git.IsRemoteNotExistError()) {
+	if err != nil && !git.IsRemoteNotExistError(err) {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %w", err)
 	}
 
