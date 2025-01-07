@@ -53,7 +53,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Improve get feed with pagination (#31821)
   * Performance improvements for pull request list API (#30490)
   * Use batch database operations instead of one by one to optimze api pulls (#32680)
-  * Use gitrepo.GetTreePathLatestCommit to get file lastest commit instead from latest commit cache (#32987) #33046 
+  * Use gitrepo.GetTreePathLatestCommit to get file lastest commit instead from latest commit cache (#32987) #33046
 
 * ENHANCEMENTS
   * Code
@@ -152,7 +152,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
     * Add typescript guideline and typescript-specific eslint plugins and fix issues (#31521)
     * Make toast support preventDuplicates (#31501)
     * Fix tautological conditions (#30735)
-    * Issue change title notifications (#33050) #33065 
+    * Issue change title notifications (#33050) #33065
 
 * API
   * Implement update branch API (#32433)
