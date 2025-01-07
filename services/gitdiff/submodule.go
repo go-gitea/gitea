@@ -19,12 +19,9 @@ type SubmoduleInfo struct {
 }
 
 func (si *SubmoduleInfo) PopulateURL(diffFile *DiffFile, leftCommit, rightCommit *git.Commit) error {
-	var submoduleCommit *git.Commit
-	switch {
-	case diffFile.IsDeleted:
-		submoduleCommit = leftCommit // If the submodule is removed, we need to check it at the left commit
-	default:
-		submoduleCommit = rightCommit // If the submodule path is added or updated, we check this at the right commit
+	submoduleCommit := rightCommit // If the submodule is added or updated, check at the right commit
+	if diffFile.IsDeleted {
+		submoduleCommit = leftCommit // If the submodule is deleted, check at the left commit
 	}
 	if submoduleCommit != nil {
 		submodule, err := submoduleCommit.GetSubModule(diffFile.GetDiffFileName())
@@ -42,7 +39,7 @@ func (si *SubmoduleInfo) PopulateURL(diffFile *DiffFile, leftCommit, rightCommit
 func (si *SubmoduleInfo) NewRefIDLinkHTML() template.HTML {
 	refURL := si.refURL()
 	if si.PreviousRefID == "" {
-		return htmlutil.HTMLFormat(`<a href="%s/commit/%s"">%s</a>`, refURL, si.NewRefID, base.ShortSha(si.NewRefID))
+		return htmlutil.HTMLFormat(`<a href="%s/commit/%s">%s</a>`, refURL, si.NewRefID, base.ShortSha(si.NewRefID))
 	}
 	return htmlutil.HTMLFormat(`<a href="%s/compare/%s...%s">%s</a>`, refURL, si.PreviousRefID, si.NewRefID, base.ShortSha(si.NewRefID))
 }
