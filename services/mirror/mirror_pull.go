@@ -41,7 +41,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	repoPath := m.GetRepository(ctx).RepoPath()
 	// Remove old remote
 	_, _, err = git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: repoPath})
-	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
 
@@ -52,7 +52,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, addr, repoPath))
 	}
 	_, _, err = cmd.RunStdString(&git.RunOpts{Dir: repoPath})
-	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
 
@@ -61,7 +61,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
 		// Remove old remote of wiki
 		_, _, err = git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: wikiPath})
-		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+		if err != nil && !git.IsRemoteNotExistError(err) {
 			return err
 		}
 
@@ -72,7 +72,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, wikiRemotePath, wikiPath))
 		}
 		_, _, err = cmd.RunStdString(&git.RunOpts{Dir: wikiPath})
-		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+		if err != nil && !git.IsRemoteNotExistError(err) {
 			return err
 		}
 	}
