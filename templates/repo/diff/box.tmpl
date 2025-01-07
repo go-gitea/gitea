@@ -197,15 +197,15 @@
 											{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
 										{{end}}
 									</div>
-								{{else if and $file.SubmoduleInfo}}
-									<div class="tw-p-3">{{svg "octicon-file-submodule"}} {{$submodule := $file.SubmoduleInfo -}}
-										{{- $submoduleName := ($submodule.SubmoduleRepoLinkHTML $file.Name) -}}
+								{{else if $file.SubmoduleDiffInfo}}
+									<div class="tw-p-3">{{svg "octicon-file-submodule"}} {{$submoduleDiffInfo := $file.SubmoduleDiffInfo -}}
+										{{- $submoduleName := ($submoduleDiffInfo.SubmoduleRepoLinkHTML ctx) -}}
 										{{- if $file.IsDeleted -}}
-											{{- ctx.Locale.Tr "repo.diff.submodule_deleted" $submoduleName $submodule.PreviousRefIDLinkHTML -}}
+											{{- ctx.Locale.Tr "repo.diff.submodule_deleted" $submoduleName ($submoduleDiffInfo.PreviousRefIDLinkHTML ctx) -}}
 										{{- else if $file.IsCreated -}}
-											{{- ctx.Locale.Tr "repo.diff.submodule_added" $submoduleName $submodule.NewRefIDLinkHTML -}}
+											{{- ctx.Locale.Tr "repo.diff.submodule_added" $submoduleName ($submoduleDiffInfo.NewRefIDLinkHTML ctx) -}}
 										{{- else -}}
-											{{- ctx.Locale.Tr "repo.diff.submodule_updated" $submoduleName $submodule.PreviousRefIDLinkHTML $submodule.NewRefIDLinkHTML -}}
+											{{- ctx.Locale.Tr "repo.diff.submodule_updated" $submoduleName ($submoduleDiffInfo.CompareRefIDLinkHTML ctx) -}}
 										{{end}}
 									</div>
 								{{else}}

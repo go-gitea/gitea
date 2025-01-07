@@ -17,7 +17,7 @@ func TestParseSubmoduleInfo(t *testing.T) {
 	type testcase struct {
 		name    string
 		gitdiff string
-		infos   map[int]SubmoduleInfo
+		infos   map[int]SubmoduleDiffInfo
 	}
 
 	tests := []testcase{
@@ -40,7 +40,7 @@ index 0000000..68972a9
 @@ -0,0 +1 @@
 +Subproject commit 68972a994719ae5c74e28d8fa82fa27c23399bc8
 `,
-			infos: map[int]SubmoduleInfo{
+			infos: map[int]SubmoduleDiffInfo{
 				1: {NewRefID: "68972a994719ae5c74e28d8fa82fa27c23399bc8"},
 			},
 		},
@@ -54,7 +54,7 @@ index 68972a9..c8ffe77 160000
 -Subproject commit 68972a994719ae5c74e28d8fa82fa27c23399bc8
 +Subproject commit c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d
 `,
-			infos: map[int]SubmoduleInfo{
+			infos: map[int]SubmoduleDiffInfo{
 				0: {
 					PreviousRefID: "68972a994719ae5c74e28d8fa82fa27c23399bc8",
 					NewRefID:      "c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d",
@@ -96,7 +96,7 @@ index c8ffe77..0000000
 @@ -1 +0,0 @@
 -Subproject commit c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d
 `,
-			infos: map[int]SubmoduleInfo{
+			infos: map[int]SubmoduleDiffInfo{
 				1: {
 					PreviousRefID: "c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d",
 				},
@@ -128,7 +128,7 @@ index 0000000..8eefa1f
 @@ -0,0 +1 @@
 +Subproject commit 8eefa1f6dedf2488db2c9e12c916e8e51f673160
 `,
-			infos: map[int]SubmoduleInfo{
+			infos: map[int]SubmoduleDiffInfo{
 				1: {
 					PreviousRefID: "c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d",
 				},
@@ -162,7 +162,7 @@ index 0000000..33a9488
 @@ -0,0 +1 @@
 +example
 `,
-			infos: map[int]SubmoduleInfo{
+			infos: map[int]SubmoduleDiffInfo{
 				1: {
 					PreviousRefID: "c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d",
 				},
@@ -193,7 +193,7 @@ index 0000000..68972a9
 @@ -0,0 +1 @@
 +Subproject commit 68972a994719ae5c74e28d8fa82fa27c23399bc8
 `,
-			infos: map[int]SubmoduleInfo{
+			infos: map[int]SubmoduleDiffInfo{
 				2: {
 					NewRefID: "68972a994719ae5c74e28d8fa82fa27c23399bc8",
 				},
@@ -210,7 +210,7 @@ index 0000000..68972a9
 			for i, expected := range testcase.infos {
 				actual := diff.Files[i]
 				assert.NotNil(t, actual)
-				assert.Equal(t, expected, *actual.SubmoduleInfo)
+				assert.Equal(t, expected, *actual.SubmoduleDiffInfo)
 			}
 		})
 	}
