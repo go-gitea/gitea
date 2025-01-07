@@ -26,10 +26,11 @@ const RequiredVersion = "2.0.0" // the minimum Git version required
 type Features struct {
 	gitVersion *version.Version
 
-	UsingGogit             bool
-	SupportProcReceive     bool           // >= 2.29
-	SupportHashSha256      bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
-	SupportedObjectFormats []ObjectFormat // sha1, sha256
+	UsingGogit                     bool
+	SupportProcReceive             bool           // >= 2.29
+	SupportHashSha256              bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
+	SupportedObjectFormats         []ObjectFormat // sha1, sha256
+	NewExitStatusForRemoteNotExist bool           // >= 2.30
 }
 
 var (
@@ -77,6 +78,7 @@ func loadGitVersionFeatures() (*Features, error) {
 	if features.SupportHashSha256 {
 		features.SupportedObjectFormats = append(features.SupportedObjectFormats, Sha256ObjectFormat)
 	}
+	features.NewExitStatusForRemoteNotExist = features.CheckVersionAtLeast("2.30")
 	return features, nil
 }
 
@@ -217,4 +219,13 @@ func InitFull(ctx context.Context) (err error) {
 	}
 
 	return syncGitConfig()
+}
+
+// RemoteNotExistPrefix returns the prefix of the error message when a remote does not exist.
+// see: https://github.com/go-gitea/gitea/issues/32889#issuecomment-2571848216
+func RemoteNotExistPrefix() string {
+	if DefaultFeatures().NewExitStatusForRemoteNotExist {
+		return "exit status 2 - error: No such remote "
+	}
+	return "exit status 128 - fatal: No such remote "
 }
