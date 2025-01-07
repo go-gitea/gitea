@@ -6,8 +6,10 @@ package actions
 import (
 	"bytes"
 	stdCtx "context"
+	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -423,4 +425,31 @@ func decodeNode(node yaml.Node, out any) bool {
 		return false
 	}
 	return true
+}
+
+func DeleteRun(ctx *context.Context) {
+	actionRunIDStr := ctx.PathParam("id")
+	if len(actionRunIDStr) < 1 {
+		ctx.ServerError("missing action_run.id for delete action run", nil)
+		return
+	}
+	actionRunID, err := strconv.ParseInt(actionRunIDStr, 10, 64)
+	if err != nil {
+		ctx.ServerError("failed to casting action_run.id string to int64", err)
+		return
+	}
+
+	actionRun, err := actions_model.GetRunByID(ctx, actionRunID)
+	if err != nil {
+		ctx.ServerError("failed to get action_run", err)
+		return
+	}
+	err = actions_model.DeleteRunByID(ctx, actionRun.ID)
+	if err != nil {
+		ctx.ServerError("failed to delete action_run", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, map[string]any{
+		"redirect": fmt.Sprintf("%s/actions", ctx.Repo.RepoLink),
+	})
 }
