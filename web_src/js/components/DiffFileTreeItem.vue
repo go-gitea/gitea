@@ -37,10 +37,10 @@ function getIconForDiffType(pType) {
 }
 
 function fileIcon(file) {
-    if (file.IsSubmodule) {
-        return 'octicon-file-submodule';
-    }
-    return 'octicon-file';
+  if (file.IsSubmodule) {
+    return 'octicon-file-submodule';
+  }
+  return 'octicon-file';
 }
 </script>
 
