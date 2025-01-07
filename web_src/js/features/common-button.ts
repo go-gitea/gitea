@@ -63,9 +63,9 @@ export function initGlobalDeleteButton(): void {
           }
 
           const method = btn.getAttribute('data-method')?.toUpperCase() || 'POST';
-          const response = method === 'DELETE'
-            ? await DELETE(btn.getAttribute('data-url'))
-            : await POST(btn.getAttribute('data-url'), {data: postData});
+          const response = method === 'DELETE' ?
+            await DELETE(btn.getAttribute('data-url')) :
+            await POST(btn.getAttribute('data-url'), {data: postData});
           if (response.ok) {
             const data = await response.json();
             window.location.href = data.redirect;
