@@ -43,8 +43,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Enhancing Gitea OAuth2 Provider with Granular Scopes for Resource Access (#32573)
   * Use env GITEA_RUNNER_REGISTRATION_TOKEN as global runner token (#32946) #32964
   * Update i18n.go - Language Picker (#32933) #32935
-  * Use -s -w ldflags for release artifacts (#33041) #33042
-  * Remove aws go sdk package dependency (#33029) #33047
 
 * PERFORMANCE
   * Perf: add extra index to notification table (#32395)
@@ -394,6 +392,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Enable `unparam` linter (#31277)
   * Use Alpine 3.21 for the docker images (#32924) #32951
   * Bump x/net (#32896) #32899
+  * Use -s -w ldflags for release artifacts (#33041) #33042
+  * Remove aws go sdk package dependency (#33029) #33047
 
 ## [1.22.4](https://github.com/go-gitea/gitea/releases/tag/v1.22.4) - 2024-11-14
 
