@@ -24,7 +24,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.16.0
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.4.1
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
-	github.com/ProtonMail/go-crypto v1.0.0
+	github.com/ProtonMail/go-crypto v1.1.4
 	github.com/PuerkitoBio/goquery v1.10.0
 	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.7.3
 	github.com/alecthomas/chroma/v2 v2.14.0
@@ -55,7 +55,7 @@ require (
 	github.com/go-co-op/gocron v1.37.0
 	github.com/go-enry/go-enry/v2 v2.9.1
 	github.com/go-git/go-billy/v5 v5.6.0
-	github.com/go-git/go-git/v5 v5.12.0
+	github.com/go-git/go-git/v5 v5.13.0
 	github.com/go-ldap/ldap/v3 v3.4.8
 	github.com/go-redsync/redsync/v4 v4.13.0
 	github.com/go-sql-driver/mysql v1.8.1
@@ -106,7 +106,7 @@ require (
 	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 	github.com/shurcooL/vfsgen v0.0.0-20230704071429-0000e147ea92
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
 	github.com/ulikunitz/xz v0.5.12
