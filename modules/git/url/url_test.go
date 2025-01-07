@@ -173,6 +173,7 @@ func TestParseGitURLs(t *testing.T) {
 
 func TestParseRepositoryURL(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "https://localhost:3000")()
+	defer test.MockVariableValue(&setting.SSH.Domain, "try.gitea.io")()
 
 	ctxURL, _ := url.Parse("https://gitea")
 	ctxReq := &http.Request{URL: ctxURL, Header: http.Header{}}
