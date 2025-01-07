@@ -157,7 +157,7 @@ func TestParseGitURLs(t *testing.T) {
 
 	for _, kase := range kases {
 		t.Run(kase.kase, func(t *testing.T) {
-			u, err := Parse(kase.kase)
+			u, err := ParseGitURL(kase.kase)
 			assert.NoError(t, err)
 			assert.EqualValues(t, kase.expected.extraMark, u.extraMark)
 			assert.EqualValues(t, *kase.expected, *u)
