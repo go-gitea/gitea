@@ -5,6 +5,7 @@ package httplib
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -81,6 +82,12 @@ func GuessCurrentHostURL(ctx context.Context) string {
 	return reqScheme + "://" + req.Host
 }
 
+func GuessCurrentHostDomain(ctx context.Context) string {
+	_, host, _ := strings.Cut(GuessCurrentHostURL(ctx), "://")
+	domain, _, _ := net.SplitHostPort(host)
+	return util.IfZero(domain, host)
+}
+
 // MakeAbsoluteURL tries to make a link to an absolute URL:
 // * If link is empty, it returns the current app URL.
 // * If link is absolute, it returns the link.
@@ -105,7 +112,7 @@ func IsCurrentGiteaSiteURL(ctx context.Context, s string) bool {
 		if cleanedPath == "" || cleanedPath == "." {
 			u.Path = "/"
 		} else {
-			u.Path += "/" + cleanedPath + "/"
+			u.Path = "/" + cleanedPath + "/"
 		}
 	}
 	if urlIsRelative(s, u) {
