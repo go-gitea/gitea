@@ -215,3 +215,7 @@ index 0000000..68972a9
 		})
 	}
 }
+
+func TestSubmoduleInfo(t *testing.T) {
+	// TODO: test NewRefIDLinkHTML PreviousRefIDLinkHTML SubmoduleRepoLinkHTML after we get the unifed "RefURL" function
+}

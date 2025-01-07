@@ -199,29 +199,13 @@
 									</div>
 								{{else if and $file.SubmoduleInfo}}
 									<div class="tw-p-3">{{svg "octicon-file-submodule"}} {{$submodule := $file.SubmoduleInfo -}}
-										{{- $refURL := $submodule.RefURL $.Repository.FullName -}}
-										{{- $submoduleName := $file.Name -}}
-										{{- $refShortID := ShortSha $submodule.RefID -}}
+										{{- $submoduleName := ($submodule.SubmoduleRepoLinkHTML $file.Name) -}}
 										{{- if $file.IsDeleted -}}
-											{{- ctx.Locale.Tr "repo.diff.submodule_deleted" $submoduleName $refShortID -}}
+											{{- ctx.Locale.Tr "repo.diff.submodule_deleted" $submoduleName $submodule.PreviousRefIDLinkHTML -}}
 										{{- else if $file.IsCreated -}}
-											{{- $refAddedSubModule := $submoduleName -}}
-											{{- $refAddedAt := $refShortID -}}
-											{{- if $refURL -}}
-												{{- $refAddedSubModule = HTMLFormat `<a href="%s">%s</a>` $refURL $submoduleName -}}
-												{{- $refAddedAt = HTMLFormat `<a href="%s/commit/%s">%s</a>` $refURL (PathEscape $submodule.RefID) $refShortID -}}
-											{{- end -}}
-											{{- ctx.Locale.Tr "repo.diff.submodule_added" $refAddedSubModule $refAddedAt -}}
+											{{- ctx.Locale.Tr "repo.diff.submodule_added" $submoduleName $submodule.NewRefIDLinkHTML -}}
 										{{- else -}}
-											{{- $refUpdatedSubModule := $submoduleName -}}
-											{{- $refUpdatedFrom := ShortSha $submodule.PreviousRefID -}}
-											{{- $refUpdatedTo := $refShortID -}}
-											{{- if $refURL -}}
-												{{- $refUpdatedSubModule = HTMLFormat `<a href="%s">%s</a>` $refURL $submoduleName -}}
-												{{- $refUpdatedFrom = HTMLFormat `<a href="%s/commit/%s">%s</a>` $refURL (PathEscape $submodule.PreviousRefID) (ShortSha $submodule.PreviousRefID) -}}
-												{{- $refUpdatedTo = HTMLFormat `<a href="%s/commit/%s">%s</a>` $refURL (PathEscape $submodule.RefID) (ShortSha $submodule.RefID) -}}
-											{{- end -}}
-											{{- ctx.Locale.Tr "repo.diff.submodule_updated" $refUpdatedSubModule $refUpdatedFrom $refUpdatedTo -}}
+											{{- ctx.Locale.Tr "repo.diff.submodule_updated" $submoduleName $submodule.PreviousRefIDLinkHTML $submodule.NewRefIDLinkHTML -}}
 										{{end}}
 									</div>
 								{{else}}
