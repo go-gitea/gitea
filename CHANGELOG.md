@@ -4,7 +4,7 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.23.0-rc0](https://github.com/go-gitea/gitea/releases/tag/v1.23.0-rc0) - 2024-12-16
+## [1.23.0](https://github.com/go-gitea/gitea/releases/tag/v1.23.0) - 2025-01-08
 
 * BREAKING
   * Rename config option `[camo].Allways` to `[camo].Always` (#32097)
@@ -41,6 +41,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * GitHub like repo home page (#32213 & #32847)
   * Rearrange Clone Panel (#31142)
   * Enhancing Gitea OAuth2 Provider with Granular Scopes for Resource Access (#32573)
+  * Use env GITEA_RUNNER_REGISTRATION_TOKEN as global runner token (#32946) #32964 
+  * Update i18n.go - Language Picker (#32933) #32935 
+  * Use -s -w ldflags for release artifacts (#33041) #33042 
+  * Remove aws go sdk package dependency (#33029) #33047 
 
 * PERFORMANCE
   * Perf: add extra index to notification table (#32395)
@@ -51,6 +55,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Improve get feed with pagination (#31821)
   * Performance improvements for pull request list API (#30490)
   * Use batch database operations instead of one by one to optimze api pulls (#32680)
+  * Use gitrepo.GetTreePathLatestCommit to get file lastest commit instead from latest commit cache (#32987) #33046 
 
 * ENHANCEMENTS
   * Code
@@ -149,6 +154,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
     * Add typescript guideline and typescript-specific eslint plugins and fix issues (#31521)
     * Make toast support preventDuplicates (#31501)
     * Fix tautological conditions (#30735)
+    * Issue change title notifications (#33050) #33065 
 
 * API
   * Implement update branch API (#32433)
@@ -241,6 +247,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Replace DateTime with proper functions (#32402)
   * Replace DateTime with DateUtils (#32383)
   * Convert frontend code to typescript (#31559)
+  * Refactor maven package registry (#33049) #33057 
+  * Refactor testfixtures #33028 
 
 * BUGFIXES
   * Fix issues with inconsistent spacing in areas (#32607)
@@ -267,6 +275,39 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix some function names in comment (#32300)
   * Fix absolute-date (#32375)
   * Clarify Actions resources ownership (#31724)
+  * Try to fix ACME directory problem (#33072) #33077 
+  * Inherit submodules from template repository content (#16237) #33068 
+  * Use project's redirect url instead of composing url (#33058) #33064 
+  * Fix toggle commit body button ui when latest commit message is long (#32997) #33034 
+  * Fix package error handling and npm meta and empty repo guide #33112 
+  * Fix empty git repo handling logic and fix mobile view (#33101) #33102 
+  * Fix line-number and scroll bugs (#33094) #33095 
+  * Fix bleve fuzziness search (#33078) #33087 
+  * Fix broken forms #33082 
+  * Fix empty repo updated time (#33120) #33124 
+  * Add missing transaction when set merge #33113 
+  * Fix issue comment number (#30556) #33055 
+  * Fix duplicate co-author in squashed merge commit messages (#33020) #33054 
+  * Fix Agit pull request permission check (#32999) #33005 
+  * Fix scoped label ui when contains emoji (#33007) #33014 
+  * Fix bug on activities (#33008) #33016 
+  * Fix review code comment avatar alignment (#33031) #33032 
+  * Fix templating in pull request comparison (#33025) #33038 
+  * Fix bug automerge cannot be chosed when there is only 1 merge style (#33040) #33043 
+  * Fix settings not being loaded at CLI (#26402) #33048 
+  * Support for email addresses containing uppercase characters when activating user account (#32998) #33001 
+  * Support org labels when adding labels by label names (#32988) #32996 
+  * Do not render truncated links in markdown (#32980) #32983 
+  * Demilestone should not include milestone (#32923) #32979 
+  * Fix Azure blob object Seek (#32974) #32975 
+  * Fix maven pom inheritance (#32943) #32976 
+  * Fix textarea newline handle (#32966) #32977 
+  * Fix outdated tmpl code (#32953) #32961 
+  * Fix commit range paging (#32944) #32962 
+  * Fix repo avatar conflict (#32958) #32960 
+  * Fix trailing comma not matched in the case of alphanumeric issue (#32945)
+  * Relax the version checking for Arch packages (#32908) #32913 
+  * Add more load functions to make sure the reference object loaded (#32901) #32912 
 
 * MISC
   * Optimize branch protection rule loading (#32280)
@@ -351,6 +392,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Upgrade xorm to v1.3.9 and improve some migrations Sync (#29899)
   * Added default sorting milestones by name (#27084)
   * Enable `unparam` linter (#31277)
+  * Use Alpine 3.21 for the docker images (#32924) #32951
+  * Bump x/net (#32896) #32899 
 
 ## [1.22.4](https://github.com/go-gitea/gitea/releases/tag/v1.22.4) - 2024-11-14
 
