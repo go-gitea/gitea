@@ -39,7 +39,7 @@ func GetRemoteURL(ctx context.Context, repoPath, remoteName string) (*giturl.Git
 	if err != nil {
 		return nil, err
 	}
-	return giturl.Parse(addr)
+	return giturl.ParseGitURL(addr)
 }
 
 // ErrInvalidCloneAddr represents a "InvalidCloneAddr" kind of error.
