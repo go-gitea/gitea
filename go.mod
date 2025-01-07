@@ -117,7 +117,7 @@ require (
 	github.com/yuin/goldmark v1.7.8
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
 	github.com/yuin/goldmark-meta v1.1.0
-	gitlab.com/gitlab-org/api/client-go v0.118.0
+	gitlab.com/gitlab-org/api/client-go v0.116.0
 	golang.org/x/crypto v0.31.0
 	golang.org/x/image v0.21.0
 	golang.org/x/net v0.33.0
