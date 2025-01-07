@@ -79,6 +79,15 @@ func (err *ErrInvalidCloneAddr) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
+// IsRemoteNotExistError returns the prefix of the error message when a remote does not exist.
+// see: https://github.com/go-gitea/gitea/issues/32889#issuecomment-2571848216
+// Should not add sapce in the end, sometimes git will add a `:`.
+func IsRemoteNotExistError(err error) bool {
+	prefix1 := "exit status 128 - fatal: No such remote" // git < 2.30
+	prefix2 := "exit status 2 - error: No such remote"   // git >= 2.30
+	return strings.HasPrefix(err.Error(), prefix1) || strings.HasPrefix(err.Error(), prefix2)
+}
+
 // ParseRemoteAddr checks if given remote address is valid,
 // and returns composed URL with needed username and password.
 func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, error) {
