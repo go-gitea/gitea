@@ -9,7 +9,7 @@
 [![](https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen)](https://opencollective.com/gitea "Become a backer/sponsor of gitea")
 [![](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT "License: MIT")
 [![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod&color=green)](https://gitpod.io/#https://github.com/go-gitea/gitea)
-[![](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea "Crowdin")
+[![](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com "Crowdin")
 
 [View this document in English](./README.md)
 
@@ -66,7 +66,7 @@ Gitea 的首要目标是创建一个极易安装，运行非常快速，安装�
 
 ## 翻译
 
-[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
+[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com)
 
 多语言翻译是基于Crowdin进行的.
 
