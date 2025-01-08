@@ -80,9 +80,9 @@ Gitea 提供官方的 [go-sdk](https://gitea.com/gitea/go-sdk), 名为 [tea](htt
 
 ## 作者
 
-* [Maintainers](https://github.com/orgs/go-gitea/people)
-* [Contributors](https://github.com/go-gitea/gitea/graphs/contributors)
-* [Translators](options/locale/TRANSLATORS)
+- [Maintainers](https://github.com/orgs/go-gitea/people)
+- [Contributors](https://github.com/go-gitea/gitea/graphs/contributors)
+- [Translators](options/locale/TRANSLATORS)
 
 ## 授权许可
 
