@@ -449,9 +449,19 @@ func DeleteRuns(ctx *context.Context) {
 
 	if len(actionRun) != len(req.ActionIDs) {
 		ctx.ServerError("action ids not match with request", nil)
+		return
+	}
+	actionRunJobs, err := actions_model.GetRunJobsByRunIDs(ctx, req.ActionIDs)
+	if err != nil {
+		ctx.ServerError("failed to get run jobs by run ids", err)
+		return
+	}
+	var jobIDs []int64
+	for _, actionRunJob := range actionRunJobs {
+		jobIDs = append(jobIDs, actionRunJob.ID)
 	}
 
-	err = actions_model.DeleteRunByIDs(ctx, req.ActionIDs)
+	err = actions_model.DeleteRunByIDs(ctx, req.ActionIDs, jobIDs)
 	if err != nil {
 		ctx.ServerError("failed to delete action_run", err)
 		return

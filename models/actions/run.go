@@ -436,8 +436,8 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 
 type ActionRunIndex db.ResourceIndex
 
-// DeleteRunByIDs delete action_run and action_run_job.
-func DeleteRunByIDs(ctx context.Context, ids []int64) error {
+// DeleteRunByIDs delete action_task_step, action_task_output, action_task, action_run and action_run_job.
+func DeleteRunByIDs(ctx context.Context, runIDs, jobIDs []int64) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -447,7 +447,7 @@ func DeleteRunByIDs(ctx context.Context, ids []int64) error {
 	_, err = db.GetEngine(ctx).
 		Table("action_task").
 		Join("INNER", "action_task_step", "action_task.id = action_task_step.task_id").
-		In("action_task.job_id", ids).
+		In("action_task.job_id", jobIDs).
 		Delete(ActionTaskStep{})
 	if err != nil {
 		return err
@@ -456,23 +456,23 @@ func DeleteRunByIDs(ctx context.Context, ids []int64) error {
 	_, err = db.GetEngine(ctx).
 		Table("action_task").
 		Join("INNER", "action_task_output", "action_task.id = action_task_output.task_id").
-		In("action_task.job_id", ids).
+		In("action_task.job_id", jobIDs).
 		Delete(ActionTaskOutput{})
 	if err != nil {
 		return err
 	}
 
-	_, err = db.GetEngine(ctx).In("job_id", ids).Delete(ActionTask{})
+	_, err = db.GetEngine(ctx).In("job_id", jobIDs).Delete(ActionTask{})
 	if err != nil {
 		return err
 	}
 
-	_, err = db.GetEngine(ctx).In("run_id", ids).Delete(ActionRunJob{})
+	_, err = db.GetEngine(ctx).In("id", jobIDs).Delete(ActionRunJob{})
 	if err != nil {
 		return err
 	}
 
-	_, err = db.GetEngine(ctx).In("id", ids).Delete(ActionRun{})
+	_, err = db.GetEngine(ctx).In("id", runIDs).Delete(ActionRun{})
 	if err != nil {
 		return err
 	}
