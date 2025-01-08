@@ -17,7 +17,7 @@
 
 				{{if .Repository.IsBroken}}
 					<div class="ui segment center">{{ctx.Locale.Tr "repo.broken_message"}}</div>
-				{{else if .Repository.IsEmpty}}
+				{{else if .RepoHasContentsWithoutBranch}}
 					<div class="ui segment center">{{ctx.Locale.Tr "repo.no_branch"}}</div>
 				{{else if .CanWriteCode}}
 					<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.quick_guide"}}</h4>

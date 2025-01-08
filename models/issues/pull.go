@@ -285,7 +285,7 @@ func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
 		return nil
 	}
 
-	reviews, err := GetReviewsByIssueID(ctx, pr.Issue.ID)
+	reviews, _, err := GetReviewsByIssueID(ctx, pr.Issue.ID)
 	if err != nil {
 		return err
 	}
@@ -304,7 +304,7 @@ func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
 
 // LoadRequestedReviewersTeams loads the requested reviewers teams.
 func (pr *PullRequest) LoadRequestedReviewersTeams(ctx context.Context) error {
-	reviews, err := GetReviewsByIssueID(ctx, pr.Issue.ID)
+	reviews, _, err := GetReviewsByIssueID(ctx, pr.Issue.ID)
 	if err != nil {
 		return err
 	}
