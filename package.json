@@ -83,7 +83,7 @@
     "@typescript-eslint/eslint-plugin": "8.18.1",
     "@typescript-eslint/parser": "8.18.1",
     "@vitejs/plugin-vue": "5.2.1",
-    "eslint": "8.57.0",
+    "eslint": "9.17.0",
     "eslint-import-resolver-typescript": "3.7.0",
     "eslint-plugin-array-func": "4.0.0",
     "eslint-plugin-github": "5.0.2",
