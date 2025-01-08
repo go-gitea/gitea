@@ -68,22 +68,31 @@ Expected workflow is: Fork -> Patch -> Push -> Pull Request
 
 ## Translating
 
-Translations are done through Crowdin. If you want to translate to a new language ask one of the managers in the Crowdin project to add a new language there.
+[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
+
+Translations are done through [Crowdin](https://crowdin.com/project/gitea). If you want to translate to a new language ask one of the managers in the Crowdin project to add a new language there.
 
 You can also just create an issue for adding a language or ask on discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty but we hope to fill it as questions pop up.
 
-https://docs.gitea.com/contributing/localization
+Get more information from [documentation](https://docs.gitea.com/contributing/localization).
 
-[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
+## Official projects and 3rd Party Projects
+
+We offer an official [go-sdk](https://gitea.com/gitea/go-sdk) and a CLI tool [tea](https://gitea.com/gitea/tea).
+
+You can find more 3rd party projects including SDK, plugins, themes... in [awesome gitea](https://gitea.com/gitea/awesome-gitea#sdk).
 
 ## Further information
 
 For more information and instructions about how to install Gitea, please look at our [documentation](https://docs.gitea.com/).
-If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create  a post in the [discourse forum](https://forum.gitea.com/).
+
+If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create a post in the [discourse forum](https://forum.gitea.com/).
 
 We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea).
 
-The official Gitea CLI is developed at [gitea/tea](https://gitea.com/gitea/tea).
+## SDK
+
+
 
 ## Authors
 
@@ -121,6 +130,10 @@ Gitea is pronounced [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY) as in "gi-tea" 
 **Why is this not hosted on a Gitea instance?**
 
 We're [working on it](https://github.com/go-gitea/gitea/issues/1029).
+
+**Where can I find the security patches?**
+
+In the [release log](https://github.com/go-gitea/gitea/releases) or the [change log](https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md), search for the keyword `SECURITY` to find the security patches.
 
 ## License
 
