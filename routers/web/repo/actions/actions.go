@@ -6,7 +6,10 @@ package actions
 import (
 	"bytes"
 	stdCtx "context"
+	"golang.org/x/sync/errgroup"
 	"net/http"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -441,24 +444,40 @@ func DeleteRuns(ctx *context.Context) {
 		return
 	}
 
-	actionRun, err := actions_model.GetRunsByIDsAndTriggerUserID(ctx, req.ActionIDs, ctx.Doer.ID)
+	var (
+		eg          = new(errgroup.Group)
+		actionRuns  []*actions_model.ActionRun
+		actionTasks []*actions_model.ActionTask
+		jobIDs      []int64
+	)
+	eg.Go(func() error {
+		var err error
+		actionRuns, err = actions_model.GetRunsByIDsAndTriggerUserID(ctx, req.ActionIDs, ctx.Doer.ID)
+		return err
+	})
+
+	eg.Go(func() error {
+		actionRunJobs, err := actions_model.GetRunJobsByRunIDs(ctx, req.ActionIDs)
+		if err != nil {
+			return err
+		}
+
+		for _, actionRunJob := range actionRunJobs {
+			jobIDs = append(jobIDs, actionRunJob.ID)
+		}
+		actionTasks, err = actions_model.GetRunTasksByJobIDs(ctx, jobIDs)
+		return err
+	})
+
+	err := eg.Wait()
 	if err != nil {
-		ctx.ServerError("failed to get action_run", err)
+		ctx.ServerError("failed to get action runs and action run jobs", err)
 		return
 	}
 
-	if len(actionRun) != len(req.ActionIDs) {
+	if len(actionRuns) != len(req.ActionIDs) {
 		ctx.ServerError("action ids not match with request", nil)
 		return
-	}
-	actionRunJobs, err := actions_model.GetRunJobsByRunIDs(ctx, req.ActionIDs)
-	if err != nil {
-		ctx.ServerError("failed to get run jobs by run ids", err)
-		return
-	}
-	var jobIDs []int64
-	for _, actionRunJob := range actionRunJobs {
-		jobIDs = append(jobIDs, actionRunJob.ID)
 	}
 
 	err = actions_model.DeleteRunByIDs(ctx, req.ActionIDs, jobIDs)
@@ -466,9 +485,30 @@ func DeleteRuns(ctx *context.Context) {
 		ctx.ServerError("failed to delete action_run", err)
 		return
 	}
+
+	removeActionTaskLogFilenames(actionTasks)
+
 	ctx.Status(http.StatusNoContent)
 }
 
 type DeleteRunsRequest struct {
 	ActionIDs []int64 `json:"actionIds"`
+}
+
+func removeActionTaskLogFilenames(actionTasks []*actions_model.ActionTask) {
+	dirNameActionLog := "actions_log"
+	go func() {
+		for _, actionTask := range actionTasks {
+			var fileName string
+			if filepath.IsAbs(setting.AppDataPath) {
+				fileName = filepath.Join(setting.AppDataPath, dirNameActionLog, actionTask.LogFilename)
+			} else {
+				fileName = filepath.Join(setting.AppWorkPath, setting.AppDataPath, dirNameActionLog, actionTask.LogFilename)
+			}
+
+			if err := os.Remove(fileName); err != nil {
+				log.Error("failed to remove actions_log file %s: %v", fileName, err)
+			}
+		}
+	}()
 }
