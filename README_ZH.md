@@ -60,6 +60,7 @@ Gitea 的首要目标是创建一个极易安装，运行非常快速，安装�
 贡献流程: Fork -> Patch -> Push -> Pull Request
 
 > [!注意]
+>
 > 1. **开始贡献代码之前请确保你已经看过了 [贡献者向导（英文）](CONTRIBUTING.md)**.
 > 2. 所有的安全问题，请私下发送邮件给 **security@gitea.io**. 谢谢！
 
