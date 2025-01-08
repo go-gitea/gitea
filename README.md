@@ -76,23 +76,17 @@ You can also just create an issue for adding a language or ask on discord on the
 
 Get more information from [documentation](https://docs.gitea.com/contributing/localization).
 
-## Official projects and 3rd Party Projects
+## Official Related projects and 3rd Party Projects
 
-We offer an official [go-sdk](https://gitea.com/gitea/go-sdk) and a CLI tool [tea](https://gitea.com/gitea/tea).
+We offer official [go-sdk](https://gitea.com/gitea/go-sdk), CLI tool [tea](https://gitea.com/gitea/tea) and [action runner](https://gitea.com/gitea/act_runner).
 
-You can find more 3rd party projects including SDK, plugins, themes... in [awesome gitea](https://gitea.com/gitea/awesome-gitea#sdk).
+We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea). You can find more 3rd party projects including SDK, plugins, themes...
 
 ## Further information
 
 For more information and instructions about how to install Gitea, please look at our [documentation](https://docs.gitea.com/).
 
 If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create a post in the [discourse forum](https://forum.gitea.com/).
-
-We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea).
-
-## SDK
-
-
 
 ## Authors
 
