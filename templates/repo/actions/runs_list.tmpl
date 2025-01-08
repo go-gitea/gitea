@@ -1,4 +1,4 @@
-<div class="flex-list run-list">
+<div id="action-actions" class="flex-list run-list">
 	{{if not .Runs}}
 	<div class="empty-placeholder">
 		{{svg "octicon-no-entry" 48}}
@@ -7,6 +7,7 @@
 	{{end}}
 	{{range .Runs}}
 		<div class="flex-item tw-items-center">
+			<input type="checkbox" autocomplete="off" class="action-checkbox tw-mr-4 tw-ml-4" data-action-id={{.ID}} aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;"{{if or (eq .Status 6) (eq .Status 5)}}disabled{{end}}>
 			<div class="flex-item-leading">
 				{{template "repo/actions/status" (dict "status" .Status.String)}}
 			</div>
@@ -35,25 +36,9 @@
 				<div class="run-list-item-right">
 					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince .Updated}}</div>
 					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
-					{{if and (ne .Status 6) (ne .Status 5)}}
-						<div class="run-list-meta">
-							<button class="ui red tiny button delete-button name" data-modal-id="modal-delete-workflow" data-url="actions/runs/{{.ID}}" data-name="Delete workflow run {{.ID}}" data-method="delete" name="Delete Workflow {{.ID}}">Delete Workflow</button>
-						</div>
-					{{end}}
 				</div>
 			</div>
 		</div>
 	{{end}}
-</div>
-
-<div class="ui g-modal-confirm delete modal" id="modal-delete-workflow">
-	<div class="header">
-		<i class="trash icon"></i>
-		<span class="name"></span>
-	</div>
-	<div class="content">
-		<p>Are you sure you want to permanently delete this workflow run? This action cannot be undone.</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
 </div>
 {{template "base/paginate" .}}
