@@ -827,6 +827,7 @@ func registerRoutes(m *web.Router) {
 	reqRepoActionsReader := context.RequireUnitReader(unit.TypeActions)
 	reqRepoActionsWriter := context.RequireUnitWriter(unit.TypeActions)
 
+	// the legacy names "reqRepoXxx" should be renamed to the correct name "reqUnitXxx", these permissions are for units, not repos
 	reqUnitsWithMarkdown := context.RequireUnitReader(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki)
 	reqUnitCodeReader := context.RequireUnitReader(unit.TypeCode)
 	reqUnitIssuesReader := context.RequireUnitReader(unit.TypeIssues)
