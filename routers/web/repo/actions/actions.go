@@ -6,7 +6,6 @@ package actions
 import (
 	"bytes"
 	stdCtx "context"
-	"golang.org/x/sync/errgroup"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -32,6 +31,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/model"
+	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v3"
 )
 
