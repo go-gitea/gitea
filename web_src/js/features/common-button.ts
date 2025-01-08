@@ -17,8 +17,7 @@ export function initGlobalDeleteButton(): void {
   // Some model/form elements will be filled by `data-id` / `data-name` / `data-data-xxx` attributes.
   // If there is a form defined by `data-form`, then the form will be submitted as-is (without any modification).
   // If there is no form, then the data will be posted to `data-url`.
-  // TODO: do not use this method in new code. `show-modal` / `link-action(data-modal-confirm)` does far better than this.
-  // FIXME: all legacy `delete-button` should be refactored to use `show-modal` or `link-action`
+  // TODO: it's not encouraged to use this method. `show-modal` does far better than this.
   for (const btn of document.querySelectorAll<HTMLElement>('.delete-button')) {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
