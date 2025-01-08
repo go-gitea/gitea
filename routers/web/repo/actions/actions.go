@@ -445,10 +445,10 @@ func DeleteRuns(ctx *context.Context) {
 	}
 
 	var (
-		eg          = new(errgroup.Group)
-		actionRuns  []*actions_model.ActionRun
-		actionTasks []*actions_model.ActionTask
-		jobIDs      []int64
+		eg               = new(errgroup.Group)
+		actionRuns       []*actions_model.ActionRun
+		jobIDs, taskIDs  []int64
+		taskLogFileNames []string
 	)
 	eg.Go(func() error {
 		var err error
@@ -465,8 +465,16 @@ func DeleteRuns(ctx *context.Context) {
 		for _, actionRunJob := range actionRunJobs {
 			jobIDs = append(jobIDs, actionRunJob.ID)
 		}
-		actionTasks, err = actions_model.GetRunTasksByJobIDs(ctx, jobIDs)
-		return err
+		actionTasks, err := actions_model.GetRunTasksByJobIDs(ctx, jobIDs)
+		if err != nil {
+			return err
+		}
+
+		for _, actionTask := range actionTasks {
+			taskIDs = append(taskIDs, actionTask.ID)
+			taskLogFileNames = append(taskLogFileNames, actionTask.LogFilename)
+		}
+		return nil
 	})
 
 	err := eg.Wait()
@@ -480,13 +488,13 @@ func DeleteRuns(ctx *context.Context) {
 		return
 	}
 
-	err = actions_model.DeleteRunByIDs(ctx, req.ActionIDs, jobIDs)
+	err = actions_model.DeleteActionRunAndChild(ctx, req.ActionIDs, jobIDs, taskIDs)
 	if err != nil {
 		ctx.ServerError("failed to delete action_run", err)
 		return
 	}
 
-	removeActionTaskLogFilenames(actionTasks)
+	removeActionTaskLogFilenames(taskLogFileNames)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -495,15 +503,15 @@ type DeleteRunsRequest struct {
 	ActionIDs []int64 `json:"actionIds"`
 }
 
-func removeActionTaskLogFilenames(actionTasks []*actions_model.ActionTask) {
+func removeActionTaskLogFilenames(taskLogFileNames []string) {
 	dirNameActionLog := "actions_log"
 	go func() {
-		for _, actionTask := range actionTasks {
+		for _, taskLogFileName := range taskLogFileNames {
 			var fileName string
 			if filepath.IsAbs(setting.AppDataPath) {
-				fileName = filepath.Join(setting.AppDataPath, dirNameActionLog, actionTask.LogFilename)
+				fileName = filepath.Join(setting.AppDataPath, dirNameActionLog, taskLogFileName)
 			} else {
-				fileName = filepath.Join(setting.AppWorkPath, setting.AppDataPath, dirNameActionLog, actionTask.LogFilename)
+				fileName = filepath.Join(setting.AppWorkPath, setting.AppDataPath, dirNameActionLog, taskLogFileName)
 			}
 
 			if err := os.Remove(fileName); err != nil {
