@@ -31,6 +31,14 @@ For accessing free Gitea service (with a limited number of repositories), you ca
 
 To quickly deploy your own dedicated Gitea instance on Gitea Cloud, you can start a free trial at [cloud.gitea.com](https://cloud.gitea.com).
 
+## Documentation
+
+You can find comprehensive documentation on our official [documentation website](https://docs.gitea.com/).
+
+It includes installation, administration, usage, development, contributing guides, and more to help you get started and explore all features effectively.
+
+If you have any suggestions or would like to contribute to our documentation, you can visit our [documentation repository](https://gitea.com/gitea/docs)
+
 ## Building
 
 From the root of the source tree, run:
@@ -76,17 +84,17 @@ You can also just create an issue for adding a language or ask on discord on the
 
 Get more information from [documentation](https://docs.gitea.com/contributing/localization).
 
-## Official Related projects and 3rd Party Projects
+## Official and Third-Party Projects
 
-We offer official [go-sdk](https://gitea.com/gitea/go-sdk), CLI tool [tea](https://gitea.com/gitea/tea) and [action runner](https://gitea.com/gitea/act_runner).
+We provide an official [go-sdk](https://gitea.com/gitea/go-sdk), a CLI tool called [tea](https://gitea.com/gitea/tea) and an [action runner](https://gitea.com/gitea/act_runner) for Gitea Action.
 
-We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea). You can find more 3rd party projects including SDK, plugins, themes...
+We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea), where you can discover more third-party projects, including SDKs, plugins, themes, and more.
 
-## Further information
+## Communication
 
-For more information and instructions about how to install Gitea, please look at our [documentation](https://docs.gitea.com/).
+[![](https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/Gitea "Join the Discord chat at https://discord.gg/Gitea")
 
-If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create a post in the [discourse forum](https://forum.gitea.com/).
+If you have questions that are not covered by the [documentation](https://docs.gitea.com/), you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create a post in the [discourse forum](https://forum.gitea.com/).
 
 ## Authors
 
