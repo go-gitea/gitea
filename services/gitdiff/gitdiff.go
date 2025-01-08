@@ -448,12 +448,20 @@ func getCommitFileLineCount(commit *git.Commit, filePath string) int {
 	return lineCount
 }
 
+type FileTreeNode struct {
+	IsFile   bool
+	Name     string
+	File     *DiffFile
+	Children []*FileTreeNode
+}
+
 // Diff represents a difference between two git trees.
 type Diff struct {
 	Start, End                   string
 	NumFiles                     int
 	TotalAddition, TotalDeletion int
 	Files                        []*DiffFile
+	FileTree                     []*FileTreeNode
 	IsIncomplete                 bool
 	NumViewedFiles               int // user-specific
 }
@@ -1211,6 +1219,8 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 		}
 	}
 
+	diff.FileTree = buildTree(diff.Files)
+
 	if opts.FileOnly {
 		return diff, nil
 	}
@@ -1382,4 +1392,79 @@ func GetWhitespaceFlag(whitespaceBehavior string) git.TrustedCmdArgs {
 	}
 	log.Warn("unknown whitespace behavior: %q, default to 'show-all'", whitespaceBehavior)
 	return nil
+}
+
+func buildTree(files []*DiffFile) []*FileTreeNode {
+	result := make(map[string]*FileTreeNode)
+	for _, file := range files {
+		splits := strings.Split(file.Name, "/")
+		currentNode := &FileTreeNode{Name: splits[0], IsFile: false}
+		if _, exists := result[splits[0]]; !exists {
+			result[splits[0]] = currentNode
+		} else {
+			currentNode = result[splits[0]]
+		}
+
+		parent := currentNode
+		for _, split := range splits[1:] {
+			found := false
+			for _, child := range parent.Children {
+				if child.Name == split {
+					parent = child
+					found = true
+					break
+				}
+			}
+			if !found {
+				newNode := &FileTreeNode{Name: split, IsFile: false}
+				parent.Children = append(parent.Children, newNode)
+				parent = newNode
+			}
+		}
+
+		lastNode := parent
+		lastNode.IsFile = true
+		lastNode.File = file
+	}
+
+	var roots []*FileTreeNode
+	for _, node := range result {
+		if len(node.Children) > 0 {
+			mergedNode := mergeSingleChildDirs(node)
+			sortChildren(mergedNode)
+			roots = append(roots, mergedNode)
+		} else {
+			roots = append(roots, node)
+		}
+	}
+	sortChildren(&FileTreeNode{Children: roots})
+	return roots
+}
+
+func mergeSingleChildDirs(node *FileTreeNode) *FileTreeNode {
+	if len(node.Children) == 1 && !node.Children[0].IsFile {
+		merged := &FileTreeNode{
+			Name:     fmt.Sprintf("%s/%s", node.Name, node.Children[0].Name),
+			Children: node.Children[0].Children,
+			IsFile:   node.Children[0].IsFile,
+			File:     node.Children[0].File,
+		}
+		return mergeSingleChildDirs(merged)
+	}
+	for i, child := range node.Children {
+		node.Children[i] = mergeSingleChildDirs(child)
+	}
+	return node
+}
+
+func sortChildren(node *FileTreeNode) {
+	sort.Slice(node.Children, func(i, j int) bool {
+		if node.Children[i].IsFile == node.Children[j].IsFile {
+			return node.Children[i].Name < node.Children[j].Name
+		}
+		return !node.Children[i].IsFile
+	})
+	for _, child := range node.Children {
+		sortChildren(child)
+	}
 }
