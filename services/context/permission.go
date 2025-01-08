@@ -58,7 +58,7 @@ func RequireRepoWriterOr(unitTypes ...unit.Type) func(ctx *Context) {
 func RequireRepoReader(unitType unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.Repo.CanRead(unitType) {
-			if unitType == unit.TypeCode && canWriteAsMaintainer(ctx) {
+			if unitType == unit.TypeCode && canWriteAsMaintainer(ctx, ctx.Repo.Repository.ID) {
 				return
 			}
 			if log.IsTrace() {

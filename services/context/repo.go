@@ -69,7 +69,7 @@ type Repository struct {
 
 // CanWriteToBranch checks if the branch is writable by the user
 func (r *Repository) CanWriteToBranch(ctx context.Context, user *user_model.User, branch string) bool {
-	return issues_model.CanMaintainerWriteToBranch(ctx, r.Permission, branch, user)
+	return issues_model.CanUserWriteToBranch(ctx, r.Permission, r.Repository.ID, branch, user)
 }
 
 // CanEnableEditor returns true if repository is editable and user has proper access level.
@@ -371,7 +371,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	if !ctx.Repo.Permission.HasAnyUnitAccessOrEveryoneAccess() && !canWriteAsMaintainer(ctx) {
+	if !ctx.Repo.Permission.HasAnyUnitAccessOrEveryoneAccess() && !canWriteAsMaintainer(ctx, repo.ID) {
 		if ctx.FormString("go-get") == "1" {
 			EarlyResponseForGoGetMeta(ctx)
 			return
@@ -1022,9 +1022,9 @@ func GitHookService() func(ctx *Context) {
 }
 
 // canWriteAsMaintainer check if the doer can write to a branch as a maintainer
-func canWriteAsMaintainer(ctx *Context) bool {
+func canWriteAsMaintainer(ctx *Context, repoID int64) bool {
 	branchName := getRefNameFromPath(ctx.Repo, ctx.PathParam("*"), func(branchName string) bool {
-		return issues_model.CanMaintainerWriteToBranch(ctx, ctx.Repo.Permission, branchName, ctx.Doer)
+		return issues_model.CanMaintainerWriteToHeadBranch(ctx, repoID, branchName, ctx.Doer)
 	})
 	return len(branchName) > 0
 }
