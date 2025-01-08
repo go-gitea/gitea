@@ -192,3 +192,11 @@ func GetRunJobsByRunIDs(ctx context.Context, runIDs []int64) ([]*ActionRunJob, e
 	}
 	return jobs, nil
 }
+
+func GetRunTasksByJobIDs(ctx context.Context, jobIDs []int64) ([]*ActionTask, error) {
+	var tasks []*ActionTask
+	if err := db.GetEngine(ctx).In("job_id", jobIDs).Find(&tasks); err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
