@@ -40,16 +40,30 @@ import (
 )
 
 // roleDescriptor returns the role descriptor for a comment in/with the given repo, poster and issue
-func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, issue *issues_model.Issue, hasOriginalAuthor bool) (issues_model.RoleDescriptor, error) {
+func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, permsCache map[int64]access_model.Permission, issue *issues_model.Issue, hasOriginalAuthor bool) (issues_model.RoleDescriptor, error) {
 	roleDescriptor := issues_model.RoleDescriptor{}
 
 	if hasOriginalAuthor {
 		return roleDescriptor, nil
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, poster)
-	if err != nil {
-		return roleDescriptor, err
+	var perm access_model.Permission
+	var err error
+	if permsCache != nil {
+		var ok bool
+		perm, ok = permsCache[poster.ID]
+		if !ok {
+			perm, err = access_model.GetUserRepoPermission(ctx, repo, poster)
+			if err != nil {
+				return roleDescriptor, err
+			}
+		}
+		permsCache[poster.ID] = perm
+	} else {
+		perm, err = access_model.GetUserRepoPermission(ctx, repo, poster)
+		if err != nil {
+			return roleDescriptor, err
+		}
 	}
 
 	// If the poster is the actual poster of the issue, enable Poster role.
@@ -576,6 +590,8 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 		return
 	}
 
+	permCache := make(map[int64]access_model.Permission)
+
 	for _, comment = range issue.Comments {
 		comment.Issue = issue
 
@@ -593,7 +609,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				continue
 			}
 
-			comment.ShowRole, err = roleDescriptor(ctx, issue.Repo, comment.Poster, issue, comment.HasOriginalAuthor())
+			comment.ShowRole, err = roleDescriptor(ctx, issue.Repo, comment.Poster, permCache, issue, comment.HasOriginalAuthor())
 			if err != nil {
 				ctx.ServerError("roleDescriptor", err)
 				return
@@ -691,7 +707,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 							continue
 						}
 
-						c.ShowRole, err = roleDescriptor(ctx, issue.Repo, c.Poster, issue, c.HasOriginalAuthor())
+						c.ShowRole, err = roleDescriptor(ctx, issue.Repo, c.Poster, permCache, issue, c.HasOriginalAuthor())
 						if err != nil {
 							ctx.ServerError("roleDescriptor", err)
 							return
@@ -940,7 +956,7 @@ func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 		ctx.ServerError("RenderString", err)
 		return
 	}
-	if issue.ShowRole, err = roleDescriptor(ctx, issue.Repo, issue.Poster, issue, issue.HasOriginalAuthor()); err != nil {
+	if issue.ShowRole, err = roleDescriptor(ctx, issue.Repo, issue.Poster, nil, issue, issue.HasOriginalAuthor()); err != nil {
 		ctx.ServerError("roleDescriptor", err)
 		return
 	}

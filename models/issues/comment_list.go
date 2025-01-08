@@ -26,14 +26,14 @@ func (comments CommentList) LoadPosters(ctx context.Context) error {
 		return c.PosterID, c.Poster == nil && c.PosterID > 0
 	})
 
-	posterMaps, err := getPostersByIDs(ctx, posterIDs)
+	posterMaps, err := user_model.GetUsersMapByIDs(ctx, posterIDs)
 	if err != nil {
 		return err
 	}
 
 	for _, comment := range comments {
 		if comment.Poster == nil {
-			comment.Poster = getPoster(comment.PosterID, posterMaps)
+			comment.Poster = user_model.MustGetUserFromMap(comment.PosterID, posterMaps)
 		}
 	}
 	return nil
