@@ -30,10 +30,10 @@ func TestGiteaDownloadRepo(t *testing.T) {
 
 	downloader, err := NewGiteaDownloader(context.Background(), "https://gitea.com", "gitea/test_repo", "", "", giteaToken)
 	if downloader == nil {
-		t.Fatal("NewGitlabDownloader is nil")
+		t.Fatal("NewGiteaDownloader is nil")
 	}
 	if !assert.NoError(t, err) {
-		t.Fatal("NewGitlabDownloader error occur")
+		t.Fatal("NewGiteaDownloader error occur")
 	}
 
 	repo, err := downloader.GetRepoInfo()
