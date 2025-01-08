@@ -103,8 +103,8 @@ func HelloWorld() {
 }
 #+end_src
 `, `<div class="src src-go">
-<pre><code class="chroma language-go"><span class="c1">// HelloWorld prints &#34;Hello World&#34;
-</span><span class="c1"></span><span class="kd">func</span> <span class="nf">HelloWorld</span><span class="p">()</span> <span class="p">{</span>
+<pre><code class="chroma language-go"><span class="c1">// HelloWorld prints &#34;Hello World&#34;</span>
+<span class="kd">func</span> <span class="nf">HelloWorld</span><span class="p">()</span> <span class="p">{</span>
 	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Hello World&#34;</span><span class="p">)</span>
 <span class="p">}</span></code></pre>
 </div>`)
