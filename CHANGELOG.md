@@ -306,6 +306,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix trailing comma not matched in the case of alphanumeric issue (#32945)
   * Relax the version checking for Arch packages (#32908) #32913
   * Add more load functions to make sure the reference object loaded (#32901) #32912
+  * Filter reviews of one pull request in memory instead of database to reduce slow response because of lacking database index (#33106) #33128
+  * Fix git remote error check, fix dependencies, fix js error (#33129) #33133 
 
 * MISC
   * Optimize branch protection rule loading (#32280)
