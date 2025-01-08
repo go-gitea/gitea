@@ -6,12 +6,15 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
 
 	git_model "code.gitea.io/gitea/models/git"
 	issue_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/pull"
@@ -74,7 +77,7 @@ func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.
 	return "merge", nil
 }
 
-func GetUpstreamDivergingInfo(ctx context.Context, repo *repo_model.Repository, branch string) (*UpstreamDivergingInfo, error) {
+func GetUpstreamDivergingInfo(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, branch string) (*UpstreamDivergingInfo, error) {
 	if !repo.IsFork {
 		return nil, util.NewInvalidArgumentErrorf("repo is not a fork")
 	}
@@ -102,10 +105,29 @@ func GetUpstreamDivergingInfo(ctx context.Context, repo *repo_model.Repository, 
 		return info, nil
 	}
 
-	// TODO: if the fork repo has new commits, this call will fail:
-	// exit status 128 - fatal: Invalid symmetric difference expression aaaaaaaaaaaa...bbbbbbbbbbbb
-	// so at the moment, we are not able to handle this case, should be improved in the future
-	diff, err := git.GetDivergingCommits(ctx, repo.BaseRepo.RepoPath(), baseBranch.CommitID, forkBranch.CommitID)
+	// Add a temporary remote
+	tmpRemote := strconv.FormatInt(time.Now().UnixNano(), 10)
+	if err = gitRepo.AddRemote(tmpRemote, repo.BaseRepo.RepoPath(), false); err != nil {
+		log.Error("GetUpstreamDivergingInfo: AddRemote: %v", err)
+	}
+	defer func() {
+		if err := gitRepo.RemoveRemote(tmpRemote); err != nil {
+			log.Error("GetUpstreamDivergingInfo: RemoveRemote: %v", err)
+		}
+	}()
+
+	var remoteBranch string
+	_, remoteBranch, err = gitRepo.GetMergeBase(tmpRemote, baseBranch.CommitID, forkBranch.CommitID)
+	if err != nil {
+		log.Error("GetMergeBase: %v", err)
+	}
+
+	baseBranch.CommitID, err = git.GetFullCommitID(gitRepo.Ctx, gitRepo.Path, remoteBranch)
+	if err != nil {
+		baseBranch.CommitID = remoteBranch
+	}
+
+	diff, err := git.GetDivergingCommits(gitRepo.Ctx, gitRepo.Path, baseBranch.CommitID, forkBranch.CommitID)
 	if err != nil {
 		info.BaseIsNewer = baseBranch.UpdatedUnix > forkBranch.UpdatedUnix
 		return info, nil

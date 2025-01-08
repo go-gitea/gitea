@@ -181,7 +181,7 @@ func prepareUpstreamDivergingInfo(ctx *context.Context) {
 	if !ctx.Repo.Repository.IsFork || !ctx.Repo.IsViewBranch || ctx.Repo.TreePath != "" {
 		return
 	}
-	upstreamDivergingInfo, err := repo_service.GetUpstreamDivergingInfo(ctx, ctx.Repo.Repository, ctx.Repo.BranchName)
+	upstreamDivergingInfo, err := repo_service.GetUpstreamDivergingInfo(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, ctx.Repo.BranchName)
 	if err != nil {
 		if !errors.Is(err, util.ErrNotExist) && !errors.Is(err, util.ErrInvalidArgument) {
 			log.Error("GetUpstreamDivergingInfo: %v", err)
