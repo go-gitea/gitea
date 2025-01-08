@@ -1435,7 +1435,7 @@ func registerRoutes(m *web.Router) {
 			m.Get("/badge.svg", actions.GetWorkflowBadge)
 		})
 
-		m.Delete("/runs/{id}", reqRepoActionsWriter, actions.DeleteRun)
+		m.Post("/runs/delete", reqRepoActionsWriter, actions.DeleteRuns)
 	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoActionsReader, actions.MustEnableActions)
 	// end "/{username}/{reponame}/actions"
 

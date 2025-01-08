@@ -436,22 +436,35 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 
 type ActionRunIndex db.ResourceIndex
 
-// DeleteRunByID delete action_run and action_run_job.
-func DeleteRunByID(ctx context.Context, id int64) error {
+// DeleteRunByIDs delete action_run and action_run_job.
+func DeleteRunByIDs(ctx context.Context, ids []int64) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
-	_, err = db.GetEngine(ctx).Where("id=?", id).Delete(ActionRun{})
+	_, err = db.GetEngine(ctx).In("id", ids).Delete(ActionRun{})
 	if err != nil {
 		return err
 	}
 
-	_, err = db.GetEngine(ctx).Where("run_id=?", id).Delete(ActionRunJob{})
+	_, err = db.GetEngine(ctx).In("run_id", ids).Delete(ActionRunJob{})
 	if err != nil {
 		return err
 	}
 
 	return committer.Commit()
+}
+
+func GetRunsByIDs(ctx context.Context, ids []int64) ([]*ActionRun, error) {
+	var runs []*ActionRun
+	err := db.GetEngine(ctx).In("id", ids).Find(&runs)
+	if err != nil {
+		return nil, err
+	}
+	if len(runs) < 1 {
+		return nil, fmt.Errorf("run with ids %d: %w", ids, util.ErrNotExist)
+	}
+
+	return runs, nil
 }

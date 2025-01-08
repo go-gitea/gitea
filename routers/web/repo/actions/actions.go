@@ -6,10 +6,8 @@ package actions
 import (
 	"bytes"
 	stdCtx "context"
-	"fmt"
 	"net/http"
 	"slices"
-	"strconv"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -20,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -314,6 +313,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []Workflow) {
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
+	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 }
 
 // loadIsRefDeleted loads the IsRefDeleted field for each run in the list.
@@ -427,29 +427,38 @@ func decodeNode(node yaml.Node, out any) bool {
 	return true
 }
 
-func DeleteRun(ctx *context.Context) {
-	actionRunIDStr := ctx.PathParam("id")
-	if len(actionRunIDStr) < 1 {
+func DeleteRuns(ctx *context.Context) {
+	rd := ctx.Req.Body
+	defer rd.Close()
+
+	req := DeleteRunsRequest{}
+	if err := json.NewDecoder(rd).Decode(&req); err != nil {
+		ctx.ServerError("failed to decode request body into delte runs request", err)
+		return
+	}
+	if len(req.ActionIDs) < 1 {
 		ctx.ServerError("missing action_run.id for delete action run", nil)
 		return
 	}
-	actionRunID, err := strconv.ParseInt(actionRunIDStr, 10, 64)
-	if err != nil {
-		ctx.ServerError("failed to casting action_run.id string to int64", err)
-		return
-	}
 
-	actionRun, err := actions_model.GetRunByID(ctx, actionRunID)
+	actionRun, err := actions_model.GetRunsByIDs(ctx, req.ActionIDs)
 	if err != nil {
 		ctx.ServerError("failed to get action_run", err)
 		return
 	}
-	err = actions_model.DeleteRunByID(ctx, actionRun.ID)
+
+	if len(actionRun) != len(req.ActionIDs) {
+		ctx.ServerError("action ids not match with request", nil)
+	}
+
+	err = actions_model.DeleteRunByIDs(ctx, req.ActionIDs)
 	if err != nil {
 		ctx.ServerError("failed to delete action_run", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": fmt.Sprintf("%s/actions", ctx.Repo.RepoLink),
-	})
+	ctx.Status(http.StatusNoContent)
+}
+
+type DeleteRunsRequest struct {
+	ActionIDs []int64 `json:"actionIds"`
 }
