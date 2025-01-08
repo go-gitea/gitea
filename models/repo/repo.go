@@ -784,60 +784,10 @@ func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repo
 	return &repo, err
 }
 
-func parseRepositoryURL(ctx context.Context, repoURL string) (ret struct {
-	OwnerName, RepoName, RemainingPath string
-},
-) {
-	// possible urls for git:
-	//  https://my.domain/sub-path/<owner>/<repo>[.git]
-	//  git+ssh://user@my.domain/<owner>/<repo>[.git]
-	//  ssh://user@my.domain/<owner>/<repo>[.git]
-	//  user@my.domain:<owner>/<repo>[.git]
-
-	fillPathParts := func(s string) {
-		s = strings.TrimPrefix(s, "/")
-		fields := strings.SplitN(s, "/", 3)
-		if len(fields) >= 2 {
-			ret.OwnerName = fields[0]
-			ret.RepoName = strings.TrimSuffix(fields[1], ".git")
-			if len(fields) == 3 {
-				ret.RemainingPath = "/" + fields[2]
-			}
-		}
-	}
-
-	parsed, err := giturl.ParseGitURL(repoURL)
-	if err != nil {
-		return ret
-	}
-	if parsed.URL.Scheme == "http" || parsed.URL.Scheme == "https" {
-		if !httplib.IsCurrentGiteaSiteURL(ctx, repoURL) {
-			return ret
-		}
-		fillPathParts(strings.TrimPrefix(parsed.URL.Path, setting.AppSubURL))
-	} else if parsed.URL.Scheme == "ssh" || parsed.URL.Scheme == "git+ssh" {
-		domainSSH := setting.SSH.Domain
-		domainCur := httplib.GuessCurrentHostDomain(ctx)
-		urlDomain, _, _ := net.SplitHostPort(parsed.URL.Host)
-		urlDomain = util.IfZero(urlDomain, parsed.URL.Host)
-		if urlDomain == "" {
-			return ret
-		}
-		// check whether URL domain is the App domain
-		domainMatches := domainSSH == urlDomain
-		// check whether URL domain is current domain from context
-		domainMatches = domainMatches || (domainCur != "" && domainCur == urlDomain)
-		if domainMatches {
-			fillPathParts(parsed.URL.Path)
-		}
-	}
-	return ret
-}
-
 // GetRepositoryByURL returns the repository by given url
 func GetRepositoryByURL(ctx context.Context, repoURL string) (*Repository, error) {
-	ret := parseRepositoryURL(ctx, repoURL)
-	if ret.OwnerName == "" {
+	ret, err := giturl.ParseRepositoryURL(ctx, repoURL)
+	if err != nil || ret.OwnerName == "" {
 		return nil, fmt.Errorf("unknown or malformed repository URL")
 	}
 	return GetRepositoryByOwnerAndName(ctx, ret.OwnerName, ret.RepoName)
