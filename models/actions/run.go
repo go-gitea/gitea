@@ -480,9 +480,11 @@ func DeleteRunByIDs(ctx context.Context, runIDs, jobIDs []int64) error {
 	return committer.Commit()
 }
 
-func GetRunsByIDs(ctx context.Context, ids []int64) ([]*ActionRun, error) {
+// GetRunsByIDsAndTriggerUserID -- get all action run by trigger user with selected ids
+func GetRunsByIDsAndTriggerUserID(ctx context.Context, ids []int64, triggerUserID int64) ([]*ActionRun, error) {
 	var runs []*ActionRun
-	err := db.GetEngine(ctx).In("id", ids).Find(&runs)
+	err := db.GetEngine(ctx).Where("trigger_user_id=?", triggerUserID).
+		In("id", ids).Find(&runs)
 	if err != nil {
 		return nil, err
 	}

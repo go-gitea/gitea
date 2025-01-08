@@ -441,7 +441,7 @@ func DeleteRuns(ctx *context.Context) {
 		return
 	}
 
-	actionRun, err := actions_model.GetRunsByIDs(ctx, req.ActionIDs)
+	actionRun, err := actions_model.GetRunsByIDsAndTriggerUserID(ctx, req.ActionIDs, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("failed to get action_run", err)
 		return
