@@ -443,12 +443,36 @@ func DeleteRunByIDs(ctx context.Context, ids []int64) error {
 		return err
 	}
 	defer committer.Close()
-	_, err = db.GetEngine(ctx).In("id", ids).Delete(ActionRun{})
+
+	_, err = db.GetEngine(ctx).
+		Table("action_task").
+		Join("INNER", "action_task_step", "action_task.id = action_task_step.task_id").
+		In("action_task.job_id", ids).
+		Delete(ActionTaskStep{})
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetEngine(ctx).
+		Table("action_task").
+		Join("INNER", "action_task_output", "action_task.id = action_task_output.task_id").
+		In("action_task.job_id", ids).
+		Delete(ActionTaskOutput{})
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetEngine(ctx).In("job_id", ids).Delete(ActionTask{})
 	if err != nil {
 		return err
 	}
 
 	_, err = db.GetEngine(ctx).In("run_id", ids).Delete(ActionRunJob{})
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetEngine(ctx).In("id", ids).Delete(ActionRun{})
 	if err != nil {
 		return err
 	}
