@@ -37,7 +37,7 @@ You can find comprehensive documentation on our official [documentation website]
 
 It includes installation, administration, usage, development, contributing guides, and more to help you get started and explore all features effectively.
 
-If you have any suggestions or would like to contribute to our documentation, you can visit our [documentation repository](https://gitea.com/gitea/docs)
+If you have any suggestions or would like to contribute to it, you can visit the [documentation repository](https://gitea.com/gitea/docs)
 
 ## Building
 
