@@ -6,6 +6,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -51,6 +52,9 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 	{
 		branches, _, err := gitRepo.GetBranchNames(0, 0)
 		if err != nil {
+			if strings.Contains(err.Error(), "ref file is empty") {
+				return 0, nil
+			}
 			return 0, err
 		}
 		log.Trace("SyncRepoBranches[%s]: branches[%d]: %v", repo.FullName(), len(branches), branches)

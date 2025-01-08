@@ -147,7 +147,7 @@ func (r *orgWriter) resolveLink(kind, link string) string {
 func (r *orgWriter) WriteRegularLink(l org.RegularLink) {
 	link := r.resolveLink(l.Kind(), l.URL)
 
-	printHTML := func(html string, a ...any) {
+	printHTML := func(html template.HTML, a ...any) {
 		_, _ = fmt.Fprint(r, htmlutil.HTMLFormat(html, a...))
 	}
 	// Inspired by https://github.com/niklasfasching/go-org/blob/6eb20dbda93cb88c3503f7508dc78cbbc639378f/org/html_writer.go#L406-L427
