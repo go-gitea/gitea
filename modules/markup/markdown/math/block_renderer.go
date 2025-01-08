@@ -4,6 +4,8 @@
 package math
 
 import (
+	"html/template"
+
 	"code.gitea.io/gitea/modules/markup/internal"
 	giteaUtil "code.gitea.io/gitea/modules/util"
 
@@ -50,7 +52,7 @@ func (r *BlockRenderer) renderBlock(w util.BufWriter, source []byte, node gast.N
 	n := node.(*Block)
 	if entering {
 		code := giteaUtil.Iif(n.Inline, "", `<pre class="code-block is-loading">`) + `<code class="language-math display">`
-		_ = r.renderInternal.FormatWithSafeAttrs(w, code)
+		_ = r.renderInternal.FormatWithSafeAttrs(w, template.HTML(code))
 		r.writeLines(w, source, n)
 	} else {
 		_, _ = w.WriteString(`</code>` + giteaUtil.Iif(n.Inline, "", `</pre>`) + "\n")
