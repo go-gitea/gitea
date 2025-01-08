@@ -184,3 +184,11 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 		return StatusUnknown // it shouldn't happen
 	}
 }
+
+func GetRunJobsByRunIDs(ctx context.Context, runIDs []int64) ([]*ActionRunJob, error) {
+	var jobs []*ActionRunJob
+	if err := db.GetEngine(ctx).In("run_id", runIDs).Find(&jobs); err != nil {
+		return nil, err
+	}
+	return jobs, nil
+}
