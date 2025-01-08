@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -88,7 +87,7 @@ func TestTemplateIif(t *testing.T) {
 func TestTemplateEscape(t *testing.T) {
 	execTmpl := func(code string) string {
 		tmpl := template.New("test")
-		tmpl.Funcs(template.FuncMap{"QueryBuild": QueryBuild, "HTMLFormat": htmlutil.HTMLFormat})
+		tmpl.Funcs(template.FuncMap{"QueryBuild": QueryBuild, "HTMLFormat": htmlFormat})
 		template.Must(tmpl.Parse(code))
 		w := &strings.Builder{}
 		assert.NoError(t, tmpl.Execute(w, nil))

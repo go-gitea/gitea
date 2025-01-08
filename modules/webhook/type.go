@@ -69,6 +69,10 @@ func (h HookEventType) Event() string {
 	return ""
 }
 
+func (h HookEventType) IsPullRequest() bool {
+	return h.Event() == "pull_request"
+}
+
 // HookType is the type of a webhook
 type HookType = string
 

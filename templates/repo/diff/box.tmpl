@@ -58,7 +58,7 @@
 			</div>
 		{{end}}
 		<script id="diff-data-script" type="module">
-			const diffDataFiles = [{{range $i, $file := .Diff.Files}}{Name:"{{$file.Name}}",NameHash:"{{$file.NameHash}}",Type:{{$file.Type}},IsBin:{{$file.IsBin}},Addition:{{$file.Addition}},Deletion:{{$file.Deletion}},IsViewed:{{$file.IsViewed}}},{{end}}];
+			const diffDataFiles = [{{range $i, $file := .Diff.Files}}{Name:"{{$file.Name}}",NameHash:"{{$file.NameHash}}",Type:{{$file.Type}},IsBin:{{$file.IsBin}},IsSubmodule:{{$file.IsSubmodule}},Addition:{{$file.Addition}},Deletion:{{$file.Deletion}},IsViewed:{{$file.IsViewed}}},{{end}}];
 			const diffData = {
 				isIncomplete: {{.Diff.IsIncomplete}},
 				tooManyFilesMessage: "{{ctx.Locale.Tr "repo.diff.too_many_files"}}",
@@ -161,23 +161,25 @@
 										<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off"{{if $file.IsViewed}} checked{{end}}> {{ctx.Locale.Tr "repo.pulls.has_viewed_file"}}
 									</label>
 								{{end}}
-								<button class="btn diff-header-popup-btn tw-p-1">{{svg "octicon-kebab-horizontal" 18}}</button>
-								<div class="tippy-target">
-									{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
-										<button class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-										<button class="escape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
-									{{end}}
-									{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
-										{{if $file.IsDeleted}}
-											<a class="item" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
-										{{else}}
-											<a class="item" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
-											{{if and $.Repository.CanEnableEditor $.CanEditFile (not $file.IsLFSFile) (not $file.IsBin)}}
-												<a class="item" rel="nofollow" href="{{$.HeadRepoLink}}/_edit/{{PathEscapeSegments $.HeadBranchName}}/{{PathEscapeSegments $file.Name}}?return_uri={{print $.BackToLink "#diff-" $file.NameHash | QueryEscape}}">{{ctx.Locale.Tr "repo.editor.edit_this_file"}}</a>
+								{{if not $file.IsSubmodule}}
+									<button class="btn diff-header-popup-btn tw-p-1">{{svg "octicon-kebab-horizontal" 18}}</button>
+									<div class="tippy-target">
+										{{if not (or $file.IsIncomplete $file.IsBin)}}
+											<button class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+											<button class="escape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+										{{end}}
+										{{if not $.PageIsWiki}}
+											{{if $file.IsDeleted}}
+												<a class="item" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
+											{{else}}
+												<a class="item" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
+												{{if and $.Repository.CanEnableEditor $.CanEditFile (not $file.IsLFSFile) (not $file.IsBin)}}
+													<a class="item" rel="nofollow" href="{{$.HeadRepoLink}}/_edit/{{PathEscapeSegments $.HeadBranchName}}/{{PathEscapeSegments $file.Name}}?return_uri={{print $.BackToLink "#diff-" $file.NameHash | QueryEscape}}">{{ctx.Locale.Tr "repo.editor.edit_this_file"}}</a>
+												{{end}}
 											{{end}}
 										{{end}}
-									{{end}}
-								</div>
+									</div>
+								{{end}}
 							</div>
 						</h4>
 						<div class="diff-file-body ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
@@ -193,6 +195,17 @@
 											{{end}}
 										{{else}}
 											{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
+										{{end}}
+									</div>
+								{{else if $file.SubmoduleDiffInfo}}
+									<div class="tw-p-3">{{svg "octicon-file-submodule"}} {{$submoduleDiffInfo := $file.SubmoduleDiffInfo -}}
+										{{- $submoduleName := $submoduleDiffInfo.SubmoduleRepoLinkHTML ctx -}}
+										{{- if $file.IsDeleted -}}
+											{{- ctx.Locale.Tr "repo.diff.submodule_deleted" $submoduleName ($submoduleDiffInfo.CommitRefIDLinkHTML ctx $submoduleDiffInfo.PreviousRefID) -}}
+										{{- else if $file.IsCreated -}}
+											{{- ctx.Locale.Tr "repo.diff.submodule_added" $submoduleName ($submoduleDiffInfo.CommitRefIDLinkHTML ctx $submoduleDiffInfo.NewRefID) -}}
+										{{- else -}}
+											{{- ctx.Locale.Tr "repo.diff.submodule_updated" $submoduleName ($submoduleDiffInfo.CompareRefIDLinkHTML ctx) -}}
 										{{end}}
 									</div>
 								{{else}}
