@@ -33,7 +33,7 @@ func (comments CommentList) LoadPosters(ctx context.Context) error {
 
 	for _, comment := range comments {
 		if comment.Poster == nil {
-			comment.Poster = user_model.MustGetUserFromMap(comment.PosterID, posterMaps)
+			comment.Poster = user_model.GetPossibleUserFromMap(comment.PosterID, posterMaps)
 		}
 	}
 	return nil
@@ -426,7 +426,7 @@ func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 
 func (comments CommentList) getReviewIDs() []int64 {
 	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
-		return comment.ReviewID, comment.ReviewID > 0 && comment.Review == nil
+		return comment.ReviewID, comment.ReviewID > 0
 	})
 }
 

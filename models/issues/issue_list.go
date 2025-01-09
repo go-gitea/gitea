@@ -88,7 +88,7 @@ func (issues IssueList) LoadPosters(ctx context.Context) error {
 
 	for _, issue := range issues {
 		if issue.Poster == nil {
-			issue.Poster = user_model.MustGetUserFromMap(issue.PosterID, posterMaps)
+			issue.Poster = user_model.GetPossibleUserFromMap(issue.PosterID, posterMaps)
 		}
 	}
 	return nil

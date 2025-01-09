@@ -29,16 +29,19 @@ func GetUsersMapByIDs(ctx context.Context, userIDs []int64) (map[int64]*User, er
 	return userMaps, nil
 }
 
-func MustGetUserFromMap(userID int64, usererMaps map[int64]*User) *User {
-	if userID == ActionsUserID {
-		return NewActionsUser()
-	}
-	if userID <= 0 {
-		return nil
-	}
-	user, ok := usererMaps[userID]
-	if !ok {
+func GetPossibleUserFromMap(userID int64, usererMaps map[int64]*User) *User {
+	switch userID {
+	case GhostUserID:
 		return NewGhostUser()
+	case ActionsUserID:
+		return NewActionsUser()
+	case 0:
+		return NewGhostUser()
+	default:
+		user, ok := usererMaps[userID]
+		if !ok {
+			return NewGhostUser()
+		}
+		return user
 	}
-	return user
 }
