@@ -111,8 +111,6 @@ func GetUpstreamDivergingInfo(ctx context.Context, gitRepo *git.Repository, repo
 				headCommit   *git.Commit
 			)
 
-			gitRepo.GetCommit(forkBranch.CommitID)
-
 			if baseCommitID, err = gitRepo.ConvertToGitID(baseBranch.CommitID); err != nil {
 				return info, nil
 			}
