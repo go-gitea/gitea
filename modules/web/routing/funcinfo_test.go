@@ -6,6 +6,8 @@ package routing
 import (
 	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_shortenFilename(t *testing.T) {
@@ -37,9 +39,8 @@ func Test_shortenFilename(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("shortenFilename('%s')", tt.filename), func(t *testing.T) {
-			if gotShort := shortenFilename(tt.filename, tt.fallback); gotShort != tt.expected {
-				t.Errorf("shortenFilename('%s'), expect '%s', but get '%s'", tt.filename, tt.expected, gotShort)
-			}
+			gotShort := shortenFilename(tt.filename, tt.fallback)
+			assert.Equal(t, tt.expected, gotShort)
 		})
 	}
 }
@@ -72,9 +73,8 @@ func Test_trimAnonymousFunctionSuffix(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := trimAnonymousFunctionSuffix(tt.name); got != tt.want {
-				t.Errorf("trimAnonymousFunctionSuffix() = %v, want %v", got, tt.want)
-			}
+			got := trimAnonymousFunctionSuffix(tt.name)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
