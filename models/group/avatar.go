@@ -12,7 +12,7 @@ import (
 func (g *Group) CustomAvatarRelativePath() string {
 	return g.Avatar
 }
-func (g *Group) relAvatarLink(ctx context.Context) string {
+func (g *Group) relAvatarLink() string {
 	// If no avatar - path is empty
 	avatarPath := g.CustomAvatarRelativePath()
 	if len(avatarPath) == 0 {
@@ -22,7 +22,7 @@ func (g *Group) relAvatarLink(ctx context.Context) string {
 }
 
 func (g *Group) AvatarLink(ctx context.Context) string {
-	relLink := g.relAvatarLink(ctx)
+	relLink := g.relAvatarLink()
 	if relLink != "" {
 		return httplib.MakeAbsoluteURL(ctx, relLink)
 	}
