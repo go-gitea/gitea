@@ -1,6 +1,16 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package integration
 
 import (
+	"context"
+	"fmt"
+	"net/http"
+	"net/url"
+	"strconv"
+	"testing"
+
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -8,13 +18,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
-	"context"
-	"fmt"
+
 	"github.com/PuerkitoBio/goquery"
-	"net/http"
-	"net/url"
-	"strconv"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -225,8 +230,7 @@ jobs:
 
 		// should not found
 		_, err := actions_model.GetRunsByIDsAndTriggerUserID(context.Background(), runIDs, user2.ID)
-		assert.Error(t, fmt.Errorf("run with ids %d: %w", runIDs, util.ErrNotExist), err)
+		assert.EqualError(t, err, fmt.Errorf("run with ids %d: %w", runIDs, util.ErrNotExist).Error())
 		doAPIDeleteRepository(httpContext)
 	})
-
 }
