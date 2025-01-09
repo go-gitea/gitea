@@ -4,6 +4,7 @@
 package access
 
 import (
+	group_model "code.gitea.io/gitea/models/group"
 	"context"
 	"errors"
 	"fmt"
@@ -386,6 +387,14 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 			return perm, nil
 		}
 	}
+	groupTeams, err := group_model.FindGroupTeams(ctx, repo.GroupID)
+	for _, team := range groupTeams {
+		if team.AccessMode >= perm_model.AccessModeAdmin {
+			perm.AccessMode = perm_model.AccessModeOwner
+			perm.unitsMode = nil
+			return perm, nil
+		}
+	}
 
 	for _, u := range repo.Units {
 		for _, team := range teams {
@@ -431,6 +440,17 @@ func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *use
 	}
 	if mode >= perm_model.AccessModeAdmin {
 		return true, nil
+	}
+
+	groupTeams, err := organization.GetUserGroupTeams(ctx, repo.GroupID, user.ID)
+	if err != nil {
+		return false, err
+	}
+
+	for _, team := range groupTeams {
+		if team.AccessMode >= perm_model.AccessModeAdmin {
+			return true, nil
+		}
 	}
 
 	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
