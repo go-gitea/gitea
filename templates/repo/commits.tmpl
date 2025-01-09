@@ -8,12 +8,11 @@
 
 				{{$branchDropdownCurrentRefType := "branch"}}
 				{{$branchDropdownCurrentRefShortName := .RefName}}
-				{{if and (not .IsViewBranch) (not .IsViewTag)}}
-					{{$branchDropdownCurrentRefShortName = ShortSha .RefName}}
-				{{end}}
 				{{if .IsViewTag}}
 					{{$branchDropdownCurrentRefType = "tag"}}
 					{{$branchDropdownCurrentRefShortName = .TagName}}
+				{{else if not .IsViewBranch}}
+					{{$branchDropdownCurrentRefShortName = ShortSha .RefName}}
 				{{end}}
 				{{template "repo/branch_dropdown" dict
 					"Repository" .Repository
