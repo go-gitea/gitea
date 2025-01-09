@@ -722,7 +722,7 @@ func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User
 			errs = append(errs, err)
 		}
 		if err == nil {
-			if err = issue_service.CloseIssue(ctx, pr.Issue, doer, ""); err != nil && !issues_model.IsErrPullWasClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
+			if err = issue_service.CloseIssue(ctx, pr.Issue, doer, ""); err != nil && !issues_model.IsErrIssueIsClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
 				errs = append(errs, err)
 			}
 		}
