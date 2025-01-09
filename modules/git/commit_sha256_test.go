@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCommitsCountSha256(t *testing.T) {
@@ -94,9 +95,7 @@ signed commit`
 
 	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
 	assert.NoError(t, err)
-	if !assert.NotNil(t, commitFromReader) {
-		return
-	}
+	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
 	assert.EqualValues(t, `-----BEGIN PGP SIGNATURE-----
 
