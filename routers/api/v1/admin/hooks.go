@@ -35,14 +35,14 @@ func ListHooks(ctx *context.APIContext) {
 	//   description: page size of results
 	//   type: integer
 	// - type: string
-	// enum:
-	//   - system
-	//   - default
-	//   - all
-	// description: system, default or both kinds of webhooks
-	// name: type
-	// default: system
-	// in: query
+	//   enum:
+	//     - system
+	//     - default
+	//     - all
+	//   description: system, default or both kinds of webhooks
+	//   name: type
+	//   default: system
+	//   in: query
 	//
 	// responses:
 	//   "200":
