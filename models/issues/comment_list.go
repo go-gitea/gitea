@@ -168,7 +168,7 @@ func (comments CommentList) loadOldMilestones(ctx context.Context) error {
 
 func (comments CommentList) getAssigneeIDs() []int64 {
 	return container.FilterSlice(comments, func(comment *Comment) (int64, bool) {
-		return comment.AssigneeID, comment.AssigneeID > 0 && comment.Assignee == nil
+		return comment.AssigneeID, comment.AssigneeID > 0
 	})
 }
 
