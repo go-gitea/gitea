@@ -1383,6 +1383,9 @@ func registerRoutes(m *web.Router) {
 	m.Group("/{username}/{reponame}/projects", func() {
 		m.Get("", repo.Projects)
 		m.Get("/{id}", repo.ViewProject)
+		m.Group("/{id}/workflows", func() {
+			m.Get("", repo.Workflows)
+		})
 		m.Group("", func() { //nolint:dupl
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
