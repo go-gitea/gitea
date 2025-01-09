@@ -24,13 +24,19 @@
 				{{template "repo/sub_menu" .}}
 				<div class="repo-button-row">
 					<div class="repo-button-row-left">
-						{{$branchDropdownCurrentRefType := "branch"}}
-						{{$branchDropdownCurrentRefShortName := .BranchName}}
-						{{if .IsViewTag}}
-							{{$branchDropdownCurrentRefType = "tag"}}
-							{{$branchDropdownCurrentRefShortName = .TagName}}
-						{{end}}
-						{{template "repo/branch_dropdown" dict
+						{{- /* for repo home (default branch) and /owner/repo/src/branch/the-name */ -}}
+						{{- $branchDropdownCurrentRefType := "branch" -}}
+						{{- $branchDropdownCurrentRefShortName := .BranchName -}}
+						{{- if .IsViewTag -}}
+							{{- /* for /owner/repo/src/tag/the-name */ -}}
+							{{- $branchDropdownCurrentRefType = "tag" -}}
+							{{- $branchDropdownCurrentRefShortName = .TagName -}}
+						{{- else if .IsViewCommit -}}
+							{{- /* for /owner/repo/src/commit/000000 */ -}}
+							{{- $branchDropdownCurrentRefType = "commit" -}}
+							{{- $branchDropdownCurrentRefShortName = ShortSha .CommitID -}}
+						{{- end -}}
+						{{- template "repo/branch_dropdown" dict
 							"Repository" .Repository
 							"ShowTabBranches" true
 							"ShowTabTags" true
@@ -40,7 +46,7 @@
 							"RefLinkTemplate" "{RepoLink}/src/{RefType}/{RefShortName}/{TreePath}"
 							"AllowCreateNewRef" .CanCreateBranch
 							"ShowViewAllRefsEntry" true
-						}}
+						-}}
 						{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 							{{$cmpBranch := ""}}
 							{{if ne .Repository.ID .BaseRepo.ID}}
