@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"testing"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
@@ -19,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
+	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/PuerkitoBio/goquery"
 
 	"github.com/stretchr/testify/assert"
@@ -221,7 +221,7 @@ jobs:
 
 		assert.NotEmpty(t, runIDs)
 		csrf := GetUserCSRFToken(t, session)
-		reqDelete := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/%s/%s/actions/runs/delete", httpContext.Username, httpContext.Reponame), map[string]interface{}{
+		reqDelete := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/%s/%s/actions/runs/delete", httpContext.Username, httpContext.Reponame), map[string]any{
 			"actionIds": runIDs,
 			"_csrf":     csrf,
 		}).AddTokenAuth(token).
