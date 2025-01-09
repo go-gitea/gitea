@@ -36,7 +36,7 @@ func GetPossibleUserFromMap(userID int64, usererMaps map[int64]*User) *User {
 	case ActionsUserID:
 		return NewActionsUser()
 	case 0:
-		return NewGhostUser()
+		return nil
 	default:
 		user, ok := usererMaps[userID]
 		if !ok {
