@@ -131,7 +131,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	var o *user_model.User
-	if o = user.GetUserByParamsName(ctx, ":org"); o == nil {
+	if o = user.GetUserByPathParam(ctx, "org"); o == nil {
 		return
 	}
 

@@ -1,87 +1,85 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository new migrate">
-	<div class="ui middle very relaxed page grid">
-		<div class="column">
-			<form class="ui form" action="{{.Link}}" method="post">
+	<div class="ui container medium-width">
+		<h3 class="ui top attached header">
+			{{ctx.Locale.Tr "repo.migrate.migrate" .service.Title}}
+			<input id="service_type" type="hidden" name="service" value="{{.service}}">
+		</h3>
+		<div class="ui attached segment">
+			{{template "base/alert" .}}
+			<form class="ui form left-right-form" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
-				<h3 class="ui top attached header">
-					{{ctx.Locale.Tr "repo.migrate.migrate" .service.Title}}
-					<input id="service_type" type="hidden" name="service" value="{{.service}}">
-				</h3>
-				<div class="ui attached segment">
-					{{template "base/alert" .}}
-					<div class="inline required field {{if .Err_CloneAddr}}error{{end}}">
-						<label for="clone_addr">{{ctx.Locale.Tr "repo.migrate.clone_address"}}</label>
-						<input id="clone_addr" name="clone_addr" value="{{.clone_addr}}" autofocus required>
-						<span class="help">
-						{{ctx.Locale.Tr "repo.migrate.clone_address_desc"}}{{if .ContextUser.CanImportLocal}} {{ctx.Locale.Tr "repo.migrate.clone_local_path"}}{{end}}
+				<div class="inline required field {{if .Err_CloneAddr}}error{{end}}">
+					<label for="clone_addr">{{ctx.Locale.Tr "repo.migrate.clone_address"}}</label>
+					<input id="clone_addr" name="clone_addr" value="{{.clone_addr}}" autofocus required>
+					<span class="help">
+					{{ctx.Locale.Tr "repo.migrate.clone_address_desc"}}{{if .ContextUser.CanImportLocal}} {{ctx.Locale.Tr "repo.migrate.clone_local_path"}}{{end}}
+					</span>
+				</div>
+				<div class="inline field {{if .Err_Auth}}error{{end}}">
+					<label for="auth_username">{{ctx.Locale.Tr "username"}}</label>
+					<input id="auth_username" name="auth_username" value="{{.auth_username}}" {{if not .auth_username}}data-need-clear="true"{{end}}>
+				</div>
+				<div class="inline field {{if .Err_Auth}}error{{end}}">
+					<label for="auth_password">{{ctx.Locale.Tr "password"}}</label>
+					<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
+				</div>
+
+				{{template "repo/migrate/options" .}}
+
+				<div class="divider"></div>
+
+				<div class="inline required field {{if .Err_Owner}}error{{end}}">
+					<label>{{ctx.Locale.Tr "repo.owner"}}</label>
+					<div class="ui selection owner dropdown">
+						<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
+						<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
+							{{ctx.AvatarUtils.Avatar .ContextUser}}
+							<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
 						</span>
-					</div>
-					<div class="inline field {{if .Err_Auth}}error{{end}}">
-						<label for="auth_username">{{ctx.Locale.Tr "username"}}</label>
-						<input id="auth_username" name="auth_username" value="{{.auth_username}}" {{if not .auth_username}}data-need-clear="true"{{end}}>
-					</div>
-					<div class="inline field {{if .Err_Auth}}error{{end}}">
-						<label for="auth_password">{{ctx.Locale.Tr "password"}}</label>
-						<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
-					</div>
-
-					{{template "repo/migrate/options" .}}
-
-					<div class="divider"></div>
-
-					<div class="inline required field {{if .Err_Owner}}error{{end}}">
-						<label>{{ctx.Locale.Tr "repo.owner"}}</label>
-						<div class="ui selection owner dropdown">
-							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
-							<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
-								{{ctx.AvatarUtils.Avatar .ContextUser}}
-								<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
-							</span>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu" title="{{.SignedUser.Name}}">
-								<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}">
-									{{ctx.AvatarUtils.Avatar .SignedUser}}
-									<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
-								</div>
-								{{range .Orgs}}
-									<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
-										{{ctx.AvatarUtils.Avatar .}}
-										<span class="truncated-item-name">{{.ShortName 40}}</span>
-									</div>
-								{{end}}
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu" title="{{.SignedUser.Name}}">
+							<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}">
+								{{ctx.AvatarUtils.Avatar .SignedUser}}
+								<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
 							</div>
-						</div>
-					</div>
-
-					<div class="inline required field {{if .Err_RepoName}}error{{end}}">
-						<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-						<input id="repo_name" name="repo_name" value="{{.repo_name}}" required maxlength="100">
-					</div>
-					<div class="inline field">
-						<label>{{ctx.Locale.Tr "repo.visibility"}}</label>
-						<div class="ui checkbox">
-							{{if .IsForcedPrivate}}
-								<input name="private" type="checkbox" checked disabled>
-								<label>{{ctx.Locale.Tr "repo.visibility_helper_forced"}}</label>
-							{{else}}
-								<input name="private" type="checkbox" {{if .private}}checked{{end}}>
-								<label>{{ctx.Locale.Tr "repo.visibility_helper"}}</label>
+							{{range .Orgs}}
+								<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
+									{{ctx.AvatarUtils.Avatar .}}
+									<span class="truncated-item-name">{{.ShortName 40}}</span>
+								</div>
 							{{end}}
 						</div>
 					</div>
-					<div class="inline field {{if .Err_Description}}error{{end}}">
-						<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>
-						<textarea id="description" name="description" maxlength="2048">{{.description}}</textarea>
-					</div>
+				</div>
 
-					<div class="inline field">
-						<label></label>
-						<button class="ui primary button">
-							{{ctx.Locale.Tr "repo.migrate_repo"}}
-						</button>
+				<div class="inline required field {{if .Err_RepoName}}error{{end}}">
+					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
+					<input id="repo_name" name="repo_name" value="{{.repo_name}}" required maxlength="100">
+				</div>
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "repo.visibility"}}</label>
+					<div class="ui checkbox">
+						{{if .IsForcedPrivate}}
+							<input name="private" type="checkbox" checked disabled>
+							<label>{{ctx.Locale.Tr "repo.visibility_helper_forced"}}</label>
+						{{else}}
+							<input name="private" type="checkbox" {{if .private}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.visibility_helper"}}</label>
+						{{end}}
 					</div>
+				</div>
+				<div class="inline field {{if .Err_Description}}error{{end}}">
+					<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>
+					<textarea id="description" name="description" maxlength="2048">{{.description}}</textarea>
+				</div>
+
+				<div class="inline field">
+					<label></label>
+					<button class="ui primary button">
+						{{ctx.Locale.Tr "repo.migrate_repo"}}
+					</button>
 				</div>
 			</form>
 		</div>

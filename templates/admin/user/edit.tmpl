@@ -128,16 +128,16 @@
 						<input name="restricted" type="checkbox" {{if .User.IsRestricted}}checked{{end}}>
 					</div>
 				</div>
-				<div class="inline field {{if DisableGitHooks}}tw-hidden{{end}}">
+				<div class="inline field {{if .DisableGitHooks}}tw-hidden{{end}}">
 					<div class="ui checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.users.allow_git_hook_tooltip"}}">
 						<label><strong>{{ctx.Locale.Tr "admin.users.allow_git_hook"}}</strong></label>
-						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
+						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if .DisableGitHooks}}disabled{{end}}>
 					</div>
 				</div>
-				<div class="inline field {{if or (DisableImportLocal) (.DisableMigrations)}}tw-hidden{{end}}">
+				<div class="inline field {{if or (.DisableImportLocal) (.DisableMigrations)}}tw-hidden{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.users.allow_import_local"}}</strong></label>
-						<input name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}} {{if DisableImportLocal}}disabled{{end}}>
+						<input name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}} {{if .DisableImportLocal}}disabled{{end}}>
 					</div>
 				</div>
 				{{if not .DisableRegularOrgCreation}}

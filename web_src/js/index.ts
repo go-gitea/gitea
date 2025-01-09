@@ -34,14 +34,13 @@ import {
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
 import {initAdminCommon} from './features/admin/common.ts';
-import {initRepoTemplateSearch} from './features/repo-template.ts';
 import {initRepoCodeView} from './features/repo-code.ts';
 import {initSshKeyFormParser} from './features/sshkey-helper.ts';
 import {initUserSettings} from './features/user-settings.ts';
 import {initRepoActivityTopAuthorsChart, initRepoArchiveLinks} from './features/repo-common.ts';
 import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
 import {initRepoDiffView} from './features/repo-diff.ts';
-import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.ts';
+import {initOrgTeam} from './features/org-team.ts';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
 import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.ts';
 import {initRepoEditor} from './features/repo-editor.ts';
@@ -167,8 +166,7 @@ onDomReady(() => {
     initNotificationCount,
     initNotificationsTable,
 
-    initOrgTeamSearchRepoBox,
-    initOrgTeamSettings,
+    initOrgTeam,
 
     initRepoActivityTopAuthorsChart,
     initRepoArchiveLinks,
@@ -193,7 +191,6 @@ onDomReady(() => {
     initRepoPullRequestReview,
     initRepoRelease,
     initRepoReleaseNew,
-    initRepoTemplateSearch,
     initRepoTopicBar,
     initRepoWikiForm,
     initRepository,

@@ -85,8 +85,8 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 			} else if subModule != nil {
 				subModuleURL = subModule.URL
 			}
-			subModuleFile := NewCommitSubModuleFile(subModuleURL, entry.ID.String())
-			commitsInfo[i].SubModuleFile = subModuleFile
+			subModuleFile := NewCommitSubmoduleFile(subModuleURL, entry.ID.String())
+			commitsInfo[i].SubmoduleFile = subModuleFile
 		}
 	}
 

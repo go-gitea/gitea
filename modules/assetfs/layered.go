@@ -103,7 +103,7 @@ func (l *LayeredFS) ReadLayeredFile(elems ...string) ([]byte, string, error) {
 }
 
 func shouldInclude(info fs.FileInfo, fileMode ...bool) bool {
-	if util.CommonSkip(info.Name()) {
+	if util.IsCommonHiddenFileName(info.Name()) {
 		return false
 	}
 	if len(fileMode) == 0 {
