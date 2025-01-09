@@ -158,6 +158,7 @@ type SearchRepoOptions struct {
 	OwnerID         int64
 	PriorityOwnerID int64
 	TeamID          int64
+	GroupID         int64
 	OrderBy         db.SearchOrderBy
 	Private         bool // Include private repositories in results
 	StarredByID     int64
@@ -444,6 +445,9 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 
 	if opts.TeamID > 0 {
 		cond = cond.And(builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").From("team_repo").Where(builder.Eq{"`team_repo`.team_id": opts.TeamID})))
+	}
+	if opts.GroupID > 0 {
+		cond = cond.And(builder.Eq{"`repository`.group_id": opts.GroupID})
 	}
 
 	if opts.Keyword != "" {
