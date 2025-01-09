@@ -1,11 +1,12 @@
 package group
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
-	"context"
 	"xorm.io/builder"
 )
 
@@ -29,6 +30,13 @@ func userOrgTeamGroupBuilder(userID int64) *builder.Builder {
 		From("group_team").
 		Join("INNER", "team_user", "`team_user`.team_id = `group_team`.team_id").
 		Where(builder.Eq{"`team_user`.uid": userID})
+}
+
+func UserOrgTeamPermCond(idStr string, userID int64, level perm.AccessMode) builder.Cond {
+	selCond := userOrgTeamGroupBuilder(userID)
+	selCond = selCond.InnerJoin("team", "`team`.id = `group_team`.team_id").
+		And(builder.Or(builder.Gte{"`team`.authorize": level}, builder.Gte{"`group_team`.access_mode": level}))
+	return builder.In(idStr, selCond)
 }
 
 // UserOrgTeamGroupCond returns a condition to select ids of groups that a user's team can access
