@@ -148,9 +148,7 @@ for the full license text.
 ## Further information
 
 <details>
-<summary>
-Looking for an overview of the interface? Check it out!
-</summary>
+<summary>Looking for an overview of the interface? Check it out!</summary>
 
 |![Dashboard](https://dl.gitea.com/screenshots/home_timeline.png)|![User Profile](https://dl.gitea.com/screenshots/user_profile.png)|![Global Issues](https://dl.gitea.com/screenshots/global_issues.png)|
 |:---:|:---:|:---:|
