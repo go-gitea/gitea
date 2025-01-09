@@ -112,7 +112,9 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 	// Otherwise even if the request itself fails (403, 404, etc), the code should still continue because the parameters seem "good" enough.
 	// Keep in mind that GetBucketVersioning requires "owner" to really succeed, so it can't be used to check the existence.
 	// Not using "BucketExists (HeadBucket)" because it doesn't include detailed failure reasons.
-	err = getBucketVersioning(ctx, minioClient, config.Bucket)
+	if !config.SkipVersionCheck {
+		err = getBucketVersioning(ctx, minioClient, config.Bucket)
+	}
 	if err != nil {
 		errResp, ok := err.(minio.ErrorResponse)
 		if !ok {

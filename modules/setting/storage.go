@@ -52,6 +52,7 @@ type MinioStorageConfig struct {
 	ChecksumAlgorithm  string `ini:"MINIO_CHECKSUM_ALGORITHM" json:",omitempty"`
 	ServeDirect        bool   `ini:"SERVE_DIRECT"`
 	BucketLookUpType   string `ini:"MINIO_BUCKET_LOOKUP_TYPE" json:",omitempty"`
+	SkipVersionCheck   bool   `ini:"SKIP_VERSION_CHECK" json:",omitempty"`
 }
 
 func (cfg *MinioStorageConfig) ToShadow() {
