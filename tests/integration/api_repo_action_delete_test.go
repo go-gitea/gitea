@@ -20,7 +20,6 @@ import (
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/PuerkitoBio/goquery"
-
 	"github.com/stretchr/testify/assert"
 )
 
