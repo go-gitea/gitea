@@ -8,6 +8,9 @@
 
 				{{$branchDropdownCurrentRefType := "branch"}}
 				{{$branchDropdownCurrentRefShortName := .RefName}}
+				{{if and (not .IsViewBranch) (not .IsViewTag)}}
+					{{$branchDropdownCurrentRefShortName = ShortSha .RefName}}
+				{{end}}
 				{{if .IsViewTag}}
 					{{$branchDropdownCurrentRefType = "tag"}}
 					{{$branchDropdownCurrentRefShortName = .TagName}}
