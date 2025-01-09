@@ -48,7 +48,7 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	//for compatibility the default value is true
+	// for compatibility the default value is true
 	isSystemWebhook := optional.Some(true)
 	typeValue := ctx.FormString("type")
 	if typeValue == "default" {
