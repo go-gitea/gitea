@@ -32,10 +32,10 @@ test('EditorMarkdown', () => {
   testInput({value: '1. \n2. ', pos: 3}, {value: '\n2. ', pos: 0});
 
   testInput('- x', '- x\n- ');
-  testInput('1. foo', '1. foo\n1. ');
-  testInput({value: '1. a\n2. b\n3. c', pos: 4}, {value: '1. a\n1. \n2. b\n3. c', pos: 8});
+  testInput('1. foo', '1. foo\n2. ');
+  testInput({value: '1. a\n2. b\n3. c', pos: 4}, {value: '1. a\n2. \n2. b\n3. c', pos: 8});
   testInput('- [ ]', '- [ ]\n- ');
   testInput('- [ ] foo', '- [ ] foo\n- [ ] ');
   testInput('* [x] foo', '* [x] foo\n* [ ] ');
-  testInput('1. [x] foo', '1. [x] foo\n1. [ ] ');
+  testInput('1. [x] foo', '1. [x] foo\n2. [ ] ');
 });

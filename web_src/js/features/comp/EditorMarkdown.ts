@@ -96,8 +96,12 @@ function handleNewline(textarea: HTMLTextAreaElement, e: Event) {
   } else {
     // start a new line with the same indention and prefix
     let newPrefix = prefix;
-    // a simple approach, otherwise it needs to parse the lines after the current line
-    if (/^\d+\./.test(prefix)) newPrefix = `1. ${newPrefix.slice(newPrefix.indexOf('.') + 2)}`;
+    const digitMatch = /^\d+/.exec(prefix);
+    if (digitMatch) {
+      const number = parseInt(digitMatch[0]);
+      const incremented = number + 1;
+      newPrefix = `${incremented}. ${newPrefix.slice(newPrefix.indexOf('.') + 2)}`;
+    }
     newPrefix = newPrefix.replace('[x]', '[ ]');
     const newLine = `\n${indention}${newPrefix}`;
     textarea.value = value.slice(0, selStart) + newLine + value.slice(selEnd);
