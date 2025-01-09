@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -52,7 +51,7 @@ var defaultTransformers = []transformer{
 	{Name: "TITLE", Transform: util.ToTitleCase},
 }
 
-func generateExpansion(src string, templateRepo, generateRepo *repo_model.Repository, sanitizeFileName bool) string {
+func generateExpansion(ctx context.Context, src string, templateRepo, generateRepo *repo_model.Repository, sanitizeFileName bool) string {
 	year, month, day := time.Now().Date()
 	expansions := []expansion{
 		{Name: "YEAR", Value: strconv.Itoa(year), Transformers: nil},
@@ -67,10 +66,10 @@ func generateExpansion(src string, templateRepo, generateRepo *repo_model.Reposi
 		{Name: "TEMPLATE_OWNER", Value: templateRepo.OwnerName, Transformers: defaultTransformers},
 		{Name: "REPO_LINK", Value: generateRepo.Link(), Transformers: nil},
 		{Name: "TEMPLATE_LINK", Value: templateRepo.Link(), Transformers: nil},
-		{Name: "REPO_HTTPS_URL", Value: generateRepo.CloneLink().HTTPS, Transformers: nil},
-		{Name: "TEMPLATE_HTTPS_URL", Value: templateRepo.CloneLink().HTTPS, Transformers: nil},
-		{Name: "REPO_SSH_URL", Value: generateRepo.CloneLink().SSH, Transformers: nil},
-		{Name: "TEMPLATE_SSH_URL", Value: templateRepo.CloneLink().SSH, Transformers: nil},
+		{Name: "REPO_HTTPS_URL", Value: generateRepo.CloneLinkGeneral(ctx).HTTPS, Transformers: nil},
+		{Name: "TEMPLATE_HTTPS_URL", Value: templateRepo.CloneLinkGeneral(ctx).HTTPS, Transformers: nil},
+		{Name: "REPO_SSH_URL", Value: generateRepo.CloneLinkGeneral(ctx).SSH, Transformers: nil},
+		{Name: "TEMPLATE_SSH_URL", Value: templateRepo.CloneLinkGeneral(ctx).SSH, Transformers: nil},
 	}
 
 	expansionMap := make(map[string]string)
@@ -123,7 +122,7 @@ func (gt *GiteaTemplate) Globs() []glob.Glob {
 	return gt.globs
 }
 
-func checkGiteaTemplate(tmpDir string) (*GiteaTemplate, error) {
+func readGiteaTemplateFile(tmpDir string) (*GiteaTemplate, error) {
 	gtPath := filepath.Join(tmpDir, ".gitea", "template")
 	if _, err := os.Stat(gtPath); os.IsNotExist(err) {
 		return nil, nil
@@ -136,12 +135,55 @@ func checkGiteaTemplate(tmpDir string) (*GiteaTemplate, error) {
 		return nil, err
 	}
 
-	gt := &GiteaTemplate{
-		Path:    gtPath,
-		Content: content,
-	}
+	return &GiteaTemplate{Path: gtPath, Content: content}, nil
+}
 
-	return gt, nil
+func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, generateRepo *repo_model.Repository, giteaTemplateFile *GiteaTemplate) error {
+	if err := util.Remove(giteaTemplateFile.Path); err != nil {
+		return fmt.Errorf("remove .giteatemplate: %w", err)
+	}
+	if len(giteaTemplateFile.Globs()) == 0 {
+		return nil // Avoid walking tree if there are no globs
+	}
+	tmpDirSlash := strings.TrimSuffix(filepath.ToSlash(tmpDir), "/") + "/"
+	return filepath.WalkDir(tmpDirSlash, func(path string, d os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+
+		if d.IsDir() {
+			return nil
+		}
+
+		base := strings.TrimPrefix(filepath.ToSlash(path), tmpDirSlash)
+		for _, g := range giteaTemplateFile.Globs() {
+			if g.Match(base) {
+				content, err := os.ReadFile(path)
+				if err != nil {
+					return err
+				}
+
+				generatedContent := []byte(generateExpansion(ctx, string(content), templateRepo, generateRepo, false))
+				if err := os.WriteFile(path, generatedContent, 0o644); err != nil {
+					return err
+				}
+
+				substPath := filepath.FromSlash(filepath.Join(tmpDirSlash, generateExpansion(ctx, base, templateRepo, generateRepo, true)))
+
+				// Create parent subdirectories if needed or continue silently if it exists
+				if err = os.MkdirAll(filepath.Dir(substPath), 0o755); err != nil {
+					return err
+				}
+
+				// Substitute filename variables
+				if err = os.Rename(path, substPath); err != nil {
+					return err
+				}
+				break
+			}
+		}
+		return nil
+	}) // end: WalkDir
 }
 
 func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository, tmpDir string) error {
@@ -167,79 +209,41 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return fmt.Errorf("git clone: %w", err)
 	}
 
-	if err := util.RemoveAll(path.Join(tmpDir, ".git")); err != nil {
+	// Get active submodules from the template
+	submodules, err := git.GetTemplateSubmoduleCommits(ctx, tmpDir)
+	if err != nil {
+		return fmt.Errorf("GetTemplateSubmoduleCommits: %w", err)
+	}
+
+	if err = util.RemoveAll(filepath.Join(tmpDir, ".git")); err != nil {
 		return fmt.Errorf("remove git dir: %w", err)
 	}
 
 	// Variable expansion
-	gt, err := checkGiteaTemplate(tmpDir)
+	giteaTemplateFile, err := readGiteaTemplateFile(tmpDir)
 	if err != nil {
-		return fmt.Errorf("checkGiteaTemplate: %w", err)
+		return fmt.Errorf("readGiteaTemplateFile: %w", err)
 	}
 
-	if gt != nil {
-		if err := util.Remove(gt.Path); err != nil {
-			return fmt.Errorf("remove .giteatemplate: %w", err)
-		}
-
-		// Avoid walking tree if there are no globs
-		if len(gt.Globs()) > 0 {
-			tmpDirSlash := strings.TrimSuffix(filepath.ToSlash(tmpDir), "/") + "/"
-			if err := filepath.WalkDir(tmpDirSlash, func(path string, d os.DirEntry, walkErr error) error {
-				if walkErr != nil {
-					return walkErr
-				}
-
-				if d.IsDir() {
-					return nil
-				}
-
-				base := strings.TrimPrefix(filepath.ToSlash(path), tmpDirSlash)
-				for _, g := range gt.Globs() {
-					if g.Match(base) {
-						content, err := os.ReadFile(path)
-						if err != nil {
-							return err
-						}
-
-						if err := os.WriteFile(path,
-							[]byte(generateExpansion(string(content), templateRepo, generateRepo, false)),
-							0o644); err != nil {
-							return err
-						}
-
-						substPath := filepath.FromSlash(filepath.Join(tmpDirSlash,
-							generateExpansion(base, templateRepo, generateRepo, true)))
-
-						// Create parent subdirectories if needed or continue silently if it exists
-						if err := os.MkdirAll(filepath.Dir(substPath), 0o755); err != nil {
-							return err
-						}
-
-						// Substitute filename variables
-						if err := os.Rename(path, substPath); err != nil {
-							return err
-						}
-
-						break
-					}
-				}
-				return nil
-			}); err != nil {
-				return err
-			}
+	if giteaTemplateFile != nil {
+		err = processGiteaTemplateFile(ctx, tmpDir, templateRepo, generateRepo, giteaTemplateFile)
+		if err != nil {
+			return err
 		}
 	}
 
-	if err := git.InitRepository(ctx, tmpDir, false, templateRepo.ObjectFormatName); err != nil {
+	if err = git.InitRepository(ctx, tmpDir, false, templateRepo.ObjectFormatName); err != nil {
 		return err
 	}
 
-	repoPath := repo.RepoPath()
-	if stdout, _, err := git.NewCommand(ctx, "remote", "add", "origin").AddDynamicArguments(repoPath).
+	if stdout, _, err := git.NewCommand(ctx, "remote", "add", "origin").AddDynamicArguments(repo.RepoPath()).
 		RunStdString(&git.RunOpts{Dir: tmpDir, Env: env}); err != nil {
 		log.Error("Unable to add %v as remote origin to temporary repo to %s: stdout %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git remote add: %w", err)
+	}
+
+	if err = git.AddTemplateSubmoduleIndexes(ctx, tmpDir, submodules); err != nil {
+		return fmt.Errorf("failed to add submodules: %v", err)
 	}
 
 	// set default branch based on whether it's specified in the newly generated repo or not

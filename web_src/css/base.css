@@ -336,8 +336,13 @@ a.label,
   border-color: var(--color-secondary);
 }
 
+.ui.dropdown .menu > .header {
+  text-transform: none; /* reset fomantic's "uppercase" */
+}
+
 .ui.dropdown .menu > .header:not(.ui) {
   color: var(--color-text);
+  font-size: 0.95em; /* reset fomantic's small font-size */
 }
 
 .ui.dropdown .menu > .item {
@@ -691,10 +696,6 @@ input:-webkit-autofill:active,
   box-shadow: 0 6px 18px var(--color-shadow) !important;
 }
 
-.ui.dropdown .menu > .header {
-  font-size: 0.8em;
-}
-
 .ui .text.left {
   text-align: left !important;
 }
@@ -983,22 +984,6 @@ overflow-menu .ui.label {
 
 .oauth2-authorize-application-box {
   margin-top: 3em !important;
-}
-
-/* multiple radio or checkboxes as inline element */
-.inline-grouped-list {
-  display: inline-block;
-  vertical-align: top;
-}
-
-.inline-grouped-list > .ui {
-  display: block;
-  margin-top: 5px;
-  margin-bottom: 10px;
-}
-
-.inline-grouped-list > .ui:first-child {
-  margin-top: 1px;
 }
 
 .lines-blame-btn {

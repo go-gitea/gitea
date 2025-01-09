@@ -17,17 +17,20 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/timeutil"
+	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
+	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
@@ -51,13 +54,6 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, baseRepo)
-
-		// enable actions
-		err = repo_service.UpdateRepositoryUnits(db.DefaultContext, baseRepo, []repo_model.RepoUnit{{
-			RepoID: baseRepo.ID,
-			Type:   unit_model.TypeActions,
-		}}, nil)
-		assert.NoError(t, err)
 
 		// add user4 as the collaborator
 		ctx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
@@ -228,13 +224,6 @@ func TestSkipCI(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, repo)
 
-		// enable actions
-		err = repo_service.UpdateRepositoryUnits(db.DefaultContext, repo, []repo_model.RepoUnit{{
-			RepoID: repo.ID,
-			Type:   unit_model.TypeActions,
-		}}, nil)
-		assert.NoError(t, err)
-
 		// add workflow file to the repo
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
@@ -354,13 +343,6 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, repo)
 
-		// enable actions
-		err = repo_service.UpdateRepositoryUnits(db.DefaultContext, repo, []repo_model.RepoUnit{{
-			RepoID: repo.ID,
-			Type:   unit_model.TypeActions,
-		}}, nil)
-		assert.NoError(t, err)
-
 		// add workflow file to the repo
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
@@ -450,4 +432,222 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 		})
 		assert.NotNil(t, run)
 	})
+}
+
+func TestPullRequestCommitStatusEvent(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of the repo
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}) // contributor of the repo
+
+		// create a repo
+		repo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
+			Name:          "repo-pull-request",
+			Description:   "test pull-request event",
+			AutoInit:      true,
+			Gitignores:    "Go",
+			License:       "MIT",
+			Readme:        "Default",
+			DefaultBranch: "main",
+			IsPrivate:     false,
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, repo)
+
+		// add user4 as the collaborator
+		ctx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		t.Run("AddUser4AsCollaboratorWithReadAccess", doAPIAddCollaborator(ctx, "user4", perm.AccessModeRead))
+
+		// add the workflow file to the repo
+		addWorkflow, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      ".gitea/workflows/pr.yml",
+					ContentReader: strings.NewReader("name: test\non:\n  pull_request:\n    types: [assigned, unassigned, labeled, unlabeled, opened, edited, closed, reopened, synchronize, milestoned, demilestoned, review_requested, review_request_removed]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+				},
+			},
+			Message:   "add workflow",
+			OldBranch: "main",
+			NewBranch: "main",
+			Author: &files_service.IdentityOptions{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addWorkflow)
+		sha := addWorkflow.Commit.SHA
+
+		// create a new branch
+		testBranch := "test-branch"
+		gitRepo, err := git.OpenRepository(git.DefaultContext, ".")
+		assert.NoError(t, err)
+		err = repo_service.CreateNewBranch(git.DefaultContext, user2, repo, gitRepo, "main", testBranch)
+		assert.NoError(t, err)
+
+		// create Pull
+		pullIssue := &issues_model.Issue{
+			RepoID:   repo.ID,
+			Title:    "A test PR",
+			PosterID: user2.ID,
+			Poster:   user2,
+			IsPull:   true,
+		}
+		pullRequest := &issues_model.PullRequest{
+			HeadRepoID: repo.ID,
+			BaseRepoID: repo.ID,
+			HeadBranch: testBranch,
+			BaseBranch: "main",
+			HeadRepo:   repo,
+			BaseRepo:   repo,
+			Type:       issues_model.PullRequestGitea,
+		}
+		prOpts := &pull_service.NewPullRequestOptions{Repo: repo, Issue: pullIssue, PullRequest: pullRequest}
+		err = pull_service.NewPullRequest(db.DefaultContext, prOpts)
+		assert.NoError(t, err)
+
+		// opened
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		// edited
+		err = issue_service.ChangeContent(db.DefaultContext, pullIssue, user2, "test", 0)
+		assert.NoError(t, err)
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		// closed
+		err = issue_service.CloseIssue(db.DefaultContext, pullIssue, user2, "")
+		assert.NoError(t, err)
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		// reopened
+		err = issue_service.ReopenIssue(db.DefaultContext, pullIssue, user2, "")
+		assert.NoError(t, err)
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		// assign
+		removed, _, err := issue_service.ToggleAssigneeWithNotify(db.DefaultContext, pullIssue, user2, user4.ID)
+		assert.False(t, removed)
+		assert.NoError(t, err)
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		// unassign
+		removed, _, err = issue_service.ToggleAssigneeWithNotify(db.DefaultContext, pullIssue, user2, user4.ID)
+		assert.True(t, removed)
+		assert.NoError(t, err)
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		// labeled
+		label := &issues_model.Label{
+			RepoID:      repo.ID,
+			Name:        "test",
+			Exclusive:   false,
+			Description: "test",
+			Color:       "#e11d21",
+		}
+		err = issues_model.NewLabel(db.DefaultContext, label)
+		assert.NoError(t, err)
+		err = issue_service.AddLabel(db.DefaultContext, pullIssue, user2, label)
+		assert.NoError(t, err)
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		// unlabeled
+		err = issue_service.RemoveLabel(db.DefaultContext, pullIssue, user2, label)
+		assert.NoError(t, err)
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		// synchronize
+		addFileResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      "test.txt",
+					ContentReader: strings.NewReader("test"),
+				},
+			},
+			Message:   "add file",
+			OldBranch: testBranch,
+			NewBranch: testBranch,
+			Author: &files_service.IdentityOptions{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addFileResp)
+		sha = addFileResp.Commit.SHA
+		assert.Eventually(t, func() bool {
+			latestCommitStatuses, _, err := git_model.GetLatestCommitStatus(db.DefaultContext, repo.ID, sha, db.ListOptionsAll)
+			assert.NoError(t, err)
+			if len(latestCommitStatuses) == 0 {
+				return false
+			}
+			if latestCommitStatuses[0].State == api.CommitStatusPending {
+				insertFakeStatus(t, repo, sha, latestCommitStatuses[0].TargetURL, latestCommitStatuses[0].Context)
+				return true
+			}
+			return false
+		}, 1*time.Second, 100*time.Millisecond)
+
+		// milestoned
+		milestone := &issues_model.Milestone{
+			RepoID:       repo.ID,
+			Name:         "test",
+			Content:      "test",
+			DeadlineUnix: timeutil.TimeStampNow(),
+		}
+		err = issues_model.NewMilestone(db.DefaultContext, milestone)
+		assert.NoError(t, err)
+		err = issue_service.ChangeMilestoneAssign(db.DefaultContext, pullIssue, user2, milestone.ID)
+		assert.NoError(t, err)
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		// demilestoned
+		err = issue_service.ChangeMilestoneAssign(db.DefaultContext, pullIssue, user2, milestone.ID)
+		assert.NoError(t, err)
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		// review_requested
+		_, err = issue_service.ReviewRequest(db.DefaultContext, pullIssue, user2, nil, user4, true)
+		assert.NoError(t, err)
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		// review_request_removed
+		_, err = issue_service.ReviewRequest(db.DefaultContext, pullIssue, user2, nil, user4, false)
+		assert.NoError(t, err)
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+	})
+}
+
+func checkCommitStatusAndInsertFakeStatus(t *testing.T, repo *repo_model.Repository, sha string) {
+	latestCommitStatuses, _, err := git_model.GetLatestCommitStatus(db.DefaultContext, repo.ID, sha, db.ListOptionsAll)
+	assert.NoError(t, err)
+	assert.Len(t, latestCommitStatuses, 1)
+	assert.Equal(t, api.CommitStatusPending, latestCommitStatuses[0].State)
+
+	insertFakeStatus(t, repo, sha, latestCommitStatuses[0].TargetURL, latestCommitStatuses[0].Context)
+}
+
+func insertFakeStatus(t *testing.T, repo *repo_model.Repository, sha, targetURL, context string) {
+	err := commitstatus_service.CreateCommitStatus(db.DefaultContext, repo, user_model.NewActionsUser(), sha, &git_model.CommitStatus{
+		State:     api.CommitStatusSuccess,
+		TargetURL: targetURL,
+		Context:   context,
+	})
+	assert.NoError(t, err)
 }

@@ -74,8 +74,7 @@ func userProfile(ctx *context.Context) {
 		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
 	}
 
-	profileDbRepo, _ /*profileGitRepo*/, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
-	defer profileClose()
+	profileDbRepo, profileReadmeBlob := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer)
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	prepareUserProfileTabData(ctx, showPrivate, profileDbRepo, profileReadmeBlob)
@@ -96,7 +95,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		}
 	}
 	ctx.Data["TabName"] = tab
-	ctx.Data["HasProfileReadme"] = profileReadme != nil
+	ctx.Data["HasUserProfileReadme"] = profileReadme != nil
 
 	page := ctx.FormInt("page")
 	if page <= 0 {
@@ -254,7 +253,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			if profileContent, err := markdown.RenderString(rctx, bytes); err != nil {
 				log.Error("failed to RenderString: %v", err)
 			} else {
-				ctx.Data["ProfileReadme"] = profileContent
+				ctx.Data["ProfileReadmeContent"] = profileContent
 			}
 		}
 	case "organizations":

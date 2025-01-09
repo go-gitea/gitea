@@ -188,7 +188,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	meta, err := git_model.GetLFSMetaObjectByOid(ctx, ctx.Repo.Repository.ID, pointer.Oid)
 
 	// If there isn't one, just serve the data directly
-	if err == git_model.ErrLFSObjectNotExist {
+	if errors.Is(err, git_model.ErrLFSObjectNotExist) {
 		// Handle caching for the blob SHA (not the LFS object OID)
 		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return
@@ -282,7 +282,7 @@ func GetArchive(ctx *context.APIContext) {
 
 	if ctx.Repo.GitRepo == nil {
 		var err error
-		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx, ctx.Repo.Repository)
+		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return

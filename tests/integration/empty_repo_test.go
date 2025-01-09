@@ -58,8 +58,12 @@ func TestEmptyRepoAddFile(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user30")
-	req := NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
+	req := NewRequest(t, "GET", "/user30/empty")
 	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "empty-repo-guide")
+
+	req = NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body).Find(`input[name="commit_choice"]`)
 	assert.Empty(t, doc.AttrOr("checked", "_no_"))
 	req = NewRequestWithValues(t, "POST", "/user30/empty/_new/"+setting.Repository.DefaultBranch, map[string]string{

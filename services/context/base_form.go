@@ -8,11 +8,16 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // FormString returns the first value matching the provided key in the form as a string
-func (b *Base) FormString(key string) string {
-	return b.Req.FormValue(key)
+func (b *Base) FormString(key string, def ...string) string {
+	s := b.Req.FormValue(key)
+	if s == "" {
+		s = util.OptionalArg(def)
+	}
+	return s
 }
 
 // FormStrings returns a string slice for the provided key from the form
