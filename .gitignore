@@ -9,6 +9,7 @@ _test
 
 # IntelliJ
 .idea
+.run
 
 # IntelliJ Gateway
 .uuid
