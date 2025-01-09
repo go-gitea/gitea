@@ -4,10 +4,8 @@
 package unittest
 
 import (
-	"errors"
-	"io"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/util"
@@ -32,67 +30,73 @@ func Copy(src, dest string) error {
 		return os.Symlink(target, dest)
 	}
 
-	sr, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer sr.Close()
-
-	dw, err := os.Create(dest)
-	if err != nil {
-		return err
-	}
-	defer dw.Close()
-
-	if _, err = io.Copy(dw, sr); err != nil {
-		return err
-	}
-
-	// Set back file information.
-	if err = os.Chtimes(dest, si.ModTime(), si.ModTime()); err != nil {
-		return err
-	}
-	return os.Chmod(dest, si.Mode())
+	return util.CopyFile(src, dest)
 }
 
-// CopyDir copy files recursively from source to target directory.
-//
-// The filter accepts a function that process the path info.
-// and should return true for need to filter.
-//
-// It returns error when error occurs in underlying functions.
-func CopyDir(srcPath, destPath string, filters ...func(filePath string) bool) error {
-	// Check if target directory exists.
-	if _, err := os.Stat(destPath); !errors.Is(err, os.ErrNotExist) {
-		return util.NewAlreadyExistErrorf("file or directory already exists: %s", destPath)
+// Sync synchronizes the two files. This is skipped if both files
+// exist and the size, modtime, and mode match.
+func Sync(srcPath, destPath string) error {
+	dest, err := os.Stat(destPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return Copy(srcPath, destPath)
+		}
+		return err
 	}
 
+	src, err := os.Stat(srcPath)
+	if err != nil {
+		return err
+	}
+
+	if src.Size() == dest.Size() &&
+		src.ModTime() == dest.ModTime() &&
+		src.Mode() == dest.Mode() {
+		return nil
+	}
+
+	return Copy(srcPath, destPath)
+}
+
+// SyncDirs synchronizes files recursively from source to target directory.
+// It returns error when error occurs in underlying functions.
+func SyncDirs(srcPath, destPath string) error {
 	err := os.MkdirAll(destPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	// Gather directory info.
-	infos, err := util.StatDir(srcPath, true)
+	// find and delete all untracked files
+	destFiles, err := util.ListDirRecursively(destPath, &util.ListDirOptions{IncludeDir: true})
 	if err != nil {
 		return err
 	}
-
-	var filter func(filePath string) bool
-	if len(filters) > 0 {
-		filter = filters[0]
+	for _, destFile := range destFiles {
+		destFilePath := filepath.Join(destPath, destFile)
+		if _, err = os.Stat(filepath.Join(srcPath, destFile)); err != nil {
+			if os.IsNotExist(err) {
+				// if src file does not exist, remove dest file
+				if err = os.RemoveAll(destFilePath); err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
 	}
 
-	for _, info := range infos {
-		if filter != nil && filter(info) {
-			continue
-		}
-
-		curPath := path.Join(destPath, info)
-		if strings.HasSuffix(info, "/") {
-			err = os.MkdirAll(curPath, os.ModePerm)
+	// sync src files to dest
+	srcFiles, err := util.ListDirRecursively(srcPath, &util.ListDirOptions{IncludeDir: true})
+	if err != nil {
+		return err
+	}
+	for _, srcFile := range srcFiles {
+		destFilePath := filepath.Join(destPath, srcFile)
+		// util.ListDirRecursively appends a slash to the directory name
+		if strings.HasSuffix(srcFile, "/") {
+			err = os.MkdirAll(destFilePath, os.ModePerm)
 		} else {
-			err = Copy(path.Join(srcPath, info), curPath)
+			err = Sync(filepath.Join(srcPath, srcFile), destFilePath)
 		}
 		if err != nil {
 			return err

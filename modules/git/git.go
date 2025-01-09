@@ -95,17 +95,18 @@ func parseGitVersionLine(s string) (*version.Version, error) {
 	return version.NewVersion(versionString)
 }
 
-// SetExecutablePath changes the path of git executable and checks the file permission and version.
-func SetExecutablePath(path string) error {
-	// If path is empty, we use the default value of GitExecutable "git" to search for the location of git.
-	if path != "" {
-		GitExecutable = path
+func checkGitVersionCompatibility(gitVer *version.Version) error {
+	badVersions := []struct {
+		Version *version.Version
+		Reason  string
+	}{
+		{version.Must(version.NewVersion("2.43.1")), "regression bug of GIT_FLUSH"},
 	}
-	absPath, err := exec.LookPath(GitExecutable)
-	if err != nil {
-		return fmt.Errorf("git not found: %w", err)
+	for _, bad := range badVersions {
+		if gitVer.Equal(bad.Version) {
+			return errors.New(bad.Reason)
+		}
 	}
-	GitExecutable = absPath
 	return nil
 }
 
@@ -125,6 +126,20 @@ func ensureGitVersion() error {
 	if err := checkGitVersionCompatibility(DefaultFeatures().gitVersion); err != nil {
 		return fmt.Errorf("installed git version %s has a known compatibility issue with Gitea: %w, please upgrade (or downgrade) git", DefaultFeatures().gitVersion.String(), err)
 	}
+	return nil
+}
+
+// SetExecutablePath changes the path of git executable and checks the file permission and version.
+func SetExecutablePath(path string) error {
+	// If path is empty, we use the default value of GitExecutable "git" to search for the location of git.
+	if path != "" {
+		GitExecutable = path
+	}
+	absPath, err := exec.LookPath(GitExecutable)
+	if err != nil {
+		return fmt.Errorf("git not found: %w", err)
+	}
+	GitExecutable = absPath
 	return nil
 }
 
@@ -311,21 +326,6 @@ func syncGitConfig() (err error) {
 	}
 
 	return err
-}
-
-func checkGitVersionCompatibility(gitVer *version.Version) error {
-	badVersions := []struct {
-		Version *version.Version
-		Reason  string
-	}{
-		{version.Must(version.NewVersion("2.43.1")), "regression bug of GIT_FLUSH"},
-	}
-	for _, bad := range badVersions {
-		if gitVer.Equal(bad.Version) {
-			return errors.New(bad.Reason)
-		}
-	}
-	return nil
 }
 
 func configSet(key, value string) error {

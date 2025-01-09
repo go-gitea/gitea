@@ -51,7 +51,7 @@ func migrateWithSetting(x *xorm.Engine) error {
 	} else if current < 0 {
 		// execute migrations when the database isn't initialized even if AutoMigration is false
 		return migrations.Migrate(x)
-	} else if expected := migrations.ExpectedVersion(); current != expected {
+	} else if expected := migrations.ExpectedDBVersion(); current != expected {
 		log.Fatal(`"database.AUTO_MIGRATION" is disabled, but current database version %d is not equal to the expected version %d.`+
 			`You can set "database.AUTO_MIGRATION" to true or migrate manually by running "gitea [--config /path/to/app.ini] migrate"`, current, expected)
 	}

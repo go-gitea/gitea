@@ -8,7 +8,9 @@ export function initDiffFileTree() {
 
   const fileTreeView = createApp(DiffFileTree);
   fileTreeView.mount(el);
+}
 
+export function initDiffFileList() {
   const fileListElement = document.querySelector('#diff-file-list');
   if (!fileListElement) return;
 

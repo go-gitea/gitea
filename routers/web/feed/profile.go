@@ -7,9 +7,10 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/services/context"
+	feed_service "code.gitea.io/gitea/services/feed"
 
 	"github.com/gorilla/feeds"
 )
@@ -28,7 +29,7 @@ func ShowUserFeedAtom(ctx *context.Context) {
 func showUserFeed(ctx *context.Context, formatType string) {
 	includePrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 
-	actions, _, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
+	actions, _, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctx.ContextUser,
 		Actor:           ctx.Doer,
 		IncludePrivate:  includePrivate,
@@ -41,15 +42,9 @@ func showUserFeed(ctx *context.Context, formatType string) {
 		return
 	}
 
-	ctxUserDescription, err := markdown.RenderString(&markup.RenderContext{
-		Ctx: ctx,
-		Links: markup.Links{
-			Base: ctx.ContextUser.HTMLURL(),
-		},
-		Metas: map[string]string{
-			"user": ctx.ContextUser.GetDisplayName(),
-		},
-	}, ctx.ContextUser.Description)
+	rctx := renderhelper.NewRenderContextSimpleDocument(ctx, ctx.ContextUser.HTMLURL())
+	ctxUserDescription, err := markdown.RenderString(rctx,
+		ctx.ContextUser.Description)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return

@@ -1,6 +1,6 @@
 {{range .comments}}
 
-{{$createdStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
+{{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
 <div class="comment" id="{{.HashTag}}">
 	{{if .OriginalAuthor}}
 		<span class="avatar">{{ctx.AvatarUtils.Avatar nil}}</span>
@@ -49,7 +49,7 @@
 					{{end}}
 				{{end}}
 				{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.root.RepoLink .ID)}}
-				{{template "repo/issue/view_content/context_menu" dict "ctxData" $.root "item" . "delete" true "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
+				{{template "repo/issue/view_content/context_menu" dict "item" . "delete" true "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">

@@ -27,7 +27,7 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-// https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#35-api-versioning
+// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#35-api-versioning
 const (
 	AcceptJSON  = "application/vnd.swift.registry.v1+json"
 	AcceptSwift = "application/vnd.swift.registry.v1+swift"
@@ -35,9 +35,9 @@ const (
 )
 
 var (
-	// https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#361-package-scope
+	// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#361-package-scope
 	scopePattern = regexp.MustCompile(`\A[a-zA-Z0-9][a-zA-Z0-9-]{0,38}\z`)
-	// https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#362-package-name
+	// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#362-package-name
 	namePattern = regexp.MustCompile(`\A[a-zA-Z0-9][a-zA-Z0-9-_]{0,99}\z`)
 )
 
@@ -49,7 +49,7 @@ type headers struct {
 	Link        string
 }
 
-// https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#35-api-versioning
+// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#35-api-versioning
 func setResponseHeaders(resp http.ResponseWriter, h *headers) {
 	if h.ContentType != "" {
 		resp.Header().Set("Content-Type", h.ContentType)
@@ -69,7 +69,7 @@ func setResponseHeaders(resp http.ResponseWriter, h *headers) {
 	}
 }
 
-// https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#33-error-handling
+// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#33-error-handling
 func apiError(ctx *context.Context, status int, obj any) {
 	// https://www.rfc-editor.org/rfc/rfc7807
 	type Problem struct {
@@ -91,7 +91,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 	})
 }
 
-// https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#35-api-versioning
+// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#35-api-versioning
 func CheckAcceptMediaType(requiredAcceptHeader string) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
 		accept := ctx.Req.Header.Get("Accept")
@@ -99,6 +99,16 @@ func CheckAcceptMediaType(requiredAcceptHeader string) func(ctx *context.Context
 			apiError(ctx, http.StatusBadRequest, fmt.Sprintf("Unexpected accept header. Should be '%s'.", requiredAcceptHeader))
 		}
 	}
+}
+
+// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/PackageRegistryUsage.md#registry-authentication
+func CheckAuthenticate(ctx *context.Context) {
+	if ctx.Doer == nil {
+		apiError(ctx, http.StatusUnauthorized, nil)
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
 
 func buildPackageID(scope, name string) string {
@@ -113,7 +123,7 @@ type EnumeratePackageVersionsResponse struct {
 	Releases map[string]Release `json:"releases"`
 }
 
-// https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#41-list-package-releases
+// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#41-list-package-releases
 func EnumeratePackageVersions(ctx *context.Context) {
 	packageScope := ctx.PathParam("scope")
 	packageName := ctx.PathParam("name")
@@ -170,7 +180,7 @@ type PackageVersionMetadataResponse struct {
 	Metadata  *swift_module.SoftwareSourceCode `json:"metadata"`
 }
 
-// https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-2
+// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-2
 func PackageVersionMetadata(ctx *context.Context) {
 	id := buildPackageID(ctx.PathParam("scope"), ctx.PathParam("name"))
 
@@ -228,7 +238,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 	})
 }
 
-// https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#43-fetch-manifest-for-a-package-release
+// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#43-fetch-manifest-for-a-package-release
 func DownloadManifest(ctx *context.Context) {
 	packageScope := ctx.PathParam("scope")
 	packageName := ctx.PathParam("name")
@@ -280,7 +290,7 @@ func DownloadManifest(ctx *context.Context) {
 	})
 }
 
-// https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-6
+// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-6
 func UploadPackageFile(ctx *context.Context) {
 	packageScope := ctx.PathParam("scope")
 	packageName := ctx.PathParam("name")
@@ -379,7 +389,7 @@ func UploadPackageFile(ctx *context.Context) {
 	ctx.Status(http.StatusCreated)
 }
 
-// https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-4
+// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-4
 func DownloadPackageFile(ctx *context.Context) {
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeSwift, buildPackageID(ctx.PathParam("scope"), ctx.PathParam("name")), ctx.PathParam("version"))
 	if err != nil {
@@ -420,7 +430,7 @@ type LookupPackageIdentifiersResponse struct {
 	Identifiers []string `json:"identifiers"`
 }
 
-// https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-5
+// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-5
 func LookupPackageIdentifiers(ctx *context.Context) {
 	url := ctx.FormTrim("url")
 	if url == "" {

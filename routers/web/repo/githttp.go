@@ -57,8 +57,8 @@ func CorsHandler() func(next http.Handler) http.Handler {
 
 // httpBase implementation git smart HTTP protocol
 func httpBase(ctx *context.Context) *serviceHandler {
-	username := ctx.PathParam(":username")
-	reponame := strings.TrimSuffix(ctx.PathParam(":reponame"), ".git")
+	username := ctx.PathParam("username")
+	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
 
 	if ctx.FormString("go-get") == "1" {
 		context.EarlyResponseForGoGetMeta(ctx)
@@ -458,7 +458,6 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 
 	var stderr bytes.Buffer
 	cmd.AddArguments("--stateless-rpc").AddDynamicArguments(h.getRepoDir())
-	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.getRepoDir()))
 	if err := cmd.Run(&git.RunOpts{
 		Dir:               h.getRepoDir(),
 		Env:               append(os.Environ(), h.environ...),
@@ -467,7 +466,7 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 		Stderr:            &stderr,
 		UseContextTimeout: true,
 	}); err != nil {
-		if err.Error() != "signal: killed" {
+		if !git.IsErrCanceledOrKilled(err) {
 			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.getRepoDir(), err, stderr.String())
 		}
 		return

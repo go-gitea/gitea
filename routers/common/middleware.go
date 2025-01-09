@@ -4,16 +4,14 @@
 package common
 
 import (
-	go_context "context"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/services/context"
 
@@ -24,54 +22,12 @@ import (
 
 // ProtocolMiddlewares returns HTTP protocol related middlewares, and it provides a global panic recovery
 func ProtocolMiddlewares() (handlers []any) {
-	// make sure chi uses EscapedPath(RawPath) as RoutePath, then "%2f" could be handled correctly
-	handlers = append(handlers, func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			ctx := chi.RouteContext(req.Context())
-			if req.URL.RawPath == "" {
-				ctx.RoutePath = req.URL.EscapedPath()
-			} else {
-				ctx.RoutePath = req.URL.RawPath
-			}
-			next.ServeHTTP(resp, req)
-		})
-	})
+	// the order is important
+	handlers = append(handlers, ChiRoutePathHandler())   // make sure chi has correct paths
+	handlers = append(handlers, RequestContextHandler()) //	prepare the context and panic recovery
 
-	// prepare the ContextData and panic recovery
-	handlers = append(handlers, func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			defer func() {
-				if err := recover(); err != nil {
-					RenderPanicErrorPage(resp, req, err) // it should never panic
-				}
-			}()
-			req = req.WithContext(middleware.WithContextData(req.Context()))
-			req = req.WithContext(go_context.WithValue(req.Context(), httplib.RequestContextKey, req))
-			next.ServeHTTP(resp, req)
-		})
-	})
-
-	// wrap the request and response, use the process context and add it to the process manager
-	handlers = append(handlers, func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			ctx, _, finished := process.GetManager().AddTypedContext(req.Context(), fmt.Sprintf("%s: %s", req.Method, req.RequestURI), process.RequestProcessType, true)
-			defer finished()
-			next.ServeHTTP(context.WrapResponseWriter(resp), req.WithContext(cache.WithCacheContext(ctx)))
-		})
-	})
-
-	if setting.ReverseProxyLimit > 0 {
-		opt := proxy.NewForwardedHeadersOptions().
-			WithForwardLimit(setting.ReverseProxyLimit).
-			ClearTrustedProxies()
-		for _, n := range setting.ReverseProxyTrustedProxies {
-			if !strings.Contains(n, "/") {
-				opt.AddTrustedProxy(n)
-			} else {
-				opt.AddTrustedNetwork(n)
-			}
-		}
-		handlers = append(handlers, proxy.ForwardedHeaders(opt))
+	if setting.ReverseProxyLimit > 0 && len(setting.ReverseProxyTrustedProxies) > 0 {
+		handlers = append(handlers, ForwardedHeadersHandler(setting.ReverseProxyLimit, setting.ReverseProxyTrustedProxies))
 	}
 
 	if setting.IsRouteLogEnabled() {
@@ -83,6 +39,59 @@ func ProtocolMiddlewares() (handlers []any) {
 	}
 
 	return handlers
+}
+
+func RequestContextHandler() func(h http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			profDesc := fmt.Sprintf("%s: %s", req.Method, req.RequestURI)
+			ctx, finished := reqctx.NewRequestContext(req.Context(), profDesc)
+			defer finished()
+
+			defer func() {
+				if err := recover(); err != nil {
+					RenderPanicErrorPage(resp, req, err) // it should never panic
+				}
+			}()
+
+			ds := reqctx.GetRequestDataStore(ctx)
+			req = req.WithContext(cache.WithCacheContext(ctx))
+			ds.SetContextValue(httplib.RequestContextKey, req)
+			ds.AddCleanUp(func() {
+				if req.MultipartForm != nil {
+					_ = req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
+				}
+			})
+			next.ServeHTTP(context.WrapResponseWriter(resp), req)
+		})
+	}
+}
+
+func ChiRoutePathHandler() func(h http.Handler) http.Handler {
+	// make sure chi uses EscapedPath(RawPath) as RoutePath, then "%2f" could be handled correctly
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			ctx := chi.RouteContext(req.Context())
+			if req.URL.RawPath == "" {
+				ctx.RoutePath = req.URL.EscapedPath()
+			} else {
+				ctx.RoutePath = req.URL.RawPath
+			}
+			next.ServeHTTP(resp, req)
+		})
+	}
+}
+
+func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Handler) http.Handler {
+	opt := proxy.NewForwardedHeadersOptions().WithForwardLimit(limit).ClearTrustedProxies()
+	for _, n := range trustedProxies {
+		if !strings.Contains(n, "/") {
+			opt.AddTrustedProxy(n)
+		} else {
+			opt.AddTrustedNetwork(n)
+		}
+	}
+	return proxy.ForwardedHeaders(opt)
 }
 
 func Sessioner() func(next http.Handler) http.Handler {

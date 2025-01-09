@@ -25,7 +25,7 @@ func TestPackagistPayload(t *testing.T) {
 
 		pl, err := pc.Create(p)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
@@ -33,7 +33,7 @@ func TestPackagistPayload(t *testing.T) {
 
 		pl, err := pc.Delete(p)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 	})
 
 	t.Run("Fork", func(t *testing.T) {
@@ -41,7 +41,7 @@ func TestPackagistPayload(t *testing.T) {
 
 		pl, err := pc.Fork(p)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 	})
 
 	t.Run("Push", func(t *testing.T) {
@@ -59,12 +59,12 @@ func TestPackagistPayload(t *testing.T) {
 		p.Action = api.HookIssueOpened
 		pl, err := pc.Issue(p)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 
 		p.Action = api.HookIssueClosed
 		pl, err = pc.Issue(p)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 	})
 
 	t.Run("IssueComment", func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestPackagistPayload(t *testing.T) {
 
 		pl, err := pc.IssueComment(p)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 	})
 
 	t.Run("PullRequest", func(t *testing.T) {
@@ -80,7 +80,7 @@ func TestPackagistPayload(t *testing.T) {
 
 		pl, err := pc.PullRequest(p)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 	})
 
 	t.Run("PullRequestComment", func(t *testing.T) {
@@ -88,7 +88,7 @@ func TestPackagistPayload(t *testing.T) {
 
 		pl, err := pc.IssueComment(p)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 	})
 
 	t.Run("Review", func(t *testing.T) {
@@ -97,7 +97,7 @@ func TestPackagistPayload(t *testing.T) {
 
 		pl, err := pc.Review(p, webhook_module.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 	})
 
 	t.Run("Repository", func(t *testing.T) {
@@ -105,7 +105,7 @@ func TestPackagistPayload(t *testing.T) {
 
 		pl, err := pc.Repository(p)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 	})
 
 	t.Run("Package", func(t *testing.T) {
@@ -113,7 +113,7 @@ func TestPackagistPayload(t *testing.T) {
 
 		pl, err := pc.Package(p)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 	})
 
 	t.Run("Wiki", func(t *testing.T) {
@@ -122,17 +122,17 @@ func TestPackagistPayload(t *testing.T) {
 		p.Action = api.HookWikiCreated
 		pl, err := pc.Wiki(p)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 
 		p.Action = api.HookWikiEdited
 		pl, err = pc.Wiki(p)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 
 		p.Action = api.HookWikiDeleted
 		pl, err = pc.Wiki(p)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 	})
 
 	t.Run("Release", func(t *testing.T) {
@@ -140,7 +140,7 @@ func TestPackagistPayload(t *testing.T) {
 
 		pl, err := pc.Release(p)
 		require.NoError(t, err)
-		require.Equal(t, pl, PackagistPayload{})
+		require.Equal(t, PackagistPayload{}, pl)
 	})
 }
 

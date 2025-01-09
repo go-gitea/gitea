@@ -20,7 +20,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
@@ -28,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
@@ -90,34 +88,6 @@ func TestMain(m *testing.M) {
 	tests.InitTest(true)
 	testWebRoutes = routers.NormalRoutes()
 
-	// integration test settings...
-	if setting.CfgProvider != nil {
-		testingCfg := setting.CfgProvider.Section("integration-tests")
-		testlogger.SlowTest = testingCfg.Key("SLOW_TEST").MustDuration(testlogger.SlowTest)
-		testlogger.SlowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(testlogger.SlowFlush)
-	}
-
-	if os.Getenv("GITEA_SLOW_TEST_TIME") != "" {
-		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_TEST_TIME"))
-		if err == nil {
-			testlogger.SlowTest = duration
-		}
-	}
-
-	if os.Getenv("GITEA_SLOW_FLUSH_TIME") != "" {
-		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_FLUSH_TIME"))
-		if err == nil {
-			testlogger.SlowFlush = duration
-		}
-	}
-
-	os.Unsetenv("GIT_AUTHOR_NAME")
-	os.Unsetenv("GIT_AUTHOR_EMAIL")
-	os.Unsetenv("GIT_AUTHOR_DATE")
-	os.Unsetenv("GIT_COMMITTER_NAME")
-	os.Unsetenv("GIT_COMMITTER_EMAIL")
-	os.Unsetenv("GIT_COMMITTER_DATE")
-
 	err := unittest.InitFixtures(
 		unittest.FixturesOptions{
 			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
@@ -131,8 +101,6 @@ func TestMain(m *testing.M) {
 	// FIXME: the console logger is deleted by mistake, so if there is any `log.Fatal`, developers won't see any error message.
 	// Instead, "No tests were found",  last nonsense log is "According to the configuration, subsequent logs will not be printed to the console"
 	exitCode := m.Run()
-
-	testlogger.WriterCloser.Reset()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("util.RemoveAll: %v\n", err)
@@ -298,7 +266,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Log the flash values on failure
-	if !assert.Equal(t, resp.Result().Header["Location"], []string{"/user/settings/applications"}) {
+	if !assert.Equal(t, []string{"/user/settings/applications"}, resp.Result().Header["Location"]) {
 		for _, cookie := range resp.Result().Cookies() {
 			if cookie.Name != gitea_context.CookieNameFlash {
 				continue
@@ -400,8 +368,9 @@ func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest
 	}
 	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		if !assert.EqualValues(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String()) {
+		if expectedStatus != recorder.Code {
 			logUnexpectedResponse(t, recorder)
+			require.Equal(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String())
 		}
 	}
 	return recorder
@@ -464,7 +433,7 @@ func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v any) {
 	t.Helper()
 
 	decoder := json.NewDecoder(resp.Body)
-	assert.NoError(t, decoder.Decode(v))
+	require.NoError(t, decoder.Decode(v))
 }
 
 func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile string) {
@@ -472,37 +441,33 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 
 	schemaFilePath := filepath.Join(filepath.Dir(setting.AppPath), "tests", "integration", "schemas", schemaFile)
 	_, schemaFileErr := os.Stat(schemaFilePath)
-	assert.Nil(t, schemaFileErr)
+	assert.NoError(t, schemaFileErr)
 
 	schema, schemaFileReadErr := os.ReadFile(schemaFilePath)
-	assert.Nil(t, schemaFileReadErr)
-	assert.True(t, len(schema) > 0)
+	assert.NoError(t, schemaFileReadErr)
+	assert.NotEmpty(t, schema)
 
 	nodeinfoSchema := gojsonschema.NewStringLoader(string(schema))
 	nodeinfoString := gojsonschema.NewStringLoader(resp.Body.String())
 	result, schemaValidationErr := gojsonschema.Validate(nodeinfoSchema, nodeinfoString)
-	assert.Nil(t, schemaValidationErr)
+	assert.NoError(t, schemaValidationErr)
 	assert.Empty(t, result.Errors())
 	assert.True(t, result.Valid())
 }
 
-// GetCSRF returns CSRF token from body
-// If it fails, it means the CSRF token is not found in the response body returned by the url with the given session.
-// In this case, you should find a better url to get it.
-func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
+// GetUserCSRFToken returns CSRF token for current user
+func GetUserCSRFToken(t testing.TB, session *TestSession) string {
 	t.Helper()
-	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-	csrf := doc.GetCSRF()
-	require.NotEmpty(t, csrf)
-	return csrf
+	cookie := session.GetCookie("_csrf")
+	require.NotEmpty(t, cookie)
+	return cookie.Value
 }
 
-// GetCSRFFrom returns CSRF token from body
-func GetCSRFFromCookie(t testing.TB, session *TestSession, urlStr string) string {
+// GetUserCSRFToken returns CSRF token for anonymous user (not logged in)
+func GetAnonymousCSRFToken(t testing.TB, session *TestSession) string {
 	t.Helper()
-	req := NewRequest(t, "GET", urlStr)
-	session.MakeRequest(t, req, http.StatusOK)
-	return session.GetCookie("_csrf").Value
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusOK)
+	csrfToken := NewHTMLParser(t, resp.Body).GetCSRF()
+	require.NotEmpty(t, csrfToken)
+	return csrfToken
 }

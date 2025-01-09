@@ -87,7 +87,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 		IsClosed: optional.Some(false),
 	})
 	assert.NoError(t, err)
-	assert.Len(t, milestones, 0)
+	assert.Empty(t, milestones)
 }
 
 func TestGetMilestones(t *testing.T) {

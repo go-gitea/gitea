@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -43,18 +44,24 @@ type Command struct {
 	prog             string
 	args             []string
 	parentContext    context.Context
-	desc             string
 	globalArgsLength int
 	brokenArgs       []string
 }
 
-func (c *Command) String() string {
-	return c.toString(false)
+func logArgSanitize(arg string) string {
+	if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
+		return util.SanitizeCredentialURLs(arg)
+	} else if filepath.IsAbs(arg) {
+		base := filepath.Base(arg)
+		dir := filepath.Dir(arg)
+		return filepath.Join(filepath.Base(dir), base)
+	}
+	return arg
 }
 
-func (c *Command) toString(sanitizing bool) string {
+func (c *Command) LogString() string {
 	// WARNING: this function is for debugging purposes only. It's much better than old code (which only joins args with space),
-	// It's impossible to make a simple and 100% correct implementation of argument quoting for different platforms.
+	// It's impossible to make a simple and 100% correct implementation of argument quoting for different platforms here.
 	debugQuote := func(s string) string {
 		if strings.ContainsAny(s, " `'\"\t\r\n") {
 			return fmt.Sprintf("%q", s)
@@ -63,12 +70,11 @@ func (c *Command) toString(sanitizing bool) string {
 	}
 	a := make([]string, 0, len(c.args)+1)
 	a = append(a, debugQuote(c.prog))
-	for _, arg := range c.args {
-		if sanitizing && (strings.Contains(arg, "://") && strings.Contains(arg, "@")) {
-			a = append(a, debugQuote(util.SanitizeCredentialURLs(arg)))
-		} else {
-			a = append(a, debugQuote(arg))
-		}
+	if c.globalArgsLength > 0 {
+		a = append(a, "...global...")
+	}
+	for i := c.globalArgsLength; i < len(c.args); i++ {
+		a = append(a, debugQuote(logArgSanitize(c.args[i])))
 	}
 	return strings.Join(a, " ")
 }
@@ -109,12 +115,6 @@ func NewCommandContextNoGlobals(ctx context.Context, args ...internal.CmdArg) *C
 // SetParentContext sets the parent context for this command
 func (c *Command) SetParentContext(ctx context.Context) *Command {
 	c.parentContext = ctx
-	return c
-}
-
-// SetDescription sets the description for this command which be returned on c.String()
-func (c *Command) SetDescription(desc string) *Command {
-	c.desc = desc
 	return c
 }
 
@@ -236,10 +236,16 @@ type RunOpts struct {
 }
 
 func commonBaseEnvs() []string {
-	// at the moment, do not set "GIT_CONFIG_NOSYSTEM", users may have put some configs like "receive.certNonceSeed" in it
 	envs := []string{
-		"HOME=" + HomeDir(),        // make Gitea use internal git config only, to prevent conflicts with user's git config
-		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
+		// Make Gitea use internal git config only, to prevent conflicts with user's git config
+		// It's better to use GIT_CONFIG_GLOBAL, but it requires git >= 2.32, so we still use HOME at the moment.
+		"HOME=" + HomeDir(),
+		// Avoid using system git config, it would cause problems (eg: use macOS osxkeychain to show a modal dialog, auto installing lfs hooks)
+		// This might be a breaking change in 1.24, because some users said that they have put some configs like "receive.certNonceSeed" in "/etc/gitconfig"
+		// For these users, they need to migrate the necessary configs to Gitea's git config file manually.
+		"GIT_CONFIG_NOSYSTEM=1",
+		// Ignore replace references (https://git-scm.com/docs/git-replace)
+		"GIT_NO_REPLACE_OBJECTS=1",
 	}
 
 	// some environment variables should be passed to git command
@@ -271,8 +277,12 @@ var ErrBrokenCommand = errors.New("git command is broken")
 
 // Run runs the command with the RunOpts
 func (c *Command) Run(opts *RunOpts) error {
+	return c.run(1, opts)
+}
+
+func (c *Command) run(skip int, opts *RunOpts) error {
 	if len(c.brokenArgs) != 0 {
-		log.Error("git command is broken: %s, broken args: %s", c.String(), strings.Join(c.brokenArgs, " "))
+		log.Error("git command is broken: %s, broken args: %s", c.LogString(), strings.Join(c.brokenArgs, " "))
 		return ErrBrokenCommand
 	}
 	if opts == nil {
@@ -285,20 +295,14 @@ func (c *Command) Run(opts *RunOpts) error {
 		timeout = defaultCommandExecutionTimeout
 	}
 
-	if len(opts.Dir) == 0 {
-		log.Debug("git.Command.Run: %s", c)
-	} else {
-		log.Debug("git.Command.RunDir(%s): %s", opts.Dir, c)
+	var desc string
+	callerInfo := util.CallerFuncName(1 /* util */ + 1 /* this */ + skip /* parent */)
+	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
+		callerInfo = callerInfo[pos+1:]
 	}
-
-	desc := c.desc
-	if desc == "" {
-		if opts.Dir == "" {
-			desc = fmt.Sprintf("git: %s", c.toString(true))
-		} else {
-			desc = fmt.Sprintf("git(dir:%s): %s", opts.Dir, c.toString(true))
-		}
-	}
+	// these logs are for debugging purposes only, so no guarantee of correctness or stability
+	desc = fmt.Sprintf("git.Run(by:%s, repo:%s): %s", callerInfo, logArgSanitize(opts.Dir), c.LogString())
+	log.Debug("git.Command: %s", desc)
 
 	var ctx context.Context
 	var cancel context.CancelFunc
@@ -401,7 +405,7 @@ func IsErrorExitCode(err error, code int) bool {
 
 // RunStdString runs the command with options and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
-	stdoutBytes, stderrBytes, err := c.RunStdBytes(opts)
+	stdoutBytes, stderrBytes, err := c.runStdBytes(opts)
 	stdout = util.UnsafeBytesToString(stdoutBytes)
 	stderr = util.UnsafeBytesToString(stderrBytes)
 	if err != nil {
@@ -413,6 +417,10 @@ func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr Run
 
 // RunStdBytes runs the command with options and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
+	return c.runStdBytes(opts)
+}
+
+func (c *Command) runStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
 	if opts == nil {
 		opts = &RunOpts{}
 	}
@@ -435,7 +443,7 @@ func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunS
 		PipelineFunc:      opts.PipelineFunc,
 	}
 
-	err := c.Run(newOpts)
+	err := c.run(2, newOpts)
 	stderr = stderrBuf.Bytes()
 	if err != nil {
 		return nil, stderr, &runStdError{err: err, stderr: util.UnsafeBytesToString(stderr)}

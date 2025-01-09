@@ -56,8 +56,7 @@ type Source struct {
 	UserUID               string // User Attribute listed in Group
 	SkipLocalTwoFA        bool   `json:",omitempty"` // Skip Local 2fa for users authenticated with this source
 
-	// reference to the authSource
-	authSource *auth.Source
+	authSource *auth.Source // reference to the authSource
 }
 
 // FromDB fills up a LDAPConfig from serialized format.
@@ -107,7 +106,7 @@ func (source *Source) UseTLS() bool {
 
 // ProvidesSSHKeys returns if this source provides SSH Keys
 func (source *Source) ProvidesSSHKeys() bool {
-	return len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
+	return strings.TrimSpace(source.AttributeSSHPublicKey) != ""
 }
 
 // SetAuthSource sets the related AuthSource

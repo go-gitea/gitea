@@ -13,7 +13,7 @@ function attachDirAuto(el: DirElement) {
   }
 }
 
-export function initDirAuto() {
+export function initDirAuto(): void {
   const observer = new MutationObserver((mutationList) => {
     const len = mutationList.length;
     for (let i = 0; i < len; i++) {

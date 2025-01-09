@@ -8,41 +8,35 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/base"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
 	// tplExploreCode explore code page template
-	tplExploreCode base.TplName = "explore/code"
+	tplExploreCode templates.TplName = "explore/code"
 )
 
 // Code render explore code page
 func Code(ctx *context.Context) {
-	if !setting.Indexer.RepoIndexerEnabled {
+	if !setting.Indexer.RepoIndexerEnabled || setting.Service.Explore.DisableCodePage {
 		ctx.Redirect(setting.AppSubURL + "/explore")
 		return
 	}
 
-	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
+	ctx.Data["UsersPageIsDisabled"] = setting.Service.Explore.DisableUsersPage
+	ctx.Data["OrganizationsPageIsDisabled"] = setting.Service.Explore.DisableOrganizationsPage
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreCode"] = true
-
-	language := ctx.FormTrim("l")
-	keyword := ctx.FormTrim("q")
-
-	isFuzzy := ctx.FormOptionalBool("fuzzy").ValueOrDefault(true)
-
-	ctx.Data["Keyword"] = keyword
-	ctx.Data["Language"] = language
-	ctx.Data["IsFuzzy"] = isFuzzy
 	ctx.Data["PageIsViewCode"] = true
 
-	if keyword == "" {
+	prepareSearch := common.PrepareCodeSearch(ctx)
+	if prepareSearch.Keyword == "" {
 		ctx.HTML(http.StatusOK, tplExploreCode)
 		return
 	}
@@ -79,9 +73,9 @@ func Code(ctx *context.Context) {
 	if (len(repoIDs) > 0) || isAdmin {
 		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
 			RepoIDs:        repoIDs,
-			Keyword:        keyword,
-			IsKeywordFuzzy: isFuzzy,
-			Language:       language,
+			Keyword:        prepareSearch.Keyword,
+			IsKeywordFuzzy: prepareSearch.IsFuzzy,
+			Language:       prepareSearch.Language,
 			Paginator: &db.ListOptions{
 				Page:     page,
 				PageSize: setting.UI.RepoSearchPagingNum,
@@ -136,8 +130,7 @@ func Code(ctx *context.Context) {
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParamString("l", language)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplExploreCode)

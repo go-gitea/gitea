@@ -45,6 +45,24 @@ func TestCreateComment(t *testing.T) {
 	unittest.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
 }
 
+func Test_UpdateCommentAttachment(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 1})
+	attachment := repo_model.Attachment{
+		Name: "test.txt",
+	}
+	assert.NoError(t, db.Insert(db.DefaultContext, &attachment))
+
+	err := issues_model.UpdateCommentAttachments(db.DefaultContext, comment, []string{attachment.UUID})
+	assert.NoError(t, err)
+
+	attachment2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: attachment.ID})
+	assert.EqualValues(t, attachment.Name, attachment2.Name)
+	assert.EqualValues(t, comment.ID, attachment2.CommentID)
+	assert.EqualValues(t, comment.IssueID, attachment2.IssueID)
+}
+
 func TestFetchCodeComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -64,7 +82,7 @@ func TestFetchCodeComments(t *testing.T) {
 }
 
 func TestAsCommentType(t *testing.T) {
-	assert.Equal(t, issues_model.CommentType(0), issues_model.CommentTypeComment)
+	assert.Equal(t, issues_model.CommentTypeComment, issues_model.CommentType(0))
 	assert.Equal(t, issues_model.CommentTypeUndefined, issues_model.AsCommentType(""))
 	assert.Equal(t, issues_model.CommentTypeUndefined, issues_model.AsCommentType("nonsense"))
 	assert.Equal(t, issues_model.CommentTypeComment, issues_model.AsCommentType("comment"))
@@ -96,4 +114,13 @@ func TestMigrate_InsertIssueComments(t *testing.T) {
 	assert.EqualValues(t, issue.NumComments+1, issueModified.NumComments)
 
 	unittest.CheckConsistencyFor(t, &issues_model.Issue{})
+}
+
+func Test_UpdateIssueNumComments(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+
+	assert.NoError(t, issues_model.UpdateIssueNumComments(db.DefaultContext, issue2.ID))
+	issue2 = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	assert.EqualValues(t, 1, issue2.NumComments)
 }

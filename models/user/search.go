@@ -39,8 +39,6 @@ type SearchUserOptions struct {
 	IsTwoFactorEnabled optional.Option[bool]
 	IsProhibitLogin    optional.Option[bool]
 	IncludeReserved    bool
-
-	ExtraParamStrings map[string]string
 }
 
 func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Session {
@@ -152,7 +150,7 @@ func SearchUsers(ctx context.Context, opts *SearchUserOptions) (users []*User, _
 
 	sessQuery := opts.toSearchQueryBase(ctx).OrderBy(opts.OrderBy.String())
 	defer sessQuery.Close()
-	if opts.Page != 0 {
+	if opts.Page > 0 {
 		sessQuery = db.SetSessionPagination(sessQuery, opts)
 	}
 

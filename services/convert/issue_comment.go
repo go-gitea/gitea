@@ -76,6 +76,11 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 			// so we check for the "|" delimiter and convert new to legacy format on demand
 			c.Content = util.SecToTime(c.Content[1:])
 		}
+
+		if c.Type == issues_model.CommentTypeChangeTimeEstimate {
+			timeSec, _ := util.ToInt64(c.Content)
+			c.Content = util.TimeEstimateString(timeSec)
+		}
 	}
 
 	comment := &api.TimelineComment{

@@ -1,9 +1,13 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository projects view-project">
-	{{template "shared/user/org_profile_avatar" .}}
-	<div class="ui container tw-mb-4">
-		{{template "user/overview/header" .}}
-	</div>
+<div role="main" aria-label="{{.Title}}" class="page-content organization repository projects view-project">
+	{{if .ContextUser.IsOrganization}}
+		{{template "org/header" .}}
+	{{else}}
+		{{template "shared/user/org_profile_avatar" .}}
+		<div class="ui container tw-mb-4">
+			{{template "user/overview/header" .}}
+		</div>
+	{{end}}
 	<div class="ui container fluid padded">
 		{{template "projects/view" .}}
 	</div>

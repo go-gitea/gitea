@@ -1,0 +1,18 @@
+{{if and .UpstreamDivergingInfo (or .UpstreamDivergingInfo.BaseIsNewer .UpstreamDivergingInfo.CommitsBehind)}}
+<div class="ui message flex-text-block">
+	<div class="tw-flex-1">
+		{{$upstreamLink := printf "%s/src/branch/%s" .Repository.BaseRepo.Link (.BranchName|PathEscapeSegments)}}
+		{{$upstreamHtml := HTMLFormat `<a href="%s">%s:%s</a>` $upstreamLink .Repository.BaseRepo.FullName .BranchName}}
+		{{if .UpstreamDivergingInfo.CommitsBehind}}
+			{{ctx.Locale.TrN .UpstreamDivergingInfo.CommitsBehind "repo.pulls.upstream_diverging_prompt_behind_1" "repo.pulls.upstream_diverging_prompt_behind_n" .UpstreamDivergingInfo.CommitsBehind $upstreamHtml}}
+		{{else}}
+			{{ctx.Locale.Tr "repo.pulls.upstream_diverging_prompt_base_newer" $upstreamHtml}}
+		{{end}}
+	</div>
+	{{if .CanWriteCode}}
+	<button class="ui compact primary button tw-m-0 link-action" data-url="{{.Repository.Link}}/branches/merge-upstream?branch={{.BranchName}}">
+		{{ctx.Locale.Tr "repo.pulls.upstream_diverging_merge"}}
+	</button>
+	{{end}}
+</div>
+{{end}}

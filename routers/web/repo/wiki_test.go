@@ -20,6 +20,7 @@ import (
 	wiki_service "code.gitea.io/gitea/services/wiki"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -66,12 +67,9 @@ func assertWikiNotExists(t *testing.T, repo *repo_model.Repository, wikiName wik
 
 func assertPagesMetas(t *testing.T, expectedNames []string, metas any) {
 	pageMetas, ok := metas.([]PageMeta)
-	if !assert.True(t, ok) {
-		return
-	}
-	if !assert.Len(t, pageMetas, len(expectedNames)) {
-		return
-	}
+	require.True(t, ok)
+	require.Len(t, pageMetas, len(expectedNames))
+
 	for i, pageMeta := range pageMetas {
 		assert.EqualValues(t, expectedNames[i], pageMeta.Name)
 	}
@@ -135,7 +133,7 @@ func TestNewWikiPost(t *testing.T) {
 		NewWikiPost(ctx)
 		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 		assertWikiExists(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title))
-		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title)), content)
+		assert.Equal(t, content, wikiContent(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title)))
 	}
 }
 
@@ -194,7 +192,7 @@ func TestEditWikiPost(t *testing.T) {
 		EditWikiPost(ctx)
 		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 		assertWikiExists(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title))
-		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title)), content)
+		assert.Equal(t, content, wikiContent(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title)))
 		if title != "Home" {
 			assertWikiNotExists(t, ctx.Repo.Repository, "Home")
 		}

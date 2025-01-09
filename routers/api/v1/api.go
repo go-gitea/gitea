@@ -321,7 +321,7 @@ func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeC
 		}
 
 		if !allow {
-			ctx.Error(http.StatusForbidden, "tokenRequiresScope", fmt.Sprintf("token does not have at least one of required scope(s): %v", requiredScopes))
+			ctx.Error(http.StatusForbidden, "tokenRequiresScope", fmt.Sprintf("token does not have at least one of required scope(s), required=%v, token scope=%v", requiredScopes, scope))
 			return
 		}
 
@@ -356,8 +356,16 @@ func reqToken() func(ctx *context.APIContext) {
 
 func reqExploreSignIn() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if setting.Service.Explore.RequireSigninView && !ctx.IsSigned {
+		if (setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView) && !ctx.IsSigned {
 			ctx.Error(http.StatusUnauthorized, "reqExploreSignIn", "you must be signed in to search for users")
+		}
+	}
+}
+
+func reqUsersExploreEnabled() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if setting.Service.Explore.DisableUsersPage {
+			ctx.NotFound()
 		}
 	}
 }
@@ -588,12 +596,12 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 
 		var err error
 		if assignOrg {
-			ctx.Org.Organization, err = organization.GetOrgByName(ctx, ctx.PathParam(":org"))
+			ctx.Org.Organization, err = organization.GetOrgByName(ctx, ctx.PathParam("org"))
 			if err != nil {
 				if organization.IsErrOrgNotExist(err) {
-					redirectUserID, err := user_model.LookupUserRedirect(ctx, ctx.PathParam(":org"))
+					redirectUserID, err := user_model.LookupUserRedirect(ctx, ctx.PathParam("org"))
 					if err == nil {
-						context.RedirectToUser(ctx.Base, ctx.PathParam(":org"), redirectUserID)
+						context.RedirectToUser(ctx.Base, ctx.PathParam("org"), redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetOrgByName", err)
 					} else {
@@ -608,7 +616,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 		}
 
 		if assignTeam {
-			ctx.Org.Team, err = organization.GetTeamByID(ctx, ctx.PathParamInt64(":teamid"))
+			ctx.Org.Team, err = organization.GetTeamByID(ctx, ctx.PathParamInt64("teamid"))
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
 					ctx.NotFound()
@@ -955,7 +963,7 @@ func Routes() *web.Router {
 
 		// Users (requires user scope)
 		m.Group("/users", func() {
-			m.Get("/search", reqExploreSignIn(), user.Search)
+			m.Get("/search", reqExploreSignIn(), reqUsersExploreEnabled(), user.Search)
 
 			m.Group("/{username}", func() {
 				m.Get("", reqExploreSignIn(), user.GetInfo)
@@ -1164,7 +1172,7 @@ func Routes() *web.Router {
 					m.Get("", reqAnyRepoReader(), repo.ListCollaborators)
 					m.Group("/{collaborator}", func() {
 						m.Combo("").Get(reqAnyRepoReader(), repo.IsCollaborator).
-							Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
+							Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddOrUpdateCollaborator).
 							Delete(reqAdmin(), repo.DeleteCollaborator)
 						m.Get("/permission", repo.GetRepoPermissions)
 					})
@@ -1187,6 +1195,7 @@ func Routes() *web.Router {
 					m.Get("/*", repo.GetBranch)
 					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.DeleteBranch)
 					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
+					m.Patch("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.UpdateBranchRepoOption{}), repo.UpdateBranch)
 				}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode))
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
@@ -1196,6 +1205,7 @@ func Routes() *web.Router {
 						m.Patch("", bind(api.EditBranchProtectionOption{}), mustNotBeArchived, repo.EditBranchProtection)
 						m.Delete("", repo.DeleteBranchProtection)
 					})
+					m.Post("/priority", bind(api.UpdateBranchProtectionPriories{}), mustNotBeArchived, repo.UpdateBranchProtectionPriories)
 				}, reqToken(), reqAdmin())
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)
@@ -1369,6 +1379,8 @@ func Routes() *web.Router {
 					m.Post("", bind(api.UpdateRepoAvatarOption{}), repo.UpdateAvatar)
 					m.Delete("", repo.DeleteAvatar)
 				}, reqAdmin(), reqToken())
+
+				m.Get("/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), repo.DownloadArchive)
 			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 

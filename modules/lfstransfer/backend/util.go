@@ -20,11 +20,11 @@ import (
 
 // HTTP headers
 const (
-	headerAccept        = "Accept"
-	headerAuthorisation = "Authorization"
-	headerAuthX         = "X-Auth"
-	headerContentType   = "Content-Type"
-	headerContentLength = "Content-Length"
+	headerAccept            = "Accept"
+	headerAuthorization     = "Authorization"
+	headerGiteaInternalAuth = "X-Gitea-Internal-Auth"
+	headerContentType       = "Content-Type"
+	headerContentLength     = "Content-Length"
 )
 
 // MIME types

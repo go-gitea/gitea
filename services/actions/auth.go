@@ -83,7 +83,12 @@ func ParseAuthorizationToken(req *http.Request) (int64, error) {
 		return 0, fmt.Errorf("split token failed")
 	}
 
-	token, err := jwt.ParseWithClaims(parts[1], &actionsClaims{}, func(t *jwt.Token) (any, error) {
+	return TokenToTaskID(parts[1])
+}
+
+// TokenToTaskID returns the TaskID associated with the provided JWT token
+func TokenToTaskID(token string) (int64, error) {
+	parsedToken, err := jwt.ParseWithClaims(token, &actionsClaims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
@@ -93,8 +98,8 @@ func ParseAuthorizationToken(req *http.Request) (int64, error) {
 		return 0, err
 	}
 
-	c, ok := token.Claims.(*actionsClaims)
-	if !token.Valid || !ok {
+	c, ok := parsedToken.Claims.(*actionsClaims)
+	if !parsedToken.Valid || !ok {
 		return 0, fmt.Errorf("invalid token claim")
 	}
 

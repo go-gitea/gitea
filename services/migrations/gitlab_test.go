@@ -17,7 +17,7 @@ import (
 	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 func TestGitlabDownloadRepo(t *testing.T) {
@@ -50,7 +50,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 
 	topics, err := downloader.GetTopics()
 	assert.NoError(t, err)
-	assert.True(t, len(topics) == 2)
+	assert.Len(t, topics, 2)
 	assert.EqualValues(t, []string{"migration", "test"}, topics)
 
 	milestones, err := downloader.GetMilestones()

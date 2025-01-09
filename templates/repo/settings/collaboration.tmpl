@@ -69,7 +69,7 @@
 							{{if or (eq .AccessMode 1) (eq .AccessMode 2)}}
 								{{$first := true}}
 								<div class="flex-item-body" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.change_team_permission_tip"}}">
-									Sections: {{range $u, $unit := $.Units}}{{if and ($.Repo.UnitEnabled $.Context $unit.Type) ($team.UnitEnabled $.Context $unit.Type)}}{{if $first}}{{$first = false}}{{else}}, {{end}}{{ctx.Locale.Tr $unit.NameKey}}{{end}}{{end}} {{if $first}}None{{end}}
+									Sections: {{range $u, $unit := $.Units}}{{if and ($.Repo.UnitEnabled ctx $unit.Type) ($team.UnitEnabled ctx $unit.Type)}}{{if $first}}{{$first = false}}{{else}}, {{end}}{{ctx.Locale.Tr $unit.NameKey}}{{end}}{{end}} {{if $first}}None{{end}}
 								</div>
 							{{end}}
 						</div>

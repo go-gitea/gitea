@@ -54,7 +54,7 @@ func testRenameBranch(t *testing.T, u *url.URL) {
 	assert.Equal(t, "main", repo1.DefaultBranch)
 
 	// create branch1
-	csrf := GetCSRF(t, session, "/user2/repo1/src/branch/main")
+	csrf := GetUserCSRFToken(t, session)
 
 	req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/_new/branch/main", map[string]string{
 		"_csrf":           csrf,

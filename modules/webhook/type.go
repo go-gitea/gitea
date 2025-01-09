@@ -32,6 +32,7 @@ const (
 	HookEventRelease                   HookEventType = "release"
 	HookEventPackage                   HookEventType = "package"
 	HookEventSchedule                  HookEventType = "schedule"
+	HookEventStatus                    HookEventType = "status"
 )
 
 // Event returns the HookEventType as an event string
@@ -66,6 +67,10 @@ func (h HookEventType) Event() string {
 		return "release"
 	}
 	return ""
+}
+
+func (h HookEventType) IsPullRequest() bool {
+	return h.Event() == "pull_request"
 }
 
 // HookType is the type of a webhook

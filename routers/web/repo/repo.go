@@ -11,7 +11,6 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
@@ -19,7 +18,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -28,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
@@ -39,8 +38,8 @@ import (
 )
 
 const (
-	tplCreate       base.TplName = "repo/create"
-	tplAlertDetails base.TplName = "base/alert_details"
+	tplCreate       templates.TplName = "repo/create"
+	tplAlertDetails templates.TplName = "base/alert_details"
 )
 
 // MustBeNotEmpty render when a repo is a empty git dir
@@ -148,27 +147,33 @@ func getRepoPrivate(ctx *context.Context) bool {
 	}
 }
 
-// Create render creating repository page
-func Create(ctx *context.Context) {
+func createCommon(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_repo")
-
-	// Give default value for template to render.
 	ctx.Data["Gitignores"] = repo_module.Gitignores
 	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
-	ctx.Data["readme"] = "Default"
-	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
+	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
+	ctx.Data["SupportedObjectFormats"] = git.DefaultFeatures().SupportedObjectFormats
+	ctx.Data["DefaultObjectFormat"] = git.Sha1ObjectFormat
+}
 
+// Create render creating repository page
+func Create(ctx *context.Context) {
+	createCommon(ctx)
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
+	ctx.Data["readme"] = "Default"
+	ctx.Data["private"] = getRepoPrivate(ctx)
+	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
 	ctx.Data["repo_template_name"] = ctx.Tr("repo.template_select")
+
 	templateID := ctx.FormInt64("template_id")
 	if templateID > 0 {
 		templateRepo, err := repo_model.GetRepositoryByID(ctx, templateID)
@@ -178,15 +183,10 @@ func Create(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
-	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
-	ctx.Data["SupportedObjectFormats"] = git.DefaultFeatures().SupportedObjectFormats
-	ctx.Data["DefaultObjectFormat"] = git.Sha1ObjectFormat
-
 	ctx.HTML(http.StatusOK, tplCreate)
 }
 
-func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form any) {
+func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl templates.TplName, form any) {
 	switch {
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
@@ -220,22 +220,22 @@ func handleCreateError(ctx *context.Context, owner *user_model.User, err error, 
 
 // CreatePost response for creating repository
 func CreatePost(ctx *context.Context) {
+	createCommon(ctx)
 	form := web.GetForm(ctx).(*forms.CreateRepoForm)
-	ctx.Data["Title"] = ctx.Tr("new_repo")
-
-	ctx.Data["Gitignores"] = repo_module.Gitignores
-	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
-	ctx.Data["Licenses"] = repo_module.Licenses
-	ctx.Data["Readmes"] = repo_module.Readmes
-
-	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
-	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
+
+	if form.RepoTemplate > 0 {
+		templateRepo, err := repo_model.GetRepositoryByID(ctx, form.RepoTemplate)
+		if err == nil && access_model.CheckRepoUnitUser(ctx, templateRepo, ctxUser, unit.TypeCode) {
+			ctx.Data["repo_template"] = form.RepoTemplate
+			ctx.Data["repo_template_name"] = templateRepo.Name
+		}
+	}
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplCreate)
@@ -305,14 +305,14 @@ func CreatePost(ctx *context.Context) {
 }
 
 const (
-	tplWatchUnwatch base.TplName = "repo/watch_unwatch"
-	tplStarUnstar   base.TplName = "repo/star_unstar"
+	tplWatchUnwatch templates.TplName = "repo/watch_unwatch"
+	tplStarUnstar   templates.TplName = "repo/star_unstar"
 )
 
 // Action response for actions to a repository
 func Action(ctx *context.Context) {
 	var err error
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "watch":
 		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	case "unwatch":
@@ -340,29 +340,32 @@ func Action(ctx *context.Context) {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
 		} else {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam(":action")), err)
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
 			return
 		}
 	}
 
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "watch", "unwatch":
 		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	case "star", "unstar":
 		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	}
 
-	switch ctx.PathParam(":action") {
+	// see the `hx-trigger="refreshUserCards ..."` comments in tmpl
+	ctx.RespHeader().Add("hx-trigger", "refreshUserCards")
+
+	switch ctx.PathParam("action") {
 	case "watch", "unwatch", "star", "unstar":
 		// we have to reload the repository because NumStars or NumWatching (used in the templates) has just changed
 		ctx.Data["Repository"], err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.Name)
 		if err != nil {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam(":action")), err)
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
 			return
 		}
 	}
 
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "watch", "unwatch":
 		ctx.HTML(http.StatusOK, tplWatchUnwatch)
 		return
@@ -375,7 +378,7 @@ func Action(ctx *context.Context) {
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
-	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
+	repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 	if err != nil {
 		return err
 	}
@@ -461,7 +464,12 @@ func RedirectDownload(ctx *context.Context) {
 // Download an archive of a repository
 func Download(ctx *context.Context) {
 	uri := ctx.PathParam("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
+	ext, tp, err := archiver_service.ParseFileName(uri)
+	if err != nil {
+		ctx.ServerError("ParseFileName", err)
+		return
+	}
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, strings.TrimSuffix(uri, ext), tp)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.Error(http.StatusBadRequest, err.Error())
@@ -494,7 +502,7 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 	rPath := archiver.RelativePath()
 	if setting.RepoArchive.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.RepoArchives.URL(rPath, downloadName)
+		u, err := storage.RepoArchives.URL(rPath, downloadName, nil)
 		if u != nil && err == nil {
 			ctx.Redirect(u.String())
 			return
@@ -520,7 +528,12 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
 	uri := ctx.PathParam("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
+	ext, tp, err := archiver_service.ParseFileName(uri)
+	if err != nil {
+		ctx.ServerError("ParseFileName", err)
+		return
+	}
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, strings.TrimSuffix(uri, ext), tp)
 	if err != nil {
 		ctx.ServerError("archiver_service.NewRequest", err)
 		return

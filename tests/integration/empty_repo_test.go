@@ -29,7 +29,7 @@ import (
 func testAPINewFile(t *testing.T, session *TestSession, user, repo, branch, treePath, content string) *httptest.ResponseRecorder {
 	url := fmt.Sprintf("/%s/%s/_new/%s", user, repo, branch)
 	req := NewRequestWithValues(t, "POST", url, map[string]string{
-		"_csrf":         GetCSRF(t, session, "/user/settings"),
+		"_csrf":         GetUserCSRFToken(t, session),
 		"commit_choice": "direct",
 		"tree_path":     treePath,
 		"content":       content,
@@ -58,12 +58,16 @@ func TestEmptyRepoAddFile(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user30")
-	req := NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
+	req := NewRequest(t, "GET", "/user30/empty")
 	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "empty-repo-guide")
+
+	req = NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body).Find(`input[name="commit_choice"]`)
 	assert.Empty(t, doc.AttrOr("checked", "_no_"))
 	req = NewRequestWithValues(t, "POST", "/user30/empty/_new/"+setting.Repository.DefaultBranch, map[string]string{
-		"_csrf":         GetCSRF(t, session, "/user/settings"),
+		"_csrf":         GetUserCSRFToken(t, session),
 		"commit_choice": "direct",
 		"tree_path":     "test-file.md",
 		"content":       "newly-added-test-file",
@@ -89,7 +93,7 @@ func TestEmptyRepoUploadFile(t *testing.T) {
 
 	body := &bytes.Buffer{}
 	mpForm := multipart.NewWriter(body)
-	_ = mpForm.WriteField("_csrf", GetCSRF(t, session, "/user/settings"))
+	_ = mpForm.WriteField("_csrf", GetUserCSRFToken(t, session))
 	file, _ := mpForm.CreateFormFile("file", "uploaded-file.txt")
 	_, _ = io.Copy(file, bytes.NewBufferString("newly-uploaded-test-file"))
 	_ = mpForm.Close()
@@ -101,7 +105,7 @@ func TestEmptyRepoUploadFile(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), &respMap))
 
 	req = NewRequestWithValues(t, "POST", "/user30/empty/_upload/"+setting.Repository.DefaultBranch, map[string]string{
-		"_csrf":         GetCSRF(t, session, "/user/settings"),
+		"_csrf":         GetUserCSRFToken(t, session),
 		"commit_choice": "direct",
 		"files":         respMap["uuid"],
 		"tree_path":     "",
