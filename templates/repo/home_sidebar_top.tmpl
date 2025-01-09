@@ -62,6 +62,11 @@
 								{{svg "octicon-cross-reference"}} {{ctx.Locale.Tr "repo.cite_this_repo"}}
 							</a>
 						{{end}}
+						<span class="flex-text-block muted" {{if not (eq .Repository.Size 0)}}data-tooltip-placement="top" data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>
+							{{$fileSizeFormatted := FileSize .Repository.Size}}{{/* the formatted string is always "{val} {unit}" */}}
+							{{$fileSizeFields := StringUtils.Split $fileSizeFormatted " "}}
+							{{svg "octicon-database"}} <b>{{ctx.Locale.PrettyNumber (index $fileSizeFields 0)}}</b> {{index $fileSizeFields 1}}
+						</span>
 					</div>
 				</div>
 			</div>
