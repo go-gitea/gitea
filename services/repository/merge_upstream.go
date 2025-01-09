@@ -6,15 +6,12 @@ package repository
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"time"
 
 	git_model "code.gitea.io/gitea/models/git"
 	issue_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/pull"
@@ -105,31 +102,29 @@ func GetUpstreamDivergingInfo(ctx context.Context, gitRepo *git.Repository, repo
 		return info, nil
 	}
 
-	// Add a temporary remote
-	tmpRemote := strconv.FormatInt(time.Now().UnixNano(), 10)
-	if err = gitRepo.AddRemote(tmpRemote, repo.BaseRepo.RepoPath(), false); err != nil {
-		log.Error("GetUpstreamDivergingInfo: AddRemote: %v", err)
-	}
-	defer func() {
-		if err := gitRepo.RemoveRemote(tmpRemote); err != nil {
-			log.Error("GetUpstreamDivergingInfo: RemoveRemote: %v", err)
-		}
-	}()
-
-	var remoteBranch string
-	_, remoteBranch, err = gitRepo.GetMergeBase(tmpRemote, baseBranch.CommitID, forkBranch.CommitID)
-	if err != nil {
-		log.Error("GetMergeBase: %v", err)
-	}
-
-	baseBranch.CommitID, err = git.GetFullCommitID(gitRepo.Ctx, gitRepo.Path, remoteBranch)
-	if err != nil {
-		baseBranch.CommitID = remoteBranch
-	}
-
 	diff, err := git.GetDivergingCommits(gitRepo.Ctx, gitRepo.Path, baseBranch.CommitID, forkBranch.CommitID)
 	if err != nil {
 		info.BaseIsNewer = baseBranch.UpdatedUnix > forkBranch.UpdatedUnix
+		if !info.BaseIsNewer {
+			var (
+				baseCommitID git.ObjectID
+				headCommit   *git.Commit
+			)
+
+			gitRepo.GetCommit(forkBranch.CommitID)
+
+			if baseCommitID, err = gitRepo.ConvertToGitID(baseBranch.CommitID); err != nil {
+				return info, nil
+			}
+
+			if headCommit, err = gitRepo.GetCommit(forkBranch.CommitID); err != nil {
+				return info, nil
+			}
+
+			if isAncester, _ := headCommit.HasPreviousCommit(baseCommitID); !isAncester {
+				info.BaseIsNewer = true
+			}
+		}
 		return info, nil
 	}
 	info.CommitsBehind, info.CommitsAhead = diff.Behind, diff.Ahead
