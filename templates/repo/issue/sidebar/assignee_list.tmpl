@@ -16,9 +16,9 @@
 				<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignees"}}">
 			</div>
 			<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
-			<div class="scrolling menu">
+			<div class="scrolling menu flex-items-block">
 				{{range $data.CandidateAssignees}}
-					<a class="item muted" href="#" data-value="{{.ID}}">
+					<a class="item" href="#" data-value="{{.ID}}">
 						<span class="item-check-mark">{{svg "octicon-check"}}</span>
 						{{ctx.AvatarUtils.Avatar . 20}} {{template "repo/search_name" .}}
 					</a>
@@ -26,10 +26,10 @@
 			</div>
 		</div>
 	</div>
-	<div class="ui list tw-flex tw-flex-row tw-gap-2">
+	<div class="ui list muted-links flex-items-block tw-flex tw-flex-col tw-gap-2">
 		<span class="item empty-list {{if $issueAssignees}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}</span>
 		{{range $issueAssignees}}
-			<a class="item muted" href="{{$pageMeta.RepoLink}}/{{if $pageMeta.IsPullRequest}}pulls{{else}}issues{{end}}?assignee={{.ID}}">
+			<a class="item" href="{{$pageMeta.RepoLink}}/{{if $pageMeta.IsPullRequest}}pulls{{else}}issues{{end}}?assignee={{.ID}}">
 					{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
 			</a>
 		{{end}}
