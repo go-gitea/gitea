@@ -153,7 +153,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				pr:          pull,
 				gitRepo:     gitRepo,
 				repo:        repo,
-				forcePush:   forcePush,
+				forcePush:   forcePush.Value(),
 				pusher:      pusher,
 				RefFullName: opts.RefFullNames[i],
 				OldCommitID: opts.OldCommitIDs[i],
@@ -287,46 +287,13 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			pr:          pr,
 			gitRepo:     gitRepo,
 			repo:        repo,
-			forcePush:   forcePush,
+			forcePush:   forcePush.Value(),
 			pusher:      pusher,
 			RefFullName: opts.RefFullNames[i],
 			OldCommitID: opts.OldCommitIDs[i],
 			NewCommitID: opts.NewCommitIDs[i],
 		})
 		if err != nil {
-			return nil, fmt.Errorf("unable to get ref commit id in base repository for PR[%d] Error: %w", pr.ID, err)
-		}
-
-		if oldCommitID == opts.NewCommitIDs[i] {
-			results = append(results, private.HookProcReceiveRefResult{
-				OriginalRef: opts.RefFullNames[i],
-				OldOID:      opts.OldCommitIDs[i],
-				NewOID:      opts.NewCommitIDs[i],
-				Err:         "new commit is same with old commit",
-			})
-			continue
-		}
-
-		if !forcePush.Value() {
-			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").
-				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).
-				RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
-			if err != nil {
-				return nil, fmt.Errorf("failed to detect force push: %w", err)
-			} else if len(output) > 0 {
-				results = append(results, private.HookProcReceiveRefResult{
-					OriginalRef: opts.RefFullNames[i],
-					OldOID:      opts.OldCommitIDs[i],
-					NewOID:      opts.NewCommitIDs[i],
-					Err:         "request `force-push` push option",
-				})
-				continue
-			}
-		}
-
-		pr.HeadCommitID = opts.NewCommitIDs[i]
-		if err = pull_service.UpdateRef(ctx, pr); err != nil {
-			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)
 			return nil, err
 		}
 		results = append(results, *result)
