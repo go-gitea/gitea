@@ -2,10 +2,13 @@ package integration
 
 import (
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
+	"context"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"net/http"
@@ -219,6 +222,10 @@ jobs:
 		}).AddTokenAuth(token).
 			SetHeader("X-Csrf-Token", csrf)
 		session.MakeRequest(t, reqDelete, http.StatusNoContent)
+
+		// should not found
+		_, err := actions_model.GetRunsByIDsAndTriggerUserID(context.Background(), runIDs, user2.ID)
+		assert.Error(t, fmt.Errorf("run with ids %d: %w", runIDs, util.ErrNotExist), err)
 		doAPIDeleteRepository(httpContext)
 	})
 
