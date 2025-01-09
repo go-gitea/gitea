@@ -11,6 +11,7 @@ import (
 
 	"gitea.com/lunny/levelqueue"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -29,9 +30,7 @@ func TestCorruptedLevelQueue(t *testing.T) {
 	// sometimes the levelqueue could be in a corrupted state, this test is to make sure it can recover from it
 	dbDir := t.TempDir() + "/levelqueue-test"
 	db, err := leveldb.OpenFile(dbDir, nil)
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	assert.NoError(t, db.Put([]byte("other-key"), []byte("other-value"), nil))

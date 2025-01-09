@@ -390,9 +390,7 @@ func TestGenerateMessageIDForIssue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := generateMessageIDForIssue(tt.args.issue, tt.args.comment, tt.args.actionType)
-			if !strings.HasPrefix(got, tt.prefix) {
-				t.Errorf("generateMessageIDForIssue() = %v, want %v", got, tt.prefix)
-			}
+			assert.True(t, strings.HasPrefix(got, tt.prefix), "%v, want %v", got, tt.prefix)
 		})
 	}
 }

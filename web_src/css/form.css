@@ -155,6 +155,7 @@ textarea:focus,
 }
 
 .ui.form.left-right-form .inline.field > .help {
+  display: block;
   margin-left: calc(250px + 15px);
 }
 
