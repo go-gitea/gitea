@@ -19,3 +19,16 @@ func FilterSlice[E any, T comparable](s []E, include func(E) (T, bool)) []T {
 	}
 	return slices.Clip(filtered)
 }
+
+func DedupeBy[E any, I comparable](s []E, id func(E) I) []E {
+	filtered := make([]E, 0, len(s)) // slice will be clipped before returning
+	seen := make(map[I]bool, len(s))
+	for i := range s {
+		itemId := id(s[i])
+		if _, ok := seen[itemId]; !ok {
+			filtered = append(filtered, s[i])
+			seen[itemId] = true
+		}
+	}
+	return slices.Clip(filtered)
+}

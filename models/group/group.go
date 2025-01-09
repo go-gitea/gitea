@@ -136,10 +136,21 @@ func (opts FindGroupsOptions) ToConds() builder.Cond {
 	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
-	if opts.ParentGroupID != 0 {
+	if opts.ParentGroupID > 0 {
 		cond = cond.And(builder.Eq{"parent_group_id": opts.ParentGroupID})
-	} else {
-		cond = cond.And(builder.IsNull{"parent_group_id"})
+	} else if opts.ParentGroupID == 0 {
+		cond = cond.And(builder.Eq{"parent_group_id": 0})
+	}
+	if opts.CanCreateIn.Has() && opts.ActorID > 0 {
+		cond = cond.And(builder.In("id",
+			builder.Select("group_team.group_id").
+				From("group_team").
+				Where(builder.Eq{"team_user.uid": opts.ActorID}).
+				Join("INNER", "team_user", "team_user.team_id = group_team.team_id").
+				And(builder.Eq{"group_team.can_create_in": true})))
+	}
+	if opts.Name != "" {
+		cond = cond.And(builder.Eq{"lower_name": opts.Name})
 	}
 	return cond
 }
@@ -186,53 +197,55 @@ func GetParentGroupChain(ctx context.Context, groupID int64) (GroupList, error) 
 		groupList = append(groupList, currentGroup)
 		currentGroupID = currentGroup.ParentGroupID
 	}
+	slices.Reverse(groupList)
 	return groupList, nil
+}
+
+func GetParentGroupIDChain(ctx context.Context, groupID int64) (ids []int64, err error) {
+	groupList, err := GetParentGroupChain(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+	ids = util.SliceMap(groupList, func(g *Group) int64 {
+		return g.ID
+	})
+	return
 }
 
 // ParentGroupCond returns a condition matching a group and its ancestors
 func ParentGroupCond(idStr string, groupID int64) builder.Cond {
-	groupList, err := GetParentGroupChain(db.DefaultContext, groupID)
+	groupList, err := GetParentGroupIDChain(db.DefaultContext, groupID)
 	if err != nil {
 		log.Info("Error building group cond: %w", err)
 		return builder.NotIn(idStr)
 	}
-	return builder.In(
-		idStr,
-		util.SliceMap[*Group, int64](groupList, func(it *Group) int64 {
-			return it.ID
-		}),
-	)
+	return builder.In(idStr, groupList)
 }
 
-type ErrGroupNotExist struct {
-	ID int64
-}
-
-// IsErrGroupNotExist checks if an error is a ErrCommentNotExist.
-func IsErrGroupNotExist(err error) bool {
-	var errGroupNotExist ErrGroupNotExist
-	ok := errors.As(err, &errGroupNotExist)
-	return ok
-}
-
-func (err ErrGroupNotExist) Error() string {
-	return fmt.Sprintf("group does not exist [id: %d]", err.ID)
-}
-
-func (err ErrGroupNotExist) Unwrap() error {
-	return util.ErrNotExist
-}
-
-type ErrGroupTooDeep struct {
-	ID int64
-}
-
-func IsErrGroupTooDeep(err error) bool {
-	var errGroupTooDeep ErrGroupTooDeep
-	ok := errors.As(err, &errGroupTooDeep)
-	return ok
-}
-
-func (err ErrGroupTooDeep) Error() string {
-	return fmt.Sprintf("group has reached or exceeded the subgroup nesting limit [id: %d]", err.ID)
+func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder int) error {
+	sess := db.GetEngine(ctx)
+	ng, err := GetGroupByID(ctx, newParent)
+	if err != nil {
+		return err
+	}
+	if ng.OwnerID != group.OwnerID {
+		return fmt.Errorf("group[%d]'s ownerID is not equal to new paretn group[%d]'s owner ID", group.ID, ng.ID)
+	}
+	group.ParentGroupID = newParent
+	group.SortOrder = newSortOrder
+	if _, err = sess.Table(group.TableName()).
+		Where("id = ?", group.ID).
+		MustCols("parent_group_id").
+		Update(group, &Group{
+			ID: group.ID,
+		}); err != nil {
+		return err
+	}
+	if group.ParentGroup != nil && newParent != 0 {
+		group.ParentGroup = nil
+		if err = group.LoadParentGroup(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
 }
