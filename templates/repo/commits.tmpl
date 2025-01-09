@@ -7,7 +7,7 @@
 			<div class="repo-button-row-left">
 
 				{{$branchDropdownCurrentRefType := "branch"}}
-				{{$branchDropdownCurrentRefShortName := .BranchName}}
+				{{$branchDropdownCurrentRefShortName := .RefName}}
 				{{if .IsViewTag}}
 					{{$branchDropdownCurrentRefType = "tag"}}
 					{{$branchDropdownCurrentRefShortName = .TagName}}
