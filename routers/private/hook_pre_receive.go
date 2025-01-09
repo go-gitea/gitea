@@ -4,6 +4,7 @@
 package private
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -472,24 +473,27 @@ func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {
 	}
 }
 
-func canUpdateAgitPull(ctx *preReceiveContext, pull *issues_model.PullRequest) bool {
+func canUpdateAgitPull(ctx *preReceiveContext, pull *issues_model.PullRequest) error {
 	if pull.Flow != issues_model.PullRequestFlowAGit {
-		return false
+		return errors.New("Pull request that are not created through agit cannot be updated using agit")
 	}
 
 	if ctx.opts.UserID == pull.Issue.PosterID {
-		return true
+		return nil
 	}
 
 	if !pull.AllowMaintainerEdit {
-		return false
+		return fmt.Errorf("The author does not allow maintainers to edit this pull request")
 	}
 
 	if !ctx.loadPusherAndPermission() {
-		return false
+		return fmt.Errorf("Internal Server Error (no specific error)")
 	}
 
-	return ctx.userPerm.CanWrite(unit.TypeCode)
+	if ctx.userPerm.CanWrite(unit.TypeCode) {
+		return errors.New("You have no permission to update this pull request")
+	}
+	return nil
 }
 
 func preReceiveForReview(ctx *preReceiveContext, refFullName git.RefName) {
@@ -535,9 +539,9 @@ func preReceiveForReview(ctx *preReceiveContext, refFullName git.RefName) {
 		return
 	}
 
-	if !canUpdateAgitPull(ctx, pull) {
+	if err := canUpdateAgitPull(ctx, pull); err != nil {
 		ctx.JSON(http.StatusForbidden, private.Response{
-			UserMsg: "Unknow pull request.",
+			UserMsg: err.Error(),
 		})
 		return
 	}

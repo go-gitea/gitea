@@ -137,6 +137,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				})
 				continue
 			}
+			log.Trace("Pull request index: %d", pullIndex)
 			pull, err := issues_model.GetPullRequestByIndex(ctx, repo.ID, pullIndex)
 			if err != nil {
 				results = append(results, private.HookProcReceiveRefResult{
