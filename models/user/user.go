@@ -589,6 +589,7 @@ var (
 		"avatar",  // avatar by email hash
 		"avatars", // user avatars by file name
 		"repo-avatars",
+		"group-avatars",
 
 		"captcha",
 		"login", // oauth2 login
@@ -599,6 +600,8 @@ var (
 		"explore",
 		"issues",
 		"pulls",
+		"groups",
+		"group",
 		"milestones",
 		"notifications",
 
