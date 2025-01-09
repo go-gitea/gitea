@@ -54,8 +54,8 @@ func runACME(listenAddr string, m http.Handler) error {
 		altTLSALPNPort = p
 	}
 
-	magic := &certmagic.Default
-	magic.Storage = &certmagic.FileStorage{Path: setting.AcmeLiveDirectory}
+	certmagic.Default.Storage = &certmagic.FileStorage{Path: setting.AcmeLiveDirectory}
+	magic := certmagic.NewDefault()
 	// Try to use private CA root if provided, otherwise defaults to system's trust
 	var certPool *x509.CertPool
 	if setting.AcmeCARoot != "" {
