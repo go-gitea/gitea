@@ -9,6 +9,7 @@ import (
 	"maps"
 	"net/http"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -476,6 +477,7 @@ func renderExclusiveLabelScopes(ctx *context.Context) {
 	}
 
 	scopes := slices.Collect(maps.Keys(scopeSet))
+	sort.Strings(scopes)
 	ctx.Data["ExclusiveLabelScopes"] = scopes
 }
 
