@@ -76,7 +76,7 @@ Gitea 的首要目标是创建一个极易安装，运行非常快速，安装�
 
 Gitea 提供官方的 [go-sdk](https://gitea.com/gitea/go-sdk), 名为 [tea](https://gitea.com/gitea/tea) 的 CLI 工具 和 用于 Gitea Action 的 [action runner](https://gitea.com/gitea/act_runner).
 
-[gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea) 是一个 Gitea 相关项目的列表, 你可以在这里找到更多的第三方项目，包括 SDK, 插件, 主题等等.
+[gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea) 是一个 Gitea 相关项目的列表，你可以在这里找到更多的第三方项目，包括 SDK、插件、主题等等。
 
 ## 作者
 
