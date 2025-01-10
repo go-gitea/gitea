@@ -72,10 +72,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 					return false
 				}
 				respMsg, _ := htmlDoc.Find(".ui.message:not(.positive)").Html()
-				if !strings.Contains(respMsg, `This branch is 1 commit behind <a href="/user2/repo1/src/branch/master">user2/repo1:master</a>`) {
-					return false
-				}
-				return true
+				return strings.Contains(respMsg, `This branch is 1 commit behind <a href="/user2/repo1/src/branch/master">user2/repo1:master</a>`)
 			}, 5*time.Second, 100*time.Millisecond)
 
 			// click the "sync fork" button
