@@ -303,9 +303,22 @@ func userOrgTeamRepoBuilder(userID int64) *builder.Builder {
 		Where(builder.Eq{"`team_user`.uid": userID})
 }
 
+// userOrgTeamRepoGroupBuilder selects repos that the given user has access to through team membership and group permissions
+func userOrgTeamRepoGroupBuilder(userID int64) *builder.Builder {
+	return userOrgTeamRepoBuilder(userID).
+		Join("INNER", "group_team", "`group_team`.team_id=`team_repo`.team_id")
+}
+
 // userOrgTeamUnitRepoBuilder returns repo ids where user's teams can access the special unit.
 func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Builder {
 	return userOrgTeamRepoBuilder(userID).
+		Join("INNER", "team_unit", "`team_unit`.team_id = `team_repo`.team_id").
+		Where(builder.Eq{"`team_unit`.`type`": unitType}).
+		And(builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)})
+}
+
+func userOrgTeamUnitRepoGroupBuilder(userID int64, unitType unit.Type) *builder.Builder {
+	return userOrgTeamRepoGroupBuilder(userID).
 		Join("INNER", "team_unit", "`team_unit`.team_id = `team_repo`.team_id").
 		Where(builder.Eq{"`team_unit`.`type`": unitType}).
 		And(builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)})
@@ -322,6 +335,17 @@ func UserOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) 
 		userOrgTeamUnitRepoBuilder(userID, unitType).
 			And(builder.Eq{"`team_unit`.org_id": orgID}),
 	)
+}
+
+// ReposAccessibleByGroupTeamBuilder returns repositories that are accessible by a team via group permissions
+func ReposAccessibleByGroupTeamBuilder(teamID int64) *builder.Builder {
+	innerGroupCond := builder.Select("`repo_group`.id").
+		From("repo_group").
+		InnerJoin("group_team", "`group_team`.group_id = `repo_group`.id").
+		Where(builder.Eq{"`group_team`.team_id": teamID})
+	return builder.Select("`repository`.id").
+		From("repository").
+		Where(builder.In("`repository`.group_id", innerGroupCond))
 }
 
 // userOrgPublicRepoCond returns the condition that one user could access all public repositories in organizations
