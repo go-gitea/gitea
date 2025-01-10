@@ -86,7 +86,7 @@ Gitea 提供官方的 [go-sdk](https://gitea.com/gitea/go-sdk), 名为 [tea](htt
 
 ## 授权许可
 
-本项目采用 MIT 开源授权许可证，完整的授权说明已放置在 [LICENSE](https://github.com/go-gitea/gitea/blob/main/LICENSE) 文件中.
+本项目采用 MIT 开源授权许可证，完整的授权说明已放置在 [LICENSE](https://github.com/go-gitea/gitea/blob/main/LICENSE) 文件中。
 
 ## 更多信息
 
