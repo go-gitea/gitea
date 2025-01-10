@@ -10867,6 +10867,52 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/merge-upstream": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Merge a branch from upstream",
+        "operationId": "repoMergeUpstream",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/MergeUpstreamRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/MergeUpstreamResponse"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/milestones": {
       "get": {
         "produces": [
@@ -22827,6 +22873,26 @@
       "x-go-name": "MergePullRequestForm",
       "x-go-package": "code.gitea.io/gitea/services/forms"
     },
+    "MergeUpstreamRequest": {
+      "type": "object",
+      "properties": {
+        "branch": {
+          "type": "string",
+          "x-go-name": "Branch"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "MergeUpstreamResponse": {
+      "type": "object",
+      "properties": {
+        "merge_type": {
+          "type": "string",
+          "x-go-name": "MergeStyle"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "MigrateRepoOptions": {
       "description": "MigrateRepoOptions options for migrating repository's\nthis is used to interact with api v1",
       "type": "object",
@@ -26006,6 +26072,18 @@
       "description": "MarkupRender is a rendered markup document",
       "schema": {
         "type": "string"
+      }
+    },
+    "MergeUpstreamRequest": {
+      "description": "",
+      "schema": {
+        "$ref": "#/definitions/MergeUpstreamRequest"
+      }
+    },
+    "MergeUpstreamResponse": {
+      "description": "",
+      "schema": {
+        "$ref": "#/definitions/MergeUpstreamResponse"
       }
     },
     "Milestone": {
