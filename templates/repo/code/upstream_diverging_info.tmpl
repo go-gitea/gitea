@@ -1,4 +1,4 @@
-{{if and .UpstreamDivergingInfo (or .UpstreamDivergingInfo.BaseHasNewCommits .UpstreamDivergingInfo.CommitsBehind)}}
+{{if and .UpstreamDivergingInfo (or .UpstreamDivergingInfo.BaseIsNewer .UpstreamDivergingInfo.CommitsBehind)}}
 <div class="ui message flex-text-block">
 	<div class="tw-flex-1">
 		{{$upstreamLink := printf "%s/src/branch/%s" .Repository.BaseRepo.Link (.Repository.BaseRepo.DefaultBranch|PathEscapeSegments)}}

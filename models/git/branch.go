@@ -440,6 +440,7 @@ type FindRecentlyPushedNewBranchesOptions struct {
 }
 
 type RecentlyPushedNewBranch struct {
+	BranchName        string
 	BranchDisplayName string
 	BranchLink        string
 	BranchCompareURL  string
@@ -541,6 +542,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 			}
 			newBranches = append(newBranches, &RecentlyPushedNewBranch{
 				BranchDisplayName: branchDisplayName,
+				BranchName:        branch.Name,
 				BranchLink:        fmt.Sprintf("%s/src/branch/%s", branch.Repo.Link(), util.PathEscapeSegments(branch.Name)),
 				BranchCompareURL:  branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, branch.Name),
 				CommitTime:        branch.CommitTime,
