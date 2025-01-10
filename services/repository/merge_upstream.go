@@ -23,6 +23,7 @@ type UpstreamDivergingInfo struct {
 	CommitsAhead  int
 }
 
+// MergeUpstream merges the base repository's default branch into the fork repository's current branch.
 func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branch string) (mergeStyle string, err error) {
 	if err = repo.MustNotBeArchived(); err != nil {
 		return "", err
@@ -32,7 +33,7 @@ func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.
 	}
 	err = git.Push(ctx, repo.BaseRepo.RepoPath(), git.PushOptions{
 		Remote: repo.RepoPath(),
-		Branch: fmt.Sprintf("%s:%s", branch, branch),
+		Branch: fmt.Sprintf("%s:%s", repo.BaseRepo.DefaultBranch, branch),
 		Env:    repo_module.PushingEnvironment(doer, repo),
 	})
 	if err == nil {
@@ -64,7 +65,7 @@ func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.
 		BaseRepoID: repo.BaseRepo.ID,
 		BaseRepo:   repo.BaseRepo,
 		HeadBranch: branch, // maybe HeadCommitID is not needed
-		BaseBranch: branch,
+		BaseBranch: repo.BaseRepo.DefaultBranch,
 	}
 	fakeIssue.PullRequest = fakePR
 	err = pull.Update(ctx, fakePR, doer, "merge upstream", false)
@@ -74,6 +75,7 @@ func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.
 	return "merge", nil
 }
 
+// GetUpstreamDivergingInfo returns the information about the divergence between the fork repository's branch and the base repository's default branch.
 func GetUpstreamDivergingInfo(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, branch string) (*UpstreamDivergingInfo, error) {
 	if !repo.IsFork {
 		return nil, util.NewInvalidArgumentErrorf("repo is not a fork")
@@ -92,7 +94,7 @@ func GetUpstreamDivergingInfo(ctx context.Context, gitRepo *git.Repository, repo
 		return nil, err
 	}
 
-	baseBranch, err := git_model.GetBranch(ctx, repo.BaseRepo.ID, branch)
+	baseBranch, err := git_model.GetBranch(ctx, repo.BaseRepo.ID, repo.BaseRepo.DefaultBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -102,26 +104,26 @@ func GetUpstreamDivergingInfo(ctx context.Context, gitRepo *git.Repository, repo
 		return info, nil
 	}
 
+	// if the fork repo has new commits, this call will fail because they are not in the base repo
+	// exit status 128 - fatal: Invalid symmetric difference expression aaaaaaaaaaaa...bbbbbbbbbbbb
+	// so at the moment, we first check the update time, then check whether the head branch has base's head
 	diff, err := git.GetDivergingCommits(gitRepo.Ctx, gitRepo.Path, baseBranch.CommitID, forkBranch.CommitID)
 	if err != nil {
 		info.BaseIsNewer = baseBranch.UpdatedUnix > forkBranch.UpdatedUnix
-		if !info.BaseIsNewer {
-			var (
-				baseCommitID git.ObjectID
-				headCommit   *git.Commit
-			)
-
-			if baseCommitID, err = gitRepo.ConvertToGitID(baseBranch.CommitID); err != nil {
-				return info, nil
-			}
-
-			if headCommit, err = gitRepo.GetCommit(forkBranch.CommitID); err != nil {
-				return info, nil
-			}
-
-			if isAncester, _ := headCommit.HasPreviousCommit(baseCommitID); !isAncester {
-				info.BaseIsNewer = true
-			}
+		if info.BaseIsNewer {
+			return info, nil
+		}
+		baseCommitID, err := gitRepo.ConvertToGitID(baseBranch.CommitID)
+		if err != nil {
+			return nil, err
+		}
+		headCommit, err := gitRepo.GetCommit(forkBranch.CommitID)
+		if err != nil {
+			return nil, err
+		}
+		info.BaseIsNewer, err = headCommit.HasPreviousCommit(baseCommitID)
+		if err != nil {
+			return nil, err
 		}
 		return info, nil
 	}
