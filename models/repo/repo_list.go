@@ -290,9 +290,9 @@ func UserCollaborationRepoCond(idStr string, userID int64) builder.Cond {
 	)
 }
 
-// UserOrgTeamRepoCond selects repos that the given user has access to through team membership
+// UserOrgTeamRepoCond selects repos that the given user has access to through team membership and/or group permissions
 func UserOrgTeamRepoCond(idStr string, userID int64) builder.Cond {
-	return builder.In(idStr, userOrgTeamRepoBuilder(userID))
+	return builder.In(idStr, userOrgTeamRepoBuilder(userID), userOrgTeamRepoGroupBuilder(userID))
 }
 
 // userOrgTeamRepoBuilder returns repo ids where user's teams can access.
@@ -326,7 +326,9 @@ func userOrgTeamUnitRepoGroupBuilder(userID int64, unitType unit.Type) *builder.
 
 // userOrgTeamUnitRepoCond returns a condition to select repo ids where user's teams can access the special unit.
 func userOrgTeamUnitRepoCond(idStr string, userID int64, unitType unit.Type) builder.Cond {
-	return builder.In(idStr, userOrgTeamUnitRepoBuilder(userID, unitType))
+	return builder.Or(builder.In(
+		idStr, userOrgTeamUnitRepoBuilder(userID, unitType)),
+		builder.In(idStr, userOrgTeamUnitRepoGroupBuilder(userID, unitType)))
 }
 
 // UserOrgUnitRepoCond selects repos that the given user has access to through org and the special unit
@@ -334,7 +336,7 @@ func UserOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) 
 	return builder.In(idStr,
 		userOrgTeamUnitRepoBuilder(userID, unitType).
 			And(builder.Eq{"`team_unit`.org_id": orgID}),
-	)
+		userOrgTeamUnitRepoGroupBuilder(userID, unitType).And(builder.Eq{"`team_unit`.org_id": orgID}))
 }
 
 // ReposAccessibleByGroupTeamBuilder returns repositories that are accessible by a team via group permissions
