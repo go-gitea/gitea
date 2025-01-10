@@ -24,14 +24,20 @@ test('textareaSplitLines', () => {
 });
 
 test('markdownHandleListNumbers', () => {
-  const testInput = (input: string, expected: string) => {
+  const testInput = (input: string, expected?: string) => {
     const inputPos = input.indexOf('|');
     input = input.replace('|', '');
     const ret = markdownHandleListNumbers({value: input, selStart: inputPos, selEnd: inputPos});
-
-    const expectedPos = expected.indexOf('|');
-    expected = expected.replace('|', '');
-    expect(ret).toEqual({handled: true, valueSelection: {value: expected, selStart: expectedPos, selEnd: expectedPos}});
+    if (expected === null) {
+      expect(ret).toEqual({handled: false});
+    } else {
+      const expectedPos = expected.indexOf('|');
+      expected = expected.replace('|', '');
+      expect(ret).toEqual({
+        handled: true,
+        valueSelection: {value: expected, selStart: expectedPos, selEnd: expectedPos},
+      });
+    }
   };
 
   testInput(`
@@ -43,12 +49,46 @@ test('markdownHandleListNumbers', () => {
 `);
 
   testInput(`
+|1. a
+`, null); // let browser handle it
+
+  testInput(`
 1. a
 1. b|
 `, `
 1. a
 2. b
 3. |
+`);
+
+  testInput(`
+2. a
+2. b|
+
+1. x
+1. y
+`, `
+1. a
+2. b
+3. |
+
+1. x
+1. y
+`);
+
+  testInput(`
+2. a
+2. b
+
+1. x|
+1. y
+`, `
+2. a
+2. b
+
+1. x
+2. |
+3. y
 `);
 
   testInput(`
@@ -60,6 +100,35 @@ test('markdownHandleListNumbers', () => {
 2. b
 3. |
 4. c
+`);
+
+  testInput(`
+1. a
+  1. b
+  2. b
+  3. b
+  4. b
+1. c|
+`, `
+1. a
+  1. b
+  2. b
+  3. b
+  4. b
+2. c
+3. |
+`);
+
+  // this is a special case, it's difficult to re-format the parent level at the moment, so leave it to the future
+  testInput(`
+1. a
+  2. b|
+3. c
+`, `
+1. a
+  1. b
+  2. |
+3. c
 `);
 });
 

@@ -89,15 +89,23 @@ export function textareaSplitLines(value: string, pos: number): TextLinesBuffer 
 }
 
 function markdownReformatListNumbers(linesBuf: TextLinesBuffer, indention: string) {
-  const re = new RegExp(`^${indention}([0-9]+)\\.`);
-  let firstLineIdx = 0;
+  const reDeeperIndention = new RegExp(`^${indention}\\s+`);
+  const reSameLevel = new RegExp(`^${indention}([0-9]+)\\.`);
+  let firstLineIdx: number;
   for (firstLineIdx = linesBuf.posLineIndex - 1; firstLineIdx >= 0; firstLineIdx--) {
-    if (!re.test(linesBuf.lines[firstLineIdx])) break;
+    const line = linesBuf.lines[firstLineIdx];
+    if (!reDeeperIndention.test(line) && !reSameLevel.test(line)) break;
   }
   firstLineIdx++;
+  let num = 1;
   for (let i = firstLineIdx; i < linesBuf.lines.length; i++) {
-    if (!re.test(linesBuf.lines[i])) break;
-    linesBuf.lines[i] = `${indention}${i - firstLineIdx + 1}.${linesBuf.lines[i].replace(re, '')}`;
+    const line = linesBuf.lines[i];
+    const sameLevel = reSameLevel.test(line);
+    if (!sameLevel && !reDeeperIndention.test(line)) break;
+    if (sameLevel) {
+      linesBuf.lines[i] = `${indention}${num}.${line.replace(reSameLevel, '')}`;
+      num++;
+    }
   }
   linesBuf.lengthBeforePosLine = 0;
   for (let i = 0; i < linesBuf.posLineIndex; i++) {
@@ -107,22 +115,17 @@ function markdownReformatListNumbers(linesBuf: TextLinesBuffer, indention: strin
 }
 
 export function markdownHandleListNumbers(tvs: TextareaValueSelection): MarkdownHandleListNumbersResult {
-  const ret: MarkdownHandleListNumbersResult = {handled: false};
-  if (tvs.selEnd !== tvs.selStart) return ret; // do not process when there is a selection
+  const unhandled: MarkdownHandleListNumbersResult = {handled: false};
+  if (tvs.selEnd !== tvs.selStart) return unhandled; // do not process when there is a selection
 
-  const value = tvs.value;
-  // find the current line
-  // * if selStart is 0, lastIndexOf(..., -1) is the same as lastIndexOf(..., 0)
-  // * if lastIndexOf reruns -1, lineStart is 0 and it is still correct.
-  const lineStart = value.lastIndexOf('\n', tvs.selStart - 1) + 1;
-  let lineEnd = value.indexOf('\n', tvs.selStart);
-  lineEnd = lineEnd < 0 ? value.length : lineEnd;
-  let line = value.slice(lineStart, lineEnd);
-  if (!line) return; // if the line is empty, do nothing, let the browser handle it
+  const linesBuf = textareaSplitLines(tvs.value, tvs.selStart);
+  let line = linesBuf.lines[linesBuf.posLineIndex] ?? '';
+  if (!line) return unhandled; // if the line is empty, do nothing, let the browser handle it
 
   // parse the indention
   const indention = /^\s*/.exec(line)[0];
   line = line.slice(indention.length);
+  if (linesBuf.inlinePos <= indention.length) return unhandled; // if cursor is at the indention, do nothing, let the browser handle it
 
   // parse the prefixes: "1. ", "- ", "* ", there could also be " [ ] " or " [x] " for task lists
   // there must be a space after the prefix because none of "1.foo" / "-foo" is a list item
@@ -130,13 +133,12 @@ export function markdownHandleListNumbers(tvs: TextareaValueSelection): Markdown
   let prefix = '';
   if (prefixMatch) {
     prefix = prefixMatch[0];
-    if (lineStart + prefix.length > tvs.selStart) prefix = ''; // do not add new line if cursor is at prefix
+    if (prefix.length > linesBuf.inlinePos) prefix = ''; // do not add new line if cursor is at prefix
   }
 
   line = line.slice(prefix.length);
-  if (!indention && !prefix) return ret; // if no indention and no prefix, do nothing, let the browser handle it
+  if (!indention && !prefix) return unhandled; // if no indention and no prefix, do nothing, let the browser handle it
 
-  const linesBuf = textareaSplitLines(value, tvs.selStart);
   if (!line) {
     // clear current line if we only have i.e. '1. ' and the user presses enter again to finish creating a list
     linesBuf.lines[linesBuf.posLineIndex] = '';
