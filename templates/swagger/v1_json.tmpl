@@ -13758,6 +13758,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "410": {
+            "$ref": "#/responses/gone"
           }
         }
       }
@@ -17494,6 +17497,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/RepositoryList"
+          },
+          "410": {
+            "$ref": "#/responses/gone"
           }
         }
       }
@@ -17527,6 +17533,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "410": {
+            "$ref": "#/responses/gone"
           }
         }
       },
@@ -17561,6 +17570,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "410": {
+            "$ref": "#/responses/gone"
           }
         }
       },
@@ -17592,6 +17604,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "410": {
+            "$ref": "#/responses/gone"
           }
         }
       }
@@ -18268,6 +18283,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "410": {
+            "$ref": "#/responses/gone"
           }
         }
       }
@@ -26590,6 +26608,17 @@
     },
     "forbidden": {
       "description": "APIForbiddenError is a forbidden error response",
+      "headers": {
+        "message": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    "gone": {
+      "description": "APIGone means the functionality has been disabled",
       "headers": {
         "message": {
           "type": "string"

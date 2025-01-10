@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -24,7 +25,12 @@ func init() {
 }
 
 // StarRepo or unstar repository.
+//
+// Will do nothing if stars are disabled.
 func StarRepo(ctx context.Context, doer *user_model.User, repo *Repository, star bool) error {
+	if setting.Repository.DisableStars {
+		return nil
+	}
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -70,13 +76,23 @@ func StarRepo(ctx context.Context, doer *user_model.User, repo *Repository, star
 }
 
 // IsStaring checks if user has starred given repository.
+//
+// Will always return false if stars are disabled.
 func IsStaring(ctx context.Context, userID, repoID int64) bool {
+	if setting.Repository.DisableStars {
+		return false
+	}
 	has, _ := db.GetEngine(ctx).Get(&Star{UID: userID, RepoID: repoID})
 	return has
 }
 
 // GetStargazers returns the users that starred the repo.
+//
+// Will always return an empty slice if stars are disabled.
 func GetStargazers(ctx context.Context, repo *Repository, opts db.ListOptions) ([]*user_model.User, error) {
+	if setting.Repository.DisableStars {
+		return make([]*user_model.User, 0), nil
+	}
 	sess := db.GetEngine(ctx).Where("star.repo_id = ?", repo.ID).
 		Join("LEFT", "star", "`user`.id = star.uid")
 	if opts.Page > 0 {
