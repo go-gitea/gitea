@@ -20,9 +20,9 @@ import (
 )
 
 type UpstreamDivergingInfo struct {
-	BaseIsNewer   bool
-	CommitsBehind int
-	CommitsAhead  int
+	BaseHasNewCommits bool
+	CommitsBehind     int
+	CommitsAhead      int
 }
 
 // MergeUpstream merges the base repository's default branch into the fork repository's current branch.
@@ -120,8 +120,8 @@ func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, repo *repo_model.Reposi
 			return nil, err
 		}
 
-		info.BaseIsNewer = baseBranch.UpdatedUnix > forkBranch.UpdatedUnix
-		if info.BaseIsNewer {
+		info.BaseHasNewCommits = baseBranch.UpdatedUnix > forkBranch.UpdatedUnix
+		if info.BaseHasNewCommits {
 			return info, nil
 		}
 		baseCommitID, err := baseGitRepo.ConvertToGitID(baseBranch.CommitID)
@@ -132,9 +132,11 @@ func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, repo *repo_model.Reposi
 		if err != nil {
 			return nil, err
 		}
-		info.BaseIsNewer, _ = headCommit.HasPreviousCommit(baseCommitID)
+		hasPreviousCommit, _ := headCommit.HasPreviousCommit(baseCommitID)
+		info.BaseHasNewCommits = !hasPreviousCommit
 		return info, nil
 	}
+
 	info.CommitsBehind, info.CommitsAhead = diff.Behind, diff.Ahead
 	return info, nil
 }

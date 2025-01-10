@@ -32,7 +32,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 		baseUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: baseRepo.OwnerID})
 
 		checkFileContent := func(branch, exp string) {
-			req := NewRequest(t, "GET", fmt.Sprintf("/%s/test-repo-fork/raw/branch/%s/new-file.txt", branch, forkUser.Name))
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/test-repo-fork/raw/branch/%s/new-file.txt", forkUser.Name, branch))
 			resp := MakeRequest(t, req, http.StatusOK)
 			require.Equal(t, exp, resp.Body.String())
 		}
@@ -54,6 +54,10 @@ func TestRepoMergeUpstream(t *testing.T) {
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
+		queryMergeUpstreamButtonLink := func(htmlDoc *HTMLDoc) string {
+			return htmlDoc.Find(`button[data-url*="merge-upstream"]`).AttrOr("data-url", "")
+		}
+
 		t.Run("HeadBeforeBase", func(t *testing.T) {
 			// add a file in base repo
 			require.NoError(t, createOrReplaceFileInBranch(baseUser, baseRepo, "new-file.txt", "master", "test-content-1"))
@@ -63,12 +67,14 @@ func TestRepoMergeUpstream(t *testing.T) {
 			require.Eventually(t, func() bool {
 				resp := session.MakeRequest(t, NewRequestf(t, "GET", "/%s/test-repo-fork/src/branch/fork-branch", forkUser.Name), http.StatusOK)
 				htmlDoc := NewHTMLParser(t, resp.Body)
-				respMsg, _ := htmlDoc.Find(".ui.message").Html()
+				mergeUpstreamLink = queryMergeUpstreamButtonLink(htmlDoc)
+				if mergeUpstreamLink == "" {
+					return false
+				}
+				respMsg, _ := htmlDoc.Find(".ui.message:not(.positive)").Html()
 				if !strings.Contains(respMsg, `This branch is 1 commit behind <a href="/user2/repo1/src/branch/master">user2/repo1:master</a>`) {
 					return false
 				}
-				mergeUpstreamLink = htmlDoc.Find("button[data-url*='merge-upstream']").AttrOr("data-url", "")
-				require.NotEmpty(t, mergeUpstreamLink)
 				return true
 			}, 5*time.Second, 100*time.Millisecond)
 
@@ -107,6 +113,13 @@ func TestRepoMergeUpstream(t *testing.T) {
 			var mergeResp api.MergeUpstreamResponse
 			DecodeJSON(t, resp, &mergeResp)
 			assert.Equal(t, "merge", mergeResp.MergeStyle)
+
+			// after merge, there should be no "sync fork" button anymore
+			require.Eventually(t, func() bool {
+				resp := session.MakeRequest(t, NewRequestf(t, "GET", "/%s/test-repo-fork/src/branch/fork-branch", forkUser.Name), http.StatusOK)
+				htmlDoc := NewHTMLParser(t, resp.Body)
+				return queryMergeUpstreamButtonLink(htmlDoc) == ""
+			}, 5*time.Second, 100*time.Millisecond)
 		})
 	})
 }
