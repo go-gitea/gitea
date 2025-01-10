@@ -126,6 +126,29 @@ test('markdownHandleIndention', () => {
 3. |
 `);
 
+  testInput(`
+1. a
+2. a
+3. a
+4. a
+5. a
+6. a
+7. a
+8. a
+9. b|c
+`, `
+1. a
+2. a
+3. a
+4. a
+5. a
+6. a
+7. a
+8. a
+9. b
+10. |c
+`);
+
   // this is a special case, it's difficult to re-format the parent level at the moment, so leave it to the future
   testInput(`
 1. a

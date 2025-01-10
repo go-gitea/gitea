@@ -99,16 +99,22 @@ function markdownReformatListNumbers(linesBuf: TextLinesBuffer, indention: strin
   firstLineIdx++;
   let num = 1;
   for (let i = firstLineIdx; i < linesBuf.lines.length; i++) {
-    const line = linesBuf.lines[i];
-    const sameLevel = reSameLevel.test(line);
-    if (!sameLevel && !reDeeperIndention.test(line)) break;
+    const oldLine = linesBuf.lines[i];
+    const sameLevel = reSameLevel.test(oldLine);
+    if (!sameLevel && !reDeeperIndention.test(oldLine)) break;
     if (sameLevel) {
-      linesBuf.lines[i] = `${indention}${num}.${line.replace(reSameLevel, '')}`;
+      const newLine = `${indention}${num}.${oldLine.replace(reSameLevel, '')}`;
+      linesBuf.lines[i] = newLine;
       num++;
+      if (linesBuf.posLineIndex === i) {
+        // need to correct the cursor inline position if the line length changes
+        linesBuf.inlinePos += newLine.length - oldLine.length;
+        linesBuf.inlinePos = Math.max(0, linesBuf.inlinePos);
+        linesBuf.inlinePos = Math.min(newLine.length, linesBuf.inlinePos);
+      }
     }
   }
   recalculateLengthBeforeLine(linesBuf);
-  linesBuf.posLineIndex = linesBuf.lines[linesBuf.posLineIndex].length;
 }
 
 function recalculateLengthBeforeLine(linesBuf: TextLinesBuffer) {
