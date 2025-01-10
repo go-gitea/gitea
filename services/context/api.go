@@ -293,8 +293,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			return
 		}
 
-		// NOTICE: the "ref" here for internal usage only (e.g. woodpecker)
-		refName, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.FormTrim("ref"))
+		refName, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.PathParam("*"), ctx.FormTrim("ref"))
 		var err error
 
 		if ctx.Repo.GitRepo.IsBranchExist(refName) {
