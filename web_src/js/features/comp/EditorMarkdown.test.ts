@@ -1,4 +1,4 @@
-import {initTextareaMarkdown} from './EditorMarkdown.ts';
+import {initTextareaMarkdown, markdownHandleListNumbers} from './EditorMarkdown.ts';
 
 test('EditorMarkdown', () => {
   const textarea = document.createElement('textarea');
@@ -33,9 +33,12 @@ test('EditorMarkdown', () => {
 
   testInput('- x', '- x\n- ');
   testInput('1. foo', '1. foo\n2. ');
-  testInput({value: '1. a\n2. b\n3. c', pos: 4}, {value: '1. a\n2. \n2. b\n3. c', pos: 8});
+  testInput({value: '1. a\n2. b\n3. c', pos: 4}, {value: '1. a\n2. \n3. b\n4. c', pos: 8});
   testInput('- [ ]', '- [ ]\n- ');
   testInput('- [ ] foo', '- [ ] foo\n- [ ] ');
   testInput('* [x] foo', '* [x] foo\n* [ ] ');
   testInput('1. [x] foo', '1. [x] foo\n2. [ ] ');
+
+  // TODO: test separately
+  markdownHandleListNumbers({value: '1.', selStart: 1, selEnd: 2});
 });
