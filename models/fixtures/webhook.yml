@@ -22,6 +22,7 @@
   content_type: 1 # json
   events: '{"push_only":false,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":true}}'
   is_active: true
+
 -
   id: 4
   repo_id: 2
