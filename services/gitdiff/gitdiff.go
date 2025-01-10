@@ -1137,7 +1137,9 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 		actualBeforeCommitID := opts.BeforeCommitID
 		if len(actualBeforeCommitID) == 0 {
 			parentCommit, _ := commit.Parent(0)
-			actualBeforeCommitID = parentCommit.ID.String()
+			if parentCommit != nil {
+				actualBeforeCommitID = parentCommit.ID.String()
+			}
 		}
 
 		cmdDiff.AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
@@ -1145,7 +1147,6 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 			AddDynamicArguments(actualBeforeCommitID, opts.AfterCommitID)
 		opts.BeforeCommitID = actualBeforeCommitID
 
-		var err error
 		beforeCommit, err = gitRepo.GetCommit(opts.BeforeCommitID)
 		if err != nil {
 			return nil, err
