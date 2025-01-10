@@ -12,17 +12,20 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/pull"
 )
 
 type UpstreamDivergingInfo struct {
-	BaseIsNewer   bool
-	CommitsBehind int
-	CommitsAhead  int
+	BaseHasNewCommits bool
+	CommitsBehind     int
+	CommitsAhead      int
 }
 
+// MergeUpstream merges the base repository's default branch into the fork repository's current branch.
 func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branch string) (mergeStyle string, err error) {
 	if err = repo.MustNotBeArchived(); err != nil {
 		return "", err
@@ -32,7 +35,7 @@ func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.
 	}
 	err = git.Push(ctx, repo.BaseRepo.RepoPath(), git.PushOptions{
 		Remote: repo.RepoPath(),
-		Branch: fmt.Sprintf("%s:%s", branch, branch),
+		Branch: fmt.Sprintf("%s:%s", repo.BaseRepo.DefaultBranch, branch),
 		Env:    repo_module.PushingEnvironment(doer, repo),
 	})
 	if err == nil {
@@ -64,7 +67,7 @@ func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.
 		BaseRepoID: repo.BaseRepo.ID,
 		BaseRepo:   repo.BaseRepo,
 		HeadBranch: branch, // maybe HeadCommitID is not needed
-		BaseBranch: branch,
+		BaseBranch: repo.BaseRepo.DefaultBranch,
 	}
 	fakeIssue.PullRequest = fakePR
 	err = pull.Update(ctx, fakePR, doer, "merge upstream", false)
@@ -74,7 +77,8 @@ func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.
 	return "merge", nil
 }
 
-func GetUpstreamDivergingInfo(ctx context.Context, repo *repo_model.Repository, branch string) (*UpstreamDivergingInfo, error) {
+// GetUpstreamDivergingInfo returns the information about the divergence between the fork repository's branch and the base repository's default branch.
+func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, repo *repo_model.Repository, branch string) (*UpstreamDivergingInfo, error) {
 	if !repo.IsFork {
 		return nil, util.NewInvalidArgumentErrorf("repo is not a fork")
 	}
@@ -92,7 +96,7 @@ func GetUpstreamDivergingInfo(ctx context.Context, repo *repo_model.Repository, 
 		return nil, err
 	}
 
-	baseBranch, err := git_model.GetBranch(ctx, repo.BaseRepo.ID, branch)
+	baseBranch, err := git_model.GetBranch(ctx, repo.BaseRepo.ID, repo.BaseRepo.DefaultBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -102,14 +106,39 @@ func GetUpstreamDivergingInfo(ctx context.Context, repo *repo_model.Repository, 
 		return info, nil
 	}
 
-	// TODO: if the fork repo has new commits, this call will fail:
+	// if the fork repo has new commits, this call will fail because they are not in the base repo
 	// exit status 128 - fatal: Invalid symmetric difference expression aaaaaaaaaaaa...bbbbbbbbbbbb
-	// so at the moment, we are not able to handle this case, should be improved in the future
+	// so at the moment, we first check the update time, then check whether the fork branch has base's head
 	diff, err := git.GetDivergingCommits(ctx, repo.BaseRepo.RepoPath(), baseBranch.CommitID, forkBranch.CommitID)
 	if err != nil {
-		info.BaseIsNewer = baseBranch.UpdatedUnix > forkBranch.UpdatedUnix
+		info.BaseHasNewCommits = baseBranch.UpdatedUnix > forkBranch.UpdatedUnix
+		if info.BaseHasNewCommits {
+			return info, nil
+		}
+
+		// if the base's update time is before the fork, check whether the base's head is in the fork
+		baseGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo.BaseRepo)
+		if err != nil {
+			return nil, err
+		}
+		headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
+		if err != nil {
+			return nil, err
+		}
+
+		baseCommitID, err := baseGitRepo.ConvertToGitID(baseBranch.CommitID)
+		if err != nil {
+			return nil, err
+		}
+		headCommit, err := headGitRepo.GetCommit(forkBranch.CommitID)
+		if err != nil {
+			return nil, err
+		}
+		hasPreviousCommit, _ := headCommit.HasPreviousCommit(baseCommitID)
+		info.BaseHasNewCommits = !hasPreviousCommit
 		return info, nil
 	}
+
 	info.CommitsBehind, info.CommitsAhead = diff.Behind, diff.Ahead
 	return info, nil
 }
