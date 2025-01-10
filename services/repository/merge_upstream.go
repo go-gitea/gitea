@@ -111,6 +111,12 @@ func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, repo *repo_model.Reposi
 	// so at the moment, we first check the update time, then check whether the head branch has base's head
 	diff, err := git.GetDivergingCommits(ctx, repo.BaseRepo.RepoPath(), baseBranch.CommitID, forkBranch.CommitID)
 	if err != nil {
+		info.BaseHasNewCommits = baseBranch.UpdatedUnix > forkBranch.UpdatedUnix
+		if info.BaseHasNewCommits {
+			return info, nil
+		}
+
+		// if the base's update time is before the fork, check whether the base's head is in the fork
 		baseGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo.BaseRepo)
 		if err != nil {
 			return nil, err
@@ -120,10 +126,6 @@ func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, repo *repo_model.Reposi
 			return nil, err
 		}
 
-		info.BaseHasNewCommits = baseBranch.UpdatedUnix > forkBranch.UpdatedUnix
-		if info.BaseHasNewCommits {
-			return info, nil
-		}
 		baseCommitID, err := baseGitRepo.ConvertToGitID(baseBranch.CommitID)
 		if err != nil {
 			return nil, err
