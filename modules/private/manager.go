@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -43,16 +44,19 @@ func GetSSHInfo(ctx context.Context) string {
 
 	resp, err := req.Response()
 	if err != nil {
+		log.Error("GetSSHInfo Error: %v", err)
 		return ""
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		log.Error("response status code is not OK, code: %d", resp.StatusCode)
 		return ""
 	}
 
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
+		log.Error("read body error: %v", err)
 		return ""
 	}
 
