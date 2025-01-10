@@ -42,7 +42,7 @@ Gitea 的首要目标是创建一个极易安装，运行非常快速，安装�
 - `make backend`, 需要 [Go Stable](https://go.dev/dl/), 最低版本需求可查看 [go.mod](/go.mod).
 - `make frontend`, 需要 [Node.js LTS](https://nodejs.org/en/download/) 或更高版本.
 
-你需要连接网络来下载 go 和 npm modules. 当从 tar 格式的源文件编译时，其中包含了预编译的前端文件，因此 `make frontend` 将不会被执行. 这允许编译时不需要 Node.js.
+你需要连接网络来下载 go 和 npm modules. 当从 tar 格式的源文件编译时，其中包含了预编译的前端文件，因此 `make frontend` 将不会被执行。这允许编译时不需要 Node.js。
 
 更多信息: https://docs.gitea.com/installation/install-from-source
 
