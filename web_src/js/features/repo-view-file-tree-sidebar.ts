@@ -4,6 +4,7 @@ import {GET, PUT} from '../modules/fetch.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
 import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
 import {initGlobalDropdown} from './common-page.ts';
+import {initRepoEllipsisButton} from './repo-commit.ts';
 
 async function toggleSidebar(visibility, isSigned) {
   const sidebarEl = document.querySelector('.repo-view-file-tree-sidebar');
@@ -58,6 +59,7 @@ function reloadContentScript() {
     createApp(RepoBranchTagSelector, {elRoot: refSelectorEl}).mount(refSelectorEl);
   }
   initGlobalDropdown();
+  initRepoEllipsisButton();
 }
 
 export async function initViewFileTreeSidebar() {
