@@ -62,7 +62,7 @@ function handleIndentSelection(textarea: HTMLTextAreaElement, e) {
   triggerEditorContentChanged(textarea);
 }
 
-type MarkdownHandleListNumbersResult = {
+type MarkdownHandleIndentionResult = {
   handled: boolean;
   valueSelection?: TextareaValueSelection;
 }
@@ -107,39 +107,44 @@ function markdownReformatListNumbers(linesBuf: TextLinesBuffer, indention: strin
       num++;
     }
   }
+  recalculateLengthBeforeLine(linesBuf);
+  linesBuf.posLineIndex = linesBuf.lines[linesBuf.posLineIndex].length;
+}
+
+function recalculateLengthBeforeLine(linesBuf: TextLinesBuffer) {
   linesBuf.lengthBeforePosLine = 0;
   for (let i = 0; i < linesBuf.posLineIndex; i++) {
     linesBuf.lengthBeforePosLine += linesBuf.lines[i].length + 1;
   }
-  linesBuf.posLineIndex = linesBuf.lines[linesBuf.posLineIndex].length;
 }
 
-export function markdownHandleListNumbers(tvs: TextareaValueSelection): MarkdownHandleListNumbersResult {
-  const unhandled: MarkdownHandleListNumbersResult = {handled: false};
+export function markdownHandleIndention(tvs: TextareaValueSelection): MarkdownHandleIndentionResult {
+  const unhandled: MarkdownHandleIndentionResult = {handled: false};
   if (tvs.selEnd !== tvs.selStart) return unhandled; // do not process when there is a selection
 
   const linesBuf = textareaSplitLines(tvs.value, tvs.selStart);
-  let line = linesBuf.lines[linesBuf.posLineIndex] ?? '';
+  const line = linesBuf.lines[linesBuf.posLineIndex] ?? '';
   if (!line) return unhandled; // if the line is empty, do nothing, let the browser handle it
 
   // parse the indention
-  const indention = /^\s*/.exec(line)[0];
-  line = line.slice(indention.length);
+  let lineContent = line;
+  const indention = /^\s*/.exec(lineContent)[0];
+  lineContent = lineContent.slice(indention.length);
   if (linesBuf.inlinePos <= indention.length) return unhandled; // if cursor is at the indention, do nothing, let the browser handle it
 
   // parse the prefixes: "1. ", "- ", "* ", there could also be " [ ] " or " [x] " for task lists
   // there must be a space after the prefix because none of "1.foo" / "-foo" is a list item
-  const prefixMatch = /^([0-9]+\.|[-*])(\s\[([ x])\])?\s/.exec(line);
+  const prefixMatch = /^([0-9]+\.|[-*])(\s\[([ x])\])?\s/.exec(lineContent);
   let prefix = '';
   if (prefixMatch) {
     prefix = prefixMatch[0];
     if (prefix.length > linesBuf.inlinePos) prefix = ''; // do not add new line if cursor is at prefix
   }
 
-  line = line.slice(prefix.length);
+  lineContent = lineContent.slice(prefix.length);
   if (!indention && !prefix) return unhandled; // if no indention and no prefix, do nothing, let the browser handle it
 
-  if (!line) {
+  if (!lineContent) {
     // clear current line if we only have i.e. '1. ' and the user presses enter again to finish creating a list
     linesBuf.lines[linesBuf.posLineIndex] = '';
     linesBuf.inlinePos = 0;
@@ -149,19 +154,23 @@ export function markdownHandleListNumbers(tvs: TextareaValueSelection): Markdown
     if (/^\d+\./.test(prefix)) newPrefix = `1. ${newPrefix.slice(newPrefix.indexOf('.') + 2)}`;
     newPrefix = newPrefix.replace('[x]', '[ ]');
 
-    const newLine = `${indention}${newPrefix}`;
-    linesBuf.lengthBeforePosLine += linesBuf.lines[linesBuf.posLineIndex].length;
+    const inlinePos = linesBuf.inlinePos;
+    linesBuf.lines[linesBuf.posLineIndex] = line.substring(0, inlinePos);
+    const newLineLeft = `${indention}${newPrefix}`;
+    const newLine = `${newLineLeft}${line.substring(inlinePos)}`;
     linesBuf.lines.splice(linesBuf.posLineIndex + 1, 0, newLine);
     linesBuf.posLineIndex++;
-    linesBuf.inlinePos = newLine.length;
+    linesBuf.inlinePos = newLineLeft.length;
+    recalculateLengthBeforeLine(linesBuf);
   }
+
   markdownReformatListNumbers(linesBuf, indention);
   const newPos = linesBuf.lengthBeforePosLine + linesBuf.inlinePos;
   return {handled: true, valueSelection: {value: linesBuf.lines.join('\n'), selStart: newPos, selEnd: newPos}};
 }
 
 function handleNewline(textarea: HTMLTextAreaElement, e: Event) {
-  const ret = markdownHandleListNumbers({value: textarea.value, selStart: textarea.selectionStart, selEnd: textarea.selectionEnd});
+  const ret = markdownHandleIndention({value: textarea.value, selStart: textarea.selectionStart, selEnd: textarea.selectionEnd});
   if (!ret.handled) return;
   e.preventDefault();
   textarea.value = ret.valueSelection.value;

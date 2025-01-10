@@ -1,4 +1,4 @@
-import {initTextareaMarkdown, markdownHandleListNumbers, textareaSplitLines} from './EditorMarkdown.ts';
+import {initTextareaMarkdown, markdownHandleIndention, textareaSplitLines} from './EditorMarkdown.ts';
 
 test('textareaSplitLines', () => {
   let ret = textareaSplitLines('a\nbc\nd', 0);
@@ -23,11 +23,11 @@ test('textareaSplitLines', () => {
   expect(ret).toEqual({lines: ['a', 'bc', 'd'], lengthBeforePosLine: 5, posLineIndex: 2, inlinePos: 1});
 });
 
-test('markdownHandleListNumbers', () => {
+test('markdownHandleIndention', () => {
   const testInput = (input: string, expected?: string) => {
     const inputPos = input.indexOf('|');
     input = input.replace('|', '');
-    const ret = markdownHandleListNumbers({value: input, selStart: inputPos, selEnd: inputPos});
+    const ret = markdownHandleIndention({value: input, selStart: inputPos, selEnd: inputPos});
     if (expected === null) {
       expect(ret).toEqual({handled: false});
     } else {
@@ -39,6 +39,13 @@ test('markdownHandleListNumbers', () => {
       });
     }
   };
+
+  testInput(`
+  a|b
+`, `
+  a
+  |b
+`);
 
   testInput(`
 1. a
@@ -54,11 +61,11 @@ test('markdownHandleListNumbers', () => {
 
   testInput(`
 1. a
-1. b|
+1. b|c
 `, `
 1. a
 2. b
-3. |
+3. |c
 `);
 
   testInput(`
