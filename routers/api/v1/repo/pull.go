@@ -971,7 +971,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message)
+		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, form.DeleteBranchAfterMerge)
 		if err != nil {
 			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
 				ctx.Error(http.StatusConflict, "ScheduleAutoMerge", err)
@@ -1043,11 +1043,8 @@ func MergePullRequest(ctx *context.APIContext) {
 				}
 				defer headRepo.Close()
 			}
-			if err := pull_service.RetargetChildrenOnMerge(ctx, ctx.Doer, pr); err != nil {
-				ctx.Error(http.StatusInternalServerError, "RetargetChildrenOnMerge", err)
-				return
-			}
-			if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch); err != nil {
+
+			if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch, pr); err != nil {
 				switch {
 				case git.IsErrBranchNotExist(err):
 					ctx.NotFound(err)
@@ -1059,10 +1056,6 @@ func MergePullRequest(ctx *context.APIContext) {
 					ctx.Error(http.StatusInternalServerError, "DeleteBranch", err)
 				}
 				return
-			}
-			if err := issues_model.AddDeletePRBranchComment(ctx, ctx.Doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
-				// Do not fail here as branch has already been deleted
-				log.Error("DeleteBranch: %v", err)
 			}
 		}
 	}
