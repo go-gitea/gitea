@@ -12,7 +12,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/pull"
 )
@@ -76,7 +78,7 @@ func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.
 }
 
 // GetUpstreamDivergingInfo returns the information about the divergence between the fork repository's branch and the base repository's default branch.
-func GetUpstreamDivergingInfo(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, branch string) (*UpstreamDivergingInfo, error) {
+func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, repo *repo_model.Repository, branch string) (*UpstreamDivergingInfo, error) {
 	if !repo.IsFork {
 		return nil, util.NewInvalidArgumentErrorf("repo is not a fork")
 	}
@@ -107,24 +109,30 @@ func GetUpstreamDivergingInfo(ctx context.Context, gitRepo *git.Repository, repo
 	// if the fork repo has new commits, this call will fail because they are not in the base repo
 	// exit status 128 - fatal: Invalid symmetric difference expression aaaaaaaaaaaa...bbbbbbbbbbbb
 	// so at the moment, we first check the update time, then check whether the head branch has base's head
-	diff, err := git.GetDivergingCommits(gitRepo.Ctx, gitRepo.Path, baseBranch.CommitID, forkBranch.CommitID)
+	diff, err := git.GetDivergingCommits(ctx, repo.BaseRepo.RepoPath(), baseBranch.CommitID, forkBranch.CommitID)
 	if err != nil {
+		baseGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo.BaseRepo)
+		if err != nil {
+			return nil, err
+		}
+		headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
+		if err != nil {
+			return nil, err
+		}
+
 		info.BaseIsNewer = baseBranch.UpdatedUnix > forkBranch.UpdatedUnix
 		if info.BaseIsNewer {
 			return info, nil
 		}
-		baseCommitID, err := gitRepo.ConvertToGitID(baseBranch.CommitID)
+		baseCommitID, err := baseGitRepo.ConvertToGitID(baseBranch.CommitID)
 		if err != nil {
 			return nil, err
 		}
-		headCommit, err := gitRepo.GetCommit(forkBranch.CommitID)
+		headCommit, err := headGitRepo.GetCommit(forkBranch.CommitID)
 		if err != nil {
 			return nil, err
 		}
-		info.BaseIsNewer, err = headCommit.HasPreviousCommit(baseCommitID)
-		if err != nil {
-			return nil, err
-		}
+		info.BaseIsNewer, _ = headCommit.HasPreviousCommit(baseCommitID)
 		return info, nil
 	}
 	info.CommitsBehind, info.CommitsAhead = diff.Behind, diff.Ahead
