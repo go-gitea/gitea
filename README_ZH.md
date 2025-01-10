@@ -15,7 +15,7 @@
 
 ## 目标
 
-Gitea 的首要目标是创建一个极易安装，运行非常快速，安装和使用体验良好的自建 Git 服务。我们采用 Go 作为后端语言，这使我们只要生成一个可执行程序即可。并且他还支持跨平台，支持 Linux, macOS 和 Windows 以及各种架构，除了 x86，amd64，还包括 ARM 和 PowerPC。
+Gitea 的首要目标是创建一个极易安装，运行非常快速，安装和使用体验良好的自建 Git 服务。我们采用 Go 作为后端语言，这使我们只要生成一个可执行程序即可。并且他还支持跨平台，支持 Linux、macOS 和 Windows 以及各种架构，除了 x86 和 amd64，还包括 ARM 和 PowerPC。
 
 如果你想试用在线演示和报告问题，请访问 [demo.gitea.com](https://demo.gitea.com/)。
 
@@ -29,52 +29,52 @@ Gitea 的首要目标是创建一个极易安装，运行非常快速，安装�
 
 ## 编译
 
-在源代码的根目录下执行:
+在源代码的根目录下执行：
 
     TAGS="bindata" make build
 
-或者如果需要SQLite支持:
+或者如果需要SQLite支持：
 
     TAGS="bindata sqlite sqlite_unlock_notify" make build
 
-编译过程会分成2个子任务:
+编译过程会分成2个子任务：
 
-- `make backend`, 需要 [Go Stable](https://go.dev/dl/), 最低版本需求可查看 [go.mod](/go.mod).
-- `make frontend`, 需要 [Node.js LTS](https://nodejs.org/en/download/) 或更高版本.
+- `make backend`，需要 [Go Stable](https://go.dev/dl/)，最低版本需求可查看 [go.mod](/go.mod)。
+- `make frontend`，需要 [Node.js LTS](https://nodejs.org/en/download/) 或更高版本。
 
-你需要连接网络来下载 go 和 npm modules. 当从 tar 格式的源文件编译时，其中包含了预编译的前端文件，因此 `make frontend` 将不会被执行。这允许编译时不需要 Node.js。
+你需要连接网络来下载 go 和 npm modules。当从 tar 格式的源文件编译时，其中包含了预编译的前端文件，因此 `make frontend` 将不会被执行。这允许编译时不需要 Node.js。
 
 更多信息: https://docs.gitea.com/installation/install-from-source
 
 ## 使用
 
-编译之后, 默认会在根目录下生成一个名为 `gitea` 的文件. 你可以这样执行它:
+编译之后，默认会在根目录下生成一个名为 `gitea` 的文件。你可以这样执行它：
 
     ./gitea web
 
 > [!注意]
-> 如果你要使用API，请参见 [API 文档](https://godoc.org/code.gitea.io/sdk/gitea).
+> 如果你要使用API，请参见 [API 文档](https://godoc.org/code.gitea.io/sdk/gitea)。
 
 ## 贡献
 
-贡献流程: Fork -> Patch -> Push -> Pull Request
+贡献流程：Fork -> Patch -> Push -> Pull Request
 
 > [!注意]
 >
-> 1. **开始贡献代码之前请确保你已经看过了 [贡献者向导（英文）](CONTRIBUTING.md)**.
-> 2. 所有的安全问题，请私下发送邮件给 **security@gitea.io**. 谢谢！
+> 1. **开始贡献代码之前请确保你已经看过了 [贡献者向导（英文）](CONTRIBUTING.md)**。
+> 2. 所有的安全问题，请私下发送邮件给 **security@gitea.io**。 谢谢！
 
 ## 翻译
 
 [![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com)
 
-多语言翻译是基于Crowdin进行的.
+多语言翻译是基于Crowdin进行的。
 
-从 [文档](https://docs.gitea.com/contributing/localization) 中获取更多信息.
+从 [文档](https://docs.gitea.com/contributing/localization) 中获取更多信息。
 
 ## 官方和第三方项目
 
-Gitea 提供官方的 [go-sdk](https://gitea.com/gitea/go-sdk), 名为 [tea](https://gitea.com/gitea/tea) 的 CLI 工具 和 用于 Gitea Action 的 [action runner](https://gitea.com/gitea/act_runner).
+Gitea 提供官方的 [go-sdk](https://gitea.com/gitea/go-sdk)，以及名为 [tea](https://gitea.com/gitea/tea) 的 CLI 工具 和 用于 Gitea Action 的 [action runner](https://gitea.com/gitea/act_runner)。
 
 [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea) 是一个 Gitea 相关项目的列表，你可以在这里找到更多的第三方项目，包括 SDK、插件、主题等等。
 
