@@ -60,6 +60,7 @@
   min-width: 0;
   grid-column: 2;
   grid-row: 1 / 4;
+  margin-left: var(--page-margin-x);
 }
 
 #view-file-tree.is-loading {
