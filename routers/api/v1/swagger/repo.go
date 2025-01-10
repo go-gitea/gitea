@@ -448,3 +448,15 @@ type swaggerCompare struct {
 	// in:body
 	Body api.Compare `json:"body"`
 }
+
+// swagger:response MergeUpstreamRequest
+type swaggerMergeUpstreamRequest struct {
+	// in:body
+	Body api.MergeUpstreamRequest `json:"body"`
+}
+
+// swagger:response MergeUpstreamResponse
+type swaggerMergeUpstreamResponse struct {
+	// in:body
+	Body api.MergeUpstreamResponse `json:"body"`
+}
