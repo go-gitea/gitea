@@ -30,10 +30,13 @@ type SearchTeamRepoOptions struct {
 func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) (RepositoryList, error) {
 	sess := db.GetEngine(ctx)
 	if opts.TeamID > 0 {
-		sess = sess.In("id",
-			builder.Select("repo_id").
-				From("team_repo").
-				Where(builder.Eq{"team_id": opts.TeamID}),
+		sess = sess.Where(
+			builder.Or(
+				builder.In("id", builder.Select("repo_id").
+					From("team_repo").
+					Where(builder.Eq{"team_id": opts.TeamID}),
+				)),
+			builder.In("id", ReposAccessibleByGroupTeamBuilder(opts.TeamID)),
 		)
 	}
 	if opts.PageSize > 0 {
