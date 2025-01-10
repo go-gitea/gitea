@@ -15,6 +15,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix ACME panic (#33178) (#33186)
   * Fix branch dropdown not display ref name (#33159) (#33183)
   * Fix assignee list overlapping in Issue sidebar (#33176) (#33181)
+  * Fix sync fork for consistency (#33147) #33192
 
 ## [1.23.0](https://github.com/go-gitea/gitea/releases/tag/v1.23.0) - 2025-01-08
 
