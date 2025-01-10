@@ -81,6 +81,7 @@ type PackageMetadataVersion struct {
 	BundleDependencies   []string            `json:"bundleDependencies,omitempty"`
 	DevDependencies      map[string]string   `json:"devDependencies,omitempty"`
 	PeerDependencies     map[string]string   `json:"peerDependencies,omitempty"`
+	PeerDependenciesMeta map[string]any      `json:"peerDependenciesMeta,omitempty"`
 	Bin                  map[string]string   `json:"bin,omitempty"`
 	OptionalDependencies map[string]string   `json:"optionalDependencies,omitempty"`
 	Readme               string              `json:"readme,omitempty"`
@@ -222,6 +223,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				BundleDependencies:      meta.BundleDependencies,
 				DevelopmentDependencies: meta.DevDependencies,
 				PeerDependencies:        meta.PeerDependencies,
+				PeerDependenciesMeta:    meta.PeerDependenciesMeta,
 				OptionalDependencies:    meta.OptionalDependencies,
 				Bin:                     meta.Bin,
 				Readme:                  meta.Readme,

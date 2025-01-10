@@ -13,15 +13,15 @@
 		<div class="repo-file-item">
 			{{$entry := $item.Entry}}
 			{{$commit := $item.Commit}}
-			{{$subModuleFile := $item.SubModuleFile}}
+			{{$submoduleFile := $item.SubmoduleFile}}
 			<div class="repo-file-cell name {{if not $commit}}notready{{end}}">
 				{{if $entry.IsSubModule}}
 					{{svg "octicon-file-submodule"}}
-					{{$refURL := $subModuleFile.RefURL AppUrl $.Repository.FullName $.SSHDomain}} {{/* FIXME: the usage of AppUrl seems incorrect, it would be fixed in the future, use AppSubUrl instead */}}
-					{{if $refURL}}
-						<a class="muted" href="{{$refURL}}">{{$entry.Name}}</a> <span class="at">@</span> <a href="{{$refURL}}/commit/{{PathEscape $subModuleFile.RefID}}">{{ShortSha $subModuleFile.RefID}}</a>
+					{{$submoduleLink := $submoduleFile.SubmoduleWebLink ctx}}
+					{{if $submoduleLink}}
+						<a class="muted" href="{{$submoduleLink.RepoWebLink}}">{{$entry.Name}}</a> <span class="at">@</span> <a href="{{$submoduleLink.CommitWebLink}}">{{ShortSha $submoduleFile.RefID}}</a>
 					{{else}}
-						{{$entry.Name}} <span class="at">@</span> {{ShortSha $subModuleFile.RefID}}
+						{{$entry.Name}} <span class="at">@</span> {{ShortSha $submoduleFile.RefID}}
 					{{end}}
 				{{else}}
 					{{if $entry.IsDir}}
