@@ -238,6 +238,9 @@ func (issue *Issue) loadCommentsByType(ctx context.Context, tp CommentType) (err
 		IssueID: issue.ID,
 		Type:    tp,
 	})
+	for _, comment := range issue.Comments {
+		comment.Issue = issue
+	}
 	return err
 }
 
