@@ -108,7 +108,7 @@ func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, repo *repo_model.Reposi
 
 	// if the fork repo has new commits, this call will fail because they are not in the base repo
 	// exit status 128 - fatal: Invalid symmetric difference expression aaaaaaaaaaaa...bbbbbbbbbbbb
-	// so at the moment, we first check the update time, then check whether the head branch has base's head
+	// so at the moment, we first check the update time, then check whether the fork branch has base's head
 	diff, err := git.GetDivergingCommits(ctx, repo.BaseRepo.RepoPath(), baseBranch.CommitID, forkBranch.CommitID)
 	if err != nil {
 		info.BaseHasNewCommits = baseBranch.UpdatedUnix > forkBranch.UpdatedUnix
