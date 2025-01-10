@@ -4,6 +4,18 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.23.1](https://github.com/go-gitea/gitea/releases/tag/v1.23.1) - 2025-01-09
+
+* ENHANCEMENTS
+  * Move repo size to sidebar (#33155) (#33182)
+* BUGFIXES
+  * Use updated path to s6-svscan after alpine upgrade (#33185) (#33188)
+  * Fix fuzz test (#33156) (#33158)
+  * Fix raw file API ref handling (#33172) (#33189)
+  * Fix ACME panic (#33178) (#33186)
+  * Fix branch dropdown not display ref name (#33159) (#33183)
+  * Fix assignee list overlapping in Issue sidebar (#33176) (#33181)
+
 ## [1.23.0](https://github.com/go-gitea/gitea/releases/tag/v1.23.0) - 2025-01-08
 
 * BREAKING
