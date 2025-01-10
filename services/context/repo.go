@@ -21,6 +21,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -743,6 +744,21 @@ const (
 	RepoRefBlob
 )
 
+func RefTypeName(refType RepoRefType) string {
+	switch refType {
+	case RepoRefBranch:
+		return "branch"
+	case RepoRefTag:
+		return "tag"
+	case RepoRefCommit:
+		return "commit"
+	case RepoRefBlob:
+		return "blob"
+	default:
+		return "unknown"
+	}
+}
+
 const headRefName = "HEAD"
 
 // RepoRef handles repository reference names when the ref name is not
@@ -988,6 +1004,8 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
 		ctx.Data["RefName"] = ctx.Repo.RefName
+		ctx.Data["RefShortName"] = util.Iif(refType == RepoRefCommit, base.ShortSha(ctx.Repo.RefName), ctx.Repo.RefName)
+		ctx.Data["RefType"] = RefTypeName(refType)
 		ctx.Data["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 		ctx.Data["TagName"] = ctx.Repo.TagName
 		ctx.Data["CommitID"] = ctx.Repo.CommitID

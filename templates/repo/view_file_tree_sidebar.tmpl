@@ -1,16 +1,3 @@
-{{- /* for repo home (default branch) and /owner/repo/src/branch/the-name */ -}}
-{{- $branchDropdownCurrentRefType := "branch" -}}
-{{- $branchDropdownCurrentRefShortName := .BranchName -}}
-{{- if .IsViewTag -}}
-	{{- /* for /owner/repo/src/tag/the-name */ -}}
-	{{- $branchDropdownCurrentRefType = "tag" -}}
-	{{- $branchDropdownCurrentRefShortName = .TagName -}}
-{{- else if .IsViewCommit -}}
-	{{- /* for /owner/repo/src/commit/000000 */ -}}
-	{{- $branchDropdownCurrentRefType = "commit" -}}
-	{{- $branchDropdownCurrentRefShortName = ShortSha .CommitID -}}
-{{- end -}}
-
 <div class="view-file-tree-sidebar-top">
 	<div class="sidebar-header">
 		<button class="hide-tree-sidebar-button ui compact basic button icon" title="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
@@ -24,7 +11,7 @@
 	<div id="view-file-tree" class="is-loading"
 		data-api-base-url="{{.RepoLink}}"
 		data-tree-path="{{$.TreePath}}"
-		data-current-ref-type="{{$branchDropdownCurrentRefType}}"
-		data-current-ref-short-name="{{$branchDropdownCurrentRefShortName}}"
+		data-current-ref-type="{{.RefType}}"
+		data-current-ref-short-name="{{.RefShortName}}"
 	></div>
 </div>
