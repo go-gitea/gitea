@@ -22,6 +22,14 @@ func TestCompareRouters(t *testing.T) {
 		compareRouter *CompareRouter
 	}{
 		{
+			router: "",
+			compareRouter: &CompareRouter{
+				BaseOriRef: "",
+				HeadOriRef: "",
+				DotTimes:   3,
+			},
+		},
+		{
 			router: "main...develop",
 			compareRouter: &CompareRouter{
 				BaseOriRef: "main",
@@ -175,6 +183,25 @@ func Test_ParseComparePathParams(t *testing.T) {
 		router      string
 		compareInfo *CompareInfo
 	}{
+		{
+			repoName: "repo1",
+			router:   "",
+			compareInfo: &CompareInfo{
+				CompareRouter: &CompareRouter{
+					BaseOriRef:    "master",
+					BaseFullRef:   git.RefNameFromBranch("master"),
+					HeadOriRef:    "master",
+					HeadFullRef:   git.RefNameFromBranch("master"),
+					HeadOwnerName: repo1.OwnerName,
+					HeadRepoName:  repo1.Name,
+					DotTimes:      3,
+				},
+				BaseRepo:    repo1,
+				HeadUser:    repo1.Owner,
+				HeadRepo:    repo1,
+				HeadGitRepo: gitRepo1,
+			},
+		},
 		{
 			repoName: "repo1",
 			router:   "master...branch2",

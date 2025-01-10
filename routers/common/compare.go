@@ -241,7 +241,10 @@ func ParseComparePathParams(ctx context.Context, pathParam string, baseRepo *rep
 	var err error
 
 	if pathParam == "" {
-		ci.HeadOriRef = baseRepo.DefaultBranch
+		ci.CompareRouter = &CompareRouter{
+			HeadOriRef: baseRepo.DefaultBranch,
+			DotTimes:   3,
+		}
 	} else {
 		ci.CompareRouter, err = parseCompareRouter(pathParam)
 		if err != nil {
