@@ -1,9 +1,15 @@
-{{$branchDropdownCurrentRefType := "branch"}}
-{{$branchDropdownCurrentRefShortName := .ctxData.BranchName}}
-{{if .ctxData.IsViewTag}}
-	{{$branchDropdownCurrentRefType = "tag"}}
-	{{$branchDropdownCurrentRefShortName = .ctxData.TagName}}
-{{end}}
+{{- /* for repo home (default branch) and /owner/repo/src/branch/the-name */ -}}
+{{- $branchDropdownCurrentRefType := "branch" -}}
+{{- $branchDropdownCurrentRefShortName := .ctxData.BranchName -}}
+{{- if .IsViewTag -}}
+	{{- /* for /owner/repo/src/tag/the-name */ -}}
+	{{- $branchDropdownCurrentRefType = "tag" -}}
+	{{- $branchDropdownCurrentRefShortName = .ctxData.TagName -}}
+{{- else if .IsViewCommit -}}
+	{{- /* for /owner/repo/src/commit/000000 */ -}}
+	{{- $branchDropdownCurrentRefType = "commit" -}}
+	{{- $branchDropdownCurrentRefShortName = ShortSha .ctxData.CommitID -}}
+{{- end -}}
 {{template "repo/branch_dropdown" dict
 	"Repository" .ctxData.Repository
 	"ShowTabBranches" true
