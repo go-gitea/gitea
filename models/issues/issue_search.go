@@ -70,47 +70,54 @@ func (o *IssuesOptions) Copy(edit ...func(options *IssuesOptions)) *IssuesOption
 // applySorts sort an issues-related session based on the provided
 // sortType string
 func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
-	switch sortType {
-	case "oldest":
-		sess.Asc("issue.created_unix").Asc("issue.id")
-	case "recentupdate":
-		sess.Desc("issue.updated_unix").Desc("issue.created_unix").Desc("issue.id")
-	case "leastupdate":
-		sess.Asc("issue.updated_unix").Asc("issue.created_unix").Asc("issue.id")
-	case "mostcomment":
-		sess.Desc("issue.num_comments").Desc("issue.created_unix").Desc("issue.id")
-	case "leastcomment":
-		sess.Asc("issue.num_comments").Desc("issue.created_unix").Desc("issue.id")
-	case "priority":
-		sess.Desc("issue.priority").Desc("issue.created_unix").Desc("issue.id")
-	case "nearduedate":
-		// 253370764800 is 01/01/9999 @ 12:00am (UTC)
-		sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
-			OrderBy("CASE " +
-				"WHEN issue.deadline_unix = 0 AND (milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL) THEN 253370764800 " +
-				"WHEN milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
-				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
-				"ELSE issue.deadline_unix END ASC").
-			Desc("issue.created_unix").
-			Desc("issue.id")
-	case "farduedate":
-		sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
-			OrderBy("CASE " +
-				"WHEN milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
-				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
-				"ELSE issue.deadline_unix END DESC").
-			Desc("issue.created_unix").
-			Desc("issue.id")
-	case "priorityrepo":
-		sess.OrderBy("CASE "+
-			"WHEN issue.repo_id = ? THEN 1 "+
-			"ELSE 2 END ASC", priorityRepoID).
-			Desc("issue.created_unix").
-			Desc("issue.id")
-	case "project-column-sorting":
-		sess.Asc("project_issue.sorting").Desc("issue.created_unix").Desc("issue.id")
-	default:
-		sess.Desc("issue.created_unix").Desc("issue.id")
+	if strings.HasPrefix(sortType, "scope-") {
+		scope := strings.TrimPrefix(sortType, "scope-")
+		sess.Join("LEFT", "issue_label", "issue.id = issue_label.issue_id")
+		sess.Join("LEFT", "label", "label.id = issue_label.label_id and label.name LIKE ?", fmt.Sprintf("%s/%%", scope))
+		sess.Asc("label.exclusive_order").Desc("issue.id")
+	} else {
+		switch sortType {
+		case "oldest":
+			sess.Asc("issue.created_unix").Asc("issue.id")
+		case "recentupdate":
+			sess.Desc("issue.updated_unix").Desc("issue.created_unix").Desc("issue.id")
+		case "leastupdate":
+			sess.Asc("issue.updated_unix").Asc("issue.created_unix").Asc("issue.id")
+		case "mostcomment":
+			sess.Desc("issue.num_comments").Desc("issue.created_unix").Desc("issue.id")
+		case "leastcomment":
+			sess.Asc("issue.num_comments").Desc("issue.created_unix").Desc("issue.id")
+		case "priority":
+			sess.Desc("issue.priority").Desc("issue.created_unix").Desc("issue.id")
+		case "nearduedate":
+			// 253370764800 is 01/01/9999 @ 12:00am (UTC)
+			sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
+				OrderBy("CASE " +
+					"WHEN issue.deadline_unix = 0 AND (milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL) THEN 253370764800 " +
+					"WHEN milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
+					"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
+					"ELSE issue.deadline_unix END ASC").
+				Desc("issue.created_unix").
+				Desc("issue.id")
+		case "farduedate":
+			sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
+				OrderBy("CASE " +
+					"WHEN milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
+					"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
+					"ELSE issue.deadline_unix END DESC").
+				Desc("issue.created_unix").
+				Desc("issue.id")
+		case "priorityrepo":
+			sess.OrderBy("CASE "+
+				"WHEN issue.repo_id = ? THEN 1 "+
+				"ELSE 2 END ASC", priorityRepoID).
+				Desc("issue.created_unix").
+				Desc("issue.id")
+		case "project-column-sorting":
+			sess.Asc("project_issue.sorting").Desc("issue.created_unix").Desc("issue.id")
+		default:
+			sess.Desc("issue.created_unix").Desc("issue.id")
+		}
 	}
 }
 

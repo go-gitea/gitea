@@ -4,14 +4,14 @@
 package db
 
 import (
-	"context"
-	"fmt"
-
 	"code.gitea.io/gitea/models/db"
 	issue_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/optional"
+	"context"
+	"fmt"
+	"strings"
 )
 
 func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_model.IssuesOptions, error) {
@@ -34,7 +34,11 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 	case internal.SortByDeadlineAsc:
 		sortType = "nearduedate"
 	default:
-		sortType = "newest"
+		if strings.HasPrefix(string(options.SortBy), "scope-") {
+			sortType = string(options.SortBy)
+		} else {
+			sortType = "newest"
+		}
 	}
 
 	// See the comment of issues_model.SearchOptions for the reason why we need to convert
