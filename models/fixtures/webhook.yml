@@ -29,3 +29,23 @@
   content_type: 1 # json
   events: '{"push_only":true,"branch_filter":"{master,feature*}"}'
   is_active: true
+
+-
+  id: 5
+  repo_id: 0
+  owner_id: 0
+  url: www.example.com/url5
+  content_type: 1 # json
+  events: '{"push_only":true,"branch_filter":"{master,feature*}"}'
+  is_active: true
+  is_system_webhook: true
+
+-
+  id: 6
+  repo_id: 0
+  owner_id: 0
+  url: www.example.com/url6
+  content_type: 1 # json
+  events: '{"push_only":true,"branch_filter":"{master,feature*}"}'
+  is_active: true
+  is_system_webhook: false
