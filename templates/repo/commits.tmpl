@@ -5,14 +5,19 @@
 		{{template "repo/sub_menu" .}}
 		<div class="repo-button-row">
 			<div class="repo-button-row-left">
-
-				{{$branchDropdownCurrentRefType := "branch"}}
-				{{$branchDropdownCurrentRefShortName := .BranchName}}
-				{{if .IsViewTag}}
-					{{$branchDropdownCurrentRefType = "tag"}}
-					{{$branchDropdownCurrentRefShortName = .TagName}}
-				{{end}}
-				{{template "repo/branch_dropdown" dict
+				{{- /* for /owner/repo/commits/branch/the-name */ -}}
+				{{- $branchDropdownCurrentRefType := "branch" -}}
+				{{- $branchDropdownCurrentRefShortName := .BranchName -}}
+				{{- if .IsViewTag -}}
+					{{- /* for /owner/repo/commits/tag/the-name */ -}}
+					{{- $branchDropdownCurrentRefType = "tag" -}}
+					{{- $branchDropdownCurrentRefShortName = .TagName -}}
+				{{- else if .IsViewCommit -}}
+					{{- /* for /owner/repo/commits/commit/000000 */ -}}
+					{{- $branchDropdownCurrentRefType = "commit" -}}
+					{{- $branchDropdownCurrentRefShortName = ShortSha .CommitID -}}
+				{{- end -}}
+				{{- template "repo/branch_dropdown" dict
 					"Repository" .Repository
 					"ShowTabBranches" true
 					"ShowTabTags" true
@@ -21,8 +26,7 @@
 					"CurrentTreePath" .TreePath
 					"RefLinkTemplate" "{RepoLink}/commits/{RefType}/{RefShortName}/{TreePath}"
 					"AllowCreateNewRef" .CanCreateBranch
-				}}
-
+				-}}
 				<a href="{{.RepoLink}}/graph" class="ui basic small compact button">
 					{{svg "octicon-git-branch"}}
 					{{ctx.Locale.Tr "repo.commit_graph"}}

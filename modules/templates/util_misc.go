@@ -150,7 +150,7 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 		return ret
 	}
 
-	u, err := giturl.Parse(remoteURL)
+	u, err := giturl.ParseGitURL(remoteURL)
 	if err != nil {
 		log.Error("giturl.Parse %v", err)
 		return ret

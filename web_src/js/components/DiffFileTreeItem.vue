@@ -8,6 +8,7 @@ type File = {
   NameHash: string;
   Type: number;
   IsViewed: boolean;
+  IsSubmodule: boolean;
 }
 
 type Item = {
@@ -34,6 +35,13 @@ function getIconForDiffType(pType) {
   };
   return diffTypes[pType];
 }
+
+function fileIcon(file) {
+  if (file.IsSubmodule) {
+    return 'octicon-file-submodule';
+  }
+  return 'octicon-file';
+}
 </script>
 
 <template>
@@ -44,7 +52,7 @@ function getIconForDiffType(pType) {
     :title="item.name" :href="'#diff-' + item.file.NameHash"
   >
     <!-- file -->
-    <SvgIcon name="octicon-file"/>
+    <SvgIcon :name="fileIcon(item.file)"/>
     <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
     <SvgIcon :name="getIconForDiffType(item.file.Type).name" :class="getIconForDiffType(item.file.Type).classes"/>
   </a>

@@ -19,6 +19,7 @@ import {
 import {POST, GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {createTippy} from '../modules/tippy.ts';
+import {invertFileFolding} from './file-fold.ts';
 
 const {pageData, i18n} = window.config;
 
@@ -244,4 +245,8 @@ export function initRepoDiffView() {
   initRepoDiffFileViewToggle();
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();
+
+  addDelegatedEventListener(document, 'click', '.fold-file', (el) => {
+    invertFileFolding(el.closest('.file-content'), el);
+  });
 }
