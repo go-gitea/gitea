@@ -204,11 +204,11 @@ func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, 
 	})
 }
 
-// RefTypeNameSubURL sub-url for the BranchName field, for example:
+// RefTypeNameSubURL makes a sub-url for the current ref (branch/tag/commit) field, for example:
 // * "branch/master"
 // * "tag/v1.0.0"
 // * "commit/123456"
-// It is usually used to construct a link for lie ".../src/{RefTypeNameSubURL}/{TreePath}"
+// It is usually used to construct a link like ".../src/{{RefTypeNameSubURL}}/{{PathEscapeSegments TreePath}}"
 func (r *Repository) RefTypeNameSubURL() string {
 	switch {
 	case r.IsViewBranch:

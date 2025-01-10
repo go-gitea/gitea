@@ -48,7 +48,7 @@
 			</form>
 		</div>
 
-		{{if and $.Repository.Owner $.Repository.Owner.IsOrganization}}
+		{{if $.Repository.Owner.IsOrganization}}
 			<h4 class="ui top attached header">
 				{{ctx.Locale.Tr "repo.settings.teams"}}
 			</h4>
