@@ -58,7 +58,7 @@ func RenderFile(ctx *context.Context) {
 	}
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-		CurrentRefPath:  ctx.Repo.BranchNameSubURL(),
+		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
 		CurrentTreePath: path.Dir(ctx.Repo.TreePath),
 	}).WithRelativePath(ctx.Repo.TreePath).WithInStandalonePage(true)
 

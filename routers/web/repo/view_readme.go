@@ -189,7 +189,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 		ctx.Data["MarkupType"] = markupType
 
 		rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-			CurrentRefPath:  ctx.Repo.BranchNameSubURL(),
+			CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
 			CurrentTreePath: path.Join(ctx.Repo.TreePath, subfolder),
 		}).
 			WithMarkupType(markupType).
