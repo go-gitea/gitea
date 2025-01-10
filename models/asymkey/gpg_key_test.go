@@ -15,6 +15,7 @@ import (
 
 	"github.com/keybase/go-crypto/openpgp/packet"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckArmoredGPGKeyString(t *testing.T) {
@@ -107,9 +108,8 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 =i9b7
 -----END PGP PUBLIC KEY BLOCK-----`
 	keys, err := checkArmoredGPGKeyString(testGPGArmor)
-	if !assert.NotEmpty(t, keys) {
-		return
-	}
+	require.NotEmpty(t, keys)
+
 	ekey := keys[0]
 	assert.NoError(t, err, "Could not parse a valid GPG armored key", ekey)
 
