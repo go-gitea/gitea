@@ -2,7 +2,11 @@ import {createTippy} from '../modules/tippy.ts';
 import {toggleElem} from '../utils/dom.ts';
 
 export function initRepoEllipsisButton() {
-  for (const button of document.querySelectorAll('.js-toggle-commit-body')) {
+  initTargetRepoEllipsisButton(document);
+}
+
+export function initTargetRepoEllipsisButton(target: ParentNode) {
+  for (const button of target.querySelectorAll('.js-toggle-commit-body')) {
     button.addEventListener('click', function (e) {
       e.preventDefault();
       const expanded = this.getAttribute('aria-expanded') === 'true';

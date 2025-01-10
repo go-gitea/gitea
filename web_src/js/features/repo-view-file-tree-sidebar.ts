@@ -2,11 +2,11 @@ import {createApp, ref} from 'vue';
 import {toggleElem} from '../utils/dom.ts';
 import {GET, PUT} from '../modules/fetch.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
-import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
-import {initGlobalDropdown} from './common-page.ts';
-import {initRepoEllipsisButton} from './repo-commit.ts';
-import {initPdfViewer} from '../render/pdf.ts';
-import {initGlobalButtons} from './common-button.ts';
+import {initTargetRepoBranchTagSelector} from './repo-legacy.ts';
+import {initTargetDropdown} from './common-page.ts';
+import {initTargetRepoEllipsisButton} from './repo-commit.ts';
+import {initTargetPdfViewer} from '../render/pdf.ts';
+import {initTargetButtons} from './common-button.ts';
 
 async function toggleSidebar(visibility, isSigned) {
   const sidebarEl = document.querySelector('.repo-view-file-tree-sidebar');
@@ -48,22 +48,20 @@ async function loadChildren(item, recursive?: boolean) {
 async function loadContent() {
   // load content by path (content based on home_content.tmpl)
   const response = await GET(`${window.location.href}?only_content=true`);
-  document.querySelector('.repo-home-filelist').innerHTML = await response.text();
-  reloadContentScript();
+  const contentEl = document.querySelector('.repo-home-filelist');
+  contentEl.innerHTML = await response.text();
+  reloadContentScript(contentEl);
 }
 
-function reloadContentScript() {
-  document.querySelector('.repo-home-filelist .show-tree-sidebar-button').addEventListener('click', () => {
+function reloadContentScript(contentEl: Element) {
+  contentEl.querySelector('.show-tree-sidebar-button').addEventListener('click', () => {
     toggleSidebar(true, document.querySelector('.repo-view-file-tree-sidebar').hasAttribute('data-is-signed'));
   });
-  const refSelectorEl = document.querySelector('.repo-home-filelist .js-branch-tag-selector');
-  if (refSelectorEl) {
-    createApp(RepoBranchTagSelector, {elRoot: refSelectorEl}).mount(refSelectorEl);
-  }
-  initGlobalDropdown();
-  initRepoEllipsisButton();
-  initPdfViewer();
-  initGlobalButtons();
+  initTargetButtons(contentEl);
+  initTargetDropdown(contentEl);
+  initTargetPdfViewer(contentEl);
+  initTargetRepoBranchTagSelector(contentEl);
+  initTargetRepoEllipsisButton(contentEl);
 }
 
 export async function initViewFileTreeSidebar() {
